@@ -1,6 +1,6 @@
 # A2UIVerse — Dev TODO
 
-## Phase 0 — Scaffold [WIP]
+## Phase 0 — Scaffold [done]
 Monorepo, workspace packages, root commands to run the local processes, per-package READMEs, sibling `a2uiverse-apps` skeleton. No behavior.
 Spec: `_dev/docs/spec/phase-0-scaffold.md`.
 
