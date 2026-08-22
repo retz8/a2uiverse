@@ -10,7 +10,7 @@ Spec: `_dev/docs/spec/phase-0-scaffold.md`.
 - [x] **0.4** Nightly routine setup, `a2uiverse` — labels, fresh-clone gate check, `schedule` registration, CLAUDE.md (after 0.2; parallel with 0.5)
 - [x] **0.5** `[apps]` Nightly routine setup, `a2uiverse-apps` (after 0.3; parallel with 0.4)
 
-## Phase 1 — Spine
+## Phase 1 — Spine [WIP]
 Client ↔ orchestrator ↔ one mock vendor agent, end to end: canvas shell ported from `a2ui-github`, orchestrator as an A2A agent server, hardcoded registry, intent journal (M0). The client talks only to the orchestrator.
 
 ## Phase 2 — Layout-only composition
