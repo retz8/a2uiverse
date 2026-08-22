@@ -432,6 +432,10 @@ Named so they do not creep in: native shell · adapter isolation · third-party 
 
 ## 18. References
 
+### Local extension supplement
+
+`_dev/docs/A2UIVerse-Local-Extension-Spec.md` — architectural vision for the post-project direction: local SLM inference for Planner/Synthesizer, hardware-backed AuthVault, native shell with an OS Bridge. Covers the items §11 and §17 name as out of scope. A supplement, not part of this spec; its milestone numbering is its own.
+
 ### Upstream orchestrator sample
 
 `a2ui-project/a2ui` — `samples/community/agent/adk/orchestrator` at `upstream/main` `c6ea14e7`.
