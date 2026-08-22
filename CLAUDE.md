@@ -47,6 +47,12 @@ This project targets a single protocol version at a time.
 
 Catalog-authoring and renderer-design conventions live in the `a2ui-sdk-design` skill (read per the top instruction before that work).
 
+### Setup and gates
+
+- **Fresh clone:** `pnpm install` at the root (Node ≥ 22; Corepack resolves the pinned pnpm).
+- **Gates:** `pnpm verify` — `turbo run build typecheck test`, then `eslint .` and `prettier --check .`. Must be green before any commit lands on `main`.
+- **Run:** `pnpm dev` starts all three processes; `pnpm --filter @a2uiverse/<app> dev` runs one. Ports and tunnel URLs: `_dev/docs/tunnel-environment.md`.
+
 ### Daily-work harness
 
 The dev workflow (phases → sub-tasks, dispatch, branching, wrap-up) lives in the **`daily-work-harness` plugin** — its skills (`daily-work-harness:pick-up-task` / `:wrap-up` / `:rebase-with-main` / `:grill-to-spec`) and the `daily-workflow.md` reference doc they read. Operational rules it relies on:
