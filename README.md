@@ -41,8 +41,6 @@ A2UIVerse provides a family of composable primitives for agent-native applicatio
 - **App** — a portable application bundle built around an agent
 - **Runtime** — execute and compose applications
 
-A2UI is the protocol. A2UIVerse is the ecosystem built around it.
-
 ## Status
 
 In development. The design lives in [SPEC.md](SPEC.md).
