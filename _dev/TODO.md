@@ -5,8 +5,8 @@ Monorepo, workspace packages, root commands to run the local processes, per-pack
 Spec: `_dev/docs/spec/phase-0-scaffold.md`.
 
 - [x] **0.1** Doc edits — SPEC §9/§13/§15, `a2ui-sdk-design` skill (both repos), `a2uiverse-apps` README + CLAUDE.md
-- [WIP] **0.2** Monorepo scaffold — pnpm + Turborepo, toolchain, `apps/{client,orchestrator,marketplace}` + `packages/{sdk,shell-catalog}`, READMEs, placeholder `dev`, gates green (after 0.1; parallel with 0.3)
-- [ ] **0.3** `[apps]` `a2uiverse-apps` skeleton — workspace, one-folder-per-app layout, CLAUDE.md setup + gates, gates green with no vendor (after 0.1; parallel with 0.2)
+- [x] **0.2** Monorepo scaffold — pnpm + Turborepo, toolchain, `apps/{client,orchestrator,marketplace}` + `packages/{sdk,shell-catalog}`, READMEs, placeholder `dev`, gates green (after 0.1; parallel with 0.3)
+- [WIP] **0.3** `[apps]` `a2uiverse-apps` skeleton — workspace, one-folder-per-app layout, CLAUDE.md setup + gates, gates green with no vendor (after 0.1; parallel with 0.2)
 - [ ] **0.4** Nightly routine setup, `a2uiverse` — labels, fresh-clone gate check, `schedule` registration, CLAUDE.md (after 0.2; parallel with 0.5)
 - [ ] **0.5** `[apps]` Nightly routine setup, `a2uiverse-apps` (after 0.3; parallel with 0.4)
 
