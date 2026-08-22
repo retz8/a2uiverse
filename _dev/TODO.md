@@ -1,6 +1,47 @@
 # A2UIVerse — Dev TODO
 
-## Phase 1 — <title>
-<one-line goal of the phase>
+## Phase 0 — Scaffold
+Monorepo, workspace packages, root commands to run the local processes, per-package READMEs, sibling `a2uiverse-apps` skeleton. No behavior.
+
+## Phase 1 — Spine
+Client ↔ orchestrator ↔ one mock vendor agent, end to end: canvas shell ported from `a2ui-github`, orchestrator as an A2A agent server, hardcoded registry, intent journal (M0). The client talks only to the orchestrator.
+
+## Phase 2 — Layout-only composition
+2 agents · 2 catalogs on one surface, no synthesis (M1). Router, Planner, AgentsPool, UIComposer one-tree graft, shell catalog composition primitives, plan/fill/collapse, provenance + attribution, partition isolation.
+
+## Phase 3 — Synthesis, identical shapes
+Two sibling mock vendors merged (M2). Synthesizer, derived bindings, BindingEvaluator, IntegrityChecker, generation stamps, disclosure line.
+
+## Phase 4 — Heterogeneous shapes
+Temporal merge over Calendar · Mail · GitHub (M3). Unrelated data models, shared-axis merge, key-based refs, decline, quiescence across unsynchronized arrivals.
+
+## Phase 5 — Entity resolution
+Entity join (M4). The differentiator proven.
+
+## Phase 6 — Late arrival + failure
+Per-source deadlines, failure tiles, decline, late absorb as a visible attributed update (M6).
+
+## Phase 7 — Durable composition
+Timeline, frozen + stamped, refresh, add/drop source, "compare these" (M5).
+
+## Phase 8 — App bundle + registry
+Bundle format, local install, registry no longer hardcoded, `a2ui-github` as the first external app (M7).
+
+## Phase 9 — Authority surfaces
+Auth-required → authority tile, consent dialog, AuthVault, credential components barred from all catalogs (M8).
+
+## Phase 10 — Marketplace + publish
+Local index, package hosting, publish step, hello-fragment smoke test (M9).
+
+## Phase 11 — Shell trusted pages
+Store page, App Library, accounts (M10).
+
+## Phase 12 — Store loop
+Capability gap → marketplace index → install → resume (M11).
+
+## Phase 13 — Ecosystem run
+Publish a new app → discover → install → compose with an existing one → act inside it. One sitting, no code changes; the deliverable is the recording (M12).
 
 ## Backlog
+- Stream the synthesis fragment into its reserved slot (§16 dead-air mitigation)
+- S5 multi-account exercised

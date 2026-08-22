@@ -335,6 +335,9 @@ Entity resolution inside the Synthesizer follows the same shape as routing: dete
 Mechanical spine first; each milestone adds one hard thing.
 
 ```
+M0   spine   1 agent · 1 catalog · through the hub                           ◆×1
+     proves hub-and-spoke · canvas shell reuse · orchestrator as an A2A agent server ·
+     hardcoded registry · intent journal
 M1   layout-only composition   2 agents · 2 catalogs · no synthesis            ◆×1
      proves UIComposer · namespacing · catalog scoping · partition isolation ·
      provenance + attribution · one-tree graft · plan/fill/collapse
@@ -344,8 +347,8 @@ M2   + synthesis, identical shapes   two sibling mock vendor agents             
 M3   + heterogeneous shapes   temporal merge (Calendar · Mail · GitHub)
      proves unrelated data models · shared-axis merge · key-based refs · decline · late arrival
 M4   + entity resolution   entity join                                          ← differentiator proven
-M5   durable composition   timeline · frozen + stamped · refresh · add/drop source · "compare these"
 M6   late-arrival + failure   per-source deadlines · failure tiles · decline · late absorb
+M5   durable composition   timeline · frozen + stamped · refresh · add/drop source · "compare these"
 M7   app bundle + registry   bundle format · local install · a2ui-github as first external app
 M8   authority surfaces   auth-required · consent · AuthVault · credential components barred
 M9   marketplace + publish   local index · package hosting · publish step · hello-fragment smoke test
