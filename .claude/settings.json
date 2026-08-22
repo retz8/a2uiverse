@@ -1,0 +1,22 @@
+{
+  "extraKnownMarketplaces": {
+    "retz8-harness": {
+      "source": { "source": "github", "repo": "retz8/daily-work-harness" }
+    }
+  },
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/sync-spec-hook.sh\""
+          }
+        ]
+      }
+    ]
+  },
+  "enabledPlugins": {
+    "daily-work-harness@retz8-harness": true
+  }
+}

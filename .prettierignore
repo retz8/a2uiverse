@@ -1,0 +1,12 @@
+**/node_modules
+**/dist
+**/*.tsbuildinfo
+.git
+.yarn
+yarn.lock
+
+# Hand-authored docs and harness/skill content — not owned by Prettier
+_dev
+.claude
+SPEC.md
+CLAUDE.md
