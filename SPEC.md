@@ -322,6 +322,7 @@ Entity resolution inside the Synthesizer follows the same shape as routing: dete
 ## 11. Shell body and environment
 
 - **Web app, for the duration of the project.** Native packaging is not developable in the current environment. Native is named as the trigger-gated successor: the first time the shell needs third-party catalog-implementation isolation or real process spawning.
+- **The client is a Vite + React SPA, not a Next.js app.** The client holds only browser-side state (Composition, partitions, BindingEvaluator, streaming); the orchestrator is its server. Trusted pages are client-rendered routes (a client-side router, added when the first one arrives). The native successor is Electron: a Vite build loads into a BrowserWindow as-is, and the orchestrator becomes a spawned child process.
 - **OS bridge** is a built-in System app that launches things and records why. Not OS work. Out of scope.
 - **Intent journal from day one.**
 - **Everything runs locally** as multiple processes in multiple terminals. No deployment.
