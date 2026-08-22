@@ -1,11 +1,17 @@
 ---
 name: a2ui-sdk-design
-description: Provides guidelines and design principles for implementing, expanding, or modifying A2UI client libraries, SDK adapters, catalogs, and backend integrations across different protocol versions.
+description: Provides guidelines and design principles for implementing, expanding, or modifying A2UI client libraries, catalogs (schema + implementation), renderers, and backend integrations across different protocol versions.
 ---
 
-# A2UI SDK & Adapter Design Skill
+# A2UI SDK & Catalog Design Skill
 
-This skill provides architectural guidance for developing or modifying A2UI catalogs, adapters, renderers, state layers, and communication infrastructure across all protocol versions.
+This skill provides architectural guidance for developing or modifying A2UI catalogs, renderers, state layers, and communication infrastructure across all protocol versions.
+
+## Vocabulary
+
+- **Catalog** — the package pairing a `catalog.json` with its framework implementation; named `<vendor>-catalog` (the shell's own is `shell-catalog`).
+- **Catalog schema** — the `catalog.json`. **Catalog implementation** — the framework code (React components) that renders it. Upstream's terms.
+- **Adapter** — upstream's word for the framework layer only (`@a2ui/react` is the React adapter). Never used for a catalog package here.
 
 ## Specifications Navigation
 
@@ -17,7 +23,7 @@ This project is a downstream consumer of the A2UI protocol; it does not vendor t
 - **List a tree:** `git -C ../A2UI ls-tree -r --name-only upstream/main specification/`
 - **Read a file in full:** `git -C ../A2UI show upstream/main:specification/v0_9_1/json/server_to_client.json`
 - **Search across the spec:** `git -C ../A2UI grep <pattern> upstream/main -- specification/`
-- **Authority Rule:** Default to version **v0.9.1** as the primary authority when working on the catalog, adapter, or SDK integrations, unless the user specifies otherwise.
+- **Authority Rule:** Default to version **v0.9.1** as the primary authority when working on a catalog, a renderer, or SDK integrations, unless the user specifies otherwise.
 
 ### Critical Sources of Truth
 

@@ -254,17 +254,17 @@ The Planner must be able to name a capability gap.
 
 ### 9.1 The app bundle
 
-**Install = one bundle:** agent URL + auth + catalogId + adapter. One artifact, registered to the store. The bundle format is the project's invention; the exact fields are task-internal.
+**Install = one bundle:** agent URL + auth + catalogId + catalog implementation. One artifact, registered to the store. The bundle format is the project's invention, defined in `sdk`; the exact fields are task-internal.
 
-The catalog (`catalog.json`) and the adapter (the React implementations) are one artifact with two faces; they version together.
+A **catalog** has two faces — the **catalog schema** (`catalog.json`) and the **catalog implementation** (the React components) — shipped as one `<vendor>-catalog` package; they version together. "Adapter" is reserved for upstream's meaning, the framework layer (`@a2ui/react`).
 
-### 9.2 The adapter is code
+### 9.2 The catalog implementation is code
 
-A vendor adapter is a binding layer between A2UI's flat component model and a design-system library. It cannot be data. Install footprint is the binding layer, not an application; N apps on one design system share one copy of that library.
+A vendor's catalog implementation is a binding layer between A2UI's flat component model and a design-system library. It cannot be data. Install footprint is the binding layer, not an application; N apps on one design system share one copy of that library.
 
-- **First-party adapters only**, for the whole project.
-- **Per-app isolation** is the stated target architecture. Same-context execution of third-party adapters is rejected.
-- Whether identical adapters across bundles are deduplicated at install is an install-time detail.
+- **First-party catalog implementations only**, for the whole project.
+- **Per-app isolation** is the stated target architecture. Same-context execution of third-party catalog implementations is rejected.
+- Whether identical implementations across bundles are deduplicated at install is an install-time detail.
 
 ### 9.3 Marketplace and Store
 
@@ -321,7 +321,7 @@ Entity resolution inside the Synthesizer follows the same shape as routing: dete
 
 ## 11. Shell body and environment
 
-- **Web app, for the duration of the project.** Native packaging is not developable in the current environment. Native is named as the trigger-gated successor: the first time the shell needs third-party adapter isolation or real process spawning.
+- **Web app, for the duration of the project.** Native packaging is not developable in the current environment. Native is named as the trigger-gated successor: the first time the shell needs third-party catalog-implementation isolation or real process spawning.
 - **OS bridge** is a built-in System app that launches things and records why. Not OS work. Out of scope.
 - **Intent journal from day one.**
 - **Everything runs locally** as multiple processes in multiple terminals. No deployment.
@@ -367,12 +367,14 @@ Until M7, the registry is hardcoded.
 Three repos, one per trust domain.
 
 ```
-a2uiverse/              platform monorepo: client · orchestrator · marketplace · shell-catalog · bundle
-a2uiverse-apps/         mock vendor agents
+a2uiverse/              platform monorepo
+  apps/                 client · orchestrator · marketplace — the local processes
+  packages/             sdk · shell-catalog — libraries
+a2uiverse-apps/         mock vendor apps, one folder per app: agent · <vendor>-catalog · manifest
 a2ui-github/            unchanged. The first external app.
 ```
 
-> A vendor app may depend on the bundle format and the A2UI/A2A protocols. It may never depend on the platform.
+> A vendor app may depend on `@a2uiverse/sdk` — the app manifest contract and the protocol extension — and the A2UI/A2A protocols. It may never depend on anything else in the platform.
 
 `primer-a2ui-adapter` is consumed as a published package, never as a workspace sibling.
 
@@ -410,7 +412,7 @@ Every future deviation is added here, tagged *local convention* or *upstream can
 | A2A transport, AgentCard, extensions, `securitySchemes` | UIComposer + one-tree graft runtime |
 | A2UI validation, `sendDataModel`, multi-catalog, local functions | Shell catalog + composition primitives |
 | `primer-a2ui-adapter` as the first installed app | Derived-binding table + BindingEvaluator |
-| Catalog authoring skills, GitHub agent | App bundle format · Marketplace · Store page · AuthVault · IntentJournal |
+| Catalog authoring skills, GitHub agent | App bundle format (`sdk`) · Marketplace · Store page · AuthVault · IntentJournal |
 
 ---
 
@@ -420,7 +422,7 @@ Properties that follow from the decisions above, recorded so they are not discov
 
 - The synthesis surface is structurally the last thing to arrive. The interval between the last fragment and the synthesis paint is dead air; streaming the synthesis fragment into its reserved slot is the available, unspent mitigation.
 - Two filters with different scopes sit on one screen: the synthesis surface's (shell-owned, free, filters the merge) and a vendor's (vendor-owned, one round trip, filters only that fragment). A visual design problem for the shell's container language.
-- Two vendors' adapters and the shell's consent surfaces share one document. Isolation is deferred; first-party-only is what makes that acceptable.
+- Two vendors' catalog implementations and the shell's consent surfaces share one document. Isolation is deferred; first-party-only is what makes that acceptable.
 - Two apps wanting different versions of the same design-system library put both in one document.
 - A publisher can style a fragment to resemble the shell catalog. Attribution is shell-rendered for this reason; lookalike review belongs to the marketplace. The upstream orchestrator sample's README states the same threat (spoofed interfaces, crafted AgentCard fields as prompt injection) from the protocol authors' side (§18).
 - The shell chooses the merge's columns and criterion. The criterion is named, displayed, and user-changeable for this reason.
@@ -429,7 +431,7 @@ Properties that follow from the decisions above, recorded so they are not discov
 
 ## 17. Out of scope
 
-Named so they do not creep in: native shell · adapter isolation · third-party adapter review/signing · OS bridge · machine-facing intent projection · cross-vendor transactions · act-on-synthesis-surface · multi-account exercised · local-model inference · per-user shell catalog (theme) · deployment.
+Named so they do not creep in: native shell · catalog-implementation isolation · third-party catalog-implementation review/signing · OS bridge · machine-facing intent projection · cross-vendor transactions · act-on-synthesis-surface · multi-account exercised · local-model inference · per-user shell catalog (theme) · deployment.
 
 ---
 

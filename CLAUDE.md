@@ -5,11 +5,11 @@
 > **INSTRUCTION FOR ALL AGENTS — do this before any task:**
 >
 > 1. **Read [SPEC.md](SPEC.md) in full.** It is the authoritative design for this project.
-> 2. **For work on the shell catalog, an adapter, or a renderer:** also read [.claude/skills/a2ui-sdk-design/SKILL.md](.claude/skills/a2ui-sdk-design/SKILL.md) in full.
+> 2. **For work on the shell catalog, a vendor catalog, or a renderer:** also read [.claude/skills/a2ui-sdk-design/SKILL.md](.claude/skills/a2ui-sdk-design/SKILL.md) in full.
 
 This file (`CLAUDE.md`) holds only the **operational rules** not covered elsewhere. It does **not** restate the project design (that lives in SPEC.md) or the spec-navigation/design mechanics (those live in the `a2ui-sdk-design` skill).
 
-`a2uiverse` is the **platform** of A2UIVerse — client (canvas shell), orchestrator, marketplace, shell catalog, and the app bundle format. It is a **downstream consumer** of the A2UI and A2A protocols — not the protocol repo. The protocol, schemas, and standard catalogs live in the sibling fork at `../A2UI/`, which tracks `a2ui-project/a2ui` via its `upstream` remote. Read the spec from the `upstream/main` ref (see §2), not the fork's working tree.
+`a2uiverse` is the **platform** of A2UIVerse — `apps/` client (canvas shell) · orchestrator · marketplace, and `packages/` sdk (the app contract vendors depend on) · shell-catalog. It is a **downstream consumer** of the A2UI and A2A protocols — not the protocol repo. The protocol, schemas, and standard catalogs live in the sibling fork at `../A2UI/`, which tracks `a2ui-project/a2ui` via its `upstream` remote. Read the spec from the `upstream/main` ref (see §2), not the fork's working tree.
 
 Apps are never built in this repo. Mock vendor apps live in the sibling `../a2uiverse-apps/`; `../a2ui-github/` is the first external app. Neither may depend on this repo — see SPEC.md §13.
 
