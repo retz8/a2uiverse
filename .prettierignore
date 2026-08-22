@@ -2,8 +2,8 @@
 **/dist
 **/*.tsbuildinfo
 .git
-.yarn
-yarn.lock
+pnpm-lock.yaml
+.turbo
 
 # Hand-authored docs and harness/skill content — not owned by Prettier
 _dev

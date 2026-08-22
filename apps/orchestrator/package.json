@@ -1,0 +1,25 @@
+{
+  "name": "@a2uiverse/orchestrator",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The A2UIVerse orchestrator: an A2A agent server — Router, Planner, Synthesizer, AgentsPool, Registry.",
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "lint": "eslint .",
+    "dev": "tsx src/index.ts",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@a2uiverse/sdk": "workspace:*",
+    "@a2uiverse/shell-catalog": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "tsx": "^4.20.0",
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.9"
+  }
+}

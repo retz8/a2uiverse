@@ -41,6 +41,27 @@ A2UIVerse provides a family of composable primitives for agent-native applicatio
 - **App** — a portable application bundle built around an agent
 - **Runtime** — execute and compose applications
 
+## Repository layout
+
+```
+apps/
+  client/          canvas shell (Vite + React)
+  orchestrator/    A2A agent server
+  marketplace/     local index, package hosting, publish
+packages/
+  sdk/             @a2uiverse/sdk — the app contract vendors depend on; the only published package
+  shell-catalog/   the shell's own catalog: schema + React implementation
+```
+
+pnpm workspace, Turborepo over it. Each package's README has its commands.
+
+```
+pnpm install                              # fresh clone
+pnpm dev                                  # all three processes
+pnpm --filter @a2uiverse/<app> dev        # one process in its own terminal
+pnpm verify                               # build · typecheck · test · lint · format:check
+```
+
 ## Status
 
 In development. The design lives in [SPEC.md](SPEC.md).

@@ -23,12 +23,8 @@ playwright-report/
 # Personal, machine-local Claude instructions (auto-loaded alongside CLAUDE.md)
 CLAUDE.local.md
 
-# Yarn Modern
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/sdks
-.yarn/cache
+# Turborepo
+.turbo/
 
 # Per-machine Claude Code settings
 .claude/settings.local.json
