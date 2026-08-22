@@ -1,7 +1,7 @@
 # Local Agentic OS Architecture Extension: Local Inference, Secure AuthVault & Native Shell (OS Bridge)
 
 > **Document Status:** Architectural Vision & Roadmap Supplement  
-> **Target Horizon:** Post-Military Discharge (Post-M4 Implementation Phase)  
+> **Target Horizon:** Post-Military Discharge  
 > **Base Architecture:** A2UIVerse Specification  
 
 ---
@@ -95,7 +95,7 @@ M1 ~ M3 : Web-Based Foundation
   - Mock Orchestrator using local Node.js process / Ollama endpoints
 
 [ POST-DISCHARGE PHASE ]
-M4+     : On-Device & Native Shell Upgrade
+After discharge : On-Device & Native Shell Upgrade
   - Electron / Tauri Shell Wrapper implementation
   - OS Bridge module integration (`child_process` + System URI handlers)
   - Hardware AuthVault binding
