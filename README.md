@@ -33,7 +33,7 @@ A2UIVerse is designed as an ecosystem of interoperable building blocks rather th
                          A2UI + A2A
 ```
 
-Similar to how AWS provides a family of independent services such as EC2, S3, and Lambda, A2UIVerse provides a family of composable primitives for agent-native applications.
+A2UIVerse provides a family of composable primitives for agent-native applications.
 
 - **Canvas** — the interactive application surface
 - **Store** — discover and install applications
