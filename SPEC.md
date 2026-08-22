@@ -81,7 +81,7 @@ Consequences:
 
 ### 4.2 Shell catalog
 
-The orchestrator paints content, not just structure. Its catalog — the **shell catalog** — is the standard A2UI catalog plus composition primitives (slot, provenance attribution). The orchestrator's painted output is a **synthesis fragment** grafted through the same path as any agent's fragment. There is no privileged paint path.
+The **shell** is every platform-owned surface — the canvas container, the synthesis surface, the trusted pages, the authority dialogs. The **shell catalog** is its design system: the React implementation every trusted surface is built from, and a catalog schema exposing the standard A2UI catalog plus composition primitives (slot, provenance attribution) as the orchestrator's paint vocabulary. The orchestrator paints content, not just structure. The orchestrator's painted output is a **synthesis fragment** grafted through the same path as any agent's fragment. There is no privileged paint path.
 
 The word "chrome" is not used.
 

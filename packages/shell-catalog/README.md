@@ -1,6 +1,6 @@
 # @a2uiverse/shell-catalog
 
-The shell's own catalog (SPEC §4.2): the standard A2UI catalog plus composition primitives (slot, provenance attribution), shipped as catalog schema (`catalogs/`) + React implementation (`src/`). It is a catalog of the same shape a vendor ships — the first instance of what `@a2uiverse/sdk` describes.
+The shell's design system (SPEC §4.2). The shell is every platform-owned surface — canvas container, synthesis surface, trusted pages, authority dialogs — and this package is what they are built from: a React implementation (`src/`) plus a catalog schema (`catalogs/`) exposing the standard A2UI catalog and the composition primitives (slot, provenance attribution) as the orchestrator's paint vocabulary. It is a catalog of the same shape a vendor ships — the first instance of what `@a2uiverse/sdk` describes.
 
 ## Consumers
 
