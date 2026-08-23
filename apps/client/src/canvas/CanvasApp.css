@@ -1,0 +1,310 @@
+/* The canvas shell: the stage fills the screen like an application; the status strip is the
+   one thin persistent region; palette and notice float above the stage. */
+
+/* An application shell owns the whole viewport: the document itself never scrolls (the
+   default body margin otherwise adds an outer scrollbar that reveals a blank strip below
+   the status strip) — only the stage scrolls, internally. */
+html,
+body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+.canvas-app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: var(--color-background);
+}
+
+.canvas-stage {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 16px;
+}
+
+.canvas-empty-ghost {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  user-select: none;
+}
+
+.canvas-empty-mark {
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--gray-11);
+  opacity: 0.35;
+}
+
+.canvas-empty-hint {
+  font-size: 15px;
+  color: var(--gray-11);
+  opacity: 0.5;
+}
+
+.canvas-status-strip {
+  display: flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 6px 16px;
+  border-top: 1px solid var(--gray-6);
+  background: var(--gray-2);
+  font-size: 12px;
+  color: var(--gray-11);
+}
+
+.canvas-status-message {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.canvas-status-pending {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.canvas-status-error {
+  color: var(--red-11);
+}
+
+.canvas-status-identity {
+  opacity: 0.7;
+  user-select: none;
+}
+
+.canvas-palette {
+  position: fixed;
+  top: 20vh;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(560px, calc(100vw - 32px));
+  padding: 12px;
+  border: 1px solid var(--gray-6);
+  border-radius: 12px;
+  background: var(--color-panel-solid, var(--color-background));
+  box-shadow: var(--shadow-5, 0 8px 24px rgba(140, 149, 159, 0.2));
+  z-index: 20;
+}
+
+.canvas-palette-hint {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--gray-11);
+}
+
+.canvas-palette-cue {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--amber-11);
+}
+
+.canvas-app .canvas-ask-pill {
+  position: fixed;
+  bottom: 56px;
+  left: 50%;
+  width: max-content;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  padding-inline: 20px;
+  box-shadow: var(--shadow-4, 0 6px 18px rgba(31, 35, 40, 0.2));
+  z-index: 15;
+}
+
+.canvas-app .canvas-ask-kbd {
+  margin-left: 8px;
+  padding: 1px 6px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-family: inherit;
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+}
+
+/* Top-anchored so it never overlaps the bottom furniture (Ask pill, status strip). */
+.canvas-notice {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: min(560px, calc(100vw - 32px));
+  padding: 8px 16px;
+  border: 1px solid var(--gray-6);
+  border-radius: 8px;
+  background: var(--gray-3, var(--gray-2));
+  color: var(--gray-12);
+  font-size: 13px;
+  box-shadow: var(--shadow-3, 0 3px 12px rgba(140, 149, 159, 0.15));
+  z-index: 10;
+}
+
+/* ——— Task 8.4: history chrome ——— */
+
+/* Back floats top-left, always in the same spot; while parked, the same container grows
+   into a full-width banner materialising around it — Back never moves. */
+.canvas-history {
+  position: fixed;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  z-index: 12;
+}
+
+.canvas-history--parked {
+  right: 0;
+  background: var(--amber-3, #fff8c5);
+  border-bottom: 1px solid var(--amber-6, #d4a72c66);
+}
+
+.canvas-history-back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid var(--gray-6);
+  background: var(--color-background);
+  color: var(--gray-11);
+  cursor: pointer;
+  box-shadow: var(--shadow-3, 0 3px 12px rgba(140, 149, 159, 0.15));
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.canvas-history-back:hover:not(:disabled) {
+  background: var(--gray-2);
+  color: var(--gray-12);
+  box-shadow: var(--shadow-4, 0 6px 18px rgba(31, 35, 40, 0.2));
+}
+
+.canvas-history-back:active:not(:disabled) {
+  background: var(--gray-12, var(--gray-2));
+}
+
+.canvas-history-back:disabled {
+  opacity: 0.4;
+  cursor: default;
+  box-shadow: none;
+}
+
+.canvas-history-stale {
+  flex: 1;
+  text-align: center;
+  font-size: 12px;
+  color: var(--gray-11);
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.canvas-history-newer {
+  color: var(--amber-11);
+  font-style: normal;
+  font-weight: 600;
+}
+
+.canvas-history-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 13;
+}
+
+.canvas-history-list {
+  position: absolute;
+  top: 44px;
+  left: 12px;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  min-width: 260px;
+  max-width: min(400px, calc(100vw - 24px));
+  max-height: 60vh;
+  overflow-y: auto;
+  border: 1px solid var(--gray-6);
+  border-radius: 12px;
+  background: var(--color-panel-solid, var(--color-background));
+  box-shadow: var(--shadow-5, 0 8px 24px rgba(140, 149, 159, 0.2));
+  z-index: 14;
+}
+
+.canvas-history-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.canvas-history-item > [role='menuitem'] {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  padding: 6px 8px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--gray-12);
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.canvas-history-item > [role='menuitem']:hover {
+  background: var(--gray-2);
+}
+
+.canvas-history-live {
+  color: var(--green-11);
+  font-weight: 600;
+}
+
+.canvas-history-chip {
+  flex: none;
+  padding: 2px 8px;
+  border: 1px solid var(--gray-6);
+  border-radius: 999px;
+  background: var(--gray-2);
+  color: var(--gray-11);
+  font-size: 11px;
+  cursor: pointer;
+  max-width: 140px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.canvas-history-chip:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+/* The parked stage: same layout slot as the live stage; the banner carries the past-state
+   signal, so the stage itself gets only a whisper of tint. */
+.canvas-stage--parked {
+  background: color-mix(in srgb, var(--amber-3, #fff8c5) 22%, var(--color-background));
+}
+
+/* Both the banner and the notice claim the top edge; the notice offsets down while parked. */
+.canvas-app--parked .canvas-notice {
+  top: 60px;
+}
+
+/* The stage clears the floating Back button so surface content never sits under it. */
+.canvas-stage {
+  padding-top: 48px;
+}

@@ -2,7 +2,20 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "noEmit": true,
-    "types": ["vite/client"]
+    "types": ["vite/client", "node"],
+    // `primer-a2ui-adapter` is a `link:` dependency whose `.d.ts` would otherwise resolve its
+    // peers from its own `node_modules`, giving every runtime type a second identity. Pin the
+    // shared peers to this package's copies (the runtime equivalent is Vite's `resolve.dedupe`).
+    "paths": {
+      "@a2ui/web_core/v0_9": ["./node_modules/@a2ui/web_core/src/v0_9/index.d.ts"],
+      "@a2ui/react/v0_9": ["./node_modules/@a2ui/react/v0_9/index.d.ts"],
+      "@primer/react": ["./node_modules/@primer/react"],
+      "@primer/react/*": ["./node_modules/@primer/react/*"],
+      "@primer/octicons-react": ["./node_modules/@primer/octicons-react"],
+      "react": ["./node_modules/@types/react"],
+      "react/*": ["./node_modules/@types/react/*"],
+      "zod": ["./node_modules/zod"]
+    }
   },
-  "include": ["src", "tests"]
+  "include": ["src", "tests", "e2e", "playwright.config.ts"]
 }
