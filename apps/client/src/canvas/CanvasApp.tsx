@@ -54,6 +54,8 @@ export function CanvasApp({serverUrl, client, catalogs}: CanvasAppProps) {
   // The palette auto-opens on an empty idle canvas (nothing else to do there) — unless a
   // beat replay is about to occupy the stage.
   const [paletteOpen, setPaletteOpen] = useState(beatParams === null);
+  /** Set once the whole `?beat=` list has replayed — the settle signal for visual tests. */
+  const [replayDone, setReplayDone] = useState(false);
 
   const replayStarted = useRef(false);
   useEffect(() => {
@@ -72,6 +74,7 @@ export function CanvasApp({serverUrl, client, catalogs}: CanvasAppProps) {
           paced: !beatParams.instant,
         });
       }
+      setReplayDone(true);
     })();
   }, [beatParams, wiring]);
 
@@ -92,7 +95,10 @@ export function CanvasApp({serverUrl, client, catalogs}: CanvasAppProps) {
 
   return (
     <CatalogProvider catalogs={catalogs}>
-      <main className={parkedEntry ? 'canvas-app canvas-app--parked' : 'canvas-app'}>
+      <main
+        className={parkedEntry ? 'canvas-app canvas-app--parked' : 'canvas-app'}
+        data-replay={replayDone ? 'done' : undefined}
+      >
         {parkedEntry ? (
           <ParkedStage
             key={parkedEntry.paintId}
