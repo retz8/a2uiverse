@@ -21,7 +21,7 @@ The package is named `github-catalog` — a module name only. The catalog id is 
 
 ### 3. The bundle owns its provider and CSS
 
-The package has one entry exporting the catalog, the catalog id, and the Provider. The Primer provider and the primitives CSS move out of the client into the package, which owns that CSS dependency itself. The client applies a catalog's Provider around that catalog's fragment only, through the existing `catalogId → {catalog, Provider}` map — nothing is registered at the app root.
+The package has one entry exporting the catalog, the catalog id, and the Provider. The Primer provider and the primitives CSS move out of the client into the package. The bundle ships its design system itself — Primer, octicons, primitives as its own dependencies at exact versions; the host supplies only the shared runtime that must be a singleton: React, the A2UI runtime, zod. The client applies a catalog's Provider around that catalog's fragment only, through the existing `catalogId → {catalog, Provider}` map — nothing is registered at the app root and the host lists no vendor design system.
 
 ### 4. The agent is copied with two deliberate edits
 
@@ -49,5 +49,7 @@ In `a2uiverse-apps`, the agent folder is excluded from Prettier; its Python suit
 - `a2uiverse-apps` depends on nothing in the platform beyond `@a2uiverse/sdk` and the protocols.
 
 ## Open items
+
+- `NavList`, `TreeView`, `Card` inspect their React children like `PageHeader` did; check them when Phase 2 first paints with them.
 
 - Phase 2 carry-over: a bundle's CSS scopes its tokens to the fragment wrapper, not `:root`, so two design systems on one surface cannot collide.
