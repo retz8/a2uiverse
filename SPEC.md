@@ -54,7 +54,7 @@ The spec carries all of these. Sorted by the kind of join the shell performs.
 | S7 | None | **Parallel independent tasks** — unrelated agents side by side | none; layout-only |
 
 - **Architectural target:** S2 entity join — the only scenario that requires fragment graft.
-- **Proving milestone:** S1 temporal merge.
+- **Proving milestone:** S1 temporal merge, over GitHub · Gmail · Google Calendar.
 - **Entity resolution** is a named responsibility of the Synthesizer, not a side effect of derived bindings.
 - S5 is supported by the architecture and not exercised by the milestone ladder (§12).
 
@@ -81,7 +81,7 @@ Consequences:
 
 ### 4.2 Shell catalog
 
-The **shell** is every platform-owned surface — the canvas container, the synthesis surface, the trusted pages, the authority dialogs. The **shell catalog** is its design system: the React implementation every trusted surface is built from, and a catalog schema exposing the standard A2UI catalog plus composition primitives (slot, provenance attribution) as the orchestrator's paint vocabulary. The orchestrator paints content, not just structure. The orchestrator's painted output is a **synthesis fragment** grafted through the same path as any agent's fragment. There is no privileged paint path.
+The **shell** is every platform-owned surface — the canvas container, the synthesis surface, the trusted pages, the authority dialogs. The **shell catalog** is the orchestrator's paint vocabulary: the standard A2UI basic catalog under a neutral `--a2ui-*` token theme, plus composition primitives (slot, provenance attribution). Its implementation is the basic catalog's React implementation themed by tokens — no component mapping of its own. The shell's own pages and widgets are built on Radix Themes. The orchestrator paints content, not just structure. The orchestrator's painted output is a **synthesis fragment** grafted through the same path as any agent's fragment. There is no privileged paint path.
 
 The word "chrome" is not used.
 
@@ -262,6 +262,7 @@ A **catalog** has two faces — the **catalog schema** (`catalog.json`) and the 
 
 A vendor's catalog implementation is a binding layer between A2UI's flat component model and a design-system library. It cannot be data. Install footprint is the binding layer, not an application; N apps on one design system share one copy of that library.
 
+- **Vendor catalogs are the A2UI basic catalog themed by tokens** to mimic the vendor's product. No per-vendor component mapping. GitHub is the exception: its catalog is Primer (`primer-a2ui-adapter`), GitHub's real design system.
 - **First-party catalog implementations only**, for the whole project.
 - **Per-app isolation** is the stated target architecture. Same-context execution of third-party catalog implementations is rejected.
 - Whether identical implementations across bundles are deduplicated at install is an install-time detail.
@@ -275,7 +276,13 @@ Two things with one word today; the spec names them separately:
 
 Routing and store search are **one mechanism over two indexes** — local registry and marketplace index. A miss in the first is a hit in the second.
 
-### 9.4 Multi-account
+### 9.4 Vendor agents
+
+Every vendor agent is backed by its vendor's **official, publicly available MCP server**; that is the first selection criterion for a vendor. Roster: GitHub · Gmail · Google Calendar (S1); developer-tool vendors with official MCPs are the fallback and the later S3 expansion.
+
+A vendor agent runs on **one port in one of three modes**: `deterministic` (no model), `llm` (model + MCP), `llm` without MCP (model + stub backend).
+
+### 9.5 Multi-account
 
 One app, one install. Multiple credentials live inside the single app; the AgentsPool dispatches per `(endpoint, credential)`; the vault is keyed `(app, account)` and is the shell's account manager. **Deprioritized for this project:** one app, one credential. The credential field stays as a placeholder so multi-account is a data change later, not an architecture change.
 
@@ -307,9 +314,11 @@ CLIENT (canvas shell)                        ORCHESTRATOR (A2A agent server)
 | **IntegrityChecker** | ▪ | Per-binding validity (key resolution / generation). Gates whether the Synthesizer runs. |
 | **Validator** | ▪ | Agent trees against their declared catalog; LLM output against its schema. |
 | **AuthVault** | ▪ | Credentials by `(app, account)`. Triggers consent; never paints it. |
-| **Registry** | ▪ | Installed bundles. Presents the orchestrator's own AgentCard as the union of installed apps' skills, A2UI extensions, and supported catalog IDs, plus the orchestrator's own skills. |
+| **Registry** | ▪ | Installed bundles — the orchestrator's local state, written only by the orchestrator. Serves the orchestrator's AgentCard. |
 | **IntentJournal** | ▪ | Per turn: free-form intent descriptor + embedding. The thin machine-facing projection is left unbuilt. |
 | **Composition** | state | §6. |
+
+A registry entry is the bundle record (§9.1). The client holds only its projection — `catalogId → catalog implementation` — reached through **`orchestratorApi`**, the client's non-A2A channel to the orchestrator: a static map until M7, served by the orchestrator once install exists, IPC under a native shell. Install is an orchestrator operation; the Store page is its UI.
 
 Open seams, task-internal: where the Composition object is canonical (client or orchestrator); whether Validator is one class or two.
 
@@ -339,9 +348,11 @@ Mechanical spine first; each milestone adds one hard thing.
 M0   spine   1 agent · 1 catalog · through the hub                           ◆×1
      proves hub-and-spoke · canvas shell reuse · orchestrator as an A2A agent server ·
      hardcoded registry · intent journal
-M1   layout-only composition   2 agents · 2 catalogs · no synthesis            ◆×1
+M1   layout-only composition   3 agents · 3 catalogs · no synthesis            ◆×1
+     GitHub · Gmail · Google Calendar
      proves UIComposer · namespacing · catalog scoping · partition isolation ·
      provenance + attribution · one-tree graft · plan/fill/collapse
+M1k  agent building kit   shared vendor-agent SDK/CLI extracted across the three agents, published from a2uiverse-apps
 M2   + synthesis, identical shapes   two sibling mock vendor agents              ◆×2
      proves Synthesizer · derived bindings · BindingEvaluator · IntegrityChecker ·
      generation stamps · disclosure line
@@ -350,7 +361,7 @@ M3   + heterogeneous shapes   temporal merge (Calendar · Mail · GitHub)
 M4   + entity resolution   entity join                                          ← differentiator proven
 M6   late-arrival + failure   per-source deadlines · failure tiles · decline · late absorb
 M5   durable composition   timeline · frozen + stamped · refresh · add/drop source · "compare these"
-M7   app bundle + registry   bundle format · local install · a2ui-github as first external app
+M7   app bundle + registry   bundle format · local install · registry no longer hardcoded
 M8   authority surfaces   auth-required · consent · AuthVault · credential components barred
 M9   marketplace + publish   local index · package hosting · publish step · hello-fragment smoke test
 M10  shell trusted pages   Store page · App Library · accounts
@@ -371,11 +382,13 @@ Three repos, one per trust domain.
 a2uiverse/              platform monorepo
   apps/                 client · orchestrator · marketplace — the local processes
   packages/             sdk · shell-catalog — libraries
-a2uiverse-apps/         mock vendor apps, one folder per app: agent · <vendor>-catalog · manifest
-a2ui-github/            unchanged. The first external app.
+a2uiverse-apps/         vendor apps, one folder per app: agent · <vendor>-catalog · manifest
+a2ui-github/            origin of the GitHub app; unchanged. Copied into a2uiverse-apps/github/ at the end of Phase 1.
 ```
 
 > A vendor app may depend on `@a2uiverse/sdk` — the app manifest contract and the protocol extension — and the A2UI/A2A protocols. It may never depend on anything else in the platform.
+
+There are no internal agents: every app in `a2uiverse-apps` is an external app, and the ecosystem and its apps are built as a whole.
 
 `primer-a2ui-adapter` is consumed as a published package, never as a workspace sibling.
 
@@ -386,6 +399,8 @@ a2ui-github/            unchanged. The first external app.
 Downstream of A2UI/A2A. All deviations ship as **one project-owned wrapper and one A2A extension**, proven locally, proposed upstream later.
 
 Constraint protected throughout: **an existing A2UI agent composes with zero changes.**
+
+**A2A line:** 0.3, at the newest versions compatible with the A2UI ecosystem (`a2ui-agent-sdk` pins A2A 0.3). Migration to A2A 1.0 is gated on `a2ui-agent-sdk` and is done across client, orchestrator, and vendor kit in one move.
 
 ### Protocol delta register (seed)
 
@@ -412,8 +427,9 @@ Every future deviation is added here, tagged *local convention* or *upstream can
 | Canvas shell, timeline, hold-and-swap | Orchestrator: Router · Planner · Synthesizer · AgentsPool · IntegrityChecker |
 | A2A transport, AgentCard, extensions, `securitySchemes` | UIComposer + one-tree graft runtime |
 | A2UI validation, `sendDataModel`, multi-catalog, local functions | Shell catalog + composition primitives |
-| `primer-a2ui-adapter` as the first installed app | Derived-binding table + BindingEvaluator |
+| `a2ui-github` as the GitHub app | Derived-binding table + BindingEvaluator |
 | Catalog authoring skills, GitHub agent | App bundle format (`sdk`) · Marketplace · Store page · AuthVault · IntentJournal |
+| A2UI basic catalog + `--a2ui-*` tokens as every vendor catalog | Agent building kit (`a2uiverse-apps`) |
 
 ---
 

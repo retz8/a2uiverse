@@ -29,15 +29,15 @@ working with this repo.
 
 ## Ports
 
-Assigned per package as each lands; keep this table current.
+Platform processes are `1000x`; vendor agents are `11001+`, one port per app regardless of run mode. Only the platform processes need tunnel rows — the browser talks only to the orchestrator, and the orchestrator reaches vendor agents on `localhost`. A vendor agent is tunnelled only for a direct-vs-hub comparison.
 
-| Process | Port | Repo |
-|---|---|---|
-| client (canvas shell) | — | `a2uiverse` |
-| orchestrator | — | `a2uiverse` |
-| marketplace | — | `a2uiverse` |
-| mock vendor agents | — | `a2uiverse-apps` |
-| GitHub agent (first external app) | — | `a2ui-github` |
+| Process | Port | Tunnel | Repo |
+|---|---|---|---|
+| client (canvas shell) | 5173 | yes | `a2uiverse` |
+| orchestrator | 10001 | yes | `a2uiverse` |
+| marketplace | 10002 (reserved) | yes | `a2uiverse` |
+| vendor agents | 11001+ | no | `a2uiverse-apps` (table there) |
+| GitHub agent, until copied (Phase 1) | 10003 | only for direct comparison | `a2ui-github` |
 
 ## Run commands
 

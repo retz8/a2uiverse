@@ -2,7 +2,7 @@
 
 > **The application ecosystem for A2UI agents.**
 
-A2UIVerse is an open application ecosystem built on **A2UI** and **A2A**.
+A2UIVerse is an open application ecosystem built on **[A2UI](https://github.com/google/A2UI)** and **[A2A](https://github.com/a2aproject/A2A)**.
 
 A2UI defines how agents describe user interfaces.
 **A2UIVerse defines how those interfaces become composable applications.**
@@ -54,6 +54,8 @@ packages/
 ```
 
 pnpm workspace, Turborepo over it. Each package's README has its commands.
+
+Ports: client `5173` · orchestrator `10001` · marketplace `10002`. Vendor agents (`../a2uiverse-apps`) take `11001+` and are reached by the orchestrator only.
 
 ```
 pnpm install                              # fresh clone

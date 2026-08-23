@@ -21,41 +21,45 @@ Spec: `_dev/docs/spec/phase-1-spine.md`.
 - [ ] **1.5** `[apps]` GitHub app copy — `a2uiverse-apps/github/`, port 11001, catalog id fixed, `github-catalog` published, client on published package, gates green in both repos (after 1.4)
 
 ## Phase 2 — Layout-only composition
-2 agents · 2 catalogs on one surface, no synthesis (M1). Router, Planner, AgentsPool, UIComposer one-tree graft, shell catalog composition primitives, plan/fill/collapse, provenance + attribution, partition isolation.
+3 agents · 3 catalogs on one surface, no synthesis (M1): GitHub (copied in 1.5), Gmail, Google Calendar — the mock vendor agent template lands here. Basic Router, Planner, AgentsPool fan-out, UIComposer one-tree graft, shell catalog composition primitives, plan/fill/collapse, provenance + attribution, partition isolation.
 
-## Phase 3 — Synthesis, identical shapes
+## Phase 3 — Agent building kit
+Shared vendor-agent logic extracted across the three agents into a published A2UI+A2A agent SDK/CLI in `a2uiverse-apps` (M1k). Uniform run-mode flag, single launcher for installed agents, vendor dependency rule amended.
+
+## Phase 4 — Synthesis, identical shapes
 Two sibling mock vendors merged (M2). Synthesizer, derived bindings, BindingEvaluator, IntegrityChecker, generation stamps, disclosure line.
 
-## Phase 4 — Heterogeneous shapes
+## Phase 5 — Heterogeneous shapes
 Temporal merge over Calendar · Mail · GitHub (M3). Unrelated data models, shared-axis merge, key-based refs, decline, quiescence across unsynchronized arrivals.
 
-## Phase 5 — Entity resolution
+## Phase 6 — Entity resolution
 Entity join (M4). The differentiator proven.
 
-## Phase 6 — Late arrival + failure
+## Phase 7 — Late arrival + failure
 Per-source deadlines, failure tiles, decline, late absorb as a visible attributed update (M6).
 
-## Phase 7 — Durable composition
+## Phase 8 — Durable composition
 Timeline, frozen + stamped, refresh, add/drop source, "compare these" (M5).
 
-## Phase 8 — App bundle + registry
-Bundle format, local install, registry no longer hardcoded, `a2ui-github` as the first external app (M7).
+## Phase 9 — App bundle + registry
+Bundle format, local install, registry no longer hardcoded, the GitHub app installed as a bundle (M7).
 
-## Phase 9 — Authority surfaces
+## Phase 10 — Authority surfaces
 Auth-required → authority tile, consent dialog, AuthVault, credential components barred from all catalogs (M8).
 
-## Phase 10 — Marketplace + publish
+## Phase 11 — Marketplace + publish
 Local index, package hosting, publish step, hello-fragment smoke test (M9).
 
-## Phase 11 — Shell trusted pages
+## Phase 12 — Shell trusted pages
 Store page, App Library, accounts (M10).
 
-## Phase 12 — Store loop
+## Phase 13 — Store loop
 Capability gap → marketplace index → install → resume (M11).
 
-## Phase 13 — Ecosystem run
+## Phase 14 — Ecosystem run
 Publish a new app → discover → install → compose with an existing one → act inside it. One sitting, no code changes; the deliverable is the recording (M12).
 
 ## Backlog
 - Stream the synthesis fragment into its reserved slot (§16 dead-air mitigation)
 - S5 multi-account exercised
+- Migrate to A2A 1.0 when `a2ui-agent-sdk` does — client, orchestrator, vendor kit in one move

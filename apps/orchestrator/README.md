@@ -15,4 +15,4 @@ pnpm --filter @a2uiverse/orchestrator build | typecheck | test | lint
 
 ## Port
 
-Fixed in Phase 1; documented here and in `_dev/docs/tunnel-environment.md`.
+`10001`. The advertised base URL is set per environment — see `_dev/docs/tunnel-environment.md`.

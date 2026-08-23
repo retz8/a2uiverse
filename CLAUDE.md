@@ -11,7 +11,7 @@ This file (`CLAUDE.md`) holds only the **operational rules** not covered elsewhe
 
 `a2uiverse` is the **platform** of A2UIVerse — `apps/` client (canvas shell) · orchestrator · marketplace, and `packages/` sdk (the app contract vendors depend on) · shell-catalog. It is a **downstream consumer** of the A2UI and A2A protocols — not the protocol repo. The protocol, schemas, and standard catalogs live in the sibling fork at `../A2UI/`, which tracks `a2ui-project/a2ui` via its `upstream` remote. Read the spec from the `upstream/main` ref (see §2), not the fork's working tree.
 
-Apps are never built in this repo. Mock vendor apps live in the sibling `../a2uiverse-apps/`; `../a2ui-github/` is the first external app. Neither may depend on this repo — see SPEC.md §13.
+Apps are never built in this repo. Vendor apps — all external apps; there are no internal agents — live in the sibling `../a2uiverse-apps/`; `../a2ui-github/` is the origin of the GitHub app, copied there at the end of Phase 1. Neither may depend on this repo — see SPEC.md §13.
 
 ---
 

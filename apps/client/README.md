@@ -4,7 +4,7 @@ The canvas shell (SPEC §4, §10–11): palette, timeline, trusted pages (Store,
 
 ## Dependencies
 
-`@a2uiverse/sdk`, `@a2uiverse/shell-catalog`. Installed vendor catalogs are loaded through the sdk.
+`@a2uiverse/sdk`, `@a2uiverse/shell-catalog`. Installed vendor catalogs are resolved through `orchestratorApi`, the client's non-A2A channel to the orchestrator.
 
 ## Commands
 
