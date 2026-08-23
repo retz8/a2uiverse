@@ -59,6 +59,7 @@ The dev workflow (phases → sub-tasks, dispatch, branching, wrap-up) lives in t
 
 - **`_dev/` lives on `main`.** `_dev/TODO.md` and everything under `_dev/docs/` is edited and committed on `main` only — never on a worktree/sub-task branch. Worktree branches carry implementation code only.
 - **Implementation plans go to `_dev/docs/plan/`** as `task-<N.M>-<short>.md` — `superpowers:writing-plans` must emit there.
+- **Design records go to `_dev/docs/design/`** as `<area>.md` (e.g. `orchestrator.md`): the implemented system design — each component as a class with its responsibility, public surface, private state, and collaborators, plus the flows between them. Concise; states what is. Updated in the same session as the change that alters the design.
 - **Nightly routine.** `a2uiverse nightly producing routine` (Claude cloud Routine, 01:30 KST, Opus) drains `autonomous-ready` issues into labelled PRs per the harness's autonomous contract; triage with `daily-work-harness:review-nightly`. Labels are provisioned on the repo.
 - **Commit convention:** conventional commits — `<type>(phase-<N>): …` for phase/sub-task work, bare `<type>: …` off-phase.
 - **`[apps]` sub-tasks.** A sub-task whose code lands in `../a2uiverse-apps/` carries an `[apps]` tag in `_dev/TODO.md`. It is worked directly on that repo's `main` — no worktree, no sub-task branch — with `../a2uiverse-apps/` as an additional working directory. Its spec, plan, and handoff stay in this repo's `_dev/docs/`.
