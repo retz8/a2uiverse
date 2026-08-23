@@ -67,7 +67,7 @@ importers:
         version: 3.3.0(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       github-catalog:
         specifier: github:retz8/a2uiverse-apps#path:github/github-catalog
-        version: https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/a362493f1c100fe1f96b85b03997cb90da10c088#path:github/github-catalog(@a2ui/react@0.10.2(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76))(@a2ui/web_core@0.10.6)(@primer/octicons-react@19.33.0(react@19.2.8))(@primer/react@38.36.0(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react-is@19.2.0)(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react-is@19.2.8)(react@19.2.8))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76)
+        version: https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/637cc04b99b0c4d5b553038bb4778c764936714e#path:github/github-catalog(@a2ui/react@0.10.2(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76))(@a2ui/web_core@0.10.6)(@primer/octicons-react@19.33.0(react@19.2.8))(@primer/react@38.36.0(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react-is@19.2.0)(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react-is@19.2.8)(react@19.2.8))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76)
       react:
         specifier: ^19.2.7
         version: 19.2.8
@@ -2144,8 +2144,8 @@ packages:
     resolution: {integrity: sha512-sTSfBjoXBp89JvIKIefqw7U2CCebsc74kiY6awiGogKtoSGbgjYE/G/+l9sF3MWFPNc9IcoOC4ODfKHfxFmp0g==}
     engines: {node: '>= 0.4'}
 
-  github-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/a362493f1c100fe1f96b85b03997cb90da10c088#path:github/github-catalog:
-    resolution: {gitHosted: true, integrity: sha512-yVBDcHkbHde74HuFtHw7qQTl7s94A9ddvu4sEeFfIp02pRj17ped0+TH2MeBhVi5Aijg6FVJNj2fTz4gjVZFPw==, path: github/github-catalog, tarball: https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/a362493f1c100fe1f96b85b03997cb90da10c088}
+  github-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/637cc04b99b0c4d5b553038bb4778c764936714e#path:github/github-catalog:
+    resolution: {gitHosted: true, integrity: sha512-x0rTFKtT2BA56vUvIRnX+NSL7ECx68mRxLVXFcyFCOfB6E4Ivwze5y425ZlZLNjwG5QzhBzN25YlaslDWTULEQ==, path: github/github-catalog, tarball: https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/637cc04b99b0c4d5b553038bb4778c764936714e}
     version: 0.1.0
     peerDependencies:
       '@a2ui/react': ^0.10.1
@@ -4968,7 +4968,7 @@ snapshots:
       dunder-proto: 1.0.1
       es-object-atoms: 1.1.2
 
-  github-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/a362493f1c100fe1f96b85b03997cb90da10c088#path:github/github-catalog(@a2ui/react@0.10.2(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76))(@a2ui/web_core@0.10.6)(@primer/octicons-react@19.33.0(react@19.2.8))(@primer/react@38.36.0(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react-is@19.2.0)(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react-is@19.2.8)(react@19.2.8))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76):
+  github-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/637cc04b99b0c4d5b553038bb4778c764936714e#path:github/github-catalog(@a2ui/react@0.10.2(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76))(@a2ui/web_core@0.10.6)(@primer/octicons-react@19.33.0(react@19.2.8))(@primer/react@38.36.0(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react-is@19.2.0)(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react-is@19.2.8)(react@19.2.8))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76):
     dependencies:
       '@a2ui/react': 0.10.2(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76)
       '@a2ui/web_core': 0.10.6
