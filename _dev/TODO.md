@@ -16,15 +16,15 @@ Spec: `_dev/docs/spec/phase-1-spine.md`.
 
 - [x] **1.1** Doc edits — SPEC wording/roster/registry card duty/backlog, TODO roadmap amendment (Phase 2 three agents, agent-kit phase, renumber), tunnel docs port ranges (both repos), `a2uiverse-apps` CLAUDE.md + README wording
 - [WIP] **1.2** Orchestrator — A2A server on 0.3.14, port 10001, minimal static card, hardcoded Registry with bundle record, AgentsPool transparent relay + source stamp, IntentJournal (after 1.1; parallel with 1.3)
-- [ ] **1.3** Client port — canvas only, Radix Themes shell, Primer scoped to fragment, `orchestratorApi` static catalog map, `link:` primer-a2ui-adapter, replayBeat, tests (after 1.1; parallel with 1.2)
-- [ ] **1.4** Spine integration + acceptance — client → orchestrator wiring, `pnpm dev`, READMEs, transparency/action/journal/card checks, Claude-in-Chrome live verification via tunnel (after 1.2 and 1.3)
-- [ ] **1.5** `[apps]` GitHub app copy — `a2uiverse-apps/github/`, port 11001, catalog id fixed, `github-catalog` published, client on published package, gates green in both repos (after 1.4)
+- [WIP] **1.3** Client port — canvas only, Radix Themes shell, Primer scoped to fragment, `orchestratorApi` static catalog map, `link:` primer-a2ui-adapter, replayBeat, tests (after 1.1; parallel with 1.2)
+- [ ] **1.4** Spine integration + acceptance — client → orchestrator wiring, `pnpm dev`, READMEs, beat re-recording + visual Playwright spec, transparency/action/journal/card checks, Claude-in-Chrome live verification via tunnel (after 1.2 and 1.3)
+- [ ] **1.5** `[apps]` GitHub app copy — `a2uiverse-apps/github/`, port 11001, catalog id fixed, `github-catalog` published with its provider + CSS setup owned by the bundle, client on published package, gates green in both repos (after 1.4)
 
 ## Phase 2 — Layout-only composition
-3 agents · 3 catalogs on one surface, no synthesis (M1): GitHub (copied in 1.5), Gmail, Google Calendar — the mock vendor agent template lands here. Basic Router, Planner, AgentsPool fan-out, UIComposer one-tree graft, shell catalog composition primitives, plan/fill/collapse, provenance + attribution, partition isolation.
+3 agents · 3 catalogs on one surface, no synthesis (M1): GitHub (copied in 1.5), Gmail, Google Calendar — the mock vendor agent template lands here. Basic Router, Planner, AgentsPool fan-out, UIComposer one-tree graft, shell catalog composition primitives, plan/fill/collapse, provenance + attribution, partition isolation. Deferred from 1.3: unknown-component handling at the composition layer; shell re-skin on Radix tokens with the shell catalog.
 
 ## Phase 3 — Agent building kit
-Shared vendor-agent logic extracted across the three agents into a published A2UI+A2A agent SDK/CLI in `a2uiverse-apps` (M1k). Uniform run-mode flag, single launcher for installed agents, vendor dependency rule amended.
+Shared vendor-agent logic extracted across the three agents into a published A2UI+A2A agent SDK/CLI in `a2uiverse-apps` (M1k). Uniform run-mode flag, single launcher for installed agents, vendor dependency rule amended, one-provider-and-CSS-setup-per-catalog-bundle rule.
 
 ## Phase 4 — Synthesis, identical shapes
 Two sibling mock vendors merged (M2). Synthesizer, derived bindings, BindingEvaluator, IntegrityChecker, generation stamps, disclosure line.
