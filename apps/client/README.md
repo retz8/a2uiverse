@@ -22,7 +22,23 @@ The canvas sends to `VITE_ORCHESTRATOR_URL` (default `http://localhost:10001`; s
 
 ## Working without the LLM
 
-`index.html?beat=<name>[,<name>…]` (`&instant` to skip pacing) replays beats through the full canvas turn lifecycle, zero tokens. Synthetic beats ship with the client: `plain`, `plain-2`, `validation`, `question`. Recorded beats (`recordings/beats/*.json`, addressed by number) are re-recorded through the orchestrator in 1.4.
+`index.html?beat=<name>[,<name>…]` (`&instant` to skip pacing) replays beats through the full canvas turn lifecycle, zero tokens. Synthetic beats ship with the client: `plain`, `plain-2`, `validation`, `question`. Recorded beats (`recordings/beats/*.json`) are addressed by number — `1` PR list, `2` PR detail, `3` review compose (chained after 2, so replay it as `2,3`).
+
+## Scripts (on demand, not part of `pnpm verify`)
+
+Both need the orchestrator on `10001` and a GitHub agent on `11001` (see `apps/orchestrator/README.md`).
+
+```bash
+# Re-record the beats through the orchestrator. Run the LLM agent with TOOL_BACKEND=stub —
+# real-shaped canned data, a Gemini key only, nothing account-specific in the fixtures.
+pnpm --filter @a2uiverse/client record:beats -- --model gemini-3.7-flash [--beats 1,2,3] [--url http://localhost:10001]
+
+# Transparency + journal check (phase-1 acceptance 2 and 4). Run the deterministic agent: the same
+# utterance is sent direct and via the hub and the A2UI event sequences must be equal modulo an
+# explicit strip list (envelope ids, timestamps, the hub's source stamp, surface-id ordinals, the
+# orchestrator's leading envelope task), and the intent journal must grow by one line.
+pnpm --filter @a2uiverse/client check:transparency [-- --agent http://localhost:11001 --hub http://localhost:10001 --journal ../orchestrator/.state/intent-journal.jsonl]
+```
 
 ## Source map
 
@@ -47,7 +63,7 @@ e2e/                 Playwright chrome baselines
 pnpm --filter @a2uiverse/client build      # tsc --noEmit && vite build
 pnpm --filter @a2uiverse/client typecheck
 pnpm --filter @a2uiverse/client test       # vitest (jsdom + RTL)
-pnpm --filter @a2uiverse/client test:e2e   # playwright: builds, previews on 4173, compares chrome baselines
+pnpm --filter @a2uiverse/client test:e2e   # playwright: builds, previews on 4173, compares chrome + surface baselines
 pnpm --filter @a2uiverse/client lint
 ```
 

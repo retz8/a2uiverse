@@ -31,8 +31,9 @@ pnpm --filter @a2uiverse/orchestrator start        # node dist/index.js
 Hardcoded until M7 (`src/registry/entries.ts`): `github` → `http://localhost:11001`. Run `a2ui-github`'s agent on that port in the mode you want:
 
 ```
-cd ../a2ui-github/agent && uv run python -m deterministic_agent --port 11001
-cd ../a2ui-github/agent && uv run python -m llm_agent --port 11001
+cd ../a2ui-github/agent && uv run python -m deterministic_agent --port 11001                   # no model
+cd ../a2ui-github/agent && TOOL_BACKEND=stub uv run python -m llm_agent --port 11001          # model + canned data (GOOGLE_API_KEY)
+cd ../a2ui-github/agent && uv run python -m llm_agent --port 11001                            # model + GitHub MCP (GOOGLE_API_KEY, GITHUB_MCP_PAT)
 ```
 
 ## Port

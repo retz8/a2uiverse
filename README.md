@@ -55,7 +55,7 @@ packages/
 
 pnpm workspace, Turborepo over it. Each package's README has its commands.
 
-Ports: client `5173` · orchestrator `10001` · marketplace `10002`. Vendor agents (`../a2uiverse-apps`) take `11001+` and are reached by the orchestrator only.
+Ports: client `5173` · orchestrator `10001` · marketplace `10002`. Vendor agents (`../a2uiverse-apps`) take `11001+` and are reached by the orchestrator only. Until the GitHub app is copied there (Phase 1), its agent runs by hand from `../a2ui-github` on `11001` — commands in `apps/orchestrator/README.md`.
 
 ```
 pnpm install                              # fresh clone
