@@ -561,3 +561,62 @@ describe('forked turns (dispatched from a parked view)', () => {
     expect(state.viewing).toBeNull();
   });
 });
+
+describe('streamed partials: validation is judged on the settled state', () => {
+  // The agent streams a component as it is generated, so a batch can carry a `Link` before its
+  // `href` has arrived; the processor validates every batch and throws the partial one away.
+  const partialLink = (surfaceId: string) =>
+    msg({
+      updateComponents: {
+        surfaceId,
+        components: [{id: 'root', component: 'Link', text: 'a2ui-project/'}],
+      },
+    });
+  const completeLink = (surfaceId: string) =>
+    msg({
+      updateComponents: {
+        surfaceId,
+        components: [
+          {id: 'root', component: 'Link', text: 'a2ui-project/a2ui', href: 'https://github.com'},
+        ],
+      },
+    });
+
+  it('a partial that completes by turn end reports nothing (progressive)', () => {
+    const {store, runner, processor} = setup();
+    const turn = runner.begin(utterance('stream'));
+    turn.apply([create('s'), partialLink('s')]);
+    turn.apply([completeLink('s')]);
+    turn.end();
+    expect(store.getState().error).toBeNull();
+    expect(processor.model.getSurface('s')?.componentsModel.get('root')?.properties.href).toBe(
+      'https://github.com',
+    );
+  });
+
+  it('a partial that completes by turn end reports nothing (staged)', () => {
+    const {store, runner} = setup();
+    paintStage(runner, 'first', 'hello');
+    const turn = runner.begin(utterance('stream'));
+    turn.apply([create('s'), partialLink('s')]);
+    turn.apply([completeLink('s')]);
+    turn.end();
+    expect(store.getState().error).toBeNull();
+    expect(store.getState().stageId).toBe('s');
+  });
+
+  it('a partial still invalid at turn end is reported', () => {
+    const {store, runner} = setup();
+    const turn = runner.begin(utterance('stream'));
+    turn.apply([create('s'), partialLink('s')]);
+    turn.end();
+    expect(store.getState().error).toMatch(/could not be displayed.*Link/);
+  });
+
+  it('a non-validation failure is reported immediately', () => {
+    const {store, runner} = setup();
+    const turn = runner.begin(utterance('stream'));
+    turn.apply([textRoot('missing', 'no such surface')]);
+    expect(store.getState().error).toMatch(/could not be displayed/);
+  });
+});

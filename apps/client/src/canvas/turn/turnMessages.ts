@@ -10,10 +10,21 @@ import type {SnapshotSourceSurface} from '../timeline/snapshotSurface';
 /** The slice of a live/staging surface the runner reads: root type, title, catalog, serialization. */
 export interface CanvasSurface extends SnapshotSourceSurface {
   componentsModel: SnapshotSourceSurface['componentsModel'] & {
-    get(id: string): {type: string; properties: Record<string, unknown>} | undefined;
+    get(id: string): CanvasComponent | undefined;
+    readonly entries: IterableIterator<
+      [string, CanvasComponent & {readonly componentTree: unknown}]
+    >;
   };
   /** Captured into the entry so rehydration can rebuild the surface's createSurface. */
-  catalog: {readonly id: string};
+  catalog: {
+    readonly id: string;
+    readonly components: ReadonlyMap<string, {schema: {safeParse(v: unknown): {success: boolean}}}>;
+  };
+}
+
+export interface CanvasComponent {
+  type: string;
+  properties: Record<string, unknown>;
 }
 
 /** The slice of MessageProcessor the runner drives; MessageProcessor satisfies it. */
@@ -59,4 +70,19 @@ export function questionTitleOf(processor: TurnProcessor, surfaceId: string): st
   const title = root?.properties?.title as {literalString?: unknown} | string | undefined;
   if (typeof title === 'string') return title;
   return typeof title?.literalString === 'string' ? title.literalString : undefined;
+}
+
+/**
+ * Re-validate a settled surface against its catalog — the ids of components whose final
+ * properties fail their schema. The processor validates every streamed batch and throws a
+ * partial one away, so mid-stream failures say nothing about the paint; this is the judgment
+ * that does.
+ */
+export function invalidComponentsOf(surface: CanvasSurface): string[] {
+  const invalid: string[] = [];
+  for (const [id, component] of surface.componentsModel.entries) {
+    const api = surface.catalog.components.get(component.type);
+    if (api && !api.schema.safeParse(component.properties).success) invalid.push(id);
+  }
+  return invalid;
 }

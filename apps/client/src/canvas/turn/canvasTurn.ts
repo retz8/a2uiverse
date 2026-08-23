@@ -19,10 +19,16 @@
  *   is canceled, or resolves to a question leaves the user where they acted.
  * - **Cancel**: aborts the transport signal and discards the staged work; a canceled paint
  *   never reaches the stage and never enters the timeline.
+ * - **Streamed partials**: the agent streams a component as it is generated, and the
+ *   processor validates every batch, so a batch carrying a half-built component is thrown
+ *   away. Those validation failures are deferred and judged at turn end against the settled
+ *   surfaces: a paint whose final state validates reports nothing; one that does not reports
+ *   the last failure. Every other failure is reported as it happens.
  *
  * The live processor is the live registry — exactly what the agent may see.
  */
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
+import {A2uiValidationError} from '@a2ui/web_core/v0_9';
 import type {PaintMeta} from '../../a2a/messages';
 import {paintMetaOf, QUESTION_PAINT_KIND} from '../../a2a/messages';
 import {applyA2uiMessages} from '../../a2ui/applyMessages';
@@ -32,7 +38,14 @@ import type {PaintCause} from '../timeline/paint';
 import {describeCause} from '../timeline/paint';
 import {serializeSurface} from '../timeline/snapshotSurface';
 import type {TurnProcessor} from './turnMessages';
-import {QUESTION_ROOT_TYPE, questionTitleOf, rootTypeOf, targetOf} from './turnMessages';
+import {
+  QUESTION_ROOT_TYPE,
+  ROOT_COMPONENT_ID,
+  invalidComponentsOf,
+  questionTitleOf,
+  rootTypeOf,
+  targetOf,
+} from './turnMessages';
 
 export type {CanvasSurface, TurnProcessor} from './turnMessages';
 
@@ -151,6 +164,25 @@ export function createTurnRunner({processor, store, createStaging}: TurnRunnerOp
     const buffered: A2uiMessage[] = [];
     let canceled = false;
 
+    /** Validation failures held until the settled state can be judged (module header). */
+    const deferredValidation: unknown[] = [];
+    const onMessageError = (err: unknown) => {
+      if (err instanceof A2uiValidationError) deferredValidation.push(err);
+      else reportMessageError(err);
+    };
+    /** Turn end: the deferred failures stand only if a surface of this turn is still invalid. */
+    const settleDeferred = () => {
+      if (deferredValidation.length === 0) return;
+      const unsettled = Array.from(createdIds).some(id => {
+        const surface = processor.model.getSurface(id);
+        if (surface === undefined) return false;
+        // A surface whose root never landed is the partial that was thrown away.
+        const rootless = surface.componentsModel.get(ROOT_COMPONENT_ID) === undefined;
+        return rootless || invalidComponentsOf(surface).length > 0;
+      });
+      if (unsettled) reportMessageError(deferredValidation[deferredValidation.length - 1]);
+    };
+
     /** The paintMetas accepted this turn, by surface id. */
     const metas = new Map<string, PaintMeta>();
     const titleOf = (surfaceId: string) => metas.get(surfaceId)?.title;
@@ -196,7 +228,7 @@ export function createTurnRunner({processor, store, createStaging}: TurnRunnerOp
         const {kind, surfaceId} = targetOf(message);
         if (kind === 'create' && surfaceId) createdIds.add(surfaceId);
       }
-      applyA2uiMessages(processor, messages, {onMessageError: reportMessageError});
+      applyA2uiMessages(processor, messages, {onMessageError});
       // Single occupancy: the most recently created surface keeps the stage.
       const ids = Array.from(processor.model.surfacesMap.keys());
       for (const id of ids.slice(0, -1)) retireIntermediate(id);
@@ -211,9 +243,7 @@ export function createTurnRunner({processor, store, createStaging}: TurnRunnerOp
         // The turn's own paint: staging shadows live, so a same-id repaint streams off-stage.
         if (surfaceId !== undefined && (createdIds.has(surfaceId) || kind === 'create')) {
           createdIds.add(surfaceId);
-          applyA2uiMessages(staging as TurnProcessor, [message], {
-            onMessageError: reportMessageError,
-          });
+          applyA2uiMessages(staging as TurnProcessor, [message], {onMessageError});
           buffered.push(message);
           continue;
         }
@@ -221,7 +251,7 @@ export function createTurnRunner({processor, store, createStaging}: TurnRunnerOp
           const state = store.getState();
           if (kind !== 'delete') {
             // An update to an already-visible surface applies live, progressively.
-            applyA2uiMessages(processor, [message], {onMessageError: reportMessageError});
+            applyA2uiMessages(processor, [message], {onMessageError});
           } else if (state.overlay?.surfaceId === surfaceId) {
             // The agent withdrew its question; questions never enter the timeline.
             processor.model.deleteSurface(surfaceId);
@@ -238,9 +268,7 @@ export function createTurnRunner({processor, store, createStaging}: TurnRunnerOp
         }
         // Unknown target (an update racing ahead of its create, or a malformed message):
         // stage it — errors surface through the same channel, stray deletes no-op.
-        applyA2uiMessages(staging as TurnProcessor, [message], {
-          onMessageError: reportMessageError,
-        });
+        applyA2uiMessages(staging as TurnProcessor, [message], {onMessageError});
         buffered.push(message);
       }
       if (touchedLive) store.bumpApplied();
@@ -290,7 +318,7 @@ export function createTurnRunner({processor, store, createStaging}: TurnRunnerOp
       // The swap: retire the outgoing stage (serialize-on-swap), then replay the validated
       // paint into the live processor.
       if (stagePaints.length > 0) retireStage();
-      applyA2uiMessages(processor, replayable, {onMessageError: reportMessageError});
+      applyA2uiMessages(processor, replayable, {onMessageError});
       for (const id of stagePaints.slice(0, -1)) retireIntermediate(id);
       if (stagePaints.length > 0) {
         const stageId = stagePaints[stagePaints.length - 1];
@@ -329,6 +357,7 @@ export function createTurnRunner({processor, store, createStaging}: TurnRunnerOp
         try {
           if (stagedMode) endStaged();
           else endProgressive();
+          settleDeferred();
         } finally {
           if (current === handle) {
             current = null;
