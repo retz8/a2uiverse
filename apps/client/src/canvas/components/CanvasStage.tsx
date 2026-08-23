@@ -29,7 +29,7 @@ export function CanvasStage({processor, state}: CanvasStageProps) {
         </div>
       ) : (
         <div className="canvas-empty-ghost" data-testid="canvas-empty-ghost" aria-hidden="true">
-          <div className="canvas-empty-mark">a2ui canvas</div>
+          <div className="canvas-empty-mark">A2UIVerse</div>
           <div className="canvas-empty-hint">⌘K to ask</div>
         </div>
       )}

@@ -2,7 +2,7 @@
  * The status strip: the thin always-visible region carrying the status register (phase-8 spec
  * decision 2). In-flight spinner + label, or sticky error (cleared by the next dispatch);
  * idle shows the quiet identity label — the one thing naming the app once a painted surface
- * fills the screen with GitHub-shaped content. The ⌘K shortcut lives on the Ask pill.
+ * fills the screen with vendor-shaped content. The ⌘K shortcut lives on the Ask pill.
  * The in-flight label upgrades to the agent-authored paint title when one streams (task 8.5).
  */
 import {Spinner} from '@radix-ui/themes';
@@ -26,7 +26,7 @@ export function StatusStrip({state}: StatusStripProps) {
             {state.inFlight.label}
           </span>
         ) : (
-          <span className="canvas-status-identity">agent-painted GitHub</span>
+          <span className="canvas-status-identity">A2UIVerse</span>
         )}
       </div>
     </div>

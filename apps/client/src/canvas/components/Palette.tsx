@@ -48,7 +48,7 @@ export function Palette({open, onDismiss, onSubmit}: PaletteProps) {
       <TextField.Root
         ref={inputRef}
         aria-label="Ask the agent"
-        placeholder="Ask about GitHub…"
+        placeholder="Ask anything…"
         size="3"
         value={text}
         onChange={e => setText(e.target.value)}

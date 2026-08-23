@@ -14,7 +14,7 @@ describe('StatusStrip', () => {
     const store = createCanvasStore();
     renderWithShell(<StatusStrip state={store.getState()} />);
     expect(screen.queryByText(/⌘K/)).toBeNull();
-    expect(screen.getByTestId('canvas-status')).toHaveTextContent('agent-painted GitHub');
+    expect(screen.getByTestId('canvas-status')).toHaveTextContent('A2UIVerse');
   });
 
   it('carries status only — no buttons live in the strip', () => {
