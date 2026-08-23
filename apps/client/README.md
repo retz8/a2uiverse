@@ -6,7 +6,7 @@ The shell's own UI (palette, status strip, history chrome) is Radix Themes. Vend
 
 ## The GitHub catalog
 
-`github-catalog` — the GitHub app's catalog schema, Primer React implementation, and Provider — is installed as a git dependency on the public `a2uiverse-apps` repo (`github:retz8/a2uiverse-apps#path:github/github-catalog`); no registry. pnpm builds it on install (`prepare`), pins the resolved commit in `pnpm-lock.yaml`, and keys its build allowance in `pnpm-workspace.yaml` by that commit — bumping the catalog is `pnpm update github-catalog --filter @a2uiverse/client` plus re-pointing that `allowBuilds` line. For local catalog iteration, `pnpm link ../../../a2uiverse-apps/github/github-catalog` overrides it temporarily.
+`github-catalog` — the GitHub app's catalog schema, Primer React implementation, Provider, and Primer itself — is installed as a git dependency on the public `a2uiverse-apps` repo (`github:retz8/a2uiverse-apps#path:github/github-catalog`); no registry. pnpm builds it on install (`prepare`), pins the resolved commit in `pnpm-lock.yaml`, and keys its build allowance in `pnpm-workspace.yaml` by that commit — bumping the catalog is `pnpm update github-catalog --filter @a2uiverse/client` plus re-pointing that `allowBuilds` line. The client supplies only the shared runtime (React, `@a2ui/react` / `@a2ui/web_core`, `zod`); the vendor design system arrives with the bundle. For local catalog iteration, `pnpm link ../../../a2uiverse-apps/github/github-catalog` overrides it temporarily.
 
 ## Running
 

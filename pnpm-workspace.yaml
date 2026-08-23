@@ -7,6 +7,7 @@ allowBuilds:
   github-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/48072ccf2ba9c7e9ba855171453915d15376f5b7#path:github/github-catalog: set this to true or false
   # git-hosted vendor catalogs build on install (their `prepare` runs tsc). pnpm keys the
   # allow entry by the resolved tarball, so this line is re-pointed when the catalog is bumped.
-  "github-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/637cc04b99b0c4d5b553038bb4778c764936714e#path:github/github-catalog": true
+  "github-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/550a0e8a3cfd7e027ba808ac34831272c53fb2ea#path:github/github-catalog": true
+  github-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/637cc04b99b0c4d5b553038bb4778c764936714e#path:github/github-catalog: set this to true or false
   github-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/a362493f1c100fe1f96b85b03997cb90da10c088#path:github/github-catalog: set this to true or false
   github-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/d4118df1c18b0170b0d0f241e11b4ba7b0cb8312#path:github/github-catalog: set this to true or false

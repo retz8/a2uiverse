@@ -14,8 +14,8 @@ export default defineConfig({
     setupFiles: ['./src/setupTests.ts'],
     exclude: [...configDefaults.exclude, 'e2e/**'],
     server: {
-      // Inline the catalog bundle and Primer so Vite transforms their internal CSS imports
-      // (otherwise externalized .css hits Node's loader and throws).
+      // Inline the catalog bundle and the Primer it ships so Vite transforms their internal CSS
+      // imports (otherwise externalized .css hits Node's loader and throws).
       deps: {inline: ['github-catalog', '@primer/react']},
     },
   },
