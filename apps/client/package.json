@@ -10,7 +10,9 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "record:beats": "tsx scripts/record-beats.ts",
+    "check:transparency": "tsx scripts/check-transparency.ts"
   },
   "dependencies": {
     "@a2a-js/sdk": "^0.3.14",
@@ -40,6 +42,7 @@
     "@types/react-is": "^19.0.0",
     "@vitejs/plugin-react": "^6.0.2",
     "jsdom": "^29.1.1",
+    "tsx": "^4.20.0",
     "typescript": "~5.9.3",
     "vite": "^8.0.16",
     "vitest": "^4.1.9"
