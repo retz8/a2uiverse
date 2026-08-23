@@ -14,7 +14,7 @@ Spec: `_dev/docs/spec/phase-0-scaffold.md`.
 Client ↔ orchestrator ↔ one vendor agent, end to end: canvas shell ported from `a2ui-github`, orchestrator as an A2A agent server, hardcoded registry, intent journal (M0). The client talks only to the orchestrator.
 Spec: `_dev/docs/spec/phase-1-spine.md`.
 
-- [ ] **1.1** Doc edits — SPEC wording/roster/registry card duty/backlog, TODO roadmap amendment (Phase 2 three agents, agent-kit phase, renumber), tunnel docs port ranges (both repos), `a2uiverse-apps` CLAUDE.md + README wording
+- [WIP] **1.1** Doc edits — SPEC wording/roster/registry card duty/backlog, TODO roadmap amendment (Phase 2 three agents, agent-kit phase, renumber), tunnel docs port ranges (both repos), `a2uiverse-apps` CLAUDE.md + README wording
 - [ ] **1.2** Orchestrator — A2A server on 0.3.14, port 10001, minimal static card, hardcoded Registry with bundle record, AgentsPool transparent relay + source stamp, IntentJournal (after 1.1; parallel with 1.3)
 - [ ] **1.3** Client port — canvas only, Radix Themes shell, Primer scoped to fragment, `orchestratorApi` static catalog map, `link:` primer-a2ui-adapter, replayBeat, tests (after 1.1; parallel with 1.2)
 - [ ] **1.4** Spine integration + acceptance — client → orchestrator wiring, `pnpm dev`, READMEs, transparency/action/journal/card checks, Claude-in-Chrome live verification via tunnel (after 1.2 and 1.3)
