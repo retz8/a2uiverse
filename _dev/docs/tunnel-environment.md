@@ -41,5 +41,22 @@ Platform processes are `1000x`; vendor agents are `11001+`, one port per app reg
 
 ## Run commands
 
-Added per package as each lands; consult the package `README.md` for the
-flags that set its base URL and the client's server URLs.
+Three terminals. Vendor agents stay on `localhost`; only the orchestrator
+advertises a tunnel URL, and the client reads the orchestrator's tunnel URL
+from an uncommitted `apps/client/.env.local`.
+
+```bash
+# GitHub agent (Phase 1, from a2ui-github) — pick one mode
+cd ../a2ui-github/agent && uv run python -m deterministic_agent --port 11001
+cd ../a2ui-github/agent && TOOL_BACKEND=stub uv run python -m llm_agent --port 11001
+cd ../a2ui-github/agent && uv run python -m llm_agent --port 11001
+
+# orchestrator — the card must advertise the tunnel URL
+BASE_URL=https://vnw20xbg-10001.asse.devtunnels.ms pnpm --filter @a2uiverse/orchestrator dev
+
+# client — .env.local: VITE_ORCHESTRATOR_URL=https://vnw20xbg-10001.asse.devtunnels.ms
+pnpm --filter @a2uiverse/client dev
+```
+
+Browser: `https://vnw20xbg-5173.asse.devtunnels.ms`. Card check:
+`https://vnw20xbg-10001.asse.devtunnels.ms/.well-known/agent-card.json`.
