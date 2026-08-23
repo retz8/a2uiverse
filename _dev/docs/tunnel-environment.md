@@ -37,7 +37,6 @@ Platform processes are `1000x`; vendor agents are `11001+`, one port per app reg
 | orchestrator | 10001 | yes | `a2uiverse` |
 | marketplace | 10002 (reserved) | yes | `a2uiverse` |
 | vendor agents | 11001+ | no | `a2uiverse-apps` (table there) |
-| GitHub agent, until copied (Phase 1) — run from `a2ui-github` with `--port 11001` | 11001 | only for direct comparison | `a2ui-github` |
 
 ## Run commands
 
@@ -46,10 +45,10 @@ advertises a tunnel URL, and the client reads the orchestrator's tunnel URL
 from an uncommitted `apps/client/.env.local`.
 
 ```bash
-# GitHub agent (Phase 1, from a2ui-github) — pick one mode
-cd ../a2ui-github/agent && uv run python -m deterministic_agent --port 11001
-cd ../a2ui-github/agent && TOOL_BACKEND=stub uv run python -m llm_agent --port 11001
-cd ../a2ui-github/agent && uv run python -m llm_agent --port 11001
+# GitHub agent (port 11001 by default) — pick one mode
+cd ../a2uiverse-apps/github/agent && uv run python -m deterministic_agent
+cd ../a2uiverse-apps/github/agent && TOOL_BACKEND=stub uv run python -m llm_agent
+cd ../a2uiverse-apps/github/agent && uv run python -m llm_agent
 
 # orchestrator — the card must advertise the tunnel URL
 BASE_URL=https://vnw20xbg-10001.asse.devtunnels.ms pnpm --filter @a2uiverse/orchestrator dev
