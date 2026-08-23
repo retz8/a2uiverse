@@ -17,7 +17,7 @@ Spec: `_dev/docs/spec/phase-1-spine.md`.
 - [x] **1.1** Doc edits — SPEC wording/roster/registry card duty/backlog, TODO roadmap amendment (Phase 2 three agents, agent-kit phase, renumber), tunnel docs port ranges (both repos), `a2uiverse-apps` CLAUDE.md + README wording
 - [x] **1.2** Orchestrator — A2A server on 0.3.14, port 10001, minimal static card, hardcoded Registry with bundle record, AgentsPool transparent relay + source stamp, IntentJournal (after 1.1; parallel with 1.3)
 - [x] **1.3** Client port — canvas only, Radix Themes shell, Primer scoped to fragment, `orchestratorApi` static catalog map, `link:` primer-a2ui-adapter, replayBeat, tests (after 1.1; parallel with 1.2)
-- [WIP] **1.4** Spine integration + acceptance — client → orchestrator wiring, `pnpm dev` (vendor agent started by hand from `a2ui-github`), READMEs, beat re-recording + visual Playwright spec, transparency/action/journal/card checks, Claude-in-Chrome live verification via tunnel (after 1.2 and 1.3)
+- [x] **1.4** Spine integration + acceptance — client → orchestrator wiring, `pnpm dev` (vendor agent started by hand from `a2ui-github`), READMEs, beat re-recording + visual Playwright spec, transparency/action/journal/card checks, Claude-in-Chrome live verification via tunnel (after 1.2 and 1.3)
 - [ ] **1.5** `[apps]` GitHub app copy — `a2uiverse-apps/github/`, port 11001, catalog id fixed, `github-catalog` published with its provider + CSS setup owned by the bundle, client on published package, gates green in both repos (after 1.4)
 
 ## Phase 2 — Layout-only composition
