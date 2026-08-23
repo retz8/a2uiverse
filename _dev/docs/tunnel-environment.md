@@ -37,7 +37,7 @@ Platform processes are `1000x`; vendor agents are `11001+`, one port per app reg
 | orchestrator | 10001 | yes | `a2uiverse` |
 | marketplace | 10002 (reserved) | yes | `a2uiverse` |
 | vendor agents | 11001+ | no | `a2uiverse-apps` (table there) |
-| GitHub agent, until copied (Phase 1) | 10003 | only for direct comparison | `a2ui-github` |
+| GitHub agent, until copied (Phase 1) — run from `a2ui-github` with `--port 11001` | 11001 | only for direct comparison | `a2ui-github` |
 
 ## Run commands
 
