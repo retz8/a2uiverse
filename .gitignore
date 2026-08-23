@@ -28,3 +28,6 @@ CLAUDE.local.md
 
 # Per-machine Claude Code settings
 .claude/settings.local.json
+
+# Orchestrator local state (intent journal; registry from M7)
+.state/
