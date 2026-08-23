@@ -1,0 +1,3130 @@
+{
+  "name": "beat-1-pr-list",
+  "beat": 1,
+  "title": "PR list",
+  "prompt": "Show me the open pull requests on a2ui-project/a2ui that need review.",
+  "model": "gemini-3.7-flash",
+  "recordedAt": "2026-08-23T05:38:39Z",
+  "contextId": "b9099ab0-808f-49c2-bb34-53ecbdb6aef4",
+  "chainedFrom": null,
+  "turns": [
+    {
+      "taskId": "475e48af-4a0a-412f-b289-c491c5fe5749",
+      "kind": "utterance",
+      "prompt": "Show me the open pull requests on a2ui-project/a2ui that need review.",
+      "action": null,
+      "batches": [
+        {
+          "offsetMs": 10756,
+          "messages": [],
+          "texts": [
+            "\n"
+          ]
+        },
+        {
+          "offsetMs": 10849,
+          "messages": [
+            {
+              "version": "v0.9",
+              "createSurface": {
+                "surfaceId": "open-prs-needing-review",
+                "catalogId": "https://github.com/retz8/a2ui-github/blob/main/primer-a2ui-adapter/catalogs/v0.9.1/catalog.json",
+                "sendDataModel": true
+              }
+            }
+          ],
+          "texts": []
+        },
+        {
+          "offsetMs": 11039,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "normal",
+                    "padding": "normal",
+                    "children": [
+                      "loading_header-stack",
+                      "loading_description",
+                      "loading_list"
+                    ]
+                  },
+                  {
+                    "id": "loading_header-stack",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_description",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_list",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "open-prs-needing-review"
+              }
+            }
+          ],
+          "texts": []
+        },
+        {
+          "offsetMs": 11248,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "justify": "space-between",
+                    "align": "center",
+                    "children": [
+                      "loading_header-left",
+                      "loading_header-right"
+                    ]
+                  },
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "normal",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "loading_description",
+                      "loading_list"
+                    ]
+                  },
+                  {
+                    "id": "loading_header-left",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_header-right",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_description",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_list",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "open-prs-needing-review"
+              }
+            }
+          ],
+          "texts": []
+        },
+        {
+          "offsetMs": 11422,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "header-left",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "gap": "condensed",
+                    "align": "center",
+                    "children": [
+                      "loading_repo-icon",
+                      "loading_repo-link",
+                      "loading_slash-text",
+                      "loading_title",
+                      "loading_count-label"
+                    ]
+                  },
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "justify": "space-between",
+                    "align": "center",
+                    "children": [
+                      "header-left",
+                      "loading_header-right"
+                    ]
+                  },
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "normal",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "loading_description",
+                      "loading_list"
+                    ]
+                  },
+                  {
+                    "id": "loading_repo-icon",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_repo-link",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_slash-text",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_title",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_count-label",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_header-right",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_description",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_list",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "open-prs-needing-review"
+              }
+            }
+          ],
+          "texts": []
+        },
+        {
+          "offsetMs": 11543,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "header-left",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "gap": "condensed",
+                    "align": "center",
+                    "children": [
+                      "repo-icon",
+                      "loading_repo-link",
+                      "loading_slash-text",
+                      "loading_title",
+                      "loading_count-label"
+                    ]
+                  },
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "justify": "space-between",
+                    "align": "center",
+                    "children": [
+                      "header-left",
+                      "loading_header-right"
+                    ]
+                  },
+                  {
+                    "id": "repo-icon",
+                    "component": "Icon",
+                    "name": "repo",
+                    "fill": "muted",
+                    "accessibility": {
+                      "label": "Repository"
+                    }
+                  },
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "normal",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "loading_description",
+                      "loading_list"
+                    ]
+                  },
+                  {
+                    "id": "loading_repo-link",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_slash-text",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_title",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_count-label",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_header-right",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_description",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_list",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "open-prs-needing-review"
+              }
+            }
+          ],
+          "texts": []
+        },
+        {
+          "offsetMs": 11610,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "header-left",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "gap": "condensed",
+                    "align": "center",
+                    "children": [
+                      "repo-icon",
+                      "repo-link",
+                      "loading_slash-text",
+                      "loading_title",
+                      "loading_count-label"
+                    ]
+                  },
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "justify": "space-between",
+                    "align": "center",
+                    "children": [
+                      "header-left",
+                      "loading_header-right"
+                    ]
+                  },
+                  {
+                    "id": "repo-icon",
+                    "component": "Icon",
+                    "name": "repo",
+                    "fill": "muted",
+                    "accessibility": {
+                      "label": "Repository"
+                    }
+                  },
+                  {
+                    "id": "repo-link",
+                    "component": "Link",
+                    "text": "a2ui-project/"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "normal",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "loading_description",
+                      "loading_list"
+                    ]
+                  },
+                  {
+                    "id": "loading_slash-text",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_title",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_count-label",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_header-right",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_description",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_list",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "open-prs-needing-review"
+              }
+            }
+          ],
+          "texts": []
+        },
+        {
+          "offsetMs": 11678,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "header-left",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "gap": "condensed",
+                    "align": "center",
+                    "children": [
+                      "repo-icon",
+                      "repo-link",
+                      "loading_slash-text",
+                      "loading_title",
+                      "loading_count-label"
+                    ]
+                  },
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "justify": "space-between",
+                    "align": "center",
+                    "children": [
+                      "header-left",
+                      "loading_header-right"
+                    ]
+                  },
+                  {
+                    "id": "repo-icon",
+                    "component": "Icon",
+                    "name": "repo",
+                    "fill": "muted",
+                    "accessibility": {
+                      "label": "Repository"
+                    }
+                  },
+                  {
+                    "id": "repo-link",
+                    "component": "Link",
+                    "text": "a2ui-project/a2ui",
+                    "href": "https://github.com/a2ui-project/a2ui"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "normal",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "loading_description",
+                      "loading_list"
+                    ]
+                  },
+                  {
+                    "id": "loading_slash-text",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_title",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_count-label",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_header-right",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_description",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_list",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "open-prs-needing-review"
+              }
+            }
+          ],
+          "texts": []
+        },
+        {
+          "offsetMs": 11808,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "header-left",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "gap": "condensed",
+                    "align": "center",
+                    "children": [
+                      "repo-icon",
+                      "repo-link",
+                      "slash-text",
+                      "loading_title",
+                      "loading_count-label"
+                    ]
+                  },
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "justify": "space-between",
+                    "align": "center",
+                    "children": [
+                      "header-left",
+                      "loading_header-right"
+                    ]
+                  },
+                  {
+                    "id": "repo-icon",
+                    "component": "Icon",
+                    "name": "repo",
+                    "fill": "muted",
+                    "accessibility": {
+                      "label": "Repository"
+                    }
+                  },
+                  {
+                    "id": "repo-link",
+                    "component": "Link",
+                    "text": "a2ui-project/a2ui",
+                    "href": "https://github.com/a2ui-project/a2ui"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "normal",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "loading_description",
+                      "loading_list"
+                    ]
+                  },
+                  {
+                    "id": "slash-text",
+                    "component": "Text",
+                    "text": "/"
+                  },
+                  {
+                    "id": "loading_title",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_count-label",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_header-right",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_description",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_list",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "open-prs-needing-review"
+              }
+            }
+          ],
+          "texts": []
+        },
+        {
+          "offsetMs": 11878,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "header-left",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "gap": "condensed",
+                    "align": "center",
+                    "children": [
+                      "repo-icon",
+                      "repo-link",
+                      "slash-text",
+                      "title",
+                      "loading_count-label"
+                    ]
+                  },
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "justify": "space-between",
+                    "align": "center",
+                    "children": [
+                      "header-left",
+                      "loading_header-right"
+                    ]
+                  },
+                  {
+                    "id": "repo-icon",
+                    "component": "Icon",
+                    "name": "repo",
+                    "fill": "muted",
+                    "accessibility": {
+                      "label": "Repository"
+                    }
+                  },
+                  {
+                    "id": "repo-link",
+                    "component": "Link",
+                    "text": "a2ui-project/a2ui",
+                    "href": "https://github.com/a2ui-project/a2ui"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "normal",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "loading_description",
+                      "loading_list"
+                    ]
+                  },
+                  {
+                    "id": "slash-text",
+                    "component": "Text",
+                    "text": "/"
+                  },
+                  {
+                    "id": "title",
+                    "component": "Heading",
+                    "text": "Pull Requests",
+                    "as": "h1",
+                    "variant": "small"
+                  },
+                  {
+                    "id": "loading_count-label",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_header-right",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_description",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_list",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "open-prs-needing-review"
+              }
+            }
+          ],
+          "texts": []
+        },
+        {
+          "offsetMs": 12003,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "count-label",
+                    "component": "CounterLabel",
+                    "count": 3,
+                    "variant": "primary"
+                  },
+                  {
+                    "id": "header-left",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "gap": "condensed",
+                    "align": "center",
+                    "children": [
+                      "repo-icon",
+                      "repo-link",
+                      "slash-text",
+                      "title",
+                      "count-label"
+                    ]
+                  },
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "justify": "space-between",
+                    "align": "center",
+                    "children": [
+                      "header-left",
+                      "loading_header-right"
+                    ]
+                  },
+                  {
+                    "id": "repo-icon",
+                    "component": "Icon",
+                    "name": "repo",
+                    "fill": "muted",
+                    "accessibility": {
+                      "label": "Repository"
+                    }
+                  },
+                  {
+                    "id": "repo-link",
+                    "component": "Link",
+                    "text": "a2ui-project/a2ui",
+                    "href": "https://github.com/a2ui-project/a2ui"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "normal",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "loading_description",
+                      "loading_list"
+                    ]
+                  },
+                  {
+                    "id": "slash-text",
+                    "component": "Text",
+                    "text": "/"
+                  },
+                  {
+                    "id": "title",
+                    "component": "Heading",
+                    "text": "Pull Requests",
+                    "as": "h1",
+                    "variant": "small"
+                  },
+                  {
+                    "id": "loading_header-right",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_description",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_list",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "open-prs-needing-review"
+              }
+            }
+          ],
+          "texts": []
+        },
+        {
+          "offsetMs": 12069,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "count-label",
+                    "component": "CounterLabel",
+                    "count": 3,
+                    "variant": "primary"
+                  },
+                  {
+                    "id": "header-left",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "gap": "condensed",
+                    "align": "center",
+                    "children": [
+                      "repo-icon",
+                      "repo-link",
+                      "slash-text",
+                      "title",
+                      "count-label"
+                    ]
+                  },
+                  {
+                    "id": "header-right",
+                    "component": "Label",
+                    "text": "Needs Review",
+                    "variant": "attention"
+                  },
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "justify": "space-between",
+                    "align": "center",
+                    "children": [
+                      "header-left",
+                      "header-right"
+                    ]
+                  },
+                  {
+                    "id": "repo-icon",
+                    "component": "Icon",
+                    "name": "repo",
+                    "fill": "muted",
+                    "accessibility": {
+                      "label": "Repository"
+                    }
+                  },
+                  {
+                    "id": "repo-link",
+                    "component": "Link",
+                    "text": "a2ui-project/a2ui",
+                    "href": "https://github.com/a2ui-project/a2ui"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "normal",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "loading_description",
+                      "loading_list"
+                    ]
+                  },
+                  {
+                    "id": "slash-text",
+                    "component": "Text",
+                    "text": "/"
+                  },
+                  {
+                    "id": "title",
+                    "component": "Heading",
+                    "text": "Pull Requests",
+                    "as": "h1",
+                    "variant": "small"
+                  },
+                  {
+                    "id": "loading_description",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_list",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "open-prs-needing-review"
+              }
+            }
+          ],
+          "texts": []
+        },
+        {
+          "offsetMs": 12144,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "count-label",
+                    "component": "CounterLabel",
+                    "count": 3,
+                    "variant": "primary"
+                  },
+                  {
+                    "id": "description",
+                    "component": "Text",
+                    "text": "Showing 3 open pull requests with review requested."
+                  },
+                  {
+                    "id": "header-left",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "gap": "condensed",
+                    "align": "center",
+                    "children": [
+                      "repo-icon",
+                      "repo-link",
+                      "slash-text",
+                      "title",
+                      "count-label"
+                    ]
+                  },
+                  {
+                    "id": "header-right",
+                    "component": "Label",
+                    "text": "Needs Review",
+                    "variant": "attention"
+                  },
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "justify": "space-between",
+                    "align": "center",
+                    "children": [
+                      "header-left",
+                      "header-right"
+                    ]
+                  },
+                  {
+                    "id": "repo-icon",
+                    "component": "Icon",
+                    "name": "repo",
+                    "fill": "muted",
+                    "accessibility": {
+                      "label": "Repository"
+                    }
+                  },
+                  {
+                    "id": "repo-link",
+                    "component": "Link",
+                    "text": "a2ui-project/a2ui",
+                    "href": "https://github.com/a2ui-project/a2ui"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "normal",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "description",
+                      "loading_list"
+                    ]
+                  },
+                  {
+                    "id": "slash-text",
+                    "component": "Text",
+                    "text": "/"
+                  },
+                  {
+                    "id": "title",
+                    "component": "Heading",
+                    "text": "Pull Requests",
+                    "as": "h1",
+                    "variant": "small"
+                  },
+                  {
+                    "id": "loading_list",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "open-prs-needing-review"
+              }
+            }
+          ],
+          "texts": []
+        },
+        {
+          "offsetMs": 12204,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "count-label",
+                    "component": "CounterLabel",
+                    "count": 3,
+                    "variant": "primary"
+                  },
+                  {
+                    "id": "description",
+                    "component": "Text",
+                    "text": "Showing 3 open pull requests with review requested.",
+                    "size": "small"
+                  },
+                  {
+                    "id": "header-left",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "gap": "condensed",
+                    "align": "center",
+                    "children": [
+                      "repo-icon",
+                      "repo-link",
+                      "slash-text",
+                      "title",
+                      "count-label"
+                    ]
+                  },
+                  {
+                    "id": "header-right",
+                    "component": "Label",
+                    "text": "Needs Review",
+                    "variant": "attention"
+                  },
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "justify": "space-between",
+                    "align": "center",
+                    "children": [
+                      "header-left",
+                      "header-right"
+                    ]
+                  },
+                  {
+                    "id": "repo-icon",
+                    "component": "Icon",
+                    "name": "repo",
+                    "fill": "muted",
+                    "accessibility": {
+                      "label": "Repository"
+                    }
+                  },
+                  {
+                    "id": "repo-link",
+                    "component": "Link",
+                    "text": "a2ui-project/a2ui",
+                    "href": "https://github.com/a2ui-project/a2ui"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "normal",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "description",
+                      "loading_list"
+                    ]
+                  },
+                  {
+                    "id": "slash-text",
+                    "component": "Text",
+                    "text": "/"
+                  },
+                  {
+                    "id": "title",
+                    "component": "Heading",
+                    "text": "Pull Requests",
+                    "as": "h1",
+                    "variant": "small"
+                  },
+                  {
+                    "id": "loading_list",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "open-prs-needing-review"
+              }
+            }
+          ],
+          "texts": []
+        },
+        {
+          "offsetMs": 12359,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "count-label",
+                    "component": "CounterLabel",
+                    "count": 3,
+                    "variant": "primary"
+                  },
+                  {
+                    "id": "description",
+                    "component": "Text",
+                    "text": "Showing 3 open pull requests with review requested.",
+                    "size": "small"
+                  },
+                  {
+                    "id": "header-left",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "gap": "condensed",
+                    "align": "center",
+                    "children": [
+                      "repo-icon",
+                      "repo-link",
+                      "slash-text",
+                      "title",
+                      "count-label"
+                    ]
+                  },
+                  {
+                    "id": "header-right",
+                    "component": "Label",
+                    "text": "Needs Review",
+                    "variant": "attention"
+                  },
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "justify": "space-between",
+                    "align": "center",
+                    "children": [
+                      "header-left",
+                      "header-right"
+                    ]
+                  },
+                  {
+                    "id": "list",
+                    "component": "ActionList",
+                    "role": "listbox",
+                    "showDividers": true,
+                    "children": {
+                      "componentId": "loading_pr-row",
+                      "path": "/prs"
+                    }
+                  },
+                  {
+                    "id": "repo-icon",
+                    "component": "Icon",
+                    "name": "repo",
+                    "fill": "muted",
+                    "accessibility": {
+                      "label": "Repository"
+                    }
+                  },
+                  {
+                    "id": "repo-link",
+                    "component": "Link",
+                    "text": "a2ui-project/a2ui",
+                    "href": "https://github.com/a2ui-project/a2ui"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "normal",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "description",
+                      "list"
+                    ]
+                  },
+                  {
+                    "id": "slash-text",
+                    "component": "Text",
+                    "text": "/"
+                  },
+                  {
+                    "id": "title",
+                    "component": "Heading",
+                    "text": "Pull Requests",
+                    "as": "h1",
+                    "variant": "small"
+                  },
+                  {
+                    "id": "loading_pr-row",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "open-prs-needing-review"
+              }
+            }
+          ],
+          "texts": []
+        },
+        {
+          "offsetMs": 12555,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "count-label",
+                    "component": "CounterLabel",
+                    "count": 3,
+                    "variant": "primary"
+                  },
+                  {
+                    "id": "description",
+                    "component": "Text",
+                    "text": "Showing 3 open pull requests with review requested.",
+                    "size": "small"
+                  },
+                  {
+                    "id": "header-left",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "gap": "condensed",
+                    "align": "center",
+                    "children": [
+                      "repo-icon",
+                      "repo-link",
+                      "slash-text",
+                      "title",
+                      "count-label"
+                    ]
+                  },
+                  {
+                    "id": "header-right",
+                    "component": "Label",
+                    "text": "Needs Review",
+                    "variant": "attention"
+                  },
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "justify": "space-between",
+                    "align": "center",
+                    "children": [
+                      "header-left",
+                      "header-right"
+                    ]
+                  },
+                  {
+                    "id": "list",
+                    "component": "ActionList",
+                    "role": "listbox",
+                    "showDividers": true,
+                    "children": {
+                      "componentId": "pr-row",
+                      "path": "/prs"
+                    }
+                  },
+                  {
+                    "id": "pr-row",
+                    "component": "ActionList.Item",
+                    "children": [
+                      "loading_row-lv",
+                      "loading_row-title",
+                      "loading_row-desc",
+                      "loading_row-tv"
+                    ],
+                    "action": {
+                      "event": {
+                        "name": "open-pull-request"
+                      }
+                    }
+                  },
+                  {
+                    "id": "repo-icon",
+                    "component": "Icon",
+                    "name": "repo",
+                    "fill": "muted",
+                    "accessibility": {
+                      "label": "Repository"
+                    }
+                  },
+                  {
+                    "id": "repo-link",
+                    "component": "Link",
+                    "text": "a2ui-project/a2ui",
+                    "href": "https://github.com/a2ui-project/a2ui"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "normal",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "description",
+                      "list"
+                    ]
+                  },
+                  {
+                    "id": "slash-text",
+                    "component": "Text",
+                    "text": "/"
+                  },
+                  {
+                    "id": "title",
+                    "component": "Heading",
+                    "text": "Pull Requests",
+                    "as": "h1",
+                    "variant": "small"
+                  },
+                  {
+                    "id": "loading_row-lv",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_row-title",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_row-desc",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_row-tv",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "open-prs-needing-review"
+              }
+            }
+          ],
+          "texts": []
+        },
+        {
+          "offsetMs": 12691,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "count-label",
+                    "component": "CounterLabel",
+                    "count": 3,
+                    "variant": "primary"
+                  },
+                  {
+                    "id": "description",
+                    "component": "Text",
+                    "text": "Showing 3 open pull requests with review requested.",
+                    "size": "small"
+                  },
+                  {
+                    "id": "header-left",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "gap": "condensed",
+                    "align": "center",
+                    "children": [
+                      "repo-icon",
+                      "repo-link",
+                      "slash-text",
+                      "title",
+                      "count-label"
+                    ]
+                  },
+                  {
+                    "id": "header-right",
+                    "component": "Label",
+                    "text": "Needs Review",
+                    "variant": "attention"
+                  },
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "justify": "space-between",
+                    "align": "center",
+                    "children": [
+                      "header-left",
+                      "header-right"
+                    ]
+                  },
+                  {
+                    "id": "list",
+                    "component": "ActionList",
+                    "role": "listbox",
+                    "showDividers": true,
+                    "children": {
+                      "componentId": "pr-row",
+                      "path": "/prs"
+                    }
+                  },
+                  {
+                    "id": "pr-row",
+                    "component": "ActionList.Item",
+                    "children": [
+                      "loading_row-lv",
+                      "loading_row-title",
+                      "loading_row-desc",
+                      "loading_row-tv"
+                    ],
+                    "action": {
+                      "event": {
+                        "name": "open-pull-request",
+                        "context": {
+                          "repository": {
+                            "path": "repository"
+                          },
+                          "number": {
+                            "path": "number"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "repo-icon",
+                    "component": "Icon",
+                    "name": "repo",
+                    "fill": "muted",
+                    "accessibility": {
+                      "label": "Repository"
+                    }
+                  },
+                  {
+                    "id": "repo-link",
+                    "component": "Link",
+                    "text": "a2ui-project/a2ui",
+                    "href": "https://github.com/a2ui-project/a2ui"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "normal",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "description",
+                      "list"
+                    ]
+                  },
+                  {
+                    "id": "slash-text",
+                    "component": "Text",
+                    "text": "/"
+                  },
+                  {
+                    "id": "title",
+                    "component": "Heading",
+                    "text": "Pull Requests",
+                    "as": "h1",
+                    "variant": "small"
+                  },
+                  {
+                    "id": "loading_row-lv",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_row-title",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_row-desc",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_row-tv",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "open-prs-needing-review"
+              }
+            }
+          ],
+          "texts": []
+        },
+        {
+          "offsetMs": 12835,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "count-label",
+                    "component": "CounterLabel",
+                    "count": 3,
+                    "variant": "primary"
+                  },
+                  {
+                    "id": "description",
+                    "component": "Text",
+                    "text": "Showing 3 open pull requests with review requested.",
+                    "size": "small"
+                  },
+                  {
+                    "id": "header-left",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "gap": "condensed",
+                    "align": "center",
+                    "children": [
+                      "repo-icon",
+                      "repo-link",
+                      "slash-text",
+                      "title",
+                      "count-label"
+                    ]
+                  },
+                  {
+                    "id": "header-right",
+                    "component": "Label",
+                    "text": "Needs Review",
+                    "variant": "attention"
+                  },
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "justify": "space-between",
+                    "align": "center",
+                    "children": [
+                      "header-left",
+                      "header-right"
+                    ]
+                  },
+                  {
+                    "id": "list",
+                    "component": "ActionList",
+                    "role": "listbox",
+                    "showDividers": true,
+                    "children": {
+                      "componentId": "pr-row",
+                      "path": "/prs"
+                    }
+                  },
+                  {
+                    "id": "pr-row",
+                    "component": "ActionList.Item",
+                    "children": [
+                      "row-lv",
+                      "loading_row-title",
+                      "loading_row-desc",
+                      "loading_row-tv"
+                    ],
+                    "action": {
+                      "event": {
+                        "name": "open-pull-request",
+                        "context": {
+                          "repository": {
+                            "path": "repository"
+                          },
+                          "number": {
+                            "path": "number"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "repo-icon",
+                    "component": "Icon",
+                    "name": "repo",
+                    "fill": "muted",
+                    "accessibility": {
+                      "label": "Repository"
+                    }
+                  },
+                  {
+                    "id": "repo-link",
+                    "component": "Link",
+                    "text": "a2ui-project/a2ui",
+                    "href": "https://github.com/a2ui-project/a2ui"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "normal",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "description",
+                      "list"
+                    ]
+                  },
+                  {
+                    "id": "row-lv",
+                    "component": "ActionList.LeadingVisual",
+                    "children": [
+                      "loading_row-icon"
+                    ]
+                  },
+                  {
+                    "id": "slash-text",
+                    "component": "Text",
+                    "text": "/"
+                  },
+                  {
+                    "id": "title",
+                    "component": "Heading",
+                    "text": "Pull Requests",
+                    "as": "h1",
+                    "variant": "small"
+                  },
+                  {
+                    "id": "loading_row-title",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_row-desc",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_row-tv",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_row-icon",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "open-prs-needing-review"
+              }
+            }
+          ],
+          "texts": []
+        },
+        {
+          "offsetMs": 12978,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "count-label",
+                    "component": "CounterLabel",
+                    "count": 3,
+                    "variant": "primary"
+                  },
+                  {
+                    "id": "description",
+                    "component": "Text",
+                    "text": "Showing 3 open pull requests with review requested.",
+                    "size": "small"
+                  },
+                  {
+                    "id": "header-left",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "gap": "condensed",
+                    "align": "center",
+                    "children": [
+                      "repo-icon",
+                      "repo-link",
+                      "slash-text",
+                      "title",
+                      "count-label"
+                    ]
+                  },
+                  {
+                    "id": "header-right",
+                    "component": "Label",
+                    "text": "Needs Review",
+                    "variant": "attention"
+                  },
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "justify": "space-between",
+                    "align": "center",
+                    "children": [
+                      "header-left",
+                      "header-right"
+                    ]
+                  },
+                  {
+                    "id": "list",
+                    "component": "ActionList",
+                    "role": "listbox",
+                    "showDividers": true,
+                    "children": {
+                      "componentId": "pr-row",
+                      "path": "/prs"
+                    }
+                  },
+                  {
+                    "id": "pr-row",
+                    "component": "ActionList.Item",
+                    "children": [
+                      "row-lv",
+                      "loading_row-title",
+                      "loading_row-desc",
+                      "loading_row-tv"
+                    ],
+                    "action": {
+                      "event": {
+                        "name": "open-pull-request",
+                        "context": {
+                          "repository": {
+                            "path": "repository"
+                          },
+                          "number": {
+                            "path": "number"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "repo-icon",
+                    "component": "Icon",
+                    "name": "repo",
+                    "fill": "muted",
+                    "accessibility": {
+                      "label": "Repository"
+                    }
+                  },
+                  {
+                    "id": "repo-link",
+                    "component": "Link",
+                    "text": "a2ui-project/a2ui",
+                    "href": "https://github.com/a2ui-project/a2ui"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "normal",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "description",
+                      "list"
+                    ]
+                  },
+                  {
+                    "id": "row-icon",
+                    "component": "Icon",
+                    "name": "git-pull-request",
+                    "fill": "open",
+                    "accessibility": {
+                      "label": "Open Pull Request"
+                    }
+                  },
+                  {
+                    "id": "row-lv",
+                    "component": "ActionList.LeadingVisual",
+                    "children": [
+                      "row-icon"
+                    ]
+                  },
+                  {
+                    "id": "slash-text",
+                    "component": "Text",
+                    "text": "/"
+                  },
+                  {
+                    "id": "title",
+                    "component": "Heading",
+                    "text": "Pull Requests",
+                    "as": "h1",
+                    "variant": "small"
+                  },
+                  {
+                    "id": "loading_row-title",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_row-desc",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_row-tv",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "open-prs-needing-review"
+              }
+            }
+          ],
+          "texts": []
+        },
+        {
+          "offsetMs": 13037,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "count-label",
+                    "component": "CounterLabel",
+                    "count": 3,
+                    "variant": "primary"
+                  },
+                  {
+                    "id": "description",
+                    "component": "Text",
+                    "text": "Showing 3 open pull requests with review requested.",
+                    "size": "small"
+                  },
+                  {
+                    "id": "header-left",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "gap": "condensed",
+                    "align": "center",
+                    "children": [
+                      "repo-icon",
+                      "repo-link",
+                      "slash-text",
+                      "title",
+                      "count-label"
+                    ]
+                  },
+                  {
+                    "id": "header-right",
+                    "component": "Label",
+                    "text": "Needs Review",
+                    "variant": "attention"
+                  },
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "justify": "space-between",
+                    "align": "center",
+                    "children": [
+                      "header-left",
+                      "header-right"
+                    ]
+                  },
+                  {
+                    "id": "list",
+                    "component": "ActionList",
+                    "role": "listbox",
+                    "showDividers": true,
+                    "children": {
+                      "componentId": "pr-row",
+                      "path": "/prs"
+                    }
+                  },
+                  {
+                    "id": "pr-row",
+                    "component": "ActionList.Item",
+                    "children": [
+                      "row-lv",
+                      "row-title",
+                      "loading_row-desc",
+                      "loading_row-tv"
+                    ],
+                    "action": {
+                      "event": {
+                        "name": "open-pull-request",
+                        "context": {
+                          "repository": {
+                            "path": "repository"
+                          },
+                          "number": {
+                            "path": "number"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "repo-icon",
+                    "component": "Icon",
+                    "name": "repo",
+                    "fill": "muted",
+                    "accessibility": {
+                      "label": "Repository"
+                    }
+                  },
+                  {
+                    "id": "repo-link",
+                    "component": "Link",
+                    "text": "a2ui-project/a2ui",
+                    "href": "https://github.com/a2ui-project/a2ui"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "normal",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "description",
+                      "list"
+                    ]
+                  },
+                  {
+                    "id": "row-icon",
+                    "component": "Icon",
+                    "name": "git-pull-request",
+                    "fill": "open",
+                    "accessibility": {
+                      "label": "Open Pull Request"
+                    }
+                  },
+                  {
+                    "id": "row-lv",
+                    "component": "ActionList.LeadingVisual",
+                    "children": [
+                      "row-icon"
+                    ]
+                  },
+                  {
+                    "id": "row-title",
+                    "component": "Text",
+                    "text": {
+                      "path": "title"
+                    }
+                  },
+                  {
+                    "id": "slash-text",
+                    "component": "Text",
+                    "text": "/"
+                  },
+                  {
+                    "id": "title",
+                    "component": "Heading",
+                    "text": "Pull Requests",
+                    "as": "h1",
+                    "variant": "small"
+                  },
+                  {
+                    "id": "loading_row-desc",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_row-tv",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "open-prs-needing-review"
+              }
+            }
+          ],
+          "texts": []
+        },
+        {
+          "offsetMs": 13103,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "count-label",
+                    "component": "CounterLabel",
+                    "count": 3,
+                    "variant": "primary"
+                  },
+                  {
+                    "id": "description",
+                    "component": "Text",
+                    "text": "Showing 3 open pull requests with review requested.",
+                    "size": "small"
+                  },
+                  {
+                    "id": "header-left",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "gap": "condensed",
+                    "align": "center",
+                    "children": [
+                      "repo-icon",
+                      "repo-link",
+                      "slash-text",
+                      "title",
+                      "count-label"
+                    ]
+                  },
+                  {
+                    "id": "header-right",
+                    "component": "Label",
+                    "text": "Needs Review",
+                    "variant": "attention"
+                  },
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "justify": "space-between",
+                    "align": "center",
+                    "children": [
+                      "header-left",
+                      "header-right"
+                    ]
+                  },
+                  {
+                    "id": "list",
+                    "component": "ActionList",
+                    "role": "listbox",
+                    "showDividers": true,
+                    "children": {
+                      "componentId": "pr-row",
+                      "path": "/prs"
+                    }
+                  },
+                  {
+                    "id": "pr-row",
+                    "component": "ActionList.Item",
+                    "children": [
+                      "row-lv",
+                      "row-title",
+                      "loading_row-desc",
+                      "loading_row-tv"
+                    ],
+                    "action": {
+                      "event": {
+                        "name": "open-pull-request",
+                        "context": {
+                          "repository": {
+                            "path": "repository"
+                          },
+                          "number": {
+                            "path": "number"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "repo-icon",
+                    "component": "Icon",
+                    "name": "repo",
+                    "fill": "muted",
+                    "accessibility": {
+                      "label": "Repository"
+                    }
+                  },
+                  {
+                    "id": "repo-link",
+                    "component": "Link",
+                    "text": "a2ui-project/a2ui",
+                    "href": "https://github.com/a2ui-project/a2ui"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "normal",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "description",
+                      "list"
+                    ]
+                  },
+                  {
+                    "id": "row-icon",
+                    "component": "Icon",
+                    "name": "git-pull-request",
+                    "fill": "open",
+                    "accessibility": {
+                      "label": "Open Pull Request"
+                    }
+                  },
+                  {
+                    "id": "row-lv",
+                    "component": "ActionList.LeadingVisual",
+                    "children": [
+                      "row-icon"
+                    ]
+                  },
+                  {
+                    "id": "row-title",
+                    "component": "Text",
+                    "text": {
+                      "path": "title"
+                    },
+                    "weight": "semibold"
+                  },
+                  {
+                    "id": "slash-text",
+                    "component": "Text",
+                    "text": "/"
+                  },
+                  {
+                    "id": "title",
+                    "component": "Heading",
+                    "text": "Pull Requests",
+                    "as": "h1",
+                    "variant": "small"
+                  },
+                  {
+                    "id": "loading_row-desc",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_row-tv",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "open-prs-needing-review"
+              }
+            }
+          ],
+          "texts": []
+        },
+        {
+          "offsetMs": 13166,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "count-label",
+                    "component": "CounterLabel",
+                    "count": 3,
+                    "variant": "primary"
+                  },
+                  {
+                    "id": "description",
+                    "component": "Text",
+                    "text": "Showing 3 open pull requests with review requested.",
+                    "size": "small"
+                  },
+                  {
+                    "id": "header-left",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "gap": "condensed",
+                    "align": "center",
+                    "children": [
+                      "repo-icon",
+                      "repo-link",
+                      "slash-text",
+                      "title",
+                      "count-label"
+                    ]
+                  },
+                  {
+                    "id": "header-right",
+                    "component": "Label",
+                    "text": "Needs Review",
+                    "variant": "attention"
+                  },
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "justify": "space-between",
+                    "align": "center",
+                    "children": [
+                      "header-left",
+                      "header-right"
+                    ]
+                  },
+                  {
+                    "id": "list",
+                    "component": "ActionList",
+                    "role": "listbox",
+                    "showDividers": true,
+                    "children": {
+                      "componentId": "pr-row",
+                      "path": "/prs"
+                    }
+                  },
+                  {
+                    "id": "pr-row",
+                    "component": "ActionList.Item",
+                    "children": [
+                      "row-lv",
+                      "row-title",
+                      "row-desc",
+                      "loading_row-tv"
+                    ],
+                    "action": {
+                      "event": {
+                        "name": "open-pull-request",
+                        "context": {
+                          "repository": {
+                            "path": "repository"
+                          },
+                          "number": {
+                            "path": "number"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "repo-icon",
+                    "component": "Icon",
+                    "name": "repo",
+                    "fill": "muted",
+                    "accessibility": {
+                      "label": "Repository"
+                    }
+                  },
+                  {
+                    "id": "repo-link",
+                    "component": "Link",
+                    "text": "a2ui-project/a2ui",
+                    "href": "https://github.com/a2ui-project/a2ui"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "normal",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "description",
+                      "list"
+                    ]
+                  },
+                  {
+                    "id": "row-desc",
+                    "component": "ActionList.Description",
+                    "text": {
+                      "path": "meta"
+                    }
+                  },
+                  {
+                    "id": "row-icon",
+                    "component": "Icon",
+                    "name": "git-pull-request",
+                    "fill": "open",
+                    "accessibility": {
+                      "label": "Open Pull Request"
+                    }
+                  },
+                  {
+                    "id": "row-lv",
+                    "component": "ActionList.LeadingVisual",
+                    "children": [
+                      "row-icon"
+                    ]
+                  },
+                  {
+                    "id": "row-title",
+                    "component": "Text",
+                    "text": {
+                      "path": "title"
+                    },
+                    "weight": "semibold"
+                  },
+                  {
+                    "id": "slash-text",
+                    "component": "Text",
+                    "text": "/"
+                  },
+                  {
+                    "id": "title",
+                    "component": "Heading",
+                    "text": "Pull Requests",
+                    "as": "h1",
+                    "variant": "small"
+                  },
+                  {
+                    "id": "loading_row-tv",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "open-prs-needing-review"
+              }
+            }
+          ],
+          "texts": []
+        },
+        {
+          "offsetMs": 13249,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "count-label",
+                    "component": "CounterLabel",
+                    "count": 3,
+                    "variant": "primary"
+                  },
+                  {
+                    "id": "description",
+                    "component": "Text",
+                    "text": "Showing 3 open pull requests with review requested.",
+                    "size": "small"
+                  },
+                  {
+                    "id": "header-left",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "gap": "condensed",
+                    "align": "center",
+                    "children": [
+                      "repo-icon",
+                      "repo-link",
+                      "slash-text",
+                      "title",
+                      "count-label"
+                    ]
+                  },
+                  {
+                    "id": "header-right",
+                    "component": "Label",
+                    "text": "Needs Review",
+                    "variant": "attention"
+                  },
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "justify": "space-between",
+                    "align": "center",
+                    "children": [
+                      "header-left",
+                      "header-right"
+                    ]
+                  },
+                  {
+                    "id": "list",
+                    "component": "ActionList",
+                    "role": "listbox",
+                    "showDividers": true,
+                    "children": {
+                      "componentId": "pr-row",
+                      "path": "/prs"
+                    }
+                  },
+                  {
+                    "id": "pr-row",
+                    "component": "ActionList.Item",
+                    "children": [
+                      "row-lv",
+                      "row-title",
+                      "row-desc",
+                      "loading_row-tv"
+                    ],
+                    "action": {
+                      "event": {
+                        "name": "open-pull-request",
+                        "context": {
+                          "repository": {
+                            "path": "repository"
+                          },
+                          "number": {
+                            "path": "number"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "repo-icon",
+                    "component": "Icon",
+                    "name": "repo",
+                    "fill": "muted",
+                    "accessibility": {
+                      "label": "Repository"
+                    }
+                  },
+                  {
+                    "id": "repo-link",
+                    "component": "Link",
+                    "text": "a2ui-project/a2ui",
+                    "href": "https://github.com/a2ui-project/a2ui"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "normal",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "description",
+                      "list"
+                    ]
+                  },
+                  {
+                    "id": "row-desc",
+                    "component": "ActionList.Description",
+                    "text": {
+                      "path": "meta"
+                    },
+                    "variant": "block"
+                  },
+                  {
+                    "id": "row-icon",
+                    "component": "Icon",
+                    "name": "git-pull-request",
+                    "fill": "open",
+                    "accessibility": {
+                      "label": "Open Pull Request"
+                    }
+                  },
+                  {
+                    "id": "row-lv",
+                    "component": "ActionList.LeadingVisual",
+                    "children": [
+                      "row-icon"
+                    ]
+                  },
+                  {
+                    "id": "row-title",
+                    "component": "Text",
+                    "text": {
+                      "path": "title"
+                    },
+                    "weight": "semibold"
+                  },
+                  {
+                    "id": "slash-text",
+                    "component": "Text",
+                    "text": "/"
+                  },
+                  {
+                    "id": "title",
+                    "component": "Heading",
+                    "text": "Pull Requests",
+                    "as": "h1",
+                    "variant": "small"
+                  },
+                  {
+                    "id": "loading_row-tv",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "open-prs-needing-review"
+              }
+            }
+          ],
+          "texts": []
+        },
+        {
+          "offsetMs": 13322,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "count-label",
+                    "component": "CounterLabel",
+                    "count": 3,
+                    "variant": "primary"
+                  },
+                  {
+                    "id": "description",
+                    "component": "Text",
+                    "text": "Showing 3 open pull requests with review requested.",
+                    "size": "small"
+                  },
+                  {
+                    "id": "header-left",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "gap": "condensed",
+                    "align": "center",
+                    "children": [
+                      "repo-icon",
+                      "repo-link",
+                      "slash-text",
+                      "title",
+                      "count-label"
+                    ]
+                  },
+                  {
+                    "id": "header-right",
+                    "component": "Label",
+                    "text": "Needs Review",
+                    "variant": "attention"
+                  },
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "justify": "space-between",
+                    "align": "center",
+                    "children": [
+                      "header-left",
+                      "header-right"
+                    ]
+                  },
+                  {
+                    "id": "list",
+                    "component": "ActionList",
+                    "role": "listbox",
+                    "showDividers": true,
+                    "children": {
+                      "componentId": "pr-row",
+                      "path": "/prs"
+                    }
+                  },
+                  {
+                    "id": "pr-row",
+                    "component": "ActionList.Item",
+                    "children": [
+                      "row-lv",
+                      "row-title",
+                      "row-desc",
+                      "row-tv"
+                    ],
+                    "action": {
+                      "event": {
+                        "name": "open-pull-request",
+                        "context": {
+                          "repository": {
+                            "path": "repository"
+                          },
+                          "number": {
+                            "path": "number"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "repo-icon",
+                    "component": "Icon",
+                    "name": "repo",
+                    "fill": "muted",
+                    "accessibility": {
+                      "label": "Repository"
+                    }
+                  },
+                  {
+                    "id": "repo-link",
+                    "component": "Link",
+                    "text": "a2ui-project/a2ui",
+                    "href": "https://github.com/a2ui-project/a2ui"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "normal",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "description",
+                      "list"
+                    ]
+                  },
+                  {
+                    "id": "row-desc",
+                    "component": "ActionList.Description",
+                    "text": {
+                      "path": "meta"
+                    },
+                    "variant": "block"
+                  },
+                  {
+                    "id": "row-icon",
+                    "component": "Icon",
+                    "name": "git-pull-request",
+                    "fill": "open",
+                    "accessibility": {
+                      "label": "Open Pull Request"
+                    }
+                  },
+                  {
+                    "id": "row-lv",
+                    "component": "ActionList.LeadingVisual",
+                    "children": [
+                      "row-icon"
+                    ]
+                  },
+                  {
+                    "id": "row-title",
+                    "component": "Text",
+                    "text": {
+                      "path": "title"
+                    },
+                    "weight": "semibold"
+                  },
+                  {
+                    "id": "row-tv",
+                    "component": "ActionList.TrailingVisual",
+                    "children": [
+                      "loading_row-time"
+                    ]
+                  },
+                  {
+                    "id": "slash-text",
+                    "component": "Text",
+                    "text": "/"
+                  },
+                  {
+                    "id": "title",
+                    "component": "Heading",
+                    "text": "Pull Requests",
+                    "as": "h1",
+                    "variant": "small"
+                  },
+                  {
+                    "id": "loading_row-time",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "open-prs-needing-review"
+              }
+            }
+          ],
+          "texts": []
+        },
+        {
+          "offsetMs": 13454,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "count-label",
+                    "component": "CounterLabel",
+                    "count": 3,
+                    "variant": "primary"
+                  },
+                  {
+                    "id": "description",
+                    "component": "Text",
+                    "text": "Showing 3 open pull requests with review requested.",
+                    "size": "small"
+                  },
+                  {
+                    "id": "header-left",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "gap": "condensed",
+                    "align": "center",
+                    "children": [
+                      "repo-icon",
+                      "repo-link",
+                      "slash-text",
+                      "title",
+                      "count-label"
+                    ]
+                  },
+                  {
+                    "id": "header-right",
+                    "component": "Label",
+                    "text": "Needs Review",
+                    "variant": "attention"
+                  },
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "justify": "space-between",
+                    "align": "center",
+                    "children": [
+                      "header-left",
+                      "header-right"
+                    ]
+                  },
+                  {
+                    "id": "list",
+                    "component": "ActionList",
+                    "role": "listbox",
+                    "showDividers": true,
+                    "children": {
+                      "componentId": "pr-row",
+                      "path": "/prs"
+                    }
+                  },
+                  {
+                    "id": "pr-row",
+                    "component": "ActionList.Item",
+                    "children": [
+                      "row-lv",
+                      "row-title",
+                      "row-desc",
+                      "row-tv"
+                    ],
+                    "action": {
+                      "event": {
+                        "name": "open-pull-request",
+                        "context": {
+                          "repository": {
+                            "path": "repository"
+                          },
+                          "number": {
+                            "path": "number"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "repo-icon",
+                    "component": "Icon",
+                    "name": "repo",
+                    "fill": "muted",
+                    "accessibility": {
+                      "label": "Repository"
+                    }
+                  },
+                  {
+                    "id": "repo-link",
+                    "component": "Link",
+                    "text": "a2ui-project/a2ui",
+                    "href": "https://github.com/a2ui-project/a2ui"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "normal",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "description",
+                      "list"
+                    ]
+                  },
+                  {
+                    "id": "row-desc",
+                    "component": "ActionList.Description",
+                    "text": {
+                      "path": "meta"
+                    },
+                    "variant": "block"
+                  },
+                  {
+                    "id": "row-icon",
+                    "component": "Icon",
+                    "name": "git-pull-request",
+                    "fill": "open",
+                    "accessibility": {
+                      "label": "Open Pull Request"
+                    }
+                  },
+                  {
+                    "id": "row-lv",
+                    "component": "ActionList.LeadingVisual",
+                    "children": [
+                      "row-icon"
+                    ]
+                  },
+                  {
+                    "id": "row-time",
+                    "component": "RelativeTime",
+                    "datetime": {
+                      "path": "updatedAt"
+                    },
+                    "format": "relative"
+                  },
+                  {
+                    "id": "row-title",
+                    "component": "Text",
+                    "text": {
+                      "path": "title"
+                    },
+                    "weight": "semibold"
+                  },
+                  {
+                    "id": "row-tv",
+                    "component": "ActionList.TrailingVisual",
+                    "children": [
+                      "row-time"
+                    ]
+                  },
+                  {
+                    "id": "slash-text",
+                    "component": "Text",
+                    "text": "/"
+                  },
+                  {
+                    "id": "title",
+                    "component": "Heading",
+                    "text": "Pull Requests",
+                    "as": "h1",
+                    "variant": "small"
+                  }
+                ],
+                "surfaceId": "open-prs-needing-review"
+              }
+            }
+          ],
+          "texts": []
+        },
+        {
+          "offsetMs": 13782,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "open-prs-needing-review",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 231,
+                      "title": "feat(catalog): add SplitPageLayout to the v0.9.1 catalog",
+                      "meta": "#231 opened by octo-maintainer · review requested from review-bot · 4 comments"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": []
+        },
+        {
+          "offsetMs": 13845,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "open-prs-needing-review",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 231,
+                      "title": "feat(catalog): add SplitPageLayout to the v0.9.1 catalog",
+                      "meta": "#231 opened by octo-maintainer · review requested from review-bot · 4 comments",
+                      "updatedAt": "2026-07-20T14:03:10Z"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": []
+        },
+        {
+          "offsetMs": 13917,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "open-prs-needing-review",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 231,
+                      "title": "feat(catalog): add SplitPageLayout to the v0.9.1 catalog",
+                      "meta": "#231 opened by octo-maintainer · review requested from review-bot · 4 comments",
+                      "updatedAt": "2026-07-20T14:03:10Z",
+                      "repository": "a2ui-project/a2ui"
+                    },
+                    {
+                      "number": 227
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": []
+        },
+        {
+          "offsetMs": 14002,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "open-prs-needing-review",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 231,
+                      "title": "feat(catalog): add SplitPageLayout to the v0.9.1 catalog",
+                      "meta": "#231 opened by octo-maintainer · review requested from review-bot · 4 comments",
+                      "updatedAt": "2026-07-20T14:03:10Z",
+                      "repository": "a2ui-project/a2ui"
+                    },
+                    {
+                      "number": 227,
+                      "title": "refactor(schema): replace the legacy component registry with catalog-driven lookup tables across every renderer target"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": []
+        },
+        {
+          "offsetMs": 14073,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "open-prs-needing-review",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 231,
+                      "title": "feat(catalog): add SplitPageLayout to the v0.9.1 catalog",
+                      "meta": "#231 opened by octo-maintainer · review requested from review-bot · 4 comments",
+                      "updatedAt": "2026-07-20T14:03:10Z",
+                      "repository": "a2ui-project/a2ui"
+                    },
+                    {
+                      "number": 227,
+                      "title": "refactor(schema): replace the legacy component registry with catalog-driven lookup tables across every renderer target",
+                      "meta": "#227 opened by schema-dev · review requested from octo-maintainer · 7 comments"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": []
+        },
+        {
+          "offsetMs": 14160,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "open-prs-needing-review",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 231,
+                      "title": "feat(catalog): add SplitPageLayout to the v0.9.1 catalog",
+                      "meta": "#231 opened by octo-maintainer · review requested from review-bot · 4 comments",
+                      "updatedAt": "2026-07-20T14:03:10Z",
+                      "repository": "a2ui-project/a2ui"
+                    },
+                    {
+                      "number": 227,
+                      "title": "refactor(schema): replace the legacy component registry with catalog-driven lookup tables across every renderer target",
+                      "meta": "#227 opened by schema-dev · review requested from octo-maintainer · 7 comments",
+                      "updatedAt": "2026-07-20T10:12:41Z"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": []
+        },
+        {
+          "offsetMs": 14233,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "open-prs-needing-review",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 231,
+                      "title": "feat(catalog): add SplitPageLayout to the v0.9.1 catalog",
+                      "meta": "#231 opened by octo-maintainer · review requested from review-bot · 4 comments",
+                      "updatedAt": "2026-07-20T14:03:10Z",
+                      "repository": "a2ui-project/a2ui"
+                    },
+                    {
+                      "number": 227,
+                      "title": "refactor(schema): replace the legacy component registry with catalog-driven lookup tables across every renderer target",
+                      "meta": "#227 opened by schema-dev · review requested from octo-maintainer · 7 comments",
+                      "updatedAt": "2026-07-20T10:12:41Z",
+                      "repository": "a2ui-project/a2ui"
+                    },
+                    {
+                      "number": 224,
+                      "title": "docs: clarify updateDataModel binding semantics"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": []
+        },
+        {
+          "offsetMs": 14315,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "open-prs-needing-review",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 231,
+                      "title": "feat(catalog): add SplitPageLayout to the v0.9.1 catalog",
+                      "meta": "#231 opened by octo-maintainer · review requested from review-bot · 4 comments",
+                      "updatedAt": "2026-07-20T14:03:10Z",
+                      "repository": "a2ui-project/a2ui"
+                    },
+                    {
+                      "number": 227,
+                      "title": "refactor(schema): replace the legacy component registry with catalog-driven lookup tables across every renderer target",
+                      "meta": "#227 opened by schema-dev · review requested from octo-maintainer · 7 comments",
+                      "updatedAt": "2026-07-20T10:12:41Z",
+                      "repository": "a2ui-project/a2ui"
+                    },
+                    {
+                      "number": 224,
+                      "title": "docs: clarify updateDataModel binding semantics",
+                      "meta": "#224 opened by docs-writer · review requested from octo-maintainer · 2 comments"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": []
+        },
+        {
+          "offsetMs": 14387,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "open-prs-needing-review",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 231,
+                      "title": "feat(catalog): add SplitPageLayout to the v0.9.1 catalog",
+                      "meta": "#231 opened by octo-maintainer · review requested from review-bot · 4 comments",
+                      "updatedAt": "2026-07-20T14:03:10Z",
+                      "repository": "a2ui-project/a2ui"
+                    },
+                    {
+                      "number": 227,
+                      "title": "refactor(schema): replace the legacy component registry with catalog-driven lookup tables across every renderer target",
+                      "meta": "#227 opened by schema-dev · review requested from octo-maintainer · 7 comments",
+                      "updatedAt": "2026-07-20T10:12:41Z",
+                      "repository": "a2ui-project/a2ui"
+                    },
+                    {
+                      "number": 224,
+                      "title": "docs: clarify updateDataModel binding semantics",
+                      "meta": "#224 opened by docs-writer · review requested from octo-maintainer · 2 comments",
+                      "updatedAt": "2026-07-18T16:44:12Z"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": []
+        },
+        {
+          "offsetMs": 14451,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "open-prs-needing-review",
+                "path": "/",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 231,
+                      "title": "feat(catalog): add SplitPageLayout to the v0.9.1 catalog",
+                      "meta": "#231 opened by octo-maintainer · review requested from review-bot · 4 comments",
+                      "updatedAt": "2026-07-20T14:03:10Z",
+                      "repository": "a2ui-project/a2ui"
+                    },
+                    {
+                      "number": 227,
+                      "title": "refactor(schema): replace the legacy component registry with catalog-driven lookup tables across every renderer target",
+                      "meta": "#227 opened by schema-dev · review requested from octo-maintainer · 7 comments",
+                      "updatedAt": "2026-07-20T10:12:41Z",
+                      "repository": "a2ui-project/a2ui"
+                    },
+                    {
+                      "number": 224,
+                      "title": "docs: clarify updateDataModel binding semantics",
+                      "meta": "#224 opened by docs-writer · review requested from octo-maintainer · 2 comments",
+                      "updatedAt": "2026-07-18T16:44:12Z",
+                      "repository": "a2ui-project/a2ui"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": []
+        }
+      ],
+      "outcome": "completed",
+      "durationMs": 14551
+    }
+  ]
+}

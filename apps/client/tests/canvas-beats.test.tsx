@@ -41,9 +41,7 @@ function setup() {
   return {processor, store, runner};
 }
 
-// Skipped until the beats are re-recorded through the orchestrator (task 1.4); `recordings/beats/`
-// is empty in 1.3.
-describe.skip('canvas shell over the recorded beats', () => {
+describe('canvas shell over the recorded beats', () => {
   describe.each(BEAT_FIXTURES.map(f => [f.name, f] as const))('%s', (_name, fixture) => {
     it('replays through the canvas turn runner and lands the paint on the stage', async () => {
       const {processor, store, runner} = setup();

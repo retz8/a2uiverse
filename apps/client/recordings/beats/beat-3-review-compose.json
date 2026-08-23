@@ -1,0 +1,3143 @@
+{
+  "name": "beat-3-review-compose",
+  "beat": 3,
+  "title": "Compose-and-confirm review",
+  "prompt": "Draft an approving review saying the spec doc looks reasonable.",
+  "model": "gemini-3.7-flash",
+  "recordedAt": "2026-08-23T05:39:11Z",
+  "contextId": "802b12c5-9485-4141-8742-60324502c85f",
+  "chainedFrom": "beat-2-pr-detail",
+  "turns": [
+    {
+      "taskId": "acd2e1cd-736f-48ab-acd2-69a61e61caf5",
+      "kind": "utterance",
+      "prompt": "Draft an approving review saying the spec doc looks reasonable.",
+      "action": null,
+      "batches": [
+        {
+          "offsetMs": 9238,
+          "messages": [],
+          "texts": [
+            "\n"
+          ]
+        },
+        {
+          "offsetMs": 9289,
+          "messages": [
+            {
+              "version": "v0.9",
+              "createSurface": {
+                "surfaceId": "draft-pr-review-233",
+                "catalogId": "https://github.com/retz8/a2ui-github/blob/main/primer-a2ui-adapter/catalogs/v0.9.1/catalog.json",
+                "sendDataModel": true
+              }
+            }
+          ],
+          "texts": []
+        },
+        {
+          "offsetMs": 9468,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "normal",
+                    "padding": "normal",
+                    "children": [
+                      "loading_header-stack",
+                      "loading_fc-verdict",
+                      "loading_fc-body",
+                      "loading_actions"
+                    ]
+                  },
+                  {
+                    "id": "loading_header-stack",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_fc-verdict",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_fc-body",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_actions",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "draft-pr-review-233"
+              }
+            }
+          ],
+          "texts": []
+        },
+        {
+          "offsetMs": 9608,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "align": "center",
+                    "gap": "condensed",
+                    "children": [
+                      "loading_title-icon",
+                      "loading_title-heading"
+                    ]
+                  },
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "normal",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "loading_fc-verdict",
+                      "loading_fc-body",
+                      "loading_actions"
+                    ]
+                  },
+                  {
+                    "id": "loading_title-icon",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_title-heading",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_fc-verdict",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_fc-body",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_actions",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "draft-pr-review-233"
+              }
+            }
+          ],
+          "texts": []
+        },
+        {
+          "offsetMs": 9730,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "align": "center",
+                    "gap": "condensed",
+                    "children": [
+                      "title-icon",
+                      "loading_title-heading"
+                    ]
+                  },
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "normal",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "loading_fc-verdict",
+                      "loading_fc-body",
+                      "loading_actions"
+                    ]
+                  },
+                  {
+                    "id": "title-icon",
+                    "component": "Icon",
+                    "name": "pencil",
+                    "fill": "accent",
+                    "accessibility": {
+                      "label": "Pencil Icon"
+                    }
+                  },
+                  {
+                    "id": "loading_title-heading",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_fc-verdict",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_fc-body",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_actions",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "draft-pr-review-233"
+              }
+            }
+          ],
+          "texts": []
+        },
+        {
+          "offsetMs": 9864,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "align": "center",
+                    "gap": "condensed",
+                    "children": [
+                      "title-icon",
+                      "title-heading"
+                    ]
+                  },
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "normal",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "loading_fc-verdict",
+                      "loading_fc-body",
+                      "loading_actions"
+                    ]
+                  },
+                  {
+                    "id": "title-heading",
+                    "component": "Heading",
+                    "text": "Submit Review on #233",
+                    "as": "h2",
+                    "variant": "medium"
+                  },
+                  {
+                    "id": "title-icon",
+                    "component": "Icon",
+                    "name": "pencil",
+                    "fill": "accent",
+                    "accessibility": {
+                      "label": "Pencil Icon"
+                    }
+                  },
+                  {
+                    "id": "loading_fc-verdict",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_fc-body",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_actions",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "draft-pr-review-233"
+              }
+            }
+          ],
+          "texts": []
+        },
+        {
+          "offsetMs": 9920,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "fc-verdict",
+                    "component": "FormControl",
+                    "children": [
+                      "loading_verdict-label",
+                      "loading_verdict-select"
+                    ]
+                  },
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "align": "center",
+                    "gap": "condensed",
+                    "children": [
+                      "title-icon",
+                      "title-heading"
+                    ]
+                  },
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "normal",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "fc-verdict",
+                      "loading_fc-body",
+                      "loading_actions"
+                    ]
+                  },
+                  {
+                    "id": "title-heading",
+                    "component": "Heading",
+                    "text": "Submit Review on #233",
+                    "as": "h2",
+                    "variant": "medium"
+                  },
+                  {
+                    "id": "title-icon",
+                    "component": "Icon",
+                    "name": "pencil",
+                    "fill": "accent",
+                    "accessibility": {
+                      "label": "Pencil Icon"
+                    }
+                  },
+                  {
+                    "id": "loading_verdict-label",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_verdict-select",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_fc-body",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_actions",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "draft-pr-review-233"
+              }
+            }
+          ],
+          "texts": []
+        },
+        {
+          "offsetMs": 10039,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "fc-verdict",
+                    "component": "FormControl",
+                    "children": [
+                      "verdict-label",
+                      "loading_verdict-select"
+                    ]
+                  },
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "align": "center",
+                    "gap": "condensed",
+                    "children": [
+                      "title-icon",
+                      "title-heading"
+                    ]
+                  },
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "normal",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "fc-verdict",
+                      "loading_fc-body",
+                      "loading_actions"
+                    ]
+                  },
+                  {
+                    "id": "title-heading",
+                    "component": "Heading",
+                    "text": "Submit Review on #233",
+                    "as": "h2",
+                    "variant": "medium"
+                  },
+                  {
+                    "id": "title-icon",
+                    "component": "Icon",
+                    "name": "pencil",
+                    "fill": "accent",
+                    "accessibility": {
+                      "label": "Pencil Icon"
+                    }
+                  },
+                  {
+                    "id": "verdict-label",
+                    "component": "FormControlLabel",
+                    "text": "Review Decision"
+                  },
+                  {
+                    "id": "loading_verdict-select",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_fc-body",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_actions",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "draft-pr-review-233"
+              }
+            }
+          ],
+          "texts": []
+        },
+        {
+          "offsetMs": 10179,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "fc-verdict",
+                    "component": "FormControl",
+                    "children": [
+                      "verdict-label",
+                      "verdict-select"
+                    ]
+                  },
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "align": "center",
+                    "gap": "condensed",
+                    "children": [
+                      "title-icon",
+                      "title-heading"
+                    ]
+                  },
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "normal",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "fc-verdict",
+                      "loading_fc-body",
+                      "loading_actions"
+                    ]
+                  },
+                  {
+                    "id": "title-heading",
+                    "component": "Heading",
+                    "text": "Submit Review on #233",
+                    "as": "h2",
+                    "variant": "medium"
+                  },
+                  {
+                    "id": "title-icon",
+                    "component": "Icon",
+                    "name": "pencil",
+                    "fill": "accent",
+                    "accessibility": {
+                      "label": "Pencil Icon"
+                    }
+                  },
+                  {
+                    "id": "verdict-label",
+                    "component": "FormControlLabel",
+                    "text": "Review Decision"
+                  },
+                  {
+                    "id": "verdict-select",
+                    "component": "SegmentedControl",
+                    "selectedIndex": {
+                      "path": "/verdictIndex"
+                    },
+                    "children": [
+                      "loading_seg-approve",
+                      "loading_seg-comment",
+                      "loading_seg-changes"
+                    ]
+                  },
+                  {
+                    "id": "loading_fc-body",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_actions",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_seg-approve",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_seg-comment",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_seg-changes",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "draft-pr-review-233"
+              }
+            }
+          ],
+          "texts": []
+        },
+        {
+          "offsetMs": 10305,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "fc-verdict",
+                    "component": "FormControl",
+                    "children": [
+                      "verdict-label",
+                      "verdict-select"
+                    ]
+                  },
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "align": "center",
+                    "gap": "condensed",
+                    "children": [
+                      "title-icon",
+                      "title-heading"
+                    ]
+                  },
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "normal",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "fc-verdict",
+                      "loading_fc-body",
+                      "loading_actions"
+                    ]
+                  },
+                  {
+                    "id": "seg-approve",
+                    "component": "SegmentedControlButton",
+                    "label": "Approve",
+                    "leadingVisual": "icon-approve-btn"
+                  },
+                  {
+                    "id": "title-heading",
+                    "component": "Heading",
+                    "text": "Submit Review on #233",
+                    "as": "h2",
+                    "variant": "medium"
+                  },
+                  {
+                    "id": "title-icon",
+                    "component": "Icon",
+                    "name": "pencil",
+                    "fill": "accent",
+                    "accessibility": {
+                      "label": "Pencil Icon"
+                    }
+                  },
+                  {
+                    "id": "verdict-label",
+                    "component": "FormControlLabel",
+                    "text": "Review Decision"
+                  },
+                  {
+                    "id": "verdict-select",
+                    "component": "SegmentedControl",
+                    "selectedIndex": {
+                      "path": "/verdictIndex"
+                    },
+                    "children": [
+                      "seg-approve",
+                      "loading_seg-comment",
+                      "loading_seg-changes"
+                    ]
+                  },
+                  {
+                    "id": "loading_fc-body",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_actions",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_seg-comment",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_seg-changes",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "draft-pr-review-233"
+              }
+            }
+          ],
+          "texts": []
+        },
+        {
+          "offsetMs": 10367,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "fc-verdict",
+                    "component": "FormControl",
+                    "children": [
+                      "verdict-label",
+                      "verdict-select"
+                    ]
+                  },
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "align": "center",
+                    "gap": "condensed",
+                    "children": [
+                      "title-icon",
+                      "title-heading"
+                    ]
+                  },
+                  {
+                    "id": "icon-approve-btn",
+                    "component": "Icon",
+                    "name": "check",
+                    "fill": "success"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "normal",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "fc-verdict",
+                      "loading_fc-body",
+                      "loading_actions"
+                    ]
+                  },
+                  {
+                    "id": "seg-approve",
+                    "component": "SegmentedControlButton",
+                    "label": "Approve",
+                    "leadingVisual": "icon-approve-btn"
+                  },
+                  {
+                    "id": "title-heading",
+                    "component": "Heading",
+                    "text": "Submit Review on #233",
+                    "as": "h2",
+                    "variant": "medium"
+                  },
+                  {
+                    "id": "title-icon",
+                    "component": "Icon",
+                    "name": "pencil",
+                    "fill": "accent",
+                    "accessibility": {
+                      "label": "Pencil Icon"
+                    }
+                  },
+                  {
+                    "id": "verdict-label",
+                    "component": "FormControlLabel",
+                    "text": "Review Decision"
+                  },
+                  {
+                    "id": "verdict-select",
+                    "component": "SegmentedControl",
+                    "selectedIndex": {
+                      "path": "/verdictIndex"
+                    },
+                    "children": [
+                      "seg-approve",
+                      "loading_seg-comment",
+                      "loading_seg-changes"
+                    ]
+                  },
+                  {
+                    "id": "loading_fc-body",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_actions",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_seg-comment",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_seg-changes",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "draft-pr-review-233"
+              }
+            }
+          ],
+          "texts": []
+        },
+        {
+          "offsetMs": 10517,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "fc-verdict",
+                    "component": "FormControl",
+                    "children": [
+                      "verdict-label",
+                      "verdict-select"
+                    ]
+                  },
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "align": "center",
+                    "gap": "condensed",
+                    "children": [
+                      "title-icon",
+                      "title-heading"
+                    ]
+                  },
+                  {
+                    "id": "icon-approve-btn",
+                    "component": "Icon",
+                    "name": "check",
+                    "fill": "success"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "normal",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "fc-verdict",
+                      "loading_fc-body",
+                      "loading_actions"
+                    ]
+                  },
+                  {
+                    "id": "seg-approve",
+                    "component": "SegmentedControlButton",
+                    "label": "Approve",
+                    "leadingVisual": "icon-approve-btn"
+                  },
+                  {
+                    "id": "seg-comment",
+                    "component": "SegmentedControlButton",
+                    "label": "Comment",
+                    "leadingVisual": "icon-comment-btn"
+                  },
+                  {
+                    "id": "title-heading",
+                    "component": "Heading",
+                    "text": "Submit Review on #233",
+                    "as": "h2",
+                    "variant": "medium"
+                  },
+                  {
+                    "id": "title-icon",
+                    "component": "Icon",
+                    "name": "pencil",
+                    "fill": "accent",
+                    "accessibility": {
+                      "label": "Pencil Icon"
+                    }
+                  },
+                  {
+                    "id": "verdict-label",
+                    "component": "FormControlLabel",
+                    "text": "Review Decision"
+                  },
+                  {
+                    "id": "verdict-select",
+                    "component": "SegmentedControl",
+                    "selectedIndex": {
+                      "path": "/verdictIndex"
+                    },
+                    "children": [
+                      "seg-approve",
+                      "seg-comment",
+                      "loading_seg-changes"
+                    ]
+                  },
+                  {
+                    "id": "loading_fc-body",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_actions",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_seg-changes",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "draft-pr-review-233"
+              }
+            }
+          ],
+          "texts": []
+        },
+        {
+          "offsetMs": 10589,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "fc-verdict",
+                    "component": "FormControl",
+                    "children": [
+                      "verdict-label",
+                      "verdict-select"
+                    ]
+                  },
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "align": "center",
+                    "gap": "condensed",
+                    "children": [
+                      "title-icon",
+                      "title-heading"
+                    ]
+                  },
+                  {
+                    "id": "icon-approve-btn",
+                    "component": "Icon",
+                    "name": "check",
+                    "fill": "success"
+                  },
+                  {
+                    "id": "icon-comment-btn",
+                    "component": "Icon",
+                    "name": "comment"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "normal",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "fc-verdict",
+                      "loading_fc-body",
+                      "loading_actions"
+                    ]
+                  },
+                  {
+                    "id": "seg-approve",
+                    "component": "SegmentedControlButton",
+                    "label": "Approve",
+                    "leadingVisual": "icon-approve-btn"
+                  },
+                  {
+                    "id": "seg-comment",
+                    "component": "SegmentedControlButton",
+                    "label": "Comment",
+                    "leadingVisual": "icon-comment-btn"
+                  },
+                  {
+                    "id": "title-heading",
+                    "component": "Heading",
+                    "text": "Submit Review on #233",
+                    "as": "h2",
+                    "variant": "medium"
+                  },
+                  {
+                    "id": "title-icon",
+                    "component": "Icon",
+                    "name": "pencil",
+                    "fill": "accent",
+                    "accessibility": {
+                      "label": "Pencil Icon"
+                    }
+                  },
+                  {
+                    "id": "verdict-label",
+                    "component": "FormControlLabel",
+                    "text": "Review Decision"
+                  },
+                  {
+                    "id": "verdict-select",
+                    "component": "SegmentedControl",
+                    "selectedIndex": {
+                      "path": "/verdictIndex"
+                    },
+                    "children": [
+                      "seg-approve",
+                      "seg-comment",
+                      "loading_seg-changes"
+                    ]
+                  },
+                  {
+                    "id": "loading_fc-body",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_actions",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_seg-changes",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "draft-pr-review-233"
+              }
+            }
+          ],
+          "texts": []
+        },
+        {
+          "offsetMs": 10721,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "fc-verdict",
+                    "component": "FormControl",
+                    "children": [
+                      "verdict-label",
+                      "verdict-select"
+                    ]
+                  },
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "align": "center",
+                    "gap": "condensed",
+                    "children": [
+                      "title-icon",
+                      "title-heading"
+                    ]
+                  },
+                  {
+                    "id": "icon-approve-btn",
+                    "component": "Icon",
+                    "name": "check",
+                    "fill": "success"
+                  },
+                  {
+                    "id": "icon-comment-btn",
+                    "component": "Icon",
+                    "name": "comment"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "normal",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "fc-verdict",
+                      "loading_fc-body",
+                      "loading_actions"
+                    ]
+                  },
+                  {
+                    "id": "seg-approve",
+                    "component": "SegmentedControlButton",
+                    "label": "Approve",
+                    "leadingVisual": "icon-approve-btn"
+                  },
+                  {
+                    "id": "seg-changes",
+                    "component": "SegmentedControlButton",
+                    "label": "Request Changes",
+                    "leadingVisual": "icon-changes-btn"
+                  },
+                  {
+                    "id": "seg-comment",
+                    "component": "SegmentedControlButton",
+                    "label": "Comment",
+                    "leadingVisual": "icon-comment-btn"
+                  },
+                  {
+                    "id": "title-heading",
+                    "component": "Heading",
+                    "text": "Submit Review on #233",
+                    "as": "h2",
+                    "variant": "medium"
+                  },
+                  {
+                    "id": "title-icon",
+                    "component": "Icon",
+                    "name": "pencil",
+                    "fill": "accent",
+                    "accessibility": {
+                      "label": "Pencil Icon"
+                    }
+                  },
+                  {
+                    "id": "verdict-label",
+                    "component": "FormControlLabel",
+                    "text": "Review Decision"
+                  },
+                  {
+                    "id": "verdict-select",
+                    "component": "SegmentedControl",
+                    "selectedIndex": {
+                      "path": "/verdictIndex"
+                    },
+                    "children": [
+                      "seg-approve",
+                      "seg-comment",
+                      "seg-changes"
+                    ]
+                  },
+                  {
+                    "id": "loading_fc-body",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_actions",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "draft-pr-review-233"
+              }
+            }
+          ],
+          "texts": []
+        },
+        {
+          "offsetMs": 10786,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "fc-verdict",
+                    "component": "FormControl",
+                    "children": [
+                      "verdict-label",
+                      "verdict-select"
+                    ]
+                  },
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "align": "center",
+                    "gap": "condensed",
+                    "children": [
+                      "title-icon",
+                      "title-heading"
+                    ]
+                  },
+                  {
+                    "id": "icon-approve-btn",
+                    "component": "Icon",
+                    "name": "check",
+                    "fill": "success"
+                  },
+                  {
+                    "id": "icon-changes-btn",
+                    "component": "Icon",
+                    "name": "x-circle",
+                    "fill": "danger"
+                  },
+                  {
+                    "id": "icon-comment-btn",
+                    "component": "Icon",
+                    "name": "comment"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "normal",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "fc-verdict",
+                      "loading_fc-body",
+                      "loading_actions"
+                    ]
+                  },
+                  {
+                    "id": "seg-approve",
+                    "component": "SegmentedControlButton",
+                    "label": "Approve",
+                    "leadingVisual": "icon-approve-btn"
+                  },
+                  {
+                    "id": "seg-changes",
+                    "component": "SegmentedControlButton",
+                    "label": "Request Changes",
+                    "leadingVisual": "icon-changes-btn"
+                  },
+                  {
+                    "id": "seg-comment",
+                    "component": "SegmentedControlButton",
+                    "label": "Comment",
+                    "leadingVisual": "icon-comment-btn"
+                  },
+                  {
+                    "id": "title-heading",
+                    "component": "Heading",
+                    "text": "Submit Review on #233",
+                    "as": "h2",
+                    "variant": "medium"
+                  },
+                  {
+                    "id": "title-icon",
+                    "component": "Icon",
+                    "name": "pencil",
+                    "fill": "accent",
+                    "accessibility": {
+                      "label": "Pencil Icon"
+                    }
+                  },
+                  {
+                    "id": "verdict-label",
+                    "component": "FormControlLabel",
+                    "text": "Review Decision"
+                  },
+                  {
+                    "id": "verdict-select",
+                    "component": "SegmentedControl",
+                    "selectedIndex": {
+                      "path": "/verdictIndex"
+                    },
+                    "children": [
+                      "seg-approve",
+                      "seg-comment",
+                      "seg-changes"
+                    ]
+                  },
+                  {
+                    "id": "loading_fc-body",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_actions",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "draft-pr-review-233"
+              }
+            }
+          ],
+          "texts": []
+        },
+        {
+          "offsetMs": 10915,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "fc-body",
+                    "component": "FormControl",
+                    "required": true,
+                    "children": [
+                      "loading_body-label",
+                      "loading_body-caption",
+                      "loading_body-textarea"
+                    ]
+                  },
+                  {
+                    "id": "fc-verdict",
+                    "component": "FormControl",
+                    "children": [
+                      "verdict-label",
+                      "verdict-select"
+                    ]
+                  },
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "align": "center",
+                    "gap": "condensed",
+                    "children": [
+                      "title-icon",
+                      "title-heading"
+                    ]
+                  },
+                  {
+                    "id": "icon-approve-btn",
+                    "component": "Icon",
+                    "name": "check",
+                    "fill": "success"
+                  },
+                  {
+                    "id": "icon-changes-btn",
+                    "component": "Icon",
+                    "name": "x-circle",
+                    "fill": "danger"
+                  },
+                  {
+                    "id": "icon-comment-btn",
+                    "component": "Icon",
+                    "name": "comment"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "normal",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "fc-verdict",
+                      "fc-body",
+                      "loading_actions"
+                    ]
+                  },
+                  {
+                    "id": "seg-approve",
+                    "component": "SegmentedControlButton",
+                    "label": "Approve",
+                    "leadingVisual": "icon-approve-btn"
+                  },
+                  {
+                    "id": "seg-changes",
+                    "component": "SegmentedControlButton",
+                    "label": "Request Changes",
+                    "leadingVisual": "icon-changes-btn"
+                  },
+                  {
+                    "id": "seg-comment",
+                    "component": "SegmentedControlButton",
+                    "label": "Comment",
+                    "leadingVisual": "icon-comment-btn"
+                  },
+                  {
+                    "id": "title-heading",
+                    "component": "Heading",
+                    "text": "Submit Review on #233",
+                    "as": "h2",
+                    "variant": "medium"
+                  },
+                  {
+                    "id": "title-icon",
+                    "component": "Icon",
+                    "name": "pencil",
+                    "fill": "accent",
+                    "accessibility": {
+                      "label": "Pencil Icon"
+                    }
+                  },
+                  {
+                    "id": "verdict-label",
+                    "component": "FormControlLabel",
+                    "text": "Review Decision"
+                  },
+                  {
+                    "id": "verdict-select",
+                    "component": "SegmentedControl",
+                    "selectedIndex": {
+                      "path": "/verdictIndex"
+                    },
+                    "children": [
+                      "seg-approve",
+                      "seg-comment",
+                      "seg-changes"
+                    ]
+                  },
+                  {
+                    "id": "loading_body-label",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_body-caption",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_body-textarea",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_actions",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "draft-pr-review-233"
+              }
+            }
+          ],
+          "texts": []
+        },
+        {
+          "offsetMs": 10977,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "body-label",
+                    "component": "FormControlLabel",
+                    "text": "Review Comments"
+                  },
+                  {
+                    "id": "fc-body",
+                    "component": "FormControl",
+                    "required": true,
+                    "children": [
+                      "body-label",
+                      "loading_body-caption",
+                      "loading_body-textarea"
+                    ]
+                  },
+                  {
+                    "id": "fc-verdict",
+                    "component": "FormControl",
+                    "children": [
+                      "verdict-label",
+                      "verdict-select"
+                    ]
+                  },
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "align": "center",
+                    "gap": "condensed",
+                    "children": [
+                      "title-icon",
+                      "title-heading"
+                    ]
+                  },
+                  {
+                    "id": "icon-approve-btn",
+                    "component": "Icon",
+                    "name": "check",
+                    "fill": "success"
+                  },
+                  {
+                    "id": "icon-changes-btn",
+                    "component": "Icon",
+                    "name": "x-circle",
+                    "fill": "danger"
+                  },
+                  {
+                    "id": "icon-comment-btn",
+                    "component": "Icon",
+                    "name": "comment"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "normal",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "fc-verdict",
+                      "fc-body",
+                      "loading_actions"
+                    ]
+                  },
+                  {
+                    "id": "seg-approve",
+                    "component": "SegmentedControlButton",
+                    "label": "Approve",
+                    "leadingVisual": "icon-approve-btn"
+                  },
+                  {
+                    "id": "seg-changes",
+                    "component": "SegmentedControlButton",
+                    "label": "Request Changes",
+                    "leadingVisual": "icon-changes-btn"
+                  },
+                  {
+                    "id": "seg-comment",
+                    "component": "SegmentedControlButton",
+                    "label": "Comment",
+                    "leadingVisual": "icon-comment-btn"
+                  },
+                  {
+                    "id": "title-heading",
+                    "component": "Heading",
+                    "text": "Submit Review on #233",
+                    "as": "h2",
+                    "variant": "medium"
+                  },
+                  {
+                    "id": "title-icon",
+                    "component": "Icon",
+                    "name": "pencil",
+                    "fill": "accent",
+                    "accessibility": {
+                      "label": "Pencil Icon"
+                    }
+                  },
+                  {
+                    "id": "verdict-label",
+                    "component": "FormControlLabel",
+                    "text": "Review Decision"
+                  },
+                  {
+                    "id": "verdict-select",
+                    "component": "SegmentedControl",
+                    "selectedIndex": {
+                      "path": "/verdictIndex"
+                    },
+                    "children": [
+                      "seg-approve",
+                      "seg-comment",
+                      "seg-changes"
+                    ]
+                  },
+                  {
+                    "id": "loading_body-caption",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_body-textarea",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_actions",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "draft-pr-review-233"
+              }
+            }
+          ],
+          "texts": []
+        },
+        {
+          "offsetMs": 11109,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "body-caption",
+                    "component": "FormControlCaption",
+                    "text": "Markdown formatting is supported. Your feedback is sent directly to the author."
+                  },
+                  {
+                    "id": "body-label",
+                    "component": "FormControlLabel",
+                    "text": "Review Comments"
+                  },
+                  {
+                    "id": "fc-body",
+                    "component": "FormControl",
+                    "required": true,
+                    "children": [
+                      "body-label",
+                      "body-caption",
+                      "loading_body-textarea"
+                    ]
+                  },
+                  {
+                    "id": "fc-verdict",
+                    "component": "FormControl",
+                    "children": [
+                      "verdict-label",
+                      "verdict-select"
+                    ]
+                  },
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "align": "center",
+                    "gap": "condensed",
+                    "children": [
+                      "title-icon",
+                      "title-heading"
+                    ]
+                  },
+                  {
+                    "id": "icon-approve-btn",
+                    "component": "Icon",
+                    "name": "check",
+                    "fill": "success"
+                  },
+                  {
+                    "id": "icon-changes-btn",
+                    "component": "Icon",
+                    "name": "x-circle",
+                    "fill": "danger"
+                  },
+                  {
+                    "id": "icon-comment-btn",
+                    "component": "Icon",
+                    "name": "comment"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "normal",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "fc-verdict",
+                      "fc-body",
+                      "loading_actions"
+                    ]
+                  },
+                  {
+                    "id": "seg-approve",
+                    "component": "SegmentedControlButton",
+                    "label": "Approve",
+                    "leadingVisual": "icon-approve-btn"
+                  },
+                  {
+                    "id": "seg-changes",
+                    "component": "SegmentedControlButton",
+                    "label": "Request Changes",
+                    "leadingVisual": "icon-changes-btn"
+                  },
+                  {
+                    "id": "seg-comment",
+                    "component": "SegmentedControlButton",
+                    "label": "Comment",
+                    "leadingVisual": "icon-comment-btn"
+                  },
+                  {
+                    "id": "title-heading",
+                    "component": "Heading",
+                    "text": "Submit Review on #233",
+                    "as": "h2",
+                    "variant": "medium"
+                  },
+                  {
+                    "id": "title-icon",
+                    "component": "Icon",
+                    "name": "pencil",
+                    "fill": "accent",
+                    "accessibility": {
+                      "label": "Pencil Icon"
+                    }
+                  },
+                  {
+                    "id": "verdict-label",
+                    "component": "FormControlLabel",
+                    "text": "Review Decision"
+                  },
+                  {
+                    "id": "verdict-select",
+                    "component": "SegmentedControl",
+                    "selectedIndex": {
+                      "path": "/verdictIndex"
+                    },
+                    "children": [
+                      "seg-approve",
+                      "seg-comment",
+                      "seg-changes"
+                    ]
+                  },
+                  {
+                    "id": "loading_body-textarea",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_actions",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "draft-pr-review-233"
+              }
+            }
+          ],
+          "texts": []
+        },
+        {
+          "offsetMs": 11174,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "body-caption",
+                    "component": "FormControlCaption",
+                    "text": "Markdown formatting is supported. Your feedback is sent directly to the author."
+                  },
+                  {
+                    "id": "body-label",
+                    "component": "FormControlLabel",
+                    "text": "Review Comments"
+                  },
+                  {
+                    "id": "body-textarea",
+                    "component": "Textarea",
+                    "value": {
+                      "path": "/reviewBody"
+                    }
+                  },
+                  {
+                    "id": "fc-body",
+                    "component": "FormControl",
+                    "required": true,
+                    "children": [
+                      "body-label",
+                      "body-caption",
+                      "body-textarea"
+                    ]
+                  },
+                  {
+                    "id": "fc-verdict",
+                    "component": "FormControl",
+                    "children": [
+                      "verdict-label",
+                      "verdict-select"
+                    ]
+                  },
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "align": "center",
+                    "gap": "condensed",
+                    "children": [
+                      "title-icon",
+                      "title-heading"
+                    ]
+                  },
+                  {
+                    "id": "icon-approve-btn",
+                    "component": "Icon",
+                    "name": "check",
+                    "fill": "success"
+                  },
+                  {
+                    "id": "icon-changes-btn",
+                    "component": "Icon",
+                    "name": "x-circle",
+                    "fill": "danger"
+                  },
+                  {
+                    "id": "icon-comment-btn",
+                    "component": "Icon",
+                    "name": "comment"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "normal",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "fc-verdict",
+                      "fc-body",
+                      "loading_actions"
+                    ]
+                  },
+                  {
+                    "id": "seg-approve",
+                    "component": "SegmentedControlButton",
+                    "label": "Approve",
+                    "leadingVisual": "icon-approve-btn"
+                  },
+                  {
+                    "id": "seg-changes",
+                    "component": "SegmentedControlButton",
+                    "label": "Request Changes",
+                    "leadingVisual": "icon-changes-btn"
+                  },
+                  {
+                    "id": "seg-comment",
+                    "component": "SegmentedControlButton",
+                    "label": "Comment",
+                    "leadingVisual": "icon-comment-btn"
+                  },
+                  {
+                    "id": "title-heading",
+                    "component": "Heading",
+                    "text": "Submit Review on #233",
+                    "as": "h2",
+                    "variant": "medium"
+                  },
+                  {
+                    "id": "title-icon",
+                    "component": "Icon",
+                    "name": "pencil",
+                    "fill": "accent",
+                    "accessibility": {
+                      "label": "Pencil Icon"
+                    }
+                  },
+                  {
+                    "id": "verdict-label",
+                    "component": "FormControlLabel",
+                    "text": "Review Decision"
+                  },
+                  {
+                    "id": "verdict-select",
+                    "component": "SegmentedControl",
+                    "selectedIndex": {
+                      "path": "/verdictIndex"
+                    },
+                    "children": [
+                      "seg-approve",
+                      "seg-comment",
+                      "seg-changes"
+                    ]
+                  },
+                  {
+                    "id": "loading_actions",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "draft-pr-review-233"
+              }
+            }
+          ],
+          "texts": []
+        },
+        {
+          "offsetMs": 11239,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "body-caption",
+                    "component": "FormControlCaption",
+                    "text": "Markdown formatting is supported. Your feedback is sent directly to the author."
+                  },
+                  {
+                    "id": "body-label",
+                    "component": "FormControlLabel",
+                    "text": "Review Comments"
+                  },
+                  {
+                    "id": "body-textarea",
+                    "component": "Textarea",
+                    "value": {
+                      "path": "/reviewBody"
+                    },
+                    "required": true,
+                    "block": true,
+                    "rows": 6
+                  },
+                  {
+                    "id": "fc-body",
+                    "component": "FormControl",
+                    "required": true,
+                    "children": [
+                      "body-label",
+                      "body-caption",
+                      "body-textarea"
+                    ]
+                  },
+                  {
+                    "id": "fc-verdict",
+                    "component": "FormControl",
+                    "children": [
+                      "verdict-label",
+                      "verdict-select"
+                    ]
+                  },
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "align": "center",
+                    "gap": "condensed",
+                    "children": [
+                      "title-icon",
+                      "title-heading"
+                    ]
+                  },
+                  {
+                    "id": "icon-approve-btn",
+                    "component": "Icon",
+                    "name": "check",
+                    "fill": "success"
+                  },
+                  {
+                    "id": "icon-changes-btn",
+                    "component": "Icon",
+                    "name": "x-circle",
+                    "fill": "danger"
+                  },
+                  {
+                    "id": "icon-comment-btn",
+                    "component": "Icon",
+                    "name": "comment"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "normal",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "fc-verdict",
+                      "fc-body",
+                      "loading_actions"
+                    ]
+                  },
+                  {
+                    "id": "seg-approve",
+                    "component": "SegmentedControlButton",
+                    "label": "Approve",
+                    "leadingVisual": "icon-approve-btn"
+                  },
+                  {
+                    "id": "seg-changes",
+                    "component": "SegmentedControlButton",
+                    "label": "Request Changes",
+                    "leadingVisual": "icon-changes-btn"
+                  },
+                  {
+                    "id": "seg-comment",
+                    "component": "SegmentedControlButton",
+                    "label": "Comment",
+                    "leadingVisual": "icon-comment-btn"
+                  },
+                  {
+                    "id": "title-heading",
+                    "component": "Heading",
+                    "text": "Submit Review on #233",
+                    "as": "h2",
+                    "variant": "medium"
+                  },
+                  {
+                    "id": "title-icon",
+                    "component": "Icon",
+                    "name": "pencil",
+                    "fill": "accent",
+                    "accessibility": {
+                      "label": "Pencil Icon"
+                    }
+                  },
+                  {
+                    "id": "verdict-label",
+                    "component": "FormControlLabel",
+                    "text": "Review Decision"
+                  },
+                  {
+                    "id": "verdict-select",
+                    "component": "SegmentedControl",
+                    "selectedIndex": {
+                      "path": "/verdictIndex"
+                    },
+                    "children": [
+                      "seg-approve",
+                      "seg-comment",
+                      "seg-changes"
+                    ]
+                  },
+                  {
+                    "id": "loading_actions",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "draft-pr-review-233"
+              }
+            }
+          ],
+          "texts": []
+        },
+        {
+          "offsetMs": 11389,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "actions",
+                    "component": "ButtonGroup",
+                    "children": [
+                      "loading_btn-cancel",
+                      "loading_btn-submit"
+                    ]
+                  },
+                  {
+                    "id": "body-caption",
+                    "component": "FormControlCaption",
+                    "text": "Markdown formatting is supported. Your feedback is sent directly to the author."
+                  },
+                  {
+                    "id": "body-label",
+                    "component": "FormControlLabel",
+                    "text": "Review Comments"
+                  },
+                  {
+                    "id": "body-textarea",
+                    "component": "Textarea",
+                    "value": {
+                      "path": "/reviewBody"
+                    },
+                    "required": true,
+                    "block": true,
+                    "rows": 6
+                  },
+                  {
+                    "id": "fc-body",
+                    "component": "FormControl",
+                    "required": true,
+                    "children": [
+                      "body-label",
+                      "body-caption",
+                      "body-textarea"
+                    ]
+                  },
+                  {
+                    "id": "fc-verdict",
+                    "component": "FormControl",
+                    "children": [
+                      "verdict-label",
+                      "verdict-select"
+                    ]
+                  },
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "align": "center",
+                    "gap": "condensed",
+                    "children": [
+                      "title-icon",
+                      "title-heading"
+                    ]
+                  },
+                  {
+                    "id": "icon-approve-btn",
+                    "component": "Icon",
+                    "name": "check",
+                    "fill": "success"
+                  },
+                  {
+                    "id": "icon-changes-btn",
+                    "component": "Icon",
+                    "name": "x-circle",
+                    "fill": "danger"
+                  },
+                  {
+                    "id": "icon-comment-btn",
+                    "component": "Icon",
+                    "name": "comment"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "normal",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "fc-verdict",
+                      "fc-body",
+                      "actions"
+                    ]
+                  },
+                  {
+                    "id": "seg-approve",
+                    "component": "SegmentedControlButton",
+                    "label": "Approve",
+                    "leadingVisual": "icon-approve-btn"
+                  },
+                  {
+                    "id": "seg-changes",
+                    "component": "SegmentedControlButton",
+                    "label": "Request Changes",
+                    "leadingVisual": "icon-changes-btn"
+                  },
+                  {
+                    "id": "seg-comment",
+                    "component": "SegmentedControlButton",
+                    "label": "Comment",
+                    "leadingVisual": "icon-comment-btn"
+                  },
+                  {
+                    "id": "title-heading",
+                    "component": "Heading",
+                    "text": "Submit Review on #233",
+                    "as": "h2",
+                    "variant": "medium"
+                  },
+                  {
+                    "id": "title-icon",
+                    "component": "Icon",
+                    "name": "pencil",
+                    "fill": "accent",
+                    "accessibility": {
+                      "label": "Pencil Icon"
+                    }
+                  },
+                  {
+                    "id": "verdict-label",
+                    "component": "FormControlLabel",
+                    "text": "Review Decision"
+                  },
+                  {
+                    "id": "verdict-select",
+                    "component": "SegmentedControl",
+                    "selectedIndex": {
+                      "path": "/verdictIndex"
+                    },
+                    "children": [
+                      "seg-approve",
+                      "seg-comment",
+                      "seg-changes"
+                    ]
+                  },
+                  {
+                    "id": "loading_btn-cancel",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_btn-submit",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "draft-pr-review-233"
+              }
+            }
+          ],
+          "texts": []
+        },
+        {
+          "offsetMs": 11592,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "actions",
+                    "component": "ButtonGroup",
+                    "children": [
+                      "btn-cancel",
+                      "loading_btn-submit"
+                    ]
+                  },
+                  {
+                    "id": "body-caption",
+                    "component": "FormControlCaption",
+                    "text": "Markdown formatting is supported. Your feedback is sent directly to the author."
+                  },
+                  {
+                    "id": "body-label",
+                    "component": "FormControlLabel",
+                    "text": "Review Comments"
+                  },
+                  {
+                    "id": "body-textarea",
+                    "component": "Textarea",
+                    "value": {
+                      "path": "/reviewBody"
+                    },
+                    "required": true,
+                    "block": true,
+                    "rows": 6
+                  },
+                  {
+                    "id": "btn-cancel",
+                    "component": "Button",
+                    "child": "loading_cancel-txt",
+                    "variant": "invisible",
+                    "action": {
+                      "functionCall": {
+                        "call": "clearValue",
+                        "args": {
+                          "path": "/reviewBody"
+                        },
+                        "returnType": "void"
+                      }
+                    }
+                  },
+                  {
+                    "id": "fc-body",
+                    "component": "FormControl",
+                    "required": true,
+                    "children": [
+                      "body-label",
+                      "body-caption",
+                      "body-textarea"
+                    ]
+                  },
+                  {
+                    "id": "fc-verdict",
+                    "component": "FormControl",
+                    "children": [
+                      "verdict-label",
+                      "verdict-select"
+                    ]
+                  },
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "align": "center",
+                    "gap": "condensed",
+                    "children": [
+                      "title-icon",
+                      "title-heading"
+                    ]
+                  },
+                  {
+                    "id": "icon-approve-btn",
+                    "component": "Icon",
+                    "name": "check",
+                    "fill": "success"
+                  },
+                  {
+                    "id": "icon-changes-btn",
+                    "component": "Icon",
+                    "name": "x-circle",
+                    "fill": "danger"
+                  },
+                  {
+                    "id": "icon-comment-btn",
+                    "component": "Icon",
+                    "name": "comment"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "normal",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "fc-verdict",
+                      "fc-body",
+                      "actions"
+                    ]
+                  },
+                  {
+                    "id": "seg-approve",
+                    "component": "SegmentedControlButton",
+                    "label": "Approve",
+                    "leadingVisual": "icon-approve-btn"
+                  },
+                  {
+                    "id": "seg-changes",
+                    "component": "SegmentedControlButton",
+                    "label": "Request Changes",
+                    "leadingVisual": "icon-changes-btn"
+                  },
+                  {
+                    "id": "seg-comment",
+                    "component": "SegmentedControlButton",
+                    "label": "Comment",
+                    "leadingVisual": "icon-comment-btn"
+                  },
+                  {
+                    "id": "title-heading",
+                    "component": "Heading",
+                    "text": "Submit Review on #233",
+                    "as": "h2",
+                    "variant": "medium"
+                  },
+                  {
+                    "id": "title-icon",
+                    "component": "Icon",
+                    "name": "pencil",
+                    "fill": "accent",
+                    "accessibility": {
+                      "label": "Pencil Icon"
+                    }
+                  },
+                  {
+                    "id": "verdict-label",
+                    "component": "FormControlLabel",
+                    "text": "Review Decision"
+                  },
+                  {
+                    "id": "verdict-select",
+                    "component": "SegmentedControl",
+                    "selectedIndex": {
+                      "path": "/verdictIndex"
+                    },
+                    "children": [
+                      "seg-approve",
+                      "seg-comment",
+                      "seg-changes"
+                    ]
+                  },
+                  {
+                    "id": "loading_btn-submit",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_cancel-txt",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "draft-pr-review-233"
+              }
+            }
+          ],
+          "texts": []
+        },
+        {
+          "offsetMs": 11669,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "actions",
+                    "component": "ButtonGroup",
+                    "children": [
+                      "btn-cancel",
+                      "loading_btn-submit"
+                    ]
+                  },
+                  {
+                    "id": "body-caption",
+                    "component": "FormControlCaption",
+                    "text": "Markdown formatting is supported. Your feedback is sent directly to the author."
+                  },
+                  {
+                    "id": "body-label",
+                    "component": "FormControlLabel",
+                    "text": "Review Comments"
+                  },
+                  {
+                    "id": "body-textarea",
+                    "component": "Textarea",
+                    "value": {
+                      "path": "/reviewBody"
+                    },
+                    "required": true,
+                    "block": true,
+                    "rows": 6
+                  },
+                  {
+                    "id": "btn-cancel",
+                    "component": "Button",
+                    "child": "cancel-txt",
+                    "variant": "invisible",
+                    "action": {
+                      "functionCall": {
+                        "call": "clearValue",
+                        "args": {
+                          "path": "/reviewBody"
+                        },
+                        "returnType": "void"
+                      }
+                    }
+                  },
+                  {
+                    "id": "cancel-txt",
+                    "component": "Text",
+                    "text": "Clear"
+                  },
+                  {
+                    "id": "fc-body",
+                    "component": "FormControl",
+                    "required": true,
+                    "children": [
+                      "body-label",
+                      "body-caption",
+                      "body-textarea"
+                    ]
+                  },
+                  {
+                    "id": "fc-verdict",
+                    "component": "FormControl",
+                    "children": [
+                      "verdict-label",
+                      "verdict-select"
+                    ]
+                  },
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "align": "center",
+                    "gap": "condensed",
+                    "children": [
+                      "title-icon",
+                      "title-heading"
+                    ]
+                  },
+                  {
+                    "id": "icon-approve-btn",
+                    "component": "Icon",
+                    "name": "check",
+                    "fill": "success"
+                  },
+                  {
+                    "id": "icon-changes-btn",
+                    "component": "Icon",
+                    "name": "x-circle",
+                    "fill": "danger"
+                  },
+                  {
+                    "id": "icon-comment-btn",
+                    "component": "Icon",
+                    "name": "comment"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "normal",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "fc-verdict",
+                      "fc-body",
+                      "actions"
+                    ]
+                  },
+                  {
+                    "id": "seg-approve",
+                    "component": "SegmentedControlButton",
+                    "label": "Approve",
+                    "leadingVisual": "icon-approve-btn"
+                  },
+                  {
+                    "id": "seg-changes",
+                    "component": "SegmentedControlButton",
+                    "label": "Request Changes",
+                    "leadingVisual": "icon-changes-btn"
+                  },
+                  {
+                    "id": "seg-comment",
+                    "component": "SegmentedControlButton",
+                    "label": "Comment",
+                    "leadingVisual": "icon-comment-btn"
+                  },
+                  {
+                    "id": "title-heading",
+                    "component": "Heading",
+                    "text": "Submit Review on #233",
+                    "as": "h2",
+                    "variant": "medium"
+                  },
+                  {
+                    "id": "title-icon",
+                    "component": "Icon",
+                    "name": "pencil",
+                    "fill": "accent",
+                    "accessibility": {
+                      "label": "Pencil Icon"
+                    }
+                  },
+                  {
+                    "id": "verdict-label",
+                    "component": "FormControlLabel",
+                    "text": "Review Decision"
+                  },
+                  {
+                    "id": "verdict-select",
+                    "component": "SegmentedControl",
+                    "selectedIndex": {
+                      "path": "/verdictIndex"
+                    },
+                    "children": [
+                      "seg-approve",
+                      "seg-comment",
+                      "seg-changes"
+                    ]
+                  },
+                  {
+                    "id": "loading_btn-submit",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "draft-pr-review-233"
+              }
+            }
+          ],
+          "texts": []
+        },
+        {
+          "offsetMs": 11942,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "actions",
+                    "component": "ButtonGroup",
+                    "children": [
+                      "btn-cancel",
+                      "btn-submit"
+                    ]
+                  },
+                  {
+                    "id": "body-caption",
+                    "component": "FormControlCaption",
+                    "text": "Markdown formatting is supported. Your feedback is sent directly to the author."
+                  },
+                  {
+                    "id": "body-label",
+                    "component": "FormControlLabel",
+                    "text": "Review Comments"
+                  },
+                  {
+                    "id": "body-textarea",
+                    "component": "Textarea",
+                    "value": {
+                      "path": "/reviewBody"
+                    },
+                    "required": true,
+                    "block": true,
+                    "rows": 6
+                  },
+                  {
+                    "id": "btn-cancel",
+                    "component": "Button",
+                    "child": "cancel-txt",
+                    "variant": "invisible",
+                    "action": {
+                      "functionCall": {
+                        "call": "clearValue",
+                        "args": {
+                          "path": "/reviewBody"
+                        },
+                        "returnType": "void"
+                      }
+                    }
+                  },
+                  {
+                    "id": "btn-submit",
+                    "component": "Button",
+                    "child": "loading_submit-txt",
+                    "variant": "primary",
+                    "disabled": {
+                      "call": "not",
+                      "args": {
+                        "value": {
+                          "call": "required",
+                          "args": {
+                            "value": {
+                              "path": "/reviewBody"
+                            }
+                          },
+                          "returnType": "boolean"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "cancel-txt",
+                    "component": "Text",
+                    "text": "Clear"
+                  },
+                  {
+                    "id": "fc-body",
+                    "component": "FormControl",
+                    "required": true,
+                    "children": [
+                      "body-label",
+                      "body-caption",
+                      "body-textarea"
+                    ]
+                  },
+                  {
+                    "id": "fc-verdict",
+                    "component": "FormControl",
+                    "children": [
+                      "verdict-label",
+                      "verdict-select"
+                    ]
+                  },
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "align": "center",
+                    "gap": "condensed",
+                    "children": [
+                      "title-icon",
+                      "title-heading"
+                    ]
+                  },
+                  {
+                    "id": "icon-approve-btn",
+                    "component": "Icon",
+                    "name": "check",
+                    "fill": "success"
+                  },
+                  {
+                    "id": "icon-changes-btn",
+                    "component": "Icon",
+                    "name": "x-circle",
+                    "fill": "danger"
+                  },
+                  {
+                    "id": "icon-comment-btn",
+                    "component": "Icon",
+                    "name": "comment"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "normal",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "fc-verdict",
+                      "fc-body",
+                      "actions"
+                    ]
+                  },
+                  {
+                    "id": "seg-approve",
+                    "component": "SegmentedControlButton",
+                    "label": "Approve",
+                    "leadingVisual": "icon-approve-btn"
+                  },
+                  {
+                    "id": "seg-changes",
+                    "component": "SegmentedControlButton",
+                    "label": "Request Changes",
+                    "leadingVisual": "icon-changes-btn"
+                  },
+                  {
+                    "id": "seg-comment",
+                    "component": "SegmentedControlButton",
+                    "label": "Comment",
+                    "leadingVisual": "icon-comment-btn"
+                  },
+                  {
+                    "id": "title-heading",
+                    "component": "Heading",
+                    "text": "Submit Review on #233",
+                    "as": "h2",
+                    "variant": "medium"
+                  },
+                  {
+                    "id": "title-icon",
+                    "component": "Icon",
+                    "name": "pencil",
+                    "fill": "accent",
+                    "accessibility": {
+                      "label": "Pencil Icon"
+                    }
+                  },
+                  {
+                    "id": "verdict-label",
+                    "component": "FormControlLabel",
+                    "text": "Review Decision"
+                  },
+                  {
+                    "id": "verdict-select",
+                    "component": "SegmentedControl",
+                    "selectedIndex": {
+                      "path": "/verdictIndex"
+                    },
+                    "children": [
+                      "seg-approve",
+                      "seg-comment",
+                      "seg-changes"
+                    ]
+                  },
+                  {
+                    "id": "loading_submit-txt",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "draft-pr-review-233"
+              }
+            }
+          ],
+          "texts": []
+        },
+        {
+          "offsetMs": 12239,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "actions",
+                    "component": "ButtonGroup",
+                    "children": [
+                      "btn-cancel",
+                      "btn-submit"
+                    ]
+                  },
+                  {
+                    "id": "body-caption",
+                    "component": "FormControlCaption",
+                    "text": "Markdown formatting is supported. Your feedback is sent directly to the author."
+                  },
+                  {
+                    "id": "body-label",
+                    "component": "FormControlLabel",
+                    "text": "Review Comments"
+                  },
+                  {
+                    "id": "body-textarea",
+                    "component": "Textarea",
+                    "value": {
+                      "path": "/reviewBody"
+                    },
+                    "required": true,
+                    "block": true,
+                    "rows": 6
+                  },
+                  {
+                    "id": "btn-cancel",
+                    "component": "Button",
+                    "child": "cancel-txt",
+                    "variant": "invisible",
+                    "action": {
+                      "functionCall": {
+                        "call": "clearValue",
+                        "args": {
+                          "path": "/reviewBody"
+                        },
+                        "returnType": "void"
+                      }
+                    }
+                  },
+                  {
+                    "id": "btn-submit",
+                    "component": "Button",
+                    "child": "loading_submit-txt",
+                    "variant": "primary",
+                    "disabled": {
+                      "call": "not",
+                      "args": {
+                        "value": {
+                          "call": "required",
+                          "args": {
+                            "value": {
+                              "path": "/reviewBody"
+                            }
+                          },
+                          "returnType": "boolean"
+                        }
+                      },
+                      "returnType": "boolean"
+                    },
+                    "action": {
+                      "event": {
+                        "name": "submit-pr-review",
+                        "context": {
+                          "repository": "a2ui-project/a2ui",
+                          "prNumber": 233,
+                          "body": {
+                            "path": "/reviewBody"
+                          },
+                          "verdict": {
+                            "path": "/verdictIndex"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "cancel-txt",
+                    "component": "Text",
+                    "text": "Clear"
+                  },
+                  {
+                    "id": "fc-body",
+                    "component": "FormControl",
+                    "required": true,
+                    "children": [
+                      "body-label",
+                      "body-caption",
+                      "body-textarea"
+                    ]
+                  },
+                  {
+                    "id": "fc-verdict",
+                    "component": "FormControl",
+                    "children": [
+                      "verdict-label",
+                      "verdict-select"
+                    ]
+                  },
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "align": "center",
+                    "gap": "condensed",
+                    "children": [
+                      "title-icon",
+                      "title-heading"
+                    ]
+                  },
+                  {
+                    "id": "icon-approve-btn",
+                    "component": "Icon",
+                    "name": "check",
+                    "fill": "success"
+                  },
+                  {
+                    "id": "icon-changes-btn",
+                    "component": "Icon",
+                    "name": "x-circle",
+                    "fill": "danger"
+                  },
+                  {
+                    "id": "icon-comment-btn",
+                    "component": "Icon",
+                    "name": "comment"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "normal",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "fc-verdict",
+                      "fc-body",
+                      "actions"
+                    ]
+                  },
+                  {
+                    "id": "seg-approve",
+                    "component": "SegmentedControlButton",
+                    "label": "Approve",
+                    "leadingVisual": "icon-approve-btn"
+                  },
+                  {
+                    "id": "seg-changes",
+                    "component": "SegmentedControlButton",
+                    "label": "Request Changes",
+                    "leadingVisual": "icon-changes-btn"
+                  },
+                  {
+                    "id": "seg-comment",
+                    "component": "SegmentedControlButton",
+                    "label": "Comment",
+                    "leadingVisual": "icon-comment-btn"
+                  },
+                  {
+                    "id": "title-heading",
+                    "component": "Heading",
+                    "text": "Submit Review on #233",
+                    "as": "h2",
+                    "variant": "medium"
+                  },
+                  {
+                    "id": "title-icon",
+                    "component": "Icon",
+                    "name": "pencil",
+                    "fill": "accent",
+                    "accessibility": {
+                      "label": "Pencil Icon"
+                    }
+                  },
+                  {
+                    "id": "verdict-label",
+                    "component": "FormControlLabel",
+                    "text": "Review Decision"
+                  },
+                  {
+                    "id": "verdict-select",
+                    "component": "SegmentedControl",
+                    "selectedIndex": {
+                      "path": "/verdictIndex"
+                    },
+                    "children": [
+                      "seg-approve",
+                      "seg-comment",
+                      "seg-changes"
+                    ]
+                  },
+                  {
+                    "id": "loading_submit-txt",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "draft-pr-review-233"
+              }
+            }
+          ],
+          "texts": []
+        },
+        {
+          "offsetMs": 12365,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "actions",
+                    "component": "ButtonGroup",
+                    "children": [
+                      "btn-cancel",
+                      "btn-submit"
+                    ]
+                  },
+                  {
+                    "id": "body-caption",
+                    "component": "FormControlCaption",
+                    "text": "Markdown formatting is supported. Your feedback is sent directly to the author."
+                  },
+                  {
+                    "id": "body-label",
+                    "component": "FormControlLabel",
+                    "text": "Review Comments"
+                  },
+                  {
+                    "id": "body-textarea",
+                    "component": "Textarea",
+                    "value": {
+                      "path": "/reviewBody"
+                    },
+                    "required": true,
+                    "block": true,
+                    "rows": 6
+                  },
+                  {
+                    "id": "btn-cancel",
+                    "component": "Button",
+                    "child": "cancel-txt",
+                    "variant": "invisible",
+                    "action": {
+                      "functionCall": {
+                        "call": "clearValue",
+                        "args": {
+                          "path": "/reviewBody"
+                        },
+                        "returnType": "void"
+                      }
+                    }
+                  },
+                  {
+                    "id": "btn-submit",
+                    "component": "Button",
+                    "child": "submit-txt",
+                    "variant": "primary",
+                    "disabled": {
+                      "call": "not",
+                      "args": {
+                        "value": {
+                          "call": "required",
+                          "args": {
+                            "value": {
+                              "path": "/reviewBody"
+                            }
+                          },
+                          "returnType": "boolean"
+                        }
+                      },
+                      "returnType": "boolean"
+                    },
+                    "action": {
+                      "event": {
+                        "name": "submit-pr-review",
+                        "context": {
+                          "repository": "a2ui-project/a2ui",
+                          "prNumber": 233,
+                          "body": {
+                            "path": "/reviewBody"
+                          },
+                          "verdict": {
+                            "path": "/verdictIndex"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "cancel-txt",
+                    "component": "Text",
+                    "text": "Clear"
+                  },
+                  {
+                    "id": "fc-body",
+                    "component": "FormControl",
+                    "required": true,
+                    "children": [
+                      "body-label",
+                      "body-caption",
+                      "body-textarea"
+                    ]
+                  },
+                  {
+                    "id": "fc-verdict",
+                    "component": "FormControl",
+                    "children": [
+                      "verdict-label",
+                      "verdict-select"
+                    ]
+                  },
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "align": "center",
+                    "gap": "condensed",
+                    "children": [
+                      "title-icon",
+                      "title-heading"
+                    ]
+                  },
+                  {
+                    "id": "icon-approve-btn",
+                    "component": "Icon",
+                    "name": "check",
+                    "fill": "success"
+                  },
+                  {
+                    "id": "icon-changes-btn",
+                    "component": "Icon",
+                    "name": "x-circle",
+                    "fill": "danger"
+                  },
+                  {
+                    "id": "icon-comment-btn",
+                    "component": "Icon",
+                    "name": "comment"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "normal",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "fc-verdict",
+                      "fc-body",
+                      "actions"
+                    ]
+                  },
+                  {
+                    "id": "seg-approve",
+                    "component": "SegmentedControlButton",
+                    "label": "Approve",
+                    "leadingVisual": "icon-approve-btn"
+                  },
+                  {
+                    "id": "seg-changes",
+                    "component": "SegmentedControlButton",
+                    "label": "Request Changes",
+                    "leadingVisual": "icon-changes-btn"
+                  },
+                  {
+                    "id": "seg-comment",
+                    "component": "SegmentedControlButton",
+                    "label": "Comment",
+                    "leadingVisual": "icon-comment-btn"
+                  },
+                  {
+                    "id": "submit-txt",
+                    "component": "Text",
+                    "text": "Submit Review"
+                  },
+                  {
+                    "id": "title-heading",
+                    "component": "Heading",
+                    "text": "Submit Review on #233",
+                    "as": "h2",
+                    "variant": "medium"
+                  },
+                  {
+                    "id": "title-icon",
+                    "component": "Icon",
+                    "name": "pencil",
+                    "fill": "accent",
+                    "accessibility": {
+                      "label": "Pencil Icon"
+                    }
+                  },
+                  {
+                    "id": "verdict-label",
+                    "component": "FormControlLabel",
+                    "text": "Review Decision"
+                  },
+                  {
+                    "id": "verdict-select",
+                    "component": "SegmentedControl",
+                    "selectedIndex": {
+                      "path": "/verdictIndex"
+                    },
+                    "children": [
+                      "seg-approve",
+                      "seg-comment",
+                      "seg-changes"
+                    ]
+                  }
+                ],
+                "surfaceId": "draft-pr-review-233"
+              }
+            }
+          ],
+          "texts": []
+        },
+        {
+          "offsetMs": 12585,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "draft-pr-review-233",
+                "value": {
+                  "verdictIndex": 0,
+                  "reviewBody": "The spec doc looks reasonable."
+                }
+              }
+            }
+          ],
+          "texts": []
+        },
+        {
+          "offsetMs": 12661,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "draft-pr-review-233",
+                "path": "/",
+                "value": {
+                  "verdictIndex": 0,
+                  "reviewBody": "The spec doc looks reasonable."
+                }
+              }
+            }
+          ],
+          "texts": []
+        }
+      ],
+      "outcome": "completed",
+      "durationMs": 12782
+    }
+  ]
+}

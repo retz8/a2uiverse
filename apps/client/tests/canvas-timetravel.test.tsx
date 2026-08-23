@@ -31,9 +31,7 @@ function setup() {
 const normalize = (html: string): string =>
   html.replace(/_r_[0-9a-z]+_/g, '_id_').replace(/:r[0-9a-z]+:/g, ':id:');
 
-// Skipped until the beats are re-recorded through the orchestrator (task 1.4); `recordings/beats/`
-// is empty in 1.3.
-describe.skip('parked-restore round-trip fidelity', () => {
+describe('parked-restore round-trip fidelity', () => {
   // The two largest recordings (252 and 201 components) exercise the widest component
   // vocabulary; the smallest keeps a cheap end of the sweep.
   const picked = BEAT_FIXTURES.filter(f => [2, 6, 8].includes(f.beat));

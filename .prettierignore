@@ -10,3 +10,6 @@ _dev
 .claude
 SPEC.md
 CLAUDE.md
+
+# Recorded beat fixtures — written by the recorder, not hand-edited
+apps/client/recordings

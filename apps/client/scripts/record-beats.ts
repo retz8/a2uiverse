@@ -18,6 +18,9 @@ import type {BeatSpec} from './lib/beats';
 import {BEATS} from './lib/beats';
 import {createSender, driveTurn, parseBeatList, supportedCatalogIds} from './lib/drive';
 
+/** Like the source recorder: a turn that never painted is retried before it is flagged. */
+const MAX_ATTEMPTS = 3;
+
 const nameOf = (spec: BeatSpec) => `beat-${spec.beat}-${spec.slug}`;
 
 /** Group the wanted beats so a chained beat always follows the beat it continues. */
@@ -60,20 +63,21 @@ async function main() {
     for (const spec of group) {
       const name = nameOf(spec);
       console.log(`▶ ${name}: ${spec.prompt}`);
-      const batches: BeatBatch[] = [];
-      const driven = await driveTurn(
-        sender,
-        spec.prompt,
-        contextId,
-        catalogIds,
-        ({atMs, event}) => {
+      let batches: BeatBatch[] = [];
+      let driven!: Awaited<ReturnType<typeof driveTurn>>;
+      let painted = false;
+      for (let attempt = 1; attempt <= MAX_ATTEMPTS && !painted; attempt += 1) {
+        batches = [];
+        driven = await driveTurn(sender, spec.prompt, contextId, catalogIds, ({atMs, event}) => {
           const messages = extractA2uiMessagesFromEvent(event);
           const texts = extractAgentTextFromEvent(event);
           if (messages.length || texts.length) batches.push({offsetMs: atMs, messages, texts});
-        },
-      );
-      contextId = driven.contextId;
-      const painted = batches.some(b => b.messages.some(m => 'createSurface' in m));
+        });
+        contextId = driven.contextId;
+        painted = batches.some(b => b.messages.some(m => 'createSurface' in m));
+        if (!painted && attempt < MAX_ATTEMPTS)
+          console.log(`  attempt ${attempt}: no createSurface — retrying`);
+      }
       const turn: BeatTurn = {
         taskId: driven.taskId,
         kind: 'utterance',
