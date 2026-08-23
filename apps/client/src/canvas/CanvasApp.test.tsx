@@ -1,8 +1,8 @@
 /**
- * The canvas page (tasks 8.2 + 8.3): stage + overlay + palette + status strip + ambient notice
- * assembled over the chat page's transport and the turn runner, with the ?beat= fixture-replay
- * affordance and the decision-11 interaction policy (last-intent-wins palette, blocked actions
- * with a cue, always-live overlay answers).
+ * The canvas page: stage + overlay + palette + status strip + ambient notice assembled over
+ * the A2A transport and the turn runner, with the ?beat= fixture-replay affordance and the
+ * interaction policy (last-intent-wins palette, blocked actions with a cue, always-live
+ * overlay answers).
  */
 import {describe, it, expect, afterEach} from 'vitest';
 import {render, screen, cleanup, waitFor} from '@testing-library/react';
@@ -534,7 +534,7 @@ describe('CanvasApp time travel', () => {
   });
 });
 
-describe('CanvasApp wire contracts (task 8.5)', () => {
+describe('CanvasApp wire contracts', () => {
   it('a parked dispatch attaches the exact fork context as message metadata', async () => {
     const {sender, sent} = scriptedSender([
       eventOf(ACTIONABLE_MESSAGES),

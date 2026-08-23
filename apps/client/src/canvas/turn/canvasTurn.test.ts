@@ -1,8 +1,7 @@
 /**
- * The turn runner (tasks 8.3 + 8.4): hold-and-swap with the net-effect validation gate, the
+ * The turn runner: hold-and-swap with the net-effect validation gate, the
  * overlay slot for question paints, last-intent-wins cancel, and the timeline entry lifecycle —
- * an entry appended the moment a paint lands, its snapshot filled at serialize-on-swap
- * (task-8.4 spec decision 1).
+ * an entry appended the moment a paint lands, its snapshot filled at serialize-on-swap.
  */
 import {describe, it, expect} from 'vitest';
 import {MessageProcessor} from '@a2ui/web_core/v0_9';
@@ -205,7 +204,7 @@ describe('staged mode (occupied stage): hold-and-swap', () => {
 
     const turn = runner.begin(utterance('tweak it', 1));
     turn.apply([textRoot('stage', 'after')]);
-    // Live before the turn ends (decision 2).
+    // Live before the turn ends.
     expect(rootText(processor, 'stage')).toBe('after');
     turn.end();
 
@@ -395,7 +394,7 @@ describe('cancel: last-intent-wins', () => {
   });
 });
 
-describe('paint meta (task 8.5)', () => {
+describe('paint meta', () => {
   it('the accepted title upgrades the in-flight label and lands on the entry', () => {
     const {store, runner} = setup();
     const turn = runner.begin(utterance('show my PRs'));

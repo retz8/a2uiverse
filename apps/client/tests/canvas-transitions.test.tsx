@@ -1,7 +1,6 @@
 /**
- * The task-8.3 transition gate: the synthetic fixtures (the wire shapes the 8.1 recordings
- * lack) and cancellation, driven through the real store + turn runner + replay driver —
- * zero LLM calls, per phase-8 spec decision 17.
+ * The transition gate: the synthetic fixtures (the wire shapes the recordings lack) and
+ * cancellation, driven through the real store + turn runner + replay driver — zero LLM calls.
  */
 import {describe, it, expect, vi, afterEach} from 'vitest';
 import {MessageProcessor} from '@a2ui/web_core/v0_9';

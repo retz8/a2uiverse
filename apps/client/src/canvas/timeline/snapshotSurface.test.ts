@@ -1,5 +1,5 @@
 /**
- * Serialize-on-swap (task 8.3): a live surface materializes into plain deep-frozen JSON,
+ * Serialize-on-swap: a live surface materializes into plain deep-frozen JSON,
  * decoupled from the processor that produced it.
  */
 import {describe, it, expect} from 'vitest';

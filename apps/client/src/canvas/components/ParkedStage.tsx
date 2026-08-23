@@ -1,6 +1,6 @@
 /**
- * The parked stage (task 8.4): renders a departed paint from its snapshot through a per-visit
- * sandbox session (spec decision 4). The session is constructed once per mount; attaching
+ * The parked stage: renders a departed paint from its snapshot through a per-visit sandbox
+ * session. The session is constructed once per mount; attaching
  * registers it as the current parked view and returns the teardown — unmount IS the write-back
  * commit, which uniformly catches every exit: return-to-live, jumping to another entry, causal
  * jumps, and dispatch-from-parked. The parent keys this component by paint id so switching

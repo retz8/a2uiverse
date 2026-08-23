@@ -1,14 +1,14 @@
 /**
  * The canvas store: one hand-rolled external store (subscribe + snapshot, read by React via
- * useSyncExternalStore) owning the phase-8 canvas state — stage and overlay occupancy,
- * in-flight status, and the single append-only ring of paint entries with head/viewing time
- * travel (task-8.4 spec decisions 1, 12, 13). Written from non-React code (the turn runner,
+ * useSyncExternalStore) owning the canvas state — stage and overlay occupancy, in-flight
+ * status, and the single append-only ring of paint entries with head/viewing time travel.
+ * Written from non-React code (the turn runner,
  * the replay driver, the A2A callbacks), which is why it is a closure module and not
  * component state.
  */
 import type {PaintEntry, PaintSnapshot} from './timeline/paint';
 
-/** The ring cap — a stated policy bound, not a memory guard (task-8.4 spec decision 13). */
+/** The ring cap — a stated policy bound, not a memory guard. */
 export const TIMELINE_CAP = 50;
 
 /** The pending question paint occupying the overlay slot. */
@@ -46,7 +46,7 @@ export interface CanvasStore {
   getState(): CanvasState;
   subscribe(listener: () => void): () => void;
   beginPaint(label: string): void;
-  /** Upgrade the in-flight label (the agent-authored title, task 8.5); no-op when idle. */
+  /** Upgrade the in-flight label (the agent-authored title); no-op when idle. */
   updateInFlightLabel(label: string): void;
   endPaint(): void;
   reportError(text: string): void;
@@ -56,7 +56,7 @@ export interface CanvasStore {
   appendEntry(entry: PaintEntry): void;
   /** Serialize-on-swap: complete the addressed entry with its captured content. */
   fillSnapshot(paintId: number, snapshot: PaintSnapshot): void;
-  /** Parked write-back: replace the snapshot's data model wholesale (task-8.4 decision 2). */
+  /** Parked write-back: replace the snapshot's data model wholesale. */
   replaceSnapshotDataModel(paintId: number, dataModel: unknown): void;
   /** View a past entry. Unknown ids are ignored. */
   park(paintId: number): void;
@@ -125,7 +125,7 @@ export function createCanvasStore(): CanvasStore {
       set({
         timeline: grown.slice(evicted.length),
         // Eviction of the parked entry forces return-to-live; otherwise a landing while
-        // parked leaves the user parked and raises the newer-view marker (decision 12).
+        // parked leaves the user parked and raises the newer-view marker.
         viewing: parkedEvicted ? null : state.viewing,
         headAdvancedWhileParked: parkedEvicted
           ? false

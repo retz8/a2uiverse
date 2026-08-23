@@ -1,12 +1,12 @@
 /**
- * The history chrome (task 8.4, spec decisions 9, 12–14): a floating Back button at the top
+ * The history chrome: a floating Back button at the top
  * left — click steps to the chronological neighbour, right-click opens the titled history
  * list — and, while parked, a full-width banner materialising around it: return-to-live
  * beside Back, the stale text centred, Repaint at the right. No Forward: return-to-live
  * leaves the past in one gesture, the list addresses any retained entry directly.
  *
  * All of this is shell chrome — the user's command channel, never blocked by an in-flight
- * paint (decision 16). Titles are agent-authored when the paint streamed one (task 8.5),
+ * paint. Titles are agent-authored when the paint streamed one,
  * `entryTitle` fallbacks otherwise; the causal chip renders only on forked entries and goes inert when its parent is
  * evicted, naming it via the denormalised `parentTitle`.
  */

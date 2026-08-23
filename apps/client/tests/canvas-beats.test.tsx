@@ -1,10 +1,9 @@
 /**
- * The canvas beat gate (tasks 8.2 + 8.3): every recorded beat (task 8.1), replayed through the
- * real canvas store + turn runner — the automated definition-of-done for "a paint lands on the
- * stage" (phase-8 spec decision 17: shell verification on fixtures, zero LLM calls).
+ * The canvas beat gate: every recorded beat, replayed through the real canvas store + turn
+ * runner — the automated definition-of-done for "a paint lands on the stage" (shell
+ * verification on fixtures, zero LLM calls).
  *
- * Complements `beat-fixtures.test.tsx` (the 8.1 recording gate): that one proves the
- * recordings are consumable; this one proves the canvas shell consumes them — zero apply
+ * Proves the canvas shell consumes the recordings — zero apply
  * failures, the stage pointer on the last-created surface, single occupancy, a rendered
  * surface, the live entry appended, and the in-flight state settled back to idle. The chained
  * pair at the end exercises hold-and-swap over an occupied stage: the real recordings are
@@ -22,7 +21,7 @@ import {replayBeatOnCanvas} from '../src/canvas/replayBeat';
 import {CanvasStage} from '../src/canvas/components/CanvasStage';
 import {renderWithShell} from './helpers';
 
-/** The last surface the painting turn creates — the one decision 3 says takes the stage. */
+/** The last surface the painting turn creates — the one that takes the stage. */
 function lastCreatedSurfaceId(fixture: BeatFixture): string {
   const turn = fixture.turns[fixture.turns.length - 1];
   const creates = messagesOf(turn).filter(m => 'createSurface' in m) as Array<{

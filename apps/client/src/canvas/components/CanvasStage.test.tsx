@@ -1,6 +1,6 @@
 /**
- * The canvas stage (task 8.2): renders the one stage surface through the existing A2UI
- * pipeline (phase-8 spec decision 3 — single-surface stage; composition is the agent's job).
+ * The canvas stage: renders the one stage surface through the existing A2UI pipeline
+ * (single-surface stage; composition is the agent's job).
  */
 import {describe, it, expect} from 'vitest';
 import {screen} from '@testing-library/react';

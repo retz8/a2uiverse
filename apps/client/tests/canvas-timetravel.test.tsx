@@ -1,5 +1,5 @@
 /**
- * The task-8.4 time-travel gate over real recordings (task-8.4 spec decision 17): the
+ * The time-travel gate over real recordings: the
  * round-trip fidelity check — a recorded beat lands live, departs at the next paint
  * (serialize-on-swap), then parks; the rehydrated render must match what the live render
  * produced. Zero LLM calls; the recordings drive everything.

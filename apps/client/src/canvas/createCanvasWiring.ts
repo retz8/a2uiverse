@@ -13,8 +13,7 @@
  * view holds that view while the forked paint is in flight — the turn runner returns the view
  * to live when the paint lands, and the parked session's unmount then commits its write-back.
  * A forked turn reports the parked snapshot's data model, not the head's. The live processor is
- * the live registry, exactly what the agent may see (see the invariant in
- * `_dev/docs/spec/phase-8-demo-integration.md`).
+ * the live registry, exactly what the agent may see.
  */
 import {MessageProcessor} from '@a2ui/web_core/v0_9';
 import type {

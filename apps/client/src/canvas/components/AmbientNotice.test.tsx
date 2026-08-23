@@ -1,6 +1,6 @@
 /**
- * The ambient notice (task 8.2): agent prose as a transient auto-fading element — the outcome
- * register of phase-8 spec decision 2. Shown, then gone; stored nowhere.
+ * The ambient notice: agent prose as a transient auto-fading element — the outcome register.
+ * Shown, then gone; stored nowhere.
  */
 import {describe, it, expect, vi, afterEach} from 'vitest';
 import {act, screen} from '@testing-library/react';

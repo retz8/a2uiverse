@@ -1,6 +1,6 @@
 /**
  * The ambient notice: agent prose shown as a transient auto-fading element — the outcome
- * register of phase-8 spec decision 2. Keyed by the store so a replacing notice restarts
+ * register. Keyed by the store so a replacing notice restarts
  * the fade; stored nowhere once dismissed.
  */
 import {useEffect} from 'react';

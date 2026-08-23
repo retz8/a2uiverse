@@ -1,7 +1,6 @@
 /**
- * The canvas store (tasks 8.2–8.4): stage/overlay occupancy, in-flight status, and the single
- * append-only ring of paint entries with head/viewing time travel (task-8.4 spec decisions
- * 1, 3, 12, 13).
+ * The canvas store: stage/overlay occupancy, in-flight status, and the single append-only ring
+ * of paint entries with head/viewing time travel.
  */
 import {describe, it, expect, vi} from 'vitest';
 import type {PaintCause, PaintEntry, PaintSnapshot} from './timeline/paint';
@@ -252,7 +251,7 @@ describe('currentPaintId', () => {
   });
 });
 
-describe('updateInFlightLabel (task 8.5)', () => {
+describe('updateInFlightLabel', () => {
   it('upgrades the label while a paint is in flight', () => {
     const store = createCanvasStore();
     store.beginPaint('“show my PRs” — generating…');

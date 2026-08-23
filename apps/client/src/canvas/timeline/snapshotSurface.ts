@@ -1,6 +1,6 @@
 /**
- * Serialize-on-swap (task 8.3): materialize a live surface into plain deep-frozen JSON —
- * the snapshot content the timeline stores (phase-8 spec decisions 12 and 21). Captured once,
+ * Serialize-on-swap: materialize a live surface into plain deep-frozen JSON — the snapshot
+ * content the timeline stores. Captured once,
  * when the surface leaves the canvas; immutability is enforced (deep-frozen), not promised.
  */
 

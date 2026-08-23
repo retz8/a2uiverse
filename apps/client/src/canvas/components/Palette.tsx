@@ -1,8 +1,7 @@
 /**
- * The command palette: language input as a summonable overlay — summon, speak, dismiss
- * (phase-8 spec decision 1). The palette never blocks: an utterance while a paint is in
- * flight is last-intent-wins — the wiring cancels the in-flight paint and dispatches
- * (spec decision 11, task 8.3).
+ * The command palette: language input as a summonable overlay — summon, speak, dismiss.
+ * The palette never blocks: an utterance while a paint is in flight is last-intent-wins — the
+ * wiring cancels the in-flight paint and dispatches.
  */
 import {useEffect, useRef, useState} from 'react';
 import {TextField} from '@radix-ui/themes';

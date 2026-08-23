@@ -33,7 +33,7 @@ export interface StreamUserMessageOptions {
   signal?: AbortSignal;
   /**
    * Fork context for a turn dispatched from a parked (historical) view; attached as message
-   * metadata (task 8.5). Absent on a live dispatch.
+   * metadata. Absent on a live dispatch.
    */
   forkContext?: ForkContext;
   /** Called for each paintMeta shell object the agent streams (title / question marker). */

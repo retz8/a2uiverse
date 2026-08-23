@@ -20,8 +20,7 @@
  * - **Cancel**: aborts the transport signal and discards the staged work; a canceled paint
  *   never reaches the stage and never enters the timeline.
  *
- * The live processor is the live registry — exactly what the agent may see. See the
- * live-registry invariant in `_dev/docs/spec/phase-8-demo-integration.md`.
+ * The live processor is the live registry — exactly what the agent may see.
  */
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
 import type {PaintMeta} from '../../a2a/messages';

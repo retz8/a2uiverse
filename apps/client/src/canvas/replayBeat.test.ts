@@ -1,5 +1,5 @@
 /**
- * The canvas beat-replay driver (tasks 8.2 + 8.3): drives a recorded beat through the canvas
+ * The canvas beat-replay driver: drives a recorded beat through the canvas
  * turn runner — one real turn per recorded turn — paced by the recorded offsets by default so
  * progressive rendering is observable, instant for tests and the `&instant` param.
  */

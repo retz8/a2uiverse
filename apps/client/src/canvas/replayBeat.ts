@@ -1,11 +1,11 @@
 /**
- * Drives a recorded beat (task 8.1 fixture) through the canvas turn runner — the zero-LLM
- * verification path of phase-8 spec decision 17. Each recorded turn runs as a real canvas
+ * Drives a recorded beat fixture through the canvas turn runner — the zero-LLM verification
+ * path. Each recorded turn runs as a real canvas
  * turn (begin → apply per batch → end), so the replay rehearses the same hold-and-swap gate,
  * paced by the recorded `offsetMs` by default; instant mode collapses the waits for tests and
  * the `&instant` query param.
  *
- * Unlike `beats/replay.ts` (the 8.1 gate's bare apply-loop), this rehearses the full shell:
+ * Unlike `beats/replay.ts` (the bare apply-loop), this rehearses the full shell:
  * turn lifecycle around each turn, and the recorded agent prose routed into the ambient-notice
  * channel.
  */

@@ -1,9 +1,9 @@
 /**
- * The status strip: the thin always-visible region carrying the status register (phase-8 spec
- * decision 2). In-flight spinner + label, or sticky error (cleared by the next dispatch);
+ * The status strip: the thin always-visible region carrying the status register. In-flight
+ * spinner + label, or sticky error (cleared by the next dispatch);
  * idle shows the quiet identity label — the one thing naming the app once a painted surface
  * fills the screen with vendor-shaped content. The ⌘K shortcut lives on the Ask pill.
- * The in-flight label upgrades to the agent-authored paint title when one streams (task 8.5).
+ * The in-flight label upgrades to the agent-authored paint title when one streams.
  */
 import {Spinner} from '@radix-ui/themes';
 import type {CanvasState} from '../canvasStore';

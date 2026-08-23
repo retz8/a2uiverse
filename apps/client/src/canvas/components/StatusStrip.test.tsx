@@ -1,7 +1,7 @@
 /**
- * The status strip (task 8.2): the thin always-visible region for the status register
- * (phase-8 spec decision 2) — idle hint, in-flight spinner + label, sticky error. Status
- * only: the palette affordance is the canvas's floating Ask pill, not strip furniture.
+ * The status strip: the thin always-visible region for the status register — idle hint,
+ * in-flight spinner + label, sticky error. Status only: the palette affordance is the canvas's
+ * floating Ask pill, not strip furniture.
  */
 import {describe, it, expect} from 'vitest';
 import {screen} from '@testing-library/react';

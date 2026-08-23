@@ -1,14 +1,14 @@
 /**
- * The parked session (task 8.4): one per parked visit, created on park and disposed on
+ * The parked session: one per parked visit, created on park and disposed on
  * unpark. A frozen snapshot becomes a rendered surface by reconstructing its wire messages
  * and pushing them through a sandbox MessageProcessor — the identical path a live paint
  * takes (catalog resolution, data binding, local functions, action dispatch), never a
- * second bespoke surface constructor (task-8.4 spec decision 4). The sandbox is outside
+ * second bespoke surface constructor. The sandbox is outside
  * the live registry by construction: the live processor holds no reference to it.
  *
  * While parked, the sandbox is authoritative for the data model and the stored entry is
  * stale; `commit` is the teardown write-back that replaces the entry's frozen data model
- * wholesale (decisions 2–3).
+ * wholesale.
  */
 import {MessageProcessor} from '@a2ui/web_core/v0_9';
 import type {ActionListener, A2uiMessage, Catalog, ComponentApi} from '@a2ui/web_core/v0_9';

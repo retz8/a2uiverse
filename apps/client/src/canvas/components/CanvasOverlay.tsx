@@ -1,6 +1,6 @@
 /**
- * The overlay slot (task 8.3): the canvas layer holding the one pending question paint above
- * the held stage (phase-8 spec decisions 2–3 — questions arrive as surfaces). The surface's
+ * The overlay slot: the canvas layer holding the one pending question paint above the held
+ * stage (questions arrive as surfaces). The surface's
  * root is a `ConfirmationDialog`, which renders through Primer's own modal machinery (portal,
  * backdrop, focus trap), so this component is just the mount point; answering flows through
  * the dialog's actions into the normal action pipeline, where the wiring recognises the

@@ -1,5 +1,5 @@
 /**
- * The command palette (tasks 8.2 + 8.3): the summonable language input — speak and dismiss.
+ * The command palette: the summonable language input — speak and dismiss.
  * Summoning (⌘K, the strip affordance, auto-open) is CanvasApp's job, not the palette's;
  * so is last-intent-wins (the palette itself never blocks).
  */

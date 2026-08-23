@@ -214,7 +214,7 @@ const FORK: ForkContext = {
   position: 3,
 };
 
-describe('fork context metadata (task 8.5)', () => {
+describe('fork context metadata', () => {
   it('rides beside the client data model on an action message', () => {
     const params = buildActionMessageParams(ACTION, 'ctx-9', CLIENT_DM, FORK);
     expect(params.message.metadata).toEqual({
@@ -248,7 +248,7 @@ const PAINT_META_PART: Part = {
   metadata: {mimeType: 'application/json+a2ui-shell'},
 };
 
-describe('paintMeta extraction (task 8.5)', () => {
+describe('paintMeta extraction', () => {
   it('extracts the shell part from a status-update, alongside A2UI parts', () => {
     const event = statusUpdate([PAINT_META_PART, DATA_PART, TEXT_PART]);
     expect(extractPaintMetasFromEvent(event)).toEqual([{surfaceId: 's', title: 'Open PRs — a2ui'}]);

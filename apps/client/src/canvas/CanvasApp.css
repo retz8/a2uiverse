@@ -146,7 +146,7 @@ body {
   z-index: 10;
 }
 
-/* ——— Task 8.4: history chrome ——— */
+/* ——— History chrome ——— */
 
 /* Back floats top-left, always in the same spot; while parked, the same container grows
    into a full-width banner materialising around it — Back never moves. */

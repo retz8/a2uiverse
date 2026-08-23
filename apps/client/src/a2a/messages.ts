@@ -25,8 +25,8 @@ export const A2UI_CLIENT_DATA_MODEL_KEY = 'a2uiClientDataModel';
 
 /**
  * A2A message-metadata key under which the canvas attaches fork context when a turn is
- * dispatched from a parked (historical) view — task-8.5 decisions 9–10. Presence of the
- * key IS the historical-view flag; a live dispatch never carries it.
+ * dispatched from a parked (historical) view. Presence of the key IS the historical-view
+ * flag; a live dispatch never carries it.
  */
 export const A2UI_FORK_CONTEXT_KEY = 'a2uiForkContext';
 
@@ -175,7 +175,7 @@ export function extractA2uiMessages(result: Task | Message): A2uiMessage[] {
 }
 
 /**
- * The paintMeta shell object (task 8.5): the agent's per-paint metadata — a short human
+ * The paintMeta shell object: the agent's per-paint metadata — a short human
  * title, and the question marker the canvas routes on. Rides the A2A stream as a dedicated
  * DataPart (`{paintMeta: {...}}`, no inline `version` field), emitted ahead of the
  * `createSurface` it names, so the A2UI extractor above never sees it.

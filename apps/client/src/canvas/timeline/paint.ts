@@ -1,11 +1,10 @@
 /**
- * The paint vocabulary (tasks 8.3 + 8.4): the typed cause every paint records, the timeline's
- * paint entry, and the materialized snapshot (phase-8 spec decisions 4–6, 12; task-8.4 spec
- * decisions 1–2, 6–7, 10). Display strings are derived from the cause at render time, never
+ * The paint vocabulary: the typed cause every paint records, the timeline's paint entry, and
+ * the materialized snapshot. Display strings are derived from the cause at render time, never
  * stored — one derivation (`titleOfCause`) feeds two registers: the history list takes the
  * bare phrase, the status strip decorates it. The one deliberate exception to derive-at-render
  * is `parentTitle`, a fact about the edge recorded at fork time so provenance survives the
- * parent's eviction. These fallbacks are permanent — the 8.5 agent-authored `title` sits on top.
+ * parent's eviction. These fallbacks are permanent — the agent-authored `title` sits on top.
  */
 import type {A2uiClientAction} from '@a2ui/web_core/v0_9';
 import {describeAction} from '../../shared/describeAction';
@@ -62,7 +61,7 @@ export interface PaintEntry {
   cause: PaintCause;
   /** Epoch ms of the moment the paint took the stage. */
   paintedAt: number;
-  /** Agent-authored per-paint title (8.5). Absent throughout 8.4 — fallbacks carry the UI. */
+  /** Agent-authored per-paint title. When absent, the fallbacks carry the UI. */
   title?: string;
   /** Null while the paint holds the stage; filled at serialize-on-swap. */
   snapshot: PaintSnapshot | null;

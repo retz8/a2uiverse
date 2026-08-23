@@ -1,7 +1,6 @@
 /**
- * The parked session (task 8.4): a frozen snapshot rehydrated through the real message path
- * into a per-visit sandbox processor, with teardown write-back into the stored entry
- * (task-8.4 spec decisions 2–4).
+ * The parked session: a frozen snapshot rehydrated through the real message path
+ * into a per-visit sandbox processor, with teardown write-back into the stored entry.
  */
 import {describe, it, expect, vi} from 'vitest';
 import {MessageProcessor} from '@a2ui/web_core/v0_9';
@@ -88,7 +87,7 @@ describe('createParkedSession', () => {
     const stored = store.getState().timeline[0].snapshot!;
     expect(stored.dataModel).toEqual({title: 'Open PRs', urgent: true});
     expect(Object.isFrozen(stored.dataModel)).toBe(true);
-    // Identity, tree, and capture moment are untouched (decision 2).
+    // Identity, tree, and capture moment are untouched.
     expect(stored.tree).toBe(entry.snapshot!.tree);
     expect(stored.capturedAt).toBe(2000);
   });

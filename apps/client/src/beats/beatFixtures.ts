@@ -25,10 +25,9 @@ export interface BeatTurn {
 /**
  * A recorded beat: one live agent turn, kept as the stream it arrived as.
  *
- * Recorded by task 8.1 (`agent/scripts/record_beats.py`) so the canvas shell's verification
- * runs deterministically with zero LLM calls, per phase-8 spec decision 17. These are message
- * logs, deliberately NOT the materialized snapshots the timeline stores (decision 12) — the
- * two artifacts have different jobs and are never conflated.
+ * Recorded so the canvas shell's verification runs deterministically with zero LLM calls.
+ * These are message logs, deliberately NOT the materialized snapshots the timeline stores —
+ * the two artifacts have different jobs and are never conflated.
  */
 export interface BeatFixture {
   name: string;
@@ -43,9 +42,8 @@ export interface BeatFixture {
   turns: BeatTurn[];
 }
 
-// Same mechanism the examples page uses for the agent's curated corpus: the recordings live in
-// the sibling `agent/` subproject (outside the yarn workspace) and are bundled through the glob,
-// so there is no copy or sync step and a re-recorded beat is picked up automatically.
+// The recordings live in `apps/client/recordings/beats/` and are bundled through the glob, so
+// there is no copy or sync step and a re-recorded beat is picked up automatically.
 const modules = import.meta.glob<{default: BeatFixture}>('../../recordings/beats/*.json', {
   eager: true,
 });

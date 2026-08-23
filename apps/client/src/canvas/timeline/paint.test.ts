@@ -1,5 +1,5 @@
 /**
- * The paint vocabulary (tasks 8.3 + 8.4): one cause-derived phrase in two registers — the
+ * The paint vocabulary: one cause-derived phrase in two registers — the
  * bare history-list title and the decorated in-flight label — plus the per-entry title
  * fallback chain (agent title → cause phrase → humanized surface id).
  */

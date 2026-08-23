@@ -6,9 +6,8 @@ the control plane. Ask for something via the palette, the agent streams an A2UI
 surface onto the canvas; interact with what it painted, and the next paint
 swaps in.
 
-The paradigm this shell implements — why a canvas and not a chat transcript —
-is argued in [`THESIS.md`](../../../THESIS.md) at the repo root; this README
-covers the shell's mechanics.
+This README covers the shell's mechanics; the canvas's place in the platform is
+SPEC.md §4 and §10–11.
 
 ## Page anatomy
 
@@ -102,10 +101,13 @@ binding (both defined in `src/a2a/messages.ts`; the standard
 
 ## Beat replay — zero-LLM verification
 
-`?beat=N[,M…]` on the canvas page replays recorded live-agent fixtures
-(`agent/recordings/beats/*.json`) through the full turn lifecycle — the same
-hold-and-swap gate, paced by the recorded stream offsets. `&instant` collapses
-the waits. This is how the shell is verified with no LLM in the loop.
+`?beat=<name>[,<name>…]` on the canvas page replays beat fixtures through the
+full turn lifecycle — the same hold-and-swap gate, paced by the recorded stream
+offsets. `&instant` collapses the waits. This is how the shell is verified with
+no LLM in the loop. The synthetic beats ship with the client
+(`src/beats/syntheticBeats.ts`: `plain`, `plain-2`, `validation`, `question`);
+recorded beats (`recordings/beats/*.json`, addressed by number) are re-recorded
+through the orchestrator in task 1.4.
 
 ## Module map
 

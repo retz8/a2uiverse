@@ -1,7 +1,7 @@
 /**
- * The stage: the canvas layer holding the one live surface (phase-8 spec decision 3).
+ * The stage: the canvas layer holding the one live surface.
  * Within-surface composition is the agent's job; the stage just renders whatever surface the
- * store points at, through the same A2uiSurface pipeline the chat page uses. `appliedSeq`
+ * store points at, through the A2uiSurface pipeline. `appliedSeq`
  * keys the error boundary so a surface that threw on a half-streamed component retries per
  * applied batch rather than staying dead.
  */
