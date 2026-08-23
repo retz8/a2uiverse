@@ -1,14 +1,14 @@
 /**
  * The client-side half of the catalog projection: `catalogId → {catalog, Provider}`. Records
  * from `orchestratorApi` name catalogs; this table turns them into the runtime objects the
- * render layer needs. Static in Phase 1 — each installed catalog package is imported here.
+ * render layer needs. Static in Phase 1 — each installed catalog package is imported here; a bundle ships its own
+ * Provider, applied around that catalog's fragments only.
  */
 import type {ComponentType, ReactNode} from 'react';
 import type {Catalog} from '@a2ui/web_core/v0_9';
 import type {ReactComponentImplementation} from '@a2ui/react/v0_9';
-import {CATALOG, CATALOG_ID} from 'primer-a2ui-adapter';
+import {CATALOG, CATALOG_ID, Provider as GitHubProvider} from 'github-catalog';
 import type {CatalogRecord} from '../orchestratorApi';
-import {GitHubCatalogProvider} from './github/provider';
 
 export interface ResolvedCatalog {
   id: string;
@@ -18,7 +18,7 @@ export interface ResolvedCatalog {
 }
 
 const TABLE: ReadonlyMap<string, ResolvedCatalog> = new Map([
-  [CATALOG_ID, {id: CATALOG_ID, catalog: CATALOG, Provider: GitHubCatalogProvider}],
+  [CATALOG_ID, {id: CATALOG_ID, catalog: CATALOG, Provider: GitHubProvider}],
 ]);
 
 /** Resolve registry records to runtime catalogs; an unknown catalog id is a hard error. */

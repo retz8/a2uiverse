@@ -8,7 +8,7 @@ import {describe, it, expect, afterEach} from 'vitest';
 import {render, screen, cleanup, waitFor} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type {MessageSendParams, Part, TaskStatusUpdateEvent} from '@a2a-js/sdk';
-import {CATALOG_ID} from 'primer-a2ui-adapter';
+import {CATALOG_ID} from 'github-catalog';
 import type {A2AMessageSender} from '../a2a/client';
 import {CATALOGS} from '../../tests/helpers';
 import {Providers} from '../providers';

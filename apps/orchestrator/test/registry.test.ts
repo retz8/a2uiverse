@@ -9,7 +9,7 @@ const github: AppRecord = {
   agentUrl: 'http://localhost:11001',
   authScheme: 'none',
   catalogId: 'cat-github',
-  catalogPackage: 'primer-a2ui-adapter',
+  catalogPackage: 'github-catalog',
 };
 
 describe('Registry', () => {
@@ -42,7 +42,7 @@ describe('defaultEntries', () => {
     expect(entry.id).toBe('github');
     expect(entry.agentUrl).toBe('http://localhost:11001');
     expect(entry.catalogId).toBe(GITHUB_CATALOG_ID);
-    expect(entry.catalogPackage).toBe('primer-a2ui-adapter');
+    expect(entry.catalogPackage).toBe('github-catalog');
   });
 });
 

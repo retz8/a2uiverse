@@ -28,7 +28,7 @@
               "version": "v0.9",
               "createSurface": {
                 "surfaceId": "open-prs-needing-review",
-                "catalogId": "https://github.com/retz8/a2ui-github/blob/main/primer-a2ui-adapter/catalogs/v0.9.1/catalog.json",
+                "catalogId": "https://github.com/retz8/a2uiverse-apps/blob/main/github/github-catalog/catalogs/v0.9.1/catalog.json",
                 "sendDataModel": true
               }
             }

@@ -4,7 +4,7 @@
  */
 import {describe, it, expect, vi, afterEach} from 'vitest';
 import {MessageProcessor} from '@a2ui/web_core/v0_9';
-import {CATALOG} from 'primer-a2ui-adapter';
+import {CATALOG} from 'github-catalog';
 import {createCanvasStore} from '../src/canvas/canvasStore';
 import {createTurnRunner} from '../src/canvas/turn/canvasTurn';
 import {replayBeatOnCanvas} from '../src/canvas/replayBeat';

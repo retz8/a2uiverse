@@ -7,7 +7,7 @@
  * re-recorded through the orchestrator in 1.4.
  */
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
-import {CATALOG_ID} from 'primer-a2ui-adapter';
+import {CATALOG_ID} from 'github-catalog';
 import type {BeatFixture} from './beatFixtures';
 
 const msg = (m: Record<string, unknown>): A2uiMessage =>

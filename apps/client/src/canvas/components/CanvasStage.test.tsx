@@ -6,7 +6,7 @@ import {describe, it, expect} from 'vitest';
 import {screen} from '@testing-library/react';
 import {MessageProcessor} from '@a2ui/web_core/v0_9';
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
-import {CATALOG, CATALOG_ID} from 'primer-a2ui-adapter';
+import {CATALOG, CATALOG_ID} from 'github-catalog';
 import {renderWithShell} from '../../../tests/helpers';
 import {createCanvasStore} from '../canvasStore';
 import {createTurnRunner} from '../turn/canvasTurn';

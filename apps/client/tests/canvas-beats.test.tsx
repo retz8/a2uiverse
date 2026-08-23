@@ -12,7 +12,7 @@
 import {describe, it, expect} from 'vitest';
 import {screen} from '@testing-library/react';
 import {MessageProcessor} from '@a2ui/web_core/v0_9';
-import {CATALOG} from 'primer-a2ui-adapter';
+import {CATALOG} from 'github-catalog';
 import {BEAT_FIXTURES, messagesOf} from '../src/beats/beatFixtures';
 import type {BeatFixture} from '../src/beats/beatFixtures';
 import {createCanvasStore} from '../src/canvas/canvasStore';

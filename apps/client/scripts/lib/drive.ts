@@ -42,7 +42,7 @@ export async function supportedCatalogIds(): Promise<string[]> {
   // The adapter's `exports` map hides package.json, so locate it as a dependency directory.
   const pkgDir = resolve(
     dirname(fileURLToPath(import.meta.url)),
-    '../../node_modules/primer-a2ui-adapter',
+    '../../node_modules/github-catalog',
   );
   const json = await readFile(resolve(pkgDir, 'catalogs/v0.9.1/catalog.json'), 'utf8');
   return [(JSON.parse(json) as {catalogId: string}).catalogId];

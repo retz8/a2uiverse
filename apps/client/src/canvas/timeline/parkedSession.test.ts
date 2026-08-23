@@ -5,7 +5,7 @@
 import {describe, it, expect, vi} from 'vitest';
 import {MessageProcessor} from '@a2ui/web_core/v0_9';
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
-import {CATALOG, CATALOG_ID} from 'primer-a2ui-adapter';
+import {CATALOG, CATALOG_ID} from 'github-catalog';
 import type {PaintEntry} from './paint';
 import {createCanvasStore} from '../canvasStore';
 import {createParkedSession} from './parkedSession';

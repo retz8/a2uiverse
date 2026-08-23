@@ -5,7 +5,7 @@
 import {describe, it, expect, vi, beforeEach, afterEach} from 'vitest';
 import {MessageProcessor} from '@a2ui/web_core/v0_9';
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
-import {CATALOG} from 'primer-a2ui-adapter';
+import {CATALOG} from 'github-catalog';
 import {applyA2uiMessages} from './applyMessages';
 
 const create = (surfaceId: string, catalogId: string = CATALOG.id): A2uiMessage =>

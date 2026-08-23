@@ -1,8 +1,8 @@
 import type {AppRecord} from './types.js';
 
-/** The Primer catalog id, as emitted by the GitHub agent (`a2ui-github/primer-a2ui-adapter`). */
+/** The GitHub catalog id, as emitted by the GitHub agent (`a2uiverse-apps/github/github-catalog`). */
 export const GITHUB_CATALOG_ID =
-  'https://github.com/retz8/a2ui-github/blob/main/primer-a2ui-adapter/catalogs/v0.9.1/catalog.json';
+  'https://github.com/retz8/a2uiverse-apps/blob/main/github/github-catalog/catalogs/v0.9.1/catalog.json';
 
 /** The hardcoded registry. Vendor agents take ports 11001+ (tunnel-environment.md). */
 export function defaultEntries(): AppRecord[] {
@@ -13,7 +13,7 @@ export function defaultEntries(): AppRecord[] {
       agentUrl: 'http://localhost:11001',
       authScheme: 'none',
       catalogId: GITHUB_CATALOG_ID,
-      catalogPackage: 'primer-a2ui-adapter',
+      catalogPackage: 'github-catalog',
     },
   ];
 }

@@ -6,7 +6,7 @@
  */
 import {describe, it, expect} from 'vitest';
 import {MessageProcessor} from '@a2ui/web_core/v0_9';
-import {CATALOG} from 'primer-a2ui-adapter';
+import {CATALOG} from 'github-catalog';
 import {BEAT_FIXTURES} from '../src/beats/beatFixtures';
 import {createCanvasStore} from '../src/canvas/canvasStore';
 import {createTurnRunner} from '../src/canvas/turn/canvasTurn';

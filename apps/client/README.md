@@ -4,13 +4,9 @@ The canvas shell (SPEC §4, §10–11): language in, full-screen generative UI o
 
 The shell's own UI (palette, status strip, history chrome) is Radix Themes. Vendor surfaces render inside their catalog's own provider — the GitHub catalog (`primer-a2ui-adapter`) brings Primer; no shell style reaches a fragment and no vendor stylesheet loads until one of its surfaces mounts.
 
-## Prerequisites
+## The GitHub catalog
 
-`primer-a2ui-adapter` is consumed as a `link:` dependency on `../../../a2ui-github/primer-a2ui-adapter` until the 1.5 copy publishes `github-catalog`. Its `dist/` must be built under that repo's toolchain before this package builds or tests:
-
-```bash
-cd ../../../a2ui-github && yarn workspace primer-a2ui-adapter build
-```
+`github-catalog` — the GitHub app's catalog schema, Primer React implementation, and Provider — is installed as a git dependency on the public `a2uiverse-apps` repo (`github:retz8/a2uiverse-apps#path:github/github-catalog`); no registry. pnpm builds it on install (`prepare`), pins the resolved commit in `pnpm-lock.yaml`, and keys its build allowance in `pnpm-workspace.yaml` by that commit — bumping the catalog is `pnpm update github-catalog --filter @a2uiverse/client` plus re-pointing that `allowBuilds` line. For local catalog iteration, `pnpm link ../../../a2uiverse-apps/github/github-catalog` overrides it temporarily.
 
 ## Running
 
@@ -26,7 +22,7 @@ The canvas sends to `VITE_ORCHESTRATOR_URL` (default `http://localhost:10001`; s
 
 ## Scripts (on demand, not part of `pnpm verify`)
 
-Both need the orchestrator on `10001` and a GitHub agent on `11001` (see `apps/orchestrator/README.md`).
+Both need the orchestrator on `10001` and the GitHub agent on `11001` (see `apps/orchestrator/README.md`).
 
 ```bash
 # Re-record the beats through the orchestrator. Run the LLM agent with TOOL_BACKEND=stub —

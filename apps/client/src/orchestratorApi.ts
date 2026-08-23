@@ -4,7 +4,7 @@
  * HTTP from M7 and IPC in Electron swap the transport only — the surface stays as it is here.
  * Runtime objects (catalogs, providers) never cross this boundary; see `catalogs/resolver`.
  */
-import {CATALOG_ID} from 'primer-a2ui-adapter';
+import {CATALOG_ID} from 'github-catalog';
 
 /** One installed app's catalog, as the orchestrator's Registry projects it to the client. */
 export interface CatalogRecord {
@@ -15,7 +15,7 @@ export interface CatalogRecord {
 }
 
 const STATIC_CATALOGS: CatalogRecord[] = [
-  {appId: 'github', catalogId: CATALOG_ID, package: 'primer-a2ui-adapter'},
+  {appId: 'github', catalogId: CATALOG_ID, package: 'github-catalog'},
 ];
 
 /** The catalogs of every installed app, in registry order. */

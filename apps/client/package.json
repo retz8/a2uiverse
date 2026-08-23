@@ -24,7 +24,7 @@
     "@primer/primitives": "^11.9.0",
     "@primer/react": "^38.28.0",
     "@radix-ui/themes": "^3.3.0",
-    "primer-a2ui-adapter": "link:../../../a2ui-github/primer-a2ui-adapter",
+    "github-catalog": "github:retz8/a2uiverse-apps#path:github/github-catalog",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-is": "^19.2.0",
