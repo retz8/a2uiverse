@@ -178,6 +178,20 @@ describe('AgentsPool.dispatch', () => {
     expect(record.outcome).toBe('cancelled');
   });
 
+  test('pool.cancel cancels every handle a fan-out turn holds under one task id', async () => {
+    const script: Script = async function* () {
+      yield* [];
+      await new Promise(resolve => setTimeout(resolve, 5_000));
+    };
+    const {pool} = await poolFor({script});
+    const a = pool.dispatch('github', turn());
+    const b = pool.dispatch('github', turn());
+    setTimeout(() => pool.cancel('o-task'), 50);
+    const [ra, rb] = await Promise.all([drain(a), drain(b)]);
+    expect(ra.record.outcome).toBe('cancelled');
+    expect(rb.record.outcome).toBe('cancelled');
+  });
+
   test('a non-streaming vendor yields its single result and completes', async () => {
     const {pool} = await poolFor({streaming: false});
     const {events, record} = await drain(pool.dispatch('github', turn()));

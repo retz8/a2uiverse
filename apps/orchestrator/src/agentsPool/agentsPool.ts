@@ -33,7 +33,8 @@ export class AgentsPool {
   readonly #options: AgentsPoolOptions;
   readonly #contexts: VendorContextMap;
   readonly #clients = new Map<string, Promise<Client>>();
-  readonly #inflight = new Map<string, DispatchHandle>();
+  // Keyed by client task id; a fan-out turn holds several handles under one key.
+  readonly #inflight = new Map<string, Set<DispatchHandle>>();
 
   constructor(registry: Registry, options: AgentsPoolOptions) {
     this.#registry = registry;
@@ -59,11 +60,16 @@ export class AgentsPool {
 
     let resolveDone!: (r: DispatchRecord) => void;
     const done = new Promise<DispatchRecord>(resolve => (resolveDone = resolve));
+    let handles = this.#inflight.get(turn.clientTaskId);
+    if (!handles) this.#inflight.set(turn.clientTaskId, (handles = new Set()));
+    const registered = handles;
+    // The stream body runs only once iterated, so `handle` exists by the time finish fires.
     const finish = (outcome: DispatchOutcome, error?: string) => {
       record.outcome = outcome;
       if (error !== undefined) record.error = error;
       record.endedAt = new Date().toISOString();
-      this.#inflight.delete(turn.clientTaskId);
+      registered.delete(handle);
+      if (registered.size === 0) this.#inflight.delete(turn.clientTaskId);
       resolveDone(record);
     };
 
@@ -72,12 +78,12 @@ export class AgentsPool {
       done,
       cancel: () => controller.abort(),
     };
-    this.#inflight.set(turn.clientTaskId, handle);
+    registered.add(handle);
     return handle;
   }
 
   cancel(clientTaskId: string): void {
-    this.#inflight.get(clientTaskId)?.cancel();
+    for (const handle of this.#inflight.get(clientTaskId) ?? []) handle.cancel();
   }
 
   async *#stream(

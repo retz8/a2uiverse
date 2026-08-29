@@ -1,4 +1,5 @@
 import {resolve} from 'node:path';
+import {DEFAULT_PLANNER_MODEL_ID} from './planner/getModel.js';
 
 export interface Config {
   port: number;
@@ -10,11 +11,20 @@ export interface Config {
   debugIds: boolean;
   /** Agent URL overrides by app id (`A2UIVERSE_AGENT_URLS`, JSON object). */
   agentUrls: Record<string, string>;
+  /** Google AI Studio key for the Planner (`GOOGLE_API_KEY`, the a2ui-github convention). */
+  googleApiKey: string | undefined;
+  /** Planner model id (`A2UIVERSE_PLANNER_MODEL`). */
+  plannerModelId: string;
+  /** Planner effort tunable (`A2UIVERSE_PLANNER_EFFORT`); starts below default — latency is time-to-first-paint. */
+  plannerEffort: 'low' | 'default';
+  /** Router shortlist cap (`A2UIVERSE_SHORTLIST_CAP`). */
+  shortlistCap: number;
 }
 
 type Env = Readonly<Record<string, string | undefined>>;
 
 const DEFAULT_PORT = 10001;
+const DEFAULT_SHORTLIST_CAP = 5;
 
 export function loadConfig(env: Env = process.env): Config {
   const port = parsePort(env.PORT);
@@ -24,7 +34,25 @@ export function loadConfig(env: Env = process.env): Config {
     stateDir: env.STATE_DIR ?? resolve(process.cwd(), '.state'),
     debugIds: env.A2UIVERSE_DEBUG_IDS === '1' || env.A2UIVERSE_DEBUG_IDS === 'true',
     agentUrls: parseAgentUrls(env.A2UIVERSE_AGENT_URLS),
+    googleApiKey: env.GOOGLE_API_KEY,
+    plannerModelId: env.A2UIVERSE_PLANNER_MODEL ?? DEFAULT_PLANNER_MODEL_ID,
+    plannerEffort: parseEffort(env.A2UIVERSE_PLANNER_EFFORT),
+    shortlistCap: parseCap(env.A2UIVERSE_SHORTLIST_CAP),
   };
+}
+
+function parseEffort(raw: string | undefined): 'low' | 'default' {
+  if (raw === undefined || raw === 'low') return 'low';
+  if (raw === 'default') return 'default';
+  throw new Error(`A2UIVERSE_PLANNER_EFFORT: expected "low" or "default", got "${raw}"`);
+}
+
+function parseCap(raw: string | undefined): number {
+  if (raw === undefined) return DEFAULT_SHORTLIST_CAP;
+  const cap = Number(raw);
+  if (!Number.isInteger(cap) || cap <= 0)
+    throw new Error(`A2UIVERSE_SHORTLIST_CAP: expected a positive integer, got "${raw}"`);
+  return cap;
 }
 
 function parsePort(raw: string | undefined): number {

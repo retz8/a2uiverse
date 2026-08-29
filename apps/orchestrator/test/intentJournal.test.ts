@@ -5,6 +5,8 @@ import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 import type {Message} from '@a2a-js/sdk';
 import {IntentJournal} from '../src/journal/intentJournal.js';
 import type {DispatchRecord} from '../src/agentsPool/types.js';
+import type {Plan} from '../src/planner/planSchema.js';
+import {FakeEmbedder} from './fakeEmbedder.js';
 
 let dir: string;
 beforeEach(async () => {
@@ -67,6 +69,36 @@ describe('IntentJournal', () => {
       embedding: null,
     });
     expect(typeof entry.at).toBe('string');
+  });
+
+  test('embeds the descriptor at write time and records the plan', async () => {
+    const file = join(dir, 'intent-journal.jsonl');
+    const journal = new IntentJournal(file, new FakeEmbedder());
+    const plan: Plan = {
+      direction: 'column',
+      groups: [{slots: [{appId: 'github', archetype: 'card', request: 'x'}]}],
+    };
+    const turn = journal.open({turnId: 't1', clientContextId: 'c1', message: utterance});
+    turn.plan(plan);
+    await turn.close('completed');
+
+    const [entry] = await lines(file);
+    expect(entry.plan).toEqual(plan);
+    expect(Array.isArray(entry.embedding)).toBe(true);
+    expect((entry.embedding as number[]).some(x => x !== 0)).toBe(true);
+  });
+
+  test('an embedding failure journals null and never throws', async () => {
+    const file = join(dir, 'intent-journal.jsonl');
+    const journal = new IntentJournal(file, {
+      embed: async () => {
+        throw new Error('model gone');
+      },
+    });
+    const turn = journal.open({turnId: 't1', clientContextId: 'c1', message: utterance});
+    await turn.close('completed');
+    const [entry] = await lines(file);
+    expect(entry.embedding).toBeNull();
   });
 
   test('records client metadata as keys plus data-model byte size, not contents', async () => {

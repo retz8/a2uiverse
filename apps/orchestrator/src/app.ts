@@ -2,15 +2,21 @@ import {join} from 'node:path';
 import cors from 'cors';
 import express, {type Express} from 'express';
 import {AGENT_CARD_PATH} from '@a2a-js/sdk';
+import {DefaultAgentCardResolver} from '@a2a-js/sdk/client';
 import {DefaultRequestHandler, InMemoryTaskStore} from '@a2a-js/sdk/server';
 import {agentCardHandler, jsonRpcHandler, UserBuilder} from '@a2a-js/sdk/server/express';
 import {buildAgentCard} from './agentCard.js';
 import {AgentsPool} from './agentsPool/agentsPool.js';
 import type {Config} from './config.js';
+import {TransformersEmbedder} from './embedder/transformersEmbedder.js';
+import type {Embedder} from './embedder/types.js';
 import {OrchestratorExecutor} from './executor.js';
 import {IntentJournal} from './journal/intentJournal.js';
+import {getModel, plannerProviderOptions} from './planner/getModel.js';
+import {ModelPlanner, type Planner} from './planner/planner.js';
 import {applyUrlOverrides, defaultEntries} from './registry/entries.js';
-import {Registry} from './registry/registry.js';
+import {Registry, type ResolveCard} from './registry/registry.js';
+import {Router} from './router/router.js';
 
 /** localhost, 127.0.0.1 on any port, and VS Code dev tunnels (tunnel-environment.md). */
 export const ORIGIN_RE =
@@ -24,17 +30,36 @@ export interface Orchestrator {
   registry: Registry;
   pool: AgentsPool;
   journal: IntentJournal;
+  /** Boot step: fetch AgentCards and build the Router corpus. Run before listen. */
+  init(): Promise<void>;
 }
 
-/** Wires the M0 orchestrator: Registry · AgentsPool · IntentJournal behind one A2A executor. */
-export function buildOrchestrator({config}: {config: Config}): Orchestrator {
+/** Injection seams so tests run with no model download, no model call, no network. */
+export interface OrchestratorOverrides {
+  embedder?: Embedder;
+  planner?: Planner;
+  resolveCard?: ResolveCard;
+}
+
+/** Wires the M1 orchestrator: Registry · Embedder · Router · Planner · AgentsPool · IntentJournal behind one A2A executor. */
+export function buildOrchestrator({
+  config,
+  overrides,
+}: {
+  config: Config;
+  overrides?: OrchestratorOverrides;
+}): Orchestrator {
   const registry = new Registry(applyUrlOverrides(defaultEntries(), config.agentUrls));
+  const embedder =
+    overrides?.embedder ?? new TransformersEmbedder({cacheDir: join(config.stateDir, 'models')});
+  const planner = overrides?.planner ?? plannerFrom(config);
+  const router = new Router(registry, embedder, {shortlistCap: config.shortlistCap});
   const pool = new AgentsPool(registry, {
     defaultDeadlineMs: DEFAULT_DEADLINE_MS,
     debugIds: config.debugIds,
   });
-  const journal = new IntentJournal(join(config.stateDir, JOURNAL_FILE));
-  const executor = new OrchestratorExecutor({registry, pool, journal});
+  const journal = new IntentJournal(join(config.stateDir, JOURNAL_FILE), embedder);
+  const executor = new OrchestratorExecutor({registry, pool, journal, router, planner});
   const requestHandler = new DefaultRequestHandler(
     buildAgentCard(config.baseUrl),
     new InMemoryTaskStore(),
@@ -51,5 +76,34 @@ export function buildOrchestrator({config}: {config: Config}): Orchestrator {
   app.use(`/${AGENT_CARD_PATH}`, agentCardHandler({agentCardProvider: requestHandler}));
   app.use('/', jsonRpcHandler({requestHandler, userBuilder: UserBuilder.noAuthentication}));
 
-  return {app, registry, pool, journal};
+  const resolveCard = overrides?.resolveCard ?? defaultResolveCard();
+  return {
+    app,
+    registry,
+    pool,
+    journal,
+    init: () => registry.refreshCards({resolveCard, embedder}),
+  };
+}
+
+function plannerFrom(config: Config): Planner {
+  const {googleApiKey} = config;
+  if (!googleApiKey) {
+    // Booting without a key is fine (actions still route); a palette turn is then a broken turn.
+    return {
+      async plan() {
+        throw new Error('GOOGLE_API_KEY not set: the Planner has no model');
+      },
+    };
+  }
+  const settings = {googleApiKey, modelId: config.plannerModelId, effort: config.plannerEffort};
+  return new ModelPlanner({
+    model: getModel(settings),
+    providerOptions: plannerProviderOptions(settings),
+  });
+}
+
+function defaultResolveCard(): ResolveCard {
+  const resolver = new DefaultAgentCardResolver();
+  return url => resolver.resolve(url);
 }
