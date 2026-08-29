@@ -1,9 +1,9 @@
 /**
  * The composition extension (SPEC §14): the A2A metadata contract for
- * cross-agent UI composition. The normative definition is
- * `../contracts/composition.v0.1.json`; `composition.contract.test.ts` asserts
- * this projection against it. The Python projection (`packages/sdk/python`,
- * PyPI `a2uiverse-sdk`) carries the agent-facing half.
+ * cross-agent UI composition, internal to the platform (orchestrator ↔
+ * client) — nothing a2uiverse-specific rides the vendor wire. The normative
+ * definition is `../contracts/composition.v0.1.json`;
+ * `composition.contract.test.ts` asserts this projection against it.
  */
 
 /** The A2A extension URI this project declares for composition. */
@@ -14,17 +14,6 @@ export const STAMP_KEY = 'a2uiverse';
 
 /** Separator in a namespaced surface id: `<appId>:<surfaceId>`. */
 export const SURFACE_NS_SEPARATOR = ':';
-
-/** The shapes an agent can be asked to paint for (SPEC §4.4). */
-export const SLOT_ARCHETYPES = ['card', 'panel', 'row', 'full'] as const;
-export type SlotArchetype = (typeof SLOT_ARCHETYPES)[number];
-
-/** Outbound, orchestrator → vendor agent, on the request message's metadata under {@link COMPOSITION_EXTENSION_URI}. */
-export interface SlotRequest {
-  archetype: SlotArchetype;
-  /** The budget's unit is task-internal (SPEC §4.4). */
-  budget: string;
-}
 
 /** Inbound, orchestrator → client, on every relayed event's metadata under {@link STAMP_KEY}. */
 export interface CompositionStamp {
@@ -39,11 +28,7 @@ export interface CompositionStamp {
   vendorTaskId?: string;
 }
 
-/** Wire field names, typechecked against the interfaces; the contract test compares them to the contract. */
-export const SLOT_REQUEST_FIELDS = [
-  'archetype',
-  'budget',
-] as const satisfies readonly (keyof SlotRequest)[];
+/** Wire field names, typechecked against the interface; the contract test compares them to the contract. */
 export const STAMP_FIELDS = [
   'source',
   'slot',
@@ -52,17 +37,10 @@ export const STAMP_FIELDS = [
   'vendorTaskId',
 ] as const satisfies readonly (keyof CompositionStamp)[];
 
-// Completeness: adding a field to an interface without adding it to its field list is a type error.
-const _slotRequestComplete: Exclude<
-  keyof SlotRequest,
-  (typeof SLOT_REQUEST_FIELDS)[number]
-> extends never
-  ? true
-  : never = true;
+// Completeness: adding a field to the interface without adding it to its field list is a type error.
 const _stampComplete: Exclude<keyof CompositionStamp, (typeof STAMP_FIELDS)[number]> extends never
   ? true
   : never = true;
-void _slotRequestComplete;
 void _stampComplete;
 
 /** `pr-list` + `github` → `github:pr-list`. */
@@ -85,15 +63,4 @@ export function readStamp(
   if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return undefined;
   const source = (raw as Record<string, unknown>).source;
   return typeof source === 'string' ? (raw as unknown as CompositionStamp) : undefined;
-}
-
-/** The slot request on a message's metadata, if present and well-shaped. */
-export function readSlotRequest(
-  metadata: Record<string, unknown> | undefined,
-): SlotRequest | undefined {
-  const raw = metadata?.[COMPOSITION_EXTENSION_URI];
-  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return undefined;
-  const {archetype, budget} = raw as Record<string, unknown>;
-  if (typeof archetype !== 'string' || typeof budget !== 'string') return undefined;
-  return {archetype, budget} as SlotRequest;
 }
