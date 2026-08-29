@@ -20,8 +20,19 @@ Spec: `_dev/docs/spec/phase-1-spine.md`.
 - [x] **1.4** Spine integration + acceptance — client → orchestrator wiring, `pnpm dev` (vendor agent started by hand from `a2ui-github`), READMEs, beat re-recording + visual Playwright spec, transparency/action/journal/card checks, Claude-in-Chrome live verification via tunnel (after 1.2 and 1.3)
 - [x] **1.5** `[apps]` GitHub app copy — `a2uiverse-apps/github/`, port 11001, catalog id fixed, `github-catalog` published with its provider + CSS setup owned by the bundle, client on published package, gates green in both repos (after 1.4)
 
-## Phase 2 — Layout-only composition
-3 agents · 3 catalogs on one surface, no synthesis (M1): GitHub (copied in 1.5), Gmail, Google Calendar — the mock vendor agent template lands here. Basic Router, Planner, AgentsPool fan-out, UIComposer one-tree graft, shell catalog composition primitives, plan/fill/collapse, provenance + attribution, partition isolation. Deferred from 1.3: unknown-component handling at the composition layer; shell re-skin on Radix tokens with the shell catalog. Deferred from 1.4: `pnpm dev:agents` launcher over `../a2uiverse-apps/` (`--only`, `--mode`; launch-command table lives in the launcher) + `dev:all`.
+## Phase 2 — Layout-only composition [WIP]
+3 agents · 3 catalogs on one surface, no synthesis (M1): GitHub (copied in 1.5), Gmail, Google Calendar. Basic Router, Planner, AgentsPool fan-out, flat-surfaces composition (placement on A2A metadata), shell catalog composition primitives, plan/fill/collapse, provenance + attribution, partition isolation. Deferred from 1.3: unknown-component handling at the composition layer; shell re-skin on Radix tokens with the shell catalog. Deferred from 1.4: `pnpm dev:agents` launcher + `dev:all`. The vendor-agent template/CLI moved to Phase 3.
+Spec: `_dev/docs/spec/phase-2-layout-composition.md`.
+
+- [ ] **2.1** Doc edits — SPEC §4.1/§4.2/§4.3/§13/§14/§16 amendments per spec decision 18
+- [ ] **2.2** `sdk` composition extension — `contracts/` JSON + `js/` + `python/` projections, contract tests, workspace/turbo wiring incl. Python toolchain, both published (after 2.1)
+- [ ] **2.3** `shell-catalog` — schema + basic-catalog implementation, Radix-bound token theme, `Slot` + `Attribution` (after 2.1; parallel with 2.2)
+- [ ] **2.4** Orchestrator composition core — embedder + Registry card surface + Router, Planner (AI SDK seam, plan schema, per-agent requests), fan-out dispatch, three relay rewrites (stamp · surfaceId namespace · partition filter), slot-lifecycle painting, journal embedding (after 2.2; parallel with 2.3, 2.5–2.8)
+- [ ] **2.5** Client composition — multi-catalog processor, placement map, fragment boundary, Slot mounting, validation + `VALIDATION_FAILED` reporting, ChoicePicker pnpm patch, collision detector (after 2.2 and 2.3; parallel with 2.4, 2.6–2.8)
+- [ ] **2.6** `[apps]` Gmail app — three-mode agent on 11002 against live Gmail MCP, `gmail-catalog` (basic + product tokens) published (after 2.2; parallel with 2.4, 2.5, 2.7, 2.8)
+- [ ] **2.7** `[apps]` Calendar app — three-mode agent on 11003 against live Calendar MCP, `calendar-catalog` published (after 2.2; parallel with 2.4, 2.5, 2.6, 2.8)
+- [ ] **2.8** `[apps]` `github-catalog` boundary retrofit — scoped provider, anchored portal root, republish (after 2.1; parallel with 2.2–2.7)
+- [ ] **2.9** Integration + acceptance — `dev:agents` launcher + `dev:all` + `dev:client`/`dev:orch`/`dev:marketplace` aliases, beat recording over live MCP, visual Playwright specs, upstream report filed from `_dev/a2ui-findings.md`, acceptance items 1–9, Claude-in-Chrome live verification via tunnel (after 2.4–2.8)
 
 ## Phase 3 — Agent building kit
 Shared vendor-agent logic extracted across the three agents into a published A2UI+A2A agent SDK/CLI in `a2uiverse-apps` (M1k). Uniform run-mode flag, single launcher for installed agents, vendor dependency rule amended, one-provider-and-CSS-setup-per-catalog-bundle rule.
