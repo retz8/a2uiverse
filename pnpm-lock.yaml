@@ -49,7 +49,7 @@ importers:
         version: 0.10.6
       '@a2uiverse/sdk':
         specifier: workspace:*
-        version: link:../../packages/sdk
+        version: link:../../packages/sdk/js
       '@a2uiverse/shell-catalog':
         specifier: workspace:*
         version: link:../../packages/shell-catalog
@@ -122,7 +122,7 @@ importers:
     dependencies:
       '@a2uiverse/sdk':
         specifier: workspace:*
-        version: link:../../packages/sdk
+        version: link:../../packages/sdk/js
     devDependencies:
       '@types/node':
         specifier: ^22.15.0
@@ -144,7 +144,7 @@ importers:
         version: 0.3.14(express@5.2.1(supports-color@7.2.0))
       '@a2uiverse/sdk':
         specifier: workspace:*
-        version: link:../../packages/sdk
+        version: link:../../packages/sdk/js
       '@a2uiverse/shell-catalog':
         specifier: workspace:*
         version: link:../../packages/shell-catalog
@@ -174,7 +174,7 @@ importers:
         specifier: ^4.1.9
         version: 4.1.11(@types/node@22.20.1)(jsdom@29.1.1)(vite@8.2.2(@types/node@22.20.1)(esbuild@0.28.2)(tsx@4.23.12))
 
-  packages/sdk:
+  packages/sdk/js:
     devDependencies:
       typescript:
         specifier: ~5.9.3
@@ -183,11 +183,13 @@ importers:
         specifier: ^4.1.9
         version: 4.1.11(@types/node@22.20.1)(jsdom@29.1.1)(vite@8.2.2(@types/node@22.20.1)(esbuild@0.28.2)(tsx@4.23.12))
 
+  packages/sdk/python: {}
+
   packages/shell-catalog:
     dependencies:
       '@a2uiverse/sdk':
         specifier: workspace:*
-        version: link:../sdk
+        version: link:../sdk/js
     devDependencies:
       typescript:
         specifier: ~5.9.3

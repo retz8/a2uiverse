@@ -1,0 +1,10 @@
+{
+  "name": "@a2uiverse/sdk-python",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Turbo shim for the Python sdk projection (PyPI: a2uiverse-sdk); scripts shell out to uv.",
+  "scripts": {
+    "build": "uv build",
+    "test": "uv run pytest"
+  }
+}

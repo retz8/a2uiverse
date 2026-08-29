@@ -1,6 +1,6 @@
 {
   "name": "@a2uiverse/sdk",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "The A2UIVerse app contract: the app manifest and the protocol extension a vendor app builds against.",
   "license": "MIT",
   "type": "module",

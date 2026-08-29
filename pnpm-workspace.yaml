@@ -1,6 +1,8 @@
 packages:
   - "apps/*"
   - "packages/*"
+  - "packages/sdk/js"
+  - "packages/sdk/python"
 
 allowBuilds:
   esbuild: true
