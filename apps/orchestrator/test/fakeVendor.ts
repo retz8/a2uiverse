@@ -47,6 +47,8 @@ export interface FakeVendorOptions {
   extensionUris?: string[];
   script?: Script;
   name?: string;
+  description?: string;
+  skills?: AgentCard['skills'];
 }
 
 export const A2UI_PART = {
@@ -118,7 +120,7 @@ export async function startFakeVendor(options: FakeVendorOptions = {}): Promise<
 
   const card: AgentCard = {
     name: options.name ?? 'Fake Vendor',
-    description: 'scripted vendor for tests',
+    description: options.description ?? 'scripted vendor for tests',
     version: '0.0.0',
     protocolVersion: '0.3.0',
     url: 'http://127.0.0.1:0',
@@ -126,7 +128,7 @@ export async function startFakeVendor(options: FakeVendorOptions = {}): Promise<
     capabilities: {streaming, extensions: extensionUris.map(uri => ({uri}))},
     defaultInputModes: ['text'],
     defaultOutputModes: ['text'],
-    skills: [{id: 'fake', name: 'fake', description: 'fake', tags: []}],
+    skills: options.skills ?? [{id: 'fake', name: 'fake', description: 'fake', tags: []}],
   };
 
   const server: Server = createServer();

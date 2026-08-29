@@ -1,4 +1,10 @@
 /**
+ * Reserved source id for the orchestrator's own shell surface and stamps.
+ * No installed app may claim it — the Registry enforces the reservation.
+ */
+export const SHELL_SOURCE_ID = 'shell';
+
+/**
  * A registry entry is the app bundle record (SPEC §9.1): what install will
  * write from M7 on, hardcoded until then.
  */
