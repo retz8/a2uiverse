@@ -22,6 +22,13 @@ session didn't have.
    blue primary side by side.
 3. Iterate on feedback → then tick 2.3 via wrap-up.
 
+## Session-end note (phase-level)
+
+Google Workspace Developer Preview enrollment for `a2uiverse-506907` **cleared
+and verified**: `tools/call` returns real data from both MCP endpoints (Calendar
+`list_calendars`, Gmail `list_labels`) with the umich ADC token +
+`X-Goog-User-Project: a2uiverse-506907`. 2.6/2.7 fully unblocked credential-side.
+
 ## Open threads
 
 - Parity test asserts functions as subset: upstream implements arithmetic beyond
