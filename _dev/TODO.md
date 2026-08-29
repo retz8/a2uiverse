@@ -24,7 +24,7 @@ Spec: `_dev/docs/spec/phase-1-spine.md`.
 3 agents · 3 catalogs on one surface, no synthesis (M1): GitHub (copied in 1.5), Gmail, Google Calendar. Basic Router, Planner, AgentsPool fan-out, flat-surfaces composition (placement on A2A metadata), shell catalog composition primitives, plan/fill/collapse, provenance + attribution, partition isolation. Deferred from 1.3: unknown-component handling at the composition layer; shell re-skin on Radix tokens with the shell catalog. Deferred from 1.4: `pnpm dev:agents` launcher + `dev:all`. The vendor-agent template/CLI moved to Phase 3.
 Spec: `_dev/docs/spec/phase-2-layout-composition.md`.
 
-- [ ] **2.1** Doc edits — SPEC §4.1/§4.2/§4.3/§13/§14/§16 amendments per spec decision 18
+- [x] **2.1** Doc edits — SPEC §4.1/§4.2/§4.3/§13/§14/§16 amendments per spec decision 18
 - [ ] **2.2** `sdk` composition extension — `contracts/` JSON + `js/` + `python/` projections, contract tests, workspace/turbo wiring incl. Python toolchain, both published (after 2.1)
 - [ ] **2.3** `shell-catalog` — schema + basic-catalog implementation, Radix-bound token theme, `Slot` + `Attribution` (after 2.1; parallel with 2.2)
 - [ ] **2.4** Orchestrator composition core — embedder + Registry card surface + Router, Planner (AI SDK seam, plan schema, per-agent requests), fan-out dispatch, three relay rewrites (stamp · surfaceId namespace · partition filter), slot-lifecycle painting, journal embedding (after 2.2; parallel with 2.3, 2.5–2.8)

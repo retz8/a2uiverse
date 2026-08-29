@@ -62,26 +62,28 @@ The spec carries all of these. Sorted by the kind of join the shell performs.
 
 ## 4. Surface model
 
-### 4.1 One surface, one tree
+### 4.1 One composed screen, flat surfaces
 
-A composed screen is a single A2UI tree. A **fragment** is a subtree of that tree carrying:
+A composed screen renders as a single tree; on the wire it is a flat set of A2UI surfaces. A **fragment** is one agent's surface, mounted into a slot of the shell's layout surface, carrying:
 
-- its own data-model **partition**
-- its own **catalog scope**
+- its own data-model **partition** — the surface's data model
+- its own **catalog scope** — the surface's `catalogId`, fixed at creation
 - its own **provenance tag**
 - its own **message channel** back to the agent that owns it
 
+Placement (`surface → slot`) rides on A2A message metadata. The shell's `Slot` components are purely local placeholders — no component tree references another surface. **Graft** means mounting a surface into a slot. Composition is a shell capability, not a protocol feature.
+
 Consequences:
 
-- Component IDs are namespaced at graft time.
-- The tree unifies; the data model partitions. A fragment's bindings resolve only inside its own partition.
+- Surface ids are namespaced by the orchestrator (`<appId>:<surfaceId>`) — the one A2UI rewrite. Component ids, binding paths, and catalog ids are untouched.
+- The rendered tree unifies; the wire and the data model partition. A fragment's bindings resolve only inside its own partition.
 - The shell reads across all partitions. This is the hub privilege and the only asymmetry in the system.
-- Catalog resolution is scoped by provenance boundary, not global.
-- Repaint is subtree replacement.
+- Catalog resolution is per surface, not global.
+- Repaint is surface replacement.
 
 ### 4.2 Shell catalog
 
-The **shell** is every platform-owned surface — the canvas container, the synthesis surface, the trusted pages, the authority dialogs. The **shell catalog** is the orchestrator's paint vocabulary: the standard A2UI basic catalog under a neutral `--a2ui-*` token theme, plus composition primitives (slot, provenance attribution). Its implementation is the basic catalog's React implementation themed by tokens — no component mapping of its own. The shell's own pages and widgets are built on Radix Themes. The orchestrator paints content, not just structure. The orchestrator's painted output is a **synthesis fragment** grafted through the same path as any agent's fragment. There is no privileged paint path.
+The **shell** is every platform-owned surface — the canvas container, the synthesis surface, the trusted pages, the authority dialogs. The **shell catalog** is the orchestrator's paint vocabulary: the standard A2UI basic catalog under a neutral `--a2ui-*` token theme, plus composition primitives (`Slot`, `Attribution`). Its implementation is the basic catalog's React implementation themed by tokens — no mapping of the basic catalog's components; the composition primitives are its own mappings, shipped with their schema in `shell-catalog`. The shell's own pages and widgets are built on Radix Themes. The orchestrator paints content, not just structure. The orchestrator's painted output is a **synthesis fragment** grafted through the same path as any agent's fragment. There is no privileged paint path.
 
 The word "chrome" is not used.
 
@@ -95,7 +97,7 @@ The word "chrome" is not used.
 - Coherence comes from spatial discipline, not stylistic normalization.
 - Graft granularity is the subtree/panel.
 
-Every grafted subtree carries an **attribution element** rendered by the shell, in the shell catalog, that the fragment cannot suppress, restyle, or occlude. When multiple credentials are in play, attribution is per call, from the credential's user-given label.
+Every grafted fragment carries a shell-owned **attribution affordance** — rendered by the shell, in the shell catalog, in the shell's own surface — that the fragment cannot suppress, restyle, or occlude. The shell controls its prominence: a quiet persistent marker on the fragment boundary, full attribution on hover/focus, escalation when authority is in play. The boundary carries an accessible name announcing the source. When multiple credentials are in play, attribution is per call, from the credential's user-given label.
 
 ### 4.4 Agent awareness
 
@@ -386,7 +388,7 @@ a2uiverse-apps/         vendor apps, one folder per app: agent · <vendor>-catal
 a2ui-github/            origin of the GitHub app; unchanged. Copied into a2uiverse-apps/github/ at the end of Phase 1.
 ```
 
-> A vendor app may depend on `@a2uiverse/sdk` — the app manifest contract and the protocol extension — and the A2UI/A2A protocols. It may never depend on anything else in the platform.
+> A vendor app may depend on the platform sdk — one contract (`packages/sdk/contracts`, normative JSON) with two projections: **`@a2uiverse/sdk`** (npm), which the app's catalog half builds against, and **`a2uiverse-sdk`** (PyPI), which the app's agent half builds against — and the A2UI/A2A protocols. It may never depend on anything else in the platform. Each projection carries a contract test against the JSON.
 
 There are no internal agents: every app in `a2uiverse-apps` is an external app, and the ecosystem and its apps are built as a whole.
 
@@ -411,8 +413,12 @@ Constraint protected throughout: **an existing A2UI agent composes with zero cha
 | Cross-partition qualified refs `ref(source, path)` in bindings | upstream candidate |
 | Path predicates (key-based refs) in the formula vocabulary | upstream candidate |
 | Arithmetic functions (`min`, `add`, …) in the shell catalog | local; exists in upstream basic catalog |
-| Partitioned data model on a shared surface (agents address paths as root; shell namespaces) | upstream candidate — prior art: the upstream orchestrator sample strips `a2uiClientDataModel.surfaces` to the target agent's own surfaces via a client interceptor (§18); ours generalizes surface → partition |
-| Unsuppressable attribution on a grafted subtree | local convention |
+| Partitioned data model on a shared surface (agents address paths as root; shell namespaces) — enforced at the hub as the outbound partition filter | upstream candidate — prior art: the upstream orchestrator sample strips `a2uiClientDataModel.surfaces` to the target agent's own surfaces via a client interceptor (§18); ours generalizes surface → partition |
+| Surface placement (`surface → slot`) on A2A event metadata | upstream candidate |
+| surfaceId namespacing `<appId>:<surfaceId>` at the hub, reversed on inbound actions | local convention |
+| Unsuppressable attribution on a grafted fragment | local convention |
+| `ChoicePicker` document-global radio group name in `@a2ui/react` (patched locally) | upstream bug report — `_dev/a2ui-findings.md` |
+| Unsatisfiable `catalogId` clause in `server_to_client.json` prose | upstream bug report — `_dev/a2ui-findings.md` |
 | Credential components barred from all catalogs | normative review rule |
 | `sendDataModel`, multi-catalog `MessageProcessor`, `catalogId` scoping | already in protocol — no delta |
 
@@ -443,6 +449,7 @@ Properties that follow from the decisions above, recorded so they are not discov
 - Two apps wanting different versions of the same design-system library put both in one document.
 - A publisher can style a fragment to resemble the shell catalog. Attribution is shell-rendered for this reason; lookalike review belongs to the marketplace. The upstream orchestrator sample's README states the same threat (spoofed interfaces, crafted AgentCard fields as prompt injection) from the protocol authors' side (§18).
 - The shell chooses the merge's columns and criterion. The criterion is named, displayed, and user-changeable for this reason.
+- The Planner authors each dispatched agent's request. What a vendor receives is the orchestrator's words, not the user's — fan-out can disclose more, or less, than the user said.
 
 ---
 
