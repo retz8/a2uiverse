@@ -101,10 +101,9 @@ Every grafted fragment carries a shell-owned **attribution affordance** — rend
 
 ### 4.4 Agent awareness
 
-- The request to an agent carries a **slot archetype** (card / panel / row / full) and a **budget**. The agent paints for the slot in its own catalog.
-- Agents that ignore the hint fall back to **orchestrator trimming**. This fallback is permanent: an unmodified A2UI agent composes, just less well.
-- An AgentCard may declare supported archetypes. The binding decision is per turn.
-- The budget's unit is task-internal.
+- The request to an agent is Planner-authored natural language carrying all size/shape guidance as prose. The agent paints for its slot in its own catalog; nothing a2uiverse-specific rides the vendor wire.
+- Slot **archetypes** (card / panel / row / full) are hub-internal plan vocabulary — never sent to or declared by agents.
+- Agents that ignore the guidance fall back to **orchestrator trimming**. This fallback is permanent: an unmodified A2UI agent composes, just less well.
 
 ### 4.5 Layout plan timing
 
@@ -123,7 +122,7 @@ t0  input        palette utterance
 t1  ▪ Router     embed → retrieve over local index of AgentCard skills
 t2  ◆ Planner    plan: dispatch list · layout tree · synthesis slot (or not) · capability gaps
 t3  ▪ first paint layout + pending slots + reserved synthesis slot. Shell partition only.
-t4  ▸ AgentsPool N parallel A2A calls, each (endpoint, credential, request, archetype, budget)
+t4  ▸ AgentsPool N parallel A2A calls, each (endpoint, credential, request)
 t5  ▪ per-fragment arrival — independent, unsynchronized:
        validate → namespace ids → mount at slot → partition data model → scope catalog → attach attribution
        partition generation bumped
@@ -388,7 +387,7 @@ a2uiverse-apps/         vendor apps, one folder per app: agent · <vendor>-catal
 a2ui-github/            origin of the GitHub app; unchanged. Copied into a2uiverse-apps/github/ at the end of Phase 1.
 ```
 
-> A vendor app may depend on the platform sdk — one contract (`packages/sdk/contracts`, normative JSON) with two projections: **`@a2uiverse/sdk`** (npm), which the app's catalog half builds against, and **`a2uiverse-sdk`** (PyPI), which the app's agent half builds against — and the A2UI/A2A protocols. It may never depend on anything else in the platform. Each projection carries a contract test against the JSON.
+> A vendor app may depend on the platform sdk — one contract (`packages/sdk/contracts`, normative JSON) with a single JS projection, **`@a2uiverse/sdk`**, which the app's catalog half builds against — and the A2UI/A2A protocols. The app's agent half depends on the protocols alone; nothing a2uiverse-specific reaches the vendor wire. It may never depend on anything else in the platform. The projection carries a contract test against the JSON.
 
 There are no internal agents: every app in `a2uiverse-apps` is an external app, and the ecosystem and its apps are built as a whole.
 
@@ -408,7 +407,6 @@ Constraint protected throughout: **an existing A2UI agent composes with zero cha
 
 | Delta | Tag |
 |---|---|
-| Slot archetype + budget on the request | upstream candidate |
 | Auth-required state carrying scheme + scope delta | upstream candidate |
 | Cross-partition qualified refs `ref(source, path)` in bindings | upstream candidate |
 | Path predicates (key-based refs) in the formula vocabulary | upstream candidate |
