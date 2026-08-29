@@ -56,7 +56,7 @@ Timeline, frozen + stamped, refresh, add/drop source, "compare these" (M5).
 Bundle format, local install, registry no longer hardcoded, the GitHub app installed as a bundle (M7).
 
 ## Phase 10 — Authority surfaces
-Auth-required → authority tile, consent dialog, AuthVault, credential components barred from all catalogs (M8).
+Auth-required → authority tile, consent dialog, AuthVault, credential components barred from all catalogs (M8). Expand the orchestrator's slot naming policy for multi-account: slot names derived from appId alone stop being collision-free once one app can fan out under two accounts.
 
 ## Phase 11 — Marketplace + publish
 Local index, package hosting, publish step, hello-fragment smoke test (M9).
