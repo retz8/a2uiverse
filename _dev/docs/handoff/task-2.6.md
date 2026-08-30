@@ -10,7 +10,7 @@ Worktrees, per the parallel-session constraint:
 
 - `a2uiverse` — `.claude/worktrees/phase-2-6-gmail-app` on `phase-2/6-gmail-app`, branched off
   **local** `main` (`origin/main` was missing two doc commits). Carries code *and* `_dev/` docs.
-- `a2uiverse-apps` — branch `phase-2/6-gmail-app`, two commits, **unpushed**.
+- `a2uiverse-apps` — branch `phase-2/6-gmail-app`, three commits, **unpushed**.
 
 ## Landed
 
@@ -70,17 +70,16 @@ clean, so they are tracked.
    The client's git dependency on `gmail-catalog` needs a push, so stage E of the plan
    (client catalog map, registry verification, beat fixtures in `apps/client/recordings/`) has
    not started.
-3. Decision 11's derivation script is not committed — it lives in the session scratchpad. It
-   should land in `agent/scripts/` when the corpus is re-recorded.
+3. `agent/scripts/derive_corpus.py` is committed and ready: re-run the beats, then run it.
+   It blanks the label counts and refuses to write a partial deterministic corpus.
 
 ## Notes
 
 - A test draft sits in the mailbox from the credential check, subject
   `[a2uiverse 2.6] credential check — safe to delete`. There is no delete tool; remove it in
   Gmail.
-- The derived `list-labels` fixture carries real mailbox counts (inbox thread and unread
-  totals). Aggregate, not content, but it would be published — worth a decision before the
-  corpus is re-recorded.
+- The label counts (inbox/unread totals) are blanked in the derivation. Scale is not content,
+  but the stub does not need it — the label set is what carries the mapping.
 - Recording mode changes agent behaviour in a way worth knowing: with senders pseudonymized,
   the model cannot filter on real domains and invents plausible ones instead, so a recorded
   beat is not a faithful trace of a live turn.
