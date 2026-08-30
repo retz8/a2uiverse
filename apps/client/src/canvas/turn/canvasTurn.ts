@@ -308,7 +308,14 @@ export function createTurnRunner({
       if (canceled) return;
       metas.set(meta.surfaceId, meta);
       // The title leads the paint: it upgrades the in-flight label the moment it arrives.
-      if (meta.title) store.updateInFlightLabel(`${meta.title} — generating…`);
+      // Whose words the status line carries. On an utterance the user asked the question, and
+      // their own phrasing is the only stable answer to "is this still working" — under fan-out
+      // three agents' titles would otherwise overwrite each other and land on whichever painted
+      // last. Inside a fragment the user acted on that agent's surface, the action routes to its
+      // owner alone, so its title is both unambiguous and the more useful thing to show.
+      if (meta.title && cause.kind === 'surface-action') {
+        store.updateInFlightLabel(`${meta.title} — generating…`);
+      }
     };
 
     /** Every non-final stage surface of a turn still enters the timeline. */

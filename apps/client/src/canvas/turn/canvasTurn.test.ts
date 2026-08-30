@@ -56,6 +56,22 @@ const utterance = (text: string, parent: number | null = null): PaintCause => ({
   payload: {text},
 });
 
+/** A turn the user opened from inside a fragment, rather than by asking. */
+const surfaceAction = (name: string): PaintCause => ({
+  kind: 'surface-action',
+  parent: null,
+  forked: false,
+  payload: {
+    action: {
+      name,
+      context: {},
+      surfaceId: 'github:pr-list',
+      sourceComponentId: 'pr-row',
+      timestamp: '2026-08-30T10:00:00Z',
+    },
+  },
+});
+
 function setup() {
   const processor = new MessageProcessor([CATALOG]);
   const store = createCanvasStore();
@@ -408,16 +424,31 @@ describe('cancel: last-intent-wins', () => {
 });
 
 describe('paint meta', () => {
-  it('the accepted title upgrades the in-flight label and lands on the entry', () => {
+  it('an utterance keeps the user’s own words in the status line', () => {
+    // The user asked the question, so their phrasing is the stable answer to "is this still
+    // working". Under fan-out several agents paint, and letting each title overwrite the label
+    // would leave whichever painted last — the same collision the prose channel had.
     const {store, runner} = setup();
     const turn = runner.begin(utterance('show my PRs'));
     expect(store.getState().inFlight?.label).toBe('“show my PRs” — generating…');
     turn.acceptPaintMeta({surfaceId: 'pull-request-list', title: 'Open PRs — a2ui'});
-    expect(store.getState().inFlight?.label).toBe('Open PRs — a2ui — generating…');
+    expect(store.getState().inFlight?.label).toBe('“show my PRs” — generating…');
 
+    // The title is still the paint's own, and still lands on the timeline entry.
     turn.apply([create('pull-request-list'), textRoot('pull-request-list', 'PRs')]);
     turn.end();
     expect(store.getState().timeline[0].title).toBe('Open PRs — a2ui');
+  });
+
+  it('an action inside a fragment shows that agent’s title', () => {
+    // The user acted on one agent's surface and the action routes to its owner alone, so the
+    // title is unambiguous — and more useful than echoing a button name back at them.
+    const {store, runner} = setup();
+    const turn = runner.begin(surfaceAction('open-pr'));
+    turn.acceptPaintMeta({surfaceId: 'pull-request-list', title: 'PR #2449 — a2ui'});
+    expect(store.getState().inFlight?.label).toBe('PR #2449 — a2ui — generating…');
+    turn.apply([create('pull-request-list'), textRoot('pull-request-list', 'PRs')]);
+    turn.end();
   });
 
   it('a titled staged paint carries its title onto the swapped-in entry', () => {
