@@ -35,6 +35,7 @@ Spec: `_dev/docs/spec/phase-2-layout-composition.md`.
 - [x] **2.9** Integration + acceptance — `dev:agents` launcher + `dev:all` + `dev:client`/`dev:orch`/`dev:marketplace` aliases, the composed fan-out beat recorded over live MCP, attributed prose channel (stamp `onAgentText`, buffer per source, plural notices), visual Playwright specs, acceptance items 1–11, Claude-in-Chrome live verification via tunnel (after 2.4–2.8)
 - [x] **2.10** README sweep — both repos, against the phase's end state: three agents, composition on orchestrator/client, run commands per 2.9's launchers (after 2.9)
 - [x] **2.11** `[apps]` Vendor fragment visual pass — Gmail + Calendar product theme sheets (scoped stylesheet layer, SPEC §14), detector ships leading-compound classes only; trees, brand docs and fixtures untouched — the defects were catalog-implementation-level (after 2.6 and 2.7; before 2.9's beat recording)
+- [ ] **2.12** Live visual review — all three agents in `llm` mode over real MCP, a real conversation set driven through the canvas: does the composed screen read as one screen, and is this the thing we meant to build (after 2.10)
 
 ## Phase 3 — Agent building kit
 Shared vendor-agent logic extracted across the three agents into a published A2UI+A2A agent SDK/CLI in `a2uiverse-apps` (M1k). Uniform run-mode flag, single launcher for installed agents, vendor dependency rule amended, one-provider-and-CSS-setup-per-catalog-bundle rule.
