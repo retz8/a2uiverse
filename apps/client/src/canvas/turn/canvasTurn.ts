@@ -80,12 +80,26 @@ export interface TurnHandle {
   cancel(): void;
 }
 
+/** A fragment the canvas could not render — what becomes a `VALIDATION_FAILED` report. */
+export interface FragmentFailure {
+  /** Namespaced, as the hub sent it. */
+  surfaceId: string;
+  slot: string;
+  path: string;
+  message: string;
+}
+
 export interface TurnRunnerOptions {
   /** The single persistent live processor — the live registry, exactly what the agent may see. */
   processor: TurnProcessor;
   store: CanvasStore;
   /** Fresh per-turn staging processor over the same catalog (no action handler needed). */
   createStaging: () => TurnProcessor;
+  /**
+   * A fragment failed to validate or mount. The canvas cannot fix it — the hub owns slot
+   * lifecycle — so it reports and lets the shell repaint say so.
+   */
+  onFragmentFailure?: (failure: FragmentFailure) => void;
 }
 
 export interface TurnRunner {
@@ -104,7 +118,12 @@ const HELD_FAILURE_TEXT = 'The paint failed and was discarded — keeping the cu
 const EMPTY_FAILURE_TEXT = 'The paint failed and was withdrawn.';
 const CANVAS_CLEARED_TEXT = 'The agent cleared the canvas.';
 
-export function createTurnRunner({processor, store, createStaging}: TurnRunnerOptions): TurnRunner {
+export function createTurnRunner({
+  processor,
+  store,
+  createStaging,
+  onFragmentFailure,
+}: TurnRunnerOptions): TurnRunner {
   let current: TurnHandle | null = null;
 
   const reportMessageError = (err: unknown) =>
@@ -200,8 +219,10 @@ export function createTurnRunner({processor, store, createStaging}: TurnRunnerOp
     const staging = stagedMode ? createStaging() : null;
     /** Surface ids this turn created — the turn's own paint, as opposed to live surfaces. */
     const createdIds = new Set<string>();
-    /** Of those, the ones that are fragments: they fill slots and never contend for the stage. */
-    const fragmentIds = new Set<string>();
+    /** Of those, the fragments and the slot each claimed: they never contend for the stage. */
+    const fragmentSlots = new Map<string, string>();
+    /** Fragments already reported this turn — one report per fragment, never a second. */
+    const reported = new Set<string>();
     /** Staged-mode slot claims, applied once their surfaces reach the live processor. */
     const claims: Array<{slot: string; surfaceId: string; source: string}> = [];
     /** Staged-mode buffer: the messages replayed into the live processor at swap. */
@@ -210,9 +231,26 @@ export function createTurnRunner({processor, store, createStaging}: TurnRunnerOp
 
     /** Validation failures held until the settled state can be judged (module header). */
     const deferredValidation: unknown[] = [];
-    const onMessageError = (err: unknown) => {
-      if (err instanceof A2uiValidationError) deferredValidation.push(err);
-      else reportMessageError(err);
+
+    /** Report one fragment as unrenderable, at most once. */
+    const failFragment = (surfaceId: string, path: string, message: string) => {
+      if (!onFragmentFailure || reported.has(surfaceId)) return;
+      const slot = fragmentSlots.get(surfaceId);
+      if (slot === undefined) return;
+      reported.add(surfaceId);
+      onFragmentFailure({surfaceId, slot, path, message});
+    };
+
+    const onMessageError = (err: unknown, message: A2uiMessage) => {
+      if (err instanceof A2uiValidationError) {
+        deferredValidation.push(err);
+        return;
+      }
+      reportMessageError(err);
+      // A structural failure cannot self-heal — an unknown catalogId means the fragment can
+      // never mount — so it reports now rather than waiting for a turn end that tells us nothing.
+      const {surfaceId} = targetOf(message);
+      if (surfaceId) failFragment(surfaceId, '/', describeError(err));
     };
     /** Turn end: the deferred failures stand only if a surface of this turn is still invalid. */
     const settleDeferred = () => {
@@ -225,6 +263,35 @@ export function createTurnRunner({processor, store, createStaging}: TurnRunnerOp
         return rootless || invalidComponentsOf(surface).length > 0;
       });
       if (unsettled) reportMessageError(deferredValidation[deferredValidation.length - 1]);
+    };
+
+    /**
+     * Turn end for fragments: the same judgment, per fragment, reported outward. A fragment
+     * displaced by a later claim on its slot is not a failure — it was superseded.
+     */
+    const settleFragments = () => {
+      if (!onFragmentFailure) return;
+      const {placement} = store.getState();
+      for (const [surfaceId, slot] of fragmentSlots) {
+        if (placement.get(slot)?.surfaceId !== surfaceId) continue;
+        const surface = processor.model.getSurface(surfaceId);
+        if (surface === undefined) {
+          failFragment(surfaceId, '/', 'the fragment never reached the canvas');
+          continue;
+        }
+        if (surface.componentsModel.get(ROOT_COMPONENT_ID) === undefined) {
+          failFragment(surfaceId, '/', 'the fragment produced no root component');
+          continue;
+        }
+        const invalid = invalidComponentsOf(surface);
+        if (invalid.length > 0) {
+          failFragment(
+            surfaceId,
+            `/${invalid[0]}`,
+            `components failed catalog validation: ${invalid.join(', ')}`,
+          );
+        }
+      }
     };
 
     /** The paintMetas accepted this turn, by surface id. */
@@ -269,7 +336,8 @@ export function createTurnRunner({processor, store, createStaging}: TurnRunnerOp
 
     /** A surface that fills a slot rather than the stage — this turn's, or the composition's. */
     const isFragmentSurface = (id: string) =>
-      fragmentIds.has(id) || [...store.getState().placement.values()].some(p => p.surfaceId === id);
+      fragmentSlots.has(id) ||
+      [...store.getState().placement.values()].some(p => p.surfaceId === id);
 
     /** A fragment claims its slot. One surface per slot: a later claim retires the earlier. */
     const claimSlot = (slot: string, surfaceId: string, source: string) => {
@@ -309,7 +377,7 @@ export function createTurnRunner({processor, store, createStaging}: TurnRunnerOp
         if (kind === 'create' && surfaceId) {
           createdIds.add(surfaceId);
           if (slot && stamp) {
-            fragmentIds.add(surfaceId);
+            fragmentSlots.set(surfaceId, slot);
             claimSlot(slot, surfaceId, stamp.source);
           }
         }
@@ -334,7 +402,7 @@ export function createTurnRunner({processor, store, createStaging}: TurnRunnerOp
         if (surfaceId !== undefined && (createdIds.has(surfaceId) || kind === 'create')) {
           createdIds.add(surfaceId);
           if (slot && stamp && kind === 'create') {
-            fragmentIds.add(surfaceId);
+            fragmentSlots.set(surfaceId, slot);
             // Held until the surface reaches live at swap — a slot may not point into staging.
             claims.push({slot, surfaceId, source: stamp.source});
           }
@@ -408,7 +476,7 @@ export function createTurnRunner({processor, store, createStaging}: TurnRunnerOp
       // Classify in staging, before replay: questions to the overlay, the rest are stage
       // paints — by declared kind first, structural rule for markerless paints. Fragments are
       // neither: they are mounted through their slots.
-      const contenders = survivors.filter(id => !fragmentIds.has(id));
+      const contenders = survivors.filter(id => !fragmentSlots.has(id));
       const stagePaints = contenders.filter(id => !isQuestion(staging as TurnProcessor, id));
       const questions = contenders.filter(id => isQuestion(staging as TurnProcessor, id));
 
@@ -461,6 +529,7 @@ export function createTurnRunner({processor, store, createStaging}: TurnRunnerOp
           if (stagedMode) endStaged();
           else endProgressive();
           settleDeferred();
+          settleFragments();
         } finally {
           if (current === handle) {
             current = null;
@@ -482,7 +551,7 @@ export function createTurnRunner({processor, store, createStaging}: TurnRunnerOp
           if (stageId && createdIds.has(stageId)) store.setStage(null);
           // A canceled composed turn already retired the composition it replaced, so the only
           // placement standing is the one just discarded.
-          if (fragmentIds.size > 0) store.clearPlacement();
+          if (fragmentSlots.size > 0) store.clearPlacement();
           store.bumpApplied();
         }
         if (current === handle) {

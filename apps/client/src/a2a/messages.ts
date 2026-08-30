@@ -88,6 +88,41 @@ export function buildActionMessageParams(
   };
 }
 
+/** The protocol's `VALIDATION_FAILED` code — a fragment that would not validate or mount. */
+export const VALIDATION_FAILED = 'VALIDATION_FAILED';
+
+/** The protocol's client→server error report. */
+export interface A2uiClientError {
+  code: string;
+  /** Namespaced, as the hub sent it: an un-namespaced id silently no-ops hub-side. */
+  surfaceId: string;
+  path?: string;
+  message?: string;
+}
+
+/**
+ * Wrap a client-side failure as A2A send params carrying one v0.9 error DataPart. The hub reads
+ * `code` and `surfaceId`, flips that slot to failed by repainting its own shell surface, and
+ * journals the rest.
+ */
+export function buildErrorMessageParams(
+  error: A2uiClientError,
+  contextId?: string,
+  clientDataModel?: A2uiClientDataModel,
+  supportedCatalogIds?: string[],
+): MessageSendParams {
+  return {
+    message: {
+      kind: 'message',
+      role: 'user',
+      messageId: crypto.randomUUID(),
+      contextId,
+      parts: [{kind: 'data', data: {version: A2UI_VERSION, error}}],
+      metadata: messageMetadata(clientDataModel, undefined, supportedCatalogIds),
+    },
+  };
+}
+
 /** Wrap user prompt text as A2A send params carrying one TextPart. */
 export function buildTextMessageParams(
   text: string,

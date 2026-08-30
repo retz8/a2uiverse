@@ -26,11 +26,17 @@ import type {ReactComponentImplementation} from '@a2ui/react/v0_9';
 import type {A2ASenderOptions} from '../a2a/client';
 import {createSenderResolver, sendAndApply} from '../a2a/client';
 import type {ForkContext} from '../a2a/messages';
-import {buildActionMessageParams} from '../a2a/messages';
+import {
+  buildActionMessageParams,
+  buildErrorMessageParams,
+  VALIDATION_FAILED,
+} from '../a2a/messages';
 import {createA2ASession} from '../a2a/session';
+import {applyA2uiMessages} from '../a2ui/applyMessages';
 import {streamUserMessage} from '../a2a/streamUserMessage';
 import {describeError} from '../shared/describeError';
 import {createCanvasStore} from './canvasStore';
+import type {FragmentFailure} from './turn/canvasTurn';
 import {createTurnRunner} from './turn/canvasTurn';
 import {createCauseContext} from './timeline/causeContext';
 import type {ParkedHolder} from './timeline/causeContext';
@@ -70,6 +76,7 @@ export function createCanvasWiring({
     processor,
     store,
     createStaging: () => new MessageProcessor(catalogs),
+    onFragmentFailure: failure => void reportFragmentFailure(failure),
   });
   const getClientDataModel = () => processor.getClientDataModel();
   /** The active parked session, registered by ParkedStage on mount (not a React ref). */
@@ -167,6 +174,47 @@ export function createCanvasWiring({
       }
     } finally {
       turn.end();
+    }
+  };
+
+  /**
+   * A fragment the canvas could not render, reported to the hub — which owns slot lifecycle and
+   * answers by repainting its own shell surface with that slot failed.
+   *
+   * Deliberately not a turn: beginning one would cancel whatever the user has in flight, light
+   * the status strip for something they never asked for, and put a row in the history. So it
+   * sends on the side and applies the repaint straight into the live processor.
+   */
+  const reportFragmentFailure = async (failure: FragmentFailure) => {
+    // `shell:main` is reused every turn, so a late report from an abandoned composition would
+    // flip a slot in the one that replaced it.
+    if (store.getState().placement.get(failure.slot)?.surfaceId !== failure.surfaceId) return;
+    try {
+      const sender = await getSender();
+      await sendAndApply(
+        sender,
+        buildErrorMessageParams(
+          {
+            code: VALIDATION_FAILED,
+            surfaceId: failure.surfaceId,
+            path: failure.path,
+            message: failure.message,
+          },
+          session.get(),
+          getClientDataModel(),
+          supportedCatalogIds,
+        ),
+        {
+          apply: messages => {
+            applyA2uiMessages(processor, messages);
+            store.bumpApplied();
+          },
+          session,
+        },
+      );
+    } catch (err) {
+      // A failed failure report must not cascade into the turn that produced it.
+      console.error('[A2UI:a2a] validation report failed', err);
     }
   };
 

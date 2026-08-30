@@ -11,6 +11,7 @@ import {CATALOG as SHELL_CATALOG, CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiver
 import type {CompositionStamp} from '@a2uiverse/sdk';
 import type {PaintCause} from '../timeline/paint';
 import {createCanvasStore} from '../canvasStore';
+import type {FragmentFailure} from './canvasTurn';
 import {createTurnRunner} from './canvasTurn';
 
 const msg = (m: Record<string, unknown>): A2uiMessage =>
@@ -793,5 +794,129 @@ describe('composed turns (the hub stamps its events)', () => {
     expect(store.getState().stageId).toBe('plain-view');
     expect(store.getState().placement.size).toBe(0);
     expect(store.getState().timeline.map(e => e.surfaceId)).toEqual(['plain-view']);
+  });
+});
+
+describe('fragment failure reporting', () => {
+  const SHELL: CompositionStamp = {source: 'shell', role: 'shell'};
+  const fragment = (source: string, slot: string): CompositionStamp => ({
+    source,
+    slot,
+    role: 'fragment',
+  });
+
+  const shellPaint = (slots: string[]) => [
+    msg({createSurface: {surfaceId: 'shell:main', catalogId: SHELL_CATALOG_ID}}),
+    msg({
+      updateComponents: {
+        surfaceId: 'shell:main',
+        components: [
+          {id: 'root', component: 'Column', children: slots},
+          ...slots.map(name => ({id: name, component: 'Slot', name, state: 'pending'})),
+        ],
+      },
+    }),
+  ];
+
+  function failureSetup() {
+    const catalogs = [CATALOG, SHELL_CATALOG];
+    const processor = new MessageProcessor(catalogs);
+    const store = createCanvasStore();
+    const failures: FragmentFailure[] = [];
+    const runner = createTurnRunner({
+      processor,
+      store,
+      createStaging: () => new MessageProcessor(catalogs),
+      onFragmentFailure: failure => failures.push(failure),
+    });
+    return {processor, store, runner, failures};
+  }
+
+  it('reports a fragment whose catalog is not installed, without waiting for turn end', () => {
+    const {failures, runner} = failureSetup();
+    const turn = runner.begin(utterance('compose'));
+    turn.apply(shellPaint(['slot-gmail']), SHELL);
+    turn.apply(
+      [msg({createSurface: {surfaceId: 'gmail:inbox', catalogId: 'urn:not-installed'}})],
+      fragment('gmail', 'slot-gmail'),
+    );
+
+    // Structural: it can never mount, so waiting for turn end would tell us nothing new.
+    expect(failures).toHaveLength(1);
+    expect(failures[0]).toMatchObject({surfaceId: 'gmail:inbox', slot: 'slot-gmail'});
+    turn.end();
+    // One report per fragment, never a second at settle.
+    expect(failures).toHaveLength(1);
+  });
+
+  it('reports a fragment left invalid at turn end, and nothing for one that settles', () => {
+    const {failures, runner} = failureSetup();
+    const turn = runner.begin(utterance('compose'));
+    turn.apply(shellPaint(['slot-github']), SHELL);
+    // A half-built component: the batch is thrown away, leaving the fragment rootless.
+    turn.apply(
+      [
+        create('github:prs'),
+        msg({
+          updateComponents: {
+            surfaceId: 'github:prs',
+            components: [{id: 'root', component: 'Link', text: 'no href yet'}],
+          },
+        }),
+      ],
+      fragment('github', 'slot-github'),
+    );
+    expect(failures).toHaveLength(0);
+    turn.end();
+
+    expect(failures).toHaveLength(1);
+    expect(failures[0].message).toMatch(/no root component/);
+  });
+
+  it('a fragment that streams a partial and then settles reports nothing', () => {
+    const {failures, runner} = failureSetup();
+    const turn = runner.begin(utterance('compose'));
+    turn.apply(shellPaint(['slot-github']), SHELL);
+    turn.apply([create('github:prs')], fragment('github', 'slot-github'));
+    turn.apply(
+      [
+        msg({
+          updateComponents: {
+            surfaceId: 'github:prs',
+            components: [{id: 'root', component: 'Link', text: 'partial'}],
+          },
+        }),
+      ],
+      fragment('github', 'slot-github'),
+    );
+    turn.apply([textRoot('github:prs', 'Pull requests')], fragment('github', 'slot-github'));
+    turn.end();
+
+    expect(failures).toEqual([]);
+  });
+
+  it('a fragment displaced by a later claim on its slot is superseded, not failed', () => {
+    const {failures, runner} = failureSetup();
+    const turn = runner.begin(utterance('compose'));
+    turn.apply(shellPaint(['slot-github']), SHELL);
+    turn.apply([create('github:a')], fragment('github', 'slot-github'));
+    turn.apply([create('github:b'), textRoot('github:b', 'b')], fragment('github', 'slot-github'));
+    turn.end();
+
+    expect(failures.map(f => f.surfaceId)).toEqual([]);
+  });
+
+  it('a broken shell is the platform failing, not a vendor — nothing is reported outward', () => {
+    const {store, failures, runner} = failureSetup();
+    const turn = runner.begin(utterance('compose'));
+    turn.apply(
+      [msg({createSurface: {surfaceId: 'shell:main', catalogId: 'urn:not-installed'}})],
+      SHELL,
+    );
+    turn.end();
+
+    expect(failures).toEqual([]);
+    // It still surfaces — on the local channel, where a platform bug belongs.
+    expect(store.getState().error).toMatch(/failed/);
   });
 });
