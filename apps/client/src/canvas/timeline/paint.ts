@@ -49,6 +49,20 @@ export interface PaintSnapshot {
 }
 
 /**
+ * One fragment of a composed paint, captured with its shell. Without these a parked composition
+ * would rehydrate as a layout of empty slots — `Slot.state` is orchestrator-painted and only
+ * ever pending/failed/collapsed, so a shell-only snapshot cannot even represent a filled slot.
+ */
+export interface PaintFragment {
+  slot: string;
+  surfaceId: string;
+  /** The app that painted it — the boundary's provenance, restored with the content. */
+  source: string;
+  catalogId: string;
+  snapshot: PaintSnapshot | null;
+}
+
+/**
  * One timeline entry — appended the moment its paint lands. The newest entry is the live
  * paint and the only one whose `snapshot` is null; it fills when the paint departs the stage.
  */
@@ -65,6 +79,11 @@ export interface PaintEntry {
   title?: string;
   /** Null while the paint holds the stage; filled at serialize-on-swap. */
   snapshot: PaintSnapshot | null;
+  /**
+   * The composition this paint's shell was projecting, captured at the same moment as the
+   * shell's own snapshot. Absent on an uncomposed paint.
+   */
+  fragments?: readonly PaintFragment[];
 }
 
 const MAX_UTTERANCE_LABEL = 48;
@@ -105,9 +124,13 @@ function humanizeSurfaceId(surfaceId: string): string {
 }
 
 /**
- * An entry's display title: the agent-authored title when present, else the cause phrase,
- * else the humanized surface id.
+ * An entry's display title: the agent-authored title when present, else the cause phrase, else
+ * the humanized surface id. A composed paint has no such id to fall back on — its surface is the
+ * shell's — so it names itself for what it is.
  */
 export function entryTitle(entry: PaintEntry): string {
-  return entry.title ?? (titleOfCause(entry.cause) || humanizeSurfaceId(entry.surfaceId));
+  if (entry.title !== undefined) return entry.title;
+  const phrase = titleOfCause(entry.cause);
+  if (phrase) return phrase;
+  return entry.fragments?.length ? 'Composed view' : humanizeSurfaceId(entry.surfaceId);
 }

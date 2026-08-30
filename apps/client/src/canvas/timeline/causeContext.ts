@@ -57,10 +57,19 @@ export function createCauseContext(store: CanvasStore, parkedHolder: ParkedHolde
     const parked = parkedHolder.session;
     const surface = parked?.processor.model.getSurface(parked.surfaceId);
     if (!parked || !surface) return undefined;
-    return {
-      version: 'v0.9',
-      surfaces: {[parked.surfaceId]: surface.dataModel.get('/') as Record<string, unknown>},
+    const surfaces: Record<string, Record<string, unknown>> = {
+      [parked.surfaceId]: surface.dataModel.get('/') as Record<string, unknown>,
     };
+    // A forked turn reports what the user was acting on — for a composition, every fragment they
+    // could have acted in. The ids stay namespaced, which is what the hub's partition filter
+    // splits on before handing each vendor its own.
+    for (const placed of parked.placement.values()) {
+      const fragment = parked.processor.model.getSurface(placed.surfaceId);
+      if (fragment) {
+        surfaces[placed.surfaceId] = fragment.dataModel.get('/') as Record<string, unknown>;
+      }
+    }
+    return {version: 'v0.9', surfaces};
   };
 
   return {parentId, forkFields, forkContextOf, parkedClientDataModel};

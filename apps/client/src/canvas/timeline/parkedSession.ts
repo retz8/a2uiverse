@@ -12,8 +12,8 @@
  */
 import {MessageProcessor} from '@a2ui/web_core/v0_9';
 import type {ActionListener, A2uiMessage, Catalog, ComponentApi} from '@a2ui/web_core/v0_9';
-import type {CanvasStore} from '../canvasStore';
-import type {PaintEntry} from './paint';
+import type {CanvasStore, PlacedFragment} from '../canvasStore';
+import type {PaintEntry, PaintSnapshot} from './paint';
 import {deepFreeze} from './snapshotSurface';
 
 export interface ParkedSessionOptions<T extends ComponentApi> {
@@ -26,6 +26,11 @@ export interface ParkedSessionOptions<T extends ComponentApi> {
 export interface ParkedSession<T extends ComponentApi> {
   processor: MessageProcessor<T>;
   surfaceId: string;
+  /**
+   * The composition's placement, restored alongside its surfaces — what the parked shell's
+   * slots resolve against. Empty for an uncomposed paint.
+   */
+  placement: ReadonlyMap<string, PlacedFragment>;
   /** Teardown write-back: replace the entry's data model with the sandbox's, frozen. */
   commit(): void;
 }
@@ -50,16 +55,30 @@ export function createParkedSession<T extends ComponentApi>(
   if (!snapshot)
     throw new Error(`Paint #${paintId} has no snapshot — the live paint is not parkable.`);
 
+  /** One surface's three wire messages — the identical path a live paint takes. */
+  const rebuild = (id: string, catalog: string, content: PaintSnapshot): A2uiMessage[] =>
+    [
+      {version: 'v0.9', createSurface: {surfaceId: id, catalogId: catalog}},
+      {
+        version: 'v0.9',
+        updateComponents: {
+          surfaceId: id,
+          components: Object.values(content.tree).map(wireComponent),
+        },
+      },
+      {version: 'v0.9', updateDataModel: {surfaceId: id, value: thaw(content.dataModel) ?? {}}},
+    ] as unknown as A2uiMessage[];
+
   const processor = new MessageProcessor<T>(catalogs, onAction);
-  const messages = [
-    {version: 'v0.9', createSurface: {surfaceId, catalogId}},
-    {
-      version: 'v0.9',
-      updateComponents: {surfaceId, components: Object.values(snapshot.tree).map(wireComponent)},
-    },
-    {version: 'v0.9', updateDataModel: {surfaceId, value: thaw(snapshot.dataModel) ?? {}}},
-  ] as unknown as A2uiMessage[];
-  processor.processMessages(messages);
+  processor.processMessages(rebuild(surfaceId, catalogId, snapshot));
+
+  // A composition rehydrates whole: the shell alone would render a layout of empty slots.
+  const placement = new Map<string, PlacedFragment>();
+  for (const fragment of entry.fragments ?? []) {
+    if (!fragment.snapshot) continue;
+    processor.processMessages(rebuild(fragment.surfaceId, fragment.catalogId, fragment.snapshot));
+    placement.set(fragment.slot, {surfaceId: fragment.surfaceId, source: fragment.source});
+  }
 
   const commit = () => {
     const surface = processor.model.getSurface(surfaceId);
@@ -67,5 +86,5 @@ export function createParkedSession<T extends ComponentApi>(
     store.replaceSnapshotDataModel(paintId, deepFreeze(thaw(surface.dataModel.get('/')) ?? {}));
   };
 
-  return {processor, surfaceId, commit};
+  return {processor, surfaceId, placement, commit};
 }

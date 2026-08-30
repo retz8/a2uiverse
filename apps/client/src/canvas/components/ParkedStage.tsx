@@ -8,8 +8,10 @@
  */
 import {useEffect, useState} from 'react';
 import type {ReactComponentImplementation} from '@a2ui/react/v0_9';
+import {SlotContentContext} from '@a2uiverse/shell-catalog';
 import {SurfaceFrame} from '../../catalogs/CatalogContext';
 import {SurfaceErrorBoundary} from '../../shared/SurfaceErrorBoundary';
+import {useSlotContent} from '../composition/slotContent';
 import type {PaintEntry} from '../timeline/paint';
 import type {ParkedSession} from '../timeline/parkedSession';
 
@@ -24,15 +26,21 @@ export function ParkedStage({entry, create, attach}: ParkedStageProps) {
   const [session] = useState(() => create(entry));
   useEffect(() => attach(session), [session, attach]);
 
+  // A parked composition resolves its slots against the sandbox, not the live registry — the
+  // same resolver the live stage uses, pointed at the rehydrated surfaces.
+  const slotContent = useSlotContent(session.processor, session.placement, entry.paintId);
+
   const surface = session.processor.model.getSurface(session.surfaceId);
   return (
     <div className="canvas-stage canvas-stage--parked" data-testid="canvas-parked-stage">
       {surface ? (
         // The inner wrapper bounds the surface content alone — what the chrome baselines mask.
         <div data-testid="canvas-stage-content">
-          <SurfaceErrorBoundary surfaceId={session.surfaceId} resetKey={entry.paintId}>
-            <SurfaceFrame surface={surface} />
-          </SurfaceErrorBoundary>
+          <SlotContentContext.Provider value={slotContent}>
+            <SurfaceErrorBoundary surfaceId={session.surfaceId} resetKey={entry.paintId}>
+              <SurfaceFrame surface={surface} />
+            </SurfaceErrorBoundary>
+          </SlotContentContext.Provider>
         </div>
       ) : null}
     </div>

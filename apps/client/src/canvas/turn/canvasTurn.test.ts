@@ -757,6 +757,33 @@ describe('composed turns (the hub stamps its events)', () => {
     expect(processor.model.getSurface('github:prs')).toBeDefined();
   });
 
+  it('the departing composition is captured whole, so time travel is not a lie', () => {
+    const {store, runner} = composedSetup();
+    const first = runner.begin(utterance('compose'));
+    first.apply(shellPaint(['slot-github']), SHELL);
+    first.apply(
+      [create('github:prs'), textRoot('github:prs', 'Pull requests')],
+      fragment('github', 'slot-github'),
+    );
+    first.end();
+
+    // Serialize-on-swap: the composition materialises as the next one displaces it.
+    const second = runner.begin(utterance('compose again'));
+    second.apply(shellPaint(['slot-github']), SHELL);
+    second.end();
+
+    const [entry] = store.getState().timeline;
+    expect(entry.snapshot).not.toBeNull();
+    expect(entry.fragments).toHaveLength(1);
+    const [captured] = entry.fragments!;
+    expect(captured).toMatchObject({
+      slot: 'slot-github',
+      surfaceId: 'github:prs',
+      source: 'github',
+    });
+    expect(captured.snapshot?.tree).toHaveProperty('root');
+  });
+
   it('an unstamped stream is a stage paint — pre-composition fixtures are unchanged', () => {
     const {store, runner} = composedSetup();
     const turn = runner.begin(utterance('plain'));

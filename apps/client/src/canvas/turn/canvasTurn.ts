@@ -41,7 +41,7 @@ import type {PaintMeta} from '../../a2a/messages';
 import {paintMetaOf, QUESTION_PAINT_KIND} from '../../a2a/messages';
 import {applyA2uiMessages} from '../../a2ui/applyMessages';
 import {describeError} from '../../shared/describeError';
-import type {CanvasStore} from '../canvasStore';
+import type {CanvasState, CanvasStore} from '../canvasStore';
 import type {PaintCause} from '../timeline/paint';
 import {describeCause} from '../timeline/paint';
 import {serializeSurface} from '../timeline/snapshotSurface';
@@ -132,6 +132,27 @@ export function createTurnRunner({processor, store, createStaging}: TurnRunnerOp
     });
   };
 
+  /**
+   * Capture the composition filling the stage: every slot's fragment with its own content, so a
+   * parked composition rehydrates as what was on screen and not as a layout of empty slots.
+   * Captured unconditionally — `Slot`'s failed branch wins over content at render, so a fragment
+   * whose slot later failed costs nothing to keep and needs no second rule to agree with.
+   */
+  const snapshotComposition = (placement: CanvasState['placement']) =>
+    [...placement].flatMap(([slot, placed]) => {
+      const surface = processor.model.getSurface(placed.surfaceId);
+      if (!surface) return [];
+      return [
+        {
+          slot,
+          surfaceId: placed.surfaceId,
+          source: placed.source,
+          catalogId: surface.catalog.id,
+          snapshot: snapshotOf(placed.surfaceId),
+        },
+      ];
+    });
+
   /** Serialize-on-swap: the stage is leaving the canvas — fill its entry, then remove. */
   const retireStage = () => {
     const {stageId, timeline, placement} = store.getState();
@@ -139,7 +160,8 @@ export function createTurnRunner({processor, store, createStaging}: TurnRunnerOp
       const head = timeline[timeline.length - 1];
       if (head && head.surfaceId === stageId && head.snapshot === null) {
         const snapshot = snapshotOf(stageId);
-        if (snapshot) store.fillSnapshot(head.paintId, snapshot);
+        // Snapshot before delete: the cascade below is what makes these unreachable.
+        if (snapshot) store.fillSnapshot(head.paintId, snapshot, snapshotComposition(placement));
       }
       processor.model.deleteSurface(stageId);
     }

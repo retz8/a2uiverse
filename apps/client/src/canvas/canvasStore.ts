@@ -6,7 +6,7 @@
  * the replay driver, the A2A callbacks), which is why it is a closure module and not
  * component state.
  */
-import type {PaintEntry, PaintSnapshot} from './timeline/paint';
+import type {PaintEntry, PaintFragment, PaintSnapshot} from './timeline/paint';
 
 /** The ring cap — a stated policy bound, not a memory guard. */
 export const TIMELINE_CAP = 50;
@@ -67,8 +67,15 @@ export interface CanvasStore {
   setOverlay(overlay: OverlayState | null): void;
   /** Append a landed paint; evicts past the ring cap and raises the parked marker. */
   appendEntry(entry: PaintEntry): void;
-  /** Serialize-on-swap: complete the addressed entry with its captured content. */
-  fillSnapshot(paintId: number, snapshot: PaintSnapshot): void;
+  /**
+   * Serialize-on-swap: complete the addressed entry with its captured content — the shell's
+   * snapshot, and for a composition the fragments that were filling its slots.
+   */
+  fillSnapshot(
+    paintId: number,
+    snapshot: PaintSnapshot,
+    fragments?: readonly PaintFragment[],
+  ): void;
   /** Parked write-back: replace the snapshot's data model wholesale. */
   replaceSnapshotDataModel(paintId: number, dataModel: unknown): void;
   /** View a past entry. Unknown ids are ignored. */
@@ -153,7 +160,8 @@ export function createCanvasStore(): CanvasStore {
           : state.viewing !== null || state.headAdvancedWhileParked,
       });
     },
-    fillSnapshot: (id, snapshot) => patchEntry(id, e => ({...e, snapshot})),
+    fillSnapshot: (id, snapshot, fragments) =>
+      patchEntry(id, e => ({...e, snapshot, ...(fragments?.length ? {fragments} : {})})),
     replaceSnapshotDataModel: (id, dataModel) =>
       patchEntry(id, e => (e.snapshot ? {...e, snapshot: {...e.snapshot, dataModel}} : e)),
     park: id => {

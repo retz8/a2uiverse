@@ -6,6 +6,7 @@ import {describe, it, expect, vi} from 'vitest';
 import {MessageProcessor} from '@a2ui/web_core/v0_9';
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
 import {CATALOG, CATALOG_ID} from 'github-catalog';
+import {CATALOG as SHELL_CATALOG, CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog';
 import type {PaintEntry} from './paint';
 import {createCanvasStore} from '../canvasStore';
 import {createParkedSession} from './parkedSession';
@@ -109,5 +110,79 @@ describe('createParkedSession', () => {
     const store = createCanvasStore();
     const entry = {...departedEntry(), snapshot: null};
     expect(() => createParkedSession(entry, {catalogs: [CATALOG], store})).toThrow(/snapshot/);
+  });
+});
+
+describe('a parked composition', () => {
+  /** A departed composition: the shell's snapshot plus its fragments', as retireStage captures. */
+  function departedComposition(): PaintEntry {
+    const live = new MessageProcessor([CATALOG, SHELL_CATALOG]);
+    live.processMessages([
+      msg({createSurface: {surfaceId: 'shell:main', catalogId: SHELL_CATALOG_ID}}),
+      msg({
+        updateComponents: {
+          surfaceId: 'shell:main',
+          components: [
+            {id: 'root', component: 'Column', children: ['slot-github']},
+            {id: 'slot-github', component: 'Slot', name: 'slot-github', state: 'pending'},
+          ],
+        },
+      }),
+      msg({createSurface: {surfaceId: 'github:prs', catalogId: CATALOG_ID}}),
+      msg({
+        updateComponents: {
+          surfaceId: 'github:prs',
+          components: [{id: 'root', component: 'Text', text: 'Pull requests'}],
+        },
+      }),
+    ]);
+    const capture = (id: string) => ({
+      ...serializeSurface(live.model.getSurface(id)!),
+      capturedAt: 2000,
+    });
+    return {
+      paintId: 7,
+      surfaceId: 'shell:main',
+      catalogId: SHELL_CATALOG_ID,
+      cause: {
+        kind: 'utterance',
+        parent: null,
+        forked: false,
+        payload: {text: 'what needs my attention'},
+      },
+      paintedAt: 1007,
+      snapshot: capture('shell:main'),
+      fragments: [
+        {
+          slot: 'slot-github',
+          surfaceId: 'github:prs',
+          source: 'github',
+          catalogId: CATALOG_ID,
+          snapshot: capture('github:prs'),
+        },
+      ],
+    };
+  }
+
+  it('rehydrates the whole composition, not just the shell', () => {
+    const store = createCanvasStore();
+    const entry = departedComposition();
+    store.appendEntry(entry);
+
+    const session = createParkedSession(entry, {catalogs: [CATALOG, SHELL_CATALOG], store});
+    expect(session.processor.model.getSurface('shell:main')).toBeDefined();
+    expect(session.processor.model.getSurface('github:prs')).toBeDefined();
+    expect(session.placement.get('slot-github')).toEqual({
+      surfaceId: 'github:prs',
+      source: 'github',
+    });
+  });
+
+  it('an uncomposed paint parks with an empty placement', () => {
+    const store = createCanvasStore();
+    const entry = departedEntry();
+    store.appendEntry(entry);
+    const session = createParkedSession(entry, {catalogs: [CATALOG], store});
+    expect(session.placement.size).toBe(0);
   });
 });
