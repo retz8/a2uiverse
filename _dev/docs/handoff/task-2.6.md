@@ -2,15 +2,13 @@
 
 ## Where it stands
 
-**Code complete, corpus blocked.** The catalog and the agent are built, the credential is
-verified end to end, and a live run against real Gmail MCP produced all four beats. The
-artifacts from that run are **withheld**: a scan found a real address in them.
+**Complete and green.** The catalog and the agent are built, the credential is verified end to end, and the four beats are recorded over live Gmail MCP with the corpus derived from them. 217 tests pass with nothing skipped. **Nothing is pushed.**
 
 Worktrees, per the parallel-session constraint:
 
 - `a2uiverse` — `.claude/worktrees/phase-2-6-gmail-app` on `phase-2/6-gmail-app`, branched off
   **local** `main` (`origin/main` was missing two doc commits). Carries code *and* `_dev/` docs.
-- `a2uiverse-apps` — branch `phase-2/6-gmail-app`, three commits, **unpushed**.
+- `a2uiverse-apps` — branch `phase-2/6-gmail-app`, four commits, **unpushed**.
 
 ## Landed
 
@@ -33,45 +31,49 @@ ones:
   `allOf`, so the enum/literal pre-pass found nothing and was dead code — the model would have
   got the raw schema error instead of the message naming the valid move.
 
-## The blocker
+## The leak, and why the first fix was in the wrong place
 
-Decision 8 places pseudonymization at the source, in the `after_tool_callback`, so that no
-real string can reach the model, the stream, or an artifact. The live run disproved the seam,
-not the decision:
+Decision 8 puts pseudonymization at the source so no real string can reach the model, the
+stream, or an artifact. The first implementation used ADK's `after_tool_callback` and leaked.
 
-- All eight tool calls were captured, and every captured payload was clean
-  (`sara.moreau@example.com`, length-matched filler subjects).
-- The **painted stream carried a real sender** — thread `1a0353d9bbf7b963` was captured as
-  `priya.nakamura@example.com` and painted as the real address.
+The cause is specific: MCP's `CallToolResult` carries **both** `content` (text parts) and
+`structuredContent` (the same payload, already parsed). The callback rewrote only the text
+parts, so the model read the structured one — which is why the captured corpus was clean
+while the painted stream carried a real address. Thread `1a0353d9bbf7b963` was captured as
+`priya.nakamura@example.com` and painted as the real sender.
 
-So the substitution ran on a copy the model never read. ADK's contract is right — a returned
-dict does replace the response — so the fault is narrower: some response shapes do not reach
-the callback intact (one capture is a degenerate `{}`, which points at a part shape the
-callback does not handle). **The mechanism is not fully pinned.**
+A wider callback would have been the wrong fix, because it keeps the shape that allows a
+second copy. `RecordingMcpToolset` (`llm_agent/recording_toolset.py`) overrides
+`McpTool._run_async_impl`, where the result dict is built, so the pseudonymized dict is the
+only one that exists downstream. It walks every branch of the result rather than the branches
+known in advance, and substitutes addresses in non-JSON prose too. ADK tools are re-wrapped
+rather than reimplemented, so auth, filtering, retries and session management stay stock.
 
-What was done about it:
+The callback keeps its projection notes and no longer substitutes: doing both would
+re-substitute already-fake values and leave the corpus and the stream disagreeing about names
+that are both fake.
 
-- The contaminated beats and deterministic fixtures were purged, and the agent commit was
-  **rewritten** so the leak never exists in history. Verified absent from all branch history.
+Guards that came out of it, all still in place:
+
 - `tests/test_corpus_is_publishable.py` fails the build on any tracked address outside the
   RFC 2606 reserved domains — checked over the files that would be pushed, rather than trusted
-  to the code meant to maintain it. Verified to catch the exact address that got through.
-- `.recordings/` and `*.dump.jsonl` are now gitignored in `a2uiverse-apps`; they were not.
-
-The stub fixtures (`llm_agent/fixtures/`) are derived from the captured payloads and **are**
-clean, so they are tracked.
+  to the code meant to maintain it. It caught the original leak; a test pins the
+  `structuredContent` shape that caused it.
+- The contaminated first-run artifacts were purged and that commit **rewritten**, so the leak
+  never exists in history.
+- `.recordings/` and `*.dump.jsonl` are gitignored in `a2uiverse-apps`; they were not.
 
 ## Next
 
-1. **Move the substitution seam below the callback** — wrap the toolset so every response is
-   pseudonymized before it can be returned at all, rather than intercepted after. Then re-run
-   the four beats and re-derive the corpus.
-2. `pnpm verify` is green in `a2uiverse-apps` and `uv run pytest` passes; **nothing is pushed**.
-   The client's git dependency on `gmail-catalog` needs a push, so stage E of the plan
-   (client catalog map, registry verification, beat fixtures in `apps/client/recordings/`) has
-   not started.
-3. `agent/scripts/derive_corpus.py` is committed and ready: re-run the beats, then run it.
-   It blanks the label counts and refuses to write a partial deterministic corpus.
+1. **Push `a2uiverse-apps`.** Everything below it is blocked: the client consumes
+   `gmail-catalog` as a git dependency, so stage E of the plan — the client catalog map and
+   `TABLE` entry, the git dep and `allowBuilds` line, `GMAIL_CATALOG_ID` verification in
+   `registry/entries.ts`, the four Gmail specs in `apps/client/scripts/lib/beats.ts`, and the
+   `shell-catalog` parity-message change — cannot start until the catalog resolves.
+2. **Amend the phase spec.** Task decision 14 lists the amendments 2.6 requires and none are
+   applied yet: the Phase 2 acceptance list needs a write-round-trip item, item 8's two
+   clauses need separating, and 2.8 needs the GitHub AgentCard retrofit.
+3. The `_dev/TODO.md` beat-split lines are already amended; 2.6 stays `[WIP]` until it merges.
 
 ## Notes
 

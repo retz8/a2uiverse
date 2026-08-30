@@ -60,11 +60,13 @@ Gmail MCP requires a business account, so the agent reads the real Workspace mai
 
 ### 8. Pseudonymization at the MCP boundary, record mode only
 
-Mailbox content is generalized at the source, not at the sink: in record mode, every Gmail MCP response passes through a deterministic, length-preserving pseudonymizer on a fixed seed before the model sees it, through the existing `after_tool_callback` seam. No real string enters the model's context, the painted stream, or any artifact. The live, non-recording path is untouched and fully real.
+Mailbox content is generalized at the source, not at the sink: in record mode, every Gmail MCP response passes through a deterministic, length-preserving pseudonymizer on a fixed seed **inside the tool**, where the result dict is built. No real string enters the model's context, the painted stream, or any artifact. The live, non-recording path is untouched and fully real.
 
 The fixed seed is what lets a re-recorded beat reproduce the same substituted values and so still match its committed snapshot.
 
-**The first live run showed the seam is not where this assumed.** The captured payloads were clean while the painted stream carried a real address, so the substitution ran on a copy the model never read. Source-side substitution stands as the decision; the seam it hangs on does not, and has to move lower — a toolset wrapper rather than an `after_tool_callback` — before a corpus can be recorded.
+An `after_tool_callback` is NOT sufficient, and the first live run proved it: `CallToolResult` carries both `content` and `structuredContent` — the same payload, already parsed — and rewriting only the text parts left the structured field real, which is the one the model reads. The captured corpus was clean while the painted stream was not.
+
+So the boundary is the tool itself, not a hook after it: the pseudonymized dict is the only one that exists downstream, and there is no second copy to read. Every branch of the result is walked rather than the branches known in advance, and addresses in non-JSON prose are substituted too. The callback keeps the projection notes and does not substitute — doing both would re-substitute already-fake values and leave the corpus and the stream disagreeing.
 
 Until then the guarantee is enforced where it can be checked rather than where it is produced: no tracked artifact may carry an address outside the RFC 2606 reserved domains, asserted over the files that would be pushed.
 
@@ -117,7 +119,5 @@ A fragment declaring a question is not overlaid. The shell raises its slot and d
 - Duplication with the GitHub agent is intended, not a defect to resolve here.
 
 ## Open items
-
-- The pseudonymization seam: an `after_tool_callback` is not a reliable substitution boundary for this ADK version. No corpus is recorded and no beats are tracked until it moves.
 
 - The fan-out utterance's exact wording, pending 2.9.
