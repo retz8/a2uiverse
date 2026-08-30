@@ -30,11 +30,17 @@ The theme writes the base tier — colors, shape, type, spacing — plus a delib
 
 The agent obtains its access token through Application Default Credentials, read at startup and refreshed by the credential library. `agent/.env` carries no token — only the project id, sent as the `X-Goog-User-Project` header. The consent flow remains a one-time developer setup outside the agent, which never sees a client secret and never runs a browser flow. A missing or insufficiently-scoped credential fails fast at startup rather than degrading to canned data, matching the GitHub agent's treatment of its missing PAT.
 
+The credential carries `gmail.readonly`, `gmail.compose`, and `gmail.modify`. `gmail.modify` is what the toggling tier of decision 5 requires, and it is the coarsest of the three: no narrower scope grants labeling.
+
 ### 5. The agent is read-write; writes are compose-in-paint, mutate-on-confirm
 
 A2UIVerse agents are read-write by design. The GitHub agent's layered read-only posture is a GitHub-specific legacy, revisited later; it is not a platform invariant and is not reproduced here.
 
 Writes are authorized in two tiers. A **creating** write — composing a draft — is performed by the model in the painting turn and painted as an editable proposal; the mutation fires only on the user's confirm action from inside the fragment. A **toggling** write — labeling and unlabeling — fires directly on its action, without a confirm step.
+
+The server exposes twenty-three tools, including destructive ones: trashing, spam marking, and sensitive-label application. These are excluded from the agent's tool inventory by a client-side filter; the inventory is the reads plus draft creation, labeling, unlabeling, and label creation. Admitting destructive operations is deferred, and belongs with a real authority surface (M8) rather than with a scope grant.
+
+The exclusion is a **single** layer. Gmail offers no scope granting the toggling tier without also authorizing trashing and spam marking, so the credential permits what the filter withholds — unlike the GitHub agent's two independent layers, this one has no second barrier behind it.
 
 ### 6. The AgentCard is authored as the Router's retrieval document
 
@@ -94,5 +100,4 @@ A beat is recorded by the sub-task whose agents exist. 2.6 records its own four 
 
 ## Open items
 
-- Whether the labeling tools need `gmail.modify` beyond the two scopes the MCP documentation states.
 - The fan-out utterance's exact wording, pending 2.9.
