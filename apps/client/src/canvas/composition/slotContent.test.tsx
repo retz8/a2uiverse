@@ -98,10 +98,11 @@ describe('slot mounting', () => {
     expect(boundary!.textContent).toContain('Pull requests');
   });
 
-  it('announces the source on the boundary itself, not only in the attribution marker', () => {
+  it('names the region for its source without repeating the attribution marker', () => {
     renderComposed(composedProcessor(), PLACED);
-    expect(screen.getByRole('group', {name: 'Painted by github'})).toBeInTheDocument();
-    // The orchestrator-painted marker is a sibling of the slot, outside the fragment's reach.
+    expect(screen.getByRole('group', {name: 'github'})).toBeInTheDocument();
+    // The orchestrator-painted marker is a sibling of the slot, outside the fragment's reach —
+    // and says something different, so the two do not read as a stutter.
     expect(screen.getByLabelText('Painted by GitHub')).toBeInTheDocument();
   });
 

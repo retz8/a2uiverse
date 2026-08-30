@@ -9,7 +9,9 @@
  *
  * The visible attribution marker is not here — the orchestrator paints it into the shell's own
  * surface as the slot's sibling, where the fragment cannot address it. What the boundary carries
- * is the machine-readable half: the source, and an accessible name announcing it.
+ * is the machine-readable half: the source, and a region name. The two must not say the same
+ * thing: the marker announces "Painted by X", so the region names itself simply "X", and a
+ * screen reader gets one region and one provenance statement rather than the sentence twice.
  */
 import type {ReactNode} from 'react';
 
@@ -31,7 +33,7 @@ export function FragmentBoundary({source, surfaceId, promoted, children}: Fragme
     <div
       className={promoted ? 'fragment-boundary fragment-boundary--promoted' : 'fragment-boundary'}
       role="group"
-      aria-label={promoted ? `${source} needs your answer` : `Painted by ${source}`}
+      aria-label={promoted ? `${source} — needs your answer` : source}
       data-surface={surfaceId}
       data-promoted={promoted ? 'true' : undefined}
       {...{[FRAGMENT_BOUNDARY_ATTR]: source}}
