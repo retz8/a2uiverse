@@ -14,9 +14,13 @@ The Gmail vendor app in `../a2uiverse-apps/gmail/`: a three-mode agent on port 1
 
 ### 1. Agent provenance: fork and rename
 
-`github/agent/` is copied to `gmail/agent/` and renamed. `server.py`, `executor.py`, `catalog.py`, `responder.py`, `recorder.py`, and `catalog_common/` stay as near-verbatim as renaming allows. Six things are authored fresh: `mcp.py`, `tools.py` with its fixtures, `tool_shaping.py`, `knowledge/`, `prompt.py`'s brand slots, and `deterministic_agent/responses.py` with its fixtures.
+`github/agent/` is copied to `gmail/agent/` and renamed. `server.py`, `catalog.py`, `responder.py`, `recorder.py`, and `catalog_common/` stay as near-verbatim as renaming allows. Six things are authored fresh: `mcp.py`, `tools.py` with its fixtures, `tool_shaping.py`, `knowledge/`, `prompt.py`'s brand slots, and `deterministic_agent/responses.py` with its fixtures.
 
-`paint_meta.py` is carried with a named change. Its tag-to-DataPart bridge is generic and stays; its question-root constant and the biconditional built on it go, per decision 15. `<no-surface/>`'s sanctioned case is restated — the GitHub agent's is an action a read-only agent cannot perform, which does not transfer. The literal duplication between the two agents is Phase 3's extraction input, per phase decision 2.
+`paint_meta.py` and `executor.py` are carried with one named subtraction: the question-root constant and `validate_question_markers` go, per decision 15, along with the executor's call to it. The tag-to-DataPart bridge, the question-kind declaration, and the `<no-surface/>` mechanism are generic and stay untouched.
+
+`<no-surface/>` needs no code change. Its gate is mechanism — a turn may paint nothing only if it declared so — and only the sanctioned case is prompt text. The GitHub agent's case is an action a read-only agent cannot perform; Gmail's are a declined confirmation, a toggle whose result is already visible, and a request outside the mailbox. That rewrite lives in `prompt.py`.
+
+The literal duplication between the two agents is Phase 3's extraction input, per phase decision 2.
 
 ### 2. `gmail-catalog` is the basic catalog plus a product token theme
 
