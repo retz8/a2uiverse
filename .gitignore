@@ -33,3 +33,6 @@ CLAUDE.local.md
 
 # Orchestrator local state (intent journal; registry from M7)
 .state/
+
+# Google OAuth client secrets — developer-local, never committed (Workspace MCP setup)
+client_secret_*.json

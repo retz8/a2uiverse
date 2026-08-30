@@ -13,3 +13,6 @@ CLAUDE.md
 
 # Recorded beat fixtures — written by the recorder, not hand-edited
 apps/client/recordings
+
+# Local credential files (gitignored; listed here so the format gate ignores them too)
+client_secret_*.json
