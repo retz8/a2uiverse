@@ -14,7 +14,9 @@ The Gmail vendor app in `../a2uiverse-apps/gmail/`: a three-mode agent on port 1
 
 ### 1. Agent provenance: fork and rename
 
-`github/agent/` is copied to `gmail/agent/` and renamed. `server.py`, `executor.py`, `catalog.py`, `responder.py`, `recorder.py`, `paint_meta.py`, and `catalog_common/` stay as near-verbatim as renaming allows. Six things are authored fresh: `mcp.py`, `tools.py` with its fixtures, `tool_shaping.py`, `knowledge/`, `prompt.py`'s brand slots, and `deterministic_agent/responses.py` with its fixtures. The literal duplication between the two agents is Phase 3's extraction input, per phase decision 2.
+`github/agent/` is copied to `gmail/agent/` and renamed. `server.py`, `executor.py`, `catalog.py`, `responder.py`, `recorder.py`, and `catalog_common/` stay as near-verbatim as renaming allows. Six things are authored fresh: `mcp.py`, `tools.py` with its fixtures, `tool_shaping.py`, `knowledge/`, `prompt.py`'s brand slots, and `deterministic_agent/responses.py` with its fixtures.
+
+`paint_meta.py` is carried with a named change. Its tag-to-DataPart bridge is generic and stays; its question-root constant and the biconditional built on it go, per decision 15. `<no-surface/>`'s sanctioned case is restated — the GitHub agent's is an action a read-only agent cannot perform, which does not transfer. The literal duplication between the two agents is Phase 3's extraction input, per phase decision 2.
 
 ### 2. `gmail-catalog` is the basic catalog plus a product token theme
 
@@ -36,7 +38,7 @@ The credential is issued by a Desktop client inside `a2uiverse-506907`, so the `
 
 A2UIVerse agents are read-write by design. The GitHub agent's layered read-only posture is a GitHub-specific legacy, revisited later; it is not a platform invariant and is not reproduced here.
 
-Writes are authorized in two tiers. A **creating** write — composing a draft — is performed by the model in the painting turn and painted as an editable proposal; the mutation fires only on the user's confirm action from inside the fragment. A **toggling** write — labeling and unlabeling — fires directly on its action, without a confirm step.
+Writes are authorized in two tiers. A **creating** write — composing a draft — is performed by the model in the painting turn and painted as an editable proposal rooted in `Card`, declared `paintMeta.kind === "question"`; the mutation fires only on the user's confirm action from inside the fragment. The shell's promotion treatment supplies the proposal's emphasis; the agent paints no overlay of its own. A **toggling** write — labeling and unlabeling — fires directly on its action, without a confirm step.
 
 The server exposes twenty-three tools, including destructive ones: trashing, spam marking, and sensitive-label application. These are excluded from the agent's tool inventory by a client-side filter; the inventory is the reads plus draft creation, labeling, unlabeling, and label creation. Admitting destructive operations is deferred, and belongs with a real authority surface (M8) rather than with a scope grant.
 
@@ -68,7 +70,7 @@ The fixed seed is what lets a re-recorded beat reproduce the same substituted va
 
 The GitHub agent's split is kept: an imperative brand doc and a declarative domain doc, neither stating what a given screen should contain.
 
-The brand doc's job inverts. GitHub's chooses among a large component library; Gmail's states which of the eighteen basic primitives plays which Material 3 role, and carries a negative rule against composing extra structure to fake a shape the tokens already provide. It carries GitHub's rule on decomposing markdown into components rather than emitting it as one `Text`. The domain doc carries the fact that a reply body is its top segment, and that the quoted chain and signature below it are not new content.
+The brand doc's job inverts. GitHub's chooses among a large component library; Gmail's states which of the eighteen basic primitives plays which Material 3 role, and carries a negative rule against composing extra structure to fake a shape the tokens already provide. It carries GitHub's rule on decomposing markdown into components rather than emitting it as one `Text`, and a rule never to root a surface in `Modal`: the basic catalog's `Modal` opens only from its own trigger, so the agent cannot open it, and it paints fixed to the viewport, escaping the fragment boundary visually. The domain doc carries the fact that a reply body is its top segment, and that the quoted chain and signature below it are not new content.
 
 ### 11. Deterministic mode is the composition harness; one corpus feeds three modes
 
@@ -91,6 +93,14 @@ A beat is recorded by the sub-task whose agents exist. 2.6 records its own four 
 - `_dev/TODO.md`: the 2.6, 2.7, and 2.9 lines, for decision 13's split of beat recording.
 - Phase 2 acceptance: a new item for a write round-trip completing from inside a fragment and repainting only that fragment; and item 8's two clauses separated, so live-MCP evidence rests on the tunnel verification and determinism rests on the fixtures.
 - 2.8 takes the GitHub AgentCard retrofit, so the three cards are comparable retrieval documents.
+
+### 15. Questions are declared; the structural check is dropped
+
+The client routes on `paintMeta.kind === "question"` alone — its structural fallback is gone — so the agent must declare its questions. 2.6 inherits that requirement.
+
+The GitHub agent additionally enforces a biconditional between the declaration and a `ConfirmationDialog` root. That check has no anchor here: the basic catalog has no rare, purpose-built dialog component, and `Card` — the only plausible substitute — roots most surfaces regardless. The structural half is dropped; validation may instead require that a declared question surface carries at least one action.
+
+A fragment declaring a question is not overlaid. The shell raises its slot and dims the complement, and that emphasis is plural rather than modal.
 
 ## Invariants
 
