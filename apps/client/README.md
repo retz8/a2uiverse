@@ -33,7 +33,9 @@ The canvas sends to `VITE_ORCHESTRATOR_URL` (default `http://localhost:10001`; s
 
 ## Working without the LLM
 
-`index.html?beat=<name>[,<name>…]` (`&instant` to skip pacing) replays beats through the full canvas turn lifecycle, zero tokens. Synthetic beats ship with the client: `plain`, `plain-2`, `validation`, `question`. Recorded beats (`recordings/beats/*.json`) are addressed by number — `1` PR list, `2` PR detail, `3` review compose (chained after 2, so replay it as `2,3`).
+`index.html?beat=<name>[,<name>…]` (`&instant` to skip pacing) replays beats through the full canvas turn lifecycle, zero tokens. Synthetic beats ship with the client: `plain`, `plain-2`, `validation`, `question`, and three
+composed turns — `composed` (two slots, one filling and one failing), `composed-solo` (the
+degenerate one-slot case) and `composed-question` (a fragment the shell promotes). Recorded beats (`recordings/beats/*.json`) are addressed by number — `1` PR list, `2` PR detail, `3` review compose (chained after 2, so replay it as `2,3`).
 
 ## Scripts (on demand, not part of `pnpm verify`)
 
@@ -59,6 +61,7 @@ src/
   orchestratorApi.ts the client's non-A2A channel to the orchestrator (catalog records, URL)
   catalogs/          catalogId → {catalog, Provider} resolver; SurfaceFrame; the GitHub provider
   canvas/            the canvas shell — has its own README
+                     (canvas/composition/ holds the client's half of composition)
   a2a/               the A2A transport: agent-card resolution, session, streaming send,
                      action handler, paintMeta + fork context, a2uiClientCapabilities
   a2ui/              applying streamed A2UI message batches to a processor
