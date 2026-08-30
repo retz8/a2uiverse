@@ -30,7 +30,7 @@ The theme writes the base tier — colors, shape, type, spacing — plus a delib
 
 The agent obtains its access token through Application Default Credentials, read at startup and refreshed by the credential library. `agent/.env` carries no token — only the project id, sent as the `X-Goog-User-Project` header. The consent flow remains a one-time developer setup outside the agent, which never sees a client secret and never runs a browser flow. A missing or insufficiently-scoped credential fails fast at startup rather than degrading to canned data, matching the GitHub agent's treatment of its missing PAT.
 
-The credential carries `gmail.readonly`, `gmail.compose`, and `gmail.modify`. `gmail.modify` is what the toggling tier of decision 5 requires, and it is the coarsest of the three: no narrower scope grants labeling.
+The credential is issued by a Desktop client inside `a2uiverse-506907`, so the `X-Goog-User-Project` header is explicit rather than load-bearing. It carries `gmail.readonly`, `gmail.compose`, and `gmail.modify`. `gmail.modify` is what the toggling tier of decision 5 requires, and it is the coarsest of the three: no narrower scope grants labeling.
 
 ### 5. The agent is read-write; writes are compose-in-paint, mutate-on-confirm
 

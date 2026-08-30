@@ -17,7 +17,7 @@
 
 ### 1. Full three-mode agents, real Google MCP now
 
-Gmail and Calendar are built like the GitHub agent — `deterministic` / `llm`+MCP / `llm`+stub — with real Google MCP exercised in this phase. Mock data is derived from real MCP payloads, not invented. Targets are Google's official per-product Workspace MCP servers (Gmail `gmailmcp.googleapis.com/mcp/v1`, Calendar `calendarmcp.googleapis.com/mcp/v1`, remote streamable-HTTP). GCP project `a2uiverse-506907` (owner `jiohin@umich.edu`) is enrolled in the Workspace Developer Preview and carries the four required APIs; every call sends `X-Goog-User-Project: a2uiverse-506907`. The credential is an ADC-style OAuth token obtained by a one-time developer setup outside the agent; agents read it from the environment, parallel to `GITHUB_MCP_PAT`. No auth code in agents; nothing front-runs AuthVault (M8).
+Gmail and Calendar are built like the GitHub agent — `deterministic` / `llm`+MCP / `llm`+stub — with real Google MCP exercised in this phase. Mock data is derived from real MCP payloads, not invented. Targets are Google's official per-product Workspace MCP servers (Gmail `gmailmcp.googleapis.com/mcp/v1`, Calendar `calendarmcp.googleapis.com/mcp/v1`, remote streamable-HTTP). GCP project `a2uiverse-506907` (owner `jiohin@umich.edu`) is enrolled in the Workspace Developer Preview and carries the four required APIs; every call sends `X-Goog-User-Project: a2uiverse-506907`. The credential is an ADC-style OAuth token issued by a Desktop client inside that same project, obtained by a one-time developer setup outside the agent; agents read it from the environment, parallel to `GITHUB_MCP_PAT`. No auth code in agents; nothing front-runs AuthVault (M8).
 
 ### 2. No template in Phase 2
 
@@ -115,6 +115,5 @@ Final gate: **Claude-in-Chrome live verification through the tunnel** for items 
 - Attribution's visual design (marker form, prop-vs-sibling component shape) — the shell-catalog sub-task's own grill.
 - The Planner's layout/plan vocabulary — task-internal to the orchestrator sub-task.
 - Whether the placement fact is stamped per-message or once per surface — task-internal to the extension sub-task.
-- OAuth client tidy-up: recreate the Desktop client inside `a2uiverse-506907` and re-point the credential (works today via the old project's client + header override).
 - Embedder placement (shared platform package) — revisit at M9.
 - Isolation-strength escalation — trigger-gated on the detector; target decided when triggered.
