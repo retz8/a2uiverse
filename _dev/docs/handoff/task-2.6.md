@@ -65,15 +65,14 @@ Guards that came out of it, all still in place:
 
 ## Next
 
-1. **Push `a2uiverse-apps`.** Everything below it is blocked: the client consumes
-   `gmail-catalog` as a git dependency, so stage E of the plan — the client catalog map and
-   `TABLE` entry, the git dep and `allowBuilds` line, `GMAIL_CATALOG_ID` verification in
+1. **Push `a2uiverse-apps`.** The only thing left, and everything downstream waits on it: the
+   client consumes `gmail-catalog` as a git dependency, so stage E — the client catalog map
+   and `TABLE` entry, the git dep and `allowBuilds` line, `GMAIL_CATALOG_ID` verification in
    `registry/entries.ts`, the four Gmail specs in `apps/client/scripts/lib/beats.ts`, and the
    `shell-catalog` parity-message change — cannot start until the catalog resolves.
-2. **Amend the phase spec.** Task decision 14 lists the amendments 2.6 requires and none are
-   applied yet: the Phase 2 acceptance list needs a write-round-trip item, item 8's two
-   clauses need separating, and 2.8 needs the GitHub AgentCard retrofit.
-3. The `_dev/TODO.md` beat-split lines are already amended; 2.6 stays `[WIP]` until it merges.
+2. Decision 14's amendments are **applied**: Phase 2 acceptance gained the write round-trip
+   (item 10) and split item 8 from deterministic replay (now item 9), and 2.8 owns the GitHub
+   AgentCard retrofit.
 
 ## Notes
 

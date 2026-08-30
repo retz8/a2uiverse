@@ -96,10 +96,12 @@ This phase's doc edits: §4.1 one-tree wording (rendered tree, not wire; graft =
 5. Plan/fill/collapse: killing one agent mid-turn flips its slot to failed via shell repaint; the other fragments are unaffected; slot positions never permute. A fragment failing client-side validation reports `VALIDATION_FAILED` and lands in the same failed state.
 6. Collision detector green in CI: Gmail + Calendar mounted together resolve the same `--a2ui-*` variable to different values per subtree; no global writes of shared variables; no DOM outside a fragment boundary (github-catalog portal root anchored).
 7. One journal line per turn, embedding non-null, dispatch list recording all fan-out targets.
-8. Real MCP: each Google agent in `llm` mode answers from its live MCP endpoint at least once, recorded as beats; visual Playwright specs replay deterministically so acceptance doesn't depend on live Google availability.
-9. Gates green in both repos; `github-catalog` republished with scoped provider + anchored portal root; ChoicePicker patch applied.
+8. Real MCP: each Google agent in `llm` mode answers from its live MCP endpoint at least once, observed directly — the tunnel verification is where this is evidenced.
+9. Deterministic replay: the tracked beats and the visual Playwright specs replay without the network, so acceptance never depends on live Google availability. A beat is a pseudonymized recording and is therefore not evidence for item 8.
+10. Write round-trip: a write completes from inside a fragment and repaints only that fragment. Both tiers are exercised — a creating write (draft) fires only on the user's confirm action from the painted proposal; a toggling write (label) fires directly on its action. No other slot is touched.
+11. Gates green in both repos; `github-catalog` republished with scoped provider + anchored portal root; ChoicePicker patch applied.
 
-Final gate: **Claude-in-Chrome live verification through the tunnel** for items 1, 4, and 5.
+Final gate: **Claude-in-Chrome live verification through the tunnel** for items 1, 4, 5, 8 and 10.
 
 ## Invariants
 
