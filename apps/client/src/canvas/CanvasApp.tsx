@@ -47,7 +47,16 @@ export function CanvasApp({serverUrl, client, catalogs}: CanvasAppProps) {
   const state = useSyncExternalStore(wiring.store.subscribe, wiring.store.getState);
 
   // What a `Slot` in the shell surface renders: the fragment placed in it, inside its boundary.
-  const slotContent = useSlotContent(wiring.processor, state.placement, state.appliedSeq);
+  const slotContent = useSlotContent(
+    wiring.processor,
+    state.placement,
+    state.appliedSeq,
+    state.promoted,
+  );
+
+  // Promotion is plural, so it is emphasis rather than a modal: no focus trap, and the count
+  // is announced instead of the focus being seized.
+  const promotedCount = state.promoted.size;
 
   // The ?beat= replay affordance, read once at mount. A comma-separated list runs in sequence.
   const [beatParams] = useState(() => {
@@ -115,6 +124,14 @@ export function CanvasApp({serverUrl, client, catalogs}: CanvasAppProps) {
           ) : (
             <CanvasStage processor={wiring.processor} state={state} />
           )}
+          {promotedCount > 0 && (
+            <div className="canvas-scrim" data-testid="canvas-scrim" aria-hidden="true" />
+          )}
+          <div role="status" aria-live="polite" className="canvas-visually-hidden">
+            {promotedCount > 0
+              ? `${promotedCount} ${promotedCount === 1 ? 'source needs' : 'sources need'} your answer`
+              : ''}
+          </div>
           <CanvasOverlay processor={wiring.processor} state={state} />
           <AmbientNotice notice={state.notice} onDismiss={wiring.store.dismissNotice} />
           <HistoryChrome

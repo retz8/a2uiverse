@@ -920,3 +920,110 @@ describe('fragment failure reporting', () => {
     expect(store.getState().error).toMatch(/failed/);
   });
 });
+
+describe('shell-granted promotion', () => {
+  const SHELL: CompositionStamp = {source: 'shell', role: 'shell'};
+  const fragment = (source: string, slot: string): CompositionStamp => ({
+    source,
+    slot,
+    role: 'fragment',
+  });
+  const shellPaint = (slots: string[]) => [
+    msg({createSurface: {surfaceId: 'shell:main', catalogId: SHELL_CATALOG_ID}}),
+    msg({
+      updateComponents: {
+        surfaceId: 'shell:main',
+        components: [
+          {id: 'root', component: 'Column', children: slots},
+          ...slots.map(name => ({id: name, component: 'Slot', name, state: 'pending'})),
+        ],
+      },
+    }),
+  ];
+
+  function promotionSetup() {
+    const catalogs = [CATALOG, SHELL_CATALOG];
+    const processor = new MessageProcessor(catalogs);
+    const store = createCanvasStore();
+    const runner = createTurnRunner({
+      processor,
+      store,
+      createStaging: () => new MessageProcessor(catalogs),
+    });
+    return {processor, store, runner};
+  }
+
+  it('a question fragment is promoted in place, never lifted into the overlay', () => {
+    const {store, runner} = promotionSetup();
+    const turn = runner.begin(utterance('compose'));
+    turn.apply(shellPaint(['slot-github']), SHELL);
+    turn.apply(
+      [create('github:ask'), dialogRoot('github:ask', 'Which repository?')],
+      fragment('github', 'slot-github'),
+    );
+    turn.end();
+
+    expect([...store.getState().promoted]).toEqual(['slot-github']);
+    // The invariant: it stays where the shell put it.
+    expect(store.getState().overlay).toBeNull();
+    expect(store.getState().stageId).toBe('shell:main');
+    expect(store.getState().placement.get('slot-github')?.surfaceId).toBe('github:ask');
+  });
+
+  it('several fragments can ask at once — promotion is plural, not a modal', () => {
+    const {store, runner} = promotionSetup();
+    const turn = runner.begin(utterance('compose'));
+    turn.apply(shellPaint(['slot-github', 'slot-gmail']), SHELL);
+    turn.apply(
+      [create('github:ask'), dialogRoot('github:ask', 'Which repository?')],
+      fragment('github', 'slot-github'),
+    );
+    turn.apply(
+      [create('gmail:ask'), dialogRoot('gmail:ask', 'Which account?')],
+      fragment('gmail', 'slot-gmail'),
+    );
+    turn.end();
+
+    expect([...store.getState().promoted].sort()).toEqual(['slot-github', 'slot-gmail']);
+    expect(store.getState().overlay).toBeNull();
+  });
+
+  it('an ordinary fragment is not promoted', () => {
+    const {store, runner} = promotionSetup();
+    const turn = runner.begin(utterance('compose'));
+    turn.apply(shellPaint(['slot-github']), SHELL);
+    turn.apply(
+      [create('github:prs'), textRoot('github:prs', 'PRs')],
+      fragment('github', 'slot-github'),
+    );
+    turn.end();
+    expect(store.getState().promoted.size).toBe(0);
+  });
+
+  it('promotion clears when the composition is torn down', () => {
+    const {store, runner} = promotionSetup();
+    const first = runner.begin(utterance('compose'));
+    first.apply(shellPaint(['slot-github']), SHELL);
+    first.apply(
+      [create('github:ask'), dialogRoot('github:ask', 'Which repository?')],
+      fragment('github', 'slot-github'),
+    );
+    first.end();
+    expect(store.getState().promoted.size).toBe(1);
+
+    const second = runner.begin(utterance('compose again'));
+    second.apply(shellPaint(['slot-github']), SHELL);
+    second.end();
+    expect(store.getState().promoted.size).toBe(0);
+  });
+
+  it('a shell-painted question still takes the overlay', () => {
+    const {store, runner} = promotionSetup();
+    const turn = runner.begin(utterance('ask'));
+    turn.apply([create('which-repo'), dialogRoot('which-repo', 'Which repository?')], SHELL);
+    turn.end();
+
+    expect(store.getState().overlay?.surfaceId).toBe('which-repo');
+    expect(store.getState().promoted.size).toBe(0);
+  });
+});

@@ -28,6 +28,7 @@ export function ParkedStage({entry, create, attach}: ParkedStageProps) {
 
   // A parked composition resolves its slots against the sandbox, not the live registry — the
   // same resolver the live stage uses, pointed at the rehydrated surfaces.
+  // No promotion in a parked view: the demand it recorded belongs to a paint that has departed.
   const slotContent = useSlotContent(session.processor, session.placement, entry.paintId);
 
   const surface = session.processor.model.getSurface(session.surfaceId);

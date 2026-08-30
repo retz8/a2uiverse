@@ -28,12 +28,13 @@ export function renderSlotContent(
   surfaces: SurfaceSource,
   placed: PlacedFragment | undefined,
   resetKey: number,
+  promoted = false,
 ): ReactNode | null {
   if (!placed) return null;
   const surface = surfaces.model.surfacesMap.get(placed.surfaceId);
   if (!surface) return null;
   return (
-    <FragmentBoundary source={placed.source} surfaceId={placed.surfaceId}>
+    <FragmentBoundary source={placed.source} surfaceId={placed.surfaceId} promoted={promoted}>
       {/* Per-fragment containment: one vendor's render failure must not take the shell with it. */}
       <SurfaceErrorBoundary surfaceId={placed.surfaceId} resetKey={resetKey}>
         <SurfaceFrame surface={surface} />
@@ -47,9 +48,11 @@ export function useSlotContent(
   surfaces: SurfaceSource,
   placement: ReadonlyMap<string, PlacedFragment>,
   resetKey: number,
+  promoted?: ReadonlySet<string>,
 ): SlotContentResolver {
   return useCallback(
-    (slotName: string) => renderSlotContent(surfaces, placement.get(slotName), resetKey),
-    [surfaces, placement, resetKey],
+    (slotName: string) =>
+      renderSlotContent(surfaces, placement.get(slotName), resetKey, promoted?.has(slotName)),
+    [surfaces, placement, resetKey, promoted],
   );
 }

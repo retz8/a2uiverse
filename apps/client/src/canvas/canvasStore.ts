@@ -53,6 +53,13 @@ export interface CanvasState {
    * is its rendered projection. Empty when the stage holds an uncomposed paint.
    */
   placement: ReadonlyMap<string, PlacedFragment>;
+  /**
+   * Slots whose fragment has asked for attention. A vendor cannot seize the canvas: it declares
+   * a question, and the shell decides how to express it — here, by dimming the complement and
+   * raising these. Plural by construction, since a fan-out can produce several at once, which is
+   * why this is emphasis and not a modal.
+   */
+  promoted: ReadonlySet<string>;
 }
 
 export interface CanvasStore {
@@ -93,6 +100,11 @@ export interface CanvasStore {
   placeFragment(slot: string, fragment: PlacedFragment): void;
   /** The composition left the canvas: forget where its fragments were. */
   clearPlacement(): void;
+  /** A fragment asks for attention; the shell grants it. */
+  promoteSlot(slot: string): void;
+  /** Answered, failed, or gone: the slot drops back to the rest of the canvas. */
+  demoteSlot(slot: string): void;
+  clearPromotions(): void;
 }
 
 /**
@@ -119,6 +131,7 @@ export function createCanvasStore(): CanvasStore {
     notice: null,
     appliedSeq: 0,
     placement: new Map(),
+    promoted: new Set(),
   };
   let noticeKey = 0;
   let paintId = 0;
@@ -178,6 +191,18 @@ export function createCanvasStore(): CanvasStore {
       set({placement: new Map(state.placement).set(slot, fragment)}),
     clearPlacement: () => {
       if (state.placement.size) set({placement: new Map()});
+    },
+    promoteSlot: slot => {
+      if (!state.promoted.has(slot)) set({promoted: new Set(state.promoted).add(slot)});
+    },
+    demoteSlot: slot => {
+      if (!state.promoted.has(slot)) return;
+      const next = new Set(state.promoted);
+      next.delete(slot);
+      set({promoted: next});
+    },
+    clearPromotions: () => {
+      if (state.promoted.size) set({promoted: new Set()});
     },
   };
 }

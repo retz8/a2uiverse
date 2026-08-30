@@ -43,6 +43,7 @@ describe('createCanvasStore', () => {
       notice: null,
       appliedSeq: 0,
       placement: new Map(),
+      promoted: new Set(),
     });
   });
 
@@ -68,6 +69,22 @@ describe('createCanvasStore', () => {
     store.placeFragment('slot-github', {surfaceId: 'github:prs', source: 'github'});
     store.clearPlacement();
     expect(store.getState().placement.size).toBe(0);
+  });
+
+  it('promotes and demotes slots, and no-ops on a repeat', () => {
+    const store = createCanvasStore();
+    store.promoteSlot('slot-github');
+    const promoted = store.getState();
+    store.promoteSlot('slot-github');
+    expect(store.getState()).toBe(promoted);
+
+    store.promoteSlot('slot-gmail');
+    expect([...store.getState().promoted].sort()).toEqual(['slot-github', 'slot-gmail']);
+
+    store.demoteSlot('slot-github');
+    expect([...store.getState().promoted]).toEqual(['slot-gmail']);
+    store.clearPromotions();
+    expect(store.getState().promoted.size).toBe(0);
   });
 
   it('appendEntry grows the timeline immutably, in order', () => {

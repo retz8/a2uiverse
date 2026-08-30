@@ -218,8 +218,16 @@ export function createCanvasWiring({
     }
   };
 
+  /** Answering a promoted fragment is what ends its demand for attention. */
+  const demoteFor = (surfaceId: string) => {
+    for (const [slot, placed] of store.getState().placement) {
+      if (placed.surfaceId === surfaceId) store.demoteSlot(slot);
+    }
+  };
+
   const actionHandler: ActionListener = action => {
     const state = store.getState();
+    demoteFor(action.surfaceId);
     if (state.overlay && action.surfaceId === state.overlay.surfaceId) {
       // Answering the question (either dialog action): capture the Q&A into the cause and
       // remove the dialog at dispatch — always live. Answering from a parked view is an

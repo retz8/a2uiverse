@@ -189,6 +189,7 @@ export function createTurnRunner({
     // vendors through the hub's per-dispatch partition filter as stale state.
     for (const placed of placement.values()) processor.model.deleteSurface(placed.surfaceId);
     store.clearPlacement();
+    store.clearPromotions();
     store.setStage(null);
   };
 
@@ -238,6 +239,8 @@ export function createTurnRunner({
       const slot = fragmentSlots.get(surfaceId);
       if (slot === undefined) return;
       reported.add(surfaceId);
+      // A slot that failed has nothing left to answer.
+      store.demoteSlot(slot);
       onFragmentFailure({surfaceId, slot, path, message});
     };
 
@@ -347,6 +350,16 @@ export function createTurnRunner({
       store.placeFragment(slot, {surfaceId, source});
     };
 
+    /**
+     * A fragment declaring a question does not get the overlay — that would re-parent it out of
+     * the slot the shell promised it, and would let one vendor block the whole canvas. The shell
+     * expresses the demand instead, in place.
+     */
+    const settlePromotion = (slot: string) => {
+      const placed = store.getState().placement.get(slot);
+      if (placed && isQuestion(processor, placed.surfaceId)) store.promoteSlot(slot);
+    };
+
     /** The slot a batch's stamp claims, when it is a fragment's. */
     const slotOf = (stamp?: CompositionStamp) =>
       stamp?.role === 'fragment' ? stamp.slot : undefined;
@@ -383,6 +396,7 @@ export function createTurnRunner({
         }
       }
       applyA2uiMessages(processor, messages, {onMessageError});
+      if (slot) settlePromotion(slot);
       // Single occupancy: the most recently created *stage* surface keeps the stage. Fragments
       // live in the processor only to be mounted through their slots; they never contend for it.
       const ids = Array.from(processor.model.surfacesMap.keys()).filter(
@@ -487,7 +501,9 @@ export function createTurnRunner({
       // Claims land only now: retireStage cleared the outgoing composition's placement, and the
       // replay above is what put these surfaces in the live processor.
       for (const {slot, surfaceId, source} of claims) {
-        if (survivorSet.has(surfaceId)) claimSlot(slot, surfaceId, source);
+        if (!survivorSet.has(surfaceId)) continue;
+        claimSlot(slot, surfaceId, source);
+        settlePromotion(slot);
       }
       for (const id of stagePaints.slice(0, -1)) retireIntermediate(id);
       if (stagePaints.length > 0) {
