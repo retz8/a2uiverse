@@ -19,15 +19,37 @@ The Calendar vendor app in `../a2uiverse-apps/calendar/`: a three-mode agent on 
 
 Rescheduling is out of scope. It is neither tier cleanly — it mutates an existing event and notifies attendees — and edit-in-place as a distinct painting problem belongs with Phase 5's temporal merge, where it bears on an acceptance item.
 
-### 2. The scope grant and the tool filter, with notification suppression as a real second layer
+### 2. The scope grant and the tool filter, with two enforced pins behind them
 
-The tool inventory is pinned client-side to the reads plus event creation and the attendee-response tool, everything else withheld by name, as Gmail's is. Deletion, and any tool notifying attendees about an existing event, are excluded.
+The tool inventory is pinned client-side to the reads plus event creation and the
+attendee-response tool, everything else withheld by name.
 
-Calendar's scope ladder collapses to a single layer as Gmail's does, and for a sharper reason: the write scope grants full CRUD including deletion, and the narrower owned-events scope cannot cover the toggling tier at all, since a response is made on an event the user does not own. So the credential permits what the filter withholds, exactly as in Gmail.
+Calendar's scope ladder collapses to a single layer as Gmail's does, and for a sharper reason:
+the write scope grants full CRUD including deletion, and the narrower owned-events scope cannot
+cover the toggling tier at all, since a response is made on an event the user does not own. So
+the credential permits what the filter withholds, exactly as in Gmail.
 
-Unlike Gmail, a second layer is available here and is taken: the notification parameter is forced to a non-notifying value on every admitted write, so a created event cannot mail attendees even if the model asks it to. This is documented as what it is — a genuine second layer, stated as covering invitations and not the event's existence — rather than mirroring Gmail's single-layer posture for symmetry.
+Unlike Gmail, further layers are available here and are taken. Both are enforced at the tool
+boundary, in every run mode, and both are filtered through the tool's own MCP schema — the
+server rejects an argument a tool does not declare, so a pin applied blind breaks the calls it
+does not apply to.
 
-A consequence to carry into the painted surface: an event created without notifications is one its attendees do not know about. The `event-create` proposal says so rather than implying invitations went out.
+**Notification suppression.** Every call that can notify is forced non-notifying. This is a
+genuine second layer where Gmail had none, and it is documented as what it is: it stops the
+invitations, it does not stop the event existing. A consequence carried into the painted
+surface — an event created without notifications is one its attendees do not know about, so the
+proposal says so rather than implying invitations went out.
+
+**Calendar confinement.** The calendar is a per-call argument whose default is the user's own
+primary calendar, so decision 4's guarantee would otherwise rest on the model's discretion. It
+is overwritten on every call rather than requested. Two tools the server offers cannot be
+confined this way because they take no calendar argument at all; both are withheld for that
+reason, and the admitted inventory is exactly the set that can be confined.
+
+*(Amended after the first live run. The provisional inventory guessed both the notification
+parameter and a tool that does not exist; the confinement pin was not in the original decision
+at all, and the live schema is what showed it was needed. The parameter names and the admitted
+set are now read from the server, not proposed.)*
 
 ### 3. The theme diverges from Gmail where Calendar genuinely does
 
