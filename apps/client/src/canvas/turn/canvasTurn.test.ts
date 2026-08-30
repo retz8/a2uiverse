@@ -672,7 +672,10 @@ describe('composed turns (the hub stamps its events)', () => {
     turn.end();
 
     expect(store.getState().stageId).toBe('shell:main');
-    expect(store.getState().placement.get('slot-github')).toBe('github:prs');
+    expect(store.getState().placement.get('slot-github')).toEqual({
+      surfaceId: 'github:prs',
+      source: 'github',
+    });
     // The fragment lives in the registry to be mounted, but is not a paint of its own.
     expect(processor.model.getSurface('github:prs')).toBeDefined();
     expect(store.getState().timeline.map(e => e.surfaceId)).toEqual(['shell:main']);
@@ -715,7 +718,7 @@ describe('composed turns (the hub stamps its events)', () => {
     turn.apply([create('github:b'), textRoot('github:b', 'b')], fragment('github', 'slot-github'));
     turn.end();
 
-    expect(store.getState().placement.get('slot-github')).toBe('github:b');
+    expect(store.getState().placement.get('slot-github')?.surfaceId).toBe('github:b');
     expect(processor.model.getSurface('github:a')).toBeUndefined();
   });
 
@@ -747,7 +750,10 @@ describe('composed turns (the hub stamps its events)', () => {
     flip.end();
 
     expect(store.getState().stageId).toBe('shell:main');
-    expect(store.getState().placement.get('slot-github')).toBe('github:prs');
+    expect(store.getState().placement.get('slot-github')).toEqual({
+      surfaceId: 'github:prs',
+      source: 'github',
+    });
     expect(processor.model.getSurface('github:prs')).toBeDefined();
   });
 

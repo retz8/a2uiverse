@@ -146,7 +146,7 @@ export function createTurnRunner({processor, store, createStaging}: TurnRunnerOp
     // A composition leaves with its shell: the fragments belong to that paint, not to the canvas.
     // Without the cascade they would linger in the live registry and ride back out to their
     // vendors through the hub's per-dispatch partition filter as stale state.
-    for (const surfaceId of placement.values()) processor.model.deleteSurface(surfaceId);
+    for (const placed of placement.values()) processor.model.deleteSurface(placed.surfaceId);
     store.clearPlacement();
     store.setStage(null);
   };
@@ -181,7 +181,7 @@ export function createTurnRunner({processor, store, createStaging}: TurnRunnerOp
     /** Of those, the ones that are fragments: they fill slots and never contend for the stage. */
     const fragmentIds = new Set<string>();
     /** Staged-mode slot claims, applied once their surfaces reach the live processor. */
-    const claims: Array<{slot: string; surfaceId: string}> = [];
+    const claims: Array<{slot: string; surfaceId: string; source: string}> = [];
     /** Staged-mode buffer: the messages replayed into the live processor at swap. */
     const buffered: A2uiMessage[] = [];
     let canceled = false;
@@ -247,13 +247,14 @@ export function createTurnRunner({processor, store, createStaging}: TurnRunnerOp
 
     /** A surface that fills a slot rather than the stage — this turn's, or the composition's. */
     const isFragmentSurface = (id: string) =>
-      fragmentIds.has(id) || [...store.getState().placement.values()].includes(id);
+      fragmentIds.has(id) || [...store.getState().placement.values()].some(p => p.surfaceId === id);
 
     /** A fragment claims its slot. One surface per slot: a later claim retires the earlier. */
-    const claimSlot = (slot: string, surfaceId: string) => {
+    const claimSlot = (slot: string, surfaceId: string, source: string) => {
       const previous = store.getState().placement.get(slot);
-      if (previous && previous !== surfaceId) processor.model.deleteSurface(previous);
-      store.placeFragment(slot, surfaceId);
+      if (previous && previous.surfaceId !== surfaceId)
+        processor.model.deleteSurface(previous.surfaceId);
+      store.placeFragment(slot, {surfaceId, source});
     };
 
     /** The slot a batch's stamp claims, when it is a fragment's. */
@@ -285,9 +286,9 @@ export function createTurnRunner({processor, store, createStaging}: TurnRunnerOp
         const {kind, surfaceId} = targetOf(message);
         if (kind === 'create' && surfaceId) {
           createdIds.add(surfaceId);
-          if (slot) {
+          if (slot && stamp) {
             fragmentIds.add(surfaceId);
-            claimSlot(slot, surfaceId);
+            claimSlot(slot, surfaceId, stamp.source);
           }
         }
       }
@@ -310,10 +311,10 @@ export function createTurnRunner({processor, store, createStaging}: TurnRunnerOp
         // The turn's own paint: staging shadows live, so a same-id repaint streams off-stage.
         if (surfaceId !== undefined && (createdIds.has(surfaceId) || kind === 'create')) {
           createdIds.add(surfaceId);
-          if (slot && kind === 'create') {
+          if (slot && stamp && kind === 'create') {
             fragmentIds.add(surfaceId);
             // Held until the surface reaches live at swap — a slot may not point into staging.
-            claims.push({slot, surfaceId});
+            claims.push({slot, surfaceId, source: stamp.source});
           }
           applyA2uiMessages(staging as TurnProcessor, [message], {onMessageError});
           buffered.push(message);
@@ -395,8 +396,8 @@ export function createTurnRunner({processor, store, createStaging}: TurnRunnerOp
       applyA2uiMessages(processor, replayable, {onMessageError});
       // Claims land only now: retireStage cleared the outgoing composition's placement, and the
       // replay above is what put these surfaces in the live processor.
-      for (const {slot, surfaceId} of claims) {
-        if (survivorSet.has(surfaceId)) claimSlot(slot, surfaceId);
+      for (const {slot, surfaceId, source} of claims) {
+        if (survivorSet.has(surfaceId)) claimSlot(slot, surfaceId, source);
       }
       for (const id of stagePaints.slice(0, -1)) retireIntermediate(id);
       if (stagePaints.length > 0) {

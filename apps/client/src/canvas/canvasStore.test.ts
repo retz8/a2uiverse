@@ -48,16 +48,14 @@ describe('createCanvasStore', () => {
 
   it('places fragments in slots, one surface per slot', () => {
     const store = createCanvasStore();
-    store.placeFragment('slot-github', 'github:prs');
-    store.placeFragment('slot-gmail', 'gmail:inbox');
-    expect([...store.getState().placement]).toEqual([
-      ['slot-github', 'github:prs'],
-      ['slot-gmail', 'gmail:inbox'],
-    ]);
+    store.placeFragment('slot-github', {surfaceId: 'github:prs', source: 'github'});
+    store.placeFragment('slot-gmail', {surfaceId: 'gmail:inbox', source: 'gmail'});
+    expect([...store.getState().placement.keys()]).toEqual(['slot-github', 'slot-gmail']);
+    expect(store.getState().placement.get('slot-gmail')?.source).toBe('gmail');
 
     // A later claim displaces the earlier tenant rather than joining it.
-    store.placeFragment('slot-github', 'github:prs-2');
-    expect(store.getState().placement.get('slot-github')).toBe('github:prs-2');
+    store.placeFragment('slot-github', {surfaceId: 'github:prs-2', source: 'github'});
+    expect(store.getState().placement.get('slot-github')?.surfaceId).toBe('github:prs-2');
     expect(store.getState().placement.size).toBe(2);
   });
 
@@ -67,7 +65,7 @@ describe('createCanvasStore', () => {
     store.clearPlacement();
     expect(store.getState()).toBe(before);
 
-    store.placeFragment('slot-github', 'github:prs');
+    store.placeFragment('slot-github', {surfaceId: 'github:prs', source: 'github'});
     store.clearPlacement();
     expect(store.getState().placement.size).toBe(0);
   });

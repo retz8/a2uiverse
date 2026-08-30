@@ -11,6 +11,13 @@ import type {PaintEntry, PaintSnapshot} from './timeline/paint';
 /** The ring cap — a stated policy bound, not a memory guard. */
 export const TIMELINE_CAP = 50;
 
+/** A fragment mounted into a slot: which surface, and which app painted it. */
+export interface PlacedFragment {
+  surfaceId: string;
+  /** The stamp's `source` — the app id, carried so nothing has to parse it back out of ids. */
+  source: string;
+}
+
 /** The pending question paint occupying the overlay slot. */
 export interface OverlayState {
   surfaceId: string;
@@ -41,11 +48,11 @@ export interface CanvasState {
   /** Bumped per applied batch — re-renders the stage and resets its error boundary. */
   appliedSeq: number;
   /**
-   * The composition's placement: slot name → the fragment surface filling it. The only
-   * composition state the client holds — the orchestrator is canonical for the rest, and the
-   * shell surface is its rendered projection. Empty when the stage holds an uncomposed paint.
+   * The composition's placement: slot name → the fragment filling it. The only composition
+   * state the client holds — the orchestrator is canonical for the rest, and the shell surface
+   * is its rendered projection. Empty when the stage holds an uncomposed paint.
    */
-  placement: ReadonlyMap<string, string>;
+  placement: ReadonlyMap<string, PlacedFragment>;
 }
 
 export interface CanvasStore {
@@ -76,7 +83,7 @@ export interface CanvasStore {
    * A fragment claims its slot. One surface per slot: a later claim displaces the earlier, which
    * the caller is responsible for retiring from the processor.
    */
-  placeFragment(slot: string, surfaceId: string): void;
+  placeFragment(slot: string, fragment: PlacedFragment): void;
   /** The composition left the canvas: forget where its fragments were. */
   clearPlacement(): void;
 }
@@ -159,8 +166,8 @@ export function createCanvasStore(): CanvasStore {
       if (state.notice?.key === key) set({notice: null});
     },
     bumpApplied: () => set({appliedSeq: state.appliedSeq + 1}),
-    placeFragment: (slot, surfaceId) =>
-      set({placement: new Map(state.placement).set(slot, surfaceId)}),
+    placeFragment: (slot, fragment) =>
+      set({placement: new Map(state.placement).set(slot, fragment)}),
     clearPlacement: () => {
       if (state.placement.size) set({placement: new Map()});
     },
