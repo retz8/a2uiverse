@@ -1,4 +1,5 @@
 import type {A2uiClientDataModel, A2uiMessage} from '@a2ui/web_core/v0_9';
+import type {CompositionStamp} from '@a2uiverse/sdk';
 import type {GetSender} from './client';
 import {sendAndApply} from './client';
 import type {ForkContext, PaintMeta} from './messages';
@@ -7,8 +8,8 @@ import type {A2ASession} from './session';
 
 export interface StreamUserMessageOptions {
   getSender: GetSender;
-  /** Applies the streamed A2UI messages into the processor. */
-  apply: (messages: A2uiMessage[]) => void;
+  /** Applies the streamed A2UI messages into the processor, with their event's composition stamp. */
+  apply: (messages: A2uiMessage[], stamp?: CompositionStamp) => void;
   /** Conversation session; threads the contextId across turns when given. */
   session?: A2ASession;
   /**
@@ -63,11 +64,7 @@ export async function streamUserMessage(
         opts.forkContext,
         opts.supportedCatalogIds,
       ),
-      apply,
-      session,
-      onAgentText,
-      signal,
-      opts.onPaintMeta,
+      {apply, session, onAgentText, signal, onPaintMeta: opts.onPaintMeta},
     );
   } catch (err) {
     if (signal?.aborted) return;

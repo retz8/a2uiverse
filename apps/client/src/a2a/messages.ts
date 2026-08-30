@@ -7,6 +7,8 @@ import type {
   Part,
 } from '@a2a-js/sdk';
 import type {A2uiClientAction, A2uiClientDataModel, A2uiMessage} from '@a2ui/web_core/v0_9';
+import type {CompositionStamp} from '@a2uiverse/sdk';
+import {readStamp} from '@a2uiverse/sdk';
 import {logClientDataModelSize} from './dataModelSize';
 
 /**
@@ -222,6 +224,16 @@ export function extractPaintMetasFromEvent(event: A2AStreamEventData): PaintMeta
     .filter((p): p is Extract<Part, {kind: 'data'}> => p.kind === 'data')
     .map(p => paintMetaOf(p.data))
     .filter((m): m is PaintMeta => m !== undefined);
+}
+
+/**
+ * The composition stamp the orchestrator writes onto every event it relays
+ * (`metadata.a2uiverse`, defined by `@a2uiverse/sdk`'s composition extension): who painted this,
+ * and — for a fragment — which slot it belongs to. One stamp per event, because one event is one
+ * source. Absent on any stream that did not come through a composing hub.
+ */
+export function extractStampFromEvent(event: A2AStreamEventData): CompositionStamp | undefined {
+  return readStamp((event as {metadata?: Record<string, unknown>}).metadata);
 }
 
 /** The conversation contextId carried by an A2A stream event, if any. */

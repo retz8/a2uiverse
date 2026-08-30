@@ -40,6 +40,12 @@ export interface CanvasState {
   notice: {key: number; text: string} | null;
   /** Bumped per applied batch — re-renders the stage and resets its error boundary. */
   appliedSeq: number;
+  /**
+   * The composition's placement: slot name → the fragment surface filling it. The only
+   * composition state the client holds — the orchestrator is canonical for the rest, and the
+   * shell surface is its rendered projection. Empty when the stage holds an uncomposed paint.
+   */
+  placement: ReadonlyMap<string, string>;
 }
 
 export interface CanvasStore {
@@ -66,6 +72,13 @@ export interface CanvasStore {
   showNotice(text: string): void;
   dismissNotice(key: number): void;
   bumpApplied(): void;
+  /**
+   * A fragment claims its slot. One surface per slot: a later claim displaces the earlier, which
+   * the caller is responsible for retiring from the processor.
+   */
+  placeFragment(slot: string, surfaceId: string): void;
+  /** The composition left the canvas: forget where its fragments were. */
+  clearPlacement(): void;
 }
 
 /**
@@ -91,6 +104,7 @@ export function createCanvasStore(): CanvasStore {
     error: null,
     notice: null,
     appliedSeq: 0,
+    placement: new Map(),
   };
   let noticeKey = 0;
   let paintId = 0;
@@ -145,5 +159,10 @@ export function createCanvasStore(): CanvasStore {
       if (state.notice?.key === key) set({notice: null});
     },
     bumpApplied: () => set({appliedSeq: state.appliedSeq + 1}),
+    placeFragment: (slot, surfaceId) =>
+      set({placement: new Map(state.placement).set(slot, surfaceId)}),
+    clearPlacement: () => {
+      if (state.placement.size) set({placement: new Map()});
+    },
   };
 }

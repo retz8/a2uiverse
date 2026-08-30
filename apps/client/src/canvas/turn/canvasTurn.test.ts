@@ -7,6 +7,8 @@ import {describe, it, expect} from 'vitest';
 import {MessageProcessor} from '@a2ui/web_core/v0_9';
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
 import {CATALOG, CATALOG_ID} from 'github-catalog';
+import {CATALOG as SHELL_CATALOG, CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog';
+import type {CompositionStamp} from '@a2uiverse/sdk';
 import type {PaintCause} from '../timeline/paint';
 import {createCanvasStore} from '../canvasStore';
 import {createTurnRunner} from './canvasTurn';
@@ -618,5 +620,145 @@ describe('streamed partials: validation is judged on the settled state', () => {
     const turn = runner.begin(utterance('stream'));
     turn.apply([textRoot('missing', 'no such surface')]);
     expect(store.getState().error).toMatch(/could not be displayed/);
+  });
+});
+
+describe('composed turns (the hub stamps its events)', () => {
+  const SHELL: CompositionStamp = {source: 'shell', role: 'shell'};
+  const fragment = (source: string, slot: string): CompositionStamp => ({
+    source,
+    slot,
+    role: 'fragment',
+  });
+
+  /** The hub's first paint: the layout surface, before any agent has answered. */
+  const shellPaint = (slots: string[]) => [
+    msg({createSurface: {surfaceId: 'shell:main', catalogId: SHELL_CATALOG_ID}}),
+    msg({
+      updateComponents: {
+        surfaceId: 'shell:main',
+        components: [
+          {id: 'root', component: 'Column', children: slots},
+          ...slots.map(name => ({id: name, component: 'Slot', name, state: 'pending'})),
+        ],
+      },
+    }),
+  ];
+
+  function composedSetup() {
+    const catalogs = [CATALOG, SHELL_CATALOG];
+    const processor = new MessageProcessor(catalogs);
+    const store = createCanvasStore();
+    const runner = createTurnRunner({
+      processor,
+      store,
+      createStaging: () => new MessageProcessor(catalogs),
+    });
+    return {processor, store, runner};
+  }
+
+  it('the shell takes the stage and fragments fill slots without contending for it', () => {
+    const {processor, store, runner} = composedSetup();
+    const turn = runner.begin(utterance('what needs my attention'));
+
+    turn.apply(shellPaint(['slot-github']), SHELL);
+    // First paint lands before any agent answers — the whole point of a composition.
+    expect(store.getState().stageId).toBe('shell:main');
+
+    turn.apply(
+      [create('github:prs'), textRoot('github:prs', 'Pull requests')],
+      fragment('github', 'slot-github'),
+    );
+    turn.end();
+
+    expect(store.getState().stageId).toBe('shell:main');
+    expect(store.getState().placement.get('slot-github')).toBe('github:prs');
+    // The fragment lives in the registry to be mounted, but is not a paint of its own.
+    expect(processor.model.getSurface('github:prs')).toBeDefined();
+    expect(store.getState().timeline.map(e => e.surfaceId)).toEqual(['shell:main']);
+  });
+
+  it('a composition abandons hold-and-swap so its slots can fill in place', () => {
+    const {store, runner} = composedSetup();
+    paintStage(runner, 'old', 'previous paint');
+    expect(store.getState().stageId).toBe('old');
+
+    const turn = runner.begin(utterance('compose'));
+    turn.apply(shellPaint(['slot-github']), SHELL);
+    // Staged mode would have held 'old' until turn end; a composition swaps on arrival.
+    expect(store.getState().stageId).toBe('shell:main');
+    turn.end();
+  });
+
+  it('the outgoing composition leaves with its fragments — nothing stale reaches a vendor', () => {
+    const {processor, store, runner} = composedSetup();
+    const first = runner.begin(utterance('compose'));
+    first.apply(shellPaint(['slot-github']), SHELL);
+    first.apply(
+      [create('github:prs'), textRoot('github:prs', 'one')],
+      fragment('github', 'slot-github'),
+    );
+    first.end();
+
+    const second = runner.begin(utterance('compose again'));
+    second.apply(shellPaint(['slot-github']), SHELL);
+    expect(processor.model.getSurface('github:prs')).toBeUndefined();
+    expect(store.getState().placement.size).toBe(0);
+    second.end();
+  });
+
+  it('one surface per slot: a later claim retires the earlier tenant', () => {
+    const {processor, store, runner} = composedSetup();
+    const turn = runner.begin(utterance('compose'));
+    turn.apply(shellPaint(['slot-github']), SHELL);
+    turn.apply([create('github:a'), textRoot('github:a', 'a')], fragment('github', 'slot-github'));
+    turn.apply([create('github:b'), textRoot('github:b', 'b')], fragment('github', 'slot-github'));
+    turn.end();
+
+    expect(store.getState().placement.get('slot-github')).toBe('github:b');
+    expect(processor.model.getSurface('github:a')).toBeUndefined();
+  });
+
+  it('a bare shell repaint flips a slot without tearing the canvas down', () => {
+    const {processor, store, runner} = composedSetup();
+    const turn = runner.begin(utterance('compose'));
+    turn.apply(shellPaint(['slot-github']), SHELL);
+    turn.apply(
+      [create('github:prs'), textRoot('github:prs', 'one')],
+      fragment('github', 'slot-github'),
+    );
+    turn.end();
+
+    // The hub flips a slot by repainting its own surface — an update, not a new composition.
+    const flip = runner.begin(utterance('act'));
+    flip.apply(
+      [
+        msg({
+          updateComponents: {
+            surfaceId: 'shell:main',
+            components: [
+              {id: 'slot-github', component: 'Slot', name: 'slot-github', state: 'failed'},
+            ],
+          },
+        }),
+      ],
+      SHELL,
+    );
+    flip.end();
+
+    expect(store.getState().stageId).toBe('shell:main');
+    expect(store.getState().placement.get('slot-github')).toBe('github:prs');
+    expect(processor.model.getSurface('github:prs')).toBeDefined();
+  });
+
+  it('an unstamped stream is a stage paint — pre-composition fixtures are unchanged', () => {
+    const {store, runner} = composedSetup();
+    const turn = runner.begin(utterance('plain'));
+    turn.apply([create('plain-view'), textRoot('plain-view', 'hello')]);
+    turn.end();
+
+    expect(store.getState().stageId).toBe('plain-view');
+    expect(store.getState().placement.size).toBe(0);
+    expect(store.getState().timeline.map(e => e.surfaceId)).toEqual(['plain-view']);
   });
 });

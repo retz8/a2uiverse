@@ -1,13 +1,15 @@
 /**
  * Synthetic beat fixtures: hand-authored streams in the recorded `BeatFixture` format — two
- * plain paints, a validation-failure turn (partial paint → cleanup delete → final apology) and
- * a question paint (`ConfirmationDialog` root). They are deliberately NOT in `recordings/beats/`
+ * plain paints, a validation-failure turn (partial paint → cleanup delete → final apology), a
+ * question paint (`ConfirmationDialog` root) and a composed turn (shell layout, one slot filling,
+ * one flipping to failed). They are deliberately NOT in `recordings/beats/`
  * and never enter `BEAT_FIXTURES`: they are inputs for the transition tests and the chrome
  * baselines, replayable by name through `?beat=` (see `SYNTHETIC_BEATS`). Recorded beats are
  * re-recorded through the orchestrator in 1.4.
  */
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
 import {CATALOG_ID} from 'github-catalog';
+import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 import type {BeatFixture} from './beatFixtures';
 
 const msg = (m: Record<string, unknown>): A2uiMessage =>
@@ -124,6 +126,130 @@ export const SECOND_PLAIN_PAINT_BEAT = plainPaint(
   'Notifications',
 );
 
+/**
+ * A composed turn as the hub streams one: the shell paints its layout with both slots pending
+ * before any agent has answered, one fragment fills its slot, and the other slot flips to failed
+ * by shell repaint when its agent does not deliver. Both slots' surfaces would carry their own
+ * vendor catalog in life; here the one that paints uses the only vendor catalog installed.
+ */
+export const COMPOSED_BEAT: BeatFixture = {
+  ...base,
+  name: 'synthetic-composed',
+  beat: 103,
+  title: 'Composed turn',
+  prompt: 'what needs my attention',
+  turns: [
+    {
+      taskId: 'synthetic-composed',
+      kind: 'utterance',
+      prompt: 'what needs my attention',
+      action: null,
+      outcome: 'completed',
+      durationMs: 400,
+      batches: [
+        // First paint: layout and pending slots, before any dispatch has answered.
+        {
+          offsetMs: 0,
+          stamp: {source: 'shell', role: 'shell'},
+          messages: [
+            msg({createSurface: {surfaceId: 'shell:main', catalogId: SHELL_CATALOG_ID}}),
+            msg({
+              updateComponents: {
+                surfaceId: 'shell:main',
+                components: [
+                  {
+                    id: 'root',
+                    component: 'Column',
+                    children: ['wrap-slot-github', 'wrap-slot-gmail'],
+                  },
+                  {
+                    id: 'wrap-slot-github',
+                    component: 'Column',
+                    children: ['attr-slot-github', 'slot-github'],
+                  },
+                  {
+                    id: 'attr-slot-github',
+                    component: 'Attribution',
+                    displayName: 'GitHub',
+                    appId: 'github',
+                  },
+                  {
+                    id: 'slot-github',
+                    component: 'Slot',
+                    name: 'slot-github',
+                    state: 'pending',
+                    label: 'GitHub',
+                  },
+                  {
+                    id: 'wrap-slot-gmail',
+                    component: 'Column',
+                    children: ['attr-slot-gmail', 'slot-gmail'],
+                  },
+                  {
+                    id: 'attr-slot-gmail',
+                    component: 'Attribution',
+                    displayName: 'Gmail',
+                    appId: 'gmail',
+                  },
+                  {
+                    id: 'slot-gmail',
+                    component: 'Slot',
+                    name: 'slot-gmail',
+                    state: 'pending',
+                    label: 'Gmail',
+                  },
+                ],
+              },
+            }),
+          ],
+          texts: [],
+        },
+        // One agent answers: its fragment fills its own slot, namespaced by the hub.
+        {
+          offsetMs: 150,
+          stamp: {source: 'github', slot: 'slot-github', role: 'fragment'},
+          messages: [
+            msg({createSurface: {surfaceId: 'github:pr-list', catalogId: CATALOG_ID}}),
+            msg({
+              updateComponents: {
+                surfaceId: 'github:pr-list',
+                components: [
+                  {id: 'root', component: 'Stack', direction: 'vertical', children: ['h']},
+                  {id: 'h', component: 'Heading', text: 'Pull requests'},
+                ],
+              },
+            }),
+            msg({beginRendering: {surfaceId: 'github:pr-list', root: 'root'}}),
+          ],
+          texts: [],
+        },
+        // The other never delivers: the hub flips its slot by repainting its own surface.
+        {
+          offsetMs: 300,
+          stamp: {source: 'shell', role: 'shell'},
+          messages: [
+            msg({
+              updateComponents: {
+                surfaceId: 'shell:main',
+                components: [
+                  {
+                    id: 'slot-gmail',
+                    component: 'Slot',
+                    name: 'slot-gmail',
+                    state: 'failed',
+                    label: 'Gmail',
+                  },
+                ],
+              },
+            }),
+          ],
+          texts: [],
+        },
+      ],
+    },
+  ],
+};
+
 /** Resolve a synthetic beat by the name `?beat=` accepts. */
 export function syntheticBeat(name: string): BeatFixture | undefined {
   switch (name) {
@@ -135,6 +261,8 @@ export function syntheticBeat(name: string): BeatFixture | undefined {
       return VALIDATION_FAILURE_BEAT;
     case 'question':
       return QUESTION_BEAT;
+    case 'composed':
+      return COMPOSED_BEAT;
     default:
       return undefined;
   }

@@ -152,11 +152,13 @@ export function createCanvasWiring({
           forkContext,
           supportedCatalogIds,
         ),
-        turn.apply,
-        session,
-        reportAgentText,
-        turn.signal,
-        turn.acceptPaintMeta,
+        {
+          apply: turn.apply,
+          session,
+          onAgentText: reportAgentText,
+          signal: turn.signal,
+          onPaintMeta: turn.acceptPaintMeta,
+        },
       );
     } catch (err) {
       if (!turn.signal.aborted) {

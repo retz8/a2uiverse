@@ -1,4 +1,5 @@
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
+import type {CompositionStamp} from '@a2uiverse/sdk';
 
 /**
  * One streamed batch as the client received it: the A2UI messages and the agent prose carried
@@ -9,6 +10,12 @@ export interface BeatBatch {
   offsetMs: number;
   messages: A2uiMessage[];
   texts: string[];
+  /**
+   * The event's composition stamp, when it came through a composing hub — without it a recorded
+   * composition would replay as a pile of unrelated stage paints. Absent in pre-composition
+   * fixtures, which replay as shell paints exactly as they always did.
+   */
+  stamp?: CompositionStamp;
 }
 
 /** What one prompt produced. `outcome` is `completed` for a paint, `apology`/`unavailable` otherwise. */

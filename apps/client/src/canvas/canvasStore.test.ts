@@ -42,7 +42,34 @@ describe('createCanvasStore', () => {
       error: null,
       notice: null,
       appliedSeq: 0,
+      placement: new Map(),
     });
+  });
+
+  it('places fragments in slots, one surface per slot', () => {
+    const store = createCanvasStore();
+    store.placeFragment('slot-github', 'github:prs');
+    store.placeFragment('slot-gmail', 'gmail:inbox');
+    expect([...store.getState().placement]).toEqual([
+      ['slot-github', 'github:prs'],
+      ['slot-gmail', 'gmail:inbox'],
+    ]);
+
+    // A later claim displaces the earlier tenant rather than joining it.
+    store.placeFragment('slot-github', 'github:prs-2');
+    expect(store.getState().placement.get('slot-github')).toBe('github:prs-2');
+    expect(store.getState().placement.size).toBe(2);
+  });
+
+  it('clears placement when the composition leaves, and no-ops when empty', () => {
+    const store = createCanvasStore();
+    const before = store.getState();
+    store.clearPlacement();
+    expect(store.getState()).toBe(before);
+
+    store.placeFragment('slot-github', 'github:prs');
+    store.clearPlacement();
+    expect(store.getState().placement.size).toBe(0);
   });
 
   it('appendEntry grows the timeline immutably, in order', () => {

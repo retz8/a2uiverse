@@ -58,7 +58,7 @@ export async function replayBeatOnCanvas(
           await sleep(batch.offsetMs - elapsed);
           elapsed = batch.offsetMs;
         }
-        if (batch.messages.length) handle.apply(batch.messages);
+        if (batch.messages.length) handle.apply(batch.messages, batch.stamp);
         for (const text of batch.texts) {
           prose += text;
           if (prose.trim()) store.showNotice(prose);
