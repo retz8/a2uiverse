@@ -13,6 +13,10 @@ implementation, ~line 773).
 
 **Severity:** functional bug — silent cross-surface interference, no error raised.
 
+**Reported:** `a2ui-project/a2ui` issue
+[#2447](https://github.com/a2ui-project/a2ui/issues/2447), PR
+[#2449](https://github.com/a2ui-project/a2ui/pull/2449) (React and Angular).
+
 ### Issue
 
 The React renderer names `ChoicePicker`'s radio inputs with a value derived only
@@ -97,6 +101,10 @@ in `v0_9`).
 
 **Severity:** documentation/schema-prose bug — the constraint as written cannot
 be satisfied.
+
+**Reported:** `a2ui-project/a2ui` issue
+[#2445](https://github.com/a2ui-project/a2ui/issues/2445), PR
+[#2446](https://github.com/a2ui-project/a2ui/pull/2446).
 
 ### Issue
 

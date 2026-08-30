@@ -97,7 +97,7 @@ This phase's doc edits: §4.1 one-tree wording (rendered tree, not wire; graft =
 6. Collision detector green in CI: Gmail + Calendar mounted together resolve the same `--a2ui-*` variable to different values per subtree; no global writes of shared variables; no DOM outside a fragment boundary (github-catalog portal root anchored).
 7. One journal line per turn, embedding non-null, dispatch list recording all fan-out targets.
 8. Real MCP: each Google agent in `llm` mode answers from its live MCP endpoint at least once, recorded as beats; visual Playwright specs replay deterministically so acceptance doesn't depend on live Google availability.
-9. Gates green in both repos; `github-catalog` republished with scoped provider + anchored portal root; ChoicePicker patch applied and the upstream report filed from `_dev/a2ui-findings.md`.
+9. Gates green in both repos; `github-catalog` republished with scoped provider + anchored portal root; ChoicePicker patch applied.
 
 Final gate: **Claude-in-Chrome live verification through the tunnel** for items 1, 4, and 5.
 

@@ -29,10 +29,10 @@ Spec: `_dev/docs/spec/phase-2-layout-composition.md`.
 - [x] **2.3** `shell-catalog` — schema + basic-catalog implementation, Radix-bound token theme, `Slot` + `Attribution` (after 2.1; parallel with 2.2)
 - [x] **2.4** Orchestrator composition core — embedder + Registry card surface + Router, Planner (AI SDK seam, plan schema, per-agent requests), fan-out dispatch, three relay rewrites (stamp · surfaceId namespace · partition filter), slot-lifecycle painting, journal embedding (after 2.2; parallel with 2.3, 2.5–2.8)
 - [WIP] **2.5** Client composition — multi-catalog processor, placement map, fragment boundary, Slot mounting, validation + `VALIDATION_FAILED` reporting, ChoicePicker pnpm patch, collision detector (after 2.2 and 2.3; parallel with 2.4, 2.6–2.8)
-- [ ] **2.6** `[apps]` Gmail app — three-mode agent on 11002 against live Gmail MCP, `gmail-catalog` (basic + product tokens) published (after 2.2; parallel with 2.4, 2.5, 2.7, 2.8)
+- [WIP] **2.6** `[apps]` Gmail app — three-mode agent on 11002 against live Gmail MCP, `gmail-catalog` (basic + product tokens) published (after 2.2; parallel with 2.4, 2.5, 2.7, 2.8)
 - [ ] **2.7** `[apps]` Calendar app — three-mode agent on 11003 against live Calendar MCP, `calendar-catalog` published (after 2.2; parallel with 2.4, 2.5, 2.6, 2.8)
 - [ ] **2.8** `[apps]` `github-catalog` boundary retrofit — scoped provider, anchored portal root, republish (after 2.1; parallel with 2.2–2.7)
-- [ ] **2.9** Integration + acceptance — `dev:agents` launcher + `dev:all` + `dev:client`/`dev:orch`/`dev:marketplace` aliases, beat recording over live MCP, visual Playwright specs, upstream report filed from `_dev/a2ui-findings.md`, acceptance items 1–9, Claude-in-Chrome live verification via tunnel (after 2.4–2.8)
+- [ ] **2.9** Integration + acceptance — `dev:agents` launcher + `dev:all` + `dev:client`/`dev:orch`/`dev:marketplace` aliases, beat recording over live MCP, visual Playwright specs, acceptance items 1–9, Claude-in-Chrome live verification via tunnel (after 2.4–2.8)
 
 ## Phase 3 — Agent building kit
 Shared vendor-agent logic extracted across the three agents into a published A2UI+A2A agent SDK/CLI in `a2uiverse-apps` (M1k). Uniform run-mode flag, single launcher for installed agents, vendor dependency rule amended, one-provider-and-CSS-setup-per-catalog-bundle rule.
