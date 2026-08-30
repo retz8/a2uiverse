@@ -32,6 +32,8 @@ its own.
 | `composition/FragmentBoundary` | The one element a fragment mounts inside: provenance, isolation anchor, promotion treatment | — |
 | `composition/slotCount` | How many slots the plan laid out — adaptive weight's input | — |
 | `composition/collisionDetector` | CSS collision rules over the installed catalogs | run from tests only |
+| `composition/roster` | Reads the turn's sources and their display names off the shell paint | `canvasStore` |
+| `components/AmbientNotice` | The notice stack and its two fade clocks | `canvasStore` via `orderedNotices` |
 
 ### The stamp is the routing input
 
@@ -43,6 +45,32 @@ extracts it and hands it to the turn handle alongside the batch.
   contends for the stage or the timeline.
 - **absent** — a stage paint. Composition is opt-in via the stamp, which is what keeps every
   pre-composition fixture and test valid.
+
+### Prose composes through the same stamp
+
+The stamp routes text as well as surfaces: `sendAndApply` hands it to `onAgentText` exactly as
+it does to `apply`. `canvasStore` buffers a line per `source` rather than one string, so the
+interleaved chunks of a fan-out concatenate only with their own source's. Prose with no
+`fragment` stamp — the shell's own cues, and an uncomposed stream — shares one reserved line.
+
+Prose stays in the shell's region rather than in the slot it describes: a source can answer
+without painting, and its slot may be failed or collapsed by the time it speaks.
+
+Two lifetimes. The sources' lines belong to the turn — cleared when a new one opens, faded
+together once it settles, so the stack reads as one set of answers and no line vanishes from
+under a reader. The shell's line keeps its own clock, because a cue fires while a paint is in
+flight and so has no turn to be scoped to.
+
+### The roster is the second projection of the shell paint
+
+`placement` says which fragment filled which slot, but only once one has, and in fill order. The
+roster is the complement: the turn's sources in *slot* order with the display names the Registry
+painted, read from the shell surface's `Attribution` components at first paint. It orders the
+notice stack and names its lines — including for a source that never paints.
+
+A shell repaint may legally carry only the components it changed, so a paint containing no
+attribution leaves the roster standing rather than emptying it. The roster is cleared per turn,
+never by a repaint.
 
 ### A composed turn abandons hold-and-swap
 
@@ -123,14 +151,6 @@ upstream hook under the catalog's own scope class introduces nothing onto the pa
 - **A vendor component can still declare `aria-modal`.** The shell puts up no modal for a
   promoted fragment, but a vendor's own dialog can hide the rest of the canvas from assistive
   technology from inside its fragment.
-- **Agent prose does not compose.** Surfaces carry the stamp; text does not. `a2a/client.ts`
-  extracts the stamp one line above `onAgentText` and passes only the string, and
-  `createCanvasWiring` concatenates every chunk into one `prose` buffer behind a store that holds
-  **one** notice. Fan-out dispatches concurrently and prose arrives in unjoined chunks, so two
-  agents answering at once interleave mid-word into a single toast, and a third would evict the
-  first. Invisible with one vendor; a declared `<no-surface/>` turn is the case that fires it,
-  since prose is then the vendor's only output. Needs the stamp on the text channel, per-source
-  buffering, and a plural notice model.
 - **`supportedCatalogIds` is broadcast whole.** The hub passes `a2uiClientCapabilities` to every
   vendor verbatim, so each learns the full installed roster and the platform's own catalog id.
   Filtering it per dispatch is hub-side work.

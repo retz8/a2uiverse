@@ -25,14 +25,19 @@ fragment's slot. A source can speak without painting — an agent that fails or 
 failed or collapsed slot and no place to put its words — and prose streams token by token, so
 keeping it out of the slot keeps fragment geometry fixed for the turn.
 
-### 2. Notices are keyed by source and scoped to the turn
+### 2. Notices are keyed by source, and each line fades on its own clock
 
 One buffer per `stamp.source`, with a reserved non-agent key for the shell's own cues and for
-prose arriving with no stamp. Entries accumulate while the turn is in flight and the whole stack
-clears together six seconds after the turn ends; a new turn clears the previous stack
-immediately. The reserved shell key keeps an independent timer, since its cues fire when no turn
-is in flight. Turn-scoped grouping collapses to the existing single-agent behavior in the
-degenerate case.
+prose arriving with no stamp. A new turn clears the previous stack immediately. Each line fades
+six seconds after its own last chunk, so a source still speaking never fades mid-sentence.
+
+*Amended during the live acceptance run.* This was originally a single group fade timed from the
+end of the turn, on the reasoning that the lines are one set of answers to one question and
+should be read together. Live fan-out disproved the premise that sources finish near each other
+— Calendar answered in ~16 s against Gmail's ~80 s — so a fast source's line sat pinned for over
+a minute. What had made the group fade necessary was that the notice was the only trace of a
+source that spoke but never painted; decision 16 removes that, leaving nothing to lose to an
+early fade.
 
 ### 3. The stack renders in slot order, each entry clamped to two lines
 
@@ -123,11 +128,11 @@ list, and the partition each vendor actually received — fold into the same scr
 
 ### 13. The notice stack gets a visual baseline
 
-Captured at replay-done. Turn-scoped grouping (decision 2) makes that a plateau rather than a
-race: every entry is present and none has expired at turn end, and the stack then stands for six
-seconds. Under independent per-source timers it would flicker the way the deliberately-omitted
-promoted-slot baseline would have. 2.9 rebases the three spine baselines and adds two — the
-recorded composed beat, and the composed screen with its notice stack.
+Captured at replay-done. The synthetic replay lands every batch within milliseconds, so all
+lines are fresh at that point and the capture is a plateau rather than a race — which holds
+under decision 2's per-line fades as it did under the group fade it replaced. 2.9 rebases the
+three spine baselines and adds two — the recorded composed beat, and the composed screen with
+its notice stack.
 
 ### 14. The browser gate induces failure by killing an agent before the turn
 
@@ -146,6 +151,24 @@ its own drafts — so drafts accumulate across gate runs and cleanup is manual. 
 acceptance item whose content is a sequence: first paint before any agent responds, then three
 fragments filling independently. A still cannot distinguish that from a screen that painted at
 once, so item 1 is captured as a GIF and items 4, 5, 8 and 10 as stills.
+
+### 16. A collapsed slot rests on what its source said
+
+*Added during the live acceptance run.* A source that answers in prose without painting has its
+slot collapsed, and the slot rendered nothing while its attribution marker remained — a label
+naming a region that no longer existed. The slot now rests on that source's words: `SlotView`
+asks the host for content before collapsing, and the client answers for an unfilled slot with
+the prose that source accumulated this turn. It is the shell quoting the source, so it carries
+no fragment boundary and no vendor Provider, and a slot that painted is never overwritten by its
+source's commentary.
+
+This is why the store keeps prose separately from the notice stack: the stack is what is
+currently *shown* and fades, while the prose is what the turn's sources *said* and lives until
+the next turn. Without it the screen would keep no trace that a source was consulted at all once
+the stack cleared.
+
+A slot whose dispatch *failed* is unaffected — it keeps its failure panel and its attribution,
+because a failure the user can see is provenance too.
 
 ## Invariants
 

@@ -69,7 +69,13 @@ Fragment validation lives client-side, where the catalog schemas physically are.
 
 ### 14. Outbound partition isolation is enforced at the hub
 
-The orchestrator filters `a2uiClientDataModel` per dispatch: each vendor receives only the surfaces its namespace owns, keys un-namespaced. Actions route only to the surface's owner with the same filter. Phase 1's relay-transparency invariant is amended to exactly three hub rewrites: the metadata stamp, the surfaceId namespace, and the partition filter.
+The orchestrator filters `a2uiClientDataModel` per dispatch: each vendor receives only the surfaces its namespace owns, keys un-namespaced. Actions route only to the surface's owner with the same filter.
+
+Phase 1's relay-transparency invariant is amended along three axes rather than to a single count — *(clarified during the 2.9 acceptance run, which found the original "exactly three rewrites" wording falsifiable as written)*:
+
+- **A2UI content:** exactly one rewrite — surfaceId namespacing. Component ids, binding paths and catalog ids are untouched. This is the strong claim.
+- **A2A envelope:** the composition metadata stamp, and demotion of each vendor's terminal state to a non-final `working` — several vendor tasks resolve onto one client task under fan-out, so relaying a vendor's final would end the turn at the first agent to answer. The hub emits the turn's single final itself.
+- **Outbound to vendors:** the partition filter, which acts on what is dispatched rather than on the relayed stream at all.
 
 ### 15. Shell catalog theme binds to Radix tokens
 
@@ -107,7 +113,7 @@ Final gate: **Claude-in-Chrome live verification through the tunnel** for items 
 
 - The client talks only to the orchestrator; vendor agents are never reached directly.
 - The A2UI protocol is not extended or modified; every composition deviation rides A2A metadata or local convention, registered in §14.
-- The relay is transparent except the three rewrites of decision 14.
+- The relay carries vendor A2UI through untouched but for surfaceId namespacing; the A2A envelope rewrites and the outbound filter of decision 14 are named separately and are the complete set.
 - No catalog writes shared CSS variables outside its fragment boundary; no catalog leaves DOM outside its boundary.
 - Slot identity and position are fixed for the turn (§4.5); fragments are never re-parented.
 - `_dev/` edits land on `main` only.

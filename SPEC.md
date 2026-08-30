@@ -76,6 +76,7 @@ Placement (`surface → slot`) rides on A2A message metadata. The shell's `Slot`
 Consequences:
 
 - Surface ids are namespaced by the orchestrator (`<appId>:<surfaceId>`) — the one A2UI rewrite. Component ids, binding paths, and catalog ids are untouched.
+- The relay also rewrites the **A2A envelope** around that untouched A2UI: it stamps composition metadata, and it demotes each vendor's terminal state so the hub owns the turn's single final. These are envelope bookkeeping, not content — which is why the A2UI claim above is the strong one, and why the two are counted separately.
 - The rendered tree unifies; the wire and the data model partition. A fragment's bindings resolve only inside its own partition.
 - The shell reads across all partitions. This is the hub privilege and the only asymmetry in the system.
 - Catalog resolution is per surface, not global.
@@ -414,6 +415,7 @@ Constraint protected throughout: **an existing A2UI agent composes with zero cha
 | Partitioned data model on a shared surface (agents address paths as root; shell namespaces) — enforced at the hub as the outbound partition filter | upstream candidate — prior art: the upstream orchestrator sample strips `a2uiClientDataModel.surfaces` to the target agent's own surfaces via a client interceptor (§18); ours generalizes surface → partition |
 | Surface placement (`surface → slot`) on A2A event metadata | upstream candidate |
 | surfaceId namespacing `<appId>:<surfaceId>` at the hub, reversed on inbound actions | local convention |
+| Vendor terminal states demoted to non-final `working` on relay; the hub emits the turn's single final | local convention — several vendor tasks resolve onto one client task under fan-out, so relaying a vendor's final would end the turn at the first agent to answer |
 | Unsuppressable attribution on a grafted fragment | local convention |
 | `ChoicePicker` document-global radio group name in `@a2ui/react` (patched locally) | upstream bug report — `_dev/a2ui-findings.md` |
 | Unsatisfiable `catalogId` clause in `server_to_client.json` prose | upstream bug report — `_dev/a2ui-findings.md` |
