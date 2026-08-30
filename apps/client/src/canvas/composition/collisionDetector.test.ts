@@ -106,27 +106,10 @@ describe('the detector itself', () => {
 });
 
 /**
- * Violations that exist today, each with an owner — a record, not an exemption. All of them are
- * `github-catalog` bringing `@primer/primitives` onto the page, and all of them are task 2.8's
- * to fix by scoping Primer's sheets to the fragment boundary; that task empties this list.
- *
- *  - `@primer/primitives/dist/css/base/motion/motion.css` defines `--base-duration-*` and
- *    `--base-easing-*` at `:root`, so they land outside every boundary and the last catalog to
- *    load wins them for the whole page.
- *  - Primer's functional sheets read `--borderWidth-default` and `--focus-outline-width` bare,
- *    but the Provider imports no sheet that defines them: today those resolve to nothing, and
- *    tomorrow they would resolve to whatever a neighbouring catalog happens to set.
+ * Violations that exist today, each with an owner — a record, not an exemption. Empty: every
+ * violation the roster ever carried has been fixed at its source.
  */
-const ACCEPTED: Array<(finding: Finding) => boolean> = [
-  finding =>
-    finding.rule === 'global-write' &&
-    finding.pkg === 'github-catalog' &&
-    (finding.name.startsWith('--base-duration-') || finding.name.startsWith('--base-easing-')),
-  finding =>
-    finding.rule === 'unsatisfied-read' &&
-    finding.pkg === 'github-catalog' &&
-    ['--borderWidth-default', '--focus-outline-width'].includes(finding.name),
-];
+const ACCEPTED: Array<(finding: Finding) => boolean> = [];
 
 describe('the installed catalogs', () => {
   it('brings no unaccounted CSS onto the page', () => {
