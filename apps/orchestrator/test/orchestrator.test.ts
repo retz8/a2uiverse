@@ -366,8 +366,10 @@ describe('orchestrator', () => {
     const last = slotStates(shellPaints(events).at(-1)!);
     expect(last['slot-gmail']).toBe('failed');
     expect((events.at(-1) as TaskStatusUpdateEvent).status.state).toBe('completed');
+    // Found by kind, not by index: the two turns' lines are written asynchronously and either
+    // can land first, so position in the file says nothing about which turn wrote it.
     const lines = await journalLines(2);
-    expect(lines[1]).toMatchObject({
+    expect(lines.find(l => l.kind === 'error')).toMatchObject({
       kind: 'error',
       descriptor: 'VALIDATION_FAILED on surface gmail:s1',
       outcome: 'completed',
