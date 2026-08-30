@@ -122,6 +122,14 @@ carry a fallback.
 - **A vendor component can still declare `aria-modal`.** The shell puts up no modal for a
   promoted fragment, but a vendor's own dialog can hide the rest of the canvas from assistive
   technology from inside its fragment.
+- **Agent prose does not compose.** Surfaces carry the stamp; text does not. `a2a/client.ts`
+  extracts the stamp one line above `onAgentText` and passes only the string, and
+  `createCanvasWiring` concatenates every chunk into one `prose` buffer behind a store that holds
+  **one** notice. Fan-out dispatches concurrently and prose arrives in unjoined chunks, so two
+  agents answering at once interleave mid-word into a single toast, and a third would evict the
+  first. Invisible with one vendor; a declared `<no-surface/>` turn is the case that fires it,
+  since prose is then the vendor's only output. Needs the stamp on the text channel, per-source
+  buffering, and a plural notice model.
 - **`supportedCatalogIds` is broadcast whole.** The hub passes `a2uiClientCapabilities` to every
   vendor verbatim, so each learns the full installed roster and the platform's own catalog id.
   Filtering it per dispatch is hub-side work.
