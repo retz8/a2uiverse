@@ -7,6 +7,8 @@ import type {
   Part,
 } from '@a2a-js/sdk';
 import type {A2uiClientAction, A2uiClientDataModel, A2uiMessage} from '@a2ui/web_core/v0_9';
+import type {CompositionStamp} from '@a2uiverse/sdk';
+import {readStamp} from '@a2uiverse/sdk';
 import {logClientDataModelSize} from './dataModelSize';
 
 /**
@@ -82,6 +84,41 @@ export function buildActionMessageParams(
       contextId,
       parts: [{kind: 'data', data: {version: A2UI_VERSION, action}}],
       metadata: messageMetadata(clientDataModel, forkContext, supportedCatalogIds),
+    },
+  };
+}
+
+/** The protocol's `VALIDATION_FAILED` code — a fragment that would not validate or mount. */
+export const VALIDATION_FAILED = 'VALIDATION_FAILED';
+
+/** The protocol's client→server error report. */
+export interface A2uiClientError {
+  code: string;
+  /** Namespaced, as the hub sent it: an un-namespaced id silently no-ops hub-side. */
+  surfaceId: string;
+  path?: string;
+  message?: string;
+}
+
+/**
+ * Wrap a client-side failure as A2A send params carrying one v0.9 error DataPart. The hub reads
+ * `code` and `surfaceId`, flips that slot to failed by repainting its own shell surface, and
+ * journals the rest.
+ */
+export function buildErrorMessageParams(
+  error: A2uiClientError,
+  contextId?: string,
+  clientDataModel?: A2uiClientDataModel,
+  supportedCatalogIds?: string[],
+): MessageSendParams {
+  return {
+    message: {
+      kind: 'message',
+      role: 'user',
+      messageId: crypto.randomUUID(),
+      contextId,
+      parts: [{kind: 'data', data: {version: A2UI_VERSION, error}}],
+      metadata: messageMetadata(clientDataModel, undefined, supportedCatalogIds),
     },
   };
 }
@@ -222,6 +259,16 @@ export function extractPaintMetasFromEvent(event: A2AStreamEventData): PaintMeta
     .filter((p): p is Extract<Part, {kind: 'data'}> => p.kind === 'data')
     .map(p => paintMetaOf(p.data))
     .filter((m): m is PaintMeta => m !== undefined);
+}
+
+/**
+ * The composition stamp the orchestrator writes onto every event it relays
+ * (`metadata.a2uiverse`, defined by `@a2uiverse/sdk`'s composition extension): who painted this,
+ * and — for a fragment — which slot it belongs to. One stamp per event, because one event is one
+ * source. Absent on any stream that did not come through a composing hub.
+ */
+export function extractStampFromEvent(event: A2AStreamEventData): CompositionStamp | undefined {
+  return readStamp((event as {metadata?: Record<string, unknown>}).metadata);
 }
 
 /** The conversation contextId carried by an A2A stream event, if any. */

@@ -42,7 +42,49 @@ describe('createCanvasStore', () => {
       error: null,
       notice: null,
       appliedSeq: 0,
+      placement: new Map(),
+      promoted: new Set(),
     });
+  });
+
+  it('places fragments in slots, one surface per slot', () => {
+    const store = createCanvasStore();
+    store.placeFragment('slot-github', {surfaceId: 'github:prs', source: 'github'});
+    store.placeFragment('slot-gmail', {surfaceId: 'gmail:inbox', source: 'gmail'});
+    expect([...store.getState().placement.keys()]).toEqual(['slot-github', 'slot-gmail']);
+    expect(store.getState().placement.get('slot-gmail')?.source).toBe('gmail');
+
+    // A later claim displaces the earlier tenant rather than joining it.
+    store.placeFragment('slot-github', {surfaceId: 'github:prs-2', source: 'github'});
+    expect(store.getState().placement.get('slot-github')?.surfaceId).toBe('github:prs-2');
+    expect(store.getState().placement.size).toBe(2);
+  });
+
+  it('clears placement when the composition leaves, and no-ops when empty', () => {
+    const store = createCanvasStore();
+    const before = store.getState();
+    store.clearPlacement();
+    expect(store.getState()).toBe(before);
+
+    store.placeFragment('slot-github', {surfaceId: 'github:prs', source: 'github'});
+    store.clearPlacement();
+    expect(store.getState().placement.size).toBe(0);
+  });
+
+  it('promotes and demotes slots, and no-ops on a repeat', () => {
+    const store = createCanvasStore();
+    store.promoteSlot('slot-github');
+    const promoted = store.getState();
+    store.promoteSlot('slot-github');
+    expect(store.getState()).toBe(promoted);
+
+    store.promoteSlot('slot-gmail');
+    expect([...store.getState().promoted].sort()).toEqual(['slot-github', 'slot-gmail']);
+
+    store.demoteSlot('slot-github');
+    expect([...store.getState().promoted]).toEqual(['slot-gmail']);
+    store.clearPromotions();
+    expect(store.getState().promoted.size).toBe(0);
   });
 
   it('appendEntry grows the timeline immutably, in order', () => {

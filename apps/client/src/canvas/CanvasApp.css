@@ -308,3 +308,72 @@ body {
 .canvas-stage {
   padding-top: 48px;
 }
+
+/* ── Composition ──────────────────────────────────────────────────────────────
+   The shell's own chrome for a composed paint. Everything here is built from the
+   shell catalog's token vocabulary (`--a2ui-*`, which its Provider maps onto Radix)
+   rather than hand-rolled colours, so orchestrator-painted surfaces and this chrome
+   agree on one palette in both appearances. */
+
+/* The fragment boundary: the single element a vendor's surface mounts inside. It is
+   deliberately unstyled by default — a fragment should look like itself, not like a
+   tile — and carries only what isolation and provenance need. */
+.fragment-boundary {
+  position: relative;
+  min-width: 0;
+  border-radius: var(--a2ui-border-radius, var(--radius-3));
+}
+
+/* Adaptive weight (task 2.5, Q3): structure is constant, prominence is not. A lone
+   fragment owns the canvas exactly as a Phase 1 paint did; several gain the
+   separation that makes them read as distinct sources. */
+[data-slots='1'] .fragment-boundary {
+  border: none;
+  padding: 0;
+}
+
+[data-slots]:not([data-slots='1']) .fragment-boundary {
+  padding: var(--a2ui-spacing-m, 12px);
+  border: 1px solid var(--a2ui-color-border, var(--gray-6));
+  background: var(--a2ui-color-surface, var(--color-panel-solid));
+}
+
+/* Shell-granted promotion: the fragment asked for attention and the shell raised it.
+   Emphasis must read on the boundary itself, because when every slot is promoted the
+   scrim covers nothing. */
+.fragment-boundary--promoted {
+  z-index: 2;
+  border-color: var(--a2ui-color-primary, var(--accent-9));
+  box-shadow:
+    0 0 0 2px var(--a2ui-color-primary, var(--accent-9)),
+    var(--shadow-4);
+  background: var(--a2ui-color-surface, var(--color-panel-solid));
+}
+
+/* The scrim dims the complement — every slot that is not asking. It is reinforcement,
+   never the signal, and it sits under the raised boundaries. */
+.canvas-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: var(--color-overlay, rgb(0 0 0 / 35%));
+  pointer-events: none;
+}
+
+.canvas-app {
+  position: relative;
+}
+
+/* The promotion count is announced rather than trapping focus: promotion is plural, so
+   it is emphasis and not a modal. */
+.canvas-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}

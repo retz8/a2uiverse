@@ -6,10 +6,17 @@
  * the replay driver, the A2A callbacks), which is why it is a closure module and not
  * component state.
  */
-import type {PaintEntry, PaintSnapshot} from './timeline/paint';
+import type {PaintEntry, PaintFragment, PaintSnapshot} from './timeline/paint';
 
 /** The ring cap — a stated policy bound, not a memory guard. */
 export const TIMELINE_CAP = 50;
+
+/** A fragment mounted into a slot: which surface, and which app painted it. */
+export interface PlacedFragment {
+  surfaceId: string;
+  /** The stamp's `source` — the app id, carried so nothing has to parse it back out of ids. */
+  source: string;
+}
 
 /** The pending question paint occupying the overlay slot. */
 export interface OverlayState {
@@ -40,6 +47,19 @@ export interface CanvasState {
   notice: {key: number; text: string} | null;
   /** Bumped per applied batch — re-renders the stage and resets its error boundary. */
   appliedSeq: number;
+  /**
+   * The composition's placement: slot name → the fragment filling it. The only composition
+   * state the client holds — the orchestrator is canonical for the rest, and the shell surface
+   * is its rendered projection. Empty when the stage holds an uncomposed paint.
+   */
+  placement: ReadonlyMap<string, PlacedFragment>;
+  /**
+   * Slots whose fragment has asked for attention. A vendor cannot seize the canvas: it declares
+   * a question, and the shell decides how to express it — here, by dimming the complement and
+   * raising these. Plural by construction, since a fan-out can produce several at once, which is
+   * why this is emphasis and not a modal.
+   */
+  promoted: ReadonlySet<string>;
 }
 
 export interface CanvasStore {
@@ -54,8 +74,15 @@ export interface CanvasStore {
   setOverlay(overlay: OverlayState | null): void;
   /** Append a landed paint; evicts past the ring cap and raises the parked marker. */
   appendEntry(entry: PaintEntry): void;
-  /** Serialize-on-swap: complete the addressed entry with its captured content. */
-  fillSnapshot(paintId: number, snapshot: PaintSnapshot): void;
+  /**
+   * Serialize-on-swap: complete the addressed entry with its captured content — the shell's
+   * snapshot, and for a composition the fragments that were filling its slots.
+   */
+  fillSnapshot(
+    paintId: number,
+    snapshot: PaintSnapshot,
+    fragments?: readonly PaintFragment[],
+  ): void;
   /** Parked write-back: replace the snapshot's data model wholesale. */
   replaceSnapshotDataModel(paintId: number, dataModel: unknown): void;
   /** View a past entry. Unknown ids are ignored. */
@@ -66,6 +93,18 @@ export interface CanvasStore {
   showNotice(text: string): void;
   dismissNotice(key: number): void;
   bumpApplied(): void;
+  /**
+   * A fragment claims its slot. One surface per slot: a later claim displaces the earlier, which
+   * the caller is responsible for retiring from the processor.
+   */
+  placeFragment(slot: string, fragment: PlacedFragment): void;
+  /** The composition left the canvas: forget where its fragments were. */
+  clearPlacement(): void;
+  /** A fragment asks for attention; the shell grants it. */
+  promoteSlot(slot: string): void;
+  /** Answered, failed, or gone: the slot drops back to the rest of the canvas. */
+  demoteSlot(slot: string): void;
+  clearPromotions(): void;
 }
 
 /**
@@ -91,6 +130,8 @@ export function createCanvasStore(): CanvasStore {
     error: null,
     notice: null,
     appliedSeq: 0,
+    placement: new Map(),
+    promoted: new Set(),
   };
   let noticeKey = 0;
   let paintId = 0;
@@ -132,7 +173,8 @@ export function createCanvasStore(): CanvasStore {
           : state.viewing !== null || state.headAdvancedWhileParked,
       });
     },
-    fillSnapshot: (id, snapshot) => patchEntry(id, e => ({...e, snapshot})),
+    fillSnapshot: (id, snapshot, fragments) =>
+      patchEntry(id, e => ({...e, snapshot, ...(fragments?.length ? {fragments} : {})})),
     replaceSnapshotDataModel: (id, dataModel) =>
       patchEntry(id, e => (e.snapshot ? {...e, snapshot: {...e.snapshot, dataModel}} : e)),
     park: id => {
@@ -145,5 +187,22 @@ export function createCanvasStore(): CanvasStore {
       if (state.notice?.key === key) set({notice: null});
     },
     bumpApplied: () => set({appliedSeq: state.appliedSeq + 1}),
+    placeFragment: (slot, fragment) =>
+      set({placement: new Map(state.placement).set(slot, fragment)}),
+    clearPlacement: () => {
+      if (state.placement.size) set({placement: new Map()});
+    },
+    promoteSlot: slot => {
+      if (!state.promoted.has(slot)) set({promoted: new Set(state.promoted).add(slot)});
+    },
+    demoteSlot: slot => {
+      if (!state.promoted.has(slot)) return;
+      const next = new Set(state.promoted);
+      next.delete(slot);
+      set({promoted: next});
+    },
+    clearPromotions: () => {
+      if (state.promoted.size) set({promoted: new Set()});
+    },
   };
 }

@@ -13,8 +13,10 @@ import {Button, Kbd} from '@radix-ui/themes';
 import type {A2ASenderOptions} from '../a2a/client';
 import {getBeatFixture} from '../beats/beatFixtures';
 import {syntheticBeat} from '../beats/syntheticBeats';
+import {SlotContentContext} from '@a2uiverse/shell-catalog';
 import {CatalogProvider} from '../catalogs/CatalogContext';
 import type {ResolvedCatalog} from '../catalogs/resolver';
+import {useSlotContent} from './composition/slotContent';
 import {createCanvasWiring} from './createCanvasWiring';
 import {replayBeatOnCanvas} from './replayBeat';
 import {AmbientNotice} from './components/AmbientNotice';
@@ -43,6 +45,18 @@ export function CanvasApp({serverUrl, client, catalogs}: CanvasAppProps) {
   );
 
   const state = useSyncExternalStore(wiring.store.subscribe, wiring.store.getState);
+
+  // What a `Slot` in the shell surface renders: the fragment placed in it, inside its boundary.
+  const slotContent = useSlotContent(
+    wiring.processor,
+    state.placement,
+    state.appliedSeq,
+    state.promoted,
+  );
+
+  // Promotion is plural, so it is emphasis rather than a modal: no focus trap, and the count
+  // is announced instead of the focus being seized.
+  const promotedCount = state.promoted.size;
 
   // The ?beat= replay affordance, read once at mount. A comma-separated list runs in sequence.
   const [beatParams] = useState(() => {
@@ -95,50 +109,60 @@ export function CanvasApp({serverUrl, client, catalogs}: CanvasAppProps) {
 
   return (
     <CatalogProvider catalogs={catalogs}>
-      <main
-        className={parkedEntry ? 'canvas-app canvas-app--parked' : 'canvas-app'}
-        data-replay={replayDone ? 'done' : undefined}
-      >
-        {parkedEntry ? (
-          <ParkedStage
-            key={parkedEntry.paintId}
-            entry={parkedEntry}
-            create={wiring.createParked}
-            attach={wiring.attachParked}
+      <SlotContentContext.Provider value={slotContent}>
+        <main
+          className={parkedEntry ? 'canvas-app canvas-app--parked' : 'canvas-app'}
+          data-replay={replayDone ? 'done' : undefined}
+        >
+          {parkedEntry ? (
+            <ParkedStage
+              key={parkedEntry.paintId}
+              entry={parkedEntry}
+              create={wiring.createParked}
+              attach={wiring.attachParked}
+            />
+          ) : (
+            <CanvasStage processor={wiring.processor} state={state} />
+          )}
+          {promotedCount > 0 && (
+            <div className="canvas-scrim" data-testid="canvas-scrim" aria-hidden="true" />
+          )}
+          <div role="status" aria-live="polite" className="canvas-visually-hidden">
+            {promotedCount > 0
+              ? `${promotedCount} ${promotedCount === 1 ? 'source needs' : 'sources need'} your answer`
+              : ''}
+          </div>
+          <CanvasOverlay processor={wiring.processor} state={state} />
+          <AmbientNotice notice={state.notice} onDismiss={wiring.store.dismissNotice} />
+          <HistoryChrome
+            state={state}
+            onPark={wiring.store.park}
+            onReturnToLive={wiring.store.returnToLive}
+            onRepaint={wiring.repaint}
           />
-        ) : (
-          <CanvasStage processor={wiring.processor} state={state} />
-        )}
-        <CanvasOverlay processor={wiring.processor} state={state} />
-        <AmbientNotice notice={state.notice} onDismiss={wiring.store.dismissNotice} />
-        <HistoryChrome
-          state={state}
-          onPark={wiring.store.park}
-          onReturnToLive={wiring.store.returnToLive}
-          onRepaint={wiring.repaint}
-        />
-        <Palette
-          open={paletteOpen}
-          onDismiss={() => setPaletteOpen(false)}
-          onSubmit={utterance => {
-            setPaletteOpen(false);
-            void wiring.sendUtterance(utterance);
-          }}
-        />
-        {/* The canvas's one call-to-action; yields to the palette while it is open. */}
-        {!paletteOpen && (
-          <Button
-            variant="solid"
-            size="3"
-            className="canvas-ask-pill"
-            aria-label="Ask"
-            onClick={() => setPaletteOpen(true)}
-          >
-            Ask <Kbd className="canvas-ask-kbd">⌘K</Kbd>
-          </Button>
-        )}
-        <StatusStrip state={state} />
-      </main>
+          <Palette
+            open={paletteOpen}
+            onDismiss={() => setPaletteOpen(false)}
+            onSubmit={utterance => {
+              setPaletteOpen(false);
+              void wiring.sendUtterance(utterance);
+            }}
+          />
+          {/* The canvas's one call-to-action; yields to the palette while it is open. */}
+          {!paletteOpen && (
+            <Button
+              variant="solid"
+              size="3"
+              className="canvas-ask-pill"
+              aria-label="Ask"
+              onClick={() => setPaletteOpen(true)}
+            >
+              Ask <Kbd className="canvas-ask-kbd">⌘K</Kbd>
+            </Button>
+          )}
+          <StatusStrip state={state} />
+        </main>
+      </SlotContentContext.Provider>
     </CatalogProvider>
   );
 }

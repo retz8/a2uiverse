@@ -11,7 +11,8 @@ SPEC.md §4 and §10–11.
 
 ## Page anatomy
 
-- **Stage** — the full-screen slot the current surface occupies.
+- **Stage** — the full-screen slot the current surface occupies. Under composition the surface
+  it holds is the orchestrator's **shell surface**, whose `Slot` components the client fills.
 - **Palette** — the summonable command input (`⌘K` / `Ctrl+K`; `Escape`
   closes). Open by default on an empty canvas.
 - **Overlay slot** — where **question paints** land: a surface the agent sends
@@ -22,6 +23,9 @@ SPEC.md §4 and §10–11.
   (for example, declining an action it cannot perform).
 - **History chrome** — the top-edge timeline UI: back, the press-list of past
   paints, return-to-live.
+- **Fragment boundary** — the one element a vendor's surface mounts inside, carrying its
+  provenance and its style isolation. Every fragment on the canvas is inside one.
+- **Scrim** — dims the slots that are not asking, when the shell grants a fragment promotion.
 
 ## Vocabulary
 
@@ -33,6 +37,10 @@ SPEC.md §4 and §10–11.
 - A **turn** is the unit every agent response (or replayed fixture) enters
   through: begin → apply batches → end. The turn runner (`turn/canvasTurn.ts`)
   owns the lifecycle.
+- A **composition** is one shell surface plus the **fragments** filling its slots — one paint
+  made of several agents' surfaces. The orchestrator is canonical for it; the client holds only
+  the **placement map** (slot → fragment), and the shell surface is the composition's rendered
+  projection.
 
 ## Hold-and-swap
 
@@ -48,6 +56,33 @@ validate-then-replay:
   straight onto the stage.
 - Messages targeting an already-live surface apply directly, progressively.
 
+## Composition
+
+Every utterance turn is composed: the orchestrator paints a shell surface with one `Slot` per
+dispatched agent, then relays each agent's fragment stamped with the slot it belongs to.
+
+- **Roles come from the stamp.** `role: 'shell'` is an ordinary stage paint; `role: 'fragment'`
+  registers in the placement map and never contends for the stage or the timeline. **An unstamped
+  stream is a shell paint**, which is what keeps every pre-composition fixture valid — composition
+  is opt-in via the stamp.
+- **A composed turn does not hold-and-swap.** Its whole point is that the layout lands before its
+  agents answer, so a shell paint that opens a composition retires the outgoing one and streams
+  progressively; the slots then fill in place. A fragment that fails flips its slot, not the paint.
+- **Slot mounting**: a `Slot` asks the client for its content and gets the whole stack —
+  fragment boundary, then the vendor catalog's own Provider, then the surface. Attribution is
+  _not_ in there: the orchestrator paints it into its own surface beside the slot, where the
+  fragment cannot address it.
+- **Adaptive weight**: structure is constant, prominence is not. `data-slots` on the stage says
+  how many slots the plan laid out; one is full-bleed and owns the canvas as a Phase 1 paint did,
+  several gain separation.
+- **Validation**: a fragment that will not validate or mount is reported to the hub as
+  `VALIDATION_FAILED` on a side channel — never a turn, so it cannot cancel what the user has in
+  flight — and the hub answers by repainting its shell with that slot failed.
+- **Promotion**: a fragment declaring a question does not get the overlay. The shell raises its
+  slot and dims the rest instead, so the fragment is never re-parented and no vendor can block a
+  canvas it shares. Promotion is plural, so it is emphasis rather than a modal: the count is
+  announced, focus is not trapped. The overlay stays for shell-painted questions.
+
 ## Timeline & time travel
 
 - Landed paints append to a single append-only ring (capped at 50 entries).
@@ -61,6 +96,10 @@ validate-then-replay:
   live paint takes, so bindings and local functions work while parked. The
   sandbox's interaction state is written back to the entry when the view
   unparks.
+- A composed paint is captured **whole**: the shell's snapshot plus every fragment filling a slot.
+  A shell-only capture could not even represent a filled slot — `Slot.state` is orchestrator-painted
+  and only ever pending/failed/collapsed — so parking one would have shown every slot loading
+  forever. The parked session rebuilds all of them and restores the placement.
 - A dispatch **from** a parked view is a **fork**: the paint records its parked
   parent as provenance, the turn reports the parked snapshot's data model (not
   the head's), and the parked view holds until the forked paint lands — landing
@@ -93,6 +132,10 @@ binding (both defined in `src/a2a/messages.ts`; the standard
   history shows (absent, the cause-derived fallback is used); `kind:
 "question"` is the marker that routes a paint to the overlay slot instead of
   the stage.
+- **`a2uiverse`** (hub → client): the composition stamp, on A2A _event_ metadata rather than in
+  the parts — `{source, slot?, role}`, defined by `@a2uiverse/sdk`'s composition extension. It is
+  what tells the canvas whether a batch paints the shell or fills a slot. Recorded beats carry it
+  per batch, because which slot a fragment fills is not recoverable from the A2UI it carries.
 - **`a2uiForkContext`** (client → agent): an A2A message-metadata key attached
   only when a turn is dispatched from a parked view —
   `{paintId, title, paintedAt, position}`, identifying which historical paint
@@ -105,7 +148,8 @@ binding (both defined in `src/a2a/messages.ts`; the standard
 full turn lifecycle — the same hold-and-swap gate, paced by the recorded stream
 offsets. `&instant` collapses the waits. This is how the shell is verified with
 no LLM in the loop. The synthetic beats ship with the client
-(`src/beats/syntheticBeats.ts`: `plain`, `plain-2`, `validation`, `question`);
+(`src/beats/syntheticBeats.ts`: `plain`, `plain-2`, `validation`, `question`, and the composed
+trio `composed`, `composed-solo`, `composed-question`);
 recorded beats (`recordings/beats/*.json`, addressed by number) are re-recorded
 through the orchestrator in task 1.4.
 
@@ -123,6 +167,11 @@ components/             stage, palette, overlay, status strip, ambient notice,
 turn/
   canvasTurn.ts         the turn runner — hold-and-swap lives here
   turnMessages.ts       pure message-shape inspection for the runner
+composition/
+  slotContent.tsx       what a Slot renders: boundary → vendor Provider → surface
+  FragmentBoundary.tsx  the one element a fragment mounts inside (provenance + isolation)
+  slotCount.ts          how many slots the plan laid out — adaptive weight's input
+  collisionDetector.ts  the CSS collision rules, run over the installed catalogs
 timeline/
   paint.ts              the paint/cause vocabulary + title derivation
   snapshotSurface.ts    serialize-on-swap materialization

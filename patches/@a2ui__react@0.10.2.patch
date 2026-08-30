@@ -1,0 +1,68 @@
+diff --git a/v0_9/index.js b/v0_9/index.js
+index b4ed39833d3db9b02af2e2f0657de4e26f3bb392..abb2434c55abe60bfabe9cd65a08a88fcf52aab6 100644
+--- a/v0_9/index.js
++++ b/v0_9/index.js
+@@ -69,18 +69,35 @@ var DeferredChild = memo(({ surface, id, basePath }) => {
+   useSyncExternalStore(store.subscribe, store.getSnapshot);
+   const componentModel = surface.componentsModel.get(id);
+   if (!componentModel) {
+-    return /* @__PURE__ */ jsxs("div", { style: { color: "gray", padding: "4px" }, children: [
+-      "[Loading ",
+-      id,
+-      "...]"
+-    ] });
++    return /* @__PURE__ */ jsx("div", {
++      "data-a2ui-placeholder": "loading",
++      style: {
++        padding: "var(--a2ui-spacing-s, 8px)",
++        color: "var(--a2ui-color-on-surface, #6b7280)",
++        font: "inherit",
++        fontSize: "var(--a2ui-font-size-s, 13px)",
++        opacity: 0.55
++      },
++      children: "\u2026"
++    });
+   }
+   const compImpl = surface.catalog.components.get(componentModel.type);
+   if (!compImpl) {
+-    return /* @__PURE__ */ jsxs("div", { style: { color: "red" }, children: [
+-      "Unknown component: ",
+-      componentModel.type
+-    ] });
++    return /* @__PURE__ */ jsx("div", {
++      "data-a2ui-placeholder": "unknown",
++      "data-a2ui-component": componentModel.type,
++      title: `Unknown component: ${componentModel.type}`,
++      style: {
++        padding: "var(--a2ui-spacing-s, 8px)",
++        border: "1px dashed var(--a2ui-color-border, #d9d9e0)",
++        borderRadius: "var(--a2ui-border-radius, 6px)",
++        color: "var(--a2ui-color-on-surface, #6b7280)",
++        font: "inherit",
++        fontSize: "var(--a2ui-font-size-s, 13px)",
++        opacity: 0.55
++      },
++      children: "\u2014"
++    });
+   }
+   return /* @__PURE__ */ jsx(
+     ResolvedChild,
+@@ -723,6 +740,9 @@ var ChoicePicker_default = {};
+ var ChoicePicker = createComponentImplementation(ChoicePickerApi, ({ props, context }) => {
+   useBasicCatalogStyles();
+   const [filter, setFilter] = useState("");
++  // Radio group names are document-scoped while component ids are only surface-scoped, so the
++  // group name must be unique per rendered instance.
++  const groupName = React3.useId();
+   const values = Array.isArray(props.value) ? props.value : [];
+   const isMutuallyExclusive = props.variant === "mutuallyExclusive";
+   const onToggle = (val) => {
+@@ -770,7 +790,7 @@ var ChoicePicker = createComponentImplementation(ChoicePickerApi, ({ props, cont
+             type: isMutuallyExclusive ? "radio" : "checkbox",
+             checked: isSelected,
+             onChange: () => onToggle(opt.value),
+-            name: isMutuallyExclusive ? `choice-${context.componentModel.id}` : void 0
++            name: isMutuallyExclusive ? groupName : void 0
+           }
+         ),
+         /* @__PURE__ */ jsx("span", { className: ChoicePicker_default.optionText, children: opt.label })

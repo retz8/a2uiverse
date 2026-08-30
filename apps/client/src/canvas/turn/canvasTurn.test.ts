@@ -7,8 +7,11 @@ import {describe, it, expect} from 'vitest';
 import {MessageProcessor} from '@a2ui/web_core/v0_9';
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
 import {CATALOG, CATALOG_ID} from 'github-catalog';
+import {CATALOG as SHELL_CATALOG, CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog';
+import type {CompositionStamp} from '@a2uiverse/sdk';
 import type {PaintCause} from '../timeline/paint';
 import {createCanvasStore} from '../canvasStore';
+import type {FragmentFailure} from './canvasTurn';
 import {createTurnRunner} from './canvasTurn';
 
 const msg = (m: Record<string, unknown>): A2uiMessage =>
@@ -618,5 +621,409 @@ describe('streamed partials: validation is judged on the settled state', () => {
     const turn = runner.begin(utterance('stream'));
     turn.apply([textRoot('missing', 'no such surface')]);
     expect(store.getState().error).toMatch(/could not be displayed/);
+  });
+});
+
+describe('composed turns (the hub stamps its events)', () => {
+  const SHELL: CompositionStamp = {source: 'shell', role: 'shell'};
+  const fragment = (source: string, slot: string): CompositionStamp => ({
+    source,
+    slot,
+    role: 'fragment',
+  });
+
+  /** The hub's first paint: the layout surface, before any agent has answered. */
+  const shellPaint = (slots: string[]) => [
+    msg({createSurface: {surfaceId: 'shell:main', catalogId: SHELL_CATALOG_ID}}),
+    msg({
+      updateComponents: {
+        surfaceId: 'shell:main',
+        components: [
+          {id: 'root', component: 'Column', children: slots},
+          ...slots.map(name => ({id: name, component: 'Slot', name, state: 'pending'})),
+        ],
+      },
+    }),
+  ];
+
+  function composedSetup() {
+    const catalogs = [CATALOG, SHELL_CATALOG];
+    const processor = new MessageProcessor(catalogs);
+    const store = createCanvasStore();
+    const runner = createTurnRunner({
+      processor,
+      store,
+      createStaging: () => new MessageProcessor(catalogs),
+    });
+    return {processor, store, runner};
+  }
+
+  it('the shell takes the stage and fragments fill slots without contending for it', () => {
+    const {processor, store, runner} = composedSetup();
+    const turn = runner.begin(utterance('what needs my attention'));
+
+    turn.apply(shellPaint(['slot-github']), SHELL);
+    // First paint lands before any agent answers — the whole point of a composition.
+    expect(store.getState().stageId).toBe('shell:main');
+
+    turn.apply(
+      [create('github:prs'), textRoot('github:prs', 'Pull requests')],
+      fragment('github', 'slot-github'),
+    );
+    turn.end();
+
+    expect(store.getState().stageId).toBe('shell:main');
+    expect(store.getState().placement.get('slot-github')).toEqual({
+      surfaceId: 'github:prs',
+      source: 'github',
+    });
+    // The fragment lives in the registry to be mounted, but is not a paint of its own.
+    expect(processor.model.getSurface('github:prs')).toBeDefined();
+    expect(store.getState().timeline.map(e => e.surfaceId)).toEqual(['shell:main']);
+  });
+
+  it('a composition abandons hold-and-swap so its slots can fill in place', () => {
+    const {store, runner} = composedSetup();
+    paintStage(runner, 'old', 'previous paint');
+    expect(store.getState().stageId).toBe('old');
+
+    const turn = runner.begin(utterance('compose'));
+    turn.apply(shellPaint(['slot-github']), SHELL);
+    // Staged mode would have held 'old' until turn end; a composition swaps on arrival.
+    expect(store.getState().stageId).toBe('shell:main');
+    turn.end();
+  });
+
+  it('the outgoing composition leaves with its fragments — nothing stale reaches a vendor', () => {
+    const {processor, store, runner} = composedSetup();
+    const first = runner.begin(utterance('compose'));
+    first.apply(shellPaint(['slot-github']), SHELL);
+    first.apply(
+      [create('github:prs'), textRoot('github:prs', 'one')],
+      fragment('github', 'slot-github'),
+    );
+    first.end();
+
+    const second = runner.begin(utterance('compose again'));
+    second.apply(shellPaint(['slot-github']), SHELL);
+    expect(processor.model.getSurface('github:prs')).toBeUndefined();
+    expect(store.getState().placement.size).toBe(0);
+    second.end();
+  });
+
+  it('one surface per slot: a later claim retires the earlier tenant', () => {
+    const {processor, store, runner} = composedSetup();
+    const turn = runner.begin(utterance('compose'));
+    turn.apply(shellPaint(['slot-github']), SHELL);
+    turn.apply([create('github:a'), textRoot('github:a', 'a')], fragment('github', 'slot-github'));
+    turn.apply([create('github:b'), textRoot('github:b', 'b')], fragment('github', 'slot-github'));
+    turn.end();
+
+    expect(store.getState().placement.get('slot-github')?.surfaceId).toBe('github:b');
+    expect(processor.model.getSurface('github:a')).toBeUndefined();
+  });
+
+  it('a bare shell repaint flips a slot without tearing the canvas down', () => {
+    const {processor, store, runner} = composedSetup();
+    const turn = runner.begin(utterance('compose'));
+    turn.apply(shellPaint(['slot-github']), SHELL);
+    turn.apply(
+      [create('github:prs'), textRoot('github:prs', 'one')],
+      fragment('github', 'slot-github'),
+    );
+    turn.end();
+
+    // The hub flips a slot by repainting its own surface — an update, not a new composition.
+    const flip = runner.begin(utterance('act'));
+    flip.apply(
+      [
+        msg({
+          updateComponents: {
+            surfaceId: 'shell:main',
+            components: [
+              {id: 'slot-github', component: 'Slot', name: 'slot-github', state: 'failed'},
+            ],
+          },
+        }),
+      ],
+      SHELL,
+    );
+    flip.end();
+
+    expect(store.getState().stageId).toBe('shell:main');
+    expect(store.getState().placement.get('slot-github')).toEqual({
+      surfaceId: 'github:prs',
+      source: 'github',
+    });
+    expect(processor.model.getSurface('github:prs')).toBeDefined();
+  });
+
+  it('the departing composition is captured whole, so time travel is not a lie', () => {
+    const {store, runner} = composedSetup();
+    const first = runner.begin(utterance('compose'));
+    first.apply(shellPaint(['slot-github']), SHELL);
+    first.apply(
+      [create('github:prs'), textRoot('github:prs', 'Pull requests')],
+      fragment('github', 'slot-github'),
+    );
+    first.end();
+
+    // Serialize-on-swap: the composition materialises as the next one displaces it.
+    const second = runner.begin(utterance('compose again'));
+    second.apply(shellPaint(['slot-github']), SHELL);
+    second.end();
+
+    const [entry] = store.getState().timeline;
+    expect(entry.snapshot).not.toBeNull();
+    expect(entry.fragments).toHaveLength(1);
+    const [captured] = entry.fragments!;
+    expect(captured).toMatchObject({
+      slot: 'slot-github',
+      surfaceId: 'github:prs',
+      source: 'github',
+    });
+    expect(captured.snapshot?.tree).toHaveProperty('root');
+  });
+
+  it('an unstamped stream is a stage paint — pre-composition fixtures are unchanged', () => {
+    const {store, runner} = composedSetup();
+    const turn = runner.begin(utterance('plain'));
+    turn.apply([create('plain-view'), textRoot('plain-view', 'hello')]);
+    turn.end();
+
+    expect(store.getState().stageId).toBe('plain-view');
+    expect(store.getState().placement.size).toBe(0);
+    expect(store.getState().timeline.map(e => e.surfaceId)).toEqual(['plain-view']);
+  });
+});
+
+describe('fragment failure reporting', () => {
+  const SHELL: CompositionStamp = {source: 'shell', role: 'shell'};
+  const fragment = (source: string, slot: string): CompositionStamp => ({
+    source,
+    slot,
+    role: 'fragment',
+  });
+
+  const shellPaint = (slots: string[]) => [
+    msg({createSurface: {surfaceId: 'shell:main', catalogId: SHELL_CATALOG_ID}}),
+    msg({
+      updateComponents: {
+        surfaceId: 'shell:main',
+        components: [
+          {id: 'root', component: 'Column', children: slots},
+          ...slots.map(name => ({id: name, component: 'Slot', name, state: 'pending'})),
+        ],
+      },
+    }),
+  ];
+
+  function failureSetup() {
+    const catalogs = [CATALOG, SHELL_CATALOG];
+    const processor = new MessageProcessor(catalogs);
+    const store = createCanvasStore();
+    const failures: FragmentFailure[] = [];
+    const runner = createTurnRunner({
+      processor,
+      store,
+      createStaging: () => new MessageProcessor(catalogs),
+      onFragmentFailure: failure => failures.push(failure),
+    });
+    return {processor, store, runner, failures};
+  }
+
+  it('reports a fragment whose catalog is not installed, without waiting for turn end', () => {
+    const {failures, runner} = failureSetup();
+    const turn = runner.begin(utterance('compose'));
+    turn.apply(shellPaint(['slot-gmail']), SHELL);
+    turn.apply(
+      [msg({createSurface: {surfaceId: 'gmail:inbox', catalogId: 'urn:not-installed'}})],
+      fragment('gmail', 'slot-gmail'),
+    );
+
+    // Structural: it can never mount, so waiting for turn end would tell us nothing new.
+    expect(failures).toHaveLength(1);
+    expect(failures[0]).toMatchObject({surfaceId: 'gmail:inbox', slot: 'slot-gmail'});
+    turn.end();
+    // One report per fragment, never a second at settle.
+    expect(failures).toHaveLength(1);
+  });
+
+  it('reports a fragment left invalid at turn end, and nothing for one that settles', () => {
+    const {failures, runner} = failureSetup();
+    const turn = runner.begin(utterance('compose'));
+    turn.apply(shellPaint(['slot-github']), SHELL);
+    // A half-built component: the batch is thrown away, leaving the fragment rootless.
+    turn.apply(
+      [
+        create('github:prs'),
+        msg({
+          updateComponents: {
+            surfaceId: 'github:prs',
+            components: [{id: 'root', component: 'Link', text: 'no href yet'}],
+          },
+        }),
+      ],
+      fragment('github', 'slot-github'),
+    );
+    expect(failures).toHaveLength(0);
+    turn.end();
+
+    expect(failures).toHaveLength(1);
+    expect(failures[0].message).toMatch(/no root component/);
+  });
+
+  it('a fragment that streams a partial and then settles reports nothing', () => {
+    const {failures, runner} = failureSetup();
+    const turn = runner.begin(utterance('compose'));
+    turn.apply(shellPaint(['slot-github']), SHELL);
+    turn.apply([create('github:prs')], fragment('github', 'slot-github'));
+    turn.apply(
+      [
+        msg({
+          updateComponents: {
+            surfaceId: 'github:prs',
+            components: [{id: 'root', component: 'Link', text: 'partial'}],
+          },
+        }),
+      ],
+      fragment('github', 'slot-github'),
+    );
+    turn.apply([textRoot('github:prs', 'Pull requests')], fragment('github', 'slot-github'));
+    turn.end();
+
+    expect(failures).toEqual([]);
+  });
+
+  it('a fragment displaced by a later claim on its slot is superseded, not failed', () => {
+    const {failures, runner} = failureSetup();
+    const turn = runner.begin(utterance('compose'));
+    turn.apply(shellPaint(['slot-github']), SHELL);
+    turn.apply([create('github:a')], fragment('github', 'slot-github'));
+    turn.apply([create('github:b'), textRoot('github:b', 'b')], fragment('github', 'slot-github'));
+    turn.end();
+
+    expect(failures.map(f => f.surfaceId)).toEqual([]);
+  });
+
+  it('a broken shell is the platform failing, not a vendor — nothing is reported outward', () => {
+    const {store, failures, runner} = failureSetup();
+    const turn = runner.begin(utterance('compose'));
+    turn.apply(
+      [msg({createSurface: {surfaceId: 'shell:main', catalogId: 'urn:not-installed'}})],
+      SHELL,
+    );
+    turn.end();
+
+    expect(failures).toEqual([]);
+    // It still surfaces — on the local channel, where a platform bug belongs.
+    expect(store.getState().error).toMatch(/failed/);
+  });
+});
+
+describe('shell-granted promotion', () => {
+  const SHELL: CompositionStamp = {source: 'shell', role: 'shell'};
+  const fragment = (source: string, slot: string): CompositionStamp => ({
+    source,
+    slot,
+    role: 'fragment',
+  });
+  const shellPaint = (slots: string[]) => [
+    msg({createSurface: {surfaceId: 'shell:main', catalogId: SHELL_CATALOG_ID}}),
+    msg({
+      updateComponents: {
+        surfaceId: 'shell:main',
+        components: [
+          {id: 'root', component: 'Column', children: slots},
+          ...slots.map(name => ({id: name, component: 'Slot', name, state: 'pending'})),
+        ],
+      },
+    }),
+  ];
+
+  function promotionSetup() {
+    const catalogs = [CATALOG, SHELL_CATALOG];
+    const processor = new MessageProcessor(catalogs);
+    const store = createCanvasStore();
+    const runner = createTurnRunner({
+      processor,
+      store,
+      createStaging: () => new MessageProcessor(catalogs),
+    });
+    return {processor, store, runner};
+  }
+
+  it('a question fragment is promoted in place, never lifted into the overlay', () => {
+    const {store, runner} = promotionSetup();
+    const turn = runner.begin(utterance('compose'));
+    turn.apply(shellPaint(['slot-github']), SHELL);
+    turn.apply(
+      [create('github:ask'), dialogRoot('github:ask', 'Which repository?')],
+      fragment('github', 'slot-github'),
+    );
+    turn.end();
+
+    expect([...store.getState().promoted]).toEqual(['slot-github']);
+    // The invariant: it stays where the shell put it.
+    expect(store.getState().overlay).toBeNull();
+    expect(store.getState().stageId).toBe('shell:main');
+    expect(store.getState().placement.get('slot-github')?.surfaceId).toBe('github:ask');
+  });
+
+  it('several fragments can ask at once — promotion is plural, not a modal', () => {
+    const {store, runner} = promotionSetup();
+    const turn = runner.begin(utterance('compose'));
+    turn.apply(shellPaint(['slot-github', 'slot-gmail']), SHELL);
+    turn.apply(
+      [create('github:ask'), dialogRoot('github:ask', 'Which repository?')],
+      fragment('github', 'slot-github'),
+    );
+    turn.apply(
+      [create('gmail:ask'), dialogRoot('gmail:ask', 'Which account?')],
+      fragment('gmail', 'slot-gmail'),
+    );
+    turn.end();
+
+    expect([...store.getState().promoted].sort()).toEqual(['slot-github', 'slot-gmail']);
+    expect(store.getState().overlay).toBeNull();
+  });
+
+  it('an ordinary fragment is not promoted', () => {
+    const {store, runner} = promotionSetup();
+    const turn = runner.begin(utterance('compose'));
+    turn.apply(shellPaint(['slot-github']), SHELL);
+    turn.apply(
+      [create('github:prs'), textRoot('github:prs', 'PRs')],
+      fragment('github', 'slot-github'),
+    );
+    turn.end();
+    expect(store.getState().promoted.size).toBe(0);
+  });
+
+  it('promotion clears when the composition is torn down', () => {
+    const {store, runner} = promotionSetup();
+    const first = runner.begin(utterance('compose'));
+    first.apply(shellPaint(['slot-github']), SHELL);
+    first.apply(
+      [create('github:ask'), dialogRoot('github:ask', 'Which repository?')],
+      fragment('github', 'slot-github'),
+    );
+    first.end();
+    expect(store.getState().promoted.size).toBe(1);
+
+    const second = runner.begin(utterance('compose again'));
+    second.apply(shellPaint(['slot-github']), SHELL);
+    second.end();
+    expect(store.getState().promoted.size).toBe(0);
+  });
+
+  it('a shell-painted question still takes the overlay', () => {
+    const {store, runner} = promotionSetup();
+    const turn = runner.begin(utterance('ask'));
+    turn.apply([create('which-repo'), dialogRoot('which-repo', 'Which repository?')], SHELL);
+    turn.end();
+
+    expect(store.getState().overlay?.surfaceId).toBe('which-repo');
+    expect(store.getState().promoted.size).toBe(0);
   });
 });

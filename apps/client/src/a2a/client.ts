@@ -1,12 +1,14 @@
 import {A2AClient} from '@a2a-js/sdk/client';
 import type {MessageSendParams} from '@a2a-js/sdk';
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
+import type {CompositionStamp} from '@a2uiverse/sdk';
 import type {A2AStreamEventData, PaintMeta} from './messages';
 import {
   extractA2uiMessagesFromEvent,
   extractAgentTextFromEvent,
   extractContextId,
   extractPaintMetasFromEvent,
+  extractStampFromEvent,
 } from './messages';
 import type {A2ASession} from './session';
 
@@ -57,6 +59,19 @@ export function createSenderResolver(opts: A2ASenderOptions): GetSender {
   };
 }
 
+/** The per-stream callbacks; an object rather than a positional tail, which had outgrown itself. */
+export interface SendAndApplyOptions {
+  /**
+   * Applies one event's A2UI messages. The composition stamp of the event carrying them rides
+   * along: it is what tells the canvas whether these messages paint the shell or fill a slot.
+   */
+  apply: (messages: A2uiMessage[], stamp?: CompositionStamp) => void;
+  session?: A2ASession;
+  onAgentText?: (text: string) => void;
+  signal?: AbortSignal;
+  onPaintMeta?: (meta: PaintMeta) => void;
+}
+
 /**
  * Send one message over the event stream, applying the A2UI carried by each event as it arrives
  * and capturing the conversation contextId into the session. Throws on wire failure — callers own
@@ -66,11 +81,7 @@ export function createSenderResolver(opts: A2ASenderOptions): GetSender {
 export async function sendAndApply(
   sender: A2AMessageSender,
   params: MessageSendParams,
-  apply: (messages: A2uiMessage[]) => void,
-  session?: A2ASession,
-  onAgentText?: (text: string) => void,
-  signal?: AbortSignal,
-  onPaintMeta?: (meta: PaintMeta) => void,
+  {apply, session, onAgentText, signal, onPaintMeta}: SendAndApplyOptions,
 ): Promise<void> {
   for await (const event of sender.sendMessageStream(params, {signal})) {
     const contextId = extractContextId(event);
@@ -79,7 +90,7 @@ export async function sendAndApply(
     // ahead of the createSurface it names within the same event.
     if (onPaintMeta) for (const meta of extractPaintMetasFromEvent(event)) onPaintMeta(meta);
     const messages = extractA2uiMessagesFromEvent(event);
-    if (messages.length) apply(messages);
+    if (messages.length) apply(messages, extractStampFromEvent(event));
     if (onAgentText) for (const text of extractAgentTextFromEvent(event)) onAgentText(text);
   }
 }

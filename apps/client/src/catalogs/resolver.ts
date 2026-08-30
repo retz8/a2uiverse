@@ -8,6 +8,11 @@ import type {ComponentType, ReactNode} from 'react';
 import type {Catalog} from '@a2ui/web_core/v0_9';
 import type {ReactComponentImplementation} from '@a2ui/react/v0_9';
 import {CATALOG, CATALOG_ID, Provider as GitHubProvider} from 'github-catalog';
+import {
+  CATALOG as SHELL_CATALOG,
+  CATALOG_ID as SHELL_CATALOG_ID,
+  Provider as ShellProvider,
+} from '@a2uiverse/shell-catalog';
 import type {CatalogRecord} from '../orchestratorApi';
 
 export interface ResolvedCatalog {
@@ -17,7 +22,9 @@ export interface ResolvedCatalog {
   Provider: ComponentType<{children: ReactNode}>;
 }
 
+/** One entry per catalog package in `orchestratorApi`'s projection; the two lists move together. */
 const TABLE: ReadonlyMap<string, ResolvedCatalog> = new Map([
+  [SHELL_CATALOG_ID, {id: SHELL_CATALOG_ID, catalog: SHELL_CATALOG, Provider: ShellProvider}],
   [CATALOG_ID, {id: CATALOG_ID, catalog: CATALOG, Provider: GitHubProvider}],
 ]);
 

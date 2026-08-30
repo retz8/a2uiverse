@@ -76,9 +76,7 @@ export function createA2AActionHandler(opts: A2AActionHandlerOptions): ActionLis
           undefined,
           opts.supportedCatalogIds,
         ),
-        apply,
-        session,
-        onAgentText,
+        {apply, session, onAgentText},
       );
     } catch (err) {
       console.error('[A2UI:a2a]', err);

@@ -13,7 +13,11 @@ import {mkdir, writeFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {parseArgs} from 'node:util';
 import type {BeatBatch, BeatFixture, BeatTurn} from '../src/beats/beatFixtures';
-import {extractA2uiMessagesFromEvent, extractAgentTextFromEvent} from '../src/a2a/messages';
+import {
+  extractA2uiMessagesFromEvent,
+  extractAgentTextFromEvent,
+  extractStampFromEvent,
+} from '../src/a2a/messages';
 import type {BeatSpec} from './lib/beats';
 import {BEATS} from './lib/beats';
 import {createSender, driveTurn, parseBeatList, supportedCatalogIds} from './lib/drive';
@@ -71,7 +75,11 @@ async function main() {
         driven = await driveTurn(sender, spec.prompt, contextId, catalogIds, ({atMs, event}) => {
           const messages = extractA2uiMessagesFromEvent(event);
           const texts = extractAgentTextFromEvent(event);
-          if (messages.length || texts.length) batches.push({offsetMs: atMs, messages, texts});
+          // The stamp is what makes a recorded composition replay as one: which slot each
+          // fragment fills lives on the event, not in the A2UI it carries.
+          const stamp = extractStampFromEvent(event);
+          if (messages.length || texts.length)
+            batches.push({offsetMs: atMs, messages, texts, ...(stamp ? {stamp} : {})});
         });
         contextId = driven.contextId;
         painted = batches.some(b => b.messages.some(m => 'createSurface' in m));
