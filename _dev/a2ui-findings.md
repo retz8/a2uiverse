@@ -128,3 +128,54 @@ Reword the three descriptions to state the actual constraint, e.g.:
 > createSurface."
 
 No schema shape change needed — prose only.
+
+---
+
+## 3. Basic catalog's CSS-module class maps are dead code (React renderer)
+
+**Component:** `@a2ui/react` 0.10.2, `v0_9` build (`v0_9/index.js`; `v0_9/index.css`).
+
+**Severity:** functional/visual bug — the basic catalog's entire component
+styling layer never reaches the page; no error raised.
+
+**Reported:** not yet.
+
+### Issue
+
+In the shipped `v0_9` bundle, every CSS-module import compiled to an empty
+object:
+
+```js
+var Text_default = {};
+var Button_default = {};
+var TextField_default = {};
+var ChoicePicker_default = {};
+```
+
+Every `styles.x` lookup is therefore `undefined`, and `v0_9/index.css` — which
+holds the real rules (`.button`, `.borderless`, `.primary`, `.a2uiText`,
+`.a2uiCaption`, …) — is not exported from `package.json` and is imported
+nowhere. The two halves never meet. Observable consequences:
+
+- `Button` renders a bare `<button>` with no class: the UA border and
+  `text-align: center` apply, and the `variant: "borderless"` / `"primary"`
+  branches produce **no DOM difference** (`classes.push(Button_default.borderless)`
+  pushes `undefined`). The intended `.borderless` neutralization
+  (`background: none; border: none; padding: 0`) never runs.
+- `Text variant: "caption"` renders `<span><em>…</em></span>` with no class; the
+  `<em>` picks up UA italic, and the dead `.a2uiCaption` rule
+  (`text-align: left`, muted color) never applies.
+- Template-literal class joins leak the literal string `undefined` into class
+  attributes (`class="undefined chip …"` on ChoicePicker chips).
+- Every `--a2ui-button-*` / `--a2ui-text-*` token read lives only in the dead
+  stylesheet, so Button and Text have no working token surface at all.
+
+Only components whose class names are string literals in the JS (`a2ui-card`,
+`a2ui-icon`, `a2ui-modal-*`, `a2ui-tabs-*`, the `h1`–`h5`/`body` Text wrappers)
+carry classes at runtime.
+
+### Fix
+
+Restore the class maps in the build (or inline literal class names), and export
++ import `v0_9/index.css` so the rules ship. Until then, downstream catalogs can
+only style the basic components through element and structural selectors.

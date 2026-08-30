@@ -417,6 +417,8 @@ Constraint protected throughout: **an existing A2UI agent composes with zero cha
 | Unsuppressable attribution on a grafted fragment | local convention |
 | `ChoicePicker` document-global radio group name in `@a2ui/react` (patched locally) | upstream bug report — `_dev/a2ui-findings.md` |
 | Unsatisfiable `catalogId` clause in `server_to_client.json` prose | upstream bug report — `_dev/a2ui-findings.md` |
+| Scoped per-catalog stylesheet layer — a catalog bundle ships CSS styling the basic components' runtime DOM under its own scope class | local convention |
+| Dead CSS-module class maps in `@a2ui/react` `v0_9` basic catalog (classless Button/variants, unshipped `index.css`) | upstream bug report — `_dev/a2ui-findings.md` |
 | Credential components barred from all catalogs | normative review rule |
 | `sendDataModel`, multi-catalog `MessageProcessor`, `catalogId` scoping | already in protocol — no delta |
 
