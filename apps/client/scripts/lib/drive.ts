@@ -33,19 +33,23 @@ export async function createSender(url: string): Promise<A2AMessageSender> {
   };
 }
 
+/** Mirrors `orchestratorApi`'s projection; kept in step with it by hand. */
+const CATALOG_PACKAGES = ['@a2uiverse/shell-catalog', 'github-catalog'];
+
 /**
  * The catalog ids the canvas advertises on every message. The client's projection
- * (`orchestratorApi`) resolves them through the adapter's React entry, which drags CSS into a
+ * (`orchestratorApi`) resolves them through each bundle's React entry, which drags CSS into a
  * Node process; the published catalog JSON carries the same id, so read it from there.
  */
 export async function supportedCatalogIds(): Promise<string[]> {
-  // The adapter's `exports` map hides package.json, so locate it as a dependency directory.
-  const pkgDir = resolve(
-    dirname(fileURLToPath(import.meta.url)),
-    '../../node_modules/github-catalog',
+  // The bundles' `exports` maps hide package.json, so locate each as a dependency directory.
+  const deps = resolve(dirname(fileURLToPath(import.meta.url)), '../../node_modules');
+  return Promise.all(
+    CATALOG_PACKAGES.map(async pkg => {
+      const json = await readFile(resolve(deps, pkg, 'catalogs/v0.9.1/catalog.json'), 'utf8');
+      return (JSON.parse(json) as {catalogId: string}).catalogId;
+    }),
   );
-  const json = await readFile(resolve(pkgDir, 'catalogs/v0.9.1/catalog.json'), 'utf8');
-  return [(JSON.parse(json) as {catalogId: string}).catalogId];
 }
 
 /** Send one text prompt and collect every streamed event with its arrival offset. */

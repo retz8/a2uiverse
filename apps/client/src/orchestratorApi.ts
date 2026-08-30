@@ -5,8 +5,12 @@
  * Runtime objects (catalogs, providers) never cross this boundary; see `catalogs/resolver`.
  */
 import {CATALOG_ID} from 'github-catalog';
+import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 
-/** One installed app's catalog, as the orchestrator's Registry projects it to the client. */
+/**
+ * One catalog the client can render, as the orchestrator's Registry projects it. `appId` is an
+ * installed app's id, or the reserved `shell` for the platform's own catalog.
+ */
 export interface CatalogRecord {
   appId: string;
   catalogId: string;
@@ -14,11 +18,18 @@ export interface CatalogRecord {
   package: string;
 }
 
+/**
+ * The shell catalog carries the composition primitives the orchestrator paints into `shell:main`;
+ * the rest are installed apps. Gmail and Calendar join this list when 2.6/2.7 publish
+ * `gmail-catalog` and `calendar-catalog` — a record here plus a `TABLE` entry in
+ * `catalogs/resolver`.
+ */
 const STATIC_CATALOGS: CatalogRecord[] = [
+  {appId: 'shell', catalogId: SHELL_CATALOG_ID, package: '@a2uiverse/shell-catalog'},
   {appId: 'github', catalogId: CATALOG_ID, package: 'github-catalog'},
 ];
 
-/** The catalogs of every installed app, in registry order. */
+/** Every catalog the client can render, in registry order. */
 export async function listCatalogs(): Promise<CatalogRecord[]> {
   return STATIC_CATALOGS;
 }
