@@ -8,6 +8,21 @@ The shell's own UI (palette, status strip, history chrome) is Radix Themes. Vend
 
 `github-catalog` — the GitHub app's catalog schema, Primer React implementation, Provider, and Primer itself — is installed as a git dependency on the public `a2uiverse-apps` repo (`github:retz8/a2uiverse-apps#path:github/github-catalog`); no registry. pnpm builds it on install (`prepare`), pins the resolved commit in `pnpm-lock.yaml`, and keys its build allowance in `pnpm-workspace.yaml` by that commit — bumping the catalog is `pnpm update github-catalog --filter @a2uiverse/client` plus re-pointing that `allowBuilds` line. The client supplies only the shared runtime (React, `@a2ui/react` / `@a2ui/web_core`, `zod`); the vendor design system arrives with the bundle. For local catalog iteration, `pnpm link ../../../a2uiverse-apps/github/github-catalog` overrides it temporarily.
 
+## Renderer patches
+
+`@a2ui/react` is patched locally (`pnpm patch`; declared in `pnpm-workspace.yaml`, applied from
+`patches/@a2ui__react@0.10.2.patch`). Only the `v0_9/index.js` bundle the client imports is
+touched. Both hunks fix defects that only surface under composition, and both are pinned by
+`src/canvas/composition/rendererPatch.test.tsx` — if a version bump drops a hunk, those tests fail.
+
+| Hunk                                                                                                                                                                       | Why                                                                                                                                                                              | Upstream                                                                                                                                                                                  |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ChoicePicker` radio group name derived from `React.useId()` instead of the component id                                                                                   | Radio `name`s are document-scoped but A2UI component ids are only surface-scoped, so two fragments whose pickers share an id joined one group and fought over a single selection | reported as [#2447](https://github.com/a2ui-project/a2ui/issues/2447), fixed in [PR #2449](https://github.com/a2ui-project/a2ui/pull/2449) (the React half of it is what is patched here) |
+| `DeferredChild`'s loading and unknown-component fallbacks render as quiet, token-themed placeholders (`data-a2ui-placeholder`) instead of hardcoded gray/red inline styles | An unknown component inside an otherwise valid fragment must degrade at that node without shouting — the renderer exposes no hook to theme or replace these                      | local; the underlying gap (no host-supplied fallback seam) is a candidate report                                                                                                          |
+
+Drop a hunk by editing the patch file and re-running `pnpm install`; regenerate one with
+`pnpm patch @a2ui/react@<version>`.
+
 ## Running
 
 ```bash

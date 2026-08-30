@@ -15,3 +15,6 @@ allowBuilds:
   onnxruntime-node: true
   protobufjs: false
   sharp: false
+
+patchedDependencies:
+  "@a2ui/react@0.10.2": patches/@a2ui__react@0.10.2.patch
