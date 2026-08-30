@@ -64,6 +64,10 @@ Mailbox content is generalized at the source, not at the sink: in record mode, e
 
 The fixed seed is what lets a re-recorded beat reproduce the same substituted values and so still match its committed snapshot.
 
+**The first live run showed the seam is not where this assumed.** The captured payloads were clean while the painted stream carried a real address, so the substitution ran on a copy the model never read. Source-side substitution stands as the decision; the seam it hangs on does not, and has to move lower — a toolset wrapper rather than an `after_tool_callback` — before a corpus can be recorded.
+
+Until then the guarantee is enforced where it can be checked rather than where it is produced: no tracked artifact may carry an address outside the RFC 2606 reserved domains, asserted over the files that would be pushed.
+
 ### 9. Four beats
 
 `inbox-digest`, `thread-detail`, `reply-compose` (chained onto `thread-detail`), and `label-toggle`. One per kind of surface — list, detail, creating write, toggling write — with both write tiers of decision 5 exercised.
@@ -113,5 +117,7 @@ A fragment declaring a question is not overlaid. The shell raises its slot and d
 - Duplication with the GitHub agent is intended, not a defect to resolve here.
 
 ## Open items
+
+- The pseudonymization seam: an `after_tool_callback` is not a reliable substitution boundary for this ADK version. No corpus is recorded and no beats are tracked until it moves.
 
 - The fan-out utterance's exact wording, pending 2.9.
