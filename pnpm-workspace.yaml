@@ -11,6 +11,8 @@ allowBuilds:
   # gmail-catalog, pinned to the tarball pnpm resolved. Re-pointed when the catalog is bumped,
   # exactly as the github-catalog entries above are.
   "gmail-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/a39ee89ec550c826f07d1673c23541de834892bd#path:gmail/gmail-catalog": true
+  # calendar-catalog, pinned the same way.
+  "calendar-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/cdd56d56723e499d58d01f03ab03902b7c906ced#path:calendar/calendar-catalog": true
   onnxruntime-node: true
   protobufjs: false
   sharp: false

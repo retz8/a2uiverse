@@ -6,6 +6,7 @@
  */
 import {CATALOG_ID} from 'github-catalog';
 import {CATALOG_ID as GMAIL_CATALOG_ID} from 'gmail-catalog';
+import {CATALOG_ID as CALENDAR_CATALOG_ID} from 'calendar-catalog';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 
 /**
@@ -21,13 +22,14 @@ export interface CatalogRecord {
 
 /**
  * The shell catalog carries the composition primitives the orchestrator paints into `shell:main`;
- * the rest are installed apps. Calendar joins this list when 2.7 publishes
- * `calendar-catalog` — a record here plus a `TABLE` entry in `catalogs/resolver`.
+ * the rest are installed apps. A new app joins with a record here plus a `TABLE` entry in
+ * `catalogs/resolver` — the two lists move together.
  */
 const STATIC_CATALOGS: CatalogRecord[] = [
   {appId: 'shell', catalogId: SHELL_CATALOG_ID, package: '@a2uiverse/shell-catalog'},
   {appId: 'github', catalogId: CATALOG_ID, package: 'github-catalog'},
   {appId: 'gmail', catalogId: GMAIL_CATALOG_ID, package: 'gmail-catalog'},
+  {appId: 'calendar', catalogId: CALENDAR_CATALOG_ID, package: 'calendar-catalog'},
 ];
 
 /** Every catalog the client can render, in registry order. */

@@ -98,3 +98,50 @@ describe('every installed catalog, mounted together', () => {
     }
   });
 });
+
+/**
+ * The named tokens task-2.7 decision 3 made Calendar's theme diverge on. Gmail and Calendar are
+ * the same design system by the same company, so without a deliberate divergence the two
+ * fragments render as one product and phase acceptance item 6 passes while proving nothing.
+ * Asserted here rather than in either bundle: a catalog cannot compare itself to its sibling
+ * without depending on it, which SPEC §13 forbids.
+ */
+const DIVERGENT_TOKENS = [
+  '--a2ui-card-border-radius',
+  '--a2ui-card-box-shadow',
+  '--a2ui-color-primary',
+  '--a2ui-spacing-m',
+  '--a2ui-font-size-m',
+] as const;
+
+describe('the two Material 3 catalogs stay visually distinguishable', () => {
+  it('resolves each named token to a different value in the Gmail and Calendar subtrees', () => {
+    const {container} = everyCatalogMounted();
+    const gmail = container.querySelector<HTMLElement>('.gmail-catalog');
+    const calendar = container.querySelector<HTMLElement>('.calendar-catalog');
+    expect(gmail, 'gmail-catalog Provider did not mount').not.toBeNull();
+    expect(calendar, 'calendar-catalog Provider did not mount').not.toBeNull();
+
+    for (const token of DIVERGENT_TOKENS) {
+      const fromGmail = gmail!.style.getPropertyValue(token);
+      const fromCalendar = calendar!.style.getPropertyValue(token);
+      expect(fromGmail, `${token} unset on gmail-catalog`).not.toBe('');
+      expect(fromCalendar, `${token} unset on calendar-catalog`).not.toBe('');
+      expect(
+        fromCalendar,
+        `${token} is identical in both Material 3 catalogs — the themes have converged`,
+      ).not.toBe(fromGmail);
+    }
+  });
+
+  it('keeps each vendor theme inside its own fragment boundary', () => {
+    const {container} = everyCatalogMounted();
+    for (const selector of ['.gmail-catalog', '.calendar-catalog']) {
+      const wrapper = container.querySelector<HTMLElement>(selector)!;
+      expect(wrapper.closest(`[${FRAGMENT_BOUNDARY_ATTR}]`)).not.toBeNull();
+      for (const token of DIVERGENT_TOKENS) {
+        expect(document.documentElement.style.getPropertyValue(token)).toBe('');
+      }
+    }
+  });
+});
