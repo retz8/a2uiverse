@@ -1,7 +1,7 @@
 /**
  * Synthetic beat fixtures: hand-authored streams in the recorded `BeatFixture` format — two
  * plain paints, a validation-failure turn (partial paint → cleanup delete → final apology), a
- * question paint (`ConfirmationDialog` root) and a composed turn (shell layout, one slot filling,
+ * declared question paint and a composed turn (shell layout, one slot filling,
  * one flipping to failed). They are deliberately NOT in `recordings/beats/`
  * and never enter `BEAT_FIXTURES`: they are inputs for the transition tests and the chrome
  * baselines, replayable by name through `?beat=` (see `SYNTHETIC_BEATS`). Recorded beats are
@@ -468,7 +468,7 @@ export function syntheticBeat(name: string): BeatFixture | undefined {
   }
 }
 
-/** A question paint: a `ConfirmationDialog`-rooted surface — the overlay carrier. */
+/** A question paint: declared `kind="question"`, carried by a ConfirmationDialog root. */
 export const QUESTION_BEAT: BeatFixture = {
   ...base,
   name: 'synthetic-question',
@@ -486,7 +486,12 @@ export const QUESTION_BEAT: BeatFixture = {
       batches: [
         {
           offsetMs: 0,
-          messages: [msg({createSurface: {surfaceId: 'which-repo', catalogId: CATALOG_ID}})],
+          messages: [
+            // The agent declares a question; the ConfirmationDialog root is its own convention,
+            // validated agent-side, and no longer something the canvas infers.
+            msg({paintMeta: {surfaceId: 'which-repo', kind: 'question'}}),
+            msg({createSurface: {surfaceId: 'which-repo', catalogId: CATALOG_ID}}),
+          ],
           texts: [],
         },
         {

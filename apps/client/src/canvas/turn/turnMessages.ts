@@ -37,8 +37,6 @@ export interface TurnProcessor {
   };
 }
 
-/** Questions arrive as `ConfirmationDialog` surfaces — the structural recognition fallback. */
-export const QUESTION_ROOT_TYPE = 'ConfirmationDialog';
 /** Every surface's root component id, fixed by the renderer. */
 export const ROOT_COMPONENT_ID = 'root';
 
@@ -61,10 +59,7 @@ export function targetOf(message: A2uiMessage): MessageTarget {
   return {kind: 'other'};
 }
 
-export const rootTypeOf = (processor: TurnProcessor, surfaceId: string): string | undefined =>
-  processor.model.getSurface(surfaceId)?.componentsModel.get(ROOT_COMPONENT_ID)?.type;
-
-/** The dialog's title when statically known — a literal on the wire, not a data binding. */
+/** A question's title when statically known — a literal on the wire, not a data binding. */
 export function questionTitleOf(processor: TurnProcessor, surfaceId: string): string | undefined {
   const root = processor.model.getSurface(surfaceId)?.componentsModel.get(ROOT_COMPONENT_ID);
   const title = root?.properties?.title as {literalString?: unknown} | string | undefined;

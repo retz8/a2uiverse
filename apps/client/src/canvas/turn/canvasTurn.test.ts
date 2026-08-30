@@ -39,6 +39,16 @@ const dialogRoot = (surfaceId: string, title: string) =>
     },
   });
 
+/**
+ * A declared question, as a real agent streams one: the `kind="question"` marker plus the
+ * ConfirmationDialog root. The agent validates that the two go together; the canvas routes on
+ * the marker alone, so these tests declare it rather than relying on the shape.
+ */
+const questionPaint = (surfaceId: string, title: string) => [
+  msg({paintMeta: {surfaceId, kind: 'question'}}),
+  dialogRoot(surfaceId, title),
+];
+
 const utterance = (text: string, parent: number | null = null): PaintCause => ({
   kind: 'utterance',
   parent,
@@ -110,7 +120,7 @@ describe('progressive mode (empty canvas)', () => {
   it('a dialog-rooted paint routes to the overlay, not the stage or the timeline', () => {
     const {store, runner} = setup();
     const turn = runner.begin(utterance('delete everything'));
-    turn.apply([create('confirm-wipe'), dialogRoot('confirm-wipe', 'Really wipe it all?')]);
+    turn.apply([create('confirm-wipe'), ...questionPaint('confirm-wipe', 'Really wipe it all?')]);
     turn.end();
 
     const state = store.getState();
@@ -286,7 +296,7 @@ describe('question paints and the overlay slot', () => {
     paintStage(runner, 'stage', 'held content');
 
     const turn = runner.begin(utterance('which repo?', 1));
-    turn.apply([create('which-repo'), dialogRoot('which-repo', 'Which repository?')]);
+    turn.apply([create('which-repo'), ...questionPaint('which-repo', 'Which repository?')]);
     // Gated: the question is not live mid-turn.
     expect(store.getState().overlay).toBeNull();
     turn.end();
@@ -304,11 +314,11 @@ describe('question paints and the overlay slot', () => {
     paintStage(runner, 'stage', 'held');
 
     const first = runner.begin(utterance('q1', 1));
-    first.apply([create('question-1'), dialogRoot('question-1', 'First?')]);
+    first.apply([create('question-1'), ...questionPaint('question-1', 'First?')]);
     first.end();
 
     const second = runner.begin(utterance('q2', 1));
-    second.apply([create('question-2'), dialogRoot('question-2', 'Second?')]);
+    second.apply([create('question-2'), ...questionPaint('question-2', 'Second?')]);
     second.end();
 
     const state = store.getState();
@@ -321,7 +331,7 @@ describe('question paints and the overlay slot', () => {
     const {processor, store, runner} = setup();
     paintStage(runner, 'stage', 'held');
     const turn = runner.begin(utterance('ask', 1));
-    turn.apply([create('question'), dialogRoot('question', 'Sure?')]);
+    turn.apply([create('question'), ...questionPaint('question', 'Sure?')]);
     turn.end();
 
     runner.removeOverlay();
@@ -341,7 +351,7 @@ describe('question paints and the overlay slot', () => {
       create('new-stage'),
       textRoot('new-stage', 'new'),
       create('question'),
-      dialogRoot('question', 'Also this?'),
+      ...questionPaint('question', 'Also this?'),
     ]);
     turn.end();
 
@@ -435,6 +445,20 @@ describe('paint meta', () => {
     expect(state.stageId).toBeNull();
     expect(state.overlay?.surfaceId).toBe('which-repo');
     expect(state.timeline).toEqual([]); // questions never enter the timeline
+  });
+
+  it('an undeclared dialog-rooted paint is an ordinary stage paint', () => {
+    // The canvas used to infer a question from a `ConfirmationDialog` root — a vendor catalog's
+    // component name embedded in shell logic, which silently did nothing for any other design
+    // system. The declared marker is now the whole contract.
+    const {store, runner} = setup();
+    const turn = runner.begin(utterance('show the dialog demo'));
+    turn.apply([create('undeclared'), dialogRoot('undeclared', 'Looks like a question')]);
+    turn.end();
+
+    const state = store.getState();
+    expect(state.stageId).toBe('undeclared');
+    expect(state.overlay).toBeNull();
   });
 
   it('an explicit non-question kind keeps a dialog-rooted paint on the stage', () => {
@@ -538,7 +562,7 @@ describe('forked turns (dispatched from a parked view)', () => {
   it('a fork resolving to a question stays parked — the overlay shows over the parked view', () => {
     const {store, runner, parkedId} = setupParked();
     const turn = runner.begin(forkedUtterance('fork it', parkedId));
-    turn.apply([create('q'), dialogRoot('q', 'Proceed?')]);
+    turn.apply([create('q'), ...questionPaint('q', 'Proceed?')]);
     turn.end();
 
     const state = store.getState();
@@ -958,7 +982,7 @@ describe('shell-granted promotion', () => {
     const turn = runner.begin(utterance('compose'));
     turn.apply(shellPaint(['slot-github']), SHELL);
     turn.apply(
-      [create('github:ask'), dialogRoot('github:ask', 'Which repository?')],
+      [create('github:ask'), ...questionPaint('github:ask', 'Which repository?')],
       fragment('github', 'slot-github'),
     );
     turn.end();
@@ -975,11 +999,11 @@ describe('shell-granted promotion', () => {
     const turn = runner.begin(utterance('compose'));
     turn.apply(shellPaint(['slot-github', 'slot-gmail']), SHELL);
     turn.apply(
-      [create('github:ask'), dialogRoot('github:ask', 'Which repository?')],
+      [create('github:ask'), ...questionPaint('github:ask', 'Which repository?')],
       fragment('github', 'slot-github'),
     );
     turn.apply(
-      [create('gmail:ask'), dialogRoot('gmail:ask', 'Which account?')],
+      [create('gmail:ask'), ...questionPaint('gmail:ask', 'Which account?')],
       fragment('gmail', 'slot-gmail'),
     );
     turn.end();
@@ -1005,7 +1029,7 @@ describe('shell-granted promotion', () => {
     const first = runner.begin(utterance('compose'));
     first.apply(shellPaint(['slot-github']), SHELL);
     first.apply(
-      [create('github:ask'), dialogRoot('github:ask', 'Which repository?')],
+      [create('github:ask'), ...questionPaint('github:ask', 'Which repository?')],
       fragment('github', 'slot-github'),
     );
     first.end();
@@ -1020,7 +1044,7 @@ describe('shell-granted promotion', () => {
   it('a shell-painted question still takes the overlay', () => {
     const {store, runner} = promotionSetup();
     const turn = runner.begin(utterance('ask'));
-    turn.apply([create('which-repo'), dialogRoot('which-repo', 'Which repository?')], SHELL);
+    turn.apply([create('which-repo'), ...questionPaint('which-repo', 'Which repository?')], SHELL);
     turn.end();
 
     expect(store.getState().overlay?.surfaceId).toBe('which-repo');

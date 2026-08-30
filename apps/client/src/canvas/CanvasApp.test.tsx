@@ -244,6 +244,9 @@ describe('CanvasApp', () => {
 
   it('a question paint lands in the overlay; answering dispatches the action and dismisses it', async () => {
     const QUESTION_MESSAGES = [
+      // The declared marker is what routes a paint to the overlay — the canvas no longer infers
+      // it from a ConfirmationDialog root. It rides its own DataPart, ahead of the create.
+      {paintMeta: {surfaceId: 'which-repo', kind: 'question'}},
       {version: 'v0.9', createSurface: {surfaceId: 'which-repo', catalogId: CATALOG_ID}},
       {
         version: 'v0.9',
@@ -268,6 +271,8 @@ describe('CanvasApp', () => {
 
     await ask('do the ambiguous thing');
     expect(await screen.findByText('Which repository?')).toBeInTheDocument();
+    // In the overlay, not on the stage — which is what the marker buys.
+    expect(screen.getByTestId('canvas-overlay')).toHaveTextContent('Which repository?');
 
     await userEvent.click(screen.getByRole('button', {name: 'a2ui-project/a2ui'}));
 

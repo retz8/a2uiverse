@@ -15,9 +15,9 @@ SPEC.md §4 and §10–11.
   it holds is the orchestrator's **shell surface**, whose `Slot` components the client fills.
 - **Palette** — the summonable command input (`⌘K` / `Ctrl+K`; `Escape`
   closes). Open by default on an empty canvas.
-- **Overlay slot** — where **question paints** land: a surface the agent sends
-  to ask something (a confirmation dialog, a choice) renders above the stage
-  instead of replacing it, and never enters the timeline.
+- **Overlay slot** — where **question paints** land: a surface the agent _declares_ a question
+  renders above the stage instead of replacing it, and never enters the timeline. Only a
+  shell-role paint takes it; a fragment that asks is promoted in its slot instead.
 - **Status strip** — the thin in-flight/status readout.
 - **Ambient notices** — transient prose from the agent that carries no surface
   (for example, declining an action it cannot perform).
@@ -129,9 +129,11 @@ binding (both defined in `src/a2a/messages.ts`; the standard
 - **`paintMeta`** (agent → client): a dedicated DataPart,
   `{paintMeta: {surfaceId, title?, kind?}}`, emitted ahead of the
   `createSurface` it names. `title` is the agent-authored paint title the
-  history shows (absent, the cause-derived fallback is used); `kind:
-"question"` is the marker that routes a paint to the overlay slot instead of
-  the stage.
+  history shows (absent, the cause-derived fallback is used); `kind: "question"` is the marker
+  that routes a paint to the overlay slot instead of the stage, and the **only** thing that does
+  — the canvas infers nothing from a surface's shape. It used to fall back to recognising a
+  `ConfirmationDialog` root, which put a vendor catalog's component name inside shell logic and
+  silently did nothing for any other design system. An agent that asks must say so.
 - **`a2uiverse`** (hub → client): the composition stamp, on A2A _event_ metadata rather than in
   the parts — `{source, slot?, role}`, defined by `@a2uiverse/sdk`'s composition extension. It is
   what tells the canvas whether a batch paints the shell or fills a slot. Recorded beats carry it

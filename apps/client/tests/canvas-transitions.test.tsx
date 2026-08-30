@@ -62,7 +62,7 @@ describe('validation-failure turn (partial paint → cleanup delete → final)',
   });
 });
 
-describe('question paint (ConfirmationDialog root)', () => {
+describe('question paint (declared kind="question")', () => {
   it('routes to the overlay above the held stage, with the question extracted', async () => {
     const {processor, store, runner} = setup();
     await replayBeatOnCanvas(PLAIN_PAINT_BEAT, {runner, store, paced: false});

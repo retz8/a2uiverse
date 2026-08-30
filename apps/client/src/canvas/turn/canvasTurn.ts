@@ -46,14 +46,7 @@ import type {PaintCause} from '../timeline/paint';
 import {describeCause} from '../timeline/paint';
 import {serializeSurface} from '../timeline/snapshotSurface';
 import type {TurnProcessor} from './turnMessages';
-import {
-  QUESTION_ROOT_TYPE,
-  ROOT_COMPONENT_ID,
-  invalidComponentsOf,
-  questionTitleOf,
-  rootTypeOf,
-  targetOf,
-} from './turnMessages';
+import {ROOT_COMPONENT_ID, invalidComponentsOf, questionTitleOf, targetOf} from './turnMessages';
 
 export type {CanvasSurface, TurnProcessor} from './turnMessages';
 
@@ -69,9 +62,8 @@ export interface TurnHandle {
   apply(messages: A2uiMessage[], stamp?: CompositionStamp): void;
   /**
    * Accept one paintMeta shell object: the agent-authored title upgrades the in-flight label
-   * immediately and lands on the paint's timeline entry; the kind marker is the routing
-   * contract — a present `kind` routes by it, an absent one falls back to the structural
-   * ConfirmationDialog rule (for markerless streams: recorded fixtures and older agents).
+   * immediately and lands on the paint's timeline entry; `kind: "question"` is the routing
+   * contract, and the only thing that sends a paint to the overlay or promotes a slot.
    */
   acceptPaintMeta(meta: PaintMeta): void;
   /** The stream is exhausted: run the gate — swap in, or discard. No-op if canceled. */
@@ -302,14 +294,14 @@ export function createTurnRunner({
     const titleOf = (surfaceId: string) => metas.get(surfaceId)?.title;
 
     /**
-     * Question routing — the marker is the contract: a declared `kind` routes the paint; only
-     * a markerless paint falls back to the structural ConfirmationDialog rule.
+     * Question routing: the declared marker is the whole contract. There used to be a structural
+     * fallback recognising a `ConfirmationDialog` root, which put a vendor catalog's component
+     * name inside shell logic — `ConfirmationDialog` is Primer's, not the shell catalog's, so the
+     * rule silently did nothing for any other design system. It is gone: an agent declares a
+     * question or it does not have one.
      */
-    const isQuestion = (proc: TurnProcessor, surfaceId: string): boolean => {
-      const kind = metas.get(surfaceId)?.kind;
-      if (kind !== undefined) return kind === QUESTION_PAINT_KIND;
-      return rootTypeOf(proc, surfaceId) === QUESTION_ROOT_TYPE;
-    };
+    const isQuestion = (surfaceId: string): boolean =>
+      metas.get(surfaceId)?.kind === QUESTION_PAINT_KIND;
 
     const acceptPaintMeta = (meta: PaintMeta) => {
       if (canceled) return;
@@ -357,7 +349,7 @@ export function createTurnRunner({
      */
     const settlePromotion = (slot: string) => {
       const placed = store.getState().placement.get(slot);
-      if (placed && isQuestion(processor, placed.surfaceId)) store.promoteSlot(slot);
+      if (placed && isQuestion(placed.surfaceId)) store.promoteSlot(slot);
     };
 
     /** The slot a batch's stamp claims, when it is a fragment's. */
@@ -458,7 +450,7 @@ export function createTurnRunner({
         if (createdIds.size > 0) store.reportError(EMPTY_FAILURE_TEXT);
         return;
       }
-      if (isQuestion(processor, stageId)) {
+      if (isQuestion(stageId)) {
         // A question over the empty canvas: overlay slot, empty stage, no timeline entry.
         replaceOverlay(stageId);
         store.setStage(null);
@@ -487,12 +479,11 @@ export function createTurnRunner({
         const {surfaceId} = targetOf(message);
         return surfaceId !== undefined && survivorSet.has(surfaceId);
       });
-      // Classify in staging, before replay: questions to the overlay, the rest are stage
-      // paints — by declared kind first, structural rule for markerless paints. Fragments are
-      // neither: they are mounted through their slots.
+      // Classify before replay: questions to the overlay, the rest are stage paints — by the
+      // declared marker. Fragments are neither: they are mounted through their slots.
       const contenders = survivors.filter(id => !fragmentSlots.has(id));
-      const stagePaints = contenders.filter(id => !isQuestion(staging as TurnProcessor, id));
-      const questions = contenders.filter(id => isQuestion(staging as TurnProcessor, id));
+      const stagePaints = contenders.filter(id => !isQuestion(id));
+      const questions = contenders.filter(id => isQuestion(id));
 
       // The swap: retire the outgoing stage (serialize-on-swap), then replay the validated
       // paint into the live processor.

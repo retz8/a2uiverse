@@ -83,6 +83,16 @@ put a row in the history, or light the status strip. The hub answers by repainti
 that slot failed. A report whose composition has been superseded is dropped, because `shell:main`
 is reused every turn.
 
+### Questions are declared, never inferred
+
+`paintMeta.kind === "question"` is the whole contract. The canvas reads nothing from a surface's
+shape: the structural fallback that recognised a `ConfirmationDialog` root is gone, because that
+is a Primer component name — a vendor catalog's — sitting inside shell logic, and it could never
+have fired for a catalog that names its dialog anything else. The GitHub agent already validates
+the biconditional on its side (a declared question must have a dialog root, and a dialog root must
+be declared), so nothing on a live wire relied on the inference. **Vendor agents must declare
+their questions**; 2.6 and 2.7 inherit that requirement.
+
 ### Promotion
 
 A fragment declaring a question does not get the modal overlay — that would re-parent it out of
@@ -115,4 +125,7 @@ carry a fallback.
 - **`supportedCatalogIds` is broadcast whole.** The hub passes `a2uiClientCapabilities` to every
   vendor verbatim, so each learns the full installed roster and the platform's own catalog id.
   Filtering it per dispatch is hub-side work.
+- **`setupTests.ts` and the Vite config are shaped around Primer** — jsdom shims and
+  `lightningcss.errorRecovery` exist because `github-catalog` is the one installed vendor. Neither
+  is a shell dependency; both dilute as basic-catalog vendors land.
 - **Two renderer patches** (`patches/@a2ui__react@0.10.2.patch`) — see the client README.
