@@ -111,7 +111,8 @@ The collision detector runs in three layers, split by what each medium can see: 
 the stylesheets each catalog brings onto the page, a jsdom mount of every installed catalog
 together, and a Playwright spec for the real cascade. Rules are prefix-agnostic — sharing a name
 is fine, writing one where it escapes is not — and reads must be satisfied inside the boundary or
-carry a fallback.
+carry a fallback. A catalog ships only the classes in a selector's leading compound: styling an
+upstream hook under the catalog's own scope class introduces nothing onto the page.
 
 ## Known gaps
 

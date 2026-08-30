@@ -87,6 +87,16 @@ describe('the detector itself', () => {
     expect(findings).toEqual([]);
   });
 
+  it('permits two catalogs styling the same class, each under its own scope', () => {
+    // Styling an upstream hook under the catalog's scope class ships nothing new onto the
+    // page; only the leading compound of a selector is DOM the catalog introduces.
+    const findings = findCollisions([
+      synthetic('a-catalog', '.a-scope .chip { color: red; }'),
+      synthetic('b-catalog', '.b-scope .chip:hover { color: blue; }'),
+    ]);
+    expect(findings).toEqual([]);
+  });
+
   it('fails a class or keyframe two catalogs both ship', () => {
     const findings = findCollisions([
       synthetic('a-catalog', '.card { color: red; } @keyframes fade { from { opacity: 0; } }'),

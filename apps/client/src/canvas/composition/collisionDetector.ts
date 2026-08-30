@@ -83,10 +83,15 @@ function recordDeclaration(declaration: string, stack: string[], into: StyleFact
     into.reads.set(read[1], seen);
   }
   // Class names are only meaningful in a selector prelude, which is what `stack` records; a
-  // prelude is captured on the way into a block, so pick them up there.
+  // prelude is captured on the way into a block, so pick them up there. Only the leading
+  // compound counts as shipped: a descendant selector's tail names DOM the catalog styles,
+  // not DOM it introduces — `.gmail-catalog .chip` ships `gmail-catalog`, not `chip`.
   if (stack.length === 0) return;
-  for (const cls of (stack[stack.length - 1] ?? '').matchAll(/\.(-?[_a-zA-Z][\w-]*)/g)) {
-    into.classes.add(cls[1]);
+  for (const selector of (stack[stack.length - 1] ?? '').split(',')) {
+    const leading = selector.trim().split(/[\s>+~]/, 1)[0] ?? '';
+    for (const cls of leading.matchAll(/\.(-?[_a-zA-Z][\w-]*)/g)) {
+      into.classes.add(cls[1]);
+    }
   }
 }
 
