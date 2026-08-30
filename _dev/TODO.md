@@ -34,6 +34,7 @@ Spec: `_dev/docs/spec/phase-2-layout-composition.md`.
 - [x] **2.8** `[apps]` `github-catalog` boundary retrofit — scoped provider, anchored portal root, republish; AgentCard retrofitted as a retrieval document (task-2.6 decision 14 — the three cards must be comparable embedding targets or the Router skews); empty the accepted-violation list in the client's collision detector; 2.5's live tunnel verification rides this session (after 2.1; parallel with 2.2–2.7)
 - [ ] **2.9** Integration + acceptance — `dev:agents` launcher + `dev:all` + `dev:client`/`dev:orch`/`dev:marketplace` aliases, the composed fan-out beat recorded over live MCP, attributed prose channel (stamp `onAgentText`, buffer per source, plural notices), visual Playwright specs, acceptance items 1–11, Claude-in-Chrome live verification via tunnel (after 2.4–2.8)
 - [ ] **2.10** README sweep — both repos, against the phase's end state: three agents, composition on orchestrator/client, run commands per 2.9's launchers (after 2.9)
+- [WIP] **2.11** `[apps]` Vendor fragment visual pass — Gmail + Calendar brand docs and examples reworked against the real product read, beats re-recorded over live MCP, fixtures re-derived (after 2.6 and 2.7; before 2.9's beat recording)
 
 ## Phase 3 — Agent building kit
 Shared vendor-agent logic extracted across the three agents into a published A2UI+A2A agent SDK/CLI in `a2uiverse-apps` (M1k). Uniform run-mode flag, single launcher for installed agents, vendor dependency rule amended, one-provider-and-CSS-setup-per-catalog-bundle rule.
