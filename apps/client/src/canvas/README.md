@@ -19,7 +19,7 @@ SPEC.md §4 and §10–11.
   renders above the stage instead of replacing it, and never enters the timeline. Only a
   shell-role paint takes it; a fragment that asks is promoted in its slot instead.
 - **Status strip** — the thin in-flight/status readout.
-- **Ambient notices** — transient prose from the agent that carries no surface
+- **Ambient notices** — the sources' prose, one attributed line each, transient
   (for example, declining an action it cannot perform).
 - **History chrome** — the top-edge timeline UI: back, the press-list of past
   paints, return-to-live.
@@ -78,6 +78,20 @@ dispatched agent, then relays each agent's fragment stamped with the slot it bel
 - **Validation**: a fragment that will not validate or mount is reported to the hub as
   `VALIDATION_FAILED` on a side channel — never a turn, so it cannot cancel what the user has in
   flight — and the hub answers by repainting its shell with that slot failed.
+- **Prose is attributed too.** The stamp routes text as well as surfaces, so each source's
+  chunks accumulate into their own notice line rather than interleaving into one string. Lines
+  render in slot order — the stack echoes the layout below it — and each fades on its own clock
+  once its source stops speaking. Prose stays in the shell's region and never enters a slot: a
+  fragment's geometry is fixed for the turn.
+- **The roster** is the client's second projection of the shell paint, beside the placement map:
+  the turn's sources in slot order with the display names the orchestrator painted, read off the
+  shell surface's `Attribution` components at first paint. `placement` cannot serve — it is only
+  written when a fragment actually lands, and iterates in fill order.
+- **A collapsed slot rests on what its source said.** An agent that answers in prose without
+  painting has its slot collapsed; rendering nothing there would leave its attribution marker
+  naming a region that no longer exists, and the notice carrying its words fades. So the slot
+  keeps that source's sentence as its resting state. A slot whose dispatch _failed_ is
+  untouched — a visible failure is provenance too.
 - **Promotion**: a fragment declaring a question does not get the overlay. The shell raises its
   slot and dims the rest instead, so the fragment is never re-parented and no vendor can block a
   canvas it shares. Promotion is plural, so it is emphasis rather than a modal: the count is
@@ -151,9 +165,13 @@ full turn lifecycle — the same hold-and-swap gate, paced by the recorded strea
 offsets. `&instant` collapses the waits. This is how the shell is verified with
 no LLM in the loop. The synthetic beats ship with the client
 (`src/beats/syntheticBeats.ts`: `plain`, `plain-2`, `validation`, `question`, and the composed
-trio `composed`, `composed-solo`, `composed-question`);
-recorded beats (`recordings/beats/*.json`, addressed by number) are re-recorded
-through the orchestrator in task 1.4.
+trio `composed`, `composed-solo`, `composed-question`). Recorded beats
+(`recordings/beats/*.json`, addressed by number) are captured through the composing hub over
+live MCP: `1`–`3` are one-slot compositions of a single vendor, `4` is the three-source fan-out.
+
+The two families do different jobs. A recording is evidence of what real agents produce; a
+synthetic beat constructs a state — a mid-turn failure, a promoted question — that is unreliable
+to catch live and would make a tracked fixture depend on a race.
 
 ## Module map
 

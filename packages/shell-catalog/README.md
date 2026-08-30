@@ -3,7 +3,7 @@
 The shell's paint vocabulary (SPEC §4.2): the A2UI basic catalog plus the composition primitives — as schema (`catalogs/v0.9.1/catalog.json`) + React implementation, versioned together.
 
 - **Basic catalog** — re-exported from `@a2ui/react` as-is; no mapping of its own.
-- **`Slot`** — a named region whose content the host mounts through `SlotContentContext`; renders its own pending/failed/collapsed states.
+- **`Slot`** — a named region whose content the host mounts through `SlotContentContext`. It renders its own `pending` and `failed` states; `collapsed` asks the host for content first and renders nothing only if there is none, so a source that answered without painting is not left with an attribution marker naming an empty region.
 - **`Attribution`** — the quiet provenance marker (SPEC §4.3): display name + info glyph, full detail on hover/focus, accessible name always.
 - **`Provider`** — binds `--a2ui-*` to Radix Themes variables with explicit fallbacks, scoped to its own wrapper (never `:root`).
 

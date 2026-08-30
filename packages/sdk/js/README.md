@@ -1,6 +1,8 @@
 # @a2uiverse/sdk
 
-The TypeScript projection of the A2UIVerse app contract: the composition extension (SPEC §14) — extension URI, composition stamp, slot request, surface-id namespacing — with the app manifest to follow in Phase 9. The normative definition is [`../contracts`](../contracts); `src/composition.contract.test.ts` asserts this projection against it. The agent-facing Python projection lives in [`../python`](../python).
+The TypeScript projection of the A2UIVerse app contract: the composition extension (SPEC §14) — extension URI, composition stamp, slot request, surface-id namespacing — with the app manifest to follow in Phase 9. The normative definition is [`../contracts`](../contracts); `src/composition.contract.test.ts` asserts this projection against it — drift is a red build.
+
+This is the only projection. The extension is platform-internal (orchestrator ↔ client), so nothing a2uiverse-specific rides the vendor wire and an agent has nothing to consume here; a projection in another language is created when a real consumer for it exists.
 
 ## Consumers
 
