@@ -71,6 +71,7 @@ Capability gap → marketplace index → install → resume (M11).
 Publish a new app → discover → install → compose with an existing one → act inside it. One sitting, no code changes; the deliverable is the recording (M12).
 
 ## Backlog
+- Capability-gap terminal state when the marketplace has nothing either — what the capability tile says, whether the reserved slot collapses or stands (Phase 13's grill)
 - Stream the synthesis fragment into its reserved slot (§16 dead-air mitigation)
 - S5 multi-account exercised
 - Migrate to A2A 1.0 when `a2ui-agent-sdk` does — client, orchestrator, vendor kit in one move
