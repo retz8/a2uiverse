@@ -23,13 +23,16 @@ export function AttributionView({displayName, account}: AttributionProps) {
       style={{
         display: 'inline-flex',
         alignItems: 'center',
+        alignSelf: 'flex-start',
+        width: 'fit-content',
+        maxWidth: '100%',
         gap: '0.3em',
         fontSize: 'var(--a2ui-font-size-xs, 11px)',
         lineHeight: 1.2,
         color: 'var(--a2ui-color-on-surface)',
         opacity: open ? 0.9 : 0.55,
         transition: 'opacity 120ms ease',
-        cursor: 'default',
+        cursor: 'pointer',
         userSelect: 'none',
       }}
     >
