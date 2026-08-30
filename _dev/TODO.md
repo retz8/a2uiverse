@@ -20,7 +20,7 @@ Spec: `_dev/docs/spec/phase-1-spine.md`.
 - [x] **1.4** Spine integration + acceptance — client → orchestrator wiring, `pnpm dev` (vendor agent started by hand from `a2ui-github`), READMEs, beat re-recording + visual Playwright spec, transparency/action/journal/card checks, Claude-in-Chrome live verification via tunnel (after 1.2 and 1.3)
 - [x] **1.5** `[apps]` GitHub app copy — `a2uiverse-apps/github/`, port 11001, catalog id fixed, `github-catalog` published with its provider + CSS setup owned by the bundle, client on published package, gates green in both repos (after 1.4)
 
-## Phase 2 — Layout-only composition [WIP]
+## Phase 2 — Layout-only composition [done]
 3 agents · 3 catalogs on one surface, no synthesis (M1): GitHub (copied in 1.5), Gmail, Google Calendar. Basic Router, Planner, AgentsPool fan-out, flat-surfaces composition (placement on A2A metadata), shell catalog composition primitives, plan/fill/collapse, provenance + attribution, partition isolation. Deferred from 1.3: unknown-component handling at the composition layer; shell re-skin on Radix tokens with the shell catalog. Deferred from 1.4: `pnpm dev:agents` launcher + `dev:all`. The vendor-agent template/CLI moved to Phase 3.
 Spec: `_dev/docs/spec/phase-2-layout-composition.md`.
 
