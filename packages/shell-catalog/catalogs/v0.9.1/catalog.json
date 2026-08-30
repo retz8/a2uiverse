@@ -815,7 +815,7 @@
           "type": "string",
           "enum": ["pending", "failed", "collapsed"],
           "default": "pending",
-          "description": "The region’s lifecycle state. `pending` shows a placeholder until content arrives; `failed` shows that the content could not be produced; `collapsed` removes the region from view without moving its neighbours."
+          "description": "The region\u2019s lifecycle state. `pending` shows a placeholder until content arrives; `failed` shows that the content could not be produced; `collapsed` removes the region from view without moving its neighbours."
         },
         "label": {
           "type": "string",
@@ -827,7 +827,7 @@
     },
     "Attribution": {
       "type": "object",
-      "description": "Names the source of a neighbouring region’s content. A quiet marker that expands to full detail on hover or focus. Paint one alongside each slot.",
+      "description": "Names the source of a neighbouring region\u2019s content. A quiet marker that expands to full detail on hover or focus. Paint one alongside each slot.",
       "properties": {
         "component": {
           "const": "Attribution"
@@ -847,6 +847,29 @@
       },
       "required": ["component", "displayName"],
       "additionalProperties": false
+    },
+    "Frame": {
+      "type": "object",
+      "description": "The composed screen's layout frame. Lays its children on one axis and decides how they divide it: along a row they share it equally, down a column they keep their natural size. Use it for the screen's own structure; it holds no content of its own.",
+      "properties": {
+        "component": {
+          "const": "Frame"
+        },
+        "direction": {
+          "type": "string",
+          "enum": ["row", "column"],
+          "description": "The axis the children are laid on."
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "The ids of the children to lay out, in order."
+        }
+      },
+      "required": ["component", "direction", "children"],
+      "unevaluatedProperties": false
     }
   },
   "functions": {

@@ -3,6 +3,7 @@ export {CATALOG} from './catalog.js';
 export {CATALOG_ID} from './catalog-id.js';
 export {Provider, SHELL_TOKENS} from './provider.js';
 export {SlotContentContext, type SlotContentResolver} from './slot-content.js';
+export {FrameComponent, FrameView, FrameApi, type FrameProps} from './components/frame/index.js';
 export {SlotApi, SlotView, type SlotProps} from './components/slot/index.js';
 export {
   AttributionApi,

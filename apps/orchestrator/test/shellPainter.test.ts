@@ -63,9 +63,11 @@ describe('shellCreateParts', () => {
     };
     const byId = new Map(components.map(c => [c.id as string, c]));
     const root = byId.get('root')!;
-    expect(root.component).toBe('Row');
+    // The screen's structure is the shell's own Frame, not a basic container: only a parent can
+    // say that its children share the axis, and Row/Column cannot express it.
+    expect(root).toMatchObject({component: 'Frame', direction: 'row'});
     expect(root.children).toEqual(['wrap-slot-github', 'group-1']);
-    expect(byId.get('group-1')!.component).toBe('Column');
+    expect(byId.get('group-1')).toMatchObject({component: 'Frame', direction: 'column'});
     expect(byId.get('group-1')!.children).toEqual(['wrap-slot-gmail', 'wrap-slot-calendar']);
     for (const app of ['github', 'gmail', 'calendar']) {
       expect(byId.get(`wrap-slot-${app}`)!.children).toEqual([`attr-slot-${app}`, `slot-${app}`]);

@@ -39,7 +39,14 @@ export function SlotView({name, state = 'pending', label}: SlotProps) {
 
   if (content != null) {
     return (
-      <div data-slot={name} data-slot-state="filled" style={{minWidth: 0}}>
+      <div
+        data-slot={name}
+        data-slot-state="filled"
+        // A filled slot keeps the floor it reserved while pending. Dropping it made the box
+        // collapse the instant a fragment mounted and then grow again as content streamed —
+        // the slot giving back space it had already claimed.
+        style={{minWidth: 0, minHeight: panelStyle.minHeight}}
+      >
         {content}
       </div>
     );

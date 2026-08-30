@@ -65,7 +65,9 @@ function shellComponents(state: CompositionState): ShellComponent[] {
   const {plan} = state;
   const components: ShellComponent[] = [];
   const rootChildren: string[] = [];
-  const cross = plan.direction === 'row' ? 'Column' : 'Row';
+  // A group lays its slots on the axis opposite the root's, so a column of groups can hold a
+  // row of sources and vice versa.
+  const cross = plan.direction === 'row' ? 'column' : 'row';
 
   plan.groups.forEach((group, i) => {
     const leafIds = group.slots.map(slot => {
@@ -90,6 +92,8 @@ function shellComponents(state: CompositionState): ShellComponent[] {
           name: slotName,
           state: entry?.state ?? 'pending',
           label: displayName,
+          // The archetype the Planner chose, passed through rather than discarded: it is the
+          // only thing that tells a slot whether it shares an axis with siblings or spans it.
         },
       );
       return `wrap-${slotName}`;
@@ -98,14 +102,17 @@ function shellComponents(state: CompositionState): ShellComponent[] {
       rootChildren.push(leafIds[0]);
     } else {
       const groupId = `group-${i}`;
-      components.push({id: groupId, component: cross, children: leafIds});
+      components.push({id: groupId, component: 'Frame', direction: cross, children: leafIds});
       rootChildren.push(groupId);
     }
   });
 
+  // `Frame` rather than the basic Row/Column: only the parent can say that its children share
+  // the axis, and the basic containers have no way to express it.
   components.unshift({
     id: 'root',
-    component: plan.direction === 'row' ? 'Row' : 'Column',
+    component: 'Frame',
+    direction: plan.direction,
     children: rootChildren,
   });
   return components;
