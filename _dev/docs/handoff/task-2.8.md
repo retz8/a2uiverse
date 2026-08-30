@@ -30,9 +30,18 @@ driven through the tunnel URL, never `localhost`:
 3. an action inside a fragment repaints only that fragment
 4. killing the agent mid-turn flips only its slot
 
-GitHub alone covers 1, 2, and the single-slot half of 3–4: there is no uncomposed path any more,
-so a single-agent turn is a real one-slot composition. The "and the others were unaffected" half
-of 3–4, plus independent slot filling and the detector's cross-catalog payload, needs 2.6/2.7.
+**Start with the GitHub agent alone, before 2.6/2.7 land.** There is no uncomposed path any more,
+so a single-agent turn is a real one-slot composition, and it answers every wire-shape question no
+fixture can: that the hub's stamp arrives in the shape `readStamp` expects (it has only ever been
+fed hand-authored stamps), that the real shell surface renders through the real shell catalog,
+that a Primer fragment mounts inside its boundary against a live namespaced `surfaceId`, that an
+action carries that id out and routes back to its owner, and that killing the agent flips its slot
+by shell repaint. Those are the structurally risky ones.
+
+What waits for 2.6/2.7 is independence under concurrency — the "and the others were unaffected"
+half of 3–4, slots filling independently, and the detector's cross-catalog payload. Two things
+stay dormant until then: adaptive weight only renders its solo branch (one slot ⇒ full-bleed), and
+the cross-catalog token assertions need a second vendor catalog on the page.
 
 ## Open thread
 
