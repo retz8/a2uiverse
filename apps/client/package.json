@@ -12,7 +12,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "record:beats": "tsx scripts/record-beats.ts",
-    "check:transparency": "tsx scripts/check-transparency.ts"
+    "check:transparency": "tsx scripts/check-transparency.ts",
+    "check:fixtures": "tsx scripts/check-fixture-privacy.ts"
   },
   "dependencies": {
     "@a2a-js/sdk": "^0.3.14",

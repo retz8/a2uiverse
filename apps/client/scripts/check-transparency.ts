@@ -1,20 +1,31 @@
 /**
- * Transparency + journal check (task 1.4, spec decision 4; phase-1 acceptance 2 and 4).
+ * Relay-transparency + journal check, composed form (task 2.9 decision 12; phase-2 acceptance
+ * 3 and 7).
  *
- *   pnpm --filter @a2uiverse/client check:transparency -- [--agent http://localhost:11001]
- *       [--hub http://localhost:10001] [--journal ../orchestrator/.state/intent-journal.jsonl]
- *       [--prompt "…"]
+ *   pnpm --filter @a2uiverse/client check:transparency -- [--hub http://localhost:10001]
+ *       [--journal ../orchestrator/.state/intent-journal.jsonl] [--prompt "…"]
+ *       [--agents github=http://localhost:11001,gmail=http://localhost:11002,…]
  *
- * Sends the same utterance direct to the vendor agent and via the orchestrator, then asserts the
- * two A2UI event sequences are equal once the explicit strip list below is applied, and that the
- * intent journal grew by exactly one line for the hub turn. Run against the deterministic agent
- * so the vendor side is stable between the two sends. On demand only — needs live processes.
+ * Run against **deterministic** agents, so the vendor side is identical between the two sends.
+ * On demand only — needs live processes.
+ *
+ * Why this shape. "The relay is transparent except its named rewrites" is a *negative* claim:
+ * nothing else is touched. A unit test on `composeFragment` proves that function does what it
+ * says; only an end-to-end comparison proves no fourth rewrite happens elsewhere in the
+ * pipeline. So the comparison survives composition rather than being retired for it.
+ *
+ * What composition changed. The Phase-1 version sent the same utterance both ways. It cannot
+ * now: the Planner authors a *per-agent request* and dispatches that, so the vendor is asked a
+ * different question than the user asked. The plan is recorded on the turn's journal line, so
+ * the check reads each slot's request from there and sends exactly that direct — which is what
+ * puts both sides back on the same question.
  */
 import {readFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {parseArgs} from 'node:util';
 import {isDeepStrictEqual} from 'node:util';
 import type {A2AStreamEventData} from '../src/a2a/messages';
+import {extractStampFromEvent} from '../src/a2a/messages';
 import {createSender, driveTurn, supportedCatalogIds} from './lib/drive';
 import {BEATS} from './lib/beats';
 
@@ -24,11 +35,16 @@ const STRIPPED_KEYS = new Set(['id', 'taskId', 'contextId', 'messageId', 'timest
 const STRIPPED_METADATA = 'a2uiverse';
 /** Surface ids the agent mints with a per-process counter (`chat-3` → `chat-#`). */
 const SURFACE_ID_KEY = 'surfaceId';
+/** The A2UI ops whose surfaceId the hub namespaces. */
+const A2UI_OPS = ['createSurface', 'updateComponents', 'updateDataModel', 'deleteSurface'];
+const TERMINAL = new Set(['completed', 'failed', 'canceled', 'rejected']);
+
+const DEFAULT_AGENTS =
+  'github=http://localhost:11001,gmail=http://localhost:11002,calendar=http://localhost:11003';
 
 /**
- * The orchestrator's envelope: it publishes its own `task` (state `working`, no history, no
- * message) before relaying the vendor's events. That one leading event is the hub's, not the
- * vendor's, and is the only event the comparison may drop — and only when it has that exact shape.
+ * The hub's envelope: it publishes its own `task` (state `working`, no history, no message)
+ * before relaying anything. That one leading event is the hub's, not a vendor's.
  */
 function isOrchestratorEnvelope(event: A2AStreamEventData): boolean {
   return (
@@ -38,6 +54,51 @@ function isOrchestratorEnvelope(event: A2AStreamEventData): boolean {
     (event.history === undefined || event.history.length === 0) &&
     (event.artifacts === undefined || event.artifacts.length === 0)
   );
+}
+
+/**
+ * Un-namespace `<appId>:<surfaceId>` back to the vendor's own id — the inverse of the hub's one
+ * A2UI rewrite, applied so the comparison sees the vendor's stream as the vendor sent it.
+ */
+function unnamespace(value: unknown, appId: string): unknown {
+  if (Array.isArray(value)) return value.map(v => unnamespace(v, appId));
+  if (!value || typeof value !== 'object') return value;
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+    if (A2UI_OPS.includes(k) && v && typeof v === 'object') {
+      const body = v as Record<string, unknown>;
+      const id = body[SURFACE_ID_KEY];
+      out[k] =
+        typeof id === 'string' && id.startsWith(`${appId}:`)
+          ? {...body, [SURFACE_ID_KEY]: id.slice(appId.length + 1)}
+          : unnamespace(body, appId);
+      continue;
+    }
+    out[k] = unnamespace(v, appId);
+  }
+  return out;
+}
+
+/**
+ * Demote terminal envelopes on BOTH sides.
+ *
+ * This is the rewrite the phase spec's "exactly three" does not name: under fan-out several
+ * vendors end on one orchestrator task, so `composeFragment` rewrites each vendor's final into a
+ * non-final working status and the executor owns the single turn-final. It is A2A envelope
+ * bookkeeping rather than an A2UI content rewrite, but it is a fourth transformation of the
+ * relayed stream and the comparison cannot pretend otherwise. Normalising both sides keeps the
+ * comparison honest about everything else; the demotion itself is asserted separately below.
+ */
+function demote(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(demote);
+  if (!value || typeof value !== 'object') return value;
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+    if (k === 'final') out[k] = false;
+    else if (k === 'state' && typeof v === 'string' && TERMINAL.has(v)) out[k] = 'working';
+    else out[k] = demote(v);
+  }
+  return out;
 }
 
 function normalize(value: unknown, key?: string): unknown {
@@ -60,11 +121,34 @@ function normalize(value: unknown, key?: string): unknown {
   return value;
 }
 
-async function journalLines(path: string): Promise<number> {
+/** Every surfaceId mentioned by an event's A2UI payload. */
+function surfaceIdsOf(value: unknown, found: string[] = []): string[] {
+  if (Array.isArray(value)) {
+    for (const v of value) surfaceIdsOf(v, found);
+    return found;
+  }
+  if (!value || typeof value !== 'object') return found;
+  for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+    if (A2UI_OPS.includes(k) && v && typeof v === 'object') {
+      const id = (v as Record<string, unknown>)[SURFACE_ID_KEY];
+      if (typeof id === 'string') found.push(id);
+    }
+    surfaceIdsOf(v, found);
+  }
+  return found;
+}
+
+interface JournalEntry {
+  plan?: {groups: Array<{slots: Array<{appId: string; request: string}>}>};
+  dispatch?: Array<{appId?: string}>;
+  embedding?: number[] | null;
+}
+
+async function journalLines(path: string): Promise<string[]> {
   try {
-    return (await readFile(path, 'utf8')).split('\n').filter(Boolean).length;
+    return (await readFile(path, 'utf8')).split('\n').filter(Boolean);
   } catch (err) {
-    if ((err as NodeJS.ErrnoException).code === 'ENOENT') return 0;
+    if ((err as NodeJS.ErrnoException).code === 'ENOENT') return [];
     throw err;
   }
 }
@@ -76,64 +160,106 @@ function show(events: A2AStreamEventData[]): string {
 async function main() {
   const {values} = parseArgs({
     options: {
-      agent: {type: 'string', default: 'http://localhost:11001'},
       hub: {type: 'string', default: 'http://localhost:10001'},
       journal: {type: 'string', default: '../orchestrator/.state/intent-journal.jsonl'},
       prompt: {type: 'string', default: BEATS[0].prompt},
+      agents: {type: 'string', default: DEFAULT_AGENTS},
     },
   });
   const journal = resolve(values.journal);
   const catalogIds = await supportedCatalogIds();
-
-  console.log(`direct → ${values.agent}`);
-  const direct = await driveTurn(
-    await createSender(values.agent),
-    values.prompt,
-    undefined,
-    catalogIds,
+  const agentUrls = new Map(
+    values.agents.split(',').map(pair => {
+      const [id, url] = pair.split('=');
+      return [id.trim(), url?.trim()] as [string, string];
+    }),
   );
-  const before = await journalLines(journal);
-  console.log(`hub    → ${values.hub}`);
+
+  const before = (await journalLines(journal)).length;
+  console.log(`hub → ${values.hub}`);
   const hub = await driveTurn(await createSender(values.hub), values.prompt, undefined, catalogIds);
+
   // The journal line lands after the client stream ends; give the append a moment.
-  let after = await journalLines(journal);
-  for (let i = 0; i < 20 && after === before; i += 1) {
+  let lines = await journalLines(journal);
+  for (let i = 0; i < 20 && lines.length === before; i += 1) {
     await new Promise(r => setTimeout(r, 100));
-    after = await journalLines(journal);
+    lines = await journalLines(journal);
   }
 
   let failed = false;
-  const hubEvents = hub.events.map(e => e.event);
-  if (hubEvents.length && isOrchestratorEnvelope(hubEvents[0])) {
-    console.log("· dropped the hub's leading envelope task event");
-    hubEvents.shift();
-  }
-  const a = direct.events.map(e => normalize(e.event));
-  const b = hubEvents.map(e => normalize(e));
-  if (a.length !== b.length) {
+  const bad = (msg: string) => {
     failed = true;
-    console.error(`✗ event count differs: direct ${a.length}, hub ${b.length}`);
-    console.error(
-      `direct:\n${show(direct.events.map(e => e.event))}\nhub:\n${show(hub.events.map(e => e.event))}`,
-    );
-  } else {
+    console.error(`✗ ${msg}`);
+  };
+
+  // ── Acceptance 7: one journal line per turn, embedded, recording every fan-out target ──
+  if (lines.length - before !== 1) {
+    bad(`journal grew by ${lines.length - before} line(s), expected 1 (${journal})`);
+    process.exit(1);
+  }
+  console.log(`✓ journal +1 (${journal})`);
+  const entry = JSON.parse(lines[lines.length - 1]) as JournalEntry;
+  const planned = (entry.plan?.groups ?? []).flatMap(g => g.slots);
+  if (planned.length === 0) bad('the journal line carries no plan — nothing was routed');
+  if (!entry.embedding || entry.embedding.length === 0)
+    bad('the journal line has a null embedding');
+  else console.log(`✓ embedding non-null (${entry.embedding.length} dims)`);
+
+  const dispatched = new Set((entry.dispatch ?? []).map(d => d.appId));
+  const missing = planned.map(s => s.appId).filter(id => !dispatched.has(id));
+  if (missing.length) bad(`plan targeted ${missing.join(', ')} but the dispatch list omits them`);
+  else console.log(`✓ dispatch records all ${planned.length} fan-out target(s)`);
+
+  // ── Acceptance 3, client-observable half: no surface crosses a namespace ──
+  for (const {event} of hub.events) {
+    const stamp = extractStampFromEvent(event);
+    if (stamp?.role !== 'fragment') continue;
+    for (const id of surfaceIdsOf(event)) {
+      if (!id.startsWith(`${stamp.source}:`)) {
+        bad(`event stamped '${stamp.source}' carries surface '${id}' from another namespace`);
+      }
+    }
+  }
+  if (!failed) console.log('✓ every relayed surface sits in its own source’s namespace');
+
+  // ── The relay comparison, per planned slot ──
+  for (const slot of planned) {
+    const url = agentUrls.get(slot.appId);
+    if (!url) {
+      bad(`no agent url for '${slot.appId}' — pass it in --agents`);
+      continue;
+    }
+    console.log(`\ndirect → ${slot.appId} @ ${url}`);
+    console.log(`  request: ${slot.request}`);
+    const direct = await driveTurn(await createSender(url), slot.request, undefined, catalogIds);
+
+    const relayed = hub.events
+      .map(e => e.event)
+      .filter(e => !isOrchestratorEnvelope(e))
+      .filter(e => extractStampFromEvent(e)?.source === slot.appId);
+
+    // The hub owns the turn-final, so no vendor's stream may still carry one.
+    const stillFinal = relayed.filter(e => e.kind === 'status-update' && e.final);
+    if (stillFinal.length) bad(`${slot.appId}: a vendor final survived the relay`);
+
+    const a = direct.events.map(e => normalize(demote(e.event)));
+    const b = relayed.map(e => normalize(demote(unnamespace(e, slot.appId))));
+    if (a.length !== b.length) {
+      bad(`${slot.appId}: event count differs — direct ${a.length}, hub ${b.length}`);
+      console.error(`direct:\n${show(direct.events.map(e => e.event))}\nhub:\n${show(relayed)}`);
+      continue;
+    }
     const i = a.findIndex((e, idx) => !isDeepStrictEqual(e, b[idx]));
     if (i >= 0) {
-      failed = true;
-      console.error(`✗ first difference at event [${i}]`);
+      bad(`${slot.appId}: first difference at event [${i}]`);
       console.error(
         `direct:\n${JSON.stringify(a[i], null, 2)}\nhub:\n${JSON.stringify(b[i], null, 2)}`,
       );
     } else {
-      console.log(`✓ ${a.length} events equal modulo the strip list`);
+      console.log(`✓ ${slot.appId}: ${a.length} events equal modulo the named rewrites`);
     }
   }
-  if (after - before !== 1) {
-    failed = true;
-    console.error(`✗ journal grew by ${after - before} line(s), expected 1 (${journal})`);
-  } else {
-    console.log(`✓ journal +1 (${journal})`);
-  }
+
   process.exit(failed ? 1 : 0);
 }
 

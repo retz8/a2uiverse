@@ -33,8 +33,18 @@ export async function createSender(url: string): Promise<A2AMessageSender> {
   };
 }
 
-/** Mirrors `orchestratorApi`'s projection; kept in step with it by hand. */
-const CATALOG_PACKAGES = ['@a2uiverse/shell-catalog', 'github-catalog'];
+/**
+ * Mirrors `orchestratorApi`'s projection — one entry per catalog package in `catalogs/resolver`,
+ * kept in step with it by hand. A short list here is not a small bug: the Planner reads the
+ * advertised ids as what the canvas can render, so a missing catalog is an agent it will not
+ * dispatch to and a fan-out that quietly comes back with fewer sources than it should.
+ */
+const CATALOG_PACKAGES = [
+  '@a2uiverse/shell-catalog',
+  'github-catalog',
+  'gmail-catalog',
+  'calendar-catalog',
+];
 
 /**
  * The catalog ids the canvas advertises on every message. The client's projection
