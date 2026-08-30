@@ -1,4 +1,5 @@
 import eslint from '@eslint/js';
+import globals from 'globals';
 import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
 import tseslint from 'typescript-eslint';
@@ -21,6 +22,12 @@ export default tseslint.config(
         },
       ],
     },
+  },
+  {
+    // Repo tooling run directly by node: not part of any package's build, so it has no
+    // tsconfig lib to declare its environment.
+    files: ['scripts/**/*.mjs'],
+    languageOptions: {globals: globals.node},
   },
   {
     files: ['apps/client/**/*.{ts,tsx}', 'packages/shell-catalog/**/*.{ts,tsx}'],

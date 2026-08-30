@@ -13,6 +13,11 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "dev": "turbo run dev",
+    "dev:agents": "node scripts/dev-agents.mjs",
+    "dev:all": "node scripts/dev-agents.mjs --wait-for-cards --then \"pnpm dev\"",
+    "dev:client": "pnpm --filter @a2uiverse/client dev",
+    "dev:orch": "pnpm --filter @a2uiverse/orchestrator dev",
+    "dev:marketplace": "pnpm --filter @a2uiverse/marketplace dev",
     "verify": "turbo run build typecheck test && pnpm lint && pnpm format:check"
   },
   "devDependencies": {
