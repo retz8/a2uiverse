@@ -61,11 +61,31 @@ The tokens carrying that divergence are named in this task's output, so acceptan
 
 ### 4. A seeded demo calendar replaces pseudonymization
 
-2.6 pseudonymized because an account has one mailbox, so reading Gmail live means reading real mail. That precondition does not transfer: `calendarId` is a first-class parameter and one account holds many calendars. The agent reads a demo calendar in `a2uiverse-506907` holding authored events.
+2.6 pseudonymized because an account has one mailbox, so reading Gmail live means reading real
+mail. That precondition does not transfer: one account holds many calendars, so the agent reads
+a demo calendar whose events are authored.
 
-There is therefore no pseudonymizer. `tool_shaping.py` carries only its projection notes; no seed, no key lists, no substitution path, and no widened tracked-artifact assertion. Fixtures are clean by construction rather than by a substitution pass whose completeness cannot be proven — which also forecloses the class of failure 2.6 hit, where rewriting one branch of an MCP result left the branch the model reads untouched.
+There is therefore no pseudonymizer in the Gmail sense — nothing substitutes titles, notes,
+times or attendees, which are the seed's and reach the model exactly as written. The corpus is
+clean by construction rather than by a substitution pass whose completeness cannot be proven.
 
-This deviates from phase decision 1's "derived from real MCP payloads, not invented", and the deviation is recorded rather than assumed: payload **shapes** remain real, since a real Calendar API response about an authored event has a completely real shape; the **content** is authored. Acceptance item 8 is unaffected — the endpoint, credential, network, and response shapes are live.
+This deviates from phase decision 1's "derived from real MCP payloads, not invented", and the
+deviation is recorded rather than assumed: payload **shapes** remain real, since a real API
+response about an authored event has a completely real shape; the **content** is authored.
+Acceptance item 8 is unaffected — endpoint, credential, network and response shapes are live.
+
+*(Amended after the first live run.)* The premise had one exception. Not every field on a
+seeded event is seeded: the API stamps the event's creator with the account that made it, which
+is a real person. It reached a tracked fixture, and the publishability guard is what caught it —
+which is the argument for asserting that invariant over the artifact rather than trusting the
+code meant to maintain it.
+
+So the premise narrows rather than the decision reversing. Addresses outside the reserved
+example domains are masked at the tool boundary in record mode, and the masked payload is the
+one the model reads as well as the one the corpus records, so the two cannot disagree — 2.6's
+hard-won lesson applied rather than re-learned. The mask is defined by **rule**: enumerate what
+may survive, never what to replace. Masking by known value is what let the field through in the
+first place, and it is the same failure 2.6 hit from the other direction.
 
 Writes land in the demo calendar, so the creating-write beat pollutes nothing real.
 
