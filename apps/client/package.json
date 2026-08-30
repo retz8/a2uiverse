@@ -22,6 +22,7 @@
     "@a2uiverse/shell-catalog": "workspace:*",
     "@radix-ui/themes": "^3.3.0",
     "github-catalog": "github:retz8/a2uiverse-apps#path:github/github-catalog",
+    "gmail-catalog": "github:retz8/a2uiverse-apps#path:gmail/gmail-catalog",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-is": "^19.2.0",

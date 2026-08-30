@@ -62,6 +62,9 @@ importers:
       github-catalog:
         specifier: github:retz8/a2uiverse-apps#path:github/github-catalog
         version: https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/d14fa5b2ffdb1a0e38b21367ed5f5c7d2b0e4e70#path:github/github-catalog(@a2ui/react@0.10.2(patch_hash=99b6533eb4bc6f8f8c7de140fcffef2c7572a6a6b30a2b86b5020fa368d845ea)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76))(@a2ui/web_core@0.10.6)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react-is@19.2.0)(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react-is@19.2.8)(react@19.2.8)(zod@3.25.76)
+      gmail-catalog:
+        specifier: github:retz8/a2uiverse-apps#path:gmail/gmail-catalog
+        version: https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/a39ee89ec550c826f07d1673c23541de834892bd#path:gmail/gmail-catalog(@a2ui/react@0.10.2(patch_hash=99b6533eb4bc6f8f8c7de140fcffef2c7572a6a6b30a2b86b5020fa368d845ea)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76))(@a2ui/web_core@0.10.6)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76)
       react:
         specifier: ^19.2.7
         version: 19.2.8
@@ -2484,6 +2487,16 @@ packages:
   globalthis@1.0.4:
     resolution: {integrity: sha512-DpLKbNU4WylpxJykQujfCcwYWiV/Jhm50Goo0wrVILAv5jOr9d+H+UR3PhSCD2rCCEIg0uc+G+muBTwD54JhDQ==}
     engines: {node: '>= 0.4'}
+
+  gmail-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/a39ee89ec550c826f07d1673c23541de834892bd#path:gmail/gmail-catalog:
+    resolution: {gitHosted: true, integrity: sha512-dKt/35gpR6qO30PGKwiWNG7gzSM4COvaoM6BdrjUYU5UMZ/Hg5ZOZ9VLXFn5Cn+CIS+X06/Bn4oESTdfaDY5Mw==, path: gmail/gmail-catalog, tarball: https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/a39ee89ec550c826f07d1673c23541de834892bd}
+    version: 0.1.0
+    peerDependencies:
+      '@a2ui/react': ^0.10.1
+      '@a2ui/web_core': ^0.10.1
+      react: ^19.2.7
+      react-dom: ^19.2.7
+      zod: ^3.25.76
 
   gopd@1.2.0:
     resolution: {integrity: sha512-ZUKRh6/kUFoAiTAtTYPZJ3hw9wNxx+BIBOijnlG9PnrJsCcSjs1wyyD6vJpaYtgnzDrKYRSqf3OO6Rfa93xsRg==}
@@ -5585,6 +5598,14 @@ snapshots:
     dependencies:
       define-properties: 1.2.1
       gopd: 1.2.0
+
+  gmail-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/a39ee89ec550c826f07d1673c23541de834892bd#path:gmail/gmail-catalog(@a2ui/react@0.10.2(patch_hash=99b6533eb4bc6f8f8c7de140fcffef2c7572a6a6b30a2b86b5020fa368d845ea)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76))(@a2ui/web_core@0.10.6)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76):
+    dependencies:
+      '@a2ui/react': 0.10.2(patch_hash=99b6533eb4bc6f8f8c7de140fcffef2c7572a6a6b30a2b86b5020fa368d845ea)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76)
+      '@a2ui/web_core': 0.10.6
+      react: 19.2.8
+      react-dom: 19.2.8(react@19.2.8)
+      zod: 3.25.76
 
   gopd@1.2.0: {}
 

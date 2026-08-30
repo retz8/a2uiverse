@@ -8,6 +8,9 @@ allowBuilds:
   # git-hosted vendor catalogs build on install (their `prepare` runs tsc). pnpm keys the
   # allow entry by the resolved tarball, so this line is re-pointed when the catalog is bumped.
   "github-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/d14fa5b2ffdb1a0e38b21367ed5f5c7d2b0e4e70#path:github/github-catalog": true
+  # gmail-catalog, pinned to the tarball pnpm resolved. Re-pointed when the catalog is bumped,
+  # exactly as the github-catalog entries above are.
+  "gmail-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/a39ee89ec550c826f07d1673c23541de834892bd#path:gmail/gmail-catalog": true
   onnxruntime-node: true
   protobufjs: false
   sharp: false

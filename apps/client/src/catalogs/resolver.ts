@@ -9,6 +9,11 @@ import type {Catalog} from '@a2ui/web_core/v0_9';
 import type {ReactComponentImplementation} from '@a2ui/react/v0_9';
 import {CATALOG, CATALOG_ID, Provider as GitHubProvider} from 'github-catalog';
 import {
+  CATALOG as GMAIL_CATALOG,
+  CATALOG_ID as GMAIL_CATALOG_ID,
+  Provider as GmailProvider,
+} from 'gmail-catalog';
+import {
   CATALOG as SHELL_CATALOG,
   CATALOG_ID as SHELL_CATALOG_ID,
   Provider as ShellProvider,
@@ -26,6 +31,7 @@ export interface ResolvedCatalog {
 const TABLE: ReadonlyMap<string, ResolvedCatalog> = new Map([
   [SHELL_CATALOG_ID, {id: SHELL_CATALOG_ID, catalog: SHELL_CATALOG, Provider: ShellProvider}],
   [CATALOG_ID, {id: CATALOG_ID, catalog: CATALOG, Provider: GitHubProvider}],
+  [GMAIL_CATALOG_ID, {id: GMAIL_CATALOG_ID, catalog: GMAIL_CATALOG, Provider: GmailProvider}],
 ]);
 
 /** Resolve registry records to runtime catalogs; an unknown catalog id is a hard error. */

@@ -4,7 +4,8 @@ import type {AppRecord} from './types.js';
 export const GITHUB_CATALOG_ID =
   'https://github.com/retz8/a2uiverse-apps/blob/main/github/github-catalog/catalogs/v0.9.1/catalog.json';
 
-/** Gmail/Calendar catalog ids follow the same repo-path convention; verified when 2.6/2.7 publish. */
+/** Gmail verified against the published catalog (2.6). Calendar follows the same repo-path
+ * convention and is verified when 2.7 publishes. */
 export const GMAIL_CATALOG_ID =
   'https://github.com/retz8/a2uiverse-apps/blob/main/gmail/gmail-catalog/catalogs/v0.9.1/catalog.json';
 export const CALENDAR_CATALOG_ID =
