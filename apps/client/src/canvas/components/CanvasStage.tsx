@@ -9,6 +9,7 @@ import type {MessageProcessor} from '@a2ui/web_core/v0_9';
 import type {ReactComponentImplementation} from '@a2ui/react/v0_9';
 import {SurfaceFrame} from '../../catalogs/CatalogContext';
 import {SurfaceErrorBoundary} from '../../shared/SurfaceErrorBoundary';
+import {slotCountOf} from '../composition/slotCount';
 import type {CanvasState} from '../canvasStore';
 
 export interface CanvasStageProps {
@@ -22,7 +23,9 @@ export function CanvasStage({processor, state}: CanvasStageProps) {
     <div className="canvas-stage" data-testid="canvas-stage">
       {surface && state.stageId ? (
         // The inner wrapper bounds the surface content alone — what the chrome baselines mask.
-        <div data-testid="canvas-stage-content">
+        // `data-slots` is what adaptive weight reads: one slot is full-bleed, several are
+        // separated. See the composition section of CanvasApp.css.
+        <div data-testid="canvas-stage-content" data-slots={slotCountOf(surface) || undefined}>
           <SurfaceErrorBoundary surfaceId={state.stageId} resetKey={state.appliedSeq}>
             <SurfaceFrame surface={surface} />
           </SurfaceErrorBoundary>

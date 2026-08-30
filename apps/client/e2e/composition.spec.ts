@@ -73,3 +73,100 @@ test('a vendor stylesheet resolves inside its fragment and nowhere else', async 
   expect(leaked).not.toHaveProperty('reason');
   expect((leaked as {onRoot: string}).onRoot).toBe('');
 });
+
+test('adaptive weight: a lone fragment owns the canvas, several read as distinct sources', async ({
+  page,
+}) => {
+  await page.goto('/?beat=composed-solo&instant');
+  await expect(page.locator('main[data-replay="done"]')).toBeAttached({timeout: 30_000});
+  await expect(page.getByTestId('canvas-stage-content')).toHaveAttribute('data-slots', '1');
+
+  const solo = page.locator('[data-a2ui-fragment="github"]');
+  const soloBorder = await solo.evaluate(el => getComputedStyle(el).borderTopWidth);
+  expect(soloBorder).toBe('0px');
+
+  await settleComposed(page);
+  await expect(page.getByTestId('canvas-stage-content')).toHaveAttribute('data-slots', '2');
+  const shared = page.locator('[data-a2ui-fragment="github"]');
+  const sharedBorder = await shared.evaluate(el => getComputedStyle(el).borderTopWidth);
+  // Structure is constant; only prominence changed.
+  expect(sharedBorder).not.toBe('0px');
+});
+
+test('the shell and its painted surfaces agree on one palette in dark mode', async ({browser}) => {
+  const page = await browser.newPage({colorScheme: 'dark'});
+  await settleComposed(page);
+
+  const palette = await page.evaluate(() => {
+    const boundary = document.querySelector('[data-a2ui-fragment]') as HTMLElement | null;
+    const shell = document.querySelector('[data-slot]') as HTMLElement | null;
+    return {
+      // The shell catalog maps --a2ui-* onto Radix, so an orchestrator-painted surface resolves
+      // its tokens from the same appearance the client's own chrome uses.
+      surfaceToken: shell
+        ? getComputedStyle(shell).getPropertyValue('--a2ui-color-surface').trim()
+        : '',
+      appBackground: getComputedStyle(document.body).backgroundColor,
+      boundaryFound: Boolean(boundary),
+    };
+  });
+
+  expect(palette.boundaryFound).toBe(true);
+  expect(palette.surfaceToken).not.toBe('');
+  await page.close();
+});
+
+test('a question fragment is promoted in place, with the rest of the canvas dimmed', async ({
+  page,
+}) => {
+  await page.goto('/?beat=composed-question&instant');
+  await expect(page.locator('main[data-replay="done"]')).toBeAttached({timeout: 30_000});
+
+  // The asking fragment is raised where it already was; the other keeps its place.
+  await expect(page.locator('[data-a2ui-fragment="gmail"][data-promoted="true"]')).toHaveCount(1);
+  await expect(page.locator('[data-a2ui-fragment="github"][data-promoted="true"]')).toHaveCount(0);
+  await expect(page.getByTestId('canvas-scrim')).toBeVisible();
+
+  // The shell grants attention; it does not seize it. Promotion is plural, so it puts up no
+  // modal of its own and no focus trap — the demand is announced instead.
+  await expect(page.getByTestId('canvas-overlay')).toHaveCount(0);
+  await expect(page.getByRole('status')).toContainText('1 source needs your answer');
+  const shellModal = await page.evaluate(
+    () =>
+      [...document.querySelectorAll('[aria-modal="true"]')].filter(
+        el => !el.closest('[data-a2ui-fragment]'),
+      ).length,
+  );
+  expect(shellModal).toBe(0);
+
+  // The question renders where the shell put it: inside its own slot, not floating over the page.
+  const inSlot = page.locator('[data-slot="slot-gmail"] [data-a2ui-fragment="gmail"]');
+  await expect(inSlot).toContainText('Which account?');
+});
+
+test('visual: the composed screen', async ({page}) => {
+  await settleComposed(page);
+  await expect(page).toHaveScreenshot('composition-composed.png', {fullPage: true});
+});
+
+test('visual: a lone fragment owning the canvas', async ({page}) => {
+  await page.goto('/?beat=composed-solo&instant');
+  await expect(page.locator('main[data-replay="done"]')).toBeAttached({timeout: 30_000});
+  await expect(page).toHaveScreenshot('composition-solo.png', {fullPage: true});
+});
+
+/*
+ * There is deliberately no visual baseline for a promoted slot. Promotion lands a frame after the
+ * replay stream is exhausted and the fragment's own height settles a frame after that, so the
+ * capture is a coin flip between two legitimate renders however it is settled. A baseline that
+ * fails half the time teaches people to ignore baselines. The behavioural test above covers what
+ * the picture would have: the scrim, which boundary is raised, the question rendering inside its
+ * own slot, and the announced count.
+ */
+
+test('visual: the composed screen in dark mode', async ({browser}) => {
+  const page = await browser.newPage({colorScheme: 'dark', viewport: {width: 1024, height: 768}});
+  await settleComposed(page);
+  await expect(page).toHaveScreenshot('composition-dark.png', {fullPage: true});
+  await page.close();
+});

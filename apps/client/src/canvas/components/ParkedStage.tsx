@@ -11,6 +11,7 @@ import type {ReactComponentImplementation} from '@a2ui/react/v0_9';
 import {SlotContentContext} from '@a2uiverse/shell-catalog';
 import {SurfaceFrame} from '../../catalogs/CatalogContext';
 import {SurfaceErrorBoundary} from '../../shared/SurfaceErrorBoundary';
+import {slotCountOf} from '../composition/slotCount';
 import {useSlotContent} from '../composition/slotContent';
 import type {PaintEntry} from '../timeline/paint';
 import type {ParkedSession} from '../timeline/parkedSession';
@@ -36,7 +37,7 @@ export function ParkedStage({entry, create, attach}: ParkedStageProps) {
     <div className="canvas-stage canvas-stage--parked" data-testid="canvas-parked-stage">
       {surface ? (
         // The inner wrapper bounds the surface content alone — what the chrome baselines mask.
-        <div data-testid="canvas-stage-content">
+        <div data-testid="canvas-stage-content" data-slots={slotCountOf(surface) || undefined}>
           <SlotContentContext.Provider value={slotContent}>
             <SurfaceErrorBoundary surfaceId={session.surfaceId} resetKey={entry.paintId}>
               <SurfaceFrame surface={surface} />
