@@ -34,3 +34,25 @@ test('beat 3: review compose, chained after beat 2', async ({page}) => {
   await settle(page, '2,3');
   await expect(page).toHaveScreenshot('canvas-surface-beat-3.png', surfaceShot(page));
 });
+
+/**
+ * The one baseline showing what three real agents produced rather than what we hand-built, so
+ * it is the picture to look at when something drifts. Beats 1–3 are one-slot compositions of a
+ * single vendor; this is the fan-out.
+ */
+test('beat 4: composed fan-out across three design systems', async ({browser}) => {
+  // The stage scrolls its own content, so `fullPage` cannot reach past the first fragment at
+  // the standard viewport — the picture would show Gmail alone and claim to be a fan-out. A
+  // viewport tall enough to hold all three is what makes the baseline mean what it says.
+  const page = await browser.newPage({viewport: {width: 1024, height: 2400}});
+  await settle(page, '4');
+
+  // Guard the claim the picture is meant to carry, so a diff is never the only signal.
+  await expect(page.getByTestId('canvas-stage-content')).toHaveAttribute('data-slots', '3');
+  for (const source of ['gmail', 'calendar', 'github']) {
+    await expect(page.locator(`[data-a2ui-fragment="${source}"]`)).toHaveCount(1);
+  }
+
+  await expect(page).toHaveScreenshot('canvas-surface-beat-4.png', surfaceShot(page));
+  await page.close();
+});

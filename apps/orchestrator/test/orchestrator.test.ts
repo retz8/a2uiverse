@@ -146,15 +146,25 @@ function slotStates(paint: Array<Record<string, unknown>>): Record<string, strin
   return states;
 }
 
+/**
+ * The journal is appended after the client's stream ends, so a line is polled for rather than
+ * read. Every caller needs the lines it asks for: timing out returns short and the assertion
+ * then fails on an `undefined` line, which reads as a logic bug rather than a slow disk. So the
+ * timeout says what it is, and the budget is generous enough to survive `turbo run test`
+ * building every other package alongside it.
+ */
 async function journalLines(expected: number) {
-  const deadline = Date.now() + 2_000;
+  const deadline = Date.now() + 15_000;
   for (;;) {
     const text = await readFile(join(dir, 'intent-journal.jsonl'), 'utf8').catch(() => '');
     const lines = text
       .split('\n')
       .filter(Boolean)
       .map(l => JSON.parse(l) as Record<string, unknown>);
-    if (lines.length >= expected || Date.now() > deadline) return lines;
+    if (lines.length >= expected) return lines;
+    if (Date.now() > deadline) {
+      throw new Error(`journal never reached ${expected} line(s) — saw ${lines.length}`);
+    }
     await new Promise(resolve => setTimeout(resolve, 10));
   }
 }

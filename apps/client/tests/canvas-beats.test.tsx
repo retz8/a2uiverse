@@ -12,31 +12,62 @@
 import {describe, it, expect} from 'vitest';
 import {screen} from '@testing-library/react';
 import {MessageProcessor} from '@a2ui/web_core/v0_9';
-import {CATALOG} from 'github-catalog';
 import {BEAT_FIXTURES, messagesOf} from '../src/beats/beatFixtures';
 import type {BeatFixture} from '../src/beats/beatFixtures';
 import {createCanvasStore} from '../src/canvas/canvasStore';
 import {createTurnRunner} from '../src/canvas/turn/canvasTurn';
 import {replayBeatOnCanvas} from '../src/canvas/replayBeat';
 import {CanvasStage} from '../src/canvas/components/CanvasStage';
-import {renderWithShell} from './helpers';
+import {CATALOGS, renderWithShell} from './helpers';
 
-/** The last surface the painting turn creates — the one that takes the stage. */
-function lastCreatedSurfaceId(fixture: BeatFixture): string {
+/** Every surface the painting turn creates, in the order it created them. */
+function createdSurfaceIds(fixture: BeatFixture): string[] {
   const turn = fixture.turns[fixture.turns.length - 1];
-  const creates = messagesOf(turn).filter(m => 'createSurface' in m) as Array<{
-    createSurface: {surfaceId: string};
-  }>;
-  return creates[creates.length - 1].createSurface.surfaceId;
+  return (
+    messagesOf(turn).filter(m => 'createSurface' in m) as Array<{
+      createSurface: {surfaceId: string};
+    }>
+  ).map(m => m.createSurface.surfaceId);
 }
 
+/**
+ * A composed beat is one the hub stamped as a composition. The discriminator is the stamp
+ * rather than the fixture's name or slot count: a fan-out where only one agent answered is
+ * still composed, and reading it off the recording is how the canvas itself decides.
+ */
+function shellSurfaceIdOf(fixture: BeatFixture): string | undefined {
+  const turn = fixture.turns[fixture.turns.length - 1];
+  for (const batch of turn.batches) {
+    if (batch.stamp?.role !== 'shell') continue;
+    for (const message of batch.messages) {
+      const create = (message as {createSurface?: {surfaceId: string}}).createSurface;
+      if (create) return create.surfaceId;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * The surface that takes the stage: for a composition the shell's own layout surface, whose
+ * slots the fragments fill; otherwise the last surface created, which is the whole paint.
+ */
+function stageSurfaceIdOf(fixture: BeatFixture): string {
+  const created = createdSurfaceIds(fixture);
+  return shellSurfaceIdOf(fixture) ?? created[created.length - 1];
+}
+
+// The gate registers every installed catalog, exactly as the client does. A composed beat
+// carries surfaces in three design systems, so a single-catalog processor would fail to apply
+// most of the stream — and report it as a broken paint rather than a missing catalog.
+const catalogs = CATALOGS.map(c => c.catalog);
+
 function setup() {
-  const processor = new MessageProcessor([CATALOG]);
+  const processor = new MessageProcessor(catalogs);
   const store = createCanvasStore();
   const runner = createTurnRunner({
     processor,
     store,
-    createStaging: () => new MessageProcessor([CATALOG]),
+    createStaging: () => new MessageProcessor(catalogs),
   });
   return {processor, store, runner};
 }
@@ -51,9 +82,13 @@ describe('canvas shell over the recorded beats', () => {
       const state = store.getState();
       // The whole stream applied: any per-message failure lands in the sticky error.
       expect(state.error).toBeNull();
-      // Last createSurface wins the stage; the live registry is exactly canvas occupancy.
-      expect(state.stageId).toBe(lastCreatedSurfaceId(fixture));
-      expect(Array.from(processor.model.surfacesMap.keys())).toEqual([state.stageId]);
+      // The stage holds the shell for a composition, the paint itself otherwise.
+      expect(state.stageId).toBe(stageSurfaceIdOf(fixture));
+      // The live registry is exactly canvas occupancy: a lone paint, or the shell plus the
+      // fragments filling its slots.
+      expect([...processor.model.surfacesMap.keys()].sort()).toEqual(
+        [...new Set(createdSurfaceIds(fixture))].sort(),
+      );
       // The turn appended its live entry and settled back to idle.
       const head = state.timeline[state.timeline.length - 1];
       expect(head).toMatchObject({surfaceId: state.stageId, snapshot: null});
@@ -76,7 +111,7 @@ describe('canvas shell over the recorded beats', () => {
 
     const state = store.getState();
     expect(state.error).toBeNull();
-    expect(state.stageId).toBe(lastCreatedSurfaceId(second));
+    expect(state.stageId).toBe(stageSurfaceIdOf(second));
     // Serialize-on-swap: the first beat's entry filled with its deep-frozen snapshot and
     // left the live registry (the data-model growth fix — reporting sees only the stage).
     expect(state.timeline).toHaveLength(2);
@@ -85,6 +120,9 @@ describe('canvas shell over the recorded beats', () => {
     expect(Object.isFrozen(state.timeline[0].snapshot!.tree)).toBe(true);
     expect(state.timeline[1].snapshot).toBeNull();
     expect(state.timeline[1].paintId).not.toBe(firstPaintId);
-    expect(Array.from(processor.model.surfacesMap.keys())).toEqual([state.stageId]);
+    // The outgoing composition is gone; what stands is the incoming beat's own surfaces.
+    expect([...processor.model.surfacesMap.keys()].sort()).toEqual(
+      [...new Set(createdSurfaceIds(second))].sort(),
+    );
   });
 });

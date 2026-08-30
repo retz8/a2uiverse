@@ -221,7 +221,16 @@ export const COMPOSED_BEAT: BeatFixture = {
             }),
             msg({beginRendering: {surfaceId: 'github:pr-list', root: 'root'}}),
           ],
-          texts: [],
+          // Prose arrives in stream chunks — a sentence splits mid-word across events.
+          texts: ['Here are the 4 P', 'Rs awaiting your review.'],
+        },
+        // A source can speak without painting. This one answers in prose and never delivers a
+        // fragment, which is why prose lives in the shell's region and not inside a slot.
+        {
+          offsetMs: 220,
+          stamp: {source: 'gmail', slot: 'slot-gmail', role: 'fragment'},
+          messages: [],
+          texts: ['I could not reach the mailbox.'],
         },
         // The other never delivers: the hub flips its slot by repainting its own surface.
         {

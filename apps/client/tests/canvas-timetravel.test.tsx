@@ -6,23 +6,28 @@
  */
 import {describe, it, expect} from 'vitest';
 import {MessageProcessor} from '@a2ui/web_core/v0_9';
-import {CATALOG} from 'github-catalog';
 import {BEAT_FIXTURES} from '../src/beats/beatFixtures';
 import {createCanvasStore} from '../src/canvas/canvasStore';
 import {createTurnRunner} from '../src/canvas/turn/canvasTurn';
 import {createParkedSession} from '../src/canvas/timeline/parkedSession';
+import {renderSlotContent} from '../src/canvas/composition/slotContent';
 import {replayBeatOnCanvas} from '../src/canvas/replayBeat';
 import {CanvasStage} from '../src/canvas/components/CanvasStage';
 import {ParkedStage} from '../src/canvas/components/ParkedStage';
-import {renderWithShell} from './helpers';
+import {SlotContentContext} from '@a2uiverse/shell-catalog';
+import {CATALOGS, renderWithShell} from './helpers';
+
+// Every installed catalog, as the client registers them: a beat recorded through the composing
+// hub carries the shell's own surface alongside the vendor's.
+const catalogs = CATALOGS.map(c => c.catalog);
 
 function setup() {
-  const processor = new MessageProcessor([CATALOG]);
+  const processor = new MessageProcessor(catalogs);
   const store = createCanvasStore();
   const runner = createTurnRunner({
     processor,
     store,
-    createStaging: () => new MessageProcessor([CATALOG]),
+    createStaging: () => new MessageProcessor(catalogs),
   });
   return {processor, store, runner};
 }
@@ -43,7 +48,16 @@ describe('parked-restore round-trip fidelity', () => {
       // Land the beat live and capture what the live stage renders.
       await replayBeatOnCanvas(fixture, {runner, store, paced: false});
       expect(store.getState().error).toBeNull();
-      const live = renderWithShell(<CanvasStage processor={processor} state={store.getState()} />);
+      // The live stage resolves its slots the same way `CanvasApp` does. Without the provider a
+      // composed paint renders its slots empty, and the comparison below would be measuring the
+      // harness rather than restore fidelity.
+      const liveResolve = (slot: string) =>
+        renderSlotContent(processor, store.getState().placement.get(slot), 0);
+      const live = renderWithShell(
+        <SlotContentContext.Provider value={liveResolve}>
+          <CanvasStage processor={processor} state={store.getState()} />
+        </SlotContentContext.Provider>,
+      );
       const liveHtml = live.container.querySelector('.canvas-stage')!.innerHTML;
       expect(liveHtml.length).toBeGreaterThan(0);
       live.unmount();
@@ -58,7 +72,7 @@ describe('parked-restore round-trip fidelity', () => {
       const parked = renderWithShell(
         <ParkedStage
           entry={entry}
-          create={e => createParkedSession(e, {catalogs: [CATALOG], store})}
+          create={e => createParkedSession(e, {catalogs, store})}
           attach={() => () => {}}
         />,
       );

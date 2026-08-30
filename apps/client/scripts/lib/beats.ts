@@ -1,7 +1,9 @@
 /**
- * The beats the recorder drives; prompts from `a2ui-github/agent/scripts/record_beats.py`, with
- * one change: beat 2 opens #233 — the head of the stub backend's PR list — where the source opens
- * live GitHub's #2123, which the stub does not carry.
+ * The beats the recorder drives. Beats 1–3 come from
+ * `a2ui-github/agent/scripts/record_beats.py`, with one change: beat 2 opens #233 — the head of
+ * the stub backend's PR list — where the source opens live GitHub's #2123, which the stub does
+ * not carry. Every beat is recorded through the composing hub, so 1–3 are one-slot composed
+ * turns rather than the bare relays their pre-composition recordings captured.
  */
 export interface BeatSpec {
   beat: number;
@@ -26,5 +28,13 @@ export const BEATS: BeatSpec[] = [
     title: 'Compose-and-confirm review',
     prompt: 'Draft an approving review saying the spec doc looks reasonable.',
     chains: true,
+  },
+  {
+    // The composed beat: it names no source, so the Router has to earn the fan-out. A prompt
+    // that listed the three apps would let a broken Router still look right.
+    beat: 4,
+    slug: 'composed-morning',
+    title: 'Composed fan-out',
+    prompt: 'What needs my attention this morning?',
   },
 ];

@@ -1,0 +1,5241 @@
+{
+  "name": "beat-4-composed-morning",
+  "beat": 4,
+  "title": "Composed fan-out",
+  "prompt": "What needs my attention this morning?",
+  "model": "gemini-3.7-flash",
+  "recordedAt": "2026-08-30T09:09:55Z",
+  "contextId": "7131e2d6-8cae-4900-b5a1-4b126b3c2b62",
+  "chainedFrom": null,
+  "turns": [
+    {
+      "taskId": "7468b27c-8251-46ff-8316-966a2fc26699",
+      "kind": "utterance",
+      "prompt": "What needs my attention this morning?",
+      "action": null,
+      "batches": [
+        {
+          "offsetMs": 2238,
+          "messages": [
+            {
+              "version": "v0.9",
+              "createSurface": {
+                "surfaceId": "shell:main",
+                "catalogId": "https://github.com/retz8/a2uiverse/blob/main/packages/shell-catalog/catalogs/v0.9.1/catalog.json"
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "surfaceId": "shell:main",
+                "components": [
+                  {
+                    "id": "root",
+                    "component": "Column",
+                    "children": [
+                      "wrap-slot-gmail",
+                      "wrap-slot-calendar",
+                      "wrap-slot-github"
+                    ]
+                  },
+                  {
+                    "id": "wrap-slot-gmail",
+                    "component": "Column",
+                    "children": [
+                      "attr-slot-gmail",
+                      "slot-gmail"
+                    ]
+                  },
+                  {
+                    "id": "attr-slot-gmail",
+                    "component": "Attribution",
+                    "displayName": "Gmail",
+                    "appId": "gmail"
+                  },
+                  {
+                    "id": "slot-gmail",
+                    "component": "Slot",
+                    "name": "slot-gmail",
+                    "state": "pending",
+                    "label": "Gmail"
+                  },
+                  {
+                    "id": "wrap-slot-calendar",
+                    "component": "Column",
+                    "children": [
+                      "attr-slot-calendar",
+                      "slot-calendar"
+                    ]
+                  },
+                  {
+                    "id": "attr-slot-calendar",
+                    "component": "Attribution",
+                    "displayName": "Google Calendar",
+                    "appId": "calendar"
+                  },
+                  {
+                    "id": "slot-calendar",
+                    "component": "Slot",
+                    "name": "slot-calendar",
+                    "state": "pending",
+                    "label": "Google Calendar"
+                  },
+                  {
+                    "id": "wrap-slot-github",
+                    "component": "Column",
+                    "children": [
+                      "attr-slot-github",
+                      "slot-github"
+                    ]
+                  },
+                  {
+                    "id": "attr-slot-github",
+                    "component": "Attribution",
+                    "displayName": "GitHub",
+                    "appId": "github"
+                  },
+                  {
+                    "id": "slot-github",
+                    "component": "Slot",
+                    "name": "slot-github",
+                    "state": "pending",
+                    "label": "GitHub"
+                  }
+                ]
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "shell",
+            "role": "shell"
+          }
+        },
+        {
+          "offsetMs": 13959,
+          "messages": [],
+          "texts": [
+            "\n"
+          ],
+          "stamp": {
+            "source": "calendar",
+            "slot": "slot-calendar",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 14036,
+          "messages": [
+            {
+              "version": "v0.9",
+              "createSurface": {
+                "surfaceId": "calendar:morning-attention",
+                "catalogId": "https://github.com/retz8/a2uiverse-apps/blob/main/calendar/calendar-catalog/catalogs/v0.9.1/catalog.json",
+                "sendDataModel": true
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "calendar",
+            "slot": "slot-calendar",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 14162,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "calendar:morning-attention",
+                "value": {
+                  "subtitle": "2 events requiring your response or review"
+                }
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "calendar",
+            "slot": "slot-calendar",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 14255,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "calendar:morning-attention",
+                "value": {
+                  "items": [
+                    {
+                      "id": "ev-101",
+                      "when": "09:30 – 10:00",
+                      "summary": "Product sync",
+                      "status": "Needs RSVP",
+                      "note": "Invitation awaiting your reply"
+                    },
+                    {
+                      "id": "ev-102"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "calendar",
+            "slot": "slot-calendar",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 14358,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "calendar:morning-attention",
+                "value": {
+                  "items": [
+                    {
+                      "id": "ev-101",
+                      "when": "09:30 – 10:00",
+                      "summary": "Product sync",
+                      "status": "Needs RSVP",
+                      "note": "Invitation awaiting your reply"
+                    },
+                    {
+                      "id": "ev-102",
+                      "when": "11:00 – 11:45",
+                      "summary": "Sprint triage"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "calendar",
+            "slot": "slot-calendar",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 14394,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "calendar:morning-attention",
+                "value": {
+                  "items": [
+                    {
+                      "id": "ev-101",
+                      "when": "09:30 – 10:00",
+                      "summary": "Product sync",
+                      "status": "Needs RSVP",
+                      "note": "Invitation awaiting your reply"
+                    },
+                    {
+                      "id": "ev-102",
+                      "when": "11:00 – 11:45",
+                      "summary": "Sprint triage",
+                      "status": "Overlap"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "calendar",
+            "slot": "slot-calendar",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 14480,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "calendar:morning-attention",
+                "path": "/",
+                "value": {
+                  "subtitle": "2 events requiring your response or review",
+                  "items": [
+                    {
+                      "id": "ev-101",
+                      "when": "09:30 – 10:00",
+                      "summary": "Product sync",
+                      "status": "Needs RSVP",
+                      "note": "Invitation awaiting your reply"
+                    },
+                    {
+                      "id": "ev-102",
+                      "when": "11:00 – 11:45",
+                      "summary": "Sprint triage",
+                      "status": "Overlap",
+                      "note": "Conflicts with Team 1:1 (11:00 – 11:30)"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "calendar",
+            "slot": "slot-calendar",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 14630,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "root",
+                    "component": "Card",
+                    "child": "loading_body"
+                  },
+                  {
+                    "id": "loading_body",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "calendar:morning-attention"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "calendar",
+            "slot": "slot-calendar",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 14705,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "body",
+                    "component": "Column",
+                    "children": [
+                      "loading_heading",
+                      "loading_subtitle",
+                      "loading_items-list"
+                    ]
+                  },
+                  {
+                    "id": "root",
+                    "component": "Card",
+                    "child": "body"
+                  },
+                  {
+                    "id": "loading_heading",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_subtitle",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_items-list",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "calendar:morning-attention"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "calendar",
+            "slot": "slot-calendar",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 14960,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "body",
+                    "component": "Column",
+                    "children": [
+                      "heading",
+                      "loading_subtitle",
+                      "loading_items-list"
+                    ]
+                  },
+                  {
+                    "id": "heading",
+                    "component": "Text",
+                    "variant": "h3",
+                    "text": "Needs attention this morning"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Card",
+                    "child": "body"
+                  },
+                  {
+                    "id": "loading_subtitle",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_items-list",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "calendar:morning-attention"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "calendar",
+            "slot": "slot-calendar",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 14960,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "body",
+                    "component": "Column",
+                    "children": [
+                      "heading",
+                      "subtitle",
+                      "loading_items-list"
+                    ]
+                  },
+                  {
+                    "id": "heading",
+                    "component": "Text",
+                    "variant": "h3",
+                    "text": "Needs attention this morning"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Card",
+                    "child": "body"
+                  },
+                  {
+                    "id": "subtitle",
+                    "component": "Text",
+                    "variant": "caption",
+                    "text": {
+                      "path": "/subtitle"
+                    }
+                  },
+                  {
+                    "id": "loading_items-list",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "calendar:morning-attention"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "calendar",
+            "slot": "slot-calendar",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 15115,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "body",
+                    "component": "Column",
+                    "children": [
+                      "heading",
+                      "subtitle",
+                      "items-list"
+                    ]
+                  },
+                  {
+                    "id": "heading",
+                    "component": "Text",
+                    "variant": "h3",
+                    "text": "Needs attention this morning"
+                  },
+                  {
+                    "id": "items-list",
+                    "component": "Column",
+                    "children": {
+                      "path": "/items",
+                      "componentId": "loading_item-row"
+                    }
+                  },
+                  {
+                    "id": "root",
+                    "component": "Card",
+                    "child": "body"
+                  },
+                  {
+                    "id": "subtitle",
+                    "component": "Text",
+                    "variant": "caption",
+                    "text": {
+                      "path": "/subtitle"
+                    }
+                  },
+                  {
+                    "id": "loading_item-row",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "calendar:morning-attention"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "calendar",
+            "slot": "slot-calendar",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 15355,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "body",
+                    "component": "Column",
+                    "children": [
+                      "heading",
+                      "subtitle",
+                      "items-list"
+                    ]
+                  },
+                  {
+                    "id": "heading",
+                    "component": "Text",
+                    "variant": "h3",
+                    "text": "Needs attention this morning"
+                  },
+                  {
+                    "id": "item-row",
+                    "component": "Button",
+                    "variant": "borderless",
+                    "child": "loading_item-body",
+                    "action": {
+                      "event": {
+                        "name": "open-event",
+                        "context": {
+                          "eventId": {
+                            "path": "id"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "items-list",
+                    "component": "Column",
+                    "children": {
+                      "path": "/items",
+                      "componentId": "item-row"
+                    }
+                  },
+                  {
+                    "id": "root",
+                    "component": "Card",
+                    "child": "body"
+                  },
+                  {
+                    "id": "subtitle",
+                    "component": "Text",
+                    "variant": "caption",
+                    "text": {
+                      "path": "/subtitle"
+                    }
+                  },
+                  {
+                    "id": "loading_item-body",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "calendar:morning-attention"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "calendar",
+            "slot": "slot-calendar",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 15568,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "body",
+                    "component": "Column",
+                    "children": [
+                      "heading",
+                      "subtitle",
+                      "items-list"
+                    ]
+                  },
+                  {
+                    "id": "heading",
+                    "component": "Text",
+                    "variant": "h3",
+                    "text": "Needs attention this morning"
+                  },
+                  {
+                    "id": "item-body",
+                    "component": "Column",
+                    "children": [
+                      "loading_item-header",
+                      "loading_item-note"
+                    ]
+                  },
+                  {
+                    "id": "item-row",
+                    "component": "Button",
+                    "variant": "borderless",
+                    "child": "item-body",
+                    "action": {
+                      "event": {
+                        "name": "open-event",
+                        "context": {
+                          "eventId": {
+                            "path": "id"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "items-list",
+                    "component": "Column",
+                    "children": {
+                      "path": "/items",
+                      "componentId": "item-row"
+                    }
+                  },
+                  {
+                    "id": "root",
+                    "component": "Card",
+                    "child": "body"
+                  },
+                  {
+                    "id": "subtitle",
+                    "component": "Text",
+                    "variant": "caption",
+                    "text": {
+                      "path": "/subtitle"
+                    }
+                  },
+                  {
+                    "id": "loading_item-header",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_item-note",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "calendar:morning-attention"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "calendar",
+            "slot": "slot-calendar",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 15729,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "body",
+                    "component": "Column",
+                    "children": [
+                      "heading",
+                      "subtitle",
+                      "items-list"
+                    ]
+                  },
+                  {
+                    "id": "heading",
+                    "component": "Text",
+                    "variant": "h3",
+                    "text": "Needs attention this morning"
+                  },
+                  {
+                    "id": "item-body",
+                    "component": "Column",
+                    "children": [
+                      "item-header",
+                      "loading_item-note"
+                    ]
+                  },
+                  {
+                    "id": "item-header",
+                    "component": "Row",
+                    "justify": "spaceBetween"
+                  },
+                  {
+                    "id": "item-row",
+                    "component": "Button",
+                    "variant": "borderless",
+                    "child": "item-body",
+                    "action": {
+                      "event": {
+                        "name": "open-event",
+                        "context": {
+                          "eventId": {
+                            "path": "id"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "items-list",
+                    "component": "Column",
+                    "children": {
+                      "path": "/items",
+                      "componentId": "item-row"
+                    }
+                  },
+                  {
+                    "id": "root",
+                    "component": "Card",
+                    "child": "body"
+                  },
+                  {
+                    "id": "subtitle",
+                    "component": "Text",
+                    "variant": "caption",
+                    "text": {
+                      "path": "/subtitle"
+                    }
+                  },
+                  {
+                    "id": "loading_item-note",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "calendar:morning-attention"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "calendar",
+            "slot": "slot-calendar",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 15806,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "body",
+                    "component": "Column",
+                    "children": [
+                      "heading",
+                      "subtitle",
+                      "items-list"
+                    ]
+                  },
+                  {
+                    "id": "heading",
+                    "component": "Text",
+                    "variant": "h3",
+                    "text": "Needs attention this morning"
+                  },
+                  {
+                    "id": "item-body",
+                    "component": "Column",
+                    "children": [
+                      "item-header",
+                      "loading_item-note"
+                    ]
+                  },
+                  {
+                    "id": "item-header",
+                    "component": "Row",
+                    "justify": "spaceBetween",
+                    "align": "center",
+                    "children": [
+                      "loading_item-time-title",
+                      "loading_item-status"
+                    ]
+                  },
+                  {
+                    "id": "item-row",
+                    "component": "Button",
+                    "variant": "borderless",
+                    "child": "item-body",
+                    "action": {
+                      "event": {
+                        "name": "open-event",
+                        "context": {
+                          "eventId": {
+                            "path": "id"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "items-list",
+                    "component": "Column",
+                    "children": {
+                      "path": "/items",
+                      "componentId": "item-row"
+                    }
+                  },
+                  {
+                    "id": "root",
+                    "component": "Card",
+                    "child": "body"
+                  },
+                  {
+                    "id": "subtitle",
+                    "component": "Text",
+                    "variant": "caption",
+                    "text": {
+                      "path": "/subtitle"
+                    }
+                  },
+                  {
+                    "id": "loading_item-note",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_item-time-title",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_item-status",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "calendar:morning-attention"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "calendar",
+            "slot": "slot-calendar",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 15983,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "body",
+                    "component": "Column",
+                    "children": [
+                      "heading",
+                      "subtitle",
+                      "items-list"
+                    ]
+                  },
+                  {
+                    "id": "heading",
+                    "component": "Text",
+                    "variant": "h3",
+                    "text": "Needs attention this morning"
+                  },
+                  {
+                    "id": "item-body",
+                    "component": "Column",
+                    "children": [
+                      "item-header",
+                      "loading_item-note"
+                    ]
+                  },
+                  {
+                    "id": "item-header",
+                    "component": "Row",
+                    "justify": "spaceBetween",
+                    "align": "center",
+                    "children": [
+                      "item-time-title",
+                      "loading_item-status"
+                    ]
+                  },
+                  {
+                    "id": "item-row",
+                    "component": "Button",
+                    "variant": "borderless",
+                    "child": "item-body",
+                    "action": {
+                      "event": {
+                        "name": "open-event",
+                        "context": {
+                          "eventId": {
+                            "path": "id"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "item-time-title",
+                    "component": "Row",
+                    "align": "center",
+                    "children": [
+                      "loading_item-when",
+                      "loading_item-summary"
+                    ]
+                  },
+                  {
+                    "id": "items-list",
+                    "component": "Column",
+                    "children": {
+                      "path": "/items",
+                      "componentId": "item-row"
+                    }
+                  },
+                  {
+                    "id": "root",
+                    "component": "Card",
+                    "child": "body"
+                  },
+                  {
+                    "id": "subtitle",
+                    "component": "Text",
+                    "variant": "caption",
+                    "text": {
+                      "path": "/subtitle"
+                    }
+                  },
+                  {
+                    "id": "loading_item-note",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_item-status",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_item-when",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_item-summary",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "calendar:morning-attention"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "calendar",
+            "slot": "slot-calendar",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 16136,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "body",
+                    "component": "Column",
+                    "children": [
+                      "heading",
+                      "subtitle",
+                      "items-list"
+                    ]
+                  },
+                  {
+                    "id": "heading",
+                    "component": "Text",
+                    "variant": "h3",
+                    "text": "Needs attention this morning"
+                  },
+                  {
+                    "id": "item-body",
+                    "component": "Column",
+                    "children": [
+                      "item-header",
+                      "loading_item-note"
+                    ]
+                  },
+                  {
+                    "id": "item-header",
+                    "component": "Row",
+                    "justify": "spaceBetween",
+                    "align": "center",
+                    "children": [
+                      "item-time-title",
+                      "loading_item-status"
+                    ]
+                  },
+                  {
+                    "id": "item-row",
+                    "component": "Button",
+                    "variant": "borderless",
+                    "child": "item-body",
+                    "action": {
+                      "event": {
+                        "name": "open-event",
+                        "context": {
+                          "eventId": {
+                            "path": "id"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "item-time-title",
+                    "component": "Row",
+                    "align": "center",
+                    "children": [
+                      "item-when",
+                      "loading_item-summary"
+                    ]
+                  },
+                  {
+                    "id": "item-when",
+                    "component": "Text",
+                    "text": {
+                      "path": "when"
+                    }
+                  },
+                  {
+                    "id": "items-list",
+                    "component": "Column",
+                    "children": {
+                      "path": "/items",
+                      "componentId": "item-row"
+                    }
+                  },
+                  {
+                    "id": "root",
+                    "component": "Card",
+                    "child": "body"
+                  },
+                  {
+                    "id": "subtitle",
+                    "component": "Text",
+                    "variant": "caption",
+                    "text": {
+                      "path": "/subtitle"
+                    }
+                  },
+                  {
+                    "id": "loading_item-note",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_item-status",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_item-summary",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "calendar:morning-attention"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "calendar",
+            "slot": "slot-calendar",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 16211,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "body",
+                    "component": "Column",
+                    "children": [
+                      "heading",
+                      "subtitle",
+                      "items-list"
+                    ]
+                  },
+                  {
+                    "id": "heading",
+                    "component": "Text",
+                    "variant": "h3",
+                    "text": "Needs attention this morning"
+                  },
+                  {
+                    "id": "item-body",
+                    "component": "Column",
+                    "children": [
+                      "item-header",
+                      "loading_item-note"
+                    ]
+                  },
+                  {
+                    "id": "item-header",
+                    "component": "Row",
+                    "justify": "spaceBetween",
+                    "align": "center",
+                    "children": [
+                      "item-time-title",
+                      "loading_item-status"
+                    ]
+                  },
+                  {
+                    "id": "item-row",
+                    "component": "Button",
+                    "variant": "borderless",
+                    "child": "item-body",
+                    "action": {
+                      "event": {
+                        "name": "open-event",
+                        "context": {
+                          "eventId": {
+                            "path": "id"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "item-summary",
+                    "component": "Text",
+                    "text": {
+                      "path": "summary"
+                    }
+                  },
+                  {
+                    "id": "item-time-title",
+                    "component": "Row",
+                    "align": "center",
+                    "children": [
+                      "item-when",
+                      "item-summary"
+                    ]
+                  },
+                  {
+                    "id": "item-when",
+                    "component": "Text",
+                    "text": {
+                      "path": "when"
+                    }
+                  },
+                  {
+                    "id": "items-list",
+                    "component": "Column",
+                    "children": {
+                      "path": "/items",
+                      "componentId": "item-row"
+                    }
+                  },
+                  {
+                    "id": "root",
+                    "component": "Card",
+                    "child": "body"
+                  },
+                  {
+                    "id": "subtitle",
+                    "component": "Text",
+                    "variant": "caption",
+                    "text": {
+                      "path": "/subtitle"
+                    }
+                  },
+                  {
+                    "id": "loading_item-note",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_item-status",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "calendar:morning-attention"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "calendar",
+            "slot": "slot-calendar",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 16365,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "body",
+                    "component": "Column",
+                    "children": [
+                      "heading",
+                      "subtitle",
+                      "items-list"
+                    ]
+                  },
+                  {
+                    "id": "heading",
+                    "component": "Text",
+                    "variant": "h3",
+                    "text": "Needs attention this morning"
+                  },
+                  {
+                    "id": "item-body",
+                    "component": "Column",
+                    "children": [
+                      "item-header",
+                      "loading_item-note"
+                    ]
+                  },
+                  {
+                    "id": "item-header",
+                    "component": "Row",
+                    "justify": "spaceBetween",
+                    "align": "center",
+                    "children": [
+                      "item-time-title",
+                      "item-status"
+                    ]
+                  },
+                  {
+                    "id": "item-row",
+                    "component": "Button",
+                    "variant": "borderless",
+                    "child": "item-body",
+                    "action": {
+                      "event": {
+                        "name": "open-event",
+                        "context": {
+                          "eventId": {
+                            "path": "id"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "item-status",
+                    "component": "Text",
+                    "variant": "caption",
+                    "text": {
+                      "path": "status"
+                    }
+                  },
+                  {
+                    "id": "item-summary",
+                    "component": "Text",
+                    "text": {
+                      "path": "summary"
+                    }
+                  },
+                  {
+                    "id": "item-time-title",
+                    "component": "Row",
+                    "align": "center",
+                    "children": [
+                      "item-when",
+                      "item-summary"
+                    ]
+                  },
+                  {
+                    "id": "item-when",
+                    "component": "Text",
+                    "text": {
+                      "path": "when"
+                    }
+                  },
+                  {
+                    "id": "items-list",
+                    "component": "Column",
+                    "children": {
+                      "path": "/items",
+                      "componentId": "item-row"
+                    }
+                  },
+                  {
+                    "id": "root",
+                    "component": "Card",
+                    "child": "body"
+                  },
+                  {
+                    "id": "subtitle",
+                    "component": "Text",
+                    "variant": "caption",
+                    "text": {
+                      "path": "/subtitle"
+                    }
+                  },
+                  {
+                    "id": "loading_item-note",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "calendar:morning-attention"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "calendar",
+            "slot": "slot-calendar",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 16456,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "body",
+                    "component": "Column",
+                    "children": [
+                      "heading",
+                      "subtitle",
+                      "items-list"
+                    ]
+                  },
+                  {
+                    "id": "heading",
+                    "component": "Text",
+                    "variant": "h3",
+                    "text": "Needs attention this morning"
+                  },
+                  {
+                    "id": "item-body",
+                    "component": "Column",
+                    "children": [
+                      "item-header",
+                      "item-note"
+                    ]
+                  },
+                  {
+                    "id": "item-header",
+                    "component": "Row",
+                    "justify": "spaceBetween",
+                    "align": "center",
+                    "children": [
+                      "item-time-title",
+                      "item-status"
+                    ]
+                  },
+                  {
+                    "id": "item-note",
+                    "component": "Text",
+                    "variant": "caption",
+                    "text": {
+                      "path": "note"
+                    }
+                  },
+                  {
+                    "id": "item-row",
+                    "component": "Button",
+                    "variant": "borderless",
+                    "child": "item-body",
+                    "action": {
+                      "event": {
+                        "name": "open-event",
+                        "context": {
+                          "eventId": {
+                            "path": "id"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "item-status",
+                    "component": "Text",
+                    "variant": "caption",
+                    "text": {
+                      "path": "status"
+                    }
+                  },
+                  {
+                    "id": "item-summary",
+                    "component": "Text",
+                    "text": {
+                      "path": "summary"
+                    }
+                  },
+                  {
+                    "id": "item-time-title",
+                    "component": "Row",
+                    "align": "center",
+                    "children": [
+                      "item-when",
+                      "item-summary"
+                    ]
+                  },
+                  {
+                    "id": "item-when",
+                    "component": "Text",
+                    "text": {
+                      "path": "when"
+                    }
+                  },
+                  {
+                    "id": "items-list",
+                    "component": "Column",
+                    "children": {
+                      "path": "/items",
+                      "componentId": "item-row"
+                    }
+                  },
+                  {
+                    "id": "root",
+                    "component": "Card",
+                    "child": "body"
+                  },
+                  {
+                    "id": "subtitle",
+                    "component": "Text",
+                    "variant": "caption",
+                    "text": {
+                      "path": "/subtitle"
+                    }
+                  }
+                ],
+                "surfaceId": "calendar:morning-attention"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "calendar",
+            "slot": "slot-calendar",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 29583,
+          "messages": [],
+          "texts": [
+            "\n"
+          ],
+          "stamp": {
+            "source": "github",
+            "slot": "slot-github",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 29664,
+          "messages": [
+            {
+              "version": "v0.9",
+              "createSurface": {
+                "surfaceId": "github:pr-attention-queue",
+                "catalogId": "https://github.com/retz8/a2uiverse-apps/blob/main/github/github-catalog/catalogs/v0.9.1/catalog.json",
+                "sendDataModel": true
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "github",
+            "slot": "slot-github",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 29821,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "condensed",
+                    "padding": "normal",
+                    "children": [
+                      "loading_header-stack",
+                      "loading_list"
+                    ]
+                  },
+                  {
+                    "id": "loading_header-stack",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_list",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "github:pr-attention-queue"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "github",
+            "slot": "slot-github",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 30030,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "justify": "space-between",
+                    "align": "center",
+                    "children": [
+                      "loading_header-left",
+                      "loading_header-badge"
+                    ]
+                  },
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "condensed",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "loading_list"
+                    ]
+                  },
+                  {
+                    "id": "loading_header-left",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_header-badge",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_list",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "github:pr-attention-queue"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "github",
+            "slot": "slot-github",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 30255,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "header-left",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "gap": "condensed",
+                    "align": "center",
+                    "children": [
+                      "loading_hdr-icon",
+                      "loading_hdr-title",
+                      "loading_hdr-count"
+                    ]
+                  },
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "justify": "space-between",
+                    "align": "center",
+                    "children": [
+                      "header-left",
+                      "loading_header-badge"
+                    ]
+                  },
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "condensed",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "loading_list"
+                    ]
+                  },
+                  {
+                    "id": "loading_hdr-icon",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_hdr-title",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_hdr-count",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_header-badge",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_list",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "github:pr-attention-queue"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "github",
+            "slot": "slot-github",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 30394,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "hdr-icon",
+                    "component": "Icon",
+                    "name": "git-pull-request",
+                    "fill": "open",
+                    "accessibility": {
+                      "label": "Pull Requests"
+                    }
+                  },
+                  {
+                    "id": "header-left",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "gap": "condensed",
+                    "align": "center",
+                    "children": [
+                      "hdr-icon",
+                      "loading_hdr-title",
+                      "loading_hdr-count"
+                    ]
+                  },
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "justify": "space-between",
+                    "align": "center",
+                    "children": [
+                      "header-left",
+                      "loading_header-badge"
+                    ]
+                  },
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "condensed",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "loading_list"
+                    ]
+                  },
+                  {
+                    "id": "loading_hdr-title",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_hdr-count",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_header-badge",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_list",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "github:pr-attention-queue"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "github",
+            "slot": "slot-github",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 30543,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "hdr-icon",
+                    "component": "Icon",
+                    "name": "git-pull-request",
+                    "fill": "open",
+                    "accessibility": {
+                      "label": "Pull Requests"
+                    }
+                  },
+                  {
+                    "id": "hdr-title",
+                    "component": "Heading",
+                    "text": "Review Requests",
+                    "as": "h2",
+                    "variant": "small"
+                  },
+                  {
+                    "id": "header-left",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "gap": "condensed",
+                    "align": "center",
+                    "children": [
+                      "hdr-icon",
+                      "hdr-title",
+                      "loading_hdr-count"
+                    ]
+                  },
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "justify": "space-between",
+                    "align": "center",
+                    "children": [
+                      "header-left",
+                      "loading_header-badge"
+                    ]
+                  },
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "condensed",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "loading_list"
+                    ]
+                  },
+                  {
+                    "id": "loading_hdr-count",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_header-badge",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_list",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "github:pr-attention-queue"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "github",
+            "slot": "slot-github",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 30615,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "hdr-count",
+                    "component": "CounterLabel",
+                    "count": {
+                      "path": "/count"
+                    },
+                    "variant": "primary"
+                  },
+                  {
+                    "id": "hdr-icon",
+                    "component": "Icon",
+                    "name": "git-pull-request",
+                    "fill": "open",
+                    "accessibility": {
+                      "label": "Pull Requests"
+                    }
+                  },
+                  {
+                    "id": "hdr-title",
+                    "component": "Heading",
+                    "text": "Review Requests",
+                    "as": "h2",
+                    "variant": "small"
+                  },
+                  {
+                    "id": "header-left",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "gap": "condensed",
+                    "align": "center",
+                    "children": [
+                      "hdr-icon",
+                      "hdr-title",
+                      "hdr-count"
+                    ]
+                  },
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "justify": "space-between",
+                    "align": "center",
+                    "children": [
+                      "header-left",
+                      "loading_header-badge"
+                    ]
+                  },
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "condensed",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "loading_list"
+                    ]
+                  },
+                  {
+                    "id": "loading_header-badge",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_list",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "github:pr-attention-queue"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "github",
+            "slot": "slot-github",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 30748,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "hdr-count",
+                    "component": "CounterLabel",
+                    "count": {
+                      "path": "/count"
+                    },
+                    "variant": "primary"
+                  },
+                  {
+                    "id": "hdr-icon",
+                    "component": "Icon",
+                    "name": "git-pull-request",
+                    "fill": "open",
+                    "accessibility": {
+                      "label": "Pull Requests"
+                    }
+                  },
+                  {
+                    "id": "hdr-title",
+                    "component": "Heading",
+                    "text": "Review Requests",
+                    "as": "h2",
+                    "variant": "small"
+                  },
+                  {
+                    "id": "header-badge",
+                    "component": "Label",
+                    "text": "Needs review",
+                    "variant": "attention"
+                  },
+                  {
+                    "id": "header-left",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "gap": "condensed",
+                    "align": "center",
+                    "children": [
+                      "hdr-icon",
+                      "hdr-title",
+                      "hdr-count"
+                    ]
+                  },
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "justify": "space-between",
+                    "align": "center",
+                    "children": [
+                      "header-left",
+                      "header-badge"
+                    ]
+                  },
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "condensed",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "loading_list"
+                    ]
+                  },
+                  {
+                    "id": "loading_list",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "github:pr-attention-queue"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "github",
+            "slot": "slot-github",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 30898,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "hdr-count",
+                    "component": "CounterLabel",
+                    "count": {
+                      "path": "/count"
+                    },
+                    "variant": "primary"
+                  },
+                  {
+                    "id": "hdr-icon",
+                    "component": "Icon",
+                    "name": "git-pull-request",
+                    "fill": "open",
+                    "accessibility": {
+                      "label": "Pull Requests"
+                    }
+                  },
+                  {
+                    "id": "hdr-title",
+                    "component": "Heading",
+                    "text": "Review Requests",
+                    "as": "h2",
+                    "variant": "small"
+                  },
+                  {
+                    "id": "header-badge",
+                    "component": "Label",
+                    "text": "Needs review",
+                    "variant": "attention"
+                  },
+                  {
+                    "id": "header-left",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "gap": "condensed",
+                    "align": "center",
+                    "children": [
+                      "hdr-icon",
+                      "hdr-title",
+                      "hdr-count"
+                    ]
+                  },
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "justify": "space-between",
+                    "align": "center",
+                    "children": [
+                      "header-left",
+                      "header-badge"
+                    ]
+                  },
+                  {
+                    "id": "list",
+                    "component": "ActionList",
+                    "role": "listbox",
+                    "showDividers": true,
+                    "children": {
+                      "componentId": "loading_pr-row",
+                      "path": "/prs"
+                    }
+                  },
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "condensed",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "list"
+                    ]
+                  },
+                  {
+                    "id": "loading_pr-row",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "github:pr-attention-queue"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "github",
+            "slot": "slot-github",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 31124,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "hdr-count",
+                    "component": "CounterLabel",
+                    "count": {
+                      "path": "/count"
+                    },
+                    "variant": "primary"
+                  },
+                  {
+                    "id": "hdr-icon",
+                    "component": "Icon",
+                    "name": "git-pull-request",
+                    "fill": "open",
+                    "accessibility": {
+                      "label": "Pull Requests"
+                    }
+                  },
+                  {
+                    "id": "hdr-title",
+                    "component": "Heading",
+                    "text": "Review Requests",
+                    "as": "h2",
+                    "variant": "small"
+                  },
+                  {
+                    "id": "header-badge",
+                    "component": "Label",
+                    "text": "Needs review",
+                    "variant": "attention"
+                  },
+                  {
+                    "id": "header-left",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "gap": "condensed",
+                    "align": "center",
+                    "children": [
+                      "hdr-icon",
+                      "hdr-title",
+                      "hdr-count"
+                    ]
+                  },
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "justify": "space-between",
+                    "align": "center",
+                    "children": [
+                      "header-left",
+                      "header-badge"
+                    ]
+                  },
+                  {
+                    "id": "list",
+                    "component": "ActionList",
+                    "role": "listbox",
+                    "showDividers": true,
+                    "children": {
+                      "componentId": "pr-row",
+                      "path": "/prs"
+                    }
+                  },
+                  {
+                    "id": "pr-row",
+                    "component": "ActionList.Item",
+                    "children": [
+                      "loading_row-lv",
+                      "loading_row-title",
+                      "loading_row-desc",
+                      "loading_row-tv"
+                    ],
+                    "action": {
+                      "event": {
+                        "name": "open-pull-request"
+                      }
+                    }
+                  },
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "condensed",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "list"
+                    ]
+                  },
+                  {
+                    "id": "loading_row-lv",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_row-title",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_row-desc",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_row-tv",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "github:pr-attention-queue"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "github",
+            "slot": "slot-github",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 31294,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "hdr-count",
+                    "component": "CounterLabel",
+                    "count": {
+                      "path": "/count"
+                    },
+                    "variant": "primary"
+                  },
+                  {
+                    "id": "hdr-icon",
+                    "component": "Icon",
+                    "name": "git-pull-request",
+                    "fill": "open",
+                    "accessibility": {
+                      "label": "Pull Requests"
+                    }
+                  },
+                  {
+                    "id": "hdr-title",
+                    "component": "Heading",
+                    "text": "Review Requests",
+                    "as": "h2",
+                    "variant": "small"
+                  },
+                  {
+                    "id": "header-badge",
+                    "component": "Label",
+                    "text": "Needs review",
+                    "variant": "attention"
+                  },
+                  {
+                    "id": "header-left",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "gap": "condensed",
+                    "align": "center",
+                    "children": [
+                      "hdr-icon",
+                      "hdr-title",
+                      "hdr-count"
+                    ]
+                  },
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "justify": "space-between",
+                    "align": "center",
+                    "children": [
+                      "header-left",
+                      "header-badge"
+                    ]
+                  },
+                  {
+                    "id": "list",
+                    "component": "ActionList",
+                    "role": "listbox",
+                    "showDividers": true,
+                    "children": {
+                      "componentId": "pr-row",
+                      "path": "/prs"
+                    }
+                  },
+                  {
+                    "id": "pr-row",
+                    "component": "ActionList.Item",
+                    "children": [
+                      "loading_row-lv",
+                      "loading_row-title",
+                      "loading_row-desc",
+                      "loading_row-tv"
+                    ],
+                    "action": {
+                      "event": {
+                        "name": "open-pull-request",
+                        "context": {
+                          "repository": {
+                            "path": "repository"
+                          },
+                          "number": {
+                            "path": "number"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "condensed",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "list"
+                    ]
+                  },
+                  {
+                    "id": "loading_row-lv",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_row-title",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_row-desc",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_row-tv",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "github:pr-attention-queue"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "github",
+            "slot": "slot-github",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 31453,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "hdr-count",
+                    "component": "CounterLabel",
+                    "count": {
+                      "path": "/count"
+                    },
+                    "variant": "primary"
+                  },
+                  {
+                    "id": "hdr-icon",
+                    "component": "Icon",
+                    "name": "git-pull-request",
+                    "fill": "open",
+                    "accessibility": {
+                      "label": "Pull Requests"
+                    }
+                  },
+                  {
+                    "id": "hdr-title",
+                    "component": "Heading",
+                    "text": "Review Requests",
+                    "as": "h2",
+                    "variant": "small"
+                  },
+                  {
+                    "id": "header-badge",
+                    "component": "Label",
+                    "text": "Needs review",
+                    "variant": "attention"
+                  },
+                  {
+                    "id": "header-left",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "gap": "condensed",
+                    "align": "center",
+                    "children": [
+                      "hdr-icon",
+                      "hdr-title",
+                      "hdr-count"
+                    ]
+                  },
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "justify": "space-between",
+                    "align": "center",
+                    "children": [
+                      "header-left",
+                      "header-badge"
+                    ]
+                  },
+                  {
+                    "id": "list",
+                    "component": "ActionList",
+                    "role": "listbox",
+                    "showDividers": true,
+                    "children": {
+                      "componentId": "pr-row",
+                      "path": "/prs"
+                    }
+                  },
+                  {
+                    "id": "pr-row",
+                    "component": "ActionList.Item",
+                    "children": [
+                      "row-lv",
+                      "loading_row-title",
+                      "loading_row-desc",
+                      "loading_row-tv"
+                    ],
+                    "action": {
+                      "event": {
+                        "name": "open-pull-request",
+                        "context": {
+                          "repository": {
+                            "path": "repository"
+                          },
+                          "number": {
+                            "path": "number"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "condensed",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "list"
+                    ]
+                  },
+                  {
+                    "id": "row-lv",
+                    "component": "ActionList.LeadingVisual",
+                    "children": [
+                      "loading_row-icon"
+                    ]
+                  },
+                  {
+                    "id": "loading_row-title",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_row-desc",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_row-tv",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_row-icon",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "github:pr-attention-queue"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "github",
+            "slot": "slot-github",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 31695,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "hdr-count",
+                    "component": "CounterLabel",
+                    "count": {
+                      "path": "/count"
+                    },
+                    "variant": "primary"
+                  },
+                  {
+                    "id": "hdr-icon",
+                    "component": "Icon",
+                    "name": "git-pull-request",
+                    "fill": "open",
+                    "accessibility": {
+                      "label": "Pull Requests"
+                    }
+                  },
+                  {
+                    "id": "hdr-title",
+                    "component": "Heading",
+                    "text": "Review Requests",
+                    "as": "h2",
+                    "variant": "small"
+                  },
+                  {
+                    "id": "header-badge",
+                    "component": "Label",
+                    "text": "Needs review",
+                    "variant": "attention"
+                  },
+                  {
+                    "id": "header-left",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "gap": "condensed",
+                    "align": "center",
+                    "children": [
+                      "hdr-icon",
+                      "hdr-title",
+                      "hdr-count"
+                    ]
+                  },
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "justify": "space-between",
+                    "align": "center",
+                    "children": [
+                      "header-left",
+                      "header-badge"
+                    ]
+                  },
+                  {
+                    "id": "list",
+                    "component": "ActionList",
+                    "role": "listbox",
+                    "showDividers": true,
+                    "children": {
+                      "componentId": "pr-row",
+                      "path": "/prs"
+                    }
+                  },
+                  {
+                    "id": "pr-row",
+                    "component": "ActionList.Item",
+                    "children": [
+                      "row-lv",
+                      "loading_row-title",
+                      "loading_row-desc",
+                      "loading_row-tv"
+                    ],
+                    "action": {
+                      "event": {
+                        "name": "open-pull-request",
+                        "context": {
+                          "repository": {
+                            "path": "repository"
+                          },
+                          "number": {
+                            "path": "number"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "condensed",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "list"
+                    ]
+                  },
+                  {
+                    "id": "row-icon",
+                    "component": "Icon",
+                    "name": "git-pull-request",
+                    "fill": "open",
+                    "accessibility": {
+                      "label": "Open Pull Request"
+                    }
+                  },
+                  {
+                    "id": "row-lv",
+                    "component": "ActionList.LeadingVisual",
+                    "children": [
+                      "row-icon"
+                    ]
+                  },
+                  {
+                    "id": "loading_row-title",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_row-desc",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_row-tv",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "github:pr-attention-queue"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "github",
+            "slot": "slot-github",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 31774,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "hdr-count",
+                    "component": "CounterLabel",
+                    "count": {
+                      "path": "/count"
+                    },
+                    "variant": "primary"
+                  },
+                  {
+                    "id": "hdr-icon",
+                    "component": "Icon",
+                    "name": "git-pull-request",
+                    "fill": "open",
+                    "accessibility": {
+                      "label": "Pull Requests"
+                    }
+                  },
+                  {
+                    "id": "hdr-title",
+                    "component": "Heading",
+                    "text": "Review Requests",
+                    "as": "h2",
+                    "variant": "small"
+                  },
+                  {
+                    "id": "header-badge",
+                    "component": "Label",
+                    "text": "Needs review",
+                    "variant": "attention"
+                  },
+                  {
+                    "id": "header-left",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "gap": "condensed",
+                    "align": "center",
+                    "children": [
+                      "hdr-icon",
+                      "hdr-title",
+                      "hdr-count"
+                    ]
+                  },
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "justify": "space-between",
+                    "align": "center",
+                    "children": [
+                      "header-left",
+                      "header-badge"
+                    ]
+                  },
+                  {
+                    "id": "list",
+                    "component": "ActionList",
+                    "role": "listbox",
+                    "showDividers": true,
+                    "children": {
+                      "componentId": "pr-row",
+                      "path": "/prs"
+                    }
+                  },
+                  {
+                    "id": "pr-row",
+                    "component": "ActionList.Item",
+                    "children": [
+                      "row-lv",
+                      "row-title",
+                      "loading_row-desc",
+                      "loading_row-tv"
+                    ],
+                    "action": {
+                      "event": {
+                        "name": "open-pull-request",
+                        "context": {
+                          "repository": {
+                            "path": "repository"
+                          },
+                          "number": {
+                            "path": "number"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "condensed",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "list"
+                    ]
+                  },
+                  {
+                    "id": "row-icon",
+                    "component": "Icon",
+                    "name": "git-pull-request",
+                    "fill": "open",
+                    "accessibility": {
+                      "label": "Open Pull Request"
+                    }
+                  },
+                  {
+                    "id": "row-lv",
+                    "component": "ActionList.LeadingVisual",
+                    "children": [
+                      "row-icon"
+                    ]
+                  },
+                  {
+                    "id": "row-title",
+                    "component": "Text",
+                    "text": {
+                      "path": "title"
+                    },
+                    "weight": "semibold"
+                  },
+                  {
+                    "id": "loading_row-desc",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_row-tv",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "github:pr-attention-queue"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "github",
+            "slot": "slot-github",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 31941,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "hdr-count",
+                    "component": "CounterLabel",
+                    "count": {
+                      "path": "/count"
+                    },
+                    "variant": "primary"
+                  },
+                  {
+                    "id": "hdr-icon",
+                    "component": "Icon",
+                    "name": "git-pull-request",
+                    "fill": "open",
+                    "accessibility": {
+                      "label": "Pull Requests"
+                    }
+                  },
+                  {
+                    "id": "hdr-title",
+                    "component": "Heading",
+                    "text": "Review Requests",
+                    "as": "h2",
+                    "variant": "small"
+                  },
+                  {
+                    "id": "header-badge",
+                    "component": "Label",
+                    "text": "Needs review",
+                    "variant": "attention"
+                  },
+                  {
+                    "id": "header-left",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "gap": "condensed",
+                    "align": "center",
+                    "children": [
+                      "hdr-icon",
+                      "hdr-title",
+                      "hdr-count"
+                    ]
+                  },
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "justify": "space-between",
+                    "align": "center",
+                    "children": [
+                      "header-left",
+                      "header-badge"
+                    ]
+                  },
+                  {
+                    "id": "list",
+                    "component": "ActionList",
+                    "role": "listbox",
+                    "showDividers": true,
+                    "children": {
+                      "componentId": "pr-row",
+                      "path": "/prs"
+                    }
+                  },
+                  {
+                    "id": "pr-row",
+                    "component": "ActionList.Item",
+                    "children": [
+                      "row-lv",
+                      "row-title",
+                      "row-desc",
+                      "loading_row-tv"
+                    ],
+                    "action": {
+                      "event": {
+                        "name": "open-pull-request",
+                        "context": {
+                          "repository": {
+                            "path": "repository"
+                          },
+                          "number": {
+                            "path": "number"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "condensed",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "list"
+                    ]
+                  },
+                  {
+                    "id": "row-desc",
+                    "component": "ActionList.Description",
+                    "text": {
+                      "path": "meta"
+                    },
+                    "variant": "block"
+                  },
+                  {
+                    "id": "row-icon",
+                    "component": "Icon",
+                    "name": "git-pull-request",
+                    "fill": "open",
+                    "accessibility": {
+                      "label": "Open Pull Request"
+                    }
+                  },
+                  {
+                    "id": "row-lv",
+                    "component": "ActionList.LeadingVisual",
+                    "children": [
+                      "row-icon"
+                    ]
+                  },
+                  {
+                    "id": "row-title",
+                    "component": "Text",
+                    "text": {
+                      "path": "title"
+                    },
+                    "weight": "semibold"
+                  },
+                  {
+                    "id": "loading_row-tv",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "github:pr-attention-queue"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "github",
+            "slot": "slot-github",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 32096,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "hdr-count",
+                    "component": "CounterLabel",
+                    "count": {
+                      "path": "/count"
+                    },
+                    "variant": "primary"
+                  },
+                  {
+                    "id": "hdr-icon",
+                    "component": "Icon",
+                    "name": "git-pull-request",
+                    "fill": "open",
+                    "accessibility": {
+                      "label": "Pull Requests"
+                    }
+                  },
+                  {
+                    "id": "hdr-title",
+                    "component": "Heading",
+                    "text": "Review Requests",
+                    "as": "h2",
+                    "variant": "small"
+                  },
+                  {
+                    "id": "header-badge",
+                    "component": "Label",
+                    "text": "Needs review",
+                    "variant": "attention"
+                  },
+                  {
+                    "id": "header-left",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "gap": "condensed",
+                    "align": "center",
+                    "children": [
+                      "hdr-icon",
+                      "hdr-title",
+                      "hdr-count"
+                    ]
+                  },
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "justify": "space-between",
+                    "align": "center",
+                    "children": [
+                      "header-left",
+                      "header-badge"
+                    ]
+                  },
+                  {
+                    "id": "list",
+                    "component": "ActionList",
+                    "role": "listbox",
+                    "showDividers": true,
+                    "children": {
+                      "componentId": "pr-row",
+                      "path": "/prs"
+                    }
+                  },
+                  {
+                    "id": "pr-row",
+                    "component": "ActionList.Item",
+                    "children": [
+                      "row-lv",
+                      "row-title",
+                      "row-desc",
+                      "row-tv"
+                    ],
+                    "action": {
+                      "event": {
+                        "name": "open-pull-request",
+                        "context": {
+                          "repository": {
+                            "path": "repository"
+                          },
+                          "number": {
+                            "path": "number"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "condensed",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "list"
+                    ]
+                  },
+                  {
+                    "id": "row-desc",
+                    "component": "ActionList.Description",
+                    "text": {
+                      "path": "meta"
+                    },
+                    "variant": "block"
+                  },
+                  {
+                    "id": "row-icon",
+                    "component": "Icon",
+                    "name": "git-pull-request",
+                    "fill": "open",
+                    "accessibility": {
+                      "label": "Open Pull Request"
+                    }
+                  },
+                  {
+                    "id": "row-lv",
+                    "component": "ActionList.LeadingVisual",
+                    "children": [
+                      "row-icon"
+                    ]
+                  },
+                  {
+                    "id": "row-title",
+                    "component": "Text",
+                    "text": {
+                      "path": "title"
+                    },
+                    "weight": "semibold"
+                  },
+                  {
+                    "id": "row-tv",
+                    "component": "ActionList.TrailingVisual",
+                    "children": [
+                      "loading_row-time"
+                    ]
+                  },
+                  {
+                    "id": "loading_row-time",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "github:pr-attention-queue"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "github",
+            "slot": "slot-github",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 32197,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "hdr-count",
+                    "component": "CounterLabel",
+                    "count": {
+                      "path": "/count"
+                    },
+                    "variant": "primary"
+                  },
+                  {
+                    "id": "hdr-icon",
+                    "component": "Icon",
+                    "name": "git-pull-request",
+                    "fill": "open",
+                    "accessibility": {
+                      "label": "Pull Requests"
+                    }
+                  },
+                  {
+                    "id": "hdr-title",
+                    "component": "Heading",
+                    "text": "Review Requests",
+                    "as": "h2",
+                    "variant": "small"
+                  },
+                  {
+                    "id": "header-badge",
+                    "component": "Label",
+                    "text": "Needs review",
+                    "variant": "attention"
+                  },
+                  {
+                    "id": "header-left",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "gap": "condensed",
+                    "align": "center",
+                    "children": [
+                      "hdr-icon",
+                      "hdr-title",
+                      "hdr-count"
+                    ]
+                  },
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "justify": "space-between",
+                    "align": "center",
+                    "children": [
+                      "header-left",
+                      "header-badge"
+                    ]
+                  },
+                  {
+                    "id": "list",
+                    "component": "ActionList",
+                    "role": "listbox",
+                    "showDividers": true,
+                    "children": {
+                      "componentId": "pr-row",
+                      "path": "/prs"
+                    }
+                  },
+                  {
+                    "id": "pr-row",
+                    "component": "ActionList.Item",
+                    "children": [
+                      "row-lv",
+                      "row-title",
+                      "row-desc",
+                      "row-tv"
+                    ],
+                    "action": {
+                      "event": {
+                        "name": "open-pull-request",
+                        "context": {
+                          "repository": {
+                            "path": "repository"
+                          },
+                          "number": {
+                            "path": "number"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "condensed",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "list"
+                    ]
+                  },
+                  {
+                    "id": "row-desc",
+                    "component": "ActionList.Description",
+                    "text": {
+                      "path": "meta"
+                    },
+                    "variant": "block"
+                  },
+                  {
+                    "id": "row-icon",
+                    "component": "Icon",
+                    "name": "git-pull-request",
+                    "fill": "open",
+                    "accessibility": {
+                      "label": "Open Pull Request"
+                    }
+                  },
+                  {
+                    "id": "row-lv",
+                    "component": "ActionList.LeadingVisual",
+                    "children": [
+                      "row-icon"
+                    ]
+                  },
+                  {
+                    "id": "row-time",
+                    "component": "RelativeTime",
+                    "datetime": {
+                      "path": "updatedAt"
+                    },
+                    "format": "relative"
+                  },
+                  {
+                    "id": "row-title",
+                    "component": "Text",
+                    "text": {
+                      "path": "title"
+                    },
+                    "weight": "semibold"
+                  },
+                  {
+                    "id": "row-tv",
+                    "component": "ActionList.TrailingVisual",
+                    "children": [
+                      "row-time"
+                    ]
+                  }
+                ],
+                "surfaceId": "github:pr-attention-queue"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "github",
+            "slot": "slot-github",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 32611,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "github:pr-attention-queue",
+                "value": {
+                  "count": 1
+                }
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "github",
+            "slot": "slot-github",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 32611,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "github:pr-attention-queue",
+                "value": {
+                  "prs": [
+                    {
+                      "repository": "KISA-webpage-development-team/KISA-website-server",
+                      "number": 11,
+                      "title": "superookie crawler",
+                      "meta": "KISA-webpage-development-team/KISA-website-server #11 · opened by dkim1112"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "github",
+            "slot": "slot-github",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 32746,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "github:pr-attention-queue",
+                "path": "/",
+                "value": {
+                  "count": 1,
+                  "prs": [
+                    {
+                      "repository": "KISA-webpage-development-team/KISA-website-server",
+                      "number": 11,
+                      "title": "superookie crawler",
+                      "meta": "KISA-webpage-development-team/KISA-website-server #11 · opened by dkim1112",
+                      "updatedAt": "2025-08-10T09:25:10Z"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "github",
+            "slot": "slot-github",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 38796,
+          "messages": [],
+          "texts": [
+            "\n"
+          ],
+          "stamp": {
+            "source": "gmail",
+            "slot": "slot-gmail",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 38857,
+          "messages": [
+            {
+              "version": "v0.9",
+              "createSurface": {
+                "surfaceId": "gmail:morning-attention",
+                "catalogId": "https://github.com/retz8/a2uiverse-apps/blob/main/gmail/gmail-catalog/catalogs/v0.9.1/catalog.json",
+                "sendDataModel": true
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "slot": "slot-gmail",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 38966,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail:morning-attention",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "1a051eb33bae1b22",
+                      "sender": "sara.lindqvist@example.com",
+                      "subject": "revision feedback thread follow status proposal summary agenda feedback p"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "slot": "slot-gmail",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 39134,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail:morning-attention",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "1a051eb33bae1b22",
+                      "sender": "sara.lindqvist@example.com",
+                      "subject": "revision feedback thread follow status proposal summary agenda feedback p",
+                      "snippet": "thread agenda feedback thread status confirm pending schedule thread update follow notes schedule status notes revision agenda schedule update draft agenda reply feedback summary status confirm s"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "slot": "slot-gmail",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 39134,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail:morning-attention",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "1a051eb33bae1b22",
+                      "sender": "sara.lindqvist@example.com",
+                      "subject": "revision feedback thread follow status proposal summary agenda feedback p",
+                      "snippet": "thread agenda feedback thread status confirm pending schedule thread update follow notes schedule status notes revision agenda schedule update draft agenda reply feedback summary status confirm s",
+                      "when": "09:05"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "slot": "slot-gmail",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 39169,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail:morning-attention",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "1a051eb33bae1b22",
+                      "sender": "sara.lindqvist@example.com",
+                      "subject": "revision feedback thread follow status proposal summary agenda feedback p",
+                      "snippet": "thread agenda feedback thread status confirm pending schedule thread update follow notes schedule status notes revision agenda schedule update draft agenda reply feedback summary status confirm s",
+                      "when": "09:05"
+                    },
+                    {
+                      "id": "1a051e78f13f14f0",
+                      "sender": "sara.lindqvist@example.com"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "slot": "slot-gmail",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 39247,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail:morning-attention",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "1a051eb33bae1b22",
+                      "sender": "sara.lindqvist@example.com",
+                      "subject": "revision feedback thread follow status proposal summary agenda feedback p",
+                      "snippet": "thread agenda feedback thread status confirm pending schedule thread update follow notes schedule status notes revision agenda schedule update draft agenda reply feedback summary status confirm s",
+                      "when": "09:05"
+                    },
+                    {
+                      "id": "1a051e78f13f14f0",
+                      "sender": "sara.lindqvist@example.com",
+                      "subject": "update estimate summary pending thread follow attached draft reply pending revis"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "slot": "slot-gmail",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 39334,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail:morning-attention",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "1a051eb33bae1b22",
+                      "sender": "sara.lindqvist@example.com",
+                      "subject": "revision feedback thread follow status proposal summary agenda feedback p",
+                      "snippet": "thread agenda feedback thread status confirm pending schedule thread update follow notes schedule status notes revision agenda schedule update draft agenda reply feedback summary status confirm s",
+                      "when": "09:05"
+                    },
+                    {
+                      "id": "1a051e78f13f14f0",
+                      "sender": "sara.lindqvist@example.com",
+                      "subject": "update estimate summary pending thread follow attached draft reply pending revis",
+                      "snippet": "timeline reply status timeline question meeting estimate agenda meeting status attached meeting revision review update estimate feedback reply status section question status summary summary follow sum",
+                      "when": "09:01"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "slot": "slot-gmail",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 39411,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail:morning-attention",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "1a051eb33bae1b22",
+                      "sender": "sara.lindqvist@example.com",
+                      "subject": "revision feedback thread follow status proposal summary agenda feedback p",
+                      "snippet": "thread agenda feedback thread status confirm pending schedule thread update follow notes schedule status notes revision agenda schedule update draft agenda reply feedback summary status confirm s",
+                      "when": "09:05"
+                    },
+                    {
+                      "id": "1a051e78f13f14f0",
+                      "sender": "sara.lindqvist@example.com",
+                      "subject": "update estimate summary pending thread follow attached draft reply pending revis",
+                      "snippet": "timeline reply status timeline question meeting estimate agenda meeting status attached meeting revision review update estimate feedback reply status section question status summary summary follow sum",
+                      "when": "09:01"
+                    },
+                    {
+                      "id": "1a05077dde2deea4",
+                      "sender": "sara.moreau@example.com"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "slot": "slot-gmail",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 39481,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail:morning-attention",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "1a051eb33bae1b22",
+                      "sender": "sara.lindqvist@example.com",
+                      "subject": "revision feedback thread follow status proposal summary agenda feedback p",
+                      "snippet": "thread agenda feedback thread status confirm pending schedule thread update follow notes schedule status notes revision agenda schedule update draft agenda reply feedback summary status confirm s",
+                      "when": "09:05"
+                    },
+                    {
+                      "id": "1a051e78f13f14f0",
+                      "sender": "sara.lindqvist@example.com",
+                      "subject": "update estimate summary pending thread follow attached draft reply pending revis",
+                      "snippet": "timeline reply status timeline question meeting estimate agenda meeting status attached meeting revision review update estimate feedback reply status section question status summary summary follow sum",
+                      "when": "09:01"
+                    },
+                    {
+                      "id": "1a05077dde2deea4",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "status agenda proposal proposal pending pendi"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "slot": "slot-gmail",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 39558,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail:morning-attention",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "1a051eb33bae1b22",
+                      "sender": "sara.lindqvist@example.com",
+                      "subject": "revision feedback thread follow status proposal summary agenda feedback p",
+                      "snippet": "thread agenda feedback thread status confirm pending schedule thread update follow notes schedule status notes revision agenda schedule update draft agenda reply feedback summary status confirm s",
+                      "when": "09:05"
+                    },
+                    {
+                      "id": "1a051e78f13f14f0",
+                      "sender": "sara.lindqvist@example.com",
+                      "subject": "update estimate summary pending thread follow attached draft reply pending revis",
+                      "snippet": "timeline reply status timeline question meeting estimate agenda meeting status attached meeting revision review update estimate feedback reply status section question status summary summary follow sum",
+                      "when": "09:01"
+                    },
+                    {
+                      "id": "1a05077dde2deea4",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "status agenda proposal proposal pending pendi",
+                      "snippet": "pending review question feedback estimate section draft reply attached draft draft schedule pending thread update update status estimate status reply estimate notes schedule section confirm notes propo",
+                      "when": "02:20"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "slot": "slot-gmail",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 39700,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail:morning-attention",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "1a051eb33bae1b22",
+                      "sender": "sara.lindqvist@example.com",
+                      "subject": "revision feedback thread follow status proposal summary agenda feedback p",
+                      "snippet": "thread agenda feedback thread status confirm pending schedule thread update follow notes schedule status notes revision agenda schedule update draft agenda reply feedback summary status confirm s",
+                      "when": "09:05"
+                    },
+                    {
+                      "id": "1a051e78f13f14f0",
+                      "sender": "sara.lindqvist@example.com",
+                      "subject": "update estimate summary pending thread follow attached draft reply pending revis",
+                      "snippet": "timeline reply status timeline question meeting estimate agenda meeting status attached meeting revision review update estimate feedback reply status section question status summary summary follow sum",
+                      "when": "09:01"
+                    },
+                    {
+                      "id": "1a05077dde2deea4",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "status agenda proposal proposal pending pendi",
+                      "snippet": "pending review question feedback estimate section draft reply attached draft draft schedule pending thread update update status estimate status reply estimate notes schedule section confirm notes propo",
+                      "when": "02:20"
+                    },
+                    {
+                      "id": "1a0506754ca907e9"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "slot": "slot-gmail",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 39732,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail:morning-attention",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "1a051eb33bae1b22",
+                      "sender": "sara.lindqvist@example.com",
+                      "subject": "revision feedback thread follow status proposal summary agenda feedback p",
+                      "snippet": "thread agenda feedback thread status confirm pending schedule thread update follow notes schedule status notes revision agenda schedule update draft agenda reply feedback summary status confirm s",
+                      "when": "09:05"
+                    },
+                    {
+                      "id": "1a051e78f13f14f0",
+                      "sender": "sara.lindqvist@example.com",
+                      "subject": "update estimate summary pending thread follow attached draft reply pending revis",
+                      "snippet": "timeline reply status timeline question meeting estimate agenda meeting status attached meeting revision review update estimate feedback reply status section question status summary summary follow sum",
+                      "when": "09:01"
+                    },
+                    {
+                      "id": "1a05077dde2deea4",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "status agenda proposal proposal pending pendi",
+                      "snippet": "pending review question feedback estimate section draft reply attached draft draft schedule pending thread update update status estimate status reply estimate notes schedule section confirm notes propo",
+                      "when": "02:20"
+                    },
+                    {
+                      "id": "1a0506754ca907e9",
+                      "sender": "sara.vasquez@example.com",
+                      "subject": "confirm pending reply status section schedule pending feedback review re"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "slot": "slot-gmail",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 39805,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail:morning-attention",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "1a051eb33bae1b22",
+                      "sender": "sara.lindqvist@example.com",
+                      "subject": "revision feedback thread follow status proposal summary agenda feedback p",
+                      "snippet": "thread agenda feedback thread status confirm pending schedule thread update follow notes schedule status notes revision agenda schedule update draft agenda reply feedback summary status confirm s",
+                      "when": "09:05"
+                    },
+                    {
+                      "id": "1a051e78f13f14f0",
+                      "sender": "sara.lindqvist@example.com",
+                      "subject": "update estimate summary pending thread follow attached draft reply pending revis",
+                      "snippet": "timeline reply status timeline question meeting estimate agenda meeting status attached meeting revision review update estimate feedback reply status section question status summary summary follow sum",
+                      "when": "09:01"
+                    },
+                    {
+                      "id": "1a05077dde2deea4",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "status agenda proposal proposal pending pendi",
+                      "snippet": "pending review question feedback estimate section draft reply attached draft draft schedule pending thread update update status estimate status reply estimate notes schedule section confirm notes propo",
+                      "when": "02:20"
+                    },
+                    {
+                      "id": "1a0506754ca907e9",
+                      "sender": "sara.vasquez@example.com",
+                      "subject": "confirm pending reply status section schedule pending feedback review re",
+                      "snippet": "review reply feedback question agenda pending question section agenda proposal confirm confirm follow status notes note",
+                      "when": "02:01"
+                    },
+                    {}
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "slot": "slot-gmail",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 39866,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail:morning-attention",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "1a051eb33bae1b22",
+                      "sender": "sara.lindqvist@example.com",
+                      "subject": "revision feedback thread follow status proposal summary agenda feedback p",
+                      "snippet": "thread agenda feedback thread status confirm pending schedule thread update follow notes schedule status notes revision agenda schedule update draft agenda reply feedback summary status confirm s",
+                      "when": "09:05"
+                    },
+                    {
+                      "id": "1a051e78f13f14f0",
+                      "sender": "sara.lindqvist@example.com",
+                      "subject": "update estimate summary pending thread follow attached draft reply pending revis",
+                      "snippet": "timeline reply status timeline question meeting estimate agenda meeting status attached meeting revision review update estimate feedback reply status section question status summary summary follow sum",
+                      "when": "09:01"
+                    },
+                    {
+                      "id": "1a05077dde2deea4",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "status agenda proposal proposal pending pendi",
+                      "snippet": "pending review question feedback estimate section draft reply attached draft draft schedule pending thread update update status estimate status reply estimate notes schedule section confirm notes propo",
+                      "when": "02:20"
+                    },
+                    {
+                      "id": "1a0506754ca907e9",
+                      "sender": "sara.vasquez@example.com",
+                      "subject": "confirm pending reply status section schedule pending feedback review re",
+                      "snippet": "review reply feedback question agenda pending question section agenda proposal confirm confirm follow status notes note",
+                      "when": "02:01"
+                    },
+                    {
+                      "id": "1a05009f2b759fbe"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "slot": "slot-gmail",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 39949,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail:morning-attention",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "1a051eb33bae1b22",
+                      "sender": "sara.lindqvist@example.com",
+                      "subject": "revision feedback thread follow status proposal summary agenda feedback p",
+                      "snippet": "thread agenda feedback thread status confirm pending schedule thread update follow notes schedule status notes revision agenda schedule update draft agenda reply feedback summary status confirm s",
+                      "when": "09:05"
+                    },
+                    {
+                      "id": "1a051e78f13f14f0",
+                      "sender": "sara.lindqvist@example.com",
+                      "subject": "update estimate summary pending thread follow attached draft reply pending revis",
+                      "snippet": "timeline reply status timeline question meeting estimate agenda meeting status attached meeting revision review update estimate feedback reply status section question status summary summary follow sum",
+                      "when": "09:01"
+                    },
+                    {
+                      "id": "1a05077dde2deea4",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "status agenda proposal proposal pending pendi",
+                      "snippet": "pending review question feedback estimate section draft reply attached draft draft schedule pending thread update update status estimate status reply estimate notes schedule section confirm notes propo",
+                      "when": "02:20"
+                    },
+                    {
+                      "id": "1a0506754ca907e9",
+                      "sender": "sara.vasquez@example.com",
+                      "subject": "confirm pending reply status section schedule pending feedback review re",
+                      "snippet": "review reply feedback question agenda pending question section agenda proposal confirm confirm follow status notes note",
+                      "when": "02:01"
+                    },
+                    {
+                      "id": "1a05009f2b759fbe",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "estimate update update reply draft "
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "slot": "slot-gmail",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 40026,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail:morning-attention",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "1a051eb33bae1b22",
+                      "sender": "sara.lindqvist@example.com",
+                      "subject": "revision feedback thread follow status proposal summary agenda feedback p",
+                      "snippet": "thread agenda feedback thread status confirm pending schedule thread update follow notes schedule status notes revision agenda schedule update draft agenda reply feedback summary status confirm s",
+                      "when": "09:05"
+                    },
+                    {
+                      "id": "1a051e78f13f14f0",
+                      "sender": "sara.lindqvist@example.com",
+                      "subject": "update estimate summary pending thread follow attached draft reply pending revis",
+                      "snippet": "timeline reply status timeline question meeting estimate agenda meeting status attached meeting revision review update estimate feedback reply status section question status summary summary follow sum",
+                      "when": "09:01"
+                    },
+                    {
+                      "id": "1a05077dde2deea4",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "status agenda proposal proposal pending pendi",
+                      "snippet": "pending review question feedback estimate section draft reply attached draft draft schedule pending thread update update status estimate status reply estimate notes schedule section confirm notes propo",
+                      "when": "02:20"
+                    },
+                    {
+                      "id": "1a0506754ca907e9",
+                      "sender": "sara.vasquez@example.com",
+                      "subject": "confirm pending reply status section schedule pending feedback review re",
+                      "snippet": "review reply feedback question agenda pending question section agenda proposal confirm confirm follow status notes note",
+                      "when": "02:01"
+                    },
+                    {
+                      "id": "1a05009f2b759fbe",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "estimate update update reply draft ",
+                      "snippet": "attached question question revision status draft meeting status reply draft reply revision reply proposal update estimate timeline timeline status feedback agenda confirm summary notes follow section a"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "slot": "slot-gmail",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 40097,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail:morning-attention",
+                "path": "/",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "1a051eb33bae1b22",
+                      "sender": "sara.lindqvist@example.com",
+                      "subject": "revision feedback thread follow status proposal summary agenda feedback p",
+                      "snippet": "thread agenda feedback thread status confirm pending schedule thread update follow notes schedule status notes revision agenda schedule update draft agenda reply feedback summary status confirm s",
+                      "when": "09:05"
+                    },
+                    {
+                      "id": "1a051e78f13f14f0",
+                      "sender": "sara.lindqvist@example.com",
+                      "subject": "update estimate summary pending thread follow attached draft reply pending revis",
+                      "snippet": "timeline reply status timeline question meeting estimate agenda meeting status attached meeting revision review update estimate feedback reply status section question status summary summary follow sum",
+                      "when": "09:01"
+                    },
+                    {
+                      "id": "1a05077dde2deea4",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "status agenda proposal proposal pending pendi",
+                      "snippet": "pending review question feedback estimate section draft reply attached draft draft schedule pending thread update update status estimate status reply estimate notes schedule section confirm notes propo",
+                      "when": "02:20"
+                    },
+                    {
+                      "id": "1a0506754ca907e9",
+                      "sender": "sara.vasquez@example.com",
+                      "subject": "confirm pending reply status section schedule pending feedback review re",
+                      "snippet": "review reply feedback question agenda pending question section agenda proposal confirm confirm follow status notes note",
+                      "when": "02:01"
+                    },
+                    {
+                      "id": "1a05009f2b759fbe",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "estimate update update reply draft ",
+                      "snippet": "attached question question revision status draft meeting status reply draft reply revision reply proposal update estimate timeline timeline status feedback agenda confirm summary notes follow section a",
+                      "when": "00:20"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "slot": "slot-gmail",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 40248,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "root",
+                    "component": "Card",
+                    "child": "loading_body"
+                  },
+                  {
+                    "id": "loading_body",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "gmail:morning-attention"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "slot": "slot-gmail",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 40318,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "body",
+                    "component": "Column",
+                    "children": [
+                      "loading_heading",
+                      "loading_sub",
+                      "loading_divider",
+                      "loading_thread-list"
+                    ]
+                  },
+                  {
+                    "id": "root",
+                    "component": "Card",
+                    "child": "body"
+                  },
+                  {
+                    "id": "loading_heading",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_sub",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_divider",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_thread-list",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "gmail:morning-attention"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "slot": "slot-gmail",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 40402,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "body",
+                    "component": "Column",
+                    "children": [
+                      "heading",
+                      "loading_sub",
+                      "loading_divider",
+                      "loading_thread-list"
+                    ]
+                  },
+                  {
+                    "id": "heading",
+                    "component": "Text",
+                    "variant": "h3",
+                    "text": "Needs"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Card",
+                    "child": "body"
+                  },
+                  {
+                    "id": "loading_sub",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_divider",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_thread-list",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "gmail:morning-attention"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "slot": "slot-gmail",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 40476,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "body",
+                    "component": "Column",
+                    "children": [
+                      "heading",
+                      "loading_sub",
+                      "loading_divider",
+                      "loading_thread-list"
+                    ]
+                  },
+                  {
+                    "id": "heading",
+                    "component": "Text",
+                    "variant": "h3",
+                    "text": "Needs attention"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Card",
+                    "child": "body"
+                  },
+                  {
+                    "id": "loading_sub",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_divider",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_thread-list",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "gmail:morning-attention"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "slot": "slot-gmail",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 40549,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "body",
+                    "component": "Column",
+                    "children": [
+                      "heading",
+                      "sub",
+                      "loading_divider",
+                      "loading_thread-list"
+                    ]
+                  },
+                  {
+                    "id": "heading",
+                    "component": "Text",
+                    "variant": "h3",
+                    "text": "Needs attention"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Card",
+                    "child": "body"
+                  },
+                  {
+                    "id": "sub",
+                    "component": "Text",
+                    "variant": "caption",
+                    "text": "5 unread threads from this morning"
+                  },
+                  {
+                    "id": "loading_divider",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_thread-list",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "gmail:morning-attention"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "slot": "slot-gmail",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 40616,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "body",
+                    "component": "Column",
+                    "children": [
+                      "heading",
+                      "sub",
+                      "divider",
+                      "loading_thread-list"
+                    ]
+                  },
+                  {
+                    "id": "divider",
+                    "component": "Divider"
+                  },
+                  {
+                    "id": "heading",
+                    "component": "Text",
+                    "variant": "h3",
+                    "text": "Needs attention"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Card",
+                    "child": "body"
+                  },
+                  {
+                    "id": "sub",
+                    "component": "Text",
+                    "variant": "caption",
+                    "text": "5 unread threads from this morning"
+                  },
+                  {
+                    "id": "loading_thread-list",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "gmail:morning-attention"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "slot": "slot-gmail",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 40788,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "body",
+                    "component": "Column",
+                    "children": [
+                      "heading",
+                      "sub",
+                      "divider",
+                      "thread-list"
+                    ]
+                  },
+                  {
+                    "id": "divider",
+                    "component": "Divider"
+                  },
+                  {
+                    "id": "heading",
+                    "component": "Text",
+                    "variant": "h3",
+                    "text": "Needs attention"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Card",
+                    "child": "body"
+                  },
+                  {
+                    "id": "sub",
+                    "component": "Text",
+                    "variant": "caption",
+                    "text": "5 unread threads from this morning"
+                  },
+                  {
+                    "id": "thread-list",
+                    "component": "Column",
+                    "children": {
+                      "path": "/threads",
+                      "componentId": "loading_thread-row"
+                    }
+                  },
+                  {
+                    "id": "loading_thread-row",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "gmail:morning-attention"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "slot": "slot-gmail",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 41049,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "body",
+                    "component": "Column",
+                    "children": [
+                      "heading",
+                      "sub",
+                      "divider",
+                      "thread-list"
+                    ]
+                  },
+                  {
+                    "id": "divider",
+                    "component": "Divider"
+                  },
+                  {
+                    "id": "heading",
+                    "component": "Text",
+                    "variant": "h3",
+                    "text": "Needs attention"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Card",
+                    "child": "body"
+                  },
+                  {
+                    "id": "sub",
+                    "component": "Text",
+                    "variant": "caption",
+                    "text": "5 unread threads from this morning"
+                  },
+                  {
+                    "id": "thread-list",
+                    "component": "Column",
+                    "children": {
+                      "path": "/threads",
+                      "componentId": "thread-row"
+                    }
+                  },
+                  {
+                    "id": "thread-row",
+                    "component": "Button",
+                    "variant": "borderless",
+                    "child": "loading_thread-body",
+                    "action": {
+                      "event": {
+                        "name": "open-thread",
+                        "context": {
+                          "threadId": {
+                            "path": "id"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "loading_thread-body",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "gmail:morning-attention"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "slot": "slot-gmail",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 41210,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "body",
+                    "component": "Column",
+                    "children": [
+                      "heading",
+                      "sub",
+                      "divider",
+                      "thread-list"
+                    ]
+                  },
+                  {
+                    "id": "divider",
+                    "component": "Divider"
+                  },
+                  {
+                    "id": "heading",
+                    "component": "Text",
+                    "variant": "h3",
+                    "text": "Needs attention"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Card",
+                    "child": "body"
+                  },
+                  {
+                    "id": "sub",
+                    "component": "Text",
+                    "variant": "caption",
+                    "text": "5 unread threads from this morning"
+                  },
+                  {
+                    "id": "thread-body",
+                    "component": "Column",
+                    "children": [
+                      "loading_thread-top",
+                      "loading_thread-subject",
+                      "loading_thread-preview"
+                    ]
+                  },
+                  {
+                    "id": "thread-list",
+                    "component": "Column",
+                    "children": {
+                      "path": "/threads",
+                      "componentId": "thread-row"
+                    }
+                  },
+                  {
+                    "id": "thread-row",
+                    "component": "Button",
+                    "variant": "borderless",
+                    "child": "thread-body",
+                    "action": {
+                      "event": {
+                        "name": "open-thread",
+                        "context": {
+                          "threadId": {
+                            "path": "id"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "loading_thread-top",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_thread-subject",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_thread-preview",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "gmail:morning-attention"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "slot": "slot-gmail",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 41359,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "body",
+                    "component": "Column",
+                    "children": [
+                      "heading",
+                      "sub",
+                      "divider",
+                      "thread-list"
+                    ]
+                  },
+                  {
+                    "id": "divider",
+                    "component": "Divider"
+                  },
+                  {
+                    "id": "heading",
+                    "component": "Text",
+                    "variant": "h3",
+                    "text": "Needs attention"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Card",
+                    "child": "body"
+                  },
+                  {
+                    "id": "sub",
+                    "component": "Text",
+                    "variant": "caption",
+                    "text": "5 unread threads from this morning"
+                  },
+                  {
+                    "id": "thread-body",
+                    "component": "Column",
+                    "children": [
+                      "thread-top",
+                      "loading_thread-subject",
+                      "loading_thread-preview"
+                    ]
+                  },
+                  {
+                    "id": "thread-list",
+                    "component": "Column",
+                    "children": {
+                      "path": "/threads",
+                      "componentId": "thread-row"
+                    }
+                  },
+                  {
+                    "id": "thread-row",
+                    "component": "Button",
+                    "variant": "borderless",
+                    "child": "thread-body",
+                    "action": {
+                      "event": {
+                        "name": "open-thread",
+                        "context": {
+                          "threadId": {
+                            "path": "id"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "thread-top",
+                    "component": "Row",
+                    "justify": "spaceBetween",
+                    "align": "center",
+                    "children": [
+                      "loading_thread-sender",
+                      "loading_thread-when"
+                    ]
+                  },
+                  {
+                    "id": "loading_thread-subject",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_thread-preview",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_thread-sender",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_thread-when",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "gmail:morning-attention"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "slot": "slot-gmail",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 41521,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "body",
+                    "component": "Column",
+                    "children": [
+                      "heading",
+                      "sub",
+                      "divider",
+                      "thread-list"
+                    ]
+                  },
+                  {
+                    "id": "divider",
+                    "component": "Divider"
+                  },
+                  {
+                    "id": "heading",
+                    "component": "Text",
+                    "variant": "h3",
+                    "text": "Needs attention"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Card",
+                    "child": "body"
+                  },
+                  {
+                    "id": "sub",
+                    "component": "Text",
+                    "variant": "caption",
+                    "text": "5 unread threads from this morning"
+                  },
+                  {
+                    "id": "thread-body",
+                    "component": "Column",
+                    "children": [
+                      "thread-top",
+                      "loading_thread-subject",
+                      "loading_thread-preview"
+                    ]
+                  },
+                  {
+                    "id": "thread-list",
+                    "component": "Column",
+                    "children": {
+                      "path": "/threads",
+                      "componentId": "thread-row"
+                    }
+                  },
+                  {
+                    "id": "thread-row",
+                    "component": "Button",
+                    "variant": "borderless",
+                    "child": "thread-body",
+                    "action": {
+                      "event": {
+                        "name": "open-thread",
+                        "context": {
+                          "threadId": {
+                            "path": "id"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "thread-sender",
+                    "component": "Text",
+                    "text": {
+                      "path": "sender"
+                    }
+                  },
+                  {
+                    "id": "thread-top",
+                    "component": "Row",
+                    "justify": "spaceBetween",
+                    "align": "center",
+                    "children": [
+                      "thread-sender",
+                      "loading_thread-when"
+                    ]
+                  },
+                  {
+                    "id": "loading_thread-subject",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_thread-preview",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_thread-when",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "gmail:morning-attention"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "slot": "slot-gmail",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 41606,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "body",
+                    "component": "Column",
+                    "children": [
+                      "heading",
+                      "sub",
+                      "divider",
+                      "thread-list"
+                    ]
+                  },
+                  {
+                    "id": "divider",
+                    "component": "Divider"
+                  },
+                  {
+                    "id": "heading",
+                    "component": "Text",
+                    "variant": "h3",
+                    "text": "Needs attention"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Card",
+                    "child": "body"
+                  },
+                  {
+                    "id": "sub",
+                    "component": "Text",
+                    "variant": "caption",
+                    "text": "5 unread threads from this morning"
+                  },
+                  {
+                    "id": "thread-body",
+                    "component": "Column",
+                    "children": [
+                      "thread-top",
+                      "loading_thread-subject",
+                      "loading_thread-preview"
+                    ]
+                  },
+                  {
+                    "id": "thread-list",
+                    "component": "Column",
+                    "children": {
+                      "path": "/threads",
+                      "componentId": "thread-row"
+                    }
+                  },
+                  {
+                    "id": "thread-row",
+                    "component": "Button",
+                    "variant": "borderless",
+                    "child": "thread-body",
+                    "action": {
+                      "event": {
+                        "name": "open-thread",
+                        "context": {
+                          "threadId": {
+                            "path": "id"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "thread-sender",
+                    "component": "Text",
+                    "text": {
+                      "path": "sender"
+                    }
+                  },
+                  {
+                    "id": "thread-top",
+                    "component": "Row",
+                    "justify": "spaceBetween",
+                    "align": "center",
+                    "children": [
+                      "thread-sender",
+                      "thread-when"
+                    ]
+                  },
+                  {
+                    "id": "thread-when",
+                    "component": "Text",
+                    "variant": "caption",
+                    "text": {
+                      "path": "when"
+                    }
+                  },
+                  {
+                    "id": "loading_thread-subject",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_thread-preview",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "gmail:morning-attention"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "slot": "slot-gmail",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 41889,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "body",
+                    "component": "Column",
+                    "children": [
+                      "heading",
+                      "sub",
+                      "divider",
+                      "thread-list"
+                    ]
+                  },
+                  {
+                    "id": "divider",
+                    "component": "Divider"
+                  },
+                  {
+                    "id": "heading",
+                    "component": "Text",
+                    "variant": "h3",
+                    "text": "Needs attention"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Card",
+                    "child": "body"
+                  },
+                  {
+                    "id": "sub",
+                    "component": "Text",
+                    "variant": "caption",
+                    "text": "5 unread threads from this morning"
+                  },
+                  {
+                    "id": "thread-body",
+                    "component": "Column",
+                    "children": [
+                      "thread-top",
+                      "thread-subject",
+                      "loading_thread-preview"
+                    ]
+                  },
+                  {
+                    "id": "thread-list",
+                    "component": "Column",
+                    "children": {
+                      "path": "/threads",
+                      "componentId": "thread-row"
+                    }
+                  },
+                  {
+                    "id": "thread-row",
+                    "component": "Button",
+                    "variant": "borderless",
+                    "child": "thread-body",
+                    "action": {
+                      "event": {
+                        "name": "open-thread",
+                        "context": {
+                          "threadId": {
+                            "path": "id"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "thread-sender",
+                    "component": "Text",
+                    "text": {
+                      "path": "sender"
+                    }
+                  },
+                  {
+                    "id": "thread-subject",
+                    "component": "Text",
+                    "text": {
+                      "path": "subject"
+                    }
+                  },
+                  {
+                    "id": "thread-top",
+                    "component": "Row",
+                    "justify": "spaceBetween",
+                    "align": "center",
+                    "children": [
+                      "thread-sender",
+                      "thread-when"
+                    ]
+                  },
+                  {
+                    "id": "thread-when",
+                    "component": "Text",
+                    "variant": "caption",
+                    "text": {
+                      "path": "when"
+                    }
+                  },
+                  {
+                    "id": "loading_thread-preview",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "gmail:morning-attention"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "slot": "slot-gmail",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 41890,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "body",
+                    "component": "Column",
+                    "children": [
+                      "heading",
+                      "sub",
+                      "divider",
+                      "thread-list"
+                    ]
+                  },
+                  {
+                    "id": "divider",
+                    "component": "Divider"
+                  },
+                  {
+                    "id": "heading",
+                    "component": "Text",
+                    "variant": "h3",
+                    "text": "Needs attention"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Card",
+                    "child": "body"
+                  },
+                  {
+                    "id": "sub",
+                    "component": "Text",
+                    "variant": "caption",
+                    "text": "5 unread threads from this morning"
+                  },
+                  {
+                    "id": "thread-body",
+                    "component": "Column",
+                    "children": [
+                      "thread-top",
+                      "thread-subject",
+                      "thread-preview"
+                    ]
+                  },
+                  {
+                    "id": "thread-list",
+                    "component": "Column",
+                    "children": {
+                      "path": "/threads",
+                      "componentId": "thread-row"
+                    }
+                  },
+                  {
+                    "id": "thread-preview",
+                    "component": "Text",
+                    "variant": "caption",
+                    "text": {
+                      "path": "snippet"
+                    }
+                  },
+                  {
+                    "id": "thread-row",
+                    "component": "Button",
+                    "variant": "borderless",
+                    "child": "thread-body",
+                    "action": {
+                      "event": {
+                        "name": "open-thread",
+                        "context": {
+                          "threadId": {
+                            "path": "id"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "thread-sender",
+                    "component": "Text",
+                    "text": {
+                      "path": "sender"
+                    }
+                  },
+                  {
+                    "id": "thread-subject",
+                    "component": "Text",
+                    "text": {
+                      "path": "subject"
+                    }
+                  },
+                  {
+                    "id": "thread-top",
+                    "component": "Row",
+                    "justify": "spaceBetween",
+                    "align": "center",
+                    "children": [
+                      "thread-sender",
+                      "thread-when"
+                    ]
+                  },
+                  {
+                    "id": "thread-when",
+                    "component": "Text",
+                    "variant": "caption",
+                    "text": {
+                      "path": "when"
+                    }
+                  }
+                ],
+                "surfaceId": "gmail:morning-attention"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "slot": "slot-gmail",
+            "role": "fragment"
+          }
+        }
+      ],
+      "outcome": "completed",
+      "durationMs": 42063
+    }
+  ]
+}

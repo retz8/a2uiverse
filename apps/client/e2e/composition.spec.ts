@@ -144,6 +144,41 @@ test('a question fragment is promoted in place, with the rest of the canvas dimm
   await expect(inSlot).toContainText('Which account?');
 });
 
+test('each source gets its own line, in slot order and named', async ({page}) => {
+  await settleComposed(page);
+
+  const lines = page.getByTestId('canvas-notice');
+  // Slot order, not arrival order: the stack echoes the layout below it and never reorders
+  // under a reader as chunks land.
+  await expect(lines).toHaveCount(2);
+  await expect(lines.nth(0)).toHaveAttribute('data-notice-source', 'github');
+  await expect(lines.nth(1)).toHaveAttribute('data-notice-source', 'gmail');
+
+  // Chunks concatenate with their own source's, never with another's — the whole point of
+  // buffering per source rather than into one string.
+  await expect(lines.nth(0)).toContainText('Here are the 4 PRs awaiting your review.');
+  await expect(lines.nth(0)).toContainText('GitHub');
+
+  // The source that spoke without ever painting still has a voice, beside its failed slot.
+  await expect(lines.nth(1)).toContainText('I could not reach the mailbox.');
+  await expect(page.locator('[data-slot="slot-gmail"]')).toHaveAttribute(
+    'data-slot-state',
+    'failed',
+  );
+});
+
+test('prose stays in the shell region, outside every fragment', async ({page}) => {
+  await settleComposed(page);
+
+  const escaped = await page.evaluate(
+    () =>
+      [...document.querySelectorAll('[data-testid="canvas-notice"]')].filter(el =>
+        el.closest('[data-a2ui-fragment]'),
+      ).length,
+  );
+  expect(escaped).toBe(0);
+});
+
 test('visual: the composed screen', async ({page}) => {
   await settleComposed(page);
   await expect(page).toHaveScreenshot('composition-composed.png', {fullPage: true});
