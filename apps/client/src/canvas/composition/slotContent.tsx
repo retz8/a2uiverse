@@ -14,8 +14,20 @@ import type {ReactComponentImplementation} from '@a2ui/react/v0_9';
 import type {SurfaceModel} from '@a2ui/web_core/v0_9';
 import {SurfaceFrame} from '../../catalogs/CatalogContext';
 import {SurfaceErrorBoundary} from '../../shared/SurfaceErrorBoundary';
-import type {PlacedFragment} from '../canvasStore';
+import type {PlacedFragment, RosterEntry} from '../canvasStore';
 import {FragmentBoundary} from './FragmentBoundary';
+
+/**
+ * What a slot rests on when its source spoke but never painted. Not a fragment — it is the
+ * shell quoting the source, so it carries no boundary and no vendor Provider.
+ */
+function restingProse(text: string) {
+  return (
+    <span style={{color: 'var(--a2ui-color-on-surface)', opacity: 0.75}} data-slot-resting="prose">
+      {text}
+    </span>
+  );
+}
 
 /** The slice of a processor a resolver reads — the live one and a parked sandbox both satisfy it. */
 export interface SurfaceSource {
@@ -29,8 +41,9 @@ export function renderSlotContent(
   placed: PlacedFragment | undefined,
   resetKey: number,
   promoted = false,
+  spoken?: string,
 ): ReactNode | null {
-  if (!placed) return null;
+  if (!placed) return spoken ? restingProse(spoken) : null;
   const surface = surfaces.model.surfacesMap.get(placed.surfaceId);
   if (!surface) return null;
   return (
@@ -49,10 +62,23 @@ export function useSlotContent(
   placement: ReadonlyMap<string, PlacedFragment>,
   resetKey: number,
   promoted?: ReadonlySet<string>,
+  roster?: readonly RosterEntry[],
+  prose?: ReadonlyMap<string, string>,
 ): SlotContentResolver {
   return useCallback(
-    (slotName: string) =>
-      renderSlotContent(surfaces, placement.get(slotName), resetKey, promoted?.has(slotName)),
-    [surfaces, placement, resetKey, promoted],
+    (slotName: string) => {
+      // Only an unfilled slot rests on prose: a fragment that painted is the answer, and the
+      // source's running commentary belongs in the shell's notice region, not inside it.
+      const source = roster?.find(entry => entry.slot === slotName)?.appId;
+      const spoken = source ? prose?.get(source)?.trim() : undefined;
+      return renderSlotContent(
+        surfaces,
+        placement.get(slotName),
+        resetKey,
+        promoted?.has(slotName),
+        spoken || undefined,
+      );
+    },
+    [surfaces, placement, resetKey, promoted, roster, prose],
   );
 }

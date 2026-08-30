@@ -15,6 +15,7 @@
  * A forked turn reports the parked snapshot's data model, not the head's. The live processor is
  * the live registry, exactly what the agent may see.
  */
+import type {CompositionStamp} from '@a2uiverse/sdk';
 import {MessageProcessor} from '@a2ui/web_core/v0_9';
 import type {
   ActionListener,
@@ -86,15 +87,15 @@ export function createCanvasWiring({
     parkedHolder,
   );
 
-  // Agent prose streams as fragments; one growing notice per paint, chat-style grouping.
-  let prose = '';
-  const startTurn = (cause: PaintCause) => {
-    prose = '';
-    return runner.begin(cause);
-  };
-  const reportAgentText = (text: string) => {
-    prose += text;
-    if (prose.trim()) store.showNotice(prose);
+  const startTurn = (cause: PaintCause) => runner.begin(cause);
+  /**
+   * Agent prose streams as chunks — a sentence splits mid-word across events — so it is
+   * accumulated rather than shown per fragment. Under fan-out several sources stream at once and
+   * their chunks interleave, so each accumulates into its own line, named by the stamp that
+   * carried it. Prose with no fragment stamp is the shell's.
+   */
+  const reportAgentText = (text: string, stamp?: CompositionStamp) => {
+    store.appendProse(stamp?.role === 'fragment' ? stamp.source : null, text);
   };
 
   const dispatchUtterance = async (

@@ -18,6 +18,35 @@ export interface PlacedFragment {
   source: string;
 }
 
+/**
+ * One line of the notice stack: a source's prose for the turn, accumulated as its chunks
+ * arrive, or the shell's own cue. Keyed so a replacing cue restarts its fade.
+ */
+export interface Notice {
+  key: number;
+  /** The app that spoke; null when the shell speaks as itself — its cues, and unstamped prose. */
+  source: string | null;
+  text: string;
+}
+
+/**
+ * A source the turn's shell paint reserved a slot for, in slot order. Derived from the shell's
+ * own `Attribution` components — the client's second projection of the shell paint, beside
+ * `placement`, and the only place the display names the orchestrator painted are readable.
+ */
+export interface RosterEntry {
+  appId: string;
+  displayName: string;
+  /** The slot the shell reserved for this source. */
+  slot: string;
+}
+
+/** A notice as the stack renders it: ordered, and resolved against the roster. */
+export interface RenderedNotice extends Notice {
+  /** The source's display name; null for the shell, which speaks unlabeled. */
+  label: string | null;
+}
+
 /** The pending question paint occupying the overlay slot. */
 export interface OverlayState {
   surfaceId: string;
@@ -43,8 +72,20 @@ export interface CanvasState {
   inFlight: {label: string} | null;
   /** Sticky failure text; cleared by the next dispatch (beginPaint). */
   error: string | null;
-  /** The one transient ambient notice; keyed so a repeat restarts the fade. */
-  notice: {key: number; text: string} | null;
+  /**
+   * The notice stack: one entry per source that has spoken this turn, plus at most one for the
+   * shell. Plural because a fan-out has several voices, and buffered per source because their
+   * chunks interleave on the wire.
+   */
+  notices: readonly Notice[];
+  /** The turn's sources in slot order, from the shell paint; empty outside a composed turn. */
+  roster: readonly RosterEntry[];
+  /**
+   * What each source said this turn, by app id — kept for the whole turn, where `notices` is
+   * only what is currently *shown*. A slot whose source spoke but never painted rests on this,
+   * so the fact that a source was consulted survives the stack's fade.
+   */
+  prose: ReadonlyMap<string, string>;
   /** Bumped per applied batch — re-renders the stage and resets its error boundary. */
   appliedSeq: number;
   /**
@@ -90,8 +131,20 @@ export interface CanvasStore {
   returnToLive(): void;
   /** Monotonic paint ids — never reused; causes reference ids, not slots. */
   nextPaintId(): number;
+  /**
+   * Agent prose: append a streamed chunk to its source's buffer, creating the line on first
+   * chunk. `null` is the shell's bucket — prose that arrived with no fragment stamp.
+   */
+  appendProse(source: string | null, text: string): void;
+  /** The shell speaking as itself: replaces its own line and restarts its fade. */
   showNotice(text: string): void;
   dismissNotice(key: number): void;
+  /** Drop the whole stack — a new turn beginning, or the group's fade expiring. */
+  clearNotices(): void;
+  /** Forget what the turn's sources said; the turn is over, not merely faded. */
+  clearProse(): void;
+  /** Record the turn's sources in slot order, from the shell paint. */
+  setRoster(roster: readonly RosterEntry[]): void;
   bumpApplied(): void;
   /**
    * A fragment claims its slot. One surface per slot: a later claim displaces the earlier, which
@@ -112,6 +165,24 @@ export interface CanvasStore {
  * occupied, else null — an empty live canvas has no current paint, however much departed
  * history exists.
  */
+/**
+ * The stack as rendered: one line per source in the order the plan gave the slots, so the stack
+ * echoes the layout below it and never reorders under a reader, with the shell's own line last.
+ * A source the roster does not know keeps its appId — the degenerate, uncomposed case.
+ */
+export function orderedNotices(state: CanvasState): readonly RenderedNotice[] {
+  const rank = new Map(state.roster.map((entry, i) => [entry.appId, i]));
+  const label = new Map(state.roster.map(entry => [entry.appId, entry.displayName]));
+  const indexOf = (notice: Notice) =>
+    notice.source === null ? Number.MAX_SAFE_INTEGER : (rank.get(notice.source) ?? rank.size);
+  return [...state.notices]
+    .sort((a, b) => indexOf(a) - indexOf(b))
+    .map(notice => ({
+      ...notice,
+      label: notice.source === null ? null : (label.get(notice.source) ?? notice.source),
+    }));
+}
+
 export function currentPaintId(state: CanvasState): number | null {
   if (state.viewing !== null) return state.viewing;
   if (state.stageId === null) return null;
@@ -128,7 +199,9 @@ export function createCanvasStore(): CanvasStore {
     headAdvancedWhileParked: false,
     inFlight: null,
     error: null,
-    notice: null,
+    notices: [],
+    roster: [],
+    prose: new Map(),
     appliedSeq: 0,
     placement: new Map(),
     promoted: new Set(),
@@ -182,10 +255,40 @@ export function createCanvasStore(): CanvasStore {
     },
     returnToLive: () => set({viewing: null, headAdvancedWhileParked: false}),
     nextPaintId: () => ++paintId,
-    showNotice: text => set({notice: {key: noticeKey++, text}}),
-    dismissNotice: key => {
-      if (state.notice?.key === key) set({notice: null});
+    appendProse: (source, text) => {
+      const existing = state.notices.find(n => n.source === source);
+      // A line is minted by the first chunk that says something: prose often opens with
+      // whitespace, and a blank notice is a box with nothing in it.
+      if (!existing && !text.trim()) return;
+      if (source !== null) {
+        const prose = new Map(state.prose);
+        prose.set(source, (prose.get(source) ?? '') + text);
+        state = {...state, prose};
+      }
+      set({
+        notices: existing
+          ? state.notices.map(n => (n === existing ? {...n, text: n.text + text} : n))
+          : [...state.notices, {key: noticeKey++, source, text}],
+      });
     },
+    showNotice: text =>
+      set({
+        notices: [
+          ...state.notices.filter(n => n.source !== null),
+          {key: noticeKey++, source: null, text},
+        ],
+      }),
+    dismissNotice: key => {
+      if (state.notices.some(n => n.key === key))
+        set({notices: state.notices.filter(n => n.key !== key)});
+    },
+    clearNotices: () => {
+      if (state.notices.length) set({notices: []});
+    },
+    clearProse: () => {
+      if (state.prose.size) set({prose: new Map()});
+    },
+    setRoster: roster => set({roster}),
     bumpApplied: () => set({appliedSeq: state.appliedSeq + 1}),
     placeFragment: (slot, fragment) =>
       set({placement: new Map(state.placement).set(slot, fragment)}),

@@ -17,6 +17,7 @@ import {SlotContentContext} from '@a2uiverse/shell-catalog';
 import {CatalogProvider} from '../catalogs/CatalogContext';
 import type {ResolvedCatalog} from '../catalogs/resolver';
 import {useSlotContent} from './composition/slotContent';
+import {orderedNotices} from './canvasStore';
 import {createCanvasWiring} from './createCanvasWiring';
 import {replayBeatOnCanvas} from './replayBeat';
 import {AmbientNotice} from './components/AmbientNotice';
@@ -46,12 +47,15 @@ export function CanvasApp({serverUrl, client, catalogs}: CanvasAppProps) {
 
   const state = useSyncExternalStore(wiring.store.subscribe, wiring.store.getState);
 
-  // What a `Slot` in the shell surface renders: the fragment placed in it, inside its boundary.
+  // What a `Slot` in the shell surface renders: the fragment placed in it, inside its boundary —
+  // or, for a slot whose source answered in prose and never painted, what that source said.
   const slotContent = useSlotContent(
     wiring.processor,
     state.placement,
     state.appliedSeq,
     state.promoted,
+    state.roster,
+    state.prose,
   );
 
   // Promotion is plural, so it is emphasis rather than a modal: no focus trap, and the count
@@ -133,7 +137,7 @@ export function CanvasApp({serverUrl, client, catalogs}: CanvasAppProps) {
               : ''}
           </div>
           <CanvasOverlay processor={wiring.processor} state={state} />
-          <AmbientNotice notice={state.notice} onDismiss={wiring.store.dismissNotice} />
+          <AmbientNotice notices={orderedNotices(state)} onDismiss={wiring.store.dismissNotice} />
           <HistoryChrome
             state={state}
             onPark={wiring.store.park}

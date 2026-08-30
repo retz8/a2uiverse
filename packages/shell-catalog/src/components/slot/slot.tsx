@@ -4,15 +4,28 @@ import {SlotContentContext} from '../../slot-content.js';
 import {SlotApi, type SlotProps} from './slot.schema.js';
 
 /**
- * Host-resolved content wins whenever the state allows it: `collapsed` renders
- * nothing, `failed` renders the failure panel even if stale content exists, and
- * otherwise content fills the slot the moment the resolver returns it.
+ * Host-resolved content wins whenever the state allows it: `failed` renders the
+ * failure panel even if stale content exists, and otherwise content fills the
+ * slot the moment the resolver returns it.
+ *
+ * `collapsed` means the source contributed no surface. It renders nothing *only
+ * if the host has nothing to rest it on* — a source that answered in prose
+ * rather than in UI still occupied a slot, and letting that slot vanish while
+ * its attribution stays would leave a label naming nothing. The host decides
+ * what the resting state is; the slot only decides that there may be one.
  */
 export function SlotView({name, state = 'pending', label}: SlotProps) {
   const resolve = useContext(SlotContentContext);
   const content = resolve(name);
 
-  if (state === 'collapsed') return null;
+  if (state === 'collapsed') {
+    if (content == null) return null;
+    return (
+      <div data-slot={name} data-slot-state="collapsed" style={{...panelStyle, minHeight: 0}}>
+        {content}
+      </div>
+    );
+  }
 
   if (state === 'failed') {
     return (

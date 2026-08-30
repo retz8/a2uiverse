@@ -49,20 +49,15 @@ export async function replayBeatOnCanvas(
     const handle = runner.begin(causeOf(turn, store));
     try {
       let elapsed = 0;
-      // Recorded texts are stream fragments (a sentence can split mid-word across events), so
-      // the notice carries the turn's accumulated prose — the same grouping the chat transcript
-      // uses — rather than one flickering notice per fragment.
-      let prose = '';
       for (const batch of turn.batches) {
         if (paced && batch.offsetMs > elapsed) {
           await sleep(batch.offsetMs - elapsed);
           elapsed = batch.offsetMs;
         }
         if (batch.messages.length) handle.apply(batch.messages, batch.stamp);
-        for (const text of batch.texts) {
-          prose += text;
-          if (prose.trim()) store.showNotice(prose);
-        }
+        // Same buffering as the live path: the batch's stamp says whose line the chunk joins.
+        const source = batch.stamp?.role === 'fragment' ? batch.stamp.source : null;
+        for (const text of batch.texts) store.appendProse(source, text);
       }
     } finally {
       handle.end();

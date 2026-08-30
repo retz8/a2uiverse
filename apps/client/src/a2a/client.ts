@@ -67,7 +67,11 @@ export interface SendAndApplyOptions {
    */
   apply: (messages: A2uiMessage[], stamp?: CompositionStamp) => void;
   session?: A2ASession;
-  onAgentText?: (text: string) => void;
+  /**
+   * One streamed chunk of agent prose, with the stamp of the event carrying it — which is what
+   * says whose voice it is, so a fan-out's interleaved chunks can be buffered per source.
+   */
+  onAgentText?: (text: string, stamp?: CompositionStamp) => void;
   signal?: AbortSignal;
   onPaintMeta?: (meta: PaintMeta) => void;
 }
@@ -89,8 +93,9 @@ export async function sendAndApply(
     // Metas before messages: the title leads the paint, and the shell part is emitted
     // ahead of the createSurface it names within the same event.
     if (onPaintMeta) for (const meta of extractPaintMetasFromEvent(event)) onPaintMeta(meta);
+    const stamp = extractStampFromEvent(event);
     const messages = extractA2uiMessagesFromEvent(event);
-    if (messages.length) apply(messages, extractStampFromEvent(event));
-    if (onAgentText) for (const text of extractAgentTextFromEvent(event)) onAgentText(text);
+    if (messages.length) apply(messages, stamp);
+    if (onAgentText) for (const text of extractAgentTextFromEvent(event)) onAgentText(text, stamp);
   }
 }

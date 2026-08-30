@@ -57,7 +57,7 @@ describe('validation-failure turn (partial paint → cleanup delete → final)',
     expect(state.error).toMatch(/withdrawn/);
     expect(state.timeline).toEqual([]);
     // The agent's apology prose still reaches the ambient channel.
-    expect(state.notice?.text).toMatch(/could not build/);
+    expect(state.notices[0]?.text).toMatch(/could not build/);
     expect(processor.model.getSurface('doomed-view')).toBeFalsy();
   });
 });

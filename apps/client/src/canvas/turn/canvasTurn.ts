@@ -40,6 +40,7 @@ import type {CompositionStamp} from '@a2uiverse/sdk';
 import type {PaintMeta} from '../../a2a/messages';
 import {paintMetaOf, QUESTION_PAINT_KIND} from '../../a2a/messages';
 import {applyA2uiMessages} from '../../a2ui/applyMessages';
+import {rosterFromShellMessages} from '../composition/roster';
 import {describeError} from '../../shared/describeError';
 import type {CanvasState, CanvasStore} from '../canvasStore';
 import type {PaintCause} from '../timeline/paint';
@@ -525,6 +526,12 @@ export function createTurnRunner({
           else rest.push(message);
         }
         if (rest.length === 0) return;
+        // The shell's paint is the only place the plan's slot order and the Registry's display
+        // names reach the client; the roster is that read, re-derived on every shell repaint.
+        if (stamp?.role === 'shell') {
+          const roster = rosterFromShellMessages(rest);
+          if (roster) store.setRoster(roster);
+        }
         if (stagedMode && opensComposition(rest, stamp)) goProgressive();
         if (stagedMode) applyStaged(rest, stamp);
         else applyProgressive(rest, stamp);
@@ -569,6 +576,11 @@ export function createTurnRunner({
     };
 
     current = handle;
+    // The stack and the roster it is ordered by both belong to the turn: the previous turn's
+    // answers and its cast of sources go the moment a new one opens.
+    store.clearNotices();
+    store.clearProse();
+    store.setRoster([]);
     store.beginPaint(describeCause(cause));
     return handle;
   };

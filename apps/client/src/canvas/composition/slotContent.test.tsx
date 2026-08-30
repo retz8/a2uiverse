@@ -27,7 +27,7 @@ const msg = (m: Record<string, unknown>): A2uiMessage =>
   ({version: 'v0.9', ...m}) as unknown as A2uiMessage;
 
 /** The shell as the orchestrator paints it: one slot, plus the attribution beside it. */
-function composedProcessor(slotState: 'pending' | 'failed' = 'pending') {
+function composedProcessor(slotState: 'pending' | 'failed' | 'collapsed' = 'pending') {
   const processor = new MessageProcessor<ReactComponentImplementation>([CATALOG, SHELL_CATALOG]);
   processor.processMessages([
     msg({createSurface: {surfaceId: 'shell:main', catalogId: SHELL_CATALOG_ID}}),
@@ -66,8 +66,10 @@ function composedProcessor(slotState: 'pending' | 'failed' = 'pending') {
 function renderComposed(
   processor: ReturnType<typeof composedProcessor>,
   placement: Map<string, PlacedFragment>,
+  spoken?: string,
 ) {
-  const resolve = (slot: string) => renderSlotContent(processor, placement.get(slot), 0);
+  const resolve = (slot: string) =>
+    renderSlotContent(processor, placement.get(slot), 0, false, spoken);
   const shell = processor.model.surfacesMap.get('shell:main')!;
   return render(
     <CatalogProvider catalogs={CATALOGS}>
@@ -111,6 +113,37 @@ describe('slot mounting', () => {
     const slot = container.querySelector('[data-slot="slot-github"]');
     expect(slot!.getAttribute('data-slot-state')).toBe('pending');
     expect(container.querySelector(`[${FRAGMENT_BOUNDARY_ATTR}]`)).toBeNull();
+  });
+
+  it('a collapsed slot rests on what its source said instead of vanishing', () => {
+    // A source that answered in prose and never painted still occupied a slot. Removing the
+    // slot while its attribution stays would leave a label naming nothing, and the source's
+    // words live only in the notice stack, which fades — so the screen would end up with no
+    // trace that the source was ever consulted.
+    const {container} = renderComposed(
+      composedProcessor('collapsed'),
+      new Map(),
+      'I could not compose that view.',
+    );
+    const slot = container.querySelector('[data-slot="slot-github"]');
+    expect(slot!.getAttribute('data-slot-state')).toBe('collapsed');
+    expect(slot!.textContent).toContain('I could not compose that view.');
+    // It is the shell quoting the source, not a fragment: no boundary, no vendor provider.
+    expect(container.querySelector(`[${FRAGMENT_BOUNDARY_ATTR}]`)).toBeNull();
+    expect(screen.getByLabelText('Painted by GitHub')).toBeInTheDocument();
+  });
+
+  it('a collapsed slot with nothing to rest on renders nothing at all', () => {
+    const {container} = renderComposed(composedProcessor('collapsed'), new Map());
+    expect(container.querySelector('[data-slot="slot-github"]')).toBeNull();
+  });
+
+  it('a slot that painted is never overwritten by its source’s prose', () => {
+    const {container} = renderComposed(composedProcessor(), PLACED, 'here are the PRs');
+    const slot = container.querySelector('[data-slot="slot-github"]');
+    expect(slot!.getAttribute('data-slot-state')).toBe('filled');
+    expect(slot!.textContent).toContain('Pull requests');
+    expect(slot!.textContent).not.toContain('here are the PRs');
   });
 
   it('a failed slot keeps its failure even when a fragment is placed', () => {

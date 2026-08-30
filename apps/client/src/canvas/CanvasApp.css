@@ -130,12 +130,25 @@ body {
 }
 
 /* Top-anchored so it never overlaps the bottom furniture (Ask pill, status strip). */
-.canvas-notice {
+/* The stack is the region; a notice is one source's line in it. Lines are laid out in slot
+   order, so the stack echoes the layout below it, and each is clamped rather than the stack
+   being capped — a source does not lose its voice for having answered late. */
+.canvas-notice-stack {
   position: fixed;
   top: 16px;
   left: 50%;
   transform: translateX(-50%);
-  max-width: min(560px, calc(100vw - 32px));
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: min(560px, calc(100vw - 32px));
+  z-index: 10;
+}
+
+.canvas-notice {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
   padding: 8px 16px;
   border: 1px solid var(--gray-6);
   border-radius: 8px;
@@ -143,7 +156,20 @@ body {
   color: var(--gray-12);
   font-size: 13px;
   box-shadow: var(--shadow-3, 0 3px 12px rgba(140, 149, 159, 0.15));
-  z-index: 10;
+}
+
+.canvas-notice__source {
+  flex: none;
+  color: var(--gray-11);
+  font-weight: 500;
+}
+
+.canvas-notice__text {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
 }
 
 /* ——— History chrome ——— */
@@ -300,7 +326,7 @@ body {
 }
 
 /* Both the banner and the notice claim the top edge; the notice offsets down while parked. */
-.canvas-app--parked .canvas-notice {
+.canvas-app--parked .canvas-notice-stack {
   top: 60px;
 }
 

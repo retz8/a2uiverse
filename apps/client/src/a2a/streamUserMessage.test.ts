@@ -35,6 +35,37 @@ function fakeSender(events: A2AStreamEventData[]) {
 }
 
 describe('streamUserMessage', () => {
+  it('hands each prose chunk the stamp of the event that carried it', async () => {
+    const github = {source: 'github', slot: 'slot-github', role: 'fragment'};
+    const gmail = {source: 'gmail', slot: 'slot-gmail', role: 'fragment'};
+    const said = (text: string, stamp?: Record<string, unknown>) => {
+      const event = statusUpdate([{kind: 'text', text}]);
+      return stamp ? {...event, metadata: {a2uiverse: stamp}} : event;
+    };
+    // Three agents streaming at once: the chunks interleave, so only the stamp can say which
+    // sentence each one belongs to.
+    const {getSender} = fakeSender([
+      said('Here are the 4 P', github),
+      said('Three unread ', gmail),
+      said('Rs awaiting review.', github),
+      said('painting…'),
+    ]);
+    const heard: Array<[string, string | undefined]> = [];
+
+    await streamUserMessage('what needs my attention this morning', {
+      getSender,
+      apply: () => {},
+      onAgentText: (text, stamp) => heard.push([text, stamp?.source]),
+    });
+
+    expect(heard).toEqual([
+      ['Here are the 4 P', 'github'],
+      ['Three unread ', 'gmail'],
+      ['Rs awaiting review.', 'github'],
+      ['painting…', undefined],
+    ]);
+  });
+
   it('sends the text and applies A2UI messages from each stream event', async () => {
     const {getSender, sent} = fakeSender([
       statusUpdate([DATA_PART]),

@@ -26,7 +26,7 @@ export interface StreamUserMessageOptions {
    * Called for each plain-text part the agent sends. The agent answers in prose when it could not
    * build a surface; without this the turn leaves nothing on screen.
    */
-  onAgentText?: (text: string) => void;
+  onAgentText?: (text: string, stamp?: CompositionStamp) => void;
   /**
    * Aborts the underlying request (last-intent-wins cancel). An abort resolves silently —
    * a canceled turn is not an error, so `onError` is not called for it.

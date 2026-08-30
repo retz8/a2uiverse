@@ -140,14 +140,14 @@ describe('replayBeatOnCanvas', () => {
     expect(store.getState().inFlight).toBeNull();
   });
 
-  it("accumulates a turn's agent texts into one growing ambient notice", async () => {
+  it("accumulates a turn's agent texts into one growing line", async () => {
     // Recorded texts are stream fragments (a sentence can split mid-word across events), so the
-    // notice shows the turn's accumulated prose — the same grouping the chat transcript does.
+    // line shows the turn's accumulated prose — the same grouping the chat transcript does.
     const store = createCanvasStore();
     const runner = mockRunner(store);
     const seen: string[] = [];
     store.subscribe(() => {
-      const notice = store.getState().notice;
+      const notice = store.getState().notices[0];
       if (notice && seen[seen.length - 1] !== notice.text) seen.push(notice.text);
     });
     await replayBeatOnCanvas(fixture(), {runner, store, paced: false});

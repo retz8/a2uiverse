@@ -4,6 +4,7 @@ import type {
   A2uiClientDataModel,
   A2uiMessage,
 } from '@a2ui/web_core/v0_9';
+import type {CompositionStamp} from '@a2uiverse/sdk';
 import type {A2AMessageSender, GetSender} from './client';
 import {createSenderResolver, sendAndApply} from './client';
 import {buildActionMessageParams} from './messages';
@@ -33,7 +34,7 @@ export interface A2AActionHandlerOptions {
    * Called for each plain-text part the agent sends. An action can fail to produce a surface
    * exactly as a prompt can, and the reply is prose; without this the click leaves nothing.
    */
-  onAgentText?: (text: string) => void;
+  onAgentText?: (text: string, stamp?: CompositionStamp) => void;
   /**
    * Supplies the current client data model of `sendDataModel`-flagged surfaces
    * (processor.getClientDataModel); attached as message metadata when it reports one.

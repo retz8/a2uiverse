@@ -4,7 +4,7 @@
  */
 import {describe, it, expect, vi} from 'vitest';
 import type {PaintCause, PaintEntry, PaintSnapshot} from './timeline/paint';
-import {createCanvasStore, currentPaintId, TIMELINE_CAP} from './canvasStore';
+import {createCanvasStore, orderedNotices, currentPaintId, TIMELINE_CAP} from './canvasStore';
 
 const CAUSE: PaintCause = {
   kind: 'utterance',
@@ -40,7 +40,9 @@ describe('createCanvasStore', () => {
       headAdvancedWhileParked: false,
       inFlight: null,
       error: null,
-      notice: null,
+      notices: [],
+      roster: [],
+      prose: new Map(),
       appliedSeq: 0,
       placement: new Map(),
       promoted: new Set(),
@@ -222,24 +224,109 @@ describe('createCanvasStore', () => {
     expect(store.nextPaintId()).toBe(3);
   });
 
-  it('each notice gets a fresh key so repeats restart the fade', () => {
+  it("each of the shell's cues gets a fresh key so repeats restart the fade", () => {
     const store = createCanvasStore();
     store.showNotice('done');
-    const first = store.getState().notice;
+    const first = store.getState().notices[0];
     store.showNotice('done');
-    const second = store.getState().notice;
-    expect(second?.key).not.toBe(first?.key);
+    const second = store.getState().notices[0];
+    expect(second.key).not.toBe(first.key);
   });
 
-  it('dismissNotice clears only the notice it was issued for', () => {
+  it('dismissNotice clears only the line it was issued for', () => {
     const store = createCanvasStore();
     store.showNotice('first');
-    const stale = store.getState().notice!.key;
+    const stale = store.getState().notices[0].key;
     store.showNotice('second');
     store.dismissNotice(stale);
-    expect(store.getState().notice?.text).toBe('second');
-    store.dismissNotice(store.getState().notice!.key);
-    expect(store.getState().notice).toBeNull();
+    expect(store.getState().notices[0].text).toBe('second');
+    store.dismissNotice(store.getState().notices[0].key);
+    expect(store.getState().notices).toEqual([]);
+  });
+
+  it('buffers prose per source, so interleaved chunks never merge', () => {
+    const store = createCanvasStore();
+    store.appendProse('github', 'Here are the 4 P');
+    store.appendProse('gmail', 'Three unread ');
+    store.appendProse('github', 'Rs awaiting review.');
+    store.appendProse('gmail', 'messages.');
+    expect(store.getState().notices.map(n => [n.source, n.text])).toEqual([
+      ['github', 'Here are the 4 PRs awaiting review.'],
+      ['gmail', 'Three unread messages.'],
+    ]);
+  });
+
+  it('opens no line for prose that has not said anything yet', () => {
+    const store = createCanvasStore();
+    store.appendProse('github', '  ');
+    expect(store.getState().notices).toEqual([]);
+    // Once it does speak, the leading whitespace it arrived with is kept.
+    store.appendProse('github', 'ok');
+    expect(store.getState().notices[0].text).toBe('ok');
+  });
+
+  it("prose with no fragment stamp joins the shell's line", () => {
+    const store = createCanvasStore();
+    store.appendProse(null, 'painting…');
+    expect(store.getState().notices).toEqual([{key: 0, source: null, text: 'painting…'}]);
+  });
+
+  it("a cue replaces the shell's line and leaves the sources' alone", () => {
+    const store = createCanvasStore();
+    store.appendProse('github', 'four PRs');
+    store.appendProse(null, 'painting…');
+    store.showNotice('hold on');
+    expect(store.getState().notices.map(n => [n.source, n.text])).toEqual([
+      ['github', 'four PRs'],
+      [null, 'hold on'],
+    ]);
+  });
+
+  it('clearNotices drops the whole stack', () => {
+    const store = createCanvasStore();
+    store.appendProse('github', 'four PRs');
+    store.showNotice('hold on');
+    store.clearNotices();
+    expect(store.getState().notices).toEqual([]);
+  });
+
+  it('what a source said outlives the stack it was shown in', () => {
+    // The stack fades six seconds after the turn settles, but a slot whose source spoke and
+    // never painted rests on those words — so the fact that it was consulted must not fade
+    // with the toast. Only a new turn forgets it.
+    const store = createCanvasStore();
+    store.appendProse('github', 'I could not compose that view.');
+    store.clearNotices();
+    expect(store.getState().notices).toEqual([]);
+    expect(store.getState().prose.get('github')).toBe('I could not compose that view.');
+    store.clearProse();
+    expect(store.getState().prose.size).toBe(0);
+  });
+
+  it("the shell's own cue is not a source's prose", () => {
+    const store = createCanvasStore();
+    store.showNotice('hold on');
+    store.appendProse(null, 'painting…');
+    expect(store.getState().prose.size).toBe(0);
+  });
+
+  it('orders the stack by slot, with the shell last and unknown sources by their id', () => {
+    const store = createCanvasStore();
+    store.setRoster([
+      {appId: 'github', displayName: 'GitHub', slot: 'slot-github'},
+      {appId: 'gmail', displayName: 'Gmail', slot: 'slot-gmail'},
+    ]);
+    // Deliberately out of slot order: gmail answered first.
+    store.appendProse(null, 'painting…');
+    store.appendProse('gmail', 'three unread');
+    store.appendProse('stranger', 'who?');
+    store.appendProse('github', 'four PRs');
+    expect(orderedNotices(store.getState()).map(n => [n.source, n.label])).toEqual([
+      ['github', 'GitHub'],
+      ['gmail', 'Gmail'],
+      ['stranger', 'stranger'],
+      [null, null],
+    ]);
   });
 
   it('bumpApplied increments appliedSeq', () => {

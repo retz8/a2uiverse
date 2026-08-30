@@ -263,7 +263,7 @@ describe('staged mode (occupied stage): hold-and-swap', () => {
     expect(state.timeline).toHaveLength(1);
     expect(state.timeline[0]).toMatchObject({paintId: 1, surfaceId: 'stage'});
     expect(state.timeline[0].snapshot?.tree.root).toMatchObject({text: 'goodbye'});
-    expect(state.notice?.text).toMatch(/cleared/);
+    expect(state.notices[0]?.text).toMatch(/cleared/);
     expect(state.error).toBeNull();
     expect(processor.model.getSurface('stage')).toBeFalsy();
   });
@@ -681,6 +681,72 @@ describe('composed turns (the hub stamps its events)', () => {
     });
     return {processor, store, runner};
   }
+
+  /** The same first paint, carrying the attribution the shell painter emits per leaf. */
+  const attributedShellPaint = (leaves: Array<[appId: string, displayName: string]>) => [
+    msg({createSurface: {surfaceId: 'shell:main', catalogId: SHELL_CATALOG_ID}}),
+    msg({
+      updateComponents: {
+        surfaceId: 'shell:main',
+        components: [
+          {id: 'root', component: 'Column', children: leaves.map(([id]) => `slot-${id}`)},
+          ...leaves.flatMap(([appId, displayName]) => [
+            {id: `attr-slot-${appId}`, component: 'Attribution', appId, displayName},
+            {
+              id: `slot-${appId}`,
+              component: 'Slot',
+              name: `slot-${appId}`,
+              state: 'pending',
+            },
+          ]),
+        ],
+      },
+    }),
+  ];
+
+  it('the shell paint establishes the roster the notice stack orders and names by', () => {
+    const {store, runner} = composedSetup();
+    const turn = runner.begin(utterance('what needs my attention this morning'));
+
+    turn.apply(
+      attributedShellPaint([
+        ['github', 'GitHub'],
+        ['gmail', 'Gmail'],
+      ]),
+      SHELL,
+    );
+
+    // Known before any agent answers — which is what lets a source that never paints still be
+    // named, and what fixes the stack's order for the turn.
+    expect(store.getState().roster).toEqual([
+      {appId: 'github', displayName: 'GitHub', slot: 'slot-github'},
+      {appId: 'gmail', displayName: 'Gmail', slot: 'slot-gmail'},
+    ]);
+  });
+
+  it("a fragment's paint leaves the roster alone", () => {
+    const {store, runner} = composedSetup();
+    const turn = runner.begin(utterance('what needs my attention this morning'));
+    turn.apply(attributedShellPaint([['github', 'GitHub']]), SHELL);
+    turn.apply(
+      [create('github:pr-list'), textRoot('github:pr-list', 'Pull requests')],
+      fragment('github', 'slot-github'),
+    );
+    expect(store.getState().roster).toEqual([
+      {appId: 'github', displayName: 'GitHub', slot: 'slot-github'},
+    ]);
+  });
+
+  it("a new turn clears the previous turn's answers", () => {
+    const {store, runner} = composedSetup();
+    const first = runner.begin(utterance('what needs my attention'));
+    store.appendProse('github', 'four PRs');
+    first.end();
+    expect(store.getState().notices).toHaveLength(1);
+
+    runner.begin(utterance('and now something else'));
+    expect(store.getState().notices).toEqual([]);
+  });
 
   it('the shell takes the stage and fragments fill slots without contending for it', () => {
     const {processor, store, runner} = composedSetup();
