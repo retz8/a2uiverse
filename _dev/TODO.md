@@ -37,8 +37,16 @@ Spec: `_dev/docs/spec/phase-2-layout-composition.md`.
 - [x] **2.11** `[apps]` Vendor fragment visual pass — Gmail + Calendar product theme sheets (scoped stylesheet layer, SPEC §14), detector ships leading-compound classes only; trees, brand docs and fixtures untouched — the defects were catalog-implementation-level (after 2.6 and 2.7; before 2.9's beat recording)
 - [x] **2.12** Live visual review — all three agents in `llm` mode over real MCP, a real conversation set driven through the canvas: does the composed screen read as one screen, and is this the thing we meant to build (after 2.10)
 
-## Phase 3 — Agent building kit
+## Phase 3 — Agent building kit [WIP]
 Shared vendor-agent logic extracted across the three agents into a published A2UI+A2A agent SDK/CLI in `a2uiverse-apps` (M1k). Uniform run-mode flag, single launcher for installed agents, vendor dependency rule amended, one-provider-and-CSS-setup-per-catalog-bundle rule.
+Spec: `_dev/docs/spec/phase-3-agent-kit.md`.
+
+- [ ] **3.1** Doc edits — SPEC §13 dependency-rule amendment + stale `@a2uiverse/sdk` catalog-half claim reconciled, §14 `paintMeta` delta row, one-provider-and-CSS-setup-per-catalog-bundle review rule
+- [ ] **3.2** `[apps]` SDK package + stratum-1 extraction — Python kit (executor, servers, recorder, catalog load/validation, prompt assembly, `paint_meta`, beat pipeline), uniform `--mode deterministic|stub|live` entrypoint, per-vendor config, three agents refactored on path deps, shared tests into the kit, beats replay unchanged (after 3.1)
+- [ ] **3.3** `[apps]` Stratum-2 skeletons — toolset-wrapper base class, MCP-wiring + tool-shaping skeletons/hooks in the kit; vendor policy bodies rehomed onto them (after 3.2; parallel with 3.4)
+- [ ] **3.4** `[apps]` Scaffold CLI — TS workspace package, scaffold flow with the basic-themed/custom catalog option, generated agent on a version-pinned git dep, manifest emission (after 3.2; parallel with 3.3)
+- [ ] **3.5** `[apps]` Launcher — CLI-package command, manifest-glob discovery, `--mode` passthrough with existing flag parity (after 3.2 and 3.4)
+- [ ] **3.6** Integration + acceptance — platform `dev:agents` thin delegation with tables retired, `dev:all` end to end, fourth-app scaffold proof (basic variant boots + paints, custom variant gates, then deleted), README/run-command updates both repos, live tunnel sanity pass (after 3.3–3.5)
 
 ## Phase 4 — Synthesis, identical shapes
 Two sibling mock vendors merged (M2). Synthesizer, derived bindings, BindingEvaluator, IntegrityChecker, generation stamps, disclosure line.
