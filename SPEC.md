@@ -269,6 +269,14 @@ A vendor's catalog implementation is a binding layer between A2UI's flat compone
 - **Per-app isolation** is the stated target architecture. Same-context execution of third-party catalog implementations is rejected.
 - Whether identical implementations across bundles are deduplicated at install is an install-time detail.
 
+#### One provider and one CSS setup per catalog bundle
+
+A catalog bundle ships **exactly one Provider component and one CSS setup, both owned by the bundle**. The Provider is the bundle's whole entry into the page: it wires its design system, brings its own stylesheets and tokens, and anchors any portal root — all of it scoped to the fragment boundary the shell mounts it in, never to `:root`. The bundle carries its design system as its own dependencies at exact versions; the host supplies only the runtime that must be a singleton (React, the A2UI runtime, zod).
+
+The host imports a catalog package for its catalog, its catalog id, and that one Provider, and applies the Provider around that catalog's fragments only. It registers nothing at the app root, lists no vendor design system, and performs no per-vendor CSS setup of its own — so the canvas does not accumulate vendor setup as apps are installed, and installing an app is a table entry rather than a shell change.
+
+This is a normative, checkable catalog-bundle review rule, like the credential-component bar (§8): a bundle that needs a second provider or asks the host for a CSS setup fails review. Its scoping half is already machine-checked by the client's collision detector; both agent-kit scaffold templates embody the rule.
+
 ### 9.3 Marketplace and Store
 
 Two things with one word today; the spec names them separately:
@@ -388,7 +396,12 @@ a2uiverse-apps/         vendor apps, one folder per app: agent · <vendor>-catal
 a2ui-github/            origin of the GitHub app; unchanged. Copied into a2uiverse-apps/github/ at the end of Phase 1.
 ```
 
-> A vendor app may depend on the platform sdk — one contract (`packages/sdk/contracts`, normative JSON) with a single JS projection, **`@a2uiverse/sdk`**, which the app's catalog half builds against — and the A2UI/A2A protocols. The app's agent half depends on the protocols alone; nothing a2uiverse-specific reaches the vendor wire. It may never depend on anything else in the platform. The projection carries a contract test against the JSON.
+**Vendor dependency rule.** Per half:
+
+- **Agent half** — the A2UI/A2A protocols and the **agent kit** (the vendor-agent SDK/CLI published from `a2uiverse-apps`, M1k); the kit itself depends on the protocols alone. Nothing a2uiverse-specific reaches the vendor wire: the kit's one shell convention is `paintMeta` (§14), which is optional and degradable — an agent that never emits it composes, with cause-derived titles and question surfaces painted as ordinary surfaces.
+- **Catalog half** — the A2UI protocol, its design-system library, and, available to it, the platform sdk: one contract (`packages/sdk/contracts`, normative JSON) with a single JS projection, **`@a2uiverse/sdk`**, carrying a contract test against the JSON. Available, not required — the projection's realized consumers today are all platform-side (client, orchestrator, `shell-catalog`, marketplace); no vendor catalog builds against it.
+
+Neither half may depend on anything else in the platform.
 
 There are no internal agents: every app in `a2uiverse-apps` is an external app, and the ecosystem and its apps are built as a whole.
 
@@ -421,7 +434,9 @@ Constraint protected throughout: **an existing A2UI agent composes with zero cha
 | Unsatisfiable `catalogId` clause in `server_to_client.json` prose | upstream bug report — `_dev/a2ui-findings.md` |
 | Scoped per-catalog stylesheet layer — a catalog bundle ships CSS styling the basic components' runtime DOM under its own scope class | local convention |
 | Dead CSS-module class maps in `@a2ui/react` `v0_9` basic catalog (classless Button/variants, unshipped `index.css`) | upstream bug report — `_dev/a2ui-findings.md` |
+| `paintMeta` — a per-paint shell object (`{surfaceId, title?, kind?}`) riding the A2A stream as a dedicated data part marked `application/json+a2ui-shell`, emitted ahead of the `createSurface` it names; carries the agent-authored paint title and the declared question marker | local convention — the agent kit's one shell convention (§13). Optional and degradable: absent, titles fall back to cause-derived and question surfaces paint as ordinary surfaces, so an unmodified A2UI agent still composes. Sits beside A2UI, never inside it: the A2UI extractor never takes a `paintMeta` part |
 | Credential components barred from all catalogs | normative review rule |
+| One provider and one CSS setup per catalog bundle, scoped to the fragment boundary (§9.2) | normative review rule |
 | `sendDataModel`, multi-catalog `MessageProcessor`, `catalogId` scoping | already in protocol — no delta |
 
 Every future deviation is added here, tagged *local convention* or *upstream candidate*.
