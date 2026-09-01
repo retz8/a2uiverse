@@ -42,7 +42,7 @@ Shared vendor-agent logic extracted across the three agents into a published A2U
 Spec: `_dev/docs/spec/phase-3-agent-kit.md`.
 
 - [x] **3.1** Doc edits — SPEC §13 dependency-rule amendment + stale `@a2uiverse/sdk` catalog-half claim reconciled, §14 `paintMeta` delta row, one-provider-and-CSS-setup-per-catalog-bundle review rule (#1)
-- [WIP] **3.2** `[apps]` SDK package + stratum-1 extraction — Python kit (executor, servers, recorder, catalog load/validation, prompt assembly, `paint_meta`, beat pipeline), uniform `--mode deterministic|stub|live` entrypoint, per-vendor config, three agents refactored on path deps, shared tests into the kit, beats replay unchanged (after 3.1)
+- [x] **3.2** `[apps]` SDK package + stratum-1 extraction — Python kit (executor, servers, recorder, catalog load/validation, prompt assembly, `paint_meta`, beat pipeline), uniform `--mode deterministic|stub|live` entrypoint, per-vendor config, three agents refactored on path deps, shared tests into the kit, beats replay unchanged (after 3.1)
 - [ ] **3.3** `[apps]` Stratum-2 skeletons — toolset-wrapper base class, MCP-wiring + tool-shaping skeletons/hooks in the kit; vendor policy bodies rehomed onto them (after 3.2; parallel with 3.4)
 - [ ] **3.4** `[apps]` Scaffold CLI — TS workspace package, scaffold flow with the basic-themed/custom catalog option, generated agent on a version-pinned git dep, manifest emission (after 3.2; parallel with 3.3)
 - [ ] **3.5** `[apps]` Launcher — CLI-package command, manifest-glob discovery, `--mode` passthrough with existing flag parity (after 3.2 and 3.4)
