@@ -47,7 +47,7 @@ Spec: `_dev/docs/spec/phase-3-agent-kit.md`.
 - [ ] **3.4** `[apps]` Scaffold CLI — TS workspace package, scaffold flow with the basic-themed/custom catalog option, generated agent on a version-pinned git dep, manifest emission; carries 3.3's deferred opt-in questions: Google ADC credential block (does the vendor need it), a2uiverse-ecosystem readiness (for now just paintMeta wiring) (after 3.2; parallel with 3.3)
 - [ ] **3.5** `[apps]` Launcher — CLI-package command, manifest-glob discovery, `--mode` passthrough with existing flag parity (after 3.2 and 3.4)
 - [ ] **3.6** Integration + acceptance — platform `dev:agents` thin delegation with tables retired, `dev:all` end to end, fourth-app scaffold proof (basic variant boots + paints, custom variant gates, then deleted), README/run-command updates both repos, live tunnel sanity pass (after 3.3–3.5)
-- [WIP] **3.7** `[apps]` GitHub agent write tier — off the read-only endpoint, write-tool admission/withheld list, write-guard policy on the wrapper hooks, proposal/toggling action convention, fixtures + beats (after 3.3)
+- [WIP] **3.7** `[apps]` GitHub agent write tier — off the read-only endpoint onto the full toolset surface (capability = whatever MCP + token allow, no confinement), proposal/toggling convention as domain-doc guidance, read-only identity sweep (prose, card, README, tests), live tunnel verification; beats/fixtures untouched (after 3.3)
 
 ## Phase 4 — Synthesis, identical shapes
 Two sibling mock vendors merged (M2). Synthesizer, derived bindings, BindingEvaluator, IntegrityChecker, generation stamps, disclosure line.
