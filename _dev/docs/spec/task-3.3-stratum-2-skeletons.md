@@ -36,7 +36,11 @@ GitHub normalizes onto the Gmail/Calendar walker convention (two-arg, builds a n
 
 Mechanics tests (re-wrapping behavior, walker shape, dump/record helpers, hook dispatch) move into the kit suite against neutral fixtures. Each agent keeps a thinner vendor suite asserting only its policy through the kit's hooks. GitHub's shaping suite pins that the normalized walker's output equals today's output (decision 4's observable-behavior caveat).
 
-### 6. Three cleanup items ride along
+### 6. The kit is named for what it is: `a2ui-agent-kit`
+
+The kit is a kit for building A2UI+A2A agents with useful tooling — not a2uiverse's; there is no such thing as an "a2uiverse agent". Renamed from `a2uiverse-agent-kit`/`a2uiverse_kit` (ambiguous next to `@a2uiverse/sdk`) to **`a2ui-agent-kit` / `a2ui_agent_kit`**, before 3.4 bakes the dependency name into scaffolded apps. The modes vocabulary, recorder, and beats pipeline are generic agent-building tooling; app bundling is `@a2uiverse/sdk`'s, not the kit's. The one non-neutral piece is `paintMeta`: it stays in the kit as an optional convention, and wiring it into a generated agent becomes a 3.4 scaffold-time **opt-in** — "ready for the a2uiverse ecosystem" adds the a2uiverse-related code (for now just paintMeta wiring), the same pattern as the Google ADC question. No registry publishing, so the `a2ui-` prefix carries no official-package claim (README notes unofficial, downstream of google/a2ui).
+
+### 7. Three cleanup items ride along
 
 1. Fix the broken `derive_corpus.py` fixture paths (both scripts still target directories 3.2 deleted) and their stale entrypoint docstrings.
 2. Sweep the stale `TOOL_BACKEND` guidance out of vendor error prose and docstrings — the retired switch's mentions become `--mode stub`.

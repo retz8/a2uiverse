@@ -1,6 +1,6 @@
 # agent-kit
 
-The shared A2UI+A2A runtime for a2uiverse vendor agents: `a2uiverse-apps/agent-kit/`, distribution `a2uiverse-agent-kit`, import `a2uiverse_kit`. A uv package (`package = true`, src layout, `uv_build`); the three agents take it as an editable path dependency. Vendor-agnostic by contract: shared logic only — fixtures, prose, tool policy, and cards live in each app's `app/` package and reach the kit through its config.
+A kit for building A2UI+A2A agents: `a2uiverse-apps/agent-kit/`, distribution **`a2ui-agent-kit`**, import **`a2ui_agent_kit`**. Protocol-plain — an agent built on it speaks A2UI and A2A and nothing else; `paintMeta` is the one optional, degradable shell convention (a 3.4 scaffold opt-in: "ready for the a2uiverse ecosystem"). Unofficial, downstream of google/a2ui. A uv package (`package = true`, src layout, `uv_build`); the three agents take it as an editable path dependency. Vendor-agnostic by contract: shared logic only — fixtures, prose, tool policy, and cards live in each app's `app/` package and reach the kit through its config.
 
 ## Components
 
