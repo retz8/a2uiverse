@@ -12,10 +12,14 @@ const A2UI_OPS = ['createSurface', 'updateComponents', 'updateDataModel', 'delet
  * fan-out several vendors end on one orchestrator task, so the executor owns
  * the single turn-final. The original event is never mutated.
  */
-export function composeFragment(
-  event: VendorEvent,
-  ctx: {appId: string; slot: string},
-): VendorEvent {
+export interface ComposeContext {
+  appId: string;
+  slot: string;
+  /** Per-surface generations for the surfaces this event touched (4.2 decisions 3, 10); omitted when empty. */
+  generations?: Record<string, number>;
+}
+
+export function composeFragment(event: VendorEvent, ctx: ComposeContext): VendorEvent {
   switch (event.kind) {
     case 'task':
       return withStamp(
@@ -41,8 +45,12 @@ export function composeFragment(
   }
 }
 
-function withStamp<E extends VendorEvent>(event: E, ctx: {appId: string; slot: string}): E {
+function withStamp<E extends VendorEvent>(event: E, ctx: ComposeContext): E {
   const existing = event.metadata?.[STAMP_KEY];
+  const generations =
+    ctx.generations && Object.keys(ctx.generations).length > 0
+      ? {generations: ctx.generations}
+      : {};
   return {
     ...event,
     metadata: {
@@ -52,6 +60,7 @@ function withStamp<E extends VendorEvent>(event: E, ctx: {appId: string; slot: s
         source: ctx.appId,
         slot: ctx.slot,
         role: 'fragment',
+        ...generations,
       },
     },
   };

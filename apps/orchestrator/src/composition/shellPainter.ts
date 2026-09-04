@@ -7,7 +7,7 @@ import {shellSurfaceId, slotNameFor} from './constants.js';
 import type {CompositionState} from './state.js';
 
 /** The client's extractor keys off this inline version field. */
-const A2UI_VERSION = 'v0.9';
+export const A2UI_VERSION = 'v0.9';
 
 type ShellComponent = {id: string; component: string; [prop: string]: unknown};
 
@@ -118,6 +118,6 @@ function shellComponents(state: CompositionState): ShellComponent[] {
   return components;
 }
 
-function a2uiPart(op: Record<string, unknown>): Part {
+export function a2uiPart(op: Record<string, unknown>): Part {
   return {kind: 'data', data: {version: A2UI_VERSION, ...op}};
 }

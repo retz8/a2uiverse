@@ -116,3 +116,35 @@ describe('composeFragment', () => {
     });
   });
 });
+
+describe('generations on the stamp (4.2 decisions 3, 10)', () => {
+  test('the stamp carries the per-surface generations the executor hands it', () => {
+    const event = statusUpdate([], false);
+    const out = composeFragment(event, {
+      appId: 'shop-a',
+      slot: 'slot-shop-a',
+      generations: {'shop-a:list': 2},
+    }) as TaskStatusUpdateEvent;
+    expect(out.metadata?.a2uiverse).toEqual({
+      source: 'shop-a',
+      slot: 'slot-shop-a',
+      role: 'fragment',
+      generations: {'shop-a:list': 2},
+    });
+  });
+
+  test('no generations, no field — the shell and untouched events stay as before', () => {
+    const out = composeFragment(statusUpdate([], false), {appId: 'shop-a', slot: 'slot-shop-a'});
+    expect(out.metadata?.a2uiverse).toEqual({
+      source: 'shop-a',
+      slot: 'slot-shop-a',
+      role: 'fragment',
+    });
+    const empty = composeFragment(statusUpdate([], false), {
+      appId: 'shop-a',
+      slot: 's',
+      generations: {},
+    });
+    expect(empty.metadata?.a2uiverse).not.toHaveProperty('generations');
+  });
+});
