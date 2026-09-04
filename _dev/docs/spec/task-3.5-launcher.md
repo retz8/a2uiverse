@@ -10,7 +10,7 @@ Spec for sub-task **3.5** of Phase 3 (`_dev/TODO.md`), realizing phase decision 
 - Keep the existing flags (`--only`, `--mode`, `--wait-for-cards`, `--then`) and the existing behaviors: colored per-agent line prefixing, card polling behind `--wait-for-cards`, one agent exiting reported and survived, no credential handling.
 - Tests for the discovery and validation logic.
 
-Out of scope: the fourth-app scaffold proof, `dev:all` end to end, README/run-command updates, and the live tunnel pass — all 3.6. The scaffold CLI is untouched.
+Out of scope: the fourth-app scaffold proof, `dev:all` end to end, the apps-repo README, and the live tunnel pass — all 3.6. The platform README documents the launcher's own flags and discovery here. The scaffold CLI is untouched.
 
 ## Locked decisions
 

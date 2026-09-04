@@ -5,7 +5,7 @@ Spec for Phase 3 (`_dev/TODO.md`), milestone **M1k** (SPEC §12): shared vendor-
 ## Scope
 
 - Extract the shared vendor-agent logic across the GitHub, Gmail, and Calendar agents into a Python SDK package in `a2uiverse-apps`; refactor all three agents onto it with behavior unchanged.
-- A scaffold CLI that generates a new vendor app — agent half, catalog half, manifest — and carries the launcher for installed agents.
+- A scaffold CLI that generates a new vendor app — agent half, catalog half, manifest.
 - The uniform run-mode flag, the single launcher, the vendor dependency rule amendment, and the one-provider-and-CSS-setup-per-catalog-bundle rule.
 - The spec doc edits the above entail (SPEC §13, §14).
 
@@ -18,7 +18,7 @@ The kit is whatever the three agents demonstrably share, factored into a package
 ### 2. Two artifacts: Python SDK + TypeScript scaffold CLI
 
 - **SDK package** (Python): the runtime the agents import — executor, A2A server wiring, recorder, catalog loading/validation, prompt assembly, `paint_meta`, beat-recording pipeline — and the run entrypoint with the uniform `--mode` flag.
-- **Scaffold CLI** (TypeScript, a pnpm workspace member of `a2uiverse-apps`): generates the full app folder — agent half depending on the SDK, catalog half from the chosen template, manifest — and carries the launcher. It is never a runtime dependency of an app.
+- **Scaffold CLI** (TypeScript, a pnpm workspace member of `a2uiverse-apps`): generates the full app folder — agent half depending on the SDK, catalog half from the chosen template, manifest. It is never a runtime dependency of an app.
 
 The catalog side is template-copy, not a shared TS runtime dependency. The basic-themed template is essentially complete (scaffold + basic `catalog.json` with identity fields filled; token table and theme CSS remain as the design work, which stays with the catalog skills). The custom template scaffolds the package shell only; the content goes through `design-catalog-component`/`build-catalog-component`.
 
@@ -36,7 +36,9 @@ Each agent gets one entrypoint with `--mode deterministic|stub|live` — the lau
 
 ### 6. Single launcher
 
-A command of the CLI package, in the apps repo. Discovery is manifest-driven: glob `*/manifest.json` for id and agent URL — no hardcoded table; a scaffolded app becomes launchable by existing. The platform's `dev:agents` becomes a thin delegate spawning it, keeping its existing flags (`--only`, `--mode`, `--wait-for-cards`, `--then`); its hardcoded agents/modes tables and the launch-contract comment retire.
+The platform's `dev:agents`, rewritten table-free. Discovery is manifest-driven: glob the agents dir for `*/manifest.json` for id and agent URL — no hardcoded table; a scaffolded app becomes launchable by existing. `--mode` passes through to the kit entrypoint. It keeps its existing flags (`--only`, `--mode`, `--wait-for-cards`, `--then`) and adds a command listing the discovered agents. The agents dir resolves from the `--agents-dir` flag, `A2UIVERSE_AGENTS_DIR`, then the built-in sibling default. Its hardcoded agents/modes tables and the launch-contract comment retire.
+
+The scaffold CLI is scaffold-only; it does not launch.
 
 ### 7. Extraction boundary
 
@@ -55,7 +57,7 @@ Codification plus template embodiment only — no new runtime mechanism. Written
 ### 9. Acceptance
 
 1. **Refactor holds behavior**: all three agents run on the kit; full test suites pass (shared tests move into the kit, vendor tests stay); recorded beats replay unchanged — no re-recording; `pnpm verify` green in both repos plus the kit's pytest.
-2. **Uniform contract live**: each agent starts via the kit entrypoint with `--mode`; the apps-repo launcher discovers all three by manifest; platform `dev:agents`/`dev:all` work through delegation.
+2. **Uniform contract live**: each agent starts via the kit entrypoint with `--mode`; the launcher discovers all three by manifest; `dev:agents`/`dev:all` work through it.
 3. **Fourth-app scaffold proof**: the CLI generates a throwaway vendor app; the basic-themed variant boots in `deterministic` and `stub` modes, is discovered by the launcher, and paints on the canvas through the orchestrator; the custom variant generates and passes gates. The throwaway is deleted, not committed.
 4. **Docs codified**: §13 amendment, §14 `paintMeta` row, stale `@a2uiverse/sdk` claim reconciled, one-provider-and-CSS rule written, launch-contract tables retired.
 5. **One live sanity pass**: a composed fan-out over the refactored agents via the tunnel.
