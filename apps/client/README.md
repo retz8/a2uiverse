@@ -33,7 +33,7 @@ The two families have different jobs and neither replaces the other: a recording
 
 ## Installed catalogs
 
-Four catalogs are registered at once — `@a2uiverse/shell-catalog` plus `github-catalog`, `gmail-catalog` and `calendar-catalog`. Per-surface catalog resolution is stock A2UI behaviour; the client's own part is `catalogs/resolver.ts`, which maps each `catalogId` to its runtime catalog and the Provider that wraps its fragments.
+Six catalogs are registered at once — `@a2uiverse/shell-catalog` plus `github-catalog`, `gmail-catalog`, `calendar-catalog`, and the two mock-tier catalogs `shop-a-catalog` and `shop-b-catalog`, which are always bundled so the client renders whichever roster the orchestrator serves (task 4.7). Per-surface catalog resolution is stock A2UI behaviour; the client's own part is `catalogs/resolver.ts`, which maps each `catalogId` to its runtime catalog and the Provider that wraps its fragments.
 
 Vendor catalogs are installed as git dependencies on the public `a2uiverse-apps` repo (`github:retz8/a2uiverse-apps#path:<vendor>/<vendor>-catalog`) — no registry. pnpm builds each on install (`prepare`), pins the resolved commit in `pnpm-lock.yaml`, and keys its build allowance in `pnpm-workspace.yaml` by that commit. Bumping one is `pnpm update <vendor>-catalog --filter @a2uiverse/client` plus re-pointing that `allowBuilds` line; for local iteration, `pnpm link ../../../a2uiverse-apps/<vendor>/<vendor>-catalog` overrides it temporarily.
 
