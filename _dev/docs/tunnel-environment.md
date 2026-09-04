@@ -47,9 +47,9 @@ from an uncommitted `apps/client/.env.local`.
 
 ```bash
 # GitHub agent (port 11001 by default) — pick one mode
-cd ../a2uiverse-apps/github/agent && uv run python -m deterministic_agent
-cd ../a2uiverse-apps/github/agent && TOOL_BACKEND=stub uv run python -m llm_agent
-cd ../a2uiverse-apps/github/agent && uv run python -m llm_agent
+cd ../a2uiverse-apps/github/agent && uv run python -m app --mode deterministic
+cd ../a2uiverse-apps/github/agent && uv run python -m app --mode stub
+cd ../a2uiverse-apps/github/agent && uv run python -m app --mode live
 
 # orchestrator — the card must advertise the tunnel URL
 BASE_URL=https://vnw20xbg-10001.asse.devtunnels.ms pnpm --filter @a2uiverse/orchestrator dev
