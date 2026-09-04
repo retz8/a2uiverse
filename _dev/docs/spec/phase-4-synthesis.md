@@ -97,7 +97,7 @@ The interval between the last fragment and the synthesis paint stays unmitigated
 
 ### 17. Partial values disclose through a shell-owned component
 
-A derived cell whose inputs were partial must not render identically to one whose inputs were complete. Because the synthesis tree is model-authored, the guarantee cannot live in the tree: the Synthesizer binds formula cells to a shell-owned component, enforceable as a review rule, which renders value together with contributor state. The `Attribution` pattern applied to values rather than fragments. Partial, absent, failed, declined and not-yet-arrived are one visual problem; the vocabulary is built here, where every state can be produced on demand.
+A derived cell whose inputs were partial must not render identically to one whose inputs were complete. The guarantee lives in a shell-owned component that renders value together with contributor state, not in the tree: in this phase the tree is derived by the orchestrator from the wiring (task 4.4), so every formula cell binds through that component by construction; when a later milestone lets the model author the tree, the same binding is a review rule. The `Attribution` pattern applied to values rather than fragments. Partial, absent, failed, declined and not-yet-arrived are one visual problem; the vocabulary is built here, where every state can be produced on demand.
 
 ### 18. Acceptance roster: the profile replaces
 
