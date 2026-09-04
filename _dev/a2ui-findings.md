@@ -183,48 +183,190 @@ Restore the class maps in the build (or inline literal class names), and export
 
 ---
 
-## 4. A bound `DynamicValue` is typed by its literal branches (web_core generic binder)
+## 4. The generated setter for a binding-only prop is uncallable (web_core generic binder)
 
-**Component:** `@a2ui/web_core` 0.10.6, `src/v0_9/rendering/generic-binder.d.ts` —
-`ResolveA2uiProp` and `GenerateSetters`.
+**Component:** `@a2ui/web_core` 0.10.7, `src/v0_9/rendering/generic-binder.ts` —
+`ResolveA2uiProp` (~line 171) and `GenerateSetters` (~line 183).
 
-**Severity:** typing only — no runtime effect. Renderer authors are pushed into casts.
+**Severity:** typing only — no runtime effect. The generated setter cannot be called at all.
 
 ### Issue
 
-`ResolveA2uiProp<T>` computes a dynamic prop's resolved type as `Exclude<T, DataBinding | FunctionCall>`
-— the union minus its binding shapes — and `GenerateSetters<T>` types the generated setter's
-parameter the same way. For `DynamicValue` that yields `string | number | boolean | any[]`.
+Both types resolve a dynamic prop by subtraction: `Exclude<T, DataBinding | FunctionCall>`,
+the declared union minus its binding shapes.
 
-That is the type of a **literal** `DynamicValue` (the spec's `oneOf` has no object literal). It is not
-the type of a **bound** one: `DataBinding` and `FunctionCall` resolve, per the spec's own description,
-to "any type", and a path routinely points at an object. A component that binds a `DynamicValue` to
-an object must cast the resolved prop, and — worse — a prop schema with no literal branch at all
-(`DataBinding | FunctionCall`, a binding-only prop) resolves to `any` but gets a setter typed
-`(value: never) => void`.
+`ResolveA2uiProp` guards the case where the subtraction leaves nothing:
+
+```ts
+: Exclude<T, DynamicTypes> extends never
+  ? any
+  : Exclude<T, DynamicTypes>;
+```
+
+`GenerateSetters` has no such guard:
+
+```ts
+value: Exclude<NonNullable<T[K]>, DynamicTypes>,
+```
+
+For a prop declared as a binding with no literal branch (`DataBinding | FunctionCall`) the
+subtraction leaves nothing. The getter falls back to `any`; the setter's parameter resolves to
+`never`, which no value inhabits, so the setter is uncallable without a cast. The asymmetry is
+the whole defect: the read path has a fallback, the write path was never given one.
+
+### Reproduction
+
+Verified against `main` @ `65aca464` with `tsc --noEmit`:
+
+```ts
+const BindingOnly = z.object({sort: z.union([DataBindingSchema, FunctionCallSchema])});
+declare const props: ResolveA2uiProps<z.infer<typeof BindingOnly>>;
+props.sort;    // any                     — the getter fallback applies
+props.setSort; // (value: never) => void  — uncallable
+```
+
+### Fix
+
+Give the setter the fallback the getter already has:
+
+```ts
+value: [Exclude<NonNullable<T[K]>, DynamicTypes>] extends [never]
+  ? unknown
+  : Exclude<NonNullable<T[K]>, DynamicTypes>,
+```
+
+Non-breaking: `(value: never) => void` admits no argument today, so widening the parameter can
+only permit calls that previously failed to compile.
+
+### Scope
+
+No component in the repo's basic catalog declares a binding-only prop. `DataBinding` is absent
+from `COMMON_TYPE_SCHEMAS` in `src/v0_9/catalog/schema_loader.ts`, so JSON-defined catalogs
+cannot declare one either; the case is reachable from hand-written Zod component schemas.
+
+---
+
+## 5. Dynamic prop types are unenforced claims (web_core generic binder / DataContext)
+
+**Component:** `@a2ui/web_core` 0.10.7, `src/v0_9/rendering/generic-binder.ts`
+(`ResolveA2uiProp`), `DataContext.resolveDynamicValue`.
+
+**Severity:** typing versus runtime mismatch — components hand-roll defensive coercion against
+their own declared prop types.
+
+### Issue
+
+`ResolveA2uiProp` types a dynamic prop by its literal branches: a `DynamicString` prop resolves
+to `string`, `DynamicStringList` to `string[]`, `DynamicNumber` to `number`. Nothing enforces
+those types at runtime. A `DataBinding` resolves to whatever sits at the path, and a
+`FunctionCall` to whatever it returns — `FunctionCallSchema.returnType` explicitly admits
+`'object'` and `'any'`. `DataContext.resolveDynamicValue<V>(v): V` casts to a caller-named type
+without checking it.
+
+The specification already defines the coercion that would make the declared types true.
+`blueprints/modules/a2ui_core.blueprint.md` (Type Coercion Standards) specifies `Any → String`,
+`null | undefined → String` = `""`, `null | undefined → Number` = `0`, numeric `String → Number`,
+and the boolean rules. No layer applies that table at the binder boundary.
+
+Components compensate one at a time, with branches TypeScript considers unreachable:
+
+| site (`renderers/react`, `main` @ `65aca464`) | declared type | written guard |
+| --- | --- | --- |
+| `Text.tsx:77` | `string` | `typeof props.text === 'string' ? props.text : String(props.text ?? '')` |
+| `ChoicePicker.tsx:35` | `string[]` | `Array.isArray(props.value) ? props.value : []` |
+| `DateTimeInput.tsx:112-113` | `string` | `typeof props.min === 'string' ? props.min : undefined` |
+
+### Fix
+
+Apply the specification's coercion table at the binder boundary, keyed on the declared prop
+kind. Three changes in `@a2ui/web_core`:
+
+1. **Scraper records the kind.** `getFieldBehavior`'s `{type: 'DYNAMIC'}` becomes
+   `{type: 'DYNAMIC', kind: 'string' | 'number' | 'boolean' | 'string-list' | 'value'}`,
+   read from the `REF:` description marker (`#/$defs/DynamicString` → `string`, etc.).
+2. **Shared coercion utility** implementing the blueprint table, aligned with the protocol's
+   §"Type conversion" and the existing `coerceToString` in `basic_functions.ts`:
+   - `string`: null/undefined → `""`; number/boolean → `String()`; object/array → JSON
+     stringify
+   - `number`: number as-is; numeric string → parsed; anything else → `0`
+   - `boolean`: boolean as-is; `"true"`/`"false"` case-insensitive, other strings → `false`;
+     non-zero number → `true`; null/undefined → `false`
+   - `string-list`: non-array → `[]`; elements coerced by the string rules
+   - `value`: pass through unchanged
+3. **Binder applies it.** `bindDynamicValue` coerces both the initial resolved value and every
+   subscription update before they land in props. `DataContext.resolveDynamicValue` /
+   `resolveSignal` stay unchanged: they do not know the declared target kind, and their other
+   callers (action contexts, function args) have `value` semantics.
+
+The declared types then hold, and the per-component guards above can be deleted (`Text.tsx:77`,
+`ChoicePicker.tsx:35`; `DateTimeInput.tsx:112-113` is finding 6's territory — `min`/`max` never
+reach the DYNAMIC path until that classification fix lands).
+
+`DynamicValue` has no coercion target: its literal branches are the whole of the spec's "any
+type", so a bound `DynamicValue` passes through the binder unchanged and stays untypeable. No
+first-party component declares one — in-repo its only occurrence is
+`context: z.record(DynamicValueSchema)` inside `ActionSchema` — but it is part of the public
+schema surface (exported from `common-types.ts`, registered in `schema_loader.ts`), so consumer
+catalogs can declare `DynamicValue` props. The pass-through behavior is part of the fix's
+contract, not an omission.
+
+### Prior art
+
+This finding is the same as issue
+[#846](https://github.com/a2ui-project/a2ui/issues/846) (Strict Type Coercion in DataContext),
+open and triaged P2. The unreachable branches above are evidence it does not currently cite.
+
+---
+
+## 6. Nested dynamic unions scrape as `STATIC` — `DateTimeInput.min`/`max` bindings are dead (web_core generic binder)
+
+**Component:** `@a2ui/web_core` 0.10.7, `src/v0_9/rendering/generic-binder.ts`
+(`getFieldBehavior`); surfaces in the basic catalog's `DateTimeInput` (`basic_components.ts`
+`min`/`max`, the only in-repo props with this shape).
+
+**Severity:** functional bug — a `min`/`max` data binding is silently ignored; no error raised.
+
+**Reported:** `a2ui-project/a2ui` issue
+[#2530](https://github.com/a2ui-project/a2ui/issues/2530).
+
+### Issue
+
+`getFieldBehavior` classifies a prop as `DYNAMIC` two ways: a `REF:` marker in the schema
+description (`#/$defs/Dynamic*`), or a structural check that scans a `ZodUnion`'s options for
+the `DataBindingSchema` object shape (`{path}`). Both look one level deep.
+
+`DateTimeInput.min` and `max` are declared as
+
+```ts
+z.union([DynamicStringSchema, z.string().date(), z.string().time(), z.string().datetime()])
+  .describe('The minimum allowed date/time in ISO 8601 format.')
+```
+
+The `.describe()` replaces the description, so the outer union carries no `REF:` marker, and
+`DynamicStringSchema` is itself a `ZodUnion`, not a `ZodObject`, so the structural scan never
+sees the `{path}` branch nested inside it. Both props scrape as `{type: 'STATIC'}` — while the
+sibling `value`, a bare `DynamicStringSchema`, scrapes as `DYNAMIC`.
+
+A `STATIC` prop passes through the binder untouched (`resolveAndBind`, `case 'STATIC': return
+value`). A bound `min` therefore reaches the component as the raw `{path: '...'}` object: no
+resolution, no subscription, no updates. The React component's guard
+`typeof props.min === 'string' ? props.min : undefined` (`DateTimeInput.tsx:112-113`) swallows
+the object, so the constraint is dropped silently instead of erroring.
 
 ### Reproduction
 
 ```ts
-const Api = {name: 'X', schema: z.object({cell: DynamicValueSchema})};
-createComponentImplementation(Api, ({props}) => {
-  props.cell; // string | number | boolean | any[]  — but a path may resolve to an object
-  props.setCell; // (value: string | number | boolean | any[]) => void
-});
-const BindingOnly = {
-  name: 'Y',
-  schema: z.object({sort: z.union([DataBindingSchema, FunctionCallSchema])}),
-};
-createComponentImplementation(BindingOnly, ({props}) => {
-  props.sort; // any  — correct
-  props.setSort; // (value: never) => void  — unusable without a cast
-});
+scrapeSchemaBehavior(DateTimeInputApi.schema).shape.min;   // {type: 'STATIC'}
+scrapeSchemaBehavior(DateTimeInputApi.schema).shape.value; // {type: 'DYNAMIC'}
 ```
 
-### Suggested fix
+At runtime: `updateComponents` with a `DateTimeInput` whose `min` is
+`{"path": "/limits/min"}`; the rendered input has no min constraint regardless of the value in
+the data model.
 
-When `Exclude<T, DynamicTypes>` is not the whole of `T` (i.e. the prop is bindable), widen the
-resolved type and the setter parameter to `Exclude<T, DynamicTypes> | unknown` — or, more simply,
-type `DynamicValue`-derived props and setters as `unknown` and let the component narrow. A bound
-value's static type is unknowable from the schema; pretending otherwise only moves the cast into
-every catalog.
+### Fix
+
+Recurse into nested unions in `getFieldBehavior`'s structural check: a union any of whose
+branches is itself dynamic is dynamic. Third-party catalogs composing `Dynamic*` schemas into
+wider unions hit the same misclassification, so the fix belongs in the scraper, not in the
+`DateTimeInput` schema.
