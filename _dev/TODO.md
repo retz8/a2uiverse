@@ -37,7 +37,7 @@ Spec: `_dev/docs/spec/phase-2-layout-composition.md`.
 - [x] **2.11** `[apps]` Vendor fragment visual pass — Gmail + Calendar product theme sheets (scoped stylesheet layer, SPEC §14), detector ships leading-compound classes only; trees, brand docs and fixtures untouched — the defects were catalog-implementation-level (after 2.6 and 2.7; before 2.9's beat recording)
 - [x] **2.12** Live visual review — all three agents in `llm` mode over real MCP, a real conversation set driven through the canvas: does the composed screen read as one screen, and is this the thing we meant to build (after 2.10)
 
-## Phase 3 — Agent building kit [WIP]
+## Phase 3 — Agent building kit [done]
 Shared vendor-agent logic extracted across the three agents into a published A2UI+A2A agent SDK/CLI in `a2uiverse-apps` (M1k). Uniform run-mode flag, single launcher for installed agents, vendor dependency rule amended, one-provider-and-CSS-setup-per-catalog-bundle rule.
 Spec: `_dev/docs/spec/phase-3-agent-kit.md`.
 
