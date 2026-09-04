@@ -12,7 +12,7 @@ import type {Plan} from '../src/planner/planSchema.js';
 import type {Planner} from '../src/planner/planner.js';
 import {FakeEmbedder} from './fakeEmbedder.js';
 import {FakePlanner, ThrowingPlanner} from './fakePlanner.js';
-import {FakeSynthesizer} from './fakeSynthesizer.js';
+import {decline, FakeSynthesizer} from './fakeSynthesizer.js';
 import type {Synthesizer} from '../src/synthesizer/synthesizer.js';
 import {WIRING_KEY} from '@a2uiverse/sdk';
 import {startFakeVendor, type FakeVendor, type Script} from './fakeVendor.js';
@@ -584,7 +584,7 @@ describe('synthesis (task 4.4)', () => {
   });
 
   test('a decline collapses the synthesis slot and sends no wiring', async () => {
-    const synthesizer = new FakeSynthesizer({declined: true, reason: 'nothing joinable'});
+    const synthesizer = new FakeSynthesizer(decline('nothing joinable'));
     const {client} = await boot({planner: planner(), synthesizer, scripts: scripts()});
     const events = await collect(client, utterance('compare'));
     expect(wiringEvents(events)).toHaveLength(0);

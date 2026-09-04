@@ -21,9 +21,8 @@ export function checkSynthesis(
 ): void {
   if (output.declined) return;
   const {fields, entities, sort} = output;
-  if (!fields || !entities || !sort) {
-    throw new MalformedSynthesisError('a synthesis needs fields, entities and sort');
-  }
+  if (fields.length === 0)
+    throw new MalformedSynthesisError('a synthesis needs at least one field');
   if (!fields.some(f => f.name === sort.field)) {
     throw new MalformedSynthesisError(`sort field '${sort.field}' is not a declared field`);
   }

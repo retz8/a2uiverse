@@ -262,9 +262,9 @@ export class OrchestratorExecutor implements AgentExecutor {
     if (output.declined) return collapse('declined', output.reason);
 
     const wiring: SynthesisWiring = {
-      fields: output.fields!,
-      entities: output.entities!,
-      sort: output.sort!,
+      fields: output.fields,
+      entities: output.entities,
+      sort: output.sort,
       computedAgainst: state.partitions.generations(),
     };
     state.partitions.snapshot();

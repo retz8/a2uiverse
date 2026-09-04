@@ -23,15 +23,15 @@
     "synthesisWiring": {
       "direction": "orchestrator → client",
       "carriedOn": "the metadata of the event that paints the synthesis surface, keyed by wiringKey; sent once per synthesis, never on a decline",
-      "authors": "Two. The Synthesizer emits fields, entities and sort under synthesizerOutput; the orchestrator wraps them with computedAgainst. The model never sees generations.",
+      "authors": "Two. The Synthesizer emits declined, reason, fields, entities and sort under synthesizerOutput (all required — optional nested arrays are dropped by the provider); the orchestrator wraps a non-declined output with computedAgainst. The model never sees generations.",
       "schemas": {
         "synthesizerOutput": {
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "title": "SynthesizerOutput",
-          "description": "Model-facing: what the Synthesizer emits. Union-free and non-recursive (structured-output constraint). Either a synthesis (fields, entities, sort) or a decline (declined + reason); the orchestrator adds computedAgainst.",
+          "description": "Model-facing: what the Synthesizer emits. Union-free and non-recursive (structured-output constraint). Every key is required — a provider drops optional nested arrays — so a decline carries declined: true, a reason, and empty fields and entities (sort is then ignored); a synthesis carries declined: false with at least one field. The orchestrator adds computedAgainst.",
           "type": "object",
           "additionalProperties": false,
-          "required": ["declined"],
+          "required": ["declined", "reason", "fields", "entities", "sort"],
           "properties": {
             "declined": {
               "type": "boolean",
@@ -39,11 +39,10 @@
             },
             "reason": {
               "type": "string",
-              "description": "Why nothing was joinable. Journaled, never painted."
+              "description": "Why nothing was joinable when declined; empty otherwise. Journaled, never painted."
             },
             "fields": {
               "type": "array",
-              "minItems": 1,
               "items": {
                 "type": "object",
                 "additionalProperties": false,
@@ -60,7 +59,7 @@
                   }
                 }
               },
-              "description": "Declared once; every entity's cells align to this list by position."
+              "description": "Declared once; every entity's cells align to this list by position. At least one unless declined."
             },
             "entities": {
               "type": "array",

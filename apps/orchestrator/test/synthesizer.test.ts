@@ -27,6 +27,7 @@ function partitions(): Partitions {
 
 const good: SynthesizerOutput = {
   declined: false,
+  reason: '',
   fields: [
     {name: 'product', label: 'Camera'},
     {name: 'best', label: 'Best price'},
@@ -46,6 +47,14 @@ const good: SynthesizerOutput = {
     },
   ],
   sort: {field: 'best', direction: 'asc'},
+};
+
+const declined: SynthesizerOutput = {
+  declined: true,
+  reason: 'nothing joinable',
+  fields: [],
+  entities: [],
+  sort: {field: '', direction: 'asc'},
 };
 
 const input: SynthesisInput = {
@@ -68,16 +77,18 @@ describe('checkSynthesis (task-4.4 decision 4)', () => {
 
   test('a well-formed synthesis passes; a decline always passes', () => {
     expect(() => checkSynthesis(good, ctx())).not.toThrow();
-    expect(() => checkSynthesis({declined: true, reason: 'nothing joinable'}, ctx())).not.toThrow();
+    expect(() => checkSynthesis(declined, ctx())).not.toThrow();
   });
 
-  test('a non-declined output must carry fields, entities and sort', () => {
-    expect(() => checkSynthesis({declined: false}, ctx())).toThrow(MalformedSynthesisError);
+  test('a non-declined output must declare at least one field', () => {
+    expect(() => checkSynthesis({...declined, declined: false}, ctx())).toThrow(
+      MalformedSynthesisError,
+    );
   });
 
   test('an operator the shell catalog does not declare is malformed', () => {
     const bad = structuredClone(good);
-    bad.entities![0]!.cells[1]!.op = 'median';
+    bad.entities[0]!.cells[1]!.op = 'median';
     expect(() => checkSynthesis(bad, ctx())).toThrow(/operator 'median'/);
   });
 
@@ -88,16 +99,16 @@ describe('checkSynthesis (task-4.4 decision 4)', () => {
 
   test('every entity has exactly as many cells as there are fields', () => {
     const bad = structuredClone(good);
-    bad.entities![0]!.cells.pop();
+    bad.entities[0]!.cells.pop();
     expect(() => checkSynthesis(bad, ctx())).toThrow(/entity 0 has 1 cell/);
   });
 
   test('a ref into an unknown surface, or one that does not resolve now, is malformed — not absent', () => {
     const unknown = structuredClone(good);
-    unknown.entities![0]!.cells[0]!.args[0]!.surface = 'shop-c:list';
+    unknown.entities[0]!.cells[0]!.args[0]!.surface = 'shop-c:list';
     expect(() => checkSynthesis(unknown, ctx())).toThrow(/surface 'shop-c:list'/);
     const dangling = structuredClone(good);
-    dangling.entities![0]!.cells[0]!.args[0]!.pointer = '/items/7/id';
+    dangling.entities[0]!.cells[0]!.args[0]!.pointer = '/items/7/id';
     expect(() => checkSynthesis(dangling, ctx())).toThrow(/does not resolve/);
   });
 });
@@ -132,8 +143,7 @@ describe('ModelSynthesizer', () => {
   });
 
   test('a decline parses too', async () => {
-    const out = {declined: true, reason: 'nothing joinable'};
-    const synth = new ModelSynthesizer({model: modelReturning(JSON.stringify(out))});
-    expect(await synth.synthesize(input)).toEqual(out);
+    const synth = new ModelSynthesizer({model: modelReturning(JSON.stringify(declined))});
+    expect(await synth.synthesize(input)).toEqual(declined);
   });
 });

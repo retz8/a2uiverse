@@ -64,7 +64,7 @@ The Synthesizer emits fields, entities, and sort. The orchestrator wraps that wi
 
 ### 11. No wiring on decline
 
-A decline is a union-free branch of the model-facing schema — a flag plus a reason — and goes to the journal. The orchestrator collapses the reserved slot through existing slot-state machinery and sends nothing under the wiring key. From the client's side a decline is indistinguishable from a layout-only turn, which is what SPEC §5.1 says it should be.
+A decline is a union-free branch of the model-facing schema — a flag plus a reason, with empty fields and entities — and goes to the journal. Every key of the model-facing schema is required: the live provider drops optional nested arrays (a first run returned fields and sort with no entities at all), so optionality is expressed as emptiness and the checklist enforces at least one field when not declined. The orchestrator collapses the reserved slot through existing slot-state machinery and sends nothing under the wiring key. From the client's side a decline is indistinguishable from a layout-only turn, which is what SPEC §5.1 says it should be.
 
 ### 12. Pure contract — no validator in the sdk
 

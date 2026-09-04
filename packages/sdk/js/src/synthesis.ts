@@ -71,6 +71,10 @@ const fieldsSchema = {
   description: "Declared once; every entity's cells align to this list by position.",
 } as const;
 
+/** The same field list without `minItems`: the model-facing form, where a decline sends none. */
+const {minItems: _fieldsMin, ...fieldsSchemaNoMin} = fieldsSchema;
+void _fieldsMin;
+
 const entitiesSchema = {
   type: 'array',
   items: {
@@ -100,23 +104,31 @@ const sortSchema = {
   },
 } as const;
 
-/** Model-facing: what the Synthesizer emits. A synthesis, or a decline. */
+/** Model-facing: what the Synthesizer emits. A synthesis, or a decline — every key required. */
 export const SYNTHESIZER_OUTPUT_SCHEMA = {
   $schema: 'https://json-schema.org/draft/2020-12/schema',
   title: 'SynthesizerOutput',
   description:
-    'Model-facing: what the Synthesizer emits. Union-free and non-recursive (structured-output constraint). Either a synthesis (fields, entities, sort) or a decline (declined + reason); the orchestrator adds computedAgainst.',
+    'Model-facing: what the Synthesizer emits. Union-free and non-recursive (structured-output constraint). Every key is required — a provider drops optional nested arrays — so a decline carries declined: true, a reason, and empty fields and entities (sort is then ignored); a synthesis carries declined: false with at least one field. The orchestrator adds computedAgainst.',
   type: 'object',
   additionalProperties: false,
-  required: ['declined'],
+  required: ['declined', 'reason', 'fields', 'entities', 'sort'],
   properties: {
     declined: {
       type: 'boolean',
       description:
         'True when nothing is joinable; the reserved slot collapses and no wiring is sent.',
     },
-    reason: {type: 'string', description: 'Why nothing was joinable. Journaled, never painted.'},
-    fields: fieldsSchema,
+    reason: {
+      type: 'string',
+      description:
+        'Why nothing was joinable when declined; empty otherwise. Journaled, never painted.',
+    },
+    fields: {
+      ...fieldsSchemaNoMin,
+      description:
+        "Declared once; every entity's cells align to this list by position. At least one unless declined.",
+    },
     entities: entitiesSchema,
     sort: sortSchema,
   },
@@ -177,14 +189,14 @@ export interface Sort {
   direction: 'asc' | 'desc';
 }
 
-/** What the Synthesizer emits: a synthesis, or a decline. */
+/** What the Synthesizer emits: a synthesis, or a decline (empty fields and entities). */
 export interface SynthesizerOutput {
   declined: boolean;
-  /** Why nothing was joinable. Journaled, never painted. */
-  reason?: string;
-  fields?: Field[];
-  entities?: Entity[];
-  sort?: Sort;
+  /** Why nothing was joinable when declined; empty otherwise. Journaled, never painted. */
+  reason: string;
+  fields: Field[];
+  entities: Entity[];
+  sort: Sort;
 }
 
 /** What rides under {@link WIRING_KEY}: the inner output plus the generations it was computed against. */

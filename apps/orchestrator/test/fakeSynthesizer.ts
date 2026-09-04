@@ -23,6 +23,7 @@ export function bestPriceWiring(input: SynthesisInput): SynthesizerOutput {
   const items = ((first?.data as {items?: unknown[]} | undefined)?.items ?? []) as unknown[];
   return {
     declined: false,
+    reason: '',
     fields: [
       {name: 'product', label: 'Product'},
       {name: 'best', label: 'Best price'},
@@ -48,4 +49,9 @@ export class ThrowingSynthesizer implements Synthesizer {
   async synthesize(): Promise<SynthesizerOutput> {
     throw this.#error;
   }
+}
+
+/** A decline, in the all-required shape the model-facing schema demands. */
+export function decline(reason: string): SynthesizerOutput {
+  return {declined: true, reason, fields: [], entities: [], sort: {field: '', direction: 'asc'}};
 }
