@@ -19,6 +19,16 @@ import {basename, join, resolve} from 'node:path';
 export const MODES = ['deterministic', 'stub', 'live'];
 
 /** Where the agents live, and which source said so — echoed on every run and every listing. */
+/**
+ * The environment the `--then` child runs in: the launcher's own, with the agents dir it resolved
+ * handed on as `A2UIVERSE_AGENTS_DIR`. The orchestrator reads that variable for its roster, so the
+ * two processes agree on which apps are in play however the launcher was told — `--agents-dir`
+ * included, which the child could not otherwise see (task 4.7).
+ */
+export function thenEnv(baseEnv, agentsDir) {
+  return {...baseEnv, A2UIVERSE_AGENTS_DIR: agentsDir};
+}
+
 export function resolveAgentsDir({flag, env, repoRoot}) {
   if (flag) return {dir: resolve(flag), source: '--agents-dir'};
   if (env) return {dir: resolve(env), source: 'A2UIVERSE_AGENTS_DIR'};

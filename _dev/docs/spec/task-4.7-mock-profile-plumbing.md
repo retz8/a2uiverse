@@ -36,11 +36,11 @@ Both mock catalogs join the client's dependencies and its static catalog table b
 
 ### 6. The profile is a documented invocation, not code
 
-Running the mock roster is setting the agents-dir variable to the tier path and starting everything as usual. No profile flag, no profile variable, no script alias. The launcher is untouched.
+Running the mock roster is pointing the launcher's agents dir at the tier path and starting everything as usual. No profile flag, no profile variable, no script alias.
 
-### 7. The launcher's directory flag does not reach the orchestrator
+### 7. The launcher's directory flag reaches the orchestrator
 
-The launcher's own `--agents-dir` flag stays a launcher-only lever; it is not propagated to the processes the launcher starts. The profile is spelled with the environment variable only, and the README line documenting it names this trap. Propagating the flag is a two-line change if the half-flipped state bites in 4.8.
+The launcher hands the agents dir it resolved to the processes it starts, so `--agents-dir` and the environment variable agree: the orchestrator's roster follows whichever the launcher was given. The flag is the preferred spelling — explicit and per-invocation, nothing set on the shell.
 
 ### 8. Mixed roster is not built
 

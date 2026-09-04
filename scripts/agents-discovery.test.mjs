@@ -4,7 +4,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {test} from 'node:test';
 
-import {MODES, discoverAgents, planRun, resolveAgentsDir} from './agents-discovery.mjs';
+import {MODES, discoverAgents, planRun, resolveAgentsDir, thenEnv} from './agents-discovery.mjs';
 
 /**
  * Build an agents dir from a spec: `manifest` is written verbatim when a string, JSON-encoded
@@ -54,6 +54,12 @@ test('resolveAgentsDir prefers the flag, then the env, then the sibling default'
     dir: '/repo/a2uiverse-apps',
     source: 'default',
   });
+});
+
+test('the --then child inherits the resolved agents dir as A2UIVERSE_AGENTS_DIR', () => {
+  const env = thenEnv({PATH: '/bin', A2UIVERSE_AGENTS_DIR: '/stale'}, '/apps/mocks');
+  assert.equal(env.A2UIVERSE_AGENTS_DIR, '/apps/mocks');
+  assert.equal(env.PATH, '/bin');
 });
 
 test('a directory with no manifest is not an agent and is not reported', () => {

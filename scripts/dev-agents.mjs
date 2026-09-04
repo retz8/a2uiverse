@@ -28,7 +28,7 @@ import {dirname, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {parseArgs} from 'node:util';
 
-import {MODES, discoverAgents, planRun, resolveAgentsDir} from './agents-discovery.mjs';
+import {discoverAgents, MODES, planRun, resolveAgentsDir, thenEnv} from './agents-discovery.mjs';
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -222,7 +222,12 @@ async function main() {
     }
   }
   if (then) {
-    platform = spawn(then, {cwd: REPO_ROOT, shell: true, stdio: 'inherit'});
+    platform = spawn(then, {
+      cwd: REPO_ROOT,
+      shell: true,
+      stdio: 'inherit',
+      env: thenEnv(process.env, resolved.dir),
+    });
     platform.on('exit', code => {
       stop();
       process.exit(code ?? 0);

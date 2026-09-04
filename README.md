@@ -76,11 +76,11 @@ The agents dir is the sibling `a2uiverse-apps` checkout by default; `--agents-di
 The orchestrator reads the same variable: when `A2UIVERSE_AGENTS_DIR` is set, its registry is built from the manifests one level below that directory instead of the hardcoded roster. That is how the **mock tier** — the two storefronts synthesis is exercised against, quarantined one level down in `a2uiverse-apps/mocks/` — is put in play, alone:
 
 ```bash
-A2UIVERSE_AGENTS_DIR=../a2uiverse-apps/mocks pnpm dev:all              # the two mocks, deterministic
-A2UIVERSE_AGENTS_DIR=../a2uiverse-apps/mocks pnpm dev:all --mode live  # the two mocks, live
+pnpm dev:all --agents-dir ../a2uiverse-apps/mocks              # the two mocks, deterministic
+pnpm dev:all --agents-dir ../a2uiverse-apps/mocks --mode live  # the two mocks, live
 ```
 
-Spell it with the variable, not the flag: `--agents-dir` is the launcher's alone and does not reach the orchestrator, so `pnpm dev:all --agents-dir …/mocks` launches the mocks against a roster that does not contain them. The mocks' catalogs are always bundled in the client, so nothing else is set.
+The launcher hands the directory it resolved to the platform it starts, so the orchestrator's roster follows the flag. The mocks' catalogs are always bundled in the client, so nothing else is set.
 
 ### Every command
 
