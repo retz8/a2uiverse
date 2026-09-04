@@ -57,7 +57,7 @@ The orchestrator creates it against the shell catalog and it claims the reserved
 
 The plan schema gains the synthesis slot and the prompt learns to use it. Whether a screen includes a synthesis surface, and where it sits in the layout, is decided by the Planner — a model judgment, not code. The slot must exist at first paint (§5 t3), before dispatch, so the mechanism cannot wait for data. The prompt matures in Phase 5 against a heterogeneous roster, which is a prompt change and not a structural one. Capability gaps stay out entirely.
 
-The Synthesizer's decline (§5.1) is exercised deliberately, via a question whose results do not overlap: the reserved slot collapses and the fragments stand side by side.
+The Synthesizer's decline (§5.1) is exercised deliberately, via a question whose results do not overlap: the reserved slot collapses onto the Synthesizer's reason, in its own words, and the fragments stand side by side.
 
 ### 9. Evaluate, then render
 
@@ -110,7 +110,7 @@ Run under the profile — the two mocks alone in the roster, deterministic mode,
 1. End to end under the profile: the comparison utterance fans out to both stores, the plan reserves the synthesis slot at first paint, both fragments fill, and the merged view is painted into the reserved slot after the last source settles — sorted, with every cell complete.
 2. Drill-down → absent → free: opening a camera in one store makes that store's cells absent and the formula cells partial, with no re-synthesis; returning to the list reconnects the same refs, again with no model call.
 3. In-place reorder → invalid → re-synthesis: sorting a store's own list bumps its generation, the derived cells go stale, and a re-synthesis lands a new wiring against the bumped generation.
-4. Decline: the policy utterance yields two structurally unjoinable partitions under a plan that reserved the merged view, the Synthesizer declines, the reserved slot collapses, and the two policy fragments stand side by side.
+4. Decline: the policy utterance yields two structurally unjoinable partitions under a plan that reserved the merged view, the Synthesizer declines, the reserved slot collapses onto the decline's reason, and the two policy fragments stand side by side.
 5. Sort: the merged view's criterion is displayed and user-changeable; a change re-orders in place with no round trip and no generation touched.
 6. Partial-value visibility: a derived cell whose inputs went partial does not render identically to a complete one, and names its missing source.
 7. Dead air measured: the interval from the last source settling to the synthesis paint is read from the journal for the deterministic run and the live run and recorded in the backlog item.

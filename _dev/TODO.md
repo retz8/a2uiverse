@@ -73,6 +73,7 @@ Per-source deadlines, failure tiles, decline, late absorb as a visible attribute
 
 ## Phase 8 — Durable composition
 Timeline, frozen + stamped, refresh, add/drop source, "compare these" (M5).
+Carried from 4.8, found in the live run: **acting inside a parked composition forks a turn whose answer lands nowhere.** The Phase 1 fork path assumes an action produces a new paint. Under composition a vendor answers an action with an `updateDataModel` on its existing surface, and that surface exists only inside the parked snapshot — the live head was torn down and replaced by the later turn — so the update has no surface to land on and the canvas shows nothing (journal 2026-09-04 11:50–11:53: four `sort-by` actions carrying `a2uiForkContext`, each completed with `shop-a:list`/`shop-b:list` updated, none visible). The orchestrator is confused the same way: it relays the action against the context's *current* composition, not the one the user was looking at, so its partitions and any live wiring belong to a different screen. The semantics to build: a fork from a parked composition rehydrates that composition — its surfaces, placement, partitions, wiring and generations — as the new live head on both sides, then applies the vendor's answer to it; a decline or re-synthesis then runs against the screen the user acted on. Until then, actions in a parked composed view should be blocked with a cue rather than silently dropped.
 
 ## Phase 9 — App bundle + registry
 Bundle format, local install, registry no longer hardcoded, the GitHub app installed as a bundle (M7).
