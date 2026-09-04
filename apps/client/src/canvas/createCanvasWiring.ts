@@ -24,6 +24,8 @@ import type {
   Catalog,
 } from '@a2ui/web_core/v0_9';
 import type {ReactComponentImplementation} from '@a2ui/react/v0_9';
+import {OPERATORS} from '@a2uiverse/shell-catalog';
+import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 import type {A2ASenderOptions} from '../a2a/client';
 import {createSenderResolver, sendAndApply} from '../a2a/client';
 import type {ForkContext} from '../a2a/messages';
@@ -45,6 +47,8 @@ import type {PaintCause, PaintEntry} from './timeline/paint';
 import {entryTitle} from './timeline/paint';
 import type {ParkedSession} from './timeline/parkedSession';
 import {createParkedSession} from './timeline/parkedSession';
+import type {SynthesisSession} from './synthesis/synthesisSession';
+import {createSynthesisSession} from './synthesis/synthesisSession';
 
 const BLOCKED_CUE = 'Hold on — a paint is in flight. Try again when it lands.';
 
@@ -52,6 +56,8 @@ export interface CanvasWiring {
   store: ReturnType<typeof createCanvasStore>;
   processor: MessageProcessor<ReactComponentImplementation>;
   runner: ReturnType<typeof createTurnRunner>;
+  /** The composition's synthesis: the evaluator's driver over the live processor. */
+  synthesis: SynthesisSession;
   sendUtterance(utterance: string): Promise<void>;
   repaint(): void;
   createParked(entry: PaintEntry): ParkedSession<ReactComponentImplementation>;
@@ -73,11 +79,23 @@ export function createCanvasWiring({
   const getSender = createSenderResolver({serverUrl, client});
   const supportedCatalogIds = catalogs.map(c => c.id);
   const processor = new MessageProcessor(catalogs, action => actionHandler(action));
+  // The evaluator dispatches to the shell catalog's operators; the synthesis surface is painted
+  // against that catalog, so it is always among the installed ones.
+  const shellCatalog = catalogs.find(c => c.id === SHELL_CATALOG_ID);
+  const synthesis = createSynthesisSession({
+    processor,
+    functions: shellCatalog?.functions ?? new Map(),
+    operators: OPERATORS,
+    // A wiring the client cannot evaluate is reported like any fragment the canvas cannot
+    // render: the synthesis surface lives in a slot, and the hub answers by failing that slot.
+    onInvalid: failure => void reportFragmentFailure(failure),
+  });
   const runner = createTurnRunner({
     processor,
     store,
     createStaging: () => new MessageProcessor(catalogs),
     onFragmentFailure: failure => void reportFragmentFailure(failure),
+    synthesis,
   });
   const getClientDataModel = () => processor.getClientDataModel();
   /** The active parked session, registered by ParkedStage on mount (not a React ref). */
@@ -321,5 +339,14 @@ export function createCanvasWiring({
     }
   };
 
-  return {store, processor, runner, sendUtterance, repaint, createParked, attachParked};
+  return {
+    store,
+    processor,
+    runner,
+    synthesis,
+    sendUtterance,
+    repaint,
+    createParked,
+    attachParked,
+  };
 }

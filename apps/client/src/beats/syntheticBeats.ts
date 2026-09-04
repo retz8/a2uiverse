@@ -1,8 +1,9 @@
 /**
  * Synthetic beat fixtures: hand-authored streams in the recorded `BeatFixture` format — two
  * plain paints, a validation-failure turn (partial paint → cleanup delete → final apology), a
- * declared question paint and a composed turn (shell layout, one slot filling,
- * one flipping to failed). They are deliberately NOT in `recordings/beats/`
+ * declared question paint, a composed turn (shell layout, one slot filling,
+ * one flipping to failed) and a synthesis turn (two storefronts merged, then re-synthesized
+ * after an in-place reorder). They are deliberately NOT in `recordings/beats/`
  * and never enter `BEAT_FIXTURES`: they are inputs for the transition tests and the chrome
  * baselines, replayable by name through `?beat=` (see `SYNTHETIC_BEATS`). Recorded beats are
  * re-recorded through the orchestrator in 1.4.
@@ -11,6 +12,17 @@ import type {A2uiMessage} from '@a2ui/web_core/v0_9';
 import {CATALOG_ID} from 'github-catalog';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 import type {BeatFixture} from './beatFixtures';
+import {
+  REWIRING,
+  SHOP_A,
+  SHOP_A_ITEMS,
+  SHOP_B,
+  SHOP_B_ITEMS,
+  storefrontMessages,
+  SYNTHESIS_SLOT,
+  synthesisMessages,
+  WIRING,
+} from './synthesisFixture';
 
 const msg = (m: Record<string, unknown>): A2uiMessage =>
   ({version: 'v0.9', ...m}) as unknown as A2uiMessage;
@@ -455,6 +467,141 @@ export const COMPOSED_QUESTION_BEAT: BeatFixture = {
   ],
 };
 
+/** The shell's layout for a synthesis turn: the synthesis slot first, then one slot per store. */
+function synthesisShellComponents(slots: readonly {slot: string; appId: string; name: string}[]) {
+  return [
+    {id: 'root', component: 'Frame', direction: 'row', children: slots.map(s => `wrap-${s.slot}`)},
+    ...slots.flatMap(s => [
+      {id: `wrap-${s.slot}`, component: 'Column', children: [`attr-${s.slot}`, s.slot]},
+      {id: `attr-${s.slot}`, component: 'Attribution', displayName: s.name, appId: s.appId},
+      {id: s.slot, component: 'Slot', name: s.slot, state: 'pending', label: s.name},
+    ]),
+  ];
+}
+
+const SYNTHESIS_SLOTS = [
+  {slot: SYNTHESIS_SLOT, appId: 'shell', name: 'Synthesis'},
+  {slot: 'slot-shop-a', appId: 'shop-a', name: 'Shop A'},
+  {slot: 'slot-shop-b', appId: 'shop-b', name: 'Shop B'},
+];
+
+/**
+ * A synthesis turn as the hub streams one (task 4.4), then the re-synthesis path (phase decision
+ * 15): the shell reserves the synthesis slot at first paint; two storefronts fill their slots,
+ * each stamped with its partition's generation; the merged view is painted into the reserved
+ * slot with its wiring beside the stamp. A second, action turn reorders shop A's list in place:
+ * the bump arrives on the vendor's own event, the derived cells go stale, and the new wiring
+ * lands. Both storefronts paint in the shell catalog here, since the mocks' own catalogs are
+ * not installed in this client.
+ */
+export const SYNTHESIS_BEAT: BeatFixture = {
+  ...base,
+  name: 'synthetic-synthesis',
+  beat: 106,
+  title: 'Synthesis turn',
+  prompt: 'compare camera prices across both shops',
+  turns: [
+    {
+      taskId: 'synthetic-synthesis',
+      kind: 'utterance',
+      prompt: 'compare camera prices across both shops',
+      action: null,
+      outcome: 'completed',
+      durationMs: 2600,
+      batches: [
+        {
+          offsetMs: 0,
+          stamp: {source: 'shell', role: 'shell'},
+          messages: [
+            msg({createSurface: {surfaceId: 'shell:main', catalogId: SHELL_CATALOG_ID}}),
+            msg({
+              updateComponents: {
+                surfaceId: 'shell:main',
+                components: synthesisShellComponents(SYNTHESIS_SLOTS),
+              },
+            }),
+          ],
+          texts: [],
+        },
+        {
+          offsetMs: 400,
+          stamp: {
+            source: 'shop-a',
+            slot: 'slot-shop-a',
+            role: 'fragment',
+            generations: {[SHOP_A]: 1},
+          },
+          messages: storefrontMessages(SHOP_A, SHELL_CATALOG_ID, 'Shop A', SHOP_A_ITEMS),
+          texts: [],
+        },
+        {
+          offsetMs: 700,
+          stamp: {
+            source: 'shop-b',
+            slot: 'slot-shop-b',
+            role: 'fragment',
+            generations: {[SHOP_B]: 1},
+          },
+          messages: storefrontMessages(SHOP_B, SHELL_CATALOG_ID, 'Shop B', SHOP_B_ITEMS),
+          texts: [],
+        },
+        // Dead air: the Synthesizer's model call. Then the merged view claims its slot.
+        {
+          offsetMs: 2600,
+          stamp: {source: 'shell', slot: SYNTHESIS_SLOT, role: 'fragment'},
+          messages: synthesisMessages(WIRING, SHELL_CATALOG_ID),
+          wiring: WIRING,
+          texts: [],
+        },
+      ],
+    },
+    {
+      taskId: 'synthetic-synthesis-reorder',
+      kind: 'surface-action',
+      prompt: '',
+      action: {
+        name: 'reorder',
+        context: {},
+        surfaceId: SHOP_A,
+        sourceComponentId: 'list',
+        timestamp: '2026-09-04T00:00:00Z',
+      },
+      outcome: 'completed',
+      durationMs: 2200,
+      batches: [
+        // The vendor's own event carries the bump: stale first, data second.
+        {
+          offsetMs: 0,
+          stamp: {
+            source: 'shop-a',
+            slot: 'slot-shop-a',
+            role: 'fragment',
+            generations: {[SHOP_A]: 2},
+          },
+          messages: [
+            msg({
+              updateDataModel: {
+                surfaceId: SHOP_A,
+                path: '/items',
+                value: [...SHOP_A_ITEMS].reverse().map(item => ({...item})),
+              },
+            }),
+          ],
+          texts: [],
+        },
+        // Re-synthesis, inline in the action turn: the same surface, replaced, new wiring.
+        {
+          offsetMs: 2200,
+          stamp: {source: 'shell', slot: SYNTHESIS_SLOT, role: 'fragment'},
+          messages: synthesisMessages(REWIRING, SHELL_CATALOG_ID),
+          wiring: REWIRING,
+          texts: [],
+        },
+      ],
+    },
+  ],
+};
+
 /** Resolve a synthetic beat by the name `?beat=` accepts. */
 export function syntheticBeat(name: string): BeatFixture | undefined {
   switch (name) {
@@ -472,6 +619,8 @@ export function syntheticBeat(name: string): BeatFixture | undefined {
       return COMPOSED_SOLO_BEAT;
     case 'composed-question':
       return COMPOSED_QUESTION_BEAT;
+    case 'synthesis':
+      return SYNTHESIS_BEAT;
     default:
       return undefined;
   }

@@ -17,6 +17,11 @@
  *   composition's whole point is that the layout lands before its agents answer, a shell paint
  *   that opens a composition abandons hold-and-swap for the turn and streams progressively; the
  *   slots then fill in place, and a fragment that fails flips its slot rather than the paint.
+ * - **Synthesis**: the stamp's generations are handed to the synthesis session before the
+ *   event's messages apply, so a bump marks derived cells stale ahead of the data that follows
+ *   it; the wiring riding a synthesis paint is handed over once its surface is live — at apply
+ *   in progressive mode, at the swap in staged mode. Retiring a composition retires its
+ *   synthesis.
  * - **Timeline entries**: a landing stage paint appends its entry with a null snapshot — the
  *   live head. Serialize-on-swap then fills that entry when the surface leaves the canvas,
  *   before its removal from the live processor; intermediates of a multi-surface turn append
@@ -36,7 +41,7 @@
  */
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
 import {A2uiValidationError} from '@a2ui/web_core/v0_9';
-import type {CompositionStamp} from '@a2uiverse/sdk';
+import type {CompositionStamp, SynthesisWiring} from '@a2uiverse/sdk';
 import type {PaintMeta} from '../../a2a/messages';
 import {paintMetaOf, QUESTION_PAINT_KIND} from '../../a2a/messages';
 import {applyA2uiMessages} from '../../a2ui/applyMessages';
@@ -46,6 +51,7 @@ import type {CanvasState, CanvasStore} from '../canvasStore';
 import type {PaintCause} from '../timeline/paint';
 import {describeCause} from '../timeline/paint';
 import {serializeSurface} from '../timeline/snapshotSurface';
+import type {SynthesisIntake} from '../synthesis/synthesisSession';
 import type {TurnProcessor} from './turnMessages';
 import {ROOT_COMPONENT_ID, invalidComponentsOf, questionTitleOf, targetOf} from './turnMessages';
 
@@ -58,9 +64,10 @@ export interface TurnHandle {
   /**
    * Apply one streamed batch — the routing described in the module header. The composition stamp
    * of the event that carried it decides the batch's role: absent or `shell` is a stage paint,
-   * `fragment` fills the slot the stamp names.
+   * `fragment` fills the slot the stamp names. A wiring beside the stamp is the synthesis
+   * paint's, handed to the synthesis session once the surface it describes is live.
    */
-  apply(messages: A2uiMessage[], stamp?: CompositionStamp): void;
+  apply(messages: A2uiMessage[], stamp?: CompositionStamp, wiring?: SynthesisWiring): void;
   /**
    * Accept one paintMeta shell object: the agent-authored title upgrades the in-flight label
    * immediately and lands on the paint's timeline entry; `kind: "question"` is the routing
@@ -93,6 +100,8 @@ export interface TurnRunnerOptions {
    * lifecycle — so it reports and lets the shell repaint say so.
    */
   onFragmentFailure?: (failure: FragmentFailure) => void;
+  /** The synthesis session: fed generations, wirings, and the composition's retirement. */
+  synthesis?: SynthesisIntake;
 }
 
 export interface TurnRunner {
@@ -116,6 +125,7 @@ export function createTurnRunner({
   store,
   createStaging,
   onFragmentFailure,
+  synthesis,
 }: TurnRunnerOptions): TurnRunner {
   let current: TurnHandle | null = null;
 
@@ -184,6 +194,8 @@ export function createTurnRunner({
     store.clearPlacement();
     store.clearPromotions();
     store.setStage(null);
+    // The synthesis belongs to the composition: its wiring, generations and sort go with it.
+    synthesis?.retire();
   };
 
   /** A newer question replaces any pending one — an unanswered question leaves no trace. */
@@ -221,6 +233,8 @@ export function createTurnRunner({
     const claims: Array<{slot: string; surfaceId: string; source: string}> = [];
     /** Staged-mode buffer: the messages replayed into the live processor at swap. */
     const buffered: A2uiMessage[] = [];
+    /** Staged-mode wiring, handed over once its surface reaches the live processor at swap. */
+    let pendingWiring: {surfaceId: string; slot: string; wiring: SynthesisWiring} | undefined;
     let canceled = false;
 
     /** Validation failures held until the settled state can be judged (module header). */
@@ -374,6 +388,18 @@ export function createTurnRunner({
     const opensComposition = (messages: A2uiMessage[], stamp?: CompositionStamp) =>
       stamp?.role === 'shell' && messages.some(m => targetOf(m).kind === 'create');
 
+    /**
+     * The surface a wiring describes: the fragment created in its batch, or the one already
+     * filling the stamp's slot when the paint is a bare update.
+     */
+    const wiringTarget = (messages: A2uiMessage[], stamp: CompositionStamp | undefined) => {
+      const slot = slotOf(stamp);
+      if (!slot) return undefined;
+      const created = messages.map(targetOf).find(t => t.kind === 'create' && t.surfaceId);
+      const surfaceId = created?.surfaceId ?? store.getState().placement.get(slot)?.surfaceId;
+      return surfaceId ? {surfaceId, slot} : undefined;
+    };
+
     const goProgressive = () => {
       stagedMode = false;
       retireStage();
@@ -383,7 +409,11 @@ export function createTurnRunner({
       }
     };
 
-    const applyProgressive = (messages: A2uiMessage[], stamp?: CompositionStamp) => {
+    const applyProgressive = (
+      messages: A2uiMessage[],
+      stamp?: CompositionStamp,
+      wiring?: SynthesisWiring,
+    ) => {
       const slot = slotOf(stamp);
       for (const message of messages) {
         const {kind, surfaceId} = targetOf(message);
@@ -397,6 +427,12 @@ export function createTurnRunner({
       }
       applyA2uiMessages(processor, messages, {onMessageError});
       if (slot) settlePromotion(slot);
+      if (wiring) {
+        // The surface is live: evaluate now, so the first render already carries values.
+        const target = wiringTarget(messages, stamp);
+        if (target && processor.model.getSurface(target.surfaceId))
+          synthesis?.accept(target, wiring);
+      }
       // Single occupancy: the most recently created *stage* surface keeps the stage. Fragments
       // live in the processor only to be mounted through their slots; they never contend for it.
       const ids = Array.from(processor.model.surfacesMap.keys()).filter(
@@ -407,9 +443,18 @@ export function createTurnRunner({
       store.bumpApplied();
     };
 
-    const applyStaged = (messages: A2uiMessage[], stamp?: CompositionStamp) => {
+    const applyStaged = (
+      messages: A2uiMessage[],
+      stamp?: CompositionStamp,
+      wiring?: SynthesisWiring,
+    ) => {
       const slot = slotOf(stamp);
       let touchedLive = false;
+      if (wiring) {
+        // Held until the swap: the surface it describes is streaming off-stage.
+        const target = wiringTarget(messages, stamp);
+        if (target) pendingWiring = {...target, wiring};
+      }
       for (const message of messages) {
         const {kind, surfaceId} = targetOf(message);
         // The turn's own paint: staging shadows live, so a same-id repaint streams off-stage.
@@ -504,6 +549,12 @@ export function createTurnRunner({
         claimSlot(slot, surfaceId, source);
         settlePromotion(slot);
       }
+      // The synthesis surface reached live with the replay: its wiring lands with it.
+      if (pendingWiring && processor.model.getSurface(pendingWiring.surfaceId)) {
+        const {wiring, ...target} = pendingWiring;
+        synthesis?.accept(target, wiring);
+      }
+      pendingWiring = undefined;
       for (const id of stagePaints.slice(0, -1)) retireIntermediate(id);
       if (stagePaints.length > 0) {
         const stageId = stagePaints[stagePaints.length - 1];
@@ -521,8 +572,10 @@ export function createTurnRunner({
       get canceled() {
         return canceled;
       },
-      apply: (messages, stamp) => {
+      apply: (messages, stamp, wiring) => {
         if (canceled) return;
+        // Generations first: a bump marks derived cells stale before the data behind it lands.
+        if (stamp?.generations) synthesis?.noteGenerations(stamp.generations);
         // Replay tolerance: a recorded fixture carries paintMeta objects inline with the
         // A2UI messages (they ride the same recorded batches); route them to the meta
         // acceptor instead of the processor. Live streams deliver metas via acceptPaintMeta.
@@ -540,8 +593,8 @@ export function createTurnRunner({
           if (roster) store.setRoster(roster);
         }
         if (stagedMode && opensComposition(rest, stamp)) goProgressive();
-        if (stagedMode) applyStaged(rest, stamp);
-        else applyProgressive(rest, stamp);
+        if (stagedMode) applyStaged(rest, stamp, wiring);
+        else applyProgressive(rest, stamp, wiring);
       },
       acceptPaintMeta,
       end: () => {

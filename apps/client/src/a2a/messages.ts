@@ -7,8 +7,8 @@ import type {
   Part,
 } from '@a2a-js/sdk';
 import type {A2uiClientAction, A2uiClientDataModel, A2uiMessage} from '@a2ui/web_core/v0_9';
-import type {CompositionStamp} from '@a2uiverse/sdk';
-import {readStamp} from '@a2uiverse/sdk';
+import type {CompositionStamp, SynthesisWiring} from '@a2uiverse/sdk';
+import {readStamp, readWiring} from '@a2uiverse/sdk';
 import {logClientDataModelSize} from './dataModelSize';
 
 /**
@@ -269,6 +269,14 @@ export function extractPaintMetasFromEvent(event: A2AStreamEventData): PaintMeta
  */
 export function extractStampFromEvent(event: A2AStreamEventData): CompositionStamp | undefined {
   return readStamp((event as {metadata?: Record<string, unknown>}).metadata);
+}
+
+/**
+ * The synthesis wiring beside the stamp (`metadata.a2uiverseWiring`), on the one event that
+ * paints the synthesis surface. Envelope-checked here; validated by the synthesis session.
+ */
+export function extractWiringFromEvent(event: A2AStreamEventData): SynthesisWiring | undefined {
+  return readWiring((event as {metadata?: Record<string, unknown>}).metadata);
 }
 
 /** The conversation contextId carried by an A2A stream event, if any. */
