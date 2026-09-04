@@ -121,11 +121,7 @@ function Marker({state}: {state: Exclude<CellState, 'complete'>}) {
   }
 }
 
-/**
- * Catalog entry: the generic binder resolves `cell` to the evaluator's object, then renders.
- * The resolved `DynamicValue` type omits plain objects (the union's object forms are the
- * binding shapes the binder strips), but a path resolves to whatever is at it — hence the hop.
- */
+/** Catalog entry: the generic binder resolves `cell` to the evaluator's object, then renders. */
 export const DerivedValueComponent = createComponentImplementation(DerivedValueApi, ({props}) => (
-  <DerivedValueView cell={props.cell as unknown as CellObject | undefined} format={props.format} />
+  <DerivedValueView cell={props.cell as CellObject | undefined} format={props.format} />
 ));

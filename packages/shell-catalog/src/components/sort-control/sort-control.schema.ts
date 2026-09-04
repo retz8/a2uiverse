@@ -1,5 +1,5 @@
-import {DynamicValueSchema} from '@a2ui/web_core/v0_9';
 import {z} from 'zod';
+import {BindingSchema} from '../../binding.js';
 
 /**
  * Runtime (zod) representation of SortControl, props-only (task-4.3 decision 4).
@@ -10,7 +10,7 @@ import {z} from 'zod';
  */
 export const SortControlApi = {
   name: 'SortControl',
-  schema: z.object({sort: DynamicValueSchema}).strict(),
+  schema: z.object({sort: BindingSchema}).strict(),
 } as const;
 
 export type SortControlProps = z.infer<typeof SortControlApi.schema>;

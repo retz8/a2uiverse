@@ -41,6 +41,12 @@ test('renders nothing usable when the binding has not resolved yet', () => {
   expect(screen.queryByRole('combobox')).toBeNull();
 });
 
+test('sort is binding-only: a literal object is rejected', () => {
+  expect(
+    SortControlApi.schema.safeParse({sort: {field: 'best', direction: 'asc', fields: []}}).success,
+  ).toBe(false);
+});
+
 test('schema binds sort as a dynamic value and rejects extras', () => {
   expect(SortControlApi.schema.safeParse({sort: {path: '/sort'}}).success).toBe(true);
   expect(SortControlApi.schema.safeParse({}).success).toBe(false);

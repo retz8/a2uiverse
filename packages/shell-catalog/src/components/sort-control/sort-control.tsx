@@ -66,12 +66,13 @@ export function SortControlView({
 
 /**
  * Catalog entry: `sort` resolves to the evaluator's object; `setSort` is the binder's two-way
- * write to the same path. The `unknown` hops cover the resolved `DynamicValue` type omitting
- * plain objects — a path resolves to whatever is at it.
+ * write to the same path. Upstream types a setter by the prop union's literal branches, and a
+ * binding-only prop has none — so `setSort` arrives typed `(value: never)` although at runtime
+ * it writes whatever it is given (`_dev/a2ui-findings.md` §4).
  */
 export const SortControlComponent = createComponentImplementation(SortControlApi, ({props}) => (
   <SortControlView
-    sort={props.sort as unknown as SortObject | undefined}
-    onChange={next => props.setSort(next as unknown as Parameters<typeof props.setSort>[0])}
+    sort={props.sort as SortObject | undefined}
+    onChange={(next: SortObject) => props.setSort(next as never)}
   />
 ));

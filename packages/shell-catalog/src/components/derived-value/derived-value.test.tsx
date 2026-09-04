@@ -67,6 +67,14 @@ test('format is fixed configuration: number groups, text stringifies, default is
   expect(screen.getByText('X100')).toBeInTheDocument();
 });
 
+test('cell is binding-only: a path or a call, never a literal', () => {
+  expect(DerivedValueApi.schema.safeParse({cell: 899}).success).toBe(false);
+  expect(DerivedValueApi.schema.safeParse({cell: 'best'}).success).toBe(false);
+  expect(
+    DerivedValueApi.schema.safeParse({cell: {call: 'value', args: {values: [1]}}}).success,
+  ).toBe(true);
+});
+
 test('schema binds cell as a dynamic value and keeps format plain', () => {
   const ok = DerivedValueApi.schema.safeParse({cell: {path: 'best'}, format: usd});
   expect(ok.success).toBe(true);

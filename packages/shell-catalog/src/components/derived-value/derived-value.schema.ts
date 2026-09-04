@@ -1,5 +1,5 @@
-import {DynamicValueSchema} from '@a2ui/web_core/v0_9';
 import {z} from 'zod';
+import {BindingSchema} from '../../binding.js';
 
 /**
  * Runtime (zod) representation of DerivedValue, props-only (task-4.3 decisions 3, 5).
@@ -22,7 +22,7 @@ export const DerivedValueApi = {
   name: 'DerivedValue',
   schema: z
     .object({
-      cell: DynamicValueSchema,
+      cell: BindingSchema,
       format: FormatSchema.optional(),
     })
     .strict(),

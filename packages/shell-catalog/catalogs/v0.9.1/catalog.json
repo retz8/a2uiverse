@@ -879,8 +879,15 @@
           "const": "DerivedValue"
         },
         "cell": {
-          "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/DynamicValue",
-          "description": "Path to the cell: the value with its contributor state, as written by the runtime. Always a path, never a literal."
+          "description": "Path to the cell: the value with its contributor state, as written by the runtime. Always a path, never a literal.",
+          "oneOf": [
+            {
+              "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/DataBinding"
+            },
+            {
+              "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/FunctionCall"
+            }
+          ]
         },
         "format": {
           "type": "object",
@@ -921,8 +928,15 @@
           "const": "SortControl"
         },
         "sort": {
-          "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/DynamicValue",
-          "description": "Path to the sort state: the current field and direction plus the field list, as written by the runtime. Always a path, never a literal."
+          "description": "Path to the sort state: the current field and direction plus the field list, as written by the runtime. Always a path, never a literal.",
+          "oneOf": [
+            {
+              "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/DataBinding"
+            },
+            {
+              "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/FunctionCall"
+            }
+          ]
         }
       },
       "required": ["component", "sort"],
