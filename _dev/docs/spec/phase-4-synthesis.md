@@ -53,9 +53,9 @@ The absent round trip is proven in this phase: the mocks carry a drill-down so r
 
 The orchestrator creates it against the shell catalog and it claims the reserved slot, structurally identical to a vendor fragment. Its data model is the derived model. Painting it touches nothing else, which is §5's "nothing else moves" for free. It is client-held (§11) while the composition that produced it stays orchestrator-canonical: the orchestrator emits the wiring once, the client owns evaluating it until a tier-2 invalidation.
 
-### 8. Planner: the reservation lands, the judgment stays easy
+### 8. Planner: whether and where the synthesis surface goes is the Planner's judgment
 
-The plan schema gains the synthesis reservation and the prompt learns to use it. The slot must exist at first paint (§5 t3), before dispatch, so the mechanism cannot wait. The judgment is thin here because two sibling storefronts always merge; it matures in Phase 5 against a heterogeneous roster, which is a prompt change and not a structural one. Capability gaps stay out entirely.
+The plan schema gains the synthesis slot and the prompt learns to use it. Whether a screen includes a synthesis surface, and where it sits in the layout, is decided by the Planner — a model judgment, not code. The slot must exist at first paint (§5 t3), before dispatch, so the mechanism cannot wait for data. The prompt matures in Phase 5 against a heterogeneous roster, which is a prompt change and not a structural one. Capability gaps stay out entirely.
 
 The Synthesizer's decline (§5.1) is exercised deliberately, via a question whose results do not overlap: the reserved slot collapses and the fragments stand side by side.
 
