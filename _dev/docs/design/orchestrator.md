@@ -21,6 +21,9 @@ Config (env): `PORT` 10001 · `BASE_URL` (card url) · `STATE_DIR` · `A2UIVERSE
 
 `buildOrchestrator` takes injection `overrides` — `{embedder?, planner?, synthesizer?, resolveCard?}` — so tests run with no model download, no model call, no card network.
 
+The synthesis mechanism end to end — both processes, the wire shapes, generations, the client's
+evaluation — is told in [`synthesis.md`](synthesis.md).
+
 ## The turn (M2)
 
 `classifyTurn(userMessage)` routes each incoming client message: `utterance` (text) · `action` (`data.action` with namespaced surfaceId) · `clientError` (`data.error`, e.g. `VALIDATION_FAILED`) · `unknown` (broken turn).

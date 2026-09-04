@@ -1,8 +1,11 @@
 # Client — system design
 
 `apps/client`. The canvas shell (SPEC §4, §10–11): language in, full-screen generative UI out. It
-talks only to the orchestrator. State as of Phase 2 (M1): a composed canvas — one shell surface
-holding slots, each filled by a different vendor's fragment in that vendor's own design system.
+talks only to the orchestrator. State as of Phase 4 (M2): a composed canvas — one shell surface
+holding slots, each filled by a different vendor's fragment in that vendor's own design system —
+plus the merged view: a shell fragment whose data model the client computes from the vendors'
+partitions. The synthesis mechanism end to end, both processes, is told in
+[`synthesis.md`](synthesis.md); this file records the client's classes and flows.
 
 Mechanics of the shell itself (hold-and-swap, timeline, interaction policy) live in
 `apps/client/src/canvas/README.md`. This file records the composition-era design: the classes,
@@ -15,7 +18,7 @@ canvas.tsx ── listCatalogs() ── resolveCatalogs() ── CanvasApp ─�
                   │                    │                              │
           orchestratorApi        catalogs/resolver          store · session · sender
           (catalog records)   (catalogId → catalog+Provider)  live MessageProcessor
-                                                              turn runner
+                                                              turn runner · synthesis session
 ```
 
 One `MessageProcessor` over every installed catalog. Per-surface catalog resolution is stock
@@ -34,6 +37,9 @@ its own.
 | `composition/collisionDetector` | CSS collision rules over the installed catalogs | run from tests only |
 | `composition/roster` | Reads the turn's sources and their display names off the shell paint | `canvasStore` |
 | `components/AmbientNotice` | The notice stack and its two fade clocks | `canvasStore` via `orderedNotices` |
+| `synthesis/synthesisSession` | A composition's synthesis state: the wiring, the data-model subscriptions that re-run the evaluator, the latest generation seen per surface, the user's sort, the last output | fed by `turn/canvasTurn`; reads and writes the live processor's data models; reports an invalid wiring through the fragment-failure channel |
+| `synthesis/bindingEvaluator` | Pure: `evaluate({wiring, models, generations, sort, functions}) → {entities, sort}` — ref resolution, absent-skipping, operator dispatch to the shell catalog, `argmin`/`argmax` mapped to an app id, stale marking, ordering | the shell catalog's `functions` |
+| `synthesis/wiringSchema` | The zod mirror of the sdk's wiring schema, type-pinned both ways, plus the structural checks (known operator, declared sort field, one cell per field) | — |
 
 ### The stamp is the routing input
 
@@ -45,6 +51,29 @@ extracts it and hands it to the turn handle alongside the batch.
   contends for the stage or the timeline.
 - **absent** — a stage paint. Composition is opt-in via the stamp, which is what keeps every
   pre-composition fixture and test valid.
+
+### Synthesis: the stamp carries generations, the paint carries the wiring
+
+The synthesis surface (`shell:synthesis`) arrives as a fragment of the `shell` source in
+`slot-shell`, with the wiring beside the stamp on the same event (`readWiring`). `sendAndApply`
+hands both to the turn handle. The runner feeds the session in a fixed order: the stamp's
+`generations` **before** the event's messages apply, so a bump marks derived cells stale ahead of
+the data behind it; the wiring **once the synthesis surface is live** — at apply in progressive
+mode, at the swap in staged mode, since an action turn's repaint streams into staging.
+
+The session validates the wiring, subscribes to the root of every surface it refs and to `/sort`
+on the synthesis surface (the library data model notifies on any nested write, so one mechanism
+covers vendor updates, two-way edits inside fragments, and the sort control's write-back),
+evaluates, and writes `{entities, sort}` to the synthesis surface in one root write — before
+React renders. Subscription-driven runs coalesce to one microtask, so a vendor batch of several
+data-model messages evaluates once; intake and a generation note run synchronously. Its own write
+is guarded against re-triggering itself, and an unchanged output is not written. Stale is compared on every run (`latest seen ≠ computedAgainst`), never reset. The
+user's sort sticks across a re-synthesis while its field exists; `retireStage` retires the session
+with the composition, so a new utterance turn starts from the wiring's sort.
+
+An invalid wiring reports `VALIDATION_FAILED` for `shell:synthesis` through the same side channel
+a fragment that will not render uses; the hub fails `slot-shell`. A ref into a surface the client
+does not hold is absent at evaluation time, never a rejection.
 
 ### Prose composes through the same stamp
 
@@ -93,7 +122,9 @@ per-dispatch partition filter as stale state.
 ### Timeline
 
 `PaintEntry` carries `fragments` beside its own snapshot — captured at serialize-on-swap, before
-teardown makes them unreachable, and captured unconditionally. A shell-only capture could not
+teardown makes them unreachable, and captured unconditionally. The synthesis surface is one of
+them, frozen with its last evaluated data model: a parked entry carries no wiring and makes no
+subscriptions, so its sort control is inert. A shell-only capture could not
 represent a filled slot at all, because `Slot.state` is orchestrator-painted and only ever
 pending/failed/collapsed. `createParkedSession` rebuilds every surface through the same
 three-message path and restores the placement, so a parked composition renders through the same
@@ -158,3 +189,5 @@ upstream hook under the catalog's own scope class introduces nothing onto the pa
   `lightningcss.errorRecovery` exist because `github-catalog` is the one installed vendor. Neither
   is a shell dependency; both dilute as basic-catalog vendors land.
 - **Two renderer patches** (`patches/@a2ui__react@0.10.2.patch`) — see the client README.
+- **`shell:synthesis` round-trips** in the returned client data model; the orchestrator ignores a
+  derived surface harmlessly.
