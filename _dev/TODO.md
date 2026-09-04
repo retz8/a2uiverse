@@ -98,5 +98,5 @@ Publish a new app → discover → install → compose with an existing one → 
 - Capability-gap terminal state when the marketplace has nothing either — what the capability tile says, whether the reserved slot collapses or stands (Phase 13's grill)
 - Stream the synthesis fragment into its reserved slot (§16 dead-air mitigation)
 - S5 multi-account exercised
-- Calendar's in-place RSVP toggle works in an LLM mode for the first time: the kit's executor used to reject every turn that carried no `createSurface` (fixed in 4.6). It has only ever been exercised deterministically — record a live beat for it
+- Calendar's in-place RSVP toggle works in an LLM mode for the first time: the kit's executor used to reject every turn that carried no `createSurface` (fixed in 4.6). Verified in stub mode — the turn it now accepts is one `validate_surface` still rejects — but only when the prompt asks for an in-place change; unprompted the model paints a fresh RSVP surface. Record a live beat for it, and decide whether the prose should prefer the in-place turn
 - Migrate to A2A 1.0 when `a2ui-agent-sdk` does — client, orchestrator, vendor kit in one move
