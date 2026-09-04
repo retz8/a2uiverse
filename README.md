@@ -63,12 +63,23 @@ pnpm dev:agents --only gmail --mode live # just one
 
 Live mode needs per-agent credentials — each agent's `README` in `a2uiverse-apps` says which, and what it can and cannot do with them.
 
+The launcher has no list of agents in it. It discovers them by reading the `manifest.json` of every directory in the agents dir, so an app scaffolded with `create-a2ui-agent` is launchable without registering it anywhere. `pnpm agents:list` shows what it finds — and, since it is the launcher's own discovery stopped before spawning, what a run would do:
+
+```bash
+pnpm agents:list      # ids, display names, ports, and anything unlaunchable with the reason
+```
+
+A directory with no `manifest.json` is not an agent and is not mentioned. One whose manifest is malformed, or which has no `agent/` half, is named with its reason and skipped — the rest still run. Two agents claiming one port stops the run instead, because the readiness check polls by URL and would report both ready while one process answered for both.
+
+The agents dir is the sibling `a2uiverse-apps` checkout by default; `--agents-dir <path>` or `A2UIVERSE_AGENTS_DIR` point it elsewhere. Every run says which directory it resolved and which of the three said so.
+
 ### Every command
 
 ```bash
 pnpm dev:all          # agents + platform
 pnpm dev              # platform only (client · orchestrator · marketplace)
-pnpm dev:agents       # agents only — `--only <ids>` and `--mode deterministic|stub|live`
+pnpm dev:agents       # agents only — `--only <ids>`, `--mode deterministic|stub|live`, `--agents-dir <path>`
+pnpm agents:list      # what the launcher discovers, and what it would refuse to start
 pnpm dev:client       # one platform process in its own terminal
 pnpm dev:orch
 pnpm dev:marketplace

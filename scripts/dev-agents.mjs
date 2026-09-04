@@ -2,11 +2,16 @@
 /**
  * Launch the vendor agents that live in the sibling `a2uiverse-apps` repo.
  *
- *   pnpm dev:agents [--only github,gmail] [--mode deterministic|stub|live]
+ *   pnpm dev:agents [--only github,gmail] [--mode deterministic|stub|live] [--agents-dir <path>]
+ *   pnpm agents:list
  *
  * Apps are never built in this repo and never depend on it (SPEC §13), so this is the one place
- * that knows how to start them: the table below is the launch contract, and it stays here rather
- * than in each agent until Phase 3 extracts a uniform vendor kit.
+ * that knows how to start them — but it no longer knows *which* they are. Discovery reads the
+ * manifests in the agents dir (see `agents-discovery.mjs`), so a scaffolded app becomes
+ * launchable by existing.
+ *
+ * `--list` is this same path halted before spawn: what it reports is what a run would do, and it
+ * exits non-zero when it reports something that would stop one.
  *
  * The launcher handles no credentials. Each agent loads its own `agent/.env`, and refuses to
  * start rather than degrade when a mode's credential is missing — so an agent that does not come
@@ -23,35 +28,15 @@ import {dirname, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {parseArgs} from 'node:util';
 
+import {MODES, discoverAgents, planRun, resolveAgentsDir} from './agents-discovery.mjs';
+
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-
-/** Where the apps repo is. Overridable so a checkout elsewhere needs no edit here. */
-const APPS_DIR = resolve(
-  process.env.A2UIVERSE_APPS_DIR ?? resolve(REPO_ROOT, '..', 'a2uiverse-apps'),
-);
-
-/**
- * The launch table. `dir` is relative to the apps repo; `port` is the agent's, in every run
- * mode. Modes name the agent's own vocabulary: `deterministic` is the canned A2A server,
- * `stub` the live model over canned tool data, `live` the model over its real MCP endpoint.
- */
-const AGENTS = [
-  {id: 'github', dir: 'github/agent', port: 11001},
-  {id: 'gmail', dir: 'gmail/agent', port: 11002},
-  {id: 'calendar', dir: 'calendar/agent', port: 11003},
-];
-
-const MODES = {
-  deterministic: {module: 'deterministic_agent', env: {}},
-  stub: {module: 'llm_agent', env: {TOOL_BACKEND: 'stub'}},
-  live: {module: 'llm_agent', env: {}},
-};
 
 /** How long to wait for every agent card before starting the platform anyway. */
 const CARD_TIMEOUT_MS = 90_000;
 const CARD_POLL_MS = 500;
 
-const COLORS = ['\x1b[36m', '\x1b[35m', '\x1b[33m'];
+const COLORS = ['\x1b[36m', '\x1b[35m', '\x1b[33m', '\x1b[32m', '\x1b[34m', '\x1b[31m'];
 const RESET = '\x1b[0m';
 
 function fail(message) {
@@ -66,31 +51,32 @@ function parse() {
       mode: {type: 'string', default: 'deterministic'},
       'wait-for-cards': {type: 'boolean', default: false},
       then: {type: 'string'},
+      'agents-dir': {type: 'string'},
+      list: {type: 'boolean', default: false},
     },
     allowPositionals: false,
   });
-  if (!(values.mode in MODES)) {
-    fail(`unknown --mode '${values.mode}' (expected ${Object.keys(MODES).join(' | ')})`);
-  }
-  const wanted = values.only
-    ? values.only
-        .split(',')
-        .map(s => s.trim())
-        .filter(Boolean)
-    : AGENTS.map(a => a.id);
-  const unknown = wanted.filter(id => !AGENTS.some(a => a.id === id));
-  if (unknown.length) {
-    fail(`unknown app id${unknown.length > 1 ? 's' : ''} in --only: ${unknown.join(', ')}`);
+  // The mode→behavior mapping lives in the kit; only the vocabulary is checked here, so a typo
+  // fails now rather than after three agents die and `--wait-for-cards` times out on them.
+  if (!MODES.includes(values.mode)) {
+    fail(`unknown --mode '${values.mode}' (expected ${MODES.join(' | ')})`);
   }
   return {
     mode: values.mode,
-    agents: AGENTS.filter(a => wanted.includes(a.id)),
+    only: values.only
+      ? values.only
+          .split(',')
+          .map(s => s.trim())
+          .filter(Boolean)
+      : null,
     waitForCards: values['wait-for-cards'],
     then: values.then,
+    agentsDir: values['agents-dir'],
+    list: values.list,
   };
 }
 
-/** Prefix every line so three interleaved agents stay readable. */
+/** Prefix every line so interleaved agents stay readable. */
 function pipe(stream, prefix, sink) {
   let held = '';
   stream.setEncoding('utf8');
@@ -105,15 +91,25 @@ function pipe(stream, prefix, sink) {
 }
 
 function start(agent, mode, color) {
-  const cwd = resolve(APPS_DIR, agent.dir);
-  if (!existsSync(cwd)) fail(`no agent at ${cwd} — is A2UIVERSE_APPS_DIR right?`);
-  const {module, env} = MODES[mode];
-  const child = spawn('uv', ['run', 'python', '-m', module, '--host', 'localhost'], {
-    cwd,
-    env: {...process.env, ...env},
-    stdio: ['ignore', 'pipe', 'pipe'],
-  });
-  const prefix = `${color}[${agent.id}]${RESET}`;
+  // The port comes from the manifest rather than the agent's own default, so the card the
+  // launcher polls and the port the agent binds cannot disagree.
+  const child = spawn(
+    'uv',
+    [
+      'run',
+      'python',
+      '-m',
+      'app',
+      '--mode',
+      mode,
+      '--host',
+      'localhost',
+      '--port',
+      String(agent.port),
+    ],
+    {cwd: agent.agentDir, stdio: ['ignore', 'pipe', 'pipe']},
+  );
+  const prefix = `${color}[${agent.name}]${RESET}`;
   pipe(child.stdout, prefix, process.stdout);
   pipe(child.stderr, prefix, process.stderr);
   child.on('error', err => {
@@ -127,9 +123,9 @@ function start(agent, mode, color) {
   return {agent, child};
 }
 
-async function cardAnswers(port) {
+async function cardAnswers(url) {
   try {
-    const res = await fetch(`http://localhost:${port}/.well-known/agent-card.json`, {
+    const res = await fetch(new URL('/.well-known/agent-card.json', url), {
       signal: AbortSignal.timeout(2_000),
     });
     return res.ok;
@@ -141,13 +137,13 @@ async function cardAnswers(port) {
 /** Poll until every agent's card answers; return the ones that never did. */
 async function waitForCards(running) {
   const deadline = Date.now() + CARD_TIMEOUT_MS;
-  const pending = new Map(running.map(r => [r.agent.id, r.agent]));
+  const pending = new Map(running.map(r => [r.agent.name, r.agent]));
   console.error(`dev:agents — waiting for ${pending.size} agent card(s)…`);
   while (pending.size > 0 && Date.now() < deadline) {
-    for (const [id, agent] of [...pending]) {
-      if (await cardAnswers(agent.port)) {
-        pending.delete(id);
-        console.error(`dev:agents — ${id} ready on ${agent.port}`);
+    for (const [name, agent] of [...pending]) {
+      if (await cardAnswers(agent.url)) {
+        pending.delete(name);
+        console.error(`dev:agents — ${name} ready on ${agent.port}`);
       }
     }
     if (pending.size > 0) await new Promise(r => setTimeout(r, CARD_POLL_MS));
@@ -155,13 +151,56 @@ async function waitForCards(running) {
   return [...pending.keys()];
 }
 
-async function main() {
-  const {mode, agents, waitForCards: gate, then} = parse();
-  if (!existsSync(APPS_DIR)) {
-    fail(`apps repo not found at ${APPS_DIR}. Set A2UIVERSE_APPS_DIR to its checkout.`);
+function printListing({dir, source}, {agents, skipped}, fatal) {
+  console.log(`agents dir: ${dir} (${source})`);
+  const rows = [
+    ...agents.map(a => [a.name, a.displayName, String(a.port), 'ok']),
+    ...skipped.map(s => [s.name, '—', '—', `skipped: ${s.reason}`]),
+  ];
+  if (!rows.length) console.log('  no agents found');
+  const width = n => Math.max(...rows.map(r => r[n].length), 0);
+  const [w0, w1, w2] = [width(0), width(1), width(2)];
+  for (const [name, display, port, status] of rows) {
+    console.log(`  ${name.padEnd(w0)}  ${display.padEnd(w1)}  ${port.padStart(w2)}  ${status}`);
   }
-  console.error(`dev:agents — ${agents.map(a => a.id).join(', ')} in ${mode} mode`);
-  const running = agents.map((agent, i) => start(agent, mode, COLORS[i % COLORS.length]));
+  for (const problem of fatal) console.log(`fatal: ${problem}`);
+}
+
+async function main() {
+  const {mode, only, waitForCards: gate, then, agentsDir, list} = parse();
+
+  const resolved = resolveAgentsDir({
+    flag: agentsDir,
+    env: process.env.A2UIVERSE_AGENTS_DIR,
+    repoRoot: REPO_ROOT,
+  });
+  if (!existsSync(resolved.dir)) {
+    fail(
+      `agents dir not found at ${resolved.dir} (${resolved.source}). ` +
+        'Pass --agents-dir or set A2UIVERSE_AGENTS_DIR to the a2uiverse-apps checkout.',
+    );
+  }
+
+  const discovery = discoverAgents(resolved.dir);
+  const {selected, skipped, fatal} = planRun(discovery, only);
+
+  if (list) {
+    printListing(resolved, discovery, fatal);
+    process.exit(fatal.length ? 2 : 0);
+  }
+
+  console.error(`dev:agents — agents dir ${resolved.dir} (${resolved.source})`);
+  for (const candidate of skipped) {
+    console.error(`dev:agents — skipping ${candidate.name}: ${candidate.reason}`);
+  }
+  if (fatal.length) {
+    for (const problem of fatal) console.error(`dev:agents — ${problem}`);
+    process.exit(2);
+  }
+  if (!selected.length) fail('no launchable agents found');
+
+  console.error(`dev:agents — ${selected.map(a => a.name).join(', ')} in ${mode} mode`);
+  const running = selected.map((agent, i) => start(agent, mode, COLORS[i % COLORS.length]));
 
   /** Ctrl-C tears the whole group down — the agents, and the platform if we started it. */
   let platform = null;
