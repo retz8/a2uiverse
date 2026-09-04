@@ -870,6 +870,63 @@
       },
       "required": ["component", "direction", "children"],
       "unevaluatedProperties": false
+    },
+    "DerivedValue": {
+      "type": "object",
+      "description": "A value computed across sources on a merged surface, shown together with how many sources contributed. Bind every cell of a synthesized entity through this component; it marks a value that is partial, absent, or awaiting recomputation so it never reads as complete.",
+      "properties": {
+        "component": {
+          "const": "DerivedValue"
+        },
+        "cell": {
+          "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/DynamicValue",
+          "description": "Path to the cell: the value with its contributor state, as written by the runtime. Always a path, never a literal."
+        },
+        "format": {
+          "type": "object",
+          "description": "How to render the value. Fixed; not data-bound.",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": ["text", "number", "currency"],
+              "description": "text shows the value as is; number groups digits; currency formats a number in the given currency."
+            },
+            "currency": {
+              "type": "string",
+              "description": "ISO 4217 code, required when kind is currency."
+            }
+          },
+          "required": ["kind"],
+          "additionalProperties": false,
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "currency"
+              }
+            }
+          },
+          "then": {
+            "required": ["kind", "currency"]
+          }
+        }
+      },
+      "required": ["component", "cell"],
+      "additionalProperties": false
+    },
+    "SortControl": {
+      "type": "object",
+      "description": "Shows which field a merged surface is sorted by and lets the user change the field and direction. Place one on a synthesized surface; its options come from the runtime, not from you.",
+      "properties": {
+        "component": {
+          "const": "SortControl"
+        },
+        "sort": {
+          "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/DynamicValue",
+          "description": "Path to the sort state: the current field and direction plus the field list, as written by the runtime. Always a path, never a literal."
+        }
+      },
+      "required": ["component", "sort"],
+      "additionalProperties": false
     }
   },
   "functions": {
@@ -1636,6 +1693,12 @@
         },
         {
           "$ref": "#/components/Attribution"
+        },
+        {
+          "$ref": "#/components/DerivedValue"
+        },
+        {
+          "$ref": "#/components/SortControl"
         }
       ],
       "discriminator": {

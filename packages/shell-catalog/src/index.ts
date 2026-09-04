@@ -1,5 +1,5 @@
 /** @a2uiverse/shell-catalog — the shell's paint vocabulary: basic catalog + composition primitives. */
-export {CATALOG} from './catalog.js';
+export {CATALOG, OPERATORS, type Operator} from './catalog.js';
 export {CATALOG_ID} from './catalog-id.js';
 export {Provider, SHELL_TOKENS} from './provider.js';
 export {SlotContentContext, type SlotContentResolver} from './slot-content.js';
@@ -10,3 +10,18 @@ export {
   AttributionView,
   type AttributionProps,
 } from './components/attribution/index.js';
+export {
+  type CellObject,
+  type CellState,
+  cellState,
+  DerivedValueApi,
+  type DerivedValueProps,
+  DerivedValueView,
+  type Format,
+} from './components/derived-value/index.js';
+export {
+  SortControlApi,
+  type SortControlProps,
+  SortControlView,
+  type SortObject,
+} from './components/sort-control/index.js';

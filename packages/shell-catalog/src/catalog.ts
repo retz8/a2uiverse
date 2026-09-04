@@ -4,6 +4,8 @@ import {CATALOG_ID} from './catalog-id.js';
 import {SlotComponent} from './components/slot/index.js';
 import {AttributionComponent} from './components/attribution/index.js';
 import {FrameComponent} from './components/frame/index.js';
+import {DerivedValueComponent} from './components/derived-value/index.js';
+import {SortControlComponent} from './components/sort-control/index.js';
 import {operatorFunctions} from './functions/operators.js';
 
 export {OPERATORS, type Operator} from './functions/operators.js';
@@ -15,6 +17,13 @@ export {OPERATORS, type Operator} from './functions/operators.js';
  */
 export const CATALOG = new Catalog<ReactComponentImplementation>(
   CATALOG_ID,
-  [...basicCatalog.components.values(), SlotComponent, AttributionComponent, FrameComponent],
+  [
+    ...basicCatalog.components.values(),
+    SlotComponent,
+    AttributionComponent,
+    FrameComponent,
+    DerivedValueComponent,
+    SortControlComponent,
+  ],
   [...basicCatalog.functions.values(), ...operatorFunctions],
 );
