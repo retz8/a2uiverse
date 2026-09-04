@@ -36,6 +36,37 @@ export function synthesisRepaintParts(wiring: SynthesisWiring): Part[] {
   return synthesisParts(wiring);
 }
 
+/**
+ * The shell's own words in the synthesis slot: a decline's reason, stamped as the synthesis
+ * fragment so the client buckets it under the shell and the collapsed slot rests on it (task
+ * 4.8). No wiring rides beside this stamp — nothing was synthesized.
+ */
+export function synthesisProseEnvelope(
+  ctx: {taskId: string; contextId: string},
+  text: string,
+): TaskStatusUpdateEvent {
+  return {
+    kind: 'status-update',
+    taskId: ctx.taskId,
+    contextId: ctx.contextId,
+    final: false,
+    status: {
+      state: 'working',
+      message: {
+        kind: 'message',
+        messageId: randomUUID(),
+        role: 'agent',
+        parts: [{kind: 'text', text}],
+        contextId: ctx.contextId,
+        taskId: ctx.taskId,
+      },
+    },
+    metadata: {
+      [STAMP_KEY]: {source: SHELL_SOURCE_ID, slot: slotNameFor(SHELL_SOURCE_ID), role: 'fragment'},
+    },
+  };
+}
+
 /** The paint envelope: a fragment of the shell claiming the synthesis slot, with the wiring beside the stamp. */
 export function synthesisEnvelope(
   ctx: {taskId: string; contextId: string},

@@ -10,7 +10,11 @@ import {slotNameFor} from './composition/constants.js';
 import {composeFragment, withGenerations} from './composition/fragmentRelay.js';
 import {checkWiring} from './composition/integrity.js';
 import {A2UI_CLIENT_DATA_MODEL_KEY} from './composition/partition.js';
-import {synthesisEnvelope, synthesisParts} from './composition/synthesisPainter.js';
+import {
+  synthesisEnvelope,
+  synthesisParts,
+  synthesisProseEnvelope,
+} from './composition/synthesisPainter.js';
 import {vendorMetadata} from './composition/partition.js';
 import {shellCreateParts, shellEnvelope, shellRepaintParts} from './composition/shellPainter.js';
 import {
@@ -226,6 +230,9 @@ export class OrchestratorExecutor implements AgentExecutor {
       reason?: string,
     ) => {
       state.wiring = undefined;
+      // A decline is the Synthesizer's own judgment in its own words; the collapsed slot rests
+      // on them rather than folding away unexplained. The other outcomes are the runtime's.
+      if (outcome === 'declined' && reason) bus.publish(synthesisProseEnvelope(ctx, reason));
       if (slot.state !== 'collapsed') {
         slot.state = 'collapsed';
         bus.publish(shellEnvelope(ctx, shellRepaintParts(state)));

@@ -7,7 +7,7 @@ Produce either a synthesis or a decline:
 - List "entities": one per real-world thing that appears across the sources — the same product, the same person, the same event. Putting two sources' paths in one entity is your assertion that they are the same thing. Each entity has exactly one cell per field, in field order.
 - A cell is one operator applied to refs. A ref is {"surface", "pointer"}: the surface id exactly as given, and an RFC 6901 JSON pointer into that source's data (index-based, e.g. "/items/3/price"). Only use pointers that exist in the data shown. Use the pass-through operator for a cell that shows one source's value as is; use aggregates across sources for comparisons. Only the operators listed are available.
 - Choose "sort": a declared field and a direction that best serves the request.
-- Decline (declined: true, with a reason) when nothing across the sources refers to the same things — the merged view is then not painted. The merged view exists to join: if no entity would take refs from at least two sources — each source answered with prose about itself, or with lists that share nothing — decline rather than lay the answers out one row per source.`;
+- An entity is one thing that several sources answered about. A row drawn from a single source is that source's own answer laid out again, not a merge. Decline (declined: true, with a reason) when the sources give you nothing to merge — the merged view is then not painted.`;
 
 /** The user-turn content: the Planner's request, the sources' data, the operators. */
 export function synthesizerPrompt(input: SynthesisInput): string {

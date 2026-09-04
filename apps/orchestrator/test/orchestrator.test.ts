@@ -589,6 +589,22 @@ describe('synthesis (task 4.4)', () => {
     const events = await collect(client, utterance('compare'));
     expect(wiringEvents(events)).toHaveLength(0);
     expect(slotStates(shellPaints(events).at(-1)!)['slot-shell']).toBe('collapsed');
+    // The reason reaches the canvas as the shell's words in the synthesis slot, before the collapse.
+    const spoken = events.findIndex(
+      e =>
+        e.kind === 'status-update' &&
+        e.status.message?.parts.some(p => p.kind === 'text' && p.text === 'nothing joinable'),
+    );
+    expect(spoken).toBeGreaterThanOrEqual(0);
+    expect(stampOf(events[spoken])).toEqual({
+      source: 'shell',
+      slot: 'slot-shell',
+      role: 'fragment',
+    });
+    const collapsedAt = events.findIndex(
+      e => stampOf(e)?.role === 'shell' && slotStates(a2uiDatas(e))['slot-shell'] === 'collapsed',
+    );
+    expect(collapsedAt).toBeGreaterThan(spoken);
     const [line] = await journalLines(1);
     expect(line.synthesis).toMatchObject({outcome: 'declined', reason: 'nothing joinable'});
   });
