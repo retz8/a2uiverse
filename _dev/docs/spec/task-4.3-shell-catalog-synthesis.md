@@ -59,7 +59,7 @@ Complete is the bare value. Partial, absent, and stale each carry a small marker
 
 ## Invariants
 
-- **Every shell composition primitive on the synthesis surface takes one binding to one object the evaluator owns.** The model places it with one path and cannot half-wire it.
+- **Every shell composition primitive on the synthesis surface takes one binding to one object the evaluator owns.** The model places it with one path and cannot half-wire it. The prop is *binding-only* — a path or a call, no literal branch — so a literal is a schema violation, not a description's plea.
 - **The catalog file stays protocol-clean.** Functions and components are ordinary catalog entries; the delta is what they are applied to (4.2's ref) and the operator list in TypeScript.
 - **The rule that a formula cell renders only through the derived-value component is the orchestrator's to enforce (4.4); this task makes it checkable by existing.**
 

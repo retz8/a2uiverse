@@ -43,15 +43,15 @@ L3 is ruled out permanently. Anything L3 would have served is served by the synt
 
 The spec carries all of these. Sorted by the kind of join the shell performs.
 
-| # | Join | Scenario | Synthesis |
-|---|---|---|---|
-| S1 | Shared time axis | **Temporal merge** — Calendar + Mail + GitHub → one timeline; ops incident on one axis | merge / sort keys, counts |
-| S2 | Same real-world entity | **Entity join** — a camera across B&H, Amazon, KEH: merged price/availability row, each vendor's native widget preserved alongside | entity resolution + summary row |
-| S3 | Semantic equivalence | **Juxtaposition** — two agents on one question, agreement map | disagreement detection |
-| S4 | Task spine | **Multi-step job** across tools, persistent spine | sequential; mostly layout-only |
-| S5 | Same catalog, different instances | **Multi-account** — N accounts of one app, merged | trivial; identical shapes |
-| S6 | None | **Long tail** — small agents nobody would ever aggregate; the aggregator is generated per request instead of incorporated as a company | — |
-| S7 | None | **Parallel independent tasks** — unrelated agents side by side | none; layout-only |
+| #   | Join                              | Scenario                                                                                                                               | Synthesis                       |
+| --- | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------- |
+| S1  | Shared time axis                  | **Temporal merge** — Calendar + Mail + GitHub → one timeline; ops incident on one axis                                                 | merge / sort keys, counts       |
+| S2  | Same real-world entity            | **Entity join** — a camera across B&H, Amazon, KEH: merged price/availability row, each vendor's native widget preserved alongside     | entity resolution + summary row |
+| S3  | Semantic equivalence              | **Juxtaposition** — two agents on one question, agreement map                                                                          | disagreement detection          |
+| S4  | Task spine                        | **Multi-step job** across tools, persistent spine                                                                                      | sequential; mostly layout-only  |
+| S5  | Same catalog, different instances | **Multi-account** — N accounts of one app, merged                                                                                      | trivial; identical shapes       |
+| S6  | None                              | **Long tail** — small agents nobody would ever aggregate; the aggregator is generated per request instead of incorporated as a company | —                               |
+| S7  | None                              | **Parallel independent tasks** — unrelated agents side by side                                                                         | none; layout-only               |
 
 - **Architectural target:** S2 entity join — the only scenario that requires fragment graft.
 - **Proving milestone:** S1 temporal merge, over GitHub · Gmail · Google Calendar.
@@ -184,11 +184,11 @@ A **Composition** is a durable object that outlives the turn that created it: sl
 
 ### 6.1 Invalidation tiers
 
-| Tier | Trigger | Cost |
-|---|---|---|
-| 1 | repaint, all bindings still valid | re-evaluate arithmetic only |
-| 2 | bindings broke, or a source joined/left | re-synthesize affected bindings |
-| 3 | slot set changed, palette refinement, refresh | re-plan |
+| Tier | Trigger                                       | Cost                            |
+| ---- | --------------------------------------------- | ------------------------------- |
+| 1    | repaint, all bindings still valid             | re-evaluate arithmetic only     |
+| 2    | bindings broke, or a source joined/left       | re-synthesize affected bindings |
+| 3    | slot set changed, palette refinement, refresh | re-plan                         |
 
 ### 6.2 Binding validity
 
@@ -199,7 +199,7 @@ Per binding, not per partition:
 
 Key-based refs are an optimization the Synthesizer uses when the observed data offers a stable key. They cannot be required of vendors. Generation stamps are the correctness floor.
 
-**Absent is not invalid.** A ref whose path no longer resolves is **absent**: free, reversible, recomputed around — formulas skip it and carry their contributor count. A ref whose path still resolves but may now point at a *different entity* is **invalid**: the correctness hazard, and the only state that forces re-synthesis. A partition's generation bumps when a ref could be silently re-pointed — an array a live ref indexes into is mutated in place — not merely because the partition's data changed. Conflating the two makes §6.3's local degradation unimplementable, since every in-fragment navigation would cost a model call.
+**Absent is not invalid.** A ref whose path no longer resolves is **absent**: free, reversible, recomputed around — formulas skip it and carry their contributor count. A ref whose path still resolves but may now point at a _different entity_ is **invalid**: the correctness hazard, and the only state that forces re-synthesis. A partition's generation bumps when a ref could be silently re-pointed — an array a live ref indexes into is mutated in place — not merely because the partition's data changed. Conflating the two makes §6.3's local degradation unimplementable, since every in-fragment navigation would cost a model call.
 
 Where only index-based refs are in play, per-binding validity collapses to per-partition validity: two refs into one partition cannot disagree. The interface stays per-binding; key resolution is the second answer path behind it.
 
@@ -218,12 +218,12 @@ A past composite is **frozen**: re-hydrated from stored state, no dispatch, stam
 
 ## 7. Interaction routing
 
-| Where | Routes to | Cost |
-|---|---|---|
-| Inside a vendor fragment | that agent, on its channel, with its credential | one agent call |
-| On the synthesis surface, operating on the composition (sort, filter, hide/add source, "compare these") | shell | free |
-| On a shell-painted cell referring to a vendor's entity | **navigate**: focus the originating subtree in that fragment | free |
-| Palette | orchestrator | a turn |
+| Where                                                                                                   | Routes to                                                    | Cost           |
+| ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ | -------------- |
+| Inside a vendor fragment                                                                                | that agent, on its channel, with its credential              | one agent call |
+| On the synthesis surface, operating on the composition (sort, filter, hide/add source, "compare these") | shell                                                        | free           |
+| On a shell-painted cell referring to a vendor's entity                                                  | **navigate**: focus the originating subtree in that fragment | free           |
+| Palette                                                                                                 | orchestrator                                                 | a turn         |
 
 - Pre-synthesis, fragment interaction costs nothing beyond the agent call: no bindings exist yet.
 - A fragment interaction never propagates sideways. Filtering one vendor does not filter another.
@@ -321,20 +321,20 @@ CLIENT (canvas shell)                        ORCHESTRATOR (A2A agent server)
                                                AUTHVAULT · REGISTRY · INTENTJOURNAL
 ```
 
-| Component | Kind | Responsibility |
-|---|---|---|
-| **Router** | ▪ | Embedding retrieval over AgentCard skill descriptions/examples. One class, two indexes (local registry, marketplace). |
-| **Planner** | ◆ | Intent + candidate cards → plan: dispatch list, layout tree with named slots, synthesis slot or not, capability gaps. Never sees data. |
-| **Synthesizer** | ◆ | All partitions (names and values) → entity resolution, derived bindings, synthesis tree, sort criterion. May decline. Emits wiring, never values. |
-| **AgentsPool** | ▪ | A2A connections. Dispatch unit `(endpoint, credential)`. Parallelism, per-source deadlines, quiescence. |
-| **UIComposer** | ▪ | Mechanical tree assembly: namespace, mount, catalog scope, provenance + attribution, subtree replacement. Understands nothing. |
-| **BindingEvaluator** | ▪ | Spreadsheet/signals semantics over derived formulas. Every local change, zero model cost. |
-| **IntegrityChecker** | ▪ | Per-binding validity (key resolution / generation). Gates whether the Synthesizer runs. |
-| **Validator** | ▪ | Agent trees against their declared catalog; LLM output against its schema. |
-| **AuthVault** | ▪ | Credentials by `(app, account)`. Triggers consent; never paints it. |
-| **Registry** | ▪ | Installed bundles — the orchestrator's local state, written only by the orchestrator. Serves the orchestrator's AgentCard. |
-| **IntentJournal** | ▪ | Per turn: free-form intent descriptor + embedding. The thin machine-facing projection is left unbuilt. |
-| **Composition** | state | §6. |
+| Component            | Kind  | Responsibility                                                                                                                                    |
+| -------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Router**           | ▪     | Embedding retrieval over AgentCard skill descriptions/examples. One class, two indexes (local registry, marketplace).                             |
+| **Planner**          | ◆     | Intent + candidate cards → plan: dispatch list, layout tree with named slots, synthesis slot or not, capability gaps. Never sees data.            |
+| **Synthesizer**      | ◆     | All partitions (names and values) → entity resolution, derived bindings, synthesis tree, sort criterion. May decline. Emits wiring, never values. |
+| **AgentsPool**       | ▪     | A2A connections. Dispatch unit `(endpoint, credential)`. Parallelism, per-source deadlines, quiescence.                                           |
+| **UIComposer**       | ▪     | Mechanical tree assembly: namespace, mount, catalog scope, provenance + attribution, subtree replacement. Understands nothing.                    |
+| **BindingEvaluator** | ▪     | Spreadsheet/signals semantics over derived formulas. Every local change, zero model cost.                                                         |
+| **IntegrityChecker** | ▪     | Per-binding validity (key resolution / generation). Gates whether the Synthesizer runs.                                                           |
+| **Validator**        | ▪     | Agent trees against their declared catalog; LLM output against its schema.                                                                        |
+| **AuthVault**        | ▪     | Credentials by `(app, account)`. Triggers consent; never paints it.                                                                               |
+| **Registry**         | ▪     | Installed bundles — the orchestrator's local state, written only by the orchestrator. Serves the orchestrator's AgentCard.                        |
+| **IntentJournal**    | ▪     | Per turn: free-form intent descriptor + embedding. The thin machine-facing projection is left unbuilt.                                            |
+| **Composition**      | state | §6.                                                                                                                                               |
 
 A registry entry is the bundle record (§9.1). The client holds only its projection — `catalogId → catalog implementation` — reached through **`orchestratorApi`**, the client's non-A2A channel to the orchestrator: a static map until M7, served by the orchestrator once install exists, IPC under a native shell. Install is an orchestrator operation; the Store page is its UI.
 
@@ -427,42 +427,43 @@ Constraint protected throughout: **an existing A2UI agent composes with zero cha
 
 ### Protocol delta register (seed)
 
-| Delta | Tag |
-|---|---|
-| Auth-required state carrying scheme + scope delta | upstream candidate |
-| Cross-partition qualified refs `ref(source, path)` in bindings | upstream candidate |
-| Path predicates (key-based refs) in the formula vocabulary | upstream candidate |
-| Arithmetic and aggregate functions (`min`, `max`, `sum`, …) in the shell catalog | local convention — the upstream basic catalog *schema* declares validators, formatters and boolean logic (`and`/`or`/`not`) only; its React *implementation* ships binary arithmetic and comparison (`add`, `subtract`, `greater_than`, …) undeclared; neither has aggregates. Declared as catalog `FunctionDefinition`s, executed in the BindingEvaluator. Flat: one operator over N refs, no nesting — a recursive grammar is not expressible as structured output. Aggregates skip absent inputs and carry their contributor count |
-| Synthesis wiring (the derived data model — entities, refs, formulas, sort criterion) on A2A message metadata | upstream candidate — the same shape as surface placement above: composition rides the envelope, the A2UI the shell paints stays standard. Resolved client-side before render, so no renderer or component understands a ref |
-| A formula-bound cell must render through the shell's derived-value component | normative review rule — the synthesis tree is model-authored, so the guarantee that a partial value never renders as a complete one cannot live in the tree. The `Attribution` pattern (§4.3) applied to values rather than fragments |
-| Partitioned data model on a shared surface (agents address paths as root; shell namespaces) — enforced at the hub as the outbound partition filter | upstream candidate — prior art: the upstream orchestrator sample strips `a2uiClientDataModel.surfaces` to the target agent's own surfaces via a client interceptor (§18); ours generalizes surface → partition |
-| Surface placement (`surface → slot`) on A2A event metadata | upstream candidate |
-| surfaceId namespacing `<appId>:<surfaceId>` at the hub, reversed on inbound actions | local convention |
-| Vendor terminal states demoted to non-final `working` on relay; the hub emits the turn's single final | local convention — several vendor tasks resolve onto one client task under fan-out, so relaying a vendor's final would end the turn at the first agent to answer |
-| Unsuppressable attribution on a grafted fragment | local convention |
-| `ChoicePicker` document-global radio group name in `@a2ui/react` (patched locally) | upstream bug report — `_dev/a2ui-findings.md` |
-| Unsatisfiable `catalogId` clause in `server_to_client.json` prose | upstream bug report — `_dev/a2ui-findings.md` |
-| Scoped per-catalog stylesheet layer — a catalog bundle ships CSS styling the basic components' runtime DOM under its own scope class | local convention |
-| Dead CSS-module class maps in `@a2ui/react` `v0_9` basic catalog (classless Button/variants, unshipped `index.css`) | upstream bug report — `_dev/a2ui-findings.md` |
-| `paintMeta` — a per-paint shell object (`{surfaceId, title?, kind?}`) riding the A2A stream as a dedicated data part marked `application/json+a2ui-shell`, emitted ahead of the `createSurface` it names; carries the agent-authored paint title and the declared question marker | local convention — the agent kit's one shell convention (§13). Optional and degradable: absent, titles fall back to cause-derived and question surfaces paint as ordinary surfaces, so an unmodified A2UI agent still composes. Sits beside A2UI, never inside it: the A2UI extractor never takes a `paintMeta` part |
-| Credential components barred from all catalogs | normative review rule |
-| One provider and one CSS setup per catalog bundle, scoped to the fragment boundary (§9.2) | normative review rule |
-| `sendDataModel`, multi-catalog `MessageProcessor`, `catalogId` scoping | already in protocol — no delta |
+| Delta                                                                                                                                                                                                                                                                             | Tag                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Auth-required state carrying scheme + scope delta                                                                                                                                                                                                                                 | upstream candidate                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| Cross-partition qualified refs `ref(source, path)` in bindings                                                                                                                                                                                                                    | upstream candidate                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| Path predicates (key-based refs) in the formula vocabulary                                                                                                                                                                                                                        | upstream candidate                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| Arithmetic and aggregate functions (`min`, `max`, `sum`, …) in the shell catalog                                                                                                                                                                                                  | local convention — the upstream basic catalog _schema_ declares validators, formatters and boolean logic (`and`/`or`/`not`) only; its React _implementation_ ships binary arithmetic and comparison (`add`, `subtract`, `greater_than`, …) undeclared; neither has aggregates. Declared as catalog `FunctionDefinition`s, executed in the BindingEvaluator. Flat: one operator over N refs, no nesting — a recursive grammar is not expressible as structured output. Aggregates skip absent inputs and carry their contributor count |
+| Synthesis wiring (the derived data model — entities, refs, formulas, sort criterion) on A2A message metadata                                                                                                                                                                      | upstream candidate — the same shape as surface placement above: composition rides the envelope, the A2UI the shell paints stays standard. Resolved client-side before render, so no renderer or component understands a ref                                                                                                                                                                                                                                                                                                           |
+| A formula-bound cell must render through the shell's derived-value component                                                                                                                                                                                                      | normative review rule — the synthesis tree is model-authored, so the guarantee that a partial value never renders as a complete one cannot live in the tree. The `Attribution` pattern (§4.3) applied to values rather than fragments                                                                                                                                                                                                                                                                                                 |
+| Partitioned data model on a shared surface (agents address paths as root; shell namespaces) — enforced at the hub as the outbound partition filter                                                                                                                                | upstream candidate — prior art: the upstream orchestrator sample strips `a2uiClientDataModel.surfaces` to the target agent's own surfaces via a client interceptor (§18); ours generalizes surface → partition                                                                                                                                                                                                                                                                                                                        |
+| Surface placement (`surface → slot`) on A2A event metadata                                                                                                                                                                                                                        | upstream candidate                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| surfaceId namespacing `<appId>:<surfaceId>` at the hub, reversed on inbound actions                                                                                                                                                                                               | local convention                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| Vendor terminal states demoted to non-final `working` on relay; the hub emits the turn's single final                                                                                                                                                                             | local convention — several vendor tasks resolve onto one client task under fan-out, so relaying a vendor's final would end the turn at the first agent to answer                                                                                                                                                                                                                                                                                                                                                                      |
+| Unsuppressable attribution on a grafted fragment                                                                                                                                                                                                                                  | local convention                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| `ChoicePicker` document-global radio group name in `@a2ui/react` (patched locally)                                                                                                                                                                                                | upstream bug report — `_dev/a2ui-findings.md`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| Unsatisfiable `catalogId` clause in `server_to_client.json` prose                                                                                                                                                                                                                 | upstream bug report — `_dev/a2ui-findings.md`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| Scoped per-catalog stylesheet layer — a catalog bundle ships CSS styling the basic components' runtime DOM under its own scope class                                                                                                                                              | local convention                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| Dead CSS-module class maps in `@a2ui/react` `v0_9` basic catalog (classless Button/variants, unshipped `index.css`)                                                                                                                                                               | upstream bug report — `_dev/a2ui-findings.md`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| Bound `DynamicValue` props and their generated setters typed by the union's literal branches in `@a2ui/web_core`'s generic binder                                                                                                                                                 | upstream bug report — `_dev/a2ui-findings.md`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `paintMeta` — a per-paint shell object (`{surfaceId, title?, kind?}`) riding the A2A stream as a dedicated data part marked `application/json+a2ui-shell`, emitted ahead of the `createSurface` it names; carries the agent-authored paint title and the declared question marker | local convention — the agent kit's one shell convention (§13). Optional and degradable: absent, titles fall back to cause-derived and question surfaces paint as ordinary surfaces, so an unmodified A2UI agent still composes. Sits beside A2UI, never inside it: the A2UI extractor never takes a `paintMeta` part                                                                                                                                                                                                                  |
+| Credential components barred from all catalogs                                                                                                                                                                                                                                    | normative review rule                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| One provider and one CSS setup per catalog bundle, scoped to the fragment boundary (§9.2)                                                                                                                                                                                         | normative review rule                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| `sendDataModel`, multi-catalog `MessageProcessor`, `catalogId` scoping                                                                                                                                                                                                            | already in protocol — no delta                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 
-Every future deviation is added here, tagged *local convention* or *upstream candidate*.
+Every future deviation is added here, tagged _local convention_ or _upstream candidate_.
 
 ---
 
 ## 15. Reused vs. new
 
-| Reused | New |
-|---|---|
-| Canvas shell, timeline, hold-and-swap | Orchestrator: Router · Planner · Synthesizer · AgentsPool · IntegrityChecker |
-| A2A transport, AgentCard, extensions, `securitySchemes` | UIComposer + one-tree graft runtime |
-| A2UI validation, `sendDataModel`, multi-catalog, local functions | Shell catalog + composition primitives |
-| `a2ui-github` as the GitHub app | Derived-binding table + BindingEvaluator |
-| Catalog authoring skills, GitHub agent | App bundle format (`sdk`) · Marketplace · Store page · AuthVault · IntentJournal |
-| A2UI basic catalog + `--a2ui-*` tokens as every vendor catalog | Agent building kit (`a2uiverse-apps`) |
+| Reused                                                           | New                                                                              |
+| ---------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| Canvas shell, timeline, hold-and-swap                            | Orchestrator: Router · Planner · Synthesizer · AgentsPool · IntegrityChecker     |
+| A2A transport, AgentCard, extensions, `securitySchemes`          | UIComposer + one-tree graft runtime                                              |
+| A2UI validation, `sendDataModel`, multi-catalog, local functions | Shell catalog + composition primitives                                           |
+| `a2ui-github` as the GitHub app                                  | Derived-binding table + BindingEvaluator                                         |
+| Catalog authoring skills, GitHub agent                           | App bundle format (`sdk`) · Marketplace · Store page · AuthVault · IntentJournal |
+| A2UI basic catalog + `--a2ui-*` tokens as every vendor catalog   | Agent building kit (`a2uiverse-apps`)                                            |
 
 ---
 
@@ -498,14 +499,14 @@ Named so they do not creep in: native shell · catalog-implementation isolation 
 
 An ADK `LlmAgent` instructed to route each request to exactly one subagent via `transfer_to_agent`. The L0 case of this project's orchestrator.
 
-| Sample | This spec |
-|---|---|
-| Subagent skill descriptions/examples serialized into the system prompt; no taxonomy | Taxonomy-free routing (§10) — same principle; ours retrieves then reranks |
-| `SubagentRouteManager`: `surfaceId → subagent` in session state on `beginRendering` | Fragment provenance tag (§4.1), per subtree |
-| `before_model_callback` routes `userAction` to the owning subagent without inference | Interaction routes by provenance, free (§7) |
-| Client interceptor strips `a2uiClientDataModel.surfaces` to the target's own surfaces | Partition isolation (§4.1); delta register (§14) |
-| Orchestrator AgentCard = union of subagent skills and A2UI extensions | Registry (§10) |
-| `metadata["a2a_subagent"]` on outgoing events | Attribution element (§4.3), rendered and unsuppressable |
-| Routing re-inferred on every turn; `streaming=False` | Invalidation tiers (§6); mid-turn streaming (§5.5) |
+| Sample                                                                                | This spec                                                                 |
+| ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| Subagent skill descriptions/examples serialized into the system prompt; no taxonomy   | Taxonomy-free routing (§10) — same principle; ours retrieves then reranks |
+| `SubagentRouteManager`: `surfaceId → subagent` in session state on `beginRendering`   | Fragment provenance tag (§4.1), per subtree                               |
+| `before_model_callback` routes `userAction` to the owning subagent without inference  | Interaction routes by provenance, free (§7)                               |
+| Client interceptor strips `a2uiClientDataModel.surfaces` to the target's own surfaces | Partition isolation (§4.1); delta register (§14)                          |
+| Orchestrator AgentCard = union of subagent skills and A2UI extensions                 | Registry (§10)                                                            |
+| `metadata["a2a_subagent"]` on outgoing events                                         | Attribution element (§4.3), rendered and unsuppressable                   |
+| Routing re-inferred on every turn; `streaming=False`                                  | Invalidation tiers (§6); mid-turn streaming (§5.5)                        |
 
 Not present, structurally: fan-out. `transfer_to_agent` hands the conversation to one agent at a time — no parallel dispatch, no two live surfaces, no composition. AgentsPool's parallel `(endpoint, credential)` dispatch is the replacement. ADK is not adopted.

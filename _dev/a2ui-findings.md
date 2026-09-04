@@ -31,7 +31,7 @@ in the document sharing a `name` forms one mutually-exclusive group, regardless
 of where each input sits in the DOM or which React root rendered it.
 
 A2UI component ids, however, are **surface-scoped**. `common_types.json`
-(`$defs/ComponentId`) defines the id as unique *"within the same surface"*, and
+(`$defs/ComponentId`) defines the id as unique _"within the same surface"_, and
 the protocol requires every surface's component list to contain exactly one
 component with `id: "root"` — so id reuse across surfaces is not an edge case
 but the spec's own guarantee. Multiple concurrent surfaces are first-class:
@@ -88,9 +88,9 @@ are unique within a surface — but `useId()` is simpler and covers more.
 Any renderer feature that projects an A2UI component id into a document-global
 HTML namespace (radio `name`, element `id`, `<form>` ids, anchor targets) has
 this same hazard, because the protocol scopes ids per surface while the DOM does
-not. Worth a one-line renderer-guide caveat: *never use a component id directly
+not. Worth a one-line renderer-guide caveat: _never use a component id directly
 in a document-global namespace; always qualify with the surface or an
-instance-unique id.*
+instance-unique id._
 
 ---
 
@@ -177,5 +177,54 @@ carry classes at runtime.
 ### Fix
 
 Restore the class maps in the build (or inline literal class names), and export
-+ import `v0_9/index.css` so the rules ship. Until then, downstream catalogs can
-only style the basic components through element and structural selectors.
+
+- import `v0_9/index.css` so the rules ship. Until then, downstream catalogs can
+  only style the basic components through element and structural selectors.
+
+---
+
+## 4. A bound `DynamicValue` is typed by its literal branches (web_core generic binder)
+
+**Component:** `@a2ui/web_core` 0.10.6, `src/v0_9/rendering/generic-binder.d.ts` —
+`ResolveA2uiProp` and `GenerateSetters`.
+
+**Severity:** typing only — no runtime effect. Renderer authors are pushed into casts.
+
+### Issue
+
+`ResolveA2uiProp<T>` computes a dynamic prop's resolved type as `Exclude<T, DataBinding | FunctionCall>`
+— the union minus its binding shapes — and `GenerateSetters<T>` types the generated setter's
+parameter the same way. For `DynamicValue` that yields `string | number | boolean | any[]`.
+
+That is the type of a **literal** `DynamicValue` (the spec's `oneOf` has no object literal). It is not
+the type of a **bound** one: `DataBinding` and `FunctionCall` resolve, per the spec's own description,
+to "any type", and a path routinely points at an object. A component that binds a `DynamicValue` to
+an object must cast the resolved prop, and — worse — a prop schema with no literal branch at all
+(`DataBinding | FunctionCall`, a binding-only prop) resolves to `any` but gets a setter typed
+`(value: never) => void`.
+
+### Reproduction
+
+```ts
+const Api = {name: 'X', schema: z.object({cell: DynamicValueSchema})};
+createComponentImplementation(Api, ({props}) => {
+  props.cell; // string | number | boolean | any[]  — but a path may resolve to an object
+  props.setCell; // (value: string | number | boolean | any[]) => void
+});
+const BindingOnly = {
+  name: 'Y',
+  schema: z.object({sort: z.union([DataBindingSchema, FunctionCallSchema])}),
+};
+createComponentImplementation(BindingOnly, ({props}) => {
+  props.sort; // any  — correct
+  props.setSort; // (value: never) => void  — unusable without a cast
+});
+```
+
+### Suggested fix
+
+When `Exclude<T, DynamicTypes>` is not the whole of `T` (i.e. the prop is bindable), widen the
+resolved type and the setter parameter to `Exclude<T, DynamicTypes> | unknown` — or, more simply,
+type `DynamicValue`-derived props and setters as `unknown` and let the component narrow. A bound
+value's static type is unknowable from the schema; pretending otherwise only moves the cast into
+every catalog.
