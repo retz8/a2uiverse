@@ -53,8 +53,8 @@ Spec: `_dev/docs/spec/phase-3-agent-kit.md`.
 Two sibling mock vendors merged (M2). Synthesizer, derived bindings, BindingEvaluator, IntegrityChecker, generation stamps, disclosure. Shapes identical by construction, so the join is free and every remaining hard thing is machinery. Mocks are quarantined from the default roster and kept as the clean-room regression bed.
 Spec: `_dev/docs/spec/phase-4-synthesis.md`.
 
-- [WIP] **4.1** Doc edits — SPEC §5.4 disclosure amendment, §6.2–§6.3 absent/invalid naming, §14 register corrections + cross-partition ref row, `a2uiverse-apps` docs for the mock tier
-- [ ] **4.2** `sdk` — synthesis wiring contract (rows, refs, formulas, generation stamps, the metadata channel), contract tests, published (after 4.1; parallel with 4.3, 4.6)
+- [x] **4.1** Doc edits — SPEC §5.4 disclosure amendment, §6.2–§6.3 absent/invalid naming, §14 register corrections + cross-partition ref row, `a2uiverse-apps` docs for the mock tier
+- [WIP] **4.2** `sdk` — synthesis wiring contract (rows, refs, formulas, generation stamps, the metadata channel), contract tests, published (after 4.1; parallel with 4.3, 4.6)
 - [ ] **4.3** `shell-catalog` — operator function definitions, the derived-value component, the sort control (after 4.1; parallel with 4.2, 4.6)
 - [ ] **4.4** Orchestrator synthesis core — partition materialization, Synthesizer, IntegrityChecker + generation stamps, plan-schema reservation + Planner prompt, synthesis surface painting, decline → collapse (after 4.2; parallel with 4.5, 4.6, 4.7)
 - [ ] **4.5** Client synthesis — wiring intake, BindingEvaluator, derived-model evaluation + data-model write, sort, partial-value integration (after 4.2 and 4.3; parallel with 4.4, 4.6, 4.7)
