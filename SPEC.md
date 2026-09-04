@@ -160,13 +160,17 @@ The BindingEvaluator re-evaluates deterministically on every local change, inclu
 - Fires when **every dispatched source has resolved** — arrived, failed, or hit its per-source deadline.
 - A source with a request in flight — from the plan or from the user — is **not quiescent**. Synthesis waits for it.
 - If a partition the in-flight synthesis depends on changes, that synthesis is **invalidated, not reconciled**. Re-fire on quiescence.
-- Late arrivals after synthesis absorb as a **visible, attributed update**: the disclosure line changes at the same instant rows move.
+- Late arrivals after synthesis absorb as a **visible, attributed update**: disclosure changes at the same instant rows move.
 
 > The merged surface may change under the user, but never without a visible reason.
 
 ### 5.4 Disclosure
 
-The synthesis surface always carries a shell-painted disclosure line: **source count, timestamp, sort criterion, and why any source is absent** (e.g. `2 of 3 sources · B&H showing a detail view · as of 09:12 · sorted by best price`). Derived values must disclose their source set.
+The synthesis surface always discloses **which sources contributed, why any source is absent, and the sort criterion in force**. Derived values must disclose their source set.
+
+The requirement is not a caption. Disclosure is carried where the fact belongs: a derived value renders its contributor state in the cell, so a value computed over a partial source set never renders identically to one computed over a complete set; the criterion is carried by the control that changes it; provenance is carried by the fragment's shell-drawn attribution (§4.3). A timestamp earns its place on a frozen composition (§6.4), not on a live one.
+
+**The model names things; the runtime counts them.** The Synthesizer chooses the criterion's name; every count, contributor set, and absence is computed.
 
 ### 5.5 Mid-turn streaming
 
@@ -195,11 +199,15 @@ Per binding, not per partition:
 
 Key-based refs are an optimization the Synthesizer uses when the observed data offers a stable key. They cannot be required of vendors. Generation stamps are the correctness floor.
 
+**Absent is not invalid.** A ref whose path no longer resolves is **absent**: free, reversible, recomputed around — formulas skip it and carry their contributor count. A ref whose path still resolves but may now point at a *different entity* is **invalid**: the correctness hazard, and the only state that forces re-synthesis. A partition's generation bumps when a ref could be silently re-pointed — an array a live ref indexes into is mutated in place — not merely because the partition's data changed. Conflating the two makes §6.3's local degradation unimplementable, since every in-fragment navigation would cost a model call.
+
+Where only index-based refs are in play, per-binding validity collapses to per-partition validity: two refs into one partition cannot disagree. The interface stays per-binding; key resolution is the second answer path behind it.
+
 ### 6.3 What drives re-synthesis
 
 Re-synthesis fires on changes to the **user's question** — a new source joins, the user refines at the palette, the user hits refresh. It never fires on navigation inside a fragment.
 
-- Entities **vanishing** (filter, drill-down, detail view) degrade locally and free: affected refs go absent, formulas recompute over what still resolves, the disclosure line says why. Reconnection is free.
+- Entities **vanishing** (filter, drill-down, detail view) degrade locally and free: affected refs go absent, formulas recompute over what still resolves, and the affected values disclose the narrowed source set. Reconnection is free.
 - Entities **appearing** need entity resolution → Synthesizer.
 
 ### 6.4 Returning via timeline
@@ -424,7 +432,9 @@ Constraint protected throughout: **an existing A2UI agent composes with zero cha
 | Auth-required state carrying scheme + scope delta | upstream candidate |
 | Cross-partition qualified refs `ref(source, path)` in bindings | upstream candidate |
 | Path predicates (key-based refs) in the formula vocabulary | upstream candidate |
-| Arithmetic functions (`min`, `add`, …) in the shell catalog | local; exists in upstream basic catalog |
+| Arithmetic and aggregate functions (`min`, `max`, `sum`, …) in the shell catalog | local convention — the upstream basic catalog ships validators, formatters and boolean logic (`and`/`or`/`not`) only; it has no arithmetic or aggregates. Declared as catalog `FunctionDefinition`s, executed in the BindingEvaluator. Flat: one operator over N refs, no nesting — a recursive grammar is not expressible as structured output. Aggregates skip absent inputs and carry their contributor count |
+| Synthesis wiring (the derived data model — entities, refs, formulas, sort criterion) on A2A message metadata | upstream candidate — the same shape as surface placement above: composition rides the envelope, the A2UI the shell paints stays standard. Resolved client-side before render, so no renderer or component understands a ref |
+| A formula-bound cell must render through the shell's derived-value component | normative review rule — the synthesis tree is model-authored, so the guarantee that a partial value never renders as a complete one cannot live in the tree. The `Attribution` pattern (§4.3) applied to values rather than fragments |
 | Partitioned data model on a shared surface (agents address paths as root; shell namespaces) — enforced at the hub as the outbound partition filter | upstream candidate — prior art: the upstream orchestrator sample strips `a2uiClientDataModel.surfaces` to the target agent's own surfaces via a client interceptor (§18); ours generalizes surface → partition |
 | Surface placement (`surface → slot`) on A2A event metadata | upstream candidate |
 | surfaceId namespacing `<appId>:<surfaceId>` at the hub, reversed on inbound actions | local convention |
