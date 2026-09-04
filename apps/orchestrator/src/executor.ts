@@ -120,7 +120,9 @@ export class OrchestratorExecutor implements AgentExecutor {
     bus.publish(shellPaint);
     turn.surfaces(touchesOf(shellPaint));
 
-    const pumps = [...state.slots.values()].map(({plan: slot}) => {
+    // The synthesis slot is the shell's own (task-4.4 decision 6): never dispatched.
+    const sources = [...state.slots.values()].filter(({plan}) => plan.appId !== SHELL_SOURCE_ID);
+    const pumps = sources.map(({plan: slot}) => {
       const request: Message = {
         kind: 'message',
         messageId: randomUUID(),

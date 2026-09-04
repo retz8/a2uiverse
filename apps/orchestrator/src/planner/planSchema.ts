@@ -50,7 +50,11 @@ export const planSchema = jsonSchema<Plan>({
               additionalProperties: false,
               required: ['appId', 'archetype', 'request'],
               properties: {
-                appId: {type: 'string', description: 'Id of the agent filling this slot.'},
+                appId: {
+                  type: 'string',
+                  description:
+                    'Id of the agent filling this slot — or "shell" for the one merged view the shell itself paints over the other slots.',
+                },
                 archetype: {
                   type: 'string',
                   enum: [...SLOT_ARCHETYPES],

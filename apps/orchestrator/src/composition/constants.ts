@@ -17,3 +17,6 @@ export function shellSurfaceId(): string {
 export function slotNameFor(appId: string): string {
   return `slot-${appId}`;
 }
+
+/** The synthesis slot is the shell's own slot (task-4.4 decision 6); its attribution names the merged view. */
+export const SYNTHESIS_DISPLAY_NAME = 'Synthesis';

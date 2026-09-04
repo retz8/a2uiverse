@@ -119,3 +119,41 @@ describe('shellEnvelope', () => {
     expect(event.metadata?.a2uiverse).toEqual({source: 'shell', role: 'shell'});
   });
 });
+
+describe('the synthesis slot (task-4.4 decision 6)', () => {
+  const withSynthesis: Plan = {
+    direction: 'column',
+    groups: [
+      {slots: [{appId: 'shell', archetype: 'row', request: 'Compare prices across both.'}]},
+      {
+        slots: [
+          {appId: 'github', archetype: 'card', request: 'a'},
+          {appId: 'gmail', archetype: 'card', request: 'b'},
+        ],
+      },
+    ],
+  };
+
+  test('compositionFrom names the shell slot without a registry lookup', () => {
+    const state = compositionFrom(withSynthesis, registry);
+    const slot = state.slots.get('slot-shell');
+    expect(slot?.plan.appId).toBe('shell');
+    expect(slot?.plan.displayName).toBe('Synthesis');
+    expect(slot?.state).toBe('pending');
+  });
+
+  test('the painter lays the shell slot out like any other, pending at first paint', () => {
+    const parts = shellCreateParts(compositionFrom(withSynthesis, registry));
+    const components = (
+      parts[1] as {
+        data: {updateComponents: {components: {id: string; component: string; state?: string}[]}};
+      }
+    ).data.updateComponents.components;
+    const slot = components.find(c => c.id === 'slot-shell');
+    expect(slot?.component).toBe('Slot');
+    expect(slot?.state).toBe('pending');
+    expect(components.find(c => c.id === 'attr-slot-shell')).toMatchObject({
+      displayName: 'Synthesis',
+    });
+  });
+});

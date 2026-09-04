@@ -20,6 +20,12 @@
         "types": "./dist/catalog-id.d.ts",
         "default": "./dist/catalog-id.js"
       }
+    },
+    "./operators": {
+      "import": {
+        "types": "./dist/functions/operators.d.ts",
+        "default": "./dist/functions/operators.js"
+      }
     }
   },
   "files": [

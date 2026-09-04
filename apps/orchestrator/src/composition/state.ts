@@ -3,7 +3,8 @@ import type {SurfaceTouches} from '../journal/surfaces.js';
 import type {SlotArchetype} from '../planner/archetypes.js';
 import type {Plan} from '../planner/planSchema.js';
 import type {Registry} from '../registry/registry.js';
-import {slotNameFor} from './constants.js';
+import {SHELL_SOURCE_ID} from '../registry/types.js';
+import {slotNameFor, SYNTHESIS_DISPLAY_NAME} from './constants.js';
 
 /**
  * The orchestrator-side slot states. `filled` is deliberately absent — a slot
@@ -40,7 +41,10 @@ export function compositionFrom(plan: Plan, registry: Registry): CompositionStat
         plan: {
           slotName,
           appId: slot.appId,
-          displayName: registry.get(slot.appId).displayName,
+          displayName:
+            slot.appId === SHELL_SOURCE_ID
+              ? SYNTHESIS_DISPLAY_NAME
+              : registry.get(slot.appId).displayName,
           archetype: slot.archetype,
           request: slot.request,
         },

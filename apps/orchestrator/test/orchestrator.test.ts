@@ -169,7 +169,39 @@ async function journalLines(expected: number) {
   }
 }
 
+/** A plan with the synthesis slot first, then one card per app (task-4.4 decision 6). */
+function planWithSynthesis(apps: readonly AppId[]): Plan {
+  return {
+    direction: 'column',
+    groups: [
+      {slots: [{appId: 'shell', archetype: 'row' as const, request: 'Compare across both.'}]},
+      ...apps.map(appId => ({
+        slots: [{appId, archetype: 'card' as const, request: `Paint a compact ${appId} card.`}],
+      })),
+    ],
+  };
+}
+
 describe('orchestrator', () => {
+  test('the synthesis slot is never dispatched: only the sources receive requests', async () => {
+    const {client} = await boot({
+      planner: new FakePlanner(() => planWithSynthesis(['github', 'gmail'])),
+    });
+    const events = await collect(client, utterance('compare the two'));
+    expect(vendors.github!.requests).toHaveLength(1);
+    expect(vendors.gmail!.requests).toHaveLength(1);
+    expect(vendors.calendar!.requests).toHaveLength(0);
+    const final = events.at(-1) as TaskStatusUpdateEvent;
+    expect(final.final).toBe(true);
+    expect(final.status.state).toBe('completed');
+    // Not dispatched means no dispatch record — and no failed slot from a dispatch that never could succeed.
+    const [line] = await journalLines(1);
+    const dispatched = (line.dispatch as Array<{appId: string}>).map(d => d.appId).sort();
+    expect(dispatched).toEqual(['github', 'gmail']);
+    const paints = shellPaints(events);
+    expect(slotStates(paints.at(-1)!)['slot-shell']).not.toBe('failed');
+  });
+
   test('serves the minimal card with the A2UI extension at the configured base URL', async () => {
     const {client, url} = await boot();
     const card = await client.getAgentCard();

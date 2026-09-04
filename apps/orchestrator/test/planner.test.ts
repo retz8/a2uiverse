@@ -56,6 +56,34 @@ function modelReturning(text: string): MockLanguageModelV3 {
   });
 }
 
+describe('checkPlan — the synthesis slot (task-4.4 decision 6)', () => {
+  const ids = ['github', 'gmail'];
+  const shell = {appId: 'shell', archetype: 'row' as const, request: 'Compare the two.'};
+  const gh = {appId: 'github', archetype: 'card' as const, request: 'PRs.'};
+  const gm = {appId: 'gmail', archetype: 'card' as const, request: 'Mail.'};
+
+  test('a shell slot is accepted alongside two sources, without being on the shortlist', () => {
+    expect(() =>
+      checkPlan({direction: 'column', groups: [{slots: [shell]}, {slots: [gh, gm]}]}, ids),
+    ).not.toThrow();
+  });
+
+  test('a shell slot needs at least two sources', () => {
+    expect(() => checkPlan({direction: 'column', groups: [{slots: [shell, gh]}]}, ids)).toThrow(
+      MalformedPlanError,
+    );
+    expect(() => checkPlan({direction: 'column', groups: [{slots: [shell]}]}, ids)).toThrow(
+      MalformedPlanError,
+    );
+  });
+
+  test('one merged view per screen', () => {
+    expect(() =>
+      checkPlan({direction: 'column', groups: [{slots: [shell, gh, gm]}, {slots: [shell]}]}, ids),
+    ).toThrow(MalformedPlanError);
+  });
+});
+
 describe('checkPlan', () => {
   const ids = ['github', 'gmail'];
   test('accepts a reasonable plan', () => {
