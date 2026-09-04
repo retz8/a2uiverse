@@ -112,7 +112,7 @@ Under the synthesis profile the roster is the two mocks alone, so a failed accep
 
 ## Doc corrections carried by this phase
 
-- **§14** — the arithmetic-functions row claims `min`/`add` exist in the upstream basic catalog. They do not: its functions are validators, formatters, and boolean logic (`and`/`or`/`not`) only. The delta is larger than the row states.
+- **§14** — the arithmetic-functions row claims `min`/`add` exist in the upstream basic catalog. Precisely: the *schema* declares validators, formatters, and boolean logic (`and`/`or`/`not`) only; the React *implementation* ships binary arithmetic and comparison undeclared; neither has aggregates. The delta is larger than the row states.
 - **§14** — populate the cross-partition qualified ref row (this phase) and leave the path-predicate row to Phase 5.
 - **§5.4** — amend to state the disclosure requirement rather than the line form (decision 14).
 - **§6.2–§6.3** — name the absent/invalid distinction (decision 6).
