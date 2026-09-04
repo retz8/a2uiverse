@@ -6,7 +6,7 @@ Spec for sub-task **3.6** of Phase 3 (`_dev/TODO.md`), the phase's proof sub-tas
 
 - The fourth-app scaffold proof, both variants, wired far enough to paint and then removed entirely.
 - The live tunnel sanity pass over the three refactored agents.
-- The apps-repo README and run-command sweep left stale by the module collapse in 3.2.
+- The README and run-command sweep left stale by the module collapse in 3.2, in the apps repo and the platform's tunnel-environment doc.
 - The `allowBuilds` re-pointing in the platform's `pnpm-workspace.yaml`, off-phase.
 
 Out of scope: the platform README's launcher surface, done in 3.5. The `build-catalog-component` skill's stale paths, which belong to the `a2ui-github` project rather than this one.
@@ -33,9 +33,9 @@ The launcher takes one mode for every agent it starts, so the throwaway and a li
 
 Client and orchestrator are reached at their tunnel URLs, never localhost. Each run leaves a screenshot: the throwaway's is the acceptance-3 artifact, the fan-out's is acceptance 5's.
 
-### 6. The doc sweep covers the apps-repo READMEs
+### 6. The doc sweep covers the apps-repo READMEs and the tunnel doc
 
-The apps root README and the calendar and gmail agent READMEs, modelled on the GitHub agent's README, which 3.7 already converted. It is a path-and-run-command sweep: where the docs describe behavior — calendar's admitted inventory, its non-notifying guarantee — the prose stands and only the module paths and run lines change.
+The apps root README and the calendar and gmail agent READMEs, modelled on the GitHub agent's README, which 3.7 already converted, plus the platform's tunnel-environment doc, whose run commands are stale the same way. It is a path-and-run-command sweep: where the docs describe behavior — calendar's admitted inventory, its non-notifying guarantee — the prose stands and only the module paths and run lines change.
 
 ### 7. `allowBuilds` is re-pointed, off-phase
 
