@@ -12,12 +12,12 @@ import {
 } from './composition';
 
 const contract = JSON.parse(
-  readFileSync(new URL('../../contracts/composition.v0.1.json', import.meta.url), 'utf8'),
+  readFileSync(new URL('../../contracts/composition.v0.2.json', import.meta.url), 'utf8'),
 ) as {
   extensionUri: string;
   stampKey: string;
   surfaceIdSeparator: string;
-  shapes: Record<string, {required: string[]; optional: string[]}>;
+  shapes: Record<string, {direction: string; required?: string[]; optional?: string[]}>;
 };
 
 test('constants match the contract', () => {
@@ -28,11 +28,14 @@ test('constants match the contract', () => {
 
 test('shape fields match the contract', () => {
   const stamp = contract.shapes.compositionStamp;
-  expect([...STAMP_FIELDS].sort()).toEqual([...stamp.required, ...stamp.optional].sort());
+  expect([...STAMP_FIELDS].sort()).toEqual([...stamp.required!, ...stamp.optional!].sort());
 });
 
 test('the contract carries no vendor-facing shape', () => {
-  expect(Object.keys(contract.shapes)).toEqual(['compositionStamp']);
+  expect(Object.keys(contract.shapes)).toEqual(['compositionStamp', 'synthesisWiring']);
+  for (const shape of Object.values(contract.shapes)) {
+    expect(shape.direction).toBe('orchestrator → client');
+  }
 });
 
 test('surface id namespacing round-trips', () => {
@@ -53,4 +56,12 @@ test('readStamp accepts a stamped event and rejects malformed metadata', () => {
   expect(readStamp({})).toBeUndefined();
   expect(readStamp({[STAMP_KEY]: 'github'})).toBeUndefined();
   expect(readStamp({[STAMP_KEY]: {slot: 'slot-github'}})).toBeUndefined();
+});
+
+test('readStamp carries per-surface generations through', () => {
+  expect(
+    readStamp({
+      [STAMP_KEY]: {source: 'shop-a', slot: 'slot-shop-a', generations: {'shop-a:list': 2}},
+    }),
+  ).toEqual({source: 'shop-a', slot: 'slot-shop-a', generations: {'shop-a:list': 2}});
 });

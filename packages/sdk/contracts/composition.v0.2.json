@@ -1,0 +1,241 @@
+{
+  "name": "a2uiverse-composition",
+  "version": "0.2.0",
+  "description": "The A2UIVerse composition extension (SPEC §14): the A2A metadata contract for cross-agent UI composition, internal to the platform (orchestrator ↔ client). Two halves: the composition stamp (provenance, placement, generations) on every relayed event, and the synthesis wiring (the derived data model) on the event that paints a synthesis surface. Nothing a2uiverse-specific rides the vendor wire. Normative for every language projection; each projection's contract test asserts against this file.",
+  "extensionUri": "https://a2uiverse.dev/ext/composition/v0.2",
+  "stampKey": "a2uiverse",
+  "surfaceIdSeparator": ":",
+  "shapes": {
+    "compositionStamp": {
+      "direction": "orchestrator → client",
+      "carriedOn": "every relayed A2A event's metadata, keyed by stampKey",
+      "required": ["source"],
+      "optional": ["slot", "role", "vendorContextId", "vendorTaskId", "generations"],
+      "fields": {
+        "source": "Provenance: the app id the event came from.",
+        "slot": "Placement: the layout slot the event's surface fills; absent on the shell's own events.",
+        "role": "Which surface the canvas renders as the composition root: 'shell' | 'fragment'.",
+        "vendorContextId": "Debug only, gated by orchestrator config.",
+        "vendorTaskId": "Debug only, gated by orchestrator config.",
+        "generations": "Per-partition generation counters, keyed by namespaced surfaceId, for every surface this event touched. An integer that only goes up: bumped when an array a live ref indexes into is mutated in place (SPEC §6.2). Absent on the shell's own events — the synthesis surface is derived, not a source."
+      }
+    },
+    "synthesisWiring": {
+      "direction": "orchestrator → client",
+      "carriedOn": "the metadata of the event that paints the synthesis surface, keyed by wiringKey; sent once per synthesis, never on a decline",
+      "authors": "Two. The Synthesizer emits fields, entities and sort under synthesizerOutput; the orchestrator wraps them with computedAgainst. The model never sees generations.",
+      "schemas": {
+        "synthesizerOutput": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "title": "SynthesizerOutput",
+          "description": "Model-facing: what the Synthesizer emits. Union-free and non-recursive (structured-output constraint). Either a synthesis (fields, entities, sort) or a decline (declined + reason); the orchestrator adds computedAgainst.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["declined"],
+          "properties": {
+            "declined": {
+              "type": "boolean",
+              "description": "True when nothing is joinable; the reserved slot collapses and no wiring is sent."
+            },
+            "reason": {
+              "type": "string",
+              "description": "Why nothing was joinable. Journaled, never painted."
+            },
+            "fields": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["name", "label"],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "pattern": "^[^/~]+$",
+                    "description": "Data-model key every entity carries; a valid JSON Pointer segment."
+                  },
+                  "label": {
+                    "type": "string",
+                    "description": "The user-facing name. Every name the user reads on the merged surface that is not a value is a field label."
+                  }
+                }
+              },
+              "description": "Declared once; every entity's cells align to this list by position."
+            },
+            "entities": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["cells"],
+                "properties": {
+                  "cells": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": ["op", "args"],
+                      "description": "One operator over N refs. A plain vendor value is a one-argument pass-through. Operators are names the shell catalog declares as functions; the contract does not enumerate them.",
+                      "properties": {
+                        "op": {
+                          "type": "string",
+                          "description": "A function name declared by the shell catalog."
+                        },
+                        "args": {
+                          "type": "array",
+                          "minItems": 1,
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": ["surface", "pointer"],
+                            "description": "A cross-partition qualified ref: a pointer that resolves in another surface's data model.",
+                            "properties": {
+                              "surface": {
+                                "type": "string",
+                                "description": "The namespaced surfaceId (<appId>:<surfaceId>) the pointer resolves in."
+                              },
+                              "pointer": {
+                                "type": "string",
+                                "pattern": "^(|/.*)$",
+                                "description": "RFC 6901 JSON Pointer into that surface's data model. Index-addressed in this version."
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "description": "Positional, aligned to fields. Membership in one entity is the entity-resolution assertion."
+                  }
+                }
+              }
+            },
+            "sort": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["field", "direction"],
+              "description": "The model names the criterion (via the field's label); the runtime sorts. User-changeable.",
+              "properties": {
+                "field": {
+                  "type": "string",
+                  "description": "A declared field name."
+                },
+                "direction": {
+                  "type": "string",
+                  "enum": ["asc", "desc"]
+                }
+              }
+            }
+          }
+        },
+        "wiring": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "title": "SynthesisWiring",
+          "description": "Client-facing: the Synthesizer's inner output plus the orchestrator's envelope. Evaluated client-side into an ordinary data model keyed `entities`.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["fields", "entities", "sort", "computedAgainst"],
+          "properties": {
+            "fields": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["name", "label"],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "pattern": "^[^/~]+$",
+                    "description": "Data-model key every entity carries; a valid JSON Pointer segment."
+                  },
+                  "label": {
+                    "type": "string",
+                    "description": "The user-facing name. Every name the user reads on the merged surface that is not a value is a field label."
+                  }
+                }
+              },
+              "description": "Declared once; every entity's cells align to this list by position."
+            },
+            "entities": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["cells"],
+                "properties": {
+                  "cells": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": ["op", "args"],
+                      "description": "One operator over N refs. A plain vendor value is a one-argument pass-through. Operators are names the shell catalog declares as functions; the contract does not enumerate them.",
+                      "properties": {
+                        "op": {
+                          "type": "string",
+                          "description": "A function name declared by the shell catalog."
+                        },
+                        "args": {
+                          "type": "array",
+                          "minItems": 1,
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": ["surface", "pointer"],
+                            "description": "A cross-partition qualified ref: a pointer that resolves in another surface's data model.",
+                            "properties": {
+                              "surface": {
+                                "type": "string",
+                                "description": "The namespaced surfaceId (<appId>:<surfaceId>) the pointer resolves in."
+                              },
+                              "pointer": {
+                                "type": "string",
+                                "pattern": "^(|/.*)$",
+                                "description": "RFC 6901 JSON Pointer into that surface's data model. Index-addressed in this version."
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "description": "Positional, aligned to fields. Membership in one entity is the entity-resolution assertion."
+                  }
+                }
+              }
+            },
+            "sort": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["field", "direction"],
+              "description": "The model names the criterion (via the field's label); the runtime sorts. User-changeable.",
+              "properties": {
+                "field": {
+                  "type": "string",
+                  "description": "A declared field name."
+                },
+                "direction": {
+                  "type": "string",
+                  "enum": ["asc", "desc"]
+                }
+              }
+            },
+            "computedAgainst": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "description": "The partition generations this wiring was derived from, keyed by namespaced surfaceId. What the IntegrityChecker and the client compare against the stamp's generations."
+            }
+          }
+        }
+      }
+    }
+  },
+  "surfaceIdNamespacing": {
+    "form": "<appId><surfaceIdSeparator><surfaceId>",
+    "appliedTo": ["createSurface", "updateComponents", "updateDataModel", "deleteSurface"],
+    "rule": "The orchestrator namespaces surfaceId on the four A2UI server→client message types and reverses it on inbound client actions. Component ids, binding paths, and catalog ids are never rewritten."
+  },
+  "wiringKey": "a2uiverseWiring"
+}

@@ -2,12 +2,13 @@
  * The composition extension (SPEC §14): the A2A metadata contract for
  * cross-agent UI composition, internal to the platform (orchestrator ↔
  * client) — nothing a2uiverse-specific rides the vendor wire. The normative
- * definition is `../contracts/composition.v0.1.json`;
- * `composition.contract.test.ts` asserts this projection against it.
+ * definition is `../contracts/composition.v0.2.json`;
+ * `composition.contract.test.ts` asserts this projection against it. The
+ * synthesis half of the contract (the wiring) lives in `synthesis.ts`.
  */
 
 /** The A2A extension URI this project declares for composition. */
-export const COMPOSITION_EXTENSION_URI = 'https://a2uiverse.dev/ext/composition/v0.1';
+export const COMPOSITION_EXTENSION_URI = 'https://a2uiverse.dev/ext/composition/v0.2';
 
 /** Metadata key the orchestrator owns on relayed events. */
 export const STAMP_KEY = 'a2uiverse';
@@ -23,6 +24,12 @@ export interface CompositionStamp {
   slot?: string;
   /** Which surface the canvas renders as the composition root. */
   role?: 'shell' | 'fragment';
+  /**
+   * Per-partition generation counters, keyed by namespaced surfaceId, for every surface this
+   * event touched. Bumped when an array a live ref indexes into is mutated in place (SPEC §6.2);
+   * absent on the shell's own events.
+   */
+  generations?: Record<string, number>;
   /** Debug only, gated by orchestrator config. */
   vendorContextId?: string;
   vendorTaskId?: string;
@@ -33,6 +40,7 @@ export const STAMP_FIELDS = [
   'source',
   'slot',
   'role',
+  'generations',
   'vendorContextId',
   'vendorTaskId',
 ] as const satisfies readonly (keyof CompositionStamp)[];
