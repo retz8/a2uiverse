@@ -815,7 +815,7 @@
           "type": "string",
           "enum": ["pending", "failed", "collapsed"],
           "default": "pending",
-          "description": "The region\u2019s lifecycle state. `pending` shows a placeholder until content arrives; `failed` shows that the content could not be produced; `collapsed` removes the region from view without moving its neighbours."
+          "description": "The region’s lifecycle state. `pending` shows a placeholder until content arrives; `failed` shows that the content could not be produced; `collapsed` removes the region from view without moving its neighbours."
         },
         "label": {
           "type": "string",
@@ -827,7 +827,7 @@
     },
     "Attribution": {
       "type": "object",
-      "description": "Names the source of a neighbouring region\u2019s content. A quiet marker that expands to full detail on hover or focus. Paint one alongside each slot.",
+      "description": "Names the source of a neighbouring region’s content. A quiet marker that expands to full detail on hover or focus. Paint one alongside each slot.",
       "properties": {
         "component": {
           "const": "Attribution"
@@ -1311,6 +1311,238 @@
       },
       "required": ["call", "args"],
       "unevaluatedProperties": false
+    },
+    "value": {
+      "type": "object",
+      "description": "Passes a single value through unchanged. The operator for a merged-surface cell that shows one source's value as it is.",
+      "properties": {
+        "call": {
+          "const": "value"
+        },
+        "args": {
+          "type": "object",
+          "properties": {
+            "values": {
+              "type": "array",
+              "description": "Exactly one value.",
+              "items": {
+                "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/DynamicValue"
+              },
+              "minItems": 1,
+              "maxItems": 1
+            }
+          },
+          "required": ["values"],
+          "unevaluatedProperties": false
+        },
+        "returnType": {
+          "const": "any"
+        }
+      },
+      "required": ["call", "args"],
+      "unevaluatedProperties": false
+    },
+    "min": {
+      "type": "object",
+      "description": "The smallest of the given numbers.",
+      "properties": {
+        "call": {
+          "const": "min"
+        },
+        "args": {
+          "type": "object",
+          "properties": {
+            "values": {
+              "type": "array",
+              "description": "The numbers to compare.",
+              "items": {
+                "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/DynamicNumber"
+              },
+              "minItems": 1
+            }
+          },
+          "required": ["values"],
+          "unevaluatedProperties": false
+        },
+        "returnType": {
+          "const": "number"
+        }
+      },
+      "required": ["call", "args"],
+      "unevaluatedProperties": false
+    },
+    "max": {
+      "type": "object",
+      "description": "The largest of the given numbers.",
+      "properties": {
+        "call": {
+          "const": "max"
+        },
+        "args": {
+          "type": "object",
+          "properties": {
+            "values": {
+              "type": "array",
+              "description": "The numbers to compare.",
+              "items": {
+                "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/DynamicNumber"
+              },
+              "minItems": 1
+            }
+          },
+          "required": ["values"],
+          "unevaluatedProperties": false
+        },
+        "returnType": {
+          "const": "number"
+        }
+      },
+      "required": ["call", "args"],
+      "unevaluatedProperties": false
+    },
+    "sum": {
+      "type": "object",
+      "description": "The sum of the given numbers.",
+      "properties": {
+        "call": {
+          "const": "sum"
+        },
+        "args": {
+          "type": "object",
+          "properties": {
+            "values": {
+              "type": "array",
+              "description": "The numbers to add.",
+              "items": {
+                "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/DynamicNumber"
+              },
+              "minItems": 1
+            }
+          },
+          "required": ["values"],
+          "unevaluatedProperties": false
+        },
+        "returnType": {
+          "const": "number"
+        }
+      },
+      "required": ["call", "args"],
+      "unevaluatedProperties": false
+    },
+    "avg": {
+      "type": "object",
+      "description": "The arithmetic mean of the given numbers.",
+      "properties": {
+        "call": {
+          "const": "avg"
+        },
+        "args": {
+          "type": "object",
+          "properties": {
+            "values": {
+              "type": "array",
+              "description": "The numbers to average.",
+              "items": {
+                "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/DynamicNumber"
+              },
+              "minItems": 1
+            }
+          },
+          "required": ["values"],
+          "unevaluatedProperties": false
+        },
+        "returnType": {
+          "const": "number"
+        }
+      },
+      "required": ["call", "args"],
+      "unevaluatedProperties": false
+    },
+    "count": {
+      "type": "object",
+      "description": "How many values were given.",
+      "properties": {
+        "call": {
+          "const": "count"
+        },
+        "args": {
+          "type": "object",
+          "properties": {
+            "values": {
+              "type": "array",
+              "description": "The values to count.",
+              "items": {
+                "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/DynamicValue"
+              }
+            }
+          },
+          "required": ["values"],
+          "unevaluatedProperties": false
+        },
+        "returnType": {
+          "const": "number"
+        }
+      },
+      "required": ["call", "args"],
+      "unevaluatedProperties": false
+    },
+    "argmin": {
+      "type": "object",
+      "description": "The zero-based position of the smallest of the given numbers.",
+      "properties": {
+        "call": {
+          "const": "argmin"
+        },
+        "args": {
+          "type": "object",
+          "properties": {
+            "values": {
+              "type": "array",
+              "description": "The numbers to compare.",
+              "items": {
+                "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/DynamicNumber"
+              },
+              "minItems": 1
+            }
+          },
+          "required": ["values"],
+          "unevaluatedProperties": false
+        },
+        "returnType": {
+          "const": "number"
+        }
+      },
+      "required": ["call", "args"],
+      "unevaluatedProperties": false
+    },
+    "argmax": {
+      "type": "object",
+      "description": "The zero-based position of the largest of the given numbers.",
+      "properties": {
+        "call": {
+          "const": "argmax"
+        },
+        "args": {
+          "type": "object",
+          "properties": {
+            "values": {
+              "type": "array",
+              "description": "The numbers to compare.",
+              "items": {
+                "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/DynamicNumber"
+              },
+              "minItems": 1
+            }
+          },
+          "required": ["values"],
+          "unevaluatedProperties": false
+        },
+        "returnType": {
+          "const": "number"
+        }
+      },
+      "required": ["call", "args"],
+      "unevaluatedProperties": false
     }
   },
   "$defs": {
@@ -1453,6 +1685,30 @@
         },
         {
           "$ref": "#/functions/not"
+        },
+        {
+          "$ref": "#/functions/value"
+        },
+        {
+          "$ref": "#/functions/min"
+        },
+        {
+          "$ref": "#/functions/max"
+        },
+        {
+          "$ref": "#/functions/sum"
+        },
+        {
+          "$ref": "#/functions/avg"
+        },
+        {
+          "$ref": "#/functions/count"
+        },
+        {
+          "$ref": "#/functions/argmin"
+        },
+        {
+          "$ref": "#/functions/argmax"
         }
       ]
     }
