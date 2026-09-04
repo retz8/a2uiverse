@@ -29,7 +29,7 @@ working with this repo.
 
 ## Ports
 
-Platform processes are `1000x`; vendor agents are `11001+`, one port per app regardless of run mode. Only the platform processes need tunnel rows — the browser talks only to the orchestrator, and the orchestrator reaches vendor agents on `localhost`. A vendor agent is tunnelled only for a direct-vs-hub comparison.
+Platform processes are `1000x`; vendor agents are `11001+` and mock agents `12001+`, one port per app regardless of run mode. Only the platform processes need tunnel rows — the browser talks only to the orchestrator, and the orchestrator reaches vendor agents on `localhost`. A vendor agent is tunnelled only for a direct-vs-hub comparison.
 
 | Process | Port | Tunnel | Repo |
 |---|---|---|---|
@@ -38,6 +38,7 @@ Platform processes are `1000x`; vendor agents are `11001+`, one port per app reg
 | marketplace | 10002 (reserved) | yes | `a2uiverse` |
 | shell-catalog fixture (dev-only) | 5174 | when in use | `a2uiverse` |
 | vendor agents | 11001+ | no | `a2uiverse-apps` (table there) |
+| mock agents | 12001+ | no | `a2uiverse-apps` (`mocks/`, quarantined from the default roster) |
 
 ## Run commands
 

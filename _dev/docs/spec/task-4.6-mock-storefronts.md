@@ -8,7 +8,7 @@ Spec for sub-task 4.6 of Phase 4 (`_dev/docs/spec/phase-4-synthesis.md`): the tw
 - The shared product dataset and how each store's listing derives from it.
 - The two instruments — drill-down and in-place reorder — and the non-product capability that makes decline provokable.
 - What the three run modes mean for an app with no MCP behind it.
-- The two agent-kit changes this sub-task's requirements entail.
+- The three agent-kit changes this sub-task's requirements entail.
 - Beats and the mocks' own tests.
 
 Not in scope: the launcher and registry opt-in (4.7), whether the client installs the mock catalogs (4.7), end-to-end acceptance and the platform-side beat (4.8).
@@ -83,15 +83,29 @@ Prose fixes one surface and the data-model shape the refs address; how that rend
 
 A turn is good if it completed and delivered at least one A2UI message; the requirement that a `createSurface` reached the client moves from every turn to the beat as a whole. Under decision 10 both instruments deliver only `updateDataModel` against an existing surface, so neither could be recorded as the rule stands. The rule encodes "a paint is a new surface", which the protocol does not say and the kit's own prose contradicts, so this is a defect fixed rather than a rule bent for a special case. Calendar's RSVP toggle becomes recordable as a side effect, and the existing apps' beat gate is re-run to confirm nothing that passed before now fails.
 
-### 16. `live` accepts plain tools, not only an MCP toolset
+### 16. Update-only turns validate as updates, not as broken surfaces
+
+The kit judged every model turn with `validate_surface`, which requires a `createSurface` and a
+`root` by definition, so an in-place update was rejected and the model was corrected until it
+re-created the live surface. That made decision 10 unreachable in an LLM mode, and it silently
+did the same to Calendar's in-place RSVP toggle. A turn that creates a surface is still judged
+whole; one that does not is judged as an update — component conformance and
+binding-on-literal-prop always, binding resolvability whenever it repaints components, and
+nothing that lives on the client. Found by recording: the model complied with the prose and the
+kit forced the re-create.
+
+This is the same false premise as decision 15's, in a second place, and a third instance sits in
+the examples gate — an example of an update-only turn is validated as an update.
+
+### 17. `live` accepts plain tools, not only an MCP toolset
 
 The kit's live toolset factory may return a list of plain tools as well as a toolset, the way stub tools already accept plain functions. The raise-if-missing stays, so a vendor that forgets its MCP still fails fast. "Live means MCP" is an assumption inherited from three vendors that happened to have one, not something the kit's contract should assert, and the phase spec already calls for a `live` mode the kit cannot currently express. Phase 3 extracted this code so apps stop carrying platform assumptions; a fake-toolset shim inside a mock would push one back in.
 
-### 17. Three beats per store
+### 18. Four beats per store
 
-The list paint, a chained drill-down and back, and a chained reorder. Both stores record all three, being a matched pair. The instruments are most of what the mocks exist for, so recording everything except them would leave the tier's own regression evidence missing its subject.
+The list paint, then the drill-down, the return, and the reorder, chained into one conversation. Both stores record all four, being a matched pair. It is four rather than three because the beat driver sends one prompt per beat, so the drill-down's round trip — going absent and coming back — is two. The instruments are most of what the mocks exist for, so recording everything except them would leave the tier's own regression evidence missing its subject.
 
-### 18. What the mocks' tests assert
+### 19. What the mocks' tests assert
 
 Dataset integrity — that every listing id exists in the shared product list and the three-shared/one-exclusive structure holds. Both instruments' deterministic responses — that the drill-down removes the products array and the reorder changes its order and nothing else. And that the prose states the pinned surface id and data path. No hand-computed expected merge: the mocks repo cannot run the Synthesizer, so such a test would pass while the real system produced something else. The join gets its honest test in 4.8.
 
