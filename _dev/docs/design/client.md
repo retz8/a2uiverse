@@ -123,8 +123,13 @@ per-dispatch partition filter as stale state.
 
 `PaintEntry` carries `fragments` beside its own snapshot — captured at serialize-on-swap, before
 teardown makes them unreachable, and captured unconditionally. The synthesis surface is one of
-them, frozen with its last evaluated data model: a parked entry carries no wiring and makes no
-subscriptions, so its sort control is inert. A shell-only capture could not
+them with its last evaluated data model, and beside the fragments the entry carries the
+synthesis it was projecting — `PaintSynthesis {surfaceId, wiring, generations}`, captured by
+`SynthesisIntake.capture()` at the same moment. A parked visit re-sorts with it: the parked
+session watches `/sort` on the sandbox's synthesis surface and re-runs the evaluator over the
+sandbox's own frozen partitions, with the captured generations so nothing reads as stale. Sort
+crosses no wire, so it works parked; nothing live is subscribed, and the re-sort stays in the
+sandbox until commit. A shell-only capture could not
 represent a filled slot at all, because `Slot.state` is orchestrator-painted and only ever
 pending/failed/collapsed. `createParkedSession` rebuilds every surface through the same
 three-message path and restores the placement, so a parked composition renders through the same
