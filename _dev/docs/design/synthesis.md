@@ -107,7 +107,9 @@ live by Gemini against two storefronts:
 ```
 
 Things to notice. **Every cell is a formula**: a plain vendor value is the one-argument `value`
-operator, so there is one shape and one evaluator path. **A ref is a surface and a pointer** —
+operator, so there is one shape and one evaluator path. **A cell may have no refs** (task 4.8):
+it is the cell no source contributes to — how a per-source column says that source does not
+carry the entity — and evaluates to absent with a contributor count of 0 of 0. **A ref is a surface and a pointer** —
 the namespaced surface id exactly as the client keys its data models, and an RFC 6901 JSON
 Pointer, index-addressed in this phase. Provenance is the surface id. **Fields are declared
 once and entities are positional**: an entity of the wrong width is a schema violation.
@@ -227,10 +229,12 @@ differs.
 
 ## When nothing is joinable
 
-- **Decline.** The Synthesizer says `declined: true` with a reason. The orchestrator collapses
-  the synthesis slot through the ordinary slot-state repaint and sends no wiring; the fragments
-  stand side by side. Journaled `declined`. From the client's side this is indistinguishable
-  from a layout-only turn.
+- **Decline.** The Synthesizer says `declined: true` with a reason. The orchestrator publishes
+  the reason as the shell's own words in the synthesis slot — a text part stamped as the
+  synthesis fragment, no wiring beside it — then collapses the slot through the ordinary
+  slot-state repaint; the collapsed slot rests on those words and the fragments stand side by
+  side (task 4.8). Journaled `declined`. Only a decline speaks: it is the model's judgment in
+  its own words. The other collapses below are the runtime's and stay silent.
 - **Malformed.** The output parsed but failed a check (an operator the catalog does not declare,
   a ref that does not resolve now, …). Behaves as a decline; journaled `malformed` with the
   failing check. Never a broken turn — the fragments have already painted correctly.
