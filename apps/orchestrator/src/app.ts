@@ -15,6 +15,7 @@ import {IntentJournal} from './journal/intentJournal.js';
 import {getModel, plannerProviderOptions} from './planner/getModel.js';
 import {ModelPlanner, type Planner} from './planner/planner.js';
 import {applyUrlOverrides, defaultEntries} from './registry/entries.js';
+import {readRoster} from './registry/manifests.js';
 import {Registry, type ResolveCard} from './registry/registry.js';
 import {Router} from './router/router.js';
 import {operatorVocabulary} from './synthesizer/operators.js';
@@ -52,7 +53,10 @@ export function buildOrchestrator({
   config: Config;
   overrides?: OrchestratorOverrides;
 }): Orchestrator {
-  const registry = new Registry(applyUrlOverrides(defaultEntries(), config.agentUrls));
+  // The roster: the manifests one level below the agents dir when one is set (the mock tier is
+  // opted in this way — task 4.7), the hardcoded entries otherwise, until Phase 9's install root.
+  const entries = config.agentsDir ? readRoster(config.agentsDir) : defaultEntries();
+  const registry = new Registry(applyUrlOverrides(entries, config.agentUrls));
   const embedder =
     overrides?.embedder ?? new TransformersEmbedder({cacheDir: join(config.stateDir, 'models')});
   const planner = overrides?.planner ?? plannerFrom(config);

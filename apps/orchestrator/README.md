@@ -48,23 +48,26 @@ It needs the vendor agents already listening — `pnpm dev:agents`, or `pnpm dev
 
 ## Configuration
 
-| Variable                       | Default                   | Meaning                                                                                         |
-| ------------------------------ | ------------------------- | ----------------------------------------------------------------------------------------------- |
-| `PORT`                         | `10001`                   | Listen port                                                                                     |
-| `BASE_URL`                     | `http://localhost:<PORT>` | URL advertised in the agent card — set to the tunnel URL in tunnel sessions                     |
-| `STATE_DIR`                    | `./.state` (cwd-relative) | Local state: `intent-journal.jsonl`, the cached embedding model                                 |
-| `A2UIVERSE_AGENT_URLS`         | —                         | JSON object `{"<appId>": "<url>"}` overriding registry agent URLs                               |
-| `A2UIVERSE_DEBUG_IDS`          | off                       | `1`/`true`: include vendor ids under `metadata.a2uiverse` on relayed events                     |
-| `GOOGLE_API_KEY`               | —                         | Google AI Studio key for the Planner; unset ⇒ palette turns fail (actions still route)          |
-| `A2UIVERSE_PLANNER_MODEL`      | `gemini-2.5-flash`        | Planner model id                                                                                |
-| `A2UIVERSE_PLANNER_EFFORT`     | `low`                     | `low` (no thinking budget) or `default` — this is time-to-first-paint                           |
-| `A2UIVERSE_SHORTLIST_CAP`      | `5`                       | Router shortlist size cap                                                                       |
-| `A2UIVERSE_SYNTHESIZER_MODEL`  | the Planner's             | Synthesizer model id (the turn's second call)                                                   |
-| `A2UIVERSE_SYNTHESIZER_EFFORT` | `low`                     | `low` or `default`; dead air is measured before effort is spent (journal `synthesis.deadAirMs`) |
+| Variable                       | Default                   | Meaning                                                                                                                                        |
+| ------------------------------ | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PORT`                         | `10001`                   | Listen port                                                                                                                                    |
+| `BASE_URL`                     | `http://localhost:<PORT>` | URL advertised in the agent card — set to the tunnel URL in tunnel sessions                                                                    |
+| `STATE_DIR`                    | `./.state` (cwd-relative) | Local state: `intent-journal.jsonl`, the cached embedding model                                                                                |
+| `A2UIVERSE_AGENT_URLS`         | —                         | JSON object `{"<appId>": "<url>"}` overriding registry agent URLs                                                                              |
+| `A2UIVERSE_AGENTS_DIR`         | —                         | Roster from the manifests one level below this directory, replacing the hardcoded one (the launcher's variable; how the mock tier is opted in) |
+| `A2UIVERSE_DEBUG_IDS`          | off                       | `1`/`true`: include vendor ids under `metadata.a2uiverse` on relayed events                                                                    |
+| `GOOGLE_API_KEY`               | —                         | Google AI Studio key for the Planner; unset ⇒ palette turns fail (actions still route)                                                         |
+| `A2UIVERSE_PLANNER_MODEL`      | `gemini-2.5-flash`        | Planner model id                                                                                                                               |
+| `A2UIVERSE_PLANNER_EFFORT`     | `low`                     | `low` (no thinking budget) or `default` — this is time-to-first-paint                                                                          |
+| `A2UIVERSE_SHORTLIST_CAP`      | `5`                       | Router shortlist size cap                                                                                                                      |
+| `A2UIVERSE_SYNTHESIZER_MODEL`  | the Planner's             | Synthesizer model id (the turn's second call)                                                                                                  |
+| `A2UIVERSE_SYNTHESIZER_EFFORT` | `low`                     | `low` or `default`; dead air is measured before effort is spent (journal `synthesis.deadAirMs`)                                                |
 
 ## Registry
 
 Hardcoded until M7 (`src/registry/entries.ts`): `github` → `:11001`, `gmail` → `:11002`, `calendar` → `:11003`. Each record is orchestrator-authored install state; the AgentCard beside it is the agent's own account of itself, refetched at every boot and authoritative for anything the agent declares.
+
+With `A2UIVERSE_AGENTS_DIR` set, the roster is instead read from that directory (`src/registry/manifests.ts`): every immediate child carrying a `manifest.json` becomes a record, the launcher's own convention. A child without a manifest is not an app; a manifest that is malformed or missing a field fails boot naming the file; a directory yielding no records fails boot. `A2UIVERSE_AGENT_URLS` applies per id on top either way. No platform source names a mock: pointing the variable at `a2uiverse-apps/mocks` is the whole opt-in.
 
 ## Dependencies
 

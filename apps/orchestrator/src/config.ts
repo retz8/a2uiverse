@@ -11,6 +11,12 @@ export interface Config {
   debugIds: boolean;
   /** Agent URL overrides by app id (`A2UIVERSE_AGENT_URLS`, JSON object). */
   agentUrls: Record<string, string>;
+  /**
+   * The agents dir (`A2UIVERSE_AGENTS_DIR`, the launcher's own variable): when set, the roster is
+   * read from the manifests one level below it instead of the hardcoded entries. Unset means the
+   * hardcoded roster — the orchestrator boots standalone without an apps checkout.
+   */
+  agentsDir: string | undefined;
   /** Google AI Studio key for the Planner (`GOOGLE_API_KEY`, the a2ui-github convention). */
   googleApiKey: string | undefined;
   /** Planner model id (`A2UIVERSE_PLANNER_MODEL`). */
@@ -38,6 +44,7 @@ export function loadConfig(env: Env = process.env): Config {
     stateDir: env.STATE_DIR ?? resolve(process.cwd(), '.state'),
     debugIds: env.A2UIVERSE_DEBUG_IDS === '1' || env.A2UIVERSE_DEBUG_IDS === 'true',
     agentUrls: parseAgentUrls(env.A2UIVERSE_AGENT_URLS),
+    agentsDir: parseAgentsDir(env.A2UIVERSE_AGENTS_DIR),
     googleApiKey: env.GOOGLE_API_KEY,
     plannerModelId: env.A2UIVERSE_PLANNER_MODEL ?? DEFAULT_PLANNER_MODEL_ID,
     plannerEffort: parseEffort(env.A2UIVERSE_PLANNER_EFFORT, 'A2UIVERSE_PLANNER_EFFORT'),
@@ -71,6 +78,11 @@ function parsePort(raw: string | undefined): number {
   if (!Number.isInteger(port) || port <= 0)
     throw new Error(`PORT: expected a positive integer, got "${raw}"`);
   return port;
+}
+
+function parseAgentsDir(raw: string | undefined): string | undefined {
+  if (raw === undefined || raw.trim() === '') return undefined;
+  return resolve(raw.trim());
 }
 
 function parseAgentUrls(raw: string | undefined): Record<string, string> {

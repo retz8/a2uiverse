@@ -17,7 +17,7 @@ index.ts ── loadConfig() ── buildOrchestrator({config, overrides?}) ─�
                     GET /.well-known/agent-card.json · POST / (JSON-RPC)
 ```
 
-Config (env): `PORT` 10001 · `BASE_URL` (card url) · `STATE_DIR` · `A2UIVERSE_AGENT_URLS` · `A2UIVERSE_DEBUG_IDS` · `GOOGLE_API_KEY` (Planner and Synthesizer; missing ⇒ boot warning, palette turns are broken turns, syntheses collapse as `failed`) · `A2UIVERSE_PLANNER_MODEL` (default `gemini-2.5-flash`) · `A2UIVERSE_PLANNER_EFFORT` (`low` default — `low` spends no thinking budget; latency is time-to-first-paint) · `A2UIVERSE_SHORTLIST_CAP` (default 5) · `A2UIVERSE_SYNTHESIZER_MODEL` (follows the Planner's) · `A2UIVERSE_SYNTHESIZER_EFFORT` (`low`; dead air is measured before effort is spent).
+Config (env): `PORT` 10001 · `BASE_URL` (card url) · `STATE_DIR` · `A2UIVERSE_AGENT_URLS` · `A2UIVERSE_AGENTS_DIR` (roster from manifests one level below it, replacing the hardcoded entries; the launcher's variable — the mock tier's opt-in) · `A2UIVERSE_DEBUG_IDS` · `GOOGLE_API_KEY` (Planner and Synthesizer; missing ⇒ boot warning, palette turns are broken turns, syntheses collapse as `failed`) · `A2UIVERSE_PLANNER_MODEL` (default `gemini-2.5-flash`) · `A2UIVERSE_PLANNER_EFFORT` (`low` default — `low` spends no thinking budget; latency is time-to-first-paint) · `A2UIVERSE_SHORTLIST_CAP` (default 5) · `A2UIVERSE_SYNTHESIZER_MODEL` (follows the Planner's) · `A2UIVERSE_SYNTHESIZER_EFFORT` (`low`; dead air is measured before effort is spent).
 
 `buildOrchestrator` takes injection `overrides` — `{embedder?, planner?, synthesizer?, resolveCard?}` — so tests run with no model download, no model call, no card network.
 
@@ -96,6 +96,7 @@ Installed apps plus, since Phase 2, the agent-authored mirror: nullable AgentCar
 | Corpus      | `corpus.ts` `corpusDoc(card)`: one document per agent — name + description + all skill texts blended; skills are card content the Planner reads, not index structure                                                                   |
 | Reservation | ctor throws on an entry with id `shell`                                                                                                                                                                                                |
 | Entries     | `entries.ts`: github → 11001, gmail → 11002, calendar → 11003 (gmail/calendar catalog ids convention-guessed until 2.6/2.7); `applyUrlOverrides(entries, map)`                                                                         |
+| Manifests   | `manifests.ts` `readRoster(agentsDir)`: the roster from `<child>/manifest.json` one level below the dir when `A2UIVERSE_AGENTS_DIR` is set — missing manifest ⇒ not an app, malformed/missing field ⇒ throws naming the file, no records or duplicate id ⇒ throws. The launcher's discovery convention, pinned on both sides; moves to the sdk with the manifest schema (Phase 9) |
 
 ### Embedder — `embedder/`
 

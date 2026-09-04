@@ -1,3 +1,4 @@
+import {resolve} from 'node:path';
 import {describe, expect, test} from 'vitest';
 import {loadConfig} from '../src/config.js';
 
@@ -17,6 +18,17 @@ describe('loadConfig — synthesizer (task 4.4)', () => {
     expect(() => loadConfig({A2UIVERSE_SYNTHESIZER_EFFORT: 'max'})).toThrow(
       'A2UIVERSE_SYNTHESIZER_EFFORT',
     );
+  });
+});
+
+describe('loadConfig — agents dir (task 4.7)', () => {
+  test('unset or blank means the hardcoded roster', () => {
+    expect(loadConfig({}).agentsDir).toBeUndefined();
+    expect(loadConfig({A2UIVERSE_AGENTS_DIR: '  '}).agentsDir).toBeUndefined();
+  });
+  test('A2UIVERSE_AGENTS_DIR is resolved to an absolute path', () => {
+    const config = loadConfig({A2UIVERSE_AGENTS_DIR: '../a2uiverse-apps/mocks'});
+    expect(config.agentsDir).toBe(resolve('../a2uiverse-apps/mocks'));
   });
 });
 
