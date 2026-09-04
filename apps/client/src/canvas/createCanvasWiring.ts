@@ -293,7 +293,12 @@ export function createCanvasWiring({
   };
 
   const createParked = (entry: PaintEntry) =>
-    createParkedSession(entry, {catalogs, store, onAction: parkedActionHandler});
+    createParkedSession(entry, {
+      catalogs,
+      store,
+      onAction: parkedActionHandler,
+      functions: shellCatalog?.functions ?? new Map(),
+    });
 
   /** Register a mounted parked session; the returned teardown commits its write-back. */
   const attachParked = (parked: ParkedSession<ReactComponentImplementation>) => {

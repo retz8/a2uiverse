@@ -11,7 +11,15 @@
  * wholesale.
  */
 import {MessageProcessor} from '@a2ui/web_core/v0_9';
-import type {ActionListener, A2uiMessage, Catalog, ComponentApi} from '@a2ui/web_core/v0_9';
+import type {
+  ActionListener,
+  A2uiMessage,
+  Catalog,
+  ComponentApi,
+  FunctionImplementation,
+} from '@a2ui/web_core/v0_9';
+import type {Sort} from '@a2uiverse/sdk';
+import {evaluate} from '../synthesis/bindingEvaluator';
 import type {CanvasStore, PlacedFragment} from '../canvasStore';
 import type {PaintEntry, PaintSnapshot} from './paint';
 import {deepFreeze} from './snapshotSurface';
@@ -21,6 +29,8 @@ export interface ParkedSessionOptions<T extends ComponentApi> {
   store: CanvasStore;
   /** Receives agent-bound actions fired from the parked surface (the fork path). */
   onAction?: ActionListener;
+  /** The shell catalog's functions — what a parked synthesis re-sorts with. */
+  functions?: ReadonlyMap<string, FunctionImplementation>;
 }
 
 export interface ParkedSession<T extends ComponentApi> {
@@ -49,7 +59,7 @@ function thaw(value: unknown): unknown {
 
 export function createParkedSession<T extends ComponentApi>(
   entry: PaintEntry,
-  {catalogs, store, onAction}: ParkedSessionOptions<T>,
+  {catalogs, store, onAction, functions}: ParkedSessionOptions<T>,
 ): ParkedSession<T> {
   const {snapshot, surfaceId, catalogId, paintId} = entry;
   if (!snapshot)
@@ -80,7 +90,13 @@ export function createParkedSession<T extends ComponentApi>(
     placement.set(fragment.slot, {surfaceId: fragment.surfaceId, source: fragment.source});
   }
 
+  // A parked synthesis re-sorts over its own frozen partitions (task 4.8): sort crosses no wire,
+  // so the sort control keeps working here — the captured wiring evaluated against the sandbox's
+  // data, with the captured generations so nothing reads as stale. Nothing live is subscribed.
+  const sort = watchSort(entry, processor, functions);
+
   const commit = () => {
+    sort?.unsubscribe();
     const surface = processor.model.getSurface(surfaceId);
     if (!surface) return;
     store.replaceSnapshotDataModel(paintId, deepFreeze(thaw(surface.dataModel.get('/')) ?? {}));
@@ -88,3 +104,46 @@ export function createParkedSession<T extends ComponentApi>(
 
   return {processor, surfaceId, placement, commit};
 }
+
+function watchSort<T extends ComponentApi>(
+  entry: PaintEntry,
+  processor: MessageProcessor<T>,
+  functions: ReadonlyMap<string, FunctionImplementation> | undefined,
+): {unsubscribe(): void} | undefined {
+  const captured = entry.synthesis;
+  if (!captured || !functions) return undefined;
+  const target = processor.model.getSurface(captured.surfaceId);
+  if (!target) return undefined;
+  let writing = false;
+  let scheduled = false;
+  // Deferred like the live session's evaluation: a root write from inside the sort
+  // subscription itself is a cycle to the data model.
+  return target.dataModel.subscribe('/sort', value => {
+    if (writing || scheduled) return;
+    scheduled = true;
+    queueMicrotask(() => {
+      scheduled = false;
+      const next = evaluate({
+        wiring: captured.wiring,
+        models: surface => processor.model.getSurface(surface)?.dataModel.get('/'),
+        generations: captured.generations,
+        sort: sortOf(value),
+        functions,
+      });
+      writing = true;
+      try {
+        target.dataModel.set('/', next);
+      } finally {
+        writing = false;
+      }
+    });
+  });
+}
+
+const sortOf = (value: unknown): Sort | undefined => {
+  const candidate = value as {field?: unknown; direction?: unknown} | null | undefined;
+  return typeof candidate?.field === 'string' &&
+    (candidate.direction === 'asc' || candidate.direction === 'desc')
+    ? {field: candidate.field, direction: candidate.direction}
+    : undefined;
+};

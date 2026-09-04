@@ -6,7 +6,7 @@
  * the replay driver, the A2A callbacks), which is why it is a closure module and not
  * component state.
  */
-import type {PaintEntry, PaintFragment, PaintSnapshot} from './timeline/paint';
+import type {PaintEntry, PaintFragment, PaintSnapshot, PaintSynthesis} from './timeline/paint';
 
 /** The ring cap — a stated policy bound, not a memory guard. */
 export const TIMELINE_CAP = 50;
@@ -123,6 +123,7 @@ export interface CanvasStore {
     paintId: number,
     snapshot: PaintSnapshot,
     fragments?: readonly PaintFragment[],
+    synthesis?: PaintSynthesis,
   ): void;
   /** Parked write-back: replace the snapshot's data model wholesale. */
   replaceSnapshotDataModel(paintId: number, dataModel: unknown): void;
@@ -246,8 +247,13 @@ export function createCanvasStore(): CanvasStore {
           : state.viewing !== null || state.headAdvancedWhileParked,
       });
     },
-    fillSnapshot: (id, snapshot, fragments) =>
-      patchEntry(id, e => ({...e, snapshot, ...(fragments?.length ? {fragments} : {})})),
+    fillSnapshot: (id, snapshot, fragments, synthesis) =>
+      patchEntry(id, e => ({
+        ...e,
+        snapshot,
+        ...(fragments?.length ? {fragments} : {}),
+        ...(synthesis ? {synthesis} : {}),
+      })),
     replaceSnapshotDataModel: (id, dataModel) =>
       patchEntry(id, e => (e.snapshot ? {...e, snapshot: {...e.snapshot, dataModel}} : e)),
     park: id => {

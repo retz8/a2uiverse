@@ -6,6 +6,7 @@
  * is `parentTitle`, a fact about the edge recorded at fork time so provenance survives the
  * parent's eviction. These fallbacks are permanent — the agent-authored `title` sits on top.
  */
+import type {SynthesisWiring} from '@a2uiverse/sdk';
 import type {A2uiClientAction} from '@a2ui/web_core/v0_9';
 import {describeAction} from '../../shared/describeAction';
 
@@ -63,6 +64,18 @@ export interface PaintFragment {
 }
 
 /**
+ * The synthesis a composed paint carried, captured with its fragments (task 4.8): the wiring, the
+ * surface it evaluates into, and the generations it was computed against. A parked entry
+ * re-sorts over its own frozen partitions with these — sort crosses no wire — and subscribes to
+ * nothing live.
+ */
+export interface PaintSynthesis {
+  surfaceId: string;
+  wiring: SynthesisWiring;
+  generations: Readonly<Record<string, number>>;
+}
+
+/**
  * One timeline entry — appended the moment its paint lands. The newest entry is the live
  * paint and the only one whose `snapshot` is null; it fills when the paint departs the stage.
  */
@@ -84,6 +97,8 @@ export interface PaintEntry {
    * shell's own snapshot. Absent on an uncomposed paint.
    */
   fragments?: readonly PaintFragment[];
+  /** The composition's synthesis, captured beside its fragments. Absent when none was painted. */
+  synthesis?: PaintSynthesis;
 }
 
 const MAX_UTTERANCE_LABEL = 48;

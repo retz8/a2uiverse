@@ -158,7 +158,7 @@ describe('the synthesis turn on the canvas', () => {
     });
   });
 
-  it('the next composition retires the synthesis with the one it replaces, and the timeline keeps it frozen', async () => {
+  it('the next composition retires the synthesis with the one it replaces, and the timeline keeps it with its wiring', async () => {
     const {processor, store, runner, synthesis} = setup();
     await replayBeatOnCanvas(SYNTHESIS_BEAT, {runner, store, paced: false});
     await replayBeatOnCanvas(COMPOSED_BEAT, {runner, store, paced: false});
@@ -172,5 +172,16 @@ describe('the synthesis turn on the canvas', () => {
       sort: {field: 'best_price', direction: 'asc'},
       entities: [{name: {value: 'X100'}}, {name: {value: 'Z6'}}],
     });
+    // Captured beside the fragments: what a parked visit re-sorts with (task 4.8).
+    expect(parked.synthesis).toMatchObject({
+      surfaceId: SYNTHESIS_SURFACE,
+      generations: {[SHOP_A]: 2, 'shop-b:list': 1},
+    });
+    expect(parked.synthesis?.wiring.fields.map(f => f.name)).toEqual(
+      SYNTHESIS_BEAT.turns
+        .at(-1)!
+        .batches.at(-1)!
+        .wiring!.fields.map(f => f.name),
+    );
   });
 });

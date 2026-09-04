@@ -183,7 +183,14 @@ export function createTurnRunner({
       if (head && head.surfaceId === stageId && head.snapshot === null) {
         const snapshot = snapshotOf(stageId);
         // Snapshot before delete: the cascade below is what makes these unreachable.
-        if (snapshot) store.fillSnapshot(head.paintId, snapshot, snapshotComposition(placement));
+        if (snapshot) {
+          store.fillSnapshot(
+            head.paintId,
+            snapshot,
+            snapshotComposition(placement),
+            synthesis?.capture?.(),
+          );
+        }
       }
       processor.model.deleteSurface(stageId);
     }

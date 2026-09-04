@@ -20,6 +20,7 @@
  */
 import type {FunctionImplementation} from '@a2ui/web_core/v0_9';
 import type {Sort, SynthesisWiring} from '@a2uiverse/sdk';
+import type {PaintSynthesis} from '../timeline/paint';
 import {evaluate as evaluateWiring, type SynthesisModel} from './bindingEvaluator';
 import {validateWiring} from './wiringSchema';
 
@@ -40,6 +41,8 @@ export interface SynthesisIntake {
   accept(target: {surfaceId: string; slot: string}, wiring: unknown): void;
   /** The composition left the canvas. */
   retire(): void;
+  /** What a parked entry carries of the synthesis: the wiring, its surface, and the generations it was computed against. */
+  capture?(): PaintSynthesis | undefined;
 }
 
 interface ObservableDataModel {
@@ -199,6 +202,9 @@ export function createSynthesisSession({
     evaluate();
   };
 
+  const capture: SynthesisIntake['capture'] = () =>
+    wiring && surfaceId ? {surfaceId, wiring, generations: {...generations}} : undefined;
+
   const retire: SynthesisIntake['retire'] = () => {
     unwatchAll();
     wiring = undefined;
@@ -237,6 +243,7 @@ export function createSynthesisSession({
     noteGenerations,
     accept,
     retire,
+    capture,
     evaluate,
     dispose: () => {
       retire();

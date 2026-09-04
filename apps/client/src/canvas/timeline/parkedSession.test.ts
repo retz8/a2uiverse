@@ -11,6 +11,18 @@ import type {PaintEntry} from './paint';
 import {createCanvasStore} from '../canvasStore';
 import {createParkedSession} from './parkedSession';
 import {serializeSurface} from './snapshotSurface';
+import {evaluate} from '../synthesis/bindingEvaluator';
+import {
+  SHOP_A,
+  SHOP_A_ITEMS,
+  SHOP_B,
+  SHOP_B_ITEMS,
+  SYNTHESIS_SLOT,
+  SYNTHESIS_SURFACE,
+  WIRING,
+  storefrontMessages,
+  synthesisMessages,
+} from '../../beats/synthesisFixture';
 
 const msg = (m: Record<string, unknown>): A2uiMessage =>
   ({version: 'v0.9', ...m}) as unknown as A2uiMessage;
@@ -176,6 +188,75 @@ describe('a parked composition', () => {
       surfaceId: 'github:prs',
       source: 'github',
     });
+  });
+
+  it('a parked synthesis re-sorts over its own frozen partitions — sort crosses no wire (task 4.8)', async () => {
+    const live = new MessageProcessor([SHELL_CATALOG]);
+    live.processMessages([
+      ...storefrontMessages(SHOP_A, SHELL_CATALOG_ID, 'Shop A', SHOP_A_ITEMS),
+      ...storefrontMessages(SHOP_B, SHELL_CATALOG_ID, 'Shop B', SHOP_B_ITEMS),
+      ...synthesisMessages(WIRING, SHELL_CATALOG_ID),
+      msg({createSurface: {surfaceId: 'shell:main', catalogId: SHELL_CATALOG_ID}}),
+      msg({
+        updateComponents: {
+          surfaceId: 'shell:main',
+          components: [
+            {id: 'root', component: 'Column', children: [SYNTHESIS_SLOT]},
+            {id: SYNTHESIS_SLOT, component: 'Slot', name: SYNTHESIS_SLOT, state: 'pending'},
+          ],
+        },
+      }),
+    ]);
+    const generations = {[SHOP_A]: 1, [SHOP_B]: 1};
+    const functions = SHELL_CATALOG.functions;
+    const models = (surface: string) => live.model.getSurface(surface)?.dataModel.get('/');
+    live.model
+      .getSurface(SYNTHESIS_SURFACE)!
+      .dataModel.set('/', evaluate({wiring: WIRING, models, generations, functions}));
+    const capture = (id: string) => ({
+      ...serializeSurface(live.model.getSurface(id)!),
+      capturedAt: 2000,
+    });
+    const fragment = (surfaceId: string, slot: string, source: string) => ({
+      slot,
+      surfaceId,
+      source,
+      catalogId: SHELL_CATALOG_ID,
+      snapshot: capture(surfaceId),
+    });
+    const entry: PaintEntry = {
+      paintId: 9,
+      surfaceId: 'shell:main',
+      catalogId: SHELL_CATALOG_ID,
+      cause: {kind: 'utterance', parent: null, forked: false, payload: {text: 'compare'}},
+      paintedAt: 1009,
+      snapshot: capture('shell:main'),
+      fragments: [
+        fragment(SHOP_A, 'slot-shop-a', 'shop-a'),
+        fragment(SHOP_B, 'slot-shop-b', 'shop-b'),
+        fragment(SYNTHESIS_SURFACE, SYNTHESIS_SLOT, 'shell'),
+      ],
+      synthesis: {surfaceId: SYNTHESIS_SURFACE, wiring: WIRING, generations},
+    };
+    const store = createCanvasStore();
+    store.appendEntry(entry);
+
+    const session = createParkedSession(entry, {catalogs: [SHELL_CATALOG], store, functions});
+    const parked = session.processor.model.getSurface(SYNTHESIS_SURFACE)!;
+    const names = () =>
+      (parked.dataModel.get('/entities') as Array<{name: {value: string}}>).map(e => e.name.value);
+    expect(names()).toEqual(['X100', 'Z6']);
+
+    parked.dataModel.set('/sort', {field: 'best_price', direction: 'desc'});
+    await Promise.resolve();
+    expect(names()).toEqual(['Z6', 'X100']);
+    expect(parked.dataModel.get('/sort')).toMatchObject({field: 'best_price', direction: 'desc'});
+
+    // The re-sort stays in the sandbox: the stored entry is untouched until commit.
+    const stored = store
+      .getState()
+      .timeline[0].fragments!.find(f => f.surfaceId === SYNTHESIS_SURFACE)!;
+    expect((stored.snapshot!.dataModel as {sort: unknown}).sort).toMatchObject(WIRING.sort);
   });
 
   it('an uncomposed paint parks with an empty placement', () => {
