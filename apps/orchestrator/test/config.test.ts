@@ -1,6 +1,25 @@
 import {describe, expect, test} from 'vitest';
 import {loadConfig} from '../src/config.js';
 
+describe('loadConfig — synthesizer (task 4.4)', () => {
+  test('the Synthesizer follows the Planner model by default, at low effort', () => {
+    const config = loadConfig({A2UIVERSE_PLANNER_MODEL: 'gemini-x'});
+    expect(config.synthesizerModelId).toBe('gemini-x');
+    expect(config.synthesizerEffort).toBe('low');
+  });
+  test('reads A2UIVERSE_SYNTHESIZER_MODEL and A2UIVERSE_SYNTHESIZER_EFFORT', () => {
+    const config = loadConfig({
+      A2UIVERSE_SYNTHESIZER_MODEL: 'gemini-y',
+      A2UIVERSE_SYNTHESIZER_EFFORT: 'default',
+    });
+    expect(config.synthesizerModelId).toBe('gemini-y');
+    expect(config.synthesizerEffort).toBe('default');
+    expect(() => loadConfig({A2UIVERSE_SYNTHESIZER_EFFORT: 'max'})).toThrow(
+      'A2UIVERSE_SYNTHESIZER_EFFORT',
+    );
+  });
+});
+
 describe('loadConfig', () => {
   test('defaults: port 10001, base URL derived from port, debug ids off, no overrides', () => {
     const config = loadConfig({});

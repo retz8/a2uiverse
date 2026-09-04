@@ -26,7 +26,8 @@
         "types": "./dist/functions/operators.d.ts",
         "default": "./dist/functions/operators.js"
       }
-    }
+    },
+    "./catalog.json": "./catalogs/v0.9.1/catalog.json"
   },
   "files": [
     "dist",

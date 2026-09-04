@@ -19,6 +19,10 @@ export interface Config {
   plannerEffort: 'low' | 'default';
   /** Router shortlist cap (`A2UIVERSE_SHORTLIST_CAP`). */
   shortlistCap: number;
+  /** Synthesizer model id (`A2UIVERSE_SYNTHESIZER_MODEL`); follows the Planner's by default. */
+  synthesizerModelId: string;
+  /** Synthesizer effort (`A2UIVERSE_SYNTHESIZER_EFFORT`); `low` by default — dead air is measured first. */
+  synthesizerEffort: 'low' | 'default';
 }
 
 type Env = Readonly<Record<string, string | undefined>>;
@@ -36,15 +40,21 @@ export function loadConfig(env: Env = process.env): Config {
     agentUrls: parseAgentUrls(env.A2UIVERSE_AGENT_URLS),
     googleApiKey: env.GOOGLE_API_KEY,
     plannerModelId: env.A2UIVERSE_PLANNER_MODEL ?? DEFAULT_PLANNER_MODEL_ID,
-    plannerEffort: parseEffort(env.A2UIVERSE_PLANNER_EFFORT),
+    plannerEffort: parseEffort(env.A2UIVERSE_PLANNER_EFFORT, 'A2UIVERSE_PLANNER_EFFORT'),
     shortlistCap: parseCap(env.A2UIVERSE_SHORTLIST_CAP),
+    synthesizerModelId:
+      env.A2UIVERSE_SYNTHESIZER_MODEL ?? env.A2UIVERSE_PLANNER_MODEL ?? DEFAULT_PLANNER_MODEL_ID,
+    synthesizerEffort: parseEffort(
+      env.A2UIVERSE_SYNTHESIZER_EFFORT,
+      'A2UIVERSE_SYNTHESIZER_EFFORT',
+    ),
   };
 }
 
-function parseEffort(raw: string | undefined): 'low' | 'default' {
+function parseEffort(raw: string | undefined, key: string): 'low' | 'default' {
   if (raw === undefined || raw === 'low') return 'low';
   if (raw === 'default') return 'default';
-  throw new Error(`A2UIVERSE_PLANNER_EFFORT: expected "low" or "default", got "${raw}"`);
+  throw new Error(`${key}: expected "low" or "default", got "${raw}"`);
 }
 
 function parseCap(raw: string | undefined): number {

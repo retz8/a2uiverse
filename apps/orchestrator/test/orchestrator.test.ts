@@ -12,6 +12,9 @@ import type {Plan} from '../src/planner/planSchema.js';
 import type {Planner} from '../src/planner/planner.js';
 import {FakeEmbedder} from './fakeEmbedder.js';
 import {FakePlanner, ThrowingPlanner} from './fakePlanner.js';
+import {FakeSynthesizer} from './fakeSynthesizer.js';
+import type {Synthesizer} from '../src/synthesizer/synthesizer.js';
+import {WIRING_KEY} from '@a2uiverse/sdk';
 import {startFakeVendor, type FakeVendor, type Script} from './fakeVendor.js';
 
 const APPS = ['github', 'gmail', 'calendar'] as const;
@@ -46,6 +49,7 @@ async function boot(
   options: {
     scripts?: Partial<Record<AppId, Script>>;
     planner?: Planner;
+    synthesizer?: Synthesizer;
     closeAfterInit?: AppId[];
   } = {},
 ) {
@@ -80,6 +84,7 @@ async function boot(
     overrides: {
       embedder: new FakeEmbedder(),
       planner: options.planner ?? new FakePlanner(() => planFor(APPS)),
+      ...(options.synthesizer ? {synthesizer: options.synthesizer} : {}),
     },
   });
   await orchestrator.init();
@@ -451,5 +456,211 @@ describe('orchestrator', () => {
       headers: {Origin: 'https://evil.example'},
     });
     expect(res.headers.get('access-control-allow-origin')).toBeNull();
+  });
+});
+
+/** A storefront that paints `{items}` on its first turn and, on an action turn, whatever `onAction` says. */
+function shopScript(items: unknown[], onAction?: (n: number) => Record<string, unknown>): Script {
+  let actions = 0;
+  return ({ctx, vendorContextId, firstTurn}) => {
+    const part = (op: Record<string, unknown>) => ({
+      kind: 'data' as const,
+      data: {version: 'v0.9', ...op},
+    });
+    const parts = firstTurn
+      ? [
+          part({createSurface: {surfaceId: 's1', catalogId: 'cat'}}),
+          part({updateDataModel: {surfaceId: 's1', value: {items}}}),
+        ]
+      : [
+          part({
+            updateDataModel: {
+              surfaceId: 's1',
+              ...(onAction?.(++actions) ?? {path: '/note', value: 'noted'}),
+            },
+          }),
+        ];
+    return [
+      {
+        kind: 'status-update' as const,
+        taskId: ctx.taskId,
+        contextId: vendorContextId,
+        final: true,
+        status: {
+          state: 'completed' as const,
+          message: {
+            kind: 'message' as const,
+            messageId: crypto.randomUUID(),
+            role: 'agent' as const,
+            parts,
+            contextId: vendorContextId,
+            taskId: ctx.taskId,
+          },
+        },
+      },
+    ];
+  };
+}
+
+const camerasA = [
+  {id: 'x100', price: 899},
+  {id: 'x200', price: 1299},
+];
+const camerasB = [
+  {id: 'x100', price: 949},
+  {id: 'x200', price: 1199},
+];
+
+function wiringEvents(events: AnyEvent[]) {
+  return events.filter(e => e.metadata?.[WIRING_KEY] !== undefined);
+}
+
+function actionOn(surfaceId: string, contextId: string): Message {
+  return {
+    kind: 'message',
+    messageId: crypto.randomUUID(),
+    role: 'user',
+    contextId,
+    parts: [
+      {
+        kind: 'data',
+        data: {
+          version: 'v0.9',
+          action: {name: 'sort', surfaceId, sourceComponentId: 'btn', timestamp: 't', context: {}},
+        },
+      },
+    ],
+    metadata: {a2uiClientDataModel: {version: 'v0.9', surfaces: {}}},
+  };
+}
+
+describe('synthesis (task 4.4)', () => {
+  const planner = () => new FakePlanner(() => planWithSynthesis(['github', 'gmail']));
+  const scripts = () => ({github: shopScript(camerasA), gmail: shopScript(camerasB)});
+
+  test('after every source resolves, the merged view is painted into the synthesis slot with its wiring', async () => {
+    const synthesizer = new FakeSynthesizer();
+    const {client} = await boot({planner: planner(), synthesizer, scripts: scripts()});
+    const events = await collect(client, utterance('compare camera prices'));
+
+    // The Synthesizer saw the Planner's request and both sources by surface.
+    expect(synthesizer.calls).toHaveLength(1);
+    expect(synthesizer.calls[0]!.request).toBe('Compare across both.');
+    expect(synthesizer.calls[0]!.sources.map(s => s.surface).sort()).toEqual([
+      'github:s1',
+      'gmail:s1',
+    ]);
+    expect(synthesizer.calls[0]!.sources.find(s => s.surface === 'github:s1')?.displayName).toBe(
+      'GitHub',
+    );
+
+    // Vendor data events carry their surface's generation on the stamp.
+    const dataEvent = events.find(
+      e => stampOf(e)?.source === 'github' && a2uiDatas(e).some(d => d.updateDataModel),
+    );
+    expect(stampOf(dataEvent!)?.generations).toEqual({'github:s1': 1});
+
+    // The synthesis surface: a fragment of the shell in the synthesis slot, wiring beside the stamp.
+    const [paint, ...rest] = wiringEvents(events);
+    expect(rest).toHaveLength(0);
+    expect(stampOf(paint!)).toEqual({source: 'shell', slot: 'slot-shell', role: 'fragment'});
+    const wiring = paint!.metadata![WIRING_KEY] as {
+      computedAgainst: Record<string, number>;
+      entities: unknown[];
+    };
+    expect(wiring.computedAgainst).toEqual({'github:s1': 1, 'gmail:s1': 1});
+    expect(wiring.entities).toHaveLength(2);
+    expect(a2uiDatas(paint!)[0]).toMatchObject({createSurface: {surfaceId: 'shell:synthesis'}});
+
+    // It paints after the last source and before the final; the slot is left to the client.
+    const lastVendor = events.map(e => stampOf(e)?.role).lastIndexOf('fragment' as never);
+    void lastVendor;
+    expect(events.indexOf(paint!)).toBeLessThan(events.length - 1);
+    expect(slotStates(shellPaints(events).at(-1)!)['slot-shell']).toBe('pending');
+
+    const [line] = await journalLines(1);
+    expect(line.synthesis).toMatchObject({outcome: 'synthesized'});
+    expect(typeof (line.synthesis as {deadAirMs: unknown}).deadAirMs).toBe('number');
+  });
+
+  test('a decline collapses the synthesis slot and sends no wiring', async () => {
+    const synthesizer = new FakeSynthesizer({declined: true, reason: 'nothing joinable'});
+    const {client} = await boot({planner: planner(), synthesizer, scripts: scripts()});
+    const events = await collect(client, utterance('compare'));
+    expect(wiringEvents(events)).toHaveLength(0);
+    expect(slotStates(shellPaints(events).at(-1)!)['slot-shell']).toBe('collapsed');
+    const [line] = await journalLines(1);
+    expect(line.synthesis).toMatchObject({outcome: 'declined', reason: 'nothing joinable'});
+  });
+
+  test('malformed output behaves as a decline, journaled apart', async () => {
+    const synthesizer = new FakeSynthesizer(input => {
+      const out = new FakeSynthesizer().synthesize(input);
+      return out.then(o => ({
+        ...o,
+        entities: o.entities!.map(e => ({cells: e.cells.map(c => ({...c, op: 'median'}))})),
+      })) as never;
+    });
+    const {client} = await boot({planner: planner(), synthesizer, scripts: scripts()});
+    const events = await collect(client, utterance('compare'));
+    expect(wiringEvents(events)).toHaveLength(0);
+    expect(slotStates(shellPaints(events).at(-1)!)['slot-shell']).toBe('collapsed');
+    const [line] = await journalLines(1);
+    expect(line.synthesis).toMatchObject({outcome: 'malformed'});
+    expect((line.synthesis as {reason: string}).reason).toContain('median');
+  });
+
+  test('fewer than two sources: no model call, the slot collapses (§5.1)', async () => {
+    const synthesizer = new FakeSynthesizer();
+    const {client} = await boot({
+      planner: planner(),
+      synthesizer,
+      scripts: scripts(),
+      closeAfterInit: ['gmail'],
+    });
+    const events = await collect(client, utterance('compare'));
+    expect(synthesizer.calls).toHaveLength(0);
+    expect(slotStates(shellPaints(events).at(-1)!)['slot-shell']).toBe('collapsed');
+    const [line] = await journalLines(1);
+    expect(line.synthesis).toMatchObject({outcome: 'skipped'});
+  });
+
+  test('an in-fragment reorder bumps the generation and re-synthesizes inline; a scalar edit does not', async () => {
+    const synthesizer = new FakeSynthesizer();
+    const github = shopScript(camerasA, n =>
+      n === 1
+        ? {path: '/note', value: 'scalar only'}
+        : {path: '/items', value: [camerasA[1], camerasA[0]]},
+    );
+    const {client} = await boot({
+      planner: planner(),
+      synthesizer,
+      scripts: {github, gmail: shopScript(camerasB)},
+    });
+    const first = await collect(client, utterance('compare camera prices'));
+    const contextId = first[0]!.contextId!;
+    expect(synthesizer.calls).toHaveLength(1);
+
+    // Action 1: a scalar edit — the stamp carries the unchanged generation; no re-synthesis.
+    const scalar = await collect(client, actionOn('github:s1', contextId));
+    expect(
+      stampOf(scalar.find(e => a2uiDatas(e).some(d => d.updateDataModel))!)?.generations,
+    ).toEqual({'github:s1': 1});
+    expect(synthesizer.calls).toHaveLength(1);
+    expect(wiringEvents(scalar)).toHaveLength(0);
+
+    // Action 2: the list reordered in place — bump on the stamp, then new wiring in the same turn.
+    const reorder = await collect(client, actionOn('github:s1', contextId));
+    const bumped = reorder.find(e => a2uiDatas(e).some(d => d.updateDataModel))!;
+    expect(stampOf(bumped)?.generations).toEqual({'github:s1': 2});
+    expect(synthesizer.calls).toHaveLength(2);
+    const [rewire] = wiringEvents(reorder);
+    expect(rewire).toBeDefined();
+    expect(
+      (rewire!.metadata![WIRING_KEY] as {computedAgainst: Record<string, number>}).computedAgainst,
+    ).toEqual({'github:s1': 2, 'gmail:s1': 1});
+    expect(reorder.indexOf(bumped)).toBeLessThan(reorder.indexOf(rewire!));
+    const final = reorder.at(-1) as TaskStatusUpdateEvent;
+    expect(final.final).toBe(true);
   });
 });

@@ -45,6 +45,25 @@ export function composeFragment(event: VendorEvent, ctx: ComposeContext): Vendor
   }
 }
 
+/** Adds per-surface generations to an already-composed event's stamp (the partitions are applied to the namespaced event first). */
+export function withGenerations<E extends VendorEvent>(
+  event: E,
+  generations: Record<string, number>,
+): E {
+  if (Object.keys(generations).length === 0) return event;
+  const existing = event.metadata?.[STAMP_KEY];
+  return {
+    ...event,
+    metadata: {
+      ...event.metadata,
+      [STAMP_KEY]: {
+        ...(typeof existing === 'object' && existing !== null ? existing : {}),
+        generations,
+      },
+    },
+  };
+}
+
 function withStamp<E extends VendorEvent>(event: E, ctx: ComposeContext): E {
   const existing = event.metadata?.[STAMP_KEY];
   const generations =

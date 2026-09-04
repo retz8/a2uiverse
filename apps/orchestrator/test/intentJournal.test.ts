@@ -148,3 +148,12 @@ describe('IntentJournal', () => {
     await expect(turn.close('completed')).resolves.toBeUndefined();
   });
 });
+
+test('a turn records its synthesis outcome beside the plan', async () => {
+  const journal = new IntentJournal(join(dir, 'j.jsonl'), new FakeEmbedder());
+  const turn = journal.open({turnId: 't1', clientContextId: 'c1', message: utterance});
+  turn.synthesis({outcome: 'declined', reason: 'nothing joinable', deadAirMs: 12});
+  await turn.close('completed');
+  const [line] = await lines(join(dir, 'j.jsonl'));
+  expect(line!.synthesis).toEqual({outcome: 'declined', reason: 'nothing joinable', deadAirMs: 12});
+});

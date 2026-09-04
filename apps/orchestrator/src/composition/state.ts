@@ -1,3 +1,4 @@
+import type {SynthesisWiring} from '@a2uiverse/sdk';
 import type {DispatchOutcome} from '../agentsPool/types.js';
 import type {SurfaceTouches} from '../journal/surfaces.js';
 import type {SlotArchetype} from '../planner/archetypes.js';
@@ -5,6 +6,7 @@ import type {Plan} from '../planner/planSchema.js';
 import type {Registry} from '../registry/registry.js';
 import {SHELL_SOURCE_ID} from '../registry/types.js';
 import {slotNameFor, SYNTHESIS_DISPLAY_NAME} from './constants.js';
+import {Partitions} from './partitions.js';
 
 /**
  * The orchestrator-side slot states. `filled` is deliberately absent — a slot
@@ -30,6 +32,14 @@ export interface CompositionState {
   plan: Plan;
   /** Keyed by slot name, in plan order. */
   slots: Map<string, {plan: SlotPlan; state: SlotState}>;
+  /** Every surface's data model, snapshots and generations (task-4.4 decision 3). */
+  partitions: Partitions;
+  /** Sources whose dispatch completed having painted — what synthesis runs over. */
+  arrived: Set<string>;
+  /** The live wiring, once a synthesis has been painted; what the IntegrityChecker guards. */
+  wiring?: SynthesisWiring;
+  /** When the last source settled — the start of the dead-air interval. */
+  lastSettledAt?: number;
 }
 
 export function compositionFrom(plan: Plan, registry: Registry): CompositionState {
@@ -52,7 +62,14 @@ export function compositionFrom(plan: Plan, registry: Registry): CompositionStat
       });
     }
   }
-  return {plan, slots};
+  return {plan, slots, partitions: new Partitions(), arrived: new Set()};
+}
+
+/** The synthesis slot, when the plan reserved one. */
+export function synthesisSlot(
+  state: CompositionState,
+): {plan: SlotPlan; state: SlotState} | undefined {
+  return state.slots.get(slotNameFor(SHELL_SOURCE_ID));
 }
 
 /**

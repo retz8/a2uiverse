@@ -17,6 +17,8 @@ import {ModelPlanner, type Planner} from './planner/planner.js';
 import {applyUrlOverrides, defaultEntries} from './registry/entries.js';
 import {Registry, type ResolveCard} from './registry/registry.js';
 import {Router} from './router/router.js';
+import {operatorVocabulary} from './synthesizer/operators.js';
+import {ModelSynthesizer, type Synthesizer} from './synthesizer/synthesizer.js';
 
 /** localhost, 127.0.0.1 on any port, and VS Code dev tunnels (tunnel-environment.md). */
 export const ORIGIN_RE =
@@ -38,10 +40,11 @@ export interface Orchestrator {
 export interface OrchestratorOverrides {
   embedder?: Embedder;
   planner?: Planner;
+  synthesizer?: Synthesizer;
   resolveCard?: ResolveCard;
 }
 
-/** Wires the M1 orchestrator: Registry · Embedder · Router · Planner · AgentsPool · IntentJournal behind one A2A executor. */
+/** Wires the orchestrator: Registry · Embedder · Router · Planner · Synthesizer · AgentsPool · IntentJournal behind one A2A executor. */
 export function buildOrchestrator({
   config,
   overrides,
@@ -53,13 +56,22 @@ export function buildOrchestrator({
   const embedder =
     overrides?.embedder ?? new TransformersEmbedder({cacheDir: join(config.stateDir, 'models')});
   const planner = overrides?.planner ?? plannerFrom(config);
+  const synthesizer = overrides?.synthesizer ?? synthesizerFrom(config);
   const router = new Router(registry, embedder, {shortlistCap: config.shortlistCap});
   const pool = new AgentsPool(registry, {
     defaultDeadlineMs: DEFAULT_DEADLINE_MS,
     debugIds: config.debugIds,
   });
   const journal = new IntentJournal(join(config.stateDir, JOURNAL_FILE), embedder);
-  const executor = new OrchestratorExecutor({registry, pool, journal, router, planner});
+  const executor = new OrchestratorExecutor({
+    registry,
+    pool,
+    journal,
+    router,
+    planner,
+    synthesizer,
+    operators: operatorVocabulary(),
+  });
   const requestHandler = new DefaultRequestHandler(
     buildAgentCard(config.baseUrl),
     new InMemoryTaskStore(),
@@ -98,6 +110,27 @@ function plannerFrom(config: Config): Planner {
   }
   const settings = {googleApiKey, modelId: config.plannerModelId, effort: config.plannerEffort};
   return new ModelPlanner({
+    model: getModel(settings),
+    providerOptions: plannerProviderOptions(settings),
+  });
+}
+
+/** The second model call shares the Planner's provider seam; without a key it declines as a failure. */
+function synthesizerFrom(config: Config): Synthesizer {
+  const {googleApiKey} = config;
+  if (!googleApiKey) {
+    return {
+      async synthesize() {
+        throw new Error('GOOGLE_API_KEY not set: the Synthesizer has no model');
+      },
+    };
+  }
+  const settings = {
+    googleApiKey,
+    modelId: config.synthesizerModelId,
+    effort: config.synthesizerEffort,
+  };
+  return new ModelSynthesizer({
     model: getModel(settings),
     providerOptions: plannerProviderOptions(settings),
   });

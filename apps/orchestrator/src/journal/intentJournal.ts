@@ -6,7 +6,7 @@ import type {Embedder} from '../embedder/types.js';
 import type {Plan} from '../planner/planSchema.js';
 import {describe} from './descriptor.js';
 import {emptyTouches, mergeTouches, type SurfaceTouches} from './surfaces.js';
-import type {JournalEntry} from './types.js';
+import type {JournalEntry, SynthesisRecord} from './types.js';
 
 export interface OpenTurn {
   turnId: string;
@@ -18,6 +18,7 @@ export interface OpenTurn {
 
 export interface JournalTurn {
   plan(plan: Plan): void;
+  synthesis(record: SynthesisRecord): void;
   dispatched(record: DispatchRecord): void;
   surfaces(touches: SurfaceTouches): void;
   /** Appends the entry. Never throws: a journal failure must not fail the turn. */
@@ -57,6 +58,9 @@ export class IntentJournal {
     return {
       plan: plan => {
         entry.plan = plan;
+      },
+      synthesis: record => {
+        entry.synthesis = record;
       },
       dispatched: record => {
         entry.dispatch.push(record);
