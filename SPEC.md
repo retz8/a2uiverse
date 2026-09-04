@@ -149,7 +149,7 @@ t8  ▪ steady state, forever: BindingEvaluator on local change; IntegrityChecke
 
 The Synthesizer emits **wiring, never values**:
 
-1. A derived data model: formulas over provenance-qualified paths, e.g. `min(ref(bh, /items[sku=…]/price), ref(keh, /results[id=…]/cost/amount))`. Entity resolution is expressed as which paths land in the same row.
+1. A derived data model: formulas over provenance-qualified paths, e.g. `min(ref(bh, /items[sku=…]/price), ref(keh, /results[id=…]/cost/amount))`. Entity resolution is expressed as which paths land in the same entity.
 2. A synthesis fragment tree in the shell catalog bound to those paths.
 3. A **named sort criterion**. The model chooses the criterion; the runtime sorts. The criterion is always displayed and always user-changeable.
 
@@ -160,7 +160,7 @@ The BindingEvaluator re-evaluates deterministically on every local change, inclu
 - Fires when **every dispatched source has resolved** — arrived, failed, or hit its per-source deadline.
 - A source with a request in flight — from the plan or from the user — is **not quiescent**. Synthesis waits for it.
 - If a partition the in-flight synthesis depends on changes, that synthesis is **invalidated, not reconciled**. Re-fire on quiescence.
-- Late arrivals after synthesis absorb as a **visible, attributed update**: disclosure changes at the same instant rows move.
+- Late arrivals after synthesis absorb as a **visible, attributed update**: disclosure changes at the same instant entities reorder.
 
 > The merged surface may change under the user, but never without a visible reason.
 
