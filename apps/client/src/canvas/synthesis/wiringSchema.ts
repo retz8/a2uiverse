@@ -16,7 +16,9 @@ const RefSchema = z
   })
   .strict();
 
-const CellSchema = z.object({op: z.string(), args: z.array(RefSchema).min(1)}).strict();
+// No refs is a cell no source contributes to — absent by construction (a product one store does
+// not carry); the evaluator renders it as absent with a contributor count of 0 of 0.
+const CellSchema = z.object({op: z.string(), args: z.array(RefSchema)}).strict();
 
 const FieldSchema = z
   .object({

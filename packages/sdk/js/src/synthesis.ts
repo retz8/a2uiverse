@@ -41,10 +41,10 @@ const cellSchema = {
   additionalProperties: false,
   required: ['op', 'args'],
   description:
-    'One operator over N refs. A plain vendor value is a one-argument pass-through. Operators are names the shell catalog declares as functions; the contract does not enumerate them.',
+    'One operator over N refs, N ≥ 0. A plain vendor value is a one-argument pass-through. A cell with no refs is one no source contributes to — absent by construction: how a per-source column says that source does not carry the entity. Operators are names the shell catalog declares as functions; the contract does not enumerate them.',
   properties: {
     op: {type: 'string', description: 'A function name declared by the shell catalog.'},
-    args: {type: 'array', minItems: 1, items: refSchema},
+    args: {type: 'array', minItems: 0, items: refSchema},
   },
 } as const;
 

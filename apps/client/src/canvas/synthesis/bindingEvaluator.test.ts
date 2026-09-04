@@ -139,6 +139,18 @@ describe('evaluate', () => {
     expect(out.entities[0].best_price).toEqual({value: 949, contributed: 1, of: 2, absent: [B]});
   });
 
+  test('absent: a cell with no refs is absent by construction, 0 of 0, naming no source (task 4.8)', () => {
+    const notCarried = structuredClone(LIVE_WIRING);
+    notCarried.entities[0].cells[2] = {op: 'value', args: []};
+    const out = run(notCarried, {[A]: shopA, [B]: shopB});
+    expect(out.entities.find(e => e.name.value === 'X100')?.shopB_price).toEqual({
+      value: undefined,
+      contributed: 0,
+      of: 0,
+      absent: [],
+    });
+  });
+
   test('absent: null is no value, and a surface the client does not hold resolves nothing', () => {
     const out = run(LIVE_WIRING, {
       [A]: {

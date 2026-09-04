@@ -165,7 +165,10 @@ function deepEqual(a: unknown, b: unknown): boolean {
 }
 
 function tokens(pointer: string): string[] {
-  if (pointer === '') return [];
+  // A2UI's `updateDataModel.path` defaults to "/" and means the root (spec: "Defaults to `/`"),
+  // where RFC 6901 would read "/" as the empty-string key. The root wins: no data model keys
+  // itself on "", and a mock's whole-model paint at "/" must land as the model, not under "".
+  if (pointer === '' || pointer === '/') return [];
   return pointer
     .split('/')
     .slice(1)

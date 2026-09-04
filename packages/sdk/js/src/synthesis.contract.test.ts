@@ -73,3 +73,17 @@ test('readWiring rejects absent or malformed metadata', () => {
   void _dropped;
   expect(readWiring({[WIRING_KEY]: noEnvelope})).toBeUndefined();
 });
+
+/** A per-source column for an entity one source does not carry has nothing to point at (task 4.8). */
+test('the contract admits a cell with no refs', () => {
+  type Schema = {
+    properties: Record<string, Schema>;
+    items: Schema;
+    minItems?: number;
+    required?: string[];
+  };
+  const wiringSchema = contract.shapes.synthesisWiring.schemas.wiring as Schema;
+  const cell = wiringSchema.properties.entities.items.properties.cells.items;
+  expect(cell.properties.args.minItems).toBe(0);
+  expect(cell.required).toContain('args');
+});

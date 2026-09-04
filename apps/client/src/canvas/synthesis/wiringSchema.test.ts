@@ -57,7 +57,6 @@ describe('WiringSchema', () => {
     expect(bad(w => ((w.sort.direction = 'up' as never), w))).toBe(false);
     expect(bad(w => ((w.computedAgainst['shop-a:list'] = -1), w))).toBe(false);
     expect(bad(w => ((w.fields = []), w))).toBe(false);
-    expect(bad(w => ((w.entities[0].cells[0].args = []), w))).toBe(false);
   });
 });
 
@@ -87,6 +86,12 @@ describe('validateWiring', () => {
       ok: false,
       path: '/entities/0/cells/1/op',
     });
+  });
+
+  test('a cell with no refs is valid — a source that does not carry the entity (task 4.8)', () => {
+    const notCarried = structuredClone(wiring);
+    notCarried.entities[0].cells[1] = {op: 'value', args: []};
+    expect(validateWiring(notCarried, OPERATORS).ok).toBe(true);
   });
 
   test('a ref into a surface nobody holds is not a validation failure', () => {

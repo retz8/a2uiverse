@@ -27,6 +27,22 @@ function paint(...ops: Array<Record<string, unknown>>): TaskStatusUpdateEvent {
 }
 
 const S = 'shop-a:list';
+
+describe('root updates', () => {
+  test("an update at path '/' — A2UI's default, meaning the root — replaces the whole model", () => {
+    const p = new Partitions();
+    p.apply(paint({createSurface: {surfaceId: S, catalogId: 'c'}}));
+    p.apply(paint({updateDataModel: {surfaceId: S, path: '/', value: {items: [{name: 'X100'}]}}}));
+    expect(p.entries()).toEqual([[S, {items: [{name: 'X100'}]}]]);
+    expect(p.resolve({surface: S, pointer: '/items/0/name'})).toEqual({found: true, value: 'X100'});
+  });
+  test('an update with no path is the root too', () => {
+    const p = new Partitions();
+    p.apply(paint({createSurface: {surfaceId: S, catalogId: 'c'}}));
+    p.apply(paint({updateDataModel: {surfaceId: S, value: {items: []}}}));
+    expect(p.resolve({surface: S, pointer: '/items'})).toEqual({found: true, value: []});
+  });
+});
 const items = [
   {id: 'x100', price: 899},
   {id: 'x200', price: 1299},
