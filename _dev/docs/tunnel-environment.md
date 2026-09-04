@@ -59,5 +59,12 @@ BASE_URL=https://vnw20xbg-10001.asse.devtunnels.ms pnpm --filter @a2uiverse/orch
 pnpm --filter @a2uiverse/client dev
 ```
 
+The mock tier (synthesis acceptance) runs through the launcher instead, which hands the agents dir to the orchestrator it starts — `BASE_URL` still comes from the orchestrator's `.env`:
+
+```bash
+pnpm dev:all --agents-dir ../a2uiverse-apps/mocks              # shop-a 12001 · shop-b 12002, deterministic
+pnpm dev:all --agents-dir ../a2uiverse-apps/mocks --mode live  # the same, live
+```
+
 Browser: `https://vnw20xbg-5173.asse.devtunnels.ms`. Card check:
 `https://vnw20xbg-10001.asse.devtunnels.ms/.well-known/agent-card.json`.

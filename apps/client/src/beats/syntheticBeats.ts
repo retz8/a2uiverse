@@ -491,8 +491,8 @@ const SYNTHESIS_SLOTS = [
  * each stamped with its partition's generation; the merged view is painted into the reserved
  * slot with its wiring beside the stamp. A second, action turn reorders shop A's list in place:
  * the bump arrives on the vendor's own event, the derived cells go stale, and the new wiring
- * lands. Both storefronts paint in the shell catalog here, since the mocks' own catalogs are
- * not installed in this client.
+ * lands. Both storefronts paint in the shell catalog here for control — the stream is authored,
+ * not recorded, and the mocks' catalogs (bundled since 4.7) would add nothing it tests.
  */
 export const SYNTHESIS_BEAT: BeatFixture = {
   ...base,

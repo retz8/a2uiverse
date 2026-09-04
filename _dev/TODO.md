@@ -60,7 +60,7 @@ Spec: `_dev/docs/spec/phase-4-synthesis.md`.
 - [x] **4.5** Client synthesis — wiring intake, BindingEvaluator, derived-model evaluation + data-model write, sort, partial-value integration (after 4.2 and 4.3; parallel with 4.4, 4.6, 4.7)
 - [x] **4.6** `[apps]` Two mock storefronts — scaffolded into the quarantined tier, shared product dataset, three run modes with `live` over an in-repo dataset, both instrument behaviours (drill-down → absent; in-place reorder → invalid), beats recorded (after 4.1; parallel with 4.2–4.5)
 - [x] **4.7** Mock profile plumbing — launcher discovery opt-in and registry opt-in (after 4.6; parallel with 4.4, 4.5)
-- [WIP] **4.8** Integration + acceptance — end to end under the profile, both instruments proven, decline, sort, partial-value visibility, dead-air measured, beats + visual specs, live tunnel verification (after 4.4–4.7)
+- [WIP] **4.8** Integration + acceptance — end to end under the profile, both instruments proven, decline, sort, partial-value visibility, dead-air measured, live tunnel verification (after 4.4–4.7)
 
 ## Phase 5 — Heterogeneous shapes
 Temporal merge over Calendar · Mail · GitHub (M3). Unrelated data models, shared-axis merge, key-based refs, decline, quiescence across unsynchronized arrivals.
@@ -96,7 +96,8 @@ Publish a new app → discover → install → compose with an existing one → 
 - The Planner's `archetype` (`card|panel|row|full`) is planned, validated and journaled but affects nothing: `Frame` sizes a row's slots equally regardless. Decide what each value should mean — whether `full` breaks out of its row, whether weights are proportional — or drop it from the plan schema
 - Revisit Gmail/Calendar product styling depth once compositions and functionality land at later milestones
 - Capability-gap terminal state when the marketplace has nothing either — what the capability tile says, whether the reserved slot collapses or stands (Phase 13's grill)
-- Stream the synthesis fragment into its reserved slot (§16 dead-air mitigation)
+- Stream the synthesis fragment into its reserved slot (§16 dead-air mitigation). Measured in 4.8 over the mock roster (last source settled → synthesis outcome, journal `synthesis.deadAirMs`, Planner and Synthesizer on `gemini-2.5-flash` at low effort): deterministic mocks — comparison utterance 3.7 s · 4.2 s · 9.2 s across three runs, re-synthesis after an in-place reorder 3.8 s, decline 1.2–1.5 s; live mocks — comparison 8.0 s, re-synthesis after reorder 3.7 s, decline 1.4 s. The interval is the Synthesizer's own call; the mocks' mode barely moves it
+- A re-synthesis may re-author the merged view, not only re-point its refs: in the live pass the reorder's re-synthesis swapped the per-shop price columns for per-shop availability columns. The Synthesizer is called with the Planner's request alone; whether it should be handed the previous wiring's fields so a bump preserves the view's shape is undecided
 - S5 multi-account exercised
 - Calendar's in-place RSVP toggle works in an LLM mode for the first time: the kit's executor used to reject every turn that carried no `createSurface` (fixed in 4.6). Verified in stub mode — the turn it now accepts is one `validate_surface` still rejects — but only when the prompt asks for an in-place change; unprompted the model paints a fresh RSVP surface. Record a live beat for it, and decide whether the prose should prefer the in-place turn
 - Migrate to A2A 1.0 when `a2ui-agent-sdk` does — client, orchestrator, vendor kit in one move

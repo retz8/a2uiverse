@@ -103,6 +103,20 @@ A derived cell whose inputs were partial must not render identically to one whos
 
 Under the synthesis profile the roster is the two mocks alone, so a failed acceptance run points at synthesis rather than routing. A mixed-roster run is available as an extra, not a gate.
 
+### 19. Acceptance
+
+Run under the profile — the two mocks alone in the roster, deterministic mode, the Planner and Synthesizer live. Utterances pinned: **"Compare camera prices across both shops"** and **"Compare camera prices and shipping costs across both shops"** — the second reads as a product comparison to the Planner, so the slot is reserved, while the deterministic mocks answer it with their policy surface, so the Synthesizer has nothing to join.
+
+1. End to end under the profile: the comparison utterance fans out to both stores, the plan reserves the synthesis slot at first paint, both fragments fill, and the merged view is painted into the reserved slot after the last source settles — sorted, with every cell complete.
+2. Drill-down → absent → free: opening a camera in one store makes that store's cells absent and the formula cells partial, with no re-synthesis; returning to the list reconnects the same refs, again with no model call.
+3. In-place reorder → invalid → re-synthesis: sorting a store's own list bumps its generation, the derived cells go stale, and a re-synthesis lands a new wiring against the bumped generation.
+4. Decline: the policy utterance yields two structurally unjoinable partitions under a plan that reserved the merged view, the Synthesizer declines, the reserved slot collapses, and the two policy fragments stand side by side.
+5. Sort: the merged view's criterion is displayed and user-changeable; a change re-orders in place with no round trip and no generation touched.
+6. Partial-value visibility: a derived cell whose inputs went partial does not render identically to a complete one, and names its missing source.
+7. Dead air measured: the interval from the last source settling to the synthesis paint is read from the journal for the deterministic run and the live run and recorded in the backlog item.
+
+Final gate: **Claude-in-Chrome live verification through the tunnel** for every item, deterministic mocks; one further pass with the mocks live as the extra.
+
 ## Invariants
 
 - **A2UI content stays standard; composition rides the envelope.** The delta is a pre-render evaluation layer A2UI never sees. An existing A2UI agent still composes with zero changes.
