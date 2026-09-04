@@ -55,8 +55,8 @@ Spec: `_dev/docs/spec/phase-4-synthesis.md`.
 
 - [x] **4.1** Doc edits — SPEC §5.4 disclosure amendment, §6.2–§6.3 absent/invalid naming, §14 register corrections + cross-partition ref row, `a2uiverse-apps` docs for the mock tier
 - [x] **4.2** `sdk` — synthesis wiring contract (rows, refs, formulas, generation stamps, the metadata channel), contract tests, published (after 4.1; parallel with 4.3, 4.6)
-- [WIP] **4.3** `shell-catalog` — operator function definitions, the derived-value component, the sort control (after 4.1; parallel with 4.2, 4.6)
-- [ ] **4.4** Orchestrator synthesis core — partition materialization, Synthesizer, IntegrityChecker + generation stamps, plan-schema reservation + Planner prompt, synthesis surface painting, decline → collapse (after 4.2; parallel with 4.5, 4.6, 4.7)
+- [x] **4.3** `shell-catalog` — operator function definitions, the derived-value component, the sort control (after 4.1; parallel with 4.2, 4.6)
+- [WIP] **4.4** Orchestrator synthesis core — partition materialization, Synthesizer, IntegrityChecker + generation stamps, plan-schema reservation + Planner prompt, synthesis surface painting, decline → collapse (after 4.2; parallel with 4.5, 4.6, 4.7)
 - [ ] **4.5** Client synthesis — wiring intake, BindingEvaluator, derived-model evaluation + data-model write, sort, partial-value integration (after 4.2 and 4.3; parallel with 4.4, 4.6, 4.7)
 - [ ] **4.6** `[apps]` Two mock storefronts — scaffolded into the quarantined tier, shared product dataset, three run modes with `live` over an in-repo dataset, both instrument behaviours (drill-down → absent; in-place reorder → invalid), beats recorded (after 4.1; parallel with 4.2–4.5)
 - [ ] **4.7** Mock profile plumbing — launcher discovery opt-in and registry opt-in (after 4.6; parallel with 4.4, 4.5)
