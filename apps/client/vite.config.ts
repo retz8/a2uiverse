@@ -16,7 +16,16 @@ export default defineConfig({
     server: {
       // Inline the catalog bundles and the Primer github's ships so Vite transforms their
       // internal CSS imports (otherwise externalized .css hits Node's loader and throws).
-      deps: {inline: ['github-catalog', 'gmail-catalog', 'calendar-catalog', '@primer/react']},
+      deps: {
+        inline: [
+          'github-catalog',
+          'gmail-catalog',
+          'calendar-catalog',
+          'shop-a-catalog',
+          'shop-b-catalog',
+          '@primer/react',
+        ],
+      },
     },
   },
 });

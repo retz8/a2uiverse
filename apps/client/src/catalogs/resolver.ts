@@ -19,6 +19,16 @@ import {
   Provider as CalendarProvider,
 } from 'calendar-catalog';
 import {
+  CATALOG as SHOP_A_CATALOG,
+  CATALOG_ID as SHOP_A_CATALOG_ID,
+  Provider as ShopAProvider,
+} from 'shop-a-catalog';
+import {
+  CATALOG as SHOP_B_CATALOG,
+  CATALOG_ID as SHOP_B_CATALOG_ID,
+  Provider as ShopBProvider,
+} from 'shop-b-catalog';
+import {
   CATALOG as SHELL_CATALOG,
   CATALOG_ID as SHELL_CATALOG_ID,
   Provider as ShellProvider,
@@ -41,6 +51,8 @@ const TABLE: ReadonlyMap<string, ResolvedCatalog> = new Map([
     CALENDAR_CATALOG_ID,
     {id: CALENDAR_CATALOG_ID, catalog: CALENDAR_CATALOG, Provider: CalendarProvider},
   ],
+  [SHOP_A_CATALOG_ID, {id: SHOP_A_CATALOG_ID, catalog: SHOP_A_CATALOG, Provider: ShopAProvider}],
+  [SHOP_B_CATALOG_ID, {id: SHOP_B_CATALOG_ID, catalog: SHOP_B_CATALOG, Provider: ShopBProvider}],
 ]);
 
 /** Resolve registry records to runtime catalogs; an unknown catalog id is a hard error. */

@@ -6,6 +6,8 @@
 import {describe, it, expect} from 'vitest';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 import {CATALOG_ID as GITHUB_CATALOG_ID} from 'github-catalog';
+import {CATALOG_ID as SHOP_A_CATALOG_ID} from 'shop-a-catalog';
+import {CATALOG_ID as SHOP_B_CATALOG_ID} from 'shop-b-catalog';
 import {listCatalogs} from '../orchestratorApi';
 import {resolveCatalogs} from './resolver';
 
@@ -20,6 +22,21 @@ describe('catalog projection', () => {
     const ids = resolveCatalogs(await listCatalogs()).map(c => c.id);
     expect(ids).toContain(SHELL_CATALOG_ID);
     expect(ids).toContain(GITHUB_CATALOG_ID);
+  });
+
+  it('always carries the two mock-tier catalogs — the client is profile-agnostic (task 4.7)', async () => {
+    const records = await listCatalogs();
+    expect(records.map(r => r.appId)).toEqual([
+      'shell',
+      'github',
+      'gmail',
+      'calendar',
+      'shop-a',
+      'shop-b',
+    ]);
+    const ids = resolveCatalogs(records).map(c => c.id);
+    expect(ids).toContain(SHOP_A_CATALOG_ID);
+    expect(ids).toContain(SHOP_B_CATALOG_ID);
   });
 
   it('gives every resolved catalog its own provider', async () => {

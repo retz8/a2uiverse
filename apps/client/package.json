@@ -28,6 +28,8 @@
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-is": "^19.2.0",
+    "shop-a-catalog": "github:retz8/a2uiverse-apps#path:mocks/shop-a/shop-a-catalog",
+    "shop-b-catalog": "github:retz8/a2uiverse-apps#path:mocks/shop-b/shop-b-catalog",
     "zod": "^3.25.76"
   },
   "devDependencies": {

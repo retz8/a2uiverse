@@ -77,6 +77,12 @@ importers:
       react-is:
         specifier: ^19.2.0
         version: 19.2.8
+      shop-a-catalog:
+        specifier: github:retz8/a2uiverse-apps#path:mocks/shop-a/shop-a-catalog
+        version: https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/380526ddfe0b326b57d02f76fa45c7e80dc7bc1d#path:mocks/shop-a/shop-a-catalog(@a2ui/react@0.10.2(patch_hash=99b6533eb4bc6f8f8c7de140fcffef2c7572a6a6b30a2b86b5020fa368d845ea)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76))(@a2ui/web_core@0.10.6)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76)
+      shop-b-catalog:
+        specifier: github:retz8/a2uiverse-apps#path:mocks/shop-b/shop-b-catalog
+        version: https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/380526ddfe0b326b57d02f76fa45c7e80dc7bc1d#path:mocks/shop-b/shop-b-catalog(@a2ui/react@0.10.2(patch_hash=99b6533eb4bc6f8f8c7de140fcffef2c7572a6a6b30a2b86b5020fa368d845ea)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76))(@a2ui/web_core@0.10.6)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76)
       zod:
         specifier: ^3.25.76
         version: 3.25.76
@@ -3110,6 +3116,26 @@ packages:
   shebang-regex@3.0.0:
     resolution: {integrity: sha512-7++dFhtcx3353uBaq8DDR4NuxBetBzC7ZQOhmTQInHEd6bSrXdiEyzCvG07Z44UYdLShWUyXt5M/yhz8ekcb1A==}
     engines: {node: '>=8'}
+
+  shop-a-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/380526ddfe0b326b57d02f76fa45c7e80dc7bc1d#path:mocks/shop-a/shop-a-catalog:
+    resolution: {gitHosted: true, integrity: sha512-w77N8J9izEjP8TvwGNQ3jvne4L5ePrwtNtlZ3ad4du/8W+rME2YmrXJFAfitLzXWYSWXLDTTqydw3BbWM1g5OA==, path: mocks/shop-a/shop-a-catalog, tarball: https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/380526ddfe0b326b57d02f76fa45c7e80dc7bc1d}
+    version: 0.1.0
+    peerDependencies:
+      '@a2ui/react': ^0.10.1
+      '@a2ui/web_core': ^0.10.1
+      react: ^19.2.7
+      react-dom: ^19.2.7
+      zod: ^3.25.76
+
+  shop-b-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/380526ddfe0b326b57d02f76fa45c7e80dc7bc1d#path:mocks/shop-b/shop-b-catalog:
+    resolution: {gitHosted: true, integrity: sha512-w77N8J9izEjP8TvwGNQ3jvne4L5ePrwtNtlZ3ad4du/8W+rME2YmrXJFAfitLzXWYSWXLDTTqydw3BbWM1g5OA==, path: mocks/shop-b/shop-b-catalog, tarball: https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/380526ddfe0b326b57d02f76fa45c7e80dc7bc1d}
+    version: 0.1.0
+    peerDependencies:
+      '@a2ui/react': ^0.10.1
+      '@a2ui/web_core': ^0.10.1
+      react: ^19.2.7
+      react-dom: ^19.2.7
+      zod: ^3.25.76
 
   side-channel-list@1.0.1:
     resolution: {integrity: sha512-mjn/0bi/oUURjc5Xl7IaWi/OJJJumuoJFQJfDDyO46+hBWsfaVM65TBHq2eoZBhzl9EchxOijpkbRC8SVBQU0w==}
@@ -6279,6 +6305,22 @@ snapshots:
       shebang-regex: 3.0.0
 
   shebang-regex@3.0.0: {}
+
+  shop-a-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/380526ddfe0b326b57d02f76fa45c7e80dc7bc1d#path:mocks/shop-a/shop-a-catalog(@a2ui/react@0.10.2(patch_hash=99b6533eb4bc6f8f8c7de140fcffef2c7572a6a6b30a2b86b5020fa368d845ea)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76))(@a2ui/web_core@0.10.6)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76):
+    dependencies:
+      '@a2ui/react': 0.10.2(patch_hash=99b6533eb4bc6f8f8c7de140fcffef2c7572a6a6b30a2b86b5020fa368d845ea)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76)
+      '@a2ui/web_core': 0.10.6
+      react: 19.2.8
+      react-dom: 19.2.8(react@19.2.8)
+      zod: 3.25.76
+
+  shop-b-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/380526ddfe0b326b57d02f76fa45c7e80dc7bc1d#path:mocks/shop-b/shop-b-catalog(@a2ui/react@0.10.2(patch_hash=99b6533eb4bc6f8f8c7de140fcffef2c7572a6a6b30a2b86b5020fa368d845ea)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76))(@a2ui/web_core@0.10.6)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76):
+    dependencies:
+      '@a2ui/react': 0.10.2(patch_hash=99b6533eb4bc6f8f8c7de140fcffef2c7572a6a6b30a2b86b5020fa368d845ea)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76)
+      '@a2ui/web_core': 0.10.6
+      react: 19.2.8
+      react-dom: 19.2.8(react@19.2.8)
+      zod: 3.25.76
 
   side-channel-list@1.0.1:
     dependencies:
