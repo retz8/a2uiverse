@@ -16,8 +16,6 @@ allowBuilds:
   onnxruntime-node: true
   protobufjs: false
   sharp: false
-  calendar-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/cdd56d56723e499d58d01f03ab03902b7c906ced#path:calendar/calendar-catalog: set this to true or false
-  gmail-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/a39ee89ec550c826f07d1673c23541de834892bd#path:gmail/gmail-catalog: set this to true or false
 
 patchedDependencies:
   "@a2ui/react@0.10.2": patches/@a2ui__react@0.10.2.patch
