@@ -33,7 +33,7 @@ export function touchesOf(event: VendorEvent): SurfaceTouches {
   return touches;
 }
 
-function partsOf(event: VendorEvent): Part[] {
+export function partsOf(event: VendorEvent): Part[] {
   switch (event.kind) {
     case 'message':
       return event.parts;
@@ -45,10 +45,10 @@ function partsOf(event: VendorEvent): Part[] {
   }
 }
 
-type A2uiMessage = Record<string, unknown>;
+export type A2uiMessage = Record<string, unknown>;
 
 /** One message object per DataPart (a2ui-github agents) or the spec's array form under `messages`. */
-function a2uiMessagesIn(data: Record<string, unknown>): A2uiMessage[] {
+export function a2uiMessagesIn(data: Record<string, unknown>): A2uiMessage[] {
   if (typeof data.version === 'string') return [data];
   if (Array.isArray(data.messages)) {
     return data.messages.filter(
