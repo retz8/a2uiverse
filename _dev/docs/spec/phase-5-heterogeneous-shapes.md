@@ -108,6 +108,10 @@ Decided in task 5.2's grill. The merged view renders as the shell writing on its
 
 Decided in task 5.2's grill. The orchestrator validates the Synthesizer's output with the sdk's validator; both processes resolve pointers and predicates, walk the model, and judge ref validity through the sdk's kit, never a private copy. Consumers switch in 5.4 and 5.5.
 
+### 24. The shell catalog is a Radix Themes mapping of the basic catalog
+
+Decided in task 5.3's grill. The shell catalog's implementation maps each basic component onto its Radix Themes counterpart, as `primer-a2ui-adapter` maps onto Primer; Radix Themes is the shell catalog's design system, brought by its Provider under the §9.2 bundle rule. The token-themed re-export of upstream's implementation goes. Sub-task 5.9, after 5.3, parallel with 5.4 and 5.5, before 5.7, with the SPEC §4.2 amendment and the §15 table row.
+
 ## Invariants
 
 - The shell catalog is the closed vocabulary; the plan's semantics are open prose.
