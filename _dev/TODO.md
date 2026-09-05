@@ -66,7 +66,7 @@ Spec: `_dev/docs/spec/phase-4-synthesis.md`.
 Temporal merge over Calendar · Mail · GitHub (M3). Unrelated data models, shared-axis merge, key-based refs, decline, quiescence across unsynchronized arrivals. The Synthesizer authors the merged view — the synthesize data model: a shell-catalog tree, a free-form derived data model with formula leaves, sorts, a note — replacing the Phase 4 wiring and derived table.
 Spec: `_dev/docs/spec/phase-5-heterogeneous-shapes.md`.
 
-- [ ] **5.1** Doc edits — SPEC §5 turn line and §5.2, §10 Synthesizer row, §12 M3 line, §14 rows for synthesis wiring, path predicates, derived-value rule
+- [x] **5.1** Doc edits — SPEC §5 turn line and §5.2, §10 Synthesizer row, §12 M3 line, §14 rows for synthesis wiring, path predicates, derived-value rule
 - [ ] **5.2** `sdk` — composition contract v0.3: the synthesize data model (tree, formula-leaf model, predicate refs, sorts, note), JS and Python projections, contract tests, published (after 5.1; parallel with 5.3, 5.6)
 - [ ] **5.3** `shell-catalog` — `SortControl` over a sort declaration, catalog schema and operator descriptions exported for the Synthesizer's prompt, `DerivedValue` untouched (after 5.1; parallel with 5.2, 5.6)
 - [ ] **5.4** Orchestrator — Synthesizer rewrite: text output, validate against contract and catalog, one retry; the prompt as the composition-authoring document in a2uiverse words; checklist with the derived-value rule and predicate resolution; predicate refs in the IntegrityChecker; painter paints the model-authored tree; re-synthesis handed its previous output; note journaled. Planner prompt: the synthesis brief and the vendor merge asks (after 5.2 and 5.3; parallel with 5.5)
