@@ -148,3 +148,11 @@ test('the payload validator applies the same structural checks', () => {
   bad.sorts[0].path = '/counts';
   expect(validateSynthesisPayload(bad).ok).toBe(false);
 });
+
+test('the derived model may not use the reserved root key "sorts"', () => {
+  const bad = clone(synthesis);
+  (bad.dataModel as Record<string, unknown>).sorts = {op: 'value', args: []};
+  const result = validateSynthesizeDataModel(bad);
+  expect(result.ok).toBe(false);
+  if (!result.ok) expect(result.errors.join('\n')).toContain('sorts');
+});

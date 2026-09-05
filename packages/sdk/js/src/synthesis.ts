@@ -67,9 +67,10 @@ const nodeSchema = {
 const dataModelSchema = {
   type: 'object',
   minProperties: 1,
+  propertyNames: {not: {const: 'sorts'}},
   additionalProperties: {$ref: '#/$defs/node'},
   description:
-    "The derived data model the tree binds to: a JSON shape of the Synthesizer's choosing whose every leaf is a formula. Evaluated client-side into plain values with contributor state at the same paths.",
+    "The derived data model the tree binds to: a JSON shape of the Synthesizer's choosing whose every leaf is a formula. Evaluated client-side into plain values with contributor state at the same paths. The root key `sorts` is reserved: the runtime writes each sort declaration, with the user's current choice, at `/sorts/N` of the synthesis surface's data model, and the tree binds SortControl there.",
 } as const;
 
 const sortSchema = {

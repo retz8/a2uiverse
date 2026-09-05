@@ -29,9 +29,12 @@ const payloadSchema = ajv.compile(SYNTHESIS_SCHEMA);
 
 function schemaErrors(validate: ValidateFunction, input: unknown): string[] {
   if (validate(input)) return [];
-  return (validate.errors ?? []).map(
-    (error: ErrorObject) => `${error.instancePath || '/'}: ${error.message ?? 'invalid'}`,
-  );
+  return (validate.errors ?? []).map((error: ErrorObject) => {
+    const params = error.params as {propertyName?: string; additionalProperty?: string};
+    const subject = params.propertyName ?? params.additionalProperty;
+    const detail = subject === undefined ? '' : ` (${JSON.stringify(subject)})`;
+    return `${error.instancePath || '/'}: ${error.message ?? 'invalid'}${detail}`;
+  });
 }
 
 function modelErrors(model: DerivedModel): string[] {
