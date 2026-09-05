@@ -60,7 +60,7 @@ Spec: `_dev/docs/spec/phase-4-synthesis.md`.
 - [x] **4.5** Client synthesis — wiring intake, BindingEvaluator, derived-model evaluation + data-model write, sort, partial-value integration (after 4.2 and 4.3; parallel with 4.4, 4.6, 4.7)
 - [x] **4.6** `[apps]` Two mock storefronts — scaffolded into the quarantined tier, shared product dataset, three run modes with `live` over an in-repo dataset, both instrument behaviours (drill-down → absent; in-place reorder → invalid), beats recorded (after 4.1; parallel with 4.2–4.5)
 - [x] **4.7** Mock profile plumbing — launcher discovery opt-in and registry opt-in (after 4.6; parallel with 4.4, 4.5)
-- [WIP] **4.8** Integration + acceptance — end to end under the profile, both instruments proven, decline, sort, partial-value visibility, dead-air measured, live tunnel verification (after 4.4–4.7)
+- [x] **4.8** Integration + acceptance — end to end under the profile, both instruments proven, decline, sort, partial-value visibility, dead-air measured, live tunnel verification (after 4.4–4.7)
 
 ## Phase 5 — Heterogeneous shapes
 Temporal merge over Calendar · Mail · GitHub (M3). Unrelated data models, shared-axis merge, key-based refs, decline, quiescence across unsynchronized arrivals.
