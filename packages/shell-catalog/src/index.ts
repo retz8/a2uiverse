@@ -23,5 +23,4 @@ export {
   SortControlApi,
   type SortControlProps,
   SortControlView,
-  type SortObject,
 } from './components/sort-control/index.js';

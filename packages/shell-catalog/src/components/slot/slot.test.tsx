@@ -64,3 +64,41 @@ test('schema accepts the painted shape and rejects extras', () => {
   expect(SlotApi.schema.safeParse({name: 'slot-gmail', surfaceId: 'x'}).success).toBe(false);
   expect(SlotApi.schema.safeParse({state: 'pending'}).success).toBe(false);
 });
+
+test('shell content pending is one quiet line beside a spinner, no tile and no label', () => {
+  const {container} = render(<SlotView name="slot-shell" label="Synthesis" content="shell" />);
+  const slot = container.querySelector('[data-slot="slot-shell"]')!;
+  expect(slot).toHaveAttribute('data-slot-state', 'pending');
+  expect(slot).toHaveAttribute('data-slot-content', 'shell');
+  expect(slot.textContent).toBe('Painting…');
+  expect(slot.textContent).not.toContain('Synthesis');
+  expect((slot as HTMLElement).style.border).toBe('');
+  expect((slot as HTMLElement).style.minHeight).toBe('');
+});
+
+test('shell content failed is a quiet line in the same register', () => {
+  render(
+    <SlotContentContext.Provider value={() => <em>stale</em>}>
+      <SlotView name="slot-shell" state="failed" content="shell" />
+    </SlotContentContext.Provider>,
+  );
+  expect(screen.queryByText('stale')).not.toBeInTheDocument();
+  expect(screen.getByText('Couldn’t paint this.')).toBeInTheDocument();
+});
+
+test('shell content fills with no reserved floor', () => {
+  const {container} = render(
+    <SlotContentContext.Provider value={() => <em>the view</em>}>
+      <SlotView name="slot-shell" content="shell" />
+    </SlotContentContext.Provider>,
+  );
+  const slot = container.querySelector('[data-slot="slot-shell"]') as HTMLElement;
+  expect(slot).toHaveAttribute('data-slot-state', 'filled');
+  expect(slot).toHaveAttribute('data-slot-content', 'shell');
+  expect(slot.style.minHeight).toBe('');
+});
+
+test('schema accepts content and refuses other values', () => {
+  expect(SlotApi.schema.safeParse({name: 'slot-shell', content: 'shell'}).success).toBe(true);
+  expect(SlotApi.schema.safeParse({name: 'slot-shell', content: 'vendor'}).success).toBe(false);
+});

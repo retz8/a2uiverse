@@ -19,7 +19,7 @@ export function SortControlView({
   sort: SortDeclaration | undefined;
   onChange: (next: SortDeclaration) => void;
 }) {
-  // Not a declaration (unresolved, or the Phase 4 object until 5.5 switches the client): nothing usable.
+  // Not a declaration (unresolved): nothing usable.
   const portalRoot = useContext(PortalRootContext);
   if (!sort || !Array.isArray(sort.options)) return null;
   const asc = sort.direction === 'asc';

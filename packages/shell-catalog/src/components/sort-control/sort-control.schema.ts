@@ -15,14 +15,3 @@ export const SortControlApi = {
 } as const;
 
 export type SortControlProps = z.infer<typeof SortControlApi.schema>;
-
-/**
- * LEGACY — the Phase 4 sort object the client's evaluator still writes at `/sort`.
- * Kept so the client compiles until 5.5 switches it to the sdk's `SortDeclaration`;
- * removed with 5.5.
- */
-export interface SortObject {
-  field: string;
-  direction: 'asc' | 'desc';
-  fields: readonly {name: string; label: string}[];
-}

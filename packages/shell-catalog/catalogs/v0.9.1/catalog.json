@@ -802,7 +802,7 @@
     },
     "Slot": {
       "type": "object",
-      "description": "A named region of a composed screen whose content is mounted by the client. Paint one per planned fragment; later repaints may change its state but never its position. While no content has arrived it renders a pending placeholder.",
+      "description": "A named region of a composed screen whose content is mounted by the client. Paint one per planned fragment; later repaints may change its state but never its position. While no content has arrived it renders a pending placeholder. A slot whose content is the shell's own — the merged view — is declared `content: \"shell\"`: it keeps its reserved position but is painted like the shell's own UI, with a quiet pending marker and no tile.",
       "properties": {
         "component": {
           "const": "Slot"
@@ -816,6 +816,12 @@
           "enum": ["pending", "failed", "collapsed"],
           "default": "pending",
           "description": "The region’s lifecycle state. `pending` shows a placeholder until content arrives; `failed` shows that the content could not be produced; `collapsed` removes the region from view without moving its neighbours."
+        },
+        "content": {
+          "type": "string",
+          "enum": ["fragment", "shell"],
+          "default": "fragment",
+          "description": "Whose content fills the region. `fragment` is an agent's surface, mounted inside its boundary with the attribution painted beside the slot; `shell` is the shell's own content, rendered in place with no boundary and no attribution, resting quietly while pending."
         },
         "label": {
           "type": "string",
