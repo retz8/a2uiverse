@@ -84,7 +84,7 @@ Consequences:
 
 ### 4.2 Shell catalog
 
-The **shell** is every platform-owned surface — the canvas container, the synthesis surface, the trusted pages, the authority dialogs. The **shell catalog** is the orchestrator's paint vocabulary: the standard A2UI basic catalog under a neutral `--a2ui-*` token theme, plus composition primitives (`Slot`, `Attribution`). Its implementation is the basic catalog's React implementation themed by tokens — no mapping of the basic catalog's components; the composition primitives are its own mappings, shipped with their schema in `shell-catalog`. The shell's own pages and widgets are built on Radix Themes. The orchestrator paints content, not just structure. The orchestrator's painted output is a **synthesis fragment** grafted through the same path as any agent's fragment. There is no privileged paint path.
+The **shell** is every platform-owned surface — the canvas container, the synthesis surface, the trusted pages, the authority dialogs. The **shell catalog** is the orchestrator's paint vocabulary: the standard A2UI basic catalog's schema, plus composition primitives (`Slot`, `Attribution`). Its implementation maps each basic component onto its Radix Themes counterpart — Radix Themes is the shell catalog's own design system, brought by its Provider under the §9.2 bundle rule — and the composition primitives are its own mappings on the same system, shipped with their schema in `shell-catalog`. The shell's own pages and widgets are built on Radix Themes as well. The orchestrator paints content, not just structure. The orchestrator's painted output is a **synthesis fragment** grafted through the same path as any agent's fragment. There is no privileged paint path.
 
 The word "chrome" is not used.
 
@@ -470,6 +470,7 @@ Every future deviation is added here, tagged _local convention_ or _upstream can
 | `a2ui-github` as the GitHub app                                  | Derived-binding table + BindingEvaluator                                         |
 | Catalog authoring skills, GitHub agent                           | App bundle format (`sdk`) · Marketplace · Store page · AuthVault · IntentJournal |
 | A2UI basic catalog + `--a2ui-*` tokens as every vendor catalog   | Agent building kit (`a2uiverse-apps`)                                            |
+| Radix Themes, the client shell's own design system               | Shell catalog as a Radix Themes mapping of the basic catalog                     |
 
 ---
 
