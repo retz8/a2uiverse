@@ -100,6 +100,14 @@ Their comparison view is now model-authored; their fixtures and the client's syn
 - SPEC: §5.2 and the §5 turn line; the §10 Synthesizer row; the §12 M3 line; the §14 rows for synthesis wiring, path predicates, and the derived-value rule.
 - TODO: the Phase 6 entry drops "Framing decided in Phase 5's grill" and gains that Phase 6 expands the Planner's framing in the same sense this phase expanded the Synthesizer's — the archetype vocabulary revisited, the Planner authoring in prose what the shell should show — with the shell-as-agent framing decided in Phase 6's own grill. The Phase 7 entry gains navigation from a merged cell.
 
+### 22. The synthesis region is shell content, not a fragment
+
+Decided in task 5.2's grill. The merged view renders as the shell writing on its own page: no fragment boundary, no attribution tile; provenance is in the cells. The synthesis slot stays reserved in the plan so its position is fixed (§4.5), but on the screen it is a quiet in-progress marker while pending, the view written in place when delivered, the shell's words written in place when declined. SPEC §4.3 (attribution is for vendor fragments) and §4.5 (the pending synthesis state is quiet) are amended with the client change.
+
+### 23. The sdk ships a validator and the shared resolution kit
+
+Decided in task 5.2's grill. The orchestrator validates the Synthesizer's output with the sdk's validator; both processes resolve pointers and predicates, walk the model, and judge ref validity through the sdk's kit, never a private copy. Consumers switch in 5.4 and 5.5.
+
 ## Invariants
 
 - The shell catalog is the closed vocabulary; the plan's semantics are open prose.
