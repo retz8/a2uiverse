@@ -142,18 +142,28 @@ describe('the synthesis slot (task-4.4 decision 6)', () => {
     expect(slot?.state).toBe('pending');
   });
 
-  test('the painter lays the shell slot out like any other, pending at first paint', () => {
+  test('the painter lays the shell slot out as shell content: pending at first paint, no attribution (task-5.5 decision 1)', () => {
     const parts = shellCreateParts(compositionFrom(withSynthesis, registry));
     const components = (
       parts[1] as {
-        data: {updateComponents: {components: {id: string; component: string; state?: string}[]}};
+        data: {
+          updateComponents: {
+            components: {id: string; component: string; state?: string; children?: unknown}[];
+          };
+        };
       }
     ).data.updateComponents.components;
     const slot = components.find(c => c.id === 'slot-shell');
-    expect(slot?.component).toBe('Slot');
-    expect(slot?.state).toBe('pending');
-    expect(components.find(c => c.id === 'attr-slot-shell')).toMatchObject({
-      displayName: 'Synthesis',
+    expect(slot).toMatchObject({
+      component: 'Slot',
+      state: 'pending',
+      content: 'shell',
+      label: 'Synthesis',
     });
+    expect(components.find(c => c.id === 'attr-slot-shell')).toBeUndefined();
+    expect(components.find(c => c.id === 'wrap-slot-shell')).toBeUndefined();
+    // The slot sits directly in the layout; the vendor leaves keep their attribution wrapper.
+    expect(components.find(c => c.id === 'root')?.children).toEqual(['slot-shell', 'group-1']);
+    expect(components.find(c => c.id === 'attr-slot-github')).toBeDefined();
   });
 });

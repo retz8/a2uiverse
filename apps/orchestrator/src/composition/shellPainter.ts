@@ -58,8 +58,8 @@ function updateComponentsPart(state: CompositionState): Part {
 /**
  * The flat component tree of the layout surface: the root lays groups on the
  * plan's direction; a multi-slot group is a container on the opposite axis; a
- * leaf is a Column of Attribution over Slot. Ids derive from slot names so
- * repaints keep identity.
+ * leaf is a Column of Attribution over Slot — or, for the synthesis slot, the
+ * shell-content Slot alone. Ids derive from slot names so repaints keep identity.
  */
 function shellComponents(state: CompositionState): ShellComponent[] {
   const {plan} = state;
@@ -74,6 +74,19 @@ function shellComponents(state: CompositionState): ShellComponent[] {
       const slotName = slotNameFor(slot.appId);
       const entry = state.slots.get(slotName);
       const displayName = entry?.plan.displayName ?? slot.appId;
+      if (slot.appId === SHELL_SOURCE_ID) {
+        // The synthesis slot is shell content (task-5.5 decision 1): a reserved position painted
+        // like the shell's own UI — no attribution beside it, a quiet marker while pending.
+        components.push({
+          id: slotName,
+          component: 'Slot',
+          name: slotName,
+          state: entry?.state ?? 'pending',
+          label: displayName,
+          content: 'shell',
+        });
+        return slotName;
+      }
       components.push(
         {
           id: `wrap-${slotName}`,
@@ -92,8 +105,6 @@ function shellComponents(state: CompositionState): ShellComponent[] {
           name: slotName,
           state: entry?.state ?? 'pending',
           label: displayName,
-          // The archetype the Planner chose, passed through rather than discarded: it is the
-          // only thing that tells a slot whether it shares an axis with siblings or spans it.
         },
       );
       return `wrap-${slotName}`;
