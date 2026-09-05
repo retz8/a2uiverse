@@ -336,10 +336,10 @@ body {
 }
 
 /* ── Composition ──────────────────────────────────────────────────────────────
-   The shell's own chrome for a composed paint. Everything here is built from the
-   shell catalog's token vocabulary (`--a2ui-*`, which its Provider maps onto Radix)
-   rather than hand-rolled colours, so orchestrator-painted surfaces and this chrome
-   agree on one palette in both appearances. */
+   The shell's own chrome for a composed paint. Everything here reads Radix Themes'
+   own variables — the design system the shell catalog renders on — rather than
+   hand-rolled colours, so orchestrator-painted surfaces and this chrome agree on
+   one palette in both appearances. */
 
 /* The fragment boundary: the single element a vendor's surface mounts inside. It is
    deliberately unstyled by default — a fragment should look like itself, not like a
@@ -347,7 +347,7 @@ body {
 .fragment-boundary {
   position: relative;
   min-width: 0;
-  border-radius: var(--a2ui-border-radius, var(--radius-3));
+  border-radius: var(--radius-3);
 }
 
 /* Adaptive weight (task 2.5, Q3): structure is constant, prominence is not. A lone
@@ -359,9 +359,9 @@ body {
 }
 
 [data-slots]:not([data-slots='1']) .fragment-boundary {
-  padding: var(--a2ui-spacing-m, 12px);
-  border: 1px solid var(--a2ui-color-border, var(--gray-6));
-  background: var(--a2ui-color-surface, var(--color-panel-solid));
+  padding: var(--space-3);
+  border: 1px solid var(--gray-6);
+  background: var(--color-panel-solid);
 }
 
 /* Shell-granted promotion: the fragment asked for attention and the shell raised it.
@@ -369,11 +369,11 @@ body {
    scrim covers nothing. */
 .fragment-boundary--promoted {
   z-index: 2;
-  border-color: var(--a2ui-color-primary, var(--accent-9));
+  border-color: var(--accent-9);
   box-shadow:
-    0 0 0 2px var(--a2ui-color-primary, var(--accent-9)),
+    0 0 0 2px var(--accent-9),
     var(--shadow-4);
-  background: var(--a2ui-color-surface, var(--color-panel-solid));
+  background: var(--color-panel-solid);
 }
 
 /* The scrim dims the complement — every slot that is not asking. It is reinforcement,

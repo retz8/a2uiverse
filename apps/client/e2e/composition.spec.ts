@@ -101,10 +101,11 @@ test('the shell and its painted surfaces agree on one palette in dark mode', asy
     const boundary = document.querySelector('[data-a2ui-fragment]') as HTMLElement | null;
     const shell = document.querySelector('[data-slot]') as HTMLElement | null;
     return {
-      // The shell catalog maps --a2ui-* onto Radix, so an orchestrator-painted surface resolves
-      // its tokens from the same appearance the client's own chrome uses.
+      // The shell catalog renders on Radix Themes through its scoped sheet, so an
+      // orchestrator-painted surface resolves Radix's variables from the same appearance the
+      // client's own chrome uses.
       surfaceToken: shell
-        ? getComputedStyle(shell).getPropertyValue('--a2ui-color-surface').trim()
+        ? getComputedStyle(shell).getPropertyValue('--color-panel-solid').trim()
         : '',
       appBackground: getComputedStyle(document.body).backgroundColor,
       boundaryFound: Boolean(boundary),

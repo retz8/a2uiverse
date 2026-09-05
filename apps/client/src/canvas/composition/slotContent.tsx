@@ -24,7 +24,7 @@ import {SHELL_SOURCE} from './roster';
  */
 function restingProse(text: string) {
   return (
-    <span style={{color: 'var(--a2ui-color-on-surface)', opacity: 0.75}} data-slot-resting="prose">
+    <span style={{color: 'var(--gray-11)'}} data-slot-resting="prose">
       {text}
     </span>
   );
