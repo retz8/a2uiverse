@@ -149,21 +149,32 @@ describe('the turn', () => {
     expect(turn).toContain('do not start over');
   });
 
-  test('a re-synthesis carries the previous document and the change account, stale refs by surface', () => {
+  test('a re-synthesis carries the previous document and the refs that stopped resolving', () => {
     const turn = buildSynthesisTurn({
       ...base,
       previous: {declined: true, reason: 'x'},
       changes: {
-        stale: {'shop-a:list': [{surface: 'shop-a:list', pointer: '/items/0/price'}]},
-        absent: [{surface: 'shop-b:list', pointer: '/products[sku="gone"]/price'}],
+        absent: [
+          {surface: 'shop-a:list', pointer: '/items[id="gone"]/price'},
+          {surface: 'shop-b:list', pointer: '/products[sku="gone"]/price'},
+        ],
       },
     });
     expect(turn).toContain('The user is looking at your previous view');
-    expect(turn).toContain('- shop-a:list changed under these refs');
-    expect(turn).toContain('  - /items/0/price');
+    expect(turn).toContain('- these refs no longer resolve:');
+    expect(turn).toContain('  - shop-a:list/items[id="gone"]/price');
     expect(turn).toContain('  - shop-b:list/products[sku="gone"]/price');
     expect(turn).toContain('"declined": true');
     expect(turn).not.toContain('rejected');
+  });
+
+  test('a re-synthesis with nothing named says the sources were repainted', () => {
+    const turn = buildSynthesisTurn({
+      ...base,
+      previous: {declined: true, reason: 'x'},
+      changes: {absent: []},
+    });
+    expect(turn).toContain('- nothing named; the sources were repainted');
   });
 });
 

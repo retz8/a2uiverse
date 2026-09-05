@@ -41,6 +41,4 @@ export interface CellObject {
   of: number;
   /** Namespaced surface ids whose refs did not resolve. */
   absent: string[];
-  /** A generation mismatch was seen; the value is from the previous wiring. */
-  stale?: boolean;
 }

@@ -130,15 +130,15 @@ test('rejects unknown keys on either branch', () => {
 const payload: SynthesisPayload = {
   dataModel: synthesis.dataModel,
   sorts: synthesis.sorts,
-  computedAgainst: {'gmail:inbox': 1, 'github:prs': 0},
 };
 
-test('accepts a payload and rejects one without its envelope', () => {
+test('accepts a payload and rejects one carrying anything else', () => {
   expect(validateSynthesisPayload(payload)).toEqual({ok: true, value: payload});
-  const {computedAgainst: _dropped, ...noEnvelope} = payload;
+  const {sorts: _dropped, ...noSorts} = payload;
   void _dropped;
-  expect(validateSynthesisPayload(noEnvelope).ok).toBe(false);
-  expect(validateSynthesisPayload({...payload, computedAgainst: {'gmail:inbox': -1}}).ok).toBe(
+  expect(validateSynthesisPayload(noSorts).ok).toBe(false);
+  // The generation baseline left the payload with task 5.10; nothing may reintroduce it.
+  expect(validateSynthesisPayload({...payload, computedAgainst: {'gmail:inbox': 1}}).ok).toBe(
     false,
   );
 });

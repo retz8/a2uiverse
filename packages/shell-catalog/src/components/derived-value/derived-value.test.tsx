@@ -42,19 +42,6 @@ test('an absent value renders a dash in place of the value', () => {
   expect(cell.querySelector('[data-marker="absent"]')).not.toBeNull();
 });
 
-test('a stale value keeps the previous value and says a source changed', () => {
-  render(
-    <DerivedValueView
-      cell={{value: 899, contributed: 2, of: 2, absent: [], stale: true}}
-      format={usd}
-    />,
-  );
-  const cell = screen.getByLabelText('$899.00 · a source changed — recomputing');
-  expect(cell).toHaveAttribute('data-state', 'stale');
-  expect(cell).toHaveTextContent('$899.00');
-  expect(cell.querySelector('[data-marker="stale"]')).not.toBeNull();
-});
-
 test('format is fixed configuration: number groups, text stringifies, default is text', () => {
   const {rerender} = render(
     <DerivedValueView

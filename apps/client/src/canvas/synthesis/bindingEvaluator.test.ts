@@ -1,15 +1,14 @@
 /**
- * The BindingEvaluator as a table (task-4.5 decision 1, carried into 5.5): payload + partitions
- * + generations + the user's choices in, the synthesis surface's data model out. The sdk's
- * camera comparison — keyed refs over two shapes — is the headline fixture; the same document
- * re-pointed onto positions drives the stale cases.
+ * The BindingEvaluator as a table (task-4.5 decision 1, carried into 5.5 and 5.10): payload +
+ * partitions + the user's choices in, the synthesis surface's data model out. The sdk's camera
+ * comparison — keyed refs over two shapes — is the fixture. Refs select by key, so a reorder
+ * under a ref changes nothing and there is no stale case to drive.
  */
 import {describe, expect, test} from 'vitest';
 import type {SynthesisPayload} from '@a2uiverse/sdk';
 import {CATALOG} from '@a2uiverse/shell-catalog';
 import type {CellObject} from '@a2uiverse/shell-catalog';
 import {
-  INDEXED_PAYLOAD,
   PAYLOAD,
   SHOP_A,
   SHOP_A_ITEMS,
@@ -34,12 +33,11 @@ type Row = Record<'name' | 'priceA' | 'priceB' | 'best', CellObject>;
 const run = (
   payload: SynthesisPayload,
   partitions: Record<string, unknown>,
-  extra: {generations?: Record<string, number>; choices?: Map<string, SortChoice>} = {},
+  extra: {choices?: Map<string, SortChoice>} = {},
 ) =>
   evaluate({
     payload,
     models: models(partitions),
-    generations: extra.generations ?? {},
     choices: extra.choices,
     functions: CATALOG.functions,
   });
@@ -63,10 +61,11 @@ describe('evaluate over the example', () => {
     const payload: SynthesisPayload = {
       dataModel: {
         counts: {a: {op: 'count', args: [{surface: A, pointer: '/items'}]}},
-        nested: [{deep: {op: 'value', args: [{surface: B, pointer: '/products/0/title'}]}}],
+        nested: [
+          {deep: {op: 'value', args: [{surface: B, pointer: '/products[sku="verity-a7"]/title'}]}},
+        ],
       },
       sorts: [],
-      computedAgainst: {},
     };
     const out = run(payload, stores());
     expect(out).toEqual({
@@ -116,7 +115,6 @@ describe('evaluate over the example', () => {
     const payload: SynthesisPayload = {
       dataModel: {none: {op: 'value', args: []}},
       sorts: [],
-      computedAgainst: {},
     };
     expect(run(payload, stores()).none).toEqual({
       value: undefined,
@@ -145,7 +143,6 @@ describe('evaluate over the example', () => {
         },
       },
       sorts: [],
-      computedAgainst: {},
     };
     const out = run(payload, stores());
     expect((out.cheapest as CellObject).value).toBe('shop-b');
@@ -153,85 +150,56 @@ describe('evaluate over the example', () => {
   });
 });
 
-describe('stale (task-5.5 decision 4)', () => {
-  test('an index ref under a moved generation marks its cell; the value shown is the silently re-pointed one', () => {
-    const out = run(INDEXED_PAYLOAD, stores(SHOP_A_REVERSED), {generations: {[A]: 2, [B]: 1}});
-    const first = rows(out)[0]!;
-    expect(first.priceA.stale).toBe(true);
-    expect(first.best.stale).toBe(true);
-    expect(first.priceB.stale).toBeUndefined();
-    // Under the old positions the row now reads shop A's list head: another camera.
-    expect(rows(out).map(r => r.name.value)).toContain('Lumen Z6');
-  });
-
-  test('a keyed ref never goes stale: the same bump leaves the keyed document untouched, and the values follow the keys', () => {
-    const out = run(PAYLOAD, stores(SHOP_A_REVERSED), {generations: {[A]: 2, [B]: 1}});
-    for (const row of rows(out))
-      for (const cell of Object.values(row)) expect(cell.stale).toBeUndefined();
+describe('a reorder under a keyed ref (task-5.10 decision 1)', () => {
+  test('the values follow the keys, and no cell is marked', () => {
+    // The property the collapse buys: shop A's list reversed in place re-points nothing.
+    const out = run(PAYLOAD, stores(SHOP_A_REVERSED));
     expect(rows(out).map(r => r.name.value)).toEqual(['Lumen X100', 'Verity A7']);
     expect(rows(out).map(r => r.priceA.value)).toEqual([1299, 1849]);
+    for (const row of rows(out))
+      for (const cell of Object.values(row)) expect(cell).not.toHaveProperty('stale');
   });
 
-  test('a cell mixing a keyed and an index ref is stale when the index ref is', () => {
-    const payload: SynthesisPayload = {
-      dataModel: {
-        best: {
-          op: 'min',
-          args: [
-            {surface: A, pointer: '/items[id="lumen-x100"]/price'},
-            {surface: B, pointer: '/products/1/price'},
-          ],
-        },
-      },
-      sorts: [],
-      computedAgainst: {[A]: 1, [B]: 1},
-    };
-    expect(
-      (run(payload, stores(), {generations: {[A]: 5, [B]: 1}}).best as CellObject).stale,
-    ).toBeUndefined();
-    expect((run(payload, stores(), {generations: {[A]: 1, [B]: 2}}).best as CellObject).stale).toBe(
-      true,
-    );
-  });
-
-  test('a surface never stamped counts as matched', () => {
-    const out = run(INDEXED_PAYLOAD, stores(), {generations: {[B]: 1}});
-    expect(rows(out)[0]!.priceA.stale).toBeUndefined();
+  test('a key that leaves the list is absent, not silently re-pointed onto its neighbour', () => {
+    const out = run(PAYLOAD, stores([SHOP_A_ITEMS[1]!]));
+    const dropped = rows(out).find(r => r.name.value === undefined);
+    expect(dropped?.priceA).toMatchObject({contributed: 0, absent: [A]});
   });
 });
 
 describe('sort', () => {
+  // Elements are addressed by key, so the fixture rows carry one: `{k, v}` per value.
+  const keyed = (values: unknown[]) => values.map((v, i) => ({k: `k${i}`, v}));
   const list = (values: unknown[]): SynthesisPayload => ({
     dataModel: {
       list: values.map((_, i) => ({
-        v: {op: 'value', args: [{surface: A, pointer: `/values/${i}`}]},
+        v: {op: 'value', args: [{surface: A, pointer: `/values[k="k${i}"]/v`}]},
       })),
     },
     sorts: [{path: '/list', options: [{key: '/v', label: 'V'}], key: '/v', direction: 'asc'}],
-    computedAgainst: {},
   });
   const valuesOf = (out: ReturnType<typeof run>) =>
     (out.list as Array<{v: CellObject}>).map(e => e.v.value);
 
   test('numbers numerically, strings by locale, absent last in both directions, ties stable', () => {
     const numbers = [10, 2, undefined, 2, 1];
-    const out = run(list(numbers), {[A]: {values: numbers}});
+    const out = run(list(numbers), {[A]: {values: keyed(numbers)}});
     expect(valuesOf(out)).toEqual([1, 2, 2, 10, undefined]);
     const desc = run(
       list(numbers),
-      {[A]: {values: numbers}},
+      {[A]: {values: keyed(numbers)}},
       {
         choices: new Map([['/list', {key: '/v', direction: 'desc'}]]),
       },
     );
     expect(valuesOf(desc)).toEqual([10, 2, 2, 1, undefined]);
     const strings = ['b', 'a', 'C'];
-    expect(valuesOf(run(list(strings), {[A]: {values: strings}}))).toEqual(['a', 'b', 'C']);
+    expect(valuesOf(run(list(strings), {[A]: {values: keyed(strings)}}))).toEqual(['a', 'b', 'C']);
   });
 
   test('an array not declared in sorts keeps the model’s order', () => {
     const payload: SynthesisPayload = {...list([3, 1, 2]), sorts: []};
-    expect(valuesOf(run(payload, {[A]: {values: [3, 1, 2]}}))).toEqual([3, 1, 2]);
+    expect(valuesOf(run(payload, {[A]: {values: keyed([3, 1, 2])}}))).toEqual([3, 1, 2]);
   });
 
   test('choiceInForce and choicesOf agree on what the sort controls write back', () => {
@@ -246,9 +214,8 @@ describe('sort', () => {
 
 test('an unknown operator, which validation is meant to catch, degrades to an absent cell rather than throwing', () => {
   const payload: SynthesisPayload = {
-    dataModel: {x: {op: 'median', args: [{surface: A, pointer: '/items/0/price'}]}},
+    dataModel: {x: {op: 'median', args: [{surface: A, pointer: '/items[id="lumen-x100"]/price'}]}},
     sorts: [],
-    computedAgainst: {},
   };
   expect(run(payload, stores()).x).toEqual({value: undefined, contributed: 0, of: 1, absent: []});
 });

@@ -15,11 +15,7 @@ const tree: SynthesisTree = {
   ],
 };
 
-const payload: SynthesisPayload = {
-  dataModel: {best: {op: 'min', args: []}},
-  sorts: [],
-  computedAgainst: {'shop-a:list': 1},
-};
+const payload: SynthesisPayload = {dataModel: {best: {op: 'min', args: []}}, sorts: []};
 
 describe('the model-authored tree (task-5.4 decision 10)', () => {
   test('creates the shell:synthesis surface in the shell catalog', () => {

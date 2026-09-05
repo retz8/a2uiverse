@@ -202,9 +202,8 @@ export class OrchestratorExecutor implements AgentExecutor {
     // Tier 2: the partition change may have re-pointed refs the live synthesis depends on.
     if (composition?.synthesis) {
       const {payload, document} = composition.synthesis;
-      const generations = composition.partitions.generations();
-      if (!checkSynthesisPayload(payload, generations).valid) {
-        const changes = changeAccount(payload, generations, composition.partitions);
+      if (!checkSynthesisPayload(payload, composition.partitions).valid) {
+        const changes = changeAccount(payload, composition.partitions);
         await this.#synthesize(ctx, bus, turn, composition, {previous: document, changes});
       }
     }
@@ -218,9 +217,8 @@ export class OrchestratorExecutor implements AgentExecutor {
    * SPEC §5 t6–t7: when every dispatched source has resolved, the second model call — or not.
    * Fewer than two sources arrived ⇒ no call, the slot collapses (§5.1). A decline, a malformed
    * output or a model failure collapse it too, told apart in the journal. Otherwise the accepted
-   * document's derived model and sorts are wrapped with the generations they were computed
-   * against, the partitions are snapshotted, and the model's tree is painted into the synthesis
-   * slot (nothing else moves). A re-synthesis is the same call handed the live document and the
+   * document's derived model and sorts are sent to the client, the partitions are snapshotted,
+   * and the model's tree is painted into the synthesis slot (nothing else moves). A re-synthesis is the same call handed the live document and the
    * account of what broke; the journal records the whole conversation (task-5.4 decision 7).
    */
   async #synthesize(
@@ -283,11 +281,7 @@ export class OrchestratorExecutor implements AgentExecutor {
     }
 
     const {document} = outcome;
-    const payload: SynthesisPayload = {
-      dataModel: document.dataModel,
-      sorts: document.sorts,
-      computedAgainst: state.partitions.generations(),
-    };
+    const payload: SynthesisPayload = {dataModel: document.dataModel, sorts: document.sorts};
     state.partitions.snapshot();
     state.synthesis = {document, payload};
     const paint = synthesisEnvelope(ctx, synthesisParts(document.tree), payload);

@@ -183,10 +183,43 @@ describe('checkSynthesis (task-5.4 decision 5)', () => {
     ]);
     const dangling = good();
     (dangling.dataModel.rows as Array<{id: {args: {pointer: string}[]}}>)[0]!.id.args[0]!.pointer =
-      '/items/7/id';
+      '/items[id="gone"]/id';
     expect(checkSynthesis(dangling, checks())).toEqual([
-      expect.stringContaining('shop-a:list/items/7/id does not resolve'),
+      expect.stringContaining('shop-a:list/items[id="gone"]/id does not resolve'),
     ]);
+  });
+
+  test('a positional ref is refused by the rule it broke, not as missing data', () => {
+    // The data is at that position; saying "does not resolve" would send the retry hunting for
+    // a data problem instead of rewriting the pointer (task-5.10 decision 8).
+    const positional = good();
+    (
+      positional.dataModel.rows as Array<{id: {args: {pointer: string}[]}}>
+    )[0]!.id.args[0]!.pointer = '/items/0/id';
+    const errors = checkSynthesis(positional, checks());
+    expect(errors).toEqual([expect.stringContaining('selects an array element by position')]);
+    expect(errors[0]).toContain('elements are selected by key');
+  });
+
+  test('a predicate matching several elements asks for more fields', () => {
+    const p = partitionsOf({
+      [A]: {
+        items: [
+          {id: 'dup', price: 1},
+          {id: 'dup', price: 2},
+        ],
+      },
+      [B]: {items: [{id: 'dup', price: 3}]},
+    });
+    const ambiguous = good();
+    for (const row of ambiguous.dataModel.rows as Array<
+      Record<string, {args: {surface: string; pointer: string}[]}>
+    >) {
+      for (const formula of Object.values(row)) {
+        for (const ref of formula.args) ref.pointer = '/items[id="dup"]/price';
+      }
+    }
+    expect(checkSynthesis(ambiguous, checks(p))[0]).toContain('matches more than one element');
   });
 
   test('a predicate ref resolves through the partition', () => {
@@ -264,13 +297,14 @@ describe('Synthesizer (the loop)', () => {
       {
         ...input,
         previous,
-        changes: {stale: {[A]: [{surface: A, pointer: '/items/0/price'}]}, absent: []},
+        changes: {absent: [{surface: A, pointer: '/items[id="x100"]/price'}]},
       },
       partitions(),
     );
     const prompt = model.calls[0]!.prompt;
     expect(prompt).toContain('The user is looking at your previous view');
-    expect(prompt).toContain('- shop-a:list changed under these refs');
+    expect(prompt).toContain('- these refs no longer resolve:');
+    expect(prompt).toContain('shop-a:list/items[id="x100"]/price');
     expect(prompt).toContain('"path": "/rows"');
     expect(prompt).not.toContain('rejected');
     expect(model.calls[0]!.input.previous).toBe(previous);

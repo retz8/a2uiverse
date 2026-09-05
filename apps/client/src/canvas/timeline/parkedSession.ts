@@ -92,8 +92,7 @@ export function createParkedSession<T extends ComponentApi>(
 
   // A parked synthesis re-sorts over its own frozen partitions (task 4.8): sort crosses no wire,
   // so the sort controls keep working here — the captured payload evaluated against the
-  // sandbox's data, with the captured generations so nothing reads as stale. Nothing live is
-  // subscribed.
+  // sandbox's data. Nothing live is subscribed.
   const sort = watchSort(entry, processor, functions);
 
   const commit = () => {
@@ -127,7 +126,6 @@ function watchSort<T extends ComponentApi>(
       const next = evaluate({
         payload: captured.payload,
         models: surface => processor.model.getSurface(surface)?.dataModel.get('/'),
-        generations: captured.generations,
         choices: choicesOf(value),
         functions,
       });

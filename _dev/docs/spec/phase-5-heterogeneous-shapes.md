@@ -39,6 +39,8 @@ One contract file, one version line. The stamp half is unchanged; the synthesis 
 
 A ref stays `{surface, pointer}`. A pointer segment of the form `[key=value]` selects the element of an array whose field equals the value; any other segment is an index. A predicate ref is valid while the key resolves; an index ref is valid while the partition's generation is unchanged. The Synthesizer uses predicates when the observed data offers a stable key and index refs otherwise, in the same output.
 
+**Amended by task 5.10** (`task-5.10-key-based-refs.md`), after the first live run wrote index refs for every ref on a roster where every element carried an id: there is one ref form. Predicates conjoin fields where one does not identify the element, index refs leave the contract, resolution is validity, and re-synthesis fires on absence. The generation baseline and the `stale` cell state go with them; generation stamps stay on the composition stamp half.
+
 ### 7. The Synthesizer receives the shell catalog, never vendor trees
 
 Input: the utterance, the shell slot's request, every partition's data model, and the shell catalog — its component schema, its operator functions, and the composition rules in a2uiverse words (partitions, refs and predicates, formula leaves, the derived-value rule, sorts). No vendor component trees. Planner and Synthesizer know only the shell catalog.
@@ -117,7 +119,7 @@ Decided in task 5.3's grill. The shell catalog's implementation maps each basic 
 - The shell catalog is the closed vocabulary; the plan's semantics are open prose.
 - Every leaf of the derived data model is a formula. No value is copied out of a partition.
 - Nothing a2uiverse-specific reaches the vendor wire.
-- Absent is not invalid; generation stamps remain the correctness floor for index refs.
+- Absent is not invalid. (Task 5.10: with one key-based ref form, resolution is validity and absence is the only breakage; generation stamps are no longer the synthesis path's floor.)
 
 ## Open items
 

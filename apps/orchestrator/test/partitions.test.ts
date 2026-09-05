@@ -34,7 +34,10 @@ describe('root updates', () => {
     p.apply(paint({createSurface: {surfaceId: S, catalogId: 'c'}}));
     p.apply(paint({updateDataModel: {surfaceId: S, path: '/', value: {items: [{name: 'X100'}]}}}));
     expect(p.entries()).toEqual([[S, {items: [{name: 'X100'}]}]]);
-    expect(p.resolve({surface: S, pointer: '/items/0/name'})).toEqual({found: true, value: 'X100'});
+    expect(p.resolve({surface: S, pointer: '/items[name="X100"]/name'})).toEqual({
+      found: true,
+      value: 'X100',
+    });
   });
   test('an update with no path is the root too', () => {
     const p = new Partitions();
@@ -59,7 +62,10 @@ describe('materialization', () => {
   test('createSurface then updateDataModel builds the model at the path', () => {
     const p = fresh();
     expect(p.get(S)).toEqual({items});
-    expect(p.resolve({surface: S, pointer: '/items/1/price'})).toEqual({found: true, value: 1299});
+    expect(p.resolve({surface: S, pointer: '/items[id="x200"]/price'})).toEqual({
+      found: true,
+      value: 1299,
+    });
   });
 
   test('a rootless updateDataModel replaces the whole model; the messages[] form is read too', () => {
@@ -84,7 +90,9 @@ describe('materialization', () => {
     const p = fresh();
     p.apply(paint({deleteSurface: {surfaceId: S}}));
     expect(p.get(S)).toBeUndefined();
-    expect(p.resolve({surface: S, pointer: '/items/0/price'})).toMatchObject({found: false});
+    expect(p.resolve({surface: S, pointer: '/items[id="x100"]/price'})).toMatchObject({
+      found: false,
+    });
   });
 
   test('pointers follow RFC 6901: escapes and the empty pointer', () => {
@@ -147,10 +155,15 @@ describe('generations (task-4.4 decision 3)', () => {
     const g = p.generation(S);
     p.apply(paint({updateDataModel: {surfaceId: S, value: {detail: {id: 'x100'}}}}));
     expect(p.generation(S)).toBe(g);
-    expect(p.resolve({surface: S, pointer: '/items/0/price'})).toMatchObject({found: false});
+    expect(p.resolve({surface: S, pointer: '/items[id="x100"]/price'})).toMatchObject({
+      found: false,
+    });
     p.apply(paint({updateDataModel: {surfaceId: S, value: {items}}}));
     expect(p.generation(S)).toBe(g);
-    expect(p.resolve({surface: S, pointer: '/items/0/price'})).toEqual({found: true, value: 899});
+    expect(p.resolve({surface: S, pointer: '/items[id="x100"]/price'})).toEqual({
+      found: true,
+      value: 899,
+    });
   });
 
   test('return from a drill-down with reordered data bumps', () => {

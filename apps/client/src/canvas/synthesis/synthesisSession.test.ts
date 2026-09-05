@@ -12,11 +12,7 @@ import type {CellObject} from '@a2uiverse/shell-catalog';
 import type {Synthesis, SynthesisPayload} from '@a2uiverse/sdk';
 import {
   DOCUMENT,
-  INDEXED_DOCUMENT,
-  INDEXED_PAYLOAD,
   PAYLOAD,
-  REPOINTED_DOCUMENT,
-  REPOINTED_PAYLOAD,
   SHOP_A,
   SHOP_A_ITEMS,
   SHOP_A_REVERSED,
@@ -53,11 +49,9 @@ const names = () => rows().map(r => r.name.value);
 const best = () => rows().map(r => r.best);
 const sorts = () => processor.model.getSurface(SYNTHESIS_SURFACE)!.dataModel;
 
-/** Both storefronts painted, generations noted as their stamps would carry them. */
+/** Both storefronts painted. */
 function paintStorefronts() {
-  session.noteGenerations({[SHOP_A]: 1});
   processor.processMessages(shopAMessages(CATALOG_ID));
-  session.noteGenerations({[SHOP_B]: 1});
   processor.processMessages(shopBMessages(CATALOG_ID));
 }
 
@@ -162,13 +156,12 @@ describe('re-evaluation', () => {
 });
 
 describe('sort', () => {
-  test('a sort control writing its declaration back at /sorts/N re-orders, with no generation touched', async () => {
+  test('a sort control writing its declaration back at /sorts/N re-orders', async () => {
     paintStorefronts();
     paintSynthesis();
     sorts().set('/sorts/0', {...model().sorts[0], direction: 'desc'});
     await settled();
     expect(names()).toEqual(['Verity A7', 'Lumen X100']);
-    expect(session.generations).toEqual({[SHOP_A]: 1, [SHOP_B]: 1});
     sorts().set('/sorts/0', {...model().sorts[0], key: '/name', direction: 'asc'});
     await settled();
     expect(names()).toEqual(['Lumen X100', 'Verity A7']);
@@ -177,68 +170,39 @@ describe('sort', () => {
 
   test("the user's choice sticks through a re-synthesis by array path while its key is an option (task-5.5 decision 5)", () => {
     paintStorefronts();
-    paintSynthesis(INDEXED_DOCUMENT, INDEXED_PAYLOAD);
+    paintSynthesis();
     sorts().set('/sorts/0', {...model().sorts[0], direction: 'desc'});
-    // Shop A reorders in place; the re-synthesis re-points the join.
+    // Shop A reorders in place; the keyed refs ride it out and the payload is re-sent as is.
     processor.model.getSurface(SHOP_A)!.dataModel.set('/items', SHOP_A_REVERSED);
-    session.noteGenerations({[SHOP_A]: 2});
-    paintSynthesis(REPOINTED_DOCUMENT, REPOINTED_PAYLOAD);
+    paintSynthesis();
     expect(model().sorts[0]).toMatchObject({path: '/rows', key: '/best', direction: 'desc'});
     expect(names()).toEqual(['Verity A7', 'Lumen X100']);
     // A re-synthesis that no longer offers the chosen key takes its own choice.
     const narrowed: SynthesisPayload = {
-      ...REPOINTED_PAYLOAD,
+      ...PAYLOAD,
       sorts: [
         {
-          ...REPOINTED_PAYLOAD.sorts[0]!,
+          ...PAYLOAD.sorts[0]!,
           options: [{key: '/name', label: 'Camera'}],
           key: '/name',
           direction: 'asc',
         },
       ],
     };
-    paintSynthesis(REPOINTED_DOCUMENT, narrowed);
+    paintSynthesis(DOCUMENT, narrowed);
     expect(model().sorts[0]).toMatchObject({key: '/name', direction: 'asc'});
   });
 });
 
-describe('stale', () => {
-  test('a bump on the stamp marks every cell with an index ref into that surface, before any data lands', () => {
-    paintStorefronts();
-    paintSynthesis(INDEXED_DOCUMENT, INDEXED_PAYLOAD);
-    session.noteGenerations({[SHOP_A]: 2});
-    const row = rows()[0]!;
-    expect(row.priceA.stale).toBe(true);
-    expect(row.best.stale).toBe(true);
-    expect(row.priceB.stale).toBeUndefined();
-  });
-
-  test('the in-place reorder under index refs: bump, stale, the vendor data lands re-pointed, then the new payload clears it', async () => {
-    paintStorefronts();
-    paintSynthesis(INDEXED_DOCUMENT, INDEXED_PAYLOAD);
-    session.noteGenerations({[SHOP_A]: 2});
-    processor.processMessages([
-      msg({updateDataModel: {surfaceId: SHOP_A, path: '/items', value: SHOP_A_REVERSED}}),
-    ]);
-    await settled();
-    // Stale, and — under the old positions — silently re-pointed: exactly the hazard.
-    expect(rows().every(r => r.best.stale)).toBe(true);
-    expect(names()).toContain('Lumen Z6');
-    paintSynthesis(REPOINTED_DOCUMENT, REPOINTED_PAYLOAD);
-    expect(rows().every(r => r.best.stale === undefined)).toBe(true);
-    expect(names()).toEqual(['Lumen X100', 'Verity A7']);
-    expect(best().map(c => c.value)).toEqual([1299, 1799]);
-  });
-
-  test('the same reorder under keyed refs: the bump marks nothing, and the values follow the keys', async () => {
+describe('a reorder under keyed refs (task-5.10 decision 1)', () => {
+  test('the vendor list reorders in place: nothing is marked, and the values follow the keys', async () => {
     paintStorefronts();
     paintSynthesis();
-    session.noteGenerations({[SHOP_A]: 2});
     processor.processMessages([
       msg({updateDataModel: {surfaceId: SHOP_A, path: '/items', value: SHOP_A_REVERSED}}),
     ]);
     await settled();
-    expect(rows().every(r => Object.values(r).every(c => c.stale === undefined))).toBe(true);
+    expect(rows().every(r => Object.values(r).every(c => !('stale' in c)))).toBe(true);
     expect(names()).toEqual(['Lumen X100', 'Verity A7']);
     expect(rows().map(r => r.priceA.value)).toEqual([1299, 1849]);
   });
@@ -266,7 +230,6 @@ describe('lifetimes', () => {
     await settled();
     session.retire();
     expect(session.payload).toBeUndefined();
-    expect(session.generations).toEqual({});
     const set = vi.spyOn(processor.model.getSurface(SYNTHESIS_SURFACE)!.dataModel, 'set');
     processor.model.getSurface(SHOP_A)!.dataModel.set('/items/0/price', 1);
     await settled();

@@ -1,8 +1,8 @@
 /**
  * The model walk: enumerates every formula leaf of a derived model with its
  * JSON Pointer path, and every ref. The validator uses it for "every leaf is a
- * formula"; the client for subscriptions; the orchestrator for
- * `computedAgainst`.
+ * formula"; the client for subscriptions; the orchestrator for the
+ * integrity check.
  */
 import type {DerivedModel, Formula, Ref} from './synthesis.js';
 

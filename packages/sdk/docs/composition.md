@@ -25,17 +25,18 @@ handed back to you once to fix, and a second failure discards your answer.
 A **ref** is `{"surface": "<surface id>", "pointer": "<JSON Pointer>"}`: one path into one
 partition's data model.
 
-- The pointer is RFC 6901 (`/items/0/price`). Only write pointers that resolve in the data you were
+- The pointer is RFC 6901 (`/detail/title`). Only write pointers that resolve in the data you were
   shown; a pointer that resolves to nothing now is an error, not an absence.
-- A segment may carry a **predicate**: `/items[id="x100"]/price` selects the element of `items`
-  whose field `id` equals the JSON literal `"x100"`. The key is one field name of the element; the
-  value is a JSON literal (a string in double quotes, a number, `true`/`false`). Exactly one element
-  must match.
-- **Prefer a predicate when the data offers a stable key** — an id, a number, a sku, anything that
-  names the element rather than its position. A predicate ref keeps pointing at the same thing when
-  the source reorders or filters its list; an index ref keeps pointing at the same _position_, which
-  after a reorder is a different thing. Use an index ref only when no key exists. Both may appear in
-  one answer.
+- **An element of an array is selected by key, never by position.** A segment carries a
+  **predicate**: `/items[id="x100"]/price` selects the element of `items` whose field `id` equals
+  the JSON literal `"x100"`. The value is a JSON literal (a string in double quotes, a number,
+  `true`/`false`). Exactly one element must match.
+- When one field does not identify an element, conjoin fields until one does:
+  `/pulls[repository="a2ui-project/a2ui",number=2531]/updatedAt`.
+- **`/items/0/price` is not a ref.** A position is not a name: after the source reorders or filters
+  its list, the same position is a different thing, and the merged view would be silently wrong.
+  A ref keeps pointing at the same element for as long as that element is there, and says so
+  plainly when it is gone.
 
 ## The derived data model
 

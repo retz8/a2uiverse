@@ -3,10 +3,9 @@ import {createComponentImplementation} from '@a2ui/react/v0_9';
 import {parseSurfaceId} from '@a2uiverse/sdk';
 import {type CellObject, DerivedValueApi, type Format} from './derived-value.schema.js';
 
-export type CellState = 'complete' | 'partial' | 'absent' | 'stale';
+export type CellState = 'complete' | 'partial' | 'absent';
 
 export function cellState(cell: CellObject): CellState {
-  if (cell.stale) return 'stale';
   if (cell.contributed === 0) return 'absent';
   if (cell.contributed < cell.of) return 'partial';
   return 'complete';
@@ -25,8 +24,6 @@ function formatValue(value: unknown, format: Format | undefined): string {
 
 function detailFor(state: CellState, cell: CellObject): string {
   switch (state) {
-    case 'stale':
-      return 'a source changed — recomputing';
     case 'absent':
       return 'no source is showing this';
     case 'partial': {
@@ -65,7 +62,7 @@ export function DerivedValueView({cell, format}: {cell?: CellObject; format?: Fo
         alignItems: 'baseline',
         gap: '0.35em',
         color: 'var(--a2ui-color-on-surface)',
-        opacity: state === 'stale' || state === 'absent' ? 0.55 : 1,
+        opacity: state === 'absent' ? 0.55 : 1,
         transition: 'opacity 120ms ease',
         cursor: marked ? 'help' : undefined,
       }}
@@ -79,7 +76,7 @@ export function DerivedValueView({cell, format}: {cell?: CellObject; format?: Fo
   );
 }
 
-/** Three shapes, distinct from each other and from Attribution's info glyph. */
+/** Two shapes, distinct from each other and from Attribution's info glyph. */
 function Marker({state}: {state: Exclude<CellState, 'complete'>}) {
   const common = {
     width: 10,
@@ -108,14 +105,6 @@ function Marker({state}: {state: Exclude<CellState, 'complete'>}) {
           strokeDasharray="3 2.5"
         >
           <circle cx="8" cy="8" r="6.5" />
-        </svg>
-      );
-    case 'stale':
-      // clock: from before
-      return (
-        <svg {...common} fill="none" stroke="currentColor" strokeWidth="1.6">
-          <circle cx="8" cy="8" r="6.5" />
-          <path d="M8 4.5V8l2.5 1.5" strokeLinecap="round" />
         </svg>
       );
   }

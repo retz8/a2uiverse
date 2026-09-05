@@ -10,19 +10,18 @@
  * keeping their shape, each declared array reordered in place, and each declaration with the
  * current choice at `/sorts/N` — the reserved root key the tree binds `SortControl` to.
  *
- * Refs resolve through the sdk kit, predicate and index alike, and validity is the kit's answer
- * per ref (phase decision 23): a predicate ref never goes stale, an index ref is stale once its
- * surface's generation moved. Around each catalog operator the evaluator does the rest:
- * resolves each ref, drops the absent ones, hands the survivors to the catalog function,
- * records how many contributed and which surfaces did not, marks the cell stale when any of its
- * refs is (task-5.5 decision 4), and maps a source selector's index back to the app that won.
+ * Refs resolve through the sdk kit (phase decision 23), and resolution is validity: a ref is
+ * good while its keys resolve, so a partition that reorders under it changes nothing
+ * (task-5.10 decision 1). Around each catalog operator the evaluator does the rest: resolves
+ * each ref, drops the absent ones, hands the survivors to the catalog function, records how
+ * many contributed and which surfaces did not, and maps a source selector's index back to the
+ * app that won.
  */
 import type {DataContext, FunctionImplementation} from '@a2ui/web_core/v0_9';
 import {
   isFormula,
   parseSurfaceId,
   parsePointer,
-  refValidity,
   resolvePointer,
   type Formula,
   type ModelNode,
@@ -46,7 +45,6 @@ export interface EvaluateInput {
   /** The root data model of a partition by namespaced surface id; undefined when not held. */
   models: (surface: string) => unknown;
   /** The latest generation seen per surface, from the stamps. */
-  generations: Readonly<Record<string, number>>;
   /** The user's choices by sorted array path; a declaration without one takes its own. */
   choices?: ReadonlyMap<string, SortChoice>;
   /** The shell catalog's functions — the operator vocabulary. */
@@ -67,15 +65,12 @@ function resolveRef(ref: Ref, models: EvaluateInput['models']): {found: boolean;
 function evaluateFormula(formula: Formula, input: EvaluateInput): CellObject {
   const survivors: {ref: Ref; value: unknown}[] = [];
   const absent: string[] = [];
-  let stale = false;
   for (const ref of formula.args) {
-    if (refValidity(ref, input.payload.computedAgainst, input.generations) === 'stale')
-      stale = true;
     const resolved = resolveRef(ref, input.models);
     if (resolved.found) survivors.push({ref, value: resolved.value});
     else absent.push(ref.surface);
   }
-  const base = {of: formula.args.length, absent, ...(stale ? {stale: true} : {})};
+  const base = {of: formula.args.length, absent};
 
   const fn = input.functions.get(formula.op);
   if (survivors.length === 0 || !fn) return {value: undefined, contributed: 0, ...base};

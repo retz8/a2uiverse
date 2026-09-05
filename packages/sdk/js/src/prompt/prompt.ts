@@ -34,11 +34,10 @@ export interface SynthesisSource {
 }
 
 /**
- * The runtime's account of why a re-synthesis is happening (decision 6): the refs that went
- * stale, grouped by the surface whose generation moved, and the refs that stopped resolving.
+ * The runtime's account of why a re-synthesis is happening (decision 6): the refs that stopped
+ * resolving. One kind of breakage, since refs select by key (task-5.10 decision 4).
  */
 export interface ChangeAccount {
-  stale: Record<string, Ref[]>;
   absent: Ref[];
 }
 
@@ -117,16 +116,10 @@ function renderSources(sources: readonly SynthesisSource[]): string {
 }
 
 function renderChanges(changes: ChangeAccount): string {
-  const lines: string[] = [];
-  for (const [surface, refs] of Object.entries(changes.stale)) {
-    lines.push(`- ${surface} changed under these refs; each may now point at a different thing:`);
-    for (const ref of refs) lines.push(`  - ${ref.pointer}`);
-  }
-  if (changes.absent.length > 0) {
-    lines.push('- these refs no longer resolve:');
-    for (const ref of changes.absent) lines.push(`  - ${ref.surface}${ref.pointer}`);
-  }
-  return lines.length > 0 ? lines.join('\n') : '- nothing named; the sources were repainted';
+  if (changes.absent.length === 0) return '- nothing named; the sources were repainted';
+  const lines = ['- these refs no longer resolve:'];
+  for (const ref of changes.absent) lines.push(`  - ${ref.surface}${ref.pointer}`);
+  return lines.join('\n');
 }
 
 /** The user-turn content: the question, the brief, the sources, and what this turn is. */

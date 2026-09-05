@@ -12,7 +12,7 @@ import {
 } from './composition';
 
 const contract = JSON.parse(
-  readFileSync(new URL('../../contracts/composition.v0.3.json', import.meta.url), 'utf8'),
+  readFileSync(new URL('../../contracts/composition.v0.4.json', import.meta.url), 'utf8'),
 ) as {
   extensionUri: string;
   stampKey: string;

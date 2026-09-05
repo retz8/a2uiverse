@@ -2,15 +2,15 @@
  * The synthesis half of the composition extension (SPEC §5.2, §14): the
  * **synthesize data model** — the data model for a2ui composition — that the
  * Synthesizer authors and the client evaluates. Normative definition:
- * `../contracts/composition.v0.3.json` (`shapes.synthesizeDataModel`);
+ * `../contracts/composition.v0.4.json` (`shapes.synthesizeDataModel`);
  * `synthesis.contract.test.ts` asserts this projection against it.
  *
  * Two authors, two schemas. The Synthesizer emits {@link SynthesizeDataModel}:
  * a synthesis — a shell-catalog tree, a free-form derived data model whose
  * every leaf is a formula, sort declarations, a note — or a decline. The
  * orchestrator paints the tree as ordinary A2UI and sends the client the
- * {@link SynthesisPayload}: the derived model and the sorts, wrapped with the
- * generations they were computed against, under {@link SYNTHESIS_KEY}.
+ * {@link SynthesisPayload}: the derived model and the sorts, under
+ * {@link SYNTHESIS_KEY}.
  *
  * The schemas are plain JSON Schema 2020-12, recursive where the model is
  * free-form; the sdk's validator (`validate.ts`) compiles them.
@@ -37,7 +37,7 @@ const refSchema = {
       type: 'string',
       pattern: '^(|/.*)$',
       description:
-        'RFC 6901 JSON Pointer into that surface\'s data model, where a segment may carry a predicate: `items[sku="x"]` selects the element of `items` whose field `sku` equals the JSON literal "x". A predicate ref is valid while the key resolves; an index ref is valid while the partition\'s generation holds. The key is one field name of the element; the value is a JSON literal compared by JSON equality.',
+        'RFC 6901 JSON Pointer into that surface\'s data model, where a segment may carry a predicate: `items[sku="x"]` selects the element of `items` whose field `sku` equals the JSON literal "x", and `items[a="x",b=2]` conjoins several field tests until exactly one element matches. Elements are selected by key, never by position: a positional segment into an array does not resolve. A ref is valid while its keys resolve; none matching and several matching are both absent. The value is a JSON literal compared by JSON equality.',
     },
   },
 } as const;
@@ -140,7 +140,7 @@ export const SYNTHESIZE_DATA_MODEL_SCHEMA = {
   $schema: 'https://json-schema.org/draft/2020-12/schema',
   title: 'SynthesizeDataModel',
   description:
-    'Model-facing: what the Synthesizer emits, written as text and validated after. A synthesis carries the tree, the derived data model, the sort declarations and a note; a decline carries declined: true and a reason. The orchestrator adds computedAgainst to the client-facing half.',
+    'Model-facing: what the Synthesizer emits, written as text and validated after. A synthesis carries the tree, the derived data model, the sort declarations and a note; a decline carries declined: true and a reason.',
   $defs: {...defs, tree: treeSchema},
   oneOf: [
     {
@@ -182,20 +182,14 @@ export const SYNTHESIS_SCHEMA = {
   $schema: 'https://json-schema.org/draft/2020-12/schema',
   title: 'SynthesisPayload',
   description:
-    "Client-facing: the synthesis branch minus the tree (painted as A2UI) and the note (journaled), plus the generations it was computed against. Evaluated client-side into the synthesis surface's data model.",
+    "Client-facing: the synthesis branch minus the tree (painted as A2UI) and the note (journaled). Evaluated client-side into the synthesis surface's data model.",
   $defs: defs,
   type: 'object',
   additionalProperties: false,
-  required: ['dataModel', 'sorts', 'computedAgainst'],
+  required: ['dataModel', 'sorts'],
   properties: {
     dataModel: {$ref: '#/$defs/dataModel'},
     sorts: {type: 'array', items: {$ref: '#/$defs/sort'}},
-    computedAgainst: {
-      type: 'object',
-      additionalProperties: {type: 'integer', minimum: 0},
-      description:
-        "The partition generations this payload was derived from, keyed by namespaced surfaceId. What the IntegrityChecker and the client compare against the stamp's generations.",
-    },
   },
 } as const;
 
@@ -269,12 +263,10 @@ export function isDecline(output: SynthesizeDataModel): output is Decline {
   return 'declined' in output && output.declined === true;
 }
 
-/** What rides under {@link SYNTHESIS_KEY}: the derived model, the sorts, and the envelope. */
+/** What rides under {@link SYNTHESIS_KEY}: the derived model and the sorts. */
 export interface SynthesisPayload {
   dataModel: DerivedModel;
   sorts: SortDeclaration[];
-  /** Partition generations this payload was derived from, keyed by namespaced surfaceId. */
-  computedAgainst: Record<string, number>;
 }
 
 /** The payload on an event's metadata, if present and envelope-complete. */

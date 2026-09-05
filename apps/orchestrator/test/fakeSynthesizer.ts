@@ -39,8 +39,9 @@ export class FakeSynthesizer implements SynthesisModel {
 }
 
 /**
- * The merged view a good model writes over storefronts: one row per index of the first source's
- * `/items`, its id and the best price across every source at that index; sorted by best price.
+ * The merged view a good model writes over storefronts: one row per item of the first source's
+ * `/items`, keyed by the item's id, with the best price across every source for that id; sorted
+ * by best price. Refs are keyed, never positional (task-5.10 decision 1).
  */
 export function bestPriceView(call: SynthesisCall): Synthesis {
   const {sources} = call.input;
@@ -58,13 +59,17 @@ export function bestPriceView(call: SynthesisCall): Synthesis {
       ],
     },
     dataModel: {
-      rows: items.map((_, i) => ({
-        id: {op: 'value', args: [{surface: first.surface, pointer: `/items/${i}/id`}]},
-        best: {
-          op: 'min',
-          args: sources.map(s => ({surface: s.surface, pointer: `/items/${i}/price`})),
-        },
-      })),
+      rows: items.map(item => {
+        const id = (item as {id: string}).id;
+        const at = `/items[id=${JSON.stringify(id)}]`;
+        return {
+          id: {op: 'value', args: [{surface: first.surface, pointer: `${at}/id`}]},
+          best: {
+            op: 'min',
+            args: sources.map(s => ({surface: s.surface, pointer: `${at}/price`})),
+          },
+        };
+      }),
     },
     sorts: [
       {

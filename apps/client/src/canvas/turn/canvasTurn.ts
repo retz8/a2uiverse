@@ -17,10 +17,9 @@
  *   composition's whole point is that the layout lands before its agents answer, a shell paint
  *   that opens a composition abandons hold-and-swap for the turn and streams progressively; the
  *   slots then fill in place, and a fragment that fails flips its slot rather than the paint.
- * - **Synthesis**: the stamp's generations are handed to the synthesis session before the
- *   event's messages apply, so a bump marks derived cells stale ahead of the data that follows
- *   it; the payload riding a synthesis paint is handed over once its surface is live — at apply
- *   in progressive mode, at the swap in staged mode. Retiring a composition retires its
+ * - **Synthesis**: the payload riding a synthesis paint is handed over once its surface is
+ *   live — at apply in progressive mode, at the swap in staged mode. Retiring a composition
+ *   retires its
  *   synthesis.
  * - **Timeline entries**: a landing stage paint appends its entry with a null snapshot — the
  *   live head. Serialize-on-swap then fills that entry when the surface leaves the canvas,
@@ -100,7 +99,7 @@ export interface TurnRunnerOptions {
    * lifecycle — so it reports and lets the shell repaint say so.
    */
   onFragmentFailure?: (failure: FragmentFailure) => void;
-  /** The synthesis session: fed generations, payloads, and the composition's retirement. */
+  /** The synthesis session: fed payloads and the composition's retirement. */
   synthesis?: SynthesisIntake;
 }
 
@@ -201,7 +200,7 @@ export function createTurnRunner({
     store.clearPlacement();
     store.clearPromotions();
     store.setStage(null);
-    // The synthesis belongs to the composition: its payload, generations and sorts go with it.
+    // The synthesis belongs to the composition: its payload and sorts go with it.
     synthesis?.retire();
   };
 
@@ -581,8 +580,6 @@ export function createTurnRunner({
       },
       apply: (messages, stamp, payload) => {
         if (canceled) return;
-        // Generations first: a bump marks derived cells stale before the data behind it lands.
-        if (stamp?.generations) synthesis?.noteGenerations(stamp.generations);
         // Replay tolerance: a recorded fixture carries paintMeta objects inline with the
         // A2UI messages (they ride the same recorded batches); route them to the meta
         // acceptor instead of the processor. Live streams deliver metas via acceptPaintMeta.

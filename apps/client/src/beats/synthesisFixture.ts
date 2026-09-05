@@ -4,9 +4,8 @@
  * teaches and the orchestrator validates — as the beat's sources and paint. Shared by the
  * synthetic beat and the tests, so the event sequence has one author.
  *
- * Beside it, the same document re-pointed by hand onto positions: what a model that found no
- * key would write, and the only kind of ref a reorder can silently re-point. It drives the
- * stale and re-synthesis cases the keyed document cannot.
+ * Since task 5.10 there is one ref form, so there is one document: the by-hand positional
+ * variants that drove the stale path are gone with the mechanism they exercised.
  */
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
 import {CAMERA_COMPARISON, isDecline, type Synthesis, type SynthesisPayload} from '@a2uiverse/sdk';
@@ -41,70 +40,11 @@ export const SHOP_B_PRODUCTS = (shopB!.data as {products: ShopBProduct[]}).produ
 /** The example's document: keyed refs, two cameras both stores list, best price first. */
 export const DOCUMENT: Synthesis = CAMERA_COMPARISON.output;
 
-const payloadOf = (
-  document: Synthesis,
-  computedAgainst: Record<string, number>,
-): SynthesisPayload => ({
-  dataModel: document.dataModel,
-  sorts: document.sorts,
-  computedAgainst,
-});
+/** The first synthesis' client-facing half. */
+export const PAYLOAD: SynthesisPayload = {dataModel: DOCUMENT.dataModel, sorts: DOCUMENT.sorts};
 
-/** The first synthesis' client-facing half, both stores at their first generation. */
-export const PAYLOAD: SynthesisPayload = payloadOf(DOCUMENT, {[SHOP_A]: 1, [SHOP_B]: 1});
-
-/**
- * The document with every ref re-pointed by hand onto the position its key sits at in the given
- * lists: `/items[id="x"]` becomes `/items/<i>`, `/products[sku="x"]` becomes `/products/<j>`.
- */
-export function indexed(
-  document: Synthesis,
-  items: readonly ShopAItem[] = SHOP_A_ITEMS,
-  products: readonly ShopBProduct[] = SHOP_B_PRODUCTS,
-): Synthesis {
-  const repoint = (pointer: string): string =>
-    pointer
-      .replace(/^\/items\[id="([^"]+)"\]/, (_, id) => `/items/${items.findIndex(i => i.id === id)}`)
-      .replace(
-        /^\/products\[sku="([^"]+)"\]/,
-        (_, sku) => `/products/${products.findIndex(p => p.sku === sku)}`,
-      );
-  const walk = (node: unknown): unknown => {
-    if (Array.isArray(node)) return node.map(walk);
-    if (typeof node === 'object' && node !== null) {
-      const record = node as Record<string, unknown>;
-      if (typeof record.op === 'string' && Array.isArray(record.args)) {
-        return {
-          op: record.op,
-          args: (record.args as {surface: string; pointer: string}[]).map(ref => ({
-            ...ref,
-            pointer: repoint(ref.pointer),
-          })),
-        };
-      }
-      return Object.fromEntries(Object.entries(record).map(([k, v]) => [k, walk(v)]));
-    }
-    return node;
-  };
-  return {...document, dataModel: walk(document.dataModel) as Synthesis['dataModel']};
-}
-
-/** The keyed document as index refs, against the lists as first painted. */
-export const INDEXED_DOCUMENT: Synthesis = indexed(DOCUMENT);
-export const INDEXED_PAYLOAD: SynthesisPayload = payloadOf(INDEXED_DOCUMENT, {
-  [SHOP_A]: 1,
-  [SHOP_B]: 1,
-});
-
-/** Shop A's list reversed in place — the one change that re-points an index ref. */
+/** Shop A's list reversed in place — a reorder the keyed refs ride out unchanged. */
 export const SHOP_A_REVERSED: ShopAItem[] = [...SHOP_A_ITEMS].reverse();
-
-/** After the reorder: generation 2, the index refs re-pointed onto the new positions. */
-export const REPOINTED_DOCUMENT: Synthesis = indexed(DOCUMENT, SHOP_A_REVERSED);
-export const REPOINTED_PAYLOAD: SynthesisPayload = payloadOf(REPOINTED_DOCUMENT, {
-  [SHOP_A]: 2,
-  [SHOP_B]: 1,
-});
 
 const msg = (m: Record<string, unknown>): A2uiMessage =>
   ({version: 'v0.9', ...m}) as unknown as A2uiMessage;

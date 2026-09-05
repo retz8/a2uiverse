@@ -563,12 +563,11 @@ describe('synthesis (tasks 4.4, 5.4)', () => {
     expect(stampOf(dataEvent!)?.generations).toEqual({'github:s1': 1});
 
     // The synthesis surface: a fragment of the shell in the synthesis slot, the tree painted
-    // verbatim, the derived model and sorts beside the stamp with the generations.
+    // verbatim, the derived model and sorts beside the stamp.
     const [paint, ...rest] = synthesisEvents(events);
     expect(rest).toHaveLength(0);
     expect(stampOf(paint!)).toEqual({source: 'shell', slot: 'slot-shell', role: 'fragment'});
     const payload = payloadOf(paint!);
-    expect(payload.computedAgainst).toEqual({'github:s1': 1, 'gmail:s1': 1});
     expect(payload.dataModel.rows).toHaveLength(2);
     expect(payload.sorts[0]).toMatchObject({path: '/rows', key: '/best'});
     expect(paint!.metadata!.a2uiverseWiring).toBeUndefined();
@@ -678,12 +677,17 @@ describe('synthesis (tasks 4.4, 5.4)', () => {
     expect(line.synthesis).toMatchObject({outcome: 'skipped', attempts: []});
   });
 
-  test('an in-fragment reorder bumps the generation and re-synthesizes inline with the previous document and the change account; a scalar edit does not', async () => {
+  test('a scalar edit and a reorder leave every key resolving — no re-synthesis; a dropped element does', async () => {
+    // The property the phase is built on (task-5.10 decision 4): refs select by key, so a
+    // repaint that moves elements around re-points nothing. Only a ref that stops resolving
+    // — an element that left the list — reopens the merged view.
     const synthesizer = new FakeSynthesizer();
     const github = shopScript(camerasA, n =>
       n === 1
         ? {path: '/note', value: 'scalar only'}
-        : {path: '/items', value: [camerasA[1], camerasA[0]]},
+        : n === 2
+          ? {path: '/items', value: [camerasA[1], camerasA[0]]}
+          : {path: '/items', value: [camerasA[0]]},
     );
     const {client} = await boot({
       planner: planner(),
@@ -695,79 +699,33 @@ describe('synthesis (tasks 4.4, 5.4)', () => {
     expect(synthesizer.calls).toHaveLength(1);
     const firstDocument = bestPriceView(synthesizer.calls[0]!);
 
-    // Action 1: a scalar edit — the stamp carries the unchanged generation; no re-synthesis.
     const scalar = await collect(client, actionOn('github:s1', contextId));
-    expect(
-      stampOf(scalar.find(e => a2uiDatas(e).some(d => d.updateDataModel))!)?.generations,
-    ).toEqual({'github:s1': 1});
     expect(synthesizer.calls).toHaveLength(1);
     expect(synthesisEvents(scalar)).toHaveLength(0);
-
-    // Action 2: the list reordered in place — bump on the stamp, then a re-synthesis in the same
-    // turn, handed the live document and the refs that went stale under github:s1.
-    const reorder = await collect(client, actionOn('github:s1', contextId));
-    const bumped = reorder.find(e => a2uiDatas(e).some(d => d.updateDataModel))!;
-    expect(stampOf(bumped)?.generations).toEqual({'github:s1': 2});
-    expect(synthesizer.calls).toHaveLength(2);
-    const again = synthesizer.calls[1]!;
-    expect(again.input.previous).toEqual(firstDocument);
-    expect(again.input.changes).toEqual({
-      stale: {
-        'github:s1': [
-          {surface: 'github:s1', pointer: '/items/0/id'},
-          {surface: 'github:s1', pointer: '/items/0/price'},
-          {surface: 'github:s1', pointer: '/items/1/id'},
-          {surface: 'github:s1', pointer: '/items/1/price'},
-        ],
-      },
-      absent: [],
-    });
-    expect(again.prompt).toContain('The user is looking at your previous view');
-    const [repaint] = synthesisEvents(reorder);
-    expect(repaint).toBeDefined();
-    expect(payloadOf(repaint!).computedAgainst).toEqual({'github:s1': 2, 'gmail:s1': 1});
-    expect(reorder.indexOf(bumped)).toBeLessThan(reorder.indexOf(repaint!));
-    const final = reorder.at(-1) as TaskStatusUpdateEvent;
-    expect(final.final).toBe(true);
-    const lines = await journalLines(3);
-    expect(lines[2]!.synthesis).toMatchObject({
-      outcome: 'synthesized',
-      changes: {absent: []},
-    });
-  });
-
-  test('a predicate ref survives a bump: no re-synthesis when every ref is keyed', async () => {
-    const keyed = (call: Parameters<typeof bestPriceView>[0]): Synthesis => {
-      const view = bestPriceView(call);
-      const rows = view.dataModel.rows as Array<{
-        id: {args: {pointer: string}[]};
-        best: {args: {pointer: string}[]};
-      }>;
-      rows.forEach((row, i) => {
-        const id = (camerasA[i] as {id: string}).id;
-        row.id.args[0]!.pointer = `/items[id="${id}"]/id`;
-        for (const ref of row.best.args) ref.pointer = `/items[id="${id}"]/price`;
-      });
-      return view;
-    };
-    const synthesizer = new FakeSynthesizer(keyed);
-    const github = shopScript(camerasA, () => ({
-      path: '/items',
-      value: [camerasA[1], camerasA[0]],
-    }));
-    const {client} = await boot({
-      planner: planner(),
-      synthesizer,
-      scripts: {github, gmail: shopScript(camerasB)},
-    });
-    const first = await collect(client, utterance('compare camera prices'));
-    const contextId = first[0]!.contextId!;
-    expect(synthesizer.calls).toHaveLength(1);
 
     const reorder = await collect(client, actionOn('github:s1', contextId));
     const bumped = reorder.find(e => a2uiDatas(e).some(d => d.updateDataModel))!;
     expect(stampOf(bumped)?.generations).toEqual({'github:s1': 2});
     expect(synthesizer.calls).toHaveLength(1);
     expect(synthesisEvents(reorder)).toHaveLength(0);
+
+    const drill = await collect(client, actionOn('github:s1', contextId));
+    expect(synthesizer.calls).toHaveLength(2);
+    const again = synthesizer.calls[1]!;
+    expect(again.input.previous).toEqual(firstDocument);
+    const gone = (camerasA[1] as {id: string}).id;
+    expect(again.input.changes!.absent.map(r => r.pointer)).toEqual([
+      `/items[id="${gone}"]/id`,
+      `/items[id="${gone}"]/price`,
+    ]);
+    expect(again.input.changes!.absent.every(r => r.surface === 'github:s1')).toBe(true);
+    expect(again.prompt).toContain('The user is looking at your previous view');
+    expect(again.prompt).toContain('- these refs no longer resolve:');
+    const [repaint] = synthesisEvents(drill);
+    expect(repaint).toBeDefined();
+    const final = drill.at(-1) as TaskStatusUpdateEvent;
+    expect(final.final).toBe(true);
+    const lines = await journalLines(4);
+    expect(lines[3]!.synthesis).toMatchObject({outcome: 'synthesized'});
   });
 });

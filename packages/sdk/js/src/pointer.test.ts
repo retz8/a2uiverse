@@ -25,13 +25,39 @@ test('parses index and key segments as steps', () => {
 test('parses a predicate segment as a key step followed by a predicate step', () => {
   expect(parsePointer('/messages[id="m_1"]/subject')).toEqual([
     {kind: 'key', key: 'messages'},
-    {kind: 'predicate', field: 'id', value: 'm_1'},
+    {kind: 'predicate', tests: [{field: 'id', value: 'm_1'}]},
     {kind: 'key', key: 'subject'},
   ]);
   expect(parsePointer('/pulls[number=812]/title')).toEqual([
     {kind: 'key', key: 'pulls'},
-    {kind: 'predicate', field: 'number', value: 812},
+    {kind: 'predicate', tests: [{field: 'number', value: 812}]},
     {kind: 'key', key: 'title'},
+  ]);
+});
+
+test('parses a compound predicate as one step of several tests', () => {
+  expect(parsePointer('/messages[id="dup",subject="second"]')).toEqual([
+    {kind: 'key', key: 'messages'},
+    {
+      kind: 'predicate',
+      tests: [
+        {field: 'id', value: 'dup'},
+        {field: 'subject', value: 'second'},
+      ],
+    },
+  ]);
+});
+
+test('splits compound tests on separators, not on commas inside a literal', () => {
+  expect(parsePointer('/messages[subject="a,b",id="m_1"]')).toEqual([
+    {kind: 'key', key: 'messages'},
+    {
+      kind: 'predicate',
+      tests: [
+        {field: 'subject', value: 'a,b'},
+        {field: 'id', value: 'm_1'},
+      ],
+    },
   ]);
 });
 
@@ -54,13 +80,32 @@ test('rejects a malformed predicate', () => {
   expect(() => parsePointer('/messages[a/b="x"]')).toThrow(PointerSyntaxError);
 });
 
-test('resolves index refs and the root', () => {
-  expect(resolvePointer(partition, '/messages/1/subject')).toEqual({
-    found: true,
-    value: 'Re: Q4 roadmap',
-  });
-  expect(resolvePointer(partition, '/messages/0/tags/1')).toEqual({found: true, value: 'hr'});
+test('resolves the root', () => {
   expect(resolvePointer(partition, '')).toEqual({found: true, value: partition});
+});
+
+test('a positional segment into an array says so rather than resolving', () => {
+  // Elements are selected by key, never by position (task-5.10 decision 1). The reason is
+  // distinct from `missing` so the caller can report the rule instead of a data fault.
+  expect(resolvePointer(partition, '/messages/1/subject')).toEqual({
+    found: false,
+    reason: 'positional',
+  });
+  expect(resolvePointer(partition, '/messages/0/tags/1')).toEqual({
+    found: false,
+    reason: 'positional',
+  });
+});
+
+test('an integer key into an object is an ordinary property name', () => {
+  expect(resolvePointer({'0': 'zero'}, '/0')).toEqual({found: true, value: 'zero'});
+});
+
+test('a compound predicate resolves what one field cannot', () => {
+  expect(resolvePointer(partition, '/messages[id="dup",subject="second"]/subject')).toEqual({
+    found: true,
+    value: 'second',
+  });
 });
 
 test('resolves a predicate ref to the one element whose field equals the literal', () => {
@@ -99,9 +144,9 @@ test('a predicate against a non-array is missing', () => {
   expect(resolvePointer(partition, '/a~1b[x=1]')).toEqual({found: false, reason: 'missing'});
 });
 
-test('a missing key, an out-of-range or non-canonical index, and a null value are not found', () => {
+test('a missing key, a non-canonical index, and a null value are not found', () => {
   expect(resolvePointer(partition, '/nothing')).toEqual({found: false, reason: 'missing'});
-  expect(resolvePointer(partition, '/messages/9')).toEqual({found: false, reason: 'missing'});
+  // Non-canonical integers were never positional, so they stay a plain miss.
   expect(resolvePointer(partition, '/messages/01')).toEqual({found: false, reason: 'missing'});
   expect(resolvePointer(partition, '/messages/-1')).toEqual({found: false, reason: 'missing'});
   expect(resolvePointer(partition, '/empty')).toEqual({found: false, reason: 'null'});

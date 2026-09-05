@@ -1,4 +1,4 @@
-import {resolvePointer, type Ref} from '@a2uiverse/sdk';
+import {resolvePointer, type Ref, type Resolution} from '@a2uiverse/sdk';
 import type {VendorEvent} from '../agentsPool/relay.js';
 import {a2uiMessagesIn, partsOf} from '../journal/surfaces.js';
 
@@ -12,9 +12,10 @@ type Model = Record<string, unknown>;
  * Generations (task-4.4 decision 3): per surface, an integer that only goes up.
  * Before the first synthesis there is no snapshot, so any change bumps (SPEC §5
  * t5, arrival). After `snapshot()` a change bumps only when an array present in
- * the snapshot is present now with different contents — the one change that can
- * silently re-point an index ref. A missing array is absent, not invalid; an
- * identical one is nothing. Arrays only: a scalar outside any array is free.
+ * the snapshot is present now with different contents. A missing array is
+ * absent; an identical one is nothing. Arrays only: a scalar outside any array
+ * is free. Synthesis refs no longer read them — resolution is validity since
+ * task 5.10 — but they ride the composition stamp, whose half is unchanged.
  */
 export class Partitions {
   readonly #models = new Map<string, Model>();
@@ -59,10 +60,14 @@ export class Partitions {
     return [...this.#models.entries()];
   }
 
-  /** Resolves a ref — index or predicate — through the sdk's kit (phase decision 23): a value, or absent. */
-  resolve(ref: Ref): {found: true; value: unknown} | {found: false} {
+  /**
+   * Resolves a ref through the sdk's kit (phase decision 23): a value, or absent with the
+   * reason — which the checklist reports, so a positional segment is named as the rule it
+   * broke rather than as missing data (task-5.10 decision 8).
+   */
+  resolve(ref: Ref): Resolution {
     const model = this.#models.get(ref.surface);
-    if (model === undefined) return {found: false};
+    if (model === undefined) return {found: false, reason: 'missing'};
     return resolvePointer(model, ref.pointer);
   }
 

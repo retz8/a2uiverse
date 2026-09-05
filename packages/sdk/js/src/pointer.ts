@@ -5,12 +5,21 @@
  *
  * A pointer is RFC 6901 with one extension: a segment may carry a predicate,
  * `items[sku="x"]`, selecting the element of the array `items` whose field
- * `sku` equals the JSON literal `"x"`. The key is one field name; the value is
- * a JSON literal compared by JSON equality. Exactly one element must match —
- * none is `missing`, several is `ambiguous`; both are absent to a formula.
+ * `sku` equals the JSON literal `"x"`. A predicate may conjoin several tests,
+ * `items[repository="a/b",number=11]`, for elements no single field names.
+ * Exactly one element must match — none is `missing`, several is `ambiguous`;
+ * both are absent to a formula.
+ *
+ * Elements are selected by key, never by position (task-5.10 decision 1). A
+ * positional segment into an array resolves to nothing and says so by name:
+ * `positional`, so the caller can report the rule rather than a data fault.
+ * Integer segments into an *object* stay legal — `/0` is an ordinary property
+ * name — so the distinction is drawn at the step, not at parse time.
  */
 
-export type Step = {kind: 'key'; key: string} | {kind: 'predicate'; field: string; value: unknown};
+export type Step =
+  | {kind: 'key'; key: string}
+  | {kind: 'predicate'; tests: readonly {field: string; value: unknown}[]};
 
 export class PointerSyntaxError extends Error {
   constructor(pointer: string, detail: string) {
@@ -19,10 +28,36 @@ export class PointerSyntaxError extends Error {
   }
 }
 
-const PREDICATE = /^([^[\]]*)\[([^=[\]/]+)=(.+)\]$/;
+const PREDICATE = /^([^[\]]*)\[(.+)\]$/;
 
 function unescape(segment: string): string {
   return segment.replace(/~1/g, '/').replace(/~0/g, '~');
+}
+
+/**
+ * Splits `field=<literal>,field=<literal>` on the commas that separate tests.
+ * Literal-aware: a comma inside a JSON string is content, not a separator.
+ */
+function splitTests(body: string): string[] {
+  const parts: string[] = [];
+  let start = 0;
+  let inString = false;
+  let escaped = false;
+  for (let i = 0; i < body.length; i++) {
+    const ch = body[i];
+    if (escaped) {
+      escaped = false;
+    } else if (ch === '\\') {
+      escaped = true;
+    } else if (ch === '"') {
+      inString = !inString;
+    } else if (ch === ',' && !inString) {
+      parts.push(body.slice(start, i));
+      start = i + 1;
+    }
+  }
+  parts.push(body.slice(start));
+  return parts;
 }
 
 /** Splits a pointer into steps; throws {@link PointerSyntaxError} on malformed input. */
@@ -38,21 +73,32 @@ export function parsePointer(pointer: string): Step[] {
     const match = PREDICATE.exec(raw);
     if (!match)
       throw new PointerSyntaxError(pointer, `bad predicate segment ${JSON.stringify(raw)}`);
-    const [, base, field, literal] = match;
-    let value: unknown;
-    try {
-      value = JSON.parse(literal);
-    } catch {
-      throw new PointerSyntaxError(pointer, `predicate value is not a JSON literal: ${literal}`);
-    }
+    const [, base, body] = match;
+    const tests = splitTests(body).map(part => {
+      const eq = part.indexOf('=');
+      if (eq <= 0)
+        throw new PointerSyntaxError(pointer, `bad predicate test ${JSON.stringify(part)}`);
+      const field = part.slice(0, eq);
+      if (/[[\]/]/.test(field))
+        throw new PointerSyntaxError(pointer, `bad predicate field ${JSON.stringify(field)}`);
+      const literal = part.slice(eq + 1);
+      let value: unknown;
+      try {
+        value = JSON.parse(literal);
+      } catch {
+        throw new PointerSyntaxError(pointer, `predicate value is not a JSON literal: ${literal}`);
+      }
+      return {field: unescape(field), value};
+    });
     steps.push({kind: 'key', key: unescape(base)});
-    steps.push({kind: 'predicate', field: unescape(field), value});
+    steps.push({kind: 'predicate', tests});
   }
   return steps;
 }
 
 export type Resolution =
-  {found: true; value: unknown} | {found: false; reason: 'missing' | 'ambiguous' | 'null'};
+  | {found: true; value: unknown}
+  | {found: false; reason: 'missing' | 'ambiguous' | 'null' | 'positional'};
 
 const CANONICAL_INDEX = /^(0|[1-9][0-9]*)$/;
 
@@ -68,17 +114,17 @@ function stepInto(current: unknown, step: Step): Resolution {
         typeof element === 'object' &&
         element !== null &&
         !Array.isArray(element) &&
-        jsonEqual((element as Record<string, unknown>)[step.field], step.value),
+        step.tests.every(test =>
+          jsonEqual((element as Record<string, unknown>)[test.field], test.value),
+        ),
     );
     if (hits.length === 1) return {found: true, value: hits[0]};
     return {found: false, reason: hits.length === 0 ? 'missing' : 'ambiguous'};
   }
   if (Array.isArray(current)) {
-    if (!CANONICAL_INDEX.test(step.key)) return {found: false, reason: 'missing'};
-    const index = Number(step.key);
-    return index < current.length
-      ? {found: true, value: current[index]}
-      : {found: false, reason: 'missing'};
+    // An array is addressed by key alone. A positional segment names the rule it broke so the
+    // Synthesizer's retry is told to use a predicate, not sent hunting for missing data.
+    return {found: false, reason: CANONICAL_INDEX.test(step.key) ? 'positional' : 'missing'};
   }
   if (typeof current === 'object' && current !== null) {
     const record = current as Record<string, unknown>;

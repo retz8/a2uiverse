@@ -213,12 +213,11 @@ describe('a parked composition', () => {
         },
       }),
     ]);
-    const generations = {[SHOP_A]: 1, [SHOP_B]: 1};
     const functions = SHELL_CATALOG.functions;
     const models = (surface: string) => live.model.getSurface(surface)?.dataModel.get('/');
     live.model
       .getSurface(SYNTHESIS_SURFACE)!
-      .dataModel.set('/', evaluate({payload: PAYLOAD, models, generations, functions}));
+      .dataModel.set('/', evaluate({payload: PAYLOAD, models, functions}));
     const capture = (id: string) => ({
       ...serializeSurface(live.model.getSurface(id)!),
       capturedAt: 2000,
@@ -242,7 +241,7 @@ describe('a parked composition', () => {
         fragment(SHOP_B, 'slot-shop-b', 'shop-b'),
         fragment(SYNTHESIS_SURFACE, SYNTHESIS_SLOT, 'shell'),
       ],
-      synthesis: {surfaceId: SYNTHESIS_SURFACE, payload: PAYLOAD, generations},
+      synthesis: {surfaceId: SYNTHESIS_SURFACE, payload: PAYLOAD},
     };
     const store = createCanvasStore();
     store.appendEntry(entry);

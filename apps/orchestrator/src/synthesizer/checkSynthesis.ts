@@ -1,5 +1,6 @@
 import {Catalog, MessageProcessor, type ComponentApi} from '@a2ui/web_core/v0_9';
 import {
+  type Resolution,
   isFormula,
   parsePointer,
   walkModel,
@@ -21,7 +22,7 @@ import {
 export interface SynthesisChecks {
   catalog: Catalog<ComponentApi>;
   operators: readonly string[];
-  partitions: {has(surface: string): boolean; resolve(ref: Ref): {found: boolean}};
+  partitions: {has(surface: string): boolean; resolve(ref: Ref): Resolution};
 }
 
 export function checkSynthesis(synthesis: Synthesis, checks: SynthesisChecks): string[] {
@@ -238,7 +239,24 @@ function refErrors(synthesis: Synthesis, partitions: SynthesisChecks['partitions
       const where = `/dataModel${leaf.path}/args/${i}`;
       if (!partitions.has(ref.surface)) {
         errors.push(`${where}: surface '${ref.surface}' is not a source of this composition`);
-      } else if (!partitions.resolve(ref).found) {
+        return;
+      }
+      const resolution = partitions.resolve(ref);
+      if (resolution.found) return;
+      if (resolution.reason === 'positional') {
+        // The data is at that position; the rule is what was broken. Saying "does not resolve"
+        // would send the retry hunting for missing data instead of rewriting the pointer.
+        errors.push(
+          `${where}: ${ref.surface}${ref.pointer} selects an array element by position; ` +
+            'elements are selected by key — use a predicate segment, ' +
+            'for example /items[id="x"], conjoining fields if one does not identify the element',
+        );
+      } else if (resolution.reason === 'ambiguous') {
+        errors.push(
+          `${where}: ${ref.surface}${ref.pointer} matches more than one element; ` +
+            'add fields to the predicate until exactly one matches',
+        );
+      } else {
         errors.push(`${where}: ${ref.surface}${ref.pointer} does not resolve in the data shown`);
       }
     });

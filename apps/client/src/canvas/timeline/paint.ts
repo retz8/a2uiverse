@@ -65,14 +65,13 @@ export interface PaintFragment {
 
 /**
  * The synthesis a composed paint carried, captured with its fragments (task 4.8): the payload,
- * the surface it evaluates into, and the generations it was computed against. A parked entry
+ * the surface it evaluates into. A parked entry
  * re-sorts over its own frozen partitions with these — sort crosses no wire — and subscribes to
  * nothing live.
  */
 export interface PaintSynthesis {
   surfaceId: string;
   payload: SynthesisPayload;
-  generations: Readonly<Record<string, number>>;
 }
 
 /**

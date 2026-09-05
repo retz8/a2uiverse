@@ -1,8 +1,8 @@
 {
   "name": "a2uiverse-composition",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "The A2UIVerse composition extension (SPEC §14): the A2A metadata contract for cross-agent UI composition, internal to the platform (orchestrator ↔ client). Two halves: the composition stamp (provenance, placement, generations) on every relayed event, and the synthesize data model — the data model for a2ui composition: a free-form derived data model of formula leaves, a shell-catalog tree bound to it, sort declarations, a note — on the event that paints a synthesis surface. Nothing a2uiverse-specific rides the vendor wire. Normative for every language projection; each projection's contract test asserts against this file.",
-  "extensionUri": "https://a2uiverse.dev/ext/composition/v0.3",
+  "extensionUri": "https://a2uiverse.dev/ext/composition/v0.4",
   "stampKey": "a2uiverse",
   "surfaceIdSeparator": ":",
   "surfaceIdNamespacing": {
@@ -29,13 +29,13 @@
     "synthesizeDataModel": {
       "direction": "orchestrator → client",
       "carriedOn": "metadata.a2uiverseSynthesis of the event that paints a synthesis surface — the client-facing payload; the tree itself is painted as ordinary A2UI on the same event",
-      "authors": "The Synthesizer writes synthesizeDataModel as text; the orchestrator validates it (this contract via the sdk validator, then the tree against the shell catalog and the derived-value rule), paints the tree, and sends synthesis with computedAgainst added.",
+      "authors": "The Synthesizer writes synthesizeDataModel as text; the orchestrator validates it (this contract via the sdk validator, then the tree against the shell catalog and the derived-value rule), paints the tree, and sends synthesis to the client.",
       "a2uiVersion": "v0.9",
       "schemas": {
         "synthesizeDataModel": {
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "title": "SynthesizeDataModel",
-          "description": "Model-facing: what the Synthesizer emits, written as text and validated after. A synthesis carries the tree, the derived data model, the sort declarations and a note; a decline carries declined: true and a reason. The orchestrator adds computedAgainst to the client-facing half.",
+          "description": "Model-facing: what the Synthesizer emits, written as text and validated after. A synthesis carries the tree, the derived data model, the sort declarations and a note; a decline carries declined: true and a reason.",
           "$defs": {
             "ref": {
               "type": "object",
@@ -50,7 +50,7 @@
                 "pointer": {
                   "type": "string",
                   "pattern": "^(|/.*)$",
-                  "description": "RFC 6901 JSON Pointer into that surface's data model, where a segment may carry a predicate: `items[sku=\"x\"]` selects the element of `items` whose field `sku` equals the JSON literal \"x\". A predicate ref is valid while the key resolves; an index ref is valid while the partition's generation holds. The key is one field name of the element; the value is a JSON literal compared by JSON equality."
+                  "description": "RFC 6901 JSON Pointer into that surface's data model, where a segment may carry a predicate: `items[sku=\"x\"]` selects the element of `items` whose field `sku` equals the JSON literal \"x\", and `items[a=\"x\",b=2]` conjoins several field tests until exactly one element matches. Elements are selected by key, never by position: a positional segment into an array does not resolve. A ref is valid while its keys resolve; none matching and several matching are both absent. The value is a JSON literal compared by JSON equality."
                 }
               }
             },
@@ -218,7 +218,7 @@
         "synthesis": {
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "title": "SynthesisPayload",
-          "description": "Client-facing: the synthesis branch minus the tree (painted as A2UI) and the note (journaled), plus the generations it was computed against. Evaluated client-side into the synthesis surface's data model.",
+          "description": "Client-facing: the synthesis branch minus the tree (painted as A2UI) and the note (journaled). Evaluated client-side into the synthesis surface's data model.",
           "$defs": {
             "ref": {
               "type": "object",
@@ -233,7 +233,7 @@
                 "pointer": {
                   "type": "string",
                   "pattern": "^(|/.*)$",
-                  "description": "RFC 6901 JSON Pointer into that surface's data model, where a segment may carry a predicate: `items[sku=\"x\"]` selects the element of `items` whose field `sku` equals the JSON literal \"x\". A predicate ref is valid while the key resolves; an index ref is valid while the partition's generation holds. The key is one field name of the element; the value is a JSON literal compared by JSON equality."
+                  "description": "RFC 6901 JSON Pointer into that surface's data model, where a segment may carry a predicate: `items[sku=\"x\"]` selects the element of `items` whose field `sku` equals the JSON literal \"x\", and `items[a=\"x\",b=2]` conjoins several field tests until exactly one element matches. Elements are selected by key, never by position: a positional segment into an array does not resolve. A ref is valid while its keys resolve; none matching and several matching are both absent. The value is a JSON literal compared by JSON equality."
                 }
               }
             },
@@ -334,7 +334,7 @@
           },
           "type": "object",
           "additionalProperties": false,
-          "required": ["dataModel", "sorts", "computedAgainst"],
+          "required": ["dataModel", "sorts"],
           "properties": {
             "dataModel": {
               "$ref": "#/$defs/dataModel"
@@ -344,14 +344,6 @@
               "items": {
                 "$ref": "#/$defs/sort"
               }
-            },
-            "computedAgainst": {
-              "type": "object",
-              "additionalProperties": {
-                "type": "integer",
-                "minimum": 0
-              },
-              "description": "The partition generations this payload was derived from, keyed by namespaced surfaceId. What the IntegrityChecker and the client compare against the stamp's generations."
             }
           }
         }

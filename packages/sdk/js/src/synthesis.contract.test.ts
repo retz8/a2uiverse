@@ -11,7 +11,7 @@ import {
 } from './synthesis';
 
 const contract = JSON.parse(
-  readFileSync(new URL('../../contracts/composition.v0.3.json', import.meta.url), 'utf8'),
+  readFileSync(new URL('../../contracts/composition.v0.4.json', import.meta.url), 'utf8'),
 ) as {
   version: string;
   extensionUri: string;
@@ -28,8 +28,8 @@ const contract = JSON.parse(
 };
 
 test('one version line: file, version, extension URI', () => {
-  expect(contract.version).toBe('0.3.0');
-  expect(contract.extensionUri).toBe('https://a2uiverse.dev/ext/composition/v0.3');
+  expect(contract.version).toBe('0.4.0');
+  expect(contract.extensionUri).toBe('https://a2uiverse.dev/ext/composition/v0.4');
   expect(COMPOSITION_EXTENSION_URI).toBe(contract.extensionUri);
 });
 
@@ -89,7 +89,6 @@ const payload: SynthesisPayload = {
       direction: 'asc',
     },
   ],
-  computedAgainst: {'gmail:inbox': 1},
 };
 
 test('readSynthesis returns the payload under the synthesis key', () => {
@@ -103,7 +102,7 @@ test('readSynthesis rejects absent or malformed metadata', () => {
   expect(readSynthesis({})).toBeUndefined();
   expect(readSynthesis({[SYNTHESIS_KEY]: 'synthesis'})).toBeUndefined();
   expect(readSynthesis({[SYNTHESIS_KEY]: [payload]})).toBeUndefined();
-  const {computedAgainst: _dropped, ...noEnvelope} = payload;
+  const {sorts: _dropped, ...incomplete} = payload;
   void _dropped;
-  expect(readSynthesis({[SYNTHESIS_KEY]: noEnvelope})).toBeUndefined();
+  expect(readSynthesis({[SYNTHESIS_KEY]: incomplete})).toBeUndefined();
 });
