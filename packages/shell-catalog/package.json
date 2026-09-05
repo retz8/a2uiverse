@@ -29,11 +29,19 @@
         "default": "./dist/functions/operators.js"
       }
     },
-    "./catalog.json": "./catalogs/v0.9.1/catalog.json"
+    "./schema": {
+      "import": {
+        "types": "./dist/schema.d.ts",
+        "default": "./dist/schema.js"
+      }
+    },
+    "./catalog.json": "./catalogs/v0.9.1/catalog.json",
+    "./guidance.md": "./docs/guidance.md"
   },
   "files": [
     "dist",
-    "catalogs"
+    "catalogs",
+    "docs"
   ],
   "scripts": {
     "scope-radix": "node scripts/scope-radix.mjs",
