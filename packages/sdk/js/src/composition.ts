@@ -2,13 +2,13 @@
  * The composition extension (SPEC §14): the A2A metadata contract for
  * cross-agent UI composition, internal to the platform (orchestrator ↔
  * client) — nothing a2uiverse-specific rides the vendor wire. The normative
- * definition is `../contracts/composition.v0.2.json`;
+ * definition is `../contracts/composition.v0.3.json`;
  * `composition.contract.test.ts` asserts this projection against it. The
  * synthesis half of the contract (the wiring) lives in `synthesis.ts`.
  */
 
 /** The A2A extension URI this project declares for composition. */
-export const COMPOSITION_EXTENSION_URI = 'https://a2uiverse.dev/ext/composition/v0.2';
+export const COMPOSITION_EXTENSION_URI = 'https://a2uiverse.dev/ext/composition/v0.3';
 
 /** Metadata key the orchestrator owns on relayed events. */
 export const STAMP_KEY = 'a2uiverse';

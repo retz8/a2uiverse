@@ -1,0 +1,351 @@
+{
+  "name": "a2uiverse-composition",
+  "version": "0.3.0",
+  "description": "The A2UIVerse composition extension (SPEC §14): the A2A metadata contract for cross-agent UI composition, internal to the platform (orchestrator ↔ client). Two halves: the composition stamp (provenance, placement, generations) on every relayed event, and the synthesize data model — the data model for a2ui composition: a free-form derived data model of formula leaves, a shell-catalog tree bound to it, sort declarations, a note — on the event that paints a synthesis surface. Nothing a2uiverse-specific rides the vendor wire. Normative for every language projection; each projection's contract test asserts against this file.",
+  "extensionUri": "https://a2uiverse.dev/ext/composition/v0.3",
+  "stampKey": "a2uiverse",
+  "surfaceIdSeparator": ":",
+  "surfaceIdNamespacing": {
+    "form": "<appId><surfaceIdSeparator><surfaceId>",
+    "appliedTo": ["createSurface", "updateComponents", "updateDataModel", "deleteSurface"],
+    "rule": "The orchestrator namespaces surfaceId on the four A2UI server→client message types and reverses it on inbound client actions. Component ids, binding paths, and catalog ids are never rewritten."
+  },
+  "synthesisKey": "a2uiverseSynthesis",
+  "shapes": {
+    "compositionStamp": {
+      "direction": "orchestrator → client",
+      "carriedOn": "every relayed A2A event's metadata, keyed by stampKey",
+      "required": ["source"],
+      "optional": ["slot", "role", "vendorContextId", "vendorTaskId", "generations"],
+      "fields": {
+        "source": "Provenance: the app id the event came from.",
+        "slot": "Placement: the layout slot the event's surface fills; absent on the shell's own events.",
+        "role": "Which surface the canvas renders as the composition root: 'shell' | 'fragment'.",
+        "vendorContextId": "Debug only, gated by orchestrator config.",
+        "vendorTaskId": "Debug only, gated by orchestrator config.",
+        "generations": "Per-partition generation counters, keyed by namespaced surfaceId, for every surface this event touched. An integer that only goes up: bumped when an array a live ref indexes into is mutated in place (SPEC §6.2). Absent on the shell's own events — the synthesis surface is derived, not a source."
+      }
+    },
+    "synthesizeDataModel": {
+      "direction": "orchestrator → client",
+      "carriedOn": "metadata.a2uiverseSynthesis of the event that paints a synthesis surface — the client-facing payload; the tree itself is painted as ordinary A2UI on the same event",
+      "authors": "The Synthesizer writes synthesizeDataModel as text; the orchestrator validates it (this contract via the sdk validator, then the tree against the shell catalog and the derived-value rule), paints the tree, and sends synthesis with computedAgainst added.",
+      "a2uiVersion": "v0.9",
+      "schemas": {
+        "synthesizeDataModel": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "title": "SynthesizeDataModel",
+          "description": "Model-facing: what the Synthesizer emits, written as text and validated after. A synthesis carries the tree, the derived data model, the sort declarations and a note; a decline carries declined: true and a reason. The orchestrator adds computedAgainst to the client-facing half.",
+          "$defs": {
+            "ref": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["surface", "pointer"],
+              "description": "A cross-partition qualified ref: a pointer that resolves in another surface's data model.",
+              "properties": {
+                "surface": {
+                  "type": "string",
+                  "description": "The namespaced surfaceId (<appId>:<surfaceId>) the pointer resolves in."
+                },
+                "pointer": {
+                  "type": "string",
+                  "pattern": "^(|/.*)$",
+                  "description": "RFC 6901 JSON Pointer into that surface's data model, where a segment may carry a predicate: `items[sku=\"x\"]` selects the element of `items` whose field `sku` equals the JSON literal \"x\". A predicate ref is valid while the key resolves; an index ref is valid while the partition's generation holds. The key is one field name of the element; the value is a JSON literal compared by JSON equality."
+                }
+              }
+            },
+            "formula": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["op", "args"],
+              "description": "A leaf of the derived model: one operator over N refs, N ≥ 0. A plain vendor value is a one-argument pass-through. A formula with no refs is a value no source contributes to — absent by construction. Operators are names the shell catalog declares as functions; the contract does not enumerate them. Recognized by shape: an object with exactly `op` and `args` is a formula.",
+              "properties": {
+                "op": {
+                  "type": "string",
+                  "description": "A function name declared by the shell catalog."
+                },
+                "args": {
+                  "type": "array",
+                  "minItems": 0,
+                  "items": {
+                    "$ref": "#/$defs/ref"
+                  }
+                }
+              }
+            },
+            "node": {
+              "description": "A node of the free-form derived model: a formula leaf, an object whose values are nodes, or an array of nodes. A scalar anywhere is a violation — every leaf is a formula, never a literal value.",
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/formula"
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": {
+                    "$ref": "#/$defs/node"
+                  }
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/node"
+                  }
+                }
+              ]
+            },
+            "dataModel": {
+              "type": "object",
+              "minProperties": 1,
+              "additionalProperties": {
+                "$ref": "#/$defs/node"
+              },
+              "description": "The derived data model the tree binds to: a JSON shape of the Synthesizer's choosing whose every leaf is a formula. Evaluated client-side into plain values with contributor state at the same paths."
+            },
+            "sort": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["path", "options", "key", "direction"],
+              "description": "A sort declaration over one array of the derived model. The model names the array, the sortable keys and their labels, and the initial choice; the runtime sorts and keeps the user's choice of key or direction.",
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "pattern": "^/.*$",
+                  "description": "JSON Pointer to the sorted array in the derived model."
+                },
+                "options": {
+                  "type": "array",
+                  "minItems": 1,
+                  "description": "The keys the user may sort by, each with its user-facing label.",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["key", "label"],
+                    "properties": {
+                      "key": {
+                        "type": "string",
+                        "pattern": "^/.*$",
+                        "description": "JSON Pointer inside each element of the array, to a formula leaf."
+                      },
+                      "label": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  }
+                },
+                "key": {
+                  "type": "string",
+                  "description": "The initial key; one of the options."
+                },
+                "direction": {
+                  "type": "string",
+                  "enum": ["asc", "desc"]
+                }
+              }
+            },
+            "tree": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["components"],
+              "description": "The synthesis tree: the A2UI components list an agent would put in an updateComponents, authored in the shell catalog. One component has the id `root`. Validated against the shell catalog by the consumer; the contract does not restate a component. Painted as ordinary A2UI; never rides metadata.",
+              "properties": {
+                "components": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "object",
+                    "required": ["id", "component"],
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "component": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["tree", "dataModel", "sorts", "note"],
+              "properties": {
+                "tree": {
+                  "$ref": "#/$defs/tree"
+                },
+                "dataModel": {
+                  "$ref": "#/$defs/dataModel"
+                },
+                "sorts": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/sort"
+                  }
+                },
+                "note": {
+                  "type": "string",
+                  "description": "What was delivered and why it differs from the Planner's brief, when it differs; empty otherwise. Journaled, never painted."
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["declined", "reason"],
+              "properties": {
+                "declined": {
+                  "const": true,
+                  "description": "Nothing is joinable; the reserved slot collapses and no payload is sent."
+                },
+                "reason": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Why nothing was joinable — spoken into the slot as the shell's words."
+                }
+              }
+            }
+          ]
+        },
+        "synthesis": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "title": "SynthesisPayload",
+          "description": "Client-facing: the synthesis branch minus the tree (painted as A2UI) and the note (journaled), plus the generations it was computed against. Evaluated client-side into the synthesis surface's data model.",
+          "$defs": {
+            "ref": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["surface", "pointer"],
+              "description": "A cross-partition qualified ref: a pointer that resolves in another surface's data model.",
+              "properties": {
+                "surface": {
+                  "type": "string",
+                  "description": "The namespaced surfaceId (<appId>:<surfaceId>) the pointer resolves in."
+                },
+                "pointer": {
+                  "type": "string",
+                  "pattern": "^(|/.*)$",
+                  "description": "RFC 6901 JSON Pointer into that surface's data model, where a segment may carry a predicate: `items[sku=\"x\"]` selects the element of `items` whose field `sku` equals the JSON literal \"x\". A predicate ref is valid while the key resolves; an index ref is valid while the partition's generation holds. The key is one field name of the element; the value is a JSON literal compared by JSON equality."
+                }
+              }
+            },
+            "formula": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["op", "args"],
+              "description": "A leaf of the derived model: one operator over N refs, N ≥ 0. A plain vendor value is a one-argument pass-through. A formula with no refs is a value no source contributes to — absent by construction. Operators are names the shell catalog declares as functions; the contract does not enumerate them. Recognized by shape: an object with exactly `op` and `args` is a formula.",
+              "properties": {
+                "op": {
+                  "type": "string",
+                  "description": "A function name declared by the shell catalog."
+                },
+                "args": {
+                  "type": "array",
+                  "minItems": 0,
+                  "items": {
+                    "$ref": "#/$defs/ref"
+                  }
+                }
+              }
+            },
+            "node": {
+              "description": "A node of the free-form derived model: a formula leaf, an object whose values are nodes, or an array of nodes. A scalar anywhere is a violation — every leaf is a formula, never a literal value.",
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/formula"
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": {
+                    "$ref": "#/$defs/node"
+                  }
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/node"
+                  }
+                }
+              ]
+            },
+            "dataModel": {
+              "type": "object",
+              "minProperties": 1,
+              "additionalProperties": {
+                "$ref": "#/$defs/node"
+              },
+              "description": "The derived data model the tree binds to: a JSON shape of the Synthesizer's choosing whose every leaf is a formula. Evaluated client-side into plain values with contributor state at the same paths."
+            },
+            "sort": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["path", "options", "key", "direction"],
+              "description": "A sort declaration over one array of the derived model. The model names the array, the sortable keys and their labels, and the initial choice; the runtime sorts and keeps the user's choice of key or direction.",
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "pattern": "^/.*$",
+                  "description": "JSON Pointer to the sorted array in the derived model."
+                },
+                "options": {
+                  "type": "array",
+                  "minItems": 1,
+                  "description": "The keys the user may sort by, each with its user-facing label.",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["key", "label"],
+                    "properties": {
+                      "key": {
+                        "type": "string",
+                        "pattern": "^/.*$",
+                        "description": "JSON Pointer inside each element of the array, to a formula leaf."
+                      },
+                      "label": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  }
+                },
+                "key": {
+                  "type": "string",
+                  "description": "The initial key; one of the options."
+                },
+                "direction": {
+                  "type": "string",
+                  "enum": ["asc", "desc"]
+                }
+              }
+            }
+          },
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["dataModel", "sorts", "computedAgainst"],
+          "properties": {
+            "dataModel": {
+              "$ref": "#/$defs/dataModel"
+            },
+            "sorts": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/sort"
+              }
+            },
+            "computedAgainst": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "description": "The partition generations this payload was derived from, keyed by namespaced surfaceId. What the IntegrityChecker and the client compare against the stamp's generations."
+            }
+          }
+        }
+      }
+    }
+  }
+}

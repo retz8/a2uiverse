@@ -1,89 +1,109 @@
-/** Asserts the synthesis half of the projection against the normative contract (`packages/sdk/contracts`). */
+/** Asserts the synthesis half of the projection — the synthesize data model — against the normative contract. */
 import {readFileSync} from 'node:fs';
 import {expect, test} from 'vitest';
-import {STAMP_KEY} from './composition';
-import {readWiring, SYNTHESIZER_OUTPUT_SCHEMA, WIRING_KEY, WIRING_SCHEMA} from './synthesis';
+import {COMPOSITION_EXTENSION_URI, STAMP_KEY} from './composition';
+import {
+  readSynthesis,
+  SYNTHESIS_KEY,
+  SYNTHESIS_SCHEMA,
+  SYNTHESIZE_DATA_MODEL_SCHEMA,
+  type SynthesisPayload,
+} from './synthesis';
 
 const contract = JSON.parse(
-  readFileSync(new URL('../../contracts/composition.v0.2.json', import.meta.url), 'utf8'),
+  readFileSync(new URL('../../contracts/composition.v0.3.json', import.meta.url), 'utf8'),
 ) as {
-  wiringKey: string;
-  shapes: {synthesisWiring: {schemas: {synthesizerOutput: unknown; wiring: unknown}}};
+  version: string;
+  extensionUri: string;
+  stampKey: string;
+  synthesisKey: string;
+  shapes: {
+    compositionStamp: {direction: string};
+    synthesizeDataModel: {
+      direction: string;
+      a2uiVersion: string;
+      schemas: {synthesizeDataModel: unknown; synthesis: unknown};
+    };
+  };
 };
 
-test('the wiring key matches the contract', () => {
-  expect(WIRING_KEY).toBe(contract.wiringKey);
-  expect(WIRING_KEY).not.toBe(STAMP_KEY);
+test('one version line: file, version, extension URI', () => {
+  expect(contract.version).toBe('0.3.0');
+  expect(contract.extensionUri).toBe('https://a2uiverse.dev/ext/composition/v0.3');
+  expect(COMPOSITION_EXTENSION_URI).toBe(contract.extensionUri);
+});
+
+test('the synthesis key matches the contract and is not the stamp key', () => {
+  expect(SYNTHESIS_KEY).toBe(contract.synthesisKey);
+  expect(SYNTHESIS_KEY).toBe('a2uiverseSynthesis');
+  expect(SYNTHESIS_KEY).not.toBe(STAMP_KEY);
+});
+
+test('the contract carries the stamp and the synthesize data model, both orchestrator → client', () => {
+  expect(Object.keys(contract.shapes)).toEqual(['compositionStamp', 'synthesizeDataModel']);
+  expect(contract.shapes.compositionStamp.direction).toBe('orchestrator → client');
+  expect(contract.shapes.synthesizeDataModel.direction).toBe('orchestrator → client');
+  expect(contract.shapes.synthesizeDataModel.a2uiVersion).toBe('v0.9');
 });
 
 test('the embedded schemas are the contract schemas', () => {
-  const {schemas} = contract.shapes.synthesisWiring;
-  expect(SYNTHESIZER_OUTPUT_SCHEMA).toEqual(schemas.synthesizerOutput);
-  expect(WIRING_SCHEMA).toEqual(schemas.wiring);
+  const {schemas} = contract.shapes.synthesizeDataModel;
+  expect(SYNTHESIZE_DATA_MODEL_SCHEMA).toEqual(schemas.synthesizeDataModel);
+  expect(SYNTHESIS_SCHEMA).toEqual(schemas.synthesis);
 });
 
-/** Structured-output constraint (SPEC phase-4 decision 12): no unions, no references, no recursion. */
-test('both schemas are union-free and non-recursive', () => {
-  const banned = new Set(['anyOf', 'oneOf', 'allOf', '$ref', '$defs', 'not', 'if']);
-  const walk = (node: unknown, path: string) => {
-    if (Array.isArray(node)) return node.forEach((n, i) => walk(n, `${path}[${i}]`));
-    if (typeof node !== 'object' || node === null) return;
-    for (const [key, value] of Object.entries(node)) {
-      expect(banned.has(key), `${path}.${key}`).toBe(false);
-      walk(value, `${path}.${key}`);
-    }
-  };
-  walk(SYNTHESIZER_OUTPUT_SCHEMA, 'synthesizerOutput');
-  walk(WIRING_SCHEMA, 'wiring');
+test('the model-facing schema is a oneOf of a synthesis and a decline', () => {
+  const output = SYNTHESIZE_DATA_MODEL_SCHEMA as {oneOf: {required: string[]}[]};
+  expect(output.oneOf.map(branch => [...branch.required].sort())).toEqual([
+    ['dataModel', 'note', 'sorts', 'tree'],
+    ['declined', 'reason'],
+  ]);
 });
 
-const wiring = {
-  fields: [
-    {name: 'product', label: 'Camera'},
-    {name: 'best', label: 'Best price'},
-  ],
-  entities: [
-    {
-      cells: [
-        {op: 'value', args: [{surface: 'shop-a:list', pointer: '/items/0/name'}]},
-        {
-          op: 'min',
-          args: [
-            {surface: 'shop-a:list', pointer: '/items/0/price'},
-            {surface: 'shop-b:list', pointer: '/products/0/price'},
-          ],
+test('the derived model is recursive: a node is a formula, an object of nodes, or an array of nodes', () => {
+  const defs = (SYNTHESIZE_DATA_MODEL_SCHEMA as {$defs: Record<string, {oneOf?: unknown[]}>}).$defs;
+  expect(defs.node.oneOf).toHaveLength(3);
+  expect(JSON.stringify(defs.node)).toContain('#/$defs/node');
+});
+
+const payload: SynthesisPayload = {
+  dataModel: {
+    entries: [
+      {
+        when: {
+          op: 'value',
+          args: [{surface: 'gmail:inbox', pointer: '/messages[id="m_1"]/receivedAt'}],
         },
-      ],
+        what: {
+          op: 'value',
+          args: [{surface: 'gmail:inbox', pointer: '/messages[id="m_1"]/subject'}],
+        },
+      },
+    ],
+  },
+  sorts: [
+    {
+      path: '/entries',
+      options: [{key: '/when', label: 'Time'}],
+      key: '/when',
+      direction: 'asc',
     },
   ],
-  sort: {field: 'best', direction: 'asc'},
-  computedAgainst: {'shop-a:list': 0, 'shop-b:list': 1},
+  computedAgainst: {'gmail:inbox': 1},
 };
 
-test('readWiring returns the payload under the wiring key', () => {
-  expect(readWiring({[STAMP_KEY]: {source: 'shell'}, [WIRING_KEY]: wiring})).toEqual(wiring);
+test('readSynthesis returns the payload under the synthesis key', () => {
+  expect(readSynthesis({[STAMP_KEY]: {source: 'shell'}, [SYNTHESIS_KEY]: payload})).toEqual(
+    payload,
+  );
 });
 
-test('readWiring rejects absent or malformed metadata', () => {
-  expect(readWiring(undefined)).toBeUndefined();
-  expect(readWiring({})).toBeUndefined();
-  expect(readWiring({[WIRING_KEY]: 'wiring'})).toBeUndefined();
-  expect(readWiring({[WIRING_KEY]: [wiring]})).toBeUndefined();
-  const {computedAgainst: _dropped, ...noEnvelope} = wiring;
+test('readSynthesis rejects absent or malformed metadata', () => {
+  expect(readSynthesis(undefined)).toBeUndefined();
+  expect(readSynthesis({})).toBeUndefined();
+  expect(readSynthesis({[SYNTHESIS_KEY]: 'synthesis'})).toBeUndefined();
+  expect(readSynthesis({[SYNTHESIS_KEY]: [payload]})).toBeUndefined();
+  const {computedAgainst: _dropped, ...noEnvelope} = payload;
   void _dropped;
-  expect(readWiring({[WIRING_KEY]: noEnvelope})).toBeUndefined();
-});
-
-/** A per-source column for an entity one source does not carry has nothing to point at (task 4.8). */
-test('the contract admits a cell with no refs', () => {
-  type Schema = {
-    properties: Record<string, Schema>;
-    items: Schema;
-    minItems?: number;
-    required?: string[];
-  };
-  const wiringSchema = contract.shapes.synthesisWiring.schemas.wiring as Schema;
-  const cell = wiringSchema.properties.entities.items.properties.cells.items;
-  expect(cell.properties.args.minItems).toBe(0);
-  expect(cell.required).toContain('args');
+  expect(readSynthesis({[SYNTHESIS_KEY]: noEnvelope})).toBeUndefined();
 });

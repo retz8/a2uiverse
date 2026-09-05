@@ -1,6 +1,6 @@
 {
   "name": "@a2uiverse/sdk",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "The A2UIVerse app contract: the app manifest and the protocol extension a vendor app builds against.",
   "license": "MIT",
   "type": "module",
@@ -29,5 +29,8 @@
     "json-schema-to-ts": "^3.1.1",
     "typescript": "~5.9.3",
     "vitest": "^4.1.9"
+  },
+  "dependencies": {
+    "ajv": "^8.20.0"
   }
 }

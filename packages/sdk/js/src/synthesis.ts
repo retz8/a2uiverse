@@ -1,20 +1,26 @@
 /**
  * The synthesis half of the composition extension (SPEC §5.2, §14): the
- * wiring the Synthesizer emits and the client evaluates — a derived data model
- * over cross-partition refs, riding A2A metadata on the event that paints the
- * synthesis surface. Normative definition: `../contracts/composition.v0.2.json`
- * (`shapes.synthesisWiring`); `synthesis.contract.test.ts` asserts this
- * projection against it.
+ * **synthesize data model** — the data model for a2ui composition — that the
+ * Synthesizer authors and the client evaluates. Normative definition:
+ * `../contracts/composition.v0.3.json` (`shapes.synthesizeDataModel`);
+ * `synthesis.contract.test.ts` asserts this projection against it.
  *
- * Two authors: the Synthesizer emits {@link SynthesizerOutput}; the
- * orchestrator wraps a non-declined one with `computedAgainst` into
- * {@link SynthesisWiring}. Both schemas are union-free and non-recursive — the
- * structured-output constraint the plan schema already lives with.
+ * Two authors, two schemas. The Synthesizer emits {@link SynthesizeDataModel}:
+ * a synthesis — a shell-catalog tree, a free-form derived data model whose
+ * every leaf is a formula, sort declarations, a note — or a decline. The
+ * orchestrator paints the tree as ordinary A2UI and sends the client the
+ * {@link SynthesisPayload}: the derived model and the sorts, wrapped with the
+ * generations they were computed against, under {@link SYNTHESIS_KEY}.
+ *
+ * The schemas are plain JSON Schema 2020-12, recursive where the model is
+ * free-form; the sdk's validator (`validate.ts`) compiles them.
  */
-import type {FromSchema} from 'json-schema-to-ts';
 
-/** Metadata key the wiring rides under, beside the composition stamp. */
-export const WIRING_KEY = 'a2uiverseWiring';
+/** Metadata key the client-facing payload rides under, beside the composition stamp. */
+export const SYNTHESIS_KEY = 'a2uiverseSynthesis';
+
+/** The A2UI version whose components the tree carries. */
+export const TREE_A2UI_VERSION = 'v0.9';
 
 const refSchema = {
   type: 'object',
@@ -31,127 +37,163 @@ const refSchema = {
       type: 'string',
       pattern: '^(|/.*)$',
       description:
-        "RFC 6901 JSON Pointer into that surface's data model. Index-addressed in this version.",
+        'RFC 6901 JSON Pointer into that surface\'s data model, where a segment may carry a predicate: `items[sku="x"]` selects the element of `items` whose field `sku` equals the JSON literal "x". A predicate ref is valid while the key resolves; an index ref is valid while the partition\'s generation holds. The key is one field name of the element; the value is a JSON literal compared by JSON equality.',
     },
   },
 } as const;
 
-const cellSchema = {
+const formulaSchema = {
   type: 'object',
   additionalProperties: false,
   required: ['op', 'args'],
   description:
-    'One operator over N refs, N ≥ 0. A plain vendor value is a one-argument pass-through. A cell with no refs is one no source contributes to — absent by construction: how a per-source column says that source does not carry the entity. Operators are names the shell catalog declares as functions; the contract does not enumerate them.',
+    'A leaf of the derived model: one operator over N refs, N ≥ 0. A plain vendor value is a one-argument pass-through. A formula with no refs is a value no source contributes to — absent by construction. Operators are names the shell catalog declares as functions; the contract does not enumerate them. Recognized by shape: an object with exactly `op` and `args` is a formula.',
   properties: {
     op: {type: 'string', description: 'A function name declared by the shell catalog.'},
-    args: {type: 'array', minItems: 0, items: refSchema},
+    args: {type: 'array', minItems: 0, items: {$ref: '#/$defs/ref'}},
   },
 } as const;
 
-const fieldsSchema = {
-  type: 'array',
-  minItems: 1,
-  items: {
-    type: 'object',
-    additionalProperties: false,
-    required: ['name', 'label'],
-    properties: {
-      name: {
-        type: 'string',
-        pattern: '^[^/~]+$',
-        description: 'Data-model key every entity carries; a valid JSON Pointer segment.',
-      },
-      label: {
-        type: 'string',
-        description:
-          'The user-facing name. Every name the user reads on the merged surface that is not a value is a field label.',
-      },
-    },
-  },
-  description: "Declared once; every entity's cells align to this list by position.",
+const nodeSchema = {
+  description:
+    'A node of the free-form derived model: a formula leaf, an object whose values are nodes, or an array of nodes. A scalar anywhere is a violation — every leaf is a formula, never a literal value.',
+  oneOf: [
+    {$ref: '#/$defs/formula'},
+    {type: 'object', additionalProperties: {$ref: '#/$defs/node'}},
+    {type: 'array', items: {$ref: '#/$defs/node'}},
+  ],
 } as const;
 
-/** The same field list without `minItems`: the model-facing form, where a decline sends none. */
-const {minItems: _fieldsMin, ...fieldsSchemaNoMin} = fieldsSchema;
-void _fieldsMin;
-
-const entitiesSchema = {
-  type: 'array',
-  items: {
-    type: 'object',
-    additionalProperties: false,
-    required: ['cells'],
-    properties: {
-      cells: {
-        type: 'array',
-        items: cellSchema,
-        description:
-          'Positional, aligned to fields. Membership in one entity is the entity-resolution assertion.',
-      },
-    },
-  },
+const dataModelSchema = {
+  type: 'object',
+  minProperties: 1,
+  additionalProperties: {$ref: '#/$defs/node'},
+  description:
+    "The derived data model the tree binds to: a JSON shape of the Synthesizer's choosing whose every leaf is a formula. Evaluated client-side into plain values with contributor state at the same paths.",
 } as const;
 
 const sortSchema = {
   type: 'object',
   additionalProperties: false,
-  required: ['field', 'direction'],
+  required: ['path', 'options', 'key', 'direction'],
   description:
-    "The model names the criterion (via the field's label); the runtime sorts. User-changeable.",
+    "A sort declaration over one array of the derived model. The model names the array, the sortable keys and their labels, and the initial choice; the runtime sorts and keeps the user's choice of key or direction.",
   properties: {
-    field: {type: 'string', description: 'A declared field name.'},
+    path: {
+      type: 'string',
+      pattern: '^/.*$',
+      description: 'JSON Pointer to the sorted array in the derived model.',
+    },
+    options: {
+      type: 'array',
+      minItems: 1,
+      description: 'The keys the user may sort by, each with its user-facing label.',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['key', 'label'],
+        properties: {
+          key: {
+            type: 'string',
+            pattern: '^/.*$',
+            description: 'JSON Pointer inside each element of the array, to a formula leaf.',
+          },
+          label: {type: 'string', minLength: 1},
+        },
+      },
+    },
+    key: {type: 'string', description: 'The initial key; one of the options.'},
     direction: {type: 'string', enum: ['asc', 'desc']},
   },
 } as const;
 
-/** Model-facing: what the Synthesizer emits. A synthesis, or a decline — every key required. */
-export const SYNTHESIZER_OUTPUT_SCHEMA = {
-  $schema: 'https://json-schema.org/draft/2020-12/schema',
-  title: 'SynthesizerOutput',
-  description:
-    'Model-facing: what the Synthesizer emits. Union-free and non-recursive (structured-output constraint). Every key is required — a provider drops optional nested arrays — so a decline carries declined: true, a reason, and empty fields and entities (sort is then ignored); a synthesis carries declined: false with at least one field. The orchestrator adds computedAgainst.',
+const treeSchema = {
   type: 'object',
   additionalProperties: false,
-  required: ['declined', 'reason', 'fields', 'entities', 'sort'],
+  required: ['components'],
+  description:
+    'The synthesis tree: the A2UI components list an agent would put in an updateComponents, authored in the shell catalog. One component has the id `root`. Validated against the shell catalog by the consumer; the contract does not restate a component. Painted as ordinary A2UI; never rides metadata.',
   properties: {
-    declined: {
-      type: 'boolean',
-      description:
-        'True when nothing is joinable; the reserved slot collapses and no wiring is sent.',
+    components: {
+      type: 'array',
+      minItems: 1,
+      items: {
+        type: 'object',
+        required: ['id', 'component'],
+        properties: {id: {type: 'string'}, component: {type: 'string'}},
+      },
     },
-    reason: {
-      type: 'string',
-      description:
-        'Why nothing was joinable when declined; empty otherwise. Journaled, never painted.',
-    },
-    fields: {
-      ...fieldsSchemaNoMin,
-      description:
-        "Declared once; every entity's cells align to this list by position. At least one unless declined.",
-    },
-    entities: entitiesSchema,
-    sort: sortSchema,
   },
 } as const;
 
-/** Client-facing: the Synthesizer's inner output plus the orchestrator's envelope. */
-export const WIRING_SCHEMA = {
+const defs = {
+  ref: refSchema,
+  formula: formulaSchema,
+  node: nodeSchema,
+  dataModel: dataModelSchema,
+  sort: sortSchema,
+} as const;
+
+/** Model-facing: what the Synthesizer emits — a synthesis, or a decline. */
+export const SYNTHESIZE_DATA_MODEL_SCHEMA = {
   $schema: 'https://json-schema.org/draft/2020-12/schema',
-  title: 'SynthesisWiring',
+  title: 'SynthesizeDataModel',
   description:
-    "Client-facing: the Synthesizer's inner output plus the orchestrator's envelope. Evaluated client-side into an ordinary data model keyed `entities`.",
+    'Model-facing: what the Synthesizer emits, written as text and validated after. A synthesis carries the tree, the derived data model, the sort declarations and a note; a decline carries declined: true and a reason. The orchestrator adds computedAgainst to the client-facing half.',
+  $defs: {...defs, tree: treeSchema},
+  oneOf: [
+    {
+      type: 'object',
+      additionalProperties: false,
+      required: ['tree', 'dataModel', 'sorts', 'note'],
+      properties: {
+        tree: {$ref: '#/$defs/tree'},
+        dataModel: {$ref: '#/$defs/dataModel'},
+        sorts: {type: 'array', items: {$ref: '#/$defs/sort'}},
+        note: {
+          type: 'string',
+          description:
+            "What was delivered and why it differs from the Planner's brief, when it differs; empty otherwise. Journaled, never painted.",
+        },
+      },
+    },
+    {
+      type: 'object',
+      additionalProperties: false,
+      required: ['declined', 'reason'],
+      properties: {
+        declined: {
+          const: true,
+          description: 'Nothing is joinable; the reserved slot collapses and no payload is sent.',
+        },
+        reason: {
+          type: 'string',
+          minLength: 1,
+          description: "Why nothing was joinable — spoken into the slot as the shell's words.",
+        },
+      },
+    },
+  ],
+} as const;
+
+/** Client-facing: the derived model and the sorts, plus the orchestrator's envelope. */
+export const SYNTHESIS_SCHEMA = {
+  $schema: 'https://json-schema.org/draft/2020-12/schema',
+  title: 'SynthesisPayload',
+  description:
+    "Client-facing: the synthesis branch minus the tree (painted as A2UI) and the note (journaled), plus the generations it was computed against. Evaluated client-side into the synthesis surface's data model.",
+  $defs: defs,
   type: 'object',
   additionalProperties: false,
-  required: ['fields', 'entities', 'sort', 'computedAgainst'],
+  required: ['dataModel', 'sorts', 'computedAgainst'],
   properties: {
-    fields: fieldsSchema,
-    entities: entitiesSchema,
-    sort: sortSchema,
+    dataModel: {$ref: '#/$defs/dataModel'},
+    sorts: {type: 'array', items: {$ref: '#/$defs/sort'}},
     computedAgainst: {
       type: 'object',
       additionalProperties: {type: 'integer', minimum: 0},
       description:
-        "The partition generations this wiring was derived from, keyed by namespaced surfaceId. What the IntegrityChecker and the client compare against the stamp's generations.",
+        "The partition generations this payload was derived from, keyed by namespaced surfaceId. What the IntegrityChecker and the client compare against the stamp's generations.",
     },
   },
 } as const;
@@ -160,72 +202,89 @@ export const WIRING_SCHEMA = {
 export interface Ref {
   /** The namespaced surfaceId (`<appId>:<surfaceId>`) the pointer resolves in. */
   surface: string;
-  /** RFC 6901 JSON Pointer into that surface's data model. */
+  /** JSON Pointer into that surface's data model; a segment may carry a `[key=value]` predicate. */
   pointer: string;
 }
 
-/** One operator over N refs. A plain vendor value is a one-argument pass-through. */
-export interface Cell {
+/** A leaf of the derived model: one operator over N refs. */
+export interface Formula {
   /** A function name declared by the shell catalog. */
   op: string;
   args: Ref[];
 }
 
-export interface Field {
-  /** Data-model key every entity carries; a valid JSON Pointer segment. */
-  name: string;
-  /** The user-facing name. */
+/** A node of the free-form derived model. */
+export type ModelNode = Formula | {[key: string]: ModelNode} | ModelNode[];
+
+/** The derived data model: an object of nodes. */
+export type DerivedModel = {[key: string]: ModelNode};
+
+export interface SortOption {
+  /** JSON Pointer inside each element, to a formula leaf. */
+  key: string;
   label: string;
 }
 
-/** Cells aligned to the wiring's fields by position. Membership is the entity-resolution assertion. */
-export interface Entity {
-  cells: Cell[];
-}
-
-export interface Sort {
-  /** A declared field name. */
-  field: string;
+/** A sort declaration over one array of the derived model. */
+export interface SortDeclaration {
+  /** JSON Pointer to the sorted array in the derived model. */
+  path: string;
+  options: SortOption[];
+  /** The initial key; one of the options. */
+  key: string;
   direction: 'asc' | 'desc';
 }
 
-/** What the Synthesizer emits: a synthesis, or a decline (empty fields and entities). */
-export interface SynthesizerOutput {
-  declined: boolean;
-  /** Why nothing was joinable when declined; empty otherwise. Journaled, never painted. */
-  reason: string;
-  fields: Field[];
-  entities: Entity[];
-  sort: Sort;
+/** An A2UI v0.9 component as the shell catalog's consumer sees it. */
+export interface TreeComponent {
+  id: string;
+  component: string;
+  [prop: string]: unknown;
 }
 
-/** What rides under {@link WIRING_KEY}: the inner output plus the generations it was computed against. */
-export interface SynthesisWiring {
-  fields: Field[];
-  entities: Entity[];
-  sort: Sort;
-  /** Partition generations this wiring was derived from, keyed by namespaced surfaceId. */
+/** The synthesis tree: an A2UI components list in the shell catalog, one of them `root`. */
+export interface SynthesisTree {
+  components: TreeComponent[];
+}
+
+export interface Synthesis {
+  tree: SynthesisTree;
+  dataModel: DerivedModel;
+  sorts: SortDeclaration[];
+  /** Deviation from the Planner's brief, when any; journaled, never painted. */
+  note: string;
+}
+
+export interface Decline {
+  declined: true;
+  /** Spoken into the slot as the shell's words. */
+  reason: string;
+}
+
+/** What the Synthesizer emits: a synthesis, or a decline. */
+export type SynthesizeDataModel = Synthesis | Decline;
+
+export function isDecline(output: SynthesizeDataModel): output is Decline {
+  return 'declined' in output && output.declined === true;
+}
+
+/** What rides under {@link SYNTHESIS_KEY}: the derived model, the sorts, and the envelope. */
+export interface SynthesisPayload {
+  dataModel: DerivedModel;
+  sorts: SortDeclaration[];
+  /** Partition generations this payload was derived from, keyed by namespaced surfaceId. */
   computedAgainst: Record<string, number>;
 }
 
-// The interfaces above are the consumer-facing types; the schemas are the norm. These pins make
-// a divergence between them a type error (mutual assignability, checked at build), so the types
-// cannot drift from the contract — the same guarantee the field-list check gives the stamp.
-type Pin<A, B> = [A] extends [B] ? ([B] extends [A] ? true : never) : never;
-const _outputPinned: Pin<SynthesizerOutput, FromSchema<typeof SYNTHESIZER_OUTPUT_SCHEMA>> = true;
-const _wiringPinned: Pin<SynthesisWiring, FromSchema<typeof WIRING_SCHEMA>> = true;
-void _outputPinned;
-void _wiringPinned;
-
-/** The wiring on an event's metadata, if present and envelope-complete. */
-export function readWiring(
+/** The payload on an event's metadata, if present and envelope-complete. */
+export function readSynthesis(
   metadata: Record<string, unknown> | undefined,
-): SynthesisWiring | undefined {
-  const raw = metadata?.[WIRING_KEY];
+): SynthesisPayload | undefined {
+  const raw = metadata?.[SYNTHESIS_KEY];
   if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return undefined;
   const candidate = raw as Record<string, unknown>;
-  for (const key of WIRING_SCHEMA.required) {
+  for (const key of SYNTHESIS_SCHEMA.required) {
     if (!(key in candidate)) return undefined;
   }
-  return candidate as unknown as SynthesisWiring;
+  return candidate as unknown as SynthesisPayload;
 }

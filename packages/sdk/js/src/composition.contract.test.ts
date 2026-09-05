@@ -12,7 +12,7 @@ import {
 } from './composition';
 
 const contract = JSON.parse(
-  readFileSync(new URL('../../contracts/composition.v0.2.json', import.meta.url), 'utf8'),
+  readFileSync(new URL('../../contracts/composition.v0.3.json', import.meta.url), 'utf8'),
 ) as {
   extensionUri: string;
   stampKey: string;
@@ -32,7 +32,7 @@ test('shape fields match the contract', () => {
 });
 
 test('the contract carries no vendor-facing shape', () => {
-  expect(Object.keys(contract.shapes)).toEqual(['compositionStamp', 'synthesisWiring']);
+  expect(Object.keys(contract.shapes)).toEqual(['compositionStamp', 'synthesizeDataModel']);
   for (const shape of Object.values(contract.shapes)) {
     expect(shape.direction).toBe('orchestrator → client');
   }
