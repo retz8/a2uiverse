@@ -4,7 +4,7 @@
  * client) — nothing a2uiverse-specific rides the vendor wire. The normative
  * definition is `../contracts/composition.v0.3.json`;
  * `composition.contract.test.ts` asserts this projection against it. The
- * synthesis half of the contract (the wiring) lives in `synthesis.ts`.
+ * synthesis half of the contract (the synthesize data model) lives in `synthesis.ts`.
  */
 
 /** The A2A extension URI this project declares for composition. */
