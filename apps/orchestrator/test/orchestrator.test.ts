@@ -12,9 +12,9 @@ import type {Plan} from '../src/planner/planSchema.js';
 import type {Planner} from '../src/planner/planner.js';
 import {FakeEmbedder} from './fakeEmbedder.js';
 import {FakePlanner, ThrowingPlanner} from './fakePlanner.js';
-import {decline, FakeSynthesizer} from './fakeSynthesizer.js';
-import type {Synthesizer} from '../src/synthesizer/synthesizer.js';
-import {WIRING_KEY} from '@a2uiverse/sdk';
+import {bestPriceView, decline, FakeSynthesizer} from './fakeSynthesizer.js';
+import type {SynthesisModel} from '../src/synthesizer/synthesizer.js';
+import {SYNTHESIS_KEY, type Synthesis, type SynthesisPayload} from '@a2uiverse/sdk';
 import {startFakeVendor, type FakeVendor, type Script} from './fakeVendor.js';
 
 const APPS = ['github', 'gmail', 'calendar'] as const;
@@ -49,7 +49,7 @@ async function boot(
   options: {
     scripts?: Partial<Record<AppId, Script>>;
     planner?: Planner;
-    synthesizer?: Synthesizer;
+    synthesizer?: SynthesisModel;
     closeAfterInit?: AppId[];
   } = {},
 ) {
@@ -84,7 +84,7 @@ async function boot(
     overrides: {
       embedder: new FakeEmbedder(),
       planner: options.planner ?? new FakePlanner(() => planFor(APPS)),
-      ...(options.synthesizer ? {synthesizer: options.synthesizer} : {}),
+      ...(options.synthesizer ? {synthesisModel: options.synthesizer} : {}),
     },
   });
   await orchestrator.init();
@@ -511,8 +511,12 @@ const camerasB = [
   {id: 'x200', price: 1199},
 ];
 
-function wiringEvents(events: AnyEvent[]) {
-  return events.filter(e => e.metadata?.[WIRING_KEY] !== undefined);
+function synthesisEvents(events: AnyEvent[]) {
+  return events.filter(e => e.metadata?.[SYNTHESIS_KEY] !== undefined);
+}
+
+function payloadOf(event: AnyEvent): SynthesisPayload {
+  return event.metadata![SYNTHESIS_KEY] as SynthesisPayload;
 }
 
 function actionOn(surfaceId: string, contextId: string): Message {
@@ -534,25 +538,23 @@ function actionOn(surfaceId: string, contextId: string): Message {
   };
 }
 
-describe('synthesis (task 4.4)', () => {
+describe('synthesis (tasks 4.4, 5.4)', () => {
   const planner = () => new FakePlanner(() => planWithSynthesis(['github', 'gmail']));
   const scripts = () => ({github: shopScript(camerasA), gmail: shopScript(camerasB)});
 
-  test('after every source resolves, the merged view is painted into the synthesis slot with its wiring', async () => {
+  test('after every source resolves, the model-authored view is painted into the synthesis slot with its payload', async () => {
     const synthesizer = new FakeSynthesizer();
     const {client} = await boot({planner: planner(), synthesizer, scripts: scripts()});
     const events = await collect(client, utterance('compare camera prices'));
 
-    // The Synthesizer saw the Planner's request and both sources by surface.
+    // The Synthesizer saw the Planner's request and both sources by surface, in one call.
     expect(synthesizer.calls).toHaveLength(1);
-    expect(synthesizer.calls[0]!.request).toBe('Compare across both.');
-    expect(synthesizer.calls[0]!.sources.map(s => s.surface).sort()).toEqual([
-      'github:s1',
-      'gmail:s1',
-    ]);
-    expect(synthesizer.calls[0]!.sources.find(s => s.surface === 'github:s1')?.displayName).toBe(
-      'GitHub',
-    );
+    const {input, prompt} = synthesizer.calls[0]!;
+    expect(input.request).toBe('Compare across both.');
+    expect(input.sources.map(s => s.surface).sort()).toEqual(['github:s1', 'gmail:s1']);
+    expect(input.sources.find(s => s.surface === 'github:s1')?.displayName).toBe('GitHub');
+    expect(prompt).toContain('Compare across both.');
+    expect(input.previous).toBeUndefined();
 
     // Vendor data events carry their surface's generation on the stamp.
     const dataEvent = events.find(
@@ -560,34 +562,48 @@ describe('synthesis (task 4.4)', () => {
     );
     expect(stampOf(dataEvent!)?.generations).toEqual({'github:s1': 1});
 
-    // The synthesis surface: a fragment of the shell in the synthesis slot, wiring beside the stamp.
-    const [paint, ...rest] = wiringEvents(events);
+    // The synthesis surface: a fragment of the shell in the synthesis slot, the tree painted
+    // verbatim, the derived model and sorts beside the stamp with the generations.
+    const [paint, ...rest] = synthesisEvents(events);
     expect(rest).toHaveLength(0);
     expect(stampOf(paint!)).toEqual({source: 'shell', slot: 'slot-shell', role: 'fragment'});
-    const wiring = paint!.metadata![WIRING_KEY] as {
-      computedAgainst: Record<string, number>;
-      entities: unknown[];
-    };
-    expect(wiring.computedAgainst).toEqual({'github:s1': 1, 'gmail:s1': 1});
-    expect(wiring.entities).toHaveLength(2);
-    expect(a2uiDatas(paint!)[0]).toMatchObject({createSurface: {surfaceId: 'shell:synthesis'}});
+    const payload = payloadOf(paint!);
+    expect(payload.computedAgainst).toEqual({'github:s1': 1, 'gmail:s1': 1});
+    expect(payload.dataModel.rows).toHaveLength(2);
+    expect(payload.sorts[0]).toMatchObject({path: '/rows', key: '/best'});
+    expect(paint!.metadata!.a2uiverseWiring).toBeUndefined();
+    const datas = a2uiDatas(paint!);
+    expect(datas[0]).toMatchObject({createSurface: {surfaceId: 'shell:synthesis'}});
+    const painted = (datas[1]!.updateComponents as {components: unknown[]}).components;
+    expect(painted).toEqual(bestPriceView(synthesizer.calls[0]!).tree.components);
 
     // It paints after the last source and before the final; the slot is left to the client.
-    const lastVendor = events.map(e => stampOf(e)?.role).lastIndexOf('fragment' as never);
-    void lastVendor;
     expect(events.indexOf(paint!)).toBeLessThan(events.length - 1);
     expect(slotStates(shellPaints(events).at(-1)!)['slot-shell']).toBe('pending');
 
+    // The journal: the accepted document, its note, the one attempt, the dead air.
     const [line] = await journalLines(1);
-    expect(line.synthesis).toMatchObject({outcome: 'synthesized'});
-    expect(typeof (line.synthesis as {deadAirMs: unknown}).deadAirMs).toBe('number');
+    const synthesis = line.synthesis as {
+      outcome: string;
+      note: string;
+      synthesizeDataModel: Synthesis;
+      attempts: {text: string; errors: string[]}[];
+      deadAirMs: unknown;
+    };
+    expect(synthesis.outcome).toBe('synthesized');
+    expect(synthesis.note).toBe('');
+    expect(synthesis.synthesizeDataModel.tree.components[0]).toMatchObject({id: 'root'});
+    expect(synthesis.attempts).toHaveLength(1);
+    expect(synthesis.attempts[0]!.text).toContain('<synthesize-data-model>');
+    expect(synthesis.attempts[0]!.errors).toEqual([]);
+    expect(typeof synthesis.deadAirMs).toBe('number');
   });
 
-  test('a decline collapses the synthesis slot and sends no wiring', async () => {
+  test('a decline collapses the synthesis slot and sends no payload', async () => {
     const synthesizer = new FakeSynthesizer(decline('nothing joinable'));
     const {client} = await boot({planner: planner(), synthesizer, scripts: scripts()});
     const events = await collect(client, utterance('compare'));
-    expect(wiringEvents(events)).toHaveLength(0);
+    expect(synthesisEvents(events)).toHaveLength(0);
     expect(slotStates(shellPaints(events).at(-1)!)['slot-shell']).toBe('collapsed');
     // The reason reaches the canvas as the shell's words in the synthesis slot, before the collapse.
     const spoken = events.findIndex(
@@ -607,23 +623,44 @@ describe('synthesis (task 4.4)', () => {
     expect(collapsedAt).toBeGreaterThan(spoken);
     const [line] = await journalLines(1);
     expect(line.synthesis).toMatchObject({outcome: 'declined', reason: 'nothing joinable'});
+    expect((line.synthesis as {attempts: unknown[]}).attempts).toHaveLength(1);
   });
 
-  test('malformed output behaves as a decline, journaled apart', async () => {
-    const synthesizer = new FakeSynthesizer(input => {
-      const out = new FakeSynthesizer().synthesize(input);
-      return out.then(o => ({
-        ...o,
-        entities: o.entities!.map(e => ({cells: e.cells.map(c => ({...c, op: 'median'}))})),
-      })) as never;
+  test('a refused answer is retried once with its errors; the corrected answer paints', async () => {
+    const synthesizer = new FakeSynthesizer([
+      call => {
+        const bad = bestPriceView(call);
+        (bad.dataModel.rows as Array<{best: {op: string}}>)[0]!.best.op = 'median';
+        return bad;
+      },
+      bestPriceView,
+    ]);
+    const {client} = await boot({planner: planner(), synthesizer, scripts: scripts()});
+    const events = await collect(client, utterance('compare'));
+    expect(synthesizer.calls).toHaveLength(2);
+    expect(synthesizer.calls[1]!.prompt).toContain("operator 'median'");
+    expect(synthesisEvents(events)).toHaveLength(1);
+    const [line] = await journalLines(1);
+    const synthesis = line.synthesis as {outcome: string; attempts: {errors: string[]}[]};
+    expect(synthesis.outcome).toBe('synthesized');
+    expect(synthesis.attempts.map(a => a.errors.length)).toEqual([1, 0]);
+  });
+
+  test('malformed after the retry behaves as a decline, journaled apart with both attempts', async () => {
+    const synthesizer = new FakeSynthesizer(call => {
+      const bad = bestPriceView(call);
+      (bad.dataModel.rows as Array<{best: {op: string}}>)[0]!.best.op = 'median';
+      return bad;
     });
     const {client} = await boot({planner: planner(), synthesizer, scripts: scripts()});
     const events = await collect(client, utterance('compare'));
-    expect(wiringEvents(events)).toHaveLength(0);
+    expect(synthesizer.calls).toHaveLength(2);
+    expect(synthesisEvents(events)).toHaveLength(0);
     expect(slotStates(shellPaints(events).at(-1)!)['slot-shell']).toBe('collapsed');
     const [line] = await journalLines(1);
     expect(line.synthesis).toMatchObject({outcome: 'malformed'});
     expect((line.synthesis as {reason: string}).reason).toContain('median');
+    expect((line.synthesis as {attempts: unknown[]}).attempts).toHaveLength(2);
   });
 
   test('fewer than two sources: no model call, the slot collapses (§5.1)', async () => {
@@ -638,10 +675,10 @@ describe('synthesis (task 4.4)', () => {
     expect(synthesizer.calls).toHaveLength(0);
     expect(slotStates(shellPaints(events).at(-1)!)['slot-shell']).toBe('collapsed');
     const [line] = await journalLines(1);
-    expect(line.synthesis).toMatchObject({outcome: 'skipped'});
+    expect(line.synthesis).toMatchObject({outcome: 'skipped', attempts: []});
   });
 
-  test('an in-fragment reorder bumps the generation and re-synthesizes inline; a scalar edit does not', async () => {
+  test('an in-fragment reorder bumps the generation and re-synthesizes inline with the previous document and the change account; a scalar edit does not', async () => {
     const synthesizer = new FakeSynthesizer();
     const github = shopScript(camerasA, n =>
       n === 1
@@ -656,6 +693,7 @@ describe('synthesis (task 4.4)', () => {
     const first = await collect(client, utterance('compare camera prices'));
     const contextId = first[0]!.contextId!;
     expect(synthesizer.calls).toHaveLength(1);
+    const firstDocument = bestPriceView(synthesizer.calls[0]!);
 
     // Action 1: a scalar edit — the stamp carries the unchanged generation; no re-synthesis.
     const scalar = await collect(client, actionOn('github:s1', contextId));
@@ -663,20 +701,73 @@ describe('synthesis (task 4.4)', () => {
       stampOf(scalar.find(e => a2uiDatas(e).some(d => d.updateDataModel))!)?.generations,
     ).toEqual({'github:s1': 1});
     expect(synthesizer.calls).toHaveLength(1);
-    expect(wiringEvents(scalar)).toHaveLength(0);
+    expect(synthesisEvents(scalar)).toHaveLength(0);
 
-    // Action 2: the list reordered in place — bump on the stamp, then new wiring in the same turn.
+    // Action 2: the list reordered in place — bump on the stamp, then a re-synthesis in the same
+    // turn, handed the live document and the refs that went stale under github:s1.
     const reorder = await collect(client, actionOn('github:s1', contextId));
     const bumped = reorder.find(e => a2uiDatas(e).some(d => d.updateDataModel))!;
     expect(stampOf(bumped)?.generations).toEqual({'github:s1': 2});
     expect(synthesizer.calls).toHaveLength(2);
-    const [rewire] = wiringEvents(reorder);
-    expect(rewire).toBeDefined();
-    expect(
-      (rewire!.metadata![WIRING_KEY] as {computedAgainst: Record<string, number>}).computedAgainst,
-    ).toEqual({'github:s1': 2, 'gmail:s1': 1});
-    expect(reorder.indexOf(bumped)).toBeLessThan(reorder.indexOf(rewire!));
+    const again = synthesizer.calls[1]!;
+    expect(again.input.previous).toEqual(firstDocument);
+    expect(again.input.changes).toEqual({
+      stale: {
+        'github:s1': [
+          {surface: 'github:s1', pointer: '/items/0/id'},
+          {surface: 'github:s1', pointer: '/items/0/price'},
+          {surface: 'github:s1', pointer: '/items/1/id'},
+          {surface: 'github:s1', pointer: '/items/1/price'},
+        ],
+      },
+      absent: [],
+    });
+    expect(again.prompt).toContain('The user is looking at your previous view');
+    const [repaint] = synthesisEvents(reorder);
+    expect(repaint).toBeDefined();
+    expect(payloadOf(repaint!).computedAgainst).toEqual({'github:s1': 2, 'gmail:s1': 1});
+    expect(reorder.indexOf(bumped)).toBeLessThan(reorder.indexOf(repaint!));
     const final = reorder.at(-1) as TaskStatusUpdateEvent;
     expect(final.final).toBe(true);
+    const lines = await journalLines(3);
+    expect(lines[2]!.synthesis).toMatchObject({
+      outcome: 'synthesized',
+      changes: {absent: []},
+    });
+  });
+
+  test('a predicate ref survives a bump: no re-synthesis when every ref is keyed', async () => {
+    const keyed = (call: Parameters<typeof bestPriceView>[0]): Synthesis => {
+      const view = bestPriceView(call);
+      const rows = view.dataModel.rows as Array<{
+        id: {args: {pointer: string}[]};
+        best: {args: {pointer: string}[]};
+      }>;
+      rows.forEach((row, i) => {
+        const id = (camerasA[i] as {id: string}).id;
+        row.id.args[0]!.pointer = `/items[id="${id}"]/id`;
+        for (const ref of row.best.args) ref.pointer = `/items[id="${id}"]/price`;
+      });
+      return view;
+    };
+    const synthesizer = new FakeSynthesizer(keyed);
+    const github = shopScript(camerasA, () => ({
+      path: '/items',
+      value: [camerasA[1], camerasA[0]],
+    }));
+    const {client} = await boot({
+      planner: planner(),
+      synthesizer,
+      scripts: {github, gmail: shopScript(camerasB)},
+    });
+    const first = await collect(client, utterance('compare camera prices'));
+    const contextId = first[0]!.contextId!;
+    expect(synthesizer.calls).toHaveLength(1);
+
+    const reorder = await collect(client, actionOn('github:s1', contextId));
+    const bumped = reorder.find(e => a2uiDatas(e).some(d => d.updateDataModel))!;
+    expect(stampOf(bumped)?.generations).toEqual({'github:s1': 2});
+    expect(synthesizer.calls).toHaveLength(1);
+    expect(synthesisEvents(reorder)).toHaveLength(0);
   });
 });

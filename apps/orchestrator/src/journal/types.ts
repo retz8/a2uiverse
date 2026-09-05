@@ -1,18 +1,27 @@
-import type {SynthesisWiring} from '@a2uiverse/sdk';
+import type {ChangeAccount, Synthesis} from '@a2uiverse/sdk';
 import type {DispatchOutcome, DispatchRecord} from '../agentsPool/types.js';
 import type {Plan} from '../planner/planSchema.js';
 import type {TurnKind} from './descriptor.js';
 import type {SurfaceTouches} from './surfaces.js';
 
 /**
- * What became of the turn's synthesis (task-4.4 spec): the wiring, or why there is none.
- * `deadAirMs` is the interval from the last source settling to the outcome — phase decision 16's
- * measurement, read from here.
+ * What became of the turn's synthesis (task-5.4 decision 7): the whole conversation. The
+ * synthesize data model as accepted and its note, the outcome, every attempt — the raw text the
+ * model returned and the validator's findings when it was refused — and, on a re-synthesis, the
+ * change account that was sent. `deadAirMs` is the interval from the last source settling to
+ * the outcome — phase decision 15's measurement, read from here.
  */
 export interface SynthesisRecord {
   outcome: 'synthesized' | 'declined' | 'malformed' | 'skipped' | 'failed';
   reason?: string;
-  wiring?: SynthesisWiring;
+  /** The accepted document, on `synthesized`. */
+  synthesizeDataModel?: Synthesis;
+  /** The document's note, on `synthesized`: the deviation from the brief, when any. */
+  note?: string;
+  /** Each model call of this synthesis, in order; empty when no call was made. */
+  attempts?: {text: string; errors: string[]}[];
+  /** What was sent on a re-synthesis. */
+  changes?: ChangeAccount;
   deadAirMs?: number;
 }
 

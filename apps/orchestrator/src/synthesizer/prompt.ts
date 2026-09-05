@@ -1,30 +1,38 @@
-import type {SynthesisInput} from './synthesizer.js';
+import {readFileSync} from 'node:fs';
+import {createRequire} from 'node:module';
+import {buildSynthesisSystemPrompt} from '@a2uiverse/sdk';
 
-export const SYNTHESIZER_SYSTEM_PROMPT = `You are the synthesizer of a canvas shell that composes UI fragments from independent agents onto one screen. Several agents have answered the same question; each answer is a JSON data model, shown to you by its surface id. You write the wiring for one merged view over those answers — never values.
+/**
+ * The Synthesizer's prompt (task-5.4 decisions 1–2): the sdk's builder over the shell
+ * catalog's two files — its `catalog.json` verbatim and its guidance doc — and the role. The
+ * sdk carries the composition doc and the examples; the shell catalog carries what is specific
+ * to it; this module is the two reads and the role. Read once at boot; no second copy.
+ */
 
-Produce either a synthesis or a decline:
-- Declare "fields" once: each is a named column of the merged view with the label a user will read. Every name the user reads that is not a value is a field label, so label every field.
-- List "entities": one per real-world thing that appears across the sources — the same product, the same person, the same event. Putting two sources' paths in one entity is your assertion that they are the same thing. Each entity has exactly one cell per field, in field order.
-- A cell is one operator applied to refs. A ref is {"surface", "pointer"}: the surface id exactly as given, and an RFC 6901 JSON pointer into that source's data (index-based, e.g. "/items/3/price"). Only use pointers that exist in the data shown. Use the pass-through operator for a cell that shows one source's value as is; use aggregates across sources for comparisons. Only the operators listed are available.
-- Choose "sort": a declared field and a direction that best serves the request.
-- An entity is one thing that several sources answered about. A row drawn from a single source is that source's own answer laid out again, not a merge. Decline (declined: true, with a reason) when the sources give you nothing to merge — the merged view is then not painted.`;
+export const SYNTHESIZER_ROLE =
+  'You are the synthesizer of a canvas shell that composes the answers of independent agents onto one screen. When several agents have answered the same question, you author the merged view over their answers: a component tree in the shell’s own catalog, wired to the agents’ data through a derived data model whose every leaf is a formula over references into their data — never a copied value. You write JSON as text; the shell validates it, evaluates the wiring, and paints the tree.';
 
-/** The user-turn content: the Planner's request, the sources' data, the operators. */
-export function synthesizerPrompt(input: SynthesisInput): string {
-  const sources = input.sources
-    .map(
-      s =>
-        `- surface: ${s.surface}\n  from: ${s.displayName} (${s.appId})\n  data:\n${indent(JSON.stringify(s.data, null, 2), 4)}`,
-    )
-    .join('\n');
-  const operators = input.operators.map(o => `- ${o.name}: ${o.description}`).join('\n');
-  return `User utterance:\n${input.utterance}\n\nRequest for the merged view:\n${input.request}\n\nSources:\n${sources}\n\nOperators:\n${operators}`;
+export interface ShellCatalogFiles {
+  /** `catalog.json`, verbatim. */
+  schema: string;
+  /** `guidance.md`: how to build a merged view out of the catalog. */
+  guidance: string;
 }
 
-function indent(text: string, spaces: number): string {
-  const pad = ' '.repeat(spaces);
-  return text
-    .split('\n')
-    .map(line => pad + line)
-    .join('\n');
+export function readShellCatalogFiles(): ShellCatalogFiles {
+  const require = createRequire(import.meta.url);
+  return {
+    schema: readFileSync(require.resolve('@a2uiverse/shell-catalog/catalog.json'), 'utf8'),
+    guidance: readFileSync(require.resolve('@a2uiverse/shell-catalog/guidance.md'), 'utf8'),
+  };
+}
+
+export function synthesizerSystemPrompt(
+  files: ShellCatalogFiles = readShellCatalogFiles(),
+): string {
+  return buildSynthesisSystemPrompt({
+    role: SYNTHESIZER_ROLE,
+    catalogSchema: files.schema,
+    uiGuidance: files.guidance,
+  });
 }

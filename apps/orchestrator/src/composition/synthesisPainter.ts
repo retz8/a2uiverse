@@ -1,6 +1,12 @@
 import {randomUUID} from 'node:crypto';
 import type {Part, TaskStatusUpdateEvent} from '@a2a-js/sdk';
-import {namespaceSurfaceId, STAMP_KEY, WIRING_KEY, type SynthesisWiring} from '@a2uiverse/sdk';
+import {
+  namespaceSurfaceId,
+  STAMP_KEY,
+  SYNTHESIS_KEY,
+  type SynthesisPayload,
+  type SynthesisTree,
+} from '@a2uiverse/sdk';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 import {SHELL_SOURCE_ID} from '../registry/types.js';
 import {slotNameFor} from './constants.js';
@@ -14,32 +20,23 @@ export function synthesisSurfaceId(): string {
 }
 
 /**
- * The derived tree (task-4.4 decision 1): the one tree that fits a list of
- * same-shaped entities, generated from the wiring rather than asked of the
- * model. Sort control over `/sort`, a header of field labels, a template over
- * `/entities` whose row is one DerivedValue per field — so every formula cell
- * renders through the shell's component by construction (phase decision 17).
- * Paths inside the template are relative to the entity; the client's evaluator
- * writes `{sort, entities: [{<field>: cell}]}`.
+ * The model-authored tree (task-5.4 decision 10), painted verbatim: `createSurface` in the
+ * shell catalog plus `updateComponents` carrying the Synthesizer's components as written. A
+ * re-synthesis paints the same surface again — repaint is surface replacement.
  */
-export function synthesisParts(wiring: SynthesisWiring): Part[] {
+export function synthesisParts(tree: SynthesisTree): Part[] {
   return [
     a2uiPart({createSurface: {surfaceId: synthesisSurfaceId(), catalogId: SHELL_CATALOG_ID}}),
     a2uiPart({
-      updateComponents: {surfaceId: synthesisSurfaceId(), components: synthesisComponents(wiring)},
+      updateComponents: {surfaceId: synthesisSurfaceId(), components: tree.components},
     }),
   ];
-}
-
-/** Repaint (a re-synthesis): the same surface, replaced. */
-export function synthesisRepaintParts(wiring: SynthesisWiring): Part[] {
-  return synthesisParts(wiring);
 }
 
 /**
  * The shell's own words in the synthesis slot: a decline's reason, stamped as the synthesis
  * fragment so the client buckets it under the shell and the collapsed slot rests on it (task
- * 4.8). No wiring rides beside this stamp — nothing was synthesized.
+ * 4.8). No payload rides beside this stamp — nothing was synthesized.
  */
 export function synthesisProseEnvelope(
   ctx: {taskId: string; contextId: string},
@@ -67,11 +64,11 @@ export function synthesisProseEnvelope(
   };
 }
 
-/** The paint envelope: a fragment of the shell claiming the synthesis slot, with the wiring beside the stamp. */
+/** The paint envelope: a fragment of the shell claiming the synthesis slot, the payload beside the stamp. */
 export function synthesisEnvelope(
   ctx: {taskId: string; contextId: string},
   parts: Part[],
-  wiring: SynthesisWiring,
+  payload: SynthesisPayload,
 ): TaskStatusUpdateEvent {
   return {
     kind: 'status-update',
@@ -91,31 +88,7 @@ export function synthesisEnvelope(
     },
     metadata: {
       [STAMP_KEY]: {source: SHELL_SOURCE_ID, slot: slotNameFor(SHELL_SOURCE_ID), role: 'fragment'},
-      [WIRING_KEY]: wiring,
+      [SYNTHESIS_KEY]: payload,
     },
   };
-}
-
-type Component = {id: string; component: string; [prop: string]: unknown};
-
-function synthesisComponents(wiring: SynthesisWiring): Component[] {
-  const header = wiring.fields.map<Component>(f => ({
-    id: `head-${f.name}`,
-    component: 'Text',
-    text: f.label,
-  }));
-  const cells = wiring.fields.map<Component>(f => ({
-    id: `cell-${f.name}`,
-    component: 'DerivedValue',
-    cell: {path: f.name},
-  }));
-  return [
-    {id: 'root', component: 'Column', children: ['sort', 'header', 'list']},
-    {id: 'sort', component: 'SortControl', sort: {path: '/sort'}},
-    {id: 'header', component: 'Row', children: header.map(c => c.id)},
-    ...header,
-    {id: 'list', component: 'Column', children: {path: '/entities', componentId: 'entity'}},
-    {id: 'entity', component: 'Row', children: cells.map(c => c.id)},
-    ...cells,
-  ];
 }

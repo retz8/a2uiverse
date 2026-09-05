@@ -1,4 +1,4 @@
-import type {SynthesisWiring} from '@a2uiverse/sdk';
+import type {Synthesis, SynthesisPayload} from '@a2uiverse/sdk';
 import type {DispatchOutcome} from '../agentsPool/types.js';
 import type {SurfaceTouches} from '../journal/surfaces.js';
 import type {SlotArchetype} from '../planner/archetypes.js';
@@ -23,6 +23,11 @@ export interface SlotPlan {
   request: string;
 }
 
+export interface LiveSynthesis {
+  document: Synthesis;
+  payload: SynthesisPayload;
+}
+
 /**
  * Composition state is canonical in the orchestrator; the shell surface is
  * its rendered projection (phase decision 12). One per client conversation,
@@ -36,8 +41,8 @@ export interface CompositionState {
   partitions: Partitions;
   /** Sources whose dispatch completed having painted — what synthesis runs over. */
   arrived: Set<string>;
-  /** The live wiring, once a synthesis has been painted; what the IntegrityChecker guards. */
-  wiring?: SynthesisWiring;
+  /** The live synthesis, once painted: the document as accepted and the payload the client holds; what the IntegrityChecker guards. */
+  synthesis?: LiveSynthesis;
   /** When the last source settled — the start of the dead-air interval. */
   lastSettledAt?: number;
 }

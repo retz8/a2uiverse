@@ -18,8 +18,9 @@ import {applyUrlOverrides, defaultEntries} from './registry/entries.js';
 import {readRoster} from './registry/manifests.js';
 import {Registry, type ResolveCard} from './registry/registry.js';
 import {Router} from './router/router.js';
-import {operatorVocabulary} from './synthesizer/operators.js';
-import {ModelSynthesizer, type Synthesizer} from './synthesizer/synthesizer.js';
+import {OPERATORS, SCHEMA_CATALOG} from '@a2uiverse/shell-catalog/schema';
+import {readShellCatalogFiles, synthesizerSystemPrompt} from './synthesizer/prompt.js';
+import {AiSdkSynthesisModel, Synthesizer, type SynthesisModel} from './synthesizer/synthesizer.js';
 
 /** localhost, 127.0.0.1 on any port, and VS Code dev tunnels (tunnel-environment.md). */
 export const ORIGIN_RE =
@@ -41,7 +42,8 @@ export interface Orchestrator {
 export interface OrchestratorOverrides {
   embedder?: Embedder;
   planner?: Planner;
-  synthesizer?: Synthesizer;
+  /** The Synthesizer's text seam: the model behind it, not the loop. */
+  synthesisModel?: SynthesisModel;
   resolveCard?: ResolveCard;
 }
 
@@ -60,7 +62,7 @@ export function buildOrchestrator({
   const embedder =
     overrides?.embedder ?? new TransformersEmbedder({cacheDir: join(config.stateDir, 'models')});
   const planner = overrides?.planner ?? plannerFrom(config);
-  const synthesizer = overrides?.synthesizer ?? synthesizerFrom(config);
+  const synthesizer = synthesizerFrom(config, overrides?.synthesisModel);
   const router = new Router(registry, embedder, {shortlistCap: config.shortlistCap});
   const pool = new AgentsPool(registry, {
     defaultDeadlineMs: DEFAULT_DEADLINE_MS,
@@ -74,7 +76,6 @@ export function buildOrchestrator({
     router,
     planner,
     synthesizer,
-    operators: operatorVocabulary(),
   });
   const requestHandler = new DefaultRequestHandler(
     buildAgentCard(config.baseUrl),
@@ -119,12 +120,26 @@ function plannerFrom(config: Config): Planner {
   });
 }
 
-/** The second model call shares the Planner's provider seam; without a key it declines as a failure. */
-function synthesizerFrom(config: Config): Synthesizer {
+/**
+ * The second model call shares the Planner's provider seam; without a key it declines as a
+ * failure. The loop around the model — prompt, extract, validate, one retry — is the same for
+ * the real model and an injected fake; only the text seam is overridable.
+ */
+function synthesizerFrom(config: Config, model: SynthesisModel | undefined): Synthesizer {
+  return new Synthesizer({
+    model: model ?? synthesisModelFrom(config),
+    systemPrompt: synthesizerSystemPrompt(readShellCatalogFiles()),
+    catalog: SCHEMA_CATALOG,
+    // The catalog's own list: `catalog.json` cannot mark which functions are operators (task 4.3).
+    operators: OPERATORS,
+  });
+}
+
+function synthesisModelFrom(config: Config): SynthesisModel {
   const {googleApiKey} = config;
   if (!googleApiKey) {
     return {
-      async synthesize() {
+      async generate() {
         throw new Error('GOOGLE_API_KEY not set: the Synthesizer has no model');
       },
     };
@@ -134,7 +149,7 @@ function synthesizerFrom(config: Config): Synthesizer {
     modelId: config.synthesizerModelId,
     effort: config.synthesizerEffort,
   };
-  return new ModelSynthesizer({
+  return new AiSdkSynthesisModel({
     model: getModel(settings),
     providerOptions: plannerProviderOptions(settings),
   });

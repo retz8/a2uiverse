@@ -84,7 +84,7 @@ describe('materialization', () => {
     const p = fresh();
     p.apply(paint({deleteSurface: {surfaceId: S}}));
     expect(p.get(S)).toBeUndefined();
-    expect(p.resolve({surface: S, pointer: '/items/0/price'})).toEqual({found: false});
+    expect(p.resolve({surface: S, pointer: '/items/0/price'})).toMatchObject({found: false});
   });
 
   test('pointers follow RFC 6901: escapes and the empty pointer', () => {
@@ -93,7 +93,7 @@ describe('materialization', () => {
     p.apply(paint({updateDataModel: {surfaceId: S, value: {'a/b': {'m~n': 1}}}}));
     expect(p.resolve({surface: S, pointer: '/a~1b/m~0n'})).toEqual({found: true, value: 1});
     expect(p.resolve({surface: S, pointer: ''})).toEqual({found: true, value: {'a/b': {'m~n': 1}}});
-    expect(p.resolve({surface: 'nope:x', pointer: '/a'})).toEqual({found: false});
+    expect(p.resolve({surface: 'nope:x', pointer: '/a'})).toMatchObject({found: false});
   });
 });
 
@@ -147,7 +147,7 @@ describe('generations (task-4.4 decision 3)', () => {
     const g = p.generation(S);
     p.apply(paint({updateDataModel: {surfaceId: S, value: {detail: {id: 'x100'}}}}));
     expect(p.generation(S)).toBe(g);
-    expect(p.resolve({surface: S, pointer: '/items/0/price'})).toEqual({found: false});
+    expect(p.resolve({surface: S, pointer: '/items/0/price'})).toMatchObject({found: false});
     p.apply(paint({updateDataModel: {surfaceId: S, value: {items}}}));
     expect(p.generation(S)).toBe(g);
     expect(p.resolve({surface: S, pointer: '/items/0/price'})).toEqual({found: true, value: 899});

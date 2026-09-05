@@ -1,4 +1,4 @@
-import type {Ref} from '@a2uiverse/sdk';
+import {resolvePointer, type Ref} from '@a2uiverse/sdk';
 import type {VendorEvent} from '../agentsPool/relay.js';
 import {a2uiMessagesIn, partsOf} from '../journal/surfaces.js';
 
@@ -59,6 +59,7 @@ export class Partitions {
     return [...this.#models.entries()];
   }
 
+  /** Resolves a ref — index or predicate — through the sdk's kit (phase decision 23): a value, or absent. */
   resolve(ref: Ref): {found: true; value: unknown} | {found: false} {
     const model = this.#models.get(ref.surface);
     if (model === undefined) return {found: false};
@@ -173,25 +174,6 @@ function tokens(pointer: string): string[] {
     .split('/')
     .slice(1)
     .map(t => t.replace(/~1/g, '/').replace(/~0/g, '~'));
-}
-
-function resolvePointer(
-  root: unknown,
-  pointer: string,
-): {found: true; value: unknown} | {found: false} {
-  let node: unknown = root;
-  for (const token of tokens(pointer)) {
-    if (Array.isArray(node)) {
-      const i = Number(token);
-      if (!Number.isInteger(i) || i < 0 || i >= node.length) return {found: false};
-      node = node[i];
-    } else if (typeof node === 'object' && node !== null && token in node) {
-      node = (node as Model)[token];
-    } else {
-      return {found: false};
-    }
-  }
-  return {found: true, value: node};
 }
 
 /** Immutable set: returns a new root with `value` at `pointer` (root when empty), creating objects on the way. */

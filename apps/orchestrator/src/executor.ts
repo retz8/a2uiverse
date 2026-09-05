@@ -1,14 +1,19 @@
 import {randomUUID} from 'node:crypto';
 import type {Message, Task, TaskState, TaskStatusUpdateEvent} from '@a2a-js/sdk';
 import type {AgentExecutor, ExecutionEventBus, RequestContext} from '@a2a-js/sdk/server';
-import {parseSurfaceId, type SynthesisWiring} from '@a2uiverse/sdk';
+import {
+  parseSurfaceId,
+  type ChangeAccount,
+  type Synthesis,
+  type SynthesisPayload,
+} from '@a2uiverse/sdk';
 import type {AgentsPool} from './agentsPool/agentsPool.js';
 import {STAMP_KEY} from './agentsPool/relay.js';
 import type {DispatchHandle, DispatchOutcome} from './agentsPool/types.js';
 import {classifyTurn, unnamespaceAction, type Turn} from './composition/classify.js';
 import {slotNameFor} from './composition/constants.js';
 import {composeFragment, withGenerations} from './composition/fragmentRelay.js';
-import {checkWiring} from './composition/integrity.js';
+import {changeAccount, checkSynthesisPayload} from './composition/integrity.js';
 import {A2UI_CLIENT_DATA_MODEL_KEY} from './composition/partition.js';
 import {
   synthesisEnvelope,
@@ -29,8 +34,6 @@ import type {Planner} from './planner/planner.js';
 import type {Registry} from './registry/registry.js';
 import {SHELL_SOURCE_ID} from './registry/types.js';
 import type {Router} from './router/router.js';
-import {checkSynthesis, MalformedSynthesisError} from './synthesizer/checkSynthesis.js';
-import type {OperatorDescription} from './synthesizer/operators.js';
 import type {Synthesizer} from './synthesizer/synthesizer.js';
 
 export interface OrchestratorDeps {
@@ -40,16 +43,15 @@ export interface OrchestratorDeps {
   router: Router;
   planner: Planner;
   synthesizer: Synthesizer;
-  /** The shell catalog's operators, offered to the Synthesizer and checked on its output. */
-  operators: readonly OperatorDescription[];
 }
 
 /**
  * The turn (SPEC §5) at M2. Utterance: Router → Planner → shell paint →
  * fan-out → slot-lifecycle repaints → synthesis into the reserved slot → one
  * turn-final. Action: owner-only dispatch, no Router/Planner; then, if the
- * partition change invalidated the live wiring, re-synthesis inline before the
- * final (task-4.4 decision 2). Client error: slot flip by shell repaint.
+ * partition change invalidated the live synthesis, re-synthesis inline before
+ * the final, handed the previous document and what broke (task-5.4 decision
+ * 6). Client error: slot flip by shell repaint.
  * Composition state is canonical here; the shell surface is its projection.
  */
 export class OrchestratorExecutor implements AgentExecutor {
@@ -197,10 +199,14 @@ export class OrchestratorExecutor implements AgentExecutor {
     const outcome = await this.#pump(ctx, bus, turn, undefined, handle, owner.id, {
       collapse: false,
     });
-    // Tier 2: the partition change may have re-pointed refs the live wiring depends on.
-    if (composition?.wiring) {
-      const gate = checkWiring(composition.wiring, composition.partitions.generations());
-      if (!gate.valid) await this.#synthesize(ctx, bus, turn, composition);
+    // Tier 2: the partition change may have re-pointed refs the live synthesis depends on.
+    if (composition?.synthesis) {
+      const {payload, document} = composition.synthesis;
+      const generations = composition.partitions.generations();
+      if (!checkSynthesisPayload(payload, generations).valid) {
+        const changes = changeAccount(payload, generations, composition.partitions);
+        await this.#synthesize(ctx, bus, turn, composition, {previous: document, changes});
+      }
     }
     const state: TaskState =
       outcome === 'cancelled' ? 'canceled' : outcome === 'completed' ? 'completed' : 'failed';
@@ -211,25 +217,30 @@ export class OrchestratorExecutor implements AgentExecutor {
   /**
    * SPEC §5 t6–t7: when every dispatched source has resolved, the second model call — or not.
    * Fewer than two sources arrived ⇒ no call, the slot collapses (§5.1). A decline, a malformed
-   * output (task-4.4 decision 4) or a model failure collapse it too, told apart in the journal.
-   * Otherwise the wiring is wrapped with the generations it was computed against, the partitions
-   * are snapshotted, and the merged view is painted into the synthesis slot (nothing else moves).
+   * output or a model failure collapse it too, told apart in the journal. Otherwise the accepted
+   * document's derived model and sorts are wrapped with the generations they were computed
+   * against, the partitions are snapshotted, and the model's tree is painted into the synthesis
+   * slot (nothing else moves). A re-synthesis is the same call handed the live document and the
+   * account of what broke; the journal records the whole conversation (task-5.4 decision 7).
    */
   async #synthesize(
     ctx: RequestContext,
     bus: ExecutionEventBus,
     turn: JournalTurn,
     state: CompositionState,
+    again?: {previous: Synthesis; changes: ChangeAccount},
   ): Promise<void> {
     const slot = synthesisSlot(state);
     if (!slot) return;
     const startedAt = state.lastSettledAt ?? Date.now();
     const deadAir = () => Date.now() - startedAt;
+    const sent = again ? {changes: again.changes} : {};
     const collapse = (
       outcome: 'declined' | 'malformed' | 'skipped' | 'failed',
-      reason?: string,
+      reason: string | undefined,
+      attempts: {text: string; errors: string[]}[],
     ) => {
-      state.wiring = undefined;
+      state.synthesis = undefined;
       // A decline is the Synthesizer's own judgment in its own words; the collapsed slot rests
       // on them rather than folding away unexplained. The other outcomes are the runtime's.
       if (outcome === 'declined' && reason) bus.publish(synthesisProseEnvelope(ctx, reason));
@@ -237,11 +248,17 @@ export class OrchestratorExecutor implements AgentExecutor {
         slot.state = 'collapsed';
         bus.publish(shellEnvelope(ctx, shellRepaintParts(state)));
       }
-      turn.synthesis({outcome, ...(reason ? {reason} : {}), deadAirMs: deadAir()});
+      turn.synthesis({
+        outcome,
+        ...(reason ? {reason} : {}),
+        attempts,
+        ...sent,
+        deadAirMs: deadAir(),
+      });
     };
 
     if (state.arrived.size < 2)
-      return collapse('skipped', `${state.arrived.size} source(s) arrived`);
+      return collapse('skipped', `${state.arrived.size} source(s) arrived`, []);
 
     const sources = state.partitions.entries().flatMap(([surface, data]) => {
       const appId = parseSurfaceId(surface)?.appId;
@@ -250,36 +267,40 @@ export class OrchestratorExecutor implements AgentExecutor {
     });
     const utterance = ctx.userMessage.parts.find(p => p.kind === 'text')?.text ?? '';
 
-    let output;
+    let outcome;
     try {
-      output = await this.#deps.synthesizer.synthesize({
-        utterance,
-        request: slot.plan.request,
-        sources,
-        operators: this.#deps.operators,
-      });
-      checkSynthesis(output, {
-        operators: this.#deps.operators.map(o => o.name),
-        partitions: state.partitions,
-      });
+      outcome = await this.#deps.synthesizer.synthesize(
+        {utterance, request: slot.plan.request, sources, ...again},
+        state.partitions,
+      );
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      return collapse(err instanceof MalformedSynthesisError ? 'malformed' : 'failed', message);
+      return collapse('failed', err instanceof Error ? err.message : String(err), []);
     }
-    if (output.declined) return collapse('declined', output.reason);
+    if (outcome.kind === 'declined') return collapse('declined', outcome.reason, outcome.attempts);
+    if (outcome.kind === 'malformed') {
+      const last = outcome.attempts.at(-1);
+      return collapse('malformed', last?.errors.join('; '), outcome.attempts);
+    }
 
-    const wiring: SynthesisWiring = {
-      fields: output.fields,
-      entities: output.entities,
-      sort: output.sort,
+    const {document} = outcome;
+    const payload: SynthesisPayload = {
+      dataModel: document.dataModel,
+      sorts: document.sorts,
       computedAgainst: state.partitions.generations(),
     };
     state.partitions.snapshot();
-    state.wiring = wiring;
-    const paint = synthesisEnvelope(ctx, synthesisParts(wiring), wiring);
+    state.synthesis = {document, payload};
+    const paint = synthesisEnvelope(ctx, synthesisParts(document.tree), payload);
     bus.publish(paint);
     turn.surfaces(touchesOf(paint));
-    turn.synthesis({outcome: 'synthesized', wiring, deadAirMs: deadAir()});
+    turn.synthesis({
+      outcome: 'synthesized',
+      synthesizeDataModel: document,
+      note: document.note,
+      attempts: outcome.attempts,
+      ...sent,
+      deadAirMs: deadAir(),
+    });
   }
 
   #clientErrorTurn(
