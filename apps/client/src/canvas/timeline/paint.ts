@@ -6,7 +6,7 @@
  * is `parentTitle`, a fact about the edge recorded at fork time so provenance survives the
  * parent's eviction. These fallbacks are permanent — the agent-authored `title` sits on top.
  */
-import type {SynthesisWiring} from '@a2uiverse/sdk';
+import type {SynthesisPayload} from '@a2uiverse/sdk';
 import type {A2uiClientAction} from '@a2ui/web_core/v0_9';
 import {describeAction} from '../../shared/describeAction';
 
@@ -64,14 +64,14 @@ export interface PaintFragment {
 }
 
 /**
- * The synthesis a composed paint carried, captured with its fragments (task 4.8): the wiring, the
- * surface it evaluates into, and the generations it was computed against. A parked entry
+ * The synthesis a composed paint carried, captured with its fragments (task 4.8): the payload,
+ * the surface it evaluates into, and the generations it was computed against. A parked entry
  * re-sorts over its own frozen partitions with these — sort crosses no wire — and subscribes to
  * nothing live.
  */
 export interface PaintSynthesis {
   surfaceId: string;
-  wiring: SynthesisWiring;
+  payload: SynthesisPayload;
   generations: Readonly<Record<string, number>>;
 }
 

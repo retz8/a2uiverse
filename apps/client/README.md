@@ -27,7 +27,7 @@ You need the orchestrator and the agents up too; `pnpm dev:all` from the root st
 | `3`      | Compose-and-confirm review — chained after 2, so replay it as `2,3`      |
 | `4`      | **The composed fan-out** — three slots, three design systems, one screen |
 
-**Synthetic beats** are hand-built to construct states that are unreliable to catch live: `plain`, `plain-2`, `validation` (a fragment that fails to mount), `question` (the overlay), `composed` (two slots, one filling and one whose source speaks but never paints), `composed-solo` (the degenerate one-slot case), `composed-question` (a fragment the shell promotes in place) and `synthesis` (two storefronts merged into the synthesis slot, then a reorder that goes stale and re-synthesizes).
+**Synthetic beats** are hand-built to construct states that are unreliable to catch live: `plain`, `plain-2`, `validation` (a fragment that fails to mount), `question` (the overlay), `composed` (two slots, one filling and one whose source speaks but never paints), `composed-solo` (the degenerate one-slot case), `composed-question` (a fragment the shell promotes in place) and `synthesis` (two storefronts of unrelated shapes merged into the synthesis slot by the sdk's camera comparison example, then an in-place reorder its keyed refs survive).
 
 The two families have different jobs and neither replaces the other: a recording is evidence of what real agents produce, a synthetic beat is a state built on purpose.
 

@@ -10,9 +10,16 @@
  * Display names live in the Registry and reach the client only here, as a prop on the shell
  * catalog's `Attribution` components. The stamp is deliberately not extended to carry them —
  * that would put the same fact on the wire twice, on the very event that already holds it.
+ *
+ * The synthesis slot is shell content (task-5.5 decision 1): painted with no attribution
+ * beside it, its `Slot` declares `content: "shell"`, and the roster reads it as the reserved
+ * shell source — the one the merged view's own stamp names.
  */
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
 import type {RosterEntry} from '../canvasStore';
+
+/** The reserved source id the hub stamps its own content with — the shell speaking as itself. */
+export const SHELL_SOURCE = 'shell';
 
 /** The shell catalog's own composition primitives. */
 const ATTRIBUTION = 'Attribution';
@@ -23,6 +30,8 @@ interface ShellComponent {
   appId?: unknown;
   displayName?: unknown;
   name?: unknown;
+  label?: unknown;
+  content?: unknown;
 }
 
 /**
@@ -59,7 +68,18 @@ export function rosterFromShellMessages(
             : undefined;
         continue;
       }
-      if (raw.component === SLOT && pending && typeof raw.name === 'string') {
+      if (raw.component !== SLOT || typeof raw.name !== 'string') continue;
+      if (raw.content === 'shell') {
+        // Shell content pairs with no attribution: the slot itself says whose it is.
+        pending = undefined;
+        roster.push({
+          appId: SHELL_SOURCE,
+          displayName: typeof raw.label === 'string' && raw.label ? raw.label : SHELL_SOURCE,
+          slot: raw.name,
+        });
+        continue;
+      }
+      if (pending) {
         roster.push({...pending, slot: raw.name});
         pending = undefined;
       }

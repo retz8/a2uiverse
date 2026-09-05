@@ -18,8 +18,8 @@ import type {
   ComponentApi,
   FunctionImplementation,
 } from '@a2ui/web_core/v0_9';
-import type {Sort} from '@a2uiverse/sdk';
-import {evaluate} from '../synthesis/bindingEvaluator';
+import {choicesOf, evaluate} from '../synthesis/bindingEvaluator';
+import {SORTS_PATH} from '../synthesis/synthesisSession';
 import type {CanvasStore, PlacedFragment} from '../canvasStore';
 import type {PaintEntry, PaintSnapshot} from './paint';
 import {deepFreeze} from './snapshotSurface';
@@ -91,8 +91,9 @@ export function createParkedSession<T extends ComponentApi>(
   }
 
   // A parked synthesis re-sorts over its own frozen partitions (task 4.8): sort crosses no wire,
-  // so the sort control keeps working here — the captured wiring evaluated against the sandbox's
-  // data, with the captured generations so nothing reads as stale. Nothing live is subscribed.
+  // so the sort controls keep working here — the captured payload evaluated against the
+  // sandbox's data, with the captured generations so nothing reads as stale. Nothing live is
+  // subscribed.
   const sort = watchSort(entry, processor, functions);
 
   const commit = () => {
@@ -118,16 +119,16 @@ function watchSort<T extends ComponentApi>(
   let scheduled = false;
   // Deferred like the live session's evaluation: a root write from inside the sort
   // subscription itself is a cycle to the data model.
-  return target.dataModel.subscribe('/sort', value => {
+  return target.dataModel.subscribe(SORTS_PATH, value => {
     if (writing || scheduled) return;
     scheduled = true;
     queueMicrotask(() => {
       scheduled = false;
       const next = evaluate({
-        wiring: captured.wiring,
+        payload: captured.payload,
         models: surface => processor.model.getSurface(surface)?.dataModel.get('/'),
         generations: captured.generations,
-        sort: sortOf(value),
+        choices: choicesOf(value),
         functions,
       });
       writing = true;
@@ -139,11 +140,3 @@ function watchSort<T extends ComponentApi>(
     });
   });
 }
-
-const sortOf = (value: unknown): Sort | undefined => {
-  const candidate = value as {field?: unknown; direction?: unknown} | null | undefined;
-  return typeof candidate?.field === 'string' &&
-    (candidate.direction === 'asc' || candidate.direction === 'desc')
-    ? {field: candidate.field, direction: candidate.direction}
-    : undefined;
-};

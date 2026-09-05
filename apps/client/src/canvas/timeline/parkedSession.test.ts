@@ -13,14 +13,14 @@ import {createParkedSession} from './parkedSession';
 import {serializeSurface} from './snapshotSurface';
 import {evaluate} from '../synthesis/bindingEvaluator';
 import {
+  DOCUMENT,
+  PAYLOAD,
   SHOP_A,
-  SHOP_A_ITEMS,
   SHOP_B,
-  SHOP_B_ITEMS,
+  shopAMessages,
+  shopBMessages,
   SYNTHESIS_SLOT,
   SYNTHESIS_SURFACE,
-  WIRING,
-  storefrontMessages,
   synthesisMessages,
 } from '../../beats/synthesisFixture';
 
@@ -193,16 +193,22 @@ describe('a parked composition', () => {
   it('a parked synthesis re-sorts over its own frozen partitions — sort crosses no wire (task 4.8)', async () => {
     const live = new MessageProcessor([SHELL_CATALOG]);
     live.processMessages([
-      ...storefrontMessages(SHOP_A, SHELL_CATALOG_ID, 'Shop A', SHOP_A_ITEMS),
-      ...storefrontMessages(SHOP_B, SHELL_CATALOG_ID, 'Shop B', SHOP_B_ITEMS),
-      ...synthesisMessages(WIRING, SHELL_CATALOG_ID),
+      ...shopAMessages(SHELL_CATALOG_ID),
+      ...shopBMessages(SHELL_CATALOG_ID),
+      ...synthesisMessages(DOCUMENT, SHELL_CATALOG_ID),
       msg({createSurface: {surfaceId: 'shell:main', catalogId: SHELL_CATALOG_ID}}),
       msg({
         updateComponents: {
           surfaceId: 'shell:main',
           components: [
             {id: 'root', component: 'Column', children: [SYNTHESIS_SLOT]},
-            {id: SYNTHESIS_SLOT, component: 'Slot', name: SYNTHESIS_SLOT, state: 'pending'},
+            {
+              id: SYNTHESIS_SLOT,
+              component: 'Slot',
+              name: SYNTHESIS_SLOT,
+              state: 'pending',
+              content: 'shell',
+            },
           ],
         },
       }),
@@ -212,7 +218,7 @@ describe('a parked composition', () => {
     const models = (surface: string) => live.model.getSurface(surface)?.dataModel.get('/');
     live.model
       .getSurface(SYNTHESIS_SURFACE)!
-      .dataModel.set('/', evaluate({wiring: WIRING, models, generations, functions}));
+      .dataModel.set('/', evaluate({payload: PAYLOAD, models, generations, functions}));
     const capture = (id: string) => ({
       ...serializeSurface(live.model.getSurface(id)!),
       capturedAt: 2000,
@@ -236,7 +242,7 @@ describe('a parked composition', () => {
         fragment(SHOP_B, 'slot-shop-b', 'shop-b'),
         fragment(SYNTHESIS_SURFACE, SYNTHESIS_SLOT, 'shell'),
       ],
-      synthesis: {surfaceId: SYNTHESIS_SURFACE, wiring: WIRING, generations},
+      synthesis: {surfaceId: SYNTHESIS_SURFACE, payload: PAYLOAD, generations},
     };
     const store = createCanvasStore();
     store.appendEntry(entry);
@@ -244,19 +250,21 @@ describe('a parked composition', () => {
     const session = createParkedSession(entry, {catalogs: [SHELL_CATALOG], store, functions});
     const parked = session.processor.model.getSurface(SYNTHESIS_SURFACE)!;
     const names = () =>
-      (parked.dataModel.get('/entities') as Array<{name: {value: string}}>).map(e => e.name.value);
-    expect(names()).toEqual(['X100', 'Z6']);
+      (parked.dataModel.get('/rows') as Array<{name: {value: string}}>).map(e => e.name.value);
+    expect(names()).toEqual(['Lumen X100', 'Verity A7']);
 
-    parked.dataModel.set('/sort', {field: 'best_price', direction: 'desc'});
+    parked.dataModel.set('/sorts/0', {...DOCUMENT.sorts[0], direction: 'desc'});
     await Promise.resolve();
-    expect(names()).toEqual(['Z6', 'X100']);
-    expect(parked.dataModel.get('/sort')).toMatchObject({field: 'best_price', direction: 'desc'});
+    expect(names()).toEqual(['Verity A7', 'Lumen X100']);
+    expect(parked.dataModel.get('/sorts/0')).toMatchObject({key: '/best', direction: 'desc'});
 
     // The re-sort stays in the sandbox: the stored entry is untouched until commit.
     const stored = store
       .getState()
       .timeline[0].fragments!.find(f => f.surfaceId === SYNTHESIS_SURFACE)!;
-    expect((stored.snapshot!.dataModel as {sort: unknown}).sort).toMatchObject(WIRING.sort);
+    expect((stored.snapshot!.dataModel as {sorts: unknown[]}).sorts[0]).toMatchObject(
+      DOCUMENT.sorts[0]!,
+    );
   });
 
   it('an uncomposed paint parks with an empty placement', () => {

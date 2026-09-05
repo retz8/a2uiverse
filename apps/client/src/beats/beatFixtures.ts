@@ -1,5 +1,5 @@
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
-import type {CompositionStamp, SynthesisWiring} from '@a2uiverse/sdk';
+import type {CompositionStamp, SynthesisPayload} from '@a2uiverse/sdk';
 
 /**
  * One streamed batch as the client received it: the A2UI messages and the agent prose carried
@@ -16,8 +16,8 @@ export interface BeatBatch {
    * fixtures, which replay as shell paints exactly as they always did.
    */
   stamp?: CompositionStamp;
-  /** The synthesis wiring beside the stamp, on the one batch that paints the merged view. */
-  wiring?: SynthesisWiring;
+  /** The synthesis payload beside the stamp, on the one batch that paints the merged view. */
+  synthesis?: SynthesisPayload;
 }
 
 /** What one prompt produced. `outcome` is `completed` for a paint, `apology`/`unavailable` otherwise. */

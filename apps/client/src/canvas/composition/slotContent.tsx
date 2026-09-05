@@ -16,6 +16,7 @@ import {SurfaceFrame} from '../../catalogs/CatalogContext';
 import {SurfaceErrorBoundary} from '../../shared/SurfaceErrorBoundary';
 import type {PlacedFragment, RosterEntry} from '../canvasStore';
 import {FragmentBoundary} from './FragmentBoundary';
+import {SHELL_SOURCE} from './roster';
 
 /**
  * What a slot rests on when its source spoke but never painted. Not a fragment — it is the
@@ -46,12 +47,24 @@ export function renderSlotContent(
   if (!placed) return spoken ? restingProse(spoken) : null;
   const surface = surfaces.model.surfacesMap.get(placed.surfaceId);
   if (!surface) return null;
+  // Per-surface containment either way: one render failure must not take the shell with it.
+  const contained = (
+    <SurfaceErrorBoundary surfaceId={placed.surfaceId} resetKey={resetKey}>
+      <SurfaceFrame surface={surface} />
+    </SurfaceErrorBoundary>
+  );
+  if (placed.source === SHELL_SOURCE) {
+    // The shell's own content (task-5.5 decision 2): the shell writing on its own page. No
+    // boundary, no tile, no region named after a source — provenance is in the cells.
+    return (
+      <div data-shell-content data-surface={placed.surfaceId} style={{minWidth: 0}}>
+        {contained}
+      </div>
+    );
+  }
   return (
     <FragmentBoundary source={placed.source} surfaceId={placed.surfaceId} promoted={promoted}>
-      {/* Per-fragment containment: one vendor's render failure must not take the shell with it. */}
-      <SurfaceErrorBoundary surfaceId={placed.surfaceId} resetKey={resetKey}>
-        <SurfaceFrame surface={surface} />
-      </SurfaceErrorBoundary>
+      {contained}
     </FragmentBoundary>
   );
 }

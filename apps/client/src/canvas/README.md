@@ -165,8 +165,8 @@ full turn lifecycle — the same hold-and-swap gate, paced by the recorded strea
 offsets. `&instant` collapses the waits. This is how the shell is verified with
 no LLM in the loop. The synthetic beats ship with the client
 (`src/beats/syntheticBeats.ts`: `plain`, `plain-2`, `validation`, `question`, the composed
-trio `composed`, `composed-solo`, `composed-question`, and `synthesis` — two storefronts merged,
-then re-synthesized after an in-place reorder). Recorded beats
+trio `composed`, `composed-solo`, `composed-question`, and `synthesis` — two storefronts merged
+by the sdk's example, then an in-place reorder its keyed refs survive). Recorded beats
 (`recordings/beats/*.json`, addressed by number) are captured through the composing hub over
 live MCP: `1`–`3` are one-slot compositions of a single vendor, `4` is the three-source fan-out.
 
@@ -184,10 +184,12 @@ canvasStore.ts          external store (useSyncExternalStore): stage/overlay occ
                         in-flight status, the paint ring, head/viewing
 replayBeat.ts           drives a recorded beat through the turn runner
 synthesis/
-  synthesisSession.ts   a composition's synthesis state: wiring, subscriptions, generations,
-                        the user's sort; writes the evaluated model into shell:synthesis
-  bindingEvaluator.ts   pure: wiring + partitions + generations + sort → {entities, sort}
-  wiringSchema.ts       the zod mirror of the sdk's wiring schema + structural checks
+  synthesisSession.ts   a composition's synthesis state: payload, subscriptions, generations,
+                        the user's sort choices by path; writes the evaluated model into
+                        shell:synthesis
+  bindingEvaluator.ts   pure: payload + partitions + generations + choices → the derived model
+                        with a cell at every formula path, sorted arrays, /sorts/N
+  intake.ts             the sdk's payload validator + the client's operator check
 components/             stage, palette, overlay, status strip, ambient notice,
                         history chrome, parked stage
 turn/

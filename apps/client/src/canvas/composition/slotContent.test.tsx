@@ -153,6 +153,45 @@ describe('slot mounting', () => {
     expect(container.querySelector(`[${FRAGMENT_BOUNDARY_ATTR}]`)).toBeNull();
   });
 
+  it('shell content renders in place: no boundary, no region, no tile — the shell on its own page (task-5.5 decision 2)', () => {
+    const processor = composedProcessor();
+    processor.processMessages([
+      msg({
+        updateComponents: {
+          surfaceId: 'shell:main',
+          components: [
+            {id: 'root', component: 'Column', children: ['slot-shell']},
+            {id: 'slot-shell', component: 'Slot', name: 'slot-shell', content: 'shell'},
+          ],
+        },
+      }),
+      msg({createSurface: {surfaceId: 'shell:synthesis', catalogId: SHELL_CATALOG_ID}}),
+      msg({
+        updateComponents: {
+          surfaceId: 'shell:synthesis',
+          components: [{id: 'root', component: 'Text', text: 'Cameras in both stores'}],
+        },
+      }),
+    ]);
+    const {container} = renderComposed(
+      processor,
+      new Map([['slot-shell', {surfaceId: 'shell:synthesis', source: 'shell'}]]),
+    );
+    const slot = container.querySelector('[data-slot="slot-shell"]')!;
+    expect(slot.getAttribute('data-slot-state')).toBe('filled');
+    expect(slot.getAttribute('data-slot-content')).toBe('shell');
+    expect(slot.textContent).toContain('Cameras in both stores');
+    expect(container.querySelector(`[${FRAGMENT_BOUNDARY_ATTR}]`)).toBeNull();
+    expect(
+      container.querySelector('[data-shell-content][data-surface="shell:synthesis"]'),
+    ).not.toBeNull();
+    expect(screen.queryByRole('group')).toBeNull();
+    // Contained all the same: the merged view is model-authored and may throw at render.
+    expect(
+      container.querySelector('[data-shell-content] [data-testid^="surface-error"]'),
+    ).toBeNull();
+  });
+
   it('resolves nothing for a slot whose surface has left the registry', () => {
     const processor = composedProcessor();
     processor.model.deleteSurface('github:prs');

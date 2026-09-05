@@ -1,38 +1,54 @@
 /**
- * The BindingEvaluator (SPEC §10, task-4.5): the wiring the Synthesizer emitted, evaluated
- * against the partitions the client holds, into the synthesis surface's ordinary data model.
- * Client-side, deterministic, zero model cost.
+ * The BindingEvaluator (SPEC §10, task-5.5): the synthesis payload the orchestrator sent — the
+ * Synthesizer's free-form derived model and its sort declarations — evaluated against the
+ * partitions the client holds, into the synthesis surface's ordinary data model. Client-side,
+ * deterministic, zero model cost.
  *
- * A pure whole recompute (decision 1): every trigger calls this once with everything it needs,
- * and the output is the whole `{entities, sort}` the derived tree binds to. There is no
- * incremental state; the surface-to-cell lookup stale marking needs is derived here per run.
+ * A pure whole recompute (task-4.5 decision 1, carried): every trigger calls this once with
+ * everything it needs, and the output is the whole model the model-authored tree binds to. The
+ * evaluated model mirrors the derived model: a cell object at every formula path, branches
+ * keeping their shape, each declared array reordered in place, and each declaration with the
+ * current choice at `/sorts/N` — the reserved root key the tree binds `SortControl` to.
  *
- * Around each catalog operator (task-4.3 decision 2) the evaluator does the rest: resolves each
- * ref against its partition, drops the absent ones, hands the survivors to the catalog function,
- * records how many contributed and which surfaces did not, and maps a source selector's index
- * back to the app that won. The renderer sees plain values and plain paths.
+ * Refs resolve through the sdk kit, predicate and index alike, and validity is the kit's answer
+ * per ref (phase decision 23): a predicate ref never goes stale, an index ref is stale once its
+ * surface's generation moved. Around each catalog operator the evaluator does the rest:
+ * resolves each ref, drops the absent ones, hands the survivors to the catalog function,
+ * records how many contributed and which surfaces did not, marks the cell stale when any of its
+ * refs is (task-5.5 decision 4), and maps a source selector's index back to the app that won.
  */
 import type {DataContext, FunctionImplementation} from '@a2ui/web_core/v0_9';
-import {parseSurfaceId, type Ref, type Sort, type SynthesisWiring} from '@a2uiverse/sdk';
-import type {CellObject, SortObject} from '@a2uiverse/shell-catalog';
+import {
+  isFormula,
+  parseSurfaceId,
+  parsePointer,
+  refValidity,
+  resolvePointer,
+  type Formula,
+  type ModelNode,
+  type Ref,
+  type SortDeclaration,
+  type SynthesisPayload,
+} from '@a2uiverse/sdk';
+import type {CellObject} from '@a2uiverse/shell-catalog';
 
-/** One evaluated entity: the wiring's field names to the cell objects `DerivedValue` reads. */
-export type EvaluatedEntity = Record<string, CellObject>;
-
-/** What the evaluator writes at the synthesis surface's root. */
-export interface SynthesisModel {
-  entities: EvaluatedEntity[];
-  sort: SortObject;
+/** The user's choice on one sorted array, kept by the array's path (task-5.5 decision 5). */
+export interface SortChoice {
+  key: string;
+  direction: 'asc' | 'desc';
 }
 
+/** What the evaluator writes at the synthesis surface's root. */
+export type EvaluatedModel = Record<string, unknown> & {sorts: SortDeclaration[]};
+
 export interface EvaluateInput {
-  wiring: SynthesisWiring;
+  payload: SynthesisPayload;
   /** The root data model of a partition by namespaced surface id; undefined when not held. */
   models: (surface: string) => unknown;
   /** The latest generation seen per surface, from the stamps. */
   generations: Readonly<Record<string, number>>;
-  /** The sort in force, when the user has chosen one; otherwise the wiring's. */
-  sort?: Sort;
+  /** The user's choices by sorted array path; a declaration without one takes its own. */
+  choices?: ReadonlyMap<string, SortChoice>;
   /** The shell catalog's functions — the operator vocabulary. */
   functions: ReadonlyMap<string, FunctionImplementation>;
 }
@@ -40,64 +56,28 @@ export interface EvaluateInput {
 /** The source selectors: their result is an index over the surviving inputs. */
 const INDEX_OPERATORS = new Set(['argmin', 'argmax']);
 
-/**
- * RFC 6901 resolution over plain data. Undefined for anything that does not resolve: a missing
- * key, an index out of range or non-numeric, a primitive where a container was expected.
- */
-export function resolvePointer(root: unknown, pointer: string): unknown {
-  if (pointer === '') return root;
-  let current = root;
-  for (const raw of pointer.split('/').slice(1)) {
-    const segment = raw.replace(/~1/g, '/').replace(/~0/g, '~');
-    if (current === null || typeof current !== 'object') return undefined;
-    if (Array.isArray(current)) {
-      if (!/^(0|[1-9]\d*)$/.test(segment)) return undefined;
-      const index = Number(segment);
-      if (index >= current.length) return undefined;
-      current = current[index];
-    } else {
-      if (!Object.prototype.hasOwnProperty.call(current, segment)) return undefined;
-      current = (current as Record<string, unknown>)[segment];
-    }
-  }
-  return current;
+/** Absent is unresolvable or null (task-4.5 decision 7): the kit answers both as not found. */
+function resolveRef(ref: Ref, models: EvaluateInput['models']): {found: boolean; value?: unknown} {
+  const model = models(ref.surface);
+  if (model === undefined) return {found: false};
+  const result = resolvePointer(model, ref.pointer);
+  return result.found && result.value !== undefined ? result : {found: false};
 }
 
-/** Absent is unresolvable or null (decision 7): both are "no value here". */
-function resolveRef(ref: Ref, models: EvaluateInput['models']): unknown {
-  const value = resolvePointer(models(ref.surface), ref.pointer);
-  return value === null ? undefined : value;
-}
-
-/**
- * Stale is compared, never reset (decision 6): a surface whose latest seen generation differs
- * from what the wiring was computed against, in either direction. Never stamped is matched.
- */
-function staleSurfaces(wiring: SynthesisWiring, generations: EvaluateInput['generations']) {
-  const stale = new Set<string>();
-  for (const [surface, computed] of Object.entries(wiring.computedAgainst)) {
-    const seen = generations[surface];
-    if (seen !== undefined && seen !== computed) stale.add(surface);
-  }
-  return stale;
-}
-
-function evaluateCell(
-  cell: SynthesisWiring['entities'][number]['cells'][number],
-  input: EvaluateInput,
-  stale: ReadonlySet<string>,
-): CellObject {
+function evaluateFormula(formula: Formula, input: EvaluateInput): CellObject {
   const survivors: {ref: Ref; value: unknown}[] = [];
   const absent: string[] = [];
-  for (const ref of cell.args) {
-    const value = resolveRef(ref, input.models);
-    if (value === undefined) absent.push(ref.surface);
-    else survivors.push({ref, value});
+  let stale = false;
+  for (const ref of formula.args) {
+    if (refValidity(ref, input.payload.computedAgainst, input.generations) === 'stale')
+      stale = true;
+    const resolved = resolveRef(ref, input.models);
+    if (resolved.found) survivors.push({ref, value: resolved.value});
+    else absent.push(ref.surface);
   }
-  const isStale = cell.args.some(ref => stale.has(ref.surface));
-  const base = {of: cell.args.length, absent, ...(isStale ? {stale: true} : {})};
+  const base = {of: formula.args.length, absent, ...(stale ? {stale: true} : {})};
 
-  const fn = input.functions.get(cell.op);
+  const fn = input.functions.get(formula.op);
   if (survivors.length === 0 || !fn) return {value: undefined, contributed: 0, ...base};
 
   let value: unknown;
@@ -107,18 +87,21 @@ function evaluateCell(
   } catch {
     return {value: undefined, contributed: 0, ...base};
   }
-  if (INDEX_OPERATORS.has(cell.op) && typeof value === 'number') {
+  if (INDEX_OPERATORS.has(formula.op) && typeof value === 'number') {
     const winner = survivors[value]?.ref.surface;
-    // A source selector names a source, and a source is an app (decision 8).
+    // A source selector names a source, and a source is an app (task-4.5 decision 8).
     if (winner !== undefined) value = parseSurfaceId(winner)?.appId ?? winner;
   }
   return {value, contributed: survivors.length, ...base};
 }
 
-/** The user's sort sticks while its field still exists (decision 2); otherwise the wiring's. */
-function sortInForce(wiring: SynthesisWiring, sort: Sort | undefined): Sort {
-  if (sort && wiring.fields.some(f => f.name === sort.field)) return sort;
-  return wiring.sort;
+/** The derived model, node by node: a formula becomes its cell, a branch keeps its shape. */
+function evaluateNode(node: ModelNode, input: EvaluateInput): unknown {
+  if (isFormula(node)) return evaluateFormula(node, input);
+  if (Array.isArray(node)) return node.map(child => evaluateNode(child, input));
+  return Object.fromEntries(
+    Object.entries(node).map(([key, child]) => [key, evaluateNode(child, input)]),
+  );
 }
 
 /** A cell with nothing behind it sorts last whichever way the list runs. */
@@ -126,45 +109,85 @@ function isAbsent(cell: CellObject | undefined): boolean {
   return cell === undefined || cell.contributed === 0 || cell.value == null;
 }
 
-/** Numbers numerically, strings by locale, a mixed pair by string (decision 9). */
+/** Numbers numerically, strings by locale, a mixed pair by string (task-4.5 decision 9). */
 function compareValues(a: unknown, b: unknown): number {
   if (typeof a === 'number' && typeof b === 'number') return a - b;
   return String(a).localeCompare(String(b));
 }
 
-function orderEntities(entities: EvaluatedEntity[], sort: Sort): EvaluatedEntity[] {
-  const sign = sort.direction === 'desc' ? -1 : 1;
-  return entities
-    .map((entity, index) => ({entity, index}))
+function cellAt(element: unknown, key: string): CellObject | undefined {
+  const result = resolvePointer(element, key);
+  if (!result.found) return undefined;
+  const cell = result.value as CellObject;
+  return typeof cell === 'object' && cell !== null && 'contributed' in cell ? cell : undefined;
+}
+
+function orderElements(elements: unknown[], key: string, direction: 'asc' | 'desc'): unknown[] {
+  const sign = direction === 'desc' ? -1 : 1;
+  return elements
+    .map((element, index) => ({element, index}))
     .sort((x, y) => {
-      const a = x.entity[sort.field];
-      const b = y.entity[sort.field];
+      const a = cellAt(x.element, key);
+      const b = cellAt(y.element, key);
       const aAbsent = isAbsent(a);
       const bAbsent = isAbsent(b);
       if (aAbsent !== bAbsent) return aAbsent ? 1 : -1;
       const byValue = aAbsent ? 0 : sign * compareValues(a!.value, b!.value);
-      // Ties keep wiring order: nothing moves when nothing differs.
+      // Ties keep model order: nothing moves when nothing differs.
       return byValue !== 0 ? byValue : x.index - y.index;
     })
-    .map(({entity}) => entity);
+    .map(({element}) => element);
 }
 
-export function evaluate(input: EvaluateInput): SynthesisModel {
-  const {wiring} = input;
-  const stale = staleSurfaces(wiring, input.generations);
-  const entities = wiring.entities.map(entity => {
-    const evaluated: EvaluatedEntity = {};
-    wiring.fields.forEach((field, i) => {
-      const cell = entity.cells[i];
-      evaluated[field.name] = cell
-        ? evaluateCell(cell, input, stale)
-        : {value: undefined, contributed: 0, of: 0, absent: []};
-    });
-    return evaluated;
+/**
+ * The choice in force for a declaration: the user's, kept by path, while its key is still one
+ * of the options; otherwise the declaration's own (task-5.5 decision 5).
+ */
+export function choiceInForce(
+  declaration: SortDeclaration,
+  choices: EvaluateInput['choices'],
+): SortChoice {
+  const chosen = choices?.get(declaration.path);
+  if (chosen && declaration.options.some(option => option.key === chosen.key)) return chosen;
+  return {key: declaration.key, direction: declaration.direction};
+}
+
+/** Replaces the array at `path` of the evaluated model with its sorted copy; a non-array is left. */
+function sortInPlace(model: Record<string, unknown>, path: string, choice: SortChoice): void {
+  const steps = parsePointer(path);
+  let parent: unknown = model;
+  for (const step of steps.slice(0, -1)) {
+    if (step.kind !== 'key' || typeof parent !== 'object' || parent === null) return;
+    parent = (parent as Record<string, unknown>)[step.key];
+  }
+  const last = steps.at(-1);
+  if (!last || last.kind !== 'key' || typeof parent !== 'object' || parent === null) return;
+  const container = parent as Record<string, unknown>;
+  const elements = container[last.key];
+  if (!Array.isArray(elements)) return;
+  container[last.key] = orderElements(elements, choice.key, choice.direction);
+}
+
+export function evaluate(input: EvaluateInput): EvaluatedModel {
+  const {payload} = input;
+  const model = evaluateNode(payload.dataModel, input) as Record<string, unknown>;
+  const sorts = payload.sorts.map(declaration => {
+    const choice = choiceInForce(declaration, input.choices);
+    sortInPlace(model, declaration.path, choice);
+    return {...declaration, key: choice.key, direction: choice.direction};
   });
-  const sort = sortInForce(wiring, input.sort);
-  return {
-    entities: orderEntities(entities, sort),
-    sort: {field: sort.field, direction: sort.direction, fields: wiring.fields},
-  };
+  return {...model, sorts};
+}
+
+/** The user's choices as the sort controls wrote them back at `/sorts`, keyed by array path. */
+export function choicesOf(sorts: unknown): Map<string, SortChoice> {
+  const choices = new Map<string, SortChoice>();
+  if (!Array.isArray(sorts)) return choices;
+  for (const raw of sorts) {
+    const candidate = raw as {path?: unknown; key?: unknown; direction?: unknown} | null;
+    if (typeof candidate?.path !== 'string' || typeof candidate.key !== 'string') continue;
+    if (candidate.direction !== 'asc' && candidate.direction !== 'desc') continue;
+    choices.set(candidate.path, {key: candidate.key, direction: candidate.direction});
+  }
+  return choices;
 }

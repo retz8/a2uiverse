@@ -19,7 +19,7 @@
  *   slots then fill in place, and a fragment that fails flips its slot rather than the paint.
  * - **Synthesis**: the stamp's generations are handed to the synthesis session before the
  *   event's messages apply, so a bump marks derived cells stale ahead of the data that follows
- *   it; the wiring riding a synthesis paint is handed over once its surface is live — at apply
+ *   it; the payload riding a synthesis paint is handed over once its surface is live — at apply
  *   in progressive mode, at the swap in staged mode. Retiring a composition retires its
  *   synthesis.
  * - **Timeline entries**: a landing stage paint appends its entry with a null snapshot — the
@@ -41,7 +41,7 @@
  */
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
 import {A2uiValidationError} from '@a2ui/web_core/v0_9';
-import type {CompositionStamp, SynthesisWiring} from '@a2uiverse/sdk';
+import type {CompositionStamp, SynthesisPayload} from '@a2uiverse/sdk';
 import type {PaintMeta} from '../../a2a/messages';
 import {paintMetaOf, QUESTION_PAINT_KIND} from '../../a2a/messages';
 import {applyA2uiMessages} from '../../a2ui/applyMessages';
@@ -64,10 +64,10 @@ export interface TurnHandle {
   /**
    * Apply one streamed batch — the routing described in the module header. The composition stamp
    * of the event that carried it decides the batch's role: absent or `shell` is a stage paint,
-   * `fragment` fills the slot the stamp names. A wiring beside the stamp is the synthesis
+   * `fragment` fills the slot the stamp names. A payload beside the stamp is the synthesis
    * paint's, handed to the synthesis session once the surface it describes is live.
    */
-  apply(messages: A2uiMessage[], stamp?: CompositionStamp, wiring?: SynthesisWiring): void;
+  apply(messages: A2uiMessage[], stamp?: CompositionStamp, synthesis?: SynthesisPayload): void;
   /**
    * Accept one paintMeta shell object: the agent-authored title upgrades the in-flight label
    * immediately and lands on the paint's timeline entry; `kind: "question"` is the routing
@@ -100,7 +100,7 @@ export interface TurnRunnerOptions {
    * lifecycle — so it reports and lets the shell repaint say so.
    */
   onFragmentFailure?: (failure: FragmentFailure) => void;
-  /** The synthesis session: fed generations, wirings, and the composition's retirement. */
+  /** The synthesis session: fed generations, payloads, and the composition's retirement. */
   synthesis?: SynthesisIntake;
 }
 
@@ -201,7 +201,7 @@ export function createTurnRunner({
     store.clearPlacement();
     store.clearPromotions();
     store.setStage(null);
-    // The synthesis belongs to the composition: its wiring, generations and sort go with it.
+    // The synthesis belongs to the composition: its payload, generations and sorts go with it.
     synthesis?.retire();
   };
 
@@ -240,8 +240,8 @@ export function createTurnRunner({
     const claims: Array<{slot: string; surfaceId: string; source: string}> = [];
     /** Staged-mode buffer: the messages replayed into the live processor at swap. */
     const buffered: A2uiMessage[] = [];
-    /** Staged-mode wiring, handed over once its surface reaches the live processor at swap. */
-    let pendingWiring: {surfaceId: string; slot: string; wiring: SynthesisWiring} | undefined;
+    /** Staged-mode payload, handed over once its surface reaches the live processor at swap. */
+    let pendingSynthesis: {surfaceId: string; slot: string; payload: SynthesisPayload} | undefined;
     let canceled = false;
 
     /** Validation failures held until the settled state can be judged (module header). */
@@ -396,10 +396,10 @@ export function createTurnRunner({
       stamp?.role === 'shell' && messages.some(m => targetOf(m).kind === 'create');
 
     /**
-     * The surface a wiring describes: the fragment created in its batch, or the one already
+     * The surface a payload describes: the fragment created in its batch, or the one already
      * filling the stamp's slot when the paint is a bare update.
      */
-    const wiringTarget = (messages: A2uiMessage[], stamp: CompositionStamp | undefined) => {
+    const synthesisTarget = (messages: A2uiMessage[], stamp: CompositionStamp | undefined) => {
       const slot = slotOf(stamp);
       if (!slot) return undefined;
       const created = messages.map(targetOf).find(t => t.kind === 'create' && t.surfaceId);
@@ -419,7 +419,7 @@ export function createTurnRunner({
     const applyProgressive = (
       messages: A2uiMessage[],
       stamp?: CompositionStamp,
-      wiring?: SynthesisWiring,
+      payload?: SynthesisPayload,
     ) => {
       const slot = slotOf(stamp);
       for (const message of messages) {
@@ -434,11 +434,11 @@ export function createTurnRunner({
       }
       applyA2uiMessages(processor, messages, {onMessageError});
       if (slot) settlePromotion(slot);
-      if (wiring) {
+      if (payload) {
         // The surface is live: evaluate now, so the first render already carries values.
-        const target = wiringTarget(messages, stamp);
+        const target = synthesisTarget(messages, stamp);
         if (target && processor.model.getSurface(target.surfaceId))
-          synthesis?.accept(target, wiring);
+          synthesis?.accept(target, payload);
       }
       // Single occupancy: the most recently created *stage* surface keeps the stage. Fragments
       // live in the processor only to be mounted through their slots; they never contend for it.
@@ -453,14 +453,14 @@ export function createTurnRunner({
     const applyStaged = (
       messages: A2uiMessage[],
       stamp?: CompositionStamp,
-      wiring?: SynthesisWiring,
+      payload?: SynthesisPayload,
     ) => {
       const slot = slotOf(stamp);
       let touchedLive = false;
-      if (wiring) {
+      if (payload) {
         // Held until the swap: the surface it describes is streaming off-stage.
-        const target = wiringTarget(messages, stamp);
-        if (target) pendingWiring = {...target, wiring};
+        const target = synthesisTarget(messages, stamp);
+        if (target) pendingSynthesis = {...target, payload};
       }
       for (const message of messages) {
         const {kind, surfaceId} = targetOf(message);
@@ -556,12 +556,12 @@ export function createTurnRunner({
         claimSlot(slot, surfaceId, source);
         settlePromotion(slot);
       }
-      // The synthesis surface reached live with the replay: its wiring lands with it.
-      if (pendingWiring && processor.model.getSurface(pendingWiring.surfaceId)) {
-        const {wiring, ...target} = pendingWiring;
-        synthesis?.accept(target, wiring);
+      // The synthesis surface reached live with the replay: its payload lands with it.
+      if (pendingSynthesis && processor.model.getSurface(pendingSynthesis.surfaceId)) {
+        const {payload, ...target} = pendingSynthesis;
+        synthesis?.accept(target, payload);
       }
-      pendingWiring = undefined;
+      pendingSynthesis = undefined;
       for (const id of stagePaints.slice(0, -1)) retireIntermediate(id);
       if (stagePaints.length > 0) {
         const stageId = stagePaints[stagePaints.length - 1];
@@ -579,7 +579,7 @@ export function createTurnRunner({
       get canceled() {
         return canceled;
       },
-      apply: (messages, stamp, wiring) => {
+      apply: (messages, stamp, payload) => {
         if (canceled) return;
         // Generations first: a bump marks derived cells stale before the data behind it lands.
         if (stamp?.generations) synthesis?.noteGenerations(stamp.generations);
@@ -600,8 +600,8 @@ export function createTurnRunner({
           if (roster) store.setRoster(roster);
         }
         if (stagedMode && opensComposition(rest, stamp)) goProgressive();
-        if (stagedMode) applyStaged(rest, stamp, wiring);
-        else applyProgressive(rest, stamp, wiring);
+        if (stagedMode) applyStaged(rest, stamp, payload);
+        else applyProgressive(rest, stamp, payload);
       },
       acceptPaintMeta,
       end: () => {

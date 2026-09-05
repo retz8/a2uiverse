@@ -1,7 +1,7 @@
 import {A2AClient} from '@a2a-js/sdk/client';
 import type {MessageSendParams} from '@a2a-js/sdk';
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
-import type {CompositionStamp, SynthesisWiring} from '@a2uiverse/sdk';
+import type {CompositionStamp, SynthesisPayload} from '@a2uiverse/sdk';
 import type {A2AStreamEventData, PaintMeta} from './messages';
 import {
   extractA2uiMessagesFromEvent,
@@ -9,7 +9,7 @@ import {
   extractContextId,
   extractPaintMetasFromEvent,
   extractStampFromEvent,
-  extractWiringFromEvent,
+  extractSynthesisFromEvent,
 } from './messages';
 import type {A2ASession} from './session';
 
@@ -65,9 +65,9 @@ export interface SendAndApplyOptions {
   /**
    * Applies one event's A2UI messages. The composition stamp of the event carrying them rides
    * along: it is what tells the canvas whether these messages paint the shell or fill a slot.
-   * The synthesis wiring rides beside the stamp on the event that paints the merged view.
+   * The synthesis payload rides beside the stamp on the event that paints the merged view.
    */
-  apply: (messages: A2uiMessage[], stamp?: CompositionStamp, wiring?: SynthesisWiring) => void;
+  apply: (messages: A2uiMessage[], stamp?: CompositionStamp, synthesis?: SynthesisPayload) => void;
   session?: A2ASession;
   /**
    * One streamed chunk of agent prose, with the stamp of the event carrying it — which is what
@@ -97,7 +97,7 @@ export async function sendAndApply(
     if (onPaintMeta) for (const meta of extractPaintMetasFromEvent(event)) onPaintMeta(meta);
     const stamp = extractStampFromEvent(event);
     const messages = extractA2uiMessagesFromEvent(event);
-    if (messages.length) apply(messages, stamp, extractWiringFromEvent(event));
+    if (messages.length) apply(messages, stamp, extractSynthesisFromEvent(event));
     if (onAgentText) for (const text of extractAgentTextFromEvent(event)) onAgentText(text, stamp);
   }
 }

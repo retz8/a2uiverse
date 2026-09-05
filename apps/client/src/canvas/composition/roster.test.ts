@@ -4,7 +4,7 @@
  */
 import {describe, it, expect} from 'vitest';
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
-import {rosterFromShellMessages} from './roster';
+import {rosterFromShellMessages, SHELL_SOURCE} from './roster';
 
 const msg = (m: Record<string, unknown>): A2uiMessage =>
   ({version: 'v0.9', ...m}) as unknown as A2uiMessage;
@@ -44,6 +44,43 @@ describe('rosterFromShellMessages', () => {
       {appId: 'gmail', displayName: 'Gmail', slot: 'slot-gmail'},
       {appId: 'calendar', displayName: 'Google Calendar', slot: 'slot-calendar'},
     ]);
+  });
+
+  it('reads a shell-content slot as the reserved shell source, named by its label, with no attribution before it (task-5.5 decision 1)', () => {
+    const paint = msg({
+      updateComponents: {
+        surfaceId: 'shell:shell',
+        components: [
+          {
+            id: 'root',
+            component: 'Frame',
+            direction: 'row',
+            children: ['slot-shell', 'wrap-slot-github'],
+          },
+          {
+            id: 'slot-shell',
+            component: 'Slot',
+            name: 'slot-shell',
+            state: 'pending',
+            label: 'Synthesis',
+            content: 'shell',
+          },
+          {id: 'wrap-slot-github', component: 'Column', children: []},
+          {
+            id: 'attr-slot-github',
+            component: 'Attribution',
+            appId: 'github',
+            displayName: 'GitHub',
+          },
+          {id: 'slot-github', component: 'Slot', name: 'slot-github', state: 'pending'},
+        ],
+      },
+    });
+    expect(rosterFromShellMessages([paint])).toEqual([
+      {appId: SHELL_SOURCE, displayName: 'Synthesis', slot: 'slot-shell'},
+      {appId: 'github', displayName: 'GitHub', slot: 'slot-github'},
+    ]);
+    expect(SHELL_SOURCE).toBe('shell');
   });
 
   it('falls back to the app id when the paint carries no display name', () => {

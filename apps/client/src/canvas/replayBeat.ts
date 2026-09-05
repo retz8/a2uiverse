@@ -58,7 +58,7 @@ export async function replayBeatOnCanvas(
         // data-model value by reference, so replaying a fixture's own objects would let a
         // two-way edit or a later evaluation write back into the module-level fixture.
         if (batch.messages.length)
-          handle.apply(structuredClone(batch.messages), batch.stamp, batch.wiring);
+          handle.apply(structuredClone(batch.messages), batch.stamp, batch.synthesis);
         // Same buffering as the live path: the batch's stamp says whose line the chunk joins.
         const source = batch.stamp?.role === 'fragment' ? batch.stamp.source : null;
         for (const text of batch.texts) store.appendProse(source, text);

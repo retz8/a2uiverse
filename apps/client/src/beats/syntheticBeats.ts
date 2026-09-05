@@ -13,15 +13,17 @@ import {CATALOG_ID} from 'github-catalog';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 import type {BeatFixture} from './beatFixtures';
 import {
-  REWIRING,
+  DOCUMENT,
+  PAYLOAD,
   SHOP_A,
-  SHOP_A_ITEMS,
+  SHOP_A_NAME,
+  SHOP_A_REVERSED,
   SHOP_B,
-  SHOP_B_ITEMS,
-  storefrontMessages,
+  SHOP_B_NAME,
+  shopAMessages,
+  shopBMessages,
   SYNTHESIS_SLOT,
   synthesisMessages,
-  WIRING,
 } from './synthesisFixture';
 
 const msg = (m: Record<string, unknown>): A2uiMessage =>
@@ -467,44 +469,68 @@ export const COMPOSED_QUESTION_BEAT: BeatFixture = {
   ],
 };
 
-/** The shell's layout for a synthesis turn: the synthesis slot first, then one slot per store. */
-function synthesisShellComponents(slots: readonly {slot: string; appId: string; name: string}[]) {
+/**
+ * The shell's layout for a synthesis turn: the synthesis slot first — shell content, no
+ * attribution beside it (task-5.5 decision 1) — then one attributed slot per store.
+ */
+function synthesisShellComponents(
+  slots: readonly {slot: string; appId: string; name: string; shell?: boolean}[],
+): Array<Record<string, unknown>> {
   return [
-    {id: 'root', component: 'Frame', direction: 'row', children: slots.map(s => `wrap-${s.slot}`)},
-    ...slots.flatMap(s => [
-      {id: `wrap-${s.slot}`, component: 'Column', children: [`attr-${s.slot}`, s.slot]},
-      {id: `attr-${s.slot}`, component: 'Attribution', displayName: s.name, appId: s.appId},
-      {id: s.slot, component: 'Slot', name: s.slot, state: 'pending', label: s.name},
-    ]),
+    {
+      id: 'root',
+      component: 'Frame',
+      direction: 'row',
+      children: slots.map(s => (s.shell ? s.slot : `wrap-${s.slot}`)),
+    },
+    ...slots.flatMap((s): Array<Record<string, unknown>> =>
+      s.shell
+        ? [
+            {
+              id: s.slot,
+              component: 'Slot',
+              name: s.slot,
+              state: 'pending',
+              label: s.name,
+              content: 'shell',
+            },
+          ]
+        : [
+            {id: `wrap-${s.slot}`, component: 'Column', children: [`attr-${s.slot}`, s.slot]},
+            {id: `attr-${s.slot}`, component: 'Attribution', displayName: s.name, appId: s.appId},
+            {id: s.slot, component: 'Slot', name: s.slot, state: 'pending', label: s.name},
+          ],
+    ),
   ];
 }
 
 const SYNTHESIS_SLOTS = [
-  {slot: SYNTHESIS_SLOT, appId: 'shell', name: 'Synthesis'},
-  {slot: 'slot-shop-a', appId: 'shop-a', name: 'Shop A'},
-  {slot: 'slot-shop-b', appId: 'shop-b', name: 'Shop B'},
+  {slot: SYNTHESIS_SLOT, appId: 'shell', name: 'Synthesis', shell: true},
+  {slot: 'slot-shop-a', appId: 'shop-a', name: SHOP_A_NAME},
+  {slot: 'slot-shop-b', appId: 'shop-b', name: SHOP_B_NAME},
 ];
 
 /**
- * A synthesis turn as the hub streams one (task 4.4), then the re-synthesis path (phase decision
- * 15): the shell reserves the synthesis slot at first paint; two storefronts fill their slots,
- * each stamped with its partition's generation; the merged view is painted into the reserved
- * slot with its wiring beside the stamp. A second, action turn reorders shop A's list in place:
- * the bump arrives on the vendor's own event, the derived cells go stale, and the new wiring
- * lands. Both storefronts paint in the shell catalog here for control — the stream is authored,
- * not recorded, and the mocks' catalogs (bundled since 4.7) would add nothing it tests.
+ * A synthesis turn as the hub streams one (tasks 4.4, 5.4), over the sdk's camera comparison
+ * example (task-5.5 decision 7): the shell reserves the synthesis slot at first paint; two
+ * storefronts of unrelated shapes fill their slots, each stamped with its partition's
+ * generation; the model-authored view is painted into the reserved slot with its payload beside
+ * the stamp. A second, action turn reorders shop A's list in place: the bump arrives on the
+ * vendor's own event, and — every ref being keyed — nothing goes stale and no re-synthesis
+ * follows (phase decision 6). Both storefronts paint in the shell catalog here for control —
+ * the stream is authored, not recorded, and the mocks' catalogs would add nothing it tests.
  */
 export const SYNTHESIS_BEAT: BeatFixture = {
   ...base,
   name: 'synthetic-synthesis',
   beat: 106,
   title: 'Synthesis turn',
-  prompt: 'compare camera prices across both shops',
+  prompt: 'compare camera prices across both stores',
   turns: [
     {
       taskId: 'synthetic-synthesis',
       kind: 'utterance',
-      prompt: 'compare camera prices across both shops',
+      prompt: 'compare camera prices across both stores',
       action: null,
       outcome: 'completed',
       durationMs: 2600,
@@ -531,7 +557,7 @@ export const SYNTHESIS_BEAT: BeatFixture = {
             role: 'fragment',
             generations: {[SHOP_A]: 1},
           },
-          messages: storefrontMessages(SHOP_A, SHELL_CATALOG_ID, 'Shop A', SHOP_A_ITEMS),
+          messages: shopAMessages(SHELL_CATALOG_ID),
           texts: [],
         },
         {
@@ -542,15 +568,15 @@ export const SYNTHESIS_BEAT: BeatFixture = {
             role: 'fragment',
             generations: {[SHOP_B]: 1},
           },
-          messages: storefrontMessages(SHOP_B, SHELL_CATALOG_ID, 'Shop B', SHOP_B_ITEMS),
+          messages: shopBMessages(SHELL_CATALOG_ID),
           texts: [],
         },
         // Dead air: the Synthesizer's model call. Then the merged view claims its slot.
         {
           offsetMs: 2600,
           stamp: {source: 'shell', slot: SYNTHESIS_SLOT, role: 'fragment'},
-          messages: synthesisMessages(WIRING, SHELL_CATALOG_ID),
-          wiring: WIRING,
+          messages: synthesisMessages(DOCUMENT, SHELL_CATALOG_ID),
+          synthesis: PAYLOAD,
           texts: [],
         },
       ],
@@ -567,9 +593,9 @@ export const SYNTHESIS_BEAT: BeatFixture = {
         timestamp: '2026-09-04T00:00:00Z',
       },
       outcome: 'completed',
-      durationMs: 2200,
+      durationMs: 300,
       batches: [
-        // The vendor's own event carries the bump: stale first, data second.
+        // The vendor's own event carries the bump. Keyed refs survive it: the view holds.
         {
           offsetMs: 0,
           stamp: {
@@ -583,18 +609,10 @@ export const SYNTHESIS_BEAT: BeatFixture = {
               updateDataModel: {
                 surfaceId: SHOP_A,
                 path: '/items',
-                value: [...SHOP_A_ITEMS].reverse().map(item => ({...item})),
+                value: SHOP_A_REVERSED.map(item => ({...item})),
               },
             }),
           ],
-          texts: [],
-        },
-        // Re-synthesis, inline in the action turn: the same surface, replaced, new wiring.
-        {
-          offsetMs: 2200,
-          stamp: {source: 'shell', slot: SYNTHESIS_SLOT, role: 'fragment'},
-          messages: synthesisMessages(REWIRING, SHELL_CATALOG_ID),
-          wiring: REWIRING,
           texts: [],
         },
       ],
