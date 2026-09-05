@@ -100,6 +100,8 @@ The word "chrome" is not used.
 
 Every grafted fragment carries a shell-owned **attribution affordance** — rendered by the shell, in the shell catalog, in the shell's own surface — that the fragment cannot suppress, restyle, or occlude. The shell controls its prominence: a quiet persistent marker on the fragment boundary, full attribution on hover/focus, escalation when authority is in play. The boundary carries an accessible name announcing the source. When multiple credentials are in play, attribution is per call, from the credential's user-given label.
 
+Attribution is for vendor fragments. The shell's own content — the synthesis surface — carries none: it renders in its reserved position with no boundary and no tile, the shell writing on its own page, and its provenance is in each derived value (§5.4).
+
 ### 4.4 Agent awareness
 
 - The request to an agent is Planner-authored natural language carrying all size/shape guidance as prose. The agent paints for its slot in its own catalog; nothing a2uiverse-specific rides the vendor wire.
@@ -110,7 +112,7 @@ Every grafted fragment carries a shell-owned **attribution affordance** — rend
 
 - The Planner commits a provisional layout before any agent is dispatched. **First paint never waits on any agent.**
 - Slot **identity and position are fixed for the turn**. Later revisions may fill, resize, or collapse a slot. They never permute slots. A fragment is never re-parented.
-- When the plan fans out with synthesis, the **synthesis slot is reserved at plan time**, painted pending, and filled in place.
+- When the plan fans out with synthesis, the **synthesis slot is reserved at plan time**, painted as a quiet pending marker rather than a tile, and filled in place.
 
 ---
 
