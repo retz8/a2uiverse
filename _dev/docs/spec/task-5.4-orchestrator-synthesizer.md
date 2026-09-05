@@ -12,7 +12,7 @@ The orchestrator's Synthesizer becomes the author of the merged view: it writes 
 - Re-synthesis handed the previous document and the change account.
 - The journal recording the whole conversation.
 - The Planner's prompt: the synthesis brief and the vendor merge asks.
-- The legacy wiring (`wiring.ts`, `composition.v0.2.json`) removed with this sub-task.
+- The legacy wiring (`wiring.ts`, `composition.v0.2.json`) removed by whichever of 5.4 and 5.5 lands second — the client imports it until 5.5.
 - Not here: the quiet pending state (client, 5.5); model and effort settings.
 
 ## Locked decisions
