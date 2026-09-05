@@ -376,6 +376,9 @@ M2   + synthesis, identical shapes   two sibling mock vendor agents             
      generation stamps · disclosure line
 M3   + heterogeneous shapes   temporal merge (Calendar · Mail · GitHub)
      proves unrelated data models · shared-axis merge · key-based refs · decline · late arrival
+M3s  the shell as an agent   the orchestrator's model answers itself in the shell catalog when no vendor serves —
+     installed agents · the platform's own state; what platform state the model may read (§10's Planner "never sees data"
+     is revisited here); which of M10's pages it may author and which stay trusted
 M4   + entity resolution   entity join                                          ← differentiator proven
 M6   late-arrival + failure   per-source deadlines · failure tiles · decline · late absorb
 M5   durable composition   timeline · frozen + stamped · refresh · add/drop source · "compare these"

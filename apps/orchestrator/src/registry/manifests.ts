@@ -6,7 +6,7 @@ import type {AppRecord} from './types.js';
  * The roster read from an agents dir (task 4.7): every immediate child carrying a `manifest.json`
  * becomes a record, and a child without one is not an app — the launcher's own convention
  * (`scripts/agents-discovery.mjs`), pinned on both sides. The manifest is the record's placeholder
- * until the sdk manifest schema lands (Phase 9), when this reader moves there and the hardcoded
+ * until the sdk manifest schema lands (Phase 10), when this reader moves there and the hardcoded
  * entries go. Malformed is fatal naming the file, empty is fatal: the roster is config, and the
  * orchestrator has no listing to show what it skipped.
  */

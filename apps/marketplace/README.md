@@ -15,4 +15,4 @@ pnpm --filter @a2uiverse/marketplace build | typecheck | test | lint
 
 ## Port
 
-`10002`, reserved; the process lands in Phase 11. See `_dev/docs/tunnel-environment.md`.
+`10002`, reserved; the process lands in Phase 12. See `_dev/docs/tunnel-environment.md`.

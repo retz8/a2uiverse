@@ -24,7 +24,7 @@ Named by what its roster contains, not by what it is used for. "Synthesis profil
 
 ### 3. The roster comes from a directory of manifests
 
-When opted in, the orchestrator builds its registry from the manifests found one level below a directory, and that set replaces the hardcoded roster. Unset means today's hardcoded three. The mocks are dev-only and must never enter platform source: the manifests already mirror the registry record and already live in the apps repo, and a real registry (Phase 9) replaces the directory with its install root and deletes the hardcode rather than having to strip mock records out. An inline record list via env, and mock records baked into the compile-time entries under a tier tag or id filter, were both rejected for leaking mock knowledge into the platform.
+When opted in, the orchestrator builds its registry from the manifests found one level below a directory, and that set replaces the hardcoded roster. Unset means today's hardcoded three. The mocks are dev-only and must never enter platform source: the manifests already mirror the registry record and already live in the apps repo, and a real registry (Phase 10) replaces the directory with its install root and deletes the hardcode rather than having to strip mock records out. An inline record list via env, and mock records baked into the compile-time entries under a tier tag or id filter, were both rejected for leaking mock knowledge into the platform.
 
 ### 4. One directory variable, shared by launcher and orchestrator
 
@@ -32,7 +32,7 @@ The orchestrator reads the same agents-dir variable the launcher already reads. 
 
 ### 5. The client bundles all five catalogs and knows nothing of the profile
 
-Both mock catalogs join the client's dependencies and its static catalog table beside the three vendor ones. The client renders whatever roster the orchestrator serves and never reads the profile. The mock names in the client's dependency list are an accepted leak, of the same kind the three vendor deps already are: the static table is the placeholder that Phase 9's dynamic catalog loading replaces, and all five deps leave together then. A build-time switch was rejected as a third thing to keep in agreement for no gain; not bundling was rejected because a fragment cannot render without its catalog.
+Both mock catalogs join the client's dependencies and its static catalog table beside the three vendor ones. The client renders whatever roster the orchestrator serves and never reads the profile. The mock names in the client's dependency list are an accepted leak, of the same kind the three vendor deps already are: the static table is the placeholder that Phase 10's dynamic catalog loading replaces, and all five deps leave together then. A build-time switch was rejected as a third thing to keep in agreement for no gain; not bundling was rejected because a fragment cannot render without its catalog.
 
 ### 6. The profile is a documented invocation, not code
 
@@ -48,7 +48,7 @@ A run over the three vendors plus the two mocks is not reachable in 4.7. A path-
 
 ### 9. The orchestrator carries its own manifest reader
 
-A small reader in the orchestrator, mapping only the fields the registry record already has. The launcher's discovery module is not imported across the app boundary, and discovery is not moved into the sdk now — that means designing the manifest schema, which is Phase 9's job and where both consumers will import the reader from. The shared thing is the convention — one level down, one manifest per child — pinned by tests on both sides.
+A small reader in the orchestrator, mapping only the fields the registry record already has. The launcher's discovery module is not imported across the app boundary, and discovery is not moved into the sdk now — that means designing the manifest schema, which is Phase 10's job and where both consumers will import the reader from. The shared thing is the convention — one level down, one manifest per child — pinned by tests on both sides.
 
 ### 10. Missing is silent, malformed is fatal, empty is fatal
 

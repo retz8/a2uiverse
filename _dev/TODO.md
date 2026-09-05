@@ -65,38 +65,41 @@ Spec: `_dev/docs/spec/phase-4-synthesis.md`.
 ## Phase 5 — Heterogeneous shapes
 Temporal merge over Calendar · Mail · GitHub (M3). Unrelated data models, shared-axis merge, key-based refs, decline, quiescence across unsynchronized arrivals.
 
-## Phase 6 — Entity resolution
+## Phase 6 — The shell as an agent
+The orchestrator's model answers an utterance itself, in the shell catalog, when no vendor serves it — installed agents, what the canvas can do, the platform's own state (M3s). What platform state the model may read. Which shell pages it may author and which stay trusted, against M10's Store page · App Library · accounts. Framing decided in Phase 5's grill. Before Phases 8, 11 and 14, which paint shell content into slots.
+
+## Phase 7 — Entity resolution
 Entity join (M4). The differentiator proven.
 
-## Phase 7 — Late arrival + failure
+## Phase 8 — Late arrival + failure
 Per-source deadlines, failure tiles, decline, late absorb as a visible attributed update (M6).
 
-## Phase 8 — Durable composition
+## Phase 9 — Durable composition
 Timeline, frozen + stamped, refresh, add/drop source, "compare these" (M5).
 Carried from 4.8, found in the live run: **acting inside a parked composition forks a turn whose answer lands nowhere.** The Phase 1 fork path assumes an action produces a new paint. Under composition a vendor answers an action with an `updateDataModel` on its existing surface, and that surface exists only inside the parked snapshot — the live head was torn down and replaced by the later turn — so the update has no surface to land on and the canvas shows nothing (journal 2026-09-04 11:50–11:53: four `sort-by` actions carrying `a2uiForkContext`, each completed with `shop-a:list`/`shop-b:list` updated, none visible). The orchestrator is confused the same way: it relays the action against the context's *current* composition, not the one the user was looking at, so its partitions and any live wiring belong to a different screen. The semantics to build: a fork from a parked composition rehydrates that composition — its surfaces, placement, partitions, wiring and generations — as the new live head on both sides, then applies the vendor's answer to it; a decline or re-synthesis then runs against the screen the user acted on. Until then, actions in a parked composed view should be blocked with a cue rather than silently dropped.
 
-## Phase 9 — App bundle + registry
+## Phase 10 — App bundle + registry
 Bundle format, local install, registry no longer hardcoded, the GitHub app installed as a bundle (M7).
 
-## Phase 10 — Authority surfaces
+## Phase 11 — Authority surfaces
 Auth-required → authority tile, consent dialog, AuthVault, credential components barred from all catalogs (M8). Expand the orchestrator's slot naming policy for multi-account: slot names derived from appId alone stop being collision-free once one app can fan out under two accounts.
 
-## Phase 11 — Marketplace + publish
+## Phase 12 — Marketplace + publish
 Local index, package hosting, publish step, hello-fragment smoke test (M9).
 
-## Phase 12 — Shell trusted pages
+## Phase 13 — Shell trusted pages
 Store page, App Library, accounts (M10).
 
-## Phase 13 — Store loop
+## Phase 14 — Store loop
 Capability gap → marketplace index → install → resume (M11).
 
-## Phase 14 — Ecosystem run
+## Phase 15 — Ecosystem run
 Publish a new app → discover → install → compose with an existing one → act inside it. One sitting, no code changes; the deliverable is the recording (M12).
 
 ## Backlog
 - The Planner's `archetype` (`card|panel|row|full`) is planned, validated and journaled but affects nothing: `Frame` sizes a row's slots equally regardless. Decide what each value should mean — whether `full` breaks out of its row, whether weights are proportional — or drop it from the plan schema
 - Revisit Gmail/Calendar product styling depth once compositions and functionality land at later milestones
-- Capability-gap terminal state when the marketplace has nothing either — what the capability tile says, whether the reserved slot collapses or stands (Phase 13's grill)
+- Capability-gap terminal state when the marketplace has nothing either — what the capability tile says, whether the reserved slot collapses or stands (Phase 14's grill)
 - Stream the synthesis fragment into its reserved slot (§16 dead-air mitigation). Measured in 4.8 over the mock roster (last source settled → synthesis outcome, journal `synthesis.deadAirMs`, Planner and Synthesizer on `gemini-2.5-flash` at low effort): deterministic mocks — comparison utterance 3.7 s · 4.2 s · 9.2 s across three runs, re-synthesis after an in-place reorder 3.8 s, decline 1.2–1.5 s; live mocks — comparison 8.0 s, re-synthesis after reorder 3.7 s, decline 1.4 s. The interval is the Synthesizer's own call; the mocks' mode barely moves it
 - A re-synthesis may re-author the merged view, not only re-point its refs: in the live pass the reorder's re-synthesis swapped the per-shop price columns for per-shop availability columns. The Synthesizer is called with the Planner's request alone; whether it should be handed the previous wiring's fields so a bump preserves the view's shape is undecided
 - S5 multi-account exercised

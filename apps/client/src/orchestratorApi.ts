@@ -30,7 +30,7 @@ export interface CatalogRecord {
  * The two mock storefronts (`a2uiverse-apps/mocks/`) are always here, though they are in the
  * orchestrator's roster only when it is pointed at the tier: the client renders whatever roster the
  * orchestrator serves and knows nothing of the profile. Naming a mock in this list is an accepted
- * leak with a known expiry — the list itself is the placeholder Phase 9's dynamic catalog loading
+ * leak with a known expiry — the list itself is the placeholder Phase 10's dynamic catalog loading
  * replaces, and all five app catalogs leave it together then.
  */
 const STATIC_CATALOGS: CatalogRecord[] = [

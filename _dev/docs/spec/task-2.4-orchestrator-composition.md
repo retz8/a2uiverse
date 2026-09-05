@@ -19,7 +19,7 @@ The plan's layout is an alternating row/column tree, depth-capped at 2, unrolled
 
 ### 3. Slot entry and naming
 
-A leaf is `{appId, archetype, request}` — nothing more. Slot names are orchestrator-derived from appId (collision-free with one slot per agent per turn); the Planner never invents identifiers. M8 expands the naming policy for multi-account (memo in `_dev/TODO.md` Phase 10).
+A leaf is `{appId, archetype, request}` — nothing more. Slot names are orchestrator-derived from appId (collision-free with one slot per agent per turn); the Planner never invents identifiers. M8 expands the naming policy for multi-account (memo in `_dev/TODO.md` Phase 11).
 
 ### 4. No vendor-facing slot request; archetype is hub-internal
 

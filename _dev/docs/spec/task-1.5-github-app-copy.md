@@ -33,7 +33,7 @@ The source's client, adapter template, docs, and the agent's recordings and untr
 
 ### 6. Manifest placeholder
 
-`github/manifest.json` mirrors the orchestrator's registry record (id, display name, agent URL, auth, catalog id, catalog package) and notes that the schema lands with the `sdk` manifest in Phase 9. Nothing reads it in Phase 1.
+`github/manifest.json` mirrors the orchestrator's registry record (id, display name, agent URL, auth, catalog id, catalog package) and notes that the schema lands with the `sdk` manifest in Phase 10. Nothing reads it in Phase 1.
 
 ### 7. Platform switch
 

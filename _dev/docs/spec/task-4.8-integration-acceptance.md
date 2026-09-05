@@ -58,7 +58,7 @@ Each surfaced by the gate before any item passed; all fixed in the same session,
 
 *Added during the run.* **A parked synthesis re-sorts.** Task 4.5 decision 13 had a parked entry carry no wiring, so its sort control was inert; the live run found that the first thing a person does in a parked comparison is sort it. The timeline entry now captures the synthesis beside its fragments — wiring, surface, generations — and the parked session re-runs the evaluator over the snapshot's own frozen partitions on a sort write. Sort crosses no wire, so nothing about "parked entries subscribe to nothing live" changes. Amends 4.5 decision 13; that spec is left as written.
 
-*Carried to Phase 8.* Acting inside a parked composition forks a turn whose vendor answer — an update to a surface only the snapshot holds — lands nowhere on either side. Recorded under Phase 8 in the TODO with the journal evidence and the semantics to build.
+*Carried to Phase 9.* Acting inside a parked composition forks a turn whose vendor answer — an update to a surface only the snapshot holds — lands nowhere on either side. Recorded under Phase 9 in the TODO with the journal evidence and the semantics to build.
 
 Observed and not reproduced: one drill-down action from the canvas, sent three seconds after its comparison turn closed, reached shop-a and was answered, yet the orchestrator never closed the turn or journaled it; the canvas reported a fetch failure two minutes later. The same action through the API, and every later action from the canvas, closed within a second.
 

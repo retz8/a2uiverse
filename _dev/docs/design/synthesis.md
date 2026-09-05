@@ -254,7 +254,7 @@ differs.
   simply goes absent.
 - **The timeline.** A parked composition carries the synthesis surface frozen with its last
   evaluated data model. No wiring, no subscriptions; the sort control in a parked entry does
-  nothing. Phase 8's "frozen + stamped" for free.
+  nothing. Phase 9's "frozen + stamped" for free.
 - **The round trip.** `shell:synthesis` rides back to the orchestrator in the client data model
   like every surface; the orchestrator ignores a derived surface harmlessly.
 

@@ -97,7 +97,7 @@ Installed apps plus, since Phase 2, the agent-authored mirror: nullable AgentCar
 | Corpus      | `corpus.ts` `corpusDoc(card)`: one document per agent — name + description + all skill texts blended; skills are card content the Planner reads, not index structure                                                                   |
 | Reservation | ctor throws on an entry with id `shell`                                                                                                                                                                                                |
 | Entries     | `entries.ts`: github → 11001, gmail → 11002, calendar → 11003 (gmail/calendar catalog ids convention-guessed until 2.6/2.7); `applyUrlOverrides(entries, map)`                                                                         |
-| Manifests   | `manifests.ts` `readRoster(agentsDir)`: the roster from `<child>/manifest.json` one level below the dir when `A2UIVERSE_AGENTS_DIR` is set — missing manifest ⇒ not an app, malformed/missing field ⇒ throws naming the file, no records or duplicate id ⇒ throws. The launcher's discovery convention, pinned on both sides; moves to the sdk with the manifest schema (Phase 9) |
+| Manifests   | `manifests.ts` `readRoster(agentsDir)`: the roster from `<child>/manifest.json` one level below the dir when `A2UIVERSE_AGENTS_DIR` is set — missing manifest ⇒ not an app, malformed/missing field ⇒ throws naming the file, no records or duplicate id ⇒ throws. The launcher's discovery convention, pinned on both sides; moves to the sdk with the manifest schema (Phase 10) |
 
 ### Embedder — `embedder/`
 

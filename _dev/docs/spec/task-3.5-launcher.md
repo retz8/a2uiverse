@@ -16,7 +16,7 @@ Out of scope: the fourth-app scaffold proof, `dev:all` end to end, the apps-repo
 
 ### 1. The launch target comes from convention
 
-An app is `<app dir>/agent`, run as the kit entrypoint with `--mode`. The layout is the scaffolder's own emitted shape, so it holds for anything generated. `agent/pyproject.toml` is the launchability check. The manifest supplies `id` and the agent URL only; it grows no launcher field, and its formalization stays with the Phase 9 sdk schema.
+An app is `<app dir>/agent`, run as the kit entrypoint with `--mode`. The layout is the scaffolder's own emitted shape, so it holds for anything generated. `agent/pyproject.toml` is the launchability check. The manifest supplies `id` and the agent URL only; it grows no launcher field, and its formalization stays with the Phase 10 sdk schema.
 
 ### 2. Discovery outcomes
 
