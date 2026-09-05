@@ -60,12 +60,34 @@ function splitTests(body: string): string[] {
   return parts;
 }
 
+/**
+ * Splits a pointer body on the slashes that separate segments. Predicate-aware: a slash inside
+ * `[…]` is content — a repository name, a path-like id — not a separator, so
+ * `prs[repository="a/b",number=11]/title` is two segments, not three.
+ */
+function splitSegments(body: string): string[] {
+  const segments: string[] = [];
+  let start = 0;
+  let depth = 0;
+  for (let i = 0; i < body.length; i++) {
+    const ch = body[i];
+    if (ch === '[') depth++;
+    else if (ch === ']' && depth > 0) depth--;
+    else if (ch === '/' && depth === 0) {
+      segments.push(body.slice(start, i));
+      start = i + 1;
+    }
+  }
+  segments.push(body.slice(start));
+  return segments;
+}
+
 /** Splits a pointer into steps; throws {@link PointerSyntaxError} on malformed input. */
 export function parsePointer(pointer: string): Step[] {
   if (pointer === '') return [];
   if (!pointer.startsWith('/')) throw new PointerSyntaxError(pointer, 'must start with "/"');
   const steps: Step[] = [];
-  for (const raw of pointer.slice(1).split('/')) {
+  for (const raw of splitSegments(pointer.slice(1))) {
     if (!raw.includes('[') && !raw.includes(']')) {
       steps.push({kind: 'key', key: unescape(raw)});
       continue;

@@ -61,6 +61,21 @@ test('splits compound tests on separators, not on commas inside a literal', () =
   ]);
 });
 
+test('a slash inside a predicate literal is content, not a segment separator', () => {
+  // GitHub names a pull request by `repository` and `number`; the repository carries a slash.
+  expect(parsePointer('/prs[repository="a2ui-project/a2ui",number=2531]/title')).toEqual([
+    {kind: 'key', key: 'prs'},
+    {
+      kind: 'predicate',
+      tests: [
+        {field: 'repository', value: 'a2ui-project/a2ui'},
+        {field: 'number', value: 2531},
+      ],
+    },
+    {kind: 'key', key: 'title'},
+  ]);
+});
+
 test('unescapes RFC 6901 ~1 and ~0', () => {
   expect(parsePointer('/a~1b/~0')).toEqual([
     {kind: 'key', key: 'a/b'},
@@ -99,6 +114,19 @@ test('a positional segment into an array says so rather than resolving', () => {
 
 test('an integer key into an object is an ordinary property name', () => {
   expect(resolvePointer({'0': 'zero'}, '/0')).toEqual({found: true, value: 'zero'});
+});
+
+test('a compound predicate over a slashed literal resolves', () => {
+  const prs = {
+    prs: [
+      {number: 11, repository: 'a/b'},
+      {number: 11, repository: 'a/c'},
+    ],
+  };
+  expect(resolvePointer(prs, '/prs[repository="a/c",number=11]/repository')).toEqual({
+    found: true,
+    value: 'a/c',
+  });
 });
 
 test('a compound predicate resolves what one field cannot', () => {
