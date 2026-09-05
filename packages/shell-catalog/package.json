@@ -2,9 +2,11 @@
   "name": "@a2uiverse/shell-catalog",
   "version": "0.1.0",
   "private": true,
-  "description": "The shell's own A2UI catalog: standard catalog plus composition primitives, as schema + React implementation.",
+  "description": "The shell's own A2UI catalog: the basic catalog on Radix Themes plus composition primitives, as schema + React implementation.",
   "type": "module",
-  "sideEffects": false,
+  "sideEffects": [
+    "**/*.css"
+  ],
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -34,19 +36,20 @@
     "catalogs"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "scope-radix": "node scripts/scope-radix.mjs",
+    "build": "pnpm scope-radix && tsc -p tsconfig.json",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
+    "test": "pnpm scope-radix && vitest run",
     "lint": "eslint .",
-    "dev": "vite dev fixture"
+    "dev": "pnpm scope-radix && vite dev fixture"
   },
   "dependencies": {
-    "@a2uiverse/sdk": "workspace:*"
+    "@a2uiverse/sdk": "workspace:*",
+    "@radix-ui/themes": "3.3.0"
   },
   "devDependencies": {
     "@a2ui/react": "^0.10.2",
     "@a2ui/web_core": "^0.10.6",
-    "@radix-ui/themes": "^3.3.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.2",

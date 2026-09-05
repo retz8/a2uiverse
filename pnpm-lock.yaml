@@ -222,6 +222,9 @@ importers:
       '@a2uiverse/sdk':
         specifier: workspace:*
         version: link:../sdk/js
+      '@radix-ui/themes':
+        specifier: 3.3.0
+        version: 3.3.0(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
     devDependencies:
       '@a2ui/react':
         specifier: ^0.10.2
@@ -229,9 +232,6 @@ importers:
       '@a2ui/web_core':
         specifier: ^0.10.6
         version: 0.10.6
-      '@radix-ui/themes':
-        specifier: ^3.3.0
-        version: 3.3.0(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@testing-library/jest-dom':
         specifier: ^6.9.1
         version: 6.10.0(@testing-library/dom@10.4.1)

@@ -1,13 +1,46 @@
 /**
- * Design-check matrix for the composition primitives: every Slot state and both
- * Attribution states, under Radix light · Radix dark · no-Radix fallback, plus
- * the scoping proof (two wrappers, different token values, side by side).
+ * Design-check matrix for the composition primitives: the sort control, every Slot
+ * state and both Attribution states, under Radix light · Radix dark · no host Theme
+ * (the Provider brings its own), plus the scoping proof (two wrappers, different token
+ * values, side by side).
  */
 import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
 import {Theme} from '@radix-ui/themes';
-import '@radix-ui/themes/styles.css';
-import {Provider, SlotContentContext, SlotView, AttributionView} from '../src/index.js';
+
+import {useState} from 'react';
+import type {SortDeclaration} from '@a2uiverse/sdk';
+import {
+  Provider,
+  SlotContentContext,
+  SlotView,
+  AttributionView,
+  SortControlView,
+} from '../src/index.js';
+
+const SORT: SortDeclaration = {
+  path: '/entries',
+  options: [
+    {key: '/when', label: 'Time'},
+    {key: '/what', label: 'Title'},
+    {key: '/source', label: 'Source'},
+  ],
+  key: '/when',
+  direction: 'asc',
+};
+
+/** The sort control as the merged view places it: the criterion, user-changeable, live. */
+function SortDemo() {
+  const [sort, setSort] = useState<SortDeclaration>(SORT);
+  return (
+    <div style={{display: 'flex', alignItems: 'center', gap: 12}}>
+      <SortControlView sort={sort} onChange={setSort} />
+      <code style={{fontSize: 11, opacity: 0.7}}>
+        {sort.key} {sort.direction}
+      </code>
+    </div>
+  );
+}
 
 function Fragment({label}: {label: string}) {
   return (
@@ -38,6 +71,7 @@ function Fragment({label}: {label: string}) {
 function SlotMatrix() {
   return (
     <div style={{display: 'grid', gap: 12}}>
+      <SortDemo />
       <div>
         <AttributionView displayName="Gmail" account="work" />
         <SlotView name="slot-pending" label="Gmail" />
@@ -115,7 +149,7 @@ createRoot(document.getElementById('root')!).render(
         </Column>
       </Theme>
       <div style={{flex: 1, background: '#fff', color: '#111'}}>
-        <Column title="no Radix — fallbacks">
+        <Column title="no host Theme — the Provider's own">
           <Provider>
             <SlotMatrix />
           </Provider>

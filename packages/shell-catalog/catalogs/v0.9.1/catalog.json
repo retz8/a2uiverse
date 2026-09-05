@@ -873,13 +873,13 @@
     },
     "DerivedValue": {
       "type": "object",
-      "description": "A value computed across sources on a merged surface, shown together with how many sources contributed. Bind every cell of a synthesized entity through this component; it marks a value that is partial, absent, or awaiting recomputation so it never reads as complete.",
+      "description": "A value computed across sources on a merged view, shown together with how many sources contributed. Every path of the derived data model whose leaf is a formula renders through this component and no other: bind `cell` to that path (inside a template, relative to the element) and the runtime supplies the value with its contributor state, so a value that is partial, absent, or awaiting recomputation never reads as complete.",
       "properties": {
         "component": {
           "const": "DerivedValue"
         },
         "cell": {
-          "description": "Path to the cell: the value with its contributor state, as written by the runtime. Always a path, never a literal.",
+          "description": "Path to a formula leaf of the derived data model — e.g. `/counts/gmail`, or `when` inside a row template over `/entries`. The runtime writes the evaluated cell there: the value with its contributor state. Always a path, never a literal.",
           "oneOf": [
             {
               "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/DataBinding"
@@ -922,13 +922,13 @@
     },
     "SortControl": {
       "type": "object",
-      "description": "Shows which field a merged surface is sorted by and lets the user change the field and direction. Place one on a synthesized surface; its options come from the runtime, not from you.",
+      "description": "Shows which key an array of the merged view is sorted by and lets the user change the key and the direction. Place one for each sort declaration you emit; bind `sort` to that declaration's runtime state at `/sorts/N`, where N is its index in your `sorts`. The options and their labels are the ones you declared; the runtime keeps the user's choice and re-sorts on change.",
       "properties": {
         "component": {
           "const": "SortControl"
         },
         "sort": {
-          "description": "Path to the sort state: the current field and direction plus the field list, as written by the runtime. Always a path, never a literal.",
+          "description": "Path to a sort declaration's runtime state, `/sorts/N`: the sorted array's path, the sortable keys with labels, the current key and direction, as written by the runtime from your declaration. Always a path, never a literal.",
           "oneOf": [
             {
               "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/DataBinding"

@@ -1,8 +1,8 @@
 # @a2uiverse/shell-catalog
 
-The shell's paint vocabulary (SPEC §4.2): the A2UI basic catalog plus the composition primitives — as schema (`catalogs/v0.9.1/catalog.json`) + React implementation, versioned together.
+The shell's paint vocabulary (SPEC §4.2): the A2UI basic catalog plus the composition primitives — as schema (`catalogs/v0.9.1/catalog.json`) + React implementation, versioned together. Radix Themes is its design system.
 
-- **Basic catalog** — re-exported from `@a2ui/react` as-is; no mapping of its own.
+- **Basic catalog** — re-exported from `@a2ui/react` as-is until 5.9 maps each component onto its Radix Themes counterpart.
 - **`Slot`** — a named region whose content the host mounts through `SlotContentContext`. It renders its own `pending` and `failed` states; `collapsed` asks the host for content first and renders nothing only if there is none, so a source that answered without painting is not left with an attribution marker naming an empty region.
 - **`Attribution`** — the quiet provenance marker (SPEC §4.3): display name + info glyph, full detail on hover/focus, accessible name always.
 - **`Provider`** — binds `--a2ui-*` to Radix Themes variables with explicit fallbacks, scoped to its own wrapper (never `:root`).
@@ -16,4 +16,4 @@ pnpm --filter @a2uiverse/shell-catalog build | typecheck | test | lint
 pnpm --filter @a2uiverse/shell-catalog dev    # design-check fixture on :5174
 ```
 
-The fixture renders the Slot/Attribution matrix under Radix light · dark · no-Radix fallback, plus the token-scoping proof. In the tunnel environment open it at `https://vnw20xbg-5174.asse.devtunnels.ms`.
+The fixture renders the sort control and the Slot/Attribution matrix under Radix light · dark · no host Theme, plus the token-scoping proof. In the tunnel environment open it at `https://vnw20xbg-5174.asse.devtunnels.ms`.
