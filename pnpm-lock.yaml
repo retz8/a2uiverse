@@ -157,6 +157,9 @@ importers:
       '@a2a-js/sdk':
         specifier: 0.3.14
         version: 0.3.14(express@5.2.1(supports-color@7.2.0))
+      '@a2ui/web_core':
+        specifier: ^0.10.6
+        version: 0.10.6
       '@a2uiverse/sdk':
         specifier: workspace:*
         version: link:../../packages/sdk/js

@@ -7,3 +7,5 @@ export * from './pointer.js';
 export * from './walk.js';
 export * from './validity.js';
 export * from './validate.js';
+export * from './prompt/prompt.js';
+export * from './prompt/examples.js';

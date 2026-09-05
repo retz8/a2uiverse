@@ -4,7 +4,7 @@
  * formula"; the client for subscriptions; the orchestrator for
  * `computedAgainst`.
  */
-import type {DerivedModel, Formula, Ref} from './synthesis';
+import type {DerivedModel, Formula, Ref} from './synthesis.js';
 
 /** A leaf is recognized by shape: an object with exactly `op` (string) and `args` (array). */
 export function isFormula(node: unknown): node is Formula {

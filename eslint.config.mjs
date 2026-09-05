@@ -6,7 +6,14 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
-    ignores: ['**/dist/**', '**/node_modules/**', '**/.venv/**', '**/*.d.ts', '.turbo/**'],
+    ignores: [
+      '**/dist/**',
+      '**/node_modules/**',
+      '**/.venv/**',
+      '**/*.d.ts',
+      '**/*.generated.ts',
+      '.turbo/**',
+    ],
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommended,

@@ -8,7 +8,7 @@
  * derived-value rule are the orchestrator's checks, after this one.
  */
 import {Ajv2020, type ErrorObject, type ValidateFunction} from 'ajv/dist/2020.js';
-import {parsePointer, PointerSyntaxError, resolvePointer} from './pointer';
+import {parsePointer, PointerSyntaxError, resolvePointer} from './pointer.js';
 import {
   isDecline,
   SYNTHESIS_SCHEMA,
@@ -18,8 +18,8 @@ import {
   type SynthesisPayload,
   type SynthesisTree,
   type SynthesizeDataModel,
-} from './synthesis';
-import {isFormula, walkModel} from './walk';
+} from './synthesis.js';
+import {isFormula, walkModel} from './walk.js';
 
 export type Validation<T> = {ok: true; value: T} | {ok: false; errors: string[]};
 

@@ -6,8 +6,8 @@
  * computed, in either direction; a surface never stamped on either side
  * counts as matched.
  */
-import {parsePointer} from './pointer';
-import type {Ref} from './synthesis';
+import {parsePointer} from './pointer.js';
+import type {Ref} from './synthesis.js';
 
 const CANONICAL_INDEX = /^(0|[1-9][0-9]*)$/;
 
