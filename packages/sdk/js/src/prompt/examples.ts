@@ -1,8 +1,10 @@
 /**
  * Worked examples of the synthesize data model, rendered into the system prompt the way the
  * agent kit renders a vendor's examples. Two shapes the ladder proves: a comparison of the same
- * things across two storefronts (Phase 4's join, identical shapes), and a timeline over sources
- * with unrelated data models (Phase 5's temporal merge). Their trees are authored against the
+ * things across two storefronts (Phase 4's join, identical shapes), and a timeline over the real
+ * roster's recorded shapes (Phase 5's temporal merge): three unrelated data models, opaque ids, a
+ * compound key, and one source whose time cannot join the axis. The examples teach form; the
+ * composition doc teaches the vocabulary and the rules. Their trees are authored against the
  * shell catalog's basic components and its derived-value and sort primitives; the orchestrator's
  * tests validate them against that catalog, the sdk's against the contract.
  */
@@ -106,28 +108,27 @@ export const CAMERA_COMPARISON: SynthesisExample = {
   },
 };
 
-const CALENDAR = 'calendar:today-agenda';
-const GMAIL = 'gmail:inbox';
-const GITHUB = 'github:pr-queue';
+const GMAIL = 'gmail:needs-attention';
+const GITHUB = 'github:prs-needing-attention';
+const CALENDAR = 'calendar:needs-attention-today';
 
-/** Three unrelated data models on one time axis; counts per source; newest last. */
+/** One timeline entry: the element's time and what it is, both passed through. */
+function entry(surface: string, element: string, when: string, what: string) {
+  return {when: value(surface, `${element}/${when}`), what: value(surface, `${element}/${what}`)};
+}
+
+/**
+ * The roster's "today" turn, over the shapes it actually paints: Gmail and GitHub carry a
+ * date-and-time and share the axis; Calendar carries a time of day without a date, so its entries
+ * stand in their own group with their time shown beside each rather than sorted. GitHub has no
+ * single id, so its refs conjoin `repository` and `number`.
+ */
 export const TODAY_TIMELINE: SynthesisExample = {
   name: 'today-timeline',
-  intent: 'what does my day look like',
+  intent: 'What needs my attention today?',
   request:
-    'One timeline of today across the calendar, the inbox and the pull-request queue: each entry with its time and what it is, ordered by time, earliest first; how many entries each source contributes.',
+    'A merged timeline of what needs my attention today, ordered by urgency, showing the source, a brief description, and a timestamp for each item. For GitHub, Gmail and Calendar.',
   sources: [
-    {
-      surface: CALENDAR,
-      appId: 'calendar',
-      displayName: 'Google Calendar',
-      data: {
-        events: [
-          {id: 'ev-standup', start: '2026-09-05T09:30:00+09:00', summary: 'Team standup'},
-          {id: 'ev-review', start: '2026-09-05T11:00:00+09:00', summary: 'Design review'},
-        ],
-      },
-    },
     {
       surface: GMAIL,
       appId: 'gmail',
@@ -135,10 +136,16 @@ export const TODAY_TIMELINE: SynthesisExample = {
       data: {
         threads: [
           {
-            id: 'th-1',
-            sender: 'Priya Nakamura',
-            subject: 'Budget questions before Friday',
-            receivedAt: '2026-09-05T08:12:00+09:00',
+            id: '1a06f2abedf045ce',
+            sender: 'elin.tanaka@example.com',
+            subject: 'Estimate review: status before Friday',
+            time: '2026-09-05 01:24 UTC',
+          },
+          {
+            id: '1a06ef027e683325',
+            sender: 'sara.moreau@example.com',
+            subject: 'Draft agenda for the budget sync',
+            time: '2026-09-05 00:20 UTC',
           },
         ],
       },
@@ -148,11 +155,40 @@ export const TODAY_TIMELINE: SynthesisExample = {
       appId: 'github',
       displayName: 'GitHub',
       data: {
-        openPrs: [
+        prs: [
           {
             number: 2531,
             title: 'fix(web_core): classify nested dynamic unions',
-            updatedAt: '2026-09-05T10:05:00+09:00',
+            updatedAt: '2026-09-04T22:41:07Z',
+            repository: 'a2ui-project/a2ui',
+          },
+          {
+            number: 118,
+            title: 'Retry a fragment subtree on validation failure',
+            updatedAt: '2026-09-05T00:03:52Z',
+            repository: 'a2ui-project/a2ui-samples',
+          },
+        ],
+      },
+    },
+    {
+      surface: CALENDAR,
+      appId: 'calendar',
+      displayName: 'Google Calendar',
+      data: {
+        waiting: [
+          {
+            id: 'ectktv0lkuauv7g3i8hgpmhelg',
+            when: '11:00',
+            summary: 'Design review — agenda surface',
+          },
+        ],
+        clashes: [
+          {
+            id: '10fs9gng8s8tdtlejrpim3106g',
+            when: '11:30 – 12:15',
+            summary: 'Budget sync',
+            note: 'Overlaps Design review — agenda surface',
           },
         ],
       },
@@ -161,66 +197,50 @@ export const TODAY_TIMELINE: SynthesisExample = {
   output: {
     tree: {
       components: [
-        {id: 'root', component: 'Column', children: ['heading', 'sort', 'entries', 'counts']},
-        {id: 'heading', component: 'Text', variant: 'h3', text: 'Today'},
+        {
+          id: 'root',
+          component: 'Column',
+          children: ['heading', 'sort', 'timeline', 'calendar-heading', 'calendar'],
+        },
+        {id: 'heading', component: 'Text', variant: 'h3', text: 'Needs attention today'},
         {id: 'sort', component: 'SortControl', sort: {path: '/sorts/0'}},
-        {id: 'entries', component: 'Column', children: {path: '/entries', componentId: 'entry'}},
-        {id: 'entry', component: 'Row', children: ['e-when', 'e-what']},
+        {id: 'timeline', component: 'Column', children: {path: '/timeline', componentId: 'item'}},
+        {id: 'item', component: 'Row', children: ['i-when', 'i-what']},
+        {id: 'i-when', component: 'DerivedValue', cell: {path: 'when'}},
+        {id: 'i-what', component: 'DerivedValue', cell: {path: 'what'}},
+        {id: 'calendar-heading', component: 'Text', variant: 'h4', text: 'Calendar'},
+        {id: 'calendar', component: 'Column', children: {path: '/calendar', componentId: 'event'}},
+        {id: 'event', component: 'Row', children: ['e-when', 'e-what']},
         {id: 'e-when', component: 'DerivedValue', cell: {path: 'when'}},
         {id: 'e-what', component: 'DerivedValue', cell: {path: 'what'}},
-        {
-          id: 'counts',
-          component: 'Row',
-          children: ['l-cal', 'n-cal', 'l-mail', 'n-mail', 'l-gh', 'n-gh'],
-        },
-        {id: 'l-cal', component: 'Text', variant: 'caption', text: 'Events'},
-        {id: 'n-cal', component: 'DerivedValue', cell: {path: '/counts/events'}},
-        {id: 'l-mail', component: 'Text', variant: 'caption', text: 'Threads'},
-        {id: 'n-mail', component: 'DerivedValue', cell: {path: '/counts/threads'}},
-        {id: 'l-gh', component: 'Text', variant: 'caption', text: 'Pull requests'},
-        {id: 'n-gh', component: 'DerivedValue', cell: {path: '/counts/pullRequests'}},
       ],
     },
     dataModel: {
-      entries: [
-        {
-          when: value(GMAIL, '/threads[id="th-1"]/receivedAt'),
-          what: value(GMAIL, '/threads[id="th-1"]/subject'),
-        },
-        {
-          when: value(CALENDAR, '/events[id="ev-standup"]/start'),
-          what: value(CALENDAR, '/events[id="ev-standup"]/summary'),
-        },
-        {
-          when: value(GITHUB, '/openPrs[number=2531]/updatedAt'),
-          what: value(GITHUB, '/openPrs[number=2531]/title'),
-        },
-        {
-          when: value(CALENDAR, '/events[id="ev-review"]/start'),
-          what: value(CALENDAR, '/events[id="ev-review"]/summary'),
-        },
+      timeline: [
+        entry(GMAIL, '/threads[id="1a06f2abedf045ce"]', 'time', 'subject'),
+        entry(GMAIL, '/threads[id="1a06ef027e683325"]', 'time', 'subject'),
+        entry(GITHUB, '/prs[repository="a2ui-project/a2ui",number=2531]', 'updatedAt', 'title'),
+        entry(
+          GITHUB,
+          '/prs[repository="a2ui-project/a2ui-samples",number=118]',
+          'updatedAt',
+          'title',
+        ),
       ],
-      counts: {
-        events: {
-          op: 'count',
-          args: [
-            ref(CALENDAR, '/events[id="ev-standup"]'),
-            ref(CALENDAR, '/events[id="ev-review"]'),
-          ],
-        },
-        threads: {op: 'count', args: [ref(GMAIL, '/threads[id="th-1"]')]},
-        pullRequests: {op: 'count', args: [ref(GITHUB, '/openPrs[number=2531]')]},
-      },
+      calendar: [
+        entry(CALENDAR, '/waiting[id="ectktv0lkuauv7g3i8hgpmhelg"]', 'when', 'summary'),
+        entry(CALENDAR, '/clashes[id="10fs9gng8s8tdtlejrpim3106g"]', 'when', 'summary'),
+      ],
     },
     sorts: [
       {
-        path: '/entries',
+        path: '/timeline',
         options: [{key: '/when', label: 'Time'}],
         key: '/when',
-        direction: 'asc',
+        direction: 'desc',
       },
     ],
-    note: '',
+    note: 'Calendar’s times are times of day without a date (“11:00”, “11:30 – 12:15”) and cannot be ordered against the others’ timestamps, so its entries stand in their own group with the time shown beside each. No source carries an urgency; the timeline is ordered by time, latest first. Source is not a column: each value carries its own.',
   },
 };
 

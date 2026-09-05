@@ -104,14 +104,36 @@ describe('the worked examples', () => {
     }
   });
 
-  test('the comparison joins by key across two shapes; the timeline spans three unrelated models', () => {
-    if (isDecline(CAMERA_COMPARISON.output) || isDecline(TODAY_TIMELINE.output)) throw new Error();
+  test('the comparison joins by key across two shapes', () => {
+    if (isDecline(CAMERA_COMPARISON.output)) throw new Error();
     const comparisonRefs = refsOf(CAMERA_COMPARISON.output.dataModel);
     expect(comparisonRefs.every(r => r.pointer.includes('['))).toBe(true);
     expect(new Set(comparisonRefs.map(r => r.surface)).size).toBe(2);
-    const timelineRefs = refsOf(TODAY_TIMELINE.output.dataModel);
-    expect(new Set(timelineRefs.map(r => r.surface)).size).toBe(3);
-    expect(TODAY_TIMELINE.output.sorts[0]!.key).toBe('/when');
+  });
+
+  test('the timeline spans three unrelated models, orders the two that share the axis, and groups the one that cannot (task-5.11 decision 5)', () => {
+    if (isDecline(TODAY_TIMELINE.output)) throw new Error();
+    const {dataModel, sorts} = TODAY_TIMELINE.output;
+    expect(new Set(refsOf(dataModel).map(r => r.surface)).size).toBe(3);
+    const ordered = refsOf({timeline: dataModel.timeline!});
+    const grouped = refsOf({calendar: dataModel.calendar!});
+    expect(new Set(ordered.map(r => r.surface))).toEqual(
+      new Set(['gmail:needs-attention', 'github:prs-needing-attention']),
+    );
+    expect(new Set(grouped.map(r => r.surface))).toEqual(
+      new Set(['calendar:needs-attention-today']),
+    );
+    expect(sorts).toHaveLength(1);
+    expect(sorts[0]).toMatchObject({path: '/timeline', key: '/when'});
+  });
+
+  test('the timeline’s GitHub refs conjoin repository and number: the source paints no single id', () => {
+    if (isDecline(TODAY_TIMELINE.output)) throw new Error();
+    const github = refsOf(TODAY_TIMELINE.output.dataModel).filter(r =>
+      r.surface.startsWith('github:'),
+    );
+    expect(github.length).toBeGreaterThan(0);
+    for (const r of github) expect(r.pointer).toMatch(/^\/prs\[repository="[^"]+",number=\d+\]\//);
   });
 });
 

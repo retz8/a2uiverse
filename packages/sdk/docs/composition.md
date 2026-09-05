@@ -32,7 +32,7 @@ partition's data model.
   the JSON literal `"x100"`. The value is a JSON literal (a string in double quotes, a number,
   `true`/`false`). Exactly one element must match.
 - When one field does not identify an element, conjoin fields until one does:
-  `/pulls[repository="a2ui-project/a2ui",number=2531]/updatedAt`.
+  `/prs[repository="a2ui-project/a2ui",number=2531]/updatedAt`.
 - **`/items/0/price` is not a ref.** A position is not a name: after the source reorders or filters
   its list, the same position is a different thing, and the merged view would be silently wrong.
   A ref keeps pointing at the same element for as long as that element is there, and says so
@@ -76,6 +76,14 @@ You name the criterion from the request; the runtime sorts the evaluated values 
 change key and direction. The declaration with the user's current choice is written by the runtime
 at `/sorts/N` of the merged view's data model, N being its index in your `sorts`, and the tree shows
 the criterion through the catalog's sort control bound there. Every sorted array shows its criterion.
+
+**Decide which sources can share a key before you order anything.** A key orders an array only
+when every element's value for it is the same kind of thing: a date-and-time from one source sorts
+against a date-and-time from another. A time of day with no date, a range, a label are not that
+kind of thing, and no operator makes them one; the runtime would still sort them, as strings, and
+the screen would claim an order that is not real. A source whose values cannot join the key does not
+go into that array. Give it its own array and its own group in the tree, show its time as a value
+beside each entry, declare no sort over it, and say in the note why it stands apart.
 
 ## The tree
 
