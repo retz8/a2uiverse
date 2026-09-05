@@ -62,14 +62,24 @@ Spec: `_dev/docs/spec/phase-4-synthesis.md`.
 - [x] **4.7** Mock profile plumbing — launcher discovery opt-in and registry opt-in (after 4.6; parallel with 4.4, 4.5)
 - [x] **4.8** Integration + acceptance — end to end under the profile, both instruments proven, decline, sort, partial-value visibility, dead-air measured, live tunnel verification (after 4.4–4.7)
 
-## Phase 5 — Heterogeneous shapes
-Temporal merge over Calendar · Mail · GitHub (M3). Unrelated data models, shared-axis merge, key-based refs, decline, quiescence across unsynchronized arrivals.
+## Phase 5 — Heterogeneous shapes [WIP]
+Temporal merge over Calendar · Mail · GitHub (M3). Unrelated data models, shared-axis merge, key-based refs, decline, quiescence across unsynchronized arrivals. The Synthesizer authors the merged view — the synthesize data model: a shell-catalog tree, a free-form derived data model with formula leaves, sorts, a note — replacing the Phase 4 wiring and derived table.
+Spec: `_dev/docs/spec/phase-5-heterogeneous-shapes.md`.
+
+- [ ] **5.1** Doc edits — SPEC §5 turn line and §5.2, §10 Synthesizer row, §12 M3 line, §14 rows for synthesis wiring, path predicates, derived-value rule
+- [ ] **5.2** `sdk` — composition contract v0.3: the synthesize data model (tree, formula-leaf model, predicate refs, sorts, note), JS and Python projections, contract tests, published (after 5.1; parallel with 5.3, 5.6)
+- [ ] **5.3** `shell-catalog` — `SortControl` over a sort declaration, catalog schema and operator descriptions exported for the Synthesizer's prompt, `DerivedValue` untouched (after 5.1; parallel with 5.2, 5.6)
+- [ ] **5.4** Orchestrator — Synthesizer rewrite: text output, validate against contract and catalog, one retry; the prompt as the composition-authoring document in a2uiverse words; checklist with the derived-value rule and predicate resolution; predicate refs in the IntegrityChecker; painter paints the model-authored tree; re-synthesis handed its previous output; note journaled. Planner prompt: the synthesis brief and the vendor merge asks (after 5.2 and 5.3; parallel with 5.5)
+- [ ] **5.5** Client — BindingEvaluator over the free-form model with predicate refs, sorts over declared arrays, v0.3 intake and validation, stale marker, synthesis fixture re-recorded (after 5.2 and 5.3; parallel with 5.4)
+- [ ] **5.6** `[apps]` S1 beats — the "today" turn recorded per vendor in live mode, agents unmodified (after 5.1; parallel with 5.2–5.5)
+- [ ] **5.7** Integration + acceptance — temporal merge end to end over the real roster live, comparison over the mocks, drill-down → absent and reorder → no re-synthesis under predicates, re-synthesis with previous output, decline, quiescence with real latency spread, dead air measured, live tunnel verification (after 5.4–5.6)
+- [ ] **5.8** Design records — `synthesis.md` rewritten, Synthesizer sections of the orchestrator and client records (after 5.7)
 
 ## Phase 6 — The shell as an agent
-The orchestrator's model answers an utterance itself, in the shell catalog, when no vendor serves it — installed agents, what the canvas can do, the platform's own state (M3s). What platform state the model may read. Which shell pages it may author and which stay trusted, against M10's Store page · App Library · accounts. Framing decided in Phase 5's grill. Before Phases 8, 11 and 14, which paint shell content into slots.
+The orchestrator's model answers an utterance itself, in the shell catalog, when no vendor serves it — installed agents, what the canvas can do, the platform's own state (M3s). What platform state the model may read. Which shell pages it may author and which stay trusted, against M10's Store page · App Library · accounts. Expands the Planner's framing in the same sense Phase 5 expanded the Synthesizer's: the archetype vocabulary revisited, the Planner authoring in prose what the shell should show. The shell-as-agent framing is decided in Phase 6's own grill. Before Phases 8, 11 and 14, which paint shell content into slots.
 
 ## Phase 7 — Entity resolution
-Entity join (M4). The differentiator proven.
+Entity join (M4). The differentiator proven. Navigation from a merged cell to the originating vendor subtree (SPEC §7), deferred from Phase 5.
 
 ## Phase 8 — Late arrival + failure
 Per-source deadlines, failure tiles, decline, late absorb as a visible attributed update (M6).
