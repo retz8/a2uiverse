@@ -1,6 +1,7 @@
 import {useState} from 'react';
 import {createComponentImplementation} from '@a2ui/react/v0_9';
 import {parseSurfaceId} from '@a2uiverse/sdk';
+import {Text} from '@radix-ui/themes';
 import {type CellObject, DerivedValueApi, type Format} from './derived-value.schema.js';
 
 export type CellState = 'complete' | 'partial' | 'absent';
@@ -39,6 +40,8 @@ function detailFor(state: CellState, cell: CellObject): string {
  * The only way a formula cell renders (SPEC §5.4, phase decision 17): the value with its
  * contributor state, so a partial value never looks complete. Attribution's pattern — a
  * quiet marker at rest, detail on hover or focus, the accessible name always carrying both.
+ * Rendered on Radix `Text` (task-5.9 decision 5): body size for the value, gray when absent,
+ * the detail in the caption register.
  */
 export function DerivedValueView({cell, format}: {cell?: CellObject; format?: Format}) {
   const [open, setOpen] = useState(false);
@@ -49,7 +52,10 @@ export function DerivedValueView({cell, format}: {cell?: CellObject; format?: Fo
   const marked = state !== 'complete';
 
   return (
-    <span
+    <Text
+      as="span"
+      size="2"
+      color={state === 'absent' ? 'gray' : undefined}
       data-state={state}
       tabIndex={marked ? 0 : undefined}
       aria-label={`${text} · ${detail}`}
@@ -61,18 +67,17 @@ export function DerivedValueView({cell, format}: {cell?: CellObject; format?: Fo
         display: 'inline-flex',
         alignItems: 'baseline',
         gap: '0.35em',
-        color: 'var(--a2ui-color-on-surface)',
-        opacity: state === 'absent' ? 0.55 : 1,
-        transition: 'opacity 120ms ease',
         cursor: marked ? 'help' : undefined,
       }}
     >
       <span style={{fontVariantNumeric: 'tabular-nums'}}>{text}</span>
       {marked && <Marker state={state} />}
       {marked && open && (
-        <span style={{fontSize: 'var(--a2ui-font-size-xs, 11px)', opacity: 0.8}}>{detail}</span>
+        <Text as="span" size="1" color="gray">
+          {detail}
+        </Text>
       )}
-    </span>
+    </Text>
   );
 }
 

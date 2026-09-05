@@ -1,29 +1,6 @@
-import {createContext, useContext, useState, type CSSProperties, type ReactNode} from 'react';
+import {createContext, useContext, useState, type ReactNode} from 'react';
 import {Theme, ThemeContext} from '@radix-ui/themes';
 import './radix-themes.scoped.css';
-
-/**
- * The shell catalog's `--a2ui-*` values, bound to Radix Themes variables with
- * explicit fallbacks. Written only on the Provider's own wrapper — never
- * `:root` — so composition with other catalogs stays collision-free.
- *
- * Only base tokens are bound; the basic catalog derives `-light`/`-dark`/`-hover`
- * variants via `color-mix()` over these at the point of use.
- */
-export const SHELL_TOKENS = {
-  '--a2ui-color-background': 'var(--color-background, #ffffff)',
-  '--a2ui-color-on-background': 'var(--gray-12, #1c2024)',
-  '--a2ui-color-surface': 'var(--color-panel-solid, #f9f9fb)',
-  '--a2ui-color-on-surface': 'var(--gray-12, #1c2024)',
-  '--a2ui-color-primary': 'var(--accent-9, #3e63dd)',
-  '--a2ui-color-on-primary': 'var(--accent-contrast, #ffffff)',
-  '--a2ui-color-secondary': 'var(--gray-4, #e8e8ec)',
-  '--a2ui-color-on-secondary': 'var(--gray-12, #1c2024)',
-  '--a2ui-color-border': 'var(--gray-6, #d9d9e0)',
-  '--a2ui-color-input': 'var(--color-surface, #ffffff)',
-  '--a2ui-color-on-input': 'var(--gray-12, #1c2024)',
-  '--a2ui-border-radius': 'var(--radius-3, 6px)',
-} as const satisfies Record<`--a2ui-${string}`, string>;
 
 /**
  * Where the bundle's floating content mounts: a portal root inside the Provider's
@@ -35,6 +12,13 @@ export const SHELL_TOKENS = {
 export const PortalRootContext = createContext<HTMLElement | null>(null);
 
 /**
+ * The Theme the shell fixes when there is no host Theme to inherit from: Radix's own defaults,
+ * stated. Under a host Theme none of these are set, so the shell's components read the host's
+ * accent, gray, radius and scaling and the shell matches the page it is on.
+ */
+const STANDALONE_THEME = {accentColor: 'indigo', grayColor: 'slate'} as const;
+
+/**
  * The bundle's one Provider and one CSS setup (SPEC §9.2): a Radix `Theme`
  * scoped to its own wrapper, bringing Radix Themes' stylesheet as a scoped copy
  * (`scripts/scope-radix.mjs` rewrites Radix's `:root` onto this wrapper), painting
@@ -42,20 +26,24 @@ export const PortalRootContext = createContext<HTMLElement | null>(null);
  * appearance is read from its Theme and set explicitly, because the scoped sheet
  * declares the light tokens on the wrapper itself and only an explicit `dark`
  * class on the same element outranks them; with no host the Provider is light.
- * `asChild` folds the Theme onto the token wrapper so there is one element, and
+ * `asChild` folds the Theme onto the wrapper so there is one element, and
  * `display: contents` keeps that element out of layout — inherited properties and
- * custom properties still cascade.
+ * custom properties still cascade. Radix Themes is the whole of what it brings:
+ * every component of the catalog renders on it (task-5.9 decision 2), so there is
+ * no token vocabulary of the shell's own for the wrapper to carry.
  */
 export function Provider({children}: {children: ReactNode}) {
-  const host = useContext(ThemeContext)?.appearance;
-  const appearance = host === 'dark' ? 'dark' : 'light';
+  const host = useContext(ThemeContext);
+  const appearance = host?.appearance === 'dark' ? 'dark' : 'light';
   const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
   return (
-    <Theme asChild appearance={appearance} hasBackground={false}>
-      <div
-        className="a2uiverse-shell-catalog"
-        style={{display: 'contents', ...SHELL_TOKENS} as CSSProperties}
-      >
+    <Theme
+      asChild
+      appearance={appearance}
+      hasBackground={false}
+      {...(host ? {} : STANDALONE_THEME)}
+    >
+      <div className="a2uiverse-shell-catalog" style={{display: 'contents'}}>
         <PortalRootContext.Provider value={portalRoot}>{children}</PortalRootContext.Provider>
         <div data-a2uiverse-portal-root="" ref={setPortalRoot} style={{display: 'contents'}} />
       </div>

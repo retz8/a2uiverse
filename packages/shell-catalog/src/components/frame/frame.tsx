@@ -1,4 +1,5 @@
 import {createComponentImplementation} from '@a2ui/react/v0_9';
+import {Box, Flex} from '@radix-ui/themes';
 import type {ReactNode} from 'react';
 import {FrameApi, type FrameProps} from './frame.schema.js';
 
@@ -12,6 +13,9 @@ import {FrameApi, type FrameProps} from './frame.schema.js';
  *
  * Each child is wrapped in its own flex item rather than styled directly, because a child is an
  * opaque node built by the renderer — the frame owns the box, the child owns what is in it.
+ * The frame is a Radix `Flex` at Radix's space-3 gap and each item a Radix `Box`
+ * (task-5.9 decision 5); the share is still written as the flex longhands, because "basis
+ * zero" — the reason shares come out equal — is the point and should stay legible.
  */
 export function FrameView({
   direction,
@@ -20,24 +24,18 @@ export function FrameView({
 }: FrameProps & {buildChild: (id: string) => ReactNode}) {
   const row = direction === 'row';
   return (
-    <div
+    <Flex
       data-frame={direction}
-      style={{
-        display: 'flex',
-        flexDirection: direction,
-        alignItems: 'stretch',
-        gap: 'var(--a2ui-spacing-m, 12px)',
-        width: '100%',
-        minWidth: 0,
-      }}
+      direction={direction}
+      align="stretch"
+      gap="3"
+      width="100%"
+      style={{minWidth: 0}}
     >
       {children.map(id => (
-        <div
+        <Box
           key={id}
           style={{
-            // Equal shares along a row; natural size down a column. Written as longhands
-            // because the `flex` shorthand is what varies, and spelling it out is what makes
-            // "basis zero" — the reason shares come out equal — legible.
             flexGrow: row ? 1 : 0,
             flexShrink: row ? 1 : 0,
             flexBasis: row ? 0 : 'auto',
@@ -46,9 +44,9 @@ export function FrameView({
           }}
         >
           {buildChild(id)}
-        </div>
+        </Box>
       ))}
-    </div>
+    </Flex>
   );
 }
 

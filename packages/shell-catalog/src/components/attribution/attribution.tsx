@@ -1,19 +1,24 @@
 import {useState} from 'react';
 import {createComponentImplementation} from '@a2ui/react/v0_9';
+import {InfoCircledIcon} from '@radix-ui/react-icons';
+import {Text} from '@radix-ui/themes';
 import {AttributionApi, type AttributionProps} from './attribution.schema.js';
 
 /**
- * The quiet marker (SPEC §4.3): a small grayish caption with an info glyph,
- * always present, expanding to full attribution on hover or keyboard focus.
- * The accessible name always carries the full detail, independent of pointer
- * state.
+ * The quiet marker (SPEC §4.3): a small gray caption with an info glyph, always present,
+ * expanding to full attribution on hover or keyboard focus. The accessible name always
+ * carries the full detail, independent of pointer state. Rendered on Radix `Text` in the
+ * caption register with Radix's own info glyph (task-5.9 decision 5).
  */
 export function AttributionView({displayName, account}: AttributionProps) {
   const [open, setOpen] = useState(false);
   const detail = `Painted by ${displayName}${account ? ` · ${account}` : ''}`;
 
   return (
-    <span
+    <Text
+      as="span"
+      size="1"
+      color="gray"
       tabIndex={0}
       aria-label={detail}
       onMouseEnter={() => setOpen(true)}
@@ -27,26 +32,16 @@ export function AttributionView({displayName, account}: AttributionProps) {
         width: 'fit-content',
         maxWidth: '100%',
         gap: '0.3em',
-        fontSize: 'var(--a2ui-font-size-xs, 11px)',
         lineHeight: 1.2,
-        color: 'var(--a2ui-color-on-surface)',
-        opacity: open ? 0.9 : 0.55,
+        opacity: open ? 1 : 0.8,
         transition: 'opacity 120ms ease',
         cursor: 'pointer',
         userSelect: 'none',
       }}
     >
-      <InfoGlyph />
+      <InfoCircledIcon width={11} height={11} aria-hidden="true" />
       {open ? detail : displayName}
-    </span>
-  );
-}
-
-function InfoGlyph() {
-  return (
-    <svg width="11" height="11" viewBox="0 0 16 16" aria-hidden="true" fill="currentColor">
-      <path d="M8 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm9-3a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM6.9 7h1.6a.5.5 0 0 1 .5.55l-.3 3.2h.8a.5.5 0 0 1 0 1H7a.5.5 0 0 1-.5-.55l.3-3.2h-.4a.5.5 0 0 1 0-1Z" />
-    </svg>
+    </Text>
   );
 }
 

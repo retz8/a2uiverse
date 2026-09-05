@@ -1,4 +1,4 @@
-import {useContext} from 'react';
+import {useContext, type CSSProperties} from 'react';
 import {createComponentImplementation} from '@a2ui/react/v0_9';
 import {Flex, Spinner, Text} from '@radix-ui/themes';
 import {SlotContentContext} from '../../slot-content.js';
@@ -18,6 +18,9 @@ import {SlotApi, type SlotProps} from './slot.schema.js';
  * Shell content (task-5.5 decisions 1, 3) is the shell writing on its own page:
  * the reserved position holds, but while pending it is one quiet line beside a
  * spinner rather than a tile with a floor, and a failure is a quiet line too.
+ *
+ * The tile a fragment slot shows while pending or failed is drawn on Radix's own
+ * panel, border and radius tokens (task-5.9 decision 5).
  */
 export function SlotView({name, state = 'pending', label, content = 'fragment'}: SlotProps) {
   const resolve = useContext(SlotContentContext);
@@ -43,9 +46,9 @@ export function SlotView({name, state = 'pending', label, content = 'fragment'}:
     }
     return (
       <div data-slot={name} data-slot-state="failed" style={panelStyle}>
-        <span style={{color: 'var(--a2ui-color-on-surface)', opacity: 0.75}}>
+        <Text as="span" size="1" color="gray">
           {label ?? name} didn&rsquo;t load
-        </span>
+        </Text>
       </div>
     );
   }
@@ -79,7 +82,9 @@ export function SlotView({name, state = 'pending', label, content = 'fragment'}:
 
   return (
     <div data-slot={name} data-slot-state="pending" style={{...panelStyle, opacity: 0.6}}>
-      <span style={{color: 'var(--a2ui-color-on-surface)', opacity: 0.6}}>{label ?? name}…</span>
+      <Text as="span" size="1" color="gray">
+        {label ?? name}…
+      </Text>
     </div>
   );
 }
@@ -93,17 +98,16 @@ function quietLine(text: string) {
   );
 }
 
-const panelStyle = {
-  background: 'var(--a2ui-color-surface)',
-  border: '1px solid var(--a2ui-color-border)',
-  borderRadius: 'var(--a2ui-border-radius)',
-  padding: 'var(--a2ui-spacing-m, 12px)',
+const panelStyle: CSSProperties = {
+  background: 'var(--color-panel-solid)',
+  border: '1px solid var(--gray-6)',
+  borderRadius: 'var(--radius-3)',
+  padding: 'var(--space-3)',
   minHeight: '4rem',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  fontSize: 'var(--a2ui-font-size-s, 13px)',
-} as const;
+};
 
 /** Catalog entry: the generic binder resolves props, then renders SlotView. */
 export const SlotComponent = createComponentImplementation(SlotApi, ({props}) => (
