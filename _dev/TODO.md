@@ -49,7 +49,7 @@ Spec: `_dev/docs/spec/phase-3-agent-kit.md`.
 - [x] **3.6** Integration + acceptance — `dev:all` end to end, fourth-app scaffold proof (basic variant boots + paints, custom variant gates, then deleted) — note the orchestrator's own hardcoded registry: a scaffolded app is launchable by existing but not routable without a registry entry or `A2UIVERSE_AGENT_URLS` override, README/run-command updates both repos, live tunnel sanity pass (after 3.3–3.5)
 - [x] **3.7** `[apps]` GitHub agent write tier — off the read-only endpoint onto the full toolset surface (capability = whatever MCP + token allow, no confinement), proposal/toggling convention as domain-doc guidance, read-only identity sweep (prose, card, README, tests), live tunnel verification; beats/fixtures untouched (after 3.3)
 
-## Phase 4 — Synthesis, identical shapes [WIP]
+## Phase 4 — Synthesis, identical shapes [done]
 Two sibling mock vendors merged (M2). Synthesizer, derived bindings, BindingEvaluator, IntegrityChecker, generation stamps, disclosure. Shapes identical by construction, so the join is free and every remaining hard thing is machinery. Mocks are quarantined from the default roster and kept as the clean-room regression bed.
 Spec: `_dev/docs/spec/phase-4-synthesis.md`.
 
