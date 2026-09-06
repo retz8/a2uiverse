@@ -114,6 +114,21 @@ Decided in task 5.2's grill. The orchestrator validates the Synthesizer's output
 
 Decided in task 5.3's grill. The shell catalog's implementation maps each basic component onto its Radix Themes counterpart, as `primer-a2ui-adapter` maps onto Primer; Radix Themes is the shell catalog's design system, brought by its Provider under the §9.2 bundle rule. The token-themed re-export of upstream's implementation goes. Sub-task 5.9, after 5.3, parallel with 5.4 and 5.5, before 5.7, with the SPEC §4.2 amendment and the §15 table row.
 
+### 25. Acceptance
+
+Decided in task 5.7's grill (`task-5.7-integration-acceptance.md`). Two beds gate: the real roster in deterministic mode for the item list, the real roster live for S1 itself, quiescence and dead air. The mock storefronts in deterministic mode are the regression check. Utterance pinned: **"What needs my attention today?"**; the mocks keep Phase 4's pinned utterances.
+
+1. S1 end to end: the utterance fans out to Calendar, Gmail and GitHub, the plan reserves the merged view at first paint, the three fragments fill, and the merged view is painted into the reserved slot after the last source settles. Gmail and GitHub entries are ordered on one axis by instant; Calendar's wall-clock times are shown as labels and never sorted into that axis; every derived cell is complete and names its source; the criterion is displayed and user-changeable. The layout is the model's. Gates on both beds.
+2. Drill-down → absent → re-synthesis, real roster deterministic: opening a Gmail thread or a Calendar event makes that source's cells absent at once with no round trip; a re-synthesis then lands, handed the previous output, its note saying what changed.
+3. Reorder → no re-synthesis, mocks: an in-place sort inside a storefront re-points nothing and makes no model call.
+4. Comparison over the mocks: the Phase 4 comparison still merges, sorted, every cell complete.
+5. Decline, mocks: Phase 4's decline utterance yields a plan that reserved the merged view, the Synthesizer declines, and the slot rests on the reason. One free decline probe over the live roster, written up, not gated.
+6. Quiescence, real roster live: dispatch end times spread over real seconds, one synthesis outcome whose document holds refs into all three partitions, one attempt, the pending marker held until the merged view landed.
+7. Dead air measured: the interval from the last source settling to the synthesis outcome, read from the journal for the deterministic and the live run, recorded in the backlog item.
+8. Beat 5, the temporal merge, recorded through the hub over the live roster with its synthesis payload, replayable on the client.
+
+Final gate: **Claude-in-Chrome live verification through the tunnel** on both beds — the real roster deterministic for every item it carries, the real roster live for items 1, 6, 7 and 8 — with the mocks' items on the same sitting.
+
 ## Invariants
 
 - The shell catalog is the closed vocabulary; the plan's semantics are open prose.
