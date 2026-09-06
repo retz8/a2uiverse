@@ -31,3 +31,19 @@ export {
   SortControlView,
 } from './components/sort-control/index.js';
 export {ICON_GLYPHS, ICON_NAMES, type GlyphEntry, type IconName} from './components/icon/index.js';
+export {
+  TableApi,
+  TableRowApi,
+  TableView,
+  TableRowView,
+  type TableProps,
+  type TableRowProps,
+} from './components/table/index.js';
+export {
+  DataListApi,
+  DataListItemApi,
+  DataListView,
+  DataListItemView,
+  type DataListProps,
+  type DataListItemProps,
+} from './components/data-list/index.js';

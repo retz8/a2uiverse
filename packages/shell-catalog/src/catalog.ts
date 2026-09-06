@@ -24,6 +24,8 @@ import {AttributionComponent} from './components/attribution/index.js';
 import {FrameComponent} from './components/frame/index.js';
 import {DerivedValueComponent} from './components/derived-value/index.js';
 import {SortControlComponent} from './components/sort-control/index.js';
+import {TableComponent, TableRowComponent} from './components/table/index.js';
+import {DataListComponent, DataListItemComponent} from './components/data-list/index.js';
 import {operatorFunctions} from './functions/operators.js';
 
 export {OPERATORS, type Operator} from './functions/operators.js';
@@ -54,13 +56,17 @@ export const BASIC_IMPLEMENTATIONS: readonly ReactComponentImplementation[] = [
   DateTimeInputComponent,
 ];
 
-/** The shell's own primitives — composition, layout and synthesis — also on Radix Themes. */
+/** The shell's own primitives — composition, layout, synthesis and the merged view's shapes — also on Radix Themes. */
 export const SHELL_IMPLEMENTATIONS: readonly ReactComponentImplementation[] = [
   SlotComponent,
   AttributionComponent,
   FrameComponent,
   DerivedValueComponent,
   SortControlComponent,
+  TableComponent,
+  TableRowComponent,
+  DataListComponent,
+  DataListItemComponent,
 ];
 
 /**

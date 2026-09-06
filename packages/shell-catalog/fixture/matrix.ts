@@ -201,6 +201,33 @@ const SEEDS: Record<
     props: {direction: 'row', children: ['c1', 'c2']},
     extra: [text('c1', 'Left'), text('c2', 'Right')],
   },
+  Table: {
+    props: {columns: ['Camera', 'Aperture & Co', 'Northlight'], children: ['r1', 'r2']},
+    extra: [
+      {id: 'r1', component: 'TableRow', children: ['a1', 'a2', 'a3']},
+      {id: 'r2', component: 'TableRow', children: ['b1', 'b2', 'b3']},
+      text('a1', 'Lumen X100'),
+      text('a2', '1,299'),
+      text('a3', '1,349'),
+      text('b1', 'Verity A7'),
+      text('b2', '1,849'),
+      text('b3', '1,799'),
+    ],
+  },
+  TableRow: {
+    props: {children: ['c1', 'c2']},
+    extra: [text('c1', 'Lumen X100'), text('c2', '1,299')],
+  },
+  DataList: {
+    props: {children: ['i1', 'i2']},
+    extra: [
+      {id: 'i1', component: 'DataListItem', label: 'Source', child: 'v1'},
+      {id: 'i2', component: 'DataListItem', label: 'When', child: 'v2'},
+      text('v1', 'gmail'),
+      text('v2', '2026-09-05 01:24 UTC'),
+    ],
+  },
+  DataListItem: {props: {label: 'Source', child: 'v1'}, extra: [text('v1', 'gmail')]},
   DerivedValue: {
     props: {cell: {path: '/cell'}, format: {kind: 'currency', currency: 'USD'}},
     data: {cell: {value: 899, contributed: 1, of: 2, absent: ['shop-b:list']}},

@@ -24,3 +24,20 @@ export function renderChildList(children: unknown, buildChild: BuildChild): Reac
     ),
   );
 }
+
+/**
+ * Like `renderChildList`, but each built child is handed to `wrap` with a stable key — for a
+ * container whose children must each sit in an element of its own (a table row's cells).
+ */
+export function mapChildList(
+  children: unknown,
+  buildChild: BuildChild,
+  wrap: (node: ReactNode, key: string) => ReactNode,
+): ReactNode {
+  if (!Array.isArray(children)) return null;
+  return (children as ResolvedChildRef[]).map((child, index) =>
+    typeof child === 'string'
+      ? wrap(buildChild(child), `${child}-${index}`)
+      : wrap(buildChild(child.id, child.basePath), `${child.id}-${child.basePath ?? index}`),
+  );
+}

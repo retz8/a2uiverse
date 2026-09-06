@@ -74,16 +74,16 @@ export const CAMERA_COMPARISON: SynthesisExample = {
   output: {
     tree: {
       components: [
-        {id: 'root', component: 'Column', children: ['heading', 'sort', 'header', 'rows']},
+        {id: 'root', component: 'Column', children: ['heading', 'sort', 'rows']},
         {id: 'heading', component: 'Text', variant: 'h3', text: 'Cameras in both stores'},
         {id: 'sort', component: 'SortControl', sort: {path: '/sorts/0'}},
-        {id: 'header', component: 'Row', children: ['h-name', 'h-a', 'h-b', 'h-best']},
-        {id: 'h-name', component: 'Text', variant: 'caption', text: 'Camera'},
-        {id: 'h-a', component: 'Text', variant: 'caption', text: 'Aperture & Co'},
-        {id: 'h-b', component: 'Text', variant: 'caption', text: 'Northlight'},
-        {id: 'h-best', component: 'Text', variant: 'caption', text: 'Best price'},
-        {id: 'rows', component: 'Column', children: {path: '/rows', componentId: 'row'}},
-        {id: 'row', component: 'Row', children: ['c-name', 'c-a', 'c-b', 'c-best']},
+        {
+          id: 'rows',
+          component: 'Table',
+          columns: ['Camera', 'Aperture & Co', 'Northlight', 'Best price'],
+          children: {path: '/rows', componentId: 'row'},
+        },
+        {id: 'row', component: 'TableRow', children: ['c-name', 'c-a', 'c-b', 'c-best']},
         {id: 'c-name', component: 'DerivedValue', cell: {path: 'name'}},
         {id: 'c-a', component: 'DerivedValue', cell: {path: 'priceA'}, format: {kind: 'number'}},
         {id: 'c-b', component: 'DerivedValue', cell: {path: 'priceB'}, format: {kind: 'number'}},
@@ -112,9 +112,13 @@ const GMAIL = 'gmail:needs-attention';
 const GITHUB = 'github:prs-needing-attention';
 const CALENDAR = 'calendar:needs-attention-today';
 
-/** One timeline entry: the element's time and what it is, both passed through. */
+/** One timeline entry: which source it came from, its time and what it is — all wiring. */
 function entry(surface: string, element: string, when: string, what: string) {
-  return {when: value(surface, `${element}/${when}`), what: value(surface, `${element}/${what}`)};
+  return {
+    source: {op: 'source', args: [ref(surface, `${element}/${when}`)]},
+    when: value(surface, `${element}/${when}`),
+    what: value(surface, `${element}/${what}`),
+  };
 }
 
 /**
@@ -204,13 +208,24 @@ export const TODAY_TIMELINE: SynthesisExample = {
         },
         {id: 'heading', component: 'Text', variant: 'h3', text: 'Needs attention today'},
         {id: 'sort', component: 'SortControl', sort: {path: '/sorts/0'}},
-        {id: 'timeline', component: 'Column', children: {path: '/timeline', componentId: 'item'}},
-        {id: 'item', component: 'Row', children: ['i-when', 'i-what']},
+        {
+          id: 'timeline',
+          component: 'Table',
+          columns: ['Source', 'When', 'What'],
+          children: {path: '/timeline', componentId: 'item'},
+        },
+        {id: 'item', component: 'TableRow', children: ['i-source', 'i-when', 'i-what']},
+        {id: 'i-source', component: 'DerivedValue', cell: {path: 'source'}},
         {id: 'i-when', component: 'DerivedValue', cell: {path: 'when'}},
         {id: 'i-what', component: 'DerivedValue', cell: {path: 'what'}},
         {id: 'calendar-heading', component: 'Text', variant: 'h4', text: 'Calendar'},
-        {id: 'calendar', component: 'Column', children: {path: '/calendar', componentId: 'event'}},
-        {id: 'event', component: 'Row', children: ['e-when', 'e-what']},
+        {
+          id: 'calendar',
+          component: 'Table',
+          columns: ['When', 'What'],
+          children: {path: '/calendar', componentId: 'event'},
+        },
+        {id: 'event', component: 'TableRow', children: ['e-when', 'e-what']},
         {id: 'e-when', component: 'DerivedValue', cell: {path: 'when'}},
         {id: 'e-what', component: 'DerivedValue', cell: {path: 'what'}},
       ],
@@ -240,7 +255,7 @@ export const TODAY_TIMELINE: SynthesisExample = {
         direction: 'desc',
       },
     ],
-    note: 'Calendar’s times are times of day without a date (“11:00”, “11:30 – 12:15”) and cannot be ordered against the others’ timestamps, so its entries stand in their own group with the time shown beside each. No source carries an urgency; the timeline is ordered by time, latest first. Source is not a column: each value carries its own.',
+    note: 'Calendar’s times are times of day without a date (“11:00”, “11:30 – 12:15”) and cannot be ordered against the others’ timestamps, so its entries stand in their own group with the time shown beside each. No source carries an urgency; the timeline is ordered by time, latest first.',
   },
 };
 

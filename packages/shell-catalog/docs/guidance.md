@@ -18,22 +18,31 @@ of its sources never reads like one computed over all of them. `Text` bound to a
 error; so is `DerivedValue` bound to anything that is not a formula leaf. The validator rejects
 both.
 
-## The view is built from four kinds of component
+## The view is built from these components
 
 - **`DerivedValue`** for every value drawn from the sources. Give it a `format` when the value is a
   number or an amount of money; leave it as text otherwise. Which source an entry came from is a
   value too: a `DerivedValue` over the `source` operator, never a label of yours.
+- **`Table`** for a list of like entries with several values each — the merged list. `columns` are
+  the headings you write; `children` is a template over the array of your model whose component is
+  a **`TableRow`**, and that row's `children` are the cells, one `DerivedValue` per column, in
+  column order. The columns align by construction. Do not build a list as a heading `Row` over a
+  `Column` of `Row`s: a `Row` sizes its children by content and the columns never line up.
+- **`DataList`** for the labelled values of one thing — an entry's fields, a summary, a detail.
+  Each child is a **`DataListItem`**: a `label` you write beside its one `child`, a `DerivedValue`
+  when the value comes from a source. `orientation` stacks label over value when the values are
+  long.
 - **`SortControl`** for every sort declaration you emit: one control per entry in `sorts`, bound to
   `/sorts/N` where N is that entry's index. Place it where the user expects to change the order —
-  above the list it sorts. It shows the criterion and lets the user change key and direction; you
+  above the table it sorts. It shows the criterion and lets the user change key and direction; you
   never bind it to your own model.
-- **`Text`** for what you write yourself: a heading, column labels, a caption. Use `variant` for
-  hierarchy (`h3` for the view's heading, `caption` for labels).
-- **`Column` and `Row`** for structure. A list of like things is a `Column` whose `children` is a
-  template — `{"path": "/rows", "componentId": "row"}` — over the array of your model; the template
-  component's own bindings are relative to the element (`{"path": "price"}`, no leading slash). A
-  row of peers is a `Row`. A header row of `Text` labels above a templated `Column` of `Row`s is the
-  table idiom.
+- **`Text`** for what you write yourself: a heading, a group's title, a caption. Use `variant` for
+  hierarchy (`h3` for the view's heading, `caption` for a group's title).
+- **`Column` and `Row`** for structure around those: the view's heading over its control over its
+  table; a second group under the first. A `Column` whose `children` is a template —
+  `{"path": "/rows", "componentId": "row"}` — templates any component over an array of your model,
+  each element's bindings relative to it (`{"path": "price"}`, no leading slash); a `Card` per
+  element is the shape for entries too unlike each other for one table.
 
 `Card` may wrap the whole view when it should read as one surface; `Divider` separates sections
 that are genuinely different. Nothing else in the catalog serves a merged view: no inputs, no

@@ -19,10 +19,22 @@ import {DerivedValueApi} from './components/derived-value/derived-value.schema.j
 import {FrameApi} from './components/frame/frame.schema.js';
 import {SlotApi} from './components/slot/slot.schema.js';
 import {SortControlApi} from './components/sort-control/sort-control.schema.js';
+import {TableApi, TableRowApi} from './components/table/table.schema.js';
+import {DataListApi, DataListItemApi} from './components/data-list/data-list.schema.js';
 import {operatorFunctions, OPERATORS, type Operator} from './functions/operators.js';
 
 export {CATALOG_ID, OPERATORS, type Operator};
-export {AttributionApi, DerivedValueApi, FrameApi, SlotApi, SortControlApi};
+export {
+  AttributionApi,
+  DataListApi,
+  DataListItemApi,
+  DerivedValueApi,
+  FrameApi,
+  SlotApi,
+  SortControlApi,
+  TableApi,
+  TableRowApi,
+};
 
 /** The shell primitives' APIs: what this catalog adds to the basic catalog. */
 export const SHELL_COMPONENT_APIS: readonly ComponentApi[] = [
@@ -31,6 +43,10 @@ export const SHELL_COMPONENT_APIS: readonly ComponentApi[] = [
   FrameApi,
   DerivedValueApi,
   SortControlApi,
+  TableApi,
+  TableRowApi,
+  DataListApi,
+  DataListItemApi,
 ];
 
 /** The catalog as APIs only — for validation, never for rendering. */

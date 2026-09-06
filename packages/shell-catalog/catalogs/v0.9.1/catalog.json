@@ -947,6 +947,83 @@
       },
       "required": ["component", "sort"],
       "additionalProperties": false
+    },
+    "Table": {
+      "type": "object",
+      "description": "A table of like entries: fixed column headings across the top and one row per entry, every column aligned down the table. Use it for a merged list with several values per entry \u2014 it is the only shape whose columns line up; a heading Row over a Column of Rows never does. The rows are TableRow components: for a list of the merged view, a template over its array.",
+      "properties": {
+        "component": {
+          "const": "Table"
+        },
+        "columns": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "The column headings, in order, one per cell of each row. Yours to write; fixed, never bound."
+        },
+        "children": {
+          "description": "The rows: TableRow ids, or a template over an array of the model whose componentId is a TableRow.",
+          "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/ChildList"
+        }
+      },
+      "required": ["component", "columns", "children"],
+      "unevaluatedProperties": false
+    },
+    "TableRow": {
+      "type": "object",
+      "description": "One row of a Table. Its children are the cells, one per column in the table's column order \u2014 a DerivedValue for every value drawn from a source. Only meaningful inside a Table.",
+      "properties": {
+        "component": {
+          "const": "TableRow"
+        },
+        "children": {
+          "description": "The cells, in column order.",
+          "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/ChildList"
+        }
+      },
+      "required": ["component", "children"],
+      "unevaluatedProperties": false
+    },
+    "DataList": {
+      "type": "object",
+      "description": "The labelled values of one thing \u2014 an entry's fields, a summary, a detail \u2014 each a label beside its value. Its children are DataListItem components. Not for many like entries side by side; that is a Table.",
+      "properties": {
+        "component": {
+          "const": "DataList"
+        },
+        "orientation": {
+          "type": "string",
+          "enum": ["horizontal", "vertical"],
+          "default": "horizontal",
+          "description": "horizontal puts each label beside its value; vertical stacks the label above it."
+        },
+        "children": {
+          "description": "The items: DataListItem ids, or a template over an array of the model whose componentId is a DataListItem.",
+          "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/ChildList"
+        }
+      },
+      "required": ["component", "children"],
+      "unevaluatedProperties": false
+    },
+    "DataListItem": {
+      "type": "object",
+      "description": "One labelled value inside a DataList: the label is yours to write, the value is its one child \u2014 a DerivedValue when it comes from a source.",
+      "properties": {
+        "component": {
+          "const": "DataListItem"
+        },
+        "label": {
+          "description": "The label the reader sees for this value.",
+          "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/DynamicString"
+        },
+        "child": {
+          "description": "The id of the one component showing the value.",
+          "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/ComponentId"
+        }
+      },
+      "required": ["component", "label", "child"],
+      "unevaluatedProperties": false
     }
   },
   "functions": {
@@ -1748,6 +1825,18 @@
         },
         {
           "$ref": "#/components/SortControl"
+        },
+        {
+          "$ref": "#/components/Table"
+        },
+        {
+          "$ref": "#/components/TableRow"
+        },
+        {
+          "$ref": "#/components/DataList"
+        },
+        {
+          "$ref": "#/components/DataListItem"
         }
       ],
       "discriminator": {

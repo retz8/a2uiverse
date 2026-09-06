@@ -33,6 +33,7 @@ test('the merged view is shell content: in its reserved slot, no boundary, no at
   await expect(page.getByLabel('Painted by Aperture & Co', {exact: true})).toBeVisible();
 
   // Every cell complete, through the derived-value component alone.
+  await expect(page.locator(`${VIEW} table tbody tr`)).toHaveCount(2);
   await expect(page.locator(`${VIEW} [data-state="complete"]`)).toHaveCount(8);
   await expect(page.locator(`${VIEW} [data-marker]`)).toHaveCount(0);
 });
@@ -41,7 +42,7 @@ test('the sort criterion is displayed and a change re-orders in place', async ({
   await settleSynthesis(page);
 
   const names = () =>
-    page.locator(`${VIEW} [data-state="complete"]:nth-child(1)`).allTextContents();
+    page.locator(`${VIEW} tbody tr td:first-child [data-state]`).allTextContents();
   const control = page.locator(VIEW).getByLabel('Sort by');
   await expect(control).toBeVisible();
   await expect(control).toContainText('Best price');
