@@ -55,10 +55,7 @@ test('format is fixed configuration: number groups, text stringifies, default is
 });
 
 test('datetime format renders any spelling of a date-and-time in one human form, and a value it cannot read as painted (task 5.7)', () => {
-  const human = new Intl.DateTimeFormat(undefined, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(new Date(Date.UTC(2026, 8, 6, 0, 20)));
+  const human = 'Sep 5, 2026, 8:20 PM';
   const iso = render(
     <DerivedValueView
       cell={{value: '2026-09-06T00:20:00Z', contributed: 1, of: 1, absent: []}}

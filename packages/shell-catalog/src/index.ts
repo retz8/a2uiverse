@@ -47,4 +47,9 @@ export {
   type DataListProps,
   type DataListItemProps,
 } from './components/data-list/index.js';
-export {formatInstant, parseInstant} from './components/shared/instant.js';
+export {
+  formatInstant,
+  INSTANT_LOCALE,
+  INSTANT_TIME_ZONE,
+  parseInstant,
+} from './components/shared/instant.js';
