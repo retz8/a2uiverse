@@ -136,11 +136,12 @@ than repeat one source.
 
 ## Re-synthesis
 
-The view you wrote stays live after you answer. When a source changes so that a ref of yours may
-now point at a different thing, or stops resolving, you are called again with your previous answer
-and an account of what broke: which refs went stale under which surface, and which went absent.
-The user is looking at your view. Keep its shape and its columns; re-point the refs that broke;
-change the shape only when the data no longer supports it; say what changed in the note.
+The view you wrote stays live after you answer. When a source changes so that a ref of yours
+stops resolving — the element it named is no longer in the data — you are called again with your
+previous answer and an account of what broke: which refs no longer resolve. The user is looking
+at your view. Keep its shape and its columns; re-point the refs that broke, or drop what the data
+no longer carries; change the shape only when the data no longer supports it; say what changed in
+the note.
 
 ## The answer
 

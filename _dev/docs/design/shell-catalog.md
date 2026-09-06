@@ -6,7 +6,7 @@ onto Radix Themes, plus the shell's own primitives — composition (`Slot`, `Att
 `TableRow`, `DataList`, `DataListItem`; task 5.7) — as one catalog schema
 (`catalogs/v0.9.1/catalog.json`) and one React implementation, versioned together. Radix Themes
 is its design system, brought by its Provider under the one-provider-one-CSS-setup rule (SPEC
-§9.2). State as of task 5.9.
+§9.2). State as of task 5.7.
 
 ## Two faces of one catalog
 

@@ -1,11 +1,12 @@
 # Client — system design
 
 `apps/client`. The canvas shell (SPEC §4, §10–11): language in, full-screen generative UI out. It
-talks only to the orchestrator. State as of Phase 4 (M2): a composed canvas — one shell surface
+talks only to the orchestrator. State as of task 5.7 (M3): a composed canvas — one shell surface
 holding slots, each filled by a different vendor's fragment in that vendor's own design system —
-plus the merged view: a shell fragment whose data model the client computes from the vendors'
-partitions. The synthesis mechanism end to end, both processes, is told in
-[`synthesis.md`](synthesis.md); this file records the client's classes and flows.
+plus the merged view: shell content in the reserved slot, a model-authored tree in the shell
+catalog whose data model the client computes from the vendors' partitions. The synthesis
+mechanism end to end, both processes, is told in [`synthesis.md`](synthesis.md); this file
+records the client's classes and flows.
 
 Mechanics of the shell itself (hold-and-swap, timeline, interaction policy) live in
 `apps/client/src/canvas/README.md`. This file records the composition-era design: the classes,
@@ -31,15 +32,15 @@ its own.
 | --- | --- | --- |
 | `canvasStore` | Canvas state, including the **placement map** (slot → `{surfaceId, source}`) and the **promoted** slot set | read by React through `useSyncExternalStore`; written by the turn runner |
 | `turn/canvasTurn` | Turn lifecycle and role routing: which surfaces are stage paints, which fill slots, when a composition is torn down and captured | `canvasStore`, the live processor, `applyMessages` |
-| `composition/slotContent` | What a `Slot` renders: boundary → vendor Provider → surface | `FragmentBoundary`, `catalogs/CatalogContext` |
+| `composition/slotContent` | What a `Slot` renders: boundary → vendor Provider → surface for a vendor fragment; surface alone, in a bare `[data-shell-content]` element, for the `shell` source (task-5.5 decision 2) | `FragmentBoundary`, `catalogs/CatalogContext` |
 | `composition/FragmentBoundary` | The one element a fragment mounts inside: provenance, isolation anchor, promotion treatment | — |
 | `composition/slotCount` | How many slots the plan laid out — adaptive weight's input | — |
 | `composition/collisionDetector` | CSS collision rules over the installed catalogs | run from tests only |
 | `composition/roster` | Reads the turn's sources and their display names off the shell paint | `canvasStore` |
 | `components/AmbientNotice` | The notice stack and its two fade clocks | `canvasStore` via `orderedNotices` |
-| `synthesis/synthesisSession` | A composition's synthesis state: the wiring, the data-model subscriptions that re-run the evaluator, the latest generation seen per surface, the user's sort, the last output | fed by `turn/canvasTurn`; reads and writes the live processor's data models; reports an invalid wiring through the fragment-failure channel |
-| `synthesis/bindingEvaluator` | Pure: `evaluate({wiring, models, generations, sort, functions}) → {entities, sort}` — ref resolution, absent-skipping, operator dispatch to the shell catalog, `argmin`/`argmax` mapped to an app id, stale marking, ordering | the shell catalog's `functions` |
-| `synthesis/wiringSchema` | The zod mirror of the sdk's wiring schema, type-pinned both ways, plus the structural checks (known operator, declared sort field, one cell per field) | — |
+| `synthesis/synthesisSession` | A composition's synthesis state: the payload, the data-model subscriptions that re-run the evaluator, the user's sort choices by array path, the last output written | fed by `turn/canvasTurn`; reads and writes the live processor's data models; reports an invalid payload through the fragment-failure channel |
+| `synthesis/bindingEvaluator` | Pure: `evaluate({payload, models, choices, functions}) → EvaluatedModel` — the derived model mirrored with a cell object at every formula path, each declared array sorted in place, `/sorts/N` with the choice in force; ref resolution through the sdk kit, absent-skipping, operator dispatch to the shell catalog, `argmin`/`argmax`/`source` mapped to an app id | the shell catalog's `functions`; `parseInstant` for the sort |
+| `synthesis/intake` | The payload's shape by the sdk's `validateSynthesisPayload` (never a private mirror, phase-5 decision 23), then every operator against the shell catalog's list; the first failure is the `VALIDATION_FAILED` report | `@a2uiverse/sdk` |
 
 ### The stamp is the routing input
 
@@ -52,28 +53,41 @@ extracts it and hands it to the turn handle alongside the batch.
 - **absent** — a stage paint. Composition is opt-in via the stamp, which is what keeps every
   pre-composition fixture and test valid.
 
-### Synthesis: the stamp carries generations, the paint carries the wiring
+### Synthesis: the paint carries the tree, the payload rides beside the stamp
 
 The synthesis surface (`shell:synthesis`) arrives as a fragment of the `shell` source in
-`slot-shell`, with the wiring beside the stamp on the same event (`readWiring`). `sendAndApply`
-hands both to the turn handle. The runner feeds the session in a fixed order: the stamp's
-`generations` **before** the event's messages apply, so a bump marks derived cells stale ahead of
-the data behind it; the wiring **once the synthesis surface is live** — at apply in progressive
-mode, at the swap in staged mode, since an action turn's repaint streams into staging.
+`slot-shell`: the model-authored tree as ordinary A2UI, the payload — the derived model and the
+sorts — beside the stamp on the same event (`extractSynthesisFromEvent`, over the sdk's
+`readSynthesis`). `sendAndApply` hands both to the turn handle, and the runner hands the payload
+to the session **once the synthesis surface is live** — at apply in progressive mode, at the swap
+in staged mode, since an action turn's repaint streams into staging.
 
-The session validates the wiring, subscribes to the root of every surface it refs and to `/sort`
-on the synthesis surface (the library data model notifies on any nested write, so one mechanism
-covers vendor updates, two-way edits inside fragments, and the sort control's write-back),
-evaluates, and writes `{entities, sort}` to the synthesis surface in one root write — before
-React renders. Subscription-driven runs coalesce to one microtask, so a vendor batch of several
-data-model messages evaluates once; intake and a generation note run synchronously. Its own write
-is guarded against re-triggering itself, and an unchanged output is not written. Stale is compared on every run (`latest seen ≠ computedAgainst`), never reset. The
-user's sort sticks across a re-synthesis while its field exists; `retireStage` retires the session
-with the composition, so a new utterance turn starts from the wiring's sort.
+The session validates the payload (`intake`), subscribes to the root of every surface it refs and
+to `/sorts` on the synthesis surface (the library data model notifies on any nested write, so one
+mechanism covers vendor updates, two-way edits inside fragments, and a sort control's
+write-back), evaluates, and writes the whole evaluated model to the synthesis surface in one root
+write — before React renders. Subscription-driven runs coalesce to one microtask, so a vendor
+batch of several data-model messages evaluates once; intake evaluates synchronously. Its own
+write is guarded against re-triggering itself, and an unchanged output is not written. A surface
+the payload refs that a vendor re-creates is watched again; one that is deleted goes absent and
+re-evaluates. Nothing here tracks generations: refs select by key, so a repaint under a ref is
+not an event (task 5.10). The user's choice on each sorted array sticks across a re-synthesis
+while its key is still an option; `retireStage` retires the session with the composition, so a
+new utterance turn starts from the declarations' own choices.
 
-An invalid wiring reports `VALIDATION_FAILED` for `shell:synthesis` through the same side channel
-a fragment that will not render uses; the hub fails `slot-shell`. A ref into a surface the client
-does not hold is absent at evaluation time, never a rejection.
+An invalid payload reports `VALIDATION_FAILED` for `shell:synthesis` through the same side
+channel a fragment that will not render uses; the hub fails `slot-shell`. A ref into a surface
+the client does not hold is absent at evaluation time, never a rejection.
+
+The merged view renders as shell content (phase-5 decision 22): the `Slot` the hub paints for it
+declares `content: "shell"`, and `renderSlotContent` mounts its surface in a bare
+`[data-shell-content]` element with the error boundary but no `FragmentBoundary` — no tile, no
+attribution, no region named after a source. Pending, it shows a quiet in-progress marker; declined,
+it rests on the shell's words.
+
+The recorder (`scripts/lib/batch.ts`) keeps the synthesis payload beside the stamp on the one
+event that paints the merged view, so a recorded composition replays with the real document
+evaluated over the real partitions; beat 5 is the temporal merge recorded that way (task 5.7).
 
 ### Prose composes through the same stamp
 
@@ -94,8 +108,10 @@ flight and so has no turn to be scoped to.
 
 `placement` says which fragment filled which slot, but only once one has, and in fill order. The
 roster is the complement: the turn's sources in *slot* order with the display names the Registry
-painted, read from the shell surface's `Attribution` components at first paint. It orders the
-notice stack and names its lines — including for a source that never paints.
+painted, read from the shell surface's `Attribution` components at first paint. A `Slot` with
+`content: "shell"` pairs with no attribution and reads as the reserved `shell` source, named by
+its label. The roster orders the notice stack and names its lines — including for a source that
+never paints.
 
 A shell repaint may legally carry only the components it changed, so a paint containing no
 attribution leaves the roster standing rather than emptying it. The roster is cleared per turn,
@@ -124,12 +140,11 @@ per-dispatch partition filter as stale state.
 `PaintEntry` carries `fragments` beside its own snapshot — captured at serialize-on-swap, before
 teardown makes them unreachable, and captured unconditionally. The synthesis surface is one of
 them with its last evaluated data model, and beside the fragments the entry carries the
-synthesis it was projecting — `PaintSynthesis {surfaceId, wiring, generations}`, captured by
+synthesis it was projecting — `PaintSynthesis {surfaceId, payload}`, captured by
 `SynthesisIntake.capture()` at the same moment. A parked visit re-sorts with it: the parked
-session watches `/sort` on the sandbox's synthesis surface and re-runs the evaluator over the
-sandbox's own frozen partitions, with the captured generations so nothing reads as stale. Sort
-crosses no wire, so it works parked; nothing live is subscribed, and the re-sort stays in the
-sandbox until commit. A shell-only capture could not
+session watches `/sorts` on the sandbox's synthesis surface and re-runs the evaluator over the
+sandbox's own frozen partitions. Sort crosses no wire, so it works parked; nothing live is
+subscribed, and the re-sort stays in the sandbox until commit. A shell-only capture could not
 represent a filled slot at all, because `Slot.state` is orchestrator-painted and only ever
 pending/failed/collapsed. `createParkedSession` rebuilds every surface through the same
 three-message path and restores the placement, so a parked composition renders through the same
