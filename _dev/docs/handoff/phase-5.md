@@ -1,10 +1,10 @@
-# Handoff — Phase 5, after 5.4 and 5.5
+# Handoff — Phase 5
 
 ## Where it stands
 
-- 5.1–5.5 done and committed on `main`; `pnpm verify` green. 5.4 and 5.5 were worked directly on `main`, test-first, no worktree.
-- Next in order: **5.6** `[apps]` S1 beats (worked on `../a2uiverse-apps/` `main`, no worktree), then **5.7** integration + acceptance (after 5.4–5.6), **5.8** design records (after 5.7). **5.9** (shell catalog on Radix Themes) is parallel and must land before 5.7.
-- Specs: `_dev/docs/spec/task-5.4-orchestrator-synthesizer.md`, `task-5.5-client-synthesis.md`; phase spec `phase-5-heterogeneous-shapes.md`.
+- 5.1–5.7 and 5.9–5.11 done and committed on `main`; `pnpm verify` green. Only **5.8** (design records + sdk README) is open; it closes the phase. Its pickup handoff: `_dev/docs/handoff/task-5.8.md`.
+- The acceptance run's record: `_dev/docs/spec/task-5.7-integration-acceptance.md`; the acceptance list: phase spec decision 25.
+- The sections below are the 5.4/5.5 design notes, kept for 5.8's rewrite of the records; 5.7's changes on top of them are listed in `task-5.8.md`.
 
 ## What 5.4 built (orchestrator authors the synthesize data model)
 
