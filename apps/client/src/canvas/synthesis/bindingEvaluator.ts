@@ -52,7 +52,7 @@ export interface EvaluateInput {
 }
 
 /** The source selectors: their result is an index over the surviving inputs. */
-const INDEX_OPERATORS = new Set(['argmin', 'argmax']);
+const INDEX_OPERATORS = new Set(['argmin', 'argmax', 'source']);
 
 /** Absent is unresolvable or null (task-4.5 decision 7): the kit answers both as not found. */
 function resolveRef(ref: Ref, models: EvaluateInput['models']): {found: boolean; value?: unknown} {

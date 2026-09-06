@@ -57,14 +57,21 @@ over zero or more refs. Nothing else may sit at a leaf: no string, no number, no
   a shared id, an identical name, a matching key. Do not invent a correspondence to fill a row.
 - A formula with no refs is a value no source contributes to — the honest cell for a column a source
   does not carry. It evaluates to absent, not to a made-up value.
+- To say which source an entry belongs to — the type column of a merged list — write the `source`
+  operator over the entry's ref; the runtime writes the app's id. Never a literal.
 - Any non-leaf is a branch: an object whose values are nodes, or an array of nodes. A list of like
   things is an array of like objects, one object per thing; the tree templates over the array.
 - The root key `sorts` is reserved for the runtime. Do not write it into `dataModel`.
 
 ## Sorts
 
-`sorts` declares how each ordered array of your model is ordered. One declaration per array you want
-sorted; an empty list when nothing is:
+`sorts` declares how each ordered array of your model is ordered. A list a person reads is in some
+order, and the criterion behind that order is always shown and always theirs to change — so every
+array the tree lists gets one declaration, whether or not the request named an order; when it did
+not, choose the criterion a reader of this view would expect. The one array that goes undeclared is
+the one no key can order (below). One declaration per array, never two, and every option key must be
+a formula with at least one ref in every element — a key with no refs is absent by construction,
+and an element that can never take a place on the axis does not belong in the array:
 
 - `path`: the array in `dataModel`, as a JSON Pointer from its root.
 - `options`: the keys the user may sort by. Each `key` is a JSON Pointer inside one element, to a

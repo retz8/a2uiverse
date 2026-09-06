@@ -40,6 +40,11 @@ test('argmin and argmax return the index of the winning input, not its provenanc
   expect(run('argmax', [949, 899, 1020])).toBe(2);
 });
 
+test('source returns the index of its first input — which source it is remains the evaluator’s (task-5.7)', () => {
+  expect(run('source', ['Budget sync'])).toBe(0);
+  expect(run('source', [1, 2])).toBe(0);
+});
+
 test('every operator declares the return type its implementation honours', () => {
   const returns = Object.fromEntries(operatorFunctions.map(f => [f.name, f.returnType]));
   expect(returns).toEqual({
@@ -51,5 +56,6 @@ test('every operator declares the return type its implementation honours', () =>
     count: 'number',
     argmin: 'number',
     argmax: 'number',
+    source: 'number',
   });
 });

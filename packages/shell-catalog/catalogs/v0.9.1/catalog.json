@@ -802,7 +802,7 @@
     },
     "Slot": {
       "type": "object",
-      "description": "A named region of a composed screen whose content is mounted by the client. Paint one per planned fragment; later repaints may change its state but never its position. While no content has arrived it renders a pending placeholder. A slot whose content is the shell's own — the merged view — is declared `content: \"shell\"`: it keeps its reserved position but is painted like the shell's own UI, with a quiet pending marker and no tile.",
+      "description": "A named region of a composed screen whose content is mounted by the client. Paint one per planned fragment; later repaints may change its state but never its position. While no content has arrived it renders a pending placeholder. A slot whose content is the shell's own \u2014 the merged view \u2014 is declared `content: \"shell\"`: it keeps its reserved position but is painted like the shell's own UI, with a quiet pending marker and no tile.",
       "properties": {
         "component": {
           "const": "Slot"
@@ -815,7 +815,7 @@
           "type": "string",
           "enum": ["pending", "failed", "collapsed"],
           "default": "pending",
-          "description": "The region’s lifecycle state. `pending` shows a placeholder until content arrives; `failed` shows that the content could not be produced; `collapsed` removes the region from view without moving its neighbours."
+          "description": "The region\u2019s lifecycle state. `pending` shows a placeholder until content arrives; `failed` shows that the content could not be produced; `collapsed` removes the region from view without moving its neighbours."
         },
         "content": {
           "type": "string",
@@ -833,7 +833,7 @@
     },
     "Attribution": {
       "type": "object",
-      "description": "Names the source of a neighbouring region’s content. A quiet marker that expands to full detail on hover or focus. Paint one alongside each slot.",
+      "description": "Names the source of a neighbouring region\u2019s content. A quiet marker that expands to full detail on hover or focus. Paint one alongside each slot.",
       "properties": {
         "component": {
           "const": "Attribution"
@@ -885,7 +885,7 @@
           "const": "DerivedValue"
         },
         "cell": {
-          "description": "Path to a formula leaf of the derived data model — e.g. `/counts/gmail`, or `when` inside a row template over `/entries`. The runtime writes the evaluated cell there: the value with its contributor state. Always a path, never a literal.",
+          "description": "Path to a formula leaf of the derived data model \u2014 e.g. `/counts/gmail`, or `when` inside a row template over `/entries`. The runtime writes the evaluated cell there: the value with its contributor state. Always a path, never a literal.",
           "oneOf": [
             {
               "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/DataBinding"
@@ -1620,6 +1620,35 @@
       },
       "required": ["call", "args"],
       "unevaluatedProperties": false
+    },
+    "source": {
+      "type": "object",
+      "description": "The source an entry comes from: the app whose partition the first resolving input was read from. Written by the runtime as the app's id \u2014 the way to say which source a merged row belongs to without copying a value.",
+      "properties": {
+        "call": {
+          "const": "source"
+        },
+        "args": {
+          "type": "object",
+          "properties": {
+            "values": {
+              "type": "array",
+              "description": "One or more values; the source of the first that resolves is named.",
+              "items": {
+                "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/DynamicValue"
+              },
+              "minItems": 1
+            }
+          },
+          "required": ["values"],
+          "unevaluatedProperties": false
+        },
+        "returnType": {
+          "const": "number"
+        }
+      },
+      "required": ["call", "args"],
+      "unevaluatedProperties": false
     }
   },
   "$defs": {
@@ -1792,6 +1821,9 @@
         },
         {
           "$ref": "#/functions/argmax"
+        },
+        {
+          "$ref": "#/functions/source"
         }
       ]
     }

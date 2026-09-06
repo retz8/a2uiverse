@@ -32,7 +32,10 @@ const synthesis: Synthesis = {
           op: 'value',
           args: [{surface: 'github:prs', pointer: '/pulls[number=812]/updatedAt'}],
         },
-        what: {op: 'value', args: []},
+        what: {
+          op: 'value',
+          args: [{surface: 'github:prs', pointer: '/pulls[number=812]/title'}],
+        },
       },
     ],
   },
@@ -105,6 +108,32 @@ test('rejects a sort option whose key does not resolve to a formula in every ele
   const result = validateSynthesizeDataModel(bad);
   expect(result.ok).toBe(false);
   if (!result.ok) expect(result.errors.join('\n')).toContain('/where');
+});
+
+test('rejects a second declaration over the same array (task-5.7: one declaration per array)', () => {
+  const twice = clone(synthesis);
+  twice.sorts.push({
+    ...clone(twice.sorts[0]!),
+    options: [{key: '/what', label: 'Title'}],
+    key: '/what',
+  });
+  const out = validateSynthesizeDataModel(twice);
+  expect(out.ok).toBe(false);
+  if (!out.ok)
+    expect(out.errors).toEqual([
+      '/sorts/1: path /entries is already declared at /sorts/0 — one declaration per array',
+    ]);
+});
+
+test('rejects a sort option whose key is a formula with no refs in some element (task-5.7: a key that can never resolve)', () => {
+  const unkeyed = clone(synthesis);
+  (unkeyed.dataModel.entries as Array<Record<string, unknown>>)[1]!.when = {op: 'value', args: []};
+  const out = validateSynthesizeDataModel(unkeyed);
+  expect(out.ok).toBe(false);
+  if (!out.ok)
+    expect(out.errors).toEqual([
+      '/sorts/0: option key /when is a formula with no refs in element 1 of /entries — an element whose key can never resolve does not belong in a sorted array; give it its own array',
+    ]);
 });
 
 test('rejects a sort whose initial key is not one of its options', () => {

@@ -10,7 +10,9 @@ import {z} from 'zod';
  * Operators are pure functions over positional values. The evaluator resolves refs,
  * drops absent inputs and counts contributors around the call; no operator ever sees a
  * surface id. `argmin`/`argmax` return the *index* of the winning input for the same
- * reason — mapping it back to a source is the evaluator's.
+ * reason — mapping it back to a source is the evaluator's. `source` (task-5.7) is the
+ * degenerate selector: the index of the first input that resolved, so a merged row can name
+ * the app its entry came from without copying anything.
  */
 export const OPERATORS = [
   'value',
@@ -21,6 +23,7 @@ export const OPERATORS = [
   'count',
   'argmin',
   'argmax',
+  'source',
 ] as const;
 export type Operator = (typeof OPERATORS)[number];
 
@@ -59,5 +62,9 @@ export const operatorFunctions: readonly FunctionImplementation[] = [
   createFunctionImplementation(
     {name: 'argmax', returnType: 'number', schema: numbers},
     ({values}) => indexOf(values, (a, b) => a > b),
+  ),
+  createFunctionImplementation(
+    {name: 'source', returnType: 'number', schema: z.object({values: z.array(z.any()).min(1)})},
+    () => 0,
   ),
 ];

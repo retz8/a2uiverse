@@ -148,6 +148,25 @@ describe('evaluate over the example', () => {
     expect((out.cheapest as CellObject).value).toBe('shop-b');
     expect((out.dearest as CellObject).value).toBe('shop-a');
   });
+
+  test('source writes the app id of the ref that resolves (task-5.7: the type column of a merged timeline)', () => {
+    const payload: SynthesisPayload = {
+      dataModel: {
+        one: {op: 'source', args: [{surface: A, pointer: '/items[id="verity-a7"]/name'}]},
+        survivor: {
+          op: 'source',
+          args: [
+            {surface: A, pointer: '/items[id="nope"]/name'},
+            {surface: B, pointer: '/products[sku="verity-a7"]/title'},
+          ],
+        },
+      },
+      sorts: [],
+    };
+    const out = run(payload, stores());
+    expect(out.one).toEqual({value: 'shop-a', contributed: 1, of: 1, absent: []});
+    expect(out.survivor).toMatchObject({value: 'shop-b', contributed: 1, of: 2, absent: [A]});
+  });
 });
 
 describe('a reorder under a keyed ref (task-5.10 decision 1)', () => {
