@@ -66,5 +66,14 @@ pnpm dev:all --agents-dir ../a2uiverse-apps/mocks              # shop-a 12001 ·
 pnpm dev:all --agents-dir ../a2uiverse-apps/mocks --mode live  # the same, live
 ```
 
+The real roster runs the same way, and both modes of it are acceptance beds (task 5.7):
+
+```bash
+pnpm dev:all --agents-dir ../a2uiverse-apps --mode deterministic   # github · gmail · calendar from their today fixtures
+A2UI_RECORD_DIR=<scratch dir> pnpm dev:all --agents-dir ../a2uiverse-apps --mode live   # live MCP; the variable arms Gmail's pseudonymizer, needed before any beat is recorded
+```
+
+The launcher inherits the shell's environment for the agents and hands `A2UIVERSE_AGENTS_DIR` to the platform; `turbo.json` passes `A2UIVERSE_*` through to the `dev` task.
+
 Browser: `https://vnw20xbg-5173.asse.devtunnels.ms`. Card check:
 `https://vnw20xbg-10001.asse.devtunnels.ms/.well-known/agent-card.json`.

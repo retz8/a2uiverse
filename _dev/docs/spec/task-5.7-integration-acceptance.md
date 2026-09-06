@@ -77,6 +77,34 @@ A numbered acceptance section is added to the Phase 5 spec, following the Phase 
 
 Anything the run changes about a decision is amended into this spec and marked as added during the run. Defects the run finds are fixed in the same session and named in the commit message. Stills from the browser pass are not committed.
 
+## Found and fixed during the run
+
+Each surfaced by a tunnel pass before the item it blocked passed; fixed in the same session, with tests.
+
+- **The launcher's agents dir never reached the orchestrator.** Turbo's strict env mode stripped `A2UIVERSE_AGENTS_DIR` from the `dev` task, so `pnpm dev:all --agents-dir …/mocks` booted the platform on the hardcoded roster with three unreachable agents. `turbo.json` passes `A2UIVERSE_*` through.
+- **A merged list with no criterion.** The mocks' comparison merged under a Planner request that named no order, and the Synthesizer declared no sort: no control, nothing to change. The composition doc no longer allows an empty declaration list for a listed array — every array the tree lists declares its criterion, the one exception being the array no key can order (task 5.11 decision 5). Amends decision 4 of task 4.3 as far as the doc's wording goes; SPEC §5.4 and §16 already said it.
+- **Calendar inside the sorted array under a key that could never resolve.** The first S1 document over the deterministic roster put Calendar's entries in the timeline with a ref-less `sortTime` formula — absent by construction, sorting last — and declared two sorts over one array, so two controls painted. Both are validator errors now, carried back to the model on the retry: one declaration per array, and every option key a formula with at least one ref in every element. The own-array rule of 5.11 is enforced where it can be.
+- **No honest way to name an entry's source.** The Planner asked for each item's source and the same document wrote a ref-less `type` formula in every row: a column of absent cells. The shell catalog gains the `source` operator — the app id of the first resolving input, mapped by the evaluator the way `argmin`'s index is — and the composition doc says to use it. Amends phase decision 19 on the evidence it asked for.
+
+*Added during the run.* **The gate's S1 document.** After the fixes, the deterministic roster's document ordered Gmail and GitHub by instant on one axis, gave Calendar its own group with times as labels, filled the source column, declared one sort, and validated on the first attempt. The live roster's document did the same over ten live entries, Gmail and GitHub interleaved by instant across the two spellings.
+
+## Evidence
+
+- **Quiescence, live roster.** Dispatch settled at +14.1 s (Calendar), +25.9 s (Gmail), +32.5 s (GitHub) after send; the pending marker held through the first two arrivals and the merged view landed after the third; one attempt. The recorder's turn: +14.5 s, +27.8 s, +29.4 s, one attempt. The document referenced the Gmail and GitHub partitions; Calendar's data is discussed in the note.
+- **Dead air.** Recorded in the backlog item.
+- **Decline, live.** "Which of my meetings today are about my open pull requests?" reserved a merged view over Calendar and GitHub; the Synthesizer declined on one attempt, the reason spoken into the slot.
+- **Beat 5.** 126 batches, 45 s, the synthesis payload on the last; fixture privacy check clean.
+
+## Findings, not fixed
+
+- **The merged view reads as loose lines, not a table.** The guidance doc's table idiom — a header `Row` of labels over a templated `Column` of `Row`s — draws with `Row`, which sizes children by content, so columns never align and every value renders at body size. Disposition open: prose guidance toward a per-entry `Card` shape first; a `Table`/`DataList` mapping in the shell catalog as the follow-up, under `design-catalog-component`.
+- **The live Synthesizer dropped Calendar rather than grouping it.** Over the live roster Calendar painted `10:00 AM`, `All day`, `Sep 7, 3:00 PM`; the document left it out with the note explaining, instead of the own-array group the doc asks for. Honest, not the rule.
+- **The deterministic S1 document carried two of Gmail's threads.** The digest had more; the request asked for all; the note said nothing. Possibly the worked example's two-entries-per-source trim teaching a count.
+- **A canvas action on the live composed screen failed.** Opening a Gmail thread from the merged screen reported "That action failed. Failed to fetch" after about seventy seconds; nothing reached the Gmail agent, nothing was journaled, the orchestrator answered its card through the tunnel throughout. 4.8's unreproduced observation, seen once more in a different shape.
+- **The renderer stalled twice** for a screenshot over the tunnel after a merged view landed on the deterministic roster; the page recovered on its own and the console was clean.
+- **Markdown** never showed raw in shell text; no renderer decision was needed (decision 13).
+- **A re-synthesis re-authors rows.** Over the mocks, the drill-down's re-synthesis dropped the two rows whose Shop A refs went absent and the return re-added them. The view held its columns; the row set followed the data.
+
 ## Invariants
 
 - **Live verification drives tunnel URLs, never localhost.**

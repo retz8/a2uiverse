@@ -93,6 +93,8 @@ A tree that binds any component other than `DerivedValue` to a formula path is `
 
 The timeline needs `value` and `count`. New operators come on evidence from the real roster.
 
+**Amended by task 5.7** (`task-5.7-integration-acceptance.md`), on that evidence: the Planner asks for each merged entry's source and the vocabulary could not name one without a literal. The shell catalog gains `source` — the app id of the first resolving input, a selector like `argmin`. No time-normalizing operator; 5.11's closure stands.
+
 ### 20. The mock storefronts stay the regression bed
 
 Their comparison view is now model-authored; their fixtures and the client's synthesis fixture are re-recorded.
