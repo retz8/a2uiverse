@@ -41,8 +41,8 @@ No new instrumentation. The live pass shows the three dispatch end times spread 
 
 The client's sort comparator orders two values by instant when both match a named date-time shape — ISO 8601, and the `YYYY-MM-DD HH:mm UTC` form Gmail paints. Any other pair keeps the existing rule. The shapes are named, not inferred from a lenient parser, and are tested over the recorded values. Amends task 4.5's sort-semantics decision, which is left as written there. Phase decision 19 stays closed: no operator is added and the model authors nothing new. Stated in the composition doc's sorts section and as a §14 register row.
 
-**Amended during the run**, after Gmail painted a third spelling on a later live run: the runtime reads time. Any value carrying a year and a clock is an instant, whatever the vendor's spelling, a range its start; the parse is one shared function in the shell catalog, used by the evaluator's sort and by `DerivedValue`'s new `datetime` format, which renders every source's time in one human form. Vendors paint time as they like (decision 10 holds); the Synthesizer converts nothing and names the format; the Planner asks vendors in prose for the full date and time. A value the runtime cannot read stays text, sorted and shown as painted, so a miss is visible rather than invented.
-Seen live once: the Synthesizer gave the `when` cells the `datetime` format unprompted, the Planner's requests asked each vendor for "its full date and time", and eleven Gmail and GitHub entries interleaved by instant, every time in the viewer's locale in one form; one attempt.
+**Amended during the run**, after Gmail painted a third spelling on a later live run: the runtime reads time. Any value carrying a year and a clock is an instant, whatever the vendor's spelling, a range its start; the parse is one shared function in the shell catalog, used by the evaluator's sort and by `DerivedValue`'s new `datetime` format, which renders every source's time in one human form (English, US Eastern, fixed). Vendors paint time as they like (decision 10 holds); the Synthesizer converts nothing and names the format; the Planner asks vendors in prose for the full date and time. A value the runtime cannot read stays text, sorted and shown as painted, so a miss is visible rather than invented.
+Seen live once: the Synthesizer gave the `when` cells the `datetime` format unprompted, the Planner's requests asked each vendor for "its full date and time", and eleven Gmail and GitHub entries interleaved by instant, every time in one form; one attempt. The form is fixed — English, US Eastern time — not the viewer's locale, after the unit browser rendered it in Korean.
 
 ### 8. The comparator lives in the client only
 
@@ -99,6 +99,16 @@ Each surfaced by a tunnel pass before the item it blocked passed; fixed in the s
 - **Dead air.** Recorded in the backlog item.
 - **Decline, live.** "Which of my meetings today are about my open pull requests?" reserved a merged view over Calendar and GitHub; the Synthesizer declined on one attempt, the reason spoken into the slot.
 - **Beat 5.** 126 batches, 45 s, the synthesis payload on the last; fixture privacy check clean.
+
+## Four more prompts, live
+
+Run after the table and time-reading changes, one turn each, over the live roster.
+
+- **"What's on my plate this week across calendar, mail and GitHub?"** — sixteen entries from all three sources on one axis, Calendar included now that its events carry full dates; one attempt. The one all-day event carries a date and no clock, so the runtime leaves it as painted and it sorts as text — the honest fallback, and a visible one.
+- **"How much is waiting on me right now? Give me a count per app."** — a three-row `Table` of app and count, sorted by count, `source` naming each row; dead air 4.8 s. The model chose a table over a `DataList` for three like rows, which the guidance allows. Calendar's count arrived as the agent's sentence ("0 invitations waiting on your reply") and was passed through as text; the note says so.
+- **"Show me everything involving Sara today."** — each vendor filtered for Sara, the three answers merged on one time axis with app, time, title and summary; ten rows, one attempt, dead air 17.0 s. Not an entity join: nothing asserts that two rows are the same thing, which is Phase 7's. *Found and fixed:* Calendar painted `2026-09-07, 15:00 – 15:30 (America/New_York)` and the reader dropped the named zone, reading the wall time in the viewer's machine zone. The reader now honours a named IANA zone and reads a zone-less wall time in the display zone, never the viewer's.
+  Re-run on the fix: the timeline as a `Table`, and Calendar's single next event as a `DataList` — the first live use of the shape, chosen by the model where one entry's fields called for it.
+- **"Put my inbox and my calendar side by side."** — the Planner reserved no merged view: two panels, no synthesis, the control held. It planned `direction: row` over one group of two slots and got them stacked, since the plan's direction lays groups, not the slots inside one; the Planner's reading of its own layout vocabulary is a Phase 6 item.
 
 ## Findings, not fixed
 

@@ -110,6 +110,7 @@ Capability gap → marketplace index → install → resume (M11).
 Publish a new app → discover → install → compose with an existing one → act inside it. One sitting, no code changes; the deliverable is the recording (M12).
 
 ## Backlog
+- The Planner reads its plan's `direction` as the slots' axis, but the runtime lays groups along it and the slots of one group across it: "side by side" over one group of two came out stacked (5.7, the control prompt). Phase 6's framing revisit
 - The Planner's `archetype` (`card|panel|row|full`) is planned, validated and journaled but affects nothing: `Frame` sizes a row's slots equally regardless. Decide what each value should mean — whether `full` breaks out of its row, whether weights are proportional — or drop it from the plan schema
 - Revisit Gmail/Calendar product styling depth once compositions and functionality land at later milestones
 - Capability-gap terminal state when the marketplace has nothing either — what the capability tile says, whether the reserved slot collapses or stands (Phase 14's grill)

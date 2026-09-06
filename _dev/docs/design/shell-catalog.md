@@ -56,7 +56,7 @@ carry no schema file of their own — their API is upstream's. Shared helpers li
 | `Slot` | pending/failed tile on Radix panel, border and radius tokens; quiet `Text` lines for shell content | content from `SlotContentContext`, which the host fills |
 | `Attribution` | `Text` size 1 gray with Radix's info glyph | display name at rest, full detail on hover/focus, accessible name always |
 | `Frame` | `Flex` gap 3 of `Box` items | equal shares along a row (`flex-basis: 0`), natural size down a column |
-| `DerivedValue` | `Text` size 2, gray when absent, detail in size 1 | the cell object the BindingEvaluator writes: value + contributor state; `format` `number` · `currency` · `datetime` (any year-and-clock spelling rendered in one form through `shared/instant`, which the client's sort shares) |
+| `DerivedValue` | `Text` size 2, gray when absent, detail in size 1 | the cell object the BindingEvaluator writes: value + contributor state; `format` `number` · `currency` · `datetime` (any year-and-clock spelling rendered in one fixed form — `en-US`, `America/New_York` — through `shared/instant`, which the client's sort shares) |
 | `SortControl` | `Select` + `IconButton` with Radix arrow icons | the declaration at `/sorts/N`, written back whole |
 | `Table` · `TableRow` | `Table.Root` size 1 `surface`; `Table.Row` of `Table.Cell`s | headings from `columns`, one row per child; a row outside a table draws as a flex row (context) |
 | `DataList` · `DataListItem` | `DataList.Root` size 2; `DataList.Item` with `Label` and `Value` | `label` a `DynamicString`, `child` the value; an item outside a list draws as a labelled row (context) |
