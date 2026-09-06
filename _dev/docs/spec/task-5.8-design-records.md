@@ -1,0 +1,55 @@
+# Task 5.8 — Design records + sdk README
+
+The closing sub-task of Phase 5 (`_dev/docs/spec/phase-5-heterogeneous-shapes.md`, Scope): the design records rewritten to the synthesize data model as the Synthesizer authors it and the client evaluates it, and the sdk README rewritten to what the sdk exposes. TODO 5.8.
+
+## Scope
+
+- `_dev/docs/design/synthesis.md` rewritten in full.
+- `_dev/docs/design/orchestrator.md` and `_dev/docs/design/client.md` corrected wherever Phase 5 changed the design.
+- `packages/sdk/README.md` rewritten.
+- `packages/sdk/docs/composition.md` amended where the README work finds a vocabulary gap.
+- `_dev/docs/design/shell-catalog.md` checked, not rewritten.
+- Written directly on `main`, no worktree.
+
+## Locked decisions
+
+### 1. `synthesis.md` is the narrative
+
+`synthesis.md` stays the end-to-end story of a merge turn, rewritten in full to the Phase 5 design: detailed, friendly, with diagrams where they help. The per-class records stay in the orchestrator and client records; the narrative describes each class once, in the record that owns its process, and maps to them.
+
+### 2. The process records are corrected everywhere Phase 5 reached
+
+The edits to `orchestrator.md` and `client.md` are not confined to their Synthesizer sections. Every place the Phase 5 design changed is corrected: in the orchestrator the turn walkthrough, the Composition bullets, the Planner's synthesis-slot and prompt rows, the journal entry and the tests paragraph; in the client the runtime graph table, the synthesis section and the timeline capture. Sections Phase 5 did not touch stay as they are.
+
+### 3. The sdk README is written for a platform developer new to the repo
+
+The reader knows A2UI and has not read SPEC §5 or §14. The README introduces the synthesize data model in its own words before naming the tools that operate on it. The vendor catalog half's view of the sdk is one short paragraph inside that, not a second audience.
+
+### 4. The composition doc is in scope
+
+A vocabulary gap found while writing the README is fixed in `packages/sdk/docs/composition.md` in the same session.
+
+### 5. A composition-doc edit is verified by its kind
+
+A wording edit is verified by the gates plus the orchestrator's gated live Synthesizer smoke. An edit that adds or changes a rule is a behavioural change and is verified by the pinned live run through the tunnel over the real roster. The session decides per edit which applies.
+
+### 6. The README's spine is by export
+
+One section per thing the sdk ships: the contract, the composition stamp, the synthesize data model, the validator, the resolution kit, the prompt builder. Each says what it is, who calls it and where. The synthesize data model's section comes before the three tools that operate on it and opens in plain language ahead of any field name. Consuming stays at the end.
+
+### 7. Provenance tags only
+
+A decision that would puzzle a reader carries its task or phase-decision tag, and each record states which task it is current as of, as the records do today. No sentence describes what the design used to be; where a choice needs justifying, the reason the decision gives is stated, not the alternative it replaced.
+
+### 8. 5.7's non-synthesis additions enter the records
+
+The orchestrator record gains the per-request, per-relay and per-turn log lines as part of the executor's and pool's surface. The client record gains the recorder keeping the synthesis payload beside the stamp, with beat 5 as the temporal merge's replay. One line each. The turbo passthrough stays in the tunnel doc.
+
+### 9. Acceptance
+
+Gates green. Every file path, export name and symbol the four documents name is checked to exist in the tree as written. Two cold reads by a fresh agent with no session context: one reads only the sdk README and writes back what the sdk exposes and what the synthesize data model is; one reads only `synthesis.md` and walks a merge turn from utterance to the merged view. Where an explanation comes back wrong or missing, the document is fixed. Results recorded in this spec under evidence. The user's manual review closes the task.
+
+## Invariants
+
+- Diagrams are ASCII, matching the records' existing convention.
+- Commits are `docs(phase-5)`.
