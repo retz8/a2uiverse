@@ -24,7 +24,13 @@ import {CanvasStage} from '../src/canvas/components/CanvasStage';
 import {renderSlotContent} from '../src/canvas/composition/slotContent';
 import {COMPOSED_BEAT, SYNTHESIS_BEAT} from '../src/beats/syntheticBeats';
 import type {BeatFixture} from '../src/beats/beatFixtures';
-import {PAYLOAD, SHOP_A, SYNTHESIS_SLOT, SYNTHESIS_SURFACE} from '../src/beats/synthesisFixture';
+import {
+  PAYLOAD,
+  SHOP_A,
+  SHOP_A_ITEMS,
+  SYNTHESIS_SLOT,
+  SYNTHESIS_SURFACE,
+} from '../src/beats/synthesisFixture';
 import {CATALOGS, renderWithShell} from './helpers';
 
 const catalogs = CATALOGS.map(c => c.catalog);
@@ -164,6 +170,60 @@ describe('the synthesis turn on the canvas', () => {
     processor.model.getSurface(SHOP_A)!.dataModel.set('/items/0/price', 1200);
     await Promise.resolve();
     expect(rows()[0]!.best).toEqual({value: 1200, contributed: 2, of: 2, absent: []});
+  });
+
+  it('a key that leaves a source degrades the view in place and comes back on its own (task-5.7 decision 9)', async () => {
+    // The end-to-end the evaluator tests cannot give: a vendor repaint drops one keyed element,
+    // and the canvas — intake, session, rendering — carries the absence to the cell and no
+    // further. Nothing is thrown, nothing is marked stale, the row stands, the sort holds.
+    const {processor, store, runner, rows, failures, renderStage} = setup();
+    await replayBeatOnCanvas(firstTurnOnly(SYNTHESIS_BEAT), {runner, store, paced: false});
+    const before = store.getState().appliedSeq;
+
+    const withoutLumen = SHOP_A_ITEMS.filter(item => item.id !== 'lumen-x100').map(i => ({...i}));
+    processor.model.getSurface(SHOP_A)!.dataModel.set('/items', withoutLumen);
+    await Promise.resolve();
+
+    expect(failures).toEqual([]);
+    expect(rows().map(r => r.name.value)).toEqual([undefined, 'Verity A7']);
+    const [lumen, verity] = rows();
+    expect(lumen!.priceA).toEqual({value: undefined, contributed: 0, of: 1, absent: [SHOP_A]});
+    expect(lumen!.priceB).toEqual({value: 1349, contributed: 1, of: 1, absent: []});
+    expect(lumen!.best).toEqual({value: 1349, contributed: 1, of: 2, absent: [SHOP_A]});
+    expect(verity!.best).toEqual({value: 1799, contributed: 2, of: 2, absent: []});
+    expect(rows().every(r => Object.values(r).every(c => !('stale' in c)))).toBe(true);
+    // Free: no turn ran.
+    expect(store.getState().appliedSeq).toBe(before);
+
+    const {container, unmount} = renderStage();
+    const view = container.querySelector(
+      `[data-shell-content][data-surface="${SYNTHESIS_SURFACE}"]`,
+    )!;
+    expect(view.querySelectorAll('[data-marker="absent"]').length).toBe(2);
+    expect(view.querySelectorAll('[data-marker="partial"]').length).toBe(1);
+    expect(view.querySelectorAll('[data-state="complete"]').length).toBe(5);
+    // The partial cell names the source that left in its accessible name (SPEC §5.4).
+    expect(view.querySelector('[data-state="partial"]')!.getAttribute('aria-label')).toContain(
+      '1 of 2 sources · shop-a not showing this',
+    );
+    unmount();
+
+    // The list returning reconnects the same refs — again with no model call.
+    processor.model.getSurface(SHOP_A)!.dataModel.set(
+      '/items',
+      SHOP_A_ITEMS.map(i => ({...i})),
+    );
+    await Promise.resolve();
+    expect(rows().map(r => r.best)).toEqual([
+      {value: 1299, contributed: 2, of: 2, absent: []},
+      {value: 1799, contributed: 2, of: 2, absent: []},
+    ]);
+    const restored = renderStage().container.querySelector(
+      `[data-shell-content][data-surface="${SYNTHESIS_SURFACE}"]`,
+    )!;
+    expect(restored.querySelectorAll('[data-marker]').length).toBe(0);
+    expect(restored.querySelectorAll('[data-state="complete"]').length).toBe(8);
+    expect(store.getState().appliedSeq).toBe(before);
   });
 
   it('the next composition retires the synthesis with the one it replaces, and the timeline keeps it with its payload', async () => {

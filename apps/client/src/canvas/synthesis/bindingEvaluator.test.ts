@@ -197,6 +197,37 @@ describe('sort', () => {
     expect(valuesOf(run(list(strings), {[A]: {values: keyed(strings)}}))).toEqual(['a', 'b', 'C']);
   });
 
+  test('date-times of the recorded shapes order by instant, not as strings (task-5.7 decision 7)', () => {
+    // gmail paints `2026-09-05 01:24 UTC`, github `2026-09-05T00:03:52Z`: as strings the space
+    // sorts before the T and every same-day gmail entry lands before every github one.
+    const times = ['2026-09-05 01:24 UTC', '2026-09-05T00:03:52Z', '2025-08-10T09:25:10Z'];
+    expect(valuesOf(run(list(times), {[A]: {values: keyed(times)}}))).toEqual([
+      '2025-08-10T09:25:10Z',
+      '2026-09-05T00:03:52Z',
+      '2026-09-05 01:24 UTC',
+    ]);
+    const offsets = [
+      '2026-09-05T02:03:52+02:00',
+      '2026-09-05T00:03:51.500Z',
+      '2026-09-05 00:03 UTC',
+    ];
+    expect(valuesOf(run(list(offsets), {[A]: {values: keyed(offsets)}}))).toEqual([
+      '2026-09-05 00:03 UTC',
+      '2026-09-05T00:03:51.500Z',
+      '2026-09-05T02:03:52+02:00',
+    ]);
+  });
+
+  test('a pair where one side is not a date-time keeps the string rule', () => {
+    // calendar's wall-clock `11:00` is not an instant; nothing is parsed leniently.
+    const mixed = ['2026-09-05T00:03:52Z', '11:00', '2026-09-05'];
+    expect(valuesOf(run(list(mixed), {[A]: {values: keyed(mixed)}}))).toEqual([
+      '11:00',
+      '2026-09-05',
+      '2026-09-05T00:03:52Z',
+    ]);
+  });
+
   test('an array not declared in sorts keeps the model’s order', () => {
     const payload: SynthesisPayload = {...list([3, 1, 2]), sorts: []};
     expect(valuesOf(run(payload, {[A]: {values: keyed([3, 1, 2])}}))).toEqual([3, 1, 2]);

@@ -37,4 +37,12 @@ export const BEATS: BeatSpec[] = [
     title: 'Composed fan-out',
     prompt: 'What needs my attention this morning?',
   },
+  {
+    // The temporal merge (task 5.7 decision 11): the utterance 5.6 recorded, on which the
+    // Planner reserves the merged view unprompted. The synthesis payload rides the batch.
+    beat: 5,
+    slug: 'temporal-merge',
+    title: 'Temporal merge',
+    prompt: 'What needs my attention today?',
+  },
 ];

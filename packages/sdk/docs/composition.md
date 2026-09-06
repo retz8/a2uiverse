@@ -85,6 +85,11 @@ the screen would claim an order that is not real. A source whose values cannot j
 go into that array. Give it its own array and its own group in the tree, show its time as a value
 beside each entry, declare no sort over it, and say in the note why it stands apart.
 
+The runtime orders two date-and-times by the instant they name, whatever their spelling — an ISO
+8601 date-time and a `YYYY-MM-DD HH:mm UTC` date-time sort into one axis. Numbers order
+numerically; anything else orders as text. Nothing is parsed leniently: a time of day, a bare date,
+a label are text.
+
 ## The tree
 
 `tree.components` is the list of components a surface is painted from, in the catalog you were
