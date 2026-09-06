@@ -2,7 +2,7 @@ import {createServer, type Server} from 'node:http';
 import {mkdtemp, readFile, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {afterEach, beforeEach, describe, expect, test} from 'vitest';
+import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
 import type {Message, TaskStatusUpdateEvent} from '@a2a-js/sdk';
 import {ClientFactory, type Client} from '@a2a-js/sdk/client';
 import type {Express} from 'express';
@@ -205,6 +205,26 @@ describe('orchestrator', () => {
     expect(dispatched).toEqual(['github', 'gmail']);
     const paints = shellPaints(events);
     expect(slotStates(paints.at(-1)!)['slot-shell']).not.toBe('failed');
+  });
+
+  test('logs one line per inbound request and one when the turn closes, with kind, task, size and outcome (task 5.7)', async () => {
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+    try {
+      const {client} = await boot();
+      const events = await collect(client, utterance('my day at a glance'));
+      const taskId = (events[0] as {id: string}).id;
+      // The client's stream ends on the final status; the closing line lands a tick later.
+      await new Promise(resolve => setTimeout(resolve, 100));
+      const lines = log.mock.calls.map(c => String(c[0]));
+      expect(lines.some(l => l.includes(`← utterance task=${taskId}`) && /\d+ bytes/.test(l))).toBe(
+        true,
+      );
+      expect(
+        lines.some(l => l.includes(`✓ utterance task=${taskId} completed`) && /\d+ ms/.test(l)),
+      ).toBe(true);
+    } finally {
+      log.mockRestore();
+    }
   });
 
   test('serves the minimal card with the A2UI extension at the configured base URL', async () => {

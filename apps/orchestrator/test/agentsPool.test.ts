@@ -1,4 +1,4 @@
-import {afterEach, describe, expect, test} from 'vitest';
+import {afterEach, describe, expect, test, vi} from 'vitest';
 import type {Message, Task, TaskStatusUpdateEvent} from '@a2a-js/sdk';
 import {AgentsPool} from '../src/agentsPool/agentsPool.js';
 import type {DispatchTurn} from '../src/agentsPool/types.js';
@@ -47,6 +47,19 @@ async function drain(handle: ReturnType<AgentsPool['dispatch']>) {
 }
 
 describe('AgentsPool.dispatch', () => {
+  test('logs one line when a relay starts and one when it settles, with the app, the task and the outcome (task 5.7)', async () => {
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+    try {
+      const {pool} = await poolFor();
+      await drain(pool.dispatch('github', turn()));
+      const lines = log.mock.calls.map(c => String(c[0]));
+      expect(lines.some(l => /→ github task=o-task/.test(l))).toBe(true);
+      expect(lines.some(l => /← github task=o-task completed \d+ ms/.test(l))).toBe(true);
+    } finally {
+      log.mockRestore();
+    }
+  });
+
   test('relays the vendor stream with orchestrator ids, source stamp, and parts by identity', async () => {
     const {pool} = await poolFor();
     const {events, record} = await drain(pool.dispatch('github', turn()));

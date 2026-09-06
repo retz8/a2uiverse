@@ -1,3 +1,4 @@
+import {elapsedMs, logLine} from '../log.js';
 import type {TaskState} from '@a2a-js/sdk';
 import {
   ClientFactory,
@@ -52,6 +53,8 @@ export class AgentsPool {
       sawFinal: false,
       deadlineMs: this.#options.defaultDeadlineMs,
     };
+    const startedAt = Date.now();
+    logLine(`→ ${appId} task=${turn.clientTaskId}`);
     const controller = new AbortController();
     if (turn.signal) {
       if (turn.signal.aborted) controller.abort();
@@ -68,6 +71,9 @@ export class AgentsPool {
       record.outcome = outcome;
       if (error !== undefined) record.error = error;
       record.endedAt = new Date().toISOString();
+      logLine(
+        `← ${appId} task=${turn.clientTaskId} ${outcome}${error ? ` (${error})` : ''} ${elapsedMs(startedAt)} ms`,
+      );
       registered.delete(handle);
       if (registered.size === 0) this.#inflight.delete(turn.clientTaskId);
       resolveDone(record);

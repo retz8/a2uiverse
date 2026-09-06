@@ -90,7 +90,9 @@ against a date-and-time from another. A time of day with no date, a range, a lab
 kind of thing, and no operator makes them one; the runtime would still sort them, as strings, and
 the screen would claim an order that is not real. A source whose values cannot join the key does not
 go into that array. Give it its own array and its own group in the tree, show its time as a value
-beside each entry, declare no sort over it, and say in the note why it stands apart.
+beside each entry, declare no sort over it, and say in the note why it stands apart. A source that
+answered with entries belongs in the view — in its own group when it cannot share the axis — never
+in the note alone.
 
 The runtime orders two date-and-times by the instant they name, whatever their spelling — an ISO
 8601 date-time and a `YYYY-MM-DD HH:mm UTC` date-time sort into one axis. Numbers order

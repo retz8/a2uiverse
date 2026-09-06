@@ -29,6 +29,7 @@ import {
   type CompositionState,
 } from './composition/state.js';
 import type {IntentJournal, JournalTurn} from './journal/intentJournal.js';
+import {elapsedMs, logLine} from './log.js';
 import {emptyTouches, mergeTouches, touchesOf, type SurfaceTouches} from './journal/surfaces.js';
 import type {Planner} from './planner/planner.js';
 import type {Registry} from './registry/registry.js';
@@ -67,7 +68,12 @@ export class OrchestratorExecutor implements AgentExecutor {
     // cancel arriving before the first paint must find the task.
     bus.publish(syntheticTask(ctx));
     const turnKind = classifyTurn(ctx.userMessage);
+    const startedAt = Date.now();
+    logLine(
+      `← ${turnKind.kind} task=${ctx.taskId} ctx=${ctx.contextId} ${JSON.stringify(ctx.userMessage).length} bytes`,
+    );
     let turn: JournalTurn | undefined;
+    let outcome = 'completed';
     try {
       switch (turnKind.kind) {
         case 'utterance': {
@@ -111,10 +117,14 @@ export class OrchestratorExecutor implements AgentExecutor {
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
+      outcome = `failed (${message})`;
       bus.publish(finalStatus(ctx, 'failed', message));
       await turn?.close('failed');
     } finally {
       bus.finished();
+      logLine(
+        `${outcome === 'completed' ? '✓' : '✗'} ${turnKind.kind} task=${ctx.taskId} ${outcome} ${elapsedMs(startedAt)} ms`,
+      );
     }
   }
 
