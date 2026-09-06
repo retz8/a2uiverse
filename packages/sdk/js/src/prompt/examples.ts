@@ -216,7 +216,7 @@ export const TODAY_TIMELINE: SynthesisExample = {
         },
         {id: 'item', component: 'TableRow', children: ['i-source', 'i-when', 'i-what']},
         {id: 'i-source', component: 'DerivedValue', cell: {path: 'source'}},
-        {id: 'i-when', component: 'DerivedValue', cell: {path: 'when'}},
+        {id: 'i-when', component: 'DerivedValue', cell: {path: 'when'}, format: {kind: 'datetime'}},
         {id: 'i-what', component: 'DerivedValue', cell: {path: 'what'}},
         {id: 'calendar-heading', component: 'Text', variant: 'h4', text: 'Calendar'},
         {

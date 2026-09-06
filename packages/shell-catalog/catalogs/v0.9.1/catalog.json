@@ -901,8 +901,8 @@
           "properties": {
             "kind": {
               "type": "string",
-              "enum": ["text", "number", "currency"],
-              "description": "text shows the value as is; number groups digits; currency formats a number in the given currency."
+              "enum": ["text", "number", "currency", "datetime"],
+              "description": "text shows the value as is; number groups digits; currency formats a number in the given currency; datetime renders a date-and-time \u2014 in whatever form the source painted it \u2014 as one readable date and time, the same form for every source."
             },
             "currency": {
               "type": "string",

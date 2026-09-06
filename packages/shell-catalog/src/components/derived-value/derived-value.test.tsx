@@ -54,6 +54,39 @@ test('format is fixed configuration: number groups, text stringifies, default is
   expect(screen.getByText('X100')).toBeInTheDocument();
 });
 
+test('datetime format renders any spelling of a date-and-time in one human form, and a value it cannot read as painted (task 5.7)', () => {
+  const human = new Intl.DateTimeFormat(undefined, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(Date.UTC(2026, 8, 6, 0, 20)));
+  const iso = render(
+    <DerivedValueView
+      cell={{value: '2026-09-06T00:20:00Z', contributed: 1, of: 1, absent: []}}
+      format={{kind: 'datetime'}}
+    />,
+  );
+  expect(iso.container.textContent).toContain(human);
+  iso.unmount();
+  const prose = render(
+    <DerivedValueView
+      cell={{value: 'Sep 6, 2026 · 00:20 UTC', contributed: 1, of: 1, absent: []}}
+      format={{kind: 'datetime'}}
+    />,
+  );
+  expect(prose.container.textContent).toContain(human);
+  prose.unmount();
+  const range = render(
+    <DerivedValueView
+      cell={{value: '11:00 – 12:00', contributed: 1, of: 1, absent: []}}
+      format={{kind: 'datetime'}}
+    />,
+  );
+  expect(range.container.textContent).toContain('11:00 – 12:00');
+  expect(
+    DerivedValueApi.schema.safeParse({cell: {path: 'when'}, format: {kind: 'datetime'}}).success,
+  ).toBe(true);
+});
+
 test('cell is binding-only: a path or a call, never a literal', () => {
   expect(DerivedValueApi.schema.safeParse({cell: 899}).success).toBe(false);
   expect(DerivedValueApi.schema.safeParse({cell: 'best'}).success).toBe(false);

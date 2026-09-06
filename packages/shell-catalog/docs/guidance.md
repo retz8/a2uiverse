@@ -21,7 +21,8 @@ both.
 ## The view is built from these components
 
 - **`DerivedValue`** for every value drawn from the sources. Give it a `format` when the value is a
-  number or an amount of money; leave it as text otherwise. Which source an entry came from is a
+  number, an amount of money, or a date-and-time — `datetime` renders every source's time in one
+  form, whatever each painted; leave it as text otherwise. Which source an entry came from is a
   value too: a `DerivedValue` over the `source` operator, never a label of yours.
 - **`Table`** for a list of like entries with several values each — the merged list. `columns` are
   the headings you write; `children` is a template over the array of your model whose component is

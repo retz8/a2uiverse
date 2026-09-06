@@ -29,6 +29,7 @@ import {
   type SortDeclaration,
   type SynthesisPayload,
 } from '@a2uiverse/sdk';
+import {parseInstant} from '@a2uiverse/shell-catalog';
 import type {CellObject} from '@a2uiverse/shell-catalog';
 
 /** The user's choice on one sorted array, kept by the array's path (task-5.5 decision 5). */
@@ -105,32 +106,13 @@ function isAbsent(cell: CellObject | undefined): boolean {
 }
 
 /**
- * The date-time shapes the runtime orders as instants (task-5.7 decision 7): ISO 8601 with a
- * `T` separator and a zone, and the `YYYY-MM-DD HH:mm[:ss] UTC` form Gmail paints. Named shapes,
- * not a lenient parser: a wall-clock `11:00` or a bare date is not an instant and keeps the
- * string rule.
- */
-const INSTANT_SHAPES = [
-  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:\d{2})$/,
-  /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}(?::\d{2})? UTC$/,
-];
-
-/** The instant a value denotes, or undefined when it matches none of the named shapes. */
-function instantOf(value: unknown): number | undefined {
-  if (typeof value !== 'string' || !INSTANT_SHAPES.some(shape => shape.test(value)))
-    return undefined;
-  const normalized = value.endsWith(' UTC') ? value.slice(0, -4).replace(' ', 'T') + 'Z' : value;
-  const ms = Date.parse(normalized);
-  return Number.isNaN(ms) ? undefined : ms;
-}
-
-/**
- * Numbers numerically, two date-times by instant, strings by locale, a mixed pair by string
- * (task-4.5 decision 9, amended by task-5.7 decision 7).
+ * Numbers numerically, two date-times by the instant the shell catalog reads in them — any
+ * spelling with a year and a clock — strings by locale, a mixed pair by string (task-4.5
+ * decision 9, amended by task-5.7 decision 7 and its run).
  */
 function compareValues(a: unknown, b: unknown): number {
   if (typeof a === 'number' && typeof b === 'number') return a - b;
-  const [x, y] = [instantOf(a), instantOf(b)];
+  const [x, y] = [parseInstant(a), parseInstant(b)];
   if (x !== undefined && y !== undefined) return x - y;
   return String(a).localeCompare(String(b));
 }

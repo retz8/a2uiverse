@@ -6,11 +6,12 @@ import {BindingSchema} from '../../binding.js';
  *
  * - `cell` is the one binding: a path to the cell object the BindingEvaluator writes —
  *   value together with contributor state — so the component cannot be half-wired.
- * - `format` is fixed authoring-time configuration for rendering the value, never bound.
+ * - `format` is fixed authoring-time configuration for rendering the value, never bound;
+ *   `datetime` (task 5.7) renders any spelling of a date-and-time in one human form.
  */
 export const FormatSchema = z
   .object({
-    kind: z.enum(['text', 'number', 'currency']),
+    kind: z.enum(['text', 'number', 'currency', 'datetime']),
     currency: z.string().optional(),
   })
   .strict()

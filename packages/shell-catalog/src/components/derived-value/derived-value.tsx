@@ -2,6 +2,7 @@ import {useState} from 'react';
 import {createComponentImplementation} from '@a2ui/react/v0_9';
 import {parseSurfaceId} from '@a2uiverse/sdk';
 import {Text} from '@radix-ui/themes';
+import {formatInstant} from '../shared/instant.js';
 import {type CellObject, DerivedValueApi, type Format} from './derived-value.schema.js';
 
 export type CellState = 'complete' | 'partial' | 'absent';
@@ -20,6 +21,7 @@ function formatValue(value: unknown, format: Format | undefined): string {
     );
   }
   if (format?.kind === 'number' && typeof value === 'number') return value.toLocaleString();
+  if (format?.kind === 'datetime') return formatInstant(value);
   return String(value);
 }
 

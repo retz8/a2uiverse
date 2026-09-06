@@ -94,10 +94,12 @@ beside each entry, declare no sort over it, and say in the note why it stands ap
 answered with entries belongs in the view — in its own group when it cannot share the axis — never
 in the note alone.
 
-The runtime orders two date-and-times by the instant they name, whatever their spelling — an ISO
-8601 date-time and a `YYYY-MM-DD HH:mm UTC` date-time sort into one axis. Numbers order
-numerically; anything else orders as text. Nothing is parsed leniently: a time of day, a bare date,
-a label are text.
+The runtime reads any value that carries a year and a clock as an instant, whatever the source's
+spelling — `2026-09-05T00:03:52Z`, `2026-09-05 00:20 UTC` and `Sep 5, 2026 · 01:24 UTC` sort into
+one axis, and a range is read as its start. Numbers order numerically; anything else orders as
+text: a time of day without a date, a bare date, a label. You never convert a time yourself — put
+the ref on the axis and give its cell the `datetime` format, and the runtime shows every source's
+time in one form.
 
 ## The tree
 

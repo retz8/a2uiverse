@@ -216,7 +216,7 @@ describe('sort', () => {
     expect(valuesOf(run(list(strings), {[A]: {values: keyed(strings)}}))).toEqual(['a', 'b', 'C']);
   });
 
-  test('date-times of the recorded shapes order by instant, not as strings (task-5.7 decision 7)', () => {
+  test('date-times order by instant whatever their spelling, not as strings (task-5.7 decision 7, amended)', () => {
     // gmail paints `2026-09-05 01:24 UTC`, github `2026-09-05T00:03:52Z`: as strings the space
     // sorts before the T and every same-day gmail entry lands before every github one.
     const times = ['2026-09-05 01:24 UTC', '2026-09-05T00:03:52Z', '2025-08-10T09:25:10Z'];
@@ -224,6 +224,13 @@ describe('sort', () => {
       '2025-08-10T09:25:10Z',
       '2026-09-05T00:03:52Z',
       '2026-09-05 01:24 UTC',
+    ]);
+    // A vendor's own spelling, and the runtime reading it (task-5.7, amended during the run).
+    const spellings = ['Sep 5, 2026 · 01:24 UTC', '2026-09-05T00:03:52Z', '2026-09-05 00:20 UTC'];
+    expect(valuesOf(run(list(spellings), {[A]: {values: keyed(spellings)}}))).toEqual([
+      '2026-09-05T00:03:52Z',
+      '2026-09-05 00:20 UTC',
+      'Sep 5, 2026 · 01:24 UTC',
     ]);
     const offsets = [
       '2026-09-05T02:03:52+02:00',
@@ -238,7 +245,7 @@ describe('sort', () => {
   });
 
   test('a pair where one side is not a date-time keeps the string rule', () => {
-    // calendar's wall-clock `11:00` is not an instant; nothing is parsed leniently.
+    // calendar's wall-clock `11:00` and a bare date carry no year-and-clock pair; they stay text.
     const mixed = ['2026-09-05T00:03:52Z', '11:00', '2026-09-05'];
     expect(valuesOf(run(list(mixed), {[A]: {values: keyed(mixed)}}))).toEqual([
       '11:00',

@@ -41,6 +41,8 @@ No new instrumentation. The live pass shows the three dispatch end times spread 
 
 The client's sort comparator orders two values by instant when both match a named date-time shape — ISO 8601, and the `YYYY-MM-DD HH:mm UTC` form Gmail paints. Any other pair keeps the existing rule. The shapes are named, not inferred from a lenient parser, and are tested over the recorded values. Amends task 4.5's sort-semantics decision, which is left as written there. Phase decision 19 stays closed: no operator is added and the model authors nothing new. Stated in the composition doc's sorts section and as a §14 register row.
 
+**Amended during the run**, after Gmail painted a third spelling on a later live run: the runtime reads time. Any value carrying a year and a clock is an instant, whatever the vendor's spelling, a range its start; the parse is one shared function in the shell catalog, used by the evaluator's sort and by `DerivedValue`'s new `datetime` format, which renders every source's time in one human form. Vendors paint time as they like (decision 10 holds); the Synthesizer converts nothing and names the format; the Planner asks vendors in prose for the full date and time. A value the runtime cannot read stays text, sorted and shown as painted, so a miss is visible rather than invented.
+
 ### 8. The comparator lives in the client only
 
 The shell-catalog fixture keeps its own string sort. Only the client sorts, so there is no second judge to keep in agreement, and the fixture is a dev preview.
