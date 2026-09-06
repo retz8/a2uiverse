@@ -20,12 +20,13 @@ You need the orchestrator and the agents up too; `pnpm dev:all` from the root st
 
 **Recorded beats** are real agent output, captured through the hub over live MCP and kept as the stream they arrived as:
 
-| `?beat=` | What it is                                                               |
-| -------- | ------------------------------------------------------------------------ |
-| `1`      | PR list — one slot, GitHub                                               |
-| `2`      | PR detail — one slot                                                     |
-| `3`      | Compose-and-confirm review — chained after 2, so replay it as `2,3`      |
-| `4`      | **The composed fan-out** — three slots, three design systems, one screen |
+| `?beat=` | What it is                                                                                                                         |
+| -------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `1`      | PR list — one slot, GitHub                                                                                                         |
+| `2`      | PR detail — one slot                                                                                                               |
+| `3`      | Compose-and-confirm review — chained after 2, so replay it as `2,3`                                                                |
+| `4`      | **The composed fan-out** — three slots, three design systems, one screen                                                           |
+| `5`      | **The temporal merge** — the fan-out with the Synthesizer's merged view painted into its reserved slot, synthesis payload included |
 
 **Synthetic beats** are hand-built to construct states that are unreliable to catch live: `plain`, `plain-2`, `validation` (a fragment that fails to mount), `question` (the overlay), `composed` (two slots, one filling and one whose source speaks but never paints), `composed-solo` (the degenerate one-slot case), `composed-question` (a fragment the shell promotes in place) and `synthesis` (two storefronts of unrelated shapes merged into the synthesis slot by the sdk's camera comparison example, then an in-place reorder its keyed refs survive).
 

@@ -21,7 +21,8 @@ both.
 ## The view is built from four kinds of component
 
 - **`DerivedValue`** for every value drawn from the sources. Give it a `format` when the value is a
-  number or an amount of money; leave it as text otherwise.
+  number or an amount of money; leave it as text otherwise. Which source an entry came from is a
+  value too: a `DerivedValue` over the `source` operator, never a label of yours.
 - **`SortControl`** for every sort declaration you emit: one control per entry in `sorts`, bound to
   `/sorts/N` where N is that entry's index. Place it where the user expects to change the order —
   above the list it sorts. It shows the criterion and lets the user change key and direction; you
