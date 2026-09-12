@@ -370,3 +370,66 @@ Recurse into nested unions in `getFieldBehavior`'s structural check: a union any
 branches is itself dynamic is dynamic. Third-party catalogs composing `Dynamic*` schemas into
 wider unions hit the same misclassification, so the fix belongs in the scraper, not in the
 `DateTimeInput` schema.
+
+---
+
+## 7. Unprefixed class names in the React basic catalog markup
+
+**Component:** `@a2ui/react`, `src/v0_9/catalog/basic/components/ChoicePicker.tsx` and `Text.tsx`.
+
+**Severity:** cosmetic to moderate. No broken rendering; the risk is collision with an application's
+own CSS, and one class that styles nothing.
+
+**Predates the CSS-module fix (finding 3).** Both classes are emitted identically on `main`
+(`ChoicePicker.tsx:78`, `Text.tsx:87` and `:91`) and after that fix. They are only worth raising
+now because the package's rules actually apply once finding 3 lands.
+
+### Issue
+
+Two components put unprefixed class names into the light DOM alongside their `a2ui-*` classes.
+
+`ChoicePicker` renders a bare `chip` next to `a2ui-chip`:
+
+```jsx
+className={`a2ui-chip chip${isSelected ? ' selected' : ''}`}
+```
+
+Nothing in the React package styles `.chip`. The Lit catalog does carry a `.chip, .a2ui-chip`
+selector, but those rules are shadow-scoped to the Lit elements and never reach React's DOM, so
+in this package the class is inert.
+
+`Text` puts the raw variant name on the wrapper:
+
+```jsx
+const className = ['a2ui-text', isCaption ? 'a2ui-caption' : variant].join(' ');
+const className = ['a2ui-text', variant || 'body'].join(' ');
+```
+
+A `Text` therefore renders `class="a2ui-text h1"` or `class="a2ui-text body"`. This one is not
+inert, and it is not React-specific: the Angular catalog emits the same shape from
+`text.component.ts` (`[class]="'a2ui-text ' + variant()"`) and `button.component.ts`
+(`[class]="'a2ui-button ' + variant()"`). The unprefixed variant name is the cross-renderer
+convention, and it is a usable hook telling a consumer which variant rendered.
+
+The concern is only the name. `h1` through `h5` and `body` are generic enough to collide with
+application CSS, and Bootstrap defines `.h1` through `.h6` as real typography classes. The
+package's own rules target the descendant element (`.a2ui-text h1`), not the wrapper class
+(`.a2ui-text.h1`), so any collision is with the consumer's stylesheet rather than with anything
+here. Because Angular shares the convention, prefixing it is a cross-renderer decision rather
+than a React cleanup.
+
+The compound-only classes elsewhere in the catalog (`primary`, `borderless` on `a2ui-button`,
+`selected` on `a2ui-chip`, `invalid` on `a2ui-field-input`) share the unprefixed naming but are
+lower risk, since they are only meaningful combined with an `a2ui-*` class.
+
+### Fix
+
+Drop the inert `chip` from the React `ChoicePicker`; it is the one piece that is genuinely
+React-only and styles nothing.
+
+Prefixing the variant hook (`a2ui-h1` ... `a2ui-h5`, `a2ui-body`) would namespace the rest, but
+it has to change React and Angular together to keep the contract aligned, which makes it a
+larger cross-renderer change rather than a cleanup.
+
+Both change rendered markup, so neither belongs in a bug-fix PR.
+
