@@ -75,7 +75,9 @@ Router ranking quality for the platform card and the check that vendor requests 
 
 ## Found and fixed during the run
 
-No defect was fixed. The run's own additions: `planMs` on the journal's plan record and a per-turn log line; the recorder's layout and first-fragment offsets; beat 4 re-recorded as the side-by-side, beat 8 recorded for the mixed utterance, their replay specs and the beat 4 baseline; the client README's beat rows.
+- **Two headings over a merged view.** The Planner's rules told it to frame the screen with "a heading that restates what was asked", and the Synthesizer's guidance gives its view an `h3`; every merged screen carried both ("Comparing camera prices" over "Camera Prices in Shop A and Shop B"). The Planner's rule now reads: a screen made of slots carries no heading of yours, since the shell labels every agent's slot and the merged view arrives with its own title; `Text` only where the shell has words of its own. The fan-out worked example loses its heading. Re-run on the mocks: the Planner's tree was the merged view's slot over the two shops' row and nothing else, the screen titled once by the Synthesizer. Re-run on the real roster through the recorder: the temporal merge's tree the same shape over three sources, Planner 3.4 s, one attempt, the layout on the client at 3.4 s and the first fragment at 16.9 s.
+
+The run's other additions: `planMs` on the journal's plan record and a per-turn log line; the recorder's layout and first-fragment offsets; beat 4 re-recorded as the side-by-side, beat 8 recorded for the mixed utterance, their replay specs and the beat 4 baseline; the client README's beat rows.
 
 ## Evidence
 
