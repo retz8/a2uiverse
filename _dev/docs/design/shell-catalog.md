@@ -14,7 +14,7 @@ is its design system, brought by its Provider under the one-provider-one-CSS-set
 catalog.json ──────────────────────────────┐
                                            ├─ catalog.parity.test · catalog.render-parity.test
 @a2ui/web_core BASIC_COMPONENTS  ─┐        │
-shell primitives' zod schemas    ─┼─ schema.ts   SCHEMA_CATALOG   (React-free; the orchestrator validates against it)
+shell primitives' zod schemas    ─┼─ schema.ts   SCHEMA_CATALOG   (React-free; a headless processor over the component APIs)
                                   └─ catalog.ts  CATALOG          (React; the client renders with it)
 ```
 
@@ -53,7 +53,7 @@ carry no schema file of their own — their API is upstream's. Shared helpers li
 
 | Shell primitive | Rendering | Contract |
 | --- | --- | --- |
-| `Slot` | pending/failed tile on Radix panel, border and radius tokens; quiet `Text` lines for shell content | content from `SlotContentContext`, which the host fills |
+| `Slot` | pending/failed tile on Radix panel, border and radius tokens; quiet `Text` lines for shell content; the capability tile for a `gap`; `weight` as a flex share | exactly one of `source` or `gap`; a source's content from `SlotContentContext`, resolved by source, which the host fills |
 | `Attribution` | `Text` size 1 gray with Radix's info glyph | display name at rest, full detail on hover/focus, accessible name always |
 | `Frame` | `Flex` gap 3 of `Box` items | equal shares along a row (`flex-basis: 0`), natural size down a column |
 | `DerivedValue` | `Text` size 2, gray when absent, detail in size 1 | the cell object the BindingEvaluator writes: value + contributor state; `format` `number` · `currency` · `datetime` (any year-and-clock spelling rendered in one fixed form — `en-US`, `America/New_York` — through `shared/instant`, which the client's sort shares) |

@@ -74,8 +74,9 @@ writing to its own data model. A **beat** is a recorded stream the canvas can re
 | Planner | orchestrator `planner/` | reserves the synthesis slot with a prose brief, and asks each vendor in prose for the data a merge needs |
 | Partitions | orchestrator `composition/partitions.ts` | the server-side copy of every surface's data model; resolves refs through the sdk kit |
 | Synthesizer | orchestrator `synthesizer/` | prompts the model, extracts and validates its text, retries once |
-| the validator | sdk `validate.ts` | the contract's own checks, run by both processes |
-| the checklist | orchestrator `synthesizer/checkSynthesis.ts` | the catalog-dependent checks: tree, derived-value rule, operators, refs resolve now |
+| the payload validator | sdk `validate.ts` | the contract's own checks over the derived model and sorts, run by both processes |
+| the A2UI validator | sdk `a2ui/` | a tree against a catalog, following upstream's `A2uiValidator`; beside it, catalog pruning by keep-set |
+| the Synthesizer's validator | orchestrator `synthesizer/validate.ts` | the one validator over the model's document: output schema, the payload validator, the tree through the A2UI validator against the Synthesizer's pruned catalog, derived-value rule, operators, refs resolve now |
 | the painter | orchestrator `composition/synthesisPainter.ts` | paints the tree verbatim, the payload beside the stamp |
 | IntegrityChecker | orchestrator `composition/integrity.ts` | after an action, asks whether every ref still resolves; accounts for what broke |
 | intake + session | client `canvas/synthesis/` | validates the payload, subscribes to the partitions, re-runs the evaluator |
@@ -99,7 +100,7 @@ scenario, recorded as beat 5.
    answered.
 
 2. **Vendors fill their slots.** Each vendor's events are relayed as fragments; the stamp on
-   each names the slot it fills, and that is how the client knows where a surface belongs. As
+   names its source, and the layout's `Slot` holding that source is where the surface belongs. As
    each event passes through, the orchestrator **materializes the partition**: it applies the
    vendor's A2UI messages to a server-side copy of that surface's data model, keyed by the
    namespaced surface id, so it always knows what the client holds (the client also sends its
@@ -108,38 +109,40 @@ scenario, recorded as beat 5.
    `lastSettledAt`, where the dead-air clock starts.
 
 3. **All sources settle → the Synthesizer is prompted.** Fewer than two arrived means no call at
-   all. Otherwise the model receives a system prompt assembled once at boot by the sdk's builder:
-   the role, the **composition doc** (`packages/sdk/docs/composition.md` — partitions, refs and
-   predicates, formula leaves, sorts, the tree, the note, decline, re-synthesis, in a2uiverse
-   words), the shell catalog's **guidance doc** (which components a merged view is made of, and
-   the derived-value rule), the catalog schema verbatim, the contract's output schema, and two
-   worked examples. The turn carries the utterance, the brief, and every arrived partition's live
+   all. Otherwise the model receives a system prompt assembled once at boot in the orchestrator:
+   the role, the **rules doc** (`apps/orchestrator/src/synthesizer/synthesis.md` — partitions,
+   refs and predicates, formula leaves, sorts, the tree, the note, decline, re-synthesis, in
+   a2uiverse words), the shell catalog's **guidance doc** (which components a merged view is made
+   of, and the derived-value rule), the shell catalog pruned to the synthesis surface's keep-set,
+   the output schema, and two worked examples. The turn carries the utterance, the brief, and every arrived partition's live
    data model with its app's display name. Never a vendor's component tree: Planner and
    Synthesizer know only the shell catalog (phase decision 7). The only tree the Synthesizer ever
    sees is its own previous one, on a retry or a re-synthesis.
 
 4. **The model writes the synthesize data model, as text.** One JSON document inside a
-   `<synthesize-data-model>` block (phase decision 16). For the S1 shapes the sdk's own worked
+   `<synthesize-data-model>` block (phase decision 16). For the S1 shapes the Synthesizer's own worked
    example shows the form: a `Column` holding a heading, a `SortControl`, a `Table` templated over
    `/timeline`, and a second `Table` for Calendar, whose times of day carry no date and cannot
    join the axis; a `dataModel` with `timeline` (Gmail threads and GitHub PRs, selected by id or
    by repository-and-number) and `calendar` arrays; one sort over `/timeline` by `/when`; and a
    note explaining why Calendar stands apart.
 
-5. **The orchestrator accepts, or hands it back once.** The block is extracted, parsed, validated
-   by the sdk against the contract (schema, then every pointer parses, one sort per array, every
-   option key a formula with at least one ref in every element, the initial key an option, one
-   `root`, unique ids), then run through the orchestrator's checklist against the shell catalog:
-   the tree through a headless `MessageProcessor`, every named child declared, no `Slot` /
-   `Attribution` / `Frame`, the derived-value rule, every operator one the catalog declares, every
-   ref into a held partition and resolving *now*. Any finding goes back to the model as one line
+5. **The orchestrator accepts, or hands it back once.** The block is extracted by the
+   orchestrator's shared tagged-block extractor, parsed, and run through the Synthesizer's one
+   validator: the output schema; the derived model and sorts through the sdk's payload validator
+   (every leaf a formula, every pointer parses, one sort per array, every option key a formula with
+   at least one ref in every element, the initial key an option); the tree through the sdk's A2UI
+   validator against the Synthesizer's pruned catalog (known components and props, one `root`,
+   unique ids, no dangling child, no cycle, no orphan — `Slot`, `Attribution` and `Frame` are not in
+   that catalog); then, over a structurally sound model, the derived-value rule, every operator
+   one the pruned catalog declares, every ref into a held partition and resolving *now*. Any finding goes back to the model as one line
    per error with the failed document; a second failure is `malformed`. Within one synthesis the
    retry is the only second call; a re-synthesis later in the composition's life is a new
    synthesis with its own retry.
 
-6. **The synthesis surface is painted.** `shell:synthesis`, against the shell catalog, into
-   `slot-shell`: a `createSurface` plus an `updateComponents` carrying the model's components
-   exactly as written. The event's metadata carries the stamp `{source: shell, slot: slot-shell,
+6. **The synthesis surface is painted.** `shell:synthesis`, against the shell catalog, into the
+   `Slot` holding the `shell` source: a `createSurface` plus an `updateComponents` carrying the
+   model's components exactly as written. The event's metadata carries the stamp `{source: shell,
    role: fragment}` and, beside it under `a2uiverseSynthesis`, the **payload**: the derived model
    and the sorts. The tree rides as A2UI; the note stays in the journal. The orchestrator keeps
    the accepted document and the payload as the composition's live synthesis, which the
@@ -262,7 +265,7 @@ made only when the data supports it. The root key `sorts` is reserved.
 a `key` pointer inside an element to a formula leaf, with a `label`), and the initial `key` and
 `direction`. One declaration per array, and every option key must be a formula with at least one
 ref in every element — a key with no refs can never take a place on the axis, so such an element
-belongs in its own array (the validator's rules from task 5.7). The composition doc asks for a
+belongs in its own array (the validator's rules from task 5.7). The rules doc asks for a
 declaration on every array the tree lists, the one exception being the array no key can order.
 
 **The tree.** The components list an agent would put in an `updateComponents`, in the shell
@@ -437,9 +440,9 @@ order, so nothing moves when nothing differs.
 
 ## Seeing it without a model
 
-- The sdk's two worked examples — the storefront comparison and the S1 timeline — are validated
-  against the contract in the sdk's tests and against the shell catalog in the orchestrator's.
-- The client's synthesis fixture is built from the storefront example; `?beat=synthesis` replays
+- The Synthesizer's two worked examples — the storefront comparison and the S1 timeline — pass
+  its whole validator in the orchestrator's tests.
+- The client's synthesis fixture is its own copy of the storefront example; `?beat=synthesis` replays
   it, and the canvas tests drive the dropped-key case end to end.
 - Beat 5 (`apps/client/recordings/beats/beat-5-temporal-merge.json`) is the temporal merge
   recorded through the hub over the live roster. The recorder keeps the synthesis payload beside
@@ -465,10 +468,10 @@ order, so nothing moves when nothing differs.
 
 | Concern | sdk | Orchestrator | Client | Shell catalog |
 | --- | --- | --- | --- | --- |
-| Contract, types | `contracts/composition.v0.4.json` · `js/src/synthesis.ts` | — | — | — |
+| Contract, types | `contracts/composition.v0.5.json` · `js/src/synthesis.ts` | `synthesizer/document.ts` | — | — |
 | Pointers, predicates, the walk | `js/src/pointer.ts` · `js/src/walk.ts` | `composition/partitions.ts` (`resolve`) | `canvas/synthesis/bindingEvaluator.ts` | — |
-| Validation | `js/src/validate.ts` | `synthesizer/checkSynthesis.ts` | `canvas/synthesis/intake.ts` | — |
-| The prompt | `js/src/prompt/prompt.ts` · `docs/composition.md` · `js/src/prompt/examples.ts` | `synthesizer/prompt.ts` · `planner/prompt.ts` | — | `docs/guidance.md` · `catalogs/v0.9.1/catalog.json` |
+| Validation | `js/src/validate.ts` · `js/src/a2ui/` | `synthesizer/validate.ts` | `canvas/synthesis/intake.ts` | `src/keep-sets.ts` |
+| The prompt | — | `synthesizer/prompt.ts` · `synthesizer/synthesis.md` · `synthesizer/examples.ts` · `authoring/taggedBlock.ts` · `planner/prompt.ts` | — | `docs/synthesis-guidance.md` · `catalogs/v0.9.1/catalog.json` |
 | The model call | — | `synthesizer/synthesizer.ts` | — | — |
 | Integrity, re-synthesis | — | `composition/integrity.ts` · `executor.ts` | — | — |
 | The paint | — | `composition/synthesisPainter.ts` · `composition/state.ts` | `canvas/turn/canvasTurn.ts` · `a2a/messages.ts` | — |

@@ -30,7 +30,7 @@ its own.
 
 | Class | Owns | Collaborators |
 | --- | --- | --- |
-| `canvasStore` | Canvas state, including the **placement map** (slot → `{surfaceId, source}`) and the **promoted** slot set | read by React through `useSyncExternalStore`; written by the turn runner |
+| `canvasStore` | Canvas state, including the **placement map** (a slot's source → `{surfaceId, source}`) and the **promoted** set, by source | read by React through `useSyncExternalStore`; written by the turn runner |
 | `turn/canvasTurn` | Turn lifecycle and role routing: which surfaces are stage paints, which fill slots, when a composition is torn down and captured | `canvasStore`, the live processor, `applyMessages` |
 | `composition/slotContent` | What a `Slot` renders: boundary → vendor Provider → surface for a vendor fragment; surface alone, in a bare `[data-shell-content]` element, for the `shell` source (task-5.5 decision 2) | `FragmentBoundary`, `catalogs/CatalogContext` |
 | `composition/FragmentBoundary` | The one element a fragment mounts inside: provenance, isolation anchor, promotion treatment | — |
@@ -48,15 +48,15 @@ The hub stamps every event it relays (`metadata.a2uiverse`, `@a2uiverse/sdk`). `
 extracts it and hands it to the turn handle alongside the batch.
 
 - `role: 'shell'` — an ordinary stage paint.
-- `role: 'fragment'` — registers in the placement map under the slot the stamp names; never
+- `role: 'fragment'` — registers in the placement map under the stamp's `source`, the key of the `Slot` holding it; never
   contends for the stage or the timeline.
 - **absent** — a stage paint. Composition is opt-in via the stamp, which is what keeps every
   pre-composition fixture and test valid.
 
 ### Synthesis: the paint carries the tree, the payload rides beside the stamp
 
-The synthesis surface (`shell:synthesis`) arrives as a fragment of the `shell` source in
-`slot-shell`: the model-authored tree as ordinary A2UI, the payload — the derived model and the
+The synthesis surface (`shell:synthesis`) arrives as a fragment of the `shell` source, in the
+`Slot` holding it: the model-authored tree as ordinary A2UI, the payload — the derived model and the
 sorts — beside the stamp on the same event (`extractSynthesisFromEvent`, over the sdk's
 `readSynthesis`). `sendAndApply` hands both to the turn handle, and the runner hands the payload
 to the session **once the synthesis surface is live** — at apply in progressive mode, at the swap
@@ -76,7 +76,7 @@ while its key is still an option; `retireStage` retires the session with the com
 new utterance turn starts from the declarations' own choices.
 
 An invalid payload reports `VALIDATION_FAILED` for `shell:synthesis` through the same side
-channel a fragment that will not render uses; the hub fails `slot-shell`. A ref into a surface
+channel a fragment that will not render uses; the hub fails the synthesis slot. A ref into a surface
 the client does not hold is absent at evaluation time, never a rejection.
 
 The merged view renders as shell content (phase-5 decision 22): the `Slot` the hub paints for it
