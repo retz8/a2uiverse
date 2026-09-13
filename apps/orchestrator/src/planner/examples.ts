@@ -95,8 +95,7 @@ export const MORNING_FAN_OUT: LayoutExample = {
     ],
     tree: {
       components: [
-        {id: 'root', component: 'Column', children: ['heading', 'timeline', 'sources']},
-        {id: 'heading', component: 'Text', variant: 'h3', text: 'This morning'},
+        {id: 'root', component: 'Column', children: ['timeline', 'sources']},
         {id: 'timeline', component: 'Slot', source: 'shell'},
         {id: 'sources', component: 'Row', children: ['github', 'gmail']},
         {id: 'github', component: 'Slot', source: 'github', weight: 1},

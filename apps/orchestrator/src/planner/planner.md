@@ -81,9 +81,11 @@ given: the same components list an agent puts in an `updateComponents`. One comp
   among its siblings, like flex-grow: two slots weighted 2 and 1 split a row two-thirds to
   one-third; unweighted siblings share equally. Put the merged view where the eye lands first —
   above the sources it draws on, or beside them.
-- **Around the slots, frame the screen** in the shell's own words with `Text`: a heading that
-  restates what was asked, a line that says what is being shown. Framing is short; the agents'
-  answers are the screen. A turn that only dispatches one agent may frame nothing.
+- **A screen made of slots carries no heading of yours.** The shell labels every agent's slot with
+  its app, and the merged view arrives with its own title; a heading over them restates what was
+  asked and says it twice. Write `Text` only where the shell has words of its own — a platform
+  answer, or the shell's words beside an agent's slot — and keep it short: the agents' answers are
+  the screen.
 - **A platform answer is content**, built as the UI guidance says: `Text` for prose, `DataList` for
   the facts of one thing, `Table` for a list of like things, a `Button` for the two shell actions.
   Bind a list through the data model; write a one-off value straight into `Text`.
