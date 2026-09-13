@@ -100,7 +100,7 @@ The word "chrome" is not used.
 
 Every grafted fragment carries a shell-owned **attribution affordance** — rendered by the shell, in the shell catalog, in the shell's own surface — that the fragment cannot suppress, restyle, or occlude. The shell controls its prominence: a quiet persistent marker on the fragment boundary, full attribution on hover/focus, escalation when authority is in play. The boundary carries an accessible name announcing the source. When multiple credentials are in play, attribution is per call, from the credential's user-given label.
 
-Attribution is for vendor fragments. The shell's own content — the synthesis surface, and the framing and platform answers the Planner writes into the layout surface — carries none. The synthesis surface renders in its reserved position with no boundary and no tile, the shell writing on its own page, and its provenance is in each derived value (§5.4). The Planner never authors `Attribution`: the shell wraps every `Slot` in it deterministically.
+Attribution is for vendor fragments. The shell's own content — the synthesis surface, and the framing and platform answers the Planner writes into the layout surface — carries none. The synthesis surface renders in its reserved position with no boundary and no tile, the shell writing on its own page, and its provenance is in each derived value (§5.4). The Planner never authors `Attribution`: the shell wraps every vendor-fragment `Slot` in it deterministically, and the synthesis slot and gap slots — the shell's own content — stay bare.
 
 ### 4.4 Agent awareness
 
@@ -125,7 +125,7 @@ t1  ▪ Router     embed → retrieve over local index of AgentCard skills, the 
 t2  ◆ Planner    dispatch list · capability gaps · synthesis slot (or not) ·
                  the layout surface in the shell catalog: slots · framing · platform answers;
                  platform readers called on demand (§5.6)
-t3  ▪ first paint the layout surface: every Slot wrapped in Attribution · gap slots filled with the capability tile ·
+t3  ▪ first paint the layout surface: every vendor Slot wrapped in Attribution · gap slots filled with the capability tile ·
                  pending slots · reserved synthesis slot. Shell partition only.
 t4  ▸ AgentsPool N parallel A2A calls, each (endpoint, credential, request)
 t5  ▪ per-fragment arrival — independent, unsynchronized:

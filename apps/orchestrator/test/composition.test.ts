@@ -1,14 +1,13 @@
 import {describe, expect, test} from 'vitest';
 import {classifyTurn, unnamespaceAction} from '../src/composition/classify.js';
-import {shellSurfaceId, slotNameFor} from '../src/composition/constants.js';
+import {shellSurfaceId} from '../src/composition/constants.js';
 import {filterClientDataModel, vendorMetadata} from '../src/composition/partition.js';
 import {outcomeToSlotState} from '../src/composition/state.js';
 import {emptyTouches} from '../src/journal/surfaces.js';
 
 describe('constants', () => {
-  test('shell surface and slot names are derived, namespaced, stable', () => {
+  test('the shell surface is namespaced like a fragment', () => {
     expect(shellSurfaceId()).toBe('shell:main');
-    expect(slotNameFor('gmail')).toBe('slot-gmail');
   });
 });
 

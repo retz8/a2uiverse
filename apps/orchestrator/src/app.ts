@@ -7,6 +7,7 @@ import {DefaultRequestHandler, InMemoryTaskStore} from '@a2a-js/sdk/server';
 import {agentCardHandler, jsonRpcHandler, UserBuilder} from '@a2a-js/sdk/server/express';
 import {buildAgentCard} from './agentCard.js';
 import {AgentsPool} from './agentsPool/agentsPool.js';
+import type {CompositionState} from './composition/state.js';
 import type {Config} from './config.js';
 import {TransformersEmbedder} from './embedder/transformersEmbedder.js';
 import type {Embedder} from './embedder/types.js';
@@ -14,6 +15,9 @@ import {OrchestratorExecutor} from './executor.js';
 import {IntentJournal} from './journal/intentJournal.js';
 import {getModel, plannerProviderOptions} from './planner/getModel.js';
 import {ModelPlanner, type Planner} from './planner/planner.js';
+import {platformReaders} from './planner/platformReaders.js';
+import {plannerSystemPrompt, readPlannerFiles} from './planner/prompt.js';
+import type {PlatformReaders} from './planner/readers.js';
 import {applyUrlOverrides, defaultEntries} from './registry/entries.js';
 import {readRoster} from './registry/manifests.js';
 import {Registry, type ResolveCard} from './registry/registry.js';
@@ -57,17 +61,25 @@ export function buildOrchestrator({
   // The roster: the manifests one level below the agents dir when one is set (the mock tier is
   // opted in this way — task 4.7), the hardcoded entries otherwise, until Phase 10's install root.
   const entries = config.agentsDir ? readRoster(config.agentsDir) : defaultEntries();
-  const registry = new Registry(applyUrlOverrides(entries, config.agentUrls));
+  const card = buildAgentCard(config.baseUrl);
+  // One card, two readers (phase-6 decision 1): the client fetches it; the Registry indexes it.
+  const registry = new Registry(applyUrlOverrides(entries, config.agentUrls), {platformCard: card});
   const embedder =
     overrides?.embedder ?? new TransformersEmbedder({cacheDir: join(config.stateDir, 'models')});
-  const planner = overrides?.planner ?? plannerFrom(config);
+  const journal = new IntentJournal(join(config.stateDir, JOURNAL_FILE), embedder);
+  const compositions = new Map<string, CompositionState>();
+  const readers = platformReaders({
+    registry,
+    canvas: conversationId => compositions.get(conversationId),
+    recent: conversationId => journal.recent(conversationId),
+  });
+  const planner = overrides?.planner ?? plannerFrom(config, readers);
   const synthesizer = synthesizerFrom(config, overrides?.synthesisModel);
   const router = new Router(registry, embedder, {shortlistCap: config.shortlistCap});
   const pool = new AgentsPool(registry, {
     defaultDeadlineMs: DEFAULT_DEADLINE_MS,
     debugIds: config.debugIds,
   });
-  const journal = new IntentJournal(join(config.stateDir, JOURNAL_FILE), embedder);
   const executor = new OrchestratorExecutor({
     registry,
     pool,
@@ -75,12 +87,9 @@ export function buildOrchestrator({
     router,
     planner,
     synthesizer,
+    compositions,
   });
-  const requestHandler = new DefaultRequestHandler(
-    buildAgentCard(config.baseUrl),
-    new InMemoryTaskStore(),
-    executor,
-  );
+  const requestHandler = new DefaultRequestHandler(card, new InMemoryTaskStore(), executor);
 
   const app = express();
   app.use(
@@ -102,7 +111,11 @@ export function buildOrchestrator({
   };
 }
 
-function plannerFrom(config: Config): Planner {
+/**
+ * The turn's one model call, authored here: its prompt from the files read at boot, its pruned
+ * catalog, and the readers as its tools. Without a key it is a broken turn.
+ */
+function plannerFrom(config: Config, readers: PlatformReaders): Planner {
   const {googleApiKey} = config;
   if (!googleApiKey) {
     // Booting without a key is fine (actions still route); a palette turn is then a broken turn.
@@ -113,9 +126,13 @@ function plannerFrom(config: Config): Planner {
     };
   }
   const settings = {googleApiKey, modelId: config.plannerModelId, effort: config.plannerEffort};
+  const files = readPlannerFiles();
   return new ModelPlanner({
     model: getModel(settings),
     providerOptions: plannerProviderOptions(settings),
+    systemPrompt: plannerSystemPrompt(files),
+    catalog: files.catalog,
+    readers,
   });
 }
 

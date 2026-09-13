@@ -2,11 +2,11 @@ import type {SynthesisPayload} from '@a2uiverse/sdk';
 import type {Synthesis} from '../synthesizer/document.js';
 import type {DispatchOutcome} from '../agentsPool/types.js';
 import type {SurfaceTouches} from '../journal/surfaces.js';
-import type {SlotArchetype} from '../planner/archetypes.js';
-import type {Plan} from '../planner/planSchema.js';
+import type {SynthesisRecord} from '../journal/types.js';
+import {isGap, type LayoutSurface} from '../planner/document.js';
 import type {Registry} from '../registry/registry.js';
 import {SHELL_SOURCE_ID} from '../registry/types.js';
-import {slotNameFor, SYNTHESIS_DISPLAY_NAME} from './constants.js';
+import {SYNTHESIS_DISPLAY_NAME} from './constants.js';
 import {Partitions} from './partitions.js';
 
 /**
@@ -17,10 +17,9 @@ import {Partitions} from './partitions.js';
 export type SlotState = 'pending' | 'failed' | 'collapsed';
 
 export interface SlotPlan {
-  slotName: string;
-  appId: string;
+  /** The dispatched source: an app id, or `shell` for the merged view. The slot's key. */
+  source: string;
   displayName: string;
-  archetype: SlotArchetype;
   request: string;
 }
 
@@ -35,47 +34,58 @@ export interface LiveSynthesis {
  * replaced by each new utterance turn.
  */
 export interface CompositionState {
-  plan: Plan;
-  /** Keyed by slot name, in plan order. */
+  /** The Planner's accepted document: the tree the painter paints, the data model, the dispatch. */
+  layout: LayoutSurface;
+  /** The utterance the composition came from — the this-canvas reader's first line. */
+  utterance: string;
+  /** Keyed by source (task-6.3 decision 6), in dispatch order. */
   slots: Map<string, {plan: SlotPlan; state: SlotState}>;
+  /** The capability gaps the Planner named, in dispatch order; each has a `Slot` in the tree. */
+  gaps: string[];
   /** Every surface's data model, snapshots and generations (task-4.4 decision 3). */
   partitions: Partitions;
   /** Sources whose dispatch completed having painted — what synthesis runs over. */
   arrived: Set<string>;
   /** The live synthesis, once painted: the document as accepted and the payload the client holds; what the IntegrityChecker guards. */
   synthesis?: LiveSynthesis;
+  /** What became of the merged view, once decided — what the this-canvas reader reports. */
+  mergedView?: {outcome: SynthesisRecord['outcome']; reason?: string};
   /** When the last source settled — the start of the dead-air interval. */
   lastSettledAt?: number;
 }
 
-export function compositionFrom(plan: Plan, registry: Registry): CompositionState {
+export function compositionFrom(
+  layout: LayoutSurface,
+  registry: Registry,
+  utterance: string,
+): CompositionState {
   const slots = new Map<string, {plan: SlotPlan; state: SlotState}>();
-  for (const group of plan.groups) {
-    for (const slot of group.slots) {
-      const slotName = slotNameFor(slot.appId);
-      slots.set(slotName, {
-        plan: {
-          slotName,
-          appId: slot.appId,
-          displayName:
-            slot.appId === SHELL_SOURCE_ID
-              ? SYNTHESIS_DISPLAY_NAME
-              : registry.get(slot.appId).displayName,
-          archetype: slot.archetype,
-          request: slot.request,
-        },
-        state: 'pending',
-      });
+  const gaps: string[] = [];
+  for (const entry of layout.dispatch) {
+    if (isGap(entry)) {
+      gaps.push(entry.gap);
+      continue;
     }
+    slots.set(entry.source, {
+      plan: {
+        source: entry.source,
+        displayName:
+          entry.source === SHELL_SOURCE_ID
+            ? SYNTHESIS_DISPLAY_NAME
+            : registry.get(entry.source).displayName,
+        request: entry.request,
+      },
+      state: 'pending',
+    });
   }
-  return {plan, slots, partitions: new Partitions(), arrived: new Set()};
+  return {layout, utterance, slots, gaps, partitions: new Partitions(), arrived: new Set()};
 }
 
 /** The synthesis slot, when the plan reserved one. */
 export function synthesisSlot(
   state: CompositionState,
 ): {plan: SlotPlan; state: SlotState} | undefined {
-  return state.slots.get(slotNameFor(SHELL_SOURCE_ID));
+  return state.slots.get(SHELL_SOURCE_ID);
 }
 
 /**

@@ -8,10 +8,11 @@ import {ClientFactory, type Client} from '@a2a-js/sdk/client';
 import type {Express} from 'express';
 import {buildOrchestrator} from '../src/app.js';
 import {A2UI_EXTENSION_URI_V091} from '../src/agentCard.js';
-import type {Plan} from '../src/planner/planSchema.js';
+import type {PlanRecord} from '../src/journal/types.js';
+import type {LayoutSurface} from '../src/planner/document.js';
 import type {Planner} from '../src/planner/planner.js';
 import {FakeEmbedder} from './fakeEmbedder.js';
-import {FakePlanner, ThrowingPlanner} from './fakePlanner.js';
+import {FakePlanner, layoutFor, MalformedPlanner, ThrowingPlanner} from './fakePlanner.js';
 import {bestPriceView, decline, FakeSynthesizer} from './fakeSynthesizer.js';
 import type {SynthesisModel} from '../src/synthesizer/synthesizer.js';
 import {SYNTHESIS_KEY, type SynthesisPayload} from '@a2uiverse/sdk';
@@ -36,15 +37,8 @@ afterEach(async () => {
   await rm(dir, {recursive: true, force: true});
 });
 
-/** A plan with one card slot per app, in the given order, one slot per group. */
-function planFor(apps: readonly AppId[], direction: Plan['direction'] = 'column'): Plan {
-  return {
-    direction,
-    groups: apps.map(appId => ({
-      slots: [{appId, archetype: 'card' as const, request: `Paint a compact ${appId} card.`}],
-    })),
-  };
-}
+/** A layout with one slot per app, in the given order, stacked in a column. */
+const planFor = (apps: readonly AppId[]): LayoutSurface => layoutFor(apps);
 
 async function boot(
   options: {
@@ -175,18 +169,9 @@ async function journalLines(expected: number) {
   }
 }
 
-/** A plan with the synthesis slot first, then one card per app (task-4.4 decision 6). */
-function planWithSynthesis(apps: readonly AppId[]): Plan {
-  return {
-    direction: 'column',
-    groups: [
-      {slots: [{appId: 'shell', archetype: 'row' as const, request: 'Compare across both.'}]},
-      ...apps.map(appId => ({
-        slots: [{appId, archetype: 'card' as const, request: `Paint a compact ${appId} card.`}],
-      })),
-    ],
-  };
-}
+/** A layout with the synthesis slot first, then one slot per app (task-4.4 decision 6). */
+const planWithSynthesis = (apps: readonly AppId[]): LayoutSurface =>
+  layoutFor(apps, {merged: 'Compare across both.'});
 
 describe('orchestrator', () => {
   test('the synthesis slot is never dispatched: only the sources receive requests', async () => {
@@ -228,12 +213,31 @@ describe('orchestrator', () => {
     }
   });
 
-  test('serves the minimal card with the A2UI extension at the configured base URL', async () => {
+  test('serves the card with the A2UI extension and the platform’s skills at the configured base URL', async () => {
     const {client, url} = await boot();
     const card = await client.getAgentCard();
     expect(card.url).toBe(url);
     expect(card.capabilities.extensions?.map(e => e.uri)).toEqual([A2UI_EXTENSION_URI_V091]);
-    expect(card.skills.map(s => s.id)).toEqual(['palette']);
+    expect(card.skills.map(s => s.id)).toEqual([
+      'palette',
+      'platform',
+      'canvas',
+      'installed-apps',
+      'find-and-install',
+    ]);
+  });
+
+  test('the Planner is handed the conversation and a shortlist carrying the platform’s card (phase-6 decision 1)', async () => {
+    const planner = new FakePlanner();
+    const {client} = await boot({planner});
+    const [first] = await collect(client, utterance('what apps do I have?'));
+    expect(planner.calls).toHaveLength(1);
+    expect(planner.calls[0]!.conversationId).toBe(first.contextId);
+    const ids = planner.calls[0]!.shortlist.map(e => e.record.id).sort();
+    expect(ids).toEqual(['calendar', 'github', 'gmail', 'shell']);
+    const shell = planner.calls[0]!.shortlist.find(e => e.record.id === 'shell')!;
+    expect(shell.card.skills.map(s => s.id)).toContain('installed-apps');
+    expect(shell.record.catalogPackage).toBe('@a2uiverse/shell-catalog');
   });
 
   test('fan-out: shell paint precedes every vendor event; fragments stamped and namespaced; one final', async () => {
@@ -259,6 +263,24 @@ describe('orchestrator', () => {
       gmail: 'pending',
       calendar: 'pending',
     });
+    // Every vendor slot is wrapped in an Attribution holding it as child (task-6.4 decision 3).
+    const painted = (
+      firstPaint.find(d => d.updateComponents)!.updateComponents as {
+        components: Array<Record<string, unknown>>;
+      }
+    ).components;
+    for (const appId of APPS) {
+      expect(painted).toContainEqual({
+        id: `attribution-slot-${appId}`,
+        component: 'Attribution',
+        displayName: expect.any(String),
+        appId,
+        child: `slot-${appId}`,
+      });
+    }
+    expect(painted.find(c => c.id === 'root')!.children).toEqual(
+      APPS.map(appId => `attribution-slot-${appId}`),
+    );
 
     // Every fragment event carries source + role, no slot, and namespaced surfaceIds.
     const fragmentEvents = events.filter(e => stampOf(e)?.role === 'fragment');
@@ -445,6 +467,75 @@ describe('orchestrator', () => {
     expect(line.kind).toBe('utterance');
   });
 
+  test('both attempts refused is a broken turn: the final names the findings, the journal keeps the attempts (task-6.4 decision 6)', async () => {
+    const {client} = await boot({planner: new MalformedPlanner()});
+    const events = await collect(client, utterance('anything'));
+    const final = events.at(-1) as TaskStatusUpdateEvent;
+    expect(final.status.state).toBe('failed');
+    const said = final.status.message?.parts.find(p => p.kind === 'text');
+    expect(said && 'text' in said ? said.text : '').toContain('refused 2 times');
+    expect(said && 'text' in said ? said.text : '').toContain('no <layout-surface> block');
+    expect(shellPaints(events)).toHaveLength(0);
+    const [line] = await journalLines(1);
+    expect(line.outcome).toBe('failed');
+    expect(line.plan).toMatchObject({outcome: 'malformed'});
+    expect((line.plan as PlanRecord).attempts).toHaveLength(2);
+  });
+
+  test('a platform answer dispatches nothing: the data model and tree paint, then the final (phase-6 decision 2)', async () => {
+    const answer: LayoutSurface = {
+      dispatch: [],
+      tree: {
+        components: [
+          {id: 'root', component: 'Column', children: ['line']},
+          {id: 'line', component: 'Text', text: {path: '/answer'}},
+        ],
+      },
+      dataModel: {answer: 'Three apps are installed.'},
+    };
+    const {client} = await boot({planner: new FakePlanner(answer)});
+    const events = await collect(client, utterance('what apps do I have?'));
+    for (const appId of APPS) expect(vendors[appId]!.requests).toHaveLength(0);
+    expect(events.some(e => stampOf(e)?.role === 'fragment')).toBe(false);
+    const [paint, ...rest] = shellPaints(events);
+    expect(rest).toHaveLength(0);
+    expect(paint!.map(d => Object.keys(d)[1])).toEqual([
+      'createSurface',
+      'updateDataModel',
+      'updateComponents',
+    ]);
+    expect(paint![1]!.updateDataModel).toEqual({
+      surfaceId: 'shell:main',
+      value: {answer: 'Three apps are installed.'},
+    });
+    const final = events.at(-1) as TaskStatusUpdateEvent;
+    expect(final.final).toBe(true);
+    expect(final.status.state).toBe('completed');
+    const [line] = await journalLines(1);
+    expect(line.dispatch).toEqual([]);
+    expect(line.synthesis).toBeUndefined();
+    expect((line.plan as PlanRecord).layoutSurface).toEqual(answer);
+  });
+
+  test('a capability gap dispatches nothing and paints the gap slot as authored (phase-6 decision 6)', async () => {
+    const {client} = await boot({
+      planner: new FakePlanner(layoutFor([], {gaps: ['flight booking']})),
+    });
+    const events = await collect(client, utterance('book me a flight'));
+    for (const appId of APPS) expect(vendors[appId]!.requests).toHaveLength(0);
+    const [paint] = shellPaints(events);
+    const components = (
+      paint!.find(d => d.updateComponents)!.updateComponents as {
+        components: Array<Record<string, unknown>>;
+      }
+    ).components;
+    expect(components).toEqual([
+      {id: 'root', component: 'Column', children: ['gap-0']},
+      {id: 'gap-0', component: 'Slot', gap: 'flight booking'},
+    ]);
+    expect((events.at(-1) as TaskStatusUpdateEvent).status.state).toBe('completed');
+  });
+
   test('journals one line per fan-out turn: plan, non-null embedding, all dispatches, namespaced surfaces', async () => {
     const {client} = await boot();
     await collect(client, utterance('my day at a glance'));
@@ -453,7 +544,11 @@ describe('orchestrator', () => {
     expect(line.kind).toBe('utterance');
     expect(line.descriptor).toBe('my day at a glance');
     expect(line.outcome).toBe('completed');
-    expect((line.plan as Plan).groups).toHaveLength(3);
+    const plan = line.plan as PlanRecord;
+    expect(plan.outcome).toBe('planned');
+    expect(plan.layoutSurface!.dispatch).toHaveLength(3);
+    expect(plan.attempts).toHaveLength(1);
+    expect(plan.toolCalls).toEqual([]);
     expect(Array.isArray(line.embedding)).toBe(true);
     expect((line.embedding as number[]).length).toBeGreaterThan(0);
     const dispatch = line.dispatch as Array<{appId: string; outcome: string}>;

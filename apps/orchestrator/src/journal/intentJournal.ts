@@ -3,10 +3,9 @@ import {dirname} from 'node:path';
 import type {Message} from '@a2a-js/sdk';
 import type {DispatchOutcome, DispatchRecord} from '../agentsPool/types.js';
 import type {Embedder} from '../embedder/types.js';
-import type {Plan} from '../planner/planSchema.js';
 import {describe} from './descriptor.js';
 import {emptyTouches, mergeTouches, type SurfaceTouches} from './surfaces.js';
-import type {JournalEntry, SynthesisRecord} from './types.js';
+import type {JournalEntry, PlanRecord, SynthesisRecord} from './types.js';
 
 export interface OpenTurn {
   turnId: string;
@@ -17,7 +16,7 @@ export interface OpenTurn {
 }
 
 export interface JournalTurn {
-  plan(plan: Plan): void;
+  plan(record: PlanRecord): void;
   synthesis(record: SynthesisRecord): void;
   dispatched(record: DispatchRecord): void;
   surfaces(touches: SurfaceTouches): void;
@@ -25,10 +24,19 @@ export interface JournalTurn {
   close(outcome: DispatchOutcome): Promise<void>;
 }
 
-/** Append-only JSON lines in the orchestrator's state directory. No reads in M0. */
+/** How many closed turns a conversation's ring keeps for the recent-turns reader. */
+export const RECENT_TURNS = 5;
+
+/**
+ * Append-only JSON lines in the orchestrator's state directory, plus, since Phase 6, an
+ * in-memory ring of the last few entries per conversation (task-6.4 decision 7): the same entry
+ * the file gets, kept for the Planner's recent-turns reader. Nothing is seeded from the file — a
+ * restart starts empty, as the composition state does.
+ */
 export class IntentJournal {
   readonly #filePath: string;
   readonly #embedder: Embedder | undefined;
+  readonly #recent = new Map<string, JournalEntry[]>();
 
   constructor(filePath: string, embedder?: Embedder) {
     this.#filePath = filePath;
@@ -56,8 +64,8 @@ export class IntentJournal {
       embedding: null,
     };
     return {
-      plan: plan => {
-        entry.plan = plan;
+      plan: record => {
+        entry.plan = record;
       },
       synthesis: record => {
         entry.synthesis = record;
@@ -70,10 +78,22 @@ export class IntentJournal {
       },
       close: async outcome => {
         entry.outcome = outcome;
+        this.#remember(entry);
         entry.embedding = await this.#embed(entry.descriptor);
         await this.#append(entry);
       },
     };
+  }
+
+  /** The last closed turns of a conversation, oldest first; at most `RECENT_TURNS`. */
+  recent(clientContextId: string): readonly JournalEntry[] {
+    return this.#recent.get(clientContextId) ?? [];
+  }
+
+  #remember(entry: JournalEntry): void {
+    const ring = this.#recent.get(entry.clientContextId) ?? [];
+    ring.push(entry);
+    this.#recent.set(entry.clientContextId, ring.slice(-RECENT_TURNS));
   }
 
   /** Embeds the descriptor at write time with the Router's model; a failure journals null, never throws. */

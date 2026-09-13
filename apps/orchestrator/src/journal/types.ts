@@ -1,9 +1,29 @@
+import type {LayoutSurface} from '../planner/document.js';
 import type {Synthesis} from '../synthesizer/document.js';
 import type {ChangeAccount} from '../synthesizer/prompt.js';
 import type {DispatchOutcome, DispatchRecord} from '../agentsPool/types.js';
-import type {Plan} from '../planner/planSchema.js';
 import type {TurnKind} from './descriptor.js';
 import type {SurfaceTouches} from './surfaces.js';
+
+/** One reader call the Planner made: which, with what, and what it read (task-6.4 decision 13). */
+export interface ToolCallRecord {
+  name: string;
+  args: unknown;
+  result: unknown;
+}
+
+/**
+ * What became of the turn's plan (task-6.4 decision 13): the layout surface as accepted, every
+ * attempt — the raw text the model returned and the validator's findings when it was refused —
+ * and the reader calls it made along the way.
+ */
+export interface PlanRecord {
+  outcome: 'planned' | 'malformed';
+  /** The accepted document, on `planned`. */
+  layoutSurface?: LayoutSurface;
+  attempts: {text: string; errors: string[]}[];
+  toolCalls: ToolCallRecord[];
+}
 
 /**
  * What became of the turn's synthesis (task-5.4 decision 7): the whole conversation. The
@@ -34,8 +54,8 @@ export interface JournalEntry {
   kind: TurnKind;
   descriptor: string;
   payload?: unknown;
-  /** The Planner's plan, on utterance turns. */
-  plan?: Plan;
+  /** The Planner's outcome, on utterance turns. */
+  plan?: PlanRecord;
   /** The Synthesizer's outcome, on turns that reached it. */
   synthesis?: SynthesisRecord;
   dispatch: DispatchRecord[];

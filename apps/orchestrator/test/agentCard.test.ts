@@ -17,8 +17,22 @@ describe('buildAgentCard', () => {
     expect(ext?.params).toBeUndefined();
   });
 
-  test('is minimal: one generic palette skill, no union of app skills', () => {
-    expect(card.skills.map(s => s.id)).toEqual(['palette']);
+  test('carries the platform’s hand-authored skills beside palette, no union of app skills (phase-6 decision 1)', () => {
+    expect(card.skills.map(s => s.id)).toEqual([
+      'palette',
+      'platform',
+      'canvas',
+      'installed-apps',
+      'find-and-install',
+    ]);
     expect(card.name).toBe('A2UIVerse Orchestrator');
+    // Each platform skill carries examples: they are what the Router embeds and what lets the
+    // Planner tell a platform question from a capability gap.
+    for (const skill of card.skills.slice(1)) {
+      expect(skill.examples?.length).toBeGreaterThan(0);
+      expect(skill.description.length).toBeGreaterThan(40);
+    }
+    const text = JSON.stringify(card.skills);
+    expect(text).not.toMatch(/github|gmail|calendar/i);
   });
 });

@@ -5,7 +5,7 @@ import {afterEach, beforeEach, describe, expect, test} from 'vitest';
 import type {Message} from '@a2a-js/sdk';
 import {IntentJournal} from '../src/journal/intentJournal.js';
 import type {DispatchRecord} from '../src/agentsPool/types.js';
-import type {Plan} from '../src/planner/planSchema.js';
+import type {PlanRecord} from '../src/journal/types.js';
 import {FakeEmbedder} from './fakeEmbedder.js';
 
 let dir: string;
@@ -71,12 +71,18 @@ describe('IntentJournal', () => {
     expect(typeof entry.at).toBe('string');
   });
 
-  test('embeds the descriptor at write time and records the plan', async () => {
+  test('embeds the descriptor at write time and records the plan: the layout surface, the attempts, the reader calls', async () => {
     const file = join(dir, 'intent-journal.jsonl');
     const journal = new IntentJournal(file, new FakeEmbedder());
-    const plan: Plan = {
-      direction: 'column',
-      groups: [{slots: [{appId: 'github', archetype: 'card', request: 'x'}]}],
+    const plan: PlanRecord = {
+      outcome: 'planned',
+      layoutSurface: {
+        dispatch: [{source: 'github', request: 'x'}],
+        tree: {components: [{id: 'root', component: 'Slot', source: 'github'}]},
+        dataModel: {},
+      },
+      attempts: [{text: '<layout-surface>{}</layout-surface>', errors: []}],
+      toolCalls: [{name: 'installed_apps', args: {}, result: []}],
     };
     const turn = journal.open({turnId: 't1', clientContextId: 'c1', message: utterance});
     turn.plan(plan);
@@ -146,6 +152,31 @@ describe('IntentJournal', () => {
       appId: 'github',
     });
     await expect(turn.close('completed')).resolves.toBeUndefined();
+  });
+});
+
+describe('recent turns (task-6.4 decision 7)', () => {
+  test('keeps the last five closed entries per conversation, in order, seeded from nothing', async () => {
+    const journal = new IntentJournal(join(dir, 'j.jsonl'));
+    expect(journal.recent('c1')).toEqual([]);
+    for (let i = 1; i <= 7; i++) {
+      await journal
+        .open({turnId: `t${i}`, clientContextId: i === 4 ? 'c2' : 'c1', message: utterance})
+        .close(i === 2 ? 'failed' : 'completed');
+    }
+    expect(journal.recent('c1').map(e => e.turnId)).toEqual(['t2', 't3', 't5', 't6', 't7']);
+    expect(journal.recent('c1')[0]!.outcome).toBe('failed');
+    expect(journal.recent('c2').map(e => e.turnId)).toEqual(['t4']);
+  });
+
+  test('a turn is in the ring even when the file write fails', async () => {
+    const journal = new IntentJournal(join(dir, 'not-a-dir', 'x.jsonl'));
+    const {writeFile} = await import('node:fs/promises');
+    await writeFile(join(dir, 'not-a-dir'), 'file, not dir');
+    await journal
+      .open({turnId: 't1', clientContextId: 'c1', message: utterance})
+      .close('completed');
+    expect(journal.recent('c1').map(e => e.turnId)).toEqual(['t1']);
   });
 });
 

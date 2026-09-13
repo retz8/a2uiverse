@@ -6,7 +6,6 @@ import type {AgentsPool} from './agentsPool/agentsPool.js';
 import {STAMP_KEY} from './agentsPool/relay.js';
 import type {DispatchHandle, DispatchOutcome} from './agentsPool/types.js';
 import {classifyTurn, unnamespaceAction, type Turn} from './composition/classify.js';
-import {slotNameFor} from './composition/constants.js';
 import {composeFragment, withGenerations} from './composition/fragmentRelay.js';
 import {changeAccount, checkSynthesisPayload} from './composition/integrity.js';
 import {A2UI_CLIENT_DATA_MODEL_KEY} from './composition/partition.js';
@@ -41,23 +40,27 @@ export interface OrchestratorDeps {
   router: Router;
   planner: Planner;
   synthesizer: Synthesizer;
+  /** Per-conversation composition state, shared with the Planner's this-canvas reader. */
+  compositions: Map<string, CompositionState>;
 }
 
 /**
- * The turn (SPEC §5) at M2. Utterance: Router → Planner → shell paint →
- * fan-out → slot-lifecycle repaints → synthesis into the reserved slot → one
- * turn-final. Action: owner-only dispatch, no Router/Planner; then, if the
- * partition change invalidated the live synthesis, re-synthesis inline before
- * the final, handed the previous document and what broke (task-5.4 decision
- * 6). Client error: slot flip by shell repaint.
+ * The turn (SPEC §5) at M3s. Utterance: Router → Planner (the one model call, the readers as
+ * steps inside it) → shell paint of the model-authored layout → fan-out → slot-lifecycle repaints
+ * → synthesis into the reserved slot → one turn-final. A turn that dispatches nothing — a
+ * platform answer, a gap — closes right after first paint. Action: owner-only dispatch, no
+ * Router/Planner; then, if the partition change invalidated the live synthesis, re-synthesis
+ * inline before the final, handed the previous document and what broke (task-5.4 decision 6).
+ * Client error: slot flip by shell repaint.
  * Composition state is canonical here; the shell surface is its projection.
  */
 export class OrchestratorExecutor implements AgentExecutor {
   readonly #deps: OrchestratorDeps;
-  readonly #compositions = new Map<string, CompositionState>();
+  readonly #compositions: Map<string, CompositionState>;
 
   constructor(deps: OrchestratorDeps) {
     this.#deps = deps;
+    this.#compositions = deps.compositions;
   }
 
   async execute(ctx: RequestContext, bus: ExecutionEventBus): Promise<void> {
@@ -137,12 +140,27 @@ export class OrchestratorExecutor implements AgentExecutor {
     text: string,
   ): Promise<void> {
     const shortlist = await this.#deps.router.shortlist(text);
-    if (shortlist.length === 0) throw new Error('no routable agents');
-    const plan = await this.#deps.planner.plan({utterance: text, shortlist});
+    const outcome = await this.#deps.planner.plan({
+      utterance: text,
+      shortlist,
+      conversationId: ctx.contextId,
+    });
+    turn.plan({
+      outcome: outcome.kind,
+      ...(outcome.kind === 'planned' ? {layoutSurface: outcome.document} : {}),
+      attempts: outcome.attempts,
+      toolCalls: outcome.toolCalls,
+    });
+    if (outcome.kind === 'malformed') {
+      // Both attempts refused: a broken turn, the findings on the final (task-6.4 decision 6).
+      const last = outcome.attempts.at(-1);
+      throw new Error(
+        `the Planner's answer was refused ${outcome.attempts.length} times: ${last?.errors.join('; ')}`,
+      );
+    }
 
-    const state = compositionFrom(plan, this.#deps.registry);
+    const state = compositionFrom(outcome.document, this.#deps.registry, text);
     this.#compositions.set(ctx.contextId, state);
-    turn.plan(plan);
 
     // First paint precedes every dispatch, structurally (SPEC §4.5).
     const shellPaint = shellEnvelope(ctx, shellCreateParts(state));
@@ -150,27 +168,28 @@ export class OrchestratorExecutor implements AgentExecutor {
     turn.surfaces(touchesOf(shellPaint));
 
     // The synthesis slot is the shell's own (task-4.4 decision 6): never dispatched.
-    const sources = [...state.slots.values()].filter(({plan}) => plan.appId !== SHELL_SOURCE_ID);
+    const sources = [...state.slots.values()].filter(({plan}) => plan.source !== SHELL_SOURCE_ID);
     const pumps = sources.map(({plan: slot}) => {
       const request: Message = {
         kind: 'message',
         messageId: randomUUID(),
         role: 'user',
         parts: [{kind: 'text', text: slot.request}],
-        metadata: vendorMetadata(ctx.userMessage.metadata, slot.appId),
+        metadata: vendorMetadata(ctx.userMessage.metadata, slot.source),
       };
-      const handle = this.#deps.pool.dispatch(slot.appId, {
+      const handle = this.#deps.pool.dispatch(slot.source, {
         clientContextId: ctx.contextId,
         clientTaskId: ctx.taskId,
         message: request,
       });
-      return this.#pump(ctx, bus, turn, state, handle, slot.appId, {collapse: true});
+      return this.#pump(ctx, bus, turn, state, handle, slot.source, {collapse: true});
     });
     const outcomes = await Promise.all(pumps);
     await this.#synthesize(ctx, bus, turn, state);
 
-    // One agent failing never fails the turn; only an all-cancelled turn is cancelled.
-    const allCancelled = outcomes.every(outcome => outcome === 'cancelled');
+    // One agent failing never fails the turn; only an all-cancelled turn is cancelled. A turn
+    // that dispatched nothing — a platform answer, a gap — completed at first paint.
+    const allCancelled = outcomes.length > 0 && outcomes.every(outcome => outcome === 'cancelled');
     bus.publish(finalStatus(ctx, allCancelled ? 'canceled' : 'completed'));
     await turn.close(allCancelled ? 'cancelled' : 'completed');
   }
@@ -246,6 +265,7 @@ export class OrchestratorExecutor implements AgentExecutor {
       attempts: {text: string; errors: string[]}[],
     ) => {
       state.synthesis = undefined;
+      state.mergedView = {outcome, ...(reason ? {reason} : {})};
       // A decline is the Synthesizer's own judgment in its own words; the collapsed slot rests
       // on them rather than folding away unexplained. The other outcomes are the runtime's.
       if (outcome === 'declined' && reason) bus.publish(synthesisProseEnvelope(ctx, reason));
@@ -291,6 +311,7 @@ export class OrchestratorExecutor implements AgentExecutor {
     const payload: SynthesisPayload = {dataModel: document.dataModel, sorts: document.sorts};
     state.partitions.snapshot();
     state.synthesis = {document, payload};
+    state.mergedView = {outcome: 'synthesized'};
     const paint = synthesisEnvelope(ctx, synthesisParts(document.tree), payload);
     bus.publish(paint);
     turn.surfaces(touchesOf(paint));
@@ -311,7 +332,7 @@ export class OrchestratorExecutor implements AgentExecutor {
   ): void {
     const parsed = parseSurfaceId(error.surfaceId);
     const state = this.#compositions.get(ctx.contextId);
-    const slot = parsed && state?.slots.get(slotNameFor(parsed.appId));
+    const slot = parsed && state?.slots.get(parsed.appId);
     if (slot && slot.state !== 'failed') {
       slot.state = 'failed';
       bus.publish(shellEnvelope(ctx, shellRepaintParts(state!)));
@@ -331,7 +352,6 @@ export class OrchestratorExecutor implements AgentExecutor {
     appId: string,
     options: {collapse: boolean},
   ): Promise<DispatchOutcome> {
-    const slotName = slotNameFor(appId);
     const composition = state ?? this.#compositions.get(ctx.contextId);
     let touches: SurfaceTouches = emptyTouches();
     for await (const event of handle.events) {
@@ -349,7 +369,7 @@ export class OrchestratorExecutor implements AgentExecutor {
     turn.surfaces(touches);
     if (composition) composition.lastSettledAt = Date.now();
 
-    const slot = composition?.slots.get(slotName);
+    const slot = composition?.slots.get(appId);
     const next = outcomeToSlotState(record.outcome, touches);
     // Left to the client means it painted: this source has arrived.
     if (next === undefined && record.outcome === 'completed') composition?.arrived.add(appId);
