@@ -45,4 +45,21 @@ export const BEATS: BeatSpec[] = [
     title: 'Temporal merge',
     prompt: 'What needs my attention today?',
   },
+  {
+    // A platform answer (phase-6 decisions 2, 8): the platform's card wins the shortlist, the
+    // Planner calls the installed-apps reader and answers in `shell:main` from a data model of
+    // literals. No vendor is dispatched.
+    beat: 6,
+    slug: 'platform-answer',
+    title: 'Platform answer',
+    prompt: 'What apps do I have?',
+  },
+  {
+    // A capability gap (phase-6 decision 6): nothing installed serves it, so the Planner names
+    // the gap and places its slot; the catalog draws the tile.
+    beat: 7,
+    slug: 'capability-gap',
+    title: 'Capability gap',
+    prompt: 'Book me a flight to Tokyo next Friday.',
+  },
 ];

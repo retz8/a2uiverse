@@ -1,7 +1,7 @@
 /**
  * Re-record beat fixtures through the orchestrator (task 1.4, spec decisions 2–3).
  *
- *   pnpm --filter @a2uiverse/client record:beats -- --model gemini-3.7-flash [--beats 1,2,3,4,5]
+ *   pnpm --filter @a2uiverse/client record:beats -- --model gemini-3.7-flash [--beats 1,2,3,4,5,6,7]
  *       [--url http://localhost:10001] [--out recordings/beats]
  *
  * Captures what the client receives from the hub — source stamp and synthesis payload included — one `BeatBatch` per

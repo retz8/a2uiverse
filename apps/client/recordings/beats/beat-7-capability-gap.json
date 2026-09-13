@@ -1,0 +1,59 @@
+{
+  "name": "beat-7-capability-gap",
+  "beat": 7,
+  "title": "Capability gap",
+  "prompt": "Book me a flight to Tokyo next Friday.",
+  "model": "gemini-3.7-flash",
+  "recordedAt": "2026-09-13T07:25:29Z",
+  "contextId": "9e42459e-103e-4a2a-83a7-22f1f9bff6dd",
+  "chainedFrom": null,
+  "turns": [
+    {
+      "taskId": "54d49891-54d2-4114-97e6-08c483d0838f",
+      "kind": "utterance",
+      "prompt": "Book me a flight to Tokyo next Friday.",
+      "action": null,
+      "batches": [
+        {
+          "offsetMs": 1471,
+          "messages": [
+            {
+              "version": "v0.9",
+              "createSurface": {
+                "surfaceId": "shell:main",
+                "catalogId": "https://github.com/retz8/a2uiverse/blob/main/packages/shell-catalog/catalogs/v0.9.1/catalog.json"
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "surfaceId": "shell:main",
+                "components": [
+                  {
+                    "id": "root",
+                    "component": "Column",
+                    "children": [
+                      "flights"
+                    ]
+                  },
+                  {
+                    "id": "flights",
+                    "component": "Slot",
+                    "gap": "flight booking"
+                  }
+                ]
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "shell",
+            "role": "shell"
+          }
+        }
+      ],
+      "outcome": "completed",
+      "durationMs": 1471
+    }
+  ]
+}

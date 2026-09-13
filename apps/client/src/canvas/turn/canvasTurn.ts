@@ -44,7 +44,7 @@ import type {CompositionStamp, SynthesisPayload} from '@a2uiverse/sdk';
 import type {PaintMeta} from '../../a2a/messages';
 import {paintMetaOf, QUESTION_PAINT_KIND} from '../../a2a/messages';
 import {applyA2uiMessages} from '../../a2ui/applyMessages';
-import {rosterFromShellMessages} from '../composition/roster';
+import {shellPaintSlots} from '../composition/roster';
 import {describeError} from '../../shared/describeError';
 import type {CanvasState, CanvasStore} from '../canvasStore';
 import type {PaintCause} from '../timeline/paint';
@@ -87,6 +87,11 @@ export interface FragmentFailure {
   source: string;
   path: string;
   message: string;
+  /**
+   * The fragment was refused at arrival and never placed (task-6.5 decision 7): the shell
+   * painted its slot with no attribution, and a vendor fragment never renders unattributed.
+   */
+  refused?: boolean;
 }
 
 export interface TurnRunnerOptions {
@@ -247,15 +252,33 @@ export function createTurnRunner({
     /** Validation failures held until the settled state can be judged (module header). */
     const deferredValidation: unknown[] = [];
 
+    /**
+     * Sources whose slot the shell painted with no attribution around it. The painter wraps
+     * every vendor slot, so this is a painter bug — and the shell's one guarantee to a vendor
+     * fragment (SPEC §4.3) is that it never renders unattributed. A fragment aimed at such a
+     * slot is refused: not mounted, reported as unrenderable so the hub fails the slot.
+     */
+    const refusedSources = new Set<string>();
+
     /** Report one fragment as unrenderable, at most once. */
-    const failFragment = (surfaceId: string, path: string, message: string) => {
+    const failFragment = (surfaceId: string, path: string, message: string, refused = false) => {
       if (!onFragmentFailure || reported.has(surfaceId)) return;
       const source = fragmentSlots.get(surfaceId);
       if (source === undefined) return;
       reported.add(surfaceId);
       // A slot that failed has nothing left to answer.
       store.demoteSlot(source);
-      onFragmentFailure({surfaceId, source, path, message});
+      onFragmentFailure({surfaceId, source, path, message, ...(refused ? {refused} : {})});
+    };
+
+    /** A batch for a refused source: nothing of it enters the registry; its create is reported. */
+    const refuseBatch = (messages: A2uiMessage[], source: string) => {
+      for (const message of messages) {
+        const {kind, surfaceId} = targetOf(message);
+        if (kind !== 'create' || !surfaceId) continue;
+        fragmentSlots.set(surfaceId, source);
+        failFragment(surfaceId, '/', 'the shell drew this slot with no attribution', true);
+      }
     };
 
     const onMessageError = (err: unknown, message: A2uiMessage) => {
@@ -594,8 +617,14 @@ export function createTurnRunner({
         // The shell's paint is the only place the plan's slot order and the Registry's display
         // names reach the client; the roster is that read, re-derived on every shell repaint.
         if (stamp?.role === 'shell') {
-          const roster = rosterFromShellMessages(rest);
+          const {roster, unattributed} = shellPaintSlots(rest);
           if (roster) store.setRoster(roster);
+          for (const source of unattributed) refusedSources.add(source);
+        }
+        const source = slotOf(stamp);
+        if (source !== undefined && refusedSources.has(source)) {
+          refuseBatch(rest, source);
+          return;
         }
         if (stagedMode && opensComposition(rest, stamp)) goProgressive();
         if (stagedMode) applyStaged(rest, stamp, payload);

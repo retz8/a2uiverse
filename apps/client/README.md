@@ -20,15 +20,19 @@ You need the orchestrator and the agents up too; `pnpm dev:all` from the root st
 
 **Recorded beats** are real agent output, captured through the hub over live MCP and kept as the stream they arrived as:
 
-| `?beat=` | What it is                                                                                                                         |
-| -------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| `1`      | PR list — one slot, GitHub                                                                                                         |
-| `2`      | PR detail — one slot                                                                                                               |
-| `3`      | Compose-and-confirm review — chained after 2, so replay it as `2,3`                                                                |
-| `4`      | **The composed fan-out** — three slots, three design systems, one screen                                                           |
-| `5`      | **The temporal merge** — the fan-out with the Synthesizer's merged view painted into its reserved slot, synthesis payload included |
+| `?beat=` | What it is                                                                                                                              |
+| -------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `1`      | PR list — one slot, GitHub                                                                                                              |
+| `2`      | PR detail — one slot                                                                                                                    |
+| `3`      | Compose-and-confirm review — chained after 2, so replay it as `2,3`                                                                     |
+| `4`      | **The composed fan-out** — three vendor slots, three design systems, one screen (the 6.5 recording also carries a reserved merged view) |
+| `5`      | **The temporal merge** — the fan-out with the Synthesizer's merged view painted into its reserved slot, synthesis payload included      |
+| `6`      | **A platform answer** — the shell answering "what apps do I have?" itself, from a data model of literals; no vendor dispatched          |
+| `7`      | **A capability gap** — nothing installed serves the ask; the Planner places a gap slot and the catalog draws the tile                   |
 
-**Synthetic beats** are hand-built to construct states that are unreliable to catch live: `plain`, `plain-2`, `validation` (a fragment that fails to mount), `question` (the overlay), `composed` (two slots, one filling and one whose source speaks but never paints), `composed-solo` (the degenerate one-slot case), `composed-question` (a fragment the shell promotes in place) and `synthesis` (two storefronts of unrelated shapes merged into the synthesis slot by the Synthesizer's camera comparison example (the client's own copy), then an in-place reorder its keyed refs survive).
+**Synthetic beats** are hand-built to construct states that are unreliable to catch live: `plain`, `plain-2`, `validation` (a fragment that fails to mount), `question` (the overlay), `composed` (two slots, one filling and one whose source speaks but never paints), `composed-solo` (the degenerate one-slot case), `composed-question` (a fragment the shell promotes in place), `synthesis` (two storefronts of unrelated shapes merged into the synthesis slot by the Synthesizer's camera comparison example (the client's own copy), then an in-place reorder its keyed refs survive), `platform-answer` (the shell's own answer bound to its data model, with a button into the App Library) and `gap` (the capability tile).
+
+**Shell actions.** A shell surface's two actions — open the Store with an optional query, open the App Library — are handled here, never as a turn: the page opens as an overlay over the canvas (a placeholder naming the page and the query until Phase 13 builds them; the canvas stays mounted beneath), and the action is reported to the orchestrator on the side, as a standard A2UI action on the shell surface, so the journal records the intent.
 
 The two families have different jobs and neither replaces the other: a recording is evidence of what real agents produce, a synthetic beat is a state built on purpose.
 
@@ -62,7 +66,7 @@ Not part of `pnpm verify` — each needs live processes.
 **Re-record the beats.** Runs against live agents through the hub, so the fixtures carry what real agents actually paint.
 
 ```bash
-pnpm --filter @a2uiverse/client record:beats -- --model <model> [--beats 1,2,3,4]
+pnpm --filter @a2uiverse/client record:beats -- --model <model> [--beats 1,2,3,4,5,6,7]
 ```
 
 > **Start the Gmail agent with `A2UI_RECORD_DIR` set.** That flag is what arms its pseudonymizer, and this recorder captures whatever the hub relays — it cannot tell whether anything was scrubbed. GitHub reads public repos and Calendar reads a seeded demo calendar, so neither needs it for privacy.

@@ -2,8 +2,9 @@
  * Synthetic beat fixtures: hand-authored streams in the recorded `BeatFixture` format — two
  * plain paints, a validation-failure turn (partial paint → cleanup delete → final apology), a
  * declared question paint, a composed turn (shell layout, one slot filling,
- * one flipping to failed) and a synthesis turn (two storefronts merged, then re-synthesized
- * after an in-place reorder). They are deliberately NOT in `recordings/beats/`
+ * one flipping to failed), a synthesis turn (two storefronts merged, then re-synthesized
+ * after an in-place reorder), a platform answer (the shell answering from its own data model)
+ * and a capability gap (the fixed tile). They are deliberately NOT in `recordings/beats/`
  * and never enter `BEAT_FIXTURES`: they are inputs for the transition tests and the chrome
  * baselines, replayable by name through `?beat=` (see `SYNTHETIC_BEATS`). Recorded beats are
  * re-recorded through the orchestrator in 1.4.
@@ -35,6 +36,77 @@ const base = {
   contextId: 'ctx-synthetic',
   chainedFrom: null,
 };
+
+/** One slot of a layout: a vendor's, the reserved synthesis slot (`shell`), or a gap. */
+interface LayoutSlot {
+  appId: string;
+  name: string;
+  state?: 'pending' | 'failed' | 'collapsed';
+  /** The synthesis slot: shell content, no attribution around it (task-5.5 decision 1). */
+  shell?: boolean;
+  weight?: number;
+}
+
+/**
+ * The layout surface as the shell painter emits it (task-6.4 decisions 1, 3, 11): the slots
+ * laid along one axis, each vendor slot the `child` of an `Attribution` naming its source and
+ * carrying its weight, the wrapper standing where the slot stood in the parent; the synthesis
+ * slot bare. Ids are the model's — here `slot-<source>` and the painter's `attribution-` prefix.
+ */
+function layoutComponents(
+  slots: readonly LayoutSlot[],
+  axis: 'Row' | 'Column' = 'Column',
+): Array<Record<string, unknown>> {
+  const idOf = (s: LayoutSlot) => `slot-${s.appId}`;
+  return [
+    {
+      id: 'root',
+      component: axis,
+      children: slots.map(s => (s.shell ? idOf(s) : `attribution-${idOf(s)}`)),
+    },
+    ...slots.flatMap((s): Array<Record<string, unknown>> => {
+      const weight = s.weight !== undefined ? {weight: s.weight} : {};
+      const slot = {
+        id: idOf(s),
+        component: 'Slot',
+        source: s.appId,
+        state: s.state ?? 'pending',
+        label: s.name,
+        ...weight,
+      };
+      if (s.shell) return [{...slot, content: 'shell'}];
+      return [
+        {
+          id: `attribution-${idOf(s)}`,
+          component: 'Attribution',
+          displayName: s.name,
+          appId: s.appId,
+          child: idOf(s),
+          ...weight,
+        },
+        slot,
+      ];
+    }),
+  ];
+}
+
+/** The hub's first paint of a composed turn: createSurface, then the whole layout. */
+function layoutPaint(slots: readonly LayoutSlot[], axis?: 'Row' | 'Column'): A2uiMessage[] {
+  return [
+    msg({createSurface: {surfaceId: 'shell:main', catalogId: SHELL_CATALOG_ID}}),
+    msg({updateComponents: {surfaceId: 'shell:main', components: layoutComponents(slots, axis)}}),
+  ];
+}
+
+/** An in-turn shell repaint: the whole tree again, a slot's state flipped (task-6.4 decision 11). */
+function layoutRepaint(slots: readonly LayoutSlot[], axis?: 'Row' | 'Column'): A2uiMessage[] {
+  return [
+    msg({updateComponents: {surfaceId: 'shell:main', components: layoutComponents(slots, axis)}}),
+  ];
+}
+
+const GITHUB: LayoutSlot = {appId: 'github', name: 'GitHub'};
+const GMAIL: LayoutSlot = {appId: 'gmail', name: 'Gmail'};
 
 /**
  * The wire shape of a server-side validation failure, as the agent's `_teardown` produces it:
@@ -165,57 +237,7 @@ export const COMPOSED_BEAT: BeatFixture = {
         {
           offsetMs: 0,
           stamp: {source: 'shell', role: 'shell'},
-          messages: [
-            msg({createSurface: {surfaceId: 'shell:main', catalogId: SHELL_CATALOG_ID}}),
-            msg({
-              updateComponents: {
-                surfaceId: 'shell:main',
-                components: [
-                  {
-                    id: 'root',
-                    component: 'Column',
-                    children: ['wrap-slot-github', 'wrap-slot-gmail'],
-                  },
-                  {
-                    id: 'wrap-slot-github',
-                    component: 'Column',
-                    children: ['attr-slot-github', 'slot-github'],
-                  },
-                  {
-                    id: 'attr-slot-github',
-                    component: 'Attribution',
-                    displayName: 'GitHub',
-                    appId: 'github',
-                  },
-                  {
-                    id: 'slot-github',
-                    component: 'Slot',
-                    source: 'github',
-                    state: 'pending',
-                    label: 'GitHub',
-                  },
-                  {
-                    id: 'wrap-slot-gmail',
-                    component: 'Column',
-                    children: ['attr-slot-gmail', 'slot-gmail'],
-                  },
-                  {
-                    id: 'attr-slot-gmail',
-                    component: 'Attribution',
-                    displayName: 'Gmail',
-                    appId: 'gmail',
-                  },
-                  {
-                    id: 'slot-gmail',
-                    component: 'Slot',
-                    source: 'gmail',
-                    state: 'pending',
-                    label: 'Gmail',
-                  },
-                ],
-              },
-            }),
-          ],
+          messages: layoutPaint([GITHUB, GMAIL]),
           texts: [],
         },
         // One agent answers: its fragment fills its own slot, namespaced by the hub.
@@ -250,22 +272,7 @@ export const COMPOSED_BEAT: BeatFixture = {
         {
           offsetMs: 300,
           stamp: {source: 'shell', role: 'shell'},
-          messages: [
-            msg({
-              updateComponents: {
-                surfaceId: 'shell:main',
-                components: [
-                  {
-                    id: 'slot-gmail',
-                    component: 'Slot',
-                    source: 'gmail',
-                    state: 'failed',
-                    label: 'Gmail',
-                  },
-                ],
-              },
-            }),
-          ],
+          messages: layoutRepaint([GITHUB, {...GMAIL, state: 'failed'}]),
           texts: [],
         },
       ],
@@ -295,35 +302,7 @@ export const COMPOSED_SOLO_BEAT: BeatFixture = {
         {
           offsetMs: 0,
           stamp: {source: 'shell', role: 'shell'},
-          messages: [
-            msg({createSurface: {surfaceId: 'shell:main', catalogId: SHELL_CATALOG_ID}}),
-            msg({
-              updateComponents: {
-                surfaceId: 'shell:main',
-                components: [
-                  {id: 'root', component: 'Column', children: ['wrap-slot-github']},
-                  {
-                    id: 'wrap-slot-github',
-                    component: 'Column',
-                    children: ['attr-slot-github', 'slot-github'],
-                  },
-                  {
-                    id: 'attr-slot-github',
-                    component: 'Attribution',
-                    displayName: 'GitHub',
-                    appId: 'github',
-                  },
-                  {
-                    id: 'slot-github',
-                    component: 'Slot',
-                    source: 'github',
-                    state: 'pending',
-                    label: 'GitHub',
-                  },
-                ],
-              },
-            }),
-          ],
+          messages: layoutPaint([GITHUB]),
           texts: [],
         },
         {
@@ -372,57 +351,7 @@ export const COMPOSED_QUESTION_BEAT: BeatFixture = {
         {
           offsetMs: 0,
           stamp: {source: 'shell', role: 'shell'},
-          messages: [
-            msg({createSurface: {surfaceId: 'shell:main', catalogId: SHELL_CATALOG_ID}}),
-            msg({
-              updateComponents: {
-                surfaceId: 'shell:main',
-                components: [
-                  {
-                    id: 'root',
-                    component: 'Column',
-                    children: ['wrap-slot-github', 'wrap-slot-gmail'],
-                  },
-                  {
-                    id: 'wrap-slot-github',
-                    component: 'Column',
-                    children: ['attr-slot-github', 'slot-github'],
-                  },
-                  {
-                    id: 'attr-slot-github',
-                    component: 'Attribution',
-                    displayName: 'GitHub',
-                    appId: 'github',
-                  },
-                  {
-                    id: 'slot-github',
-                    component: 'Slot',
-                    source: 'github',
-                    state: 'pending',
-                    label: 'GitHub',
-                  },
-                  {
-                    id: 'wrap-slot-gmail',
-                    component: 'Column',
-                    children: ['attr-slot-gmail', 'slot-gmail'],
-                  },
-                  {
-                    id: 'attr-slot-gmail',
-                    component: 'Attribution',
-                    displayName: 'Gmail',
-                    appId: 'gmail',
-                  },
-                  {
-                    id: 'slot-gmail',
-                    component: 'Slot',
-                    source: 'gmail',
-                    state: 'pending',
-                    label: 'Gmail',
-                  },
-                ],
-              },
-            }),
-          ],
+          messages: layoutPaint([GITHUB, GMAIL]),
           texts: [],
         },
         {
@@ -471,40 +400,9 @@ export const COMPOSED_QUESTION_BEAT: BeatFixture = {
 
 /**
  * The shell's layout for a synthesis turn: the synthesis slot first — shell content, no
- * attribution beside it (task-5.5 decision 1) — then one attributed slot per store.
+ * attribution around it (task-5.5 decision 1) — then one attributed slot per store, in a row.
  */
-function synthesisShellComponents(
-  slots: readonly {appId: string; name: string; shell?: boolean}[],
-): Array<Record<string, unknown>> {
-  const idOf = (s: {appId: string}) => `slot-${s.appId}`;
-  return [
-    {
-      id: 'root',
-      component: 'Row',
-      children: slots.map(s => (s.shell ? idOf(s) : `wrap-${idOf(s)}`)),
-    },
-    ...slots.flatMap((s): Array<Record<string, unknown>> =>
-      s.shell
-        ? [
-            {
-              id: idOf(s),
-              component: 'Slot',
-              source: s.appId,
-              state: 'pending',
-              label: s.name,
-              content: 'shell',
-            },
-          ]
-        : [
-            {id: `wrap-${idOf(s)}`, component: 'Column', children: [`attr-${idOf(s)}`, idOf(s)]},
-            {id: `attr-${idOf(s)}`, component: 'Attribution', displayName: s.name, appId: s.appId},
-            {id: idOf(s), component: 'Slot', source: s.appId, state: 'pending', label: s.name},
-          ],
-    ),
-  ];
-}
-
-const SYNTHESIS_SLOTS = [
+const SYNTHESIS_SLOTS: LayoutSlot[] = [
   {appId: SYNTHESIS_SOURCE, name: 'Synthesis', shell: true},
   {appId: 'shop-a', name: SHOP_A_NAME},
   {appId: 'shop-b', name: SHOP_B_NAME},
@@ -538,15 +436,7 @@ export const SYNTHESIS_BEAT: BeatFixture = {
         {
           offsetMs: 0,
           stamp: {source: 'shell', role: 'shell'},
-          messages: [
-            msg({createSurface: {surfaceId: 'shell:main', catalogId: SHELL_CATALOG_ID}}),
-            msg({
-              updateComponents: {
-                surfaceId: 'shell:main',
-                components: synthesisShellComponents(SYNTHESIS_SLOTS),
-              },
-            }),
-          ],
+          messages: layoutPaint(SYNTHESIS_SLOTS, 'Row'),
           texts: [],
         },
         {
@@ -636,10 +526,129 @@ export function syntheticBeat(name: string): BeatFixture | undefined {
       return COMPOSED_QUESTION_BEAT;
     case 'synthesis':
       return SYNTHESIS_BEAT;
+    case 'platform-answer':
+      return PLATFORM_ANSWER_BEAT;
+    case 'gap':
+      return GAP_BEAT;
     default:
       return undefined;
   }
 }
+
+/**
+ * A platform answer (phase-6 decisions 2, 8): the Planner answers "what apps do I have?" itself,
+ * in the shell catalog, from the installed-apps reader. No slot, no vendor: `shell:main` carries
+ * a data model of literals — the apps as plain values — and a tree bound to it through the
+ * catalog's list template, with a button into the App Library. The hub sends the data model
+ * ahead of the tree (task-6.4 decision 11), and the turn closes right after first paint.
+ */
+export const PLATFORM_ANSWER_BEAT: BeatFixture = {
+  ...base,
+  name: 'synthetic-platform-answer',
+  beat: 107,
+  title: 'Platform answer',
+  prompt: 'what apps do I have?',
+  turns: [
+    {
+      taskId: 'synthetic-platform-answer',
+      kind: 'utterance',
+      prompt: 'what apps do I have?',
+      action: null,
+      outcome: 'completed',
+      durationMs: 200,
+      batches: [
+        {
+          offsetMs: 0,
+          stamp: {source: 'shell', role: 'shell'},
+          messages: [
+            msg({createSurface: {surfaceId: 'shell:main', catalogId: SHELL_CATALOG_ID}}),
+            msg({
+              updateDataModel: {
+                surfaceId: 'shell:main',
+                value: {
+                  apps: [
+                    {name: 'GitHub', skills: 'Pull requests, issues, reviews'},
+                    {name: 'Gmail', skills: 'Inbox, search, drafting'},
+                    {name: 'Google Calendar', skills: 'Events, RSVPs, scheduling'},
+                  ],
+                },
+              },
+            }),
+            msg({
+              updateComponents: {
+                surfaceId: 'shell:main',
+                components: [
+                  {id: 'root', component: 'Column', children: ['heading', 'apps', 'manage']},
+                  {id: 'heading', component: 'Text', text: 'Three apps are installed.'},
+                  {
+                    id: 'apps',
+                    component: 'Table',
+                    columns: ['App', 'What it does'],
+                    children: {path: '/apps', componentId: 'app-row'},
+                  },
+                  {id: 'app-row', component: 'TableRow', children: ['app-name', 'app-skills']},
+                  {id: 'app-name', component: 'Text', text: {path: 'name'}},
+                  {id: 'app-skills', component: 'Text', text: {path: 'skills'}},
+                  {
+                    id: 'manage',
+                    component: 'Button',
+                    child: 'manage-label',
+                    action: {functionCall: {call: 'openAppLibrary', args: {}}},
+                  },
+                  {id: 'manage-label', component: 'Text', text: 'Manage apps'},
+                ],
+              },
+            }),
+          ],
+          texts: [],
+        },
+      ],
+    },
+  ],
+};
+
+/**
+ * A capability gap (phase-6 decision 6): nothing installed serves "book me a flight", so the
+ * Planner names the gap and places a `Slot` for it; the catalog draws the capability tile, whose
+ * one action opens the Store with the gap as the query. No vendor is dispatched, no prose is
+ * painted, and the turn closes at first paint.
+ */
+export const GAP_BEAT: BeatFixture = {
+  ...base,
+  name: 'synthetic-gap',
+  beat: 108,
+  title: 'Capability gap',
+  prompt: 'book me a flight to Tokyo',
+  turns: [
+    {
+      taskId: 'synthetic-gap',
+      kind: 'utterance',
+      prompt: 'book me a flight to Tokyo',
+      action: null,
+      outcome: 'completed',
+      durationMs: 200,
+      batches: [
+        {
+          offsetMs: 0,
+          stamp: {source: 'shell', role: 'shell'},
+          messages: [
+            msg({createSurface: {surfaceId: 'shell:main', catalogId: SHELL_CATALOG_ID}}),
+            msg({
+              updateComponents: {
+                surfaceId: 'shell:main',
+                components: [
+                  {id: 'root', component: 'Column', children: ['flight']},
+                  {id: 'flight', component: 'Slot', gap: 'flight booking'},
+                ],
+              },
+            }),
+          ],
+          texts: [],
+        },
+      ],
+    },
+  ],
+};
 
 /** A question paint: declared `kind="question"`, carried by a ConfirmationDialog root. */
 export const QUESTION_BEAT: BeatFixture = {

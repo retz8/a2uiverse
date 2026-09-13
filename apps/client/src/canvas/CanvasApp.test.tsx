@@ -603,3 +603,94 @@ describe('CanvasApp wire contracts', () => {
     expect(list).toHaveTextContent('“show me issues”'); // the untitled entry keeps the fallback
   });
 });
+
+/**
+ * The shell surface (task 6.5): the canvas built the way the entry builds it — the shell catalog
+ * bound to this canvas through the relay — so a shell action raised inside a painted surface
+ * lands here.
+ */
+import {createShellActionRelay} from './shellActionRelay';
+import {resolveCatalogs} from '../catalogs/resolver';
+import {listCatalogs} from '../orchestratorApi';
+
+const SHELL_ACTIONS = createShellActionRelay();
+const BOUND_CATALOGS = resolveCatalogs(await listCatalogs(), {
+  onShellAction: SHELL_ACTIONS.handler,
+});
+
+/** The hub's answer to a shell-action report: a completed final carrying nothing. */
+const EMPTY_FINAL: TaskStatusUpdateEvent = {
+  kind: 'status-update',
+  taskId: 't2',
+  contextId: 'ctx-1',
+  final: true,
+  status: {state: 'completed'},
+};
+
+function renderShellCanvas(beat: string) {
+  window.history.replaceState(null, '', `?beat=${beat}&instant`);
+  const {sender, sent} = scriptedSender([EMPTY_FINAL]);
+  render(
+    <Providers>
+      <CanvasApp client={sender} catalogs={BOUND_CATALOGS} shellActions={SHELL_ACTIONS} />
+    </Providers>,
+  );
+  return {sent};
+}
+
+describe('CanvasApp shell surface', () => {
+  it('a platform answer renders its literal data model through the shell catalog’s bindings (task-6.5 decision 8)', async () => {
+    renderShellCanvas('platform-answer');
+    // The rows come from the data model the hub sent ahead of the tree, not from the tree.
+    expect(await screen.findByText('Google Calendar')).toBeInTheDocument();
+    expect(screen.getByText('Events, RSVPs, scheduling')).toBeInTheDocument();
+    expect(screen.getByText('Three apps are installed.')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Manage apps'})).toBeInTheDocument();
+  });
+
+  it('the capability tile opens the Store over the canvas with the gap as the query, and reports the action on the side (task-6.5 decisions 3, 4, 6)', async () => {
+    const {sent} = renderShellCanvas('gap');
+    await userEvent.click(await screen.findByRole('button', {name: 'Search the Store'}));
+
+    // The page opens at once, over the canvas: the composition is still on the stage beneath.
+    const overlay = await screen.findByRole('dialog', {name: 'Store'});
+    expect(overlay).toHaveAttribute('data-query', 'flight booking');
+    expect(screen.getByTestId('canvas-stage')).not.toBeEmptyDOMElement();
+    // Not a turn: nothing in flight, nothing in the history.
+    expect(screen.queryByTestId('canvas-pending')).toBeNull();
+    expect(screen.getByRole('button', {name: 'Back'})).toBeDisabled();
+
+    // The report: one standard A2UI action on the shell surface, the query in its context.
+    await waitFor(() => expect(sent).toHaveLength(1));
+    const part = sent[0].message.parts[0];
+    expect(part.kind === 'data' ? part.data : {}).toMatchObject({
+      version: 'v0.9',
+      action: {
+        name: 'openStore',
+        surfaceId: 'shell:main',
+        sourceComponentId: 'flight',
+        context: {query: 'flight booking'},
+      },
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Back to the canvas'}));
+    expect(screen.queryByRole('dialog', {name: 'Store'})).toBeNull();
+    expect(screen.getByRole('button', {name: 'Search the Store'})).toBeInTheDocument();
+  });
+
+  it('the model’s button opens the App Library; every raise is reported, an open page included', async () => {
+    const {sent} = renderShellCanvas('platform-answer');
+    const button = await screen.findByRole('button', {name: 'Manage apps'});
+    await userEvent.click(button);
+    expect(await screen.findByRole('dialog', {name: 'App Library'})).toBeInTheDocument();
+    await waitFor(() => expect(sent).toHaveLength(1));
+
+    // The page is open; the same button behind it, raised again, is a second intent.
+    await userEvent.click(button);
+    await waitFor(() => expect(sent).toHaveLength(2));
+    const part = sent[1].message.parts[0];
+    expect(part.kind === 'data' ? part.data : {}).toMatchObject({
+      action: {name: 'openAppLibrary', surfaceId: 'shell:main', context: {}},
+    });
+  });
+});

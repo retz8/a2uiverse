@@ -4,18 +4,18 @@
   "title": "Compose-and-confirm review",
   "prompt": "Draft an approving review saying the spec doc looks reasonable.",
   "model": "gemini-3.7-flash",
-  "recordedAt": "2026-08-30T09:09:12Z",
-  "contextId": "865e03bb-ecd1-485f-8715-72d37ac0f210",
+  "recordedAt": "2026-09-13T07:23:52Z",
+  "contextId": "ce0c7919-1385-4272-88a6-799500d06da1",
   "chainedFrom": "beat-2-pr-detail",
   "turns": [
     {
-      "taskId": "7e8f595c-e5a1-4a9d-a390-8e7a1ea084dd",
+      "taskId": "15b0e22e-bec8-485c-b09e-1ae290cc7b24",
       "kind": "utterance",
       "prompt": "Draft an approving review saying the spec doc looks reasonable.",
       "action": null,
       "batches": [
         {
-          "offsetMs": 1908,
+          "offsetMs": 3231,
           "messages": [
             {
               "version": "v0.9",
@@ -33,25 +33,18 @@
                     "id": "root",
                     "component": "Column",
                     "children": [
-                      "wrap-slot-github"
+                      "attribution-github_slot"
                     ]
                   },
                   {
-                    "id": "wrap-slot-github",
-                    "component": "Column",
-                    "children": [
-                      "attr-slot-github",
-                      "slot-github"
-                    ]
-                  },
-                  {
-                    "id": "attr-slot-github",
+                    "id": "attribution-github_slot",
                     "component": "Attribution",
                     "displayName": "GitHub",
-                    "appId": "github"
+                    "appId": "github",
+                    "child": "github_slot"
                   },
                   {
-                    "id": "slot-github",
+                    "id": "github_slot",
                     "component": "Slot",
                     "source": "github",
                     "state": "pending",
@@ -68,7 +61,7 @@
           }
         },
         {
-          "offsetMs": 13731,
+          "offsetMs": 25634,
           "messages": [],
           "texts": [
             "\n"
@@ -79,12 +72,12 @@
           }
         },
         {
-          "offsetMs": 13783,
+          "offsetMs": 25776,
           "messages": [
             {
               "version": "v0.9",
               "createSurface": {
-                "surfaceId": "github:draft-pr-review-493",
+                "surfaceId": "github:draft-pr-review-2123",
                 "catalogId": "https://github.com/retz8/a2uiverse-apps/blob/main/github/github-catalog/catalogs/v0.9.1/catalog.json",
                 "sendDataModel": true
               }
@@ -97,7 +90,7 @@
           }
         },
         {
-          "offsetMs": 14084,
+          "offsetMs": 25991,
           "messages": [
             {
               "version": "v0.9",
@@ -137,7 +130,7 @@
                     "children": []
                   }
                 ],
-                "surfaceId": "github:draft-pr-review-493"
+                "surfaceId": "github:draft-pr-review-2123"
               }
             }
           ],
@@ -148,7 +141,57 @@
           }
         },
         {
-          "offsetMs": 14315,
+          "offsetMs": 26054,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "header-stack",
+                    "component": "Stack"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "normal",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "loading_fc-verdict",
+                      "loading_fc-body",
+                      "loading_actions"
+                    ]
+                  },
+                  {
+                    "id": "loading_fc-verdict",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_fc-body",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_actions",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "github:draft-pr-review-2123"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "github",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 26172,
           "messages": [
             {
               "version": "v0.9",
@@ -204,7 +247,7 @@
                     "children": []
                   }
                 ],
-                "surfaceId": "github:draft-pr-review-493"
+                "surfaceId": "github:draft-pr-review-2123"
               }
             }
           ],
@@ -215,7 +258,73 @@
           }
         },
         {
-          "offsetMs": 14440,
+          "offsetMs": 26234,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "align": "center",
+                    "gap": "condensed",
+                    "children": [
+                      "title-icon",
+                      "loading_title-heading"
+                    ]
+                  },
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "normal",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "loading_fc-verdict",
+                      "loading_fc-body",
+                      "loading_actions"
+                    ]
+                  },
+                  {
+                    "id": "title-icon",
+                    "component": "Icon"
+                  },
+                  {
+                    "id": "loading_title-heading",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_fc-verdict",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_fc-body",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_actions",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "github:draft-pr-review-2123"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "github",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 26364,
           "messages": [
             {
               "version": "v0.9",
@@ -275,7 +384,7 @@
                     "children": []
                   }
                 ],
-                "surfaceId": "github:draft-pr-review-493"
+                "surfaceId": "github:draft-pr-review-2123"
               }
             }
           ],
@@ -286,7 +395,7 @@
           }
         },
         {
-          "offsetMs": 14761,
+          "offsetMs": 26481,
           "messages": [
             {
               "version": "v0.9",
@@ -319,7 +428,7 @@
                   {
                     "id": "title-heading",
                     "component": "Heading",
-                    "text": "Submit Review on #493",
+                    "text": "Submit Review on #2123",
                     "as": "h2",
                     "variant": "medium"
                   },
@@ -348,7 +457,7 @@
                     "children": []
                   }
                 ],
-                "surfaceId": "github:draft-pr-review-493"
+                "surfaceId": "github:draft-pr-review-2123"
               }
             }
           ],
@@ -359,7 +468,7 @@
           }
         },
         {
-          "offsetMs": 14761,
+          "offsetMs": 26616,
           "messages": [
             {
               "version": "v0.9",
@@ -400,7 +509,7 @@
                   {
                     "id": "title-heading",
                     "component": "Heading",
-                    "text": "Submit Review on #493",
+                    "text": "Submit Review on #2123",
                     "as": "h2",
                     "variant": "medium"
                   },
@@ -434,7 +543,7 @@
                     "children": []
                   }
                 ],
-                "surfaceId": "github:draft-pr-review-493"
+                "surfaceId": "github:draft-pr-review-2123"
               }
             }
           ],
@@ -445,7 +554,7 @@
           }
         },
         {
-          "offsetMs": 14834,
+          "offsetMs": 26689,
           "messages": [
             {
               "version": "v0.9",
@@ -486,7 +595,7 @@
                   {
                     "id": "title-heading",
                     "component": "Heading",
-                    "text": "Submit Review on #493",
+                    "text": "Submit Review on #2123",
                     "as": "h2",
                     "variant": "medium"
                   },
@@ -520,7 +629,7 @@
                     "children": []
                   }
                 ],
-                "surfaceId": "github:draft-pr-review-493"
+                "surfaceId": "github:draft-pr-review-2123"
               }
             }
           ],
@@ -531,7 +640,7 @@
           }
         },
         {
-          "offsetMs": 14997,
+          "offsetMs": 27006,
           "messages": [
             {
               "version": "v0.9",
@@ -572,7 +681,7 @@
                   {
                     "id": "title-heading",
                     "component": "Heading",
-                    "text": "Submit Review on #493",
+                    "text": "Submit Review on #2123",
                     "as": "h2",
                     "variant": "medium"
                   },
@@ -628,7 +737,7 @@
                     "children": []
                   }
                 ],
-                "surfaceId": "github:draft-pr-review-493"
+                "surfaceId": "github:draft-pr-review-2123"
               }
             }
           ],
@@ -639,7 +748,7 @@
           }
         },
         {
-          "offsetMs": 15262,
+          "offsetMs": 27180,
           "messages": [
             {
               "version": "v0.9",
@@ -686,7 +795,7 @@
                   {
                     "id": "title-heading",
                     "component": "Heading",
-                    "text": "Submit Review on #493",
+                    "text": "Submit Review on #2123",
                     "as": "h2",
                     "variant": "medium"
                   },
@@ -737,7 +846,7 @@
                     "children": []
                   }
                 ],
-                "surfaceId": "github:draft-pr-review-493"
+                "surfaceId": "github:draft-pr-review-2123"
               }
             }
           ],
@@ -748,7 +857,7 @@
           }
         },
         {
-          "offsetMs": 15262,
+          "offsetMs": 27364,
           "messages": [
             {
               "version": "v0.9",
@@ -801,7 +910,7 @@
                   {
                     "id": "title-heading",
                     "component": "Heading",
-                    "text": "Submit Review on #493",
+                    "text": "Submit Review on #2123",
                     "as": "h2",
                     "variant": "medium"
                   },
@@ -852,7 +961,7 @@
                     "children": []
                   }
                 ],
-                "surfaceId": "github:draft-pr-review-493"
+                "surfaceId": "github:draft-pr-review-2123"
               }
             }
           ],
@@ -863,7 +972,121 @@
           }
         },
         {
-          "offsetMs": 15419,
+          "offsetMs": 27427,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "fc-verdict",
+                    "component": "FormControl",
+                    "children": [
+                      "verdict-label",
+                      "verdict-select"
+                    ]
+                  },
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "align": "center",
+                    "gap": "condensed",
+                    "children": [
+                      "title-icon",
+                      "title-heading"
+                    ]
+                  },
+                  {
+                    "id": "icon-approve-btn",
+                    "component": "Icon",
+                    "name": "check",
+                    "fill": "success"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "normal",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "fc-verdict",
+                      "loading_fc-body",
+                      "loading_actions"
+                    ]
+                  },
+                  {
+                    "id": "seg-approve",
+                    "component": "SegmentedControlButton",
+                    "label": "Approve",
+                    "leadingVisual": "icon-approve-btn"
+                  },
+                  {
+                    "id": "seg-comment",
+                    "component": "SegmentedControlButton"
+                  },
+                  {
+                    "id": "title-heading",
+                    "component": "Heading",
+                    "text": "Submit Review on #2123",
+                    "as": "h2",
+                    "variant": "medium"
+                  },
+                  {
+                    "id": "title-icon",
+                    "component": "Icon",
+                    "name": "pencil",
+                    "fill": "accent",
+                    "accessibility": {
+                      "label": "Pencil Icon"
+                    }
+                  },
+                  {
+                    "id": "verdict-label",
+                    "component": "FormControlLabel",
+                    "text": "Review Decision"
+                  },
+                  {
+                    "id": "verdict-select",
+                    "component": "SegmentedControl",
+                    "selectedIndex": {
+                      "path": "/verdictIndex"
+                    },
+                    "children": [
+                      "seg-approve",
+                      "seg-comment",
+                      "loading_seg-changes"
+                    ]
+                  },
+                  {
+                    "id": "loading_fc-body",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_actions",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_seg-changes",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "github:draft-pr-review-2123"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "github",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 27494,
           "messages": [
             {
               "version": "v0.9",
@@ -922,7 +1145,7 @@
                   {
                     "id": "title-heading",
                     "component": "Heading",
-                    "text": "Submit Review on #493",
+                    "text": "Submit Review on #2123",
                     "as": "h2",
                     "variant": "medium"
                   },
@@ -968,7 +1191,7 @@
                     "children": []
                   }
                 ],
-                "surfaceId": "github:draft-pr-review-493"
+                "surfaceId": "github:draft-pr-review-2123"
               }
             }
           ],
@@ -979,7 +1202,7 @@
           }
         },
         {
-          "offsetMs": 15497,
+          "offsetMs": 27629,
           "messages": [
             {
               "version": "v0.9",
@@ -1043,7 +1266,7 @@
                   {
                     "id": "title-heading",
                     "component": "Heading",
-                    "text": "Submit Review on #493",
+                    "text": "Submit Review on #2123",
                     "as": "h2",
                     "variant": "medium"
                   },
@@ -1089,7 +1312,7 @@
                     "children": []
                   }
                 ],
-                "surfaceId": "github:draft-pr-review-493"
+                "surfaceId": "github:draft-pr-review-2123"
               }
             }
           ],
@@ -1100,7 +1323,7 @@
           }
         },
         {
-          "offsetMs": 15596,
+          "offsetMs": 27757,
           "messages": [
             {
               "version": "v0.9",
@@ -1170,7 +1393,7 @@
                   {
                     "id": "title-heading",
                     "component": "Heading",
-                    "text": "Submit Review on #493",
+                    "text": "Submit Review on #2123",
                     "as": "h2",
                     "variant": "medium"
                   },
@@ -1211,7 +1434,7 @@
                     "children": []
                   }
                 ],
-                "surfaceId": "github:draft-pr-review-493"
+                "surfaceId": "github:draft-pr-review-2123"
               }
             }
           ],
@@ -1222,134 +1445,7 @@
           }
         },
         {
-          "offsetMs": 15672,
-          "messages": [
-            {
-              "version": "v0.9",
-              "updateComponents": {
-                "components": [
-                  {
-                    "id": "fc-verdict",
-                    "component": "FormControl",
-                    "children": [
-                      "verdict-label",
-                      "verdict-select"
-                    ]
-                  },
-                  {
-                    "id": "header-stack",
-                    "component": "Stack",
-                    "direction": "horizontal",
-                    "align": "center",
-                    "gap": "condensed",
-                    "children": [
-                      "title-icon",
-                      "title-heading"
-                    ]
-                  },
-                  {
-                    "id": "icon-approve-btn",
-                    "component": "Icon",
-                    "name": "check",
-                    "fill": "success"
-                  },
-                  {
-                    "id": "icon-changes-btn",
-                    "component": "Icon",
-                    "name": "x-circle"
-                  },
-                  {
-                    "id": "icon-comment-btn",
-                    "component": "Icon",
-                    "name": "comment"
-                  },
-                  {
-                    "id": "root",
-                    "component": "Stack",
-                    "direction": "vertical",
-                    "gap": "normal",
-                    "padding": "normal",
-                    "children": [
-                      "header-stack",
-                      "fc-verdict",
-                      "loading_fc-body",
-                      "loading_actions"
-                    ]
-                  },
-                  {
-                    "id": "seg-approve",
-                    "component": "SegmentedControlButton",
-                    "label": "Approve",
-                    "leadingVisual": "icon-approve-btn"
-                  },
-                  {
-                    "id": "seg-changes",
-                    "component": "SegmentedControlButton",
-                    "label": "Request Changes",
-                    "leadingVisual": "icon-changes-btn"
-                  },
-                  {
-                    "id": "seg-comment",
-                    "component": "SegmentedControlButton",
-                    "label": "Comment",
-                    "leadingVisual": "icon-comment-btn"
-                  },
-                  {
-                    "id": "title-heading",
-                    "component": "Heading",
-                    "text": "Submit Review on #493",
-                    "as": "h2",
-                    "variant": "medium"
-                  },
-                  {
-                    "id": "title-icon",
-                    "component": "Icon",
-                    "name": "pencil",
-                    "fill": "accent",
-                    "accessibility": {
-                      "label": "Pencil Icon"
-                    }
-                  },
-                  {
-                    "id": "verdict-label",
-                    "component": "FormControlLabel",
-                    "text": "Review Decision"
-                  },
-                  {
-                    "id": "verdict-select",
-                    "component": "SegmentedControl",
-                    "selectedIndex": {
-                      "path": "/verdictIndex"
-                    },
-                    "children": [
-                      "seg-approve",
-                      "seg-comment",
-                      "seg-changes"
-                    ]
-                  },
-                  {
-                    "id": "loading_fc-body",
-                    "component": "Row",
-                    "children": []
-                  },
-                  {
-                    "id": "loading_actions",
-                    "component": "Row",
-                    "children": []
-                  }
-                ],
-                "surfaceId": "github:draft-pr-review-493"
-              }
-            }
-          ],
-          "texts": [],
-          "stamp": {
-            "source": "github",
-            "role": "fragment"
-          }
-        },
-        {
-          "offsetMs": 15743,
+          "offsetMs": 27898,
           "messages": [
             {
               "version": "v0.9",
@@ -1425,7 +1521,7 @@
                   {
                     "id": "title-heading",
                     "component": "Heading",
-                    "text": "Submit Review on #493",
+                    "text": "Submit Review on #2123",
                     "as": "h2",
                     "variant": "medium"
                   },
@@ -1466,7 +1562,7 @@
                     "children": []
                   }
                 ],
-                "surfaceId": "github:draft-pr-review-493"
+                "surfaceId": "github:draft-pr-review-2123"
               }
             }
           ],
@@ -1477,7 +1573,7 @@
           }
         },
         {
-          "offsetMs": 15912,
+          "offsetMs": 28041,
           "messages": [
             {
               "version": "v0.9",
@@ -1563,7 +1659,7 @@
                   {
                     "id": "title-heading",
                     "component": "Heading",
-                    "text": "Submit Review on #493",
+                    "text": "Submit Review on #2123",
                     "as": "h2",
                     "variant": "medium"
                   },
@@ -1614,7 +1710,7 @@
                     "children": []
                   }
                 ],
-                "surfaceId": "github:draft-pr-review-493"
+                "surfaceId": "github:draft-pr-review-2123"
               }
             }
           ],
@@ -1625,7 +1721,7 @@
           }
         },
         {
-          "offsetMs": 16000,
+          "offsetMs": 28123,
           "messages": [
             {
               "version": "v0.9",
@@ -1716,7 +1812,7 @@
                   {
                     "id": "title-heading",
                     "component": "Heading",
-                    "text": "Submit Review on #493",
+                    "text": "Submit Review on #2123",
                     "as": "h2",
                     "variant": "medium"
                   },
@@ -1762,7 +1858,7 @@
                     "children": []
                   }
                 ],
-                "surfaceId": "github:draft-pr-review-493"
+                "surfaceId": "github:draft-pr-review-2123"
               }
             }
           ],
@@ -1773,7 +1869,7 @@
           }
         },
         {
-          "offsetMs": 16074,
+          "offsetMs": 28258,
           "messages": [
             {
               "version": "v0.9",
@@ -1782,7 +1878,7 @@
                   {
                     "id": "body-caption",
                     "component": "FormControlCaption",
-                    "text": "Markdown formatting is supported. Feedback will be submitted on #493"
+                    "text": "Markdown formatting is supported. Your feedback is sent directly to the author."
                   },
                   {
                     "id": "body-label",
@@ -1869,7 +1965,7 @@
                   {
                     "id": "title-heading",
                     "component": "Heading",
-                    "text": "Submit Review on #493",
+                    "text": "Submit Review on #2123",
                     "as": "h2",
                     "variant": "medium"
                   },
@@ -1910,7 +2006,7 @@
                     "children": []
                   }
                 ],
-                "surfaceId": "github:draft-pr-review-493"
+                "surfaceId": "github:draft-pr-review-2123"
               }
             }
           ],
@@ -1921,7 +2017,7 @@
           }
         },
         {
-          "offsetMs": 16141,
+          "offsetMs": 28323,
           "messages": [
             {
               "version": "v0.9",
@@ -1930,155 +2026,7 @@
                   {
                     "id": "body-caption",
                     "component": "FormControlCaption",
-                    "text": "Markdown formatting is supported. Feedback will be submitted on #493."
-                  },
-                  {
-                    "id": "body-label",
-                    "component": "FormControlLabel",
-                    "text": "Review Comments"
-                  },
-                  {
-                    "id": "fc-body",
-                    "component": "FormControl",
-                    "required": true,
-                    "children": [
-                      "body-label",
-                      "body-caption",
-                      "loading_body-textarea"
-                    ]
-                  },
-                  {
-                    "id": "fc-verdict",
-                    "component": "FormControl",
-                    "children": [
-                      "verdict-label",
-                      "verdict-select"
-                    ]
-                  },
-                  {
-                    "id": "header-stack",
-                    "component": "Stack",
-                    "direction": "horizontal",
-                    "align": "center",
-                    "gap": "condensed",
-                    "children": [
-                      "title-icon",
-                      "title-heading"
-                    ]
-                  },
-                  {
-                    "id": "icon-approve-btn",
-                    "component": "Icon",
-                    "name": "check",
-                    "fill": "success"
-                  },
-                  {
-                    "id": "icon-changes-btn",
-                    "component": "Icon",
-                    "name": "x-circle",
-                    "fill": "danger"
-                  },
-                  {
-                    "id": "icon-comment-btn",
-                    "component": "Icon",
-                    "name": "comment"
-                  },
-                  {
-                    "id": "root",
-                    "component": "Stack",
-                    "direction": "vertical",
-                    "gap": "normal",
-                    "padding": "normal",
-                    "children": [
-                      "header-stack",
-                      "fc-verdict",
-                      "fc-body",
-                      "loading_actions"
-                    ]
-                  },
-                  {
-                    "id": "seg-approve",
-                    "component": "SegmentedControlButton",
-                    "label": "Approve",
-                    "leadingVisual": "icon-approve-btn"
-                  },
-                  {
-                    "id": "seg-changes",
-                    "component": "SegmentedControlButton",
-                    "label": "Request Changes",
-                    "leadingVisual": "icon-changes-btn"
-                  },
-                  {
-                    "id": "seg-comment",
-                    "component": "SegmentedControlButton",
-                    "label": "Comment",
-                    "leadingVisual": "icon-comment-btn"
-                  },
-                  {
-                    "id": "title-heading",
-                    "component": "Heading",
-                    "text": "Submit Review on #493",
-                    "as": "h2",
-                    "variant": "medium"
-                  },
-                  {
-                    "id": "title-icon",
-                    "component": "Icon",
-                    "name": "pencil",
-                    "fill": "accent",
-                    "accessibility": {
-                      "label": "Pencil Icon"
-                    }
-                  },
-                  {
-                    "id": "verdict-label",
-                    "component": "FormControlLabel",
-                    "text": "Review Decision"
-                  },
-                  {
-                    "id": "verdict-select",
-                    "component": "SegmentedControl",
-                    "selectedIndex": {
-                      "path": "/verdictIndex"
-                    },
-                    "children": [
-                      "seg-approve",
-                      "seg-comment",
-                      "seg-changes"
-                    ]
-                  },
-                  {
-                    "id": "loading_body-textarea",
-                    "component": "Row",
-                    "children": []
-                  },
-                  {
-                    "id": "loading_actions",
-                    "component": "Row",
-                    "children": []
-                  }
-                ],
-                "surfaceId": "github:draft-pr-review-493"
-              }
-            }
-          ],
-          "texts": [],
-          "stamp": {
-            "source": "github",
-            "role": "fragment"
-          }
-        },
-        {
-          "offsetMs": 16304,
-          "messages": [
-            {
-              "version": "v0.9",
-              "updateComponents": {
-                "components": [
-                  {
-                    "id": "body-caption",
-                    "component": "FormControlCaption",
-                    "text": "Markdown formatting is supported. Feedback will be submitted on #493."
+                    "text": "Markdown formatting is supported. Your feedback is sent directly to the author."
                   },
                   {
                     "id": "body-label",
@@ -2087,13 +2035,7 @@
                   },
                   {
                     "id": "body-textarea",
-                    "component": "Textarea",
-                    "value": {
-                      "path": "/reviewBody"
-                    },
-                    "required": true,
-                    "block": true,
-                    "rows": 4
+                    "component": "Textarea"
                   },
                   {
                     "id": "fc-body",
@@ -2175,7 +2117,7 @@
                   {
                     "id": "title-heading",
                     "component": "Heading",
-                    "text": "Submit Review on #493",
+                    "text": "Submit Review on #2123",
                     "as": "h2",
                     "variant": "medium"
                   },
@@ -2211,7 +2153,7 @@
                     "children": []
                   }
                 ],
-                "surfaceId": "github:draft-pr-review-493"
+                "surfaceId": "github:draft-pr-review-2123"
               }
             }
           ],
@@ -2222,7 +2164,311 @@
           }
         },
         {
-          "offsetMs": 16384,
+          "offsetMs": 28390,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "body-caption",
+                    "component": "FormControlCaption",
+                    "text": "Markdown formatting is supported. Your feedback is sent directly to the author."
+                  },
+                  {
+                    "id": "body-label",
+                    "component": "FormControlLabel",
+                    "text": "Review Comments"
+                  },
+                  {
+                    "id": "body-textarea",
+                    "component": "Textarea",
+                    "value": {
+                      "path": "/reviewBody"
+                    },
+                    "required": true
+                  },
+                  {
+                    "id": "fc-body",
+                    "component": "FormControl",
+                    "required": true,
+                    "children": [
+                      "body-label",
+                      "body-caption",
+                      "body-textarea"
+                    ]
+                  },
+                  {
+                    "id": "fc-verdict",
+                    "component": "FormControl",
+                    "children": [
+                      "verdict-label",
+                      "verdict-select"
+                    ]
+                  },
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "align": "center",
+                    "gap": "condensed",
+                    "children": [
+                      "title-icon",
+                      "title-heading"
+                    ]
+                  },
+                  {
+                    "id": "icon-approve-btn",
+                    "component": "Icon",
+                    "name": "check",
+                    "fill": "success"
+                  },
+                  {
+                    "id": "icon-changes-btn",
+                    "component": "Icon",
+                    "name": "x-circle",
+                    "fill": "danger"
+                  },
+                  {
+                    "id": "icon-comment-btn",
+                    "component": "Icon",
+                    "name": "comment"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "normal",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "fc-verdict",
+                      "fc-body",
+                      "loading_actions"
+                    ]
+                  },
+                  {
+                    "id": "seg-approve",
+                    "component": "SegmentedControlButton",
+                    "label": "Approve",
+                    "leadingVisual": "icon-approve-btn"
+                  },
+                  {
+                    "id": "seg-changes",
+                    "component": "SegmentedControlButton",
+                    "label": "Request Changes",
+                    "leadingVisual": "icon-changes-btn"
+                  },
+                  {
+                    "id": "seg-comment",
+                    "component": "SegmentedControlButton",
+                    "label": "Comment",
+                    "leadingVisual": "icon-comment-btn"
+                  },
+                  {
+                    "id": "title-heading",
+                    "component": "Heading",
+                    "text": "Submit Review on #2123",
+                    "as": "h2",
+                    "variant": "medium"
+                  },
+                  {
+                    "id": "title-icon",
+                    "component": "Icon",
+                    "name": "pencil",
+                    "fill": "accent",
+                    "accessibility": {
+                      "label": "Pencil Icon"
+                    }
+                  },
+                  {
+                    "id": "verdict-label",
+                    "component": "FormControlLabel",
+                    "text": "Review Decision"
+                  },
+                  {
+                    "id": "verdict-select",
+                    "component": "SegmentedControl",
+                    "selectedIndex": {
+                      "path": "/verdictIndex"
+                    },
+                    "children": [
+                      "seg-approve",
+                      "seg-comment",
+                      "seg-changes"
+                    ]
+                  },
+                  {
+                    "id": "loading_actions",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "github:draft-pr-review-2123"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "github",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 28466,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "body-caption",
+                    "component": "FormControlCaption",
+                    "text": "Markdown formatting is supported. Your feedback is sent directly to the author."
+                  },
+                  {
+                    "id": "body-label",
+                    "component": "FormControlLabel",
+                    "text": "Review Comments"
+                  },
+                  {
+                    "id": "body-textarea",
+                    "component": "Textarea",
+                    "value": {
+                      "path": "/reviewBody"
+                    },
+                    "required": true,
+                    "block": true,
+                    "rows": 6
+                  },
+                  {
+                    "id": "fc-body",
+                    "component": "FormControl",
+                    "required": true,
+                    "children": [
+                      "body-label",
+                      "body-caption",
+                      "body-textarea"
+                    ]
+                  },
+                  {
+                    "id": "fc-verdict",
+                    "component": "FormControl",
+                    "children": [
+                      "verdict-label",
+                      "verdict-select"
+                    ]
+                  },
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "align": "center",
+                    "gap": "condensed",
+                    "children": [
+                      "title-icon",
+                      "title-heading"
+                    ]
+                  },
+                  {
+                    "id": "icon-approve-btn",
+                    "component": "Icon",
+                    "name": "check",
+                    "fill": "success"
+                  },
+                  {
+                    "id": "icon-changes-btn",
+                    "component": "Icon",
+                    "name": "x-circle",
+                    "fill": "danger"
+                  },
+                  {
+                    "id": "icon-comment-btn",
+                    "component": "Icon",
+                    "name": "comment"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "normal",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "fc-verdict",
+                      "fc-body",
+                      "loading_actions"
+                    ]
+                  },
+                  {
+                    "id": "seg-approve",
+                    "component": "SegmentedControlButton",
+                    "label": "Approve",
+                    "leadingVisual": "icon-approve-btn"
+                  },
+                  {
+                    "id": "seg-changes",
+                    "component": "SegmentedControlButton",
+                    "label": "Request Changes",
+                    "leadingVisual": "icon-changes-btn"
+                  },
+                  {
+                    "id": "seg-comment",
+                    "component": "SegmentedControlButton",
+                    "label": "Comment",
+                    "leadingVisual": "icon-comment-btn"
+                  },
+                  {
+                    "id": "title-heading",
+                    "component": "Heading",
+                    "text": "Submit Review on #2123",
+                    "as": "h2",
+                    "variant": "medium"
+                  },
+                  {
+                    "id": "title-icon",
+                    "component": "Icon",
+                    "name": "pencil",
+                    "fill": "accent",
+                    "accessibility": {
+                      "label": "Pencil Icon"
+                    }
+                  },
+                  {
+                    "id": "verdict-label",
+                    "component": "FormControlLabel",
+                    "text": "Review Decision"
+                  },
+                  {
+                    "id": "verdict-select",
+                    "component": "SegmentedControl",
+                    "selectedIndex": {
+                      "path": "/verdictIndex"
+                    },
+                    "children": [
+                      "seg-approve",
+                      "seg-comment",
+                      "seg-changes"
+                    ]
+                  },
+                  {
+                    "id": "loading_actions",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "github:draft-pr-review-2123"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "github",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 28613,
           "messages": [
             {
               "version": "v0.9",
@@ -2239,7 +2485,7 @@
                   {
                     "id": "body-caption",
                     "component": "FormControlCaption",
-                    "text": "Markdown formatting is supported. Feedback will be submitted on #493."
+                    "text": "Markdown formatting is supported. Your feedback is sent directly to the author."
                   },
                   {
                     "id": "body-label",
@@ -2254,7 +2500,7 @@
                     },
                     "required": true,
                     "block": true,
-                    "rows": 4
+                    "rows": 6
                   },
                   {
                     "id": "fc-body",
@@ -2336,7 +2582,7 @@
                   {
                     "id": "title-heading",
                     "component": "Heading",
-                    "text": "Submit Review on #493",
+                    "text": "Submit Review on #2123",
                     "as": "h2",
                     "variant": "medium"
                   },
@@ -2377,7 +2623,7 @@
                     "children": []
                   }
                 ],
-                "surfaceId": "github:draft-pr-review-493"
+                "surfaceId": "github:draft-pr-review-2123"
               }
             }
           ],
@@ -2388,7 +2634,7 @@
           }
         },
         {
-          "offsetMs": 16659,
+          "offsetMs": 28826,
           "messages": [
             {
               "version": "v0.9",
@@ -2405,7 +2651,7 @@
                   {
                     "id": "body-caption",
                     "component": "FormControlCaption",
-                    "text": "Markdown formatting is supported. Feedback will be submitted on #493."
+                    "text": "Markdown formatting is supported. Your feedback is sent directly to the author."
                   },
                   {
                     "id": "body-label",
@@ -2420,7 +2666,7 @@
                     },
                     "required": true,
                     "block": true,
-                    "rows": 4
+                    "rows": 6
                   },
                   {
                     "id": "btn-cancel",
@@ -2517,7 +2763,7 @@
                   {
                     "id": "title-heading",
                     "component": "Heading",
-                    "text": "Submit Review on #493",
+                    "text": "Submit Review on #2123",
                     "as": "h2",
                     "variant": "medium"
                   },
@@ -2558,7 +2804,7 @@
                     "children": []
                   }
                 ],
-                "surfaceId": "github:draft-pr-review-493"
+                "surfaceId": "github:draft-pr-review-2123"
               }
             }
           ],
@@ -2569,7 +2815,7 @@
           }
         },
         {
-          "offsetMs": 16822,
+          "offsetMs": 28890,
           "messages": [
             {
               "version": "v0.9",
@@ -2586,7 +2832,7 @@
                   {
                     "id": "body-caption",
                     "component": "FormControlCaption",
-                    "text": "Markdown formatting is supported. Feedback will be submitted on #493."
+                    "text": "Markdown formatting is supported. Your feedback is sent directly to the author."
                   },
                   {
                     "id": "body-label",
@@ -2601,7 +2847,187 @@
                     },
                     "required": true,
                     "block": true,
-                    "rows": 4
+                    "rows": 6
+                  },
+                  {
+                    "id": "btn-cancel",
+                    "component": "Button",
+                    "child": "cancel-txt",
+                    "variant": "invisible",
+                    "action": {
+                      "functionCall": {
+                        "call": "clearValue",
+                        "args": {
+                          "path": "/reviewBody"
+                        },
+                        "returnType": "void"
+                      }
+                    }
+                  },
+                  {
+                    "id": "cancel-txt",
+                    "component": "Text"
+                  },
+                  {
+                    "id": "fc-body",
+                    "component": "FormControl",
+                    "required": true,
+                    "children": [
+                      "body-label",
+                      "body-caption",
+                      "body-textarea"
+                    ]
+                  },
+                  {
+                    "id": "fc-verdict",
+                    "component": "FormControl",
+                    "children": [
+                      "verdict-label",
+                      "verdict-select"
+                    ]
+                  },
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "align": "center",
+                    "gap": "condensed",
+                    "children": [
+                      "title-icon",
+                      "title-heading"
+                    ]
+                  },
+                  {
+                    "id": "icon-approve-btn",
+                    "component": "Icon",
+                    "name": "check",
+                    "fill": "success"
+                  },
+                  {
+                    "id": "icon-changes-btn",
+                    "component": "Icon",
+                    "name": "x-circle",
+                    "fill": "danger"
+                  },
+                  {
+                    "id": "icon-comment-btn",
+                    "component": "Icon",
+                    "name": "comment"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "normal",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "fc-verdict",
+                      "fc-body",
+                      "actions"
+                    ]
+                  },
+                  {
+                    "id": "seg-approve",
+                    "component": "SegmentedControlButton",
+                    "label": "Approve",
+                    "leadingVisual": "icon-approve-btn"
+                  },
+                  {
+                    "id": "seg-changes",
+                    "component": "SegmentedControlButton",
+                    "label": "Request Changes",
+                    "leadingVisual": "icon-changes-btn"
+                  },
+                  {
+                    "id": "seg-comment",
+                    "component": "SegmentedControlButton",
+                    "label": "Comment",
+                    "leadingVisual": "icon-comment-btn"
+                  },
+                  {
+                    "id": "title-heading",
+                    "component": "Heading",
+                    "text": "Submit Review on #2123",
+                    "as": "h2",
+                    "variant": "medium"
+                  },
+                  {
+                    "id": "title-icon",
+                    "component": "Icon",
+                    "name": "pencil",
+                    "fill": "accent",
+                    "accessibility": {
+                      "label": "Pencil Icon"
+                    }
+                  },
+                  {
+                    "id": "verdict-label",
+                    "component": "FormControlLabel",
+                    "text": "Review Decision"
+                  },
+                  {
+                    "id": "verdict-select",
+                    "component": "SegmentedControl",
+                    "selectedIndex": {
+                      "path": "/verdictIndex"
+                    },
+                    "children": [
+                      "seg-approve",
+                      "seg-comment",
+                      "seg-changes"
+                    ]
+                  },
+                  {
+                    "id": "loading_btn-submit",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "github:draft-pr-review-2123"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "github",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 28954,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "actions",
+                    "component": "ButtonGroup",
+                    "children": [
+                      "btn-cancel",
+                      "loading_btn-submit"
+                    ]
+                  },
+                  {
+                    "id": "body-caption",
+                    "component": "FormControlCaption",
+                    "text": "Markdown formatting is supported. Your feedback is sent directly to the author."
+                  },
+                  {
+                    "id": "body-label",
+                    "component": "FormControlLabel",
+                    "text": "Review Comments"
+                  },
+                  {
+                    "id": "body-textarea",
+                    "component": "Textarea",
+                    "value": {
+                      "path": "/reviewBody"
+                    },
+                    "required": true,
+                    "block": true,
+                    "rows": 6
                   },
                   {
                     "id": "btn-cancel",
@@ -2703,7 +3129,7 @@
                   {
                     "id": "title-heading",
                     "component": "Heading",
-                    "text": "Submit Review on #493",
+                    "text": "Submit Review on #2123",
                     "as": "h2",
                     "variant": "medium"
                   },
@@ -2739,7 +3165,7 @@
                     "children": []
                   }
                 ],
-                "surfaceId": "github:draft-pr-review-493"
+                "surfaceId": "github:draft-pr-review-2123"
               }
             }
           ],
@@ -2750,7 +3176,7 @@
           }
         },
         {
-          "offsetMs": 17074,
+          "offsetMs": 29086,
           "messages": [
             {
               "version": "v0.9",
@@ -2767,7 +3193,7 @@
                   {
                     "id": "body-caption",
                     "component": "FormControlCaption",
-                    "text": "Markdown formatting is supported. Feedback will be submitted on #493."
+                    "text": "Markdown formatting is supported. Your feedback is sent directly to the author."
                   },
                   {
                     "id": "body-label",
@@ -2782,7 +3208,202 @@
                     },
                     "required": true,
                     "block": true,
-                    "rows": 4
+                    "rows": 6
+                  },
+                  {
+                    "id": "btn-cancel",
+                    "component": "Button",
+                    "child": "cancel-txt",
+                    "variant": "invisible",
+                    "action": {
+                      "functionCall": {
+                        "call": "clearValue",
+                        "args": {
+                          "path": "/reviewBody"
+                        },
+                        "returnType": "void"
+                      }
+                    }
+                  },
+                  {
+                    "id": "btn-submit",
+                    "component": "Button",
+                    "child": "loading_submit-txt",
+                    "variant": "primary",
+                    "disabled": {
+                      "call": "not",
+                      "args": {
+                        "value": {
+                          "call": "required"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "cancel-txt",
+                    "component": "Text",
+                    "text": "Clear"
+                  },
+                  {
+                    "id": "fc-body",
+                    "component": "FormControl",
+                    "required": true,
+                    "children": [
+                      "body-label",
+                      "body-caption",
+                      "body-textarea"
+                    ]
+                  },
+                  {
+                    "id": "fc-verdict",
+                    "component": "FormControl",
+                    "children": [
+                      "verdict-label",
+                      "verdict-select"
+                    ]
+                  },
+                  {
+                    "id": "header-stack",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "align": "center",
+                    "gap": "condensed",
+                    "children": [
+                      "title-icon",
+                      "title-heading"
+                    ]
+                  },
+                  {
+                    "id": "icon-approve-btn",
+                    "component": "Icon",
+                    "name": "check",
+                    "fill": "success"
+                  },
+                  {
+                    "id": "icon-changes-btn",
+                    "component": "Icon",
+                    "name": "x-circle",
+                    "fill": "danger"
+                  },
+                  {
+                    "id": "icon-comment-btn",
+                    "component": "Icon",
+                    "name": "comment"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "normal",
+                    "padding": "normal",
+                    "children": [
+                      "header-stack",
+                      "fc-verdict",
+                      "fc-body",
+                      "actions"
+                    ]
+                  },
+                  {
+                    "id": "seg-approve",
+                    "component": "SegmentedControlButton",
+                    "label": "Approve",
+                    "leadingVisual": "icon-approve-btn"
+                  },
+                  {
+                    "id": "seg-changes",
+                    "component": "SegmentedControlButton",
+                    "label": "Request Changes",
+                    "leadingVisual": "icon-changes-btn"
+                  },
+                  {
+                    "id": "seg-comment",
+                    "component": "SegmentedControlButton",
+                    "label": "Comment",
+                    "leadingVisual": "icon-comment-btn"
+                  },
+                  {
+                    "id": "title-heading",
+                    "component": "Heading",
+                    "text": "Submit Review on #2123",
+                    "as": "h2",
+                    "variant": "medium"
+                  },
+                  {
+                    "id": "title-icon",
+                    "component": "Icon",
+                    "name": "pencil",
+                    "fill": "accent",
+                    "accessibility": {
+                      "label": "Pencil Icon"
+                    }
+                  },
+                  {
+                    "id": "verdict-label",
+                    "component": "FormControlLabel",
+                    "text": "Review Decision"
+                  },
+                  {
+                    "id": "verdict-select",
+                    "component": "SegmentedControl",
+                    "selectedIndex": {
+                      "path": "/verdictIndex"
+                    },
+                    "children": [
+                      "seg-approve",
+                      "seg-comment",
+                      "seg-changes"
+                    ]
+                  },
+                  {
+                    "id": "loading_submit-txt",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "github:draft-pr-review-2123"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "github",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 29155,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "actions",
+                    "component": "ButtonGroup",
+                    "children": [
+                      "btn-cancel",
+                      "btn-submit"
+                    ]
+                  },
+                  {
+                    "id": "body-caption",
+                    "component": "FormControlCaption",
+                    "text": "Markdown formatting is supported. Your feedback is sent directly to the author."
+                  },
+                  {
+                    "id": "body-label",
+                    "component": "FormControlLabel",
+                    "text": "Review Comments"
+                  },
+                  {
+                    "id": "body-textarea",
+                    "component": "Textarea",
+                    "value": {
+                      "path": "/reviewBody"
+                    },
+                    "required": true,
+                    "block": true,
+                    "rows": 6
                   },
                   {
                     "id": "btn-cancel",
@@ -2903,7 +3524,7 @@
                   {
                     "id": "title-heading",
                     "component": "Heading",
-                    "text": "Submit Review on #493",
+                    "text": "Submit Review on #2123",
                     "as": "h2",
                     "variant": "medium"
                   },
@@ -2939,7 +3560,7 @@
                     "children": []
                   }
                 ],
-                "surfaceId": "github:draft-pr-review-493"
+                "surfaceId": "github:draft-pr-review-2123"
               }
             }
           ],
@@ -2950,7 +3571,7 @@
           }
         },
         {
-          "offsetMs": 17165,
+          "offsetMs": 29233,
           "messages": [
             {
               "version": "v0.9",
@@ -2967,7 +3588,7 @@
                   {
                     "id": "body-caption",
                     "component": "FormControlCaption",
-                    "text": "Markdown formatting is supported. Feedback will be submitted on #493."
+                    "text": "Markdown formatting is supported. Your feedback is sent directly to the author."
                   },
                   {
                     "id": "body-label",
@@ -2982,7 +3603,7 @@
                     },
                     "required": true,
                     "block": true,
-                    "rows": 4
+                    "rows": 6
                   },
                   {
                     "id": "btn-cancel",
@@ -3105,7 +3726,7 @@
                   {
                     "id": "title-heading",
                     "component": "Heading",
-                    "text": "Submit Review on #493",
+                    "text": "Submit Review on #2123",
                     "as": "h2",
                     "variant": "medium"
                   },
@@ -3141,7 +3762,7 @@
                     "children": []
                   }
                 ],
-                "surfaceId": "github:draft-pr-review-493"
+                "surfaceId": "github:draft-pr-review-2123"
               }
             }
           ],
@@ -3152,7 +3773,7 @@
           }
         },
         {
-          "offsetMs": 17259,
+          "offsetMs": 29434,
           "messages": [
             {
               "version": "v0.9",
@@ -3169,7 +3790,7 @@
                   {
                     "id": "body-caption",
                     "component": "FormControlCaption",
-                    "text": "Markdown formatting is supported. Feedback will be submitted on #493."
+                    "text": "Markdown formatting is supported. Your feedback is sent directly to the author."
                   },
                   {
                     "id": "body-label",
@@ -3184,214 +3805,7 @@
                     },
                     "required": true,
                     "block": true,
-                    "rows": 4
-                  },
-                  {
-                    "id": "btn-cancel",
-                    "component": "Button",
-                    "child": "cancel-txt",
-                    "variant": "invisible",
-                    "action": {
-                      "functionCall": {
-                        "call": "clearValue",
-                        "args": {
-                          "path": "/reviewBody"
-                        },
-                        "returnType": "void"
-                      }
-                    }
-                  },
-                  {
-                    "id": "btn-submit",
-                    "component": "Button",
-                    "child": "loading_submit-txt",
-                    "variant": "primary",
-                    "disabled": {
-                      "call": "not",
-                      "args": {
-                        "value": {
-                          "call": "required",
-                          "args": {
-                            "value": {
-                              "path": "/reviewBody"
-                            }
-                          },
-                          "returnType": "boolean"
-                        }
-                      },
-                      "returnType": "boolean"
-                    },
-                    "action": {
-                      "event": {
-                        "name": "submit-pr-review"
-                      }
-                    }
-                  },
-                  {
-                    "id": "cancel-txt",
-                    "component": "Text",
-                    "text": "Clear"
-                  },
-                  {
-                    "id": "fc-body",
-                    "component": "FormControl",
-                    "required": true,
-                    "children": [
-                      "body-label",
-                      "body-caption",
-                      "body-textarea"
-                    ]
-                  },
-                  {
-                    "id": "fc-verdict",
-                    "component": "FormControl",
-                    "children": [
-                      "verdict-label",
-                      "verdict-select"
-                    ]
-                  },
-                  {
-                    "id": "header-stack",
-                    "component": "Stack",
-                    "direction": "horizontal",
-                    "align": "center",
-                    "gap": "condensed",
-                    "children": [
-                      "title-icon",
-                      "title-heading"
-                    ]
-                  },
-                  {
-                    "id": "icon-approve-btn",
-                    "component": "Icon",
-                    "name": "check",
-                    "fill": "success"
-                  },
-                  {
-                    "id": "icon-changes-btn",
-                    "component": "Icon",
-                    "name": "x-circle",
-                    "fill": "danger"
-                  },
-                  {
-                    "id": "icon-comment-btn",
-                    "component": "Icon",
-                    "name": "comment"
-                  },
-                  {
-                    "id": "root",
-                    "component": "Stack",
-                    "direction": "vertical",
-                    "gap": "normal",
-                    "padding": "normal",
-                    "children": [
-                      "header-stack",
-                      "fc-verdict",
-                      "fc-body",
-                      "actions"
-                    ]
-                  },
-                  {
-                    "id": "seg-approve",
-                    "component": "SegmentedControlButton",
-                    "label": "Approve",
-                    "leadingVisual": "icon-approve-btn"
-                  },
-                  {
-                    "id": "seg-changes",
-                    "component": "SegmentedControlButton",
-                    "label": "Request Changes",
-                    "leadingVisual": "icon-changes-btn"
-                  },
-                  {
-                    "id": "seg-comment",
-                    "component": "SegmentedControlButton",
-                    "label": "Comment",
-                    "leadingVisual": "icon-comment-btn"
-                  },
-                  {
-                    "id": "title-heading",
-                    "component": "Heading",
-                    "text": "Submit Review on #493",
-                    "as": "h2",
-                    "variant": "medium"
-                  },
-                  {
-                    "id": "title-icon",
-                    "component": "Icon",
-                    "name": "pencil",
-                    "fill": "accent",
-                    "accessibility": {
-                      "label": "Pencil Icon"
-                    }
-                  },
-                  {
-                    "id": "verdict-label",
-                    "component": "FormControlLabel",
-                    "text": "Review Decision"
-                  },
-                  {
-                    "id": "verdict-select",
-                    "component": "SegmentedControl",
-                    "selectedIndex": {
-                      "path": "/verdictIndex"
-                    },
-                    "children": [
-                      "seg-approve",
-                      "seg-comment",
-                      "seg-changes"
-                    ]
-                  },
-                  {
-                    "id": "loading_submit-txt",
-                    "component": "Row",
-                    "children": []
-                  }
-                ],
-                "surfaceId": "github:draft-pr-review-493"
-              }
-            }
-          ],
-          "texts": [],
-          "stamp": {
-            "source": "github",
-            "role": "fragment"
-          }
-        },
-        {
-          "offsetMs": 17355,
-          "messages": [
-            {
-              "version": "v0.9",
-              "updateComponents": {
-                "components": [
-                  {
-                    "id": "actions",
-                    "component": "ButtonGroup",
-                    "children": [
-                      "btn-cancel",
-                      "btn-submit"
-                    ]
-                  },
-                  {
-                    "id": "body-caption",
-                    "component": "FormControlCaption",
-                    "text": "Markdown formatting is supported. Feedback will be submitted on #493."
-                  },
-                  {
-                    "id": "body-label",
-                    "component": "FormControlLabel",
-                    "text": "Review Comments"
-                  },
-                  {
-                    "id": "body-textarea",
-                    "component": "Textarea",
-                    "value": {
-                      "path": "/reviewBody"
-                    },
-                    "required": true,
-                    "block": true,
-                    "rows": 4
+                    "rows": 6
                   },
                   {
                     "id": "btn-cancel",
@@ -3433,7 +3847,10 @@
                         "name": "submit-pr-review",
                         "context": {
                           "repository": "a2ui-project/a2ui",
-                          "prNumber": 493
+                          "prNumber": 2123,
+                          "body": {
+                            "path": "/reviewBody"
+                          }
                         }
                       }
                     }
@@ -3523,7 +3940,7 @@
                   {
                     "id": "title-heading",
                     "component": "Heading",
-                    "text": "Submit Review on #493",
+                    "text": "Submit Review on #2123",
                     "as": "h2",
                     "variant": "medium"
                   },
@@ -3559,7 +3976,7 @@
                     "children": []
                   }
                 ],
-                "surfaceId": "github:draft-pr-review-493"
+                "surfaceId": "github:draft-pr-review-2123"
               }
             }
           ],
@@ -3570,7 +3987,7 @@
           }
         },
         {
-          "offsetMs": 17523,
+          "offsetMs": 29504,
           "messages": [
             {
               "version": "v0.9",
@@ -3587,7 +4004,7 @@
                   {
                     "id": "body-caption",
                     "component": "FormControlCaption",
-                    "text": "Markdown formatting is supported. Feedback will be submitted on #493."
+                    "text": "Markdown formatting is supported. Your feedback is sent directly to the author."
                   },
                   {
                     "id": "body-label",
@@ -3602,7 +4019,7 @@
                     },
                     "required": true,
                     "block": true,
-                    "rows": 4
+                    "rows": 6
                   },
                   {
                     "id": "btn-cancel",
@@ -3644,7 +4061,7 @@
                         "name": "submit-pr-review",
                         "context": {
                           "repository": "a2ui-project/a2ui",
-                          "prNumber": 493,
+                          "prNumber": 2123,
                           "body": {
                             "path": "/reviewBody"
                           },
@@ -3740,7 +4157,7 @@
                   {
                     "id": "title-heading",
                     "component": "Heading",
-                    "text": "Submit Review on #493",
+                    "text": "Submit Review on #2123",
                     "as": "h2",
                     "variant": "medium"
                   },
@@ -3776,7 +4193,7 @@
                     "children": []
                   }
                 ],
-                "surfaceId": "github:draft-pr-review-493"
+                "surfaceId": "github:draft-pr-review-2123"
               }
             }
           ],
@@ -3787,7 +4204,7 @@
           }
         },
         {
-          "offsetMs": 17706,
+          "offsetMs": 29708,
           "messages": [
             {
               "version": "v0.9",
@@ -3804,7 +4221,7 @@
                   {
                     "id": "body-caption",
                     "component": "FormControlCaption",
-                    "text": "Markdown formatting is supported. Feedback will be submitted on #493."
+                    "text": "Markdown formatting is supported. Your feedback is sent directly to the author."
                   },
                   {
                     "id": "body-label",
@@ -3819,7 +4236,7 @@
                     },
                     "required": true,
                     "block": true,
-                    "rows": 4
+                    "rows": 6
                   },
                   {
                     "id": "btn-cancel",
@@ -3861,7 +4278,7 @@
                         "name": "submit-pr-review",
                         "context": {
                           "repository": "a2ui-project/a2ui",
-                          "prNumber": 493,
+                          "prNumber": 2123,
                           "body": {
                             "path": "/reviewBody"
                           },
@@ -3962,7 +4379,7 @@
                   {
                     "id": "title-heading",
                     "component": "Heading",
-                    "text": "Submit Review on #493",
+                    "text": "Submit Review on #2123",
                     "as": "h2",
                     "variant": "medium"
                   },
@@ -3993,7 +4410,7 @@
                     ]
                   }
                 ],
-                "surfaceId": "github:draft-pr-review-493"
+                "surfaceId": "github:draft-pr-review-2123"
               }
             }
           ],
@@ -4004,12 +4421,12 @@
           }
         },
         {
-          "offsetMs": 17884,
+          "offsetMs": 30034,
           "messages": [
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:draft-pr-review-493",
+                "surfaceId": "github:draft-pr-review-2123",
                 "value": {
                   "verdictIndex": 0
                 }
@@ -4019,18 +4436,21 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "role": "fragment"
+            "role": "fragment",
+            "generations": {
+              "github:draft-pr-review-2123": 1
+            }
           }
         },
         {
-          "offsetMs": 17981,
+          "offsetMs": 30184,
           "messages": [
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:draft-pr-review-493",
+                "surfaceId": "github:draft-pr-review-2123",
                 "value": {
-                  "reviewBody": "The specification documentation updates look reasonable and clearly address A2UI message transport over A2A, message atomicity, and schema validation."
+                  "reviewBody": "The specification document looks very reasonable. The sandboxing rules, Content-Security-Policy specifications, and cross-origin communication protocol in `web-frame-component_spec.md` are well-defined and clearly address the security threat models. Ready to approve!"
                 }
               }
             }
@@ -4038,20 +4458,23 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "role": "fragment"
+            "role": "fragment",
+            "generations": {
+              "github:draft-pr-review-2123": 2
+            }
           }
         },
         {
-          "offsetMs": 18075,
+          "offsetMs": 30260,
           "messages": [
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:draft-pr-review-493",
+                "surfaceId": "github:draft-pr-review-2123",
                 "path": "/",
                 "value": {
                   "verdictIndex": 0,
-                  "reviewBody": "The specification documentation updates look reasonable and clearly address A2UI message transport over A2A, message atomicity, and schema validation."
+                  "reviewBody": "The specification document looks very reasonable. The sandboxing rules, Content-Security-Policy specifications, and cross-origin communication protocol in `web-frame-component_spec.md` are well-defined and clearly address the security threat models. Ready to approve!"
                 }
               }
             }
@@ -4059,12 +4482,15 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "role": "fragment"
+            "role": "fragment",
+            "generations": {
+              "github:draft-pr-review-2123": 3
+            }
           }
         }
       ],
       "outcome": "completed",
-      "durationMs": 18265
+      "durationMs": 30413
     }
   ]
 }

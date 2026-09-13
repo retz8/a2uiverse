@@ -28,7 +28,7 @@ const CATALOGS = resolveCatalogs(await listCatalogs());
 const msg = (m: Record<string, unknown>): A2uiMessage =>
   ({version: 'v0.9', ...m}) as unknown as A2uiMessage;
 
-/** The shell as the orchestrator paints it: one slot, plus the attribution beside it. */
+/** The shell as the orchestrator paints it: one slot, wrapped in the attribution naming it. */
 function composedProcessor(slotState: 'pending' | 'failed' | 'collapsed' = 'pending') {
   const processor = new MessageProcessor<ReactComponentImplementation>([CATALOG, SHELL_CATALOG]);
   processor.processMessages([
@@ -37,12 +37,13 @@ function composedProcessor(slotState: 'pending' | 'failed' | 'collapsed' = 'pend
       updateComponents: {
         surfaceId: 'shell:main',
         components: [
-          {id: 'root', component: 'Column', children: ['attr-slot-github', 'github']},
+          {id: 'root', component: 'Column', children: ['attribution-github']},
           {
-            id: 'attr-slot-github',
+            id: 'attribution-github',
             component: 'Attribution',
             displayName: 'GitHub',
             appId: 'github',
+            child: 'github',
           },
           {
             id: 'github',

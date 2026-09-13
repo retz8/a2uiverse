@@ -19,6 +19,36 @@ const SHELL_CATALOG = createCatalog({onShellAction: () => {}});
 const msg = (m: Record<string, unknown>): A2uiMessage =>
   ({version: 'v0.9', ...m}) as unknown as A2uiMessage;
 
+/**
+ * The hub's first paint of a turn, as the shell painter emits it (task-6.4 decision 3): the
+ * layout surface with one slot per source, each vendor slot the `child` of the `Attribution`
+ * that names it — the shape the roster pairs by, and the one guarantee a vendor fragment gets.
+ */
+const paintedLayout = (slots: Array<string | [appId: string, displayName: string]>) => {
+  const leaves = slots.map(slot => (typeof slot === 'string' ? [slot, slot] : slot));
+  return [
+    msg({createSurface: {surfaceId: 'shell:main', catalogId: SHELL_CATALOG_ID}}),
+    msg({
+      updateComponents: {
+        surfaceId: 'shell:main',
+        components: [
+          {id: 'root', component: 'Column', children: leaves.map(([id]) => `attribution-${id}`)},
+          ...leaves.flatMap(([appId, displayName]) => [
+            {
+              id: `attribution-${appId}`,
+              component: 'Attribution',
+              appId,
+              displayName,
+              child: appId,
+            },
+            {id: appId, component: 'Slot', source: appId, state: 'pending', label: displayName},
+          ]),
+        ],
+      },
+    }),
+  ];
+};
+
 const create = (surfaceId: string) => msg({createSurface: {surfaceId, catalogId: CATALOG_ID}});
 const del = (surfaceId: string) => msg({deleteSurface: {surfaceId}});
 const textRoot = (surfaceId: string, text: string) =>
@@ -686,18 +716,7 @@ describe('composed turns (the hub stamps its events)', () => {
   const fragment = (source: string): CompositionStamp => ({source, role: 'fragment'});
 
   /** The hub's first paint: the layout surface, before any agent has answered. */
-  const shellPaint = (slots: string[]) => [
-    msg({createSurface: {surfaceId: 'shell:main', catalogId: SHELL_CATALOG_ID}}),
-    msg({
-      updateComponents: {
-        surfaceId: 'shell:main',
-        components: [
-          {id: 'root', component: 'Column', children: slots},
-          ...slots.map(source => ({id: source, component: 'Slot', source, state: 'pending'})),
-        ],
-      },
-    }),
-  ];
+  const shellPaint = paintedLayout;
 
   function composedSetup() {
     const catalogs = [CATALOG, SHELL_CATALOG];
@@ -711,27 +730,8 @@ describe('composed turns (the hub stamps its events)', () => {
     return {processor, store, runner};
   }
 
-  /** The same first paint, carrying the attribution the shell painter emits per leaf. */
-  const attributedShellPaint = (leaves: Array<[appId: string, displayName: string]>) => [
-    msg({createSurface: {surfaceId: 'shell:main', catalogId: SHELL_CATALOG_ID}}),
-    msg({
-      updateComponents: {
-        surfaceId: 'shell:main',
-        components: [
-          {id: 'root', component: 'Column', children: leaves.map(([id]) => `slot-${id}`)},
-          ...leaves.flatMap(([appId, displayName]) => [
-            {id: `attr-slot-${appId}`, component: 'Attribution', appId, displayName},
-            {
-              id: `slot-${appId}`,
-              component: 'Slot',
-              source: appId,
-              state: 'pending',
-            },
-          ]),
-        ],
-      },
-    }),
-  ];
+  /** The same first paint, with the Registry's display names on the attributions. */
+  const attributedShellPaint = paintedLayout;
 
   it('the shell paint establishes the roster the notice stack orders and names by', () => {
     const {store, runner} = composedSetup();
@@ -906,18 +906,7 @@ describe('fragment failure reporting', () => {
   const SHELL: CompositionStamp = {source: 'shell', role: 'shell'};
   const fragment = (source: string): CompositionStamp => ({source, role: 'fragment'});
 
-  const shellPaint = (slots: string[]) => [
-    msg({createSurface: {surfaceId: 'shell:main', catalogId: SHELL_CATALOG_ID}}),
-    msg({
-      updateComponents: {
-        surfaceId: 'shell:main',
-        components: [
-          {id: 'root', component: 'Column', children: slots},
-          ...slots.map(source => ({id: source, component: 'Slot', source, state: 'pending'})),
-        ],
-      },
-    }),
-  ];
+  const shellPaint = paintedLayout;
 
   function failureSetup() {
     const catalogs = [CATALOG, SHELL_CATALOG];
@@ -1020,23 +1009,75 @@ describe('fragment failure reporting', () => {
     // It still surfaces — on the local channel, where a platform bug belongs.
     expect(store.getState().error).toMatch(/failed/);
   });
-});
 
-describe('shell-granted promotion', () => {
-  const SHELL: CompositionStamp = {source: 'shell', role: 'shell'};
-  const fragment = (source: string): CompositionStamp => ({source, role: 'fragment'});
-  const shellPaint = (slots: string[]) => [
+  /** A layout whose vendor slot the shell drew bare — a painter bug, not a shape it emits. */
+  const unattributedLayout = (source: string) => [
     msg({createSurface: {surfaceId: 'shell:main', catalogId: SHELL_CATALOG_ID}}),
     msg({
       updateComponents: {
         surfaceId: 'shell:main',
         components: [
-          {id: 'root', component: 'Column', children: slots},
-          ...slots.map(source => ({id: source, component: 'Slot', source, state: 'pending'})),
+          {id: 'root', component: 'Column', children: [source]},
+          {id: source, component: 'Slot', source, state: 'pending'},
         ],
       },
     }),
   ];
+
+  it('a fragment aimed at a slot the shell drew with no attribution is refused: never placed, reported at arrival (task-6.5 decision 7)', () => {
+    const {processor, store, failures, runner} = failureSetup();
+    const turn = runner.begin(utterance('compose'));
+    turn.apply(unattributedLayout('gmail'), SHELL);
+    turn.apply([create('gmail:inbox'), textRoot('gmail:inbox', 'Inbox')], fragment('gmail'));
+
+    // Refused the moment it arrived, before the turn ends: the fragment never enters the
+    // registry, never claims its slot, and the hub is told so it can fail the slot.
+    expect(processor.model.getSurface('gmail:inbox')).toBeUndefined();
+    expect(store.getState().placement.has('gmail')).toBe(false);
+    expect(failures).toEqual([
+      {
+        surfaceId: 'gmail:inbox',
+        source: 'gmail',
+        path: '/',
+        message: 'the shell drew this slot with no attribution',
+        refused: true,
+      },
+    ]);
+
+    // Later batches for the same source go the same way, and nothing is reported twice.
+    turn.apply([textRoot('gmail:inbox', 'Inbox, again')], fragment('gmail'));
+    turn.end();
+    expect(failures).toHaveLength(1);
+    expect(store.getState().error).toBeNull();
+  });
+
+  it('a partial repaint carrying a bare slot refuses nothing: the wrapper still stands', () => {
+    const {store, failures, runner} = failureSetup();
+    const turn = runner.begin(utterance('compose'));
+    turn.apply(paintedLayout(['gmail']), SHELL);
+    turn.apply(
+      [
+        msg({
+          updateComponents: {
+            surfaceId: 'shell:main',
+            components: [{id: 'gmail', component: 'Slot', source: 'gmail', state: 'pending'}],
+          },
+        }),
+      ],
+      SHELL,
+    );
+    turn.apply([create('gmail:inbox'), textRoot('gmail:inbox', 'Inbox')], fragment('gmail'));
+    turn.end();
+
+    expect(store.getState().placement.get('gmail')?.surfaceId).toBe('gmail:inbox');
+    expect(failures).toEqual([]);
+  });
+});
+
+describe('shell-granted promotion', () => {
+  const SHELL: CompositionStamp = {source: 'shell', role: 'shell'};
+  const fragment = (source: string): CompositionStamp => ({source, role: 'fragment'});
+  const shellPaint = paintedLayout;
 
   function promotionSetup() {
     const catalogs = [CATALOG, SHELL_CATALOG];

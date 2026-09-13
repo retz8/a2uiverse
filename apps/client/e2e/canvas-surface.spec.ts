@@ -47,8 +47,9 @@ test('beat 4: composed fan-out across three design systems', async ({browser}) =
   const page = await browser.newPage({viewport: {width: 1024, height: 2400}});
   await settle(page, '4');
 
-  // Guard the claim the picture is meant to carry, so a diff is never the only signal.
-  await expect(page.getByTestId('canvas-stage-content')).toHaveAttribute('data-slots', '3');
+  // Guard the claim the picture is meant to carry, so a diff is never the only signal. Three
+  // vendor slots; since Phase 6 the Planner may also reserve the merged view for this prompt.
+  await expect(page.getByTestId('canvas-stage-content')).toHaveAttribute('data-slots', /^[34]$/);
   for (const source of ['gmail', 'calendar', 'github']) {
     await expect(page.locator(`[data-a2ui-fragment="${source}"]`)).toHaveCount(1);
   }
@@ -72,4 +73,37 @@ test('beat 5: the temporal merge replays with its merged view as shell content',
   await expect(view).toHaveCount(1);
   await expect(view.locator('[data-state="complete"]').first()).toBeVisible();
   await expect(view.getByLabel('Sort by')).toBeVisible();
+});
+
+/**
+ * The shell as an agent (Phase 6), recorded through the hub. Replay smokes, not baselines: the
+ * platform answer is one model's wording on one day. What holds across recordings is the shape —
+ * the answer is bound to the data model the hub sent, no vendor painted, and the gap is the tile.
+ */
+test('beat 6: a platform answer renders from its literal data model, no vendor dispatched', async ({
+  page,
+}) => {
+  await settle(page, '6');
+  const stage = page.getByTestId('canvas-stage-content');
+  await expect(page.locator('[data-a2ui-fragment]')).toHaveCount(0);
+  await expect(page.locator('[data-attribution]')).toHaveCount(0);
+  // The three installed apps, each a row bound through the template over `/apps`.
+  for (const app of ['GitHub', 'Gmail', 'Google Calendar']) {
+    await expect(stage.getByRole('row').filter({hasText: app})).toHaveCount(1);
+  }
+});
+
+test('beat 7: a capability gap is the tile, and the tile opens the Store with the gap', async ({
+  page,
+}) => {
+  await settle(page, '7');
+  await expect(page.locator('[data-a2ui-fragment]')).toHaveCount(0);
+  const tile = page.locator('[data-slot-state="gap"]');
+  await expect(tile).toHaveCount(1);
+  const gap = await tile.getAttribute('data-slot-gap');
+  expect(gap).toBeTruthy();
+  await tile.getByRole('button', {name: 'Search the Store'}).click();
+  const overlay = page.getByTestId('trusted-page-overlay');
+  await expect(overlay).toHaveAttribute('data-page', 'store');
+  await expect(overlay).toHaveAttribute('data-query', gap!);
 });

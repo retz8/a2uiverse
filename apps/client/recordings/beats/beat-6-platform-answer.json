@@ -1,0 +1,153 @@
+{
+  "name": "beat-6-platform-answer",
+  "beat": 6,
+  "title": "Platform answer",
+  "prompt": "What apps do I have?",
+  "model": "gemini-3.7-flash",
+  "recordedAt": "2026-09-13T07:25:28Z",
+  "contextId": "7c1136a6-921f-4cf8-89bf-df11725fcfe0",
+  "chainedFrom": null,
+  "turns": [
+    {
+      "taskId": "9daf30f2-620e-4729-8f35-b0cc20578675",
+      "kind": "utterance",
+      "prompt": "What apps do I have?",
+      "action": null,
+      "batches": [
+        {
+          "offsetMs": 7156,
+          "messages": [
+            {
+              "version": "v0.9",
+              "createSurface": {
+                "surfaceId": "shell:main",
+                "catalogId": "https://github.com/retz8/a2uiverse/blob/main/packages/shell-catalog/catalogs/v0.9.1/catalog.json"
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "shell:main",
+                "value": {
+                  "apps": [
+                    {
+                      "name": "Google Calendar",
+                      "does": "Reads and acts on the user's Google Calendar: shows what is coming up and what is still unanswered, opens a single event with its attendees, proposes a new event for the user to confirm, and answers invitations on their behalf.",
+                      "skills": "What is coming up · Looking at one event · Putting something on the calendar · Answering an invitation"
+                    },
+                    {
+                      "name": "GitHub",
+                      "does": "Reads and acts on the user's GitHub: finds the pull requests that need them, opens one to its discussion and reviews, and posts, reviews, merges, and manages things for them — content-bearing actions drafted as a proposal and fired on their confirmation.",
+                      "skills": "Pull request triage · Reading a pull request · Composing a review · Acting on GitHub"
+                    },
+                    {
+                      "name": "Gmail",
+                      "does": "Reads and acts on the user's Gmail mailbox: finds the threads that need them, opens a conversation, drafts a reply for them to finish, and files mail with labels.",
+                      "skills": "Inbox triage · Reading a conversation · Drafting a reply · Filing and labelling"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "surfaceId": "shell:main",
+                "components": [
+                  {
+                    "id": "root",
+                    "component": "Column",
+                    "children": [
+                      "heading",
+                      "intro",
+                      "apps",
+                      "library"
+                    ]
+                  },
+                  {
+                    "id": "heading",
+                    "component": "Text",
+                    "variant": "h3",
+                    "text": "Your apps"
+                  },
+                  {
+                    "id": "intro",
+                    "component": "Text",
+                    "variant": "body",
+                    "text": "Three apps are installed. Ask about any of them at the palette, or ask several at once."
+                  },
+                  {
+                    "id": "apps",
+                    "component": "Table",
+                    "columns": [
+                      "App",
+                      "What it does",
+                      "Skills"
+                    ],
+                    "children": {
+                      "path": "/apps",
+                      "componentId": "app"
+                    }
+                  },
+                  {
+                    "id": "app",
+                    "component": "TableRow",
+                    "children": [
+                      "app-name",
+                      "app-does",
+                      "app-skills"
+                    ]
+                  },
+                  {
+                    "id": "app-name",
+                    "component": "Text",
+                    "text": {
+                      "path": "name"
+                    }
+                  },
+                  {
+                    "id": "app-does",
+                    "component": "Text",
+                    "text": {
+                      "path": "does"
+                    }
+                  },
+                  {
+                    "id": "app-skills",
+                    "component": "Text",
+                    "text": {
+                      "path": "skills"
+                    }
+                  },
+                  {
+                    "id": "library",
+                    "component": "Button",
+                    "child": "library-label",
+                    "action": {
+                      "functionCall": {
+                        "call": "openAppLibrary",
+                        "args": {}
+                      }
+                    }
+                  },
+                  {
+                    "id": "library-label",
+                    "component": "Text",
+                    "text": "Manage apps"
+                  }
+                ]
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "shell",
+            "role": "shell"
+          }
+        }
+      ],
+      "outcome": "completed",
+      "durationMs": 7156
+    }
+  ]
+}

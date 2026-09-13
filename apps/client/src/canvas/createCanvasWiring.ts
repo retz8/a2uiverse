@@ -24,7 +24,7 @@ import type {
   Catalog,
 } from '@a2ui/web_core/v0_9';
 import type {ReactComponentImplementation} from '@a2ui/react/v0_9';
-import {OPERATORS} from '@a2uiverse/shell-catalog';
+import {OPERATORS, type ShellAction} from '@a2uiverse/shell-catalog';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 import type {A2ASenderOptions} from '../a2a/client';
 import {createSenderResolver, sendAndApply} from '../a2a/client';
@@ -51,6 +51,8 @@ import type {SynthesisSession} from './synthesis/synthesisSession';
 import {createSynthesisSession} from './synthesis/synthesisSession';
 
 const BLOCKED_CUE = 'Hold on — a paint is in flight. Try again when it lands.';
+/** The `sourceComponentId` of a shell action a `functionCall` raised: no component was in scope. */
+export const FUNCTION_CALL_SOURCE = 'functionCall';
 
 export interface CanvasWiring {
   store: ReturnType<typeof createCanvasStore>;
@@ -62,6 +64,8 @@ export interface CanvasWiring {
   repaint(): void;
   createParked(entry: PaintEntry): ParkedSession<ReactComponentImplementation>;
   attachParked(parked: ParkedSession<ReactComponentImplementation>): () => void;
+  /** A shell action raised from a shell surface: handled here, reported for the journal. */
+  onShellAction(action: ShellAction): void;
 }
 
 export interface CanvasWiringOptions extends A2ASenderOptions {
@@ -206,8 +210,13 @@ export function createCanvasWiring({
    */
   const reportFragmentFailure = async (failure: FragmentFailure) => {
     // `shell:main` is reused every turn, so a late report from an abandoned composition would
-    // flip a slot in the one that replaced it.
-    if (store.getState().placement.get(failure.source)?.surfaceId !== failure.surfaceId) return;
+    // flip a slot in the one that replaced it. A refused fragment was never placed and is
+    // reported the moment it arrives, so it cannot be late.
+    if (
+      !failure.refused &&
+      store.getState().placement.get(failure.source)?.surfaceId !== failure.surfaceId
+    )
+      return;
     try {
       const sender = await getSender();
       await sendAndApply(
@@ -234,6 +243,59 @@ export function createCanvasWiring({
     } catch (err) {
       // A failed failure report must not cascade into the turn that produced it.
       console.error('[A2UI:a2a] validation report failed', err);
+    }
+  };
+
+  /**
+   * A shell action (SPEC §7; task-6.5 decisions 2–4, 6): handled locally — the page opens over
+   * the canvas at once — and reported to the hub for the journal, which is the only thing the
+   * hub does with it. The report is a standard A2UI action on the shell surface that raised it,
+   * sent the way a fragment failure is: on the side, no turn, no status strip, no history row.
+   * The page never waits on the hub, and a failed report is logged and nothing more. Every
+   * raise is reported, an open page included — a second click is a second intent.
+   */
+  const onShellAction = (action: ShellAction) => {
+    store.openTrustedPage(
+      action.name === 'openStore'
+        ? {page: 'store', ...(action.query !== undefined ? {query: action.query} : {})}
+        : {page: 'appLibrary'},
+    );
+    void reportShellAction(action);
+  };
+
+  const reportShellAction = async (action: ShellAction) => {
+    const clientAction: A2uiClientAction = {
+      name: action.name,
+      surfaceId: action.surfaceId,
+      // A functionCall runs with no component in scope; only the capability tile names itself.
+      sourceComponentId: action.componentId ?? FUNCTION_CALL_SOURCE,
+      timestamp: new Date().toISOString(),
+      context:
+        action.name === 'openStore' && action.query !== undefined ? {query: action.query} : {},
+    };
+    try {
+      const sender = await getSender();
+      await sendAndApply(
+        sender,
+        buildActionMessageParams(
+          clientAction,
+          session.get(),
+          undefined,
+          undefined,
+          supportedCatalogIds,
+        ),
+        {
+          // The hub answers with nothing. Should it ever answer with a paint, it lands like the
+          // failure report's repaint does rather than being dropped.
+          apply: messages => {
+            applyA2uiMessages(processor, messages);
+            store.bumpApplied();
+          },
+          session,
+        },
+      );
+    } catch (err) {
+      console.error('[A2UI:a2a] shell action report failed', err);
     }
   };
 
@@ -353,5 +415,6 @@ export function createCanvasWiring({
     repaint,
     createParked,
     attachParked,
+    onShellAction,
   };
 }

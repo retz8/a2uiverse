@@ -35,6 +35,7 @@ describe('createCanvasStore', () => {
     expect(store.getState()).toEqual({
       stageId: null,
       overlay: null,
+      trustedPage: null,
       timeline: [],
       viewing: null,
       headAdvancedWhileParked: false,
@@ -215,6 +216,24 @@ describe('createCanvasStore', () => {
     });
     store.setOverlay(null);
     expect(store.getState().overlay).toBeNull();
+  });
+
+  it('a shell action opens its trusted page over the canvas; a second raise retargets it; close is a no-op when none is open', () => {
+    const store = createCanvasStore();
+    expect(store.getState().trustedPage).toBeNull();
+    const listener = vi.fn();
+    store.subscribe(listener);
+
+    store.closeTrustedPage();
+    expect(listener).not.toHaveBeenCalled();
+
+    store.openTrustedPage({page: 'store', query: 'flight booking'});
+    expect(store.getState().trustedPage).toEqual({page: 'store', query: 'flight booking'});
+    store.openTrustedPage({page: 'appLibrary'});
+    expect(store.getState().trustedPage).toEqual({page: 'appLibrary'});
+
+    store.closeTrustedPage();
+    expect(store.getState().trustedPage).toBeNull();
   });
 
   it('nextPaintId is monotonic and never reused', () => {

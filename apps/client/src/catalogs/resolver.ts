@@ -32,6 +32,7 @@ import {
   CATALOG_ID as SHELL_CATALOG_ID,
   createCatalog as createShellCatalog,
   Provider as ShellProvider,
+  type ShellActionHandler,
 } from '@a2uiverse/shell-catalog';
 import type {CatalogRecord} from '../orchestratorApi';
 
@@ -42,29 +43,35 @@ export interface ResolvedCatalog {
   Provider: ComponentType<{children: ReactNode}>;
 }
 
-/**
- * The shell catalog is built for this host (task-6.2 decision 2). Its shell actions — `openStore`,
- * `openAppLibrary` — do nothing here yet: the canvas's notice and journal report arrive in task 6.5.
- */
-const SHELL_CATALOG = createShellCatalog({onShellAction: () => {}});
-
-/** One entry per catalog package in `orchestratorApi`'s projection; the two lists move together. */
-const TABLE: ReadonlyMap<string, ResolvedCatalog> = new Map([
-  [SHELL_CATALOG_ID, {id: SHELL_CATALOG_ID, catalog: SHELL_CATALOG, Provider: ShellProvider}],
-  [CATALOG_ID, {id: CATALOG_ID, catalog: CATALOG, Provider: GitHubProvider}],
-  [GMAIL_CATALOG_ID, {id: GMAIL_CATALOG_ID, catalog: GMAIL_CATALOG, Provider: GmailProvider}],
-  [
-    CALENDAR_CATALOG_ID,
-    {id: CALENDAR_CATALOG_ID, catalog: CALENDAR_CATALOG, Provider: CalendarProvider},
-  ],
-  [SHOP_A_CATALOG_ID, {id: SHOP_A_CATALOG_ID, catalog: SHOP_A_CATALOG, Provider: ShopAProvider}],
-  [SHOP_B_CATALOG_ID, {id: SHOP_B_CATALOG_ID, catalog: SHOP_B_CATALOG, Provider: ShopBProvider}],
-]);
+export interface ResolveCatalogsOptions {
+  /**
+   * The host's shell-action handler (task-6.2 decision 2): the shell catalog is built for this
+   * host, and its two actions — `openStore`, `openAppLibrary` — land here. Absent, they land
+   * nowhere: the catalog still validates and renders, which is all a test or a replay needs.
+   */
+  onShellAction?: ShellActionHandler;
+}
 
 /** Resolve registry records to runtime catalogs; an unknown catalog id is a hard error. */
-export function resolveCatalogs(records: CatalogRecord[]): ResolvedCatalog[] {
+export function resolveCatalogs(
+  records: CatalogRecord[],
+  {onShellAction = () => {}}: ResolveCatalogsOptions = {},
+): ResolvedCatalog[] {
+  const shellCatalog = createShellCatalog({onShellAction});
+  /** One entry per catalog package in `orchestratorApi`'s projection; the two lists move together. */
+  const table: ReadonlyMap<string, ResolvedCatalog> = new Map([
+    [SHELL_CATALOG_ID, {id: SHELL_CATALOG_ID, catalog: shellCatalog, Provider: ShellProvider}],
+    [CATALOG_ID, {id: CATALOG_ID, catalog: CATALOG, Provider: GitHubProvider}],
+    [GMAIL_CATALOG_ID, {id: GMAIL_CATALOG_ID, catalog: GMAIL_CATALOG, Provider: GmailProvider}],
+    [
+      CALENDAR_CATALOG_ID,
+      {id: CALENDAR_CATALOG_ID, catalog: CALENDAR_CATALOG, Provider: CalendarProvider},
+    ],
+    [SHOP_A_CATALOG_ID, {id: SHOP_A_CATALOG_ID, catalog: SHOP_A_CATALOG, Provider: ShopAProvider}],
+    [SHOP_B_CATALOG_ID, {id: SHOP_B_CATALOG_ID, catalog: SHOP_B_CATALOG, Provider: ShopBProvider}],
+  ]);
   return records.map(record => {
-    const resolved = TABLE.get(record.catalogId);
+    const resolved = table.get(record.catalogId);
     if (!resolved) throw new Error(`No catalog package for ${record.catalogId}`);
     return resolved;
   });

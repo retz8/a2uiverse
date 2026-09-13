@@ -27,11 +27,15 @@ import {HistoryChrome} from './components/HistoryChrome';
 import {ParkedStage} from './components/ParkedStage';
 import {Palette} from './components/Palette';
 import {StatusStrip} from './components/StatusStrip';
+import {TrustedPageOverlay} from './components/TrustedPageOverlay';
+import type {ShellActionRelay} from './shellActionRelay';
 import './CanvasApp.css';
 
 export interface CanvasAppProps extends A2ASenderOptions {
   /** The installed catalogs, resolved by the entry through `orchestratorApi`. */
   catalogs: ResolvedCatalog[];
+  /** The relay the shell catalog was built with; the canvas binds its handler while mounted. */
+  shellActions?: ShellActionRelay;
 }
 
 /** A `?beat=` token: a recorded beat number, or a synthetic beat's name. */
@@ -40,12 +44,16 @@ function beatFixtureFor(token: string) {
   return Number.isInteger(beat) ? getBeatFixture(beat) : syntheticBeat(token);
 }
 
-export function CanvasApp({serverUrl, client, catalogs}: CanvasAppProps) {
+export function CanvasApp({serverUrl, client, catalogs, shellActions}: CanvasAppProps) {
   const [wiring] = useState(() =>
     createCanvasWiring({serverUrl, client, catalogs: catalogs.map(c => c.catalog)}),
   );
 
   const state = useSyncExternalStore(wiring.store.subscribe, wiring.store.getState);
+
+  // A shell action raised anywhere in the shell's surfaces — the model's button, the capability
+  // tile — lands in this canvas for as long as it is mounted.
+  useEffect(() => shellActions?.bind(wiring.onShellAction), [shellActions, wiring]);
 
   // What a `Slot` in the shell surface renders: the fragment placed in it, inside its boundary —
   // or, for a slot whose source answered in prose and never painted, what that source said.
@@ -137,6 +145,7 @@ export function CanvasApp({serverUrl, client, catalogs}: CanvasAppProps) {
               : ''}
           </div>
           <CanvasOverlay processor={wiring.processor} state={state} />
+          <TrustedPageOverlay page={state.trustedPage} onClose={wiring.store.closeTrustedPage} />
           <AmbientNotice notices={orderedNotices(state)} onDismiss={wiring.store.dismissNotice} />
           <HistoryChrome
             state={state}

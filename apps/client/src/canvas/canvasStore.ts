@@ -53,11 +53,27 @@ export interface OverlayState {
   question?: string;
 }
 
+/** The trusted pages a shell action opens (SPEC §7, §9.3). */
+export type TrustedPage = 'store' | 'appLibrary';
+
+/**
+ * The trusted page open over the canvas: the Store or the App Library, as an overlay — the
+ * canvas stays mounted beneath it (task-6.5 decisions 2, 3). Until Phase 13 builds the pages
+ * it is a placeholder naming the page and the query it was opened with.
+ */
+export interface TrustedPageState {
+  page: TrustedPage;
+  /** The Store's search, when the action carried one — the capability the tile forwards. */
+  query?: string;
+}
+
 export interface CanvasState {
   /** The surface occupying the stage; null is the empty canvas. */
   stageId: string | null;
   /** The one transient question paint above the stage; null when no question is pending. */
   overlay: OverlayState | null;
+  /** The trusted page open over the canvas; null when none is. */
+  trustedPage: TrustedPageState | null;
   /**
    * The ring of paint entries, appended on land, chronological, never reordered. The newest
    * entry is the live paint — the only one whose snapshot may still be null.
@@ -112,6 +128,9 @@ export interface CanvasStore {
   reportError(text: string): void;
   setStage(stageId: string | null): void;
   setOverlay(overlay: OverlayState | null): void;
+  /** A shell action landed: open its page over the canvas, or retarget the one already open. */
+  openTrustedPage(page: TrustedPageState): void;
+  closeTrustedPage(): void;
   /** Append a landed paint; evicts past the ring cap and raises the parked marker. */
   appendEntry(entry: PaintEntry): void;
   /**
@@ -194,6 +213,7 @@ export function createCanvasStore(): CanvasStore {
   let state: CanvasState = {
     stageId: null,
     overlay: null,
+    trustedPage: null,
     timeline: [],
     viewing: null,
     headAdvancedWhileParked: false,
@@ -232,6 +252,10 @@ export function createCanvasStore(): CanvasStore {
     reportError: text => set({error: text}),
     setStage: stageId => set({stageId}),
     setOverlay: overlay => set({overlay}),
+    openTrustedPage: page => set({trustedPage: page}),
+    closeTrustedPage: () => {
+      if (state.trustedPage) set({trustedPage: null});
+    },
     appendEntry: entry => {
       const grown = [...state.timeline, entry];
       const evicted = grown.slice(0, Math.max(0, grown.length - TIMELINE_CAP));
