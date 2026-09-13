@@ -133,7 +133,7 @@ scenario, recorded as beat 5.
    (every leaf a formula, every pointer parses, one sort per array, every option key a formula with
    at least one ref in every element, the initial key an option); the tree through the sdk's A2UI
    validator against the Synthesizer's pruned catalog (known components and props, one `root`,
-   unique ids, no dangling child, no cycle, no orphan — `Slot`, `Attribution` and `Frame` are not in
+   unique ids, no dangling child, no cycle, no orphan — `Slot`, `Attribution` and `Button` are not in
    that catalog); then, over a structurally sound model, the derived-value rule, every operator
    one the pruned catalog declares, every ref into a held partition and resolving *now*. Any finding goes back to the model as one line
    per error with the failed document; a second failure is `malformed`. Within one synthesis the
@@ -176,7 +176,7 @@ scenario, recorded as beat 5.
 **The stamp** (every relayed event, `metadata.a2uiverse`):
 
 ```json
-{"source": "gmail", "slot": "slot-gmail", "role": "fragment", "generations": {"gmail:inbox": 1}}
+{"source": "gmail", "role": "fragment", "generations": {"gmail:inbox": 1}}
 ```
 
 `generations` are per-surface counters the orchestrator bumps when an array is mutated in place.
@@ -274,7 +274,7 @@ inside a template. **The derived-value rule** (phase decision 18): a path whose 
 renders only through `DerivedValue`, and `DerivedValue` binds nothing else; `SortControl` binds
 `/sorts/N`. Literal props — headings, column labels — are presentation and the model's to write;
 a literal that restates a source's value is a copied value and is wrong there too. `Slot`,
-`Attribution` and `Frame` are the shell's own and never part of a merged view.
+`Attribution` is the shell's own and never part of a merged view.
 
 **The note.** What was delivered and why it differs from the brief, when it differs; on a
 re-synthesis, what changed. Journaled, never painted — the user never saw the brief (phase
