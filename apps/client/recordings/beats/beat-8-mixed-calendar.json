@@ -4,24 +4,50 @@
   "title": "Mixed utterance",
   "prompt": "What can I do with my calendar?",
   "model": "gemini-3.7-flash",
-  "recordedAt": "2026-09-13T08:30:42Z",
-  "contextId": "15f3090d-9de6-48d0-a007-9ec6335591e4",
+  "recordedAt": "2026-09-13T09:31:02Z",
+  "contextId": "556e4e2f-5aa0-4db9-9323-510435ab3a32",
   "chainedFrom": null,
   "turns": [
     {
-      "taskId": "4c4fc861-fa87-4f87-8ac8-da52153369a9",
+      "taskId": "b749d1bc-aebb-4d92-b86e-4e1d27ce673e",
       "kind": "utterance",
       "prompt": "What can I do with my calendar?",
       "action": null,
       "batches": [
         {
-          "offsetMs": 4101,
+          "offsetMs": 5453,
           "messages": [
             {
               "version": "v0.9",
               "createSurface": {
                 "surfaceId": "shell:main",
                 "catalogId": "https://github.com/retz8/a2uiverse/blob/main/packages/shell-catalog/catalogs/v0.9.1/catalog.json"
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "shell:main",
+                "value": {
+                  "calendar_skills": [
+                    {
+                      "name": "What is coming up",
+                      "description": "Finds what the user's calendar needs from them: what is on today and next, invitations still waiting on an answer, and where the day is double-booked."
+                    },
+                    {
+                      "name": "Looking at one event",
+                      "description": "Opens a single event and shows what it is: when and where, who is invited, who has accepted, and the notes that came with it."
+                    },
+                    {
+                      "name": "Putting something on the calendar",
+                      "description": "Proposes a new event — time, title, attendees — and creates it once the user confirms the proposal."
+                    },
+                    {
+                      "name": "Answering an invitation",
+                      "description": "Answers an invitation on the user's behalf: accept, decline, or mark it tentative."
+                    }
+                  ]
+                }
               }
             },
             {
@@ -33,15 +59,64 @@
                     "id": "root",
                     "component": "Column",
                     "children": [
-                      "heading",
+                      "calendar-heading",
+                      "calendar-description",
+                      "calendar-skills-heading",
+                      "calendar-skills-table",
                       "attribution-calendar-slot"
                     ]
                   },
                   {
-                    "id": "heading",
+                    "id": "calendar-heading",
                     "component": "Text",
                     "variant": "h3",
-                    "text": "Your Calendar"
+                    "text": "Google Calendar"
+                  },
+                  {
+                    "id": "calendar-description",
+                    "component": "Text",
+                    "variant": "body",
+                    "text": "Reads and acts on the user's Google Calendar: shows what is coming up and what is still unanswered, opens a single event with its attendees, proposes a new event for the user to confirm, and answers invitations on their behalf."
+                  },
+                  {
+                    "id": "calendar-skills-heading",
+                    "component": "Text",
+                    "variant": "h4",
+                    "text": "Skills"
+                  },
+                  {
+                    "id": "calendar-skills-table",
+                    "component": "Table",
+                    "columns": [
+                      "Skill",
+                      "Description"
+                    ],
+                    "children": {
+                      "path": "/calendar_skills",
+                      "componentId": "skill-row"
+                    }
+                  },
+                  {
+                    "id": "skill-row",
+                    "component": "TableRow",
+                    "children": [
+                      "skill-name",
+                      "skill-description"
+                    ]
+                  },
+                  {
+                    "id": "skill-name",
+                    "component": "Text",
+                    "text": {
+                      "path": "name"
+                    }
+                  },
+                  {
+                    "id": "skill-description",
+                    "component": "Text",
+                    "text": {
+                      "path": "description"
+                    }
                   },
                   {
                     "id": "attribution-calendar-slot",
@@ -68,10 +143,10 @@
           }
         },
         {
-          "offsetMs": 10464,
+          "offsetMs": 15128,
           "messages": [],
           "texts": [
-            "You can view your schedule, check pending invitations, propose and create new events, or respond to meeting invites."
+            "You can view your schedule, check for conflicts or unanswered invitations, respond to invites, and create new events on your calendar"
           ],
           "stamp": {
             "source": "calendar",
@@ -79,10 +154,10 @@
           }
         },
         {
-          "offsetMs": 10526,
+          "offsetMs": 15199,
           "messages": [],
           "texts": [
-            " I cannot modify or delete existing events, nor send email notifications to attendees.\n"
+            ". Note that existing events cannot be edited or deleted, and newly added guests will not receive email notifications.\n"
           ],
           "stamp": {
             "source": "calendar",
@@ -90,7 +165,7 @@
           }
         },
         {
-          "offsetMs": 10614,
+          "offsetMs": 15276,
           "messages": [
             {
               "version": "v0.9",
@@ -101,15 +176,64 @@
                     "id": "root",
                     "component": "Column",
                     "children": [
-                      "heading",
+                      "calendar-heading",
+                      "calendar-description",
+                      "calendar-skills-heading",
+                      "calendar-skills-table",
                       "attribution-calendar-slot"
                     ]
                   },
                   {
-                    "id": "heading",
+                    "id": "calendar-heading",
                     "component": "Text",
                     "variant": "h3",
-                    "text": "Your Calendar"
+                    "text": "Google Calendar"
+                  },
+                  {
+                    "id": "calendar-description",
+                    "component": "Text",
+                    "variant": "body",
+                    "text": "Reads and acts on the user's Google Calendar: shows what is coming up and what is still unanswered, opens a single event with its attendees, proposes a new event for the user to confirm, and answers invitations on their behalf."
+                  },
+                  {
+                    "id": "calendar-skills-heading",
+                    "component": "Text",
+                    "variant": "h4",
+                    "text": "Skills"
+                  },
+                  {
+                    "id": "calendar-skills-table",
+                    "component": "Table",
+                    "columns": [
+                      "Skill",
+                      "Description"
+                    ],
+                    "children": {
+                      "path": "/calendar_skills",
+                      "componentId": "skill-row"
+                    }
+                  },
+                  {
+                    "id": "skill-row",
+                    "component": "TableRow",
+                    "children": [
+                      "skill-name",
+                      "skill-description"
+                    ]
+                  },
+                  {
+                    "id": "skill-name",
+                    "component": "Text",
+                    "text": {
+                      "path": "name"
+                    }
+                  },
+                  {
+                    "id": "skill-description",
+                    "component": "Text",
+                    "text": {
+                      "path": "description"
+                    }
                   },
                   {
                     "id": "attribution-calendar-slot",
@@ -137,7 +261,7 @@
         }
       ],
       "outcome": "completed",
-      "durationMs": 10614
+      "durationMs": 15279
     }
   ]
 }

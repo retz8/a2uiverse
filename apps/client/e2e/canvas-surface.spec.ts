@@ -102,19 +102,22 @@ test('beat 6: a platform answer renders from its literal data model, no vendor d
 });
 
 /**
- * The mixed utterance (task 6.6 decision 8): the shell's own words and one vendor slot in one
- * layout. As recorded, Calendar answered in prose and never painted, so its slot rests on the
- * prose; the shell's heading stands above it.
+ * The mixed utterance (task 6.6 decision 8): the shell's own words from the installed-apps
+ * reader — Calendar's description and its skills, bound through the data model — and the one
+ * vendor slot in one layout. As recorded, Calendar answered in prose and never painted, so its
+ * slot rests on the prose.
  */
-test('beat 8: a mixed utterance carries the shell heading and the one vendor slot', async ({
+test('beat 8: a mixed utterance carries the reader\'s words and the one vendor slot', async ({
   page,
 }) => {
   await settle(page, '8');
   const stage = page.getByTestId('canvas-stage-content');
   await expect(stage).toHaveAttribute('data-slots', '1');
-  await expect(stage).toContainText('Your Calendar');
+  // The skill names are the card's, stable across recordings; the prose around them is not.
+  await expect(stage).toContainText('What is coming up');
+  await expect(stage).toContainText('Answering an invitation');
   await expect(page.locator('[data-slot-gap]')).toHaveCount(0);
-  await expect(page.locator('[data-slot-resting="prose"]')).toContainText('schedule');
+  await expect(page.locator('[data-slot-resting="prose"]')).toHaveCount(1);
 });
 
 test('beat 7: a capability gap is the tile, and the tile opens the Store with the gap', async ({
