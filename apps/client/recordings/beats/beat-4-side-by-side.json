@@ -1,0 +1,4173 @@
+{
+  "name": "beat-4-side-by-side",
+  "beat": 4,
+  "title": "Side by side",
+  "prompt": "Put my inbox and my calendar side by side.",
+  "model": "gemini-3.7-flash",
+  "recordedAt": "2026-09-13T08:30:32Z",
+  "contextId": "c64750fd-3d61-418b-a368-315f2b19f48b",
+  "chainedFrom": null,
+  "turns": [
+    {
+      "taskId": "443caffb-09f2-491a-ae5a-326907ef25c8",
+      "kind": "utterance",
+      "prompt": "Put my inbox and my calendar side by side.",
+      "action": null,
+      "batches": [
+        {
+          "offsetMs": 2714,
+          "messages": [
+            {
+              "version": "v0.9",
+              "createSurface": {
+                "surfaceId": "shell:main",
+                "catalogId": "https://github.com/retz8/a2uiverse/blob/main/packages/shell-catalog/catalogs/v0.9.1/catalog.json"
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "surfaceId": "shell:main",
+                "components": [
+                  {
+                    "id": "root",
+                    "component": "Row",
+                    "children": [
+                      "attribution-gmail-slot",
+                      "attribution-calendar-slot"
+                    ]
+                  },
+                  {
+                    "id": "attribution-gmail-slot",
+                    "component": "Attribution",
+                    "displayName": "Gmail",
+                    "appId": "gmail",
+                    "child": "gmail-slot",
+                    "weight": 1
+                  },
+                  {
+                    "id": "gmail-slot",
+                    "component": "Slot",
+                    "source": "gmail",
+                    "weight": 1,
+                    "state": "pending",
+                    "label": "Gmail"
+                  },
+                  {
+                    "id": "attribution-calendar-slot",
+                    "component": "Attribution",
+                    "displayName": "Google Calendar",
+                    "appId": "calendar",
+                    "child": "calendar-slot",
+                    "weight": 1
+                  },
+                  {
+                    "id": "calendar-slot",
+                    "component": "Slot",
+                    "source": "calendar",
+                    "weight": 1,
+                    "state": "pending",
+                    "label": "Google Calendar"
+                  }
+                ]
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "shell",
+            "role": "shell"
+          }
+        },
+        {
+          "offsetMs": 17699,
+          "messages": [],
+          "texts": [
+            "\n"
+          ],
+          "stamp": {
+            "source": "calendar",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 17902,
+          "messages": [
+            {
+              "version": "v0.9",
+              "createSurface": {
+                "surfaceId": "calendar:today-agenda",
+                "catalogId": "https://github.com/retz8/a2uiverse-apps/blob/main/calendar/calendar-catalog/catalogs/v0.9.1/catalog.json",
+                "sendDataModel": true
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "calendar",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 18235,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "calendar:today-agenda",
+                "value": {
+                  "events": [
+                    {
+                      "id": "p44615tp6nnnf9nq66dnk6k0bc",
+                      "when": "09:30 – 09:45",
+                      "summary": "Team standup",
+                      "location": "Meet"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "calendar",
+            "role": "fragment",
+            "generations": {
+              "calendar:today-agenda": 1
+            }
+          }
+        },
+        {
+          "offsetMs": 18311,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "calendar:today-agenda",
+                "value": {
+                  "events": [
+                    {
+                      "id": "p44615tp6nnnf9nq66dnk6k0bc",
+                      "when": "09:30 – 09:45",
+                      "summary": "Team standup",
+                      "location": "Meet"
+                    },
+                    {
+                      "id": "ectktv0lkuauv7g3i8hgpmhelg"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "calendar",
+            "role": "fragment",
+            "generations": {
+              "calendar:today-agenda": 2
+            }
+          }
+        },
+        {
+          "offsetMs": 18393,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "calendar:today-agenda",
+                "value": {
+                  "events": [
+                    {
+                      "id": "p44615tp6nnnf9nq66dnk6k0bc",
+                      "when": "09:30 – 09:45",
+                      "summary": "Team standup",
+                      "location": "Meet"
+                    },
+                    {
+                      "id": "ectktv0lkuauv7g3i8hgpmhelg",
+                      "when": "11:00 – 12:00"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "calendar",
+            "role": "fragment",
+            "generations": {
+              "calendar:today-agenda": 3
+            }
+          }
+        },
+        {
+          "offsetMs": 18566,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "calendar:today-agenda",
+                "value": {
+                  "events": [
+                    {
+                      "id": "p44615tp6nnnf9nq66dnk6k0bc",
+                      "when": "09:30 – 09:45",
+                      "summary": "Team standup",
+                      "location": "Meet"
+                    },
+                    {
+                      "id": "ectktv0lkuauv7g3i8hgpmhelg",
+                      "when": "11:00 – 12:00",
+                      "summary": "Design review — agenda surface",
+                      "location": "Room 4B"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "calendar",
+            "role": "fragment",
+            "generations": {
+              "calendar:today-agenda": 4
+            }
+          }
+        },
+        {
+          "offsetMs": 18645,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "calendar:today-agenda",
+                "value": {
+                  "events": [
+                    {
+                      "id": "p44615tp6nnnf9nq66dnk6k0bc",
+                      "when": "09:30 – 09:45",
+                      "summary": "Team standup",
+                      "location": "Meet"
+                    },
+                    {
+                      "id": "ectktv0lkuauv7g3i8hgpmhelg",
+                      "when": "11:00 – 12:00",
+                      "summary": "Design review — agenda surface",
+                      "location": "Room 4B"
+                    },
+                    {
+                      "id": "10fs9gng8s8tdtlejrpim3106g"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "calendar",
+            "role": "fragment",
+            "generations": {
+              "calendar:today-agenda": 5
+            }
+          }
+        },
+        {
+          "offsetMs": 18703,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "calendar:today-agenda",
+                "value": {
+                  "events": [
+                    {
+                      "id": "p44615tp6nnnf9nq66dnk6k0bc",
+                      "when": "09:30 – 09:45",
+                      "summary": "Team standup",
+                      "location": "Meet"
+                    },
+                    {
+                      "id": "ectktv0lkuauv7g3i8hgpmhelg",
+                      "when": "11:00 – 12:00",
+                      "summary": "Design review — agenda surface",
+                      "location": "Room 4B"
+                    },
+                    {
+                      "id": "10fs9gng8s8tdtlejrpim3106g",
+                      "when": "11:30 – 12:15"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "calendar",
+            "role": "fragment",
+            "generations": {
+              "calendar:today-agenda": 6
+            }
+          }
+        },
+        {
+          "offsetMs": 18765,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "calendar:today-agenda",
+                "value": {
+                  "events": [
+                    {
+                      "id": "p44615tp6nnnf9nq66dnk6k0bc",
+                      "when": "09:30 – 09:45",
+                      "summary": "Team standup",
+                      "location": "Meet"
+                    },
+                    {
+                      "id": "ectktv0lkuauv7g3i8hgpmhelg",
+                      "when": "11:00 – 12:00",
+                      "summary": "Design review — agenda surface",
+                      "location": "Room 4B"
+                    },
+                    {
+                      "id": "10fs9gng8s8tdtlejrpim3106g",
+                      "when": "11:30 – 12:15",
+                      "summary": "Budget sync",
+                      "location": ""
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "calendar",
+            "role": "fragment",
+            "generations": {
+              "calendar:today-agenda": 7
+            }
+          }
+        },
+        {
+          "offsetMs": 18830,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "calendar:today-agenda",
+                "value": {
+                  "events": [
+                    {
+                      "id": "p44615tp6nnnf9nq66dnk6k0bc",
+                      "when": "09:30 – 09:45",
+                      "summary": "Team standup",
+                      "location": "Meet"
+                    },
+                    {
+                      "id": "ectktv0lkuauv7g3i8hgpmhelg",
+                      "when": "11:00 – 12:00",
+                      "summary": "Design review — agenda surface",
+                      "location": "Room 4B"
+                    },
+                    {
+                      "id": "10fs9gng8s8tdtlejrpim3106g",
+                      "when": "11:30 – 12:15",
+                      "summary": "Budget sync",
+                      "location": ""
+                    },
+                    {
+                      "id": "5btjmc97bdtkkqdnq8ubddipfg"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "calendar",
+            "role": "fragment",
+            "generations": {
+              "calendar:today-agenda": 8
+            }
+          }
+        },
+        {
+          "offsetMs": 18896,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "calendar:today-agenda",
+                "value": {
+                  "events": [
+                    {
+                      "id": "p44615tp6nnnf9nq66dnk6k0bc",
+                      "when": "09:30 – 09:45",
+                      "summary": "Team standup",
+                      "location": "Meet"
+                    },
+                    {
+                      "id": "ectktv0lkuauv7g3i8hgpmhelg",
+                      "when": "11:00 – 12:00",
+                      "summary": "Design review — agenda surface",
+                      "location": "Room 4B"
+                    },
+                    {
+                      "id": "10fs9gng8s8tdtlejrpim3106g",
+                      "when": "11:30 – 12:15",
+                      "summary": "Budget sync",
+                      "location": ""
+                    },
+                    {
+                      "id": "5btjmc97bdtkkqdnq8ubddipfg",
+                      "when": "14:00 – 16:00",
+                      "summary": "Writing time",
+                      "location": ""
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "calendar",
+            "role": "fragment",
+            "generations": {
+              "calendar:today-agenda": 9
+            }
+          }
+        },
+        {
+          "offsetMs": 18956,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "calendar:today-agenda",
+                "path": "/",
+                "value": {
+                  "events": [
+                    {
+                      "id": "p44615tp6nnnf9nq66dnk6k0bc",
+                      "when": "09:30 – 09:45",
+                      "summary": "Team standup",
+                      "location": "Meet"
+                    },
+                    {
+                      "id": "ectktv0lkuauv7g3i8hgpmhelg",
+                      "when": "11:00 – 12:00",
+                      "summary": "Design review — agenda surface",
+                      "location": "Room 4B"
+                    },
+                    {
+                      "id": "10fs9gng8s8tdtlejrpim3106g",
+                      "when": "11:30 – 12:15",
+                      "summary": "Budget sync",
+                      "location": ""
+                    },
+                    {
+                      "id": "5btjmc97bdtkkqdnq8ubddipfg",
+                      "when": "14:00 – 16:00",
+                      "summary": "Writing time",
+                      "location": ""
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "calendar",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 19160,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "body",
+                    "component": "Column",
+                    "children": [
+                      "loading_heading",
+                      "loading_events-list"
+                    ]
+                  },
+                  {
+                    "id": "root",
+                    "component": "Card",
+                    "child": "body"
+                  },
+                  {
+                    "id": "loading_heading",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_events-list",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "calendar:today-agenda"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "calendar",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 19500,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "body",
+                    "component": "Column",
+                    "children": [
+                      "heading",
+                      "events-list"
+                    ]
+                  },
+                  {
+                    "id": "events-list",
+                    "component": "Column"
+                  },
+                  {
+                    "id": "heading",
+                    "component": "Text",
+                    "variant": "h3",
+                    "text": "Today"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Card",
+                    "child": "body"
+                  }
+                ],
+                "surfaceId": "calendar:today-agenda"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "calendar",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 19636,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "body",
+                    "component": "Column",
+                    "children": [
+                      "heading",
+                      "events-list"
+                    ]
+                  },
+                  {
+                    "id": "events-list",
+                    "component": "Column",
+                    "children": {
+                      "path": "/events",
+                      "componentId": "loading_event-row"
+                    }
+                  },
+                  {
+                    "id": "heading",
+                    "component": "Text",
+                    "variant": "h3",
+                    "text": "Today"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Card",
+                    "child": "body"
+                  },
+                  {
+                    "id": "loading_event-row",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "calendar:today-agenda"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "calendar",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 19725,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "body",
+                    "component": "Column",
+                    "children": [
+                      "heading",
+                      "events-list"
+                    ]
+                  },
+                  {
+                    "id": "event-row",
+                    "component": "Button",
+                    "variant": "borderless",
+                    "child": "loading_event-content"
+                  },
+                  {
+                    "id": "events-list",
+                    "component": "Column",
+                    "children": {
+                      "path": "/events",
+                      "componentId": "event-row"
+                    }
+                  },
+                  {
+                    "id": "heading",
+                    "component": "Text",
+                    "variant": "h3",
+                    "text": "Today"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Card",
+                    "child": "body"
+                  },
+                  {
+                    "id": "loading_event-content",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "calendar:today-agenda"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "calendar",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 19865,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "body",
+                    "component": "Column",
+                    "children": [
+                      "heading",
+                      "events-list"
+                    ]
+                  },
+                  {
+                    "id": "event-row",
+                    "component": "Button",
+                    "variant": "borderless",
+                    "child": "loading_event-content",
+                    "action": {
+                      "event": {
+                        "name": "open-event",
+                        "context": {
+                          "eventId": {
+                            "path": "id"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "events-list",
+                    "component": "Column",
+                    "children": {
+                      "path": "/events",
+                      "componentId": "event-row"
+                    }
+                  },
+                  {
+                    "id": "heading",
+                    "component": "Text",
+                    "variant": "h3",
+                    "text": "Today"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Card",
+                    "child": "body"
+                  },
+                  {
+                    "id": "loading_event-content",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "calendar:today-agenda"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "calendar",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 19999,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "body",
+                    "component": "Column",
+                    "children": [
+                      "heading",
+                      "events-list"
+                    ]
+                  },
+                  {
+                    "id": "event-content",
+                    "component": "Column",
+                    "children": [
+                      "loading_event-top",
+                      "loading_event-location"
+                    ]
+                  },
+                  {
+                    "id": "event-row",
+                    "component": "Button",
+                    "variant": "borderless",
+                    "child": "event-content",
+                    "action": {
+                      "event": {
+                        "name": "open-event",
+                        "context": {
+                          "eventId": {
+                            "path": "id"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "events-list",
+                    "component": "Column",
+                    "children": {
+                      "path": "/events",
+                      "componentId": "event-row"
+                    }
+                  },
+                  {
+                    "id": "heading",
+                    "component": "Text",
+                    "variant": "h3",
+                    "text": "Today"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Card",
+                    "child": "body"
+                  },
+                  {
+                    "id": "loading_event-top",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_event-location",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "calendar:today-agenda"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "calendar",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 20142,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "body",
+                    "component": "Column",
+                    "children": [
+                      "heading",
+                      "events-list"
+                    ]
+                  },
+                  {
+                    "id": "event-content",
+                    "component": "Column",
+                    "children": [
+                      "event-top",
+                      "loading_event-location"
+                    ]
+                  },
+                  {
+                    "id": "event-row",
+                    "component": "Button",
+                    "variant": "borderless",
+                    "child": "event-content",
+                    "action": {
+                      "event": {
+                        "name": "open-event",
+                        "context": {
+                          "eventId": {
+                            "path": "id"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "event-top",
+                    "component": "Row",
+                    "align": "center",
+                    "children": [
+                      "loading_event-when",
+                      "loading_event-summary"
+                    ]
+                  },
+                  {
+                    "id": "events-list",
+                    "component": "Column",
+                    "children": {
+                      "path": "/events",
+                      "componentId": "event-row"
+                    }
+                  },
+                  {
+                    "id": "heading",
+                    "component": "Text",
+                    "variant": "h3",
+                    "text": "Today"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Card",
+                    "child": "body"
+                  },
+                  {
+                    "id": "loading_event-location",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_event-when",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_event-summary",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "calendar:today-agenda"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "calendar",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 20272,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "body",
+                    "component": "Column",
+                    "children": [
+                      "heading",
+                      "events-list"
+                    ]
+                  },
+                  {
+                    "id": "event-content",
+                    "component": "Column",
+                    "children": [
+                      "event-top",
+                      "loading_event-location"
+                    ]
+                  },
+                  {
+                    "id": "event-row",
+                    "component": "Button",
+                    "variant": "borderless",
+                    "child": "event-content",
+                    "action": {
+                      "event": {
+                        "name": "open-event",
+                        "context": {
+                          "eventId": {
+                            "path": "id"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "event-top",
+                    "component": "Row",
+                    "align": "center",
+                    "children": [
+                      "event-when",
+                      "loading_event-summary"
+                    ]
+                  },
+                  {
+                    "id": "event-when",
+                    "component": "Text",
+                    "text": {
+                      "path": "when"
+                    }
+                  },
+                  {
+                    "id": "events-list",
+                    "component": "Column",
+                    "children": {
+                      "path": "/events",
+                      "componentId": "event-row"
+                    }
+                  },
+                  {
+                    "id": "heading",
+                    "component": "Text",
+                    "variant": "h3",
+                    "text": "Today"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Card",
+                    "child": "body"
+                  },
+                  {
+                    "id": "loading_event-location",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_event-summary",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "calendar:today-agenda"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "calendar",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 20340,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "body",
+                    "component": "Column",
+                    "children": [
+                      "heading",
+                      "events-list"
+                    ]
+                  },
+                  {
+                    "id": "event-content",
+                    "component": "Column",
+                    "children": [
+                      "event-top",
+                      "loading_event-location"
+                    ]
+                  },
+                  {
+                    "id": "event-row",
+                    "component": "Button",
+                    "variant": "borderless",
+                    "child": "event-content",
+                    "action": {
+                      "event": {
+                        "name": "open-event",
+                        "context": {
+                          "eventId": {
+                            "path": "id"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "event-summary",
+                    "component": "Text",
+                    "text": {
+                      "path": "summary"
+                    }
+                  },
+                  {
+                    "id": "event-top",
+                    "component": "Row",
+                    "align": "center",
+                    "children": [
+                      "event-when",
+                      "event-summary"
+                    ]
+                  },
+                  {
+                    "id": "event-when",
+                    "component": "Text",
+                    "text": {
+                      "path": "when"
+                    }
+                  },
+                  {
+                    "id": "events-list",
+                    "component": "Column",
+                    "children": {
+                      "path": "/events",
+                      "componentId": "event-row"
+                    }
+                  },
+                  {
+                    "id": "heading",
+                    "component": "Text",
+                    "variant": "h3",
+                    "text": "Today"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Card",
+                    "child": "body"
+                  },
+                  {
+                    "id": "loading_event-location",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "calendar:today-agenda"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "calendar",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 20503,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "body",
+                    "component": "Column",
+                    "children": [
+                      "heading",
+                      "events-list"
+                    ]
+                  },
+                  {
+                    "id": "event-content",
+                    "component": "Column",
+                    "children": [
+                      "event-top",
+                      "event-location"
+                    ]
+                  },
+                  {
+                    "id": "event-location",
+                    "component": "Text",
+                    "variant": "caption",
+                    "text": {
+                      "path": "location"
+                    }
+                  },
+                  {
+                    "id": "event-row",
+                    "component": "Button",
+                    "variant": "borderless",
+                    "child": "event-content",
+                    "action": {
+                      "event": {
+                        "name": "open-event",
+                        "context": {
+                          "eventId": {
+                            "path": "id"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "event-summary",
+                    "component": "Text",
+                    "text": {
+                      "path": "summary"
+                    }
+                  },
+                  {
+                    "id": "event-top",
+                    "component": "Row",
+                    "align": "center",
+                    "children": [
+                      "event-when",
+                      "event-summary"
+                    ]
+                  },
+                  {
+                    "id": "event-when",
+                    "component": "Text",
+                    "text": {
+                      "path": "when"
+                    }
+                  },
+                  {
+                    "id": "events-list",
+                    "component": "Column",
+                    "children": {
+                      "path": "/events",
+                      "componentId": "event-row"
+                    }
+                  },
+                  {
+                    "id": "heading",
+                    "component": "Text",
+                    "variant": "h3",
+                    "text": "Today"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Card",
+                    "child": "body"
+                  }
+                ],
+                "surfaceId": "calendar:today-agenda"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "calendar",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 29197,
+          "messages": [],
+          "texts": [
+            "\n"
+          ],
+          "stamp": {
+            "source": "gmail",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 29284,
+          "messages": [
+            {
+              "version": "v0.9",
+              "createSurface": {
+                "surfaceId": "gmail:needs-reply",
+                "catalogId": "https://github.com/retz8/a2uiverse-apps/blob/main/gmail/gmail-catalog/catalogs/v0.9.1/catalog.json",
+                "sendDataModel": true
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 29634,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail:needs-reply",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "1a09890ef58059d6",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "meeting revision schedule reply review review review attached "
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "role": "fragment",
+            "generations": {
+              "gmail:needs-reply": 1
+            }
+          }
+        },
+        {
+          "offsetMs": 29760,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail:needs-reply",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "1a09890ef58059d6",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "meeting revision schedule reply review review review attached ",
+                      "snippet": "estimate agenda status thread section estimate question agenda update status pending estimate notes question notes notes status timeline review notes thread agenda schedule thread notes feedback revisi"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "role": "fragment",
+            "generations": {
+              "gmail:needs-reply": 2
+            }
+          }
+        },
+        {
+          "offsetMs": 29827,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail:needs-reply",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "1a09890ef58059d6",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "meeting revision schedule reply review review review attached ",
+                      "snippet": "estimate agenda status thread section estimate question agenda update status pending estimate notes question notes notes status timeline review notes thread agenda schedule thread notes feedback revisi",
+                      "when": "Sep 13, 02:20"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "role": "fragment",
+            "generations": {
+              "gmail:needs-reply": 3
+            }
+          }
+        },
+        {
+          "offsetMs": 29887,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail:needs-reply",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "1a09890ef58059d6",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "meeting revision schedule reply review review review attached ",
+                      "snippet": "estimate agenda status thread section estimate question agenda update status pending estimate notes question notes notes status timeline review notes thread agenda schedule thread notes feedback revisi",
+                      "when": "Sep 13, 02:20"
+                    },
+                    {
+                      "id": "1a098230632d734d",
+                      "sender": "sara.moreau@example.com"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "role": "fragment",
+            "generations": {
+              "gmail:needs-reply": 4
+            }
+          }
+        },
+        {
+          "offsetMs": 29949,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail:needs-reply",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "1a09890ef58059d6",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "meeting revision schedule reply review review review attached ",
+                      "snippet": "estimate agenda status thread section estimate question agenda update status pending estimate notes question notes notes status timeline review notes thread agenda schedule thread notes feedback revisi",
+                      "when": "Sep 13, 02:20"
+                    },
+                    {
+                      "id": "1a098230632d734d",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "estimate attached section update reply follow "
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "role": "fragment",
+            "generations": {
+              "gmail:needs-reply": 5
+            }
+          }
+        },
+        {
+          "offsetMs": 30021,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail:needs-reply",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "1a09890ef58059d6",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "meeting revision schedule reply review review review attached ",
+                      "snippet": "estimate agenda status thread section estimate question agenda update status pending estimate notes question notes notes status timeline review notes thread agenda schedule thread notes feedback revisi",
+                      "when": "Sep 13, 02:20"
+                    },
+                    {
+                      "id": "1a098230632d734d",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "estimate attached section update reply follow ",
+                      "snippet": "estimate reply section revision question timeline revision revision reply question notes thread draft notes notes reply status proposal confirm agenda meeting notes summary summary status schedule atta"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "role": "fragment",
+            "generations": {
+              "gmail:needs-reply": 6
+            }
+          }
+        },
+        {
+          "offsetMs": 30088,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail:needs-reply",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "1a09890ef58059d6",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "meeting revision schedule reply review review review attached ",
+                      "snippet": "estimate agenda status thread section estimate question agenda update status pending estimate notes question notes notes status timeline review notes thread agenda schedule thread notes feedback revisi",
+                      "when": "Sep 13, 02:20"
+                    },
+                    {
+                      "id": "1a098230632d734d",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "estimate attached section update reply follow ",
+                      "snippet": "estimate reply section revision question timeline revision revision reply question notes thread draft notes notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
+                      "when": "Sep 13, 00:20"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "role": "fragment",
+            "generations": {
+              "gmail:needs-reply": 7
+            }
+          }
+        },
+        {
+          "offsetMs": 30157,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail:needs-reply",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "1a09890ef58059d6",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "meeting revision schedule reply review review review attached ",
+                      "snippet": "estimate agenda status thread section estimate question agenda update status pending estimate notes question notes notes status timeline review notes thread agenda schedule thread notes feedback revisi",
+                      "when": "Sep 13, 02:20"
+                    },
+                    {
+                      "id": "1a098230632d734d",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "estimate attached section update reply follow ",
+                      "snippet": "estimate reply section revision question timeline revision revision reply question notes thread draft notes notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
+                      "when": "Sep 13, 00:20"
+                    },
+                    {
+                      "id": "1a09728f50acef63"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "role": "fragment",
+            "generations": {
+              "gmail:needs-reply": 8
+            }
+          }
+        },
+        {
+          "offsetMs": 30227,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail:needs-reply",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "1a09890ef58059d6",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "meeting revision schedule reply review review review attached ",
+                      "snippet": "estimate agenda status thread section estimate question agenda update status pending estimate notes question notes notes status timeline review notes thread agenda schedule thread notes feedback revisi",
+                      "when": "Sep 13, 02:20"
+                    },
+                    {
+                      "id": "1a098230632d734d",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "estimate attached section update reply follow ",
+                      "snippet": "estimate reply section revision question timeline revision revision reply question notes thread draft notes notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
+                      "when": "Sep 13, 00:20"
+                    },
+                    {
+                      "id": "1a09728f50acef63",
+                      "sender": "nora.haddad@example.com",
+                      "subject": "review proposal attached draft "
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "role": "fragment",
+            "generations": {
+              "gmail:needs-reply": 9
+            }
+          }
+        },
+        {
+          "offsetMs": 30353,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail:needs-reply",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "1a09890ef58059d6",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "meeting revision schedule reply review review review attached ",
+                      "snippet": "estimate agenda status thread section estimate question agenda update status pending estimate notes question notes notes status timeline review notes thread agenda schedule thread notes feedback revisi",
+                      "when": "Sep 13, 02:20"
+                    },
+                    {
+                      "id": "1a098230632d734d",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "estimate attached section update reply follow ",
+                      "snippet": "estimate reply section revision question timeline revision revision reply question notes thread draft notes notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
+                      "when": "Sep 13, 00:20"
+                    },
+                    {
+                      "id": "1a09728f50acef63",
+                      "sender": "nora.haddad@example.com",
+                      "subject": "review proposal attached draft ",
+                      "snippet": "thread question confirm update update section review review follow schedule summary attached follow notes agenda timeline feedback thread thread section review status follow thread timeline notes atta",
+                      "when": "Sep 12, 19:46"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "role": "fragment",
+            "generations": {
+              "gmail:needs-reply": 10
+            }
+          }
+        },
+        {
+          "offsetMs": 30484,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail:needs-reply",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "1a09890ef58059d6",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "meeting revision schedule reply review review review attached ",
+                      "snippet": "estimate agenda status thread section estimate question agenda update status pending estimate notes question notes notes status timeline review notes thread agenda schedule thread notes feedback revisi",
+                      "when": "Sep 13, 02:20"
+                    },
+                    {
+                      "id": "1a098230632d734d",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "estimate attached section update reply follow ",
+                      "snippet": "estimate reply section revision question timeline revision revision reply question notes thread draft notes notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
+                      "when": "Sep 13, 00:20"
+                    },
+                    {
+                      "id": "1a09728f50acef63",
+                      "sender": "nora.haddad@example.com",
+                      "subject": "review proposal attached draft ",
+                      "snippet": "thread question confirm update update section review review follow schedule summary attached follow notes agenda timeline feedback thread thread section review status follow thread timeline notes atta",
+                      "when": "Sep 12, 19:46"
+                    },
+                    {
+                      "id": "1a0966b85773346b",
+                      "sender": "elin.silva@example.com"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "role": "fragment",
+            "generations": {
+              "gmail:needs-reply": 11
+            }
+          }
+        },
+        {
+          "offsetMs": 30556,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail:needs-reply",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "1a09890ef58059d6",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "meeting revision schedule reply review review review attached ",
+                      "snippet": "estimate agenda status thread section estimate question agenda update status pending estimate notes question notes notes status timeline review notes thread agenda schedule thread notes feedback revisi",
+                      "when": "Sep 13, 02:20"
+                    },
+                    {
+                      "id": "1a098230632d734d",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "estimate attached section update reply follow ",
+                      "snippet": "estimate reply section revision question timeline revision revision reply question notes thread draft notes notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
+                      "when": "Sep 13, 00:20"
+                    },
+                    {
+                      "id": "1a09728f50acef63",
+                      "sender": "nora.haddad@example.com",
+                      "subject": "review proposal attached draft ",
+                      "snippet": "thread question confirm update update section review review follow schedule summary attached follow notes agenda timeline feedback thread thread section review status follow thread timeline notes atta",
+                      "when": "Sep 12, 19:46"
+                    },
+                    {
+                      "id": "1a0966b85773346b",
+                      "sender": "elin.silva@example.com",
+                      "subject": "thread feedback section thread update a"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "role": "fragment",
+            "generations": {
+              "gmail:needs-reply": 12
+            }
+          }
+        },
+        {
+          "offsetMs": 30617,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail:needs-reply",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "1a09890ef58059d6",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "meeting revision schedule reply review review review attached ",
+                      "snippet": "estimate agenda status thread section estimate question agenda update status pending estimate notes question notes notes status timeline review notes thread agenda schedule thread notes feedback revisi",
+                      "when": "Sep 13, 02:20"
+                    },
+                    {
+                      "id": "1a098230632d734d",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "estimate attached section update reply follow ",
+                      "snippet": "estimate reply section revision question timeline revision revision reply question notes thread draft notes notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
+                      "when": "Sep 13, 00:20"
+                    },
+                    {
+                      "id": "1a09728f50acef63",
+                      "sender": "nora.haddad@example.com",
+                      "subject": "review proposal attached draft ",
+                      "snippet": "thread question confirm update update section review review follow schedule summary attached follow notes agenda timeline feedback thread thread section review status follow thread timeline notes atta",
+                      "when": "Sep 12, 19:46"
+                    },
+                    {
+                      "id": "1a0966b85773346b",
+                      "sender": "elin.silva@example.com",
+                      "subject": "thread feedback section thread update a",
+                      "snippet": "thread update question thread follow review reply pending notes reply meeting schedule notes update update thread repl"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "role": "fragment",
+            "generations": {
+              "gmail:needs-reply": 13
+            }
+          }
+        },
+        {
+          "offsetMs": 30686,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail:needs-reply",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "1a09890ef58059d6",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "meeting revision schedule reply review review review attached ",
+                      "snippet": "estimate agenda status thread section estimate question agenda update status pending estimate notes question notes notes status timeline review notes thread agenda schedule thread notes feedback revisi",
+                      "when": "Sep 13, 02:20"
+                    },
+                    {
+                      "id": "1a098230632d734d",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "estimate attached section update reply follow ",
+                      "snippet": "estimate reply section revision question timeline revision revision reply question notes thread draft notes notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
+                      "when": "Sep 13, 00:20"
+                    },
+                    {
+                      "id": "1a09728f50acef63",
+                      "sender": "nora.haddad@example.com",
+                      "subject": "review proposal attached draft ",
+                      "snippet": "thread question confirm update update section review review follow schedule summary attached follow notes agenda timeline feedback thread thread section review status follow thread timeline notes atta",
+                      "when": "Sep 12, 19:46"
+                    },
+                    {
+                      "id": "1a0966b85773346b",
+                      "sender": "elin.silva@example.com",
+                      "subject": "thread feedback section thread update a",
+                      "snippet": "thread update question thread follow review reply pending notes reply meeting schedule notes update update thread repl",
+                      "when": "Sep 12, 16:19"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "role": "fragment",
+            "generations": {
+              "gmail:needs-reply": 14
+            }
+          }
+        },
+        {
+          "offsetMs": 30742,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail:needs-reply",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "1a09890ef58059d6",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "meeting revision schedule reply review review review attached ",
+                      "snippet": "estimate agenda status thread section estimate question agenda update status pending estimate notes question notes notes status timeline review notes thread agenda schedule thread notes feedback revisi",
+                      "when": "Sep 13, 02:20"
+                    },
+                    {
+                      "id": "1a098230632d734d",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "estimate attached section update reply follow ",
+                      "snippet": "estimate reply section revision question timeline revision revision reply question notes thread draft notes notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
+                      "when": "Sep 13, 00:20"
+                    },
+                    {
+                      "id": "1a09728f50acef63",
+                      "sender": "nora.haddad@example.com",
+                      "subject": "review proposal attached draft ",
+                      "snippet": "thread question confirm update update section review review follow schedule summary attached follow notes agenda timeline feedback thread thread section review status follow thread timeline notes atta",
+                      "when": "Sep 12, 19:46"
+                    },
+                    {
+                      "id": "1a0966b85773346b",
+                      "sender": "elin.silva@example.com",
+                      "subject": "thread feedback section thread update a",
+                      "snippet": "thread update question thread follow review reply pending notes reply meeting schedule notes update update thread repl",
+                      "when": "Sep 12, 16:19"
+                    },
+                    {
+                      "id": "1a096413488c34d5",
+                      "sender": "nora.haddad@example.com"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "role": "fragment",
+            "generations": {
+              "gmail:needs-reply": 15
+            }
+          }
+        },
+        {
+          "offsetMs": 30863,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail:needs-reply",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "1a09890ef58059d6",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "meeting revision schedule reply review review review attached ",
+                      "snippet": "estimate agenda status thread section estimate question agenda update status pending estimate notes question notes notes status timeline review notes thread agenda schedule thread notes feedback revisi",
+                      "when": "Sep 13, 02:20"
+                    },
+                    {
+                      "id": "1a098230632d734d",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "estimate attached section update reply follow ",
+                      "snippet": "estimate reply section revision question timeline revision revision reply question notes thread draft notes notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
+                      "when": "Sep 13, 00:20"
+                    },
+                    {
+                      "id": "1a09728f50acef63",
+                      "sender": "nora.haddad@example.com",
+                      "subject": "review proposal attached draft ",
+                      "snippet": "thread question confirm update update section review review follow schedule summary attached follow notes agenda timeline feedback thread thread section review status follow thread timeline notes atta",
+                      "when": "Sep 12, 19:46"
+                    },
+                    {
+                      "id": "1a0966b85773346b",
+                      "sender": "elin.silva@example.com",
+                      "subject": "thread feedback section thread update a",
+                      "snippet": "thread update question thread follow review reply pending notes reply meeting schedule notes update update thread repl",
+                      "when": "Sep 12, 16:19"
+                    },
+                    {
+                      "id": "1a096413488c34d5",
+                      "sender": "nora.haddad@example.com",
+                      "subject": "proposal feedback agenda proposal notes update draft follow agenda pending agenda notes status confirm upda"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "role": "fragment",
+            "generations": {
+              "gmail:needs-reply": 16
+            }
+          }
+        },
+        {
+          "offsetMs": 31027,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail:needs-reply",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "1a09890ef58059d6",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "meeting revision schedule reply review review review attached ",
+                      "snippet": "estimate agenda status thread section estimate question agenda update status pending estimate notes question notes notes status timeline review notes thread agenda schedule thread notes feedback revisi",
+                      "when": "Sep 13, 02:20"
+                    },
+                    {
+                      "id": "1a098230632d734d",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "estimate attached section update reply follow ",
+                      "snippet": "estimate reply section revision question timeline revision revision reply question notes thread draft notes notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
+                      "when": "Sep 13, 00:20"
+                    },
+                    {
+                      "id": "1a09728f50acef63",
+                      "sender": "nora.haddad@example.com",
+                      "subject": "review proposal attached draft ",
+                      "snippet": "thread question confirm update update section review review follow schedule summary attached follow notes agenda timeline feedback thread thread section review status follow thread timeline notes atta",
+                      "when": "Sep 12, 19:46"
+                    },
+                    {
+                      "id": "1a0966b85773346b",
+                      "sender": "elin.silva@example.com",
+                      "subject": "thread feedback section thread update a",
+                      "snippet": "thread update question thread follow review reply pending notes reply meeting schedule notes update update thread repl",
+                      "when": "Sep 12, 16:19"
+                    },
+                    {
+                      "id": "1a096413488c34d5",
+                      "sender": "nora.haddad@example.com",
+                      "subject": "proposal feedback agenda proposal notes update draft follow agenda pending agenda notes status confirm upda",
+                      "snippet": "estimate revision notes attached attached summary confirm timeline update update timeline feedback revision follow notes feedback feedback status confirm section reply summary review section notes est",
+                      "when": "Sep 12, 15:32"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "role": "fragment",
+            "generations": {
+              "gmail:needs-reply": 17
+            }
+          }
+        },
+        {
+          "offsetMs": 31175,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail:needs-reply",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "1a09890ef58059d6",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "meeting revision schedule reply review review review attached ",
+                      "snippet": "estimate agenda status thread section estimate question agenda update status pending estimate notes question notes notes status timeline review notes thread agenda schedule thread notes feedback revisi",
+                      "when": "Sep 13, 02:20"
+                    },
+                    {
+                      "id": "1a098230632d734d",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "estimate attached section update reply follow ",
+                      "snippet": "estimate reply section revision question timeline revision revision reply question notes thread draft notes notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
+                      "when": "Sep 13, 00:20"
+                    },
+                    {
+                      "id": "1a09728f50acef63",
+                      "sender": "nora.haddad@example.com",
+                      "subject": "review proposal attached draft ",
+                      "snippet": "thread question confirm update update section review review follow schedule summary attached follow notes agenda timeline feedback thread thread section review status follow thread timeline notes atta",
+                      "when": "Sep 12, 19:46"
+                    },
+                    {
+                      "id": "1a0966b85773346b",
+                      "sender": "elin.silva@example.com",
+                      "subject": "thread feedback section thread update a",
+                      "snippet": "thread update question thread follow review reply pending notes reply meeting schedule notes update update thread repl",
+                      "when": "Sep 12, 16:19"
+                    },
+                    {
+                      "id": "1a096413488c34d5",
+                      "sender": "nora.haddad@example.com",
+                      "subject": "proposal feedback agenda proposal notes update draft follow agenda pending agenda notes status confirm upda",
+                      "snippet": "estimate revision notes attached attached summary confirm timeline update update timeline feedback revision follow notes feedback feedback status confirm section reply summary review section notes est",
+                      "when": "Sep 12, 15:32"
+                    },
+                    {
+                      "id": "1a095b69983e96be",
+                      "sender": "idris.vasquez@example.com"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "role": "fragment",
+            "generations": {
+              "gmail:needs-reply": 18
+            }
+          }
+        },
+        {
+          "offsetMs": 31240,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail:needs-reply",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "1a09890ef58059d6",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "meeting revision schedule reply review review review attached ",
+                      "snippet": "estimate agenda status thread section estimate question agenda update status pending estimate notes question notes notes status timeline review notes thread agenda schedule thread notes feedback revisi",
+                      "when": "Sep 13, 02:20"
+                    },
+                    {
+                      "id": "1a098230632d734d",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "estimate attached section update reply follow ",
+                      "snippet": "estimate reply section revision question timeline revision revision reply question notes thread draft notes notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
+                      "when": "Sep 13, 00:20"
+                    },
+                    {
+                      "id": "1a09728f50acef63",
+                      "sender": "nora.haddad@example.com",
+                      "subject": "review proposal attached draft ",
+                      "snippet": "thread question confirm update update section review review follow schedule summary attached follow notes agenda timeline feedback thread thread section review status follow thread timeline notes atta",
+                      "when": "Sep 12, 19:46"
+                    },
+                    {
+                      "id": "1a0966b85773346b",
+                      "sender": "elin.silva@example.com",
+                      "subject": "thread feedback section thread update a",
+                      "snippet": "thread update question thread follow review reply pending notes reply meeting schedule notes update update thread repl",
+                      "when": "Sep 12, 16:19"
+                    },
+                    {
+                      "id": "1a096413488c34d5",
+                      "sender": "nora.haddad@example.com",
+                      "subject": "proposal feedback agenda proposal notes update draft follow agenda pending agenda notes status confirm upda",
+                      "snippet": "estimate revision notes attached attached summary confirm timeline update update timeline feedback revision follow notes feedback feedback status confirm section reply summary review section notes est",
+                      "when": "Sep 12, 15:32"
+                    },
+                    {
+                      "id": "1a095b69983e96be",
+                      "sender": "idris.vasquez@example.com",
+                      "subject": "question estimate co"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "role": "fragment",
+            "generations": {
+              "gmail:needs-reply": 19
+            }
+          }
+        },
+        {
+          "offsetMs": 31308,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail:needs-reply",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "1a09890ef58059d6",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "meeting revision schedule reply review review review attached ",
+                      "snippet": "estimate agenda status thread section estimate question agenda update status pending estimate notes question notes notes status timeline review notes thread agenda schedule thread notes feedback revisi",
+                      "when": "Sep 13, 02:20"
+                    },
+                    {
+                      "id": "1a098230632d734d",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "estimate attached section update reply follow ",
+                      "snippet": "estimate reply section revision question timeline revision revision reply question notes thread draft notes notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
+                      "when": "Sep 13, 00:20"
+                    },
+                    {
+                      "id": "1a09728f50acef63",
+                      "sender": "nora.haddad@example.com",
+                      "subject": "review proposal attached draft ",
+                      "snippet": "thread question confirm update update section review review follow schedule summary attached follow notes agenda timeline feedback thread thread section review status follow thread timeline notes atta",
+                      "when": "Sep 12, 19:46"
+                    },
+                    {
+                      "id": "1a0966b85773346b",
+                      "sender": "elin.silva@example.com",
+                      "subject": "thread feedback section thread update a",
+                      "snippet": "thread update question thread follow review reply pending notes reply meeting schedule notes update update thread repl",
+                      "when": "Sep 12, 16:19"
+                    },
+                    {
+                      "id": "1a096413488c34d5",
+                      "sender": "nora.haddad@example.com",
+                      "subject": "proposal feedback agenda proposal notes update draft follow agenda pending agenda notes status confirm upda",
+                      "snippet": "estimate revision notes attached attached summary confirm timeline update update timeline feedback revision follow notes feedback feedback status confirm section reply summary review section notes est",
+                      "when": "Sep 12, 15:32"
+                    },
+                    {
+                      "id": "1a095b69983e96be",
+                      "sender": "idris.vasquez@example.com",
+                      "subject": "question estimate co",
+                      "snippet": "summary meeting estimate reply feedback draft follow revision timeline review meeting confirm draft confirm follow proposal notes notes notes pending draft update question summary proposal follow ques"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "role": "fragment",
+            "generations": {
+              "gmail:needs-reply": 20
+            }
+          }
+        },
+        {
+          "offsetMs": 31378,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail:needs-reply",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "1a09890ef58059d6",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "meeting revision schedule reply review review review attached ",
+                      "snippet": "estimate agenda status thread section estimate question agenda update status pending estimate notes question notes notes status timeline review notes thread agenda schedule thread notes feedback revisi",
+                      "when": "Sep 13, 02:20"
+                    },
+                    {
+                      "id": "1a098230632d734d",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "estimate attached section update reply follow ",
+                      "snippet": "estimate reply section revision question timeline revision revision reply question notes thread draft notes notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
+                      "when": "Sep 13, 00:20"
+                    },
+                    {
+                      "id": "1a09728f50acef63",
+                      "sender": "nora.haddad@example.com",
+                      "subject": "review proposal attached draft ",
+                      "snippet": "thread question confirm update update section review review follow schedule summary attached follow notes agenda timeline feedback thread thread section review status follow thread timeline notes atta",
+                      "when": "Sep 12, 19:46"
+                    },
+                    {
+                      "id": "1a0966b85773346b",
+                      "sender": "elin.silva@example.com",
+                      "subject": "thread feedback section thread update a",
+                      "snippet": "thread update question thread follow review reply pending notes reply meeting schedule notes update update thread repl",
+                      "when": "Sep 12, 16:19"
+                    },
+                    {
+                      "id": "1a096413488c34d5",
+                      "sender": "nora.haddad@example.com",
+                      "subject": "proposal feedback agenda proposal notes update draft follow agenda pending agenda notes status confirm upda",
+                      "snippet": "estimate revision notes attached attached summary confirm timeline update update timeline feedback revision follow notes feedback feedback status confirm section reply summary review section notes est",
+                      "when": "Sep 12, 15:32"
+                    },
+                    {
+                      "id": "1a095b69983e96be",
+                      "sender": "idris.vasquez@example.com",
+                      "subject": "question estimate co",
+                      "snippet": "summary meeting estimate reply feedback draft follow revision timeline review meeting confirm draft confirm follow proposal notes notes notes pending draft update question summary proposal follow ques",
+                      "when": "Sep 12, 13:02"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "role": "fragment",
+            "generations": {
+              "gmail:needs-reply": 21
+            }
+          }
+        },
+        {
+          "offsetMs": 31468,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail:needs-reply",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "1a09890ef58059d6",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "meeting revision schedule reply review review review attached ",
+                      "snippet": "estimate agenda status thread section estimate question agenda update status pending estimate notes question notes notes status timeline review notes thread agenda schedule thread notes feedback revisi",
+                      "when": "Sep 13, 02:20"
+                    },
+                    {
+                      "id": "1a098230632d734d",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "estimate attached section update reply follow ",
+                      "snippet": "estimate reply section revision question timeline revision revision reply question notes thread draft notes notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
+                      "when": "Sep 13, 00:20"
+                    },
+                    {
+                      "id": "1a09728f50acef63",
+                      "sender": "nora.haddad@example.com",
+                      "subject": "review proposal attached draft ",
+                      "snippet": "thread question confirm update update section review review follow schedule summary attached follow notes agenda timeline feedback thread thread section review status follow thread timeline notes atta",
+                      "when": "Sep 12, 19:46"
+                    },
+                    {
+                      "id": "1a0966b85773346b",
+                      "sender": "elin.silva@example.com",
+                      "subject": "thread feedback section thread update a",
+                      "snippet": "thread update question thread follow review reply pending notes reply meeting schedule notes update update thread repl",
+                      "when": "Sep 12, 16:19"
+                    },
+                    {
+                      "id": "1a096413488c34d5",
+                      "sender": "nora.haddad@example.com",
+                      "subject": "proposal feedback agenda proposal notes update draft follow agenda pending agenda notes status confirm upda",
+                      "snippet": "estimate revision notes attached attached summary confirm timeline update update timeline feedback revision follow notes feedback feedback status confirm section reply summary review section notes est",
+                      "when": "Sep 12, 15:32"
+                    },
+                    {
+                      "id": "1a095b69983e96be",
+                      "sender": "idris.vasquez@example.com",
+                      "subject": "question estimate co",
+                      "snippet": "summary meeting estimate reply feedback draft follow revision timeline review meeting confirm draft confirm follow proposal notes notes notes pending draft update question summary proposal follow ques",
+                      "when": "Sep 12, 13:02"
+                    },
+                    {
+                      "id": "1a0936f4d8992036"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "role": "fragment",
+            "generations": {
+              "gmail:needs-reply": 22
+            }
+          }
+        },
+        {
+          "offsetMs": 31528,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail:needs-reply",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "1a09890ef58059d6",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "meeting revision schedule reply review review review attached ",
+                      "snippet": "estimate agenda status thread section estimate question agenda update status pending estimate notes question notes notes status timeline review notes thread agenda schedule thread notes feedback revisi",
+                      "when": "Sep 13, 02:20"
+                    },
+                    {
+                      "id": "1a098230632d734d",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "estimate attached section update reply follow ",
+                      "snippet": "estimate reply section revision question timeline revision revision reply question notes thread draft notes notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
+                      "when": "Sep 13, 00:20"
+                    },
+                    {
+                      "id": "1a09728f50acef63",
+                      "sender": "nora.haddad@example.com",
+                      "subject": "review proposal attached draft ",
+                      "snippet": "thread question confirm update update section review review follow schedule summary attached follow notes agenda timeline feedback thread thread section review status follow thread timeline notes atta",
+                      "when": "Sep 12, 19:46"
+                    },
+                    {
+                      "id": "1a0966b85773346b",
+                      "sender": "elin.silva@example.com",
+                      "subject": "thread feedback section thread update a",
+                      "snippet": "thread update question thread follow review reply pending notes reply meeting schedule notes update update thread repl",
+                      "when": "Sep 12, 16:19"
+                    },
+                    {
+                      "id": "1a096413488c34d5",
+                      "sender": "nora.haddad@example.com",
+                      "subject": "proposal feedback agenda proposal notes update draft follow agenda pending agenda notes status confirm upda",
+                      "snippet": "estimate revision notes attached attached summary confirm timeline update update timeline feedback revision follow notes feedback feedback status confirm section reply summary review section notes est",
+                      "when": "Sep 12, 15:32"
+                    },
+                    {
+                      "id": "1a095b69983e96be",
+                      "sender": "idris.vasquez@example.com",
+                      "subject": "question estimate co",
+                      "snippet": "summary meeting estimate reply feedback draft follow revision timeline review meeting confirm draft confirm follow proposal notes notes notes pending draft update question summary proposal follow ques",
+                      "when": "Sep 12, 13:02"
+                    },
+                    {
+                      "id": "1a0936f4d8992036",
+                      "sender": "idris.okonkwo@example.com",
+                      "subject": "proposal question s"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "role": "fragment",
+            "generations": {
+              "gmail:needs-reply": 23
+            }
+          }
+        },
+        {
+          "offsetMs": 31640,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail:needs-reply",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "1a09890ef58059d6",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "meeting revision schedule reply review review review attached ",
+                      "snippet": "estimate agenda status thread section estimate question agenda update status pending estimate notes question notes notes status timeline review notes thread agenda schedule thread notes feedback revisi",
+                      "when": "Sep 13, 02:20"
+                    },
+                    {
+                      "id": "1a098230632d734d",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "estimate attached section update reply follow ",
+                      "snippet": "estimate reply section revision question timeline revision revision reply question notes thread draft notes notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
+                      "when": "Sep 13, 00:20"
+                    },
+                    {
+                      "id": "1a09728f50acef63",
+                      "sender": "nora.haddad@example.com",
+                      "subject": "review proposal attached draft ",
+                      "snippet": "thread question confirm update update section review review follow schedule summary attached follow notes agenda timeline feedback thread thread section review status follow thread timeline notes atta",
+                      "when": "Sep 12, 19:46"
+                    },
+                    {
+                      "id": "1a0966b85773346b",
+                      "sender": "elin.silva@example.com",
+                      "subject": "thread feedback section thread update a",
+                      "snippet": "thread update question thread follow review reply pending notes reply meeting schedule notes update update thread repl",
+                      "when": "Sep 12, 16:19"
+                    },
+                    {
+                      "id": "1a096413488c34d5",
+                      "sender": "nora.haddad@example.com",
+                      "subject": "proposal feedback agenda proposal notes update draft follow agenda pending agenda notes status confirm upda",
+                      "snippet": "estimate revision notes attached attached summary confirm timeline update update timeline feedback revision follow notes feedback feedback status confirm section reply summary review section notes est",
+                      "when": "Sep 12, 15:32"
+                    },
+                    {
+                      "id": "1a095b69983e96be",
+                      "sender": "idris.vasquez@example.com",
+                      "subject": "question estimate co",
+                      "snippet": "summary meeting estimate reply feedback draft follow revision timeline review meeting confirm draft confirm follow proposal notes notes notes pending draft update question summary proposal follow ques",
+                      "when": "Sep 12, 13:02"
+                    },
+                    {
+                      "id": "1a0936f4d8992036",
+                      "sender": "idris.okonkwo@example.com",
+                      "subject": "proposal question s",
+                      "snippet": "pending agenda schedule review status estimate draft meeting summary attached summary review fe"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "role": "fragment",
+            "generations": {
+              "gmail:needs-reply": 24
+            }
+          }
+        },
+        {
+          "offsetMs": 31820,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail:needs-reply",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "1a09890ef58059d6",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "meeting revision schedule reply review review review attached ",
+                      "snippet": "estimate agenda status thread section estimate question agenda update status pending estimate notes question notes notes status timeline review notes thread agenda schedule thread notes feedback revisi",
+                      "when": "Sep 13, 02:20"
+                    },
+                    {
+                      "id": "1a098230632d734d",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "estimate attached section update reply follow ",
+                      "snippet": "estimate reply section revision question timeline revision revision reply question notes thread draft notes notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
+                      "when": "Sep 13, 00:20"
+                    },
+                    {
+                      "id": "1a09728f50acef63",
+                      "sender": "nora.haddad@example.com",
+                      "subject": "review proposal attached draft ",
+                      "snippet": "thread question confirm update update section review review follow schedule summary attached follow notes agenda timeline feedback thread thread section review status follow thread timeline notes atta",
+                      "when": "Sep 12, 19:46"
+                    },
+                    {
+                      "id": "1a0966b85773346b",
+                      "sender": "elin.silva@example.com",
+                      "subject": "thread feedback section thread update a",
+                      "snippet": "thread update question thread follow review reply pending notes reply meeting schedule notes update update thread repl",
+                      "when": "Sep 12, 16:19"
+                    },
+                    {
+                      "id": "1a096413488c34d5",
+                      "sender": "nora.haddad@example.com",
+                      "subject": "proposal feedback agenda proposal notes update draft follow agenda pending agenda notes status confirm upda",
+                      "snippet": "estimate revision notes attached attached summary confirm timeline update update timeline feedback revision follow notes feedback feedback status confirm section reply summary review section notes est",
+                      "when": "Sep 12, 15:32"
+                    },
+                    {
+                      "id": "1a095b69983e96be",
+                      "sender": "idris.vasquez@example.com",
+                      "subject": "question estimate co",
+                      "snippet": "summary meeting estimate reply feedback draft follow revision timeline review meeting confirm draft confirm follow proposal notes notes notes pending draft update question summary proposal follow ques",
+                      "when": "Sep 12, 13:02"
+                    },
+                    {
+                      "id": "1a0936f4d8992036",
+                      "sender": "idris.okonkwo@example.com",
+                      "subject": "proposal question s",
+                      "snippet": "pending agenda schedule review status estimate draft meeting summary attached summary review fe",
+                      "when": "Sep 12, 02:25"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "role": "fragment",
+            "generations": {
+              "gmail:needs-reply": 25
+            }
+          }
+        },
+        {
+          "offsetMs": 31885,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail:needs-reply",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "1a09890ef58059d6",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "meeting revision schedule reply review review review attached ",
+                      "snippet": "estimate agenda status thread section estimate question agenda update status pending estimate notes question notes notes status timeline review notes thread agenda schedule thread notes feedback revisi",
+                      "when": "Sep 13, 02:20"
+                    },
+                    {
+                      "id": "1a098230632d734d",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "estimate attached section update reply follow ",
+                      "snippet": "estimate reply section revision question timeline revision revision reply question notes thread draft notes notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
+                      "when": "Sep 13, 00:20"
+                    },
+                    {
+                      "id": "1a09728f50acef63",
+                      "sender": "nora.haddad@example.com",
+                      "subject": "review proposal attached draft ",
+                      "snippet": "thread question confirm update update section review review follow schedule summary attached follow notes agenda timeline feedback thread thread section review status follow thread timeline notes atta",
+                      "when": "Sep 12, 19:46"
+                    },
+                    {
+                      "id": "1a0966b85773346b",
+                      "sender": "elin.silva@example.com",
+                      "subject": "thread feedback section thread update a",
+                      "snippet": "thread update question thread follow review reply pending notes reply meeting schedule notes update update thread repl",
+                      "when": "Sep 12, 16:19"
+                    },
+                    {
+                      "id": "1a096413488c34d5",
+                      "sender": "nora.haddad@example.com",
+                      "subject": "proposal feedback agenda proposal notes update draft follow agenda pending agenda notes status confirm upda",
+                      "snippet": "estimate revision notes attached attached summary confirm timeline update update timeline feedback revision follow notes feedback feedback status confirm section reply summary review section notes est",
+                      "when": "Sep 12, 15:32"
+                    },
+                    {
+                      "id": "1a095b69983e96be",
+                      "sender": "idris.vasquez@example.com",
+                      "subject": "question estimate co",
+                      "snippet": "summary meeting estimate reply feedback draft follow revision timeline review meeting confirm draft confirm follow proposal notes notes notes pending draft update question summary proposal follow ques",
+                      "when": "Sep 12, 13:02"
+                    },
+                    {
+                      "id": "1a0936f4d8992036",
+                      "sender": "idris.okonkwo@example.com",
+                      "subject": "proposal question s",
+                      "snippet": "pending agenda schedule review status estimate draft meeting summary attached summary review fe",
+                      "when": "Sep 12, 02:25"
+                    },
+                    {
+                      "id": "1a092fcb2f3bd82f"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "role": "fragment",
+            "generations": {
+              "gmail:needs-reply": 26
+            }
+          }
+        },
+        {
+          "offsetMs": 31951,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail:needs-reply",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "1a09890ef58059d6",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "meeting revision schedule reply review review review attached ",
+                      "snippet": "estimate agenda status thread section estimate question agenda update status pending estimate notes question notes notes status timeline review notes thread agenda schedule thread notes feedback revisi",
+                      "when": "Sep 13, 02:20"
+                    },
+                    {
+                      "id": "1a098230632d734d",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "estimate attached section update reply follow ",
+                      "snippet": "estimate reply section revision question timeline revision revision reply question notes thread draft notes notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
+                      "when": "Sep 13, 00:20"
+                    },
+                    {
+                      "id": "1a09728f50acef63",
+                      "sender": "nora.haddad@example.com",
+                      "subject": "review proposal attached draft ",
+                      "snippet": "thread question confirm update update section review review follow schedule summary attached follow notes agenda timeline feedback thread thread section review status follow thread timeline notes atta",
+                      "when": "Sep 12, 19:46"
+                    },
+                    {
+                      "id": "1a0966b85773346b",
+                      "sender": "elin.silva@example.com",
+                      "subject": "thread feedback section thread update a",
+                      "snippet": "thread update question thread follow review reply pending notes reply meeting schedule notes update update thread repl",
+                      "when": "Sep 12, 16:19"
+                    },
+                    {
+                      "id": "1a096413488c34d5",
+                      "sender": "nora.haddad@example.com",
+                      "subject": "proposal feedback agenda proposal notes update draft follow agenda pending agenda notes status confirm upda",
+                      "snippet": "estimate revision notes attached attached summary confirm timeline update update timeline feedback revision follow notes feedback feedback status confirm section reply summary review section notes est",
+                      "when": "Sep 12, 15:32"
+                    },
+                    {
+                      "id": "1a095b69983e96be",
+                      "sender": "idris.vasquez@example.com",
+                      "subject": "question estimate co",
+                      "snippet": "summary meeting estimate reply feedback draft follow revision timeline review meeting confirm draft confirm follow proposal notes notes notes pending draft update question summary proposal follow ques",
+                      "when": "Sep 12, 13:02"
+                    },
+                    {
+                      "id": "1a0936f4d8992036",
+                      "sender": "idris.okonkwo@example.com",
+                      "subject": "proposal question s",
+                      "snippet": "pending agenda schedule review status estimate draft meeting summary attached summary review fe",
+                      "when": "Sep 12, 02:25"
+                    },
+                    {
+                      "id": "1a092fcb2f3bd82f",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "agenda status section notes review"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "role": "fragment",
+            "generations": {
+              "gmail:needs-reply": 27
+            }
+          }
+        },
+        {
+          "offsetMs": 32102,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail:needs-reply",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "1a09890ef58059d6",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "meeting revision schedule reply review review review attached ",
+                      "snippet": "estimate agenda status thread section estimate question agenda update status pending estimate notes question notes notes status timeline review notes thread agenda schedule thread notes feedback revisi",
+                      "when": "Sep 13, 02:20"
+                    },
+                    {
+                      "id": "1a098230632d734d",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "estimate attached section update reply follow ",
+                      "snippet": "estimate reply section revision question timeline revision revision reply question notes thread draft notes notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
+                      "when": "Sep 13, 00:20"
+                    },
+                    {
+                      "id": "1a09728f50acef63",
+                      "sender": "nora.haddad@example.com",
+                      "subject": "review proposal attached draft ",
+                      "snippet": "thread question confirm update update section review review follow schedule summary attached follow notes agenda timeline feedback thread thread section review status follow thread timeline notes atta",
+                      "when": "Sep 12, 19:46"
+                    },
+                    {
+                      "id": "1a0966b85773346b",
+                      "sender": "elin.silva@example.com",
+                      "subject": "thread feedback section thread update a",
+                      "snippet": "thread update question thread follow review reply pending notes reply meeting schedule notes update update thread repl",
+                      "when": "Sep 12, 16:19"
+                    },
+                    {
+                      "id": "1a096413488c34d5",
+                      "sender": "nora.haddad@example.com",
+                      "subject": "proposal feedback agenda proposal notes update draft follow agenda pending agenda notes status confirm upda",
+                      "snippet": "estimate revision notes attached attached summary confirm timeline update update timeline feedback revision follow notes feedback feedback status confirm section reply summary review section notes est",
+                      "when": "Sep 12, 15:32"
+                    },
+                    {
+                      "id": "1a095b69983e96be",
+                      "sender": "idris.vasquez@example.com",
+                      "subject": "question estimate co",
+                      "snippet": "summary meeting estimate reply feedback draft follow revision timeline review meeting confirm draft confirm follow proposal notes notes notes pending draft update question summary proposal follow ques",
+                      "when": "Sep 12, 13:02"
+                    },
+                    {
+                      "id": "1a0936f4d8992036",
+                      "sender": "idris.okonkwo@example.com",
+                      "subject": "proposal question s",
+                      "snippet": "pending agenda schedule review status estimate draft meeting summary attached summary review fe",
+                      "when": "Sep 12, 02:25"
+                    },
+                    {
+                      "id": "1a092fcb2f3bd82f",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "agenda status section notes review",
+                      "snippet": "section update draft feedback estimate draft agenda draft summary review thread follow timeline update proposal thread follow revision proposal status timeline follow section status proposal confirm st",
+                      "when": "Sep 12, 00:20"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "role": "fragment",
+            "generations": {
+              "gmail:needs-reply": 28
+            }
+          }
+        },
+        {
+          "offsetMs": 32185,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail:needs-reply",
+                "path": "/",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "1a09890ef58059d6",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "meeting revision schedule reply review review review attached ",
+                      "snippet": "estimate agenda status thread section estimate question agenda update status pending estimate notes question notes notes status timeline review notes thread agenda schedule thread notes feedback revisi",
+                      "when": "Sep 13, 02:20"
+                    },
+                    {
+                      "id": "1a098230632d734d",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "estimate attached section update reply follow ",
+                      "snippet": "estimate reply section revision question timeline revision revision reply question notes thread draft notes notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
+                      "when": "Sep 13, 00:20"
+                    },
+                    {
+                      "id": "1a09728f50acef63",
+                      "sender": "nora.haddad@example.com",
+                      "subject": "review proposal attached draft ",
+                      "snippet": "thread question confirm update update section review review follow schedule summary attached follow notes agenda timeline feedback thread thread section review status follow thread timeline notes atta",
+                      "when": "Sep 12, 19:46"
+                    },
+                    {
+                      "id": "1a0966b85773346b",
+                      "sender": "elin.silva@example.com",
+                      "subject": "thread feedback section thread update a",
+                      "snippet": "thread update question thread follow review reply pending notes reply meeting schedule notes update update thread repl",
+                      "when": "Sep 12, 16:19"
+                    },
+                    {
+                      "id": "1a096413488c34d5",
+                      "sender": "nora.haddad@example.com",
+                      "subject": "proposal feedback agenda proposal notes update draft follow agenda pending agenda notes status confirm upda",
+                      "snippet": "estimate revision notes attached attached summary confirm timeline update update timeline feedback revision follow notes feedback feedback status confirm section reply summary review section notes est",
+                      "when": "Sep 12, 15:32"
+                    },
+                    {
+                      "id": "1a095b69983e96be",
+                      "sender": "idris.vasquez@example.com",
+                      "subject": "question estimate co",
+                      "snippet": "summary meeting estimate reply feedback draft follow revision timeline review meeting confirm draft confirm follow proposal notes notes notes pending draft update question summary proposal follow ques",
+                      "when": "Sep 12, 13:02"
+                    },
+                    {
+                      "id": "1a0936f4d8992036",
+                      "sender": "idris.okonkwo@example.com",
+                      "subject": "proposal question s",
+                      "snippet": "pending agenda schedule review status estimate draft meeting summary attached summary review fe",
+                      "when": "Sep 12, 02:25"
+                    },
+                    {
+                      "id": "1a092fcb2f3bd82f",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "agenda status section notes review",
+                      "snippet": "section update draft feedback estimate draft agenda draft summary review thread follow timeline update proposal thread follow revision proposal status timeline follow section status proposal confirm st",
+                      "when": "Sep 12, 00:20"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 32329,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "body",
+                    "component": "Column",
+                    "children": [
+                      "loading_heading",
+                      "loading_sub",
+                      "loading_divider",
+                      "loading_thread-list"
+                    ]
+                  },
+                  {
+                    "id": "root",
+                    "component": "Card",
+                    "child": "body"
+                  },
+                  {
+                    "id": "loading_heading",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_sub",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_divider",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_thread-list",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "gmail:needs-reply"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 32489,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "body",
+                    "component": "Column",
+                    "children": [
+                      "heading",
+                      "loading_sub",
+                      "loading_divider",
+                      "loading_thread-list"
+                    ]
+                  },
+                  {
+                    "id": "heading",
+                    "component": "Text",
+                    "variant": "h3",
+                    "text": "Needs a reply"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Card",
+                    "child": "body"
+                  },
+                  {
+                    "id": "loading_sub",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_divider",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_thread-list",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "gmail:needs-reply"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 32560,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "body",
+                    "component": "Column",
+                    "children": [
+                      "heading",
+                      "sub",
+                      "loading_divider",
+                      "loading_thread-list"
+                    ]
+                  },
+                  {
+                    "id": "heading",
+                    "component": "Text",
+                    "variant": "h3",
+                    "text": "Needs a reply"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Card",
+                    "child": "body"
+                  },
+                  {
+                    "id": "sub",
+                    "component": "Text",
+                    "variant": "caption",
+                    "text": "Unread threads in your inbox addressed to you"
+                  },
+                  {
+                    "id": "loading_divider",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_thread-list",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "gmail:needs-reply"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 32623,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "body",
+                    "component": "Column",
+                    "children": [
+                      "heading",
+                      "sub",
+                      "divider",
+                      "loading_thread-list"
+                    ]
+                  },
+                  {
+                    "id": "divider",
+                    "component": "Divider"
+                  },
+                  {
+                    "id": "heading",
+                    "component": "Text",
+                    "variant": "h3",
+                    "text": "Needs a reply"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Card",
+                    "child": "body"
+                  },
+                  {
+                    "id": "sub",
+                    "component": "Text",
+                    "variant": "caption",
+                    "text": "Unread threads in your inbox addressed to you"
+                  },
+                  {
+                    "id": "loading_thread-list",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "gmail:needs-reply"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 32776,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "body",
+                    "component": "Column",
+                    "children": [
+                      "heading",
+                      "sub",
+                      "divider",
+                      "thread-list"
+                    ]
+                  },
+                  {
+                    "id": "divider",
+                    "component": "Divider"
+                  },
+                  {
+                    "id": "heading",
+                    "component": "Text",
+                    "variant": "h3",
+                    "text": "Needs a reply"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Card",
+                    "child": "body"
+                  },
+                  {
+                    "id": "sub",
+                    "component": "Text",
+                    "variant": "caption",
+                    "text": "Unread threads in your inbox addressed to you"
+                  },
+                  {
+                    "id": "thread-list",
+                    "component": "Column",
+                    "children": {
+                      "path": "/threads",
+                      "componentId": "loading_thread-row"
+                    }
+                  },
+                  {
+                    "id": "loading_thread-row",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "gmail:needs-reply"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 33266,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "body",
+                    "component": "Column",
+                    "children": [
+                      "heading",
+                      "sub",
+                      "divider",
+                      "thread-list"
+                    ]
+                  },
+                  {
+                    "id": "divider",
+                    "component": "Divider"
+                  },
+                  {
+                    "id": "heading",
+                    "component": "Text",
+                    "variant": "h3",
+                    "text": "Needs a reply"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Card",
+                    "child": "body"
+                  },
+                  {
+                    "id": "sub",
+                    "component": "Text",
+                    "variant": "caption",
+                    "text": "Unread threads in your inbox addressed to you"
+                  },
+                  {
+                    "id": "thread-list",
+                    "component": "Column",
+                    "children": {
+                      "path": "/threads",
+                      "componentId": "thread-row"
+                    }
+                  },
+                  {
+                    "id": "thread-row",
+                    "component": "Button",
+                    "variant": "borderless",
+                    "child": "loading_thread-body",
+                    "action": {
+                      "event": {
+                        "name": "open-thread",
+                        "context": {
+                          "threadId": {
+                            "path": "id"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "loading_thread-body",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "gmail:needs-reply"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 33418,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "body",
+                    "component": "Column",
+                    "children": [
+                      "heading",
+                      "sub",
+                      "divider",
+                      "thread-list"
+                    ]
+                  },
+                  {
+                    "id": "divider",
+                    "component": "Divider"
+                  },
+                  {
+                    "id": "heading",
+                    "component": "Text",
+                    "variant": "h3",
+                    "text": "Needs a reply"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Card",
+                    "child": "body"
+                  },
+                  {
+                    "id": "sub",
+                    "component": "Text",
+                    "variant": "caption",
+                    "text": "Unread threads in your inbox addressed to you"
+                  },
+                  {
+                    "id": "thread-body",
+                    "component": "Column",
+                    "children": [
+                      "loading_thread-top",
+                      "loading_thread-subject",
+                      "loading_thread-preview"
+                    ]
+                  },
+                  {
+                    "id": "thread-list",
+                    "component": "Column",
+                    "children": {
+                      "path": "/threads",
+                      "componentId": "thread-row"
+                    }
+                  },
+                  {
+                    "id": "thread-row",
+                    "component": "Button",
+                    "variant": "borderless",
+                    "child": "thread-body",
+                    "action": {
+                      "event": {
+                        "name": "open-thread",
+                        "context": {
+                          "threadId": {
+                            "path": "id"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "loading_thread-top",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_thread-subject",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_thread-preview",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "gmail:needs-reply"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 33497,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "body",
+                    "component": "Column",
+                    "children": [
+                      "heading",
+                      "sub",
+                      "divider",
+                      "thread-list"
+                    ]
+                  },
+                  {
+                    "id": "divider",
+                    "component": "Divider"
+                  },
+                  {
+                    "id": "heading",
+                    "component": "Text",
+                    "variant": "h3",
+                    "text": "Needs a reply"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Card",
+                    "child": "body"
+                  },
+                  {
+                    "id": "sub",
+                    "component": "Text",
+                    "variant": "caption",
+                    "text": "Unread threads in your inbox addressed to you"
+                  },
+                  {
+                    "id": "thread-body",
+                    "component": "Column",
+                    "children": [
+                      "thread-top",
+                      "loading_thread-subject",
+                      "loading_thread-preview"
+                    ]
+                  },
+                  {
+                    "id": "thread-list",
+                    "component": "Column",
+                    "children": {
+                      "path": "/threads",
+                      "componentId": "thread-row"
+                    }
+                  },
+                  {
+                    "id": "thread-row",
+                    "component": "Button",
+                    "variant": "borderless",
+                    "child": "thread-body",
+                    "action": {
+                      "event": {
+                        "name": "open-thread",
+                        "context": {
+                          "threadId": {
+                            "path": "id"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "thread-top",
+                    "component": "Row"
+                  },
+                  {
+                    "id": "loading_thread-subject",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_thread-preview",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "gmail:needs-reply"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 33726,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "body",
+                    "component": "Column",
+                    "children": [
+                      "heading",
+                      "sub",
+                      "divider",
+                      "thread-list"
+                    ]
+                  },
+                  {
+                    "id": "divider",
+                    "component": "Divider"
+                  },
+                  {
+                    "id": "heading",
+                    "component": "Text",
+                    "variant": "h3",
+                    "text": "Needs a reply"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Card",
+                    "child": "body"
+                  },
+                  {
+                    "id": "sub",
+                    "component": "Text",
+                    "variant": "caption",
+                    "text": "Unread threads in your inbox addressed to you"
+                  },
+                  {
+                    "id": "thread-body",
+                    "component": "Column",
+                    "children": [
+                      "thread-top",
+                      "loading_thread-subject",
+                      "loading_thread-preview"
+                    ]
+                  },
+                  {
+                    "id": "thread-list",
+                    "component": "Column",
+                    "children": {
+                      "path": "/threads",
+                      "componentId": "thread-row"
+                    }
+                  },
+                  {
+                    "id": "thread-row",
+                    "component": "Button",
+                    "variant": "borderless",
+                    "child": "thread-body",
+                    "action": {
+                      "event": {
+                        "name": "open-thread",
+                        "context": {
+                          "threadId": {
+                            "path": "id"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "thread-top",
+                    "component": "Row",
+                    "justify": "spaceBetween",
+                    "align": "center",
+                    "children": [
+                      "loading_thread-sender",
+                      "loading_thread-when"
+                    ]
+                  },
+                  {
+                    "id": "loading_thread-subject",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_thread-preview",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_thread-sender",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_thread-when",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "gmail:needs-reply"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 33876,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "body",
+                    "component": "Column",
+                    "children": [
+                      "heading",
+                      "sub",
+                      "divider",
+                      "thread-list"
+                    ]
+                  },
+                  {
+                    "id": "divider",
+                    "component": "Divider"
+                  },
+                  {
+                    "id": "heading",
+                    "component": "Text",
+                    "variant": "h3",
+                    "text": "Needs a reply"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Card",
+                    "child": "body"
+                  },
+                  {
+                    "id": "sub",
+                    "component": "Text",
+                    "variant": "caption",
+                    "text": "Unread threads in your inbox addressed to you"
+                  },
+                  {
+                    "id": "thread-body",
+                    "component": "Column",
+                    "children": [
+                      "thread-top",
+                      "loading_thread-subject",
+                      "loading_thread-preview"
+                    ]
+                  },
+                  {
+                    "id": "thread-list",
+                    "component": "Column",
+                    "children": {
+                      "path": "/threads",
+                      "componentId": "thread-row"
+                    }
+                  },
+                  {
+                    "id": "thread-row",
+                    "component": "Button",
+                    "variant": "borderless",
+                    "child": "thread-body",
+                    "action": {
+                      "event": {
+                        "name": "open-thread",
+                        "context": {
+                          "threadId": {
+                            "path": "id"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "thread-sender",
+                    "component": "Text",
+                    "text": {
+                      "path": "sender"
+                    }
+                  },
+                  {
+                    "id": "thread-top",
+                    "component": "Row",
+                    "justify": "spaceBetween",
+                    "align": "center",
+                    "children": [
+                      "thread-sender",
+                      "loading_thread-when"
+                    ]
+                  },
+                  {
+                    "id": "loading_thread-subject",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_thread-preview",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_thread-when",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "gmail:needs-reply"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 33974,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "body",
+                    "component": "Column",
+                    "children": [
+                      "heading",
+                      "sub",
+                      "divider",
+                      "thread-list"
+                    ]
+                  },
+                  {
+                    "id": "divider",
+                    "component": "Divider"
+                  },
+                  {
+                    "id": "heading",
+                    "component": "Text",
+                    "variant": "h3",
+                    "text": "Needs a reply"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Card",
+                    "child": "body"
+                  },
+                  {
+                    "id": "sub",
+                    "component": "Text",
+                    "variant": "caption",
+                    "text": "Unread threads in your inbox addressed to you"
+                  },
+                  {
+                    "id": "thread-body",
+                    "component": "Column",
+                    "children": [
+                      "thread-top",
+                      "loading_thread-subject",
+                      "loading_thread-preview"
+                    ]
+                  },
+                  {
+                    "id": "thread-list",
+                    "component": "Column",
+                    "children": {
+                      "path": "/threads",
+                      "componentId": "thread-row"
+                    }
+                  },
+                  {
+                    "id": "thread-row",
+                    "component": "Button",
+                    "variant": "borderless",
+                    "child": "thread-body",
+                    "action": {
+                      "event": {
+                        "name": "open-thread",
+                        "context": {
+                          "threadId": {
+                            "path": "id"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "thread-sender",
+                    "component": "Text",
+                    "text": {
+                      "path": "sender"
+                    }
+                  },
+                  {
+                    "id": "thread-top",
+                    "component": "Row",
+                    "justify": "spaceBetween",
+                    "align": "center",
+                    "children": [
+                      "thread-sender",
+                      "thread-when"
+                    ]
+                  },
+                  {
+                    "id": "thread-when",
+                    "component": "Text"
+                  },
+                  {
+                    "id": "loading_thread-subject",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_thread-preview",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "gmail:needs-reply"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 34159,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "body",
+                    "component": "Column",
+                    "children": [
+                      "heading",
+                      "sub",
+                      "divider",
+                      "thread-list"
+                    ]
+                  },
+                  {
+                    "id": "divider",
+                    "component": "Divider"
+                  },
+                  {
+                    "id": "heading",
+                    "component": "Text",
+                    "variant": "h3",
+                    "text": "Needs a reply"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Card",
+                    "child": "body"
+                  },
+                  {
+                    "id": "sub",
+                    "component": "Text",
+                    "variant": "caption",
+                    "text": "Unread threads in your inbox addressed to you"
+                  },
+                  {
+                    "id": "thread-body",
+                    "component": "Column",
+                    "children": [
+                      "thread-top",
+                      "loading_thread-subject",
+                      "loading_thread-preview"
+                    ]
+                  },
+                  {
+                    "id": "thread-list",
+                    "component": "Column",
+                    "children": {
+                      "path": "/threads",
+                      "componentId": "thread-row"
+                    }
+                  },
+                  {
+                    "id": "thread-row",
+                    "component": "Button",
+                    "variant": "borderless",
+                    "child": "thread-body",
+                    "action": {
+                      "event": {
+                        "name": "open-thread",
+                        "context": {
+                          "threadId": {
+                            "path": "id"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "thread-sender",
+                    "component": "Text",
+                    "text": {
+                      "path": "sender"
+                    }
+                  },
+                  {
+                    "id": "thread-top",
+                    "component": "Row",
+                    "justify": "spaceBetween",
+                    "align": "center",
+                    "children": [
+                      "thread-sender",
+                      "thread-when"
+                    ]
+                  },
+                  {
+                    "id": "thread-when",
+                    "component": "Text",
+                    "variant": "caption",
+                    "text": {
+                      "path": "when"
+                    }
+                  },
+                  {
+                    "id": "loading_thread-subject",
+                    "component": "Row",
+                    "children": []
+                  },
+                  {
+                    "id": "loading_thread-preview",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "gmail:needs-reply"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 34238,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "body",
+                    "component": "Column",
+                    "children": [
+                      "heading",
+                      "sub",
+                      "divider",
+                      "thread-list"
+                    ]
+                  },
+                  {
+                    "id": "divider",
+                    "component": "Divider"
+                  },
+                  {
+                    "id": "heading",
+                    "component": "Text",
+                    "variant": "h3",
+                    "text": "Needs a reply"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Card",
+                    "child": "body"
+                  },
+                  {
+                    "id": "sub",
+                    "component": "Text",
+                    "variant": "caption",
+                    "text": "Unread threads in your inbox addressed to you"
+                  },
+                  {
+                    "id": "thread-body",
+                    "component": "Column",
+                    "children": [
+                      "thread-top",
+                      "thread-subject",
+                      "loading_thread-preview"
+                    ]
+                  },
+                  {
+                    "id": "thread-list",
+                    "component": "Column",
+                    "children": {
+                      "path": "/threads",
+                      "componentId": "thread-row"
+                    }
+                  },
+                  {
+                    "id": "thread-row",
+                    "component": "Button",
+                    "variant": "borderless",
+                    "child": "thread-body",
+                    "action": {
+                      "event": {
+                        "name": "open-thread",
+                        "context": {
+                          "threadId": {
+                            "path": "id"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "thread-sender",
+                    "component": "Text",
+                    "text": {
+                      "path": "sender"
+                    }
+                  },
+                  {
+                    "id": "thread-subject",
+                    "component": "Text"
+                  },
+                  {
+                    "id": "thread-top",
+                    "component": "Row",
+                    "justify": "spaceBetween",
+                    "align": "center",
+                    "children": [
+                      "thread-sender",
+                      "thread-when"
+                    ]
+                  },
+                  {
+                    "id": "thread-when",
+                    "component": "Text",
+                    "variant": "caption",
+                    "text": {
+                      "path": "when"
+                    }
+                  },
+                  {
+                    "id": "loading_thread-preview",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "gmail:needs-reply"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 34317,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "body",
+                    "component": "Column",
+                    "children": [
+                      "heading",
+                      "sub",
+                      "divider",
+                      "thread-list"
+                    ]
+                  },
+                  {
+                    "id": "divider",
+                    "component": "Divider"
+                  },
+                  {
+                    "id": "heading",
+                    "component": "Text",
+                    "variant": "h3",
+                    "text": "Needs a reply"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Card",
+                    "child": "body"
+                  },
+                  {
+                    "id": "sub",
+                    "component": "Text",
+                    "variant": "caption",
+                    "text": "Unread threads in your inbox addressed to you"
+                  },
+                  {
+                    "id": "thread-body",
+                    "component": "Column",
+                    "children": [
+                      "thread-top",
+                      "thread-subject",
+                      "loading_thread-preview"
+                    ]
+                  },
+                  {
+                    "id": "thread-list",
+                    "component": "Column",
+                    "children": {
+                      "path": "/threads",
+                      "componentId": "thread-row"
+                    }
+                  },
+                  {
+                    "id": "thread-row",
+                    "component": "Button",
+                    "variant": "borderless",
+                    "child": "thread-body",
+                    "action": {
+                      "event": {
+                        "name": "open-thread",
+                        "context": {
+                          "threadId": {
+                            "path": "id"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "thread-sender",
+                    "component": "Text",
+                    "text": {
+                      "path": "sender"
+                    }
+                  },
+                  {
+                    "id": "thread-subject",
+                    "component": "Text",
+                    "text": {
+                      "path": "subject"
+                    }
+                  },
+                  {
+                    "id": "thread-top",
+                    "component": "Row",
+                    "justify": "spaceBetween",
+                    "align": "center",
+                    "children": [
+                      "thread-sender",
+                      "thread-when"
+                    ]
+                  },
+                  {
+                    "id": "thread-when",
+                    "component": "Text",
+                    "variant": "caption",
+                    "text": {
+                      "path": "when"
+                    }
+                  },
+                  {
+                    "id": "loading_thread-preview",
+                    "component": "Row",
+                    "children": []
+                  }
+                ],
+                "surfaceId": "gmail:needs-reply"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 34460,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "body",
+                    "component": "Column",
+                    "children": [
+                      "heading",
+                      "sub",
+                      "divider",
+                      "thread-list"
+                    ]
+                  },
+                  {
+                    "id": "divider",
+                    "component": "Divider"
+                  },
+                  {
+                    "id": "heading",
+                    "component": "Text",
+                    "variant": "h3",
+                    "text": "Needs a reply"
+                  },
+                  {
+                    "id": "root",
+                    "component": "Card",
+                    "child": "body"
+                  },
+                  {
+                    "id": "sub",
+                    "component": "Text",
+                    "variant": "caption",
+                    "text": "Unread threads in your inbox addressed to you"
+                  },
+                  {
+                    "id": "thread-body",
+                    "component": "Column",
+                    "children": [
+                      "thread-top",
+                      "thread-subject",
+                      "thread-preview"
+                    ]
+                  },
+                  {
+                    "id": "thread-list",
+                    "component": "Column",
+                    "children": {
+                      "path": "/threads",
+                      "componentId": "thread-row"
+                    }
+                  },
+                  {
+                    "id": "thread-preview",
+                    "component": "Text",
+                    "variant": "caption",
+                    "text": {
+                      "path": "snippet"
+                    }
+                  },
+                  {
+                    "id": "thread-row",
+                    "component": "Button",
+                    "variant": "borderless",
+                    "child": "thread-body",
+                    "action": {
+                      "event": {
+                        "name": "open-thread",
+                        "context": {
+                          "threadId": {
+                            "path": "id"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "thread-sender",
+                    "component": "Text",
+                    "text": {
+                      "path": "sender"
+                    }
+                  },
+                  {
+                    "id": "thread-subject",
+                    "component": "Text",
+                    "text": {
+                      "path": "subject"
+                    }
+                  },
+                  {
+                    "id": "thread-top",
+                    "component": "Row",
+                    "justify": "spaceBetween",
+                    "align": "center",
+                    "children": [
+                      "thread-sender",
+                      "thread-when"
+                    ]
+                  },
+                  {
+                    "id": "thread-when",
+                    "component": "Text",
+                    "variant": "caption",
+                    "text": {
+                      "path": "when"
+                    }
+                  }
+                ],
+                "surfaceId": "gmail:needs-reply"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "role": "fragment"
+          }
+        }
+      ],
+      "outcome": "completed",
+      "durationMs": 34689
+    }
+  ]
+}

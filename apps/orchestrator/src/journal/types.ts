@@ -15,7 +15,9 @@ export interface ToolCallRecord {
 /**
  * What became of the turn's plan (task-6.4 decision 13): the layout surface as accepted, every
  * attempt — the raw text the model returned and the validator's findings when it was refused —
- * and the reader calls it made along the way.
+ * and the reader calls it made along the way. `planMs` is the interval from the utterance
+ * arriving to the tree accepted or refused — the shell's first paint follows it directly, so
+ * it is the first-paint measurement of task-6.6 decisions 2–3, read from here.
  */
 export interface PlanRecord {
   outcome: 'planned' | 'malformed';
@@ -23,6 +25,7 @@ export interface PlanRecord {
   layoutSurface?: LayoutSurface;
   attempts: {text: string; errors: string[]}[];
   toolCalls: ToolCallRecord[];
+  planMs: number;
 }
 
 /**

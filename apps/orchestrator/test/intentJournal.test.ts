@@ -83,6 +83,7 @@ describe('IntentJournal', () => {
       },
       attempts: [{text: '<layout-surface>{}</layout-surface>', errors: []}],
       toolCalls: [{name: 'installed_apps', args: {}, result: []}],
+      planMs: 1200,
     };
     const turn = journal.open({turnId: 't1', clientContextId: 'c1', message: utterance});
     turn.plan(plan);

@@ -36,23 +36,31 @@ test('beat 3: review compose, chained after beat 2', async ({page}) => {
 });
 
 /**
- * The one baseline showing what three real agents produced rather than what we hand-built, so
- * it is the picture to look at when something drifts. Beats 1–3 are one-slot compositions of a
- * single vendor; this is the fan-out.
+ * The layout-only fan-out (task 6.6 decision 7): 5.7's control prompt, two real vendors on one
+ * row and no merged view. The baseline showing what real agents produced rather than what we
+ * hand-built, so it is the picture to look at when something drifts.
  */
-test('beat 4: composed fan-out across three design systems', async ({browser}) => {
+test('beat 4: two vendors side by side, no merged view', async ({browser}) => {
   // The stage scrolls its own content, so `fullPage` cannot reach past the first fragment at
-  // the standard viewport — the picture would show Gmail alone and claim to be a fan-out. A
-  // viewport tall enough to hold all three is what makes the baseline mean what it says.
-  const page = await browser.newPage({viewport: {width: 1024, height: 2400}});
+  // the standard viewport. A viewport tall enough to hold both is what makes the baseline mean
+  // what it says.
+  const page = await browser.newPage({viewport: {width: 1280, height: 1600}});
   await settle(page, '4');
 
-  // Guard the claim the picture is meant to carry, so a diff is never the only signal. Three
-  // vendor slots; since Phase 6 the Planner may also reserve the merged view for this prompt.
-  await expect(page.getByTestId('canvas-stage-content')).toHaveAttribute('data-slots', /^[34]$/);
-  for (const source of ['gmail', 'calendar', 'github']) {
-    await expect(page.locator(`[data-a2ui-fragment="${source}"]`)).toHaveCount(1);
-  }
+  // Guard the claim the picture is meant to carry, so a diff is never the only signal: two
+  // vendor slots, nothing from the shell, and the two on one row.
+  await expect(page.getByTestId('canvas-stage-content')).toHaveAttribute('data-slots', '2');
+  await expect(page.locator('[data-shell-content]')).toHaveCount(0);
+  const boxes = await Promise.all(
+    ['gmail', 'calendar'].map(async source => {
+      const fragment = page.locator(`[data-a2ui-fragment="${source}"]`);
+      await expect(fragment).toHaveCount(1);
+      return (await fragment.boundingBox())!;
+    }),
+  );
+  const [gmail, calendar] = boxes;
+  expect(Math.abs(gmail.y - calendar.y)).toBeLessThan(8);
+  expect(gmail.x + gmail.width <= calendar.x || calendar.x + calendar.width <= gmail.x).toBe(true);
 
   await expect(page).toHaveScreenshot('canvas-surface-beat-4.png', surfaceShot(page));
   await page.close();
@@ -91,6 +99,22 @@ test('beat 6: a platform answer renders from its literal data model, no vendor d
   for (const app of ['GitHub', 'Gmail', 'Google Calendar']) {
     await expect(stage.getByRole('row').filter({hasText: app})).toHaveCount(1);
   }
+});
+
+/**
+ * The mixed utterance (task 6.6 decision 8): the shell's own words and one vendor slot in one
+ * layout. As recorded, Calendar answered in prose and never painted, so its slot rests on the
+ * prose; the shell's heading stands above it.
+ */
+test('beat 8: a mixed utterance carries the shell heading and the one vendor slot', async ({
+  page,
+}) => {
+  await settle(page, '8');
+  const stage = page.getByTestId('canvas-stage-content');
+  await expect(stage).toHaveAttribute('data-slots', '1');
+  await expect(stage).toContainText('Your Calendar');
+  await expect(page.locator('[data-slot-gap]')).toHaveCount(0);
+  await expect(page.locator('[data-slot-resting="prose"]')).toContainText('schedule');
 });
 
 test('beat 7: a capability gap is the tile, and the tile opens the Store with the gap', async ({

@@ -1,7 +1,7 @@
 /**
  * Re-record beat fixtures through the orchestrator (task 1.4, spec decisions 2–3).
  *
- *   pnpm --filter @a2uiverse/client record:beats -- --model gemini-3.7-flash [--beats 1,2,3,4,5,6,7]
+ *   pnpm --filter @a2uiverse/client record:beats -- --model gemini-3.7-flash [--beats 1,2,3,4,5,6,7,8]
  *       [--url http://localhost:10001] [--out recordings/beats]
  *
  * Captures what the client receives from the hub — source stamp and synthesis payload included — one `BeatBatch` per
@@ -99,8 +99,15 @@ async function main() {
       };
       const path = resolve(outDir, `${name}.json`);
       await writeFile(path, JSON.stringify(fixture, null, 2) + '\n');
+      // The client-side first-paint reading (task 6.6 decision 3): the shell's layout, then the
+      // first vendor fragment, as offsets from send.
+      const paintAt = (test: (b: BeatBatch) => boolean) =>
+        batches.find(b => b.messages.some(m => 'createSurface' in m) && test(b))?.offsetMs;
+      const layoutMs = paintAt(b => b.stamp?.role === 'shell');
+      const fragmentMs = paintAt(b => b.stamp?.role === 'fragment' && b.stamp.source !== 'shell');
       console.log(
-        `  ${painted ? 'ok' : 'FLAGGED (no createSurface)'} · ${batches.length} batches · ${driven.durationMs} ms → ${path}`,
+        `  ${painted ? 'ok' : 'FLAGGED (no createSurface)'} · ${batches.length} batches · ${driven.durationMs} ms` +
+          ` · layout ${layoutMs ?? '—'} ms · first fragment ${fragmentMs ?? '—'} ms → ${path}`,
       );
       if (!painted) flagged += 1;
       chainedFrom = name;

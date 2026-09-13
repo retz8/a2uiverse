@@ -148,17 +148,23 @@ export class OrchestratorExecutor implements AgentExecutor {
     turn: JournalTurn,
     text: string,
   ): Promise<void> {
+    // The first-paint clock (task-6.6 decision 3): from here to the tree accepted, the shortlist
+    // included, since nothing paints before either.
+    const receivedAt = Date.now();
     const shortlist = await this.#deps.router.shortlist(text);
     const outcome = await this.#deps.planner.plan({
       utterance: text,
       shortlist,
       conversationId: ctx.contextId,
     });
+    const planMs = Date.now() - receivedAt;
+    logLine(`plan task=${ctx.taskId} ${outcome.kind} ${planMs} ms`);
     turn.plan({
       outcome: outcome.kind,
       ...(outcome.kind === 'planned' ? {layoutSurface: outcome.document} : {}),
       attempts: outcome.attempts,
       toolCalls: outcome.toolCalls,
+      planMs,
     });
     if (outcome.kind === 'malformed') {
       // Both attempts refused: a broken turn, the findings on the final (task-6.4 decision 6).

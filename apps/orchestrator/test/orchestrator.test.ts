@@ -620,6 +620,7 @@ describe('orchestrator', () => {
     expect(plan.layoutSurface!.dispatch).toHaveLength(3);
     expect(plan.attempts).toHaveLength(1);
     expect(plan.toolCalls).toEqual([]);
+    expect(plan.planMs).toBeGreaterThanOrEqual(0);
     expect(Array.isArray(line.embedding)).toBe(true);
     expect((line.embedding as number[]).length).toBeGreaterThan(0);
     const dispatch = line.dispatch as Array<{appId: string; outcome: string}>;

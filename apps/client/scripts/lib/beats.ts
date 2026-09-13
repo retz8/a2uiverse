@@ -30,12 +30,12 @@ export const BEATS: BeatSpec[] = [
     chains: true,
   },
   {
-    // The composed beat: it names no source, so the Router has to earn the fan-out. A prompt
-    // that listed the three apps would let a broken Router still look right.
+    // The layout-only fan-out (task 6.6 decision 7): 5.7's control prompt, on which the Planner
+    // reserves no merged view and lays the two slots on one row.
     beat: 4,
-    slug: 'composed-morning',
-    title: 'Composed fan-out',
-    prompt: 'What needs my attention this morning?',
+    slug: 'side-by-side',
+    title: 'Side by side',
+    prompt: 'Put my inbox and my calendar side by side.',
   },
   {
     // The temporal merge (task 5.7 decision 11): the utterance 5.6 recorded, on which the
@@ -61,5 +61,13 @@ export const BEATS: BeatSpec[] = [
     slug: 'capability-gap',
     title: 'Capability gap',
     prompt: 'Book me a flight to Tokyo next Friday.',
+  },
+  {
+    // A mixed utterance (task 6.6 decision 8): one vendor dispatched and the shell's own words
+    // in the same layout.
+    beat: 8,
+    slug: 'mixed-calendar',
+    title: 'Mixed utterance',
+    prompt: 'What can I do with my calendar?',
   },
 ];

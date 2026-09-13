@@ -1,0 +1,143 @@
+{
+  "name": "beat-8-mixed-calendar",
+  "beat": 8,
+  "title": "Mixed utterance",
+  "prompt": "What can I do with my calendar?",
+  "model": "gemini-3.7-flash",
+  "recordedAt": "2026-09-13T08:30:42Z",
+  "contextId": "15f3090d-9de6-48d0-a007-9ec6335591e4",
+  "chainedFrom": null,
+  "turns": [
+    {
+      "taskId": "4c4fc861-fa87-4f87-8ac8-da52153369a9",
+      "kind": "utterance",
+      "prompt": "What can I do with my calendar?",
+      "action": null,
+      "batches": [
+        {
+          "offsetMs": 4101,
+          "messages": [
+            {
+              "version": "v0.9",
+              "createSurface": {
+                "surfaceId": "shell:main",
+                "catalogId": "https://github.com/retz8/a2uiverse/blob/main/packages/shell-catalog/catalogs/v0.9.1/catalog.json"
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "surfaceId": "shell:main",
+                "components": [
+                  {
+                    "id": "root",
+                    "component": "Column",
+                    "children": [
+                      "heading",
+                      "attribution-calendar-slot"
+                    ]
+                  },
+                  {
+                    "id": "heading",
+                    "component": "Text",
+                    "variant": "h3",
+                    "text": "Your Calendar"
+                  },
+                  {
+                    "id": "attribution-calendar-slot",
+                    "component": "Attribution",
+                    "displayName": "Google Calendar",
+                    "appId": "calendar",
+                    "child": "calendar-slot"
+                  },
+                  {
+                    "id": "calendar-slot",
+                    "component": "Slot",
+                    "source": "calendar",
+                    "state": "pending",
+                    "label": "Google Calendar"
+                  }
+                ]
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "shell",
+            "role": "shell"
+          }
+        },
+        {
+          "offsetMs": 10464,
+          "messages": [],
+          "texts": [
+            "You can view your schedule, check pending invitations, propose and create new events, or respond to meeting invites."
+          ],
+          "stamp": {
+            "source": "calendar",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 10526,
+          "messages": [],
+          "texts": [
+            " I cannot modify or delete existing events, nor send email notifications to attendees.\n"
+          ],
+          "stamp": {
+            "source": "calendar",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 10614,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "surfaceId": "shell:main",
+                "components": [
+                  {
+                    "id": "root",
+                    "component": "Column",
+                    "children": [
+                      "heading",
+                      "attribution-calendar-slot"
+                    ]
+                  },
+                  {
+                    "id": "heading",
+                    "component": "Text",
+                    "variant": "h3",
+                    "text": "Your Calendar"
+                  },
+                  {
+                    "id": "attribution-calendar-slot",
+                    "component": "Attribution",
+                    "displayName": "Google Calendar",
+                    "appId": "calendar",
+                    "child": "calendar-slot"
+                  },
+                  {
+                    "id": "calendar-slot",
+                    "component": "Slot",
+                    "source": "calendar",
+                    "state": "collapsed",
+                    "label": "Google Calendar"
+                  }
+                ]
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "shell",
+            "role": "shell"
+          }
+        }
+      ],
+      "outcome": "completed",
+      "durationMs": 10614
+    }
+  ]
+}
