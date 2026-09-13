@@ -433,3 +433,59 @@ larger cross-renderer change rather than a cleanup.
 
 Both change rendered markup, so neither belongs in a bug-fix PR.
 
+
+---
+
+## 8. No way for a web consumer to validate an agent's output against the v0.9.1 spec
+
+**Component:** `@a2ui/web_core` (`renderers/web_core`, 0.10.7 on `main`), `src/v0_9/index.ts` and
+the `copy-spec` script in `package.json`.
+
+**Severity:** missing capability. Nothing breaks; a TypeScript application that consumes
+model-authored A2UI has no upstream way to reject a non-conforming message before it renders.
+
+### Issue
+
+The spec ships complete JSON Schemas for v0.9.1 (`specification/v0_9_1/json/server_to_client.json`,
+`common_types.json`) and the basic catalog's `catalog.json`. Validating a message properly takes
+all three: `common_types.json` defines `FunctionCall` as `oneOf` a reference to the catalog's
+`$defs/anyFunction`, which is what ties a `functionCall`'s `call` to the functions a catalog
+actually declares.
+
+`web_core` exposes none of that for v0.9.1:
+
+- **The only exported raw schema is v0.9's message schema.** `src/v0_9/index.ts` exports
+  `Schemas = {A2uiMessageSchemaRaw}`, imported from `./schemas/server_to_client.json`, whose `$id`
+  is `…/v0_9/server_to_client.json` and whose `version` is `const: "v0.9"`. `common_types.json` is
+  copied into the package but not exported, so the message schema's references into it cannot be
+  resolved by a consumer.
+- **v0.9.1 is not copied at all.** The `copy-spec` script's inputs are
+  `specification/v0_8/json`, `v0_9/json`, `v0_9/catalogs`, `v1_0/json` and `v1_0/catalogs`;
+  `v0_9_1` is absent.
+- **There is no validator.** The only validation on the web path is `MessageProcessor`'s intake:
+  each component's props are parsed against its catalog's zod schema, throwing
+  `A2uiValidationError`. That is a renderer's check. It accepts any string as a `functionCall`'s
+  `call` (`FunctionCallSchema.call` is `z.string()`), so an undeclared function surfaces only when
+  a user triggers it ("Function not found in catalog"), and it does not check dangling child
+  references, a missing root or cycles. Reproduced with `@a2ui/web_core` 0.10.6: a
+  `MessageProcessor` over a `Catalog` of `BASIC_COMPONENTS` and `BASIC_FUNCTIONS` accepts, without
+  error, an `updateComponents` whose `Card` names an undeclared child, one with no `root`, one where
+  two `Card`s name each other, and a `Button` whose action calls `noSuchFunction`.
+
+The Python agent SDK has the full check — `A2uiValidator` in `a2ui/validation/validator.py`
+validates messages with `jsonschema` against the version's `server_to_client.json`,
+`common_types.json` and the catalog, then runs component integrity validation (dangling
+references, missing root) — and `conformance/core/validator.yaml` pins its behaviour, with Dart
+and Kotlin ports. There is no TypeScript equivalent, so a web consumer either calls Python or
+copies the spec files out of the repository and re-implements the integrity checks.
+
+### Fix
+
+Two parts, either useful alone:
+
+1. **Ship and export the v0.9.1 schemas.** Add `specification/v0_9_1/json/*.json` and
+   `v0_9_1/catalogs/**/*.json` to `copy-spec`, and export the raw `server_to_client.json` and
+   `common_types.json` together, so a consumer can compile them with any JSON Schema validator.
+2. **Export a TypeScript validator** equivalent to the Python `A2uiValidator` — schema validation
+   against a given catalog plus the integrity checks — tested against `conformance/core/validator.yaml`
+   so the two implementations cannot drift.
