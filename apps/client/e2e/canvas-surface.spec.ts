@@ -107,7 +107,7 @@ test('beat 6: a platform answer renders from its literal data model, no vendor d
  * vendor slot in one layout. As recorded, Calendar answered in prose and never painted, so its
  * slot rests on the prose.
  */
-test('beat 8: a mixed utterance carries the reader\'s words and the one vendor slot', async ({
+test("beat 8: a mixed utterance carries the reader's words and the one vendor slot", async ({
   page,
 }) => {
   await settle(page, '8');
