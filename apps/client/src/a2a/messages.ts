@@ -263,9 +263,10 @@ export function extractPaintMetasFromEvent(event: A2AStreamEventData): PaintMeta
 
 /**
  * The composition stamp the orchestrator writes onto every event it relays
- * (`metadata.a2uiverse`, defined by `@a2uiverse/sdk`'s composition extension): who painted this,
- * and — for a fragment — which slot it belongs to. One stamp per event, because one event is one
- * source. Absent on any stream that did not come through a composing hub.
+ * (`metadata.a2uiverse`, defined by `@a2uiverse/sdk`'s composition extension): who painted this
+ * (`source`) and whether it is the shell's paint or a fragment (`role`); a fragment fills the
+ * `Slot` whose `source` is the stamp's. One stamp per event, because one event is one source.
+ * Absent on any stream that did not come through a composing hub.
  */
 export function extractStampFromEvent(event: A2AStreamEventData): CompositionStamp | undefined {
   return readStamp((event as {metadata?: Record<string, unknown>}).metadata);

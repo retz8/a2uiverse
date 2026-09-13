@@ -10,8 +10,9 @@
  * - **Progressive mode** (empty canvas): the paint streams straight onto the stage.
  * - **Question paints**: a validated surface recognised as a question routes to the overlay
  *   slot, never the stage or the timeline.
- * - **Composed turns**: the hub stamps every event it relays. A `fragment` stamp names the slot
- *   its surface fills — those surfaces are registered in the placement map and never contend for
+ * - **Composed turns**: the hub stamps every event it relays. A `fragment` stamp names its source,
+ *   and its surface fills the `Slot` carrying that `source` — those surfaces are registered in the
+ *   placement map and never contend for
  *   the stage or the timeline. A `shell` stamp is an ordinary stage paint. An unstamped stream is
  *   a shell paint by default, which is what keeps every pre-composition fixture valid. Because a
  *   composition's whole point is that the layout lands before its agents answer, a shell paint
@@ -63,7 +64,7 @@ export interface TurnHandle {
   /**
    * Apply one streamed batch — the routing described in the module header. The composition stamp
    * of the event that carried it decides the batch's role: absent or `shell` is a stage paint,
-   * `fragment` fills the slot the stamp names. A payload beside the stamp is the synthesis
+   * `fragment` fills the `Slot` whose `source` the stamp names. A payload beside the stamp is the synthesis
    * paint's, handed to the synthesis session once the surface it describes is live.
    */
   apply(messages: A2uiMessage[], stamp?: CompositionStamp, synthesis?: SynthesisPayload): void;
@@ -83,7 +84,7 @@ export interface TurnHandle {
 export interface FragmentFailure {
   /** Namespaced, as the hub sent it. */
   surfaceId: string;
-  /** The stamp's source: the slot the fragment was placed in. */
+  /** The stamp's source: the `Slot` the fragment fills is the one carrying it. */
   source: string;
   path: string;
   message: string;
