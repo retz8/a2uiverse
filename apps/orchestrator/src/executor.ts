@@ -2,6 +2,7 @@ import {randomUUID} from 'node:crypto';
 import type {Message, Task, TaskState, TaskStatusUpdateEvent} from '@a2a-js/sdk';
 import type {AgentExecutor, ExecutionEventBus, RequestContext} from '@a2a-js/sdk/server';
 import {parseSurfaceId, type SynthesisPayload} from '@a2uiverse/sdk';
+import {SHELL_ACTIONS} from '@a2uiverse/shell-catalog/schema';
 import type {AgentsPool} from './agentsPool/agentsPool.js';
 import {STAMP_KEY} from './agentsPool/relay.js';
 import type {DispatchHandle, DispatchOutcome} from './agentsPool/types.js';
@@ -51,6 +52,8 @@ export interface OrchestratorDeps {
  * platform answer, a gap — closes right after first paint. Action: owner-only dispatch, no
  * Router/Planner; then, if the partition change invalidated the live synthesis, re-synthesis
  * inline before the final, handed the previous document and what broke (task-5.4 decision 6).
+ * A shell action — one of the shell catalog's closed set, raised on a shell surface and handled
+ * by the client itself (SPEC §7) — is journaled and nothing else: no dispatch, no paint.
  * Client error: slot flip by shell repaint.
  * Composition state is canonical here; the shell surface is its projection.
  */
@@ -93,6 +96,12 @@ export class OrchestratorExecutor implements AgentExecutor {
             message: ctx.userMessage,
             appId: owner,
           });
+          if (owner === SHELL_SOURCE_ID) {
+            this.#shellActionTurn(turnKind);
+            bus.publish(finalStatus(ctx, 'completed'));
+            await turn.close('completed');
+            break;
+          }
           await this.#actionTurn(ctx, bus, turn, turnKind);
           break;
         }
@@ -323,6 +332,19 @@ export class OrchestratorExecutor implements AgentExecutor {
       ...sent,
       deadAirMs: deadAir(),
     });
+  }
+
+  /**
+   * A shell action reported by the client (task-6.5 decisions 5–6): the client already opened
+   * the page; the hub's part is the journal entry, which `open` wrote from the message. Only the
+   * closed set is an intent worth recording — any other name on a shell surface is a client
+   * bug, and the turn fails saying so.
+   */
+  #shellActionTurn(action: Turn & {kind: 'action'}): void {
+    const name = (action.part.action as {name?: unknown}).name;
+    if (!SHELL_ACTIONS.includes(name as (typeof SHELL_ACTIONS)[number])) {
+      throw new Error(`unknown shell action: ${String(name)}`);
+    }
   }
 
   #clientErrorTurn(

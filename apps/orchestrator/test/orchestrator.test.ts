@@ -423,6 +423,77 @@ describe('orchestrator', () => {
     expect((events.at(-1) as TaskStatusUpdateEvent).status.state).toBe('completed');
   });
 
+  test('a shell action on the shell surface is journaled and nothing else: no dispatch, no paint (task-6.5 decisions 5–6)', async () => {
+    const {client} = await boot();
+    const [first] = await collect(client, utterance('my day'));
+    const before = Object.fromEntries(APPS.map(appId => [appId, vendors[appId]!.requests.length]));
+    const action: Message = {
+      kind: 'message',
+      messageId: crypto.randomUUID(),
+      role: 'user',
+      contextId: first.contextId,
+      parts: [
+        {
+          kind: 'data',
+          data: {
+            version: 'v0.9',
+            action: {
+              name: 'openStore',
+              surfaceId: 'shell:main',
+              sourceComponentId: 'gap-flight',
+              timestamp: 't',
+              context: {query: 'flight booking'},
+            },
+          },
+        },
+      ],
+    };
+    const events = await collect(client, action);
+
+    for (const appId of APPS) expect(vendors[appId]!.requests.length).toBe(before[appId]);
+    expect(events.flatMap(a2uiDatas)).toEqual([]);
+    expect((events.at(-1) as TaskStatusUpdateEvent).status.state).toBe('completed');
+    const lines = await journalLines(2);
+    expect(lines.find(l => l.kind === 'action')).toMatchObject({
+      kind: 'action',
+      descriptor: 'openStore on surface shell:main in shell',
+      payload: {query: 'flight booking'},
+      dispatch: [],
+      outcome: 'completed',
+    });
+  });
+
+  test('a name outside the shell’s closed action set on the shell surface is a failed turn', async () => {
+    const {client} = await boot();
+    const [first] = await collect(client, utterance('my day'));
+    const action: Message = {
+      kind: 'message',
+      messageId: crypto.randomUUID(),
+      role: 'user',
+      contextId: first.contextId,
+      parts: [
+        {
+          kind: 'data',
+          data: {
+            version: 'v0.9',
+            action: {
+              name: 'installApp',
+              surfaceId: 'shell:main',
+              sourceComponentId: 'x',
+              timestamp: 't',
+              context: {},
+            },
+          },
+        },
+      ],
+    };
+    const events = await collect(client, action);
+    const final = events.at(-1) as TaskStatusUpdateEvent;
+    expect(final.status.state).toBe('failed');
+    const said = final.status.message?.parts.find(p => p.kind === 'text');
+    expect(said && 'text' in said ? said.text : '').toContain('unknown shell action: installApp');
+  });
+
   test('VALIDATION_FAILED flips the slot to failed via shell repaint and is journaled', async () => {
     const {client} = await boot();
     const [first] = await collect(client, utterance('my day'));
