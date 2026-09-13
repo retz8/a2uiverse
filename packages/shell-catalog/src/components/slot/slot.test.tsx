@@ -74,7 +74,8 @@ test('shell content pending is one quiet line beside a spinner, no tile and no l
   expect(slot.textContent).toBe('Painting…');
   expect(slot.textContent).not.toContain('Synthesis');
   expect((slot as HTMLElement).style.border).toBe('');
-  expect((slot as HTMLElement).style.minHeight).toBe('');
+  // No floor: the flex share's `minHeight: 0` is the absence of one, not a reserved height.
+  expect(['', '0px']).toContain((slot as HTMLElement).style.minHeight);
 });
 
 test('shell content failed is a quiet line in the same register', () => {
@@ -96,7 +97,7 @@ test('shell content fills with no reserved floor', () => {
   const slot = container.querySelector('[data-slot="shell"]') as HTMLElement;
   expect(slot).toHaveAttribute('data-slot-state', 'filled');
   expect(slot).toHaveAttribute('data-slot-content', 'shell');
-  expect(slot.style.minHeight).toBe('');
+  expect(['', '0px']).toContain(slot.style.minHeight);
 });
 
 test('schema accepts content and refuses other values', () => {

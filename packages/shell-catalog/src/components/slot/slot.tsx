@@ -27,8 +27,9 @@ import {SlotApi, type SlotProps} from './slot.schema.js';
  * A slot holding a `gap` is the capability tile (task-6.2 decision 6): fixed shell UI, no model
  * wording — a minimal line and a button searching the Store for the missing capability, the gap.
  *
- * `weight` is the region's flex-grow share inside a `Row` or `Column`, as the basic layout
- * components apply it.
+ * `weight` is the region's flex share inside a `Row` or `Column`, proportional among its
+ * siblings and 1 when the Planner wrote none (task-6.4 decision 2): unweighted regions share
+ * their axis equally, and a wrapped slot fills the `Attribution` box that carries its weight.
  */
 export function SlotView({
   source,
@@ -41,11 +42,11 @@ export function SlotView({
 }: SlotProps & {onSearchStore?: (query: string | undefined) => void}) {
   const resolve = useContext(SlotContentContext);
   const shell = content === 'shell';
-  const weighted = weightStyle(weight);
+  const weighted = weightStyle(weight ?? 1);
 
   if (gap !== undefined) {
     return (
-      <div data-slot-gap={gap} data-slot-state="gap" style={{...panelStyle, ...weighted}}>
+      <div data-slot-gap={gap} data-slot-state="gap" style={{...weighted, ...panelStyle}}>
         <Flex direction="column" align="center" gap="2">
           <Text as="span" size="2">
             No installed app can do this.
@@ -66,7 +67,7 @@ export function SlotView({
       <div
         data-slot={source}
         data-slot-state="collapsed"
-        style={{...panelStyle, minHeight: 0, ...weighted}}
+        style={{...weighted, ...panelStyle, minHeight: 0}}
       >
         {resolved}
       </div>
@@ -82,7 +83,7 @@ export function SlotView({
       );
     }
     return (
-      <div data-slot={source} data-slot-state="failed" style={{...panelStyle, ...weighted}}>
+      <div data-slot={source} data-slot-state="failed" style={{...weighted, ...panelStyle}}>
         <Text as="span" size="1" color="gray">
           {label ?? source} didn&rsquo;t load
         </Text>
@@ -99,7 +100,8 @@ export function SlotView({
         // A filled fragment slot keeps the floor it reserved while pending. Dropping it made the
         // box collapse the instant a fragment mounted and then grow again as content streamed —
         // the slot giving back space it had already claimed. Shell content reserved no floor.
-        style={{minWidth: 0, minHeight: shell ? undefined : panelStyle.minHeight, ...weighted}}
+        // The floor is written after the flex share, whose `minHeight: 0` would erase it.
+        style={{...weighted, minWidth: 0, minHeight: shell ? 0 : panelStyle.minHeight}}
       >
         {resolved}
       </div>
@@ -121,7 +123,7 @@ export function SlotView({
     <div
       data-slot={source}
       data-slot-state="pending"
-      style={{...panelStyle, opacity: 0.6, ...weighted}}
+      style={{...weighted, ...panelStyle, opacity: 0.6}}
     >
       <Text as="span" size="1" color="gray">
         {label ?? source}…
@@ -165,9 +167,8 @@ export function createSlotComponent(onShellAction: ShellActionHandler) {
       content={props.content}
       onSearchStore={query => {
         const surfaceId = context.dataContext.surface.id;
-        onShellAction(
-          query ? {name: 'openStore', surfaceId, query} : {name: 'openStore', surfaceId},
-        );
+        const componentId = context.componentModel.id;
+        onShellAction({name: 'openStore', surfaceId, componentId, ...(query ? {query} : {})});
       }}
     />
   ));

@@ -12,8 +12,9 @@ import {AttributionApi, type AttributionProps} from './attribution.schema.js';
  * caption register with Radix's own info glyph (task-5.9 decision 5).
  *
  * With a child it is the wrapper of that region (task-6.4 decision 3): marker over content in
- * one flex column, the box's `weight` as its own flex share inside the parent `Row` or `Column`.
- * The child's own weight is then measured against this box, which the parent row stretches.
+ * one flex column, the box's `weight` as its own flex share inside the parent `Row` or `Column`,
+ * 1 when the painter copied none (task-6.4 decision 2) — so regions the Planner left unweighted
+ * share their axis equally. The child's own weight is then measured against this box.
  */
 export function AttributionView({
   displayName,
@@ -62,7 +63,7 @@ export function AttributionView({
       data-attribution={displayName}
       direction="column"
       gap="3"
-      style={{minWidth: 0, ...weightStyle(weight)}}
+      style={{minWidth: 0, ...weightStyle(weight ?? 1)}}
     >
       {marker}
       {children}

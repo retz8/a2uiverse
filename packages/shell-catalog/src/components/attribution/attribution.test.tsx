@@ -63,6 +63,16 @@ test('wraps its child under the marker and carries the weight as its own flex sh
   expect(marker.compareDocumentPosition(child) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 });
 
+test('an unweighted wrapper takes one share: unweighted regions split their axis equally (task-6.4 decision 2)', () => {
+  const {container} = render(
+    <AttributionView displayName="Gmail">
+      <div>the slot</div>
+    </AttributionView>,
+  );
+  const wrapper = container.querySelector('[data-attribution]') as HTMLElement;
+  expect(wrapper.style.flex).toBe('1 1 0%');
+});
+
 test('without a child it is the bare marker, no wrapper box', () => {
   const {container} = render(<AttributionView displayName="Gmail" />);
   expect(container.querySelector('[data-attribution]')).toBeNull();

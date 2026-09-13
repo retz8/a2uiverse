@@ -48,5 +48,8 @@ test('the capability tile searches the Store for the missing capability', () => 
   expect(slot.textContent).toContain('No installed app can do this.');
   expect(slot.textContent).not.toContain('flight booking');
   fireEvent.click(screen.getByRole('button', {name: 'Search the Store'}));
-  expect(shell).toEqual([{name: 'openStore', surfaceId: SURFACE_ID, query: 'flight booking'}]);
+  // The tile raises as a component, so it names itself; a functionCall (above) has none to name.
+  expect(shell).toEqual([
+    {name: 'openStore', surfaceId: SURFACE_ID, componentId: 'root', query: 'flight booking'},
+  ]);
 });

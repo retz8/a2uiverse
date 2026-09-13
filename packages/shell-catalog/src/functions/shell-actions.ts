@@ -10,10 +10,14 @@ import {z} from 'zod';
 export const SHELL_ACTIONS = ['openStore', 'openAppLibrary'] as const;
 export type ShellActionName = (typeof SHELL_ACTIONS)[number];
 
-/** One shell action as the host receives it, with the surface whose button raised it. */
+/**
+ * One shell action as the host receives it, with the surface whose button raised it. A
+ * component that raises it directly — the capability tile — names itself in `componentId`; a
+ * `functionCall` runs with no component in scope, so a button's raise carries none.
+ */
 export type ShellAction =
-  | {name: 'openStore'; surfaceId: string; query?: string}
-  | {name: 'openAppLibrary'; surfaceId: string};
+  | {name: 'openStore'; surfaceId: string; componentId?: string; query?: string}
+  | {name: 'openAppLibrary'; surfaceId: string; componentId?: string};
 
 export type ShellActionHandler = (action: ShellAction) => void;
 
