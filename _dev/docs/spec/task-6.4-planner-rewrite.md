@@ -56,7 +56,7 @@ Output schema first. Then the tree through the sdk's A2UI validator against the 
 
 ### 11. The painter keeps the model's tree
 
-The painter keeps the model's tree and ids, wraps each vendor `Slot` per decision 3, writes `state`, `label`, and `content: shell` on the synthesis slot, and leaves gap slots as authored — the catalog's `Slot` draws the tile. Repaints stay whole-tree `updateComponents`, locating each `Slot` by `source`. The data model goes out as a `dataModelUpdate` on `shell:main`. Composition state is keyed by `source` and gains the utterance and the synthesis outcome with its decline reason, for the this-canvas reader. A turn with no vendor dispatch and no synthesis closes right after first paint. An empty shortlist no longer ends the turn.
+The painter keeps the model's tree and ids, wraps each vendor `Slot` per decision 3, writes `state`, `label`, and `content: shell` on the synthesis slot, and leaves gap slots as authored — the catalog's `Slot` draws the tile. Repaints stay whole-tree `updateComponents`, locating each `Slot` by `source`. The data model goes out as an `updateDataModel` on `shell:main`. Composition state is keyed by `source` and gains the utterance and the synthesis outcome with its decline reason, for the this-canvas reader. A turn with no vendor dispatch and no synthesis closes right after first paint. An empty shortlist no longer ends the turn.
 
 ### 12. The model call keeps today's settings
 
