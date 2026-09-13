@@ -84,7 +84,7 @@ Consequences:
 
 ### 4.2 Shell catalog
 
-The **shell** is every platform-owned surface — the canvas container, the synthesis surface, the trusted pages, the authority dialogs. The **shell catalog** is the orchestrator's paint vocabulary: the standard A2UI basic catalog's schema, plus composition primitives (`Slot`, `Attribution`). Its implementation maps each basic component onto its Radix Themes counterpart — Radix Themes is the shell catalog's own design system, brought by its Provider under the §9.2 bundle rule — and the composition primitives are its own mappings on the same system, shipped with their schema in `shell-catalog`. The shell's own pages and widgets are built on Radix Themes as well. The orchestrator paints content, not just structure. The orchestrator's painted output is a **synthesis fragment** grafted through the same path as any agent's fragment. There is no privileged paint path.
+The **shell** is every platform-owned surface — the canvas container, the synthesis surface, the trusted pages, the authority dialogs. The **shell catalog** is the orchestrator's paint vocabulary: the standard A2UI basic catalog's schema, plus composition primitives (`Slot`, `Attribution`) and the shell's closed action set — open the Store, with an optional query, and open the App Library. Its implementation maps each basic component onto its Radix Themes counterpart — Radix Themes is the shell catalog's own design system, brought by its Provider under the §9.2 bundle rule — and the composition primitives are its own mappings on the same system, shipped with their schema in `shell-catalog`. The shell's own pages and widgets are built on Radix Themes as well. The orchestrator paints content, not just structure: the Planner authors the **layout surface** (§5.6), and the Synthesizer's output is a **synthesis fragment** grafted through the same path as any agent's fragment. Both are ordinary A2UI in the shell catalog. There is no privileged paint path.
 
 The word "chrome" is not used.
 
@@ -100,12 +100,11 @@ The word "chrome" is not used.
 
 Every grafted fragment carries a shell-owned **attribution affordance** — rendered by the shell, in the shell catalog, in the shell's own surface — that the fragment cannot suppress, restyle, or occlude. The shell controls its prominence: a quiet persistent marker on the fragment boundary, full attribution on hover/focus, escalation when authority is in play. The boundary carries an accessible name announcing the source. When multiple credentials are in play, attribution is per call, from the credential's user-given label.
 
-Attribution is for vendor fragments. The shell's own content — the synthesis surface — carries none: it renders in its reserved position with no boundary and no tile, the shell writing on its own page, and its provenance is in each derived value (§5.4).
+Attribution is for vendor fragments. The shell's own content — the synthesis surface, and the framing and platform answers the Planner writes into the layout surface — carries none. The synthesis surface renders in its reserved position with no boundary and no tile, the shell writing on its own page, and its provenance is in each derived value (§5.4). The Planner never authors `Attribution`: the shell wraps every `Slot` in it deterministically.
 
 ### 4.4 Agent awareness
 
 - The request to an agent is Planner-authored natural language carrying all size/shape guidance as prose. The agent paints for its slot in its own catalog; nothing a2uiverse-specific rides the vendor wire.
-- Slot **archetypes** (card / panel / row / full) are hub-internal plan vocabulary — never sent to or declared by agents.
 - Agents that ignore the guidance fall back to **orchestrator trimming**. This fallback is permanent: an unmodified A2UI agent composes, just less well.
 
 ### 4.5 Layout plan timing
@@ -122,9 +121,12 @@ Attribution is for vendor fragments. The shell's own content — the synthesis s
 
 ```
 t0  input        palette utterance
-t1  ▪ Router     embed → retrieve over local index of AgentCard skills
-t2  ◆ Planner    plan: dispatch list · layout tree · synthesis slot (or not) · capability gaps
-t3  ▪ first paint layout + pending slots + reserved synthesis slot. Shell partition only.
+t1  ▪ Router     embed → retrieve over local index of AgentCard skills, the platform's own card among them
+t2  ◆ Planner    dispatch list · capability gaps · synthesis slot (or not) ·
+                 the layout surface in the shell catalog: slots · framing · platform answers;
+                 platform readers called on demand (§5.6)
+t3  ▪ first paint the layout surface: every Slot wrapped in Attribution · gap slots filled with the capability tile ·
+                 pending slots · reserved synthesis slot. Shell partition only.
 t4  ▸ AgentsPool N parallel A2A calls, each (endpoint, credential, request)
 t5  ▪ per-fragment arrival — independent, unsynchronized:
        validate → namespace ids → mount at slot → partition data model → scope catalog → attach attribution
@@ -137,8 +139,8 @@ t8  ▪ steady state, forever: BindingEvaluator on local change; IntegrityChecke
 
 - A single-agent turn is one model call.
 - A layout-only composition is one model call.
+- A question about the platform is one model call; a platform reader is a step inside it.
 - A synthesized composition is two.
-- Whether the Planner internally splits routing from layout is task-internal.
 
 ### 5.1 Synthesis is opt-in per turn
 
@@ -180,6 +182,23 @@ The requirement is not a caption. Disclosure is carried where the fact belongs: 
 ### 5.5 Mid-turn streaming
 
 Inherited from the canvas: streaming renders only on the first turn; subsequent responses apply on completion. Quiescence of a fragment is its response completing.
+
+### 5.6 Planner output
+
+The Planner is the shell's designer and its voice. It authors the **layout surface** (`shell:main`) the way an agent authors its surface: as text against the shell catalog described in its prompt, parsed and validated after, one retry carrying the failure.
+
+1. A **dispatch list**: each source with its prose request, and each capability gap named in prose (§8).
+2. A **tree** in the shell catalog. `Slot` is its placeholder — one per dispatched source, one for the reserved synthesis slot when there is one, one per capability gap. A `shell` slot is the synthesis slot and nothing else. Around the slots the tree carries framing — headings, a restated question, the shell's own words — and answers to questions about the platform. It never contains `Attribution` or `Frame`.
+3. A **data model of literal values** the tree binds to — never a formula, never a ref.
+4. Actions only from the shell's closed action set (§4.2, §7).
+
+The Planner reads platform state only through a closed set of **platform readers**, called when the utterance needs them, the way a vendor agent calls its MCP:
+
+- **Installed apps** — from the Registry: each app's id and display name, its card's name, description and skills, whether the card was reachable at boot.
+- **This canvas** — the current composition's structure: the utterance it came from, which sources sit in which slots and each slot's state, whether a synthesis is live, collapsed or declined and the decline's reason.
+- **Recent turns** — the last few turns of the conversation, one line each: what was asked, which sources answered, the outcome, when.
+
+No reader returns a partition's contents or the synthesis document; the Planner never sees vendor data. A new projection is a new reader. What A2UIVerse is needs no reader: it is the platform's card, on the shortlist.
 
 ---
 
@@ -225,6 +244,7 @@ A past composite is **frozen**: re-hydrated from stored state, no dispatch, stam
 | Inside a vendor fragment                                                                                | that agent, on its channel, with its credential              | one agent call |
 | On the synthesis surface, operating on the composition (sort, filter, hide/add source, "compare these") | shell                                                        | free           |
 | On a shell-painted cell referring to a vendor's entity                                                  | **navigate**: focus the originating subtree in that fragment | free           |
+| On a shell surface, a shell action (open the Store with a query, open the App Library) | client: opens the trusted page; reported to the orchestrator for the journal | free |
 | Palette                                                                                                 | orchestrator                                                 | a turn         |
 
 - Pre-synthesis, fragment interaction costs nothing beyond the agent call: no bindings exist yet.
@@ -256,9 +276,9 @@ No password, card, or OTP input exists in the shell catalog or in any vendor cat
 
 ### Missing app and missing auth are the same hole
 
-A capability the Planner wants and cannot fill is a reserved slot with a shell-painted **capability tile**. Store search, install consent, and re-dispatch of that slot follow the exact shape of the authority tile. The original request is never torn down; resume is what not tearing it down gets for free.
+A capability the Planner wants and no installed app serves — the platform's own card included — is a **capability gap**. The Planner names it in its dispatch list and places a `Slot` for it in the layout surface (§5.6); the shell fills that slot with the **capability tile**, deterministic, no model wording in it, whose action opens the Store with the capability as query. Store search, install consent, and re-dispatch of that slot follow the exact shape of the authority tile. The original request is never torn down; resume is what not tearing it down gets for free.
 
-The Planner must be able to name a capability gap.
+A question about the platform itself is not a gap: the platform's card serves it, and the Planner answers in the layout surface.
 
 ---
 
@@ -294,6 +314,10 @@ Two things with one word today; the spec names them separately:
 - **Marketplace** — remote-in-spirit: index of AgentCards (skill embeddings), package hosting, the publish step, hello-fragment smoke test as the live preview. In this project it is a local process.
 - **Store page** — a trusted shell page the user browses and installs from.
 
+The **App Library** is a trusted shell page over the local registry, where installed apps are uninstalled and their accounts and permissions managed.
+
+The shell knows what A2UIVerse is and what is there; every how that changes state is a trusted page. The model never authors the Store page or the App Library and never reads the marketplace index; it may paint an affordance into either (§7).
+
 Routing and store search are **one mechanism over two indexes** — local registry and marketplace index. A miss in the first is a hit in the second.
 
 ### 9.4 Vendor agents
@@ -326,7 +350,7 @@ CLIENT (canvas shell)                        ORCHESTRATOR (A2A agent server)
 | Component            | Kind  | Responsibility                                                                                                                                    |
 | -------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Router**           | ▪     | Embedding retrieval over AgentCard skill descriptions/examples. One class, two indexes (local registry, marketplace).                             |
-| **Planner**          | ◆     | Intent + candidate cards → plan: dispatch list, layout tree with named slots, synthesis slot or not, capability gaps. Never sees data.            |
+| **Planner**          | ◆     | Intent + candidate cards, platform readers on demand → dispatch list, capability gaps, synthesis slot or not, the layout surface in the shell catalog (§5.6). Never sees vendor data.            |
 | **Synthesizer**      | ◆     | All partitions (names and values) + the Planner's brief + the shell catalog → the synthesize data model: entity resolution, derived data model of formulas, synthesis tree, sorts, note. May decline. Emits wiring, never values; knows only the shell catalog. |
 | **AgentsPool**       | ▪     | A2A connections. Dispatch unit `(endpoint, credential)`. Parallelism, per-source deadlines, quiescence.                                           |
 | **UIComposer**       | ▪     | Mechanical tree assembly: namespace, mount, catalog scope, provenance + attribution, subtree replacement. Understands nothing.                    |
@@ -334,7 +358,7 @@ CLIENT (canvas shell)                        ORCHESTRATOR (A2A agent server)
 | **IntegrityChecker** | ▪     | Per-binding validity: does the ref's key still resolve. Gates whether the Synthesizer runs.                                                           |
 | **Validator**        | ▪     | Agent trees against their declared catalog; LLM output against its schema.                                                                        |
 | **AuthVault**        | ▪     | Credentials by `(app, account)`. Triggers consent; never paints it.                                                                               |
-| **Registry**         | ▪     | Installed bundles — the orchestrator's local state, written only by the orchestrator. Serves the orchestrator's AgentCard.                        |
+| **Registry**         | ▪     | Installed bundles — the orchestrator's local state, written only by the orchestrator. Serves the orchestrator's AgentCard and indexes it under the reserved `shell` id beside the installed apps' cards, so the platform routes like any app.                        |
 | **IntentJournal**    | ▪     | Per turn: free-form intent descriptor + embedding. The thin machine-facing projection is left unbuilt.                                            |
 | **Composition**      | state | §6.                                                                                                                                               |
 
@@ -379,9 +403,9 @@ M2   + synthesis, identical shapes   two sibling mock vendor agents             
 M3   + heterogeneous shapes   temporal merge (Calendar · Mail · GitHub)
      proves unrelated data models · shared-axis merge · the model-authored merged view · key-based refs · decline ·
      quiescence across unsynchronized arrivals
-M3s  the shell as an agent   the orchestrator's model answers itself in the shell catalog when no vendor serves —
-     installed agents · the platform's own state; what platform state the model may read (§10's Planner "never sees data"
-     is revisited here); which of M10's pages it may author and which stay trusted
+M3s  the shell as an agent   the platform's card routed like any app's
+     proves the Planner authoring `shell:main` · platform readers on demand, never vendor data · capability gap as a slot ·
+     the Store page and App Library stay trusted, the model paints only an affordance into them
 M4   + entity resolution   entity join                                          ← differentiator proven
 M6   late-arrival + failure   per-source deadlines · failure tiles · decline · late absorb
 M5   durable composition   timeline · frozen + stamped · refresh · add/drop source · "compare these"
