@@ -47,7 +47,7 @@ When the Planner judges that nothing installed serves the utterance — the plat
 
 ### 7. The shell's actions are a closed set, declared in the shell catalog, journaled
 
-Two actions: **open the Store**, with an optional query, and **open the App Library**. They are declared in the shell catalog's schema as the actions a shell surface may raise, so the validator rejects any other name in the Planner's tree. A shell-source action is handled by the client locally, no turn. Until Phase 13 builds the routes, the client shows an ambient notice naming the page and the query and reports the action to the orchestrator as an action turn so the journal records the intent. The capability tile and the model's button share the one action and the one landing.
+Two actions: **open the Store**, with an optional query, and **open the App Library**. They are declared in the shell catalog's schema as the actions a shell surface may raise, so the validator rejects any other name in the Planner's tree. A shell-source action is handled by the client locally, no turn. The Store and the App Library are an overlay over the canvas; until Phase 13 builds them, the client opens a placeholder overlay naming the page and the query and reports the action to the orchestrator as an action turn so the journal records the intent. The capability tile and the model's button share the one action and the one landing.
 
 ### 8. `shell:main` carries a data model of literals
 
@@ -61,7 +61,7 @@ The tree-authoring Planner ships as one response. Its acceptance run records fir
 
 On the real roster (GitHub · Gmail · Calendar) with the platform's card beside them, live through the tunnel, evidence recorded as the earlier phases did:
 
-1. **Platform questions, one call each** — "what apps do I have?", "what can I do here?", "how do I add apps?", "what's on my screen?" after a composed turn. Each answered in `shell:main` from the right reader, the journal showing which was called, the Store or App Library button raising its action into the journal and the notice.
+1. **Platform questions, one call each** — "what apps do I have?", "what can I do here?", "how do I add apps?", "what's on my screen?" after a composed turn. Each answered in `shell:main` from the right reader, the journal showing which was called, the Store or App Library button raising its action into the journal and the placeholder overlay.
 2. **A mixed utterance** — "what can I do with my calendar?" dispatches Calendar and carries the shell's words in the same layout.
 3. **A gap** — "book me a flight" yields a gap slot and the tile, no vendor dispatched, no shell prose.
 4. **Regression** — the S1 temporal merge, a single-agent turn, and the mock-roster comparison all compose under the model-authored layout, with the "side by side" control prompt from 5.7 now side by side.
