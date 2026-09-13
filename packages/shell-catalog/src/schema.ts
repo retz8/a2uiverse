@@ -16,7 +16,6 @@ import {
 import {CATALOG_ID} from './catalog-id.js';
 import {AttributionApi} from './components/attribution/attribution.schema.js';
 import {DerivedValueApi} from './components/derived-value/derived-value.schema.js';
-import {FrameApi} from './components/frame/frame.schema.js';
 import {SlotApi} from './components/slot/slot.schema.js';
 import {SortControlApi} from './components/sort-control/sort-control.schema.js';
 import {TableApi, TableRowApi} from './components/table/table.schema.js';
@@ -31,7 +30,6 @@ export {
   DataListApi,
   DataListItemApi,
   DerivedValueApi,
-  FrameApi,
   SlotApi,
   SortControlApi,
   TableApi,
@@ -42,7 +40,6 @@ export {
 export const SHELL_COMPONENT_APIS: readonly ComponentApi[] = [
   SlotApi,
   AttributionApi,
-  FrameApi,
   DerivedValueApi,
   SortControlApi,
   TableApi,

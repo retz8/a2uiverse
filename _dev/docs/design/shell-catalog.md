@@ -1,8 +1,8 @@
 # Shell catalog — system design
 
 `packages/shell-catalog`. The shell's paint vocabulary (SPEC §4.2): the A2UI basic catalog mapped
-onto Radix Themes, plus the shell's own primitives — composition (`Slot`, `Attribution`), layout
-(`Frame`), synthesis (`DerivedValue`, `SortControl`) and the merged view's shapes (`Table`,
+onto Radix Themes, plus the shell's own primitives — composition (`Slot`, `Attribution`),
+synthesis (`DerivedValue`, `SortControl`) and the merged view's shapes (`Table`,
 `TableRow`, `DataList`, `DataListItem`; task 5.7) — as one catalog schema
 (`catalogs/v0.9.1/catalog.json`) and one React implementation, versioned together. Radix Themes
 is its design system, brought by its Provider under the one-provider-one-CSS-setup rule (SPEC
@@ -54,8 +54,7 @@ carry no schema file of their own — their API is upstream's. Shared helpers li
 | Shell primitive | Rendering | Contract |
 | --- | --- | --- |
 | `Slot` | pending/failed tile on Radix panel, border and radius tokens; quiet `Text` lines for shell content; the capability tile for a `gap`; `weight` as a flex share | exactly one of `source` or `gap`; a source's content from `SlotContentContext`, resolved by source, which the host fills |
-| `Attribution` | `Text` size 1 gray with Radix's info glyph | display name at rest, full detail on hover/focus, accessible name always |
-| `Frame` | `Flex` gap 3 of `Box` items | equal shares along a row (`flex-basis: 0`), natural size down a column |
+| `Attribution` | `Text` size 1 gray with Radix's info glyph; with a `child`, a `Flex` column of marker over child carrying `weight` as its flex share | display name at rest, full detail on hover/focus, accessible name always; the wrapper of a vendor fragment's `Slot` (task 6.4) |
 | `DerivedValue` | `Text` size 2, gray when absent, detail in size 1 | the cell object the BindingEvaluator writes: value + contributor state; `format` `number` · `currency` · `datetime` (any year-and-clock spelling rendered in one fixed form — `en-US`, `America/New_York` — through `shared/instant`, which the client's sort shares) |
 | `SortControl` | `Select` + `IconButton` with Radix arrow icons | the declaration at `/sorts/N`, written back whole |
 | `Table` · `TableRow` | `Table.Root` size 1 `surface`; `Table.Row` of `Table.Cell`s | headings from `columns`, one row per child; a row outside a table draws as a flex row (context) |

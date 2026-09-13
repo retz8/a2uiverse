@@ -196,10 +196,9 @@ const SEEDS: Record<
     data: {when: '2026-09-05T11:00'},
   },
   Slot: {props: {source: 'gmail', label: 'Gmail'}},
-  Attribution: {props: {displayName: 'Gmail', account: 'work'}},
-  Frame: {
-    props: {direction: 'row', children: ['c1', 'c2']},
-    extra: [text('c1', 'Left'), text('c2', 'Right')],
+  Attribution: {
+    props: {displayName: 'Gmail', account: 'work', child: 'c1', weight: 1},
+    extra: [text('c1', 'The region the marker names')],
   },
   Table: {
     props: {columns: ['Camera', 'Aperture & Co', 'Northlight'], children: ['r1', 'r2']},

@@ -31,8 +31,7 @@
                 "components": [
                   {
                     "id": "root",
-                    "component": "Frame",
-                    "direction": "column",
+                    "component": "Column",
                     "children": [
                       "slot-shell",
                       "group-1"
@@ -111,8 +110,7 @@
                   },
                   {
                     "id": "group-1",
-                    "component": "Frame",
-                    "direction": "row",
+                    "component": "Row",
                     "children": [
                       "wrap-slot-github",
                       "wrap-slot-gmail",

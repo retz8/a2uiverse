@@ -480,8 +480,7 @@ function synthesisShellComponents(
   return [
     {
       id: 'root',
-      component: 'Frame',
-      direction: 'row',
+      component: 'Row',
       children: slots.map(s => (s.shell ? idOf(s) : `wrap-${idOf(s)}`)),
     },
     ...slots.flatMap((s): Array<Record<string, unknown>> =>

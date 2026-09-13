@@ -11,6 +11,10 @@ import {z} from 'zod';
  * - `appId` is the stable app id.
  * - `account` is the credential's user-given label; `null` (or absent) for a
  *   single-account app. Populated from M8.
+ * - `child` is the id of the region the marker names, rendered under it (task-6.4 decision 3):
+ *   the marker and its fragment move as one box of the layout. Absent, the marker stands alone.
+ * - `weight` is the box's flex-grow share inside a `Row` or `Column`, copied by the painter from
+ *   the wrapped `Slot` so wrapped and bare slots size by one rule.
  */
 export const AttributionApi = {
   name: 'Attribution',
@@ -19,6 +23,8 @@ export const AttributionApi = {
       displayName: z.string(),
       appId: z.string().optional(),
       account: z.string().nullable().optional(),
+      child: z.string().optional(),
+      weight: z.number().optional(),
     })
     .strict(),
 } as const;

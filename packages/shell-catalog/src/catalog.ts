@@ -21,7 +21,6 @@ import {SliderComponent} from './components/slider/index.js';
 import {DateTimeInputComponent} from './components/date-time-input/index.js';
 import {createSlotComponent} from './components/slot/index.js';
 import {AttributionComponent} from './components/attribution/index.js';
-import {FrameComponent} from './components/frame/index.js';
 import {DerivedValueComponent} from './components/derived-value/index.js';
 import {SortControlComponent} from './components/sort-control/index.js';
 import {TableComponent, TableRowComponent} from './components/table/index.js';
@@ -64,15 +63,14 @@ export const BASIC_IMPLEMENTATIONS: readonly ReactComponentImplementation[] = [
 ];
 
 /**
- * The shell's own primitives — composition, layout, synthesis and the merged view's shapes — also
- * on Radix Themes. `Slot` is bound to the host's shell-action handler: its capability tile raises
- * `openStore`.
+ * The shell's own primitives — composition, synthesis and the merged view's shapes — also on
+ * Radix Themes. `Slot` is bound to the host's shell-action handler: its capability tile raises
+ * `openStore`. Layout is the basic catalog's `Row` and `Column` (task-6.4 decision 4).
  */
 function shellImplementations(onShellAction: ShellActionHandler): ReactComponentImplementation[] {
   return [
     createSlotComponent(onShellAction),
     AttributionComponent,
-    FrameComponent,
     DerivedValueComponent,
     SortControlComponent,
     TableComponent,

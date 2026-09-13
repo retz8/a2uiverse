@@ -14,7 +14,6 @@ export {CATALOG_ID} from './catalog-id.js';
 export {LAYOUT_SURFACE_KEEP_SET, SYNTHESIS_SURFACE_KEEP_SET} from './keep-sets.js';
 export {PortalRootContext, Provider} from './provider.js';
 export {SlotContentContext, type SlotContentResolver} from './slot-content.js';
-export {FrameComponent, FrameView, FrameApi, type FrameProps} from './components/frame/index.js';
 export {SlotApi, SlotView, type SlotProps} from './components/slot/index.js';
 export {
   AttributionApi,

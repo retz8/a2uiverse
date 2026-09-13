@@ -53,8 +53,7 @@ describe('rosterFromShellMessages', () => {
         components: [
           {
             id: 'root',
-            component: 'Frame',
-            direction: 'row',
+            component: 'Row',
             children: ['shell', 'wrap-slot-github'],
           },
           {

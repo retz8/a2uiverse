@@ -48,7 +48,7 @@ describe('the synthesis surface keep-set', () => {
       {id: 'cell', component: 'DerivedValue', cell: {path: 'item'}},
     ];
     expect(messages(validator, view)).toEqual([]);
-    for (const name of ['Slot', 'Attribution', 'Frame', 'TextField', 'Button']) {
+    for (const name of ['Slot', 'Attribution', 'TextField', 'Button']) {
       expect(messages(validator, [{id: 'root', component: name}])).toEqual([
         `Unknown component type: "${name}"`,
       ]);
@@ -69,7 +69,7 @@ describe('the layout surface keep-set', () => {
     );
   });
 
-  test('slots with the shell’s words and a Store button validate; Attribution, Frame and a formula view do not', () => {
+  test('slots with the shell’s words and a Store button validate; Attribution and a formula view do not', () => {
     const layout = [
       {id: 'root', component: 'Column', children: ['heading', 'row', 'store']},
       {id: 'heading', component: 'Text', text: 'Your morning', variant: 'h3'},
@@ -85,7 +85,7 @@ describe('the layout surface keep-set', () => {
       {id: 'store-label', component: 'Text', text: 'Find an app'},
     ];
     expect(messages(validator, layout)).toEqual([]);
-    for (const name of ['Attribution', 'Frame', 'DerivedValue', 'SortControl']) {
+    for (const name of ['Attribution', 'DerivedValue', 'SortControl']) {
       expect(messages(validator, [{id: 'root', component: name}])).toEqual([
         `Unknown component type: "${name}"`,
       ]);
