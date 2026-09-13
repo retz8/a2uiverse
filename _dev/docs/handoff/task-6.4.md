@@ -1,22 +1,20 @@
-# Handoff — task 6.4, the Planner rewrite (pick-up from 6.3)
+# Handoff — task 6.4, the platform's card and the Planner rewrite
 
-Not started; no spec written. 6.3 landed on `main` (`d783fb8`), `pnpm verify` green. 6.4's line in `_dev/TODO.md` is the scope; 6.3's "Decisions carried to 6.4" (`_dev/docs/spec/task-6.3-restructure.md`) are its locked inputs — output schema `{dispatch, tree, dataModel}`, a `Slot` with exactly one of `source`/`gap` plus `weight`, all Planner validation in orchestrator/planner. 6.5 can run in parallel.
+Done on `main` (`072b856` shell catalog + client, `6ad70b1` orchestrator), `pnpm verify` green. Spec: `_dev/docs/spec/task-6.4-planner-rewrite.md` (`7439749`). Live smoke (`A2UIVERSE_PLANNER_LIVE=1 pnpm --filter @a2uiverse/orchestrator test planner.live`, `gemini-2.5-flash`, low effort): fan-out 3.1 s, platform answer 4.2 s calling `installed_apps`, gap 2.5 s — each accepted on the first attempt.
 
-## What 6.3 built for 6.4 to use
+## For 6.5 (client)
 
-- **sdk** (`@a2uiverse/sdk`): `createA2uiValidator({catalog})` → `validate(messages)` returns `A2uiFinding[]` (`{category, message, path?, componentId?}`), `formatA2uiFinding` for retry lines; `pruneCatalog(catalog, keepSet)`; `schemaErrors(ajvValidate, input)`. A payload with no `createSurface` is treated as an incremental update (no root required, no orphan check).
-- **shell catalog**: `LAYOUT_SURFACE_KEEP_SET` (`Slot`, `Row`, `Column`, `Card`, `Text`, `Divider`, `DataList`, `DataListItem`, `Table`, `TableRow`, `Button`; `openStore`, `openAppLibrary`) from `@a2uiverse/shell-catalog/schema`. `Slot` schema: `source` | `gap`, `weight`, `state` (`pending|failed|collapsed`), `label`, `content`. A `gap` slot renders the capability tile; its Store query is the gap.
-- **orchestrator**: the pattern to copy is `src/synthesizer/` — `prompt.ts` (`readSynthesizerFiles` prunes at boot; the prompt shows the pruned catalog it validates against), `document.ts` (output schema), `validate.ts` (one validator, structure-gated), `synthesizer.ts` (text loop, one retry). The shared extractor is `src/authoring/taggedBlock.ts` (`extractTaggedBlock(text, tag)`).
-- `@a2uiverse/shell-catalog/platform-ui-guidance.md` ships but nothing reads it yet — 6.4 is its first reader.
+- `shell:main` now arrives as createSurface · `updateDataModel` (only when the data model is non-empty) · `updateComponents`. The client does not read that data model yet, so platform answers bound through it render empty until 6.5.
+- The tree is model-authored: ids are the model's, layout is `Row`/`Column`, `Frame` is gone from the catalog. Each vendor `Slot` sits inside an `Attribution` (`attribution-<slotId>`) with `child` and the copied `weight`; the synthesis slot (`content: shell`) and gap slots are bare. The roster still pairs by "Attribution immediately before its Slot" — it may now follow `child` instead.
+- Gap slots reach the client as `{component: Slot, gap}` with no state or label; the catalog's tile handles them.
+- Recorded beats were transformed mechanically (`Frame` → `Row`/`Column`, old `wrap-`/`attr-` shapes kept); re-record per 6.5.
 
-## State of the code 6.4 changes
+## For 6.6 (acceptance)
 
-- The Planner is still the Phase-5 one: structured output, `planSchema.ts` with `direction`/`groups`/`archetype`, `checkPlan.ts`, `archetypes.ts`.
-- The painter (`composition/shellPainter.ts`) lays out `Frame`s from the plan and writes each `Slot` with `source: appId`; component ids and the orchestrator's composition state are still keyed `slot-<appId>` (`composition/constants.ts` `slotNameFor`) — internal only, nothing on the wire depends on it.
-- The stamp carries no `slot`; the client places by `source` and reads the roster by pairing each `Attribution` with the `Slot` of the same source that follows it.
-- `SCHEMA_CATALOG` (shell catalog, headless `web_core` catalog) is no longer used by the orchestrator.
+- The live fan-out's vendor requests mirror the worked example's wording almost verbatim; check the requests adapt to the utterance.
+- `A2UIVERSE_PLANNER_EFFORT` stays `low`; whether tree authoring needs thinking is 6.6's measurement.
+- The platform card is one blended vector like a vendor's; ranking quality on the real roster is 6.6's finding.
 
-## Open threads
+## For 6.7 (design records)
 
-- Five 6.3 choices were reported to the user and not yet confirmed: `Slot`'s `state: "gap"` removed in favour of the `gap` prop; orphan components now rejected in model-authored trees (upstream strict); the client's synthesis fixture keeps its own camera-comparison copy; the five recorded beats were transformed mechanically, not re-recorded; `ajv` added to the orchestrator, `yaml` (dev) to the sdk.
-- Playwright: `canvas-surface-beat-1` fails on relative-time text only (the recorded dates aging against today) — baseline refresh, unrelated to 6.3.
+- `orchestrator.md`: the Planner (document · validate · readers · platformReaders · prompt · planner), the Registry's platform card, the painter, the journal's `PlanRecord` and ring, the executor's no-dispatch turn. Only the shell-catalog record's `Frame` row was touched in 6.4.
