@@ -7,7 +7,7 @@
 import {test, expect} from '@playwright/test';
 import type {Page} from '@playwright/test';
 
-const SLOT = '[data-slot="slot-shell"]';
+const SLOT = '[data-slot="shell"]';
 const VIEW = '[data-shell-content][data-surface="shell:synthesis"]';
 
 async function settleSynthesis(page: Page) {

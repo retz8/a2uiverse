@@ -1,4 +1,5 @@
-import {SYNTHESIS_TAG, type Synthesis, type SynthesizeDataModel} from '@a2uiverse/sdk';
+import type {Synthesis, SynthesizeDataModel} from '../src/synthesizer/document.js';
+import {SYNTHESIS_TAG} from '../src/synthesizer/prompt.js';
 import type {SynthesisCall, SynthesisModel} from '../src/synthesizer/synthesizer.js';
 
 /** Wraps a document — or raw text — the way the model is asked to answer. */

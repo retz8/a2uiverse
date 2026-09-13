@@ -1,26 +1,19 @@
 /**
- * The synthesis half of the composition extension (SPEC §5.2, §14): the
- * **synthesize data model** — the data model for a2ui composition — that the
- * Synthesizer authors and the client evaluates. Normative definition:
- * `../contracts/composition.v0.4.json` (`shapes.synthesizeDataModel`);
- * `synthesis.contract.test.ts` asserts this projection against it.
+ * The synthesis half of the composition extension (SPEC §5.2, §14): the payload the orchestrator
+ * sends the client beside a painted synthesis surface — the derived data model whose every leaf is
+ * a formula over refs into partitions, and the sort declarations — and the pieces both sides agree
+ * on. Normative definition: `../contracts/composition.v0.5.json` (`shapes.synthesizeDataModel`);
+ * `synthesis.contract.test.ts` asserts this projection against it. What the Synthesizer writes, and
+ * how it is told to, belongs to the orchestrator; the tree it writes is painted as ordinary A2UI
+ * and never rides this payload.
  *
- * Two authors, two schemas. The Synthesizer emits {@link SynthesizeDataModel}:
- * a synthesis — a shell-catalog tree, a free-form derived data model whose
- * every leaf is a formula, sort declarations, a note — or a decline. The
- * orchestrator paints the tree as ordinary A2UI and sends the client the
- * {@link SynthesisPayload}: the derived model and the sorts, under
- * {@link SYNTHESIS_KEY}.
- *
- * The schemas are plain JSON Schema 2020-12, recursive where the model is
- * free-form; the sdk's validator (`validate.ts`) compiles them.
+ * The schema is plain JSON Schema 2020-12, recursive where the model is free-form; its `$defs` are
+ * exported for an author's own output schema to build on, and the sdk's validator (`validate.ts`)
+ * compiles it.
  */
 
 /** Metadata key the client-facing payload rides under, beside the composition stamp. */
 export const SYNTHESIS_KEY = 'a2uiverseSynthesis';
-
-/** The A2UI version whose components the tree carries. */
-export const TREE_A2UI_VERSION = 'v0.9';
 
 const refSchema = {
   type: 'object',
@@ -108,73 +101,13 @@ const sortSchema = {
   },
 } as const;
 
-const treeSchema = {
-  type: 'object',
-  additionalProperties: false,
-  required: ['components'],
-  description:
-    'The synthesis tree: the A2UI components list an agent would put in an updateComponents, authored in the shell catalog. One component has the id `root`. Validated against the shell catalog by the consumer; the contract does not restate a component. Painted as ordinary A2UI; never rides metadata.',
-  properties: {
-    components: {
-      type: 'array',
-      minItems: 1,
-      items: {
-        type: 'object',
-        required: ['id', 'component'],
-        properties: {id: {type: 'string'}, component: {type: 'string'}},
-      },
-    },
-  },
-} as const;
-
-const defs = {
+/** The shared definitions: a ref, a formula, a node, the derived data model, a sort declaration. */
+export const SYNTHESIS_DEFS = {
   ref: refSchema,
   formula: formulaSchema,
   node: nodeSchema,
   dataModel: dataModelSchema,
   sort: sortSchema,
-} as const;
-
-/** Model-facing: what the Synthesizer emits — a synthesis, or a decline. */
-export const SYNTHESIZE_DATA_MODEL_SCHEMA = {
-  $schema: 'https://json-schema.org/draft/2020-12/schema',
-  title: 'SynthesizeDataModel',
-  description:
-    'Model-facing: what the Synthesizer emits, written as text and validated after. A synthesis carries the tree, the derived data model, the sort declarations and a note; a decline carries declined: true and a reason.',
-  $defs: {...defs, tree: treeSchema},
-  oneOf: [
-    {
-      type: 'object',
-      additionalProperties: false,
-      required: ['tree', 'dataModel', 'sorts', 'note'],
-      properties: {
-        tree: {$ref: '#/$defs/tree'},
-        dataModel: {$ref: '#/$defs/dataModel'},
-        sorts: {type: 'array', items: {$ref: '#/$defs/sort'}},
-        note: {
-          type: 'string',
-          description:
-            "What was delivered and why it differs from the Planner's brief, when it differs; empty otherwise. Journaled, never painted.",
-        },
-      },
-    },
-    {
-      type: 'object',
-      additionalProperties: false,
-      required: ['declined', 'reason'],
-      properties: {
-        declined: {
-          const: true,
-          description: 'Nothing is joinable; the reserved slot collapses and no payload is sent.',
-        },
-        reason: {
-          type: 'string',
-          minLength: 1,
-          description: "Why nothing was joinable — spoken into the slot as the shell's words.",
-        },
-      },
-    },
-  ],
 } as const;
 
 /** Client-facing: the derived model and the sorts, plus the orchestrator's envelope. */
@@ -183,7 +116,7 @@ export const SYNTHESIS_SCHEMA = {
   title: 'SynthesisPayload',
   description:
     "Client-facing: the synthesis branch minus the tree (painted as A2UI) and the note (journaled). Evaluated client-side into the synthesis surface's data model.",
-  $defs: defs,
+  $defs: SYNTHESIS_DEFS,
   type: 'object',
   additionalProperties: false,
   required: ['dataModel', 'sorts'],
@@ -228,39 +161,6 @@ export interface SortDeclaration {
   /** The initial key; one of the options. */
   key: string;
   direction: 'asc' | 'desc';
-}
-
-/** An A2UI v0.9 component as the shell catalog's consumer sees it. */
-export interface TreeComponent {
-  id: string;
-  component: string;
-  [prop: string]: unknown;
-}
-
-/** The synthesis tree: an A2UI components list in the shell catalog, one of them `root`. */
-export interface SynthesisTree {
-  components: TreeComponent[];
-}
-
-export interface Synthesis {
-  tree: SynthesisTree;
-  dataModel: DerivedModel;
-  sorts: SortDeclaration[];
-  /** Deviation from the Planner's brief, when any; journaled, never painted. */
-  note: string;
-}
-
-export interface Decline {
-  declined: true;
-  /** Spoken into the slot as the shell's words. */
-  reason: string;
-}
-
-/** What the Synthesizer emits: a synthesis, or a decline. */
-export type SynthesizeDataModel = Synthesis | Decline;
-
-export function isDecline(output: SynthesizeDataModel): output is Decline {
-  return 'declined' in output && output.declined === true;
 }
 
 /** What rides under {@link SYNTHESIS_KEY}: the derived model and the sorts. */

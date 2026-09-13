@@ -55,9 +55,8 @@ export interface PaintSnapshot {
  * ever pending/failed/collapsed, so a shell-only snapshot cannot even represent a filled slot.
  */
 export interface PaintFragment {
-  slot: string;
   surfaceId: string;
-  /** The app that painted it — the boundary's provenance, restored with the content. */
+  /** The app that painted it — the boundary's provenance and the slot it fills, restored with the content. */
   source: string;
   catalogId: string;
   snapshot: PaintSnapshot | null;

@@ -1,4 +1,5 @@
-import type {ChangeAccount, Synthesis} from '@a2uiverse/sdk';
+import type {Synthesis} from '../synthesizer/document.js';
+import type {ChangeAccount} from '../synthesizer/prompt.js';
 import type {DispatchOutcome, DispatchRecord} from '../agentsPool/types.js';
 import type {Plan} from '../planner/planSchema.js';
 import type {TurnKind} from './descriptor.js';

@@ -12,7 +12,7 @@ import {
 } from './composition';
 
 const contract = JSON.parse(
-  readFileSync(new URL('../../contracts/composition.v0.4.json', import.meta.url), 'utf8'),
+  readFileSync(new URL('../../contracts/composition.v0.5.json', import.meta.url), 'utf8'),
 ) as {
   extensionUri: string;
   stampKey: string;
@@ -48,20 +48,20 @@ test('surface id namespacing round-trips', () => {
 });
 
 test('readStamp accepts a stamped event and rejects malformed metadata', () => {
-  expect(readStamp({[STAMP_KEY]: {source: 'github', slot: 'slot-github'}})).toEqual({
+  expect(readStamp({[STAMP_KEY]: {source: 'github', role: 'fragment'}})).toEqual({
     source: 'github',
-    slot: 'slot-github',
+    role: 'fragment',
   });
   expect(readStamp(undefined)).toBeUndefined();
   expect(readStamp({})).toBeUndefined();
   expect(readStamp({[STAMP_KEY]: 'github'})).toBeUndefined();
-  expect(readStamp({[STAMP_KEY]: {slot: 'slot-github'}})).toBeUndefined();
+  expect(readStamp({[STAMP_KEY]: {role: 'fragment'}})).toBeUndefined();
 });
 
 test('readStamp carries per-surface generations through', () => {
   expect(
     readStamp({
-      [STAMP_KEY]: {source: 'shop-a', slot: 'slot-shop-a', generations: {'shop-a:list': 2}},
+      [STAMP_KEY]: {source: 'shop-a', role: 'fragment', generations: {'shop-a:list': 2}},
     }),
-  ).toEqual({source: 'shop-a', slot: 'slot-shop-a', generations: {'shop-a:list': 2}});
+  ).toEqual({source: 'shop-a', role: 'fragment', generations: {'shop-a:list': 2}});
 });

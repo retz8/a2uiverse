@@ -19,7 +19,7 @@ import {
   SHOP_B,
   shopAMessages,
   shopBMessages,
-  SYNTHESIS_SLOT,
+  SYNTHESIS_SOURCE,
   SYNTHESIS_SURFACE,
   synthesisMessages,
 } from '../../beats/synthesisFixture';
@@ -137,8 +137,8 @@ describe('a parked composition', () => {
         updateComponents: {
           surfaceId: 'shell:main',
           components: [
-            {id: 'root', component: 'Column', children: ['slot-github']},
-            {id: 'slot-github', component: 'Slot', name: 'slot-github', state: 'pending'},
+            {id: 'root', component: 'Column', children: ['github']},
+            {id: 'github', component: 'Slot', source: 'github', state: 'pending'},
           ],
         },
       }),
@@ -168,7 +168,6 @@ describe('a parked composition', () => {
       snapshot: capture('shell:main'),
       fragments: [
         {
-          slot: 'slot-github',
           surfaceId: 'github:prs',
           source: 'github',
           catalogId: CATALOG_ID,
@@ -186,7 +185,7 @@ describe('a parked composition', () => {
     const session = createParkedSession(entry, {catalogs: [CATALOG, SHELL_CATALOG], store});
     expect(session.processor.model.getSurface('shell:main')).toBeDefined();
     expect(session.processor.model.getSurface('github:prs')).toBeDefined();
-    expect(session.placement.get('slot-github')).toEqual({
+    expect(session.placement.get('github')).toEqual({
       surfaceId: 'github:prs',
       source: 'github',
     });
@@ -203,11 +202,11 @@ describe('a parked composition', () => {
         updateComponents: {
           surfaceId: 'shell:main',
           components: [
-            {id: 'root', component: 'Column', children: [SYNTHESIS_SLOT]},
+            {id: 'root', component: 'Column', children: [SYNTHESIS_SOURCE]},
             {
-              id: SYNTHESIS_SLOT,
+              id: SYNTHESIS_SOURCE,
               component: 'Slot',
-              name: SYNTHESIS_SLOT,
+              source: SYNTHESIS_SOURCE,
               state: 'pending',
               content: 'shell',
             },
@@ -224,8 +223,7 @@ describe('a parked composition', () => {
       ...serializeSurface(live.model.getSurface(id)!),
       capturedAt: 2000,
     });
-    const fragment = (surfaceId: string, slot: string, source: string) => ({
-      slot,
+    const fragment = (surfaceId: string, source: string) => ({
       surfaceId,
       source,
       catalogId: SHELL_CATALOG_ID,
@@ -239,9 +237,9 @@ describe('a parked composition', () => {
       paintedAt: 1009,
       snapshot: capture('shell:main'),
       fragments: [
-        fragment(SHOP_A, 'slot-shop-a', 'shop-a'),
-        fragment(SHOP_B, 'slot-shop-b', 'shop-b'),
-        fragment(SYNTHESIS_SURFACE, SYNTHESIS_SLOT, 'shell'),
+        fragment(SHOP_A, 'shop-a'),
+        fragment(SHOP_B, 'shop-b'),
+        fragment(SYNTHESIS_SURFACE, 'shell'),
       ],
       synthesis: {surfaceId: SYNTHESIS_SURFACE, payload: PAYLOAD},
     };

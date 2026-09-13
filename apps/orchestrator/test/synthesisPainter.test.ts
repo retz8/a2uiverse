@@ -1,5 +1,6 @@
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
-import {SYNTHESIS_KEY, type SynthesisPayload, type SynthesisTree} from '@a2uiverse/sdk';
+import {SYNTHESIS_KEY, type SynthesisPayload} from '@a2uiverse/sdk';
+import type {SynthesisTree} from '../src/synthesizer/document.js';
 import {describe, expect, test} from 'vitest';
 import {
   synthesisEnvelope,
@@ -39,7 +40,6 @@ describe('the model-authored tree (task-5.4 decision 10)', () => {
     const event = synthesisEnvelope({taskId: 't1', contextId: 'c1'}, synthesisParts(tree), payload);
     expect(event.metadata?.a2uiverse).toEqual({
       source: 'shell',
-      slot: 'slot-shell',
       role: 'fragment',
     });
     expect(event.metadata?.[SYNTHESIS_KEY]).toEqual(payload);

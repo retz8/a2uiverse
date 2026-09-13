@@ -22,7 +22,7 @@ import {
   SHOP_B_NAME,
   shopAMessages,
   shopBMessages,
-  SYNTHESIS_SLOT,
+  SYNTHESIS_SOURCE,
   synthesisMessages,
 } from './synthesisFixture';
 
@@ -190,7 +190,7 @@ export const COMPOSED_BEAT: BeatFixture = {
                   {
                     id: 'slot-github',
                     component: 'Slot',
-                    name: 'slot-github',
+                    source: 'github',
                     state: 'pending',
                     label: 'GitHub',
                   },
@@ -208,7 +208,7 @@ export const COMPOSED_BEAT: BeatFixture = {
                   {
                     id: 'slot-gmail',
                     component: 'Slot',
-                    name: 'slot-gmail',
+                    source: 'gmail',
                     state: 'pending',
                     label: 'Gmail',
                   },
@@ -221,7 +221,7 @@ export const COMPOSED_BEAT: BeatFixture = {
         // One agent answers: its fragment fills its own slot, namespaced by the hub.
         {
           offsetMs: 150,
-          stamp: {source: 'github', slot: 'slot-github', role: 'fragment'},
+          stamp: {source: 'github', role: 'fragment'},
           messages: [
             msg({createSurface: {surfaceId: 'github:pr-list', catalogId: CATALOG_ID}}),
             msg({
@@ -242,7 +242,7 @@ export const COMPOSED_BEAT: BeatFixture = {
         // fragment, which is why prose lives in the shell's region and not inside a slot.
         {
           offsetMs: 220,
-          stamp: {source: 'gmail', slot: 'slot-gmail', role: 'fragment'},
+          stamp: {source: 'gmail', role: 'fragment'},
           messages: [],
           texts: ['I could not reach the mailbox.'],
         },
@@ -258,7 +258,7 @@ export const COMPOSED_BEAT: BeatFixture = {
                   {
                     id: 'slot-gmail',
                     component: 'Slot',
-                    name: 'slot-gmail',
+                    source: 'gmail',
                     state: 'failed',
                     label: 'Gmail',
                   },
@@ -316,7 +316,7 @@ export const COMPOSED_SOLO_BEAT: BeatFixture = {
                   {
                     id: 'slot-github',
                     component: 'Slot',
-                    name: 'slot-github',
+                    source: 'github',
                     state: 'pending',
                     label: 'GitHub',
                   },
@@ -328,7 +328,7 @@ export const COMPOSED_SOLO_BEAT: BeatFixture = {
         },
         {
           offsetMs: 120,
-          stamp: {source: 'github', slot: 'slot-github', role: 'fragment'},
+          stamp: {source: 'github', role: 'fragment'},
           messages: [
             msg({createSurface: {surfaceId: 'github:pr-list', catalogId: CATALOG_ID}}),
             msg({
@@ -397,7 +397,7 @@ export const COMPOSED_QUESTION_BEAT: BeatFixture = {
                   {
                     id: 'slot-github',
                     component: 'Slot',
-                    name: 'slot-github',
+                    source: 'github',
                     state: 'pending',
                     label: 'GitHub',
                   },
@@ -415,7 +415,7 @@ export const COMPOSED_QUESTION_BEAT: BeatFixture = {
                   {
                     id: 'slot-gmail',
                     component: 'Slot',
-                    name: 'slot-gmail',
+                    source: 'gmail',
                     state: 'pending',
                     label: 'Gmail',
                   },
@@ -427,7 +427,7 @@ export const COMPOSED_QUESTION_BEAT: BeatFixture = {
         },
         {
           offsetMs: 120,
-          stamp: {source: 'github', slot: 'slot-github', role: 'fragment'},
+          stamp: {source: 'github', role: 'fragment'},
           messages: [
             msg({createSurface: {surfaceId: 'github:pr-list', catalogId: CATALOG_ID}}),
             msg({
@@ -445,7 +445,7 @@ export const COMPOSED_QUESTION_BEAT: BeatFixture = {
         },
         {
           offsetMs: 240,
-          stamp: {source: 'gmail', slot: 'slot-gmail', role: 'fragment'},
+          stamp: {source: 'gmail', role: 'fragment'},
           messages: [
             // The declared marker, not a dialog component: promotion raises a question where it
             // already is, so the question renders inline in its slot rather than as an overlay.
@@ -474,40 +474,41 @@ export const COMPOSED_QUESTION_BEAT: BeatFixture = {
  * attribution beside it (task-5.5 decision 1) — then one attributed slot per store.
  */
 function synthesisShellComponents(
-  slots: readonly {slot: string; appId: string; name: string; shell?: boolean}[],
+  slots: readonly {appId: string; name: string; shell?: boolean}[],
 ): Array<Record<string, unknown>> {
+  const idOf = (s: {appId: string}) => `slot-${s.appId}`;
   return [
     {
       id: 'root',
       component: 'Frame',
       direction: 'row',
-      children: slots.map(s => (s.shell ? s.slot : `wrap-${s.slot}`)),
+      children: slots.map(s => (s.shell ? idOf(s) : `wrap-${idOf(s)}`)),
     },
     ...slots.flatMap((s): Array<Record<string, unknown>> =>
       s.shell
         ? [
             {
-              id: s.slot,
+              id: idOf(s),
               component: 'Slot',
-              name: s.slot,
+              source: s.appId,
               state: 'pending',
               label: s.name,
               content: 'shell',
             },
           ]
         : [
-            {id: `wrap-${s.slot}`, component: 'Column', children: [`attr-${s.slot}`, s.slot]},
-            {id: `attr-${s.slot}`, component: 'Attribution', displayName: s.name, appId: s.appId},
-            {id: s.slot, component: 'Slot', name: s.slot, state: 'pending', label: s.name},
+            {id: `wrap-${idOf(s)}`, component: 'Column', children: [`attr-${idOf(s)}`, idOf(s)]},
+            {id: `attr-${idOf(s)}`, component: 'Attribution', displayName: s.name, appId: s.appId},
+            {id: idOf(s), component: 'Slot', source: s.appId, state: 'pending', label: s.name},
           ],
     ),
   ];
 }
 
 const SYNTHESIS_SLOTS = [
-  {slot: SYNTHESIS_SLOT, appId: 'shell', name: 'Synthesis', shell: true},
-  {slot: 'slot-shop-a', appId: 'shop-a', name: SHOP_A_NAME},
-  {slot: 'slot-shop-b', appId: 'shop-b', name: SHOP_B_NAME},
+  {appId: SYNTHESIS_SOURCE, name: 'Synthesis', shell: true},
+  {appId: 'shop-a', name: SHOP_A_NAME},
+  {appId: 'shop-b', name: SHOP_B_NAME},
 ];
 
 /**
@@ -553,7 +554,6 @@ export const SYNTHESIS_BEAT: BeatFixture = {
           offsetMs: 400,
           stamp: {
             source: 'shop-a',
-            slot: 'slot-shop-a',
             role: 'fragment',
             generations: {[SHOP_A]: 1},
           },
@@ -564,7 +564,6 @@ export const SYNTHESIS_BEAT: BeatFixture = {
           offsetMs: 700,
           stamp: {
             source: 'shop-b',
-            slot: 'slot-shop-b',
             role: 'fragment',
             generations: {[SHOP_B]: 1},
           },
@@ -574,7 +573,7 @@ export const SYNTHESIS_BEAT: BeatFixture = {
         // Dead air: the Synthesizer's model call. Then the merged view claims its slot.
         {
           offsetMs: 2600,
-          stamp: {source: 'shell', slot: SYNTHESIS_SLOT, role: 'fragment'},
+          stamp: {source: 'shell', role: 'fragment'},
           messages: synthesisMessages(DOCUMENT, SHELL_CATALOG_ID),
           synthesis: PAYLOAD,
           texts: [],
@@ -600,7 +599,6 @@ export const SYNTHESIS_BEAT: BeatFixture = {
           offsetMs: 0,
           stamp: {
             source: 'shop-a',
-            slot: 'slot-shop-a',
             role: 'fragment',
             generations: {[SHOP_A]: 2},
           },

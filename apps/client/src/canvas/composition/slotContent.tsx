@@ -79,16 +79,17 @@ export function useSlotContent(
   prose?: ReadonlyMap<string, string>,
 ): SlotContentResolver {
   return useCallback(
-    (slotName: string) => {
+    (source: string) => {
       // Only an unfilled slot rests on prose: a fragment that painted is the answer, and the
-      // source's running commentary belongs in the shell's notice region, not inside it.
-      const source = roster?.find(entry => entry.slot === slotName)?.appId;
-      const spoken = source ? prose?.get(source)?.trim() : undefined;
+      // source's running commentary belongs in the shell's notice region, not inside it. A
+      // source the roster does not hold reserved no slot, so it has nothing to rest on.
+      const reserved = roster?.some(entry => entry.appId === source);
+      const spoken = reserved ? prose?.get(source)?.trim() : undefined;
       return renderSlotContent(
         surfaces,
-        placement.get(slotName),
+        placement.get(source),
         resetKey,
-        promoted?.has(slotName),
+        promoted?.has(source),
         spoken || undefined,
       );
     },

@@ -1,26 +1,23 @@
 /**
- * The Synthesizer (task-5.4 decisions 3–5): the text loop — extract, validate, one retry —
- * and the catalog-dependent checklist over the accepted document.
+ * The Synthesizer (task-5.4 decisions 3–5, task-6.3 decision 9): the text loop — extract,
+ * validate, one retry — and the one validator over the document.
  */
-import {
-  CAMERA_COMPARISON,
-  SYNTHESIS_EXAMPLES,
-  SYNTHESIS_TAG,
-  isDecline,
-  type Synthesis,
-} from '@a2uiverse/sdk';
-import {OPERATORS, SCHEMA_CATALOG} from '@a2uiverse/shell-catalog/schema';
+import {createA2uiValidator} from '@a2uiverse/sdk';
+import {OPERATORS} from '@a2uiverse/shell-catalog/schema';
 import {describe, expect, test} from 'vitest';
 import {Partitions} from '../src/composition/partitions.js';
-import {checkSynthesis} from '../src/synthesizer/checkSynthesis.js';
-import {readShellCatalogFiles, synthesizerSystemPrompt} from '../src/synthesizer/prompt.js';
+import {isDecline, type Synthesis} from '../src/synthesizer/document.js';
+import {CAMERA_COMPARISON, SYNTHESIS_EXAMPLES} from '../src/synthesizer/examples.js';
+import {readSynthesizerFiles, SYNTHESIS_TAG} from '../src/synthesizer/prompt.js';
 import {Synthesizer, type SynthesisInput} from '../src/synthesizer/synthesizer.js';
+import {validateSynthesis} from '../src/synthesizer/validate.js';
 import {bestPriceView, decline, FakeSynthesizer, tagged} from './fakeSynthesizer.js';
 
 const A = 'shop-a:list';
 const B = 'shop-b:list';
-const files = readShellCatalogFiles();
-const operators = OPERATORS;
+const files = readSynthesizerFiles();
+const operators = Object.keys(files.catalog.functions!);
+const tree = createA2uiValidator({catalog: files.catalog});
 
 function partitionsOf(surfaces: Record<string, unknown>): Partitions {
   const p = new Partitions();
@@ -53,60 +50,95 @@ const partitions = () =>
 
 const good = (): Synthesis => bestPriceView({system: '', prompt: '', input}) as Synthesis;
 
-const checks = (p = partitions()) => ({catalog: SCHEMA_CATALOG, operators, partitions: p});
+const checks = (p = partitions()) => ({tree, operators, partitions: p});
 
-describe('the prompt module', () => {
-  test('the catalog schema names every operator the check admits', () => {
-    const declared = Object.keys((JSON.parse(files.schema) as {functions: object}).functions);
-    for (const op of operators) expect(declared).toContain(op);
-  });
+/** The validator's findings on a document; empty when it is accepted. */
+const checkSynthesis = (document: unknown, c = checks()): string[] => {
+  const result = validateSynthesis(document, c);
+  return result.ok ? [] : result.errors;
+};
 
-  test('the system prompt is the sdk’s builder over the catalog schema and the guidance doc', () => {
-    const prompt = synthesizerSystemPrompt(files);
-    expect(prompt).toContain('## Composition:');
-    expect(prompt).toContain('## UI Description:');
-    expect(prompt).toContain('"DerivedValue"');
-    expect(prompt).toContain(files.guidance.trim());
-    expect(prompt).toContain('---BEGIN camera-comparison---');
+const clone = <T>(value: T): T => structuredClone(value);
+
+describe('the Synthesizer’s catalog', () => {
+  test('its functions are exactly the formula operators', () => {
+    expect([...operators].sort()).toEqual([...OPERATORS].sort());
   });
 });
 
-describe('checkSynthesis (task-5.4 decision 5)', () => {
+describe('validateSynthesis (task-6.3 decision 9)', () => {
   test('a well-formed synthesis passes', () => {
-    expect(checkSynthesis(good(), checks())).toEqual([]);
+    expect(checkSynthesis(good())).toEqual([]);
   });
 
-  test.each(SYNTHESIS_EXAMPLES)('the sdk’s example $name passes the whole checklist', example => {
+  test.each(SYNTHESIS_EXAMPLES)('the worked example $name passes the whole validator', example => {
     if (isDecline(example.output)) throw new Error('example is a decline');
     const p = partitionsOf(Object.fromEntries(example.sources.map(s => [s.surface, s.data])));
     expect(checkSynthesis(example.output, checks(p))).toEqual([]);
   });
 
-  test('a component outside the shell catalog, and a prop its schema refuses, are found by the headless runtime', () => {
+  test('a decline is accepted; one without a reason, or carrying anything else, is refused', () => {
+    expect(validateSynthesis({declined: true, reason: 'nothing joinable'}, checks())).toEqual({
+      ok: true,
+      document: {declined: true, reason: 'nothing joinable'},
+    });
+    expect(checkSynthesis({declined: true, reason: ''})).not.toEqual([]);
+    expect(checkSynthesis({declined: true, reason: 'x', note: ''})).not.toEqual([]);
+  });
+
+  test('the output schema comes first: a synthesis missing a part or carrying an extra key', () => {
+    const {note: _note, ...noNote} = good();
+    void _note;
+    expect(checkSynthesis(noNote)).not.toEqual([]);
+    expect(checkSynthesis({...good(), extra: 1})).not.toEqual([]);
+  });
+
+  test('a scalar leaf and a malformed pointer are refused, by path', () => {
+    const scalar = good();
+    (scalar.dataModel.rows as unknown[])[0] = {id: 'x100', best: 899};
+    expect(checkSynthesis(scalar).join('\n')).toMatch(/\/dataModel\/rows\/0/);
+    const pointer = good();
+    (pointer.dataModel.rows as Array<{id: {args: {pointer: string}[]}}>)[0]!.id.args[0]!.pointer =
+      '/items[id=x100]/id';
+    expect(checkSynthesis(pointer).join('\n')).toContain('/items[id=x100]/id');
+  });
+
+  test('a component outside the Synthesizer’s catalog, and a prop its schema refuses, are found by the A2UI validator', () => {
     const unknown = good();
     unknown.tree.components[1] = {id: 'sort', component: 'Sorter', sort: {path: '/sorts/0'}};
-    expect(checkSynthesis(unknown, checks())).toEqual([
-      expect.stringContaining("component 'Sorter' is not in the shell catalog"),
+    expect(checkSynthesis(unknown)).toEqual([
+      '/tree/components/1/component (sort): Unknown component type: "Sorter"',
     ]);
     const badProp = good();
     badProp.tree.components[4] = {id: 'c-id', component: 'DerivedValue', cell: 'literal'};
-    expect(checkSynthesis(badProp, checks()).join('\n')).toMatch(/\/tree: .*DerivedValue.*c-id/);
+    expect(checkSynthesis(badProp).join('\n')).toMatch(/^\/tree\/components\/4\/cell \(c-id\): /m);
   });
 
-  test('a child that is not declared, and a shell layout primitive, are refused', () => {
+  test('a child that is not declared, a missing root, and a shell layout primitive are refused', () => {
     const dangling = good();
     dangling.tree.components[3] = {
       id: 'row',
       component: 'Row',
       children: ['c-id', 'ghost', 'c-best'],
     };
-    expect(checkSynthesis(dangling, checks())).toEqual([
-      expect.stringContaining("names a child 'ghost'"),
+    expect(checkSynthesis(dangling)).toEqual([
+      "/tree (row): Component 'row' references non-existent component 'ghost' in field 'children'",
     ]);
-    const slot = good();
-    slot.tree.components.push({id: 'x', component: 'Slot', name: 'slot-gmail'});
-    slot.tree.components[0] = {id: 'root', component: 'Column', children: ['sort', 'rows', 'x']};
-    expect(checkSynthesis(slot, checks()).join('\n')).toContain("'Slot' is the shell's own");
+    const noRoot = good();
+    noRoot.tree.components[0] = {...noRoot.tree.components[0]!, id: 'top'};
+    expect(checkSynthesis(noRoot).join('\n')).toContain('Missing root component');
+    for (const name of ['Slot', 'Attribution', 'Frame']) {
+      const primitive = clone(good());
+      primitive.tree.components.push({id: 'x', component: name, source: 'gmail'});
+      primitive.tree.components[0] = {
+        id: 'root',
+        component: 'Column',
+        children: ['sort', 'rows', 'x'],
+      };
+      expect(checkSynthesis(primitive)).toContain(
+        `/tree/components/6/component (x): Unknown component type: "${name}"`,
+      );
+    }
   });
 
   test('the derived-value rule: only DerivedValue binds a formula, through its template', () => {
@@ -232,7 +264,7 @@ describe('checkSynthesis (task-5.4 decision 5)', () => {
 
 describe('Synthesizer (the loop)', () => {
   const synthesizer = (model: FakeSynthesizer) =>
-    new Synthesizer({model, systemPrompt: 'SYSTEM', catalog: SCHEMA_CATALOG, operators});
+    new Synthesizer({model, systemPrompt: 'SYSTEM', catalog: files.catalog});
 
   test('a good first answer is accepted in one attempt; the call carried the system prompt and the turn', async () => {
     const model = new FakeSynthesizer();
@@ -281,7 +313,7 @@ describe('Synthesizer (the loop)', () => {
     expect(model.calls).toHaveLength(2);
   });
 
-  test('a contract violation is found by the sdk validator before the catalog checks', async () => {
+  test('a contract violation is found and handed back like any other finding', async () => {
     const scalar = good();
     (scalar.dataModel.rows as unknown[])[0] = {id: 'x100', best: 899};
     const model = new FakeSynthesizer([scalar, good()]);
@@ -310,7 +342,7 @@ describe('Synthesizer (the loop)', () => {
     expect(model.calls[0]!.input.previous).toBe(previous);
   });
 
-  test('the sdk’s worked example is accepted verbatim over sources of its shapes', async () => {
+  test('the worked example is accepted verbatim over sources of its shapes', async () => {
     const example = CAMERA_COMPARISON;
     const model = new FakeSynthesizer(example.output);
     const p = partitionsOf(Object.fromEntries(example.sources.map(s => [s.surface, s.data])));

@@ -28,7 +28,7 @@ import {
   PAYLOAD,
   SHOP_A,
   SHOP_A_ITEMS,
-  SYNTHESIS_SLOT,
+  SYNTHESIS_SOURCE,
   SYNTHESIS_SURFACE,
 } from '../src/beats/synthesisFixture';
 import {CATALOGS, renderWithShell} from './helpers';
@@ -94,7 +94,7 @@ describe('the synthesis turn on the canvas', () => {
       ['shop-b', 'Northlight'],
     ]);
     const {container} = renderStage();
-    const slot = container.querySelector(`[data-slot="${SYNTHESIS_SLOT}"]`)!;
+    const slot = container.querySelector(`[data-slot="${SYNTHESIS_SOURCE}"]`)!;
     expect(slot.getAttribute('data-slot-state')).toBe('pending');
     expect(slot.getAttribute('data-slot-content')).toBe('shell');
     expect(slot.textContent).toBe('Painting…');
@@ -108,7 +108,7 @@ describe('the synthesis turn on the canvas', () => {
     await replayBeatOnCanvas(firstTurnOnly(SYNTHESIS_BEAT), {runner, store, paced: false});
 
     expect(failures).toEqual([]);
-    expect(store.getState().placement.get(SYNTHESIS_SLOT)).toEqual({
+    expect(store.getState().placement.get(SYNTHESIS_SOURCE)).toEqual({
       surfaceId: SYNTHESIS_SURFACE,
       source: 'shell',
     });
@@ -131,7 +131,9 @@ describe('the synthesis turn on the canvas', () => {
     expect(view).not.toBeNull();
     expect(view!.closest('.fragment-boundary')).toBeNull();
     expect(
-      container.querySelector(`[data-slot="${SYNTHESIS_SLOT}"]`)!.getAttribute('data-slot-content'),
+      container
+        .querySelector(`[data-slot="${SYNTHESIS_SOURCE}"]`)!
+        .getAttribute('data-slot-content'),
     ).toBe('shell');
     // Every cell is complete: no marker, the bare value. Two rows of four.
     expect(view!.querySelectorAll('[data-state="complete"]').length).toBe(8);

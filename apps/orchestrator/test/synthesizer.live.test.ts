@@ -6,12 +6,11 @@
  *   set -a; source .env; set +a
  *   A2UIVERSE_SYNTHESIZER_LIVE=1 pnpm --filter @a2uiverse/orchestrator test synthesizer.live
  */
-import {OPERATORS, SCHEMA_CATALOG} from '@a2uiverse/shell-catalog/schema';
 import {describe, expect, test} from 'vitest';
 import {loadConfig} from '../src/config.js';
 import {Partitions} from '../src/composition/partitions.js';
 import {getModel, plannerProviderOptions} from '../src/planner/getModel.js';
-import {readShellCatalogFiles, synthesizerSystemPrompt} from '../src/synthesizer/prompt.js';
+import {readSynthesizerFiles, synthesizerSystemPrompt} from '../src/synthesizer/prompt.js';
 import {AiSdkSynthesisModel, Synthesizer} from '../src/synthesizer/synthesizer.js';
 
 const live = process.env.A2UIVERSE_SYNTHESIZER_LIVE === '1' && !!process.env.GOOGLE_API_KEY;
@@ -24,14 +23,14 @@ describe.skipIf(!live)('Synthesizer (live)', () => {
       modelId: config.synthesizerModelId,
       effort: config.synthesizerEffort,
     };
+    const files = readSynthesizerFiles();
     const synthesizer = new Synthesizer({
       model: new AiSdkSynthesisModel({
         model: getModel(settings),
         providerOptions: plannerProviderOptions(settings),
       }),
-      systemPrompt: synthesizerSystemPrompt(readShellCatalogFiles()),
-      catalog: SCHEMA_CATALOG,
-      operators: OPERATORS,
+      systemPrompt: synthesizerSystemPrompt(files),
+      catalog: files.catalog,
     });
     const a = {
       items: [

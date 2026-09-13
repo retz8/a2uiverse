@@ -1,15 +1,15 @@
 import type {ProviderOptions} from '@ai-sdk/provider-utils';
+import {createA2uiValidator, type A2uiCatalogSchema, type A2uiValidator} from '@a2uiverse/sdk';
+import {generateText, type LanguageModel} from 'ai';
+import {extractTaggedBlock} from '../authoring/taggedBlock.js';
+import {isDecline, type Synthesis, type SynthesizeDataModel} from './document.js';
 import {
   buildSynthesisTurn,
-  extractSynthesisBlock,
-  isDecline,
-  validateSynthesizeDataModel,
+  SYNTHESIS_TAG,
   type ChangeAccount,
-  type Synthesis,
   type SynthesisSource,
-} from '@a2uiverse/sdk';
-import {generateText, type LanguageModel} from 'ai';
-import {checkSynthesis, type SynthesisChecks} from './checkSynthesis.js';
+} from './prompt.js';
+import {validateSynthesis, type SynthesisChecks} from './validate.js';
 
 export type {SynthesisSource};
 
@@ -52,27 +52,27 @@ export const MAX_ATTEMPTS = 2;
 
 /**
  * The Synthesizer (SPEC §10): text out, validated after. The model writes one tagged block;
- * the block is extracted, parsed, validated by the sdk against the contract, then checked
- * against the shell catalog and the partitions; a failure goes back to the model once with its
- * findings and the failed document, and a second failure is `malformed`. Emits wiring, never
- * values; never sees generations.
+ * the block is extracted, parsed, and validated — the output schema, the tree against the
+ * Synthesizer's pruned catalog, the derived-value rule, operators, and refs into the partitions;
+ * a failure goes back to the model once with its findings and the failed document, and a second
+ * failure is `malformed`. Emits wiring, never values; never sees generations.
  */
 export class Synthesizer {
   readonly #model: SynthesisModel;
   readonly #system: string;
-  readonly #catalog: SynthesisChecks['catalog'];
+  readonly #tree: A2uiValidator;
   readonly #operators: readonly string[];
 
   constructor(options: {
     model: SynthesisModel;
     systemPrompt: string;
-    catalog: SynthesisChecks['catalog'];
-    operators: readonly string[];
+    /** The shell catalog pruned to the synthesis surface's keep-set: the one the prompt shows. */
+    catalog: A2uiCatalogSchema;
   }) {
     this.#model = options.model;
     this.#system = options.systemPrompt;
-    this.#catalog = options.catalog;
-    this.#operators = options.operators;
+    this.#tree = createA2uiValidator({catalog: options.catalog});
+    this.#operators = Object.keys(options.catalog.functions ?? {});
   }
 
   async synthesize(
@@ -110,32 +110,29 @@ export class Synthesizer {
     text: string,
     partitions: SynthesisChecks['partitions'],
   ):
-    | {ok: true; document: Synthesis | {declined: true; reason: string}; errors: string[]}
+    | {ok: true; document: SynthesizeDataModel; errors: string[]}
     | {ok: false; document?: unknown; errors: string[]} {
-    const block = extractSynthesisBlock(text);
+    const block = extractTaggedBlock(text, SYNTHESIS_TAG);
     if (!block.ok) return {ok: false, errors: [block.error]};
     let parsed: unknown;
     try {
-      parsed = JSON.parse(block.json);
+      parsed = JSON.parse(block.body);
     } catch (err) {
       return {
         ok: false,
-        document: block.json,
+        document: block.body,
         errors: [
           `the block is not valid JSON: ${err instanceof Error ? err.message : String(err)}`,
         ],
       };
     }
-    const validation = validateSynthesizeDataModel(parsed);
-    if (!validation.ok) return {ok: false, document: parsed, errors: validation.errors};
-    if (isDecline(validation.value)) return {ok: true, document: validation.value, errors: []};
-    const errors = checkSynthesis(validation.value, {
-      catalog: this.#catalog,
+    const validation = validateSynthesis(parsed, {
+      tree: this.#tree,
       operators: this.#operators,
       partitions,
     });
-    if (errors.length > 0) return {ok: false, document: parsed, errors};
-    return {ok: true, document: validation.value, errors: []};
+    if (!validation.ok) return {ok: false, document: parsed, errors: validation.errors};
+    return {ok: true, document: validation.document, errors: []};
   }
 }
 

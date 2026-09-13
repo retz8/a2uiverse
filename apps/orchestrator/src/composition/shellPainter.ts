@@ -80,7 +80,7 @@ function shellComponents(state: CompositionState): ShellComponent[] {
         components.push({
           id: slotName,
           component: 'Slot',
-          name: slotName,
+          source: slot.appId,
           state: entry?.state ?? 'pending',
           label: displayName,
           content: 'shell',
@@ -102,7 +102,7 @@ function shellComponents(state: CompositionState): ShellComponent[] {
         {
           id: slotName,
           component: 'Slot',
-          name: slotName,
+          source: slot.appId,
           state: entry?.state ?? 'pending',
           label: displayName,
         },

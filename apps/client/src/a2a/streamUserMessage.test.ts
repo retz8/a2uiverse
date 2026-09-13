@@ -36,8 +36,8 @@ function fakeSender(events: A2AStreamEventData[]) {
 
 describe('streamUserMessage', () => {
   it('hands each prose chunk the stamp of the event that carried it', async () => {
-    const github = {source: 'github', slot: 'slot-github', role: 'fragment'};
-    const gmail = {source: 'gmail', slot: 'slot-gmail', role: 'fragment'};
+    const github = {source: 'github', role: 'fragment'};
+    const gmail = {source: 'gmail', role: 'fragment'};
     const said = (text: string, stamp?: Record<string, unknown>) => {
       const event = statusUpdate([{kind: 'text', text}]);
       return stamp ? {...event, metadata: {a2uiverse: stamp}} : event;

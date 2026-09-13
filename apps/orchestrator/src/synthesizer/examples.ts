@@ -4,11 +4,10 @@
  * things across two storefronts (Phase 4's join, identical shapes), and a timeline over the real
  * roster's recorded shapes (Phase 5's temporal merge): three unrelated data models, opaque ids, a
  * compound key, and one source whose time cannot join the axis. The examples teach form; the
- * composition doc teaches the vocabulary and the rules. Their trees are authored against the
- * shell catalog's basic components and its derived-value and sort primitives; the orchestrator's
- * tests validate them against that catalog, the sdk's against the contract.
+ * rules doc (`synthesis.md`) teaches the vocabulary and the rules. Their trees are authored against
+ * the Synthesizer's pruned shell catalog; its tests put each through the whole validator.
  */
-import type {SynthesizeDataModel} from '../synthesis.js';
+import type {SynthesizeDataModel} from './document.js';
 import type {SynthesisSource} from './prompt.js';
 
 export interface SynthesisExample {

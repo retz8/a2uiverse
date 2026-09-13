@@ -195,7 +195,7 @@ const SEEDS: Record<
     props: {label: 'When', enableDate: true, enableTime: true, value: {path: '/when'}},
     data: {when: '2026-09-05T11:00'},
   },
-  Slot: {props: {name: 'slot-gmail', label: 'Gmail'}},
+  Slot: {props: {source: 'gmail', label: 'Gmail'}},
   Attribution: {props: {displayName: 'Gmail', account: 'work'}},
   Frame: {
     props: {direction: 'row', children: ['c1', 'c2']},

@@ -1,47 +1,55 @@
-/** The prompt builder (task-5.4 decisions 1–4): assembly order, the turn's slots, the tag's reader. */
+/** The Synthesizer's prompt (task-5.4 decisions 1–4, task-6.3 decision 8): assembly, the worked examples, the turn. */
 import {readFileSync} from 'node:fs';
+import {refsOf} from '@a2uiverse/sdk';
+import {SYNTHESIS_SURFACE_KEEP_SET} from '@a2uiverse/shell-catalog/schema';
 import {describe, expect, test} from 'vitest';
-import {validateSynthesizeDataModel} from '../validate';
-import {isDecline} from '../synthesis';
-import {refsOf} from '../walk';
-import {resolvePointer} from '../pointer';
-import {COMPOSITION_DOC} from './composition.doc.generated';
-import {CAMERA_COMPARISON, SYNTHESIS_EXAMPLES, TODAY_TIMELINE} from './examples';
+import {isDecline} from '../src/synthesizer/document.js';
 import {
-  buildSynthesisSystemPrompt,
+  CAMERA_COMPARISON,
+  SYNTHESIS_EXAMPLES,
+  TODAY_TIMELINE,
+} from '../src/synthesizer/examples.js';
+import {
   buildSynthesisTurn,
-  DEFAULT_SYNTHESIS_ROLE,
-  extractSynthesisBlock,
+  readSynthesizerFiles,
   SYNTHESIS_TAG,
-} from './prompt';
+  SYNTHESIZER_ROLE,
+  synthesizerSystemPrompt,
+} from '../src/synthesizer/prompt.js';
 
-const system = () =>
-  buildSynthesisSystemPrompt({
-    catalogSchema: '{"components": {"Text": {}}}',
-    uiGuidance: '# Guidance\nBind every formula to DerivedValue.',
+const files = readSynthesizerFiles();
+
+describe('the files read at boot', () => {
+  test('the rules doc is synthesis.md, beside the Synthesizer, and names the tag the extractor reads', () => {
+    const markdown = readFileSync(
+      new URL('../src/synthesizer/synthesis.md', import.meta.url),
+      'utf8',
+    );
+    expect(files.rules).toBe(markdown);
+    expect(files.rules).toContain(`<${SYNTHESIS_TAG}>`);
   });
 
-describe('the composition doc', () => {
-  test('is the checked-in markdown, embedded', () => {
-    const markdown = readFileSync(new URL('../../../docs/composition.md', import.meta.url), 'utf8');
-    expect(COMPOSITION_DOC).toBe(markdown);
-  });
-
-  test('names the tag the extractor reads', () => {
-    expect(COMPOSITION_DOC).toContain(`<${SYNTHESIS_TAG}>`);
+  test('the catalog is the shell catalog pruned to the synthesis surface’s keep-set', () => {
+    expect(Object.keys(files.catalog.components!).sort()).toEqual(
+      [...SYNTHESIS_SURFACE_KEEP_SET.components].sort(),
+    );
+    expect(Object.keys(files.catalog.functions!).sort()).toEqual(
+      [...SYNTHESIS_SURFACE_KEEP_SET.functions].sort(),
+    );
   });
 });
 
 describe('the system prompt', () => {
+  const prompt = synthesizerSystemPrompt(files);
+
   test('is five parts in the kit’s order: role · composition · UI description · schemas · examples', () => {
-    const prompt = system();
     const at = (s: string) => {
       const i = prompt.indexOf(s);
       expect(i, s).toBeGreaterThanOrEqual(0);
       return i;
     };
     const order = [
-      at(DEFAULT_SYNTHESIS_ROLE),
+      at(SYNTHESIZER_ROLE),
       at('## Composition:'),
       at('## UI Description:'),
       at('### Catalog Schema:'),
@@ -49,29 +57,29 @@ describe('the system prompt', () => {
       at('### Examples:'),
     ];
     expect([...order].sort((a, b) => a - b)).toEqual(order);
+    expect(prompt.startsWith(SYNTHESIZER_ROLE)).toBe(true);
   });
 
-  test('carries the inputs verbatim and the contract’s output schema', () => {
-    const prompt = system();
-    expect(prompt).toContain('{"components": {"Text": {}}}');
-    expect(prompt).toContain('Bind every formula to DerivedValue.');
+  test('carries the rules and the guidance verbatim, the pruned catalog, and the output schema', () => {
+    expect(prompt).toContain(files.rules.trim());
+    expect(prompt).toContain(files.guidance.trim());
+    expect(prompt).toContain(JSON.stringify(files.catalog, null, 2));
     expect(prompt).toContain('"title": "SynthesizeDataModel"');
-    expect(prompt).toContain(COMPOSITION_DOC.trim());
   });
 
-  test('the role has a default and is overridable', () => {
-    expect(system().startsWith(DEFAULT_SYNTHESIS_ROLE)).toBe(true);
-    const custom = buildSynthesisSystemPrompt({
-      role: 'You merge.',
-      catalogSchema: '{}',
-      uiGuidance: '',
-    });
-    expect(custom.startsWith('You merge.')).toBe(true);
-    expect(custom).not.toContain(DEFAULT_SYNTHESIS_ROLE);
+  test('shows no component or function outside the keep-set', () => {
+    const catalog = prompt.slice(
+      prompt.indexOf('### Catalog Schema:'),
+      prompt.indexOf('### Output Schema:'),
+    );
+    for (const name of ['Slot', 'Attribution', 'Frame', 'Button', 'TextField']) {
+      expect(catalog).not.toContain(`"${name}": {`);
+    }
+    expect(catalog).not.toContain('"openStore"');
+    expect(catalog).toContain('"DerivedValue": {');
   });
 
   test('renders every example under a BEGIN/END fence with its intent, request, sources and output', () => {
-    const prompt = system();
     for (const example of SYNTHESIS_EXAMPLES) {
       expect(prompt).toContain(`---BEGIN ${example.name}---`);
       expect(prompt).toContain(`---END ${example.name}---`);
@@ -83,27 +91,11 @@ describe('the system prompt', () => {
   });
 
   test('examples are overridable, and none renders no section', () => {
-    const none = buildSynthesisSystemPrompt({catalogSchema: '{}', uiGuidance: '', examples: []});
-    expect(none).not.toContain('### Examples:');
+    expect(synthesizerSystemPrompt(files, [])).not.toContain('### Examples:');
   });
 });
 
 describe('the worked examples', () => {
-  test.each(SYNTHESIS_EXAMPLES)('$name validates against the contract', example => {
-    const result = validateSynthesizeDataModel(example.output);
-    expect(result).toEqual({ok: true, value: example.output});
-  });
-
-  test.each(SYNTHESIS_EXAMPLES)('$name’s every ref resolves in its own sources', example => {
-    if (isDecline(example.output)) return;
-    const bySurface = new Map(example.sources.map(s => [s.surface, s.data]));
-    for (const ref of refsOf(example.output.dataModel)) {
-      const data = bySurface.get(ref.surface);
-      expect(data, ref.surface).toBeDefined();
-      expect(resolvePointer(data, ref.pointer).found, `${ref.surface}${ref.pointer}`).toBe(true);
-    }
-  });
-
   test('the comparison joins by key across two shapes', () => {
     if (isDecline(CAMERA_COMPARISON.output)) throw new Error();
     const comparisonRefs = refsOf(CAMERA_COMPARISON.output.dataModel);
@@ -197,29 +189,5 @@ describe('the turn', () => {
       changes: {absent: []},
     });
     expect(turn).toContain('- nothing named; the sources were repainted');
-  });
-});
-
-describe('extractSynthesisBlock', () => {
-  const doc = '{"declined": true, "reason": "r"}';
-
-  test('reads the one block, trimmed, tolerating prose around it', () => {
-    const text = `Here you go.\n<${SYNTHESIS_TAG}>\n${doc}\n</${SYNTHESIS_TAG}>\nDone.`;
-    expect(extractSynthesisBlock(text)).toEqual({ok: true, json: doc});
-  });
-
-  test('no block, an unclosed block, an empty block and two blocks are each an error', () => {
-    expect(extractSynthesisBlock(doc).ok).toBe(false);
-    expect(extractSynthesisBlock(`<${SYNTHESIS_TAG}>${doc}`).ok).toBe(false);
-    expect(extractSynthesisBlock(`<${SYNTHESIS_TAG}>  </${SYNTHESIS_TAG}>`).ok).toBe(false);
-    const twice = `<${SYNTHESIS_TAG}>${doc}</${SYNTHESIS_TAG}><${SYNTHESIS_TAG}>${doc}</${SYNTHESIS_TAG}>`;
-    expect(extractSynthesisBlock(twice)).toMatchObject({
-      ok: false,
-      error: expect.stringContaining('one'),
-    });
-  });
-
-  test('never takes an a2ui-json block', () => {
-    expect(extractSynthesisBlock(`<a2ui-json>[]</a2ui-json>`).ok).toBe(false);
   });
 });

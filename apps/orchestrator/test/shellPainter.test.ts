@@ -73,7 +73,7 @@ describe('shellCreateParts', () => {
       expect(byId.get(`wrap-slot-${app}`)!.children).toEqual([`attr-slot-${app}`, `slot-${app}`]);
       expect(byId.get(`slot-${app}`)).toMatchObject({
         component: 'Slot',
-        name: `slot-${app}`,
+        source: app,
         state: 'pending',
       });
       expect(byId.get(`attr-slot-${app}`)!.component).toBe('Attribution');
@@ -156,6 +156,7 @@ describe('the synthesis slot (task-4.4 decision 6)', () => {
     const slot = components.find(c => c.id === 'slot-shell');
     expect(slot).toMatchObject({
       component: 'Slot',
+      source: 'shell',
       state: 'pending',
       content: 'shell',
       label: 'Synthesis',

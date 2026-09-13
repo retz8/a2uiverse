@@ -2,7 +2,7 @@
  * The turn's source roster, read off the shell's own paint.
  *
  * The orchestrator is canonical for composition state; the client keeps projections of what it
- * painted. `placement` is one — slot → the fragment filling it — but it is only written when a
+ * painted. `placement` is one — a slot's source → the fragment filling it — but it is only written when a
  * fragment actually lands, so it can say nothing about a source that speaks without painting,
  * and its iteration order is fill order rather than plan order. The roster is the other: the
  * ordered sources the shell reserved slots for, known from first paint.
@@ -29,7 +29,7 @@ interface ShellComponent {
   component?: unknown;
   appId?: unknown;
   displayName?: unknown;
-  name?: unknown;
+  source?: unknown;
   label?: unknown;
   content?: unknown;
 }
@@ -51,9 +51,8 @@ export function rosterFromShellMessages(
   for (const message of messages) {
     const update = (message as {updateComponents?: {components?: unknown}}).updateComponents;
     if (!update || !Array.isArray(update.components)) continue;
-    // The painter emits one attribution per leaf immediately before the slot it introduces, so
-    // pairing them is what tells the client which slot a source owns — without the client
-    // reconstructing the orchestrator's slot-naming scheme for itself.
+    // The painter emits one attribution per leaf immediately before the slot it introduces: the
+    // attribution carries the source's display name, the slot the source it holds.
     let pending: {appId: string; displayName: string} | undefined;
     for (const raw of update.components as ShellComponent[]) {
       if (!raw) continue;
@@ -68,21 +67,18 @@ export function rosterFromShellMessages(
             : undefined;
         continue;
       }
-      if (raw.component !== SLOT || typeof raw.name !== 'string') continue;
+      if (raw.component !== SLOT || typeof raw.source !== 'string') continue;
       if (raw.content === 'shell') {
         // Shell content pairs with no attribution: the slot itself says whose it is.
         pending = undefined;
         roster.push({
           appId: SHELL_SOURCE,
           displayName: typeof raw.label === 'string' && raw.label ? raw.label : SHELL_SOURCE,
-          slot: raw.name,
         });
         continue;
       }
-      if (pending) {
-        roster.push({...pending, slot: raw.name});
-        pending = undefined;
-      }
+      if (pending?.appId === raw.source) roster.push(pending);
+      pending = undefined;
     }
   }
   return roster.length > 0 ? roster : undefined;

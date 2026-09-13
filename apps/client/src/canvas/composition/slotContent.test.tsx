@@ -37,7 +37,7 @@ function composedProcessor(slotState: 'pending' | 'failed' | 'collapsed' = 'pend
       updateComponents: {
         surfaceId: 'shell:main',
         components: [
-          {id: 'root', component: 'Column', children: ['attr-slot-github', 'slot-github']},
+          {id: 'root', component: 'Column', children: ['attr-slot-github', 'github']},
           {
             id: 'attr-slot-github',
             component: 'Attribution',
@@ -45,9 +45,9 @@ function composedProcessor(slotState: 'pending' | 'failed' | 'collapsed' = 'pend
             appId: 'github',
           },
           {
-            id: 'slot-github',
+            id: 'github',
             component: 'Slot',
-            name: 'slot-github',
+            source: 'github',
             state: slotState,
             label: 'GitHub',
           },
@@ -83,14 +83,14 @@ function renderComposed(
 }
 
 const PLACED = new Map<string, PlacedFragment>([
-  ['slot-github', {surfaceId: 'github:prs', source: 'github'}],
+  ['github', {surfaceId: 'github:prs', source: 'github'}],
 ]);
 
 describe('slot mounting', () => {
   it('mounts the placed fragment inside its slot, wrapped in a boundary', () => {
     const {container} = renderComposed(composedProcessor(), PLACED);
 
-    const slot = container.querySelector('[data-slot="slot-github"]');
+    const slot = container.querySelector('[data-slot="github"]');
     expect(slot).not.toBeNull();
     expect(slot!.getAttribute('data-slot-state')).toBe('filled');
 
@@ -112,7 +112,7 @@ describe('slot mounting', () => {
 
   it('an unclaimed slot renders its own pending state and no boundary', () => {
     const {container} = renderComposed(composedProcessor(), new Map());
-    const slot = container.querySelector('[data-slot="slot-github"]');
+    const slot = container.querySelector('[data-slot="github"]');
     expect(slot!.getAttribute('data-slot-state')).toBe('pending');
     expect(container.querySelector(`[${FRAGMENT_BOUNDARY_ATTR}]`)).toBeNull();
   });
@@ -127,7 +127,7 @@ describe('slot mounting', () => {
       new Map(),
       'I could not compose that view.',
     );
-    const slot = container.querySelector('[data-slot="slot-github"]');
+    const slot = container.querySelector('[data-slot="github"]');
     expect(slot!.getAttribute('data-slot-state')).toBe('collapsed');
     expect(slot!.textContent).toContain('I could not compose that view.');
     // It is the shell quoting the source, not a fragment: no boundary, no vendor provider.
@@ -137,12 +137,12 @@ describe('slot mounting', () => {
 
   it('a collapsed slot with nothing to rest on renders nothing at all', () => {
     const {container} = renderComposed(composedProcessor('collapsed'), new Map());
-    expect(container.querySelector('[data-slot="slot-github"]')).toBeNull();
+    expect(container.querySelector('[data-slot="github"]')).toBeNull();
   });
 
   it('a slot that painted is never overwritten by its source’s prose', () => {
     const {container} = renderComposed(composedProcessor(), PLACED, 'here are the PRs');
-    const slot = container.querySelector('[data-slot="slot-github"]');
+    const slot = container.querySelector('[data-slot="github"]');
     expect(slot!.getAttribute('data-slot-state')).toBe('filled');
     expect(slot!.textContent).toContain('Pull requests');
     expect(slot!.textContent).not.toContain('here are the PRs');
@@ -150,7 +150,7 @@ describe('slot mounting', () => {
 
   it('a failed slot keeps its failure even when a fragment is placed', () => {
     const {container} = renderComposed(composedProcessor('failed'), PLACED);
-    const slot = container.querySelector('[data-slot="slot-github"]');
+    const slot = container.querySelector('[data-slot="github"]');
     expect(slot!.getAttribute('data-slot-state')).toBe('failed');
     expect(container.querySelector(`[${FRAGMENT_BOUNDARY_ATTR}]`)).toBeNull();
   });
@@ -162,8 +162,8 @@ describe('slot mounting', () => {
         updateComponents: {
           surfaceId: 'shell:main',
           components: [
-            {id: 'root', component: 'Column', children: ['slot-shell']},
-            {id: 'slot-shell', component: 'Slot', name: 'slot-shell', content: 'shell'},
+            {id: 'root', component: 'Column', children: ['shell']},
+            {id: 'shell', component: 'Slot', source: 'shell', content: 'shell'},
           ],
         },
       }),
@@ -177,9 +177,9 @@ describe('slot mounting', () => {
     ]);
     const {container} = renderComposed(
       processor,
-      new Map([['slot-shell', {surfaceId: 'shell:synthesis', source: 'shell'}]]),
+      new Map([['shell', {surfaceId: 'shell:synthesis', source: 'shell'}]]),
     );
-    const slot = container.querySelector('[data-slot="slot-shell"]')!;
+    const slot = container.querySelector('[data-slot="shell"]')!;
     expect(slot.getAttribute('data-slot-state')).toBe('filled');
     expect(slot.getAttribute('data-slot-content')).toBe('shell');
     expect(slot.textContent).toContain('Cameras in both stores');

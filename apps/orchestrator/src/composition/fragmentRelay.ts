@@ -7,14 +7,13 @@ const A2UI_OPS = ['createSurface', 'updateComponents', 'updateDataModel', 'delet
 
 /**
  * The composition half of the relay, applied after {@link relayEvent}'s id
- * rewrites: the stamp gains placement (`slot`, `role: 'fragment'`), surfaceIds
+ * rewrites: the stamp gains `role: 'fragment'` beside its `source`, surfaceIds
  * are namespaced on the four A2UI ops, and vendor finals are demoted — under
  * fan-out several vendors end on one orchestrator task, so the executor owns
  * the single turn-final. The original event is never mutated.
  */
 export interface ComposeContext {
   appId: string;
-  slot: string;
   /** Per-surface generations for the surfaces this event touched (4.2 decisions 3, 10); omitted when empty. */
   generations?: Record<string, number>;
 }
@@ -77,7 +76,6 @@ function withStamp<E extends VendorEvent>(event: E, ctx: ComposeContext): E {
       [STAMP_KEY]: {
         ...(typeof existing === 'object' && existing !== null ? existing : {}),
         source: ctx.appId,
-        slot: ctx.slot,
         role: 'fragment',
         ...generations,
       },

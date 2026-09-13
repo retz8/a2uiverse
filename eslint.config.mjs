@@ -33,7 +33,7 @@ export default tseslint.config(
   {
     // Repo tooling run directly by node: not part of any package's build, so it has no
     // tsconfig lib to declare its environment.
-    files: ['scripts/**/*.mjs'],
+    files: ['scripts/**/*.mjs', 'packages/**/scripts/**/*.mjs'],
     languageOptions: {globals: globals.node},
   },
   {

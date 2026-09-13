@@ -20,16 +20,18 @@
     "dist"
   ],
   "scripts": {
-    "embed-docs": "node scripts/embed-docs.mjs",
-    "build": "pnpm embed-docs && tsc -p tsconfig.json",
-    "typecheck": "pnpm embed-docs && tsc --noEmit",
-    "test": "pnpm embed-docs && vitest run",
+    "embed-spec": "node scripts/embed-spec.mjs",
+    "sync-a2ui-spec": "node scripts/sync-a2ui-spec.mjs",
+    "build": "pnpm embed-spec && tsc -p tsconfig.json",
+    "typecheck": "pnpm embed-spec && tsc --noEmit",
+    "test": "pnpm embed-spec && vitest run",
     "lint": "eslint ."
   },
   "devDependencies": {
     "json-schema-to-ts": "^3.1.1",
     "typescript": "~5.9.3",
-    "vitest": "^4.1.9"
+    "vitest": "^4.1.9",
+    "yaml": "^2.9.1"
   },
   "dependencies": {
     "ajv": "^8.20.0"

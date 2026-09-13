@@ -46,13 +46,10 @@ both.
   element is the shape for entries too unlike each other for one table.
 
 `Card` may wrap the whole view when it should read as one surface; `Divider` separates sections
-that are genuinely different. Nothing else in the catalog serves a merged view: no inputs, no
-buttons, no media, no tabs. The view is read, sorted, and read again.
+that are genuinely different. The view is read, sorted, and read again.
 
 ## Never paint
 
-- `Slot`, `Attribution`, `Frame`: the shell's own layout primitives, painted by the runtime around
-  the view. A merged view that names them is malformed.
 - A literal where a value should be. A column label is yours to write; a camera's name or price is a
   source's and reaches the view only through a formula.
 - Source badges, "from Gmail" captions, or any other provenance of your own. `DerivedValue` carries

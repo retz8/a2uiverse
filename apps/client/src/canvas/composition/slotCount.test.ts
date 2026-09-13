@@ -23,7 +23,7 @@ function shell(slots: string[]) {
         surfaceId: 'shell:main',
         components: [
           {id: 'root', component: 'Column', children: slots},
-          ...slots.map(name => ({id: name, component: 'Slot', name, state: 'pending'})),
+          ...slots.map(source => ({id: source, component: 'Slot', source, state: 'pending'})),
         ],
       },
     }),
@@ -33,8 +33,8 @@ function shell(slots: string[]) {
 
 describe('slotCountOf', () => {
   it('counts the slots a shell surface lays out', () => {
-    expect(slotCountOf(shell(['slot-github']))).toBe(1);
-    expect(slotCountOf(shell(['slot-github', 'slot-gmail', 'slot-calendar']))).toBe(3);
+    expect(slotCountOf(shell(['github']))).toBe(1);
+    expect(slotCountOf(shell(['github', 'gmail', 'calendar']))).toBe(3);
   });
 
   it('is zero for an uncomposed paint and for no surface at all', () => {
@@ -54,7 +54,7 @@ describe('slotCountOf', () => {
 
   it('does not change as a slot fills — weight is set by the plan, not by arrivals', () => {
     // A filled slot is still a Slot component in the shell tree; only its content changed.
-    const surface = shell(['slot-github', 'slot-gmail']);
+    const surface = shell(['github', 'gmail']);
     expect(slotCountOf(surface)).toBe(2);
   });
 });

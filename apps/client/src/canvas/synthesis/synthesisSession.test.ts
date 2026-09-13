@@ -9,9 +9,10 @@ import type {A2uiMessage} from '@a2ui/web_core/v0_9';
 import type {ReactComponentImplementation} from '@a2ui/react/v0_9';
 import {CATALOG_ID, createCatalog, OPERATORS} from '@a2uiverse/shell-catalog';
 import type {CellObject} from '@a2uiverse/shell-catalog';
-import type {Synthesis, SynthesisPayload} from '@a2uiverse/sdk';
+import type {SynthesisPayload} from '@a2uiverse/sdk';
 import {
   DOCUMENT,
+  type SynthesisDocument,
   PAYLOAD,
   SHOP_A,
   SHOP_A_ITEMS,
@@ -20,7 +21,7 @@ import {
   SHOP_B_PRODUCTS,
   shopAMessages,
   shopBMessages,
-  SYNTHESIS_SLOT,
+  SYNTHESIS_SOURCE,
   SYNTHESIS_SURFACE,
   synthesisMessages,
 } from '../../beats/synthesisFixture';
@@ -33,7 +34,7 @@ const CATALOG = createCatalog({onShellAction: () => {}});
 const msg = (m: Record<string, unknown>): A2uiMessage =>
   ({version: 'v0.9', ...m}) as unknown as A2uiMessage;
 
-const target = {surfaceId: SYNTHESIS_SURFACE, slot: SYNTHESIS_SLOT};
+const target = {surfaceId: SYNTHESIS_SURFACE, source: SYNTHESIS_SOURCE};
 
 /** Subscription-driven evaluations coalesce to a microtask; intake is synchronous. */
 const settled = () => Promise.resolve();
@@ -58,7 +59,10 @@ function paintStorefronts() {
 }
 
 /** The synthesis paint (a repeat create is a repaint), then the payload accepted — the runner's order. */
-function paintSynthesis(document: Synthesis = DOCUMENT, payload: SynthesisPayload = PAYLOAD) {
+function paintSynthesis(
+  document: SynthesisDocument = DOCUMENT,
+  payload: SynthesisPayload = PAYLOAD,
+) {
   applyA2uiMessages(processor, synthesisMessages(document, CATALOG_ID));
   session.accept(target, payload);
 }
@@ -92,7 +96,7 @@ describe('intake', () => {
     expect(failures).toEqual([
       {
         surfaceId: SYNTHESIS_SURFACE,
-        slot: SYNTHESIS_SLOT,
+        source: SYNTHESIS_SOURCE,
         path: '/sorts/0',
         message: expect.stringContaining('/rating'),
       },

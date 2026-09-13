@@ -35,10 +35,9 @@ export interface Notice {
  * `placement`, and the only place the display names the orchestrator painted are readable.
  */
 export interface RosterEntry {
+  /** The source the shell reserved a slot for — the key the slot is placed by. */
   appId: string;
   displayName: string;
-  /** The slot the shell reserved for this source. */
-  slot: string;
 }
 
 /** A notice as the stack renders it: ordered, and resolved against the roster. */
@@ -89,7 +88,7 @@ export interface CanvasState {
   /** Bumped per applied batch — re-renders the stage and resets its error boundary. */
   appliedSeq: number;
   /**
-   * The composition's placement: slot name → the fragment filling it. The only composition
+   * The composition's placement: a slot's source → the fragment filling it. The only composition
    * state the client holds — the orchestrator is canonical for the rest, and the shell surface
    * is its rendered projection. Empty when the stage holds an uncomposed paint.
    */
@@ -151,13 +150,13 @@ export interface CanvasStore {
    * A fragment claims its slot. One surface per slot: a later claim displaces the earlier, which
    * the caller is responsible for retiring from the processor.
    */
-  placeFragment(slot: string, fragment: PlacedFragment): void;
+  placeFragment(source: string, fragment: PlacedFragment): void;
   /** The composition left the canvas: forget where its fragments were. */
   clearPlacement(): void;
   /** A fragment asks for attention; the shell grants it. */
-  promoteSlot(slot: string): void;
+  promoteSlot(source: string): void;
   /** Answered, failed, or gone: the slot drops back to the rest of the canvas. */
-  demoteSlot(slot: string): void;
+  demoteSlot(source: string): void;
   clearPromotions(): void;
 }
 
@@ -296,18 +295,18 @@ export function createCanvasStore(): CanvasStore {
     },
     setRoster: roster => set({roster}),
     bumpApplied: () => set({appliedSeq: state.appliedSeq + 1}),
-    placeFragment: (slot, fragment) =>
-      set({placement: new Map(state.placement).set(slot, fragment)}),
+    placeFragment: (source, fragment) =>
+      set({placement: new Map(state.placement).set(source, fragment)}),
     clearPlacement: () => {
       if (state.placement.size) set({placement: new Map()});
     },
-    promoteSlot: slot => {
-      if (!state.promoted.has(slot)) set({promoted: new Set(state.promoted).add(slot)});
+    promoteSlot: source => {
+      if (!state.promoted.has(source)) set({promoted: new Set(state.promoted).add(source)});
     },
-    demoteSlot: slot => {
-      if (!state.promoted.has(slot)) return;
+    demoteSlot: source => {
+      if (!state.promoted.has(source)) return;
       const next = new Set(state.promoted);
-      next.delete(slot);
+      next.delete(source);
       set({promoted: next});
     },
     clearPromotions: () => {

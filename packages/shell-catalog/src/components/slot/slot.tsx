@@ -3,6 +3,7 @@ import {createComponentImplementation} from '@a2ui/react/v0_9';
 import {Button, Flex, Spinner, Text} from '@radix-ui/themes';
 import type {ShellActionHandler} from '../../functions/shell-actions.js';
 import {SlotContentContext} from '../../slot-content.js';
+import {weightStyle} from '../shared/layout.js';
 import {SlotApi, type SlotProps} from './slot.schema.js';
 
 /**
@@ -23,37 +24,33 @@ import {SlotApi, type SlotProps} from './slot.schema.js';
  * The tile a fragment slot shows while pending or failed is drawn on Radix's own
  * panel, border and radius tokens (task-5.9 decision 5).
  *
- * `gap` is the capability tile (task-6.2 decision 6): fixed shell UI, no model wording — a
- * minimal line and a button searching the Store for the missing capability, `label`.
+ * A slot holding a `gap` is the capability tile (task-6.2 decision 6): fixed shell UI, no model
+ * wording — a minimal line and a button searching the Store for the missing capability, the gap.
+ *
+ * `weight` is the region's flex-grow share inside a `Row` or `Column`, as the basic layout
+ * components apply it.
  */
 export function SlotView({
-  name,
+  source,
+  gap,
+  weight,
   state = 'pending',
   label,
   content = 'fragment',
   onSearchStore,
 }: SlotProps & {onSearchStore?: (query: string | undefined) => void}) {
   const resolve = useContext(SlotContentContext);
-  const resolved = resolve(name);
   const shell = content === 'shell';
+  const weighted = weightStyle(weight);
 
-  if (state === 'collapsed') {
-    if (resolved == null) return null;
+  if (gap !== undefined) {
     return (
-      <div data-slot={name} data-slot-state="collapsed" style={{...panelStyle, minHeight: 0}}>
-        {resolved}
-      </div>
-    );
-  }
-
-  if (state === 'gap') {
-    return (
-      <div data-slot={name} data-slot-state="gap" style={panelStyle}>
+      <div data-slot-gap={gap} data-slot-state="gap" style={{...panelStyle, ...weighted}}>
         <Flex direction="column" align="center" gap="2">
           <Text as="span" size="2">
             No installed app can do this.
           </Text>
-          <Button size="1" variant="soft" onClick={() => onSearchStore?.(label)}>
+          <Button size="1" variant="soft" onClick={() => onSearchStore?.(gap)}>
             Search the Store
           </Button>
         </Flex>
@@ -61,18 +58,33 @@ export function SlotView({
     );
   }
 
+  const resolved = source === undefined ? null : resolve(source);
+
+  if (state === 'collapsed') {
+    if (resolved == null) return null;
+    return (
+      <div
+        data-slot={source}
+        data-slot-state="collapsed"
+        style={{...panelStyle, minHeight: 0, ...weighted}}
+      >
+        {resolved}
+      </div>
+    );
+  }
+
   if (state === 'failed') {
     if (shell) {
       return (
-        <div data-slot={name} data-slot-state="failed" data-slot-content="shell">
+        <div data-slot={source} data-slot-state="failed" data-slot-content="shell" style={weighted}>
           {quietLine('Couldn’t paint this.')}
         </div>
       );
     }
     return (
-      <div data-slot={name} data-slot-state="failed" style={panelStyle}>
+      <div data-slot={source} data-slot-state="failed" style={{...panelStyle, ...weighted}}>
         <Text as="span" size="1" color="gray">
-          {label ?? name} didn&rsquo;t load
+          {label ?? source} didn&rsquo;t load
         </Text>
       </div>
     );
@@ -81,13 +93,13 @@ export function SlotView({
   if (resolved != null) {
     return (
       <div
-        data-slot={name}
+        data-slot={source}
         data-slot-state="filled"
         data-slot-content={shell ? 'shell' : undefined}
         // A filled fragment slot keeps the floor it reserved while pending. Dropping it made the
         // box collapse the instant a fragment mounted and then grow again as content streamed —
         // the slot giving back space it had already claimed. Shell content reserved no floor.
-        style={{minWidth: 0, minHeight: shell ? undefined : panelStyle.minHeight}}
+        style={{minWidth: 0, minHeight: shell ? undefined : panelStyle.minHeight, ...weighted}}
       >
         {resolved}
       </div>
@@ -96,7 +108,7 @@ export function SlotView({
 
   if (shell) {
     return (
-      <div data-slot={name} data-slot-state="pending" data-slot-content="shell">
+      <div data-slot={source} data-slot-state="pending" data-slot-content="shell" style={weighted}>
         <Flex align="center" gap="2" display="inline-flex">
           <Spinner size="1" />
           {quietLine('Painting…')}
@@ -106,9 +118,13 @@ export function SlotView({
   }
 
   return (
-    <div data-slot={name} data-slot-state="pending" style={{...panelStyle, opacity: 0.6}}>
+    <div
+      data-slot={source}
+      data-slot-state="pending"
+      style={{...panelStyle, opacity: 0.6, ...weighted}}
+    >
       <Text as="span" size="1" color="gray">
-        {label ?? name}…
+        {label ?? source}…
       </Text>
     </div>
   );
@@ -141,7 +157,9 @@ const panelStyle: CSSProperties = {
 export function createSlotComponent(onShellAction: ShellActionHandler) {
   return createComponentImplementation(SlotApi, ({props, context}) => (
     <SlotView
-      name={props.name}
+      source={props.source}
+      gap={props.gap}
+      weight={props.weight}
       state={props.state}
       label={props.label}
       content={props.content}

@@ -1,33 +1,27 @@
 /**
- * The contract's validator: what the orchestrator runs over the Synthesizer's
- * output and the client over the payload. Checks what the contract states on
- * its own — the schema, then the structure the schema cannot express: every
- * pointer parses, every sort names an array of the model — once — whose elements
- * carry every option key as a formula with at least one ref, the initial key is
- * an option, the tree has one `root` and unique ids. The tree against the shell catalog and the
- * derived-value rule are the orchestrator's checks, after this one.
+ * The contract's validator over the synthesis payload: what the client runs over what it receives,
+ * and what the orchestrator runs over the derived model and sorts the Synthesizer wrote. Checks what
+ * the contract states on its own — the schema, then the structure the schema cannot express: every
+ * leaf a formula, every pointer parses, every sort names an array of the model — once — whose
+ * elements carry every option key as a formula with at least one ref, and the initial key is an
+ * option.
  */
 import {Ajv2020, type ErrorObject, type ValidateFunction} from 'ajv/dist/2020.js';
 import {parsePointer, PointerSyntaxError, resolvePointer} from './pointer.js';
 import {
-  isDecline,
   SYNTHESIS_SCHEMA,
-  SYNTHESIZE_DATA_MODEL_SCHEMA,
   type DerivedModel,
   type SortDeclaration,
   type SynthesisPayload,
-  type SynthesisTree,
-  type SynthesizeDataModel,
 } from './synthesis.js';
 import {isFormula, walkModel} from './walk.js';
 
 export type Validation<T> = {ok: true; value: T} | {ok: false; errors: string[]};
 
 const ajv = new Ajv2020({allErrors: true, strict: true, allowUnionTypes: true});
-const outputSchema = ajv.compile(SYNTHESIZE_DATA_MODEL_SCHEMA);
 const payloadSchema = ajv.compile(SYNTHESIS_SCHEMA);
 
-function schemaErrors(validate: ValidateFunction, input: unknown): string[] {
+export function schemaErrors(validate: ValidateFunction, input: unknown): string[] {
   if (validate(input)) return [];
   return (validate.errors ?? []).map((error: ErrorObject) => {
     const params = error.params as {propertyName?: string; additionalProperty?: string};
@@ -98,35 +92,8 @@ function sortErrors(model: DerivedModel, sorts: SortDeclaration[]): string[] {
   return errors;
 }
 
-function treeErrors(tree: SynthesisTree): string[] {
-  const errors: string[] = [];
-  const ids = new Set<string>();
-  for (const component of tree.components) {
-    if (ids.has(component.id)) errors.push(`/tree: duplicate component id ${component.id}`);
-    ids.add(component.id);
-  }
-  if (!ids.has('root')) errors.push('/tree: no component has the id "root"');
-  return errors;
-}
-
 function result<T>(errors: string[], value: T): Validation<T> {
   return errors.length === 0 ? {ok: true, value} : {ok: false, errors};
-}
-
-/** The Synthesizer's output, as written: a synthesis or a decline. */
-export function validateSynthesizeDataModel(input: unknown): Validation<SynthesizeDataModel> {
-  const errors = schemaErrors(outputSchema, input);
-  if (errors.length > 0) return {ok: false, errors};
-  const output = input as SynthesizeDataModel;
-  if (isDecline(output)) return {ok: true, value: output};
-  return result(
-    [
-      ...modelErrors(output.dataModel),
-      ...sortErrors(output.dataModel, output.sorts),
-      ...treeErrors(output.tree),
-    ],
-    output,
-  );
 }
 
 /** The client-facing payload under the synthesis key. */

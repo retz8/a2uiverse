@@ -24,7 +24,7 @@ const shellPaint = (leaves: Array<{appId: string; displayName?: string}>) =>
             appId: l.appId,
             ...(l.displayName !== undefined ? {displayName: l.displayName} : {}),
           },
-          {id: `slot-${l.appId}`, component: 'Slot', name: `slot-${l.appId}`, state: 'pending'},
+          {id: `slot-${l.appId}`, component: 'Slot', source: l.appId, state: 'pending'},
         ]),
       ],
     },
@@ -40,9 +40,9 @@ describe('rosterFromShellMessages', () => {
       ]),
     ]);
     expect(roster).toEqual([
-      {appId: 'github', displayName: 'GitHub', slot: 'slot-github'},
-      {appId: 'gmail', displayName: 'Gmail', slot: 'slot-gmail'},
-      {appId: 'calendar', displayName: 'Google Calendar', slot: 'slot-calendar'},
+      {appId: 'github', displayName: 'GitHub'},
+      {appId: 'gmail', displayName: 'Gmail'},
+      {appId: 'calendar', displayName: 'Google Calendar'},
     ]);
   });
 
@@ -55,12 +55,12 @@ describe('rosterFromShellMessages', () => {
             id: 'root',
             component: 'Frame',
             direction: 'row',
-            children: ['slot-shell', 'wrap-slot-github'],
+            children: ['shell', 'wrap-slot-github'],
           },
           {
-            id: 'slot-shell',
+            id: 'shell',
             component: 'Slot',
-            name: 'slot-shell',
+            source: 'shell',
             state: 'pending',
             label: 'Synthesis',
             content: 'shell',
@@ -72,20 +72,20 @@ describe('rosterFromShellMessages', () => {
             appId: 'github',
             displayName: 'GitHub',
           },
-          {id: 'slot-github', component: 'Slot', name: 'slot-github', state: 'pending'},
+          {id: 'github', component: 'Slot', source: 'github', state: 'pending'},
         ],
       },
     });
     expect(rosterFromShellMessages([paint])).toEqual([
-      {appId: SHELL_SOURCE, displayName: 'Synthesis', slot: 'slot-shell'},
-      {appId: 'github', displayName: 'GitHub', slot: 'slot-github'},
+      {appId: SHELL_SOURCE, displayName: 'Synthesis'},
+      {appId: 'github', displayName: 'GitHub'},
     ]);
     expect(SHELL_SOURCE).toBe('shell');
   });
 
   it('falls back to the app id when the paint carries no display name', () => {
     expect(rosterFromShellMessages([shellPaint([{appId: 'github'}])])).toEqual([
-      {appId: 'github', displayName: 'github', slot: 'slot-github'},
+      {appId: 'github', displayName: 'github'},
     ]);
   });
 
@@ -96,7 +96,7 @@ describe('rosterFromShellMessages', () => {
     const slotFlip = msg({
       updateComponents: {
         surfaceId: 'shell:shell',
-        components: [{id: 'slot-gmail', component: 'Slot', name: 'slot-gmail', state: 'failed'}],
+        components: [{id: 'gmail', component: 'Slot', source: 'gmail', state: 'failed'}],
       },
     });
     expect(rosterFromShellMessages([slotFlip])).toBeUndefined();

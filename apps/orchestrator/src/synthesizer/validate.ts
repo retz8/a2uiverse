@@ -1,63 +1,90 @@
-import {Catalog, MessageProcessor, type ComponentApi} from '@a2ui/web_core/v0_9';
+import {Ajv2020} from 'ajv/dist/2020.js';
 import {
-  type Resolution,
+  formatA2uiFinding,
   isFormula,
   parsePointer,
+  schemaErrors,
+  validateSynthesisPayload,
   walkModel,
+  type A2uiComponent,
+  type A2uiFinding,
+  type A2uiValidator,
   type ModelNode,
   type Ref,
+  type Resolution,
+} from '@a2uiverse/sdk';
+import {
+  isDecline,
+  SYNTHESIZE_DATA_MODEL_SCHEMA,
   type Synthesis,
   type SynthesisTree,
-  type TreeComponent,
-} from '@a2uiverse/sdk';
+  type SynthesizeDataModel,
+} from './document.js';
 
 /**
- * The catalog-dependent checklist (task-5.4 decision 5), after the sdk's validator has passed
- * the document's shape: the tree through the client's own runtime, headless, against the
- * catalog of APIs; every id a parent names declared; the derived-value rule over the accepted
- * tree, resolving bindings absolutely or through their enclosing template; every operator one
- * the catalog declares; every ref into a held partition, resolving now. Each finding is one
- * line with its path, so the retry can hand them back.
+ * The Synthesizer's one validator (task-6.3 decision 9), in order: the output schema; for a
+ * synthesis, the derived model and sorts through the sdk's payload validator; the tree through the
+ * sdk's A2UI validator against the Synthesizer's pruned catalog — known components and props, the
+ * root, dangling children, cycles, orphans; the derived-value rule over that tree, resolving
+ * bindings absolutely or through their enclosing template; every operator one the pruned catalog
+ * declares; every ref into a held partition, resolving now. Each finding is one line with its path,
+ * so the retry can hand them back.
  */
 export interface SynthesisChecks {
-  catalog: Catalog<ComponentApi>;
+  /** The sdk's A2UI validator over the Synthesizer's pruned catalog. */
+  tree: A2uiValidator;
+  /** The pruned catalog's functions: the formula operators. */
   operators: readonly string[];
   partitions: {has(surface: string): boolean; resolve(ref: Ref): Resolution};
 }
 
-export function checkSynthesis(synthesis: Synthesis, checks: SynthesisChecks): string[] {
-  return [
-    ...treeErrors(synthesis.tree, checks.catalog),
-    ...referenceErrors(synthesis.tree),
-    ...derivedValueErrors(synthesis),
-    ...operatorErrors(synthesis, checks.operators),
-    ...refErrors(synthesis, checks.partitions),
-  ];
+export type SynthesisValidation =
+  {ok: true; document: SynthesizeDataModel} | {ok: false; errors: string[]};
+
+type TreeComponent = A2uiComponent;
+
+const outputSchema = new Ajv2020({allErrors: true, strict: true, allowUnionTypes: true}).compile(
+  SYNTHESIZE_DATA_MODEL_SCHEMA,
+);
+
+export function validateSynthesis(input: unknown, checks: SynthesisChecks): SynthesisValidation {
+  const schema = schemaErrors(outputSchema, input);
+  if (schema.length > 0) return {ok: false, errors: schema};
+  const document = input as SynthesizeDataModel;
+  if (isDecline(document)) return {ok: true, document};
+  const structure = validateSynthesisPayload({
+    dataModel: document.dataModel,
+    sorts: document.sorts,
+  });
+  const tree = treeErrors(document.tree, checks.tree);
+  // The checks that read the model's pointers run only over a structurally sound model.
+  const errors = structure.ok
+    ? [
+        ...tree,
+        ...derivedValueErrors(document),
+        ...operatorErrors(document, checks.operators),
+        ...refErrors(document, checks.partitions),
+      ]
+    : [...structure.errors, ...tree];
+  return errors.length === 0 ? {ok: true, document} : {ok: false, errors};
 }
 
-/** The tree through `web_core`'s processor: catalog membership and every prop's schema. */
-function treeErrors(tree: SynthesisTree, catalog: Catalog<ComponentApi>): string[] {
-  const errors: string[] = [];
-  for (const component of tree.components) {
-    if (!catalog.components.has(component.component)) {
-      errors.push(
-        `/tree (${component.id}): component '${component.component}' is not in the shell catalog`,
-      );
-    }
-  }
-  if (errors.length > 0) return errors;
-  try {
-    new MessageProcessor([catalog]).processMessages([
-      {version: 'v0.9', createSurface: {surfaceId: 'synthesis', catalogId: catalog.id}},
-      {version: 'v0.9', updateComponents: {surfaceId: 'synthesis', components: tree.components}},
-    ] as never);
-  } catch (err) {
-    errors.push(`/tree: ${err instanceof Error ? err.message : String(err)}`);
-  }
-  return errors;
-}
+const TREE_SURFACE = 'synthesis';
 
-const SHELL_ONLY = new Set(['Slot', 'Attribution', 'Frame']);
+/** The tree as the surface it paints, through the A2UI validator; paths rebased onto `/tree`. */
+function treeErrors(tree: SynthesisTree, validator: A2uiValidator): string[] {
+  const findings = validator.validate([
+    {version: 'v0.9', createSurface: {surfaceId: TREE_SURFACE, catalogId: 'shell'}},
+    {version: 'v0.9', updateComponents: {surfaceId: TREE_SURFACE, components: tree.components}},
+  ]);
+  return findings.map((finding: A2uiFinding) => {
+    const components = '/1/updateComponents/components';
+    const path = finding.path?.startsWith(components)
+      ? `/tree/components${finding.path.slice(components.length)}`
+      : '/tree';
+    return formatA2uiFinding({...finding, path});
+  });
+}
 
 type Template = {path: string; componentId: string};
 
@@ -81,24 +108,6 @@ function childIds(component: TreeComponent): string[] {
     ids.push(children.componentId);
   }
   return ids;
-}
-
-function referenceErrors(tree: SynthesisTree): string[] {
-  const errors: string[] = [];
-  const declared = new Set(tree.components.map(c => c.id));
-  for (const component of tree.components) {
-    if (SHELL_ONLY.has(component.component)) {
-      errors.push(
-        `/tree (${component.id}): '${component.component}' is the shell's own layout primitive, never part of a merged view`,
-      );
-    }
-    for (const id of childIds(component)) {
-      if (!declared.has(id)) {
-        errors.push(`/tree (${component.id}): names a child '${id}' that is not declared`);
-      }
-    }
-  }
-  return errors;
 }
 
 /**

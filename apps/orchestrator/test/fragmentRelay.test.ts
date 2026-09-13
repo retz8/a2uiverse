@@ -2,7 +2,7 @@ import type {TaskStatusUpdateEvent} from '@a2a-js/sdk';
 import {describe, expect, test} from 'vitest';
 import {composeFragment} from '../src/composition/fragmentRelay.js';
 
-const ctx = {appId: 'github', slot: 'slot-github'};
+const ctx = {appId: 'github'};
 
 function statusUpdate(parts: unknown[], final = true): TaskStatusUpdateEvent {
   return {
@@ -104,14 +104,13 @@ describe('composeFragment', () => {
     expect((out as {status: {state: string}}).status.state).toBe('working');
   });
 
-  test('stamp gains slot and role while keeping source and existing keys', () => {
+  test('stamp gains role while keeping source and existing keys', () => {
     const event = statusUpdate([]);
     event.metadata = {a2uiverse: {source: 'github', vendorTaskId: 'vt'}};
     const out = composeFragment(event, ctx);
     expect(out.metadata?.a2uiverse).toEqual({
       source: 'github',
       vendorTaskId: 'vt',
-      slot: 'slot-github',
       role: 'fragment',
     });
   });
@@ -122,27 +121,23 @@ describe('generations on the stamp (4.2 decisions 3, 10)', () => {
     const event = statusUpdate([], false);
     const out = composeFragment(event, {
       appId: 'shop-a',
-      slot: 'slot-shop-a',
       generations: {'shop-a:list': 2},
     }) as TaskStatusUpdateEvent;
     expect(out.metadata?.a2uiverse).toEqual({
       source: 'shop-a',
-      slot: 'slot-shop-a',
       role: 'fragment',
       generations: {'shop-a:list': 2},
     });
   });
 
   test('no generations, no field — the shell and untouched events stay as before', () => {
-    const out = composeFragment(statusUpdate([], false), {appId: 'shop-a', slot: 'slot-shop-a'});
+    const out = composeFragment(statusUpdate([], false), {appId: 'shop-a'});
     expect(out.metadata?.a2uiverse).toEqual({
       source: 'shop-a',
-      slot: 'slot-shop-a',
       role: 'fragment',
     });
     const empty = composeFragment(statusUpdate([], false), {
       appId: 'shop-a',
-      slot: 's',
       generations: {},
     });
     expect(empty.metadata?.a2uiverse).not.toHaveProperty('generations');

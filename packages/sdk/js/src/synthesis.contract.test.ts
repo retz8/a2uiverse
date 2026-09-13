@@ -1,17 +1,11 @@
-/** Asserts the synthesis half of the projection — the synthesize data model — against the normative contract. */
+/** Asserts the synthesis half of the projection — the synthesis payload — against the normative contract. */
 import {readFileSync} from 'node:fs';
 import {expect, test} from 'vitest';
 import {COMPOSITION_EXTENSION_URI, STAMP_KEY} from './composition';
-import {
-  readSynthesis,
-  SYNTHESIS_KEY,
-  SYNTHESIS_SCHEMA,
-  SYNTHESIZE_DATA_MODEL_SCHEMA,
-  type SynthesisPayload,
-} from './synthesis';
+import {readSynthesis, SYNTHESIS_KEY, SYNTHESIS_SCHEMA, type SynthesisPayload} from './synthesis';
 
 const contract = JSON.parse(
-  readFileSync(new URL('../../contracts/composition.v0.4.json', import.meta.url), 'utf8'),
+  readFileSync(new URL('../../contracts/composition.v0.5.json', import.meta.url), 'utf8'),
 ) as {
   version: string;
   extensionUri: string;
@@ -21,15 +15,14 @@ const contract = JSON.parse(
     compositionStamp: {direction: string};
     synthesizeDataModel: {
       direction: string;
-      a2uiVersion: string;
-      schemas: {synthesizeDataModel: unknown; synthesis: unknown};
+      schemas: Record<string, unknown>;
     };
   };
 };
 
 test('one version line: file, version, extension URI', () => {
-  expect(contract.version).toBe('0.4.0');
-  expect(contract.extensionUri).toBe('https://a2uiverse.dev/ext/composition/v0.4');
+  expect(contract.version).toBe('0.5.0');
+  expect(contract.extensionUri).toBe('https://a2uiverse.dev/ext/composition/v0.5');
   expect(COMPOSITION_EXTENSION_URI).toBe(contract.extensionUri);
 });
 
@@ -39,29 +32,20 @@ test('the synthesis key matches the contract and is not the stamp key', () => {
   expect(SYNTHESIS_KEY).not.toBe(STAMP_KEY);
 });
 
-test('the contract carries the stamp and the synthesize data model, both orchestrator → client', () => {
+test('the contract carries the stamp and the synthesis payload, both orchestrator → client', () => {
   expect(Object.keys(contract.shapes)).toEqual(['compositionStamp', 'synthesizeDataModel']);
   expect(contract.shapes.compositionStamp.direction).toBe('orchestrator → client');
   expect(contract.shapes.synthesizeDataModel.direction).toBe('orchestrator → client');
-  expect(contract.shapes.synthesizeDataModel.a2uiVersion).toBe('v0.9');
 });
 
-test('the embedded schemas are the contract schemas', () => {
+test('the embedded schema is the contract schema, and the contract carries no model-facing shape', () => {
   const {schemas} = contract.shapes.synthesizeDataModel;
-  expect(SYNTHESIZE_DATA_MODEL_SCHEMA).toEqual(schemas.synthesizeDataModel);
+  expect(Object.keys(schemas)).toEqual(['synthesis']);
   expect(SYNTHESIS_SCHEMA).toEqual(schemas.synthesis);
 });
 
-test('the model-facing schema is a oneOf of a synthesis and a decline', () => {
-  const output = SYNTHESIZE_DATA_MODEL_SCHEMA as {oneOf: {required: string[]}[]};
-  expect(output.oneOf.map(branch => [...branch.required].sort())).toEqual([
-    ['dataModel', 'note', 'sorts', 'tree'],
-    ['declined', 'reason'],
-  ]);
-});
-
 test('the derived model is recursive: a node is a formula, an object of nodes, or an array of nodes', () => {
-  const defs = (SYNTHESIZE_DATA_MODEL_SCHEMA as {$defs: Record<string, {oneOf?: unknown[]}>}).$defs;
+  const defs = (SYNTHESIS_SCHEMA as {$defs: Record<string, {oneOf?: unknown[]}>}).$defs;
   expect(defs.node.oneOf).toHaveLength(3);
   expect(JSON.stringify(defs.node)).toContain('#/$defs/node');
 });

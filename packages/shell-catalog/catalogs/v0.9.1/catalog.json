@@ -807,15 +807,23 @@
         "component": {
           "const": "Slot"
         },
-        "name": {
+        "source": {
           "type": "string",
-          "description": "The slot's identity within the layout; unique per surface. Later repaints reference the slot by this name."
+          "description": "The dispatched source whose content fills the region: an app id, or `shell` for the merged view. The slot's identity within the layout; unique per surface. A slot holds exactly one of `source` or `gap`."
+        },
+        "gap": {
+          "type": "string",
+          "description": "A capability no installed app serves, in words. The region is drawn as a fixed tile offering to search the Store for it. A slot holds exactly one of `source` or `gap`."
+        },
+        "weight": {
+          "type": "number",
+          "description": "The relative weight of this component within a Row or Column. This is similar to the CSS 'flex-grow' property. Note: this may ONLY be set when the component is a direct descendant of a Row or Column."
         },
         "state": {
           "type": "string",
-          "enum": ["pending", "failed", "collapsed", "gap"],
+          "enum": ["pending", "failed", "collapsed"],
           "default": "pending",
-          "description": "The region\u2019s lifecycle state. `pending` shows a placeholder until content arrives; `failed` shows that the content could not be produced; `collapsed` removes the region from view without moving its neighbours; `gap` marks a capability no installed app serves, drawn as a fixed tile offering to search the Store for it."
+          "description": "The region\u2019s lifecycle state. `pending` shows a placeholder until content arrives; `failed` shows that the content could not be produced; `collapsed` removes the region from view without moving its neighbours."
         },
         "content": {
           "type": "string",
@@ -825,11 +833,19 @@
         },
         "label": {
           "type": "string",
-          "description": "Human-readable name for the awaited content, shown while pending or failed. On a `gap` slot, the missing capability, used as the Store search query."
+          "description": "Human-readable name for the awaited content, shown while pending or failed."
         }
       },
-      "required": ["component", "name"],
-      "additionalProperties": false
+      "required": ["component"],
+      "additionalProperties": false,
+      "oneOf": [
+        {
+          "required": ["source"]
+        },
+        {
+          "required": ["gap"]
+        }
+      ]
     },
     "Attribution": {
       "type": "object",

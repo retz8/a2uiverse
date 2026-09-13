@@ -1,12 +1,7 @@
 import {randomUUID} from 'node:crypto';
 import type {Message, Task, TaskState, TaskStatusUpdateEvent} from '@a2a-js/sdk';
 import type {AgentExecutor, ExecutionEventBus, RequestContext} from '@a2a-js/sdk/server';
-import {
-  parseSurfaceId,
-  type ChangeAccount,
-  type Synthesis,
-  type SynthesisPayload,
-} from '@a2uiverse/sdk';
+import {parseSurfaceId, type SynthesisPayload} from '@a2uiverse/sdk';
 import type {AgentsPool} from './agentsPool/agentsPool.js';
 import {STAMP_KEY} from './agentsPool/relay.js';
 import type {DispatchHandle, DispatchOutcome} from './agentsPool/types.js';
@@ -35,6 +30,8 @@ import type {Planner} from './planner/planner.js';
 import type {Registry} from './registry/registry.js';
 import {SHELL_SOURCE_ID} from './registry/types.js';
 import type {Router} from './router/router.js';
+import type {Synthesis} from './synthesizer/document.js';
+import type {ChangeAccount} from './synthesizer/prompt.js';
 import type {Synthesizer} from './synthesizer/synthesizer.js';
 
 export interface OrchestratorDeps {
@@ -338,7 +335,7 @@ export class OrchestratorExecutor implements AgentExecutor {
     const composition = state ?? this.#compositions.get(ctx.contextId);
     let touches: SurfaceTouches = emptyTouches();
     for await (const event of handle.events) {
-      const composed = composeFragment(event, {appId, slot: slotName});
+      const composed = composeFragment(event, {appId});
       touches = mergeTouches(touches, touchesOf(composed));
       // Materialize first, so the stamp carries the generation this very event produced.
       const changed = composition?.partitions.apply(composed) ?? [];

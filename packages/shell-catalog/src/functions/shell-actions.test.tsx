@@ -40,11 +40,10 @@ test('a button calling openAppLibrary hands the host its surface', () => {
 
 test('the capability tile searches the Store for the missing capability', () => {
   const shell: ShellAction[] = [];
-  const {container} = renderTree(
-    [{id: 'root', component: 'Slot', name: 'slot-gap', state: 'gap', label: 'flight booking'}],
-    {onShellAction: action => shell.push(action)},
-  );
-  const slot = container.querySelector('[data-slot="slot-gap"]')!;
+  const {container} = renderTree([{id: 'root', component: 'Slot', gap: 'flight booking'}], {
+    onShellAction: action => shell.push(action),
+  });
+  const slot = container.querySelector('[data-slot-gap="flight booking"]')!;
   expect(slot).toHaveAttribute('data-slot-state', 'gap');
   expect(slot.textContent).toContain('No installed app can do this.');
   expect(slot.textContent).not.toContain('flight booking');

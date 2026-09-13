@@ -1,19 +1,8 @@
 import {expect, test} from 'vitest';
-import type {Synthesis, SynthesisPayload} from './synthesis';
-import {validateSynthesisPayload, validateSynthesizeDataModel} from './validate';
+import type {SynthesisPayload} from './synthesis';
+import {validateSynthesisPayload} from './validate';
 
-const synthesis: Synthesis = {
-  tree: {
-    components: [
-      {id: 'root', component: 'Column', children: ['list']},
-      {
-        id: 'list',
-        component: 'Column',
-        children: {template: {componentId: 'row', dataBinding: '/entries'}},
-      },
-      {id: 'row', component: 'DerivedValue', value: {path: 'when'}},
-    ],
-  },
+const payload: SynthesisPayload = {
   dataModel: {
     counts: {gmail: {op: 'count', args: [{surface: 'gmail:inbox', pointer: '/messages'}]}},
     entries: [
@@ -50,116 +39,9 @@ const synthesis: Synthesis = {
       direction: 'asc',
     },
   ],
-  note: '',
 };
 
 const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
-
-test('accepts a synthesis', () => {
-  expect(validateSynthesizeDataModel(synthesis)).toEqual({ok: true, value: synthesis});
-});
-
-test('accepts a decline', () => {
-  const decline = {declined: true, reason: 'the sources share no axis'};
-  expect(validateSynthesizeDataModel(decline)).toEqual({ok: true, value: decline});
-});
-
-test('rejects a decline without a reason, and a synthesis missing a part', () => {
-  expect(validateSynthesizeDataModel({declined: true, reason: ''}).ok).toBe(false);
-  const {note: _note, ...noNote} = synthesis;
-  void _note;
-  expect(validateSynthesizeDataModel(noNote).ok).toBe(false);
-});
-
-test('rejects a scalar leaf, naming its path', () => {
-  const bad = clone(synthesis);
-  (bad.dataModel.entries as unknown[])[0] = {when: 'literal'};
-  const result = validateSynthesizeDataModel(bad);
-  expect(result.ok).toBe(false);
-  if (!result.ok) expect(result.errors.join('\n')).toContain('/entries/0/when');
-});
-
-test('rejects a formula whose op is not a string or whose args are not refs', () => {
-  const bad = clone(synthesis);
-  bad.dataModel.counts = {gmail: {op: 'count', args: [{surface: 'gmail:inbox'}]}} as never;
-  expect(validateSynthesizeDataModel(bad).ok).toBe(false);
-});
-
-test('rejects a malformed pointer, naming it', () => {
-  const bad = clone(synthesis);
-  (bad.dataModel.entries as {when: {args: {pointer: string}[]}}[])[0].when.args[0].pointer =
-    '/messages[id=m_1]/receivedAt';
-  const result = validateSynthesizeDataModel(bad);
-  expect(result.ok).toBe(false);
-  if (!result.ok) expect(result.errors.join('\n')).toContain('/messages[id=m_1]/receivedAt');
-});
-
-test('rejects a sort whose path is not an array of the model', () => {
-  const bad = clone(synthesis);
-  bad.sorts[0].path = '/counts';
-  const result = validateSynthesizeDataModel(bad);
-  expect(result.ok).toBe(false);
-  if (!result.ok) expect(result.errors.join('\n')).toContain('/counts');
-});
-
-test('rejects a sort option whose key does not resolve to a formula in every element', () => {
-  const bad = clone(synthesis);
-  bad.sorts[0].options.push({key: '/where', label: 'Where'});
-  const result = validateSynthesizeDataModel(bad);
-  expect(result.ok).toBe(false);
-  if (!result.ok) expect(result.errors.join('\n')).toContain('/where');
-});
-
-test('rejects a second declaration over the same array (task-5.7: one declaration per array)', () => {
-  const twice = clone(synthesis);
-  twice.sorts.push({
-    ...clone(twice.sorts[0]!),
-    options: [{key: '/what', label: 'Title'}],
-    key: '/what',
-  });
-  const out = validateSynthesizeDataModel(twice);
-  expect(out.ok).toBe(false);
-  if (!out.ok)
-    expect(out.errors).toEqual([
-      '/sorts/1: path /entries is already declared at /sorts/0 — one declaration per array',
-    ]);
-});
-
-test('rejects a sort option whose key is a formula with no refs in some element (task-5.7: a key that can never resolve)', () => {
-  const unkeyed = clone(synthesis);
-  (unkeyed.dataModel.entries as Array<Record<string, unknown>>)[1]!.when = {op: 'value', args: []};
-  const out = validateSynthesizeDataModel(unkeyed);
-  expect(out.ok).toBe(false);
-  if (!out.ok)
-    expect(out.errors).toEqual([
-      '/sorts/0: option key /when is a formula with no refs in element 1 of /entries — an element whose key can never resolve does not belong in a sorted array; give it its own array',
-    ]);
-});
-
-test('rejects a sort whose initial key is not one of its options', () => {
-  const bad = clone(synthesis);
-  bad.sorts[0].key = '/detail';
-  expect(validateSynthesizeDataModel(bad).ok).toBe(false);
-});
-
-test('rejects a tree without a root component or with duplicate ids', () => {
-  const noRoot = clone(synthesis);
-  noRoot.tree.components[0].id = 'top';
-  expect(validateSynthesizeDataModel(noRoot).ok).toBe(false);
-  const dup = clone(synthesis);
-  dup.tree.components[2].id = 'list';
-  expect(validateSynthesizeDataModel(dup).ok).toBe(false);
-});
-
-test('rejects unknown keys on either branch', () => {
-  expect(validateSynthesizeDataModel({...synthesis, extra: 1}).ok).toBe(false);
-  expect(validateSynthesizeDataModel({declined: true, reason: 'x', note: ''}).ok).toBe(false);
-});
-
-const payload: SynthesisPayload = {
-  dataModel: synthesis.dataModel,
-  sorts: synthesis.sorts,
-};
 
 test('accepts a payload and rejects one carrying anything else', () => {
   expect(validateSynthesisPayload(payload)).toEqual({ok: true, value: payload});
@@ -172,16 +54,81 @@ test('accepts a payload and rejects one carrying anything else', () => {
   );
 });
 
-test('the payload validator applies the same structural checks', () => {
+test('rejects a scalar leaf, naming its path', () => {
+  const bad = clone(payload);
+  (bad.dataModel.entries as unknown[])[0] = {when: 'literal'};
+  const result = validateSynthesisPayload(bad);
+  expect(result.ok).toBe(false);
+  if (!result.ok) expect(result.errors.join('\n')).toContain('/entries/0/when');
+});
+
+test('rejects a formula whose op is not a string or whose args are not refs', () => {
+  const bad = clone(payload);
+  bad.dataModel.counts = {gmail: {op: 'count', args: [{surface: 'gmail:inbox'}]}} as never;
+  expect(validateSynthesisPayload(bad).ok).toBe(false);
+});
+
+test('rejects a malformed pointer, naming it', () => {
+  const bad = clone(payload);
+  (bad.dataModel.entries as {when: {args: {pointer: string}[]}}[])[0].when.args[0].pointer =
+    '/messages[id=m_1]/receivedAt';
+  const result = validateSynthesisPayload(bad);
+  expect(result.ok).toBe(false);
+  if (!result.ok) expect(result.errors.join('\n')).toContain('/messages[id=m_1]/receivedAt');
+});
+
+test('rejects a sort whose path is not an array of the model', () => {
   const bad = clone(payload);
   bad.sorts[0].path = '/counts';
+  const result = validateSynthesisPayload(bad);
+  expect(result.ok).toBe(false);
+  if (!result.ok) expect(result.errors.join('\n')).toContain('/counts');
+});
+
+test('rejects a sort option whose key does not resolve to a formula in every element', () => {
+  const bad = clone(payload);
+  bad.sorts[0].options.push({key: '/where', label: 'Where'});
+  const result = validateSynthesisPayload(bad);
+  expect(result.ok).toBe(false);
+  if (!result.ok) expect(result.errors.join('\n')).toContain('/where');
+});
+
+test('rejects a second declaration over the same array (task-5.7: one declaration per array)', () => {
+  const twice = clone(payload);
+  twice.sorts.push({
+    ...clone(twice.sorts[0]!),
+    options: [{key: '/what', label: 'Title'}],
+    key: '/what',
+  });
+  const out = validateSynthesisPayload(twice);
+  expect(out.ok).toBe(false);
+  if (!out.ok)
+    expect(out.errors).toEqual([
+      '/sorts/1: path /entries is already declared at /sorts/0 — one declaration per array',
+    ]);
+});
+
+test('rejects a sort option whose key is a formula with no refs in some element (task-5.7: a key that can never resolve)', () => {
+  const unkeyed = clone(payload);
+  (unkeyed.dataModel.entries as Array<Record<string, unknown>>)[1]!.when = {op: 'value', args: []};
+  const out = validateSynthesisPayload(unkeyed);
+  expect(out.ok).toBe(false);
+  if (!out.ok)
+    expect(out.errors).toEqual([
+      '/sorts/0: option key /when is a formula with no refs in element 1 of /entries — an element whose key can never resolve does not belong in a sorted array; give it its own array',
+    ]);
+});
+
+test('rejects a sort whose initial key is not one of its options', () => {
+  const bad = clone(payload);
+  bad.sorts[0].key = '/detail';
   expect(validateSynthesisPayload(bad).ok).toBe(false);
 });
 
 test('the derived model may not use the reserved root key "sorts"', () => {
-  const bad = clone(synthesis);
+  const bad = clone(payload);
   (bad.dataModel as Record<string, unknown>).sorts = {op: 'value', args: []};
-  const result = validateSynthesizeDataModel(bad);
+  const result = validateSynthesisPayload(bad);
   expect(result.ok).toBe(false);
   if (!result.ok) expect(result.errors.join('\n')).toContain('sorts');
 });

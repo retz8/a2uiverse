@@ -87,7 +87,7 @@ export function createParkedSession<T extends ComponentApi>(
   for (const fragment of entry.fragments ?? []) {
     if (!fragment.snapshot) continue;
     processor.processMessages(rebuild(fragment.surfaceId, fragment.catalogId, fragment.snapshot));
-    placement.set(fragment.slot, {surfaceId: fragment.surfaceId, source: fragment.source});
+    placement.set(fragment.source, {surfaceId: fragment.surfaceId, source: fragment.source});
   }
 
   // A parked synthesis re-sorts over its own frozen partitions (task 4.8): sort crosses no wire,

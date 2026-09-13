@@ -83,7 +83,8 @@ export interface TurnHandle {
 export interface FragmentFailure {
   /** Namespaced, as the hub sent it. */
   surfaceId: string;
-  slot: string;
+  /** The stamp's source: the slot the fragment was placed in. */
+  source: string;
   path: string;
   message: string;
 }
@@ -160,12 +161,11 @@ export function createTurnRunner({
    * whose slot later failed costs nothing to keep and needs no second rule to agree with.
    */
   const snapshotComposition = (placement: CanvasState['placement']) =>
-    [...placement].flatMap(([slot, placed]) => {
+    [...placement].flatMap(([, placed]) => {
       const surface = processor.model.getSurface(placed.surfaceId);
       if (!surface) return [];
       return [
         {
-          slot,
           surfaceId: placed.surfaceId,
           source: placed.source,
           catalogId: surface.catalog.id,
@@ -231,16 +231,17 @@ export function createTurnRunner({
     const staging = stagedMode ? createStaging() : null;
     /** Surface ids this turn created — the turn's own paint, as opposed to live surfaces. */
     const createdIds = new Set<string>();
-    /** Of those, the fragments and the slot each claimed: they never contend for the stage. */
+    /** Of those, the fragments and the source whose slot each claimed: they never contend for the stage. */
     const fragmentSlots = new Map<string, string>();
     /** Fragments already reported this turn — one report per fragment, never a second. */
     const reported = new Set<string>();
     /** Staged-mode slot claims, applied once their surfaces reach the live processor. */
-    const claims: Array<{slot: string; surfaceId: string; source: string}> = [];
+    const claims: Array<{surfaceId: string; source: string}> = [];
     /** Staged-mode buffer: the messages replayed into the live processor at swap. */
     const buffered: A2uiMessage[] = [];
     /** Staged-mode payload, handed over once its surface reaches the live processor at swap. */
-    let pendingSynthesis: {surfaceId: string; slot: string; payload: SynthesisPayload} | undefined;
+    let pendingSynthesis:
+      {surfaceId: string; source: string; payload: SynthesisPayload} | undefined;
     let canceled = false;
 
     /** Validation failures held until the settled state can be judged (module header). */
@@ -249,12 +250,12 @@ export function createTurnRunner({
     /** Report one fragment as unrenderable, at most once. */
     const failFragment = (surfaceId: string, path: string, message: string) => {
       if (!onFragmentFailure || reported.has(surfaceId)) return;
-      const slot = fragmentSlots.get(surfaceId);
-      if (slot === undefined) return;
+      const source = fragmentSlots.get(surfaceId);
+      if (source === undefined) return;
       reported.add(surfaceId);
       // A slot that failed has nothing left to answer.
-      store.demoteSlot(slot);
-      onFragmentFailure({surfaceId, slot, path, message});
+      store.demoteSlot(source);
+      onFragmentFailure({surfaceId, source, path, message});
     };
 
     const onMessageError = (err: unknown, message: A2uiMessage) => {
@@ -288,8 +289,8 @@ export function createTurnRunner({
     const settleFragments = () => {
       if (!onFragmentFailure) return;
       const {placement} = store.getState();
-      for (const [surfaceId, slot] of fragmentSlots) {
-        if (placement.get(slot)?.surfaceId !== surfaceId) continue;
+      for (const [surfaceId, source] of fragmentSlots) {
+        if (placement.get(source)?.surfaceId !== surfaceId) continue;
         const surface = processor.model.getSurface(surfaceId);
         if (surface === undefined) {
           failFragment(surfaceId, '/', 'the fragment never reached the canvas');
@@ -362,12 +363,12 @@ export function createTurnRunner({
       fragmentSlots.has(id) ||
       [...store.getState().placement.values()].some(p => p.surfaceId === id);
 
-    /** A fragment claims its slot. One surface per slot: a later claim retires the earlier. */
-    const claimSlot = (slot: string, surfaceId: string, source: string) => {
-      const previous = store.getState().placement.get(slot);
+    /** A fragment claims its source's slot. One surface per slot: a later claim retires the earlier. */
+    const claimSlot = (source: string, surfaceId: string) => {
+      const previous = store.getState().placement.get(source);
       if (previous && previous.surfaceId !== surfaceId)
         processor.model.deleteSurface(previous.surfaceId);
-      store.placeFragment(slot, {surfaceId, source});
+      store.placeFragment(source, {surfaceId, source});
     };
 
     /**
@@ -375,14 +376,14 @@ export function createTurnRunner({
      * the slot the shell promised it, and would let one vendor block the whole canvas. The shell
      * expresses the demand instead, in place.
      */
-    const settlePromotion = (slot: string) => {
-      const placed = store.getState().placement.get(slot);
-      if (placed && isQuestion(placed.surfaceId)) store.promoteSlot(slot);
+    const settlePromotion = (source: string) => {
+      const placed = store.getState().placement.get(source);
+      if (placed && isQuestion(placed.surfaceId)) store.promoteSlot(source);
     };
 
-    /** The slot a batch's stamp claims, when it is a fragment's. */
+    /** The source whose slot a batch's stamp claims, when it is a fragment's. */
     const slotOf = (stamp?: CompositionStamp) =>
-      stamp?.role === 'fragment' ? stamp.slot : undefined;
+      stamp?.role === 'fragment' ? stamp.source : undefined;
 
     /**
      * A composed turn cannot hold-and-swap: its whole point is that the layout lands before the
@@ -396,14 +397,14 @@ export function createTurnRunner({
 
     /**
      * The surface a payload describes: the fragment created in its batch, or the one already
-     * filling the stamp's slot when the paint is a bare update.
+     * filling the stamp's source's slot when the paint is a bare update.
      */
     const synthesisTarget = (messages: A2uiMessage[], stamp: CompositionStamp | undefined) => {
-      const slot = slotOf(stamp);
-      if (!slot) return undefined;
+      const source = slotOf(stamp);
+      if (!source) return undefined;
       const created = messages.map(targetOf).find(t => t.kind === 'create' && t.surfaceId);
-      const surfaceId = created?.surfaceId ?? store.getState().placement.get(slot)?.surfaceId;
-      return surfaceId ? {surfaceId, slot} : undefined;
+      const surfaceId = created?.surfaceId ?? store.getState().placement.get(source)?.surfaceId;
+      return surfaceId ? {surfaceId, source} : undefined;
     };
 
     const goProgressive = () => {
@@ -420,19 +421,19 @@ export function createTurnRunner({
       stamp?: CompositionStamp,
       payload?: SynthesisPayload,
     ) => {
-      const slot = slotOf(stamp);
+      const source = slotOf(stamp);
       for (const message of messages) {
         const {kind, surfaceId} = targetOf(message);
         if (kind === 'create' && surfaceId) {
           createdIds.add(surfaceId);
-          if (slot && stamp) {
-            fragmentSlots.set(surfaceId, slot);
-            claimSlot(slot, surfaceId, stamp.source);
+          if (source) {
+            fragmentSlots.set(surfaceId, source);
+            claimSlot(source, surfaceId);
           }
         }
       }
       applyA2uiMessages(processor, messages, {onMessageError});
-      if (slot) settlePromotion(slot);
+      if (source) settlePromotion(source);
       if (payload) {
         // The surface is live: evaluate now, so the first render already carries values.
         const target = synthesisTarget(messages, stamp);
@@ -454,7 +455,7 @@ export function createTurnRunner({
       stamp?: CompositionStamp,
       payload?: SynthesisPayload,
     ) => {
-      const slot = slotOf(stamp);
+      const source = slotOf(stamp);
       let touchedLive = false;
       if (payload) {
         // Held until the swap: the surface it describes is streaming off-stage.
@@ -466,10 +467,10 @@ export function createTurnRunner({
         // The turn's own paint: staging shadows live, so a same-id repaint streams off-stage.
         if (surfaceId !== undefined && (createdIds.has(surfaceId) || kind === 'create')) {
           createdIds.add(surfaceId);
-          if (slot && stamp && kind === 'create') {
-            fragmentSlots.set(surfaceId, slot);
+          if (source && kind === 'create') {
+            fragmentSlots.set(surfaceId, source);
             // Held until the surface reaches live at swap — a slot may not point into staging.
-            claims.push({slot, surfaceId, source: stamp.source});
+            claims.push({surfaceId, source});
           }
           applyA2uiMessages(staging as TurnProcessor, [message], {onMessageError});
           buffered.push(message);
@@ -550,10 +551,10 @@ export function createTurnRunner({
       applyA2uiMessages(processor, replayable, {onMessageError});
       // Claims land only now: retireStage cleared the outgoing composition's placement, and the
       // replay above is what put these surfaces in the live processor.
-      for (const {slot, surfaceId, source} of claims) {
+      for (const {surfaceId, source} of claims) {
         if (!survivorSet.has(surfaceId)) continue;
-        claimSlot(slot, surfaceId, source);
-        settlePromotion(slot);
+        claimSlot(source, surfaceId);
+        settlePromotion(source);
       }
       // The synthesis surface reached live with the replay: its payload lands with it.
       if (pendingSynthesis && processor.model.getSurface(pendingSynthesis.surfaceId)) {

@@ -53,7 +53,7 @@
                   {
                     "id": "slot-github",
                     "component": "Slot",
-                    "name": "slot-github",
+                    "source": "github",
                     "state": "pending",
                     "label": "GitHub"
                   }
@@ -75,7 +75,6 @@
           ],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -94,7 +93,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -146,7 +144,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -214,7 +211,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -286,7 +282,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -360,7 +355,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -447,7 +441,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -534,7 +527,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -643,7 +635,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -753,7 +744,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -869,7 +859,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -986,7 +975,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -1108,7 +1096,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -1231,7 +1218,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -1359,7 +1345,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -1488,7 +1473,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -1637,7 +1621,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -1786,7 +1769,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -1935,7 +1917,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -2084,7 +2065,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -2238,7 +2218,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -2405,7 +2384,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -2587,7 +2565,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -2769,7 +2746,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -2970,7 +2946,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -3173,7 +3148,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -3381,7 +3355,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -3593,7 +3566,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -3811,7 +3783,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -4029,7 +4000,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -4049,7 +4019,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -4069,7 +4038,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -4091,7 +4059,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         }

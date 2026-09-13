@@ -1,17 +1,19 @@
 # @a2uiverse/sdk
 
-The composition contract of A2UIVerse: what the orchestrator and the canvas client agree on to put
-several agents' answers onto one screen, and the tools both sides run against it. One normative JSON
-contract, one TypeScript package, one prose document the Synthesizer is briefed with.
+What several consumers of A2UIVerse must agree on, and nothing any one author owns: the
+composition contract that crosses between the orchestrator and the canvas client, and generic
+A2UI tools. One normative JSON contract, one pinned copy of the A2UI v0.9.1 spec, one TypeScript
+package.
 
 ```
-contracts/composition.v0.4.json   normative; the package is tested against it
-docs/composition.md               composition rules in the words the model reads
-js/                               @a2uiverse/sdk — types, validator, resolution kit, prompt builder
+contracts/composition.v0.5.json   normative; the package is tested against it
+a2ui-spec/                        A2UI v0.9.1 schemas, basic catalog, validator conformance cases — pinned copy
+js/                               @a2uiverse/sdk — types, validators, resolution kit, A2UI tools
 ```
 
-Consumers today: the orchestrator and the client. Nothing here reaches a vendor agent; nothing
-a2uiverse-specific rides the vendor wire.
+Consumers today: the orchestrator, the client and the shell catalog. The sdk knows no author and
+never knows the shell catalog: a catalog and a keep-set reach it as inputs. Nothing here reaches a
+vendor agent; nothing a2uiverse-specific rides the vendor wire.
 
 ## Background
 
@@ -20,19 +22,21 @@ One turn on the canvas, and where this package sits in it:
 ```
  utterance ──▶ ORCHESTRATOR                                  CLIENT (canvas shell)
               Planner ▸ lays out slots, briefs each agent     paints the layout
-              AgentsPool ▸ relays each agent's answer ──stamp──▶ mounts it into its slot   } fragments
-              Synthesizer ▸ writes the merged view ──synthesis──▶ evaluates it live         } merged view
+              AgentsPool ▸ relays each agent's answer ──stamp──▶ mounts it into its source's slot } fragments
+              Synthesizer ▸ writes the merged view ──payload──▶ evaluates it live                } merged view
 ```
 
-- **Shell** — the platform's own canvas. It paints a layout of **slots**; each agent's answer fills
-  one as a **fragment**, its own A2UI surface in its own catalog.
+- **Shell** — the platform's own canvas. It paints a layout of **slots**; each slot holds a
+  source, and that source's answer fills it as a **fragment**, its own A2UI surface in its own
+  catalog.
 - **Partition** — one fragment's data model as the client holds it, keyed by its namespaced surface
   id `<appId>:<surfaceId>`. Partitions never see each other.
-- **Composition stamp** — metadata on every relayed event: which app painted it, which slot it
-  fills. The client routes on nothing else.
-- **Synthesize data model** — the merged view as the Synthesizer writes it: a shell-catalog tree, a
-  data model whose every leaf is a **formula** over **refs** into partitions, sort declarations, a
-  note. Wiring, never values: the client evaluates the formulas and keeps the view live.
+- **Composition stamp** — metadata on every relayed event: which app painted it, and whether it is
+  the shell or a fragment. The client places a fragment by the stamp's `source`.
+- **Synthesis payload** — the merged view's wiring as the client receives it: a data model whose
+  every leaf is a **formula** over **refs** into partitions, and sort declarations. Wiring, never
+  values: the client evaluates the formulas and keeps the view live. The tree that binds to it is
+  painted as ordinary A2UI.
 - **Ref** — `{surface, pointer}`: a JSON Pointer into one partition, selecting array elements by
   key (`/threads[id="…"]/time`), never by position.
 
@@ -40,65 +44,46 @@ One turn on the canvas, and where this package sits in it:
 
 Every snippet below is what the platform runs today.
 
-### Stamp a relayed event, route it on the client
+### Stamp a relayed event, place it on the client
 
 ```ts
 // orchestrator — on every event relayed from an agent
 import {STAMP_KEY, namespaceSurfaceId} from '@a2uiverse/sdk';
 
-event.metadata = {
-  ...event.metadata,
-  [STAMP_KEY]: {source: 'gmail', slot: 'slot-gmail', role: 'fragment'},
-};
+event.metadata = {...event.metadata, [STAMP_KEY]: {source: 'gmail', role: 'fragment'}};
 const surfaceId = namespaceSurfaceId('gmail', 'inbox'); // "gmail:inbox"
 
 // client — on every event received
 import {readStamp} from '@a2uiverse/sdk';
 
 const stamp = readStamp(event.metadata); // CompositionStamp | undefined
-if (stamp?.role === 'fragment') mount(event, stamp.slot);
+if (stamp?.role === 'fragment') mount(event, stamp.source); // the Slot whose source is 'gmail'
 ```
 
-### Prompt the Synthesizer
+### Validate a model-authored A2UI tree against a pruned catalog
 
 ```ts
-import {buildSynthesisSystemPrompt, buildSynthesisTurn} from '@a2uiverse/sdk';
+import {createA2uiValidator, formatA2uiFinding, pruneCatalog} from '@a2uiverse/sdk';
 
-const system = buildSynthesisSystemPrompt({
-  catalogSchema: shellCatalogJson, // the shell catalog's catalog.json, verbatim
-  uiGuidance: synthesisGuidanceMd, // its synthesis-guidance.md
+const catalog = pruneCatalog(catalogJson, {
+  components: ['Column', 'Text', 'Table', 'TableRow', 'DerivedValue'],
+  functions: ['value', 'min'],
 });
+// The same pruned catalog goes into the author's prompt.
+const validator = createA2uiValidator({catalog});
 
-const turn = buildSynthesisTurn({
-  utterance: 'What needs my attention today?',
-  request: plan.shellSlot.request, // the Planner's brief for the merged view
-  sources: partitions.map(p => ({
-    surface: p.id,
-    appId: p.appId,
-    displayName: p.name,
-    data: p.model,
-  })),
-});
+const findings = validator.validate([
+  {version: 'v0.9', createSurface: {surfaceId: 's', catalogId}},
+  {version: 'v0.9', updateComponents: {surfaceId: 's', components}},
+]);
+if (findings.length > 0) return retryWith(findings.map(formatA2uiFinding));
 ```
 
-### Validate what the model wrote
-
-```ts
-import {extractSynthesisBlock, isDecline, validateSynthesizeDataModel} from '@a2uiverse/sdk';
-
-const block = extractSynthesisBlock(modelText); // the one <synthesize-data-model> block
-if (!block.ok) return retryWith([block.error]);
-
-const result = validateSynthesizeDataModel(JSON.parse(block.json));
-if (!result.ok) return retryWith(result.errors); // one line per finding, path first
-if (isDecline(result.value)) return speak(result.value.reason);
-
-const synthesis = result.value; // {tree, dataModel, sorts, note}
-```
-
-The validator covers what the contract can state on its own. Whether the tree is valid against the
-shell catalog, and whether each ref resolves in the partitions, are the orchestrator's checks after
-it.
+The validator follows upstream's `A2uiValidator`: the messages against the spec's
+`server_to_client.json` and `common_types.json` with the given catalog — known components and
+props, functions through the catalog's declared ones — and the component graph: duplicate ids, the
+root, dangling references, self-references, cycles, depth, orphans, path syntax. A finding is
+`{category, message, path?, componentId?}`.
 
 ### Send the merged view, receive it
 
@@ -106,10 +91,7 @@ it.
 // orchestrator — paint the tree as ordinary A2UI; the wiring rides the metadata
 import {SYNTHESIS_KEY} from '@a2uiverse/sdk';
 
-event.metadata = {
-  ...stampOf(shell),
-  [SYNTHESIS_KEY]: {dataModel: synthesis.dataModel, sorts: synthesis.sorts},
-};
+event.metadata = {...stampOf(shell), [SYNTHESIS_KEY]: {dataModel, sorts}};
 
 // client — read it back and check it before evaluating
 import {readSynthesis, validateSynthesisPayload, walkModel} from '@a2uiverse/sdk';
@@ -128,17 +110,10 @@ import {resolvePointer, refsOf} from '@a2uiverse/sdk';
 const hit = resolvePointer(partition, '/threads[id="1a06f2"]/time');
 // {found: true, value} | {found: false, reason: 'missing' | 'ambiguous' | 'null' | 'positional'}
 
-// after a vendor repaints: the refs that stopped resolving are the change account
+// after a vendor repaints: the refs that stopped resolving
 const absent = refsOf(payload.dataModel).filter(
   ref => !resolvePointer(models(ref.surface), ref.pointer).found,
 );
-const again = buildSynthesisTurn({
-  utterance,
-  request,
-  sources,
-  previous: synthesis,
-  changes: {absent},
-});
 ```
 
 Resolution is validity: a ref is good while its keys resolve, and an in-place reorder breaks
@@ -150,34 +125,27 @@ One entry point, `@a2uiverse/sdk`. Grouped by module.
 
 **Composition stamp** — `js/src/composition.ts`
 
-| Export                                  | What it is                             |
-| --------------------------------------- | -------------------------------------- |
-| `CompositionStamp`                      | `{source, slot?, role?, generations?}` |
-| `STAMP_KEY`                             | `"a2uiverse"`, the metadata key        |
-| `COMPOSITION_EXTENSION_URI`             | the A2A extension URI                  |
-| `namespaceSurfaceId` · `parseSurfaceId` | `<appId>:<surfaceId>` and back         |
-| `readStamp(metadata)`                   | the stamp, or `undefined`              |
+| Export                                  | What it is                      |
+| --------------------------------------- | ------------------------------- |
+| `CompositionStamp`                      | `{source, role?, generations?}` |
+| `STAMP_KEY`                             | `"a2uiverse"`, the metadata key |
+| `COMPOSITION_EXTENSION_URI`             | the A2A extension URI           |
+| `namespaceSurfaceId` · `parseSurfaceId` | `<appId>:<surfaceId>` and back  |
+| `readStamp(metadata)`                   | the stamp, or `undefined`       |
 
-**Synthesize data model** — `js/src/synthesis.ts`
+**Synthesis payload** — `js/src/synthesis.ts` · `js/src/validate.ts`
 
-| Export                                                                                 | What it is                                     |
-| -------------------------------------------------------------------------------------- | ---------------------------------------------- |
-| `Synthesis` · `Decline` · `SynthesizeDataModel`                                        | what the model emits                           |
-| `SynthesisPayload`                                                                     | `{dataModel, sorts}`, what the client receives |
-| `Ref` · `Formula` · `ModelNode` · `DerivedModel` · `SortDeclaration` · `SynthesisTree` | the pieces                                     |
-| `SYNTHESIZE_DATA_MODEL_SCHEMA` · `SYNTHESIS_SCHEMA`                                    | the two JSON Schemas, from the contract        |
-| `SYNTHESIS_KEY`                                                                        | `"a2uiverseSynthesis"`, the metadata key       |
-| `isDecline(document)` · `readSynthesis(metadata)`                                      | branch, and read the payload back              |
-
-**Validator** — `js/src/validate.ts`
-
-| Export                               | What it is                                             |
-| ------------------------------------ | ------------------------------------------------------ |
-| `validateSynthesizeDataModel(input)` | the model's document → `{ok, value}` or `{ok, errors}` |
-| `validateSynthesisPayload(input)`    | the client payload, same shape of answer               |
+| Export                                                               | What it is                                            |
+| -------------------------------------------------------------------- | ----------------------------------------------------- |
+| `SynthesisPayload`                                                   | `{dataModel, sorts}`, what the client receives        |
+| `Ref` · `Formula` · `ModelNode` · `DerivedModel` · `SortDeclaration` | the pieces                                            |
+| `SYNTHESIS_SCHEMA` · `SYNTHESIS_DEFS`                                | the payload's JSON Schema, and its shared definitions |
+| `SYNTHESIS_KEY` · `readSynthesis(metadata)`                          | `"a2uiverseSynthesis"`, and read the payload back     |
+| `validateSynthesisPayload(input)`                                    | `{ok, value}` or `{ok, errors}`, one line per finding |
+| `schemaErrors(validate, input)`                                      | an ajv validator's errors as those lines              |
 
 Schema plus structure: every leaf a formula, every pointer parses, one sort per array, every sort
-key a formula with refs in every element, one `root`, unique ids.
+key a formula with refs in every element, the initial key an option.
 
 **Resolution kit** — `js/src/pointer.ts` · `js/src/walk.ts`
 
@@ -188,19 +156,28 @@ key a formula with refs in every element, one `root`, unique ids.
 | `isFormula` · `walkModel(model)` | recognise a leaf; enumerate every leaf with its path |
 | `refsOf(model)`                  | every ref, in leaf order                             |
 
-**Prompt builder** — `js/src/prompt/`
+**A2UI tools** — `js/src/a2ui/`
 
-| Export                                                         | What it is                                                                  |
-| -------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| `buildSynthesisSystemPrompt(inputs)`                           | role + composition doc + catalog guidance + schemas + examples              |
-| `buildSynthesisTurn(inputs)`                                   | the user turn; `previous` + `errors` is a retry, + `changes` a re-synthesis |
-| `extractSynthesisBlock(text)`                                  | the JSON inside `<synthesize-data-model>`                                   |
-| `SYNTHESIS_TAG` · `DEFAULT_SYNTHESIS_ROLE` · `COMPOSITION_DOC` | the constants                                                               |
-| `SynthesisSource` · `ChangeAccount`                            | input types                                                                 |
-| `CAMERA_COMPARISON` · `TODAY_TIMELINE` · `SYNTHESIS_EXAMPLES`  | the worked examples                                                         |
+| Export                                                            | What it is                                                           |
+| ----------------------------------------------------------------- | -------------------------------------------------------------------- |
+| `createA2uiValidator({catalog})`                                  | an A2UI v0.9.1 validator over a catalog; `validate(payload)`         |
+| `formatA2uiFinding(finding)`                                      | a finding as one line, path or component first                       |
+| `pruneCatalog(catalog, keepSet)`                                  | a `catalog.json` narrowed to a `KeepSet` of components and functions |
+| `A2uiCatalogSchema` · `A2uiFinding` · `A2uiComponent` · `KeepSet` | the shapes                                                           |
+| `A2UI_SPEC_COMMIT`                                                | the upstream commit the pinned spec was copied from                  |
 
-`docs/composition.md` is embedded into the package as `COMPOSITION_DOC` by `js/scripts/embed-docs.mjs`
-before every build, typecheck and test; the generated file is never edited.
+## The pinned spec
+
+`a2ui-spec/` holds the A2UI v0.9.1 `server_to_client.json` and `common_types.json`, the v0.9.1
+basic catalog, and upstream's validator conformance cases (`conformance/core/validator.yaml` with
+the schemas it names), copied from `upstream/main` of the sibling A2UI fork. `a2ui-spec/UPSTREAM.json`
+records the commit. The copy is never hand-edited; to refresh it, sync the spec and run:
+
+```
+pnpm --filter @a2uiverse/sdk sync-a2ui-spec
+```
+
+The v0.9 conformance cases run in the sdk's tests; the v0.8 ones are skipped.
 
 ## Installing
 
@@ -222,7 +199,6 @@ ESM, runs in Node and the browser, and depends on `ajv` alone.
 
 ## Further reading
 
-- `docs/composition.md` — the composition rules, as the Synthesizer reads them.
-- `contracts/composition.v0.4.json` — the normative contract; SPEC §14 is its register entry.
+- `contracts/composition.v0.5.json` — the normative contract; SPEC §14 is its register entry.
 - `_dev/docs/design/synthesis.md` — how the pieces are used across a turn, both processes.
 - `_dev/docs/design/orchestrator.md` · `_dev/docs/design/client.md` — each consumer's side.

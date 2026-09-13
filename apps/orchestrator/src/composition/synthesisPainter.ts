@@ -1,15 +1,9 @@
 import {randomUUID} from 'node:crypto';
 import type {Part, TaskStatusUpdateEvent} from '@a2a-js/sdk';
-import {
-  namespaceSurfaceId,
-  STAMP_KEY,
-  SYNTHESIS_KEY,
-  type SynthesisPayload,
-  type SynthesisTree,
-} from '@a2uiverse/sdk';
+import {namespaceSurfaceId, STAMP_KEY, SYNTHESIS_KEY, type SynthesisPayload} from '@a2uiverse/sdk';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 import {SHELL_SOURCE_ID} from '../registry/types.js';
-import {slotNameFor} from './constants.js';
+import type {SynthesisTree} from '../synthesizer/document.js';
 import {a2uiPart} from './shellPainter.js';
 
 /** The shell's second surface: the merged view, un-namespaced half. */
@@ -59,7 +53,7 @@ export function synthesisProseEnvelope(
       },
     },
     metadata: {
-      [STAMP_KEY]: {source: SHELL_SOURCE_ID, slot: slotNameFor(SHELL_SOURCE_ID), role: 'fragment'},
+      [STAMP_KEY]: {source: SHELL_SOURCE_ID, role: 'fragment'},
     },
   };
 }
@@ -87,7 +81,7 @@ export function synthesisEnvelope(
       },
     },
     metadata: {
-      [STAMP_KEY]: {source: SHELL_SOURCE_ID, slot: slotNameFor(SHELL_SOURCE_ID), role: 'fragment'},
+      [STAMP_KEY]: {source: SHELL_SOURCE_ID, role: 'fragment'},
       [SYNTHESIS_KEY]: payload,
     },
   };

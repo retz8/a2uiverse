@@ -25,6 +25,7 @@ import {operatorFunctions, OPERATORS, type Operator} from './functions/operators
 import {SHELL_ACTIONS, shellActionFunctions} from './functions/shell-actions.js';
 
 export {CATALOG_ID, OPERATORS, SHELL_ACTIONS, type Operator};
+export {LAYOUT_SURFACE_KEEP_SET, SYNTHESIS_SURFACE_KEEP_SET} from './keep-sets.js';
 export {
   AttributionApi,
   DataListApi,

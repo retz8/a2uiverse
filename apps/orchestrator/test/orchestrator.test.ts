@@ -14,7 +14,8 @@ import {FakeEmbedder} from './fakeEmbedder.js';
 import {FakePlanner, ThrowingPlanner} from './fakePlanner.js';
 import {bestPriceView, decline, FakeSynthesizer} from './fakeSynthesizer.js';
 import type {SynthesisModel} from '../src/synthesizer/synthesizer.js';
-import {SYNTHESIS_KEY, type Synthesis, type SynthesisPayload} from '@a2uiverse/sdk';
+import {SYNTHESIS_KEY, type SynthesisPayload} from '@a2uiverse/sdk';
+import type {Synthesis} from '../src/synthesizer/document.js';
 import {startFakeVendor, type FakeVendor, type Script} from './fakeVendor.js';
 
 const APPS = ['github', 'gmail', 'calendar'] as const;
@@ -146,7 +147,7 @@ function slotStates(paint: Array<Record<string, unknown>>): Record<string, strin
     (update.updateComponents as {components?: Array<Record<string, unknown>>})?.components ?? [];
   const states: Record<string, string> = {};
   for (const c of components) {
-    if (c.component === 'Slot') states[c.name as string] = c.state as string;
+    if (c.component === 'Slot') states[c.source as string] = c.state as string;
   }
   return states;
 }
@@ -204,7 +205,7 @@ describe('orchestrator', () => {
     const dispatched = (line.dispatch as Array<{appId: string}>).map(d => d.appId).sort();
     expect(dispatched).toEqual(['github', 'gmail']);
     const paints = shellPaints(events);
-    expect(slotStates(paints.at(-1)!)['slot-shell']).not.toBe('failed');
+    expect(slotStates(paints.at(-1)!)['shell']).not.toBe('failed');
   });
 
   test('logs one line per inbound request and one when the turn closes, with kind, task, size and outcome (task 5.7)', async () => {
@@ -254,18 +255,18 @@ describe('orchestrator', () => {
     const [firstPaint] = shellPaints(events);
     expect(firstPaint[0].createSurface).toMatchObject({surfaceId: 'shell:main'});
     expect(slotStates(firstPaint)).toEqual({
-      'slot-github': 'pending',
-      'slot-gmail': 'pending',
-      'slot-calendar': 'pending',
+      github: 'pending',
+      gmail: 'pending',
+      calendar: 'pending',
     });
 
-    // Every fragment event carries source + slot + role and namespaced surfaceIds.
+    // Every fragment event carries source + role, no slot, and namespaced surfaceIds.
     const fragmentEvents = events.filter(e => stampOf(e)?.role === 'fragment');
     expect(fragmentEvents.length).toBeGreaterThanOrEqual(3);
     const createdSurfaces = new Set<string>();
     for (const event of fragmentEvents) {
       const stamp = stampOf(event)!;
-      expect(stamp.slot).toBe(`slot-${stamp.source as string}`);
+      expect(stamp).not.toHaveProperty('slot');
       for (const data of a2uiDatas(event)) {
         const create = data.createSurface as {surfaceId: string} | undefined;
         if (create) createdSurfaces.add(create.surfaceId);
@@ -313,9 +314,9 @@ describe('orchestrator', () => {
 
     const paints = shellPaints(events);
     const last = slotStates(paints.at(-1)!);
-    expect(last['slot-gmail']).toBe('failed');
-    expect(last['slot-github']).toBe('pending');
-    expect(last['slot-calendar']).toBe('pending');
+    expect(last['gmail']).toBe('failed');
+    expect(last['github']).toBe('pending');
+    expect(last['calendar']).toBe('pending');
     const final = events.at(-1) as TaskStatusUpdateEvent;
     expect(final.final).toBe(true);
     expect(final.status.state).toBe('completed');
@@ -335,8 +336,8 @@ describe('orchestrator', () => {
     const events = await collect(client, utterance('everything'));
 
     const last = slotStates(shellPaints(events).at(-1)!);
-    expect(last['slot-calendar']).toBe('collapsed');
-    expect(last['slot-github']).toBe('pending');
+    expect(last['calendar']).toBe('collapsed');
+    expect(last['github']).toBe('pending');
     expect((events.at(-1) as TaskStatusUpdateEvent).status.state).toBe('completed');
   });
 
@@ -421,7 +422,7 @@ describe('orchestrator', () => {
     const events = await collect(client, error);
 
     const last = slotStates(shellPaints(events).at(-1)!);
-    expect(last['slot-gmail']).toBe('failed');
+    expect(last['gmail']).toBe('failed');
     expect((events.at(-1) as TaskStatusUpdateEvent).status.state).toBe('completed');
     // Found by kind, not by index: the two turns' lines are written asynchronously and either
     // can land first, so position in the file says nothing about which turn wrote it.
@@ -586,7 +587,7 @@ describe('synthesis (tasks 4.4, 5.4)', () => {
     // verbatim, the derived model and sorts beside the stamp.
     const [paint, ...rest] = synthesisEvents(events);
     expect(rest).toHaveLength(0);
-    expect(stampOf(paint!)).toEqual({source: 'shell', slot: 'slot-shell', role: 'fragment'});
+    expect(stampOf(paint!)).toEqual({source: 'shell', role: 'fragment'});
     const payload = payloadOf(paint!);
     expect(payload.dataModel.rows).toHaveLength(2);
     expect(payload.sorts[0]).toMatchObject({path: '/rows', key: '/best'});
@@ -598,7 +599,7 @@ describe('synthesis (tasks 4.4, 5.4)', () => {
 
     // It paints after the last source and before the final; the slot is left to the client.
     expect(events.indexOf(paint!)).toBeLessThan(events.length - 1);
-    expect(slotStates(shellPaints(events).at(-1)!)['slot-shell']).toBe('pending');
+    expect(slotStates(shellPaints(events).at(-1)!)['shell']).toBe('pending');
 
     // The journal: the accepted document, its note, the one attempt, the dead air.
     const [line] = await journalLines(1);
@@ -623,7 +624,7 @@ describe('synthesis (tasks 4.4, 5.4)', () => {
     const {client} = await boot({planner: planner(), synthesizer, scripts: scripts()});
     const events = await collect(client, utterance('compare'));
     expect(synthesisEvents(events)).toHaveLength(0);
-    expect(slotStates(shellPaints(events).at(-1)!)['slot-shell']).toBe('collapsed');
+    expect(slotStates(shellPaints(events).at(-1)!)['shell']).toBe('collapsed');
     // The reason reaches the canvas as the shell's words in the synthesis slot, before the collapse.
     const spoken = events.findIndex(
       e =>
@@ -633,11 +634,10 @@ describe('synthesis (tasks 4.4, 5.4)', () => {
     expect(spoken).toBeGreaterThanOrEqual(0);
     expect(stampOf(events[spoken])).toEqual({
       source: 'shell',
-      slot: 'slot-shell',
       role: 'fragment',
     });
     const collapsedAt = events.findIndex(
-      e => stampOf(e)?.role === 'shell' && slotStates(a2uiDatas(e))['slot-shell'] === 'collapsed',
+      e => stampOf(e)?.role === 'shell' && slotStates(a2uiDatas(e))['shell'] === 'collapsed',
     );
     expect(collapsedAt).toBeGreaterThan(spoken);
     const [line] = await journalLines(1);
@@ -675,7 +675,7 @@ describe('synthesis (tasks 4.4, 5.4)', () => {
     const events = await collect(client, utterance('compare'));
     expect(synthesizer.calls).toHaveLength(2);
     expect(synthesisEvents(events)).toHaveLength(0);
-    expect(slotStates(shellPaints(events).at(-1)!)['slot-shell']).toBe('collapsed');
+    expect(slotStates(shellPaints(events).at(-1)!)['shell']).toBe('collapsed');
     const [line] = await journalLines(1);
     expect(line.synthesis).toMatchObject({outcome: 'malformed'});
     expect((line.synthesis as {reason: string}).reason).toContain('median');
@@ -692,7 +692,7 @@ describe('synthesis (tasks 4.4, 5.4)', () => {
     });
     const events = await collect(client, utterance('compare'));
     expect(synthesizer.calls).toHaveLength(0);
-    expect(slotStates(shellPaints(events).at(-1)!)['slot-shell']).toBe('collapsed');
+    expect(slotStates(shellPaints(events).at(-1)!)['shell']).toBe('collapsed');
     const [line] = await journalLines(1);
     expect(line.synthesis).toMatchObject({outcome: 'skipped', attempts: []});
   });

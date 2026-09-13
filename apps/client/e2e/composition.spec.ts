@@ -20,17 +20,11 @@ test('a composed turn renders one screen: layout, a filled slot, a failed slot',
   await settleComposed(page);
 
   // The shell's own surface holds both slots, in the order the plan put them.
-  await expect(page.locator('[data-slot="slot-github"]')).toHaveAttribute(
-    'data-slot-state',
-    'filled',
-  );
-  await expect(page.locator('[data-slot="slot-gmail"]')).toHaveAttribute(
-    'data-slot-state',
-    'failed',
-  );
+  await expect(page.locator('[data-slot="github"]')).toHaveAttribute('data-slot-state', 'filled');
+  await expect(page.locator('[data-slot="gmail"]')).toHaveAttribute('data-slot-state', 'failed');
 
   // The filled one holds a fragment, inside its boundary, painted by a second design system.
-  const boundary = page.locator('[data-slot="slot-github"] [data-a2ui-fragment="github"]');
+  const boundary = page.locator('[data-slot="github"] [data-a2ui-fragment="github"]');
   await expect(boundary).toHaveCount(1);
   await expect(boundary).toContainText('Pull requests');
 
@@ -141,7 +135,7 @@ test('a question fragment is promoted in place, with the rest of the canvas dimm
   expect(shellModal).toBe(0);
 
   // The question renders where the shell put it: inside its own slot, not floating over the page.
-  const inSlot = page.locator('[data-slot="slot-gmail"] [data-a2ui-fragment="gmail"]');
+  const inSlot = page.locator('[data-slot="gmail"] [data-a2ui-fragment="gmail"]');
   await expect(inSlot).toContainText('Which account?');
 });
 
@@ -162,10 +156,7 @@ test('each source gets its own line, in slot order and named', async ({page}) =>
 
   // The source that spoke without ever painting still has a voice, beside its failed slot.
   await expect(lines.nth(1)).toContainText('I could not reach the mailbox.');
-  await expect(page.locator('[data-slot="slot-gmail"]')).toHaveAttribute(
-    'data-slot-state',
-    'failed',
-  );
+  await expect(page.locator('[data-slot="gmail"]')).toHaveAttribute('data-slot-state', 'failed');
 });
 
 test('prose stays in the shell region, outside every fragment', async ({page}) => {

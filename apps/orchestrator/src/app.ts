@@ -18,8 +18,7 @@ import {applyUrlOverrides, defaultEntries} from './registry/entries.js';
 import {readRoster} from './registry/manifests.js';
 import {Registry, type ResolveCard} from './registry/registry.js';
 import {Router} from './router/router.js';
-import {OPERATORS, SCHEMA_CATALOG} from '@a2uiverse/shell-catalog/schema';
-import {readShellCatalogFiles, synthesizerSystemPrompt} from './synthesizer/prompt.js';
+import {readSynthesizerFiles, synthesizerSystemPrompt} from './synthesizer/prompt.js';
 import {AiSdkSynthesisModel, Synthesizer, type SynthesisModel} from './synthesizer/synthesizer.js';
 
 /** localhost, 127.0.0.1 on any port, and VS Code dev tunnels (tunnel-environment.md). */
@@ -126,12 +125,11 @@ function plannerFrom(config: Config): Planner {
  * the real model and an injected fake; only the text seam is overridable.
  */
 function synthesizerFrom(config: Config, model: SynthesisModel | undefined): Synthesizer {
+  const files = readSynthesizerFiles();
   return new Synthesizer({
     model: model ?? synthesisModelFrom(config),
-    systemPrompt: synthesizerSystemPrompt(readShellCatalogFiles()),
-    catalog: SCHEMA_CATALOG,
-    // The catalog's own list: `catalog.json` cannot mark which functions are operators (task 4.3).
-    operators: OPERATORS,
+    systemPrompt: synthesizerSystemPrompt(files),
+    catalog: files.catalog,
   });
 }
 

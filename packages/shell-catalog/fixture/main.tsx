@@ -10,12 +10,7 @@ import {createRoot} from 'react-dom/client';
 import {Theme} from '@radix-ui/themes';
 import {A2uiSurface, type ReactComponentImplementation} from '@a2ui/react/v0_9';
 import {MessageProcessor, type SurfaceModel} from '@a2ui/web_core/v0_9';
-import {
-  resolvePointer,
-  TODAY_TIMELINE,
-  type SortDeclaration,
-  type SynthesisExample,
-} from '@a2uiverse/sdk';
+import {resolvePointer, type SortDeclaration} from '@a2uiverse/sdk';
 import {
   AttributionView,
   CATALOG_ID,
@@ -26,6 +21,7 @@ import {
 } from '../src/index.js';
 import schema from '../catalogs/v0.9.1/catalog.json';
 import {componentNames, sweep, type CatalogSchema, type TreeComponent} from './matrix.js';
+import {TODAY_TIMELINE, type TimelineExample} from './timeline-example.js';
 
 const SCHEMA = schema as unknown as CatalogSchema;
 
@@ -121,7 +117,7 @@ interface Cell {
  * `value` formula: resolve the ref into the recorded source, wrap it as a cell with its
  * contributor state. Enough for the example, which uses `value` alone.
  */
-function evaluateExample(example: SynthesisExample): Record<string, unknown> {
+function evaluateExample(example: TimelineExample): Record<string, unknown> {
   const sources = new Map(example.sources.map(s => [s.surface, s.data]));
   const evaluate = (node: unknown): unknown => {
     if (Array.isArray(node)) return node.map(evaluate);
@@ -158,7 +154,7 @@ function Timeline() {
     const sort = example.output.sorts[0];
     const timeline = sorted(model.timeline as Record<string, Cell>[], sort);
     return {
-      components: example.output.tree.components as TreeComponent[],
+      components: example.output.tree.components,
       data: {...model, timeline, sorts: [sort]},
     };
   }, [example]);
@@ -207,33 +203,31 @@ function SlotMatrix() {
       </h3>
       <div>
         <AttributionView displayName="Gmail" account="work" />
-        <SlotView name="slot-pending" label="Gmail" />
+        <SlotView source="gmail" label="Gmail" />
       </div>
       <div>
         <AttributionView displayName="Calendar" account={null} />
         <SlotContentContext.Provider value={() => <Fragment label="filled fragment" />}>
-          <SlotView name="slot-filled" />
+          <SlotView source="calendar" />
         </SlotContentContext.Provider>
       </div>
       <div>
         <AttributionView displayName="GitHub" account={null} />
-        <SlotView name="slot-failed" state="failed" label="GitHub" />
+        <SlotView source="github" state="failed" label="GitHub" />
       </div>
       <div>
-        <SlotView name="slot-shell" content="shell" label="Synthesis" />
+        <SlotView source="shell" content="shell" label="Synthesis" />
       </div>
       <div>
         <SlotView
-          name="slot-gap"
-          state="gap"
-          label="flight booking"
+          gap="flight booking"
           onSearchStore={query => console.log('[fixture capability tile]', query)}
         />
       </div>
       <div>
         collapsed (nothing should render between the rules):
         <hr />
-        <SlotView name="slot-collapsed" state="collapsed" />
+        <SlotView source="gmail" state="collapsed" />
         <hr />
       </div>
     </section>

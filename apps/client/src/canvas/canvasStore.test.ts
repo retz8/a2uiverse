@@ -51,14 +51,14 @@ describe('createCanvasStore', () => {
 
   it('places fragments in slots, one surface per slot', () => {
     const store = createCanvasStore();
-    store.placeFragment('slot-github', {surfaceId: 'github:prs', source: 'github'});
-    store.placeFragment('slot-gmail', {surfaceId: 'gmail:inbox', source: 'gmail'});
-    expect([...store.getState().placement.keys()]).toEqual(['slot-github', 'slot-gmail']);
-    expect(store.getState().placement.get('slot-gmail')?.source).toBe('gmail');
+    store.placeFragment('github', {surfaceId: 'github:prs', source: 'github'});
+    store.placeFragment('gmail', {surfaceId: 'gmail:inbox', source: 'gmail'});
+    expect([...store.getState().placement.keys()]).toEqual(['github', 'gmail']);
+    expect(store.getState().placement.get('gmail')?.source).toBe('gmail');
 
     // A later claim displaces the earlier tenant rather than joining it.
-    store.placeFragment('slot-github', {surfaceId: 'github:prs-2', source: 'github'});
-    expect(store.getState().placement.get('slot-github')?.surfaceId).toBe('github:prs-2');
+    store.placeFragment('github', {surfaceId: 'github:prs-2', source: 'github'});
+    expect(store.getState().placement.get('github')?.surfaceId).toBe('github:prs-2');
     expect(store.getState().placement.size).toBe(2);
   });
 
@@ -68,23 +68,23 @@ describe('createCanvasStore', () => {
     store.clearPlacement();
     expect(store.getState()).toBe(before);
 
-    store.placeFragment('slot-github', {surfaceId: 'github:prs', source: 'github'});
+    store.placeFragment('github', {surfaceId: 'github:prs', source: 'github'});
     store.clearPlacement();
     expect(store.getState().placement.size).toBe(0);
   });
 
   it('promotes and demotes slots, and no-ops on a repeat', () => {
     const store = createCanvasStore();
-    store.promoteSlot('slot-github');
+    store.promoteSlot('github');
     const promoted = store.getState();
-    store.promoteSlot('slot-github');
+    store.promoteSlot('github');
     expect(store.getState()).toBe(promoted);
 
-    store.promoteSlot('slot-gmail');
-    expect([...store.getState().promoted].sort()).toEqual(['slot-github', 'slot-gmail']);
+    store.promoteSlot('gmail');
+    expect([...store.getState().promoted].sort()).toEqual(['github', 'gmail']);
 
-    store.demoteSlot('slot-github');
-    expect([...store.getState().promoted]).toEqual(['slot-gmail']);
+    store.demoteSlot('github');
+    expect([...store.getState().promoted]).toEqual(['gmail']);
     store.clearPromotions();
     expect(store.getState().promoted.size).toBe(0);
   });
@@ -313,8 +313,8 @@ describe('createCanvasStore', () => {
   it('orders the stack by slot, with the shell last and unknown sources by their id', () => {
     const store = createCanvasStore();
     store.setRoster([
-      {appId: 'github', displayName: 'GitHub', slot: 'slot-github'},
-      {appId: 'gmail', displayName: 'Gmail', slot: 'slot-gmail'},
+      {appId: 'github', displayName: 'GitHub'},
+      {appId: 'gmail', displayName: 'Gmail'},
     ]);
     // Deliberately out of slot order: gmail answered first.
     store.appendProse(null, 'painting…');

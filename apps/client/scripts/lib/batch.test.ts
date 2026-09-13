@@ -23,7 +23,7 @@ function event(metadata: Record<string, unknown>, parts: unknown[]): A2AStreamEv
 }
 
 test('a stamped paint keeps its stamp and its synthesis payload', () => {
-  const stamp = {source: 'shell', slot: 'slot-shell', role: 'fragment'};
+  const stamp = {source: 'shell', role: 'fragment'};
   const batch = batchOf(
     event({[STAMP_KEY]: stamp, [SYNTHESIS_KEY]: PAYLOAD}, [
       {kind: 'data', data: paint},
@@ -41,7 +41,7 @@ test('a stamped paint keeps its stamp and its synthesis payload', () => {
 });
 
 test('a vendor paint carries no synthesis key; an event with nothing to replay is dropped', () => {
-  const stamp = {source: 'gmail', slot: 'slot-gmail', role: 'fragment'};
+  const stamp = {source: 'gmail', role: 'fragment'};
   const batch = batchOf(event({[STAMP_KEY]: stamp}, [{kind: 'data', data: paint}]), 400);
   expect(batch).toEqual({offsetMs: 400, messages: [paint], texts: [], stamp});
   expect('synthesis' in batch!).toBe(false);

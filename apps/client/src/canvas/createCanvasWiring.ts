@@ -207,7 +207,7 @@ export function createCanvasWiring({
   const reportFragmentFailure = async (failure: FragmentFailure) => {
     // `shell:main` is reused every turn, so a late report from an abandoned composition would
     // flip a slot in the one that replaced it.
-    if (store.getState().placement.get(failure.slot)?.surfaceId !== failure.surfaceId) return;
+    if (store.getState().placement.get(failure.source)?.surfaceId !== failure.surfaceId) return;
     try {
       const sender = await getSender();
       await sendAndApply(
@@ -239,8 +239,8 @@ export function createCanvasWiring({
 
   /** Answering a promoted fragment is what ends its demand for attention. */
   const demoteFor = (surfaceId: string) => {
-    for (const [slot, placed] of store.getState().placement) {
-      if (placed.surfaceId === surfaceId) store.demoteSlot(slot);
+    for (const [source, placed] of store.getState().placement) {
+      if (placed.surfaceId === surfaceId) store.demoteSlot(source);
     }
   };
 

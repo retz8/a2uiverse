@@ -1,4 +1,5 @@
-import type {Synthesis, SynthesisPayload} from '@a2uiverse/sdk';
+import type {SynthesisPayload} from '@a2uiverse/sdk';
+import type {Synthesis} from '../synthesizer/document.js';
 import type {DispatchOutcome} from '../agentsPool/types.js';
 import type {SurfaceTouches} from '../journal/surfaces.js';
 import type {SlotArchetype} from '../planner/archetypes.js';

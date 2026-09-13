@@ -41,7 +41,7 @@
                   {
                     "id": "slot-shell",
                     "component": "Slot",
-                    "name": "slot-shell",
+                    "source": "shell",
                     "state": "pending",
                     "label": "Synthesis",
                     "content": "shell"
@@ -63,7 +63,7 @@
                   {
                     "id": "slot-github",
                     "component": "Slot",
-                    "name": "slot-github",
+                    "source": "github",
                     "state": "pending",
                     "label": "GitHub"
                   },
@@ -84,7 +84,7 @@
                   {
                     "id": "slot-gmail",
                     "component": "Slot",
-                    "name": "slot-gmail",
+                    "source": "gmail",
                     "state": "pending",
                     "label": "Gmail"
                   },
@@ -105,7 +105,7 @@
                   {
                     "id": "slot-calendar",
                     "component": "Slot",
-                    "name": "slot-calendar",
+                    "source": "calendar",
                     "state": "pending",
                     "label": "Google Calendar"
                   },
@@ -137,7 +137,6 @@
           ],
           "stamp": {
             "source": "calendar",
-            "slot": "slot-calendar",
             "role": "fragment"
           }
         },
@@ -156,7 +155,6 @@
           "texts": [],
           "stamp": {
             "source": "calendar",
-            "slot": "slot-calendar",
             "role": "fragment"
           }
         },
@@ -182,7 +180,6 @@
           "texts": [],
           "stamp": {
             "source": "calendar",
-            "slot": "slot-calendar",
             "role": "fragment",
             "generations": {
               "calendar:today-attention": 1
@@ -213,7 +210,6 @@
           "texts": [],
           "stamp": {
             "source": "calendar",
-            "slot": "slot-calendar",
             "role": "fragment",
             "generations": {
               "calendar:today-attention": 2
@@ -245,7 +241,6 @@
           "texts": [],
           "stamp": {
             "source": "calendar",
-            "slot": "slot-calendar",
             "role": "fragment"
           }
         },
@@ -293,7 +288,6 @@
           "texts": [],
           "stamp": {
             "source": "calendar",
-            "slot": "slot-calendar",
             "role": "fragment"
           }
         },
@@ -342,7 +336,6 @@
           "texts": [],
           "stamp": {
             "source": "calendar",
-            "slot": "slot-calendar",
             "role": "fragment"
           }
         },
@@ -390,7 +383,6 @@
           "texts": [],
           "stamp": {
             "source": "calendar",
-            "slot": "slot-calendar",
             "role": "fragment"
           }
         },
@@ -440,7 +432,6 @@
           "texts": [],
           "stamp": {
             "source": "calendar",
-            "slot": "slot-calendar",
             "role": "fragment"
           }
         },
@@ -492,7 +483,6 @@
           "texts": [],
           "stamp": {
             "source": "calendar",
-            "slot": "slot-calendar",
             "role": "fragment"
           }
         },
@@ -550,7 +540,6 @@
           "texts": [],
           "stamp": {
             "source": "calendar",
-            "slot": "slot-calendar",
             "role": "fragment"
           }
         },
@@ -608,7 +597,6 @@
           "texts": [],
           "stamp": {
             "source": "calendar",
-            "slot": "slot-calendar",
             "role": "fragment"
           }
         },
@@ -682,7 +670,6 @@
           "texts": [],
           "stamp": {
             "source": "calendar",
-            "slot": "slot-calendar",
             "role": "fragment"
           }
         },
@@ -768,7 +755,6 @@
           "texts": [],
           "stamp": {
             "source": "calendar",
-            "slot": "slot-calendar",
             "role": "fragment"
           }
         },
@@ -868,7 +854,6 @@
           "texts": [],
           "stamp": {
             "source": "calendar",
-            "slot": "slot-calendar",
             "role": "fragment"
           }
         },
@@ -971,7 +956,6 @@
           "texts": [],
           "stamp": {
             "source": "calendar",
-            "slot": "slot-calendar",
             "role": "fragment"
           }
         },
@@ -1076,7 +1060,6 @@
           "texts": [],
           "stamp": {
             "source": "calendar",
-            "slot": "slot-calendar",
             "role": "fragment"
           }
         },
@@ -1184,7 +1167,6 @@
           "texts": [],
           "stamp": {
             "source": "calendar",
-            "slot": "slot-calendar",
             "role": "fragment"
           }
         },
@@ -1196,7 +1178,6 @@
           ],
           "stamp": {
             "source": "gmail",
-            "slot": "slot-gmail",
             "role": "fragment"
           }
         },
@@ -1215,7 +1196,6 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "slot": "slot-gmail",
             "role": "fragment"
           }
         },
@@ -1242,7 +1222,6 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "slot": "slot-gmail",
             "role": "fragment",
             "generations": {
               "gmail:needs-attention": 1
@@ -1273,7 +1252,6 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "slot": "slot-gmail",
             "role": "fragment",
             "generations": {
               "gmail:needs-attention": 2
@@ -1305,7 +1283,6 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "slot": "slot-gmail",
             "role": "fragment",
             "generations": {
               "gmail:needs-attention": 3
@@ -1340,7 +1317,6 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "slot": "slot-gmail",
             "role": "fragment",
             "generations": {
               "gmail:needs-attention": 4
@@ -1377,7 +1353,6 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "slot": "slot-gmail",
             "role": "fragment",
             "generations": {
               "gmail:needs-attention": 5
@@ -1415,7 +1390,6 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "slot": "slot-gmail",
             "role": "fragment",
             "generations": {
               "gmail:needs-attention": 6
@@ -1430,7 +1404,6 @@
           ],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -1449,7 +1422,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -1485,7 +1457,6 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "slot": "slot-gmail",
             "role": "fragment",
             "generations": {
               "gmail:needs-attention": 7
@@ -1525,7 +1496,6 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "slot": "slot-gmail",
             "role": "fragment",
             "generations": {
               "gmail:needs-attention": 8
@@ -1568,7 +1538,6 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "slot": "slot-gmail",
             "role": "fragment",
             "generations": {
               "gmail:needs-attention": 9
@@ -1611,7 +1580,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -1653,7 +1621,6 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "slot": "slot-gmail",
             "role": "fragment",
             "generations": {
               "gmail:needs-attention": 10
@@ -1699,7 +1666,6 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "slot": "slot-gmail",
             "role": "fragment",
             "generations": {
               "gmail:needs-attention": 11
@@ -1746,7 +1712,6 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "slot": "slot-gmail",
             "role": "fragment",
             "generations": {
               "gmail:needs-attention": 12
@@ -1803,7 +1768,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -1849,7 +1813,6 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "slot": "slot-gmail",
             "role": "fragment",
             "generations": {
               "gmail:needs-attention": 13
@@ -1926,7 +1889,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -1974,7 +1936,6 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "slot": "slot-gmail",
             "role": "fragment",
             "generations": {
               "gmail:needs-attention": 14
@@ -2050,7 +2011,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -2099,7 +2059,6 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "slot": "slot-gmail",
             "role": "fragment",
             "generations": {
               "gmail:needs-attention": 15
@@ -2183,7 +2142,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -2233,7 +2191,6 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "slot": "slot-gmail",
             "role": "fragment",
             "generations": {
               "gmail:needs-attention": 16
@@ -2287,7 +2244,6 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "slot": "slot-gmail",
             "role": "fragment",
             "generations": {
               "gmail:needs-attention": 17
@@ -2342,7 +2298,6 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "slot": "slot-gmail",
             "role": "fragment",
             "generations": {
               "gmail:needs-attention": 18
@@ -2430,7 +2385,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -2483,7 +2437,6 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "slot": "slot-gmail",
             "role": "fragment",
             "generations": {
               "gmail:needs-attention": 19
@@ -2572,7 +2525,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -2628,7 +2580,6 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "slot": "slot-gmail",
             "role": "fragment",
             "generations": {
               "gmail:needs-attention": 20
@@ -2724,7 +2675,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -2782,7 +2732,6 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "slot": "slot-gmail",
             "role": "fragment",
             "generations": {
               "gmail:needs-attention": 21
@@ -2844,7 +2793,6 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "slot": "slot-gmail",
             "role": "fragment",
             "generations": {
               "gmail:needs-attention": 22
@@ -2907,7 +2855,6 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "slot": "slot-gmail",
             "role": "fragment",
             "generations": {
               "gmail:needs-attention": 23
@@ -3006,7 +2953,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -3067,7 +3013,6 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "slot": "slot-gmail",
             "role": "fragment",
             "generations": {
               "gmail:needs-attention": 24
@@ -3173,7 +3118,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -3237,7 +3181,6 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "slot": "slot-gmail",
             "role": "fragment",
             "generations": {
               "gmail:needs-attention": 25
@@ -3343,7 +3286,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -3409,7 +3351,6 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "slot": "slot-gmail",
             "role": "fragment",
             "generations": {
               "gmail:needs-attention": 26
@@ -3516,7 +3457,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -3583,7 +3523,6 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "slot": "slot-gmail",
             "role": "fragment",
             "generations": {
               "gmail:needs-attention": 27
@@ -3699,7 +3638,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -3767,7 +3705,6 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "slot": "slot-gmail",
             "role": "fragment",
             "generations": {
               "gmail:needs-attention": 28
@@ -3884,7 +3821,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -3953,7 +3889,6 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "slot": "slot-gmail",
             "role": "fragment",
             "generations": {
               "gmail:needs-attention": 29
@@ -4026,7 +3961,6 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "slot": "slot-gmail",
             "role": "fragment"
           }
         },
@@ -4158,7 +4092,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -4295,7 +4228,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -4349,7 +4281,6 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "slot": "slot-gmail",
             "role": "fragment"
           }
         },
@@ -4489,7 +4420,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -4542,7 +4472,6 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "slot": "slot-gmail",
             "role": "fragment"
           }
         },
@@ -4597,7 +4526,6 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "slot": "slot-gmail",
             "role": "fragment"
           }
         },
@@ -4744,7 +4672,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -4800,7 +4727,6 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "slot": "slot-gmail",
             "role": "fragment"
           }
         },
@@ -4856,7 +4782,6 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "slot": "slot-gmail",
             "role": "fragment"
           }
         },
@@ -5004,7 +4929,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -5059,7 +4983,6 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "slot": "slot-gmail",
             "role": "fragment"
           }
         },
@@ -5207,7 +5130,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -5270,7 +5192,6 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "slot": "slot-gmail",
             "role": "fragment"
           }
         },
@@ -5433,7 +5354,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -5597,7 +5517,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -5671,7 +5590,6 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "slot": "slot-gmail",
             "role": "fragment"
           }
         },
@@ -5750,7 +5668,6 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "slot": "slot-gmail",
             "role": "fragment"
           }
         },
@@ -5929,7 +5846,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -6111,7 +6027,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -6215,7 +6130,6 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "slot": "slot-gmail",
             "role": "fragment"
           }
         },
@@ -6399,7 +6313,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -6504,7 +6417,6 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "slot": "slot-gmail",
             "role": "fragment"
           }
         },
@@ -6690,7 +6602,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -6809,7 +6720,6 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "slot": "slot-gmail",
             "role": "fragment"
           }
         },
@@ -6995,7 +6905,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -7113,7 +7022,6 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "slot": "slot-gmail",
             "role": "fragment"
           }
         },
@@ -7302,7 +7210,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -7423,7 +7330,6 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "slot": "slot-gmail",
             "role": "fragment"
           }
         },
@@ -7544,7 +7450,6 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "slot": "slot-gmail",
             "role": "fragment"
           }
         },
@@ -7771,7 +7676,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -7895,7 +7799,6 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "slot": "slot-gmail",
             "role": "fragment"
           }
         },
@@ -8124,7 +8027,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -8355,7 +8257,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -8481,7 +8382,6 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "slot": "slot-gmail",
             "role": "fragment"
           }
         },
@@ -8713,7 +8613,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -8948,7 +8847,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -9077,7 +8975,6 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "slot": "slot-gmail",
             "role": "fragment"
           }
         },
@@ -9312,7 +9209,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -9444,7 +9340,6 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "slot": "slot-gmail",
             "role": "fragment"
           }
         },
@@ -9680,7 +9575,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -9917,7 +9811,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -10157,7 +10050,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment"
           }
         },
@@ -10177,7 +10069,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment",
             "generations": {
               "github:prs-needing-attention": 1
@@ -10205,7 +10096,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment",
             "generations": {
               "github:prs-needing-attention": 2
@@ -10235,7 +10125,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment",
             "generations": {
               "github:prs-needing-attention": 3
@@ -10267,7 +10156,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment",
             "generations": {
               "github:prs-needing-attention": 4
@@ -10300,7 +10188,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment",
             "generations": {
               "github:prs-needing-attention": 5
@@ -10337,7 +10224,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment",
             "generations": {
               "github:prs-needing-attention": 6
@@ -10376,7 +10262,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment",
             "generations": {
               "github:prs-needing-attention": 7
@@ -10416,7 +10301,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment",
             "generations": {
               "github:prs-needing-attention": 8
@@ -10457,7 +10341,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment",
             "generations": {
               "github:prs-needing-attention": 9
@@ -10499,7 +10382,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment",
             "generations": {
               "github:prs-needing-attention": 10
@@ -10544,7 +10426,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment",
             "generations": {
               "github:prs-needing-attention": 11
@@ -10590,7 +10471,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment",
             "generations": {
               "github:prs-needing-attention": 12
@@ -10639,7 +10519,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment",
             "generations": {
               "github:prs-needing-attention": 13
@@ -10689,7 +10568,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment",
             "generations": {
               "github:prs-needing-attention": 14
@@ -10740,7 +10618,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment",
             "generations": {
               "github:prs-needing-attention": 15
@@ -10793,7 +10670,6 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "slot": "slot-github",
             "role": "fragment",
             "generations": {
               "github:prs-needing-attention": 16
@@ -10910,7 +10786,6 @@
           "texts": [],
           "stamp": {
             "source": "shell",
-            "slot": "slot-shell",
             "role": "fragment"
           },
           "synthesis": {

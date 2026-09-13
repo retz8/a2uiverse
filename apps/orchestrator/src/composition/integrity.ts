@@ -1,4 +1,5 @@
-import {refsOf, type ChangeAccount, type Ref, type SynthesisPayload} from '@a2uiverse/sdk';
+import {refsOf, type Ref, type SynthesisPayload} from '@a2uiverse/sdk';
+import type {ChangeAccount} from '../synthesizer/prompt.js';
 
 /**
  * The IntegrityChecker (SPEC §6.2, §10): per-binding validity over the sdk's kit. Refs select

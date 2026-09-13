@@ -34,7 +34,8 @@ import {validatePayload} from './intake';
 export interface SynthesisFailure {
   /** Namespaced, as the hub sent it. */
   surfaceId: string;
-  slot: string;
+  /** The source whose slot the synthesis fills: the shell. */
+  source: string;
   path: string;
   message: string;
 }
@@ -42,7 +43,7 @@ export interface SynthesisFailure {
 /** What the turn runner feeds the session. */
 export interface SynthesisIntake {
   /** The synthesis surface reached the live processor, with the payload that rode its paint. */
-  accept(target: {surfaceId: string; slot: string}, payload: unknown): void;
+  accept(target: {surfaceId: string; source: string}, payload: unknown): void;
   /** The composition left the canvas. */
   retire(): void;
   /** What a parked entry carries of the synthesis: the payload and its surface. */
@@ -170,7 +171,7 @@ export function createSynthesisSession({
       payload = undefined;
       outputJson = undefined;
       const {path, message} = result;
-      onInvalid?.({surfaceId: target.surfaceId, slot: target.slot, path, message});
+      onInvalid?.({surfaceId: target.surfaceId, source: target.source, path, message});
       return;
     }
     payload = result.payload;
