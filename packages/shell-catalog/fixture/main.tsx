@@ -18,8 +18,8 @@ import {
 } from '@a2uiverse/sdk';
 import {
   AttributionView,
-  CATALOG,
   CATALOG_ID,
+  createCatalog,
   Provider,
   SlotContentContext,
   SlotView,
@@ -28,6 +28,10 @@ import schema from '../catalogs/v0.9.1/catalog.json';
 import {componentNames, sweep, type CatalogSchema, type TreeComponent} from './matrix.js';
 
 const SCHEMA = schema as unknown as CatalogSchema;
+
+const CATALOG = createCatalog({
+  onShellAction: action => console.log('[fixture shell action]', action),
+});
 
 /** A surface holding one tree, painted by the real renderer. */
 function surfaceFor(
@@ -217,6 +221,14 @@ function SlotMatrix() {
       </div>
       <div>
         <SlotView name="slot-shell" content="shell" label="Synthesis" />
+      </div>
+      <div>
+        <SlotView
+          name="slot-gap"
+          state="gap"
+          label="flight booking"
+          onSearchStore={query => console.log('[fixture capability tile]', query)}
+        />
       </div>
       <div>
         collapsed (nothing should render between the rules):

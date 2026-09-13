@@ -1,2 +1,2 @@
-export {SlotComponent, SlotView} from './slot.js';
+export {createSlotComponent, SlotView} from './slot.js';
 export {SlotApi, type SlotProps} from './slot.schema.js';

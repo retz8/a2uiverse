@@ -55,8 +55,11 @@ test('a headless processor accepts a merged-view tree and rejects a bad prop', (
   );
 });
 
-test('the guidance doc ships beside the schema', () => {
-  const guidance = readFileSync('docs/guidance.md', 'utf8');
-  expect(guidance).toContain('DerivedValue');
-  expect(guidance).toContain('/sorts/N');
+test('the two guidance docs ship beside the schema', () => {
+  const synthesis = readFileSync('docs/synthesis-guidance.md', 'utf8');
+  expect(synthesis).toContain('DerivedValue');
+  expect(synthesis).toContain('/sorts/N');
+  const platformUi = readFileSync('docs/platform-ui-guidance.md', 'utf8');
+  expect(platformUi).toContain('openStore');
+  expect(platformUi).toContain('openAppLibrary');
 });

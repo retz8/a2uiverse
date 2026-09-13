@@ -19,7 +19,7 @@ import {CheckBoxComponent} from './components/check-box/index.js';
 import {ChoicePickerComponent} from './components/choice-picker/index.js';
 import {SliderComponent} from './components/slider/index.js';
 import {DateTimeInputComponent} from './components/date-time-input/index.js';
-import {SlotComponent} from './components/slot/index.js';
+import {createSlotComponent} from './components/slot/index.js';
 import {AttributionComponent} from './components/attribution/index.js';
 import {FrameComponent} from './components/frame/index.js';
 import {DerivedValueComponent} from './components/derived-value/index.js';
@@ -27,8 +27,15 @@ import {SortControlComponent} from './components/sort-control/index.js';
 import {TableComponent, TableRowComponent} from './components/table/index.js';
 import {DataListComponent, DataListItemComponent} from './components/data-list/index.js';
 import {operatorFunctions} from './functions/operators.js';
+import {shellActionFunctions, type ShellActionHandler} from './functions/shell-actions.js';
 
 export {OPERATORS, type Operator} from './functions/operators.js';
+export {
+  SHELL_ACTIONS,
+  type ShellAction,
+  type ShellActionHandler,
+  type ShellActionName,
+} from './functions/shell-actions.js';
 
 /**
  * The basic catalog's eighteen components, each implemented on Radix Themes (SPEC §4.2,
@@ -56,25 +63,45 @@ export const BASIC_IMPLEMENTATIONS: readonly ReactComponentImplementation[] = [
   DateTimeInputComponent,
 ];
 
-/** The shell's own primitives — composition, layout, synthesis and the merged view's shapes — also on Radix Themes. */
-export const SHELL_IMPLEMENTATIONS: readonly ReactComponentImplementation[] = [
-  SlotComponent,
-  AttributionComponent,
-  FrameComponent,
-  DerivedValueComponent,
-  SortControlComponent,
-  TableComponent,
-  TableRowComponent,
-  DataListComponent,
-  DataListItemComponent,
-];
+/**
+ * The shell's own primitives — composition, layout, synthesis and the merged view's shapes — also
+ * on Radix Themes. `Slot` is bound to the host's shell-action handler: its capability tile raises
+ * `openStore`.
+ */
+function shellImplementations(onShellAction: ShellActionHandler): ReactComponentImplementation[] {
+  return [
+    createSlotComponent(onShellAction),
+    AttributionComponent,
+    FrameComponent,
+    DerivedValueComponent,
+    SortControlComponent,
+    TableComponent,
+    TableRowComponent,
+    DataListComponent,
+    DataListItemComponent,
+  ];
+}
+
+export interface CreateCatalogOptions {
+  /** What the host does when a shell surface raises `openStore` or `openAppLibrary`. */
+  onShellAction: ShellActionHandler;
+}
 
 /**
- * The shell's runtime catalog: the basic catalog mapped onto Radix Themes, the composition
- * primitives, the basic functions as upstream implements them, and the formula operators.
+ * The shell's runtime catalog, built for one host (task-6.2 decision 2): the basic catalog mapped
+ * onto Radix Themes, the shell primitives, the basic functions as upstream implements them, the
+ * formula operators, and the shell's two actions bound to the host's handler.
  */
-export const CATALOG = new Catalog<ReactComponentImplementation>(
-  CATALOG_ID,
-  [...BASIC_IMPLEMENTATIONS, ...SHELL_IMPLEMENTATIONS],
-  [...(BASIC_FUNCTIONS as FunctionImplementation[]), ...operatorFunctions],
-);
+export function createCatalog({
+  onShellAction,
+}: CreateCatalogOptions): Catalog<ReactComponentImplementation> {
+  return new Catalog<ReactComponentImplementation>(
+    CATALOG_ID,
+    [...BASIC_IMPLEMENTATIONS, ...shellImplementations(onShellAction)],
+    [
+      ...(BASIC_FUNCTIONS as FunctionImplementation[]),
+      ...operatorFunctions,
+      ...shellActionFunctions(onShellAction),
+    ],
+  );
+}

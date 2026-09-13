@@ -29,8 +29,8 @@ import {
   Provider as ShopBProvider,
 } from 'shop-b-catalog';
 import {
-  CATALOG as SHELL_CATALOG,
   CATALOG_ID as SHELL_CATALOG_ID,
+  createCatalog as createShellCatalog,
   Provider as ShellProvider,
 } from '@a2uiverse/shell-catalog';
 import type {CatalogRecord} from '../orchestratorApi';
@@ -41,6 +41,12 @@ export interface ResolvedCatalog {
   /** Wraps every surface of this catalog: the vendor design system's own provider + styles. */
   Provider: ComponentType<{children: ReactNode}>;
 }
+
+/**
+ * The shell catalog is built for this host (task-6.2 decision 2). Its shell actions — `openStore`,
+ * `openAppLibrary` — do nothing here yet: the canvas's notice and journal report arrive in task 6.5.
+ */
+const SHELL_CATALOG = createShellCatalog({onShellAction: () => {}});
 
 /** One entry per catalog package in `orchestratorApi`'s projection; the two lists move together. */
 const TABLE: ReadonlyMap<string, ResolvedCatalog> = new Map([

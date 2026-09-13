@@ -36,7 +36,8 @@
       }
     },
     "./catalog.json": "./catalogs/v0.9.1/catalog.json",
-    "./guidance.md": "./docs/guidance.md"
+    "./synthesis-guidance.md": "./docs/synthesis-guidance.md",
+    "./platform-ui-guidance.md": "./docs/platform-ui-guidance.md"
   },
   "files": [
     "dist",

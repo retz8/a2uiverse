@@ -813,9 +813,9 @@
         },
         "state": {
           "type": "string",
-          "enum": ["pending", "failed", "collapsed"],
+          "enum": ["pending", "failed", "collapsed", "gap"],
           "default": "pending",
-          "description": "The region\u2019s lifecycle state. `pending` shows a placeholder until content arrives; `failed` shows that the content could not be produced; `collapsed` removes the region from view without moving its neighbours."
+          "description": "The region\u2019s lifecycle state. `pending` shows a placeholder until content arrives; `failed` shows that the content could not be produced; `collapsed` removes the region from view without moving its neighbours; `gap` marks a capability no installed app serves, drawn as a fixed tile offering to search the Store for it."
         },
         "content": {
           "type": "string",
@@ -825,7 +825,7 @@
         },
         "label": {
           "type": "string",
-          "description": "Human-readable name for the awaited content, shown while pending or failed."
+          "description": "Human-readable name for the awaited content, shown while pending or failed. On a `gap` slot, the missing capability, used as the Store search query."
         }
       },
       "required": ["component", "name"],
@@ -1383,6 +1383,49 @@
       "required": ["call", "args"],
       "unevaluatedProperties": false
     },
+    "openStore": {
+      "type": "object",
+      "description": "Opens the Store, where apps not yet installed are found and installed. Use from a button when an answer leads the user to look for an app. This function has no return value.",
+      "properties": {
+        "call": {
+          "const": "openStore"
+        },
+        "args": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "What to search the Store for, in the user's words. Omit to open the Store without a search."
+            }
+          },
+          "additionalProperties": false
+        },
+        "returnType": {
+          "const": "void"
+        }
+      },
+      "required": ["call", "args"],
+      "unevaluatedProperties": false
+    },
+    "openAppLibrary": {
+      "type": "object",
+      "description": "Opens the App Library, where installed apps are managed. Use from a button when an answer leads the user to manage their apps. This function has no return value.",
+      "properties": {
+        "call": {
+          "const": "openAppLibrary"
+        },
+        "args": {
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false
+        },
+        "returnType": {
+          "const": "void"
+        }
+      },
+      "required": ["call", "args"],
+      "unevaluatedProperties": false
+    },
     "and": {
       "type": "object",
       "description": "Performs a logical AND operation on a list of boolean values.",
@@ -1877,6 +1920,12 @@
         },
         {
           "$ref": "#/functions/openUrl"
+        },
+        {
+          "$ref": "#/functions/openStore"
+        },
+        {
+          "$ref": "#/functions/openAppLibrary"
         },
         {
           "$ref": "#/functions/and"

@@ -1,6 +1,7 @@
 import {useContext, type CSSProperties} from 'react';
 import {createComponentImplementation} from '@a2ui/react/v0_9';
-import {Flex, Spinner, Text} from '@radix-ui/themes';
+import {Button, Flex, Spinner, Text} from '@radix-ui/themes';
+import type {ShellActionHandler} from '../../functions/shell-actions.js';
 import {SlotContentContext} from '../../slot-content.js';
 import {SlotApi, type SlotProps} from './slot.schema.js';
 
@@ -21,8 +22,17 @@ import {SlotApi, type SlotProps} from './slot.schema.js';
  *
  * The tile a fragment slot shows while pending or failed is drawn on Radix's own
  * panel, border and radius tokens (task-5.9 decision 5).
+ *
+ * `gap` is the capability tile (task-6.2 decision 6): fixed shell UI, no model wording — a
+ * minimal line and a button searching the Store for the missing capability, `label`.
  */
-export function SlotView({name, state = 'pending', label, content = 'fragment'}: SlotProps) {
+export function SlotView({
+  name,
+  state = 'pending',
+  label,
+  content = 'fragment',
+  onSearchStore,
+}: SlotProps & {onSearchStore?: (query: string | undefined) => void}) {
   const resolve = useContext(SlotContentContext);
   const resolved = resolve(name);
   const shell = content === 'shell';
@@ -32,6 +42,21 @@ export function SlotView({name, state = 'pending', label, content = 'fragment'}:
     return (
       <div data-slot={name} data-slot-state="collapsed" style={{...panelStyle, minHeight: 0}}>
         {resolved}
+      </div>
+    );
+  }
+
+  if (state === 'gap') {
+    return (
+      <div data-slot={name} data-slot-state="gap" style={panelStyle}>
+        <Flex direction="column" align="center" gap="2">
+          <Text as="span" size="2">
+            No installed app can do this.
+          </Text>
+          <Button size="1" variant="soft" onClick={() => onSearchStore?.(label)}>
+            Search the Store
+          </Button>
+        </Flex>
       </div>
     );
   }
@@ -109,7 +134,23 @@ const panelStyle: CSSProperties = {
   justifyContent: 'center',
 };
 
-/** Catalog entry: the generic binder resolves props, then renders SlotView. */
-export const SlotComponent = createComponentImplementation(SlotApi, ({props}) => (
-  <SlotView name={props.name} state={props.state} label={props.label} content={props.content} />
-));
+/**
+ * Catalog entry, bound to the host's shell-action handler: the generic binder resolves props,
+ * then renders SlotView, whose capability tile raises `openStore` from this slot's surface.
+ */
+export function createSlotComponent(onShellAction: ShellActionHandler) {
+  return createComponentImplementation(SlotApi, ({props, context}) => (
+    <SlotView
+      name={props.name}
+      state={props.state}
+      label={props.label}
+      content={props.content}
+      onSearchStore={query => {
+        const surfaceId = context.dataContext.surface.id;
+        onShellAction(
+          query ? {name: 'openStore', surfaceId, query} : {name: 'openStore', surfaceId},
+        );
+      }}
+    />
+  ));
+}

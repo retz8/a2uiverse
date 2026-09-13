@@ -66,7 +66,7 @@ import {buildSynthesisSystemPrompt, buildSynthesisTurn} from '@a2uiverse/sdk';
 
 const system = buildSynthesisSystemPrompt({
   catalogSchema: shellCatalogJson, // the shell catalog's catalog.json, verbatim
-  uiGuidance: shellGuidanceMd, // its guidance.md
+  uiGuidance: synthesisGuidanceMd, // its synthesis-guidance.md
 });
 
 const turn = buildSynthesisTurn({

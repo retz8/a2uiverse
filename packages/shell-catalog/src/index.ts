@@ -1,10 +1,14 @@
 /** @a2uiverse/shell-catalog — the shell's paint vocabulary: the basic catalog on Radix Themes + composition primitives. */
 export {
   BASIC_IMPLEMENTATIONS,
-  CATALOG,
+  createCatalog,
+  type CreateCatalogOptions,
   OPERATORS,
-  SHELL_IMPLEMENTATIONS,
   type Operator,
+  SHELL_ACTIONS,
+  type ShellAction,
+  type ShellActionHandler,
+  type ShellActionName,
 } from './catalog.js';
 export {CATALOG_ID} from './catalog-id.js';
 export {PortalRootContext, Provider} from './provider.js';

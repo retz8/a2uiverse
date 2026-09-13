@@ -8,7 +8,7 @@ import type {ReactNode} from 'react';
 import {A2uiSurface, type ReactComponentImplementation} from '@a2ui/react/v0_9';
 import {MessageProcessor, type SurfaceModel} from '@a2ui/web_core/v0_9';
 import type {A2uiClientAction} from '@a2ui/web_core/v0_9';
-import {CATALOG} from '../catalog.js';
+import {createCatalog, type ShellActionHandler} from '../catalog.js';
 import {CATALOG_ID} from '../catalog-id.js';
 import {Provider} from '../provider.js';
 
@@ -21,6 +21,8 @@ export interface TreeOptions {
   wrap?: (node: ReactNode) => ReactNode;
   /** Receives every action the surface dispatches. */
   onAction?: (action: A2uiClientAction) => void;
+  /** Receives every shell action a button or a capability tile raises. */
+  onShellAction?: ShellActionHandler;
 }
 
 export const SURFACE_ID = 'test';
@@ -33,7 +35,10 @@ export function surfaceFor(
   surface: SurfaceModel<ReactComponentImplementation>;
   processor: MessageProcessor<ReactComponentImplementation>;
 } {
-  const processor = new MessageProcessor<ReactComponentImplementation>([CATALOG], options.onAction);
+  const processor = new MessageProcessor<ReactComponentImplementation>(
+    [createCatalog({onShellAction: options.onShellAction ?? (() => {})})],
+    options.onAction,
+  );
   processor.processMessages([
     {version: 'v0.9', createSurface: {surfaceId: SURFACE_ID, catalogId: CATALOG_ID}},
     ...(options.data

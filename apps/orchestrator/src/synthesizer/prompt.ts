@@ -15,7 +15,7 @@ export const SYNTHESIZER_ROLE =
 export interface ShellCatalogFiles {
   /** `catalog.json`, verbatim. */
   schema: string;
-  /** `guidance.md`: how to build a merged view out of the catalog. */
+  /** `synthesis-guidance.md`: how to build a merged view out of the catalog. */
   guidance: string;
 }
 
@@ -23,7 +23,10 @@ export function readShellCatalogFiles(): ShellCatalogFiles {
   const require = createRequire(import.meta.url);
   return {
     schema: readFileSync(require.resolve('@a2uiverse/shell-catalog/catalog.json'), 'utf8'),
-    guidance: readFileSync(require.resolve('@a2uiverse/shell-catalog/guidance.md'), 'utf8'),
+    guidance: readFileSync(
+      require.resolve('@a2uiverse/shell-catalog/synthesis-guidance.md'),
+      'utf8',
+    ),
   };
 }
 

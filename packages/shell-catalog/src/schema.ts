@@ -3,7 +3,7 @@
  * catalog from `@a2ui/web_core`, the shell primitives' own zod schemas — and the declared
  * functions, as one `Catalog` of APIs. What a headless `MessageProcessor` validates a
  * model-authored tree against, in a process that renders nothing; the same schemas the
- * rendering `CATALOG` binds its React implementations to, so the two faces cannot disagree
+ * rendering catalog `createCatalog` builds binds its React implementations to, so the two faces cannot disagree
  * about a prop. Imports no React and no stylesheet.
  */
 import {
@@ -22,8 +22,9 @@ import {SortControlApi} from './components/sort-control/sort-control.schema.js';
 import {TableApi, TableRowApi} from './components/table/table.schema.js';
 import {DataListApi, DataListItemApi} from './components/data-list/data-list.schema.js';
 import {operatorFunctions, OPERATORS, type Operator} from './functions/operators.js';
+import {SHELL_ACTIONS, shellActionFunctions} from './functions/shell-actions.js';
 
-export {CATALOG_ID, OPERATORS, type Operator};
+export {CATALOG_ID, OPERATORS, SHELL_ACTIONS, type Operator};
 export {
   AttributionApi,
   DataListApi,
@@ -49,9 +50,16 @@ export const SHELL_COMPONENT_APIS: readonly ComponentApi[] = [
   DataListItemApi,
 ];
 
-/** The catalog as APIs only — for validation, never for rendering. */
+/**
+ * The catalog as APIs only — for validation, never for rendering. Its shell actions are bound to a
+ * handler that does nothing: a validating process opens no page (task-6.2 decision 2).
+ */
 export const SCHEMA_CATALOG: Catalog<ComponentApi> = new Catalog<ComponentApi>(
   CATALOG_ID,
   [...BASIC_COMPONENTS, ...SHELL_COMPONENT_APIS],
-  [...(BASIC_FUNCTIONS as FunctionImplementation[]), ...operatorFunctions],
+  [
+    ...(BASIC_FUNCTIONS as FunctionImplementation[]),
+    ...operatorFunctions,
+    ...shellActionFunctions(() => {}),
+  ],
 );

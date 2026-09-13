@@ -6,7 +6,7 @@
  */
 import {describe, expect, test} from 'vitest';
 import type {SynthesisPayload} from '@a2uiverse/sdk';
-import {CATALOG} from '@a2uiverse/shell-catalog';
+import {createCatalog} from '@a2uiverse/shell-catalog';
 import type {CellObject} from '@a2uiverse/shell-catalog';
 import {
   PAYLOAD,
@@ -17,6 +17,8 @@ import {
   SHOP_B_PRODUCTS,
 } from '../../beats/synthesisFixture';
 import {choiceInForce, choicesOf, evaluate, type SortChoice} from './bindingEvaluator';
+
+const CATALOG = createCatalog({onShellAction: () => {}});
 
 const A = SHOP_A;
 const B = SHOP_B;

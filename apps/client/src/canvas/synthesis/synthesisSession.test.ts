@@ -7,7 +7,7 @@ import {beforeEach, describe, expect, test, vi} from 'vitest';
 import {MessageProcessor} from '@a2ui/web_core/v0_9';
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
 import type {ReactComponentImplementation} from '@a2ui/react/v0_9';
-import {CATALOG, CATALOG_ID, OPERATORS} from '@a2uiverse/shell-catalog';
+import {CATALOG_ID, createCatalog, OPERATORS} from '@a2uiverse/shell-catalog';
 import type {CellObject} from '@a2uiverse/shell-catalog';
 import type {Synthesis, SynthesisPayload} from '@a2uiverse/sdk';
 import {
@@ -27,6 +27,8 @@ import {
 import type {EvaluatedModel} from './bindingEvaluator';
 import {applyA2uiMessages} from '../../a2ui/applyMessages';
 import {createSynthesisSession, SORTS_PATH, type SynthesisFailure} from './synthesisSession';
+
+const CATALOG = createCatalog({onShellAction: () => {}});
 
 const msg = (m: Record<string, unknown>): A2uiMessage =>
   ({version: 'v0.9', ...m}) as unknown as A2uiMessage;

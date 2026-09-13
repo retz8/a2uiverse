@@ -10,11 +10,13 @@ import {fireEvent, render, within} from '@testing-library/react';
 import {MessageProcessor} from '@a2ui/web_core/v0_9';
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
 import type {ReactComponentImplementation} from '@a2ui/react/v0_9';
-import {CATALOG as SHELL_CATALOG, CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog';
+import {CATALOG_ID as SHELL_CATALOG_ID, createCatalog} from '@a2uiverse/shell-catalog';
 import {CATALOG as GMAIL_CATALOG, CATALOG_ID as GMAIL_CATALOG_ID} from 'gmail-catalog';
 import {CatalogProvider, SurfaceFrame} from '../../catalogs/CatalogContext';
 import {resolveCatalogs} from '../../catalogs/resolver';
 import {listCatalogs} from '../../orchestratorApi';
+
+const SHELL_CATALOG = createCatalog({onShellAction: () => {}});
 
 const CATALOGS = resolveCatalogs(await listCatalogs());
 

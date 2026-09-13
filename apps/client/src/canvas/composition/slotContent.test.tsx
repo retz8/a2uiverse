@@ -9,8 +9,8 @@ import {MessageProcessor} from '@a2ui/web_core/v0_9';
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
 import {CATALOG, CATALOG_ID} from 'github-catalog';
 import {
-  CATALOG as SHELL_CATALOG,
   CATALOG_ID as SHELL_CATALOG_ID,
+  createCatalog,
   SlotContentContext,
 } from '@a2uiverse/shell-catalog';
 import type {ReactComponentImplementation} from '@a2ui/react/v0_9';
@@ -20,6 +20,8 @@ import {listCatalogs} from '../../orchestratorApi';
 import type {PlacedFragment} from '../canvasStore';
 import {FRAGMENT_BOUNDARY_ATTR} from './FragmentBoundary';
 import {renderSlotContent} from './slotContent';
+
+const SHELL_CATALOG = createCatalog({onShellAction: () => {}});
 
 const CATALOGS = resolveCatalogs(await listCatalogs());
 

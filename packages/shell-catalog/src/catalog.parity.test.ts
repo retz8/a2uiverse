@@ -1,7 +1,7 @@
-/** The catalog's two faces stay in lockstep: catalog.json ↔ runtime CATALOG. */
+/** The catalog's two faces stay in lockstep: catalog.json ↔ the runtime catalog. */
 import {readFileSync} from 'node:fs';
 import {expect, test} from 'vitest';
-import {CATALOG, OPERATORS} from './catalog';
+import {createCatalog, OPERATORS, SHELL_ACTIONS} from './catalog';
 import {CATALOG_ID} from './catalog-id';
 
 // Path from the package root (vitest's cwd); import.meta.url is http-scheme under jsdom.
@@ -12,6 +12,8 @@ const schema = JSON.parse(readFileSync('catalogs/v0.9.1/catalog.json', 'utf8')) 
   functions: Record<string, unknown>;
   $defs: {anyFunction: {oneOf: {$ref: string}[]}};
 };
+
+const CATALOG = createCatalog({onShellAction: () => {}});
 
 /** The upstream basic catalog's own declared functions (validators, formatters, boolean logic). */
 const UPSTREAM_FUNCTIONS = [
@@ -50,9 +52,9 @@ test('every schema function has an implementation', () => {
   }
 });
 
-test('the declared functions are exactly the upstream set plus the operators', () => {
+test('the declared functions are exactly the upstream set plus the operators and the shell actions', () => {
   expect(Object.keys(schema.functions).sort()).toEqual(
-    [...UPSTREAM_FUNCTIONS, ...OPERATORS].sort(),
+    [...UPSTREAM_FUNCTIONS, ...OPERATORS, ...SHELL_ACTIONS].sort(),
   );
 });
 
@@ -66,6 +68,19 @@ test('every operator is declared, implemented, and in the anyFunction union', ()
     expect(declared.has(op), `operator ${op} not declared`).toBe(true);
     expect(implemented.has(op), `operator ${op} not implemented`).toBe(true);
     expect(union.has(op), `operator ${op} missing from anyFunction`).toBe(true);
+  }
+});
+
+test('every shell action is declared, implemented, and in the anyFunction union', () => {
+  const declared = new Set(Object.keys(schema.functions));
+  const implemented = new Set(CATALOG.functions.keys());
+  const union = new Set(
+    schema.$defs.anyFunction.oneOf.map(r => r.$ref.replace('#/functions/', '')),
+  );
+  for (const action of SHELL_ACTIONS) {
+    expect(declared.has(action), `shell action ${action} not declared`).toBe(true);
+    expect(implemented.has(action), `shell action ${action} not implemented`).toBe(true);
+    expect(union.has(action), `shell action ${action} missing from anyFunction`).toBe(true);
   }
 });
 
