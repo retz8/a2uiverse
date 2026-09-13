@@ -131,6 +131,7 @@ The number of decision 5 is the temporal merge's: 3.3 s to 3.7 s on the orchestr
 - **Three weighted slots on one row squeeze the GitHub fragment.** At the tunnel browser's 868 px width the temporal merge's `Row` gave each vendor a third of the width, and Primer's pull-request list broke its title and labels one character per line. Equal weights are the Planner's choice; a fragment's minimum width is not known to it.
 - **Gmail's fragment failed one component's validation on the side-by-side turn.** The console logged `Validation failed for component 'Text' (thread-subject): text: Invalid input` during the progressive apply; the inbox list rendered. A vendor-side value shape, for `a2uiverse-apps`.
 - **Calendar's times carry no date**, so the Synthesizer grouped Calendar apart on the temporal merge, as 5.7 saw. The S1 property held.
+- **Two headings over a merged view.** The Planner titles the screen ("Comparing camera prices", "Your attention today") and the Synthesizer titles its document beneath it ("Camera Prices in Shop A and Shop B", "Needs attention today"); neither author sees the other's. Before Phase 6 only the Synthesizer's existed. Disposition open: the platform UI guidance could tell the Planner not to title a screen that reserves a merged view, since the merged view titles itself and the vendor panels carry their attributions.
 
 ## Streaming decision
 
