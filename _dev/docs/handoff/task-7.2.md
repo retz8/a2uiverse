@@ -1,25 +1,25 @@
 # Handoff — task 7.2, the CircleCI app
 
-Built and committed; one check left before 7.2 is ticked: **the CircleCI fragment seen on the canvas through the tunnel, with Claude-in-Chrome** (task spec decision 3). Task spec: `_dev/docs/spec/task-7.2-circleci-app.md`.
+Done. Apps `be69407` (the app), platform `dcc5c6f` (the wiring), `6b59996` (the pipeline on `a2uiverse`), spec `1932783`; `pnpm verify` green in both repos. Task spec: `_dev/docs/spec/task-7.2-circleci-app.md`.
 
-## Where it stands
+## The canvas pass
 
-- **The pipeline on `a2uiverse`** — `.circleci/config.yml` (`6b59996`, pushed): `pnpm verify`'s gates as two parallel jobs, `build-typecheck-test` and `lint-format`, in the `verify` workflow, on every branch. Green on `main`. CircleCI project id `5475943e-db5e-4b4a-937b-4d64f8f05d3c`.
-- **The app in `a2uiverse-apps`** — `be69407`, pushed: the agent on port 11004 over the hosted MCP server, nine tools pinned, projects from `CIRCLECI_PROJECTS`, rerun and cancel proposed then confirmed; the four beats recorded live and the stub and deterministic corpora derived from them; `circleci-catalog` themed with the palette sampled from CircleCI's documentation screenshots of its web app. Agent suite 84 green; repo `pnpm verify` green.
-- **The platform wiring** — `dcc5c6f`, pushed: the registry entry, the client's `circleci-catalog` dependency, projection, resolver and test inlining, the platform recorder's advertised catalogs. `pnpm verify` green. A pipeline question driven through the orchestrator on `localhost` routed to CircleCI and relayed `circleci:recent-runs` stamped `source: circleci`, completed in 29 s.
-- **Spec** amended to what was built — `1932783`, pushed: projects by id through a local `list_projects` tool; the theme's reference is CircleCI's documentation screenshots.
-- `circleci/agent/.env` holds the token, the Gemini key and `CIRCLECI_PROJECTS` (gitignored).
+Run live on 2026-09-18 through the tunnel with Claude-in-Chrome, `pnpm dev:all --agents-dir ../a2uiverse-apps --only circleci --mode live`.
 
-## Next — the canvas check
+- **"How are my CircleCI builds doing?"** — routed to CircleCI, 38 s. One card, "Recent pipelines" on `a2uiverse`: each run its status pill, branch, time, commit's first line, short hash and author, its workflow nested under it with its own pill.
+- **The failed run on `ci/failing-format-demo`** — 23 s. `verify` Failed; `lint-format` Failed 41 s, `build-typecheck-test` Success 2 m 13 s; Rerun from failed and Rerun from start.
+- **The failed `lint-format` job** — 14 s. The "Format check" step, exited with code 1, the log's last lines (`prettier --check .` warning on `scripts/ci-format-demo.mjs`).
+- **Rerun from failed** — 18 s. The proposal names project, branch, workflow and "only the failed jobs and what depends on them"; no write tool called until the confirm.
+- **Confirmed** — 29 s. `rerun_workflow` with `from_failed: true`; the run repainted with a new `verify` attempt, Running, above the earlier Failed attempt, inside the same run (task spec decision 4).
 
-1. Start the stack with only CircleCI live: `pnpm dev:all --agents-dir ../a2uiverse-apps --only circleci --mode live`. Forward ports 10001 and 5173 and set them **Public** — both returned 404 at the tunnel last session.
-2. Open `https://vnw20xbg-5173.asse.devtunnels.ms` and ask **"How are my CircleCI builds doing?"**.
-3. Check: recent runs in one card, each row a colored status pill (7.11), the branch, the commit's first line and short hash, its workflows nested under it; tapping the failed run on `ci/failing-format-demo` (branch deleted, run kept) opens its workflow attempts and jobs; tapping the failed `lint-format` job shows the failed step, its exit code and the log's last lines; **Rerun from failed** paints the proposal as a question the shell raises. Confirming really reruns the workflow on CircleCI.
-4. Repeat in `--mode deterministic`, which plays the recorded beats.
-5. On a pass: tick 7.2 and 7.11 through wrap-up.
+Not run: the same pass in `--mode deterministic` — the orchestrator's Gemini prepaid credits ran out.
+
+## Findings, not fixed
+
+- A failed utterance leaves the canvas idle with no word: the palette closes and nothing paints; the failure is in the orchestrator's log alone.
+- The status line on the confirm reads the raw workflow id: "confirm rerun 131ad9a2-a72b-4f40-abe4-81e080cf16f7 — generating…".
+- In the run detail, job names are centred while workflow names sit left.
 
 ## Open threads
 
-- Status colors are sub-task 7.11's (`_dev/docs/handoff/task-7.11.md`): the `StatusBadge` now draws every status; its colors are checked in the same canvas pass.
-- `ci/failing-format-demo` is deleted; its failed run stays in CircleCI's history and in the recorded beats. Re-recording beat 3 needs a fresh failing push.
-- **The theme's reference** is CircleCI's documentation screenshots; Jioh's own screenshots of the web app, if taken, are compared against it.
+- The failed run on `ci/failing-format-demo` now carries a second `verify` attempt, this pass's rerun. The branch is deleted; re-recording the failed-job beat needs a fresh failing push.
