@@ -15,6 +15,8 @@ allowBuilds:
   "calendar-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/9a7e30f86e75194cc3dfd88fd5670002c436baed#path:calendar/calendar-catalog": true
   # circleci-catalog, pinned the same way.
   "circleci-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/fe4c99e03a4ea86ca5b01ba466ff2a9b533cf12d#path:circleci/circleci-catalog": true
+  # linear-catalog, pinned the same way.
+  "linear-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/1ac2e1961840f5ed1c385cf2a03394fa709cc6a5#path:linear/linear-catalog": true
   # The two mock-tier catalogs (task 4.7). Always bundled: the client's catalog table is
   # compile-time until Phase 10 loads catalogs dynamically, when all five git deps leave together.
   "shop-a-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/380526ddfe0b326b57d02f76fa45c7e80dc7bc1d#path:mocks/shop-a/shop-a-catalog": true

@@ -114,14 +114,15 @@ describe('corpusDoc', () => {
 });
 
 describe('defaultEntries', () => {
-  test('contains github, gmail, calendar, circleci on ports 11001-11004', () => {
+  test('contains github, gmail, calendar, circleci, linear on ports 11001-11005', () => {
     const entries = defaultEntries();
-    expect(entries.map(e => e.id)).toEqual(['github', 'gmail', 'calendar', 'circleci']);
+    expect(entries.map(e => e.id)).toEqual(['github', 'gmail', 'calendar', 'circleci', 'linear']);
     expect(entries.map(e => e.agentUrl)).toEqual([
       'http://localhost:11001',
       'http://localhost:11002',
       'http://localhost:11003',
       'http://localhost:11004',
+      'http://localhost:11005',
     ]);
     expect(entries[0].catalogId).toBe(GITHUB_CATALOG_ID);
     expect(entries.map(e => e.catalogPackage)).toEqual([
@@ -129,6 +130,7 @@ describe('defaultEntries', () => {
       'gmail-catalog',
       'calendar-catalog',
       'circleci-catalog',
+      'linear-catalog',
     ]);
   });
 });

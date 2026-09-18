@@ -45,6 +45,7 @@ const CATALOG_PACKAGES = [
   'gmail-catalog',
   'calendar-catalog',
   'circleci-catalog',
+  'linear-catalog',
 ];
 
 /**

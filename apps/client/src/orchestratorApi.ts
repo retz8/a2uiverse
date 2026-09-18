@@ -8,6 +8,7 @@ import {CATALOG_ID} from 'github-catalog';
 import {CATALOG_ID as GMAIL_CATALOG_ID} from 'gmail-catalog';
 import {CATALOG_ID as CALENDAR_CATALOG_ID} from 'calendar-catalog';
 import {CATALOG_ID as CIRCLECI_CATALOG_ID} from 'circleci-catalog';
+import {CATALOG_ID as LINEAR_CATALOG_ID} from 'linear-catalog';
 import {CATALOG_ID as SHOP_A_CATALOG_ID} from 'shop-a-catalog';
 import {CATALOG_ID as SHOP_B_CATALOG_ID} from 'shop-b-catalog';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
@@ -32,7 +33,7 @@ export interface CatalogRecord {
  * orchestrator's roster only when it is pointed at the tier: the client renders whatever roster the
  * orchestrator serves and knows nothing of the profile. Naming a mock in this list is an accepted
  * leak with a known expiry — the list itself is the placeholder Phase 10's dynamic catalog loading
- * replaces, and all six app catalogs leave it together then.
+ * replaces, and all seven app catalogs leave it together then.
  */
 const STATIC_CATALOGS: CatalogRecord[] = [
   {appId: 'shell', catalogId: SHELL_CATALOG_ID, package: '@a2uiverse/shell-catalog'},
@@ -40,6 +41,7 @@ const STATIC_CATALOGS: CatalogRecord[] = [
   {appId: 'gmail', catalogId: GMAIL_CATALOG_ID, package: 'gmail-catalog'},
   {appId: 'calendar', catalogId: CALENDAR_CATALOG_ID, package: 'calendar-catalog'},
   {appId: 'circleci', catalogId: CIRCLECI_CATALOG_ID, package: 'circleci-catalog'},
+  {appId: 'linear', catalogId: LINEAR_CATALOG_ID, package: 'linear-catalog'},
   {appId: 'shop-a', catalogId: SHOP_A_CATALOG_ID, package: 'shop-a-catalog'},
   {appId: 'shop-b', catalogId: SHOP_B_CATALOG_ID, package: 'shop-b-catalog'},
 ];

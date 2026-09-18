@@ -24,6 +24,11 @@ import {
   Provider as CircleciProvider,
 } from 'circleci-catalog';
 import {
+  CATALOG as LINEAR_CATALOG,
+  CATALOG_ID as LINEAR_CATALOG_ID,
+  Provider as LinearProvider,
+} from 'linear-catalog';
+import {
   CATALOG as SHOP_A_CATALOG,
   CATALOG_ID as SHOP_A_CATALOG_ID,
   Provider as ShopAProvider,
@@ -76,6 +81,7 @@ export function resolveCatalogs(
       CIRCLECI_CATALOG_ID,
       {id: CIRCLECI_CATALOG_ID, catalog: CIRCLECI_CATALOG, Provider: CircleciProvider},
     ],
+    [LINEAR_CATALOG_ID, {id: LINEAR_CATALOG_ID, catalog: LINEAR_CATALOG, Provider: LinearProvider}],
     [SHOP_A_CATALOG_ID, {id: SHOP_A_CATALOG_ID, catalog: SHOP_A_CATALOG, Provider: ShopAProvider}],
     [SHOP_B_CATALOG_ID, {id: SHOP_B_CATALOG_ID, catalog: SHOP_B_CATALOG, Provider: ShopBProvider}],
   ]);

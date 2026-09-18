@@ -22,6 +22,7 @@ export default defineConfig({
           'gmail-catalog',
           'calendar-catalog',
           'circleci-catalog',
+          'linear-catalog',
           'shop-a-catalog',
           'shop-b-catalog',
           '@primer/react',

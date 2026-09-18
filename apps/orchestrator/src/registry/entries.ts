@@ -13,6 +13,9 @@ export const CALENDAR_CATALOG_ID =
 /** CircleCI, verified against the published catalog (7.2). */
 export const CIRCLECI_CATALOG_ID =
   'https://github.com/retz8/a2uiverse-apps/blob/main/circleci/circleci-catalog/catalogs/v0.9.1/catalog.json';
+/** Linear, verified against the published catalog (7.3). */
+export const LINEAR_CATALOG_ID =
+  'https://github.com/retz8/a2uiverse-apps/blob/main/linear/linear-catalog/catalogs/v0.9.1/catalog.json';
 
 /** The hardcoded registry. Vendor agents take ports 11001+ (tunnel-environment.md). */
 export function defaultEntries(): AppRecord[] {
@@ -48,6 +51,14 @@ export function defaultEntries(): AppRecord[] {
       authScheme: 'none',
       catalogId: CIRCLECI_CATALOG_ID,
       catalogPackage: 'circleci-catalog',
+    },
+    {
+      id: 'linear',
+      displayName: 'Linear',
+      agentUrl: 'http://localhost:11005',
+      authScheme: 'none',
+      catalogId: LINEAR_CATALOG_ID,
+      catalogPackage: 'linear-catalog',
     },
   ];
 }
