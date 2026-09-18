@@ -1,29 +1,25 @@
 # Handoff — task 7.2, the CircleCI app
 
-Not started. 7.1 (doc edits) is done on `main` (`fa4d9d1` SPEC, `16b0306` tick; apps repo `013cb95` roster + port table). Phase spec: `_dev/docs/spec/phase-7-entity-resolution.md` (`1064117`). 7.2 is an `[apps]` sub-task: worked on `../a2uiverse-apps/` `main`, no worktree; its spec, plan and handoff stay here. Parallel with 7.3 (Linear), 7.4 (sdk), 7.5 (shell-catalog).
+Built and committed; one check left before 7.2 is ticked: **the CircleCI fragment seen on the canvas through the tunnel, with Claude-in-Chrome** (task spec decision 3). Task spec: `_dev/docs/spec/task-7.2-circleci-app.md`.
 
-## What binds it
+## Where it stands
 
-- **Spec decision 3**: CircleCI joins the pull request on branch and commit hash. **Decision 12**: the agent is written to its vendor, never to the merge — its domain doc and prompt say what a CircleCI app's own user sees, drawn from what the official MCP server returns; nothing about the shell, the join, pull requests as a key, or the other agents. The Planner asks for fields in prose; an agent that does not paint one is the §4.4 fallback, recorded as a finding.
-- **Apps-repo conventions** (`../a2uiverse-apps/CLAUDE.md`, README): scaffolded by `create-a2ui-agent` on the kit as a path dependency; `circleci/agent/` + `circleci/circleci-catalog/` + `manifest.json`; three modes on one port; basic catalog under a product theme; official-public-MCP rule; no dependency on the platform beyond `@a2uiverse/sdk`. Gmail (`../a2uiverse-apps/gmail/`) is the nearest precedent: a hosted vendor MCP behind a credential the agent never holds.
-- **Port 11004**, already in the apps README roster and the apps tunnel port table.
+- **The pipeline on `a2uiverse`** — `.circleci/config.yml` (`6b59996`, pushed): `pnpm verify`'s gates as two parallel jobs, `build-typecheck-test` and `lint-format`, in the `verify` workflow, on every branch. Green on `main`. CircleCI project id `5475943e-db5e-4b4a-937b-4d64f8f05d3c`.
+- **The app in `a2uiverse-apps`** — `be69407`, pushed: the agent on port 11004 over the hosted MCP server, nine tools pinned, projects from `CIRCLECI_PROJECTS`, rerun and cancel proposed then confirmed; the four beats recorded live and the stub and deterministic corpora derived from them; `circleci-catalog` themed with the palette sampled from CircleCI's documentation screenshots of its web app. Agent suite 84 green; repo `pnpm verify` green.
+- **The platform wiring** — `dcc5c6f`, **not pushed**: the registry entry, the client's `circleci-catalog` dependency, projection, resolver and test inlining, the platform recorder's advertised catalogs. `pnpm verify` green. A pipeline question driven through the orchestrator on `localhost` routed to CircleCI and relayed `circleci:recent-runs` stamped `source: circleci`, completed in 29 s.
+- **Spec** amended to what was built — `1932783`, not pushed: projects by id through a local `list_projects` tool; the theme's reference is CircleCI's documentation screenshots.
+- `circleci/agent/.env` holds the token, the Gemini key and `CIRCLECI_PROJECTS` (gitignored).
 
-## Verified facts (vendor sources, 2026-09-16)
+## Next — the canvas check
 
-- **Hosted server**: `https://mcp.circleci.com/v1/mcp`, docs `https://circleci.com/docs/guides/toolkit/circleci-mcp-overview/`. Auth: OAuth2 or a personal API token. Tools: `hello, list_runs, get_run, list_workflows, get_workflow, rerun_workflow, cancel_workflow, list_jobs, get_job, get_job_logs, list_artifacts, list_job_tests, download_usage_data`.
-- **`get_run` fields** (from the CLI source the server is built on, `github.com/CircleCI-Public/circleci-cli`, `internal/cmd/run/get.go`): `id, phase, outcome, current_outcome, branch, tag, revision, repository_url, commit.subject/url/author_name/author_login, created_at, errors[], workflows[] → jobs[]`. **No pull-request number** anywhere in the vendor schema. So a run names its commit by `revision` (the hash) and `branch`.
-- **The npm package `@circleci/mcp-server-circleci` is deprecated** and its output carries no commit or branch fields; do not build on it. The CLI (`circleci mcp`) is the local alternative; it reads `circleci auth login` credentials or `CIRCLE_TOKEN`.
-- **Project setup**: runs exist only for a project created in CircleCI on the repository through its GitHub App, with a config file in the repo (`https://circleci.com/docs/guides/getting-started/create-project/`). `list_followed_projects` returns only projects the user follows.
+1. Start the stack with only CircleCI live: `pnpm dev:all --agents-dir ../a2uiverse-apps --only circleci --mode live`. Forward ports 10001 and 5173 and set them **Public** — both returned 404 at the tunnel last session.
+2. Open `https://vnw20xbg-5173.asse.devtunnels.ms` and ask **"How are my CircleCI builds doing?"**.
+3. Check: recent runs in one card, each row a status pill, the branch, the commit's first line and short hash, its workflows nested under it; tapping the failed run on `ci/failing-format-demo` opens its workflow attempts and jobs; tapping the failed `lint-format` job shows the failed step, its exit code and the log's last lines; **Rerun from failed** paints the proposal as a question the shell raises. Confirming really reruns the workflow on CircleCI.
+4. Repeat in `--mode deterministic`, which plays the recorded beats.
+5. On a pass: tick 7.2 through wrap-up and push `a2uiverse` `main`.
 
-## Setup that needs Jioh
+## Open threads
 
-1. A CircleCI account, the GitHub App installed on `retz8/a2uiverse`, the project created.
-2. A `.circleci/config.yml` committed to `a2uiverse` `main` — a real `chore:` commit on the platform repo, minimal (the gates already exist: `pnpm verify`). Every push then produces a run, which is what the join reads.
-3. A personal API token in the agent's environment, per the agent's README once written. The agent never holds a consent flow.
-
-## Open threads for the sub-task's own grill
-
-- Hosted MCP over HTTP with a token versus the CLI's MCP as a local process — which transport the kit's live toolset factory supports today; Gmail's agent is the precedent to read first.
-- What a CircleCI app shows its user: runs by branch with outcome, revision and commit subject; workflows and jobs; a run's logs on drill-down. Two-way content, if any.
-- The `deterministic` fixture: a canned "recent runs" answer over `retz8/a2uiverse`, plus an action map for the beats 7.8 will record (rerun a build is acceptance item 4's live action; whether deterministic mode mirrors it is this task's call).
-- Whether `rerun_workflow` is exposed as an in-fragment action (write tier) or the app stays read-only, the way GitHub's write tier was its own sub-task (3.7).
+- **A status cannot be colored per row** in the basic catalog: the word is data, and neither it nor an `Icon` name reaches the DOM as anything a selector reads. Every status draws as one neutral pill. Proposed as a backlog finding, not yet written.
+- **Two branches on the `a2uiverse` remote**, deletion Jioh's call: `circleci-project-setup` (CircleCI's starter-config commit, safe to delete) and `ci/failing-format-demo` (the deliberately misformatted file behind beat 3's failed run; keep it while the beats may be re-recorded).
+- **The theme's reference** is CircleCI's documentation screenshots; Jioh's own screenshots of the web app, if taken, are compared against it.
