@@ -14,12 +14,12 @@ Built and committed; one check left before 7.2 is ticked: **the CircleCI fragmen
 
 1. Start the stack with only CircleCI live: `pnpm dev:all --agents-dir ../a2uiverse-apps --only circleci --mode live`. Forward ports 10001 and 5173 and set them **Public** — both returned 404 at the tunnel last session.
 2. Open `https://vnw20xbg-5173.asse.devtunnels.ms` and ask **"How are my CircleCI builds doing?"**.
-3. Check: recent runs in one card, each row a status pill, the branch, the commit's first line and short hash, its workflows nested under it; tapping the failed run on `ci/failing-format-demo` opens its workflow attempts and jobs; tapping the failed `lint-format` job shows the failed step, its exit code and the log's last lines; **Rerun from failed** paints the proposal as a question the shell raises. Confirming really reruns the workflow on CircleCI.
+3. Check: recent runs in one card, each row a status pill, the branch, the commit's first line and short hash, its workflows nested under it; tapping the failed run on `ci/failing-format-demo` (branch deleted, run kept) opens its workflow attempts and jobs; tapping the failed `lint-format` job shows the failed step, its exit code and the log's last lines; **Rerun from failed** paints the proposal as a question the shell raises. Confirming really reruns the workflow on CircleCI.
 4. Repeat in `--mode deterministic`, which plays the recorded beats.
 5. On a pass: tick 7.2 through wrap-up and push `a2uiverse` `main`.
 
 ## Open threads
 
 - **A status cannot be colored per row** in the basic catalog: the word is data, and neither it nor an `Icon` name reaches the DOM as anything a selector reads. Every status draws as one neutral pill. Proposed as a backlog finding, not yet written.
-- **Two branches on the `a2uiverse` remote**, deletion Jioh's call: `circleci-project-setup` (CircleCI's starter-config commit, safe to delete) and `ci/failing-format-demo` (the deliberately misformatted file behind beat 3's failed run; keep it while the beats may be re-recorded).
+- `ci/failing-format-demo` is deleted; its failed run stays in CircleCI's history and in the recorded beats. Re-recording beat 3 needs a fresh failing push.
 - **The theme's reference** is CircleCI's documentation screenshots; Jioh's own screenshots of the web app, if taken, are compared against it.
