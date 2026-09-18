@@ -42,11 +42,11 @@ Both writes paint a proposal naming the project, the branch, the workflow and, f
 
 ### 8. Projects configured in the environment
 
-The projects the agent covers are listed in `agent/.env`, each by slug or id with its repository name; the prompt tells the model which projects this user has. `live` mode refuses to start with the list empty. Whether `list_runs` accepts a GitHub App project's slug is confirmed live alongside the tool names.
+The projects the agent covers are listed in `agent/.env`, each by id with its repository name; a project created through CircleCI's GitHub App is found only by its id, not by its `gh/<org>/<repo>` slug. The model reads the list through a local `list_projects` tool beside the MCP inventory. `live` mode refuses to start with the list empty.
 
 ### 9. Theme: tokens, a scoped theme sheet, a brand-guidance doc
 
-`circleci-catalog` carries the three layers Gmail and Calendar carry: the `--a2ui-*` tokens, a scoped product theme sheet on Gmail's sheet as template, and a brand-guidance doc for the model. The visual reference is screenshots of CircleCI's web app — the pipelines page and a workflow's job view — not the marketing site's tokens.
+`circleci-catalog` carries the three layers Gmail and Calendar carry: the `--a2ui-*` tokens, a scoped product theme sheet on Gmail's sheet as template, and a brand-guidance doc for the model. The visual reference is CircleCI's web app — the pipelines page, a workflow's job view, a failed job's step — as its documentation screenshots show it, not the marketing site's tokens; the palette is sampled from them.
 
 ### 10. Four beats; deterministic mode carries the rerun
 
