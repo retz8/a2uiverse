@@ -104,6 +104,7 @@ Spec: `_dev/docs/spec/phase-7-entity-resolution.md`.
 - [ ] **7.8** `[apps]` Entity-join beats — the pinned utterance recorded per vendor in live mode over this repository's pull requests, agents unmodified (after 7.2 and 7.3; parallel with 7.6, 7.7)
 - [ ] **7.9** Integration + acceptance — spec decision 13's nine items over the real roster live through the tunnel, beats as the deterministic bed, the mocks' comparison re-recorded with match claims as regression; the broken state's deterministic provocation decided in its grill; dead air recorded (after 7.6–7.8)
 - [ ] **7.10** Design records — `synthesis.md` rewritten; the Planner, Synthesizer and IntegrityChecker sections of the orchestrator record; the client record's evaluator, reverse index and navigation; the shell-catalog record's operators and join disclosure; `packages/sdk` README (after 7.9)
+- [WIP] **7.11** `[apps]` Product components on a themed basic catalog — SPEC §9.2 amendment and §14 rows (the appended-component convention; a bindable tone on the basic `Text` as the upstream candidate); CircleCI's `StatusBadge`, its status pill in colors sampled from CircleCI's web app, the agent onto it, beats re-recorded, the platform on the new catalog; Linear (7.3) uses the rule (after 7.2's build)
 
 ## Phase 8 — Late arrival + failure
 Per-source deadlines, failure tiles, decline, late absorb as a visible attributed update (M6).
