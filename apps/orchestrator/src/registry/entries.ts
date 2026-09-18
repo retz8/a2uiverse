@@ -10,6 +10,9 @@ export const GMAIL_CATALOG_ID =
   'https://github.com/retz8/a2uiverse-apps/blob/main/gmail/gmail-catalog/catalogs/v0.9.1/catalog.json';
 export const CALENDAR_CATALOG_ID =
   'https://github.com/retz8/a2uiverse-apps/blob/main/calendar/calendar-catalog/catalogs/v0.9.1/catalog.json';
+/** CircleCI, verified against the published catalog (7.2). */
+export const CIRCLECI_CATALOG_ID =
+  'https://github.com/retz8/a2uiverse-apps/blob/main/circleci/circleci-catalog/catalogs/v0.9.1/catalog.json';
 
 /** The hardcoded registry. Vendor agents take ports 11001+ (tunnel-environment.md). */
 export function defaultEntries(): AppRecord[] {
@@ -37,6 +40,14 @@ export function defaultEntries(): AppRecord[] {
       authScheme: 'none',
       catalogId: CALENDAR_CATALOG_ID,
       catalogPackage: 'calendar-catalog',
+    },
+    {
+      id: 'circleci',
+      displayName: 'CircleCI',
+      agentUrl: 'http://localhost:11004',
+      authScheme: 'none',
+      catalogId: CIRCLECI_CATALOG_ID,
+      catalogPackage: 'circleci-catalog',
     },
   ];
 }

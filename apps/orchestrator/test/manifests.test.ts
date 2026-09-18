@@ -137,7 +137,7 @@ describe('buildOrchestrator — roster source (task 4.7)', () => {
       config: {...base, stateDir: agentsDir(), agentUrls: {}, agentsDir: undefined},
       overrides: {embedder: new FakeEmbedder()},
     });
-    expect(registry.list().map(r => r.id)).toEqual(['github', 'gmail', 'calendar']);
+    expect(registry.list().map(r => r.id)).toEqual(['github', 'gmail', 'calendar', 'circleci']);
   });
 
   test('an agents dir replaces the roster, and URL overrides still apply per id', () => {

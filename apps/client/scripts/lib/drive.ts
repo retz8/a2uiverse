@@ -44,6 +44,7 @@ const CATALOG_PACKAGES = [
   'github-catalog',
   'gmail-catalog',
   'calendar-catalog',
+  'circleci-catalog',
 ];
 
 /**

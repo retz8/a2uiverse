@@ -21,6 +21,7 @@ export default defineConfig({
           'github-catalog',
           'gmail-catalog',
           'calendar-catalog',
+          'circleci-catalog',
           'shop-a-catalog',
           'shop-b-catalog',
           '@primer/react',

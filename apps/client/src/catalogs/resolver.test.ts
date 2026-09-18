@@ -31,6 +31,7 @@ describe('catalog projection', () => {
       'github',
       'gmail',
       'calendar',
+      'circleci',
       'shop-a',
       'shop-b',
     ]);

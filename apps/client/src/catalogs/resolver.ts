@@ -19,6 +19,11 @@ import {
   Provider as CalendarProvider,
 } from 'calendar-catalog';
 import {
+  CATALOG as CIRCLECI_CATALOG,
+  CATALOG_ID as CIRCLECI_CATALOG_ID,
+  Provider as CircleciProvider,
+} from 'circleci-catalog';
+import {
   CATALOG as SHOP_A_CATALOG,
   CATALOG_ID as SHOP_A_CATALOG_ID,
   Provider as ShopAProvider,
@@ -66,6 +71,10 @@ export function resolveCatalogs(
     [
       CALENDAR_CATALOG_ID,
       {id: CALENDAR_CATALOG_ID, catalog: CALENDAR_CATALOG, Provider: CalendarProvider},
+    ],
+    [
+      CIRCLECI_CATALOG_ID,
+      {id: CIRCLECI_CATALOG_ID, catalog: CIRCLECI_CATALOG, Provider: CircleciProvider},
     ],
     [SHOP_A_CATALOG_ID, {id: SHOP_A_CATALOG_ID, catalog: SHOP_A_CATALOG, Provider: ShopAProvider}],
     [SHOP_B_CATALOG_ID, {id: SHOP_B_CATALOG_ID, catalog: SHOP_B_CATALOG, Provider: ShopBProvider}],
