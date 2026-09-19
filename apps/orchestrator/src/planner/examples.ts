@@ -4,7 +4,7 @@
  * the field it orders by; a merged view over one kind of thing, its brief stating the join
  * hypothesis over fixture cards (task-7.6 decision 2); a command over the same cards that one agent
  * answers alone, and a status question in one app's own noun merged over every agent holding a part
- * of it (task-7.8 decision 17); a platform answer that calls one reader and templates its
+ * of it (task-7.8 decision 16); a platform answer that calls one reader and templates its
  * result; and a capability gap. The examples teach form; the rules doc
  * (`planner.md`) teaches the vocabulary and the rules. Their trees are authored against the
  * Planner's pruned shell catalog; its tests put each through the whole validator.

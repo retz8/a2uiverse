@@ -7,7 +7,6 @@ The entity-join turn recorded per vendor agent in live mode over this repository
 - The work-status turn recorded from Linear, GitHub and CircleCI in live mode, on the requests of one live run.
 - The pull requests, Linear links and CircleCI runs the join needs, set up on this repository.
 - CircleCI's and Linear's follow-up recordings re-recorded onto the work-status turn.
-- A write-up of what the roster shows and of the live run's synthesis.
 - The deterministic bed verified through the canvas.
 - The Planner's fan-out stance: SPEC §7, the Planner's rules doc, its examples, its model, measured live.
 - The pinned utterance changed, with the phase spec and SPEC §3, §9.4 and §12 following.
@@ -58,41 +57,37 @@ With their real side effects accepted: CircleCI's open run, open failed job, rer
 
 ### 11. GitHub gets no follow-up
 
-A tap on a GitHub row on the deterministic bed stays an unhandled event. The write-up records it.
+A tap on a GitHub row on the deterministic bed stays an unhandled event.
 
 ### 12. The model
 
-The beats are recorded on `gemini-3.7-flash`. A vendor that does not show the field its cue needs is re-run once on a stronger model as a diagnostic, read into the write-up and not committed.
+The beats are recorded on `gemini-3.7-flash`. A vendor that does not show the field its cue needs is re-run once on a stronger model as a diagnostic, not committed.
 
-### 13. The write-up
+### 13. Done
 
-Per app: what it showed for the fields its request asked for, and whether each cue picks out the right pull request. The live run's synthesis as observed, read from the journal: its outcome, attempts, match claims and their relations, home source, and dead air. Nothing in it is acted on in this task.
+The beats recorded and committed, the deterministic corpora derived from them, the apps repo's gates green, and one deterministic composed pass through the canvas over the tunnel in which the pinned utterance paints all four fragments. The pass judges nothing about the merged view.
 
-### 14. Done
-
-The beats recorded and committed, the deterministic corpora derived from them, the apps repo's gates green, the write-up written, and one deterministic composed pass through the canvas over the tunnel in which the pinned utterance paints all four fragments. The pass judges nothing about the merged view.
-
-### 15. The Planner answers the question the user means
+### 14. The Planner answers the question the user means
 
 An utterance about the state of one kind of thing gathers from every installed app that holds part of it, whether or not the user names them. A command or lookup inside one app's object, or an utterance that names its app, goes to that app alone. The Planner is taught this as a stance in its role, beside the costs of each added agent, not as conditions.
 
-### 16. The stance in the SPEC
+### 15. The stance in the SPEC
 
 SPEC §7's fan-out section states the stance. The Planner's rules doc carries it in its own words.
 
-### 17. The Planner's examples
+### 16. The Planner's examples
 
 A minimal pair over the orders cards: "Where are my orders?" fans out over the orders example's three fixture cards, and a single-app command over the same three cards goes to the store alone. A second domain: a status question in one app's own noun, "How are my job applications going?", merged over every agent holding a part of it, with an agent holding no part left out.
 
-### 18. The Planner's model
+### 17. The Planner's model
 
 The Planner runs on `gemini-3.7-flash` at effort low. The Synthesizer stays on `gemini-2.5-flash`.
 
-### 19. The stance is measured live
+### 18. The stance is measured live
 
-On the real roster, three runs each, the plan's dispatch read from the journal: "what's the status of what I'm working on?" dispatches Linear, GitHub and CircleCI with a merged view; "What needs my attention today?" fans out; "How are my CircleCI builds doing?", "What's assigned to me in Linear?" and "Open pull request #6." each stay with their app; a platform question is answered alone. It passes when every run lands on its side. The results are written up; nothing is committed as a gate.
+On the real roster, three runs each, the plan's dispatch read from the journal: "what's the status of what I'm working on?" dispatches Linear, GitHub and CircleCI with a merged view; "What needs my attention today?" fans out; "How are my CircleCI builds doing?", "What's assigned to me in Linear?" and "Open pull request #6." each stay with their app; a platform question is answered alone. It passes when every run lands on its side. Nothing is committed as a gate.
 
-### 20. The pinned utterance
+### 19. The pinned utterance
 
 "what's the status of what I'm working on?" replaces "where do my pull requests stand?". The merged view's rows are Linear issues, the home source; a pull request with no issue is not a row. Phase 7 decisions 2, 3 and 13 and SPEC §3, §9.4 and §12 follow.
 
