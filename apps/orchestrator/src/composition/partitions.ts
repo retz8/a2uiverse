@@ -7,20 +7,10 @@ type Model = Record<string, unknown>;
 /**
  * The orchestrator's materialized copy of every surface's data model, keyed by
  * namespaced surface id — the Synthesizer's input (SPEC §10: all partitions,
- * names and values) and the generation bookkeeping the IntegrityChecker reads.
- *
- * Generations (task-4.4 decision 3): per surface, an integer that only goes up.
- * Before the first synthesis there is no snapshot, so any change bumps (SPEC §5
- * t5, arrival). After `snapshot()` a change bumps only when an array present in
- * the snapshot is present now with different contents. A missing array is
- * absent; an identical one is nothing. Arrays only: a scalar outside any array
- * is free. Synthesis refs no longer read them — resolution is validity since
- * task 5.10 — but they ride the composition stamp, whose half is unchanged.
+ * names and values) and what the IntegrityChecker resolves refs against.
  */
 export class Partitions {
   readonly #models = new Map<string, Model>();
-  readonly #generations = new Map<string, number>();
-  #snapshot: Map<string, Model> | undefined;
 
   /** Applies the A2UI ops in a relayed event; returns the surfaces whose data changed. */
   apply(event: VendorEvent): string[] {
@@ -42,7 +32,6 @@ export class Partitions {
       if (!this.#models.has(surface) || typeof model !== 'object' || model === null) continue;
       if (deepEqual(this.#models.get(surface), model)) continue;
       this.#models.set(surface, structuredClone(model) as Model);
-      this.#afterChange(surface);
       changed.push(surface);
     }
     return changed;
@@ -71,36 +60,16 @@ export class Partitions {
     return resolvePointer(model, ref.pointer);
   }
 
-  generation(surface: string): number {
-    return this.#generations.get(surface) ?? 0;
-  }
-
-  generations(): Record<string, number> {
-    return Object.fromEntries(this.#generations);
-  }
-
-  generationsOf(surfaces: readonly string[]): Record<string, number> {
-    return Object.fromEntries(surfaces.map(s => [s, this.generation(s)]));
-  }
-
-  /** Records the live models as the baseline the next wiring is computed against. */
-  snapshot(): void {
-    this.#snapshot = new Map(
-      [...this.#models].map(([s, m]) => [s, structuredClone(m)] as [string, Model]),
-    );
-  }
-
   #applyMessage(message: Record<string, unknown>): string | undefined {
     const create = op(message.createSurface);
     if (create) {
       const surface = create.surfaceId as string;
       this.#models.set(surface, {});
-      this.#generations.set(surface, this.#generations.get(surface) ?? 0);
       return undefined;
     }
     const remove = op(message.deleteSurface);
     if (remove) {
-      // Removal is absence, never a bump: refs stop resolving and may resolve again.
+      // Removal is absence: refs stop resolving and may resolve again.
       this.#models.delete(remove.surfaceId as string);
       return undefined;
     }
@@ -112,23 +81,9 @@ export class Partitions {
       const after = setPointer(before, path, structuredClone(update.value));
       if (deepEqual(before, after)) return undefined;
       this.#models.set(surface, after);
-      this.#afterChange(surface);
       return surface;
     }
     return undefined;
-  }
-
-  #afterChange(surface: string): void {
-    const base = this.#snapshot?.get(surface);
-    if (base === undefined) {
-      this.#bump(surface);
-      return;
-    }
-    if (anyArrayRepointed(base, this.#models.get(surface))) this.#bump(surface);
-  }
-
-  #bump(surface: string): void {
-    this.#generations.set(surface, this.generation(surface) + 1);
   }
 }
 
@@ -136,23 +91,6 @@ function op(value: unknown): Record<string, unknown> | undefined {
   return typeof value === 'object' && value !== null
     ? (value as Record<string, unknown>)
     : undefined;
-}
-
-/**
- * True when an array in `base` is present at the same path in `live` with
- * different contents. A missing array is absence; an equal one is nothing.
- */
-function anyArrayRepointed(base: unknown, live: unknown): boolean {
-  if (Array.isArray(base)) {
-    if (!Array.isArray(live)) return false;
-    return !deepEqual(base, live);
-  }
-  if (typeof base !== 'object' || base === null) return false;
-  if (typeof live !== 'object' || live === null) return false;
-  for (const [key, value] of Object.entries(base)) {
-    if (anyArrayRepointed(value, (live as Record<string, unknown>)[key])) return true;
-  }
-  return false;
 }
 
 function deepEqual(a: unknown, b: unknown): boolean {

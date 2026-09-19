@@ -19,7 +19,6 @@ import {
   SHOP_A,
   SHOP_A_NAME,
   SHOP_A_REVERSED,
-  SHOP_B,
   SHOP_B_NAME,
   shopAMessages,
   shopBMessages,
@@ -411,11 +410,10 @@ const SYNTHESIS_SLOTS: LayoutSlot[] = [
 /**
  * A synthesis turn as the hub streams one (tasks 4.4, 5.4), over the sdk's camera comparison
  * example (task-5.5 decision 7): the shell reserves the synthesis slot at first paint; two
- * storefronts of unrelated shapes fill their slots, each stamped with its partition's
- * generation; the model-authored view is painted into the reserved slot with its payload beside
- * the stamp. A second, action turn reorders shop A's list in place: the bump arrives on the
- * vendor's own event, and — every ref being keyed — nothing goes stale and no re-synthesis
- * follows (phase decision 6). Both storefronts paint in the shell catalog here for control —
+ * storefronts of unrelated shapes fill their slots; the model-authored view is painted into the
+ * reserved slot with its payload beside the stamp. A second, action turn reorders shop A's list
+ * in place on the vendor's own event, and — every ref being keyed — nothing goes stale and no
+ * re-synthesis follows (phase decision 6). Both storefronts paint in the shell catalog here for control —
  * the stream is authored, not recorded, and the mocks' catalogs would add nothing it tests.
  */
 export const SYNTHESIS_BEAT: BeatFixture = {
@@ -441,21 +439,13 @@ export const SYNTHESIS_BEAT: BeatFixture = {
         },
         {
           offsetMs: 400,
-          stamp: {
-            source: 'shop-a',
-            role: 'fragment',
-            generations: {[SHOP_A]: 1},
-          },
+          stamp: {source: 'shop-a', role: 'fragment'},
           messages: shopAMessages(SHELL_CATALOG_ID),
           texts: [],
         },
         {
           offsetMs: 700,
-          stamp: {
-            source: 'shop-b',
-            role: 'fragment',
-            generations: {[SHOP_B]: 1},
-          },
+          stamp: {source: 'shop-b', role: 'fragment'},
           messages: shopBMessages(SHELL_CATALOG_ID),
           texts: [],
         },
@@ -483,14 +473,10 @@ export const SYNTHESIS_BEAT: BeatFixture = {
       outcome: 'completed',
       durationMs: 300,
       batches: [
-        // The vendor's own event carries the bump. Keyed refs survive it: the view holds.
+        // The vendor's own event reorders the list. Keyed refs survive it: the view holds.
         {
           offsetMs: 0,
-          stamp: {
-            source: 'shop-a',
-            role: 'fragment',
-            generations: {[SHOP_A]: 2},
-          },
+          stamp: {source: 'shop-a', role: 'fragment'},
           messages: [
             msg({
               updateDataModel: {

@@ -42,7 +42,7 @@ export interface CompositionState {
   slots: Map<string, {plan: SlotPlan; state: SlotState}>;
   /** The capability gaps the Planner named, in dispatch order; each has a `Slot` in the tree. */
   gaps: string[];
-  /** Every surface's data model, snapshots and generations (task-4.4 decision 3). */
+  /** Every surface's data model. */
   partitions: Partitions;
   /** Sources whose dispatch completed having painted — what synthesis runs over. */
   arrived: Set<string>;

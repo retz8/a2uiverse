@@ -164,10 +164,7 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "role": "fragment",
-            "generations": {
-              "gmail:unread-needs-reply": 1
-            }
+            "role": "fragment"
           }
         },
         {
@@ -197,10 +194,7 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "role": "fragment",
-            "generations": {
-              "gmail:unread-needs-reply": 2
-            }
+            "role": "fragment"
           }
         },
         {
@@ -232,10 +226,7 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "role": "fragment",
-            "generations": {
-              "gmail:unread-needs-reply": 3
-            }
+            "role": "fragment"
           }
         },
         {
@@ -268,10 +259,7 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "role": "fragment",
-            "generations": {
-              "gmail:unread-needs-reply": 4
-            }
+            "role": "fragment"
           }
         },
         {
@@ -308,10 +296,7 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "role": "fragment",
-            "generations": {
-              "gmail:unread-needs-reply": 5
-            }
+            "role": "fragment"
           }
         },
         {
@@ -350,10 +335,7 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "role": "fragment",
-            "generations": {
-              "gmail:unread-needs-reply": 6
-            }
+            "role": "fragment"
           }
         },
         {
@@ -393,10 +375,7 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "role": "fragment",
-            "generations": {
-              "gmail:unread-needs-reply": 7
-            }
+            "role": "fragment"
           }
         },
         {
@@ -437,10 +416,7 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "role": "fragment",
-            "generations": {
-              "gmail:unread-needs-reply": 8
-            }
+            "role": "fragment"
           }
         },
         {
@@ -1981,10 +1957,7 @@
           "texts": [],
           "stamp": {
             "source": "calendar",
-            "role": "fragment",
-            "generations": {
-              "calendar:today-and-invitations": 1
-            }
+            "role": "fragment"
           }
         },
         {
@@ -2017,10 +1990,7 @@
           "texts": [],
           "stamp": {
             "source": "calendar",
-            "role": "fragment",
-            "generations": {
-              "calendar:today-and-invitations": 2
-            }
+            "role": "fragment"
           }
         },
         {
@@ -2056,10 +2026,7 @@
           "texts": [],
           "stamp": {
             "source": "calendar",
-            "role": "fragment",
-            "generations": {
-              "calendar:today-and-invitations": 3
-            }
+            "role": "fragment"
           }
         },
         {
@@ -2097,10 +2064,7 @@
           "texts": [],
           "stamp": {
             "source": "calendar",
-            "role": "fragment",
-            "generations": {
-              "calendar:today-and-invitations": 4
-            }
+            "role": "fragment"
           }
         },
         {
@@ -2129,10 +2093,7 @@
           "texts": [],
           "stamp": {
             "source": "calendar",
-            "role": "fragment",
-            "generations": {
-              "calendar:today-and-invitations": 5
-            }
+            "role": "fragment"
           }
         },
         {
@@ -2164,10 +2125,7 @@
           "texts": [],
           "stamp": {
             "source": "calendar",
-            "role": "fragment",
-            "generations": {
-              "calendar:today-and-invitations": 6
-            }
+            "role": "fragment"
           }
         },
         {
@@ -2220,10 +2178,7 @@
           "texts": [],
           "stamp": {
             "source": "calendar",
-            "role": "fragment",
-            "generations": {
-              "calendar:today-and-invitations": 7
-            }
+            "role": "fragment"
           }
         },
         {
@@ -10804,10 +10759,7 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "role": "fragment",
-            "generations": {
-              "github:prs-waiting-on-me": 1
-            }
+            "role": "fragment"
           }
         },
         {
@@ -10833,10 +10785,7 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "role": "fragment",
-            "generations": {
-              "github:prs-waiting-on-me": 2
-            }
+            "role": "fragment"
           }
         },
         {
@@ -10863,10 +10812,7 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "role": "fragment",
-            "generations": {
-              "github:prs-waiting-on-me": 3
-            }
+            "role": "fragment"
           }
         },
         {
@@ -10896,10 +10842,7 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "role": "fragment",
-            "generations": {
-              "github:prs-waiting-on-me": 4
-            }
+            "role": "fragment"
           }
         },
         {

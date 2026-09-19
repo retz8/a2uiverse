@@ -53423,10 +53423,7 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "role": "fragment",
-            "generations": {
-              "github:issue-detail-233": 1
-            }
+            "role": "fragment"
           }
         }
       ],

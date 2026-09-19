@@ -131,10 +131,7 @@
           "texts": [],
           "stamp": {
             "source": "calendar",
-            "role": "fragment",
-            "generations": {
-              "calendar:today-agenda": 1
-            }
+            "role": "fragment"
           }
         },
         {
@@ -163,10 +160,7 @@
           "texts": [],
           "stamp": {
             "source": "calendar",
-            "role": "fragment",
-            "generations": {
-              "calendar:today-agenda": 2
-            }
+            "role": "fragment"
           }
         },
         {
@@ -196,10 +190,7 @@
           "texts": [],
           "stamp": {
             "source": "calendar",
-            "role": "fragment",
-            "generations": {
-              "calendar:today-agenda": 3
-            }
+            "role": "fragment"
           }
         },
         {
@@ -231,10 +222,7 @@
           "texts": [],
           "stamp": {
             "source": "calendar",
-            "role": "fragment",
-            "generations": {
-              "calendar:today-agenda": 4
-            }
+            "role": "fragment"
           }
         },
         {
@@ -269,10 +257,7 @@
           "texts": [],
           "stamp": {
             "source": "calendar",
-            "role": "fragment",
-            "generations": {
-              "calendar:today-agenda": 5
-            }
+            "role": "fragment"
           }
         },
         {
@@ -308,10 +293,7 @@
           "texts": [],
           "stamp": {
             "source": "calendar",
-            "role": "fragment",
-            "generations": {
-              "calendar:today-agenda": 6
-            }
+            "role": "fragment"
           }
         },
         {
@@ -349,10 +331,7 @@
           "texts": [],
           "stamp": {
             "source": "calendar",
-            "role": "fragment",
-            "generations": {
-              "calendar:today-agenda": 7
-            }
+            "role": "fragment"
           }
         },
         {
@@ -393,10 +372,7 @@
           "texts": [],
           "stamp": {
             "source": "calendar",
-            "role": "fragment",
-            "generations": {
-              "calendar:today-agenda": 8
-            }
+            "role": "fragment"
           }
         },
         {
@@ -440,10 +416,7 @@
           "texts": [],
           "stamp": {
             "source": "calendar",
-            "role": "fragment",
-            "generations": {
-              "calendar:today-agenda": 9
-            }
+            "role": "fragment"
           }
         },
         {
@@ -1260,10 +1233,7 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "role": "fragment",
-            "generations": {
-              "gmail:needs-reply": 1
-            }
+            "role": "fragment"
           }
         },
         {
@@ -1289,10 +1259,7 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "role": "fragment",
-            "generations": {
-              "gmail:needs-reply": 2
-            }
+            "role": "fragment"
           }
         },
         {
@@ -1319,10 +1286,7 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "role": "fragment",
-            "generations": {
-              "gmail:needs-reply": 3
-            }
+            "role": "fragment"
           }
         },
         {
@@ -1353,10 +1317,7 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "role": "fragment",
-            "generations": {
-              "gmail:needs-reply": 4
-            }
+            "role": "fragment"
           }
         },
         {
@@ -1388,10 +1349,7 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "role": "fragment",
-            "generations": {
-              "gmail:needs-reply": 5
-            }
+            "role": "fragment"
           }
         },
         {
@@ -1424,10 +1382,7 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "role": "fragment",
-            "generations": {
-              "gmail:needs-reply": 6
-            }
+            "role": "fragment"
           }
         },
         {
@@ -1461,10 +1416,7 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "role": "fragment",
-            "generations": {
-              "gmail:needs-reply": 7
-            }
+            "role": "fragment"
           }
         },
         {
@@ -1501,10 +1453,7 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "role": "fragment",
-            "generations": {
-              "gmail:needs-reply": 8
-            }
+            "role": "fragment"
           }
         },
         {
@@ -1543,10 +1492,7 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "role": "fragment",
-            "generations": {
-              "gmail:needs-reply": 9
-            }
+            "role": "fragment"
           }
         },
         {
@@ -1587,10 +1533,7 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "role": "fragment",
-            "generations": {
-              "gmail:needs-reply": 10
-            }
+            "role": "fragment"
           }
         },
         {
@@ -1635,10 +1578,7 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "role": "fragment",
-            "generations": {
-              "gmail:needs-reply": 11
-            }
+            "role": "fragment"
           }
         },
         {
@@ -1684,10 +1624,7 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "role": "fragment",
-            "generations": {
-              "gmail:needs-reply": 12
-            }
+            "role": "fragment"
           }
         },
         {
@@ -1734,10 +1671,7 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "role": "fragment",
-            "generations": {
-              "gmail:needs-reply": 13
-            }
+            "role": "fragment"
           }
         },
         {
@@ -1785,10 +1719,7 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "role": "fragment",
-            "generations": {
-              "gmail:needs-reply": 14
-            }
+            "role": "fragment"
           }
         },
         {
@@ -1840,10 +1771,7 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "role": "fragment",
-            "generations": {
-              "gmail:needs-reply": 15
-            }
+            "role": "fragment"
           }
         },
         {
@@ -1896,10 +1824,7 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "role": "fragment",
-            "generations": {
-              "gmail:needs-reply": 16
-            }
+            "role": "fragment"
           }
         },
         {
@@ -1954,10 +1879,7 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "role": "fragment",
-            "generations": {
-              "gmail:needs-reply": 17
-            }
+            "role": "fragment"
           }
         },
         {
@@ -2016,10 +1938,7 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "role": "fragment",
-            "generations": {
-              "gmail:needs-reply": 18
-            }
+            "role": "fragment"
           }
         },
         {
@@ -2079,10 +1998,7 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "role": "fragment",
-            "generations": {
-              "gmail:needs-reply": 19
-            }
+            "role": "fragment"
           }
         },
         {
@@ -2143,10 +2059,7 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "role": "fragment",
-            "generations": {
-              "gmail:needs-reply": 20
-            }
+            "role": "fragment"
           }
         },
         {
@@ -2208,10 +2121,7 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "role": "fragment",
-            "generations": {
-              "gmail:needs-reply": 21
-            }
+            "role": "fragment"
           }
         },
         {
@@ -2276,10 +2186,7 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "role": "fragment",
-            "generations": {
-              "gmail:needs-reply": 22
-            }
+            "role": "fragment"
           }
         },
         {
@@ -2346,10 +2253,7 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "role": "fragment",
-            "generations": {
-              "gmail:needs-reply": 23
-            }
+            "role": "fragment"
           }
         },
         {
@@ -2417,10 +2321,7 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "role": "fragment",
-            "generations": {
-              "gmail:needs-reply": 24
-            }
+            "role": "fragment"
           }
         },
         {
@@ -2489,10 +2390,7 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "role": "fragment",
-            "generations": {
-              "gmail:needs-reply": 25
-            }
+            "role": "fragment"
           }
         },
         {
@@ -2564,10 +2462,7 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "role": "fragment",
-            "generations": {
-              "gmail:needs-reply": 26
-            }
+            "role": "fragment"
           }
         },
         {
@@ -2641,10 +2536,7 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "role": "fragment",
-            "generations": {
-              "gmail:needs-reply": 27
-            }
+            "role": "fragment"
           }
         },
         {
@@ -2720,10 +2612,7 @@
           "texts": [],
           "stamp": {
             "source": "gmail",
-            "role": "fragment",
-            "generations": {
-              "gmail:needs-reply": 28
-            }
+            "role": "fragment"
           }
         },
         {

@@ -45,7 +45,6 @@ export interface EvaluateInput {
   payload: SynthesisPayload;
   /** The root data model of a partition by namespaced surface id; undefined when not held. */
   models: (surface: string) => unknown;
-  /** The latest generation seen per surface, from the stamps. */
   /** The user's choices by sorted array path; a declaration without one takes its own. */
   choices?: ReadonlyMap<string, SortChoice>;
   /** The shell catalog's functions — the operator vocabulary. */

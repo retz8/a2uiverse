@@ -1,11 +1,11 @@
 /**
  * The synthesis half of the composition extension (SPEC §5.2, §14): the payload the orchestrator
  * sends the client beside a painted synthesis surface — the derived data model whose every leaf is
- * a formula over refs into partitions, and the sort declarations — and the pieces both sides agree
- * on. Normative definition: `../contracts/composition.v0.5.json` (`shapes.synthesizeDataModel`);
- * `synthesis.contract.test.ts` asserts this projection against it. What the Synthesizer writes, and
- * how it is told to, belongs to the orchestrator; the tree it writes is painted as ordinary A2UI
- * and never rides this payload.
+ * a formula over refs into partitions, its match claims, and the sort declarations — and the pieces
+ * both sides agree on. Normative definition: `../contracts/composition.v0.6.json`
+ * (`shapes.synthesizeDataModel`); `synthesis.contract.test.ts` asserts this projection against it.
+ * What the Synthesizer writes, and how it is told to, belongs to the orchestrator; the tree it
+ * writes is painted as ordinary A2UI and never rides this payload.
  *
  * The schema is plain JSON Schema 2020-12, recursive where the model is free-form; its `$defs` are
  * exported for an author's own output schema to build on, and the sdk's validator (`validate.ts`)
@@ -14,6 +14,9 @@
 
 /** Metadata key the client-facing payload rides under, beside the composition stamp. */
 export const SYNTHESIS_KEY = 'a2uiverseSynthesis';
+
+/** The reserved key of an object of the derived model that holds its match claim. */
+export const MATCH_KEY = 'match';
 
 const refSchema = {
   type: 'object',
@@ -47,12 +50,36 @@ const formulaSchema = {
   },
 } as const;
 
+const relationSchema = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['op', 'args'],
+  description:
+    "One named relation of a match claim: a formula like any other leaf, its operator a relation the shell catalog declares, over exactly two refs in two different apps — the appId of each ref's namespaced surface. The contract does not enumerate relations; the consumer checks the operator against the shell catalog.",
+  properties: {
+    op: {type: 'string', description: 'A relation the shell catalog declares as a function.'},
+    args: {type: 'array', minItems: 2, maxItems: 2, items: {$ref: '#/$defs/ref'}},
+  },
+} as const;
+
+const matchSchema = {
+  type: 'object',
+  minProperties: 1,
+  additionalProperties: {$ref: '#/$defs/relation'},
+  description:
+    "A match claim, under the reserved key `match` of an object of the derived model, the root included: the Synthesizer's word that the entries the object joins from different apps are one thing, with its evidence. Each key is the Synthesizer's own words for what matched, each value a relation. At least one relation; flat. No object is required to carry one. Rendered through the shell's join-disclosure component.",
+} as const;
+
 const nodeSchema = {
   description:
-    'A node of the free-form derived model: a formula leaf, an object whose values are nodes, or an array of nodes. A scalar anywhere is a violation — every leaf is a formula, never a literal value.',
+    'A node of the free-form derived model: a formula leaf, an object whose values are nodes — its key `match`, when present, is its match claim — or an array of nodes. A scalar anywhere is a violation — every leaf is a formula, never a literal value.',
   oneOf: [
     {$ref: '#/$defs/formula'},
-    {type: 'object', additionalProperties: {$ref: '#/$defs/node'}},
+    {
+      type: 'object',
+      properties: {[MATCH_KEY]: {$ref: '#/$defs/match'}},
+      additionalProperties: {$ref: '#/$defs/node'},
+    },
     {type: 'array', items: {$ref: '#/$defs/node'}},
   ],
 } as const;
@@ -61,9 +88,10 @@ const dataModelSchema = {
   type: 'object',
   minProperties: 1,
   propertyNames: {not: {const: 'sorts'}},
+  properties: {[MATCH_KEY]: {$ref: '#/$defs/match'}},
   additionalProperties: {$ref: '#/$defs/node'},
   description:
-    "The derived data model the tree binds to: a JSON shape of the Synthesizer's choosing whose every leaf is a formula. Evaluated client-side into plain values with contributor state at the same paths. The root key `sorts` is reserved: the runtime writes each sort declaration, with the user's current choice, at `/sorts/N` of the synthesis surface's data model, and the tree binds SortControl there.",
+    "The derived data model the tree binds to: a JSON shape of the Synthesizer's choosing whose every leaf is a formula. Evaluated client-side into plain values with contributor state at the same paths. The key `match` on any object, the root included, is that object's match claim. The root key `sorts` is reserved: the runtime writes each sort declaration, with the user's current choice, at `/sorts/N` of the synthesis surface's data model, and the tree binds SortControl there.",
 } as const;
 
 const sortSchema = {
@@ -101,10 +129,15 @@ const sortSchema = {
   },
 } as const;
 
-/** The shared definitions: a ref, a formula, a node, the derived data model, a sort declaration. */
+/**
+ * The shared definitions: a ref, a formula, a relation and a match claim, a node, the derived data
+ * model, a sort declaration.
+ */
 export const SYNTHESIS_DEFS = {
   ref: refSchema,
   formula: formulaSchema,
+  relation: relationSchema,
+  match: matchSchema,
   node: nodeSchema,
   dataModel: dataModelSchema,
   sort: sortSchema,
@@ -141,7 +174,17 @@ export interface Formula {
   args: Ref[];
 }
 
-/** A node of the free-form derived model. */
+/** One named relation of a match claim: a formula over two refs in two different apps. */
+export interface Relation {
+  /** A relation the shell catalog declares as a function. */
+  op: string;
+  args: [Ref, Ref];
+}
+
+/** A match claim: the Synthesizer's words for what matched, each naming a relation. */
+export type MatchClaim = {[name: string]: Relation};
+
+/** A node of the free-form derived model; an object's `match` key holds its match claim. */
 export type ModelNode = Formula | {[key: string]: ModelNode} | ModelNode[];
 
 /** The derived data model: an object of nodes. */

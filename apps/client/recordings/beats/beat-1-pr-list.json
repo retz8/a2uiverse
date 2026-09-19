@@ -1919,10 +1919,7 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "role": "fragment",
-            "generations": {
-              "github:prs-needing-review-a2ui": 1
-            }
+            "role": "fragment"
           }
         }
       ],

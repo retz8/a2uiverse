@@ -1,8 +1,8 @@
 {
   "name": "a2uiverse-composition",
-  "version": "0.5.0",
-  "description": "The A2UIVerse composition extension (SPEC §14): the A2A metadata contract for cross-agent UI composition, internal to the platform (orchestrator ↔ client). Two halves: the composition stamp (provenance, role, generations) on every relayed event, and the synthesis payload — the derived data model of formula leaves and the sort declarations of a merged view — on the event that paints a synthesis surface. Nothing a2uiverse-specific rides the vendor wire. Normative for every language projection; each projection's contract test asserts against this file.",
-  "extensionUri": "https://a2uiverse.dev/ext/composition/v0.5",
+  "version": "0.6.0",
+  "description": "The A2UIVerse composition extension (SPEC §14): the A2A metadata contract for cross-agent UI composition, internal to the platform (orchestrator ↔ client). Two halves: the composition stamp (provenance, role) on every relayed event, and the synthesis payload — the derived data model of formula leaves, its match claims, and the sort declarations of a merged view — on the event that paints a synthesis surface. Nothing a2uiverse-specific rides the vendor wire. Normative for every language projection; each projection's contract test asserts against this file.",
+  "extensionUri": "https://a2uiverse.dev/ext/composition/v0.6",
   "stampKey": "a2uiverse",
   "surfaceIdSeparator": ":",
   "surfaceIdNamespacing": {
@@ -11,18 +11,18 @@
     "rule": "The orchestrator namespaces surfaceId on the four A2UI server→client message types and reverses it on inbound client actions. Component ids, binding paths, and catalog ids are never rewritten."
   },
   "synthesisKey": "a2uiverseSynthesis",
+  "matchKey": "match",
   "shapes": {
     "compositionStamp": {
       "direction": "orchestrator → client",
       "carriedOn": "every relayed A2A event's metadata, keyed by stampKey",
       "required": ["source"],
-      "optional": ["role", "vendorContextId", "vendorTaskId", "generations"],
+      "optional": ["role", "vendorContextId", "vendorTaskId"],
       "fields": {
         "source": "Provenance and placement: the app id the event came from. A fragment's surface fills the layout's Slot whose source is this id.",
         "role": "Which surface the canvas renders as the composition root: 'shell' | 'fragment'.",
         "vendorContextId": "Debug only, gated by orchestrator config.",
-        "vendorTaskId": "Debug only, gated by orchestrator config.",
-        "generations": "Per-partition generation counters, keyed by namespaced surfaceId, for every surface this event touched. An integer that only goes up: bumped when an array a live ref indexes into is mutated in place (SPEC §6.2). Absent on the shell's own events — the synthesis surface is derived, not a source."
+        "vendorTaskId": "Debug only, gated by orchestrator config."
       }
     },
     "synthesizeDataModel": {
@@ -71,14 +71,47 @@
                 }
               }
             },
+            "relation": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["op", "args"],
+              "description": "One named relation of a match claim: a formula like any other leaf, its operator a relation the shell catalog declares, over exactly two refs in two different apps — the appId of each ref's namespaced surface. The contract does not enumerate relations; the consumer checks the operator against the shell catalog.",
+              "properties": {
+                "op": {
+                  "type": "string",
+                  "description": "A relation the shell catalog declares as a function."
+                },
+                "args": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 2,
+                  "items": {
+                    "$ref": "#/$defs/ref"
+                  }
+                }
+              }
+            },
+            "match": {
+              "type": "object",
+              "minProperties": 1,
+              "additionalProperties": {
+                "$ref": "#/$defs/relation"
+              },
+              "description": "A match claim, under the reserved key `match` of an object of the derived model, the root included: the Synthesizer's word that the entries the object joins from different apps are one thing, with its evidence. Each key is the Synthesizer's own words for what matched, each value a relation. At least one relation; flat. No object is required to carry one. Rendered through the shell's join-disclosure component."
+            },
             "node": {
-              "description": "A node of the free-form derived model: a formula leaf, an object whose values are nodes, or an array of nodes. A scalar anywhere is a violation — every leaf is a formula, never a literal value.",
+              "description": "A node of the free-form derived model: a formula leaf, an object whose values are nodes — its key `match`, when present, is its match claim — or an array of nodes. A scalar anywhere is a violation — every leaf is a formula, never a literal value.",
               "oneOf": [
                 {
                   "$ref": "#/$defs/formula"
                 },
                 {
                   "type": "object",
+                  "properties": {
+                    "match": {
+                      "$ref": "#/$defs/match"
+                    }
+                  },
                   "additionalProperties": {
                     "$ref": "#/$defs/node"
                   }
@@ -99,10 +132,15 @@
                   "const": "sorts"
                 }
               },
+              "properties": {
+                "match": {
+                  "$ref": "#/$defs/match"
+                }
+              },
               "additionalProperties": {
                 "$ref": "#/$defs/node"
               },
-              "description": "The derived data model the tree binds to: a JSON shape of the Synthesizer's choosing whose every leaf is a formula. Evaluated client-side into plain values with contributor state at the same paths. The root key `sorts` is reserved: the runtime writes each sort declaration, with the user's current choice, at `/sorts/N` of the synthesis surface's data model, and the tree binds SortControl there."
+              "description": "The derived data model the tree binds to: a JSON shape of the Synthesizer's choosing whose every leaf is a formula. Evaluated client-side into plain values with contributor state at the same paths. The key `match` on any object, the root included, is that object's match claim. The root key `sorts` is reserved: the runtime writes each sort declaration, with the user's current choice, at `/sorts/N` of the synthesis surface's data model, and the tree binds SortControl there."
             },
             "sort": {
               "type": "object",

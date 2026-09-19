@@ -2,15 +2,22 @@
 import {readFileSync} from 'node:fs';
 import {expect, test} from 'vitest';
 import {COMPOSITION_EXTENSION_URI, STAMP_KEY} from './composition';
-import {readSynthesis, SYNTHESIS_KEY, SYNTHESIS_SCHEMA, type SynthesisPayload} from './synthesis';
+import {
+  MATCH_KEY,
+  readSynthesis,
+  SYNTHESIS_KEY,
+  SYNTHESIS_SCHEMA,
+  type SynthesisPayload,
+} from './synthesis';
 
 const contract = JSON.parse(
-  readFileSync(new URL('../../contracts/composition.v0.5.json', import.meta.url), 'utf8'),
+  readFileSync(new URL('../../contracts/composition.v0.6.json', import.meta.url), 'utf8'),
 ) as {
   version: string;
   extensionUri: string;
   stampKey: string;
   synthesisKey: string;
+  matchKey: string;
   shapes: {
     compositionStamp: {direction: string};
     synthesizeDataModel: {
@@ -21,8 +28,8 @@ const contract = JSON.parse(
 };
 
 test('one version line: file, version, extension URI', () => {
-  expect(contract.version).toBe('0.5.0');
-  expect(contract.extensionUri).toBe('https://a2uiverse.dev/ext/composition/v0.5');
+  expect(contract.version).toBe('0.6.0');
+  expect(contract.extensionUri).toBe('https://a2uiverse.dev/ext/composition/v0.6');
   expect(COMPOSITION_EXTENSION_URI).toBe(contract.extensionUri);
 });
 
@@ -48,6 +55,27 @@ test('the derived model is recursive: a node is a formula, an object of nodes, o
   const defs = (SYNTHESIS_SCHEMA as {$defs: Record<string, {oneOf?: unknown[]}>}).$defs;
   expect(defs.node.oneOf).toHaveLength(3);
   expect(JSON.stringify(defs.node)).toContain('#/$defs/node');
+});
+
+test('the match key matches the contract', () => {
+  expect(MATCH_KEY).toBe(contract.matchKey);
+  expect(MATCH_KEY).toBe('match');
+});
+
+test('a match claim is a non-empty, flat object of relations, each a formula over exactly two refs', () => {
+  const defs = (
+    SYNTHESIS_SCHEMA as {
+      $defs: Record<string, {properties?: Record<string, unknown>; oneOf?: unknown[]}>;
+    }
+  ).$defs;
+  expect(defs.match).toMatchObject({
+    type: 'object',
+    minProperties: 1,
+    additionalProperties: {$ref: '#/$defs/relation'},
+  });
+  expect(defs.relation.properties?.args).toMatchObject({minItems: 2, maxItems: 2});
+  expect(defs.dataModel.properties?.[MATCH_KEY]).toEqual({$ref: '#/$defs/match'});
+  expect(defs.node.oneOf?.[1]).toMatchObject({properties: {[MATCH_KEY]: {$ref: '#/$defs/match'}}});
 });
 
 const payload: SynthesisPayload = {

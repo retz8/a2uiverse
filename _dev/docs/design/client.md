@@ -55,7 +55,7 @@ replay needs.
 ### The stamp is the routing input
 
 The hub stamps every event it relays (`metadata.a2uiverse`, `@a2uiverse/sdk`, composition
-contract v0.5): `{source, role}`, plus `generations` on a vendor's events. `sendAndApply` extracts
+contract v0.6): `{source, role}`. `sendAndApply` extracts
 it (`extractStampFromEvent`, over the sdk's `readStamp`) and hands it to the turn handle alongside
 the batch. Placement is by `source`: the stamp names no slot, and the `Slot` a fragment fills is
 the one whose `source` is the stamp's.
@@ -83,8 +83,7 @@ write — before React renders. Subscription-driven runs coalesce to one microta
 batch of several data-model messages evaluates once; intake evaluates synchronously. Its own
 write is guarded against re-triggering itself, and an unchanged output is not written. A surface
 the payload refs that a vendor re-creates is watched again; one that is deleted goes absent and
-re-evaluates. Nothing here tracks generations: refs select by key, so a repaint under a ref is
-not an event (task 5.10). The user's choice on each sorted array sticks across a re-synthesis
+re-evaluates. Refs select by key, so a repaint under a ref is not an event (task 5.10). The user's choice on each sorted array sticks across a re-synthesis
 while its key is still an option; `retireStage` retires the session with the composition, so a
 new utterance turn starts from the declarations' own choices.
 

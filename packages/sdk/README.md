@@ -6,7 +6,7 @@ A2UI tools. One normative JSON contract, one pinned copy of the A2UI v0.9.1 spec
 package.
 
 ```
-contracts/composition.v0.5.json   normative; the package is tested against it
+contracts/composition.v0.6.json   normative; the package is tested against it
 a2ui-spec/                        A2UI v0.9.1 schemas, basic catalog, validator conformance cases — pinned copy
 js/                               @a2uiverse/sdk — types, validators, resolution kit, A2UI tools
 ```
@@ -39,6 +39,10 @@ One turn on the canvas, and where this package sits in it:
   painted as ordinary A2UI.
 - **Ref** — `{surface, pointer}`: a JSON Pointer into one partition, selecting array elements by
   key (`/threads[id="…"]/time`), never by position.
+- **Match claim** — the Synthesizer's word that the entries an object joins from different apps
+  are one thing, under the object's reserved key `match`: named relations, each a formula over two
+  refs in two different apps (`"branch": equal(github…/branch, circleci…/branch)`). Written where
+  the Synthesizer judges a join; no object is required to carry one.
 
 ## Quick start
 
@@ -127,7 +131,7 @@ One entry point, `@a2uiverse/sdk`. Grouped by module.
 
 | Export                                  | What it is                      |
 | --------------------------------------- | ------------------------------- |
-| `CompositionStamp`                      | `{source, role?, generations?}` |
+| `CompositionStamp`                      | `{source, role?}`               |
 | `STAMP_KEY`                             | `"a2uiverse"`, the metadata key |
 | `COMPOSITION_EXTENSION_URI`             | the A2A extension URI           |
 | `namespaceSurfaceId` · `parseSurfaceId` | `<appId>:<surfaceId>` and back  |
@@ -139,22 +143,25 @@ One entry point, `@a2uiverse/sdk`. Grouped by module.
 | -------------------------------------------------------------------- | ----------------------------------------------------- |
 | `SynthesisPayload`                                                   | `{dataModel, sorts}`, what the client receives        |
 | `Ref` · `Formula` · `ModelNode` · `DerivedModel` · `SortDeclaration` | the pieces                                            |
+| `Relation` · `MatchClaim` · `MATCH_KEY`                              | a match claim's pieces, and `"match"`, its key        |
 | `SYNTHESIS_SCHEMA` · `SYNTHESIS_DEFS`                                | the payload's JSON Schema, and its shared definitions |
 | `SYNTHESIS_KEY` · `readSynthesis(metadata)`                          | `"a2uiverseSynthesis"`, and read the payload back     |
 | `validateSynthesisPayload(input)`                                    | `{ok, value}` or `{ok, errors}`, one line per finding |
 | `schemaErrors(validate, input)`                                      | an ajv validator's errors as those lines              |
 
-Schema plus structure: every leaf a formula, every pointer parses, one sort per array, every sort
-key a formula with refs in every element, the initial key an option.
+Schema plus structure: every leaf a formula, every pointer parses, every match claim non-empty and
+flat with each relation over two refs in two different apps, one sort per array, every sort key a
+formula with refs in every element, the initial key an option. Whether a relation's operator is a
+relation, and whether it holds, is the consumer's.
 
 **Resolution kit** — `js/src/pointer.ts` · `js/src/walk.ts`
 
-| Export                           | What it is                                           |
-| -------------------------------- | ---------------------------------------------------- |
-| `parsePointer(pointer)`          | pointer → steps; throws `PointerSyntaxError`         |
-| `resolvePointer(root, pointer)`  | `Resolution`: a value, or why not                    |
-| `isFormula` · `walkModel(model)` | recognise a leaf; enumerate every leaf with its path |
-| `refsOf(model)`                  | every ref, in leaf order                             |
+| Export                           | What it is                                                                                     |
+| -------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `parsePointer(pointer)`          | pointer → steps; throws `PointerSyntaxError`                                                   |
+| `resolvePointer(root, pointer)`  | `Resolution`: a value, or why not                                                              |
+| `isFormula` · `walkModel(model)` | recognise a leaf; enumerate every leaf with its path, and every match claim with its relations |
+| `refsOf(model)`                  | every ref, in leaf order                                                                       |
 
 **A2UI tools** — `js/src/a2ui/`
 
@@ -199,6 +206,6 @@ ESM, runs in Node and the browser, and depends on `ajv` alone.
 
 ## Further reading
 
-- `contracts/composition.v0.5.json` — the normative contract; SPEC §14 is its register entry.
+- `contracts/composition.v0.6.json` — the normative contract; SPEC §14 is its register entry.
 - `_dev/docs/design/synthesis.md` — how the pieces are used across a turn, both processes.
 - `_dev/docs/design/orchestrator.md` · `_dev/docs/design/client.md` — each consumer's side.

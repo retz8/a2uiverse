@@ -70,3 +70,53 @@ test('refsOf lists every ref in leaf order', () => {
     {surface: 'github:prs', pointer: '/pulls[number=812]/updatedAt'},
   ]);
 });
+
+const G = (pointer: string) => ({surface: 'github:prs', pointer});
+const C = (pointer: string) => ({surface: 'circleci:runs', pointer});
+const joined: DerivedModel = {
+  match: {branch: {op: 'equal', args: [G('/head'), C('/branch')]}},
+  pulls: [
+    {
+      title: {op: 'value', args: [G('/pulls[number=142]/title')]},
+      ci: {op: 'value', args: [C('/runs[id="r1"]/status')]},
+      match: {
+        branch: {op: 'equal', args: [G('/pulls[number=142]/branch'), C('/runs[id="r1"]/branch')]},
+      },
+    },
+  ],
+};
+
+test('walkModel lists every match claim with the path of the object carrying it and its named relations', () => {
+  const {claims} = walkModel(joined);
+  expect(claims).toEqual([
+    {path: '', relations: [{name: 'branch', path: '/match/branch', formula: joined.match.branch}]},
+    {
+      path: '/pulls/0',
+      relations: [
+        {
+          name: 'branch',
+          path: '/pulls/0/match/branch',
+          formula: {
+            op: 'equal',
+            args: [G('/pulls[number=142]/branch'), C('/runs[id="r1"]/branch')],
+          },
+        },
+      ],
+    },
+  ]);
+});
+
+test("a match claim's relations are leaves like any other, so their refs are the model's refs", () => {
+  const {leaves} = walkModel(joined);
+  expect(leaves.map(leaf => leaf.path)).toEqual([
+    '/match/branch',
+    '/pulls/0/title',
+    '/pulls/0/ci',
+    '/pulls/0/match/branch',
+  ]);
+  expect(refsOf(joined)).toContainEqual(C('/runs[id="r1"]/branch'));
+});
+
+test('a model with no match claim has no claims', () => {
+  expect(walkModel(model).claims).toEqual([]);
+});

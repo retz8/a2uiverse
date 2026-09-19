@@ -1,4 +1,4 @@
-import {expect, test} from 'vitest';
+import {describe, expect, test} from 'vitest';
 import type {SynthesisPayload} from './synthesis';
 import {validateSynthesisPayload} from './validate';
 
@@ -131,4 +131,114 @@ test('the derived model may not use the reserved root key "sorts"', () => {
   const result = validateSynthesisPayload(bad);
   expect(result.ok).toBe(false);
   if (!result.ok) expect(result.errors.join('\n')).toContain('sorts');
+});
+
+const G = (pointer: string) => ({surface: 'github:prs', pointer});
+const C = (pointer: string) => ({surface: 'circleci:runs', pointer});
+const L = (pointer: string) => ({surface: 'linear:my-issues', pointer});
+const row = () => ({
+  title: {op: 'value', args: [G('/pulls[number=142]/title')]},
+  ci: {op: 'value', args: [C('/runs[id="r1"]/status')]},
+  issue: {op: 'value', args: [L('/started[id="A2U-5"]/status')]},
+  match: {
+    branch: {op: 'equal', args: [G('/pulls[number=142]/branch'), C('/runs[id="r1"]/branch')]},
+    'issue in branch': {
+      op: 'contains',
+      args: [G('/pulls[number=142]/branch'), L('/started[id="A2U-5"]/id')],
+    },
+  },
+});
+const joined = (match: unknown): SynthesisPayload =>
+  ({dataModel: {pulls: [{...row(), match}]}, sorts: []}) as unknown as SynthesisPayload;
+
+describe('the match claim', () => {
+  test('accepts named relations, each over two refs in two different apps', () => {
+    const ok: SynthesisPayload = {dataModel: {pulls: [row()]}, sorts: []} as never;
+    expect(validateSynthesisPayload(ok)).toEqual({ok: true, value: ok});
+  });
+
+  test('accepts a match claim on the root', () => {
+    const {match, ...cells} = row();
+    const ok = {dataModel: {...cells, match}, sorts: []} as unknown as SynthesisPayload;
+    expect(validateSynthesisPayload(ok).ok).toBe(true);
+  });
+
+  test('requires none: an object joining several apps without a match claim is accepted', () => {
+    const {match: _dropped, ...cells} = row();
+    void _dropped;
+    const ok = {dataModel: {pulls: [cells]}, sorts: []} as unknown as SynthesisPayload;
+    expect(validateSynthesisPayload(ok).ok).toBe(true);
+  });
+
+  test('rejects an empty match claim', () => {
+    const result = validateSynthesisPayload(joined({}));
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.errors.join('\n')).toContain('/pulls/0/match');
+  });
+
+  test('rejects a nested match claim', () => {
+    const nested = {ci: {branch: row().match.branch}};
+    expect(validateSynthesisPayload(joined(nested)).ok).toBe(false);
+  });
+
+  test('rejects a relation written without a name', () => {
+    expect(validateSynthesisPayload(joined(row().match.branch)).ok).toBe(false);
+  });
+
+  test('rejects a relation over one ref or over three', () => {
+    const one = {branch: {op: 'equal', args: [G('/pulls[number=142]/branch')]}};
+    const three = {
+      branch: {
+        op: 'equal',
+        args: [
+          G('/pulls[number=142]/branch'),
+          C('/runs[id="r1"]/branch'),
+          L('/started[id="A2U-5"]/id'),
+        ],
+      },
+    };
+    expect(validateSynthesisPayload(joined(one)).ok).toBe(false);
+    expect(validateSynthesisPayload(joined(three)).ok).toBe(false);
+  });
+
+  test('rejects a relation whose two refs are in the same app, naming it', () => {
+    const same = {
+      branch: {
+        op: 'equal',
+        args: [G('/pulls[number=142]/branch'), {surface: 'github:detail', pointer: '/branch'}],
+      },
+    };
+    const result = validateSynthesisPayload(joined(same));
+    expect(result).toEqual({
+      ok: false,
+      errors: [
+        '/pulls/0/match/branch: a relation joins two different apps; both refs are in github',
+      ],
+    });
+  });
+
+  test('rejects a relation whose ref names no app, naming it', () => {
+    const bare = {
+      branch: {
+        op: 'equal',
+        args: [G('/pulls[number=142]/branch'), {surface: 'runs', pointer: '/b'}],
+      },
+    };
+    const result = validateSynthesisPayload(joined(bare));
+    expect(result).toEqual({
+      ok: false,
+      errors: [
+        '/pulls/0/match/branch: ref surface "runs" names no app — a surface is <appId>:<surfaceId>',
+      ],
+    });
+  });
+
+  test("reports a malformed pointer inside a relation, like any leaf's", () => {
+    const bad = {
+      branch: {op: 'equal', args: [G('/pulls[number=142/branch'), C('/runs[id="r1"]/branch')]},
+    };
+    const result = validateSynthesisPayload(joined(bad));
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.errors.join('\n')).toContain('/pulls/0/match/branch');
+  });
 });

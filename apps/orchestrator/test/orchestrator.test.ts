@@ -744,11 +744,11 @@ describe('synthesis (tasks 4.4, 5.4)', () => {
     expect(prompt).toContain('Compare across both.');
     expect(input.previous).toBeUndefined();
 
-    // Vendor data events carry their surface's generation on the stamp.
+    // Vendor data events carry no generations on the stamp.
     const dataEvent = events.find(
       e => stampOf(e)?.source === 'github' && a2uiDatas(e).some(d => d.updateDataModel),
     );
-    expect(stampOf(dataEvent!)?.generations).toEqual({'github:s1': 1});
+    expect(stampOf(dataEvent!)).not.toHaveProperty('generations');
 
     // The synthesis surface: a fragment of the shell in the synthesis slot, the tree painted
     // verbatim, the derived model and sorts beside the stamp.
@@ -891,8 +891,8 @@ describe('synthesis (tasks 4.4, 5.4)', () => {
     expect(synthesisEvents(scalar)).toHaveLength(0);
 
     const reorder = await collect(client, actionOn('github:s1', contextId));
-    const bumped = reorder.find(e => a2uiDatas(e).some(d => d.updateDataModel))!;
-    expect(stampOf(bumped)?.generations).toEqual({'github:s1': 2});
+    const reordered = reorder.find(e => a2uiDatas(e).some(d => d.updateDataModel))!;
+    expect(stampOf(reordered)).not.toHaveProperty('generations');
     expect(synthesizer.calls).toHaveLength(1);
     expect(synthesisEvents(reorder)).toHaveLength(0);
 

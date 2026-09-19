@@ -2,11 +2,13 @@
  * The contract's validator over the synthesis payload: what the client runs over what it receives,
  * and what the orchestrator runs over the derived model and sorts the Synthesizer wrote. Checks what
  * the contract states on its own — the schema, then the structure the schema cannot express: every
- * leaf a formula, every pointer parses, every sort names an array of the model — once — whose
- * elements carry every option key as a formula with at least one ref, and the initial key is an
- * option.
+ * leaf a formula, every pointer parses, every relation of a match claim joins two different apps,
+ * every sort names an array of the model — once — whose elements carry every option key as a
+ * formula with at least one ref, and the initial key is an option. Whether a relation's operator
+ * is a relation, and whether it holds, is the consumer's: the sdk knows no catalog and no partition.
  */
 import {Ajv2020, type ErrorObject, type ValidateFunction} from 'ajv/dist/2020.js';
+import {parseSurfaceId} from './composition.js';
 import {parsePointer, PointerSyntaxError, resolvePointer} from './pointer.js';
 import {
   SYNTHESIS_SCHEMA,
@@ -33,7 +35,7 @@ export function schemaErrors(validate: ValidateFunction, input: unknown): string
 
 function modelErrors(model: DerivedModel): string[] {
   const errors: string[] = [];
-  const {leaves, violations} = walkModel(model);
+  const {leaves, claims, violations} = walkModel(model);
   for (const path of violations) errors.push(`${path}: a leaf must be a formula, not a scalar`);
   for (const leaf of leaves) {
     for (const ref of leaf.formula.args) {
@@ -42,6 +44,19 @@ function modelErrors(model: DerivedModel): string[] {
       } catch (error) {
         if (!(error instanceof PointerSyntaxError)) throw error;
         errors.push(`${leaf.path}: ${error.message}`);
+      }
+    }
+  }
+  for (const claim of claims) {
+    for (const {path: where, formula} of claim.relations) {
+      const apps = formula.args.map(ref => parseSurfaceId(ref.surface)?.appId);
+      const bare = formula.args.find((_, i) => apps[i] === undefined);
+      if (bare) {
+        errors.push(
+          `${where}: ref surface ${JSON.stringify(bare.surface)} names no app — a surface is <appId>:<surfaceId>`,
+        );
+      } else if (apps[0] === apps[1]) {
+        errors.push(`${where}: a relation joins two different apps; both refs are in ${apps[0]}`);
       }
     }
   }

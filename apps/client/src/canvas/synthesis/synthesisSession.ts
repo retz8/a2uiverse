@@ -5,9 +5,8 @@
  * output written.
  *
  * It lives beside the live processor and is fed by the turn runner: the payload once the
- * synthesis surface is live, and a retire when the composition leaves the canvas. Since task
- * 5.10 nothing tracks partition generations here — refs select by key, so resolution is
- * validity and a repaint under a ref is not an event. Nothing in React reads it —
+ * synthesis surface is live, and a retire when the composition leaves the canvas. Refs select
+ * by key, so resolution is validity and a repaint under a ref is not an event. Nothing in React reads it —
  * `DerivedValue` and `SortControl` read the data model it writes.
  *
  * Re-evaluation rides the data model's own reactivity: a root subscription on every surface

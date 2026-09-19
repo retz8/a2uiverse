@@ -55,7 +55,7 @@ export const MAX_ATTEMPTS = 2;
  * the block is extracted, parsed, and validated — the output schema, the tree against the
  * Synthesizer's pruned catalog, the derived-value rule, operators, and refs into the partitions;
  * a failure goes back to the model once with its findings and the failed document, and a second
- * failure is `malformed`. Emits wiring, never values; never sees generations.
+ * failure is `malformed`. Emits wiring, never values.
  */
 export class Synthesizer {
   readonly #model: SynthesisModel;

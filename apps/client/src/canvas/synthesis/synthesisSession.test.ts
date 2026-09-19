@@ -1,7 +1,7 @@
 /**
  * The synthesis session over a real MessageProcessor: intake, the data-model subscriptions that
- * re-run the evaluator, the sort write-back at /sorts, stale from generations, the sticky user
- * choice across re-synthesis, rejection, and retirement.
+ * re-run the evaluator, the sort write-back at /sorts, the sticky user choice across
+ * re-synthesis, rejection, and retirement.
  */
 import {beforeEach, describe, expect, test, vi} from 'vitest';
 import {MessageProcessor} from '@a2ui/web_core/v0_9';
@@ -229,7 +229,7 @@ describe('lifetimes', () => {
     expect(best()[0]!.value).toBe(800);
   });
 
-  test('retire drops the payload, the generations, the user choices and every subscription', async () => {
+  test('retire drops the payload, the user choices and every subscription', async () => {
     paintStorefronts();
     paintSynthesis();
     sorts().set(SORTS_PATH, [{...model().sorts[0], direction: 'desc'}]);

@@ -14,8 +14,6 @@ const A2UI_OPS = ['createSurface', 'updateComponents', 'updateDataModel', 'delet
  */
 export interface ComposeContext {
   appId: string;
-  /** Per-surface generations for the surfaces this event touched (4.2 decisions 3, 10); omitted when empty. */
-  generations?: Record<string, number>;
 }
 
 export function composeFragment(event: VendorEvent, ctx: ComposeContext): VendorEvent {
@@ -44,31 +42,8 @@ export function composeFragment(event: VendorEvent, ctx: ComposeContext): Vendor
   }
 }
 
-/** Adds per-surface generations to an already-composed event's stamp (the partitions are applied to the namespaced event first). */
-export function withGenerations<E extends VendorEvent>(
-  event: E,
-  generations: Record<string, number>,
-): E {
-  if (Object.keys(generations).length === 0) return event;
-  const existing = event.metadata?.[STAMP_KEY];
-  return {
-    ...event,
-    metadata: {
-      ...event.metadata,
-      [STAMP_KEY]: {
-        ...(typeof existing === 'object' && existing !== null ? existing : {}),
-        generations,
-      },
-    },
-  };
-}
-
 function withStamp<E extends VendorEvent>(event: E, ctx: ComposeContext): E {
   const existing = event.metadata?.[STAMP_KEY];
-  const generations =
-    ctx.generations && Object.keys(ctx.generations).length > 0
-      ? {generations: ctx.generations}
-      : {};
   return {
     ...event,
     metadata: {
@@ -77,7 +52,6 @@ function withStamp<E extends VendorEvent>(event: E, ctx: ComposeContext): E {
         ...(typeof existing === 'object' && existing !== null ? existing : {}),
         source: ctx.appId,
         role: 'fragment',
-        ...generations,
       },
     },
   };

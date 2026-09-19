@@ -7,7 +7,7 @@ import type {AgentsPool} from './agentsPool/agentsPool.js';
 import {STAMP_KEY} from './agentsPool/relay.js';
 import type {DispatchHandle, DispatchOutcome} from './agentsPool/types.js';
 import {classifyTurn, unnamespaceAction, type Turn} from './composition/classify.js';
-import {composeFragment, withGenerations} from './composition/fragmentRelay.js';
+import {composeFragment} from './composition/fragmentRelay.js';
 import {changeAccount, checkSynthesisPayload} from './composition/integrity.js';
 import {A2UI_CLIENT_DATA_MODEL_KEY} from './composition/partition.js';
 import {
@@ -324,7 +324,6 @@ export class OrchestratorExecutor implements AgentExecutor {
 
     const {document} = outcome;
     const payload: SynthesisPayload = {dataModel: document.dataModel, sorts: document.sorts};
-    state.partitions.snapshot();
     state.synthesis = {document, payload};
     state.mergedView = {outcome: 'synthesized'};
     const paint = synthesisEnvelope(ctx, synthesisParts(document.tree), payload);
@@ -385,12 +384,8 @@ export class OrchestratorExecutor implements AgentExecutor {
     for await (const event of handle.events) {
       const composed = composeFragment(event, {appId});
       touches = mergeTouches(touches, touchesOf(composed));
-      // Materialize first, so the stamp carries the generation this very event produced.
-      const changed = composition?.partitions.apply(composed) ?? [];
-      const stamped = composition
-        ? withGenerations(composed, composition.partitions.generationsOf(changed))
-        : composed;
-      bus.publish(stamped);
+      composition?.partitions.apply(composed);
+      bus.publish(composed);
     }
     const record = await handle.done;
     turn.dispatched(record);

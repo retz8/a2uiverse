@@ -176,14 +176,8 @@ scenario, recorded as beat 5.
 **The stamp** (every relayed event, `metadata.a2uiverse`):
 
 ```json
-{"source": "gmail", "role": "fragment", "generations": {"gmail:inbox": 1}}
+{"source": "gmail", "role": "fragment"}
 ```
-
-`generations` are per-surface counters the orchestrator bumps when an array is mutated in place.
-They belong to the stamp half of the contract and are still written on every relayed event;
-nothing on the synthesis path reads them any more (task 5.10), because refs select by key and a
-reorder under a ref changes nothing. The synthesis paint's own stamp carries none, being the
-shell's.
 
 **The synthesis paint** (one event): the A2UI parts carry the tree; the metadata carries the
 stamp and the payload. A trimmed payload for the timeline:
@@ -229,7 +223,7 @@ And the tree that binds to it, as the painter sends it (the components list of a
 ]
 ```
 
-The contract is one file, `packages/sdk/contracts/composition.v0.4.json`, in two halves: the
+The contract is one file, `packages/sdk/contracts/composition.v0.6.json`, in two halves: the
 stamp, and the synthesize data model. The JS projection is `packages/sdk/js/src/synthesis.ts`.
 
 ## The synthesize data model, piece by piece
@@ -260,6 +254,15 @@ leaf; a scalar anywhere is a contract violation. A list of like things is an arr
 objects, one per thing, and the tree templates over it. Putting two sources' refs into one object
 is the Synthesizer's assertion that they are about the same thing — the entity-resolution claim,
 made only when the data supports it. The root key `sorts` is reserved.
+
+**The match claim.** Where the Synthesizer judges entries from different apps to be one thing, the
+object that joins them carries its evidence under the reserved key `match`, the root included:
+named relations, each key the Synthesizer's own words for what matched and each value a relation
+formula over exactly two refs in two different apps — `"branch": {"op": "equal", "args":
+[github…/branch, circleci…/branch]}`. At least one relation, flat. No object is required to carry
+one. A relation is a formula like any other leaf, so its refs are the model's refs. The sdk's
+validator checks the shape and that each relation's refs name two different apps; whether the
+operator is a relation, and whether the relation holds, is the consumer's.
 
 **Sorts.** For each ordered array: its `path` in the model, the `options` a user may sort by (each
 a `key` pointer inside an element to a formula leaf, with a `label`), and the initial `key` and
@@ -468,7 +471,7 @@ order, so nothing moves when nothing differs.
 
 | Concern | sdk | Orchestrator | Client | Shell catalog |
 | --- | --- | --- | --- | --- |
-| Contract, types | `contracts/composition.v0.5.json` · `js/src/synthesis.ts` | `synthesizer/document.ts` | — | — |
+| Contract, types | `contracts/composition.v0.6.json` · `js/src/synthesis.ts` | `synthesizer/document.ts` | — | — |
 | Pointers, predicates, the walk | `js/src/pointer.ts` · `js/src/walk.ts` | `composition/partitions.ts` (`resolve`) | `canvas/synthesis/bindingEvaluator.ts` | — |
 | Validation | `js/src/validate.ts` · `js/src/a2ui/` | `synthesizer/validate.ts` | `canvas/synthesis/intake.ts` | `src/keep-sets.ts` |
 | The prompt | — | `synthesizer/prompt.ts` · `synthesizer/synthesis.md` · `synthesizer/examples.ts` · `authoring/taggedBlock.ts` · `planner/prompt.ts` | — | `docs/synthesis-guidance.md` · `catalogs/v0.9.1/catalog.json` |

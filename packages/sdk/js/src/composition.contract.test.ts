@@ -12,7 +12,7 @@ import {
 } from './composition';
 
 const contract = JSON.parse(
-  readFileSync(new URL('../../contracts/composition.v0.5.json', import.meta.url), 'utf8'),
+  readFileSync(new URL('../../contracts/composition.v0.6.json', import.meta.url), 'utf8'),
 ) as {
   extensionUri: string;
   stampKey: string;
@@ -58,10 +58,8 @@ test('readStamp accepts a stamped event and rejects malformed metadata', () => {
   expect(readStamp({[STAMP_KEY]: {role: 'fragment'}})).toBeUndefined();
 });
 
-test('readStamp carries per-surface generations through', () => {
-  expect(
-    readStamp({
-      [STAMP_KEY]: {source: 'shop-a', role: 'fragment', generations: {'shop-a:list': 2}},
-    }),
-  ).toEqual({source: 'shop-a', role: 'fragment', generations: {'shop-a:list': 2}});
+test('the stamp carries no generations', () => {
+  const stamp = contract.shapes.compositionStamp;
+  expect([...stamp.required!, ...stamp.optional!]).not.toContain('generations');
+  expect(STAMP_FIELDS).not.toContain('generations');
 });

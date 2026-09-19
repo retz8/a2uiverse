@@ -4436,10 +4436,7 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "role": "fragment",
-            "generations": {
-              "github:draft-pr-review-2123": 1
-            }
+            "role": "fragment"
           }
         },
         {
@@ -4458,10 +4455,7 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "role": "fragment",
-            "generations": {
-              "github:draft-pr-review-2123": 2
-            }
+            "role": "fragment"
           }
         },
         {
@@ -4482,10 +4476,7 @@
           "texts": [],
           "stamp": {
             "source": "github",
-            "role": "fragment",
-            "generations": {
-              "github:draft-pr-review-2123": 3
-            }
+            "role": "fragment"
           }
         }
       ],
