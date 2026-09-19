@@ -53,7 +53,7 @@ The spec carries all of these. Sorted by the kind of join the shell performs.
 | S6  | None                              | **Long tail** — small agents nobody would ever aggregate; the aggregator is generated per request instead of incorporated as a company | —                               |
 | S7  | None                              | **Parallel independent tasks** — unrelated agents side by side                                                                         | none; layout-only               |
 
-- **Architectural target:** S2 entity join — the only scenario that requires fragment graft. Proven at M4 over a pull request across developer tools — GitHub · CircleCI · Linear · Gmail (§9.4, §12).
+- **Architectural target:** S2 entity join — the only scenario that requires fragment graft. Proven at M4 over a work item across developer tools — a Linear issue, its pull request in GitHub, its CI runs in CircleCI (§9.4, §12).
 - **Proving milestone:** S1 temporal merge, over GitHub · Gmail · Google Calendar.
 - **Entity resolution** is a named responsibility of the Synthesizer, not a side effect of derived bindings: the Planner states the join hypothesis in its brief, the Synthesizer confirms it as a checked match claim (§5.2, §10).
 - S5 is supported by the architecture and not exercised by the milestone ladder (§12).
@@ -257,6 +257,7 @@ A past composite is **frozen**: re-hydrated from stored state, no dispatch, stam
 ### Fan-out
 
 - The **Planner judges fan-out per turn** against the actual AgentCards in the pool. Fan-out is a plan with N>1.
+- The Planner **answers the question the user means**: an utterance about the state of one kind of thing gathers from every installed app that holds part of it, whether or not the user names them; a command or lookup inside one app's object, or an utterance that names its app, goes to that app alone.
 - The user can always **add or drop a source** on an existing composite and request a merge. Both are tier-2.
 - No standing compare-by-default preferences.
 - Known properties: fan-out discloses the query to every dispatched vendor; fan-out spends cost the user did not explicitly authorize.
@@ -324,7 +325,7 @@ Routing and store search are **one mechanism over two indexes** — local regist
 
 ### 9.4 Vendor agents
 
-Every vendor agent is backed by its vendor's **official, publicly available MCP server**; that is the first selection criterion for a vendor. Roster: GitHub · Gmail · Google Calendar (S1); CircleCI · Linear (S2, the entity join over a pull request); developer-tool vendors with official MCPs are the later S3 expansion. An agent is written to its vendor, never to the merge: its domain doc and prompt say what the vendor's own user sees, drawn from what the official MCP server returns, and nothing about the shell, the join, or the other agents.
+Every vendor agent is backed by its vendor's **official, publicly available MCP server**; that is the first selection criterion for a vendor. Roster: GitHub · Gmail · Google Calendar (S1); CircleCI · Linear (S2, the entity join over a work item); developer-tool vendors with official MCPs are the later S3 expansion. An agent is written to its vendor, never to the merge: its domain doc and prompt say what the vendor's own user sees, drawn from what the official MCP server returns, and nothing about the shell, the join, or the other agents.
 
 A vendor agent runs on **one port in one of three modes**: `deterministic` (no model), `llm` (model + MCP), `llm` without MCP (model + stub backend).
 
@@ -408,7 +409,7 @@ M3   + heterogeneous shapes   temporal merge (Calendar · Mail · GitHub)
 M3s  the shell as an agent   the platform's card routed like any app's
      proves the Planner authoring `shell:main` · platform readers on demand, never vendor data · capability gap as a slot ·
      the Store page and App Library stay trusted, the model paints only an affordance into them
-M4   + entity resolution   entity join — a pull request across GitHub · CircleCI · Linear · Gmail   ← differentiator proven
+M4   + entity resolution   entity join — a work item across Linear · GitHub · CircleCI   ← differentiator proven
      proves the Planner's join hypothesis and the Synthesizer's checked match claim · relations · the join disclosed on the values ·
      navigation from a merged cell · re-synthesis on appearance · two agents written to their vendor
 M6   late-arrival + failure   per-source deadlines · failure tiles · decline · late absorb

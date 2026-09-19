@@ -2,8 +2,10 @@
  * Worked examples of the layout surface (task-6.4 decision 8), rendered into the system prompt the
  * way the Synthesizer's are: a fan-out with a reserved merged view whose vendor requests ask for
  * the field it orders by; a merged view over one kind of thing, its brief stating the join
- * hypothesis over fixture cards (task-7.6 decision 2); a platform answer that calls one reader and
- * templates its result; and a capability gap. The examples teach form; the rules doc
+ * hypothesis over fixture cards (task-7.6 decision 2); a command over the same cards that one agent
+ * answers alone, and a status question in one app's own noun merged over every agent holding a part
+ * of it (task-7.8 decision 17); a platform answer that calls one reader and templates its
+ * result; and a capability gap. The examples teach form; the rules doc
  * (`planner.md`) teaches the vocabulary and the rules. Their trees are authored against the
  * Planner's pruned shell catalog; its tests put each through the whole validator.
  */
@@ -178,6 +180,96 @@ export const ORDERS_JOIN: LayoutExample = {
   },
 };
 
+/**
+ * The orders join's other side: the same cards, a command inside one app's own object. The store
+ * answers alone, with no merged view.
+ */
+export const ORDER_OPEN: LayoutExample = {
+  name: 'order-open',
+  intent: 'Open order 1042.',
+  agents: [STORE, CARRIER, MAILBOX, PLATFORM],
+  output: {
+    dispatch: [
+      {
+        source: 'store',
+        request:
+          'Open order 1042 and show it in full: what was bought, its status, each shipment with its tracking number, and the full date and time it was placed.',
+      },
+    ],
+    tree: {
+      components: [
+        {id: 'root', component: 'Column', children: ['order']},
+        {id: 'order', component: 'Slot', source: 'store'},
+      ],
+    },
+    dataModel: {},
+  },
+};
+
+const CAREERS: ExampleAgent = {
+  appId: 'careers',
+  name: 'Careerline',
+  description:
+    'The signed-in account’s job applications on Careerline: the roles applied to and where each application stands.',
+  skills: [
+    {name: 'Applications', description: 'Lists applications with their company, role and status.'},
+    {name: 'Job search', description: 'Finds open roles and saves them.'},
+  ],
+};
+
+const AGENDA: ExampleAgent = {
+  appId: 'agenda',
+  name: 'Agenda',
+  description: 'The signed-in calendar: upcoming events, meetings and calls.',
+  skills: [{name: 'Upcoming', description: 'Shows the events coming up, with who they are with.'}],
+};
+
+/**
+ * A status question in one app's own noun: the applications are Careerline's, and each holds parts
+ * the other apps hold — its mail, its interviews. Every agent holding a part is dispatched and
+ * merged; the parcel carrier holds none and stays out.
+ */
+export const APPLICATIONS_JOIN: LayoutExample = {
+  name: 'applications-join',
+  intent: 'How are my job applications going?',
+  agents: [CAREERS, MAILBOX, AGENDA, CARRIER, PLATFORM],
+  output: {
+    dispatch: [
+      {
+        source: 'careers',
+        request:
+          'Show my job applications as a compact list. For each application, include the company, the role, its status, and the full date and time it was last updated.',
+      },
+      {
+        source: 'mailbox',
+        request:
+          'Show recent mail from companies about job applications as a compact list. For each thread, include the sender, the subject, and the full date and time it arrived.',
+      },
+      {
+        source: 'agenda',
+        request:
+          'Show my upcoming interviews and calls as a compact list. For each event, include its title, who it is with, and its full start date and time.',
+      },
+      {
+        source: 'shell',
+        request:
+          'Where each application stands: one row per Careerline application — the home source — with the company, the role, its status, the next interview, and the latest mail about it; most recently updated first. A Mailbox thread is the application’s by the company named in its sender or subject; an Agenda event is the application’s by the company named in its title.',
+      },
+    ],
+    tree: {
+      components: [
+        {id: 'root', component: 'Column', children: ['applications', 'sources']},
+        {id: 'applications', component: 'Slot', source: 'shell'},
+        {id: 'sources', component: 'Row', children: ['careers', 'mailbox', 'agenda']},
+        {id: 'careers', component: 'Slot', source: 'careers', weight: 1},
+        {id: 'mailbox', component: 'Slot', source: 'mailbox', weight: 1},
+        {id: 'agenda', component: 'Slot', source: 'agenda', weight: 1},
+      ],
+    },
+    dataModel: {},
+  },
+};
+
 /** A platform question: one reader, its result templated into a table, an affordance into the App Library. */
 export const INSTALLED_APPS_ANSWER: LayoutExample = {
   name: 'installed-apps-answer',
@@ -280,6 +372,8 @@ export const CAPABILITY_GAP: LayoutExample = {
 export const LAYOUT_EXAMPLES: readonly LayoutExample[] = [
   MORNING_FAN_OUT,
   ORDERS_JOIN,
+  ORDER_OPEN,
+  APPLICATIONS_JOIN,
   INSTALLED_APPS_ANSWER,
   CAPABILITY_GAP,
 ];

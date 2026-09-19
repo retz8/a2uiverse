@@ -2,8 +2,11 @@ import {createGoogleGenerativeAI} from '@ai-sdk/google';
 import type {ProviderOptions} from '@ai-sdk/provider-utils';
 import type {LanguageModel} from 'ai';
 
-/** Recorded default of the effort tunable (SPEC decision 9). */
-export const DEFAULT_PLANNER_MODEL_ID = 'gemini-2.5-flash';
+/** Recorded default of the effort tunable (SPEC decision 9); the fan-out stance needs this rung (task 7.8). */
+export const DEFAULT_PLANNER_MODEL_ID = 'gemini-3.7-flash';
+
+/** The Synthesizer's own default, used when `A2UIVERSE_PLANNER_MODEL` is not set either. */
+export const DEFAULT_SYNTHESIZER_MODEL_ID = 'gemini-2.5-flash';
 
 export interface PlannerSettings {
   /** Google AI Studio key, env `GOOGLE_API_KEY` (the a2ui-github convention). */

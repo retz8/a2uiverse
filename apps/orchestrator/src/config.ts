@@ -1,5 +1,5 @@
 import {resolve} from 'node:path';
-import {DEFAULT_PLANNER_MODEL_ID} from './planner/getModel.js';
+import {DEFAULT_PLANNER_MODEL_ID, DEFAULT_SYNTHESIZER_MODEL_ID} from './planner/getModel.js';
 
 export interface Config {
   port: number;
@@ -25,7 +25,7 @@ export interface Config {
   plannerEffort: 'low' | 'default';
   /** Router shortlist cap (`A2UIVERSE_SHORTLIST_CAP`). */
   shortlistCap: number;
-  /** Synthesizer model id (`A2UIVERSE_SYNTHESIZER_MODEL`); follows the Planner's by default. */
+  /** Synthesizer model id (`A2UIVERSE_SYNTHESIZER_MODEL`); follows `A2UIVERSE_PLANNER_MODEL` when set, else its own default. */
   synthesizerModelId: string;
   /** Synthesizer effort (`A2UIVERSE_SYNTHESIZER_EFFORT`); `low` by default — dead air is measured first. */
   synthesizerEffort: 'low' | 'default';
@@ -50,7 +50,9 @@ export function loadConfig(env: Env = process.env): Config {
     plannerEffort: parseEffort(env.A2UIVERSE_PLANNER_EFFORT, 'A2UIVERSE_PLANNER_EFFORT'),
     shortlistCap: parseCap(env.A2UIVERSE_SHORTLIST_CAP),
     synthesizerModelId:
-      env.A2UIVERSE_SYNTHESIZER_MODEL ?? env.A2UIVERSE_PLANNER_MODEL ?? DEFAULT_PLANNER_MODEL_ID,
+      env.A2UIVERSE_SYNTHESIZER_MODEL ??
+      env.A2UIVERSE_PLANNER_MODEL ??
+      DEFAULT_SYNTHESIZER_MODEL_ID,
     synthesizerEffort: parseEffort(
       env.A2UIVERSE_SYNTHESIZER_EFFORT,
       'A2UIVERSE_SYNTHESIZER_EFFORT',

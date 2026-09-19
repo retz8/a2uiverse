@@ -11,7 +11,7 @@ import {LAYOUT_EXAMPLES, type LayoutExample} from './examples.js';
 /**
  * The Planner's prompt (task-6.4 decision 8), the Synthesizer's shape: the role, the rules doc
  * (`planner.md`), the shell catalog's platform-UI guidance, the Planner's pruned catalog with the
- * output schema, three worked examples — and the turn, the utterance with the shortlist's cards.
+ * output schema, the worked examples — and the turn, the utterance with the shortlist's cards.
  * The files are read once at boot; the pruned catalog shown here is the one the tree is validated
  * against.
  */
@@ -47,7 +47,7 @@ export function readPlannerFiles(): PlannerFiles {
 }
 
 const EXAMPLES_FRAMING =
-  'The examples below show the form of a layout surface for the kinds of turn: agents dispatched with a merged view over them — a timeline across their entries, and a merged view over one kind of thing with its join hypothesis — a question about the platform answered from a reader, and a capability gap. Their agents and reader results are fixtures chosen to make the form legible; they are not the agents of the current turn and never a document to reuse.';
+  'The examples below show the form of a layout surface for the kinds of turn: agents dispatched with a merged view over them — a timeline across their entries, and a merged view over one kind of thing with its join hypothesis — a command over the same cards that one agent answers alone, a status question in one app’s own noun merged over every agent that holds a part of it, a question about the platform answered from a reader, and a capability gap. Their agents and reader results are fixtures chosen to make the form legible; they are not the agents of the current turn and never a document to reuse.';
 
 function renderExample(example: LayoutExample): string {
   const body = JSON.stringify(
