@@ -28,14 +28,15 @@ import {ParkedStage} from './components/ParkedStage';
 import {Palette} from './components/Palette';
 import {StatusStrip} from './components/StatusStrip';
 import {TrustedPageOverlay} from './components/TrustedPageOverlay';
-import type {ShellActionRelay} from './shellActionRelay';
+import type {HostRelay} from './hostRelay';
+import {BindingIndexContext} from './navigation/decorateCatalog';
 import './CanvasApp.css';
 
 export interface CanvasAppProps extends A2ASenderOptions {
   /** The installed catalogs, resolved by the entry through `orchestratorApi`. */
   catalogs: ResolvedCatalog[];
-  /** The relay the shell catalog was built with; the canvas binds its handler while mounted. */
-  shellActions?: ShellActionRelay;
+  /** The relay the shell catalog was built with; the canvas binds its host while mounted. */
+  hostRelay?: HostRelay;
 }
 
 /** A `?beat=` token: a recorded beat number, or a synthetic beat's name. */
@@ -44,16 +45,17 @@ function beatFixtureFor(token: string) {
   return Number.isInteger(beat) ? getBeatFixture(beat) : syntheticBeat(token);
 }
 
-export function CanvasApp({serverUrl, client, catalogs, shellActions}: CanvasAppProps) {
+export function CanvasApp({serverUrl, client, catalogs, hostRelay}: CanvasAppProps) {
   const [wiring] = useState(() =>
     createCanvasWiring({serverUrl, client, catalogs: catalogs.map(c => c.catalog)}),
   );
 
   const state = useSyncExternalStore(wiring.store.subscribe, wiring.store.getState);
 
-  // A shell action raised anywhere in the shell's surfaces — the model's button, the capability
-  // tile — lands in this canvas for as long as it is mounted.
-  useEffect(() => shellActions?.bind(wiring.onShellAction), [shellActions, wiring]);
+  // What the shell's surfaces raise — a shell action from the model's button or the capability
+  // tile, a navigation from a merged cell — lands in this canvas for as long as it is mounted,
+  // and its roster names the apps.
+  useEffect(() => hostRelay?.bind(wiring.host), [hostRelay, wiring]);
 
   // What a `Slot` in the shell surface renders: the fragment placed in it, inside its boundary —
   // or, for a slot whose source answered in prose and never painted, what that source said.
@@ -121,61 +123,63 @@ export function CanvasApp({serverUrl, client, catalogs, shellActions}: CanvasApp
 
   return (
     <CatalogProvider catalogs={catalogs}>
-      <SlotContentContext.Provider value={slotContent}>
-        <main
-          className={parkedEntry ? 'canvas-app canvas-app--parked' : 'canvas-app'}
-          data-replay={replayDone ? 'done' : undefined}
-        >
-          {parkedEntry ? (
-            <ParkedStage
-              key={parkedEntry.paintId}
-              entry={parkedEntry}
-              create={wiring.createParked}
-              attach={wiring.attachParked}
+      <BindingIndexContext.Provider value={wiring.bindingIndex}>
+        <SlotContentContext.Provider value={slotContent}>
+          <main
+            className={parkedEntry ? 'canvas-app canvas-app--parked' : 'canvas-app'}
+            data-replay={replayDone ? 'done' : undefined}
+          >
+            {parkedEntry ? (
+              <ParkedStage
+                key={parkedEntry.paintId}
+                entry={parkedEntry}
+                create={wiring.createParked}
+                attach={wiring.attachParked}
+              />
+            ) : (
+              <CanvasStage processor={wiring.processor} state={state} />
+            )}
+            {promotedCount > 0 && (
+              <div className="canvas-scrim" data-testid="canvas-scrim" aria-hidden="true" />
+            )}
+            <div role="status" aria-live="polite" className="canvas-visually-hidden">
+              {promotedCount > 0
+                ? `${promotedCount} ${promotedCount === 1 ? 'source needs' : 'sources need'} your answer`
+                : ''}
+            </div>
+            <CanvasOverlay processor={wiring.processor} state={state} />
+            <TrustedPageOverlay page={state.trustedPage} onClose={wiring.store.closeTrustedPage} />
+            <AmbientNotice notices={orderedNotices(state)} onDismiss={wiring.store.dismissNotice} />
+            <HistoryChrome
+              state={state}
+              onPark={wiring.store.park}
+              onReturnToLive={wiring.store.returnToLive}
+              onRepaint={wiring.repaint}
             />
-          ) : (
-            <CanvasStage processor={wiring.processor} state={state} />
-          )}
-          {promotedCount > 0 && (
-            <div className="canvas-scrim" data-testid="canvas-scrim" aria-hidden="true" />
-          )}
-          <div role="status" aria-live="polite" className="canvas-visually-hidden">
-            {promotedCount > 0
-              ? `${promotedCount} ${promotedCount === 1 ? 'source needs' : 'sources need'} your answer`
-              : ''}
-          </div>
-          <CanvasOverlay processor={wiring.processor} state={state} />
-          <TrustedPageOverlay page={state.trustedPage} onClose={wiring.store.closeTrustedPage} />
-          <AmbientNotice notices={orderedNotices(state)} onDismiss={wiring.store.dismissNotice} />
-          <HistoryChrome
-            state={state}
-            onPark={wiring.store.park}
-            onReturnToLive={wiring.store.returnToLive}
-            onRepaint={wiring.repaint}
-          />
-          <Palette
-            open={paletteOpen}
-            onDismiss={() => setPaletteOpen(false)}
-            onSubmit={utterance => {
-              setPaletteOpen(false);
-              void wiring.sendUtterance(utterance);
-            }}
-          />
-          {/* The canvas's one call-to-action; yields to the palette while it is open. */}
-          {!paletteOpen && (
-            <Button
-              variant="solid"
-              size="3"
-              className="canvas-ask-pill"
-              aria-label="Ask"
-              onClick={() => setPaletteOpen(true)}
-            >
-              Ask <Kbd className="canvas-ask-kbd">⌘K</Kbd>
-            </Button>
-          )}
-          <StatusStrip state={state} />
-        </main>
-      </SlotContentContext.Provider>
+            <Palette
+              open={paletteOpen}
+              onDismiss={() => setPaletteOpen(false)}
+              onSubmit={utterance => {
+                setPaletteOpen(false);
+                void wiring.sendUtterance(utterance);
+              }}
+            />
+            {/* The canvas's one call-to-action; yields to the palette while it is open. */}
+            {!paletteOpen && (
+              <Button
+                variant="solid"
+                size="3"
+                className="canvas-ask-pill"
+                aria-label="Ask"
+                onClick={() => setPaletteOpen(true)}
+              >
+                Ask <Kbd className="canvas-ask-kbd">⌘K</Kbd>
+              </Button>
+            )}
+            <StatusStrip state={state} />
+          </main>
+        </SlotContentContext.Provider>
+      </BindingIndexContext.Provider>
     </CatalogProvider>
   );
 }

@@ -46,7 +46,12 @@ import type {ParkedHolder} from './timeline/causeContext';
 import type {PaintCause, PaintEntry} from './timeline/paint';
 import {entryTitle} from './timeline/paint';
 import type {ParkedSession} from './timeline/parkedSession';
+import {flushSync} from 'react-dom';
 import {createParkedSession} from './timeline/parkedSession';
+import {rosterOfSurface} from './composition/roster';
+import type {ShellHost} from './hostRelay';
+import {createBindingIndex, type BindingIndex} from './navigation/bindingIndex';
+import {createNavigator} from './navigation/landing';
 import type {SynthesisSession} from './synthesis/synthesisSession';
 import {createSynthesisSession} from './synthesis/synthesisSession';
 
@@ -66,6 +71,10 @@ export interface CanvasWiring {
   attachParked(parked: ParkedSession<ReactComponentImplementation>): () => void;
   /** A shell action raised from a shell surface: handled here, reported for the journal. */
   onShellAction(action: ShellAction): void;
+  /** What the shell catalog takes from this canvas, bound through the host relay while mounted. */
+  host: ShellHost;
+  /** What the vendor components' markers register in: the reverse index navigation lands by. */
+  bindingIndex: BindingIndex;
 }
 
 export interface CanvasWiringOptions extends A2ASenderOptions {
@@ -407,6 +416,25 @@ export function createCanvasWiring({
     }
   };
 
+  /**
+   * Navigation (SPEC §7; task-7.7): a tap on a merged cell lands in the vendor's fragment by the
+   * index of what is mounted — the live canvas or a parked composition alike. Client-local:
+   * nothing is sent, nothing is journaled.
+   */
+  const bindingIndex = createBindingIndex(flushSync);
+  const navigator = createNavigator(bindingIndex);
+
+  /**
+   * An app's display name as the mounted composition's roster has it (task-7.5 decision 11): the
+   * live turn's, or a parked composition's read off its own shell paint.
+   */
+  const appDisplayName = (appId: string) => {
+    const parked = parkedHolder.session;
+    const surface = parked?.processor.model.getSurface(parked.surfaceId);
+    const roster = surface ? rosterOfSurface(surface) : store.getState().roster;
+    return roster.find(entry => entry.appId === appId)?.displayName;
+  };
+
   return {
     store,
     processor,
@@ -417,5 +445,7 @@ export function createCanvasWiring({
     createParked,
     attachParked,
     onShellAction,
+    host: {onShellAction, onNavigate: navigator.navigate, appDisplayName},
+    bindingIndex,
   };
 }

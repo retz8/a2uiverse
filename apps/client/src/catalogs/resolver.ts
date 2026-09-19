@@ -42,8 +42,9 @@ import {
   CATALOG_ID as SHELL_CATALOG_ID,
   createCatalog as createShellCatalog,
   Provider as ShellProvider,
-  type ShellActionHandler,
+  type CreateCatalogOptions,
 } from '@a2uiverse/shell-catalog';
+import {decorateCatalog} from '../canvas/navigation/decorateCatalog';
 import type {CatalogRecord} from '../orchestratorApi';
 
 export interface ResolvedCatalog {
@@ -53,21 +54,20 @@ export interface ResolvedCatalog {
   Provider: ComponentType<{children: ReactNode}>;
 }
 
-export interface ResolveCatalogsOptions {
-  /**
-   * The host's shell-action handler (task-6.2 decision 2): the shell catalog is built for this
-   * host, and its two actions — `openStore`, `openAppLibrary` — land here. Absent, they land
-   * nowhere: the catalog still validates and renders, which is all a test or a replay needs.
-   */
-  onShellAction?: ShellActionHandler;
-}
+/**
+ * What the shell catalog takes from its host (task-6.2 decision 2, task-7.5 decisions 11, 13): the
+ * shell-action handler, the navigation handler and the app-name lookup. Absent, the two actions
+ * land nowhere, cells are not interactive and app ids stand in for names: the catalog still
+ * validates and renders, which is all a test or a replay needs.
+ */
+export type ResolveCatalogsOptions = Partial<CreateCatalogOptions>;
 
 /** Resolve registry records to runtime catalogs; an unknown catalog id is a hard error. */
 export function resolveCatalogs(
   records: CatalogRecord[],
-  {onShellAction = () => {}}: ResolveCatalogsOptions = {},
+  {onShellAction = () => {}, ...host}: ResolveCatalogsOptions = {},
 ): ResolvedCatalog[] {
-  const shellCatalog = createShellCatalog({onShellAction});
+  const shellCatalog = createShellCatalog({onShellAction, ...host});
   /** One entry per catalog package in `orchestratorApi`'s projection; the two lists move together. */
   const table: ReadonlyMap<string, ResolvedCatalog> = new Map([
     [SHELL_CATALOG_ID, {id: SHELL_CATALOG_ID, catalog: shellCatalog, Provider: ShellProvider}],
@@ -88,6 +88,9 @@ export function resolveCatalogs(
   return records.map(record => {
     const resolved = table.get(record.catalogId);
     if (!resolved) throw new Error(`No catalog package for ${record.catalogId}`);
-    return resolved;
+    // A vendor's components render inside the markers navigation lands by (task-7.7 decision 2).
+    return resolved.id === SHELL_CATALOG_ID
+      ? resolved
+      : {...resolved, catalog: decorateCatalog(resolved.catalog)};
   });
 }

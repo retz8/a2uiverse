@@ -16,12 +16,19 @@
  * each ref, drops the absent ones, hands the survivors to the catalog function, records how
  * many contributed and which surfaces did not, and maps a source selector's index back to the
  * app that won.
+ *
+ * The entity join (task-7.7): an object's match claim is evaluated beside its cells — each
+ * relation resolved and run on the shell catalog's relation functions — and handed to the shell
+ * catalog's mark rule for every cell under it, down to the next object that carries its own
+ * (decision 8). Nothing is written at `match` (decision 9): the evidence is on each cell's join.
+ * Every cell with a ref carries the element a tap on it navigates to (task-7.5 decision 12).
  */
 import type {DataContext, FunctionImplementation} from '@a2ui/web_core/v0_9';
 import {
   isFormula,
+  MATCH_KEY,
   parseSurfaceId,
-  parsePointer,
+  reachSortPath,
   resolvePointer,
   type Formula,
   type ModelNode,
@@ -29,8 +36,14 @@ import {
   type SortDeclaration,
   type SynthesisPayload,
 } from '@a2uiverse/sdk';
-import {parseInstant} from '@a2uiverse/shell-catalog';
-import type {CellObject} from '@a2uiverse/shell-catalog';
+import {cellJoin, parseInstant, relationKind, RELATIONS} from '@a2uiverse/shell-catalog';
+import type {
+  CellObject,
+  CellTarget,
+  EvaluatedRelation,
+  RelationOp,
+  RelationSide,
+} from '@a2uiverse/shell-catalog';
 
 /** The user's choice on one sorted array, kept by the array's path (task-5.5 decision 5). */
 export interface SortChoice {
@@ -62,7 +75,19 @@ function resolveRef(ref: Ref, models: EvaluateInput['models']): {found: boolean;
   return result.found && result.value !== undefined ? result : {found: false};
 }
 
-function evaluateFormula(formula: Formula, input: EvaluateInput): CellObject {
+/** A source is an app (task-4.5 decision 8): the app a namespaced surface belongs to. */
+function appOf(surface: string): string {
+  return parseSurfaceId(surface)?.appId ?? surface;
+}
+
+function targetOf(ref: Ref): CellTarget {
+  return {app: appOf(ref.surface), surface: ref.surface, pointer: ref.pointer};
+}
+
+/** An object's match claim, evaluated; absent, the claim in force above it stands. */
+type Claim = readonly EvaluatedRelation[];
+
+function evaluateFormula(formula: Formula, input: EvaluateInput, claim?: Claim): CellObject {
   const survivors: {ref: Ref; value: unknown}[] = [];
   const absent: string[] = [];
   for (const ref of formula.args) {
@@ -70,7 +95,23 @@ function evaluateFormula(formula: Formula, input: EvaluateInput): CellObject {
     if (resolved.found) survivors.push({ref, value: resolved.value});
     else absent.push(ref.surface);
   }
-  const base = {of: formula.args.length, absent};
+  const apps = formula.args.map(ref => appOf(ref.surface));
+  const present = new Set(survivors.map(s => appOf(s.ref.surface)));
+  const join =
+    claim &&
+    cellJoin(
+      claim,
+      apps,
+      apps.filter(app => !present.has(app)),
+    );
+  // The first contributor, the first declared ref when none resolves; a selector's winner below.
+  const first = survivors[0]?.ref ?? formula.args[0];
+  const base = {
+    of: formula.args.length,
+    absent,
+    ...(join && {join}),
+    ...(first && {target: targetOf(first)}),
+  };
 
   const fn = input.functions.get(formula.op);
   if (survivors.length === 0 || !fn) return {value: undefined, contributed: 0, ...base};
@@ -83,19 +124,84 @@ function evaluateFormula(formula: Formula, input: EvaluateInput): CellObject {
     return {value: undefined, contributed: 0, ...base};
   }
   if (INDEX_OPERATORS.has(formula.op) && typeof value === 'number') {
-    const winner = survivors[value]?.ref.surface;
-    // A source selector names a source, and a source is an app (task-4.5 decision 8).
-    if (winner !== undefined) value = parseSurfaceId(winner)?.appId ?? winner;
+    const winner = survivors[value]?.ref;
+    // A source selector names a source, and the cell navigates to the entry that won.
+    if (winner !== undefined) {
+      return {
+        value: appOf(winner.surface),
+        contributed: survivors.length,
+        ...base,
+        target: targetOf(winner),
+      };
+    }
   }
   return {value, contributed: survivors.length, ...base};
 }
 
-/** The derived model, node by node: a formula becomes its cell, a branch keeps its shape. */
-function evaluateNode(node: ModelNode, input: EvaluateInput): unknown {
-  if (isFormula(node)) return evaluateFormula(node, input);
-  if (Array.isArray(node)) return node.map(child => evaluateNode(child, input));
+function isRelation(op: string): op is RelationOp {
+  return (RELATIONS as readonly string[]).includes(op);
+}
+
+/**
+ * One relation, now (task-7.5 decision 6): absent when either side does not resolve, else what
+ * the shell catalog's relation function answers over the two values.
+ */
+function evaluateRelation(name: string, formula: Formula, input: EvaluateInput) {
+  const [a, b] = formula.args;
+  if (!isRelation(formula.op) || !a || !b || formula.args.length !== 2) return undefined;
+  const side = (ref: Ref): RelationSide => {
+    const resolved = resolveRef(ref, input.models);
+    return {app: appOf(ref.surface), ref, ...(resolved.found && {value: resolved.value})};
+  };
+  const sides: [RelationSide, RelationSide] = [side(a), side(b)];
+  let state: EvaluatedRelation['state'] = 'absent';
+  if ('value' in sides[0] && 'value' in sides[1]) {
+    let holds = false;
+    try {
+      holds =
+        input.functions
+          .get(formula.op)
+          ?.execute(
+            {values: [sides[0].value, sides[1].value]},
+            undefined as unknown as DataContext,
+          ) === true;
+    } catch {
+      holds = false;
+    }
+    state = holds ? 'holds' : 'fails';
+  }
+  const relation: EvaluatedRelation = {
+    name,
+    kind: relationKind(formula.op),
+    op: formula.op,
+    state,
+    sides,
+  };
+  return relation;
+}
+
+function evaluateClaim(match: unknown, input: EvaluateInput): Claim | undefined {
+  if (typeof match !== 'object' || match === null || Array.isArray(match)) return undefined;
+  return Object.entries(match).flatMap(([name, formula]) => {
+    const relation = isFormula(formula) ? evaluateRelation(name, formula, input) : undefined;
+    return relation ? [relation] : [];
+  });
+}
+
+/**
+ * The derived model, node by node: a formula becomes its cell, a branch keeps its shape, and an
+ * object's `match` becomes the claim its cells are joined by — its own and those of every plain
+ * object and array under it.
+ */
+function evaluateNode(node: ModelNode, input: EvaluateInput, claim?: Claim): unknown {
+  if (isFormula(node)) return evaluateFormula(node, input, claim);
+  if (Array.isArray(node)) return node.map(child => evaluateNode(child, input, claim));
+  const record = node as Record<string, ModelNode>;
+  const own = MATCH_KEY in record ? (evaluateClaim(record[MATCH_KEY], input) ?? claim) : claim;
   return Object.fromEntries(
-    Object.entries(node).map(([key, child]) => [key, evaluateNode(child, input)]),
+    Object.entries(record)
+      .filter(([key]) => key !== MATCH_KEY)
+      .map(([key, child]) => [key, evaluateNode(child, input, own)]),
   );
 }
 
@@ -153,20 +259,15 @@ export function choiceInForce(
   return {key: declaration.key, direction: declaration.direction};
 }
 
-/** Replaces the array at `path` of the evaluated model with its sorted copy; a non-array is left. */
+/**
+ * Reorders, in place, every array the path reaches in the evaluated model — the one array of a
+ * plain path, the list inside every row of a path through `*` (task-7.12) — by the sdk's walk;
+ * where the path reaches none, nothing moves.
+ */
 function sortInPlace(model: Record<string, unknown>, path: string, choice: SortChoice): void {
-  const steps = parsePointer(path);
-  let parent: unknown = model;
-  for (const step of steps.slice(0, -1)) {
-    if (step.kind !== 'key' || typeof parent !== 'object' || parent === null) return;
-    parent = (parent as Record<string, unknown>)[step.key];
+  for (const {array} of reachSortPath(model, path).targets) {
+    array.splice(0, array.length, ...orderElements(array, choice.key, choice.direction));
   }
-  const last = steps.at(-1);
-  if (!last || last.kind !== 'key' || typeof parent !== 'object' || parent === null) return;
-  const container = parent as Record<string, unknown>;
-  const elements = container[last.key];
-  if (!Array.isArray(elements)) return;
-  container[last.key] = orderElements(elements, choice.key, choice.direction);
 }
 
 export function evaluate(input: EvaluateInput): EvaluatedModel {

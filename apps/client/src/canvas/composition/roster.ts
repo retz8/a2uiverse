@@ -109,3 +109,24 @@ export function rosterFromShellMessages(
 ): RosterEntry[] | undefined {
   return shellPaintSlots(messages).roster;
 }
+
+/** A mounted shell surface's components, in the wire shape `shellPaintSlots` reads. */
+interface MountedComponents {
+  readonly componentsModel: {
+    readonly entries: Iterable<[string, {id: string; type: string; properties: object}]>;
+  };
+}
+
+/**
+ * The roster of a mounted shell surface, read off its own paint (task-7.7 decision 10): what a
+ * parked composition names its apps by, since the store's roster belongs to the live turn.
+ */
+export function rosterOfSurface(surface: MountedComponents): RosterEntry[] {
+  const components = [...surface.componentsModel.entries].map(([, model]) => ({
+    ...model.properties,
+    id: model.id,
+    component: model.type,
+  }));
+  const paint = {updateComponents: {components}} as unknown as A2uiMessage;
+  return shellPaintSlots([paint]).roster ?? [];
+}

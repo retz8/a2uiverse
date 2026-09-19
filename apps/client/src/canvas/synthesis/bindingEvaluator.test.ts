@@ -50,11 +50,11 @@ describe('evaluate over the example', () => {
   test('keyed refs across two shapes: every cell complete, rows ordered by best price, the declaration at /sorts/0', () => {
     const out = run(PAYLOAD, stores());
     expect(rows(out).map(r => r.name.value)).toEqual(['Lumen X100', 'Verity A7']);
-    expect(rows(out).map(r => r.best)).toEqual([
+    expect(rows(out).map(r => r.best)).toMatchObject([
       {value: 1299, contributed: 2, of: 2, absent: []},
       {value: 1799, contributed: 2, of: 2, absent: []},
     ]);
-    expect(rows(out)[0]!.priceB).toEqual({value: 1349, contributed: 1, of: 1, absent: []});
+    expect(rows(out)[0]!.priceB).toMatchObject({value: 1349, contributed: 1, of: 1, absent: []});
     expect(out.sorts).toEqual(PAYLOAD.sorts);
     expect(Object.keys(out).sort()).toEqual(['rows', 'sorts']);
   });
@@ -70,7 +70,7 @@ describe('evaluate over the example', () => {
       sorts: [],
     };
     const out = run(payload, stores());
-    expect(out).toEqual({
+    expect(out).toMatchObject({
       counts: {a: {value: 1, contributed: 1, of: 1, absent: []}},
       nested: [{deep: {value: 'Verity A7 body', contributed: 1, of: 1, absent: []}}],
       sorts: [],
@@ -95,8 +95,13 @@ describe('evaluate over the example', () => {
 
   test('absent: a drill-down drops one source, the formula computes over the rest, the gap names its surface', () => {
     const out = run(PAYLOAD, {[A]: {items: SHOP_A_ITEMS}, [B]: {detail: {sku: 'lumen-x100'}}});
-    expect(rows(out)[0]!.priceB).toEqual({value: undefined, contributed: 0, of: 1, absent: [B]});
-    expect(rows(out)[0]!.best).toEqual({value: 1299, contributed: 1, of: 2, absent: [B]});
+    expect(rows(out)[0]!.priceB).toMatchObject({
+      value: undefined,
+      contributed: 0,
+      of: 1,
+      absent: [B],
+    });
+    expect(rows(out)[0]!.best).toMatchObject({value: 1299, contributed: 1, of: 2, absent: [B]});
   });
 
   test('absent: null is no value, a surface the client does not hold resolves nothing, and an ambiguous key is absent', () => {
@@ -166,7 +171,7 @@ describe('evaluate over the example', () => {
       sorts: [],
     };
     const out = run(payload, stores());
-    expect(out.one).toEqual({value: 'shop-a', contributed: 1, of: 1, absent: []});
+    expect(out.one).toMatchObject({value: 'shop-a', contributed: 1, of: 1, absent: []});
     expect(out.survivor).toMatchObject({value: 'shop-b', contributed: 1, of: 2, absent: [A]});
   });
 });
@@ -276,5 +281,209 @@ test('an unknown operator, which validation is meant to catch, degrades to an ab
     dataModel: {x: {op: 'median', args: [{surface: A, pointer: '/items[id="lumen-x100"]/price'}]}},
     sorts: [],
   };
-  expect(run(payload, stores()).x).toEqual({value: undefined, contributed: 0, of: 1, absent: []});
+  expect(run(payload, stores()).x).toMatchObject({
+    value: undefined,
+    contributed: 0,
+    of: 1,
+    absent: [],
+  });
+});
+
+/**
+ * The entity join (task-7.7): a work item across three apps, written here for what it checks — a
+ * row per issue, its pull request attached by a fact, its runs a list inside the row, each run
+ * with its own claim against the row.
+ */
+describe('the entity join', () => {
+  const LINEAR = 'linear:issues';
+  const GITHUB = 'github:pulls';
+  const CIRCLECI = 'circleci:runs';
+  const r = (surface: string, pointer: string) => ({surface, pointer});
+  const v = (surface: string, pointer: string) => ({op: 'value', args: [r(surface, pointer)]});
+
+  const run1 = (id: string) => ({
+    status: v(CIRCLECI, `/runs[id="${id}"]/status`),
+    when: v(CIRCLECI, `/runs[id="${id}"]/at`),
+    match: {
+      branch: {
+        op: 'equal',
+        args: [r(GITHUB, '/pulls[number=42]/branch'), r(CIRCLECI, `/runs[id="${id}"]/branch`)],
+      },
+    },
+  });
+
+  const payload = (rowMatch: Record<string, unknown>): SynthesisPayload => ({
+    dataModel: {
+      rows: [
+        {
+          issue: v(LINEAR, '/issues[id="A2U-6"]/title'),
+          pr: {title: v(GITHUB, '/pulls[number=42]/title')},
+          runs: [run1('r1'), run1('r2')],
+          runCount: {
+            op: 'count',
+            args: [r(CIRCLECI, '/runs[id="r1"]/id'), r(CIRCLECI, '/runs[id="r2"]/id')],
+          },
+          match: rowMatch,
+        },
+        {
+          issue: v(LINEAR, '/issues[id="A2U-7"]/title'),
+          pr: {title: {op: 'value', args: []}},
+          runs: [],
+          runCount: {op: 'count', args: []},
+        },
+      ],
+    } as SynthesisPayload['dataModel'],
+    sorts: [
+      {
+        path: '/rows/*/runs',
+        options: [{key: '/when', label: 'Time'}],
+        key: '/when',
+        direction: 'desc',
+      },
+    ],
+  });
+
+  const byLink = {
+    'pull request link': {
+      op: 'contains',
+      args: [r(LINEAR, '/issues[id="A2U-6"]/attachments'), r(GITHUB, '/pulls[number=42]/url')],
+    },
+  };
+  const byJudgment = {
+    'same work': {
+      op: 'judged',
+      args: [r(LINEAR, '/issues[id="A2U-6"]/title'), r(GITHUB, '/pulls[number=42]/title')],
+    },
+  };
+
+  const partitions = (overrides: {branch?: string; url?: string} = {}) => ({
+    [LINEAR]: {
+      issues: [
+        {id: 'A2U-6', title: 'Entity join', attachments: ['https://github.com/o/r/pull/42']},
+        {id: 'A2U-7', title: 'Navigation'},
+      ],
+    },
+    [GITHUB]: {
+      pulls: [
+        {
+          number: 42,
+          title: 'feat: entity join',
+          branch: 'a2u-6-join',
+          url: overrides.url ?? 'https://github.com/o/r/pull/42',
+        },
+      ],
+    },
+    [CIRCLECI]: {
+      runs: [
+        {id: 'r1', seq: 1, status: 'failed', at: '2026-09-18T10:00:00Z', branch: 'a2u-6-join'},
+        {
+          id: 'r2',
+          seq: 2,
+          status: 'success',
+          at: '2026-09-18T12:00:00Z',
+          branch: overrides.branch ?? 'a2u-6-join',
+        },
+      ],
+    },
+  });
+
+  type JoinRow = {
+    issue: CellObject;
+    pr: {title: CellObject};
+    runs: {status: CellObject; when: CellObject}[];
+    runCount: CellObject;
+  };
+  const joinRows = (out: ReturnType<typeof run>) => out.rows as JoinRow[];
+
+  test('match is left out of the evaluated model, and an object with no claim has no join', () => {
+    const out = run(payload(byLink), partitions());
+    expect(Object.keys(joinRows(out)[0]!)).not.toContain('match');
+    expect(Object.keys(joinRows(out)[0]!.runs[0]!)).not.toContain('match');
+    expect(joinRows(out)[1]!.issue.join).toBeUndefined();
+  });
+
+  test('a fact that holds: the row’s values unmarked, the evidence naming both sides', () => {
+    const [row] = joinRows(run(payload(byLink), partitions()));
+    expect(row!.issue.join).toMatchObject({mark: 'none', apps: ['linear']});
+    expect(row!.pr.title.join).toMatchObject({
+      mark: 'none',
+      apps: ['github'],
+      evidence: [
+        {
+          name: 'pull request link',
+          kind: 'fact',
+          op: 'contains',
+          state: 'holds',
+          sides: [{app: 'linear'}, {app: 'github', value: 'https://github.com/o/r/pull/42'}],
+        },
+      ],
+    });
+  });
+
+  test('the nearest enclosing claim: a plain object under the row takes the row’s, a run its own', () => {
+    const [row] = joinRows(run(payload(byJudgment), partitions()));
+    // The row ties GitHub in by judgment alone: the pull request's values are guessed…
+    expect(row!.pr.title.join?.mark).toBe('guessed');
+    // …the count over CircleCI, which the row's claim names in no relation, is guessed too…
+    expect(row!.runCount.join?.mark).toBe('guessed');
+    // …and a run is judged by its own fact to the pull request, which holds.
+    expect(row!.runs[0]!.status.join).toMatchObject({
+      mark: 'none',
+      evidence: [{name: 'branch', state: 'holds'}],
+    });
+  });
+
+  test('a fact that stops holding marks its values broken; an absent side keeps the link', () => {
+    const broken = joinRows(run(payload(byLink), partitions({url: 'https://elsewhere/pull/9'})));
+    expect(broken[0]!.pr.title.join).toMatchObject({
+      mark: 'broken',
+      evidence: [{state: 'fails'}],
+    });
+    const oneRun = joinRows(run(payload(byLink), partitions({branch: 'other'})));
+    const moved = oneRun[0]!.runs.find(entry => entry.status.value === 'success')!;
+    expect(moved.status.join?.mark).toBe('broken');
+
+    const gone = joinRows(run(payload(byLink), {...partitions(), [GITHUB]: undefined}));
+    expect(gone[0]!.pr.title).toMatchObject({contributed: 0});
+    expect(gone[0]!.issue.join).toMatchObject({mark: 'none', evidence: [{state: 'absent'}]});
+  });
+
+  test('every cell with a ref names its target; a cell with none has none', () => {
+    const out = run(payload(byLink), partitions());
+    const [row, empty] = joinRows(out);
+    expect(row!.pr.title.target).toEqual({
+      app: 'github',
+      surface: GITHUB,
+      pointer: '/pulls[number=42]/title',
+    });
+    expect(row!.runCount.target).toMatchObject({app: 'circleci', pointer: '/runs[id="r1"]/id'});
+    expect(empty!.pr.title.target).toBeUndefined();
+    // Nothing resolves: the first declared ref.
+    const gone = joinRows(run(payload(byLink), {...partitions(), [GITHUB]: undefined}));
+    expect(gone[0]!.pr.title.target).toMatchObject({app: 'github'});
+  });
+
+  test('a selector navigates to the entry that won', () => {
+    const selector: SynthesisPayload = {
+      dataModel: {
+        latest: {
+          op: 'argmax',
+          args: [r(CIRCLECI, '/runs[id="r1"]/seq'), r(CIRCLECI, '/runs[id="r2"]/seq')],
+        },
+      },
+      sorts: [],
+    };
+    const cell = run(selector, partitions()).latest as CellObject;
+    expect(cell).toMatchObject({value: 'circleci', target: {pointer: '/runs[id="r2"]/seq'}});
+  });
+
+  test('a nested sort orders the list inside every row, by one choice', () => {
+    const statuses = (out: ReturnType<typeof run>) =>
+      joinRows(out).map(row => row.runs.map(entry => entry.status.value));
+    expect(statuses(run(payload(byLink), partitions()))).toEqual([['success', 'failed'], []]);
+    const asc = new Map([['/rows/*/runs', {key: '/when', direction: 'asc' as const}]]);
+    const out = run(payload(byLink), partitions(), {choices: asc});
+    expect(statuses(out)).toEqual([['failed', 'success'], []]);
+    expect(out.sorts[0]).toMatchObject({path: '/rows/*/runs', direction: 'asc'});
+  });
 });

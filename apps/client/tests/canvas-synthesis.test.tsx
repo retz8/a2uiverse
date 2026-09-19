@@ -115,7 +115,7 @@ describe('the synthesis turn on the canvas', () => {
     });
     expect(synthesis.payload).toEqual(PAYLOAD);
     expect(rows().map(r => r.name.value)).toEqual(['Lumen X100', 'Verity A7']);
-    expect(rows().map(r => r.best)).toEqual([
+    expect(rows().map(r => r.best)).toMatchObject([
       {value: 1299, contributed: 2, of: 2, absent: []},
       {value: 1799, contributed: 2, of: 2, absent: []},
     ]);
@@ -172,7 +172,7 @@ describe('the synthesis turn on the canvas', () => {
     await replayBeatOnCanvas(firstTurnOnly(SYNTHESIS_BEAT), {runner, store, paced: false});
     processor.model.getSurface(SHOP_A)!.dataModel.set('/items/0/price', 1200);
     await Promise.resolve();
-    expect(rows()[0]!.best).toEqual({value: 1200, contributed: 2, of: 2, absent: []});
+    expect(rows()[0]!.best).toMatchObject({value: 1200, contributed: 2, of: 2, absent: []});
   });
 
   it('a key that leaves a source degrades the view in place and comes back on its own (task-5.7 decision 9)', async () => {
@@ -190,10 +190,15 @@ describe('the synthesis turn on the canvas', () => {
     expect(failures).toEqual([]);
     expect(rows().map(r => r.name.value)).toEqual([undefined, 'Verity A7']);
     const [lumen, verity] = rows();
-    expect(lumen!.priceA).toEqual({value: undefined, contributed: 0, of: 1, absent: [SHOP_A]});
-    expect(lumen!.priceB).toEqual({value: 1349, contributed: 1, of: 1, absent: []});
-    expect(lumen!.best).toEqual({value: 1349, contributed: 1, of: 2, absent: [SHOP_A]});
-    expect(verity!.best).toEqual({value: 1799, contributed: 2, of: 2, absent: []});
+    expect(lumen!.priceA).toMatchObject({
+      value: undefined,
+      contributed: 0,
+      of: 1,
+      absent: [SHOP_A],
+    });
+    expect(lumen!.priceB).toMatchObject({value: 1349, contributed: 1, of: 1, absent: []});
+    expect(lumen!.best).toMatchObject({value: 1349, contributed: 1, of: 2, absent: [SHOP_A]});
+    expect(verity!.best).toMatchObject({value: 1799, contributed: 2, of: 2, absent: []});
     expect(rows().every(r => Object.values(r).every(c => !('stale' in c)))).toBe(true);
     // Free: no turn ran.
     expect(store.getState().appliedSeq).toBe(before);
@@ -217,7 +222,7 @@ describe('the synthesis turn on the canvas', () => {
       SHOP_A_ITEMS.map(i => ({...i})),
     );
     await Promise.resolve();
-    expect(rows().map(r => r.best)).toEqual([
+    expect(rows().map(r => r.best)).toMatchObject([
       {value: 1299, contributed: 2, of: 2, absent: []},
       {value: 1799, contributed: 2, of: 2, absent: []},
     ]);

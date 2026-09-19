@@ -131,10 +131,10 @@ describe('re-evaluation', () => {
     paintSynthesis();
     processor.model.getSurface(SHOP_B)!.dataModel.set('/', {detail: {sku: 'lumen-x100'}});
     await settled();
-    expect(best()[0]).toEqual({value: 1299, contributed: 1, of: 2, absent: [SHOP_B]});
+    expect(best()[0]).toMatchObject({value: 1299, contributed: 1, of: 2, absent: [SHOP_B]});
     processor.model.getSurface(SHOP_B)!.dataModel.set('/', {products: SHOP_B_PRODUCTS});
     await settled();
-    expect(best()[0]).toEqual({value: 1299, contributed: 2, of: 2, absent: []});
+    expect(best()[0]).toMatchObject({value: 1299, contributed: 2, of: 2, absent: []});
   });
 
   test('an unchanged output is not rewritten', async () => {

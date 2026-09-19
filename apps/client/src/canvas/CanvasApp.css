@@ -433,3 +433,32 @@ body {
   white-space: nowrap;
   border: 0;
 }
+
+/*
+ * Where a navigation landed (task-7.7 decision 6): a ring the shell draws in its own layer over
+ * the element's box. Nothing here selects inside a fragment.
+ */
+.canvas-landing-ring {
+  position: fixed;
+  z-index: 40;
+  pointer-events: none;
+  border-radius: 6px;
+  box-shadow:
+    0 0 0 2px var(--accent-9, #3e63dd),
+    0 0 0 6px var(--accent-a4, rgba(62, 99, 221, 0.25));
+  animation: canvas-landing-ring-fade 1.5s ease-out forwards;
+}
+
+.canvas-landing-ring[data-still='true'] {
+  animation: none;
+}
+
+@keyframes canvas-landing-ring-fade {
+  0%,
+  60% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}

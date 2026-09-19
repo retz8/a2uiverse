@@ -158,13 +158,14 @@ relation, and whether it holds, is the consumer's.
 
 **Resolution kit** — `js/src/pointer.ts` · `js/src/walk.ts`
 
-| Export                           | What it is                                                                                              |
-| -------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `parsePointer(pointer)`          | pointer → steps; throws `PointerSyntaxError`                                                            |
-| `resolvePointer(root, pointer)`  | `Resolution`: a value, or why not                                                                       |
-| `isFormula` · `walkModel(model)` | recognise a leaf; enumerate every leaf with its path, and every match claim with its relations          |
-| `refsOf(model)`                  | every ref, in leaf order                                                                                |
-| `reachSortPath(model, path)`     | every array a sort path reaches, each with its concrete location, and why it does not where it does not |
+| Export                           | What it is                                                                                                         |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `parsePointer(pointer)`          | pointer → steps; throws `PointerSyntaxError`                                                                       |
+| `resolvePointer(root, pointer)`  | `Resolution`: a value, or why not                                                                                  |
+| `locatePointer(root, pointer)`   | the resolution beside the concrete path it resolved to — positions for predicates — or the longest prefix that did |
+| `isFormula` · `walkModel(model)` | recognise a leaf; enumerate every leaf with its path, and every match claim with its relations                     |
+| `refsOf(model)`                  | every ref, in leaf order                                                                                           |
+| `reachSortPath(model, path)`     | every array a sort path reaches, each with its concrete location, and why it does not where it does not            |
 
 **A2UI tools** — `js/src/a2ui/`
 

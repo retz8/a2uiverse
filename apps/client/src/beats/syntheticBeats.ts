@@ -12,6 +12,8 @@
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
 import {CATALOG_ID} from 'github-catalog';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
+import {CATALOG_ID as SHOP_A_CATALOG_ID} from 'shop-a-catalog';
+import {CATALOG_ID as SHOP_B_CATALOG_ID} from 'shop-b-catalog';
 import type {BeatFixture} from './beatFixtures';
 import {
   DOCUMENT,
@@ -19,11 +21,13 @@ import {
   SHOP_A,
   SHOP_A_NAME,
   SHOP_A_REVERSED,
+  SHOP_B,
   SHOP_B_NAME,
   shopAMessages,
   shopBMessages,
   SYNTHESIS_SOURCE,
   synthesisMessages,
+  type SynthesisDocument,
 } from './synthesisFixture';
 
 const msg = (m: Record<string, unknown>): A2uiMessage =>
@@ -493,6 +497,123 @@ export const SYNTHESIS_BEAT: BeatFixture = {
   ],
 };
 
+/**
+ * A merged view written for navigation (task-7.7): the two storefronts painted in their own
+ * catalogs, so their components mount inside the markers a tap lands by, under a document whose
+ * cells name a rendered field, a field neither storefront renders, and — in its second row — a
+ * join held by judgment alone.
+ */
+const navigationRow = (id: string, match: Record<string, unknown>) => {
+  const ref = (surface: string, pointer: string) => ({surface, pointer});
+  const value = (surface: string, pointer: string) => ({
+    op: 'value',
+    args: [ref(surface, pointer)],
+  });
+  return {
+    name: value(SHOP_A, `/items[id="${id}"]/name`),
+    priceA: value(SHOP_A, `/items[id="${id}"]/price`),
+    priceB: value(SHOP_B, `/products[sku="${id}"]/price`),
+    inStock: value(SHOP_A, `/items[id="${id}"]/inStock`),
+    match,
+  };
+};
+
+const NAVIGATION_DOCUMENT: SynthesisDocument = {
+  tree: {
+    components: [
+      {id: 'root', component: 'Column', children: ['heading', 'sort', 'rows']},
+      {id: 'heading', component: 'Text', variant: 'h3', text: 'Cameras in both stores'},
+      {id: 'sort', component: 'SortControl', sort: {path: '/sorts/0'}},
+      {
+        id: 'rows',
+        component: 'Table',
+        columns: ['Camera', SHOP_A_NAME, SHOP_B_NAME, 'In stock'],
+        children: {path: '/rows', componentId: 'row'},
+      },
+      {id: 'row', component: 'TableRow', children: ['c-name', 'c-a', 'c-b', 'c-stock']},
+      {id: 'c-name', component: 'DerivedValue', cell: {path: 'name'}},
+      {id: 'c-a', component: 'DerivedValue', cell: {path: 'priceA'}, format: {kind: 'number'}},
+      {id: 'c-b', component: 'DerivedValue', cell: {path: 'priceB'}, format: {kind: 'number'}},
+      {id: 'c-stock', component: 'DerivedValue', cell: {path: 'inStock'}},
+    ],
+  },
+  dataModel: {
+    rows: [
+      navigationRow('lumen-x100', {
+        'model number': {
+          op: 'equal',
+          args: [
+            {surface: SHOP_A, pointer: '/items[id="lumen-x100"]/id'},
+            {surface: SHOP_B, pointer: '/products[sku="lumen-x100"]/sku'},
+          ],
+        },
+      }),
+      navigationRow('verity-a7', {
+        'same camera': {
+          op: 'judged',
+          args: [
+            {surface: SHOP_A, pointer: '/items[id="verity-a7"]/name'},
+            {surface: SHOP_B, pointer: '/products[sku="verity-a7"]/title'},
+          ],
+        },
+      }),
+    ],
+  } as SynthesisDocument['dataModel'],
+  sorts: [
+    {
+      path: '/rows',
+      options: [{key: '/priceA', label: SHOP_A_NAME}],
+      key: '/priceA',
+      direction: 'asc',
+    },
+  ],
+};
+
+export const NAVIGATION_BEAT: BeatFixture = {
+  ...base,
+  name: 'synthetic-navigation',
+  beat: 109,
+  title: 'Navigation from a merged cell',
+  prompt: 'compare camera prices across both stores',
+  turns: [
+    {
+      taskId: 'synthetic-navigation',
+      kind: 'utterance',
+      prompt: 'compare camera prices across both stores',
+      action: null,
+      outcome: 'completed',
+      durationMs: 900,
+      batches: [
+        {
+          offsetMs: 0,
+          stamp: {source: 'shell', role: 'shell'},
+          messages: layoutPaint(SYNTHESIS_SLOTS, 'Row'),
+          texts: [],
+        },
+        {
+          offsetMs: 300,
+          stamp: {source: 'shop-a', role: 'fragment'},
+          messages: shopAMessages(SHOP_A_CATALOG_ID),
+          texts: [],
+        },
+        {
+          offsetMs: 500,
+          stamp: {source: 'shop-b', role: 'fragment'},
+          messages: shopBMessages(SHOP_B_CATALOG_ID),
+          texts: [],
+        },
+        {
+          offsetMs: 900,
+          stamp: {source: 'shell', role: 'fragment'},
+          messages: synthesisMessages(NAVIGATION_DOCUMENT, SHELL_CATALOG_ID),
+          synthesis: {dataModel: NAVIGATION_DOCUMENT.dataModel, sorts: NAVIGATION_DOCUMENT.sorts},
+          texts: [],
+        },
+      ],
+    },
+  ],
+};
+
 /** Resolve a synthetic beat by the name `?beat=` accepts. */
 export function syntheticBeat(name: string): BeatFixture | undefined {
   switch (name) {
@@ -512,6 +633,8 @@ export function syntheticBeat(name: string): BeatFixture | undefined {
       return COMPOSED_QUESTION_BEAT;
     case 'synthesis':
       return SYNTHESIS_BEAT;
+    case 'navigation':
+      return NAVIGATION_BEAT;
     case 'platform-answer':
       return PLATFORM_ANSWER_BEAT;
     case 'gap':

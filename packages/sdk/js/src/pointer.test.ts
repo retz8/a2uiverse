@@ -1,5 +1,5 @@
 import {expect, test} from 'vitest';
-import {parsePointer, PointerSyntaxError, resolvePointer} from './pointer';
+import {locatePointer, parsePointer, PointerSyntaxError, resolvePointer} from './pointer';
 
 const partition = {
   messages: [
@@ -182,4 +182,45 @@ test('a missing key, a non-canonical index, and a null value are not found', () 
 
 test('resolves escaped keys', () => {
   expect(resolvePointer(partition, '/a~1b/~0')).toEqual({found: true, value: 'escaped'});
+});
+
+test('locates a pointer at the concrete path it resolved to', () => {
+  expect(locatePointer(partition, '/pulls[number=812]/title')).toMatchObject({
+    found: true,
+    path: '/pulls/0/title',
+  });
+  expect(locatePointer(partition, '/a~1b/~0')).toEqual({
+    found: true,
+    value: 'escaped',
+    path: '/a~1b/~0',
+  });
+  expect(locatePointer(partition, '')).toMatchObject({found: true, path: ''});
+});
+
+test('a pointer that does not resolve is located at the longest prefix that did', () => {
+  expect(locatePointer(partition, '/pulls[number=812]/nothing/deeper')).toEqual({
+    found: false,
+    reason: 'missing',
+    path: '/pulls/0',
+  });
+  expect(locatePointer(partition, '/pulls[number=1]/title')).toEqual({
+    found: false,
+    reason: 'missing',
+    path: '/pulls',
+  });
+  expect(locatePointer(partition, '/messages[id="dup"]/subject')).toEqual({
+    found: false,
+    reason: 'ambiguous',
+    path: '/messages',
+  });
+  expect(locatePointer(undefined, '/pulls[number=812]')).toEqual({
+    found: false,
+    reason: 'missing',
+    path: '',
+  });
+  expect(locatePointer(partition, '/empty')).toEqual({
+    found: false,
+    reason: 'null',
+    path: '/empty',
+  });
 });

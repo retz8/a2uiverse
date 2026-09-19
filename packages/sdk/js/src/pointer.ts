@@ -128,19 +128,31 @@ function jsonEqual(a: unknown, b: unknown): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
 }
 
-function stepInto(current: unknown, step: Step): Resolution {
+type Stepped =
+  | {found: true; value: unknown; segment: string}
+  | {found: false; reason: 'missing' | 'ambiguous' | 'positional'};
+
+function escape(segment: string): string {
+  return segment.replace(/~/g, '~0').replace(/\//g, '~1');
+}
+
+/** One step into a value: what it reached, and the concrete segment that names it there. */
+function stepInto(current: unknown, step: Step): Stepped {
   if (step.kind === 'predicate') {
     if (!Array.isArray(current)) return {found: false, reason: 'missing'};
-    const hits = current.filter(
-      element =>
-        typeof element === 'object' &&
-        element !== null &&
-        !Array.isArray(element) &&
-        step.tests.every(test =>
-          jsonEqual((element as Record<string, unknown>)[test.field], test.value),
-        ),
+    const hits = current.flatMap((element, position) =>
+      typeof element === 'object' &&
+      element !== null &&
+      !Array.isArray(element) &&
+      step.tests.every(test =>
+        jsonEqual((element as Record<string, unknown>)[test.field], test.value),
+      )
+        ? [{element, position}]
+        : [],
     );
-    if (hits.length === 1) return {found: true, value: hits[0]};
+    if (hits.length === 1) {
+      return {found: true, value: hits[0]!.element, segment: String(hits[0]!.position)};
+    }
     return {found: false, reason: hits.length === 0 ? 'missing' : 'ambiguous'};
   }
   if (Array.isArray(current)) {
@@ -151,19 +163,39 @@ function stepInto(current: unknown, step: Step): Resolution {
   if (typeof current === 'object' && current !== null) {
     const record = current as Record<string, unknown>;
     return Object.prototype.hasOwnProperty.call(record, step.key)
-      ? {found: true, value: record[step.key]}
+      ? {found: true, value: record[step.key], segment: escape(step.key)}
       : {found: false, reason: 'missing'};
   }
   return {found: false, reason: 'missing'};
 }
 
-/** Resolves a pointer against a data model root. A `null` at the end is absent, not a value. */
-export function resolvePointer(root: unknown, pointer: string): Resolution {
+/**
+ * A pointer located in a data model (task-7.7 decision 3): beside the resolution, the concrete
+ * path it resolved to — a plain JSON Pointer, each predicate replaced by the position of the
+ * element it selected — and, where it does not resolve, the longest prefix that did. A position
+ * is where an element is now, never a name for it: a location is read at the moment it is needed
+ * and never kept as a ref.
+ */
+export type Location = Resolution & {path: string};
+
+export function locatePointer(root: unknown, pointer: string): Location {
   let current: unknown = root;
+  let path = '';
   for (const step of parsePointer(pointer)) {
     const next = stepInto(current, step);
-    if (!next.found) return next;
+    if (!next.found) return {...next, path};
     current = next.value;
+    path = `${path}/${next.segment}`;
   }
-  return current === null ? {found: false, reason: 'null'} : {found: true, value: current};
+  return current === null
+    ? {found: false, reason: 'null', path}
+    : {found: true, value: current, path};
+}
+
+/** Resolves a pointer against a data model root. A `null` at the end is absent, not a value. */
+export function resolvePointer(root: unknown, pointer: string): Resolution {
+  const located = locatePointer(root, pointer);
+  return located.found
+    ? {found: true, value: located.value}
+    : {found: false, reason: located.reason};
 }

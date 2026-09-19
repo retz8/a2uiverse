@@ -609,14 +609,12 @@ describe('CanvasApp wire contracts', () => {
  * bound to this canvas through the relay — so a shell action raised inside a painted surface
  * lands here.
  */
-import {createShellActionRelay} from './shellActionRelay';
+import {createHostRelay} from './hostRelay';
 import {resolveCatalogs} from '../catalogs/resolver';
 import {listCatalogs} from '../orchestratorApi';
 
-const SHELL_ACTIONS = createShellActionRelay();
-const BOUND_CATALOGS = resolveCatalogs(await listCatalogs(), {
-  onShellAction: SHELL_ACTIONS.handler,
-});
+const HOST_RELAY = createHostRelay();
+const BOUND_CATALOGS = resolveCatalogs(await listCatalogs(), HOST_RELAY.host);
 
 /** The hub's answer to a shell-action report: a completed final carrying nothing. */
 const EMPTY_FINAL: TaskStatusUpdateEvent = {
@@ -632,7 +630,7 @@ function renderShellCanvas(beat: string) {
   const {sender, sent} = scriptedSender([EMPTY_FINAL]);
   render(
     <Providers>
-      <CanvasApp client={sender} catalogs={BOUND_CATALOGS} shellActions={SHELL_ACTIONS} />
+      <CanvasApp client={sender} catalogs={BOUND_CATALOGS} hostRelay={HOST_RELAY} />
     </Providers>,
   );
   return {sent};
