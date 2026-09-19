@@ -135,7 +135,8 @@ scenario, recorded as beat 5.
    validator against the Synthesizer's pruned catalog (known components and props, one `root`,
    unique ids, no dangling child, no cycle, no orphan — `Slot`, `Attribution` and `Button` are not in
    that catalog); then, over a structurally sound model, the derived-value rule, every operator
-   one the pruned catalog declares, every ref into a held partition and resolving *now*. Any finding goes back to the model as one line
+   one the pruned catalog declares and in its place — relations only inside `match`, only
+   relations there — every ref into a held partition and resolving *now*. Any finding goes back to the model as one line
    per error with the failed document; a second failure is `malformed`. Within one synthesis the
    retry is the only second call; a re-synthesis later in the composition's life is a new
    synthesis with its own retry.
@@ -150,7 +151,7 @@ scenario, recorded as beat 5.
 
 7. **The client evaluates before it renders.** The turn runner hands the payload to the
    **synthesis session** the moment the surface is live. Intake validates it with the same sdk
-   validator and checks every operator against the shell catalog; the session subscribes to the
+   validator and checks every operator against the shell catalog, in its place; the session subscribes to the
    root of every partition the payload refs and to `/sorts` on the synthesis surface; the
    evaluator resolves every ref, runs every formula, sorts every declared array, and writes the
    whole model to the synthesis surface in one root write. Only then does React render, so the
@@ -247,7 +248,8 @@ pass-through, so there is one shape and one evaluator path. A formula with no re
 cell for a column a source does not carry: it evaluates to absent, 0 of 0. `source` is the
 degenerate selector — index 0 of the surviving inputs — so a merged row can name the app its
 entry came from without copying anything (phase decision 19 as amended by task 5.7). Formulas do
-not nest.
+not nest. The catalog's relations — `equal`, `contains`, `judged` (task 7.5) — are declared
+beside the operators and written only inside `match`.
 
 **The derived data model.** Any JSON shape, object or array at every branch, formula at every
 leaf; a scalar anywhere is a contract violation. A list of like things is an array of like
@@ -261,8 +263,9 @@ named relations, each key the Synthesizer's own words for what matched and each 
 formula over exactly two refs in two different apps — `"branch": {"op": "equal", "args":
 [github…/branch, circleci…/branch]}`. At least one relation, flat. No object is required to carry
 one. A relation is a formula like any other leaf, so its refs are the model's refs. The sdk's
-validator checks the shape and that each relation's refs name two different apps; whether the
-operator is a relation, and whether the relation holds, is the consumer's.
+validator checks the shape and that each relation's refs name two different apps. The consumers —
+the orchestrator's validator and the client's intake — check that each relation's operator is one
+of the shell catalog's relations and that no relation stands outside `match` (task-7.5 decision 5).
 
 **Sorts.** For each ordered array: its `path` in the model, the `options` a user may sort by (each
 a `key` pointer inside an element to a formula leaf, with a `label`), and the initial `key` and

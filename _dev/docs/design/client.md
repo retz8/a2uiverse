@@ -50,7 +50,7 @@ replay needs.
 | `components/AmbientNotice` | The notice stack and its two fade clocks | `canvasStore` via `orderedNotices` |
 | `synthesis/synthesisSession` | A composition's synthesis state: the payload, the data-model subscriptions that re-run the evaluator, the user's sort choices by array path, the last output written | fed by `turn/canvasTurn`; reads and writes the live processor's data models; reports an invalid payload through the fragment-failure channel |
 | `synthesis/bindingEvaluator` | Pure: `evaluate({payload, models, choices, functions}) → EvaluatedModel` — the derived model mirrored with a cell object at every formula path, each declared array sorted in place, `/sorts/N` with the choice in force; ref resolution through the sdk kit, absent-skipping, operator dispatch to the shell catalog, `argmin`/`argmax`/`source` mapped to an app id | the shell catalog's `functions`; `parseInstant` for the sort |
-| `synthesis/intake` | The payload's shape by the sdk's `validateSynthesisPayload` (never a private mirror, phase-5 decision 23), then every operator against the shell catalog's list; the first failure is the `VALIDATION_FAILED` report | `@a2uiverse/sdk` |
+| `synthesis/intake` | The payload's shape by the sdk's `validateSynthesisPayload` (never a private mirror, phase-5 decision 23), then every operator against the shell catalog's list, in its place — a match claim's relations among the catalog's `RELATIONS`, no relation outside `match` (task-7.5 decision 5); the first failure is the `VALIDATION_FAILED` report | `@a2uiverse/sdk` |
 
 ### The stamp is the routing input
 

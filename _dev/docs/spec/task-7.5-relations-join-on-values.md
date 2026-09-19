@@ -6,10 +6,12 @@ The shell catalog's half of the entity join: the relations a match claim is writ
 
 - The relations declared in `catalog.json` and executed, exported as their own list.
 - `CellObject` gains the join and the navigation target; `DerivedValue` draws the join marks, the detail, and the tap.
+- The mark rule of decision 9 as a pure function over an object's evaluated relations and a cell's apps, returning the cell's join; the evaluator calls it.
 - `createCatalog` takes a navigation handler and an app-name lookup from the host.
 - The Synthesizer's keep-set gains the relations; the guidance doc gains the join.
+- The orchestrator's validator and the client's intake enforce decision 5's placement: a match claim is written in relations, and no relation stands outside one.
 - The composition contract's description of `match` follows decision 7.
-- Not here: computing each cell's join and target (7.7, the evaluator); "holds now" and the rule that the tree binds no path under `match` (7.6); landing a navigation in the fragment (7.7).
+- Not here: writing each cell's join and computing its target (7.7, the evaluator); "holds now" and the rule that the tree binds no path under `match` (7.6); landing a navigation in the fragment (7.7).
 
 ## Locked decisions
 
@@ -43,11 +45,11 @@ There is no separate join-disclosure component. The join of a claimed object is 
 
 ### 8. `CellObject` carries its join
 
-The evaluator writes each cell's `join`: its mark — none, guessed, or broken — and its evidence, the relations touching the cell's apps, as in decision 6. `DerivedValue` only draws. Nothing binds to `match` directly.
+The evaluator writes each cell's `join`, computed by the shell catalog's mark rule (decision 9): its mark — none, guessed, or broken — and its evidence, the relations touching the cell's apps, as in decision 6. `DerivedValue` only draws. Nothing binds to `match` directly.
 
 ### 9. Which values a link marks
 
-The confirmed facts — `equal` and `contains` that hold — tie apps together; the largest group so tied is the row's core, and its values are unmarked. An app outside the core tied in only by `judged`, or by no relation, is guessed; an app whose only link fails is broken. A two-app object whose link is in doubt marks both sides. A cell over several apps takes the worst of its apps' marks. An object with no `match` has no join marks. An absent app adds no mark; its cells already show absence.
+A relation that is absent keeps the link it made: the facts — `equal` and `contains` — that hold or are absent tie apps together; a fact that fails does not. The largest group so tied is the row's core, and its values are unmarked; when no single group is largest, there is no core. An app outside the core tied in only by `judged`, or by no relation, is guessed; an app whose only link fails is broken. A two-app object whose link is in doubt marks both sides. A cell over several apps takes the worst of its apps' marks. An object with no `match` has no join marks. An absent app adds no mark; its cells already show absence.
 
 ### 10. The drawing
 

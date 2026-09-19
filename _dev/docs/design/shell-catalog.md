@@ -3,10 +3,11 @@
 `packages/shell-catalog`. The shell's paint vocabulary (SPEC §4.2): the A2UI basic catalog mapped
 onto Radix Themes, plus the shell's own primitives — composition (`Slot`, `Attribution`),
 synthesis (`DerivedValue`, `SortControl`) and the merged view's shapes (`Table`,
-`TableRow`, `DataList`, `DataListItem`; task 5.7) — and the shell's two actions (`openStore`,
-`openAppLibrary`; task 6.2), as one catalog schema (`catalogs/v0.9.1/catalog.json`) and one
-React implementation, versioned together. Radix Themes is its design system, brought by its
-Provider under the one-provider-one-CSS-setup rule (SPEC §9.2). State as of task 6.6.
+`TableRow`, `DataList`, `DataListItem`; task 5.7) — the shell's two actions (`openStore`,
+`openAppLibrary`; task 6.2), and the relations a match claim is written in (`equal`, `contains`,
+`judged`; task 7.5), as one catalog schema (`catalogs/v0.9.1/catalog.json`) and one React
+implementation, versioned together. Radix Themes is its design system, brought by its Provider
+under the one-provider-one-CSS-setup rule (SPEC §9.2). State as of task 7.5.
 
 ## Two faces of one catalog
 
@@ -15,16 +16,19 @@ catalog.json ──────────────────────�
                                            ├─ catalog.parity.test · catalog.render-parity.test · keep-sets.test
 @a2ui/web_core BASIC_COMPONENTS  ─┐        │
 shell primitives' zod schemas    ─┼─ schema.ts   SCHEMA_CATALOG                   (React-free; a headless processor over the component APIs; shell actions bound to a handler that does nothing)
-                                  └─ catalog.ts  createCatalog({onShellAction})   (React; the client renders with it; shell actions and the capability tile bound to the host's handler)
+                                  └─ catalog.ts  createCatalog({onShellAction, onNavigate?, appDisplayName?})   (React; the client renders with it; shell actions and the capability tile bound to the host's handler, DerivedValue to its navigation and app names)
 ```
 
 Both faces are built from the same component APIs — upstream's `TextApi` … `DateTimeInputApi`
 from `@a2ui/web_core`, the primitives' own `*.schema.ts` — so they cannot disagree about a prop.
 `catalog.ts` binds each API to its Radix implementation with `createComponentImplementation`;
 `schema.ts` lists the APIs alone. Both carry the same functions — upstream's `BASIC_FUNCTIONS`,
-the formula operators (`OPERATORS`) and the shell actions (`SHELL_ACTIONS`). The rendering face is
-built per host: `createCatalog({onShellAction})` (task 6.2) closes the shell actions and `Slot`'s
-capability tile over the host's `ShellActionHandler`; `SCHEMA_CATALOG` closes them over `() => {}`.
+the formula operators (`OPERATORS`), the relations (`RELATIONS`) and the shell actions
+(`SHELL_ACTIONS`) — and both export the join's types and its mark rule, `cellJoin`. The rendering
+face is built per host: `createCatalog({onShellAction})` (task 6.2) closes the shell actions and
+`Slot`'s capability tile over the host's `ShellActionHandler`; its optional `onNavigate` and
+`appDisplayName` (task 7.5) close `DerivedValue` over the host's `NavigationHandler` and its
+`AppDisplayName` lookup. `SCHEMA_CATALOG` closes the shell actions over `() => {}`.
 The prop surface is the basic catalog's exactly: what the Synthesizer authors against, what the
 orchestrator validates, and what the client renders are one vocabulary, and only the rendering
 changed in 5.9.
@@ -39,14 +43,15 @@ from both faces:
 
 | Keep-set | Components | Functions | Author |
 | --- | --- | --- | --- |
-| `SYNTHESIS_SURFACE_KEEP_SET` | `DerivedValue`, `SortControl`, `Table`, `TableRow`, `DataList`, `DataListItem`, `Text`, `Column`, `Row`, `Card`, `Divider` | `OPERATORS` | the Synthesizer (`shell:synthesis`) |
+| `SYNTHESIS_SURFACE_KEEP_SET` | `DerivedValue`, `SortControl`, `Table`, `TableRow`, `DataList`, `DataListItem`, `Text`, `Column`, `Row`, `Card`, `Divider` | `OPERATORS`, `RELATIONS` | the Synthesizer (`shell:synthesis`) |
 | `LAYOUT_SURFACE_KEEP_SET` | `Slot`, `Row`, `Column`, `Card`, `Text`, `Divider`, `DataList`, `DataListItem`, `Table`, `TableRow`, `Button` | `SHELL_ACTIONS` | the Planner (`shell:main`) |
 
 An author is shown `catalog.json` pruned to its keep-set (the sdk's `pruneCatalog`) and its output
 is validated against the same pruned catalog. Beside the pruned catalog each author reads one
 guidance doc from `docs/`: `synthesis-guidance.md` — how a merged view is built out of this
-catalog: the derived-value rule, the components a merged view is made of, what never to paint —
-into the Synthesizer's prompt; `platform-ui-guidance.md` — how the shell draws UI about
+catalog: the derived-value rule, the components a merged view is made of, the join — when to
+write `match`, fact or judgment, how the relations compare, naming, the join shown on the values —
+and what never to paint — into the Synthesizer's prompt; `platform-ui-guidance.md` — how the shell draws UI about
 A2UIVerse itself: what a platform answer is, the components that serve it, the literal data
 model, the two shell actions as `Button`s, what never to paint — into the Planner's prompt.
 
@@ -54,7 +59,8 @@ model, the two shell actions as `Button`s, what never to paint — into the Plan
 
 One folder per component under `src/components/`, each a view (`*View`, pure React over resolved
 props) and a catalog entry (`*Component`, the binder's wrapper over the API; `Slot`'s is the
-factory `createSlotComponent(onShellAction)`). The basic components
+factory `createSlotComponent(onShellAction)`, `DerivedValue`'s
+`createDerivedValueComponent({onNavigate, appDisplayName})`). The basic components
 carry no schema file of their own — their API is upstream's. Shared helpers live in
 `components/shared/`; `weight` on `Slot` and `Attribution` goes through `shared/layout`'s
 `weightStyle` — `flex: N; min-width: 0; min-height: 0` — as the basic layout components apply it.
@@ -82,7 +88,7 @@ carry no schema file of their own — their API is upstream's. Shared helpers li
 | --- | --- | --- |
 | `Slot` | pending/failed tile on Radix panel, border and radius tokens; quiet `Text` lines for shell content; for a `gap`, the capability tile on the same panel — one `Text` line, "No installed app can do this.", over a soft `Button` "Search the Store" (`data-slot-state="gap"`); `weight ?? 1` as the flex share, written before a filled fragment slot's panel floor (`min-height: 4rem`) so the share's `min-height: 0` does not erase it; shell content keeps no floor | exactly one of `source` or `gap` (schema refine); a source's content from `SlotContentContext`, resolved by source, which the host fills; a gap resolves no content; the tile's button raises `openStore` with the gap as `query` and the slot's own id as `componentId`, through the handler `createSlotComponent` closes over |
 | `Attribution` | `Text` size 1 gray with Radix's info glyph; with a `child`, a `Flex` column (`data-attribution`) of marker over child carrying `weight ?? 1` as its flex share; without one, the bare marker | display name at rest, full detail on hover/focus, accessible name always; the wrapper of a vendor fragment's `Slot` (task 6.4): `child` the slot's id, `weight` the slot's, copied by the painter |
-| `DerivedValue` | `Text` size 2, gray when absent, detail in size 1 | the cell object the BindingEvaluator writes: value + contributor state; `format` `number` · `currency` · `datetime` (any year-and-clock spelling rendered in one fixed form — `en-US`, `America/New_York` — through `shared/instant`, which the client's sort shares) |
+| `DerivedValue` | `Text` size 2, gray when absent; the detail in a Radix `Tooltip` mounted in the portal root, so showing it moves nothing on the page; the contributor markers (half circle partial, dashed ring absent) and beside them the join's family — guessed: the value underlined dotted and a size-1 gray "?"; broken: a size-1 amber ⚠; with a target under a host that navigates, `role="button"`, focusable, pointer cursor and a `--gray-a3` background while hovered or focused, raising the handler on click, Enter or Space; nothing in the tooltip navigates | the cell object the BindingEvaluator writes: value + contributor state, and — for a claimed object — `join` `{mark, apps, evidence}` and `target` `{app, surface, pointer}`; the detail on hover or focus is the contributor detail when partial or absent, then "From {apps} · {relation names}", each relation with its two values when the mark is guessed or broken; the accessible name carries value, contributor detail, mark ("guessed match" · "broken match") and join detail; apps named through the host's lookup, the app id when it has none; `format` `number` · `currency` · `datetime` (any year-and-clock spelling rendered in one fixed form — `en-US`, `America/New_York` — through `shared/instant`, which the client's sort shares) |
 | `SortControl` | `Select` + `IconButton` with Radix arrow icons | the declaration at `/sorts/N`, written back whole |
 | `Table` · `TableRow` | `Table.Root` size 1 `surface`; `Table.Row` of `Table.Cell`s | headings from `columns`, one row per child; a row outside a table draws as a flex row (context) |
 | `DataList` · `DataListItem` | `DataList.Root` size 2; `DataList.Item` with `Label` and `Value` | `label` a `DynamicString`, `child` the value; an item outside a list draws as a labelled row (context) |
@@ -107,6 +113,37 @@ runs with no component in scope and carries none. `query` is present only when g
 button's `args.query`, the tile's `gap`. What opening the Store or the App Library looks like is
 the host's.
 
+## Relations and the join
+
+`functions/relations.ts` (task 7.5). `RELATIONS` is `['equal', 'contains', 'judged']`, exported
+apart from `OPERATORS`; `relationKind` makes `equal` and `contains` facts and `judged` the
+judgment. Each is a catalog function (`returnType: 'boolean'`) over `values` of exactly two, pure
+like the operators — the evaluator resolves both refs and calls a relation absent when either does
+not resolve. `judged` returns true. `equal` and `contains` compare:
+
+| Values | `equal(a, b)` | `contains(a, b)` |
+| --- | --- | --- |
+| two instants (`shared/instant`'s reading) | the same moment, to the coarser of the two spellings' precision (`instantPrecision`: minute, second, or the fraction written) | by tokens |
+| two numbers (`readNumber`: a JSON number, or text that is only a number — sign, one currency symbol, `,` `.` `'` `’` or space grouping; a spelling with more than one reading is not a number) | the same value | by tokens |
+| other plain values | the same token sequence | b's tokens unbroken inside a's |
+| two lists of plain values | every member of each among the other's | every member of b among a's |
+| a list and a plain value | does not hold | b among a's members |
+| an object, a list holding one, an empty list, a side with no token | does not hold | does not hold |
+
+`tokens` normalizes NFKC, lowercases, and splits on anything not a letter, mark or digit; a
+character of Han, Hiragana, Katakana, Thai, Lao, Khmer or Myanmar is a token of its own. Members
+compare as `equal` compares plain values.
+
+`components/derived-value/join.ts` holds the join's shapes — `EvaluatedRelation` `{name, kind, op,
+state, sides}` (state `holds` · `fails` · `absent`; each side `{app, ref, value?}`), `CellJoin`,
+`CellTarget`, `NavigationHandler`, `AppDisplayName` — and the mark rule `cellJoin(claim, apps,
+absentApps)` the evaluator calls per cell. A relation that is absent keeps the link it made: facts
+that hold or are absent tie apps (union–find); the unique largest group is the row's core, marked
+`none`, and a tie for largest leaves no core. Outside the core, an app whose every relation is a
+failing fact is `broken`, any other `guessed`; an app of the cell the claim does not mention is
+`guessed`. The cell takes the worst mark among its apps not in `absentApps`; its evidence is every
+relation touching any of its apps. An empty claim gives no join.
+
 ## Provider
 
 `Provider` is the bundle's one Provider and one CSS setup: a Radix `Theme` folded onto a single
@@ -128,9 +165,17 @@ the Provider over `createCatalog`, the test's `onShellAction` and `onAction` rec
 tree raises, the surface returned for reading its data model.
 
 - `catalog.parity.test` — name-level: every schema component and function has an implementation;
-  the declared functions are exactly upstream's set plus `OPERATORS` and `SHELL_ACTIONS`; every
-  operator and every shell action is declared, implemented, and in the schema's `anyFunction`
-  union.
+  the declared functions are exactly upstream's set plus `OPERATORS`, `RELATIONS` and
+  `SHELL_ACTIONS`; every operator, relation and shell action is declared, implemented, and in the
+  schema's `anyFunction` union.
+- `functions/relations.test` — the relations apart from the operators and their kinds; text as
+  token sequences across normalization, case, punctuation and spaceless scripts; numbers and
+  instants by value, a two-way spelling staying text, instants to the coarser precision; lists as
+  lists; objects never; `judged` always.
+- `components/derived-value/join.test` — the mark rule over the pull-request roster: the core
+  unmarked, judgment guessed, an unmentioned app guessed, a lone failing fact broken, two facts
+  outlasting one failure, the two-app cases, no core on a tie, absent relations keeping their
+  links, an absent app adding no mark, the worst of a cell's apps, the evidence.
 - `catalog.render-parity.test` — render-level, generated from `catalog.json` through
   `fixture/matrix.ts`: every component in every value of every enum prop renders through the real
   renderer under the Provider with no validation error, no console error or warning, and an
@@ -138,7 +183,8 @@ tree raises, the surface returned for reading its data model.
 - `schema.test` — the React-free face runs where there is no DOM, declares exactly the schema's
   components and every schema function, accepts a merged-view tree and rejects a bad prop; the two
   guidance docs ship beside the schema.
-- `keep-sets.test` — each keep-set prunes `catalog.json` to exactly its components and functions;
+- `keep-sets.test` — the synthesis keep-set's functions are `OPERATORS` and `RELATIONS`, the layout
+  keep-set carries no relation; each keep-set prunes `catalog.json` to exactly its components and functions;
   a merged view validates against the synthesis pruning while `Slot`, `Attribution`, `TextField`
   and `Button` do not; a layout of weighted slots, a `gap` and an `openStore` button validates
   against the layout pruning while `Attribution`, `DerivedValue`, `SortControl` and `openUrl` do
@@ -150,13 +196,20 @@ tree raises, the surface returned for reading its data model.
   gap as `query`.
 - Per-component tests where behaviour is non-trivial: two-way binding on every input, `ChoicePicker`
   in all four shapes and across two pickers, `Modal` into the portal root, `Icon` over the whole
-  table, `Text` through a host markdown renderer; `Slot` — exactly one of `source` or `gap` and a
+  table, `Text` through a host markdown renderer; `DerivedValue` — the join marks, the detail with
+  both values when in doubt, the detail in a tooltip and never inside the cell, the two families
+  together, an absent value unmarked, app names with the id as fallback, the cell as the
+  navigation button (click, Enter, nothing in the tooltip navigating, an absent cell), not interactive without a handler or a target, and `createCatalog`'s two options
+  through the real renderer; `Slot` — exactly one of `source` or `gap` and a
   numeric `weight` in the schema, `weight` as the flex share, a gap tile resolving no content,
   shell content pending, failed and filled with no floor; `Attribution` — the wrapper's `weight`
   as its flex share, one share when unweighted, the marker before the child, the bare marker
   without a child.
 - `fixture/` — the design-check page (`pnpm dev`, port 5174): the same matrix under Radix light,
   Radix dark and no host Theme; the task 5.11 timeline example (the fixture's own copy) evaluated
-  and rendered as one merged view with a live sort; the Slot/Attribution states, the capability
+  and rendered as one merged view with a live sort; the `DerivedValue` join states — no claim,
+  confirmed, guessed, broken, partial and guessed, absent, no refs — from hand-built cells; the
+  Slot/Attribution states, the capability
   tile among them; and the scoping proof — two Providers under two host Themes in one document.
-  Its catalog is `createCatalog` over a handler that logs the action.
+  Its catalog is `createCatalog` over handlers that log the shell action and the navigation, with
+  display names for the pull-request roster.
