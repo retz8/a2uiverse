@@ -1,5 +1,6 @@
 import type {ProviderOptions} from '@ai-sdk/provider-utils';
 import {createA2uiValidator, type A2uiCatalogSchema, type A2uiValidator} from '@a2uiverse/sdk';
+import {RELATIONS} from '@a2uiverse/shell-catalog/schema';
 import {generateText, type LanguageModel} from 'ai';
 import {extractTaggedBlock} from '../authoring/taggedBlock.js';
 import {isDecline, type Synthesis, type SynthesizeDataModel} from './document.js';
@@ -62,6 +63,7 @@ export class Synthesizer {
   readonly #system: string;
   readonly #tree: A2uiValidator;
   readonly #operators: readonly string[];
+  readonly #relations: readonly string[];
 
   constructor(options: {
     model: SynthesisModel;
@@ -72,7 +74,9 @@ export class Synthesizer {
     this.#model = options.model;
     this.#system = options.systemPrompt;
     this.#tree = createA2uiValidator({catalog: options.catalog});
-    this.#operators = Object.keys(options.catalog.functions ?? {});
+    const functions = Object.keys(options.catalog.functions ?? {});
+    this.#relations = functions.filter(name => (RELATIONS as readonly string[]).includes(name));
+    this.#operators = functions.filter(name => !this.#relations.includes(name));
   }
 
   async synthesize(
@@ -129,6 +133,7 @@ export class Synthesizer {
     const validation = validateSynthesis(parsed, {
       tree: this.#tree,
       operators: this.#operators,
+      relations: this.#relations,
       partitions,
     });
     if (!validation.ok) return {ok: false, document: parsed, errors: validation.errors};

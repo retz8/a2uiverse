@@ -7,7 +7,7 @@ import {beforeEach, describe, expect, test, vi} from 'vitest';
 import {MessageProcessor} from '@a2ui/web_core/v0_9';
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
 import type {ReactComponentImplementation} from '@a2ui/react/v0_9';
-import {CATALOG_ID, createCatalog, OPERATORS} from '@a2uiverse/shell-catalog';
+import {CATALOG_ID, createCatalog, OPERATORS, RELATIONS} from '@a2uiverse/shell-catalog';
 import type {CellObject} from '@a2uiverse/shell-catalog';
 import type {SynthesisPayload} from '@a2uiverse/sdk';
 import {
@@ -74,6 +74,7 @@ beforeEach(() => {
     processor,
     functions: CATALOG.functions,
     operators: OPERATORS,
+    relations: RELATIONS,
     onInvalid: f => failures.push(f),
   });
 });

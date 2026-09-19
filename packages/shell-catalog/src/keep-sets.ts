@@ -6,9 +6,13 @@
  */
 import type {KeepSet} from '@a2uiverse/sdk';
 import {OPERATORS} from './functions/operators.js';
+import {RELATIONS} from './functions/relations.js';
 import {SHELL_ACTIONS} from './functions/shell-actions.js';
 
-/** The synthesis surface (`shell:synthesis`): the merged view's shapes over the formula operators. */
+/**
+ * The synthesis surface (`shell:synthesis`): the merged view's shapes over the formula operators,
+ * and the relations its match claims are written in (task-7.5 decision 14).
+ */
 export const SYNTHESIS_SURFACE_KEEP_SET: KeepSet = {
   components: [
     'DerivedValue',
@@ -23,7 +27,7 @@ export const SYNTHESIS_SURFACE_KEEP_SET: KeepSet = {
     'Card',
     'Divider',
   ],
-  functions: [...OPERATORS],
+  functions: [...OPERATORS, ...RELATIONS],
 };
 
 /** The layout surface (`shell:main`): slots, the shell's own words around them, and the shell's actions. */

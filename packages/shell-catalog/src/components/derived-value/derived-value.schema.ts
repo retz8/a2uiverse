@@ -1,5 +1,6 @@
 import {z} from 'zod';
 import {BindingSchema} from '../../binding.js';
+import type {CellJoin, CellTarget} from './join.js';
 
 /**
  * Runtime (zod) representation of DerivedValue, props-only (task-4.3 decisions 3, 5).
@@ -42,4 +43,8 @@ export interface CellObject {
   of: number;
   /** Namespaced surface ids whose refs did not resolve. */
   absent: string[];
+  /** The join of the object the cell belongs to; none when that object carries no match claim. */
+  join?: CellJoin;
+  /** The element the cell navigates to; none when the formula has no refs. */
+  target?: CellTarget;
 }

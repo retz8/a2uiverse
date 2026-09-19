@@ -21,10 +21,36 @@ import {SortControlApi} from './components/sort-control/sort-control.schema.js';
 import {TableApi, TableRowApi} from './components/table/table.schema.js';
 import {DataListApi, DataListItemApi} from './components/data-list/data-list.schema.js';
 import {operatorFunctions, OPERATORS, type Operator} from './functions/operators.js';
+import {
+  RELATIONS,
+  relationFunctions,
+  relationKind,
+  type RelationKind,
+  type RelationOp,
+} from './functions/relations.js';
 import {SHELL_ACTIONS, shellActionFunctions} from './functions/shell-actions.js';
 
-export {CATALOG_ID, OPERATORS, SHELL_ACTIONS, type Operator};
+export {
+  CATALOG_ID,
+  OPERATORS,
+  RELATIONS,
+  relationFunctions,
+  relationKind,
+  SHELL_ACTIONS,
+  type Operator,
+  type RelationKind,
+  type RelationOp,
+};
 export {LAYOUT_SURFACE_KEEP_SET, SYNTHESIS_SURFACE_KEEP_SET} from './keep-sets.js';
+export {
+  type CellJoin,
+  cellJoin,
+  type CellTarget,
+  type EvaluatedRelation,
+  type JoinMark,
+  type RelationSide,
+  type RelationState,
+} from './components/derived-value/join.js';
 export {
   AttributionApi,
   DataListApi,
@@ -58,6 +84,7 @@ export const SCHEMA_CATALOG: Catalog<ComponentApi> = new Catalog<ComponentApi>(
   [
     ...(BASIC_FUNCTIONS as FunctionImplementation[]),
     ...operatorFunctions,
+    ...relationFunctions,
     ...shellActionFunctions(() => {}),
   ],
 );

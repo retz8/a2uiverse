@@ -51,6 +51,22 @@ export function parseInstant(value: unknown): number | undefined {
   return wall - offsetMs(named ?? INSTANT_TIME_ZONE, wall);
 }
 
+/** A clock as written: hours and minutes, optional seconds, optional fraction of a second. */
+const CLOCK_PARTS = /\d{1,2}:\d{2}(?::\d{2}(?:\.(\d+))?)?/;
+
+/**
+ * The unit an instant's spelling is written to, in ms: a minute, a second, or the fraction of a
+ * second it carries. Undefined when the value is not an instant.
+ */
+export function instantPrecision(value: unknown): number | undefined {
+  if (parseInstant(value) === undefined) return undefined;
+  const clock = CLOCK_PARTS.exec(String(value));
+  if (!clock) return undefined;
+  const fraction = clock[1];
+  if (fraction !== undefined) return Math.max(1, 10 ** (3 - fraction.length));
+  return clock[0].split(':').length === 3 ? 1000 : 60_000;
+}
+
 /** The zone's offset from UTC at the given instant, in ms, or 0 for a zone the engine does not know. */
 function offsetMs(zone: string, at: number): number {
   try {

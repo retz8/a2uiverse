@@ -24,7 +24,7 @@ import type {
   Catalog,
 } from '@a2ui/web_core/v0_9';
 import type {ReactComponentImplementation} from '@a2ui/react/v0_9';
-import {OPERATORS, type ShellAction} from '@a2uiverse/shell-catalog';
+import {OPERATORS, RELATIONS, type ShellAction} from '@a2uiverse/shell-catalog';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 import type {A2ASenderOptions} from '../a2a/client';
 import {createSenderResolver, sendAndApply} from '../a2a/client';
@@ -90,6 +90,7 @@ export function createCanvasWiring({
     processor,
     functions: shellCatalog?.functions ?? new Map(),
     operators: OPERATORS,
+    relations: RELATIONS,
     // A wiring the client cannot evaluate is reported like any fragment the canvas cannot
     // render: the synthesis surface lives in a slot, and the hub answers by failing that slot.
     onInvalid: failure => void reportFragmentFailure(failure),

@@ -67,7 +67,7 @@ const matchSchema = {
   minProperties: 1,
   additionalProperties: {$ref: '#/$defs/relation'},
   description:
-    "A match claim, under the reserved key `match` of an object of the derived model, the root included: the Synthesizer's word that the entries the object joins from different apps are one thing, with its evidence. Each key is the Synthesizer's own words for what matched, each value a relation. At least one relation; flat. No object is required to carry one. Rendered through the shell's join-disclosure component.",
+    "A match claim, under the reserved key `match` of an object of the derived model, the root included: the Synthesizer's word that the entries the object joins from different apps are one thing, with its evidence. Each key is the Synthesizer's own words for what matched, each value a relation. At least one relation; flat. No object is required to carry one. Disclosed on the object's values by the shell's derived-value component; the tree binds no path under `match`.",
 } as const;
 
 const nodeSchema = {

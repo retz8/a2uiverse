@@ -8,7 +8,12 @@ import type {ReactNode} from 'react';
 import {A2uiSurface, type ReactComponentImplementation} from '@a2ui/react/v0_9';
 import {MessageProcessor, type SurfaceModel} from '@a2ui/web_core/v0_9';
 import type {A2uiClientAction} from '@a2ui/web_core/v0_9';
-import {createCatalog, type ShellActionHandler} from '../catalog.js';
+import {
+  type AppDisplayName,
+  createCatalog,
+  type NavigationHandler,
+  type ShellActionHandler,
+} from '../catalog.js';
 import {CATALOG_ID} from '../catalog-id.js';
 import {Provider} from '../provider.js';
 
@@ -23,6 +28,10 @@ export interface TreeOptions {
   onAction?: (action: A2uiClientAction) => void;
   /** Receives every shell action a button or a capability tile raises. */
   onShellAction?: ShellActionHandler;
+  /** Receives every navigation a derived-value cell raises. */
+  onNavigate?: NavigationHandler;
+  /** The host's display names for apps. */
+  appDisplayName?: AppDisplayName;
 }
 
 export const SURFACE_ID = 'test';
@@ -36,7 +45,13 @@ export function surfaceFor(
   processor: MessageProcessor<ReactComponentImplementation>;
 } {
   const processor = new MessageProcessor<ReactComponentImplementation>(
-    [createCatalog({onShellAction: options.onShellAction ?? (() => {})})],
+    [
+      createCatalog({
+        onShellAction: options.onShellAction ?? (() => {}),
+        onNavigate: options.onNavigate,
+        appDisplayName: options.appDisplayName,
+      }),
+    ],
     options.onAction,
   );
   processor.processMessages([

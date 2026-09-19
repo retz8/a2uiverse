@@ -2,8 +2,8 @@
  * Design-check fixture (task-5.9 decision 6): the whole catalog — every component in every
  * value of every enum prop, generated from `catalog.json` and rendered through the real renderer
  * from A2UI trees — under Radix light · Radix dark · no host Theme; the task 5.11 timeline
- * example as one merged view; the Slot/Attribution states; and the scoping proof (two Providers
- * under different host Themes, one document).
+ * example as one merged view; the Slot/Attribution states; the DerivedValue join states (task
+ * 7.5); and the scoping proof (two Providers under different host Themes, one document).
  */
 import {StrictMode, useEffect, useMemo, useState, type ReactNode} from 'react';
 import {createRoot} from 'react-dom/client';
@@ -14,7 +14,9 @@ import {resolvePointer, type SortDeclaration} from '@a2uiverse/sdk';
 import {
   AttributionView,
   CATALOG_ID,
+  type CellObject,
   createCatalog,
+  type EvaluatedRelation,
   Provider,
   SlotContentContext,
   SlotView,
@@ -25,8 +27,17 @@ import {TODAY_TIMELINE, type TimelineExample} from './timeline-example.js';
 
 const SCHEMA = schema as unknown as CatalogSchema;
 
+const APP_NAMES: Record<string, string> = {
+  github: 'GitHub',
+  linear: 'Linear',
+  circleci: 'CircleCI',
+  gmail: 'Gmail',
+};
+
 const CATALOG = createCatalog({
   onShellAction: action => console.log('[fixture shell action]', action),
+  onNavigate: target => console.log('[fixture navigate]', target),
+  appDisplayName: appId => APP_NAMES[appId],
 });
 
 /** A surface holding one tree, painted by the real renderer. */
@@ -234,6 +245,119 @@ function SlotMatrix() {
   );
 }
 
+/* ── DerivedValue's join on the values, cells built by hand (task 7.5) ───────── */
+
+const side = (app: string, pointer: string, value: unknown) => ({
+  app,
+  ref: {surface: `${app}:list`, pointer},
+  value,
+});
+const SAME_PR: EvaluatedRelation = {
+  name: 'same pull request',
+  kind: 'fact',
+  op: 'equal',
+  state: 'holds',
+  sides: [
+    side('github', '/prs[number=6]/number', 6),
+    side('linear', '/issues[id="A2U-5"]/pr', '#6'),
+  ],
+};
+const SAME_ISSUE: EvaluatedRelation = {
+  name: 'same issue',
+  kind: 'judged',
+  op: 'judged',
+  state: 'holds',
+  sides: [
+    side('github', '/prs[number=6]/title', 'Fix login'),
+    side('gmail', '/threads[id="t1"]/subject', 'Login page broken again'),
+  ],
+};
+const SAME_BRANCH: EvaluatedRelation = {
+  name: 'same branch',
+  kind: 'fact',
+  op: 'equal',
+  state: 'fails',
+  sides: [
+    side('linear', '/issues[id="A2U-5"]/branch', 'fix-login'),
+    side('circleci', '/runs[id="r1"]/branch', 'main'),
+  ],
+};
+const target = (app: string) => ({app, surface: `${app}:list`, pointer: '/entries[id="1"]'});
+const cell = (value: unknown, rest: Partial<CellObject> = {}): CellObject => ({
+  value,
+  contributed: 1,
+  of: 1,
+  absent: [],
+  ...rest,
+});
+const JOIN_CELLS: Record<string, CellObject> = {
+  plain: cell(899, {target: target('github')}),
+  confirmed: cell('In Progress', {
+    join: {mark: 'none', apps: ['linear'], evidence: [SAME_PR]},
+    target: target('linear'),
+  }),
+  guessed: cell('Login page broken again', {
+    join: {mark: 'guessed', apps: ['gmail'], evidence: [SAME_ISSUE]},
+    target: target('gmail'),
+  }),
+  broken: cell('failed', {
+    join: {mark: 'broken', apps: ['circleci'], evidence: [SAME_BRANCH]},
+    target: target('circleci'),
+  }),
+  partialGuessed: cell('2026-09-18T14:05:00Z', {
+    contributed: 1,
+    of: 2,
+    absent: ['github:list'],
+    join: {mark: 'guessed', apps: ['github', 'gmail'], evidence: [SAME_ISSUE]},
+    target: target('gmail'),
+  }),
+  absent: cell(undefined, {
+    contributed: 0,
+    of: 1,
+    absent: ['linear:list'],
+    join: {mark: 'none', apps: ['linear'], evidence: [{...SAME_PR, state: 'absent'}]},
+    target: target('linear'),
+  }),
+  noTarget: cell(undefined, {
+    contributed: 0,
+    of: 0,
+    join: {mark: 'none', apps: [], evidence: []},
+  }),
+};
+const JOIN_LABELS: Record<string, string> = {
+  plain: 'no match claim',
+  confirmed: 'confirmed',
+  guessed: 'guessed',
+  broken: 'broken',
+  partialGuessed: 'partial + guessed',
+  absent: 'absent, claimed',
+  noTarget: 'no refs (0 of 0)',
+};
+const JOIN_TREE: TreeComponent[] = [
+  {id: 'root', component: 'DataList', children: Object.keys(JOIN_CELLS).map(k => `i-${k}`)},
+  ...Object.keys(JOIN_CELLS).flatMap(key => [
+    {id: `i-${key}`, component: 'DataListItem', label: JOIN_LABELS[key]!, child: `v-${key}`},
+    {
+      id: `v-${key}`,
+      component: 'DerivedValue',
+      cell: {path: `/cells/${key}`},
+      ...(key === 'partialGuessed' ? {format: {kind: 'datetime'}} : {}),
+    },
+  ]),
+];
+const JOIN_DATA = {cells: JOIN_CELLS};
+
+function JoinMatrix() {
+  return (
+    <section style={{display: 'grid', gap: 12}}>
+      <h3 style={{font: '600 12px sans-serif', opacity: 0.8, margin: '12px 0 0'}}>
+        DerivedValue · join
+      </h3>
+      <Tree components={JOIN_TREE} data={JOIN_DATA} />
+    </section>
+  );
+}
+
 /* ── Columns and the scoping proof ──────────────────────────────────────────── */
 
 function Column({title, children}: {title: string; children: ReactNode}) {
@@ -249,6 +373,7 @@ function Everything() {
   return (
     <div style={{display: 'grid', gap: 16}}>
       <Timeline />
+      <JoinMatrix />
       <SlotMatrix />
       <CatalogMatrix />
     </div>

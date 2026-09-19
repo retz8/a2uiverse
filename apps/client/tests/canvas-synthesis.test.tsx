@@ -10,7 +10,7 @@ import {describe, expect, it} from 'vitest';
 import {screen} from '@testing-library/react';
 import {MessageProcessor} from '@a2ui/web_core/v0_9';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
-import {OPERATORS, SlotContentContext} from '@a2uiverse/shell-catalog';
+import {OPERATORS, RELATIONS, SlotContentContext} from '@a2uiverse/shell-catalog';
 import type {CellObject} from '@a2uiverse/shell-catalog';
 import {createCanvasStore} from '../src/canvas/canvasStore';
 import {createTurnRunner} from '../src/canvas/turn/canvasTurn';
@@ -46,6 +46,7 @@ function setup() {
     processor,
     functions: shell.functions,
     operators: OPERATORS,
+    relations: RELATIONS,
     onInvalid: f => failures.push(f),
   });
   const runner = createTurnRunner({

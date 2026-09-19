@@ -7,6 +7,8 @@
 import {readFileSync} from 'node:fs';
 import {createA2uiValidator, pruneCatalog, type A2uiCatalogSchema} from '@a2uiverse/sdk';
 import {describe, expect, test} from 'vitest';
+import {OPERATORS} from './functions/operators';
+import {RELATIONS} from './functions/relations';
 import {LAYOUT_SURFACE_KEEP_SET, SYNTHESIS_SURFACE_KEEP_SET} from './keep-sets';
 
 const catalog = JSON.parse(
@@ -25,7 +27,13 @@ describe('the synthesis surface keep-set', () => {
   const pruned = pruneCatalog(catalog, SYNTHESIS_SURFACE_KEEP_SET);
   const validator = createA2uiValidator({catalog: pruned});
 
-  test('keeps the merged view’s components and the formula operators, nothing else', () => {
+  test('its functions are the formula operators and the relations (task-7.5 decision 14)', () => {
+    expect([...SYNTHESIS_SURFACE_KEEP_SET.functions].sort()).toEqual(
+      [...OPERATORS, ...RELATIONS].sort(),
+    );
+  });
+
+  test('keeps the merged view’s components and its functions, nothing else', () => {
     expect(Object.keys(pruned.components!).sort()).toEqual(
       [...SYNTHESIS_SURFACE_KEEP_SET.components].sort(),
     );
@@ -59,6 +67,11 @@ describe('the synthesis surface keep-set', () => {
 describe('the layout surface keep-set', () => {
   const pruned = pruneCatalog(catalog, LAYOUT_SURFACE_KEEP_SET);
   const validator = createA2uiValidator({catalog: pruned});
+
+  test('carries no relation: the Planner writes no match claim', () => {
+    for (const relation of RELATIONS)
+      expect(LAYOUT_SURFACE_KEEP_SET.functions).not.toContain(relation);
+  });
 
   test('keeps the layout’s components and the shell actions, nothing else', () => {
     expect(Object.keys(pruned.components!).sort()).toEqual(

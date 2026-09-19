@@ -11,10 +11,10 @@ Register: imperative. A rule the model would already follow earns no place here.
 
 ## The derived-value rule
 
-**Every path of the derived data model whose leaf is a formula renders through `DerivedValue` and
-through nothing else.** Bind its `cell` to that path; the runtime writes the evaluated value there
-together with its contributor state, and the component shows both — so a value computed over some
-of its sources never reads like one computed over all of them. `Text` bound to a formula path is an
+**Every path of the derived data model whose leaf is a formula, outside `match`, renders through
+`DerivedValue` and through nothing else.** Bind its `cell` to that path; the runtime writes the
+evaluated value there together with its contributor state, and the component shows both — so a
+value computed over some of its sources never reads like one computed over all of them. `Text` bound to a formula path is an
 error; so is `DerivedValue` bound to anything that is not a formula leaf. The validator rejects
 both.
 
@@ -47,6 +47,25 @@ both.
 
 `Card` may wrap the whole view when it should read as one surface; `Divider` separates sections
 that are genuinely different. The view is read, sorted, and read again.
+
+## The join
+
+When the entries an object brings together from different apps are, in your judgment, one thing —
+the same pull request in GitHub, CircleCI and Linear — write the evidence under the object's
+`match` key. Nothing requires one; write it where you judge a join.
+
+- Each key names what matched, the way the user would say it: `"same branch"`,
+  `"title in the subject"`. The name is shown beside the values.
+- Each value is a relation over two refs in two different apps. Use `equal` or `contains` whenever a
+  fact links the two — an identifier, a branch, a title quoted in a subject. Use `judged` only when
+  nothing but understanding does.
+- Relations compare word by word: case and punctuation do not count, so `fix-login` equals
+  `Fix login`. Numbers and date-and-times compare by value, whatever their spelling. `contains` reads
+  "the second is inside the first": words inside a text, or a value among a list's members.
+- Write every fact that links two apps, not only the first you find: a value tied in by more than
+  one fact stays confirmed when one of them changes.
+- The join shows on the values themselves — every `DerivedValue` of the object discloses it. There
+  is nothing to place for it, and the tree binds no path under `match`.
 
 ## Never paint
 

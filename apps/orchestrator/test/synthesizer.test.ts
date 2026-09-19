@@ -3,7 +3,7 @@
  * validate, one retry — and the one validator over the document.
  */
 import {createA2uiValidator} from '@a2uiverse/sdk';
-import {OPERATORS} from '@a2uiverse/shell-catalog/schema';
+import {OPERATORS, RELATIONS} from '@a2uiverse/shell-catalog/schema';
 import {describe, expect, test} from 'vitest';
 import {Partitions} from '../src/composition/partitions.js';
 import {isDecline, type Synthesis} from '../src/synthesizer/document.js';
@@ -16,7 +16,9 @@ import {bestPriceView, decline, FakeSynthesizer, tagged} from './fakeSynthesizer
 const A = 'shop-a:list';
 const B = 'shop-b:list';
 const files = readSynthesizerFiles();
-const operators = Object.keys(files.catalog.functions!);
+const functions = Object.keys(files.catalog.functions!);
+const relations = functions.filter(name => (RELATIONS as readonly string[]).includes(name));
+const operators = functions.filter(name => !relations.includes(name));
 const tree = createA2uiValidator({catalog: files.catalog});
 
 function partitionsOf(surfaces: Record<string, unknown>): Partitions {
@@ -50,7 +52,7 @@ const partitions = () =>
 
 const good = (): Synthesis => bestPriceView({system: '', prompt: '', input}) as Synthesis;
 
-const checks = (p = partitions()) => ({tree, operators, partitions: p});
+const checks = (p = partitions()) => ({tree, operators, relations, partitions: p});
 
 /** The validator's findings on a document; empty when it is accepted. */
 const checkSynthesis = (document: unknown, c = checks()): string[] => {
@@ -61,8 +63,9 @@ const checkSynthesis = (document: unknown, c = checks()): string[] => {
 const clone = <T>(value: T): T => structuredClone(value);
 
 describe('the Synthesizer’s catalog', () => {
-  test('its functions are exactly the formula operators', () => {
+  test('its functions are exactly the formula operators and the relations', () => {
     expect([...operators].sort()).toEqual([...OPERATORS].sort());
+    expect([...relations].sort()).toEqual([...RELATIONS].sort());
   });
 });
 
@@ -204,6 +207,35 @@ describe('validateSynthesis (task-6.3 decision 9)', () => {
     expect(checkSynthesis(bad, checks())).toEqual([
       "/dataModel/rows/0/best: operator 'median' is not one the shell catalog declares",
     ]);
+  });
+
+  describe('relations live only in match (task-7.5 decision 5)', () => {
+    const ref = (surface: string) => ({surface, pointer: '/items[id="x100"]/id'});
+    const claimed = (op: string) => {
+      const doc = good();
+      (doc.dataModel.rows as Array<Record<string, unknown>>)[0]!.match = {
+        'same camera': {op, args: [ref(A), ref(B)]},
+      };
+      return doc;
+    };
+
+    test('a match claim written in relations passes', () => {
+      for (const relation of RELATIONS) expect(checkSynthesis(claimed(relation))).toEqual([]);
+    });
+
+    test('an operator inside a match claim is refused, by path', () => {
+      expect(checkSynthesis(claimed('min'))).toEqual([
+        "/dataModel/rows/0/match/same camera: 'min' is not a relation; a match claim is written in the relations equal, contains and judged",
+      ]);
+    });
+
+    test('a relation outside a match claim is refused, by path', () => {
+      const bad = good();
+      (bad.dataModel.rows as Array<{best: {op: string}}>)[0]!.best.op = 'equal';
+      expect(checkSynthesis(bad)).toEqual([
+        "/dataModel/rows/0/best: 'equal' is a relation; a relation is written only inside match",
+      ]);
+    });
   });
 
   test('a ref into an unknown surface, or one that does not resolve now, is malformed — not absent', () => {

@@ -1,7 +1,7 @@
 /** The catalog's two faces stay in lockstep: catalog.json ↔ the runtime catalog. */
 import {readFileSync} from 'node:fs';
 import {expect, test} from 'vitest';
-import {createCatalog, OPERATORS, SHELL_ACTIONS} from './catalog';
+import {createCatalog, OPERATORS, RELATIONS, SHELL_ACTIONS} from './catalog';
 import {CATALOG_ID} from './catalog-id';
 
 // Path from the package root (vitest's cwd); import.meta.url is http-scheme under jsdom.
@@ -52,9 +52,9 @@ test('every schema function has an implementation', () => {
   }
 });
 
-test('the declared functions are exactly the upstream set plus the operators and the shell actions', () => {
+test('the declared functions are exactly the upstream set plus the operators, the relations and the shell actions', () => {
   expect(Object.keys(schema.functions).sort()).toEqual(
-    [...UPSTREAM_FUNCTIONS, ...OPERATORS, ...SHELL_ACTIONS].sort(),
+    [...UPSTREAM_FUNCTIONS, ...OPERATORS, ...RELATIONS, ...SHELL_ACTIONS].sort(),
   );
 });
 
@@ -68,6 +68,19 @@ test('every operator is declared, implemented, and in the anyFunction union', ()
     expect(declared.has(op), `operator ${op} not declared`).toBe(true);
     expect(implemented.has(op), `operator ${op} not implemented`).toBe(true);
     expect(union.has(op), `operator ${op} missing from anyFunction`).toBe(true);
+  }
+});
+
+test('every relation is declared, implemented, and in the anyFunction union', () => {
+  const declared = new Set(Object.keys(schema.functions));
+  const implemented = new Set(CATALOG.functions.keys());
+  const union = new Set(
+    schema.$defs.anyFunction.oneOf.map(r => r.$ref.replace('#/functions/', '')),
+  );
+  for (const relation of RELATIONS) {
+    expect(declared.has(relation), `relation ${relation} not declared`).toBe(true);
+    expect(implemented.has(relation), `relation ${relation} not implemented`).toBe(true);
+    expect(union.has(relation), `relation ${relation} missing from anyFunction`).toBe(true);
   }
 });
 

@@ -68,6 +68,8 @@ export interface SynthesisSessionOptions {
   functions: ReadonlyMap<string, FunctionImplementation>;
   /** The operator names the shell catalog declares; a payload naming another is invalid. */
   operators: readonly string[];
+  /** The relation names the shell catalog declares: a match claim's vocabulary, and only its. */
+  relations: readonly string[];
   onInvalid?: (failure: SynthesisFailure) => void;
 }
 
@@ -88,6 +90,7 @@ export function createSynthesisSession({
   processor,
   functions,
   operators,
+  relations,
   onInvalid,
 }: SynthesisSessionOptions): SynthesisSession {
   let payload: SynthesisPayload | undefined;
@@ -164,7 +167,7 @@ export function createSynthesisSession({
   };
 
   const accept: SynthesisIntake['accept'] = (target, raw) => {
-    const result = validatePayload(raw, operators);
+    const result = validatePayload(raw, operators, relations);
     if (!result.ok) {
       unwatchAll();
       payload = undefined;

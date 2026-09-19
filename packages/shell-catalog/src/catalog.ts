@@ -21,14 +21,27 @@ import {SliderComponent} from './components/slider/index.js';
 import {DateTimeInputComponent} from './components/date-time-input/index.js';
 import {createSlotComponent} from './components/slot/index.js';
 import {AttributionComponent} from './components/attribution/index.js';
-import {DerivedValueComponent} from './components/derived-value/index.js';
+import {
+  type AppDisplayName,
+  createDerivedValueComponent,
+  type NavigationHandler,
+} from './components/derived-value/index.js';
 import {SortControlComponent} from './components/sort-control/index.js';
 import {TableComponent, TableRowComponent} from './components/table/index.js';
 import {DataListComponent, DataListItemComponent} from './components/data-list/index.js';
 import {operatorFunctions} from './functions/operators.js';
+import {relationFunctions} from './functions/relations.js';
 import {shellActionFunctions, type ShellActionHandler} from './functions/shell-actions.js';
 
 export {OPERATORS, type Operator} from './functions/operators.js';
+export {
+  RELATIONS,
+  relationFunctions,
+  relationKind,
+  type RelationKind,
+  type RelationOp,
+} from './functions/relations.js';
+export type {AppDisplayName, NavigationHandler} from './components/derived-value/index.js';
 export {
   SHELL_ACTIONS,
   type ShellAction,
@@ -65,13 +78,18 @@ export const BASIC_IMPLEMENTATIONS: readonly ReactComponentImplementation[] = [
 /**
  * The shell's own primitives — composition, synthesis and the merged view's shapes — also on
  * Radix Themes. `Slot` is bound to the host's shell-action handler: its capability tile raises
- * `openStore`. Layout is the basic catalog's `Row` and `Column` (task-6.4 decision 4).
+ * `openStore`. `DerivedValue` is bound to the host's navigation handler and app names (task-7.5
+ * decisions 11, 13). Layout is the basic catalog's `Row` and `Column` (task-6.4 decision 4).
  */
-function shellImplementations(onShellAction: ShellActionHandler): ReactComponentImplementation[] {
+function shellImplementations({
+  onShellAction,
+  onNavigate,
+  appDisplayName,
+}: CreateCatalogOptions): ReactComponentImplementation[] {
   return [
     createSlotComponent(onShellAction),
     AttributionComponent,
-    DerivedValueComponent,
+    createDerivedValueComponent({onNavigate, appDisplayName}),
     SortControlComponent,
     TableComponent,
     TableRowComponent,
@@ -83,22 +101,31 @@ function shellImplementations(onShellAction: ShellActionHandler): ReactComponent
 export interface CreateCatalogOptions {
   /** What the host does when a shell surface raises `openStore` or `openAppLibrary`. */
   onShellAction: ShellActionHandler;
+  /**
+   * What the host does when a derived-value cell is activated: land on the element its target
+   * names. Without it, cells are not interactive.
+   */
+  onNavigate?: NavigationHandler;
+  /** The host's display name for an app id; without one, the app id is shown. */
+  appDisplayName?: AppDisplayName;
 }
 
 /**
  * The shell's runtime catalog, built for one host (task-6.2 decision 2): the basic catalog mapped
  * onto Radix Themes, the shell primitives, the basic functions as upstream implements them, the
- * formula operators, and the shell's two actions bound to the host's handler.
+ * formula operators, the relations, and the shell's two actions bound to the host's handler.
  */
-export function createCatalog({
-  onShellAction,
-}: CreateCatalogOptions): Catalog<ReactComponentImplementation> {
+export function createCatalog(
+  options: CreateCatalogOptions,
+): Catalog<ReactComponentImplementation> {
+  const {onShellAction} = options;
   return new Catalog<ReactComponentImplementation>(
     CATALOG_ID,
-    [...BASIC_IMPLEMENTATIONS, ...shellImplementations(onShellAction)],
+    [...BASIC_IMPLEMENTATIONS, ...shellImplementations(options)],
     [
       ...(BASIC_FUNCTIONS as FunctionImplementation[]),
       ...operatorFunctions,
+      ...relationFunctions,
       ...shellActionFunctions(onShellAction),
     ],
   );

@@ -59,6 +59,8 @@ test('the two guidance docs ship beside the schema', () => {
   const synthesis = readFileSync('docs/synthesis-guidance.md', 'utf8');
   expect(synthesis).toContain('DerivedValue');
   expect(synthesis).toContain('/sorts/N');
+  expect(synthesis).toContain('`match`');
+  expect(synthesis).toContain('`judged`');
   const platformUi = readFileSync('docs/platform-ui-guidance.md', 'utf8');
   expect(platformUi).toContain('openStore');
   expect(platformUi).toContain('openAppLibrary');

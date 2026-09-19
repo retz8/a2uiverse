@@ -27,14 +27,17 @@ import {
  * sdk's A2UI validator against the Synthesizer's pruned catalog — known components and props, the
  * root, dangling children, cycles, orphans; the derived-value rule over that tree, resolving
  * bindings absolutely or through their enclosing template; every operator one the pruned catalog
- * declares; every ref into a held partition, resolving now. Each finding is one line with its path,
+ * declares, a match claim's in the relations and no relation outside one; every ref into a held
+ * partition, resolving now. Each finding is one line with its path,
  * so the retry can hand them back.
  */
 export interface SynthesisChecks {
   /** The sdk's A2UI validator over the Synthesizer's pruned catalog. */
   tree: A2uiValidator;
-  /** The pruned catalog's functions: the formula operators. */
+  /** The pruned catalog's formula operators: what a cell of the derived model is written in. */
   operators: readonly string[];
+  /** The pruned catalog's relations: what a match claim is written in, and nothing else. */
+  relations: readonly string[];
   partitions: {has(surface: string): boolean; resolve(ref: Ref): Resolution};
 }
 
@@ -62,7 +65,7 @@ export function validateSynthesis(input: unknown, checks: SynthesisChecks): Synt
     ? [
         ...tree,
         ...derivedValueErrors(document),
-        ...operatorErrors(document, checks.operators),
+        ...operatorErrors(document, checks),
         ...refErrors(document, checks.partitions),
       ]
     : [...structure.errors, ...tree];
@@ -228,16 +231,38 @@ function derivedValueErrors(synthesis: Synthesis): string[] {
   return errors;
 }
 
-function operatorErrors(synthesis: Synthesis, operators: readonly string[]): string[] {
+/**
+ * Every operator one the pruned catalog declares, in its place (task-7.5 decision 5): a match
+ * claim's relations are relations, and a relation is written nowhere else.
+ */
+function operatorErrors(
+  synthesis: Synthesis,
+  {operators, relations}: Pick<SynthesisChecks, 'operators' | 'relations'>,
+): string[] {
   const errors: string[] = [];
-  for (const leaf of walkModel(synthesis.dataModel).leaves) {
-    if (!operators.includes(leaf.formula.op)) {
+  const walk = walkModel(synthesis.dataModel);
+  const claimed = new Set(walk.claims.flatMap(claim => claim.relations.map(r => r.path)));
+  for (const {path, formula} of walk.leaves) {
+    const where = `/dataModel${path}`;
+    if (claimed.has(path)) {
+      if (!relations.includes(formula.op)) {
+        errors.push(
+          `${where}: '${formula.op}' is not a relation; a match claim is written in the relations ${listed(relations)}`,
+        );
+      }
+    } else if (relations.includes(formula.op)) {
       errors.push(
-        `/dataModel${leaf.path}: operator '${leaf.formula.op}' is not one the shell catalog declares`,
+        `${where}: '${formula.op}' is a relation; a relation is written only inside match`,
       );
+    } else if (!operators.includes(formula.op)) {
+      errors.push(`${where}: operator '${formula.op}' is not one the shell catalog declares`);
     }
   }
   return errors;
+}
+
+function listed(names: readonly string[]): string {
+  return names.length < 2 ? names.join('') : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`;
 }
 
 /** A ref that never resolved is malformed, not absent — absent is for refs that resolved when written and later stopped. */
