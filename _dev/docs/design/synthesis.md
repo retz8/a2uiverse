@@ -269,7 +269,11 @@ of the shell catalog's relations and that no relation stands outside `match` (ta
 
 **Sorts.** For each ordered array: its `path` in the model, the `options` a user may sort by (each
 a `key` pointer inside an element to a formula leaf, with a `label`), and the initial `key` and
-`direction`. One declaration per array, and every option key must be a formula with at least one
+`direction`. A path's steps are object keys and `*`, at any depth: `/rows/*/runs` is the list
+`runs` inside every element of `rows`, one declaration and one user choice ordering it in every row,
+and every element the path passes through carries the list, `[]` when it has none (task 7.12). The
+sdk's `reachSortPath` is the one expansion of a path into the arrays it reaches. One declaration per
+array, and every option key must be a formula with at least one
 ref in every element — a key with no refs can never take a place on the axis, so such an element
 belongs in its own array (the validator's rules from task 5.7). The rules doc asks for a
 declaration on every array the tree lists, the one exception being the array no key can order.
