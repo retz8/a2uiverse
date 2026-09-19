@@ -34,11 +34,11 @@ When the merge is over an entity, the Planner's prose brief on the shell slot na
 
 ### 5. The match claim is formula leaves over relation operators
 
-The shell catalog gains relation operators over two refs, equal and contains among them. A merged object carries its evidence as formula leaves under a reserved key. The orchestrator's validator checks at accept time that every object holding refs from two or more sources carries match formulas whose relations hold now and connect all its sources; a failure goes back with the one retry. The client's evaluator computes the match formulas live, so the evidence goes absent with the cells when a source vanishes. The exact operator set, value normalization, the reserved key, and the component name are task-internal.
+The shell catalog gains relation operators over two refs, equal and contains among them. Where the Synthesizer judges entries from different apps to be one thing, the object carries its evidence as named relation formulas under the reserved key `match`, each over two refs in two different apps; no rule states which objects carry one. The orchestrator's validator checks at accept time that every relation written holds now; a failure goes back with the one retry. The client's evaluator computes the match formulas live, so the evidence goes absent with the cells when a source vanishes. The exact operator set, value normalization, and the component name are task-internal.
 
 ### 6. The join is disclosed through a required component, escalating by state
 
-The shell catalog gains a join-disclosure component that binds to a merged object's match group and renders its state. The validator requires every multi-source object the tree renders to render it through this component, the derived-value rule applied to entities. At rest, when every match holds, the component is quiet or a plain word; when a source is absent or a match no longer holds it escalates to words in the row. The full evidence, the sources joined and what each pair matched on, is shown on hover or focus in every state. The wording and drawing are task-internal.
+The shell catalog gains a join-disclosure component that binds to an object's match claim and renders its state. The validator requires every match claim the tree renders to render through this component, the derived-value rule applied to entities. At rest, when every match holds, the component is quiet or a plain word; when a source is absent or a match no longer holds it escalates to words in the row. The full evidence, the sources joined and what each pair matched on, is shown on hover or focus in every state. The wording and drawing are task-internal.
 
 ### 7. The home source defines the rows
 
@@ -69,7 +69,7 @@ Each agent's domain doc and prompt describe what a CircleCI app or a Linear app 
 Utterance pinned: **"where do my pull requests stand?"**, over the real roster GitHub · CircleCI · Linear · Gmail, with Calendar and the platform's card present in the roster. The real roster live through the tunnel is the gate; beats recorded from the unmodified agents are the deterministic bed; the mocks in deterministic mode, their fixtures re-recorded with match claims, are the regression check.
 
 1. **The entity join end to end**: the plan reserves the merged view, four fragments fill, the merged view lands with one row per open pull request, each attachment a derived value over the matching element, every row's join disclosure in the complete state, sorted by last activity, the criterion displayed and changeable. Both beds.
-2. **The join is checked**: the validator rejects a document whose multi-source row carries no match formulas, whose relation does not hold against the partitions, or whose row is not rendered through the join-disclosure component.
+2. **The join is checked**: the validator rejects a document whose match claim carries a relation that does not hold against the partitions, or whose match claim is not rendered through the join-disclosure component.
 3. **Vanish, live**: opening a Linear issue or a Gmail thread inside its fragment turns the affected rows partial at once, in words, with no round trip; the re-synthesis that follows re-points what it can, its note saying what changed.
 4. **Appear, live**: rerunning a workflow inside the CircleCI fragment makes a new workflow appear in its run; the walk fires re-synthesis with an appeared entry; the row re-points to the new workflow.
 5. **Broken, deterministic**: a scripted repaint that changes a matched field turns the row's disclosure to the broken state, in words.
@@ -83,7 +83,7 @@ Final gate: **Claude-in-Chrome live verification through the tunnel** for every 
 ### 14. Doc amendments
 
 - SPEC §3: the entity join row keeps its camera example and gains that the milestone proves it over a pull request across developer tools; the note that entity resolution is the Synthesizer's named responsibility stays.
-- SPEC §5.2: the synthesize data model gains the match claim, relation formulas in every multi-source object, checked by the validator; the Planner's brief names the entity and each source's cue, in prose.
+- SPEC §5.2: the synthesize data model gains the match claim, named relation formulas under `match` where the Synthesizer judges a join, checked by the validator; the Planner's brief names the entity and each source's cue, in prose.
 - SPEC §5.4: the join is disclosed per merged object through the join-disclosure component, escalating by state.
 - SPEC §6.3: appearance is handled, the second half of the IntegrityChecker's walk.
 - SPEC §7: the navigation row gains its landing rule and degradation, and that it is not journaled; the reverse-index note becomes what was built.
@@ -102,7 +102,7 @@ SPEC §6.2's accepted hazard, a reused identifier resolving to the wrong entity,
 
 - Nothing a2uiverse-specific reaches the vendor wire; the new agents know nothing of the merge.
 - Every leaf of the derived data model is a formula, the match claim included. No value is copied out of a partition.
-- A merged row never renders like a plain one: the join-disclosure rule lives in the validator, not in the tree.
+- A claimed join never renders like a plain one: the join-disclosure rule lives in the validator, not in the tree.
 - Navigation is free: no request leaves the client.
 - Absent is not invalid.
 
@@ -111,4 +111,4 @@ SPEC §6.2's accepted hazard, a reused identifier resolving to the wrong entity,
 - Slot expansion into a focused or full view of one fragment, and whether navigation lands in the expanded slot — the navigation sub-task's grill.
 - The CircleCI project and config on this repository, and the Linear workspace with its GitHub integration, as real setup — the agent sub-tasks.
 - How the broken state is provoked on the deterministic bed — the acceptance sub-task.
-- Task-internal: the exact relation operator set and value normalization, the reserved key for the match group, the join-disclosure component's name, wording, and drawing.
+- Task-internal: the exact relation operator set and value normalization, the join-disclosure component's name, wording, and drawing.
