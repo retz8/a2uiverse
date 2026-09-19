@@ -9,7 +9,7 @@ The orchestrator's half of the entity join: the Planner states the join hypothes
 - IntegrityChecker: appearance, the change account, broken relations.
 - Journal.
 - SPEC §5.2 and §6.3 amendments.
-- Not here: the nested sort path in the contract (a new sdk sub-task, landed before this task's implementation); the client's nested sort (7.7); the Synthesizer's pull-request worked example (a new sub-task after 7.8).
+- Not here: the nested sort path in the contract (a new sdk sub-task, landed before this task's implementation); the client's nested sort (7.7); the entity join's synthesis landing on 7.8's recorded turn (7.13, after 7.8).
 
 ## Locked decisions
 
@@ -47,7 +47,7 @@ The Synthesizer's rules doc teaches decisions 3–7. The paragraph that makes tw
 
 ### 9. The camera comparison leaves the Synthesizer's prompt
 
-It stays the mock storefronts' regression bed and the client's own fixture copy. The today timeline stays. The Synthesizer's pull-request example is written in a later sub-task over 7.8's recorded shapes.
+It stays the mock storefronts' regression bed and the client's own fixture copy. The today timeline stays. The entity join has no worked example (task 7.13).
 
 ### 10. Holds now
 
@@ -83,7 +83,7 @@ The Synthesizer's output schema takes `match` from the sdk's shared definitions 
 
 ### 18. Sequencing
 
-The nested-sort sdk sub-task lands before this task's implementation and amends contract v0.6 in place; 7.7 depends on it too and gains the client's nested sort. 7.8 follows this task: its prompts are the requests this Planner writes, read from the journal. A new sub-task after 7.8 and before 7.9 writes the Synthesizer's pull-request worked example over 7.8's recorded shapes.
+The nested-sort sdk sub-task lands before this task's implementation and amends contract v0.6 in place; 7.7 depends on it too and gains the client's nested sort. 7.8 follows this task: its prompts are the requests this Planner writes, read from the journal. 7.13, after 7.8 and before 7.9, lands the entity join's synthesis on 7.8's recorded turn.
 
 ### 19. SPEC amendments
 

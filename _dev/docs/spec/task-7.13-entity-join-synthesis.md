@@ -8,6 +8,7 @@ The Synthesizer's merged view over the pinned utterance, "what's the status of w
 - The entity-join turn measured on the deterministic bed.
 - Thinking, the model, or a data-model example in the Synthesizer's rules doc, each only where the measurement calls for it.
 - The temporal merge checked after the last change.
+- A2U-7 in progress in the Linear workspace, Linear's beats re-recorded and its corpora re-derived.
 - The TODO backlog and 7.13 line, the 7.6 and 7.8 specs, the worked examples' header comment, and the orchestrator and synthesis design records follow.
 - Not here: a worked example of the entity join in the Synthesizer's prompt; the live bed, which is 7.9's.
 
@@ -35,33 +36,37 @@ A round of the measurement stops at its first failure and passes on three landin
 
 ### 6. One change at a time, by failure kind
 
-- A fact under `match` that does not hold: thinking on — the Synthesizer's effort from `low` to `default` on `gemini-2.5-flash` — then, if facts still fail, the model to `gemini-3.7-flash`.
+- A fact under `match` that does not hold, or an entry left unattached although a fact linking it holds: thinking on — the Synthesizer's effort from `low` to `default` on `gemini-2.5-flash` — then, if runs still fail, the model to `gemini-3.7-flash` at `low`, in place of thinking.
 - A form error — a dotted path, a ref to an attachment the data does not carry: the data-model example in the rules doc.
 - A failed run showing both: thinking first; the data-model example only if form errors remain.
 
 After each change the measurement runs again. The change that closes the task becomes the Synthesizer's committed default.
 
-### 7. The data-model example shows the synthesis itself
+### 7. A2U-7 is work in progress
+
+A Backlog issue is not part of what the user is working on. A2U-7 moves to In Progress in the Linear workspace, still with no pull request, and Linear's beats are re-recorded live, its corpora re-derived from them.
+
+### 8. The data-model example shows the synthesis itself
 
 Where the measurement calls for it, the example is a piece of the derived data model in the rules doc, not a full worked example.
 
-### 8. When nothing closes it
+### 9. When nothing closes it
 
 If runs still fail after thinking, the model and the data-model example, the task stops and the next step is discussed.
 
-### 9. The temporal merge after the last change
+### 10. The temporal merge after the last change
 
 After the last change is committed, "What needs my attention today?" runs once on the deterministic bed and lands. If it does not, the change is reconsidered within this task.
 
-### 10. Records
+### 11. Records
 
 The backlog's "Stream the synthesis fragment" item gains the closing round's dead air, with the Synthesizer's model and effort. The backlog's Synthesizer effort item is updated to what was committed, or removed. The 7.13 line, when done, names what closed it.
 
-### 11. Earlier docs follow
+### 12. Earlier docs follow
 
-The 7.6 spec's not-here line and decisions 9 and 18, the 7.8 spec's opening paragraph and not-here line, the worked examples' header comment, and the TODO's 7.13 line name 7.13 as the entity join's synthesis landing. The orchestrator and synthesis design records follow what the task changes.
+The 7.6 spec's not-here line and decisions 9 and 18, the 7.8 spec's opening paragraph, not-here line and decision 1, the worked examples' header comment, and the TODO's 7.13 line name 7.13 as the entity join's synthesis landing. The orchestrator and synthesis design records follow what the task changes.
 
-### 12. Done
+### 13. Done
 
 The closing round's three landings, the temporal merge's run landing, and the gates green with the vendor agents stopped.
 

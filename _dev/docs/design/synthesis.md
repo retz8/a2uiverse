@@ -138,8 +138,8 @@ scenario, recorded as beat 5.
    at least one ref in every element, the initial key an option); the tree through the sdk's A2UI
    validator against the Synthesizer's pruned catalog (known components and props, one `root`,
    unique ids, no dangling child, no cycle, no orphan — `Slot`, `Attribution` and `Button` are not in
-   that catalog); then, over a structurally sound model, the derived-value rule, every operator
-   one the pruned catalog declares and in its place — relations only inside `match`, only
+   that catalog); then, over a structurally sound model — a faulty sort declaration withholds none
+   of them — the derived-value rule, every operator one the pruned catalog declares and in its place — relations only inside `match`, only
    relations there — no binding under `match`, a list inside each row checked against its first
    non-empty one, every ref into a held partition and resolving *now*, and every `equal` and
    `contains` of a match claim holding *now* on the shell catalog's own relation functions — a

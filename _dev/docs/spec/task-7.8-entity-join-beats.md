@@ -1,6 +1,6 @@
 # Task 7.8 — `[apps]` Entity-join beats
 
-The entity-join turn recorded per vendor agent in live mode over this repository's work — its Linear issues, their pull requests and their CI runs: the deterministic bed for 7.9, integration and acceptance, and the recorded shapes for 7.13, the Synthesizer's work-item worked example. Phase 7 (`_dev/docs/spec/phase-7-entity-resolution.md`) decisions 2, 3, 12 and 13; SPEC §9.4.
+The entity-join turn recorded per vendor agent in live mode over this repository's work — its Linear issues, their pull requests and their CI runs: the deterministic bed for 7.9, integration and acceptance, and the turn 7.13 lands the entity join's synthesis on. Phase 7 (`_dev/docs/spec/phase-7-entity-resolution.md`) decisions 2, 3, 12 and 13; SPEC §9.4.
 
 ## Scope
 
@@ -11,13 +11,13 @@ The entity-join turn recorded per vendor agent in live mode over this repository
 - The Planner's fan-out stance: SPEC §7, the Planner's rules doc, its examples, its model, measured live.
 - The pinned utterance changed, with the phase spec and SPEC §3, §9.4 and §12 following.
 - The recording's code lands in `../a2uiverse-apps/` on its `main`; the fan-out stance lands in this repository on `main`, beside the new placeholder pull request on GitHub.
-- Not here: the entity-join turn as a replayable canvas beat (phase decision 13, item 9), which is 7.9's; the Synthesizer's work-item worked example, which is 7.13's.
+- Not here: the entity-join turn as a replayable canvas beat (phase decision 13, item 9), which is 7.9's; the entity join's synthesis landing on it, which is 7.13's.
 
 ## Locked decisions
 
 ### 1. Recorded now, re-recorded on a changed ask
 
-The beats are recorded before 7.13 and 7.9. They are re-recorded only if 7.9 changes what the vendors are asked.
+The beats are recorded before 7.13 and 7.9. They are re-recorded only if 7.9 changes what the vendors are asked. Linear's are re-recorded in 7.13, with A2U-7 in progress.
 
 ### 2. The pull requests on this repository
 
