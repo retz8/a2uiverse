@@ -78,7 +78,7 @@ writing to its own data model. A **beat** is a recorded stream the canvas can re
 | the A2UI validator | sdk `a2ui/` | a tree against a catalog, following upstream's `A2uiValidator`; beside it, catalog pruning by keep-set |
 | the Synthesizer's validator | orchestrator `synthesizer/validate.ts` | the one validator over the model's document: output schema, the payload validator, the tree through the A2UI validator against the Synthesizer's pruned catalog, derived-value rule, operators, refs resolve now |
 | the painter | orchestrator `composition/synthesisPainter.ts` | paints the tree verbatim, the payload beside the stamp |
-| IntegrityChecker | orchestrator `composition/integrity.ts` | after an action, asks whether every ref still resolves; accounts for what broke |
+| IntegrityChecker | orchestrator `composition/integrity.ts` | after an action, asks whether every ref still resolves and whether a key appeared in a watched array; accounts for what changed |
 | intake + session | client `canvas/synthesis/` | validates the payload, subscribes to the partitions, re-runs the evaluator |
 | BindingEvaluator | client `canvas/synthesis/bindingEvaluator.ts` | pure: payload + partitions → the surface's data model |
 | DerivedValue · SortControl · Table · DataList | shell catalog | what a merged view is made of; the operators live in the same catalog |
@@ -94,7 +94,10 @@ scenario, recorded as beat 5.
    the screen gets one, and where it sits, is the Planner's judgment. When it does, each vendor's
    request also asks, in plain words, for the fields a merge depends on: identifiers, and the full
    date and time of each entry. It asks for data, never a format, and says nothing about the
-   merge, the shell or the other agents (phase decision 9). The plan reaches the client as the
+   merge, the shell or the other agents (phase decision 9). When the view is over one kind of
+   thing, the brief states the join hypothesis — the entity, the home source whose instances are
+   the rows, each other source's cue — and each vendor is asked, in its own app's words, for the
+   fields its cue needs (task 7.6). The plan reaches the client as the
    shell's layout paint: a surface of `Slot`s, every one pending — the synthesis slot as bare
    shell content, with a quiet in-progress marker and no attribution — before any vendor has
    answered.
@@ -111,10 +114,11 @@ scenario, recorded as beat 5.
 3. **All sources settle → the Synthesizer is prompted.** Fewer than two arrived means no call at
    all. Otherwise the model receives a system prompt assembled once at boot in the orchestrator:
    the role, the **rules doc** (`apps/orchestrator/src/synthesizer/synthesis.md` — partitions,
-   refs and predicates, formula leaves, sorts, the tree, the note, decline, re-synthesis, in
-   a2uiverse words), the shell catalog's **guidance doc** (which components a merged view is made
+   refs and predicates, formula leaves, the join from the hypothesis — home rows, attaching by
+   evidence, one entry or a list with its count, declining without home rows — sorts, the tree,
+   the note, decline, re-synthesis, in a2uiverse words), the shell catalog's **guidance doc** (which components a merged view is made
    of, and the derived-value rule), the shell catalog pruned to the synthesis surface's keep-set,
-   the output schema, and two worked examples. The turn carries the utterance, the brief, and every arrived partition's live
+   the output schema, and one worked example, the S1 timeline. The turn carries the utterance, the brief, and every arrived partition's live
    data model with its app's display name. Never a vendor's component tree: Planner and
    Synthesizer know only the shell catalog (phase decision 7). The only tree the Synthesizer ever
    sees is its own previous one, on a retry or a re-synthesis.
@@ -136,7 +140,11 @@ scenario, recorded as beat 5.
    unique ids, no dangling child, no cycle, no orphan — `Slot`, `Attribution` and `Button` are not in
    that catalog); then, over a structurally sound model, the derived-value rule, every operator
    one the pruned catalog declares and in its place — relations only inside `match`, only
-   relations there — every ref into a held partition and resolving *now*. Any finding goes back to the model as one line
+   relations there — no binding under `match`, a list inside each row checked against its first
+   non-empty one, every ref into a held partition and resolving *now*, and every `equal` and
+   `contains` of a match claim holding *now* on the shell catalog's own relation functions — a
+   failing one named with both values and "write a fact that holds, or do not attach the entry",
+   never offering `judged` (task 7.6). Any finding goes back to the model as one line
    per error with the failed document; a second failure is `malformed`. Within one synthesis the
    retry is the only second call; a re-synthesis later in the composition's life is a new
    synthesis with its own retry.
@@ -373,24 +381,33 @@ evaluator recomputes over what still resolves, and the cells show the narrowed s
 reorder inside a fragment re-points nothing: the same key still names the same element, so the
 cells do not move and no model is called.
 
-What *does* bring the Synthesizer back is absence seen from the orchestrator (SPEC §6.3, task
-5.10 decision 4). A user's in-fragment interaction is an action turn: owner-only dispatch, then a
-final. Under synthesis that turn gains a tail. After the vendor's pump settles and its partition is
-updated, the **IntegrityChecker** walks every ref of the live payload through
-`Partitions.resolve`; if any fails, it builds the **change account** — the refs that no longer
-resolve, each once — and the Synthesizer is called again with the previous document beside the
-fresh partitions and told the user is looking at it: re-point what broke, keep the tree and the
-shape unless the data no longer supports them, say what changed in the note (phase decision 13).
-The repaint of `shell:synthesis` lands before the turn's final. A two-way edit or a scalar
-change that leaves every key resolving costs no model call.
+What *does* bring the Synthesizer back is absence or appearance seen from the orchestrator (SPEC
+§6.3, task 5.10 decision 4, task 7.6). A user's in-fragment interaction is an action turn:
+owner-only dispatch, then a final. Under synthesis that turn gains a tail. At every accept the
+orchestrator records a **watch**: every array the accepted payload's refs select into by key —
+and every array an earlier accepted document of the composition did — with the keys each holds
+now, one key set per field set, empty when the array is not there. After the vendor's pump
+settles and its partition is updated, the **IntegrityChecker** walks the live payload and the
+watch and builds the **change account**: the refs that no longer resolve, each once; the entries
+whose key was not in their watched array at the last accept, each as a ref selecting it by key;
+and the facts under `match` that no longer hold while their refs resolve. The first two fire a
+re-synthesis; a fact that stops holding fires nothing — the client marks its values broken — and
+rides along in whatever re-synthesis runs. The Synthesizer is called again with the previous
+document beside the fresh partitions and told the user is looking at it: re-point what broke;
+attach each entry that appeared — to a row, into a row's list, or as a new row when it is the
+home source's — or leave it out; re-point, re-evidence or detach each fact that no longer holds;
+keep the tree and the shape unless the data no longer supports them; say what changed in the note.
+The repaint of `shell:synthesis` lands before the turn's final, and its accept records a new
+watch. A two-way edit or a scalar change that leaves every key resolving and adds none costs no
+model call.
 
 ```
 action turn
-  vendor answers ─▶ partitions.apply ─▶ checkSynthesisPayload(payload, partitions)
-                                              │ every ref resolves      │ some ref does not
-                                              ▼                         ▼
-                                         nothing moves      changeAccount → Synthesizer(previous, changes)
-                                                                        → accept → repaint shell:synthesis
+  vendor answers ─▶ partitions.apply ─▶ changeAccount(payload, partitions, watch)
+                                              │ nothing absent, nothing appeared   │ some ref absent, or a key appeared
+                                              ▼                                    ▼
+                                         nothing moves                  Synthesizer(previous, changes)
+                                                                        → accept → watch → repaint shell:synthesis
 ```
 
 On the client the repaint is a repeat `createSurface`, which the apply path expands to delete +
@@ -450,8 +467,8 @@ order, so nothing moves when nothing differs.
 
 ## Seeing it without a model
 
-- The Synthesizer's two worked examples — the storefront comparison and the S1 timeline — pass
-  its whole validator in the orchestrator's tests.
+- The Synthesizer's worked example, the S1 timeline, passes its whole validator in the
+  orchestrator's tests. The storefront comparison left its prompt in task 7.6.
 - The client's synthesis fixture is its own copy of the storefront example; `?beat=synthesis` replays
   it, and the canvas tests drive the dropped-key case end to end.
 - Beat 5 (`apps/client/recordings/beats/beat-5-temporal-merge.json`) is the temporal merge
