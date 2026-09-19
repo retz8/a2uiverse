@@ -9,7 +9,7 @@ The composition contract bumped to v0.6: the match claim added to the synthesize
 - Contract tests for the projection and the validator.
 - `generations` removed from the orchestrator's emission and the client's leftovers.
 - The design records and the sdk README, for what this task changes.
-- Not here: the relation operators and the evaluated form of `match` (7.5); "holds now" and the join-disclosure rendering rule (7.6); live evaluation of `match` (7.7).
+- Not here: the relation operators and the evaluated form of `match` (7.5); "holds now" and the rule that the tree binds no path under `match` (7.6); live evaluation of `match` (7.7).
 
 ## Locked decisions
 
@@ -35,11 +35,11 @@ The sdk's payload validator, run by the orchestrator on the Synthesizer's output
 
 ### 6. The usage rules are the orchestrator's
 
-"Holds now" — each relation's refs resolved against the partitions and the shell catalog's own relation functions run over them — is checked by the orchestrator's validator at accept, in 7.6. So is the rule that every `match` renders through the join-disclosure component.
+"Holds now" — each relation's refs resolved against the partitions and the shell catalog's own relation functions run over them — is checked by the orchestrator's validator at accept, in 7.6. So is the rule that the tree binds no path under `match`.
 
 ### 7. The evaluated form of `match` is the shell catalog's
 
-What `match` evaluates into on the client — each named relation's state and the group's — is defined by the shell catalog, like `CellObject`, in 7.5, and produced by the client's evaluator in 7.7. The contract describes what the Synthesizer writes.
+What `match` evaluates into on the client — each cell's join, its mark and evidence — is defined by the shell catalog, on `CellObject`, in 7.5, and produced by the client's evaluator in 7.7. The contract describes what the Synthesizer writes.
 
 ### 8. `generations` is removed end to end
 
