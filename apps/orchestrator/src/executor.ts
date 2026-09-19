@@ -8,7 +8,7 @@ import {STAMP_KEY} from './agentsPool/relay.js';
 import type {DispatchHandle, DispatchOutcome} from './agentsPool/types.js';
 import {classifyTurn, unnamespaceAction, type Turn} from './composition/classify.js';
 import {composeFragment} from './composition/fragmentRelay.js';
-import {changeAccount, checkSynthesisPayload} from './composition/integrity.js';
+import {changeAccount, firesResynthesis, watchOf} from './composition/integrity.js';
 import {A2UI_CLIENT_DATA_MODEL_KEY} from './composition/partition.js';
 import {
   synthesisEnvelope,
@@ -240,11 +240,12 @@ export class OrchestratorExecutor implements AgentExecutor {
     const outcome = await this.#pump(ctx, bus, turn, undefined, handle, owner.id, {
       collapse: false,
     });
-    // Tier 2: the partition change may have re-pointed refs the live synthesis depends on.
+    // Tier 2, the IntegrityChecker's walk: a ref that stopped resolving or a key that appeared
+    // in a watched array reopens the merged view; a fact that stopped holding rides along.
     if (composition?.synthesis) {
-      const {payload, document} = composition.synthesis;
-      if (!checkSynthesisPayload(payload, composition.partitions).valid) {
-        const changes = changeAccount(payload, composition.partitions);
+      const {payload, document, watch} = composition.synthesis;
+      const changes = changeAccount(payload, composition.partitions, watch);
+      if (firesResynthesis(changes)) {
         await this.#synthesize(ctx, bus, turn, composition, {previous: document, changes});
       }
     }
@@ -324,7 +325,10 @@ export class OrchestratorExecutor implements AgentExecutor {
 
     const {document} = outcome;
     const payload: SynthesisPayload = {dataModel: document.dataModel, sorts: document.sorts};
-    state.synthesis = {document, payload};
+    // The key sets at accept: every array this document or an earlier one of the composition
+    // selects into by key (task-7.6 decision 14).
+    const watch = watchOf(payload, state.partitions, state.synthesis?.watch);
+    state.synthesis = {document, payload, watch};
     state.mergedView = {outcome: 'synthesized'};
     const paint = synthesisEnvelope(ctx, synthesisParts(document.tree), payload);
     bus.publish(paint);

@@ -52,9 +52,9 @@ over zero or more refs. Nothing else may sit at a leaf: no string, no number, no
   lists them, with what each does). Formulas do not nest: `args` holds refs only.
 - A formula's refs may point into different partitions. That is how a merged value is made: the
   refs a formula draws on are its source set, and the runtime shows how many of them contributed.
-- Putting two sources' refs into one object of your model is your assertion that they are about the
-  same thing — the same product, the same event, the same person. Say it only when the data says it:
-  a shared id, an identical name, a matching key. Do not invent a correspondence to fill a row.
+- Bringing entries from different apps together in one object as one thing — the same product, the
+  same event, the same person — is a **join**, written with `match` (below). Never invent a
+  correspondence to fill a row.
 - A formula with no refs is a value no source contributes to — the honest cell for a column a source
   does not carry. It evaluates to absent, not to a made-up value.
 - To say which source an entry belongs to — the type column of a merged list — write the `source`
@@ -62,6 +62,33 @@ over zero or more refs. Nothing else may sit at a leaf: no string, no number, no
 - Any non-leaf is a branch: an object whose values are nodes, or an array of nodes. A list of like
   things is an array of like objects, one object per thing; the tree templates over the array.
 - The root key `sorts` is reserved for the runtime. Do not write it into `dataModel`.
+
+## The join
+
+When the request is about one kind of thing across the sources, it states a **join hypothesis**:
+the entity, the **home source** its instances come from, and the **cue** that identifies it in each
+other source. Start from the hypothesis; it is not a limit.
+
+- **The rows are the home source's instances**, one per instance as that source paints it. Every
+  other source attaches to a row or to nothing. An entry that matches no row stays in its own app
+  and is not a row; a row that nothing from a source matches shows that source's cell as a formula
+  with no refs.
+- **Attach by evidence.** Use the named cue where the data carries it. Where it does not, use any
+  other fact that links the two entries — an identifier inside a link, a title quoted in a subject.
+  Use `judged` only when nothing but understanding links them. Never attach without a reason, and
+  say in the note where you departed from the hypothesis: a cue the data did not carry, another
+  fact used instead.
+- **Write the evidence under `match`** on the object that joins the entries: each relation over two
+  refs in two different apps. Every `equal` and `contains` is checked against the data when you
+  answer, and one that does not hold is handed back: write a fact that holds, or do not attach the
+  entry.
+- **One entry or a list.** A row attaches one entry of a source — the one the request asks about,
+  the latest or the open one — or a list of that source's matching entries: an array inside the
+  row, each entry an object with its own `match` against the row. Every row carries the list, `[]`
+  when nothing matches. Beside every list, write a `count` over its entries' refs, so a list with no
+  entries shows the empty cell; give the list a sort declaration (below).
+- **No home rows, no view.** When the home source is not among the sources, or brought no
+  instances, decline: there is nothing to line the others up against.
 
 ## Sorts
 
@@ -73,7 +100,9 @@ the one no key can order (below). One declaration per array, never two, and ever
 a formula with at least one ref in every element — a key with no refs is absent by construction,
 and an element that can never take a place on the axis does not belong in the array:
 
-- `path`: the array in `dataModel`, as a JSON Pointer from its root.
+- `path`: the array in `dataModel`, as a JSON Pointer from its root. A list inside every row is
+  declared once, its path passing through the enclosing arrays with `*` — `/rows/*/entries` — and one
+  control orders it in every row.
 - `options`: the keys the user may sort by. Each `key` is a JSON Pointer inside one element, to a
   formula leaf; each `label` is the words the user reads for it.
 - `key` and `direction`: the initial choice. `key` is one of the options; `direction` is `asc` or
@@ -129,19 +158,21 @@ the request as asked. On a re-synthesis, say what changed.
 ## Decline
 
 When the sources give you nothing to merge — no thing that more than one source answered about, no
-axis they share — answer `{"declined": true, "reason": "…"}`. The reason is spoken to the user in
+axis they share, no instances from the home source — answer `{"declined": true, "reason": "…"}`. The reason is spoken to the user in
 the shell's own words, so write it for them: what was looked for and why it was not there. A view
 drawn from a single source is that source's own answer laid out again, not a merge; decline rather
 than repeat one source.
 
 ## Re-synthesis
 
-The view you wrote stays live after you answer. When a source changes so that a ref of yours
-stops resolving — the element it named is no longer in the data — you are called again with your
-previous answer and an account of what broke: which refs no longer resolve. The user is looking
-at your view. Keep its shape and its columns; re-point the refs that broke, or drop what the data
-no longer carries; change the shape only when the data no longer supports it; say what changed in
-the note.
+The view you wrote stays live after you answer. When a source changes under it, you are called
+again with your previous answer and an account of what changed: refs that no longer resolve — the
+element they named is no longer in the data; entries that appeared in a list your view reads; facts
+under `match` that no longer hold. The user is looking at your view. Keep its shape and its
+columns. Re-point the refs that broke, or drop what the data no longer carries. Attach each entry
+that appeared — to a row, into a row's list, or as a new row when it is the home source's — or
+leave it out. Re-point, re-evidence or detach each fact that no longer holds. Change the shape only
+when the data no longer supports it, and say what changed in the note.
 
 ## The answer
 

@@ -1,4 +1,5 @@
 import type {SynthesisPayload} from '@a2uiverse/sdk';
+import type {Watch} from './integrity.js';
 import type {Synthesis} from '../synthesizer/document.js';
 import type {DispatchOutcome} from '../agentsPool/types.js';
 import type {SurfaceTouches} from '../journal/surfaces.js';
@@ -26,6 +27,8 @@ export interface SlotPlan {
 export interface LiveSynthesis {
   document: Synthesis;
   payload: SynthesisPayload;
+  /** The key sets the IntegrityChecker compares against on its walk, recorded at accept. */
+  watch: Watch;
 }
 
 /**

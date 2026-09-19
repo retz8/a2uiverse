@@ -29,12 +29,24 @@ export interface SynthesisSource {
   data: unknown;
 }
 
+/** A fact of a match claim that stopped holding while both its refs resolve (task-7.6 decision 13). */
+export interface UnheldRelation {
+  /** Where it sits in the derived model: `/rows/0/match/same branch`. */
+  path: string;
+  op: string;
+  args: Ref[];
+}
+
 /**
- * The runtime's account of why a re-synthesis is happening (task-5.4 decision 6): the refs that
- * stopped resolving. One kind of breakage, since refs select by key (task-5.10 decision 4).
+ * The runtime's account of why a re-synthesis is happening (task-5.4 decision 6, task-7.6
+ * decision 15): the refs that stopped resolving, the entries that appeared in a watched array —
+ * each a ref selecting the element by its key — and the facts that no longer hold. The first two
+ * fire a re-synthesis; the third rides along.
  */
 export interface ChangeAccount {
   absent: Ref[];
+  appeared: Ref[];
+  unheld: UnheldRelation[];
 }
 
 /** What the Synthesizer is briefed from: its rules doc, the catalog's guidance, its pruned catalog. */
@@ -105,7 +117,7 @@ export interface SynthesisTurnInputs {
   previous?: unknown;
   /** The validator's findings on `previous`, one per line with its path: this turn is a retry. */
   errors?: readonly string[];
-  /** What broke in `previous`: this turn is a re-synthesis. */
+  /** What changed under `previous`: this turn is a re-synthesis. */
   changes?: ChangeAccount;
 }
 
@@ -127,9 +139,31 @@ function renderSources(sources: readonly SynthesisSource[]): string {
 }
 
 function renderChanges(changes: ChangeAccount): string {
-  if (changes.absent.length === 0) return '- nothing named; the sources were repainted';
-  const lines = ['- these refs no longer resolve:'];
-  for (const ref of changes.absent) lines.push(`  - ${ref.surface}${ref.pointer}`);
+  const {absent, appeared, unheld} = changes;
+  if (absent.length + appeared.length + unheld.length === 0) {
+    return '- nothing named; the sources were repainted';
+  }
+  const lines: string[] = [];
+  const section = (heading: string, items: readonly string[]) => {
+    if (items.length === 0) return;
+    lines.push(heading);
+    for (const item of items) lines.push(`  - ${item}`);
+  };
+  section(
+    '- these refs no longer resolve:',
+    absent.map(ref => `${ref.surface}${ref.pointer}`),
+  );
+  section(
+    '- these entries appeared:',
+    appeared.map(ref => `${ref.surface}${ref.pointer}`),
+  );
+  section(
+    '- these facts no longer hold:',
+    unheld.map(
+      ({path, op, args}) =>
+        `${path}: ${op} over ${args.map(ref => `${ref.surface}${ref.pointer}`).join(' and ')}`,
+    ),
+  );
   return lines.join('\n');
 }
 
@@ -153,7 +187,7 @@ export function buildSynthesisTurn(inputs: SynthesisTurnInputs): string {
     if (previous !== undefined) parts.push(`Your previous document:\n${previous}`);
   } else if (inputs.changes) {
     parts.push(
-      `The user is looking at your previous view, and the sources changed under it. Keep the view: re-point the refs that broke, keep the tree and the shape of the model unless the data no longer supports them, and say what changed in the note. What broke:\n${renderChanges(inputs.changes)}`,
+      `The user is looking at your previous view, and the sources changed under it. Keep the view: re-point the refs that broke; attach each entry that appeared — to a row, into a row’s list, or as a new row when it is the home source’s — or leave it out; re-point, re-evidence or detach each fact that no longer holds; keep the tree and the shape of the model unless the data no longer supports them; and say what changed in the note. What changed:\n${renderChanges(inputs.changes)}`,
     );
     if (previous !== undefined) parts.push(`Your previous document:\n${previous}`);
   } else if (previous !== undefined) {

@@ -1,11 +1,12 @@
 /**
  * Worked examples of the synthesize data model, rendered into the system prompt the way the
- * agent kit renders a vendor's examples. Two shapes the ladder proves: a comparison of the same
- * things across two storefronts (Phase 4's join, identical shapes), and a timeline over the real
- * roster's recorded shapes (Phase 5's temporal merge): three unrelated data models, opaque ids, a
- * compound key, and one source whose time cannot join the axis. The examples teach form; the
- * rules doc (`synthesis.md`) teaches the vocabulary and the rules. Their trees are authored against
- * the Synthesizer's pruned shell catalog; its tests put each through the whole validator.
+ * agent kit renders a vendor's examples. One shape: a timeline over the real roster's recorded
+ * shapes (Phase 5's temporal merge) — three unrelated data models, opaque ids, a compound key, and
+ * one source whose time cannot join the axis. The camera comparison is not among them (task-7.6
+ * decision 9); the entity join's example follows the recorded entity-join turn (task 7.13). The
+ * examples teach form; the rules doc (`synthesis.md`) teaches the
+ * vocabulary and the rules. Their trees are authored against the Synthesizer's pruned shell
+ * catalog; its tests put each through the whole validator.
  */
 import type {SynthesizeDataModel} from './document.js';
 import type {SynthesisSource} from './prompt.js';
@@ -20,92 +21,8 @@ export interface SynthesisExample {
   output: SynthesizeDataModel;
 }
 
-const SHOP_A = 'shop-a:list';
-const SHOP_B = 'shop-b:list';
-
 const ref = (surface: string, pointer: string) => ({surface, pointer});
 const value = (surface: string, pointer: string) => ({op: 'value', args: [ref(surface, pointer)]});
-
-function comparisonRow(id: string) {
-  return {
-    name: value(SHOP_A, `/items[id="${id}"]/name`),
-    priceA: value(SHOP_A, `/items[id="${id}"]/price`),
-    priceB: value(SHOP_B, `/products[sku="${id}"]/price`),
-    best: {
-      op: 'min',
-      args: [ref(SHOP_A, `/items[id="${id}"]/price`), ref(SHOP_B, `/products[sku="${id}"]/price`)],
-    },
-  };
-}
-
-/** The same cameras in two stores, under two shapes; a row per camera, best price first. */
-export const CAMERA_COMPARISON: SynthesisExample = {
-  name: 'camera-comparison',
-  intent: 'compare camera prices across both stores',
-  request:
-    'One row per camera both stores list, with each store’s price side by side and the best of the two; best price first.',
-  sources: [
-    {
-      surface: SHOP_A,
-      appId: 'shop-a',
-      displayName: 'Aperture & Co',
-      data: {
-        items: [
-          {id: 'lumen-x100', name: 'Lumen X100', price: 1299, inStock: true},
-          {id: 'verity-a7', name: 'Verity A7', price: 1849, inStock: false},
-          {id: 'lumen-z6', name: 'Lumen Z6', price: 1599, inStock: true},
-        ],
-      },
-    },
-    {
-      surface: SHOP_B,
-      appId: 'shop-b',
-      displayName: 'Northlight',
-      data: {
-        products: [
-          {sku: 'verity-a7', title: 'Verity A7 body', price: 1799, available: 2},
-          {sku: 'lumen-x100', title: 'Lumen X100', price: 1349, available: 0},
-          {sku: 'orbit-gm3', title: 'Orbit GM3', price: 2099, available: 1},
-        ],
-      },
-    },
-  ],
-  output: {
-    tree: {
-      components: [
-        {id: 'root', component: 'Column', children: ['heading', 'sort', 'rows']},
-        {id: 'heading', component: 'Text', variant: 'h3', text: 'Cameras in both stores'},
-        {id: 'sort', component: 'SortControl', sort: {path: '/sorts/0'}},
-        {
-          id: 'rows',
-          component: 'Table',
-          columns: ['Camera', 'Aperture & Co', 'Northlight', 'Best price'],
-          children: {path: '/rows', componentId: 'row'},
-        },
-        {id: 'row', component: 'TableRow', children: ['c-name', 'c-a', 'c-b', 'c-best']},
-        {id: 'c-name', component: 'DerivedValue', cell: {path: 'name'}},
-        {id: 'c-a', component: 'DerivedValue', cell: {path: 'priceA'}, format: {kind: 'number'}},
-        {id: 'c-b', component: 'DerivedValue', cell: {path: 'priceB'}, format: {kind: 'number'}},
-        {id: 'c-best', component: 'DerivedValue', cell: {path: 'best'}, format: {kind: 'number'}},
-      ],
-    },
-    dataModel: {
-      rows: [comparisonRow('lumen-x100'), comparisonRow('verity-a7')],
-    },
-    sorts: [
-      {
-        path: '/rows',
-        options: [
-          {key: '/best', label: 'Best price'},
-          {key: '/name', label: 'Camera'},
-        ],
-        key: '/best',
-        direction: 'asc',
-      },
-    ],
-    note: 'Lumen Z6 (Aperture & Co only) and Orbit GM3 (Northlight only) are left out: one store each, nothing to compare.',
-  },
-};
 
 const GMAIL = 'gmail:needs-attention';
 const GITHUB = 'github:prs-needing-attention';
@@ -258,4 +175,4 @@ export const TODAY_TIMELINE: SynthesisExample = {
   },
 };
 
-export const SYNTHESIS_EXAMPLES: readonly SynthesisExample[] = [CAMERA_COMPARISON, TODAY_TIMELINE];
+export const SYNTHESIS_EXAMPLES: readonly SynthesisExample[] = [TODAY_TIMELINE];

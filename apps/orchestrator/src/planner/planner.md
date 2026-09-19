@@ -28,6 +28,13 @@ handed back to you once to fix, and a second failure discards your answer.
   for. It is authored after the agents answer, from their data. Its request is the brief for that
   view: what it should show, what it compares or orders by, and what matters to the user. At most
   one per screen, and only with two or more agents dispatched beside it.
+
+  When the view is over one kind of thing that several agents each show — the same order, the same
+  meeting, the same customer — the brief states the **join hypothesis**: the entity, the
+  **home source** whose instances are the view's rows, and, for each other agent, the **cue** that
+  identifies the entity in its answer. You see only the agents' cards: name the cue each card
+  suggests.
+
 - `{"gap": "<capability>"}` — a **capability gap**: something the utterance needs that no installed
   app serves, the platform included. Name the capability in a few plain words — it is the query the
   Store will be searched for. Name a gap only when nothing installed serves it; a question about the
@@ -35,7 +42,8 @@ handed back to you once to fix, and a second failure discards your answer.
 
 When the screen has a merged view, each agent's request must also ask, in plain words, for the
 fields the merge will depend on — the identifiers, times, names, amounts that let its entries be
-matched or ordered against another agent's. For a time, ask for the full date and time of each
+matched or ordered against another agent's. Under a join hypothesis, ask each agent for the fields
+its cue needs, in the words of its own app. For a time, ask for the full date and time of each
 entry. Ask for the data, not for a format; say nothing about the merge, the shell, or the other
 agents.
 

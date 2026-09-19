@@ -7,7 +7,7 @@ import {OPERATORS, RELATIONS} from '@a2uiverse/shell-catalog/schema';
 import {describe, expect, test} from 'vitest';
 import {Partitions} from '../src/composition/partitions.js';
 import {isDecline, type Synthesis} from '../src/synthesizer/document.js';
-import {CAMERA_COMPARISON, SYNTHESIS_EXAMPLES} from '../src/synthesizer/examples.js';
+import {SYNTHESIS_EXAMPLES, TODAY_TIMELINE} from '../src/synthesizer/examples.js';
 import {readSynthesizerFiles, SYNTHESIS_TAG} from '../src/synthesizer/prompt.js';
 import {Synthesizer, type SynthesisInput} from '../src/synthesizer/synthesizer.js';
 import {validateSynthesis} from '../src/synthesizer/validate.js';
@@ -238,6 +238,108 @@ describe('validateSynthesis (task-6.3 decision 9)', () => {
     });
   });
 
+  describe('holds now (task-7.6 decision 10)', () => {
+    const at = (surface: string, field: string) => ({
+      surface,
+      pointer: `/items[id="x100"]/${field}`,
+    });
+    const claimed = (op: string, field: string) => {
+      const doc = good();
+      (doc.dataModel.rows as Array<Record<string, unknown>>)[0]!.match = {
+        'same price': {op, args: [at(A, field), at(B, field)]},
+      };
+      return doc;
+    };
+
+    test('a fact that holds against the partitions passes', () => {
+      expect(checkSynthesis(claimed('equal', 'id'))).toEqual([]);
+      expect(checkSynthesis(claimed('contains', 'id'))).toEqual([]);
+    });
+
+    test('a fact that does not hold is refused with both values and the two ways out', () => {
+      expect(checkSynthesis(claimed('equal', 'price'))).toEqual([
+        '/dataModel/rows/0/match/same price: equal does not hold — shop-a:list/items[id="x100"]/price is 899, shop-b:list/items[id="x100"]/price is 949. Write a fact that holds, or do not attach the entry.',
+      ]);
+      expect(checkSynthesis(claimed('contains', 'price'))).toEqual([
+        expect.stringContaining('contains does not hold'),
+      ]);
+    });
+
+    test('the finding never offers judged', () => {
+      expect(checkSynthesis(claimed('equal', 'price')).join('\n')).not.toContain('judged');
+    });
+
+    test('judged is not checked against what the values say', () => {
+      expect(checkSynthesis(claimed('judged', 'price'))).toEqual([]);
+    });
+  });
+
+  describe('the tree binds no path under match (task-7.6 decision 11)', () => {
+    const withMatch = () => {
+      const doc = good();
+      (doc.dataModel.rows as Array<Record<string, unknown>>)[0]!.match = {
+        'same camera': {
+          op: 'equal',
+          args: [
+            {surface: A, pointer: '/items[id="x100"]/id'},
+            {surface: B, pointer: '/items[id="x100"]/id'},
+          ],
+        },
+      };
+      return doc;
+    };
+
+    test('a DerivedValue bound to a relation is refused', () => {
+      const doc = withMatch();
+      doc.tree.components[3] = {id: 'row', component: 'Row', children: ['c-id', 'c-best', 'c-m']};
+      doc.tree.components.push({
+        id: 'c-m',
+        component: 'DerivedValue',
+        cell: {path: 'match/same camera'},
+      });
+      expect(checkSynthesis(doc)).toEqual([
+        '/tree (c-m): DerivedValue.cell binds /rows/*/match/same camera, under match; the tree binds no path under match',
+      ]);
+    });
+
+    test('any other component bound under match is refused too', () => {
+      const doc = withMatch();
+      doc.tree.components[0] = {id: 'root', component: 'Column', children: ['sort', 'rows', 'm']};
+      doc.tree.components.push({id: 'm', component: 'Text', text: {path: '/rows/0/match'}});
+      expect(checkSynthesis(doc).join('\n')).toContain(
+        'Text.text binds /rows/0/match, under match; the tree binds no path under match',
+      );
+    });
+  });
+
+  test('a list inside each row: its template is checked against the first non-empty list (task-7.6 decision 12)', () => {
+    const run = (id: string) => ({
+      op: 'value',
+      args: [{surface: A, pointer: `/items[id="${id}"]/price`}],
+    });
+    const doc = good();
+    const rows = doc.dataModel.rows as Array<Record<string, unknown>>;
+    rows[0]!.runs = [];
+    rows[0]!.runCount = {op: 'count', args: []};
+    rows.push({
+      ...clone(rows[0]!),
+      runs: [{when: run('x100')}],
+      runCount: {op: 'count', args: [run('x100').args[0]!]},
+    });
+    doc.tree.components[3] = {id: 'row', component: 'Row', children: ['c-id', 'c-best', 'c-runs']};
+    doc.tree.components.push(
+      {id: 'c-runs', component: 'Column', children: {path: 'runs', componentId: 'c-run'}},
+      {id: 'c-run', component: 'DerivedValue', cell: {path: 'when'}},
+    );
+    doc.sorts.push({
+      path: '/rows/*/runs',
+      options: [{key: '/when', label: 'Time'}],
+      key: '/when',
+      direction: 'desc',
+    });
+    expect(checkSynthesis(doc)).toEqual([]);
+  });
+
   test('a ref into an unknown surface, or one that does not resolve now, is malformed — not absent', () => {
     const unknown = good();
     (unknown.dataModel.rows as Array<{id: {args: {surface: string}[]}}>)[0]!.id.args[0]!.surface =
@@ -361,7 +463,11 @@ describe('Synthesizer (the loop)', () => {
       {
         ...input,
         previous,
-        changes: {absent: [{surface: A, pointer: '/items[id="x100"]/price'}]},
+        changes: {
+          absent: [{surface: A, pointer: '/items[id="x100"]/price'}],
+          appeared: [],
+          unheld: [],
+        },
       },
       partitions(),
     );
@@ -375,7 +481,7 @@ describe('Synthesizer (the loop)', () => {
   });
 
   test('the worked example is accepted verbatim over sources of its shapes', async () => {
-    const example = CAMERA_COMPARISON;
+    const example = TODAY_TIMELINE;
     const model = new FakeSynthesizer(example.output);
     const p = partitionsOf(Object.fromEntries(example.sources.map(s => [s.surface, s.data])));
     const outcome = await synthesizer(model).synthesize(

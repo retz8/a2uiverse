@@ -2,6 +2,7 @@ import {Ajv2020} from 'ajv/dist/2020.js';
 import {
   formatA2uiFinding,
   isFormula,
+  MATCH_KEY,
   parsePointer,
   schemaErrors,
   validateSynthesisPayload,
@@ -20,16 +21,17 @@ import {
   type SynthesisTree,
   type SynthesizeDataModel,
 } from './document.js';
+import {runFact} from '../composition/relations.js';
 
 /**
  * The Synthesizer's one validator (task-6.3 decision 9), in order: the output schema; for a
  * synthesis, the derived model and sorts through the sdk's payload validator; the tree through the
  * sdk's A2UI validator against the Synthesizer's pruned catalog — known components and props, the
  * root, dangling children, cycles, orphans; the derived-value rule over that tree, resolving
- * bindings absolutely or through their enclosing template; every operator one the pruned catalog
- * declares, a match claim's in the relations and no relation outside one; every ref into a held
- * partition, resolving now. Each finding is one line with its path,
- * so the retry can hand them back.
+ * bindings absolutely or through their enclosing template, and no binding under `match`; every
+ * operator one the pruned catalog declares, a match claim's in the relations and no relation
+ * outside one; every ref into a held partition, resolving now; every fact of a match claim holding
+ * now. Each finding is one line with its path, so the retry can hand them back.
  */
 export interface SynthesisChecks {
   /** The sdk's A2UI validator over the Synthesizer's pruned catalog. */
@@ -67,6 +69,7 @@ export function validateSynthesis(input: unknown, checks: SynthesisChecks): Synt
         ...derivedValueErrors(document),
         ...operatorErrors(document, checks),
         ...refErrors(document, checks.partitions),
+        ...holdErrors(document, checks.partitions),
       ]
     : [...structure.errors, ...tree];
   return errors.length === 0 ? {ok: true, document} : {ok: false, errors};
@@ -115,22 +118,32 @@ function childIds(component: TreeComponent): string[] {
 
 /**
  * Resolves a path in the derived model. A template context (`/rows/*`) stands for any element
- * of the array; the first element answers for all, the model's arrays being lists of like
- * things. Returns undefined when the path leaves the model.
+ * of the array; the model's arrays being lists of like things, the first element the rest of the
+ * path resolves in answers for all — so a list inside each row is checked against the first
+ * non-empty one (task-7.6 decision 12). Returns undefined when the path leaves the model.
  */
 function nodeAt(model: Record<string, ModelNode>, path: string): ModelNode | undefined {
-  let node: ModelNode | undefined = model;
-  for (const step of parsePointer(path)) {
-    if (node === undefined) return undefined;
-    if (step.kind === 'predicate') return undefined;
-    if (isFormula(node)) return undefined;
+  const steps = parsePointer(path);
+  const walk = (node: ModelNode | undefined, index: number): ModelNode | undefined => {
+    if (index === steps.length || node === undefined) return node;
+    const step = steps[index]!;
+    if (step.kind === 'predicate' || isFormula(node)) return undefined;
     if (Array.isArray(node)) {
-      node = step.key === '*' ? node[0] : node[Number(step.key)];
-    } else {
-      node = (node as Record<string, ModelNode>)[step.key];
+      if (step.key !== '*') return walk(node[Number(step.key)], index + 1);
+      for (const element of node) {
+        const found = walk(element, index + 1);
+        if (found !== undefined) return found;
+      }
+      return undefined;
     }
-  }
-  return node;
+    return walk((node as Record<string, ModelNode>)[step.key], index + 1);
+  };
+  return walk(model, 0);
+}
+
+/** Whether a path passes through a match claim: the tree binds none (task-7.6 decision 11). */
+function underMatch(path: string): boolean {
+  return parsePointer(path).some(step => step.kind === 'key' && step.key === MATCH_KEY);
 }
 
 function joinPath(context: string | undefined, path: string): string {
@@ -213,6 +226,12 @@ function derivedValueErrors(synthesis: Synthesis): string[] {
     for (const {prop, path} of bindingsOf(component)) {
       if (path.startsWith('/sorts/') || path === '/sorts') continue;
       const absolute = joinPath(ctx, path);
+      if (underMatch(absolute)) {
+        errors.push(
+          `/tree (${component.id}): ${component.component}.${prop} binds ${absolute}, under match; the tree binds no path under match`,
+        );
+        continue;
+      }
       const node = nodeAt(dataModel, absolute);
       const formula = node !== undefined && isFormula(node);
       if (component.component === 'DerivedValue') {
@@ -294,6 +313,29 @@ function refErrors(synthesis: Synthesis, partitions: SynthesisChecks['partitions
         errors.push(`${where}: ${ref.surface}${ref.pointer} does not resolve in the data shown`);
       }
     });
+  }
+  return errors;
+}
+
+/**
+ * Holds now (task-7.6 decision 10): every fact of a match claim run on the shell catalog's own
+ * relation function over what its refs resolve to in the partitions. A fact that does not hold
+ * names both values and the two ways out; it never offers `judged`, which the checker cannot
+ * check. A relation whose refs do not resolve is `refErrors`' to report.
+ */
+function holdErrors(synthesis: Synthesis, partitions: SynthesisChecks['partitions']): string[] {
+  const errors: string[] = [];
+  for (const claim of walkModel(synthesis.dataModel).claims) {
+    for (const {path, formula} of claim.relations) {
+      const fact = runFact(formula, partitions);
+      if (fact?.state !== 'fails') continue;
+      const shown = formula.args
+        .map((ref, i) => `${ref.surface}${ref.pointer} is ${JSON.stringify(fact.values[i])}`)
+        .join(', ');
+      errors.push(
+        `/dataModel${path}: ${formula.op} does not hold — ${shown}. Write a fact that holds, or do not attach the entry.`,
+      );
+    }
   }
   return errors;
 }

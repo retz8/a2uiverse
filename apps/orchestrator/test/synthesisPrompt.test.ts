@@ -4,11 +4,7 @@ import {refsOf} from '@a2uiverse/sdk';
 import {SYNTHESIS_SURFACE_KEEP_SET} from '@a2uiverse/shell-catalog/schema';
 import {describe, expect, test} from 'vitest';
 import {isDecline} from '../src/synthesizer/document.js';
-import {
-  CAMERA_COMPARISON,
-  SYNTHESIS_EXAMPLES,
-  TODAY_TIMELINE,
-} from '../src/synthesizer/examples.js';
+import {SYNTHESIS_EXAMPLES, TODAY_TIMELINE} from '../src/synthesizer/examples.js';
 import {
   buildSynthesisTurn,
   readSynthesizerFiles,
@@ -27,6 +23,23 @@ describe('the files read at boot', () => {
     );
     expect(files.rules).toBe(markdown);
     expect(files.rules).toContain(`<${SYNTHESIS_TAG}>`);
+  });
+
+  test('the rules doc teaches the join from the hypothesis, with no domain in it (task-7.6 decisions 3–8)', () => {
+    expect(files.rules).toContain('## The join');
+    for (const phrase of ['home source', '`match`', '`count`', '`judged`', '/rows/*/']) {
+      expect(files.rules, phrase).toContain(phrase);
+    }
+    expect(files.rules).not.toContain('Say it only when the data says it');
+    for (const domain of ['pull request', 'CircleCI', 'Linear', 'camera']) {
+      expect(files.rules, domain).not.toContain(domain);
+    }
+  });
+
+  test('the shell catalog’s guidance carries no domain either: the examples section is where one belongs', () => {
+    for (const domain of ['pull request', 'GitHub', 'CircleCI', 'Linear', 'branch', 'camera']) {
+      expect(files.guidance, domain).not.toContain(domain);
+    }
   });
 
   test('the catalog is the shell catalog pruned to the synthesis surface’s keep-set', () => {
@@ -86,8 +99,7 @@ describe('the system prompt', () => {
       expect(prompt).toContain(example.intent);
       expect(prompt).toContain(example.request);
     }
-    expect(prompt).toContain('"surface": "shop-a:list"');
-    expect(prompt).toContain('"op": "min"');
+    expect(prompt).toContain('"surface": "gmail:needs-attention"');
   });
 
   test('examples are overridable, and none renders no section', () => {
@@ -96,11 +108,9 @@ describe('the system prompt', () => {
 });
 
 describe('the worked examples', () => {
-  test('the comparison joins by key across two shapes', () => {
-    if (isDecline(CAMERA_COMPARISON.output)) throw new Error();
-    const comparisonRefs = refsOf(CAMERA_COMPARISON.output.dataModel);
-    expect(comparisonRefs.every(r => r.pointer.includes('['))).toBe(true);
-    expect(new Set(comparisonRefs.map(r => r.surface)).size).toBe(2);
+  test('the camera comparison is not among them: the mock storefronts share one dataset (task-7.6 decision 9)', () => {
+    expect(SYNTHESIS_EXAMPLES.map(e => e.name)).toEqual(['today-timeline']);
+    expect(synthesizerSystemPrompt(files)).not.toContain('shop-a:list');
   });
 
   test('the timeline spans three unrelated models, orders the two that share the axis, and groups the one that cannot (task-5.11 decision 5)', () => {
@@ -172,6 +182,8 @@ describe('the turn', () => {
           {surface: 'shop-a:list', pointer: '/items[id="gone"]/price'},
           {surface: 'shop-b:list', pointer: '/products[sku="gone"]/price'},
         ],
+        appeared: [],
+        unheld: [],
       },
     });
     expect(turn).toContain('The user is looking at your previous view');
@@ -186,8 +198,52 @@ describe('the turn', () => {
     const turn = buildSynthesisTurn({
       ...base,
       previous: {declined: true, reason: 'x'},
-      changes: {absent: []},
+      changes: {absent: [], appeared: [], unheld: []},
     });
     expect(turn).toContain('- nothing named; the sources were repainted');
+  });
+
+  test('a re-synthesis names the entries that appeared, to attach or leave out (task-7.6 decisions 8, 15)', () => {
+    const turn = buildSynthesisTurn({
+      ...base,
+      previous: {declined: true, reason: 'x'},
+      changes: {
+        absent: [],
+        appeared: [{surface: 'circleci:runs', pointer: '/runs[id="r1"]/workflows[id="w2"]'}],
+        unheld: [],
+      },
+    });
+    expect(turn).toContain('- these entries appeared:');
+    expect(turn).toContain('  - circleci:runs/runs[id="r1"]/workflows[id="w2"]');
+    expect(turn).toContain(
+      'attach each entry that appeared — to a row, into a row’s list, or as a new row when it is the home source’s — or leave it out',
+    );
+    expect(turn).not.toContain('- these refs no longer resolve:');
+  });
+
+  test('a re-synthesis names the facts that no longer hold, to re-point, re-evidence or detach (task-7.6 decisions 8, 13)', () => {
+    const turn = buildSynthesisTurn({
+      ...base,
+      previous: {declined: true, reason: 'x'},
+      changes: {
+        absent: [{surface: 'shop-a:list', pointer: '/items[id="gone"]/price'}],
+        appeared: [],
+        unheld: [
+          {
+            path: '/rows/0/match/same branch',
+            op: 'equal',
+            args: [
+              {surface: 'github:prs', pointer: '/prs[number=7]/head'},
+              {surface: 'circleci:runs', pointer: '/runs[id="r1"]/branch'},
+            ],
+          },
+        ],
+      },
+    });
+    expect(turn).toContain('- these facts no longer hold:');
+    expect(turn).toContain(
+      '  - /rows/0/match/same branch: equal over github:prs/prs[number=7]/head and circleci:runs/runs[id="r1"]/branch',
+    );
+    expect(turn).toContain('re-point, re-evidence or detach each fact that no longer holds');
   });
 });

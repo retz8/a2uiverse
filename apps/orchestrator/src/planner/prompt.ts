@@ -47,7 +47,7 @@ export function readPlannerFiles(): PlannerFiles {
 }
 
 const EXAMPLES_FRAMING =
-  'The examples below show the form of a layout surface for the three kinds of turn: agents dispatched with a merged view over them, a question about the platform answered from a reader, and a capability gap. Their agents and reader results are fixtures chosen to make the form legible; they are not the agents of the current turn and never a document to reuse.';
+  'The examples below show the form of a layout surface for the kinds of turn: agents dispatched with a merged view over them — a timeline across their entries, and a merged view over one kind of thing with its join hypothesis — a question about the platform answered from a reader, and a capability gap. Their agents and reader results are fixtures chosen to make the form legible; they are not the agents of the current turn and never a document to reuse.';
 
 function renderExample(example: LayoutExample): string {
   const body = JSON.stringify(

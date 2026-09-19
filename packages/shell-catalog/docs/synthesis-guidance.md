@@ -51,16 +51,16 @@ that are genuinely different. The view is read, sorted, and read again.
 ## The join
 
 When the entries an object brings together from different apps are, in your judgment, one thing —
-the same pull request in GitHub, CircleCI and Linear — write the evidence under the object's
+the same product, the same event, the same person — write the evidence under the object's
 `match` key. Nothing requires one; write it where you judge a join.
 
-- Each key names what matched, the way the user would say it: `"same branch"`,
+- Each key names what matched, the way the user would say it: `"same reference number"`,
   `"title in the subject"`. The name is shown beside the values.
 - Each value is a relation over two refs in two different apps. Use `equal` or `contains` whenever a
-  fact links the two — an identifier, a branch, a title quoted in a subject. Use `judged` only when
+  fact links the two — an identifier, a reference number, a title quoted in a subject. Use `judged` only when
   nothing but understanding does.
-- Relations compare word by word: case and punctuation do not count, so `fix-login` equals
-  `Fix login`. Numbers and date-and-times compare by value, whatever their spelling. `contains` reads
+- Relations compare word by word: case and punctuation do not count, so `spring-sale` equals
+  `Spring sale`. Numbers and date-and-times compare by value, whatever their spelling. `contains` reads
   "the second is inside the first": words inside a text, or a value among a list's members.
 - Write every fact that links two apps, not only the first you find: a value tied in by more than
   one fact stays confirmed when one of them changes.
@@ -69,7 +69,7 @@ the same pull request in GitHub, CircleCI and Linear — write the evidence unde
 
 ## Never paint
 
-- A literal where a value should be. A column label is yours to write; a camera's name or price is a
+- A literal where a value should be. A column label is yours to write; a product's name or price is a
   source's and reaches the view only through a formula.
 - Source badges, "from Gmail" captions, or any other provenance of your own. `DerivedValue` carries
   provenance in the cell.

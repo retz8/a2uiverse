@@ -4,8 +4,15 @@
  * ref that stops resolving is what gates a re-synthesis, and the change account carries it.
  */
 import type {Ref, SynthesisPayload} from '@a2uiverse/sdk';
-import {expect, test} from 'vitest';
-import {changeAccount, checkSynthesisPayload, refValid} from '../src/composition/integrity.js';
+import {describe, expect, test} from 'vitest';
+import {
+  changeAccount,
+  checkSynthesisPayload,
+  refValid,
+  watchedArrays,
+  watchOf,
+} from '../src/composition/integrity.js';
+import {Partitions} from '../src/composition/partitions.js';
 
 const A = 'shop-a:list';
 const B = 'shop-b:list';
@@ -55,6 +62,8 @@ test('a reorder that leaves every key resolving does not invalidate the payload'
 test('the change account names the refs that stopped resolving, once each', () => {
   expect(changeAccount(payload, partitions('sku="x100"'))).toEqual({
     absent: [{surface: B, pointer: '/products[sku="x100"]/price'}],
+    appeared: [],
+    unheld: [],
   });
 });
 
@@ -67,4 +76,141 @@ test('a ref repeated across formulas is accounted once', () => {
     sorts: [],
   };
   expect(changeAccount(twice, partitions('x100')).absent).toHaveLength(1);
+});
+
+describe('appearance and the relations that no longer hold (task-7.6 decisions 13–15)', () => {
+  const GH = 'github:prs';
+  const CI = 'circleci:runs';
+
+  function paint(models: Record<string, unknown>, into = new Partitions()): Partitions {
+    const message = (op: Record<string, unknown>) => ({
+      kind: 'message' as const,
+      messageId: 'm',
+      role: 'agent' as const,
+      parts: [{kind: 'data' as const, data: {version: 'v0.9', ...op}}],
+    });
+    for (const [surface, value] of Object.entries(models)) {
+      if (!into.has(surface))
+        into.apply(message({createSurface: {surfaceId: surface, catalogId: 'c'}}));
+      into.apply(message({updateDataModel: {surfaceId: surface, value}}));
+    }
+    return into;
+  }
+
+  const cell = (surface: string, pointer: string) => ({op: 'value', args: [{surface, pointer}]});
+  const joined: SynthesisPayload = {
+    dataModel: {
+      rows: [
+        {
+          title: cell(GH, '/prs[number=7]/title'),
+          run: cell(CI, '/runs[id="r1"]/workflows[id="w1"]/status'),
+          match: {
+            'same branch': {
+              op: 'equal',
+              args: [
+                {surface: GH, pointer: '/prs[number=7]/head'},
+                {surface: CI, pointer: '/runs[id="r1"]/branch'},
+              ],
+            },
+            judged: {
+              op: 'judged',
+              args: [
+                {surface: GH, pointer: '/prs[number=7]/title'},
+                {surface: CI, pointer: '/runs[id="r1"]/subject'},
+              ],
+            },
+          },
+        },
+      ],
+    },
+    sorts: [],
+  };
+  const models = () => ({
+    [GH]: {
+      prs: [
+        {number: 7, title: 'Add login', head: 'feat/login'},
+        {number: 8, title: 'Fix build', head: 'fix/build'},
+      ],
+    },
+    [CI]: {
+      runs: [
+        {
+          id: 'r1',
+          branch: 'feat/login',
+          subject: 'add login',
+          workflows: [{id: 'w1', status: 'failed'}],
+        },
+      ],
+    },
+  });
+
+  test('watches every array a ref selects into by key — nested ones inside a keyed element included', () => {
+    const watch = watchOf(joined, paint(models()));
+    expect(watchedArrays(watch)).toEqual([
+      {surface: GH, array: '/prs', fields: ['number']},
+      {surface: CI, array: '/runs', fields: ['id']},
+      {surface: CI, array: '/runs[id="r1"]/workflows', fields: ['id']},
+    ]);
+  });
+
+  test('a key present at accept never appears — referenced or not; a new one does, as a ref selecting it', () => {
+    const p = paint(models());
+    const watch = watchOf(joined, p);
+    expect(changeAccount(joined, p, watch).appeared).toEqual([]);
+    const next = models();
+    next[CI].runs[0]!.workflows.push({id: 'w2', status: 'running'});
+    next[GH].prs.push({number: 9, title: 'Docs', head: 'docs'});
+    paint(next, p);
+    expect(changeAccount(joined, p, watch).appeared).toEqual([
+      {surface: GH, pointer: '/prs[number=9]'},
+      {surface: CI, pointer: '/runs[id="r1"]/workflows[id="w2"]'},
+    ]);
+  });
+
+  test('an element missing the key’s fields is not keyed', () => {
+    const p = paint(models());
+    const watch = watchOf(joined, p);
+    const next = models();
+    (next[GH].prs as unknown[]).push({title: 'no number'});
+    paint(next, p);
+    expect(changeAccount(joined, p, watch).appeared).toEqual([]);
+  });
+
+  test('an array an earlier document referenced stays watched after a re-synthesis dropped its refs: empty while gone, its keys appear when it returns', () => {
+    const p = paint(models());
+    const first = watchOf(joined, p);
+    // The CircleCI list gives way to a detail view; the re-synthesis drops every CircleCI ref.
+    paint({[CI]: {detail: {id: 'r1'}}}, p);
+    const githubOnly: SynthesisPayload = {
+      dataModel: {rows: [{title: cell(GH, '/prs[number=7]/title')}]},
+      sorts: [],
+    };
+    const second = watchOf(githubOnly, p, first);
+    expect(watchedArrays(second).map(w => w.array)).toContain('/runs');
+    paint(models(), p);
+    expect(changeAccount(githubOnly, p, second).appeared).toEqual([
+      {surface: CI, pointer: '/runs[id="r1"]'},
+      {surface: CI, pointer: '/runs[id="r1"]/workflows[id="w1"]'},
+    ]);
+  });
+
+  test('a fact that stops holding while its refs resolve is an unheld relation; judged never is', () => {
+    const p = paint(models());
+    const watch = watchOf(joined, p);
+    expect(changeAccount(joined, p, watch).unheld).toEqual([]);
+    const renamed = models();
+    renamed[CI].runs[0]!.branch = 'feat/logout';
+    renamed[CI].runs[0]!.subject = 'something else entirely';
+    paint(renamed, p);
+    expect(changeAccount(joined, p, watch).unheld).toEqual([
+      {
+        path: '/rows/0/match/same branch',
+        op: 'equal',
+        args: [
+          {surface: GH, pointer: '/prs[number=7]/head'},
+          {surface: CI, pointer: '/runs[id="r1"]/branch'},
+        ],
+      },
+    ]);
+  });
 });

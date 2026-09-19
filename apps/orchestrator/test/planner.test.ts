@@ -182,6 +182,25 @@ describe('the Planner’s files and prompt', () => {
     expect(kinds.some(k => k.gap && k.vendors === 0)).toBe(true);
   });
 
+  test('the join hypothesis: a merged view over one kind of thing, shown over fixture cards of another kind (task-7.6 decisions 1–2)', () => {
+    expect(files.rules).toContain('join hypothesis');
+    for (const phrase of ['home source', 'cue']) expect(files.rules, phrase).toContain(phrase);
+    const join = LAYOUT_EXAMPLES.find(e => e.name === 'orders-join')!;
+    expect(join.intent).toBe('Where are my orders?');
+    const requests = new Map(
+      join.output.dispatch.flatMap(d => ('source' in d ? [[d.source, d.request]] : [])),
+    );
+    expect([...requests.keys()].sort()).toEqual(['carrier', 'mailbox', 'shell', 'store']);
+    expect(requests.get('shell')).toMatch(/home source/i);
+    expect(requests.get('carrier')).toMatch(/tracking number/);
+    expect(requests.get('mailbox')).toMatch(/order number/);
+    for (const [source, request] of requests) {
+      if (source !== 'shell') expect(request, source).not.toMatch(/merge|shell|other agent|join/i);
+    }
+    const system = plannerSystemPrompt(files);
+    expect(system).toContain('a merged view over one kind of thing');
+  });
+
   test('the turn carries the utterance, each agent’s card, the platform’s card apart, and the tag', () => {
     const turn = buildPlannerTurn({utterance: 'my day at a glance', shortlist});
     expect(turn).toContain('my day at a glance');

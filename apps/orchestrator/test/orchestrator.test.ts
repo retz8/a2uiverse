@@ -14,7 +14,7 @@ import type {Planner} from '../src/planner/planner.js';
 import {FakeEmbedder} from './fakeEmbedder.js';
 import {FakePlanner, layoutFor, MalformedPlanner, ThrowingPlanner} from './fakePlanner.js';
 import {bestPriceView, decline, FakeSynthesizer} from './fakeSynthesizer.js';
-import type {SynthesisModel} from '../src/synthesizer/synthesizer.js';
+import type {SynthesisCall, SynthesisModel} from '../src/synthesizer/synthesizer.js';
 import {SYNTHESIS_KEY, type SynthesisPayload} from '@a2uiverse/sdk';
 import type {Synthesis} from '../src/synthesizer/document.js';
 import {startFakeVendor, type FakeVendor, type Script} from './fakeVendor.js';
@@ -914,5 +914,66 @@ describe('synthesis (tasks 4.4, 5.4)', () => {
     expect(final.final).toBe(true);
     const lines = await journalLines(4);
     expect(lines[3]!.synthesis).toMatchObject({outcome: 'synthesized'});
+  });
+
+  test('a fact that stops holding fires nothing; an entry that appears fires a re-synthesis told what appeared (task-7.6 decisions 13–15)', async () => {
+    const named = (items: Array<{id: string; price: number}>, name: string) =>
+      items.map((item, i) => (i === 0 ? {...item, name} : item));
+    const githubItems = named(camerasA, 'Lumen X100');
+    const x300 = {id: 'x300', price: 1499};
+    const github = shopScript(githubItems, n =>
+      n === 1
+        ? {path: '/items/0/name', value: 'Verity A7'}
+        : {path: '/items', value: [...githubItems, x300]},
+    );
+    const claimed = (call: SynthesisCall): Synthesis => {
+      const document = bestPriceView(call);
+      (document.dataModel.rows as Array<Record<string, unknown>>)[0]!.match = {
+        'same name': {
+          op: 'equal',
+          args: [
+            {surface: 'github:s1', pointer: '/items[id="x100"]/name'},
+            {surface: 'gmail:s1', pointer: '/items[id="x100"]/name'},
+          ],
+        },
+      };
+      return document;
+    };
+    // The re-synthesis leaves the new camera out: the other store does not carry it.
+    const synthesizer = new FakeSynthesizer([claimed, call => call.input.previous!]);
+    const {client} = await boot({
+      planner: planner(),
+      synthesizer,
+      scripts: {github, gmail: shopScript(named(camerasB, 'Lumen X100'))},
+    });
+    const first = await collect(client, utterance('compare camera prices'));
+    const contextId = first[0]!.contextId!;
+    expect(synthesizer.calls).toHaveLength(1);
+
+    // The matched name changes: the client marks the value broken; the orchestrator calls no one.
+    const renamed = await collect(client, actionOn('github:s1', contextId));
+    expect(synthesizer.calls).toHaveLength(1);
+    expect(synthesisEvents(renamed)).toHaveLength(0);
+
+    // A new camera appears in the list the view reads, and the name comes back with it.
+    const grown = await collect(client, actionOn('github:s1', contextId));
+    expect(synthesizer.calls).toHaveLength(2);
+    const again = synthesizer.calls[1]!;
+    expect(again.input.changes).toEqual({
+      absent: [],
+      appeared: [{surface: 'github:s1', pointer: '/items[id="x300"]'}],
+      unheld: [],
+    });
+    expect(again.prompt).toContain('- these entries appeared:');
+    expect(synthesisEvents(grown)).toHaveLength(1);
+    const lines = await journalLines(3);
+    expect(lines[2]!.synthesis).toMatchObject({
+      outcome: 'synthesized',
+      changes: {appeared: [{surface: 'github:s1', pointer: '/items[id="x300"]'}]},
+    });
+
+    // Accepted again, the watch now holds x300: the same list repainted fires nothing.
+    await collect(client, actionOn('github:s1', contextId));
+    expect(synthesizer.calls).toHaveLength(2);
   });
 });
