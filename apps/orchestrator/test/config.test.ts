@@ -8,10 +8,11 @@ describe('loadConfig — synthesizer (task 4.4)', () => {
     expect(config.synthesizerModelId).toBe('gemini-x');
     expect(config.synthesizerEffort).toBe('low');
   });
-  test('unset, the Planner runs on gemini-3.7-flash and the Synthesizer on gemini-2.5-flash (task 7.8)', () => {
+  test('unset, the Planner (task 7.8) and the Synthesizer (task 7.13) run on gemini-3.7-flash, the Synthesizer at low effort', () => {
     const config = loadConfig({});
     expect(config.plannerModelId).toBe('gemini-3.7-flash');
-    expect(config.synthesizerModelId).toBe('gemini-2.5-flash');
+    expect(config.synthesizerModelId).toBe('gemini-3.7-flash');
+    expect(config.synthesizerEffort).toBe('low');
   });
   test('reads A2UIVERSE_SYNTHESIZER_MODEL and A2UIVERSE_SYNTHESIZER_EFFORT', () => {
     const config = loadConfig({

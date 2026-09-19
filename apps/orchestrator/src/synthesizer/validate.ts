@@ -62,16 +62,23 @@ export function validateSynthesis(input: unknown, checks: SynthesisChecks): Synt
     sorts: document.sorts,
   });
   const tree = treeErrors(document.tree, checks.tree);
-  // The checks that read the model's pointers run only over a structurally sound model.
-  const errors = structure.ok
-    ? [
-        ...tree,
-        ...derivedValueErrors(document),
-        ...operatorErrors(document, checks),
-        ...refErrors(document, checks.partitions),
-        ...holdErrors(document, checks.partitions),
-      ]
-    : [...structure.errors, ...tree];
+  // The checks that read the model's pointers run only over a structurally sound model; a faulty
+  // sort declaration withholds none of them, so the one retry is handed every finding (task-7.13
+  // decision 2).
+  const modelSound =
+    structure.ok || validateSynthesisPayload({dataModel: document.dataModel, sorts: []}).ok;
+  const errors = [
+    ...(structure.ok ? [] : structure.errors),
+    ...tree,
+    ...(modelSound
+      ? [
+          ...derivedValueErrors(document),
+          ...operatorErrors(document, checks),
+          ...refErrors(document, checks.partitions),
+          ...holdErrors(document, checks.partitions),
+        ]
+      : []),
+  ];
   return errors.length === 0 ? {ok: true, document} : {ok: false, errors};
 }
 

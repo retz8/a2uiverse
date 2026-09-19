@@ -3,10 +3,10 @@
  * agent kit renders a vendor's examples. One shape: a timeline over the real roster's recorded
  * shapes (Phase 5's temporal merge) — three unrelated data models, opaque ids, a compound key, and
  * one source whose time cannot join the axis. The camera comparison is not among them (task-7.6
- * decision 9); the entity join's example follows the recorded entity-join turn (task 7.13). The
- * examples teach form; the rules doc (`synthesis.md`) teaches the
- * vocabulary and the rules. Their trees are authored against the Synthesizer's pruned shell
- * catalog; its tests put each through the whole validator.
+ * decision 9), and the entity join has no worked example (task-7.13 decision 1). The examples
+ * teach form; the rules doc (`synthesis.md`) teaches the vocabulary and the rules. Their trees are
+ * authored against the Synthesizer's pruned shell catalog; its tests put each through the whole
+ * validator.
  */
 import type {SynthesizeDataModel} from './document.js';
 import type {SynthesisSource} from './prompt.js';

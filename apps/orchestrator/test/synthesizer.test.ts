@@ -106,6 +106,27 @@ describe('validateSynthesis (task-6.3 decision 9)', () => {
     expect(checkSynthesis(pointer).join('\n')).toContain('/items[id=x100]/id');
   });
 
+  test('a faulty sort declaration withholds none of the other findings (task-7.13 decision 2)', () => {
+    const doc = good();
+    doc.sorts[0]!.options.push({key: '/priority', label: 'Priority'});
+    doc.tree.components[5] = {id: 'c-best', component: 'DerivedValue', cell: {path: 'pr.title'}};
+    (doc.dataModel.rows as Array<{id: {args: {pointer: string}[]}}>)[0]!.id.args[0]!.pointer =
+      '/items[id="gone"]/id';
+    expect(checkSynthesis(doc)).toEqual([
+      '/sorts/0: option key /priority does not resolve to a formula in element 0 of /rows',
+      expect.stringContaining('/rows/*/pr.title is not in the derived model'),
+      expect.stringContaining('shop-a:list/items[id="gone"]/id does not resolve'),
+    ]);
+  });
+
+  test('a model whose own structure is broken withholds the checks that read its pointers', () => {
+    const doc = good();
+    (doc.dataModel.rows as Array<{id: {args: {pointer: string}[]}}>)[0]!.id.args[0]!.pointer =
+      '/items[id=x100]/id';
+    doc.tree.components[5] = {id: 'c-best', component: 'DerivedValue', cell: {path: 'pr.title'}};
+    expect(checkSynthesis(doc)).toEqual([expect.stringContaining('/items[id=x100]/id')]);
+  });
+
   test('a component outside the Synthesizer’s catalog, and a prop its schema refuses, are found by the A2UI validator', () => {
     const unknown = good();
     unknown.tree.components[1] = {id: 'sort', component: 'Sorter', sort: {path: '/sorts/0'}};
