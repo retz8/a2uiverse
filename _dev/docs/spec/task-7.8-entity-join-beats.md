@@ -5,7 +5,7 @@ The entity-join turn recorded per vendor agent in live mode over this repository
 ## Scope
 
 - The pull-request turn recorded from GitHub, CircleCI, Linear and Gmail in live mode, on the requests of one live run.
-- The pull requests, Linear links, CircleCI runs and GitHub notification mail the join needs, set up on this repository and in the apps' accounts.
+- The pull requests, Linear links and CircleCI runs the join needs, set up on this repository.
 - CircleCI's, Linear's and Gmail's follow-up recordings re-recorded onto the pull-request turn.
 - Gmail's recording boundary letting GitHub notification subjects through.
 - A write-up of what the roster shows and of the live run's synthesis.
@@ -31,9 +31,9 @@ Its change carries a deliberate formatting violation, so its CircleCI run fails.
 
 Its topic is one no Linear issue covers.
 
-### 5. Gmail's threads are real GitHub notification mail
+### 5. Gmail falls back
 
-GitHub's email notifications for participating activity, with "Include your own updates", are turned on and delivered to the mailbox the Gmail agent reads. Real activity gives each of the three pull requests its thread: opening the new pull request, and a comment on #6 and on #7. No mail is written by hand.
+No GitHub notification mail about these pull requests reaches the mailbox the Gmail agent reads: with email notifications for participating activity and "Include your own updates" on, opening the new pull request and a comment on #6 and on #7 sent none. Gmail is recorded as it answers the request, and its missing side is written up as the SPEC §4.4 fallback. No mail is written by hand.
 
 ### 6. The utterance never changes
 
@@ -53,7 +53,7 @@ For all four agents the pull-request turn becomes the one text answer their dete
 
 ### 10. The follow-up chains are re-recorded onto the pull-request turn
 
-With their real side effects accepted: CircleCI's open run, open failed job, rerun proposal and confirm, on the new pull request's failing run; Linear's open issue and status change; Gmail's open thread and reply proposal. The follow-up prompts stay as they are, unless one is a no-op against the current state. Gmail's labels recording stays as it is.
+With their real side effects accepted: CircleCI's open run, open failed job, rerun proposal and confirm, on the new pull request's failing run; Linear's open issue and status change; Gmail's open thread and reply proposal. The follow-up prompts stay as they are, unless one is a no-op against the current state. Gmail's follow-ups are re-recorded only when its answer lists a thread to open; otherwise they stay as they are. Gmail's labels recording stays as it is.
 
 ### 11. GitHub gets no follow-up
 
