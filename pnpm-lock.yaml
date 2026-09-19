@@ -73,7 +73,7 @@ importers:
         version: https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/9a7e30f86e75194cc3dfd88fd5670002c436baed#path:gmail/gmail-catalog(@a2ui/react@0.10.2(patch_hash=99b6533eb4bc6f8f8c7de140fcffef2c7572a6a6b30a2b86b5020fa368d845ea)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76))(@a2ui/web_core@0.10.6)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76)
       linear-catalog:
         specifier: github:retz8/a2uiverse-apps#path:linear/linear-catalog
-        version: https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/1ac2e1961840f5ed1c385cf2a03394fa709cc6a5#path:linear/linear-catalog(@a2ui/react@0.10.2(patch_hash=99b6533eb4bc6f8f8c7de140fcffef2c7572a6a6b30a2b86b5020fa368d845ea)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76))(@a2ui/web_core@0.10.6)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76)
+        version: https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/9d9c7d04a30d0cbd6127d749f37b88d0f563884f#path:linear/linear-catalog(@a2ui/react@0.10.2(patch_hash=99b6533eb4bc6f8f8c7de140fcffef2c7572a6a6b30a2b86b5020fa368d845ea)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76))(@a2ui/web_core@0.10.6)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76)
       react:
         specifier: ^19.2.7
         version: 19.2.8
@@ -2782,8 +2782,8 @@ packages:
     resolution: {integrity: sha512-WkUDrojuJs0xkgGf2udWxa3yGBRxPtxUkB79i6aCZLRgc7PM8fZe9TosfPDcvEpQZbuFASnHYmRLBLUbmLOIIA==}
     engines: {node: '>= 12.0.0'}
 
-  linear-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/1ac2e1961840f5ed1c385cf2a03394fa709cc6a5#path:linear/linear-catalog:
-    resolution: {gitHosted: true, integrity: sha512-Q6hhP9dssRXuwDRP8KKUIkldEGLlb+EVBCzVae9i8xqyN3fVNDA9mYf7FZw+/8KxL3nwYer7yS3aWMsmldZXeA==, path: linear/linear-catalog, tarball: https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/1ac2e1961840f5ed1c385cf2a03394fa709cc6a5}
+  linear-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/9d9c7d04a30d0cbd6127d749f37b88d0f563884f#path:linear/linear-catalog:
+    resolution: {gitHosted: true, integrity: sha512-tb5esKyzi6JTdeM7LxxKlNuD25kQpQkpokDIkfKKeK/19o5A2OxAJHau10m4LqPB0wZPiLToyRLuR+7f2I5aYw==, path: linear/linear-catalog, tarball: https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/9d9c7d04a30d0cbd6127d749f37b88d0f563884f}
     version: 0.1.0
     peerDependencies:
       '@a2ui/react': ^0.10.1
@@ -5932,10 +5932,11 @@ snapshots:
       lightningcss-win32-arm64-msvc: 1.33.0
       lightningcss-win32-x64-msvc: 1.33.0
 
-  linear-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/1ac2e1961840f5ed1c385cf2a03394fa709cc6a5#path:linear/linear-catalog(@a2ui/react@0.10.2(patch_hash=99b6533eb4bc6f8f8c7de140fcffef2c7572a6a6b30a2b86b5020fa368d845ea)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76))(@a2ui/web_core@0.10.6)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76):
+  linear-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/9d9c7d04a30d0cbd6127d749f37b88d0f563884f#path:linear/linear-catalog(@a2ui/react@0.10.2(patch_hash=99b6533eb4bc6f8f8c7de140fcffef2c7572a6a6b30a2b86b5020fa368d845ea)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76))(@a2ui/web_core@0.10.6)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76):
     dependencies:
       '@a2ui/react': 0.10.2(patch_hash=99b6533eb4bc6f8f8c7de140fcffef2c7572a6a6b30a2b86b5020fa368d845ea)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76)
       '@a2ui/web_core': 0.10.6
+      markdown-it: 14.3.0
       react: 19.2.8
       react-dom: 19.2.8(react@19.2.8)
       zod: 3.25.76
