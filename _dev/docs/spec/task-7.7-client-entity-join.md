@@ -20,7 +20,7 @@ Navigation lands in the slot as the Planner sized it. Slot expansion is a Backlo
 
 ### 2. The client ties a rendered element to its component
 
-The client decorates each vendor catalog's component implementations where it resolves the catalogs: every component renders inside a marker element with no box of its own, which registers the component's id, its base path and its element in the index on mount and removes them on unmount. The renderer package is not patched. The shell catalog is not decorated: refs point into vendor partitions only. If a visual baseline moves, the fallback is a hidden sibling marker placed before the component.
+The client decorates each vendor catalog's component implementations where it resolves the catalogs: every component registers its id, its base path and its data context in the index while it is mounted. Which element a component put on the page is asked only at a tap: the components asked about render a pair of hidden markers around their output for one synchronous read, gone before the browser paints. At rest a vendor's DOM is the vendor's alone. The renderer package is not patched. The shell catalog is not decorated: refs point into vendor partitions only.
 
 ### 3. The sdk gains the located form of pointer resolution
 
@@ -36,7 +36,7 @@ Landing walks the located path upward one segment at a time and lands on the fir
 
 ### 6. Landing
 
-The element scrolls into view, centered, instantly under reduced motion. Keyboard focus moves to the element itself through a temporary `tabindex="-1"`, removed on blur, never to a link or button inside it. The highlight is a ring the shell draws in its own layer over the element's box, fading out; a second navigation replaces it. Nothing is written into a vendor's styles. The ring's duration starts at about 1.5 seconds and is adjusted in 7.9.
+The element scrolls into view, centered, instantly under reduced motion. Focus waits for the scroll to end, and a scroll that stalled or was cut short is finished at once, so a landing always arrives. Keyboard focus moves to the element itself through a temporary `tabindex="-1"`, removed on blur, never to a link or button inside it. The highlight is a ring the shell draws in its own layer over the element's box, fading out; a second navigation replaces it. Nothing is written into a vendor's styles. The ring's duration starts at about 1.5 seconds and is adjusted in 7.9.
 
 ### 7. Navigation works on a parked composition
 
@@ -64,14 +64,14 @@ The shell-action relay becomes the one seam between the shell catalog and the ca
 
 ### 13. Done
 
-`pnpm verify` green with every existing visual baseline unchanged. A Playwright spec on the synthetic synthesis beat: a tap lands on the storefront's row with focus and the ring, a tap degrades, navigation works parked, no request leaves the client on a tap. One Claude-in-Chrome sitting through the tunnel on the deterministic real roster with the pinned utterance: the values unmarked, the detail naming the app and the relation, the runs inside every row re-sorting from the one control, a tap on a pull request value landing in GitHub's fragment and on a run value in CircleCI's, the cell of an issue with no pull request landing on the boundary; its findings in the task's handoff. The real demo over the live roster is 7.9's.
+`pnpm verify` green with every existing visual baseline unchanged. A Playwright spec on a synthetic navigation beat — the synthesis fixture's storefronts painted in their own catalogs, the synthesis beat painting them in the shell catalog, which is not decorated: a tap lands on the storefront's row with focus and the ring, a tap degrades, navigation works parked, no request leaves the client on a tap. One Claude-in-Chrome sitting through the tunnel on the deterministic real roster with the pinned utterance: the values unmarked, the detail naming the app and the relation, the runs inside every row re-sorting from the one control, a tap on a pull request value landing in GitHub's fragment and on a run value in CircleCI's, the cell of an issue with no pull request landing on the boundary; its findings in the task's handoff. The real demo over the live roster is 7.9's.
 
 ### 14. Doc amendments
 
 - SPEC §7: the navigation row's degradation gains the slot as its last stop.
 - Phase 7 spec: the slot-expansion open item moves to the Backlog.
 - TODO: the 7.7 line drops the fixture and the slot-expansion grill; the Backlog gains slot expansion.
-- The client and synthesis design records and the sdk README, when the task is done.
+- The sdk README gains the located form. The client and synthesis design records are 7.10's.
 
 ## Invariants
 
