@@ -4,7 +4,7 @@ Entity join (M4): the differentiator proven. The Synthesizer asserts that entrie
 
 ## Scope
 
-- The entity join proven over real agents: a pull request across developer tools, on the `a2uiverse` repository.
+- The entity join proven over real agents: a work item across developer tools, on the `a2uiverse` repository.
 - Two new vendor apps, CircleCI and Linear, beside the existing GitHub and Gmail.
 - Entity resolution as the Planner's join hypothesis in prose and the Synthesizer's checked match claim per merged object.
 - Relation operators in the shell catalog; the match claim in the synthesize data model; the validator rules over it.
@@ -20,13 +20,13 @@ Entity join (M4): the differentiator proven. The Synthesizer asserts that entrie
 
 The phase runs over real vendor agents. The mock storefronts remain a regression instrument, as the apps repo's CLAUDE.md defines them, and gate nothing in this phase.
 
-### 2. The entity is a pull request across developer tools
+### 2. The entity is a work item across developer tools
 
-The join resolves a pull request as it appears in GitHub, CircleCI, Linear, and Gmail. The pull requests are those of the `a2uiverse` repository. This is the developer-tool expansion SPEC §9.4 names.
+The join resolves a work item as it appears in Linear, GitHub, and CircleCI: a Linear issue, the pull request that implements it, and the CI runs on its branch. The work is on the `a2uiverse` repository. This is the developer-tool expansion SPEC §9.4 names.
 
 ### 3. Two agents are added: CircleCI and Linear
 
-CircleCI's runs carry the branch and commit hash, the hard-key pair. Linear's issues and Gmail's notification threads join on text, the ambiguous middle. Each agent is backed by its vendor's official public MCP server, per SPEC §9.4. Linear's MCP server returns an issue's linked pull requests as attachments on its issue read, `get_issue` — each the pull request's title and URL, the number only inside the URL, with no state and no branch — whether Linear linked it by branch name or by a magic word; its list read, `list_issues`, carries no attachments. The issue's git branch name, on both reads, equals the pull request's branch only when the link was made by branch name. With Linear's issue sync on, the issue's mirrored GitHub issue is an attachment beside it, told apart by its URL. Checked live in task 7.3.
+CircleCI's runs carry the branch and commit hash, the hard-key pair. Linear's issues join on text, the ambiguous middle. Each agent is backed by its vendor's official public MCP server, per SPEC §9.4. Linear's MCP server returns an issue's linked pull requests as attachments on its issue read, `get_issue` — each the pull request's title and URL, the number only inside the URL, with no state and no branch — whether Linear linked it by branch name or by a magic word; its list read, `list_issues`, carries no attachments. The issue's git branch name, on both reads, equals the pull request's branch only when the link was made by branch name. With Linear's issue sync on, the issue's mirrored GitHub issue is an attachment beside it, told apart by its URL. Checked live in task 7.3.
 
 ### 4. Resolution is top-down: the Planner states the hypothesis, the Synthesizer confirms it
 
@@ -66,23 +66,23 @@ Each agent's domain doc and prompt describe what a CircleCI app or a Linear app 
 
 ### 13. Acceptance
 
-Utterance pinned: **"where do my pull requests stand?"**, over the real roster GitHub · CircleCI · Linear · Gmail, with Calendar and the platform's card present in the roster. The real roster live through the tunnel is the gate; beats recorded from the unmodified agents are the deterministic bed; the mocks in deterministic mode, their fixtures re-recorded with match claims, are the regression check.
+Utterance pinned: **"what's the status of what I'm working on?"**, its plan dispatching Linear · GitHub · CircleCI, with Gmail, Calendar and the platform's card present in the roster. The real roster live through the tunnel is the gate; beats recorded from the unmodified agents are the deterministic bed; the mocks in deterministic mode, their fixtures re-recorded with match claims, are the regression check.
 
-1. **The entity join end to end**: the plan reserves the merged view, four fragments fill, the merged view lands with one row per open pull request, each attachment a derived value over the matching element, every value confirmed, none marked guessed or broken, sorted by last activity, the criterion displayed and changeable. Both beds.
+1. **The entity join end to end**: the plan reserves the merged view, three fragments fill, the merged view lands with one row per active Linear issue, each attachment a derived value over the matching element, every value confirmed, none marked guessed or broken, sorted by last activity, the criterion displayed and changeable. Both beds.
 2. **The join is checked**: the validator rejects a document whose match claim carries a relation that does not hold against the partitions, or whose tree binds a path under `match`.
-3. **Vanish, live**: opening a Linear issue or a Gmail thread inside its fragment turns the affected rows partial at once, in words, with no round trip; the re-synthesis that follows re-points what it can, its note saying what changed.
+3. **Vanish, live**: opening a pull request inside GitHub's fragment or a run inside CircleCI's turns the affected rows partial at once, in words, with no round trip; the re-synthesis that follows re-points what it can, its note saying what changed.
 4. **Appear, live**: rerunning a workflow inside the CircleCI fragment makes a new workflow appear in its run; the walk fires re-synthesis with an appeared entry; the row re-points to the new workflow.
 5. **Broken, deterministic**: a scripted repaint that changes a matched field marks the values it cut off broken.
-6. **Unmatched**: a pull request with no issue shows the empty cell disclosed as 0 of 0; a Linear issue with no pull request is not a row and stays in its fragment.
+6. **Unmatched**: a Linear issue with no pull request shows the empty cell disclosed as 0 of 0; a pull request with no issue is not a row and stays in its fragment.
 7. **Navigation, live**: a tap on a value cell lands on the element's row in the vendor fragment; a tap on a value whose field the fragment does not render lands on its row by degradation; a tap on an absent cell lands on the fragment boundary. No request leaves the client.
 8. **Regression**: the temporal merge, a single-agent turn, a platform question, and the mocks' comparison all compose.
-9. **Recorded**: the entity-join turn as a beat over the live roster, replayable; dead air measured over four sources and written into the backlog.
+9. **Recorded**: the entity-join turn as a beat over the live roster, replayable; dead air measured over three sources and written into the backlog.
 
 Final gate: **Claude-in-Chrome live verification through the tunnel** for every live item, the deterministic items on the same sitting.
 
 ### 14. Doc amendments
 
-- SPEC §3: the entity join row keeps its camera example and gains that the milestone proves it over a pull request across developer tools; the note that entity resolution is the Synthesizer's named responsibility stays.
+- SPEC §3: the entity join row keeps its camera example and gains that the milestone proves it over a work item across developer tools; the note that entity resolution is the Synthesizer's named responsibility stays.
 - SPEC §5.2: the synthesize data model gains the match claim, named relation formulas under `match` where the Synthesizer judges a join, checked by the validator; the Planner's brief names the entity and each source's cue, in prose.
 - SPEC §5.4: the join is disclosed on the values of a claimed object, through the derived-value component, escalating by state.
 - SPEC §6.3: appearance is handled, the second half of the IntegrityChecker's walk.
