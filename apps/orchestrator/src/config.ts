@@ -51,10 +51,9 @@ export function loadConfig(env: Env = process.env): Config {
     shortlistCap: parseCap(env.A2UIVERSE_SHORTLIST_CAP),
     synthesizerModelId:
       env.A2UIVERSE_SYNTHESIZER_MODEL ?? env.A2UIVERSE_PLANNER_MODEL ?? DEFAULT_PLANNER_MODEL_ID,
-    synthesizerEffort: parseEffort(
-      env.A2UIVERSE_SYNTHESIZER_EFFORT,
-      'A2UIVERSE_SYNTHESIZER_EFFORT',
-    ),
+    // The Synthesizer is the call where thinking would pay; its default belongs here, apart from the Planner's.
+    synthesizerEffort: parseEffort(env.A2UIVERSE_SYNTHESIZER_EFFORT,
+      'A2UIVERSE_SYNTHESIZER_EFFORT'),
   };
 }
 
