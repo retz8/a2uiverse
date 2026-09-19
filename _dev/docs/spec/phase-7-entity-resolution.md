@@ -108,6 +108,6 @@ SPEC §6.2's accepted hazard, a reused identifier resolving to the wrong entity,
 
 ## Open items
 
-- Slot expansion into a focused or full view of one fragment, and whether navigation lands in the expanded slot — the navigation sub-task's grill.
+- Slot expansion into a focused or full view of one fragment — moved to the Backlog in task 7.7; navigation lands in the slot as the Planner sized it.
 - The CircleCI project and config on this repository, and the Linear workspace with its GitHub integration, as real setup — the agent sub-tasks.
 - How the broken state is provoked on the deterministic bed — the acceptance sub-task.

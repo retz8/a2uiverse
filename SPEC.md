@@ -245,7 +245,7 @@ A past composite is **frozen**: re-hydrated from stored state, no dispatch, stam
 | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ | -------------- |
 | Inside a vendor fragment                                                                                | that agent, on its channel, with its credential              | one agent call |
 | On the synthesis surface, operating on the composition (sort, filter, hide/add source, "compare these") | shell                                                        | free           |
-| On a shell-painted cell referring to a vendor's entity — every derived value that names a source | **navigate**: scroll, focus and highlight the component bound to the ref's path in that fragment, degrading to the nearest bound ancestor, then to the fragment boundary. Client-local; never journaled | free           |
+| On a shell-painted cell referring to a vendor's entity — every derived value that names a source | **navigate**: scroll, focus and highlight the component bound to the ref's path in that fragment, degrading to the nearest bound ancestor, then to the fragment boundary, then — no fragment mounted for that source — to its slot. Client-local; never journaled | free           |
 | On a shell surface, a shell action (open the Store with a query, open the App Library) | client: opens the trusted page; reported to the orchestrator for the journal | free |
 | Palette                                                                                                 | orchestrator                                                 | a turn         |
 
