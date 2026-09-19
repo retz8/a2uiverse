@@ -114,6 +114,7 @@ export function titleOfCause(cause: PaintCause): string {
     case 'utterance':
       return `“${truncate(cause.payload.text)}”`;
     case 'surface-action':
+      // An action's context value can be an opaque id, which the strip then reads out verbatim.
       return describeAction(cause.payload.action);
     case 'overlay-answer':
       if (cause.payload.question) return `answered “${cause.payload.question}”`;
