@@ -53,13 +53,17 @@ The agent keeps no team list in its environment. It finds teams through the serv
 
 The beats are: the user's issues; an issue opened — the one linked by branch name — with its description, comments, linked pull request and branch; and a status change proposed, confirmed, and the issue repainted in place. One live run under the recorder yields the payloads for `stub` mode and the painted streams for `deterministic` mode, whose action map covers the three beats. Creating an issue and commenting are in the prompt and in `live` mode, not beats.
 
-### 11. Real values, no pseudonymization
+### 11. Real values, except the key's own email address
 
-The recorded payloads and streams keep their real values, as GitHub's and CircleCI's do. A publishability test fails the corpus on anything token- or secret-shaped.
+The recorded payloads and streams keep their real values, as GitHub's and CircleCI's do, except the key's own email address: the recorder replaces it with a placeholder in every result before the model reads it. The username, and the branch names built on it, stay real. The Linear account carries a full name, so the address is not the user's name. A publishability test fails the corpus on anything token- or secret-shaped and on any email address other than the placeholder and Linear's system addresses, which belong to Linear's built-in app user.
 
 ### 12. The rest follows the roster
 
 Scaffolded by `create-a2ui-agent` on the basic catalog, without the Google credential helper, with the paintMeta convention on; the kit as a path dependency; question surfaces declared by carrying an action; the AgentCard authored as the Router's retrieval document, per task 2.6 decision 6; the roster's Gemini model.
+
+### 13. Linear's Markdown rendered by the bundle
+
+`linear-catalog`'s Provider installs a markdown renderer through upstream's markdown context, so body text inside a Linear fragment renders as Markdown and text elsewhere on the page is untouched. It renders the subset the basic `Text` promises: HTML escaped, a link as its text, an image as its alt text.
 
 ## Invariants
 

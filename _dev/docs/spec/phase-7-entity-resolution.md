@@ -26,7 +26,7 @@ The join resolves a pull request as it appears in GitHub, CircleCI, Linear, and 
 
 ### 3. Two agents are added: CircleCI and Linear
 
-CircleCI's runs carry the branch and commit hash, the hard-key pair. Linear's issues and Gmail's notification threads join on text, the ambiguous middle. Each agent is backed by its vendor's official public MCP server, per SPEC §9.4. Whether Linear's MCP server returns an issue's linked pull request is unverified from vendor sources and is checked empirically in the Linear sub-task; the fallback is matching on issue text alone.
+CircleCI's runs carry the branch and commit hash, the hard-key pair. Linear's issues and Gmail's notification threads join on text, the ambiguous middle. Each agent is backed by its vendor's official public MCP server, per SPEC §9.4. Linear's MCP server returns an issue's linked pull requests as attachments on its issue read, `get_issue` — each the pull request's title and URL, the number only inside the URL, with no state and no branch — whether Linear linked it by branch name or by a magic word; its list read, `list_issues`, carries no attachments. The issue's git branch name, on both reads, equals the pull request's branch only when the link was made by branch name. With Linear's issue sync on, the issue's mirrored GitHub issue is an attachment beside it, told apart by its URL. Checked live in task 7.3.
 
 ### 4. Resolution is top-down: the Planner states the hypothesis, the Synthesizer confirms it
 
