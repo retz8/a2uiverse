@@ -10,7 +10,8 @@ The entity-join turn recorded per vendor agent in live mode over this repository
 - Gmail's recording boundary letting GitHub notification subjects through.
 - A write-up of what the roster shows and of the live run's synthesis.
 - The deterministic bed verified through the canvas.
-- Code lands in `../a2uiverse-apps/` on its `main`. In this repository only `_dev/` moves, beside the new placeholder pull request on GitHub.
+- The Planner's fan-out stance: SPEC §7, the Planner's rules doc, a minimal-pair example, measured live.
+- The recording's code lands in `../a2uiverse-apps/` on its `main`; the fan-out stance lands in this repository on `main`, beside the new placeholder pull request on GitHub.
 - Not here: the entity-join turn as a replayable canvas beat (phase decision 13, item 9), which is 7.9's; the Synthesizer's pull-request worked example, which is 7.13's.
 
 ## Locked decisions
@@ -37,7 +38,7 @@ No GitHub notification mail about these pull requests reaches the mailbox the Gm
 
 ### 6. The utterance never changes
 
-The live run uses the pinned utterance, "where do my pull requests stand?". If its plan carries no merged view, no join hypothesis, or a dispatch list other than GitHub, CircleCI, Linear and Gmail, recording stops: the gap is fixed in the orchestrator as a change of its own, outside this task, and the live run is repeated.
+The live run uses the pinned utterance, "where do my pull requests stand?". If its plan carries no merged view, no join hypothesis, or a dispatch list other than GitHub, CircleCI, Linear and Gmail, recording stops: the gap is fixed in the orchestrator within this task, and the live run is repeated.
 
 ### 7. The prompts are the Planner's requests
 
@@ -74,6 +75,26 @@ Per app: what it showed for the fields its request asked for, and whether each c
 ### 15. Done
 
 The beats recorded and committed, the deterministic corpora derived from them, the apps repo's gates green, the write-up written, and one deterministic composed pass through the canvas over the tunnel in which the pinned utterance paints all four fragments. The pass judges nothing about the merged view.
+
+### 16. The Planner answers the question the user means
+
+An utterance about the state of one kind of thing gathers from every installed app that holds part of it, whether or not the user names them. A command or lookup inside one app's object, or an utterance that names its app, goes to that app alone. The Planner is taught this as a stance in its role, beside the costs of each added agent, not as conditions.
+
+### 17. The stance in the SPEC
+
+SPEC §7's fan-out section states the stance. The Planner's rules doc carries it in its own words.
+
+### 18. A minimal pair over the orders cards
+
+"Where are my orders?" fans out over the orders example's three fixture cards. A single-app command over the same three cards goes to the store alone.
+
+### 19. The Planner's effort stays low
+
+The stance and the example are the change. Thinking is the next lever, taken only if the measurement shows they fall short.
+
+### 20. The stance is measured live
+
+On the real roster, three runs each, the plan's dispatch read from the journal: "where do my pull requests stand?" dispatches GitHub, CircleCI, Linear and Gmail with a merged view; "What needs my attention today?" fans out; "How are my CircleCI builds doing?", "What's assigned to me in Linear?" and "Open pull request #6." each stay with their app; a platform question is answered alone. It passes when every run lands on its side. The results are written up; nothing is committed as a gate.
 
 ## Invariants
 
