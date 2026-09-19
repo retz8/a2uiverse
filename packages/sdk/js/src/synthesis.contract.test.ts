@@ -118,3 +118,9 @@ test('readSynthesis rejects absent or malformed metadata', () => {
   void _dropped;
   expect(readSynthesis({[SYNTHESIS_KEY]: incomplete})).toBeUndefined();
 });
+
+test('a sort path passes through the enclosing arrays with * (task-7.12)', () => {
+  const sort = (SYNTHESIS_SCHEMA as {$defs: {sort: {properties: {path: {description: string}}}}})
+    .$defs.sort;
+  expect(sort.properties.path.description).toContain('/rows/*/runs');
+});

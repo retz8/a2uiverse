@@ -242,3 +242,84 @@ describe('the match claim', () => {
     if (!result.ok) expect(result.errors.join('\n')).toContain('/pulls/0/match/branch');
   });
 });
+
+describe('a nested sort path (task-7.12)', () => {
+  const cell = (pointer: string) => ({op: 'value', args: [{surface: 'circleci:runs', pointer}]});
+  const nested = (): SynthesisPayload =>
+    ({
+      dataModel: {
+        rows: [
+          {
+            title: cell('/runs[id="a"]/branch'),
+            runs: [{when: cell('/runs[id="a"]/when')}, {when: cell('/runs[id="b"]/when')}],
+          },
+          {title: cell('/runs[id="c"]/branch'), runs: []},
+        ],
+      },
+      sorts: [
+        {
+          path: '/rows',
+          options: [{key: '/title', label: 'Branch'}],
+          key: '/title',
+          direction: 'asc',
+        },
+        {
+          path: '/rows/*/runs',
+          options: [{key: '/when', label: 'Time'}],
+          key: '/when',
+          direction: 'desc',
+        },
+      ],
+    }) as unknown as SynthesisPayload;
+
+  test('accepts a list inside every row, an empty one included', () => {
+    expect(validateSynthesisPayload(nested()).ok).toBe(true);
+  });
+
+  test('rejects a row without the list, naming where it should be', () => {
+    const gap = nested();
+    delete (gap.dataModel.rows as Array<Record<string, unknown>>)[1]!.runs;
+    const out = validateSynthesisPayload(gap);
+    expect(out.ok).toBe(false);
+    if (!out.ok)
+      expect(out.errors).toEqual([
+        '/sorts/1: path /rows/*/runs reaches no array at /rows/1/runs — every element it passes through carries the list, [] when it has none',
+      ]);
+  });
+
+  test('checks every option key in every element of every list, naming the list', () => {
+    const unkeyed = nested();
+    const runs = (unkeyed.dataModel.rows as Array<{runs: Array<Record<string, unknown>>}>)[0]!.runs;
+    runs[1]!.when = {op: 'value', args: []};
+    const out = validateSynthesisPayload(unkeyed);
+    expect(out.ok).toBe(false);
+    if (!out.ok)
+      expect(out.errors).toEqual([
+        '/sorts/1: option key /when is a formula with no refs in element 1 of /rows/0/runs — an element whose key can never resolve does not belong in a sorted array; give it its own array',
+      ]);
+  });
+
+  test('one declaration per nested path', () => {
+    const twice = nested();
+    twice.sorts.push(clone(twice.sorts[1]!));
+    const out = validateSynthesisPayload(twice);
+    expect(out.ok).toBe(false);
+    if (!out.ok)
+      expect(out.errors).toEqual([
+        '/sorts/2: path /rows/*/runs is already declared at /sorts/1 — one declaration per array',
+      ]);
+  });
+
+  test('reports a path stepping into an array by position, and a malformed path, without throwing', () => {
+    const positional = nested();
+    positional.sorts[1]!.path = '/rows/0/runs';
+    const out = validateSynthesisPayload(positional);
+    expect(out.ok).toBe(false);
+    if (!out.ok) expect(out.errors.join('\n')).toContain('steps through an array with *');
+
+    const malformed = nested();
+    malformed.sorts[1]!.path = '/rows[x/runs';
+    expect(() => validateSynthesisPayload(malformed)).not.toThrow();
+    expect(validateSynthesisPayload(malformed).ok).toBe(false);
+  });
+});

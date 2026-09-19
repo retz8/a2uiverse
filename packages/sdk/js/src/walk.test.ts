@@ -1,6 +1,6 @@
-import {expect, test} from 'vitest';
+import {describe, expect, test} from 'vitest';
 import type {DerivedModel} from './synthesis';
-import {isFormula, refsOf, walkModel} from './walk';
+import {isFormula, reachSortPath, refsOf, walkModel} from './walk';
 
 const model: DerivedModel = {
   counts: {
@@ -119,4 +119,90 @@ test("a match claim's relations are leaves like any other, so their refs are the
 
 test('a model with no match claim has no claims', () => {
   expect(walkModel(model).claims).toEqual([]);
+});
+
+describe('reachSortPath: every array a sort path reaches (task-7.12)', () => {
+  const cell = (pointer: string) => ({op: 'value', args: [{surface: 'circleci:runs', pointer}]});
+  const rows = {
+    rows: [
+      {title: cell('/runs[id="a"]/branch'), runs: [{when: cell('/runs[id="a"]/when')}]},
+      {title: cell('/runs[id="b"]/branch'), runs: []},
+    ],
+  };
+
+  test('a path with no * reaches the one array it names', () => {
+    const reach = reachSortPath(model, '/entries');
+    expect(reach.faults).toEqual([]);
+    expect(reach.targets).toEqual([{location: '/entries', array: model.entries}]);
+  });
+
+  test('a * passes through every element, each list reached at its concrete location, [] included', () => {
+    const reach = reachSortPath(rows, '/rows/*/runs');
+    expect(reach.faults).toEqual([]);
+    expect(reach.targets).toEqual([
+      {location: '/rows/0/runs', array: rows.rows[0]!.runs},
+      {location: '/rows/1/runs', array: rows.rows[1]!.runs},
+    ]);
+  });
+
+  test('the targets are the model’s own arrays, so a consumer can reorder them in place', () => {
+    const reach = reachSortPath(rows, '/rows/*/runs');
+    expect(reach.targets[0]!.array).toBe(rows.rows[0]!.runs);
+  });
+
+  test('* goes to any depth', () => {
+    const deep = {groups: [{rows: [{runs: []}, {runs: []}]}, {rows: [{runs: []}]}]};
+    expect(reachSortPath(deep, '/groups/*/rows/*/runs').targets.map(t => t.location)).toEqual([
+      '/groups/0/rows/0/runs',
+      '/groups/0/rows/1/runs',
+      '/groups/1/rows/0/runs',
+    ]);
+  });
+
+  test('an empty enclosing array reaches nothing and breaks nothing', () => {
+    expect(reachSortPath({rows: []}, '/rows/*/runs')).toEqual({targets: [], faults: []});
+  });
+
+  test('an element without the list is a fault naming where the list should be', () => {
+    const gap = {rows: [{runs: []}, {title: cell('/x')}]};
+    const reach = reachSortPath(gap, '/rows/*/runs');
+    expect(reach.targets.map(t => t.location)).toEqual(['/rows/0/runs']);
+    expect(reach.faults).toEqual([
+      'path /rows/*/runs reaches no array at /rows/1/runs — every element it passes through carries the list, [] when it has none',
+    ]);
+  });
+
+  test('a path with no * that names no array says so', () => {
+    expect(reachSortPath(model, '/counts').faults).toEqual([
+      'path /counts is not an array of the derived model',
+    ]);
+  });
+
+  test('* is valid only on an array', () => {
+    expect(reachSortPath(model, '/counts/*/when').faults).toEqual([
+      'path /counts/*/when steps with * through /counts, which is not an array',
+    ]);
+  });
+
+  test('an array is stepped through with *, never by position', () => {
+    expect(reachSortPath(rows, '/rows/0/runs').faults).toEqual([
+      'path /rows/0/runs steps into the array at /rows by name or position; a sort path steps through an array with *',
+    ]);
+  });
+
+  test('a predicate step is refused: a sort path selects no element by key', () => {
+    expect(reachSortPath(rows, '/rows[title="a"]/runs').faults).toEqual([
+      'path /rows[title="a"]/runs selects an element by key; a sort path steps through an array with *',
+    ]);
+  });
+
+  test('the last step names the sorted array, never *', () => {
+    expect(reachSortPath(rows, '/rows/*').faults).toEqual([
+      'path /rows/* ends in *; its last step names the sorted array',
+    ]);
+  });
+
+  test('a malformed path is a fault, not a throw', () => {
+    expect(reachSortPath(rows, '/rows[x/runs').faults).toHaveLength(1);
+  });
 });

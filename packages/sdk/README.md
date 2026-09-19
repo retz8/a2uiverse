@@ -151,17 +151,20 @@ One entry point, `@a2uiverse/sdk`. Grouped by module.
 
 Schema plus structure: every leaf a formula, every pointer parses, every match claim non-empty and
 flat with each relation over two refs in two different apps, one sort per array, every sort key a
-formula with refs in every element, the initial key an option. Whether a relation's operator is a
+formula with refs in every element, the initial key an option. A sort path's steps are object keys
+and `*`: `/rows/*/runs` reaches the list `runs` inside every element of `rows`, at any depth, and
+every element it passes through carries the list, `[]` when it has none. Whether a relation's operator is a
 relation, and whether it holds, is the consumer's.
 
 **Resolution kit** — `js/src/pointer.ts` · `js/src/walk.ts`
 
-| Export                           | What it is                                                                                     |
-| -------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `parsePointer(pointer)`          | pointer → steps; throws `PointerSyntaxError`                                                   |
-| `resolvePointer(root, pointer)`  | `Resolution`: a value, or why not                                                              |
-| `isFormula` · `walkModel(model)` | recognise a leaf; enumerate every leaf with its path, and every match claim with its relations |
-| `refsOf(model)`                  | every ref, in leaf order                                                                       |
+| Export                           | What it is                                                                                              |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `parsePointer(pointer)`          | pointer → steps; throws `PointerSyntaxError`                                                            |
+| `resolvePointer(root, pointer)`  | `Resolution`: a value, or why not                                                                       |
+| `isFormula` · `walkModel(model)` | recognise a leaf; enumerate every leaf with its path, and every match claim with its relations          |
+| `refsOf(model)`                  | every ref, in leaf order                                                                                |
+| `reachSortPath(model, path)`     | every array a sort path reaches, each with its concrete location, and why it does not where it does not |
 
 **A2UI tools** — `js/src/a2ui/`
 

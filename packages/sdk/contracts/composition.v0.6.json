@@ -146,12 +146,12 @@
               "type": "object",
               "additionalProperties": false,
               "required": ["path", "options", "key", "direction"],
-              "description": "A sort declaration over one array of the derived model. The model names the array, the sortable keys and their labels, and the initial choice; the runtime sorts and keeps the user's choice of key or direction.",
+              "description": "A sort declaration over one array of the derived model, or — through `*` — over the list inside every element of the arrays enclosing it, all of them ordered alike. The model names the array, the sortable keys and their labels, and the initial choice; the runtime sorts and keeps the user's choice of key or direction, one choice for every list the declaration reaches.",
               "properties": {
                 "path": {
                   "type": "string",
                   "pattern": "^/.*$",
-                  "description": "JSON Pointer to the sorted array in the derived model."
+                  "description": "JSON Pointer to the sorted array in the derived model. Its steps are object keys and `*`: a `*` passes through every element of an array, at any depth, so `/rows/*/runs` names the list `runs` inside every element of `rows`. Every element the path passes through carries the list, `[]` when it has none. The last step names the array; an array is never stepped into by position, and no step selects an element by key."
                 },
                 "options": {
                   "type": "array",
@@ -165,7 +165,7 @@
                       "key": {
                         "type": "string",
                         "pattern": "^/.*$",
-                        "description": "JSON Pointer inside each element of the array, to a formula leaf."
+                        "description": "JSON Pointer inside each element of the sorted array — of every list the path reaches — to a formula leaf."
                       },
                       "label": {
                         "type": "string",

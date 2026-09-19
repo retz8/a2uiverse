@@ -3,8 +3,9 @@
  * and what the orchestrator runs over the derived model and sorts the Synthesizer wrote. Checks what
  * the contract states on its own — the schema, then the structure the schema cannot express: every
  * leaf a formula, every pointer parses, every relation of a match claim joins two different apps,
- * every sort names an array of the model — once — whose elements carry every option key as a
- * formula with at least one ref, and the initial key is an option. Whether a relation's operator
+ * every sort names an array of the model — once, reaching through `*` the list inside every
+ * element of the arrays enclosing it — whose elements carry every option key as a formula with at
+ * least one ref, and the initial key is an option. Whether a relation's operator
  * is a relation, and whether it holds, is the consumer's: the sdk knows no catalog and no partition.
  */
 import {Ajv2020, type ErrorObject, type ValidateFunction} from 'ajv/dist/2020.js';
@@ -16,7 +17,7 @@ import {
   type SortDeclaration,
   type SynthesisPayload,
 } from './synthesis.js';
-import {isFormula, walkModel} from './walk.js';
+import {isFormula, reachSortPath, walkModel} from './walk.js';
 
 export type Validation<T> = {ok: true; value: T} | {ok: false; errors: string[]};
 
@@ -78,30 +79,32 @@ function sortErrors(model: DerivedModel, sorts: SortDeclaration[]): string[] {
       return;
     }
     declaredAt.set(sort.path, index);
-    const target = resolvePointer(model, sort.path);
-    if (!target.found || !Array.isArray(target.value)) {
-      errors.push(`${where}: path ${sort.path} is not an array of the derived model`);
+    const {targets, faults} = reachSortPath(model, sort.path);
+    if (faults.length > 0) {
+      for (const fault of faults) errors.push(`${where}: ${fault}`);
       return;
     }
     if (!sort.options.some(option => option.key === sort.key)) {
       errors.push(`${where}: key ${sort.key} is not one of the options`);
     }
     for (const option of sort.options) {
-      (target.value as unknown[]).forEach((element, position) => {
-        const cell = resolvePointer(element, option.key);
-        if (!cell.found || !isFormula(cell.value)) {
-          errors.push(
-            `${where}: option key ${option.key} does not resolve to a formula in element ${position} of ${sort.path}`,
-          );
-        } else if (cell.value.args.length === 0) {
-          // A key with no refs is absent by construction (task-5.7): the element can never
-          // take a place on this axis, so it does not belong in the array — the composition
-          // doc's own-array rule, checked where it can be.
-          errors.push(
-            `${where}: option key ${option.key} is a formula with no refs in element ${position} of ${sort.path} — an element whose key can never resolve does not belong in a sorted array; give it its own array`,
-          );
-        }
-      });
+      for (const {location, array} of targets) {
+        array.forEach((element, position) => {
+          const cell = resolvePointer(element, option.key);
+          if (!cell.found || !isFormula(cell.value)) {
+            errors.push(
+              `${where}: option key ${option.key} does not resolve to a formula in element ${position} of ${location}`,
+            );
+          } else if (cell.value.args.length === 0) {
+            // A key with no refs is absent by construction (task-5.7): the element can never
+            // take a place on this axis, so it does not belong in the array — the composition
+            // doc's own-array rule, checked where it can be.
+            errors.push(
+              `${where}: option key ${option.key} is a formula with no refs in element ${position} of ${location} — an element whose key can never resolve does not belong in a sorted array; give it its own array`,
+            );
+          }
+        });
+      }
     }
   });
   return errors;
