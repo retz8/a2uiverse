@@ -61,7 +61,7 @@ A guessed value: a dotted underline and a small "?". A broken value: an amber �
 
 ### 12. `CellObject` carries its target
 
-The evaluator picks each cell's `target` — app, surface, pointer: the winning contributor for a selector operator, the first contributor otherwise, the first declared ref when none resolves. A cell with no refs has no target.
+The evaluator picks each cell's `target` — app, surface, pointer: the winning contributor for a selector operator, the first contributor otherwise. A cell with no refs has no target, and neither has a cell none of whose refs resolves (amended by task 7.9 decision 2).
 
 ### 13. The value is the button
 

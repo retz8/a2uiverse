@@ -50,7 +50,7 @@ A tap on a derived-value cell focuses the element its ref names in that source's
 
 ### 9. Landing scrolls, focuses, highlights, and degrades
 
-The client scrolls the component bound to the ref's data path into view, moves keyboard focus to it, and highlights it briefly. When nothing is bound to the exact path, landing walks up the path to the nearest bound ancestor; when nothing under the fragment binds any prefix of the path, it lands on the fragment's boundary. A cell that names a source is always tappable. Nothing is sent to the vendor or to the orchestrator; the client builds the reverse index from data path to rendered component out of what it already renders.
+The client scrolls the component bound to the ref's data path into view, moves keyboard focus to it, and highlights it briefly. When nothing is bound to the exact path, landing walks up the path to the nearest bound ancestor; when nothing under the fragment binds any prefix of the path, it lands on the fragment's boundary. A cell whose refs no longer resolve shows no value and is not a button, as a cell with no refs is not (task 7.9 decision 2). Nothing is sent to the vendor or to the orchestrator; the client builds the reverse index from data path to rendered component out of what it already renders.
 
 ### 10. Navigation is not journaled
 
@@ -66,15 +66,15 @@ Each agent's domain doc and prompt describe what a CircleCI app or a Linear app 
 
 ### 13. Acceptance
 
-Utterance pinned: **"what's the status of what I'm working on?"**, its plan dispatching Linear · GitHub · CircleCI, with Gmail, Calendar and the platform's card present in the roster. The real roster live through the tunnel is the gate; beats recorded from the unmodified agents are the deterministic bed; the mocks in deterministic mode, their fixtures re-recorded with match claims, are the regression check.
+Utterance pinned: **"what's the status of what I'm working on?"**, its plan dispatching Linear · GitHub · CircleCI, with Gmail, Calendar and the platform's card present in the roster. The real roster live through the tunnel is the gate; beats recorded from the unmodified agents are the deterministic bed; the mocks in deterministic mode are the regression check, whether their comparison carries a match claim observed and not required (task 7.9 decision 4).
 
 1. **The entity join end to end**: the plan reserves the merged view, three fragments fill, the merged view lands with one row per active Linear issue, each attachment a derived value over the matching element, every value confirmed, none marked guessed or broken, sorted by last activity, the criterion displayed and changeable. Both beds.
 2. **The join is checked**: the validator rejects a document whose match claim carries a relation that does not hold against the partitions, or whose tree binds a path under `match`.
-3. **Vanish, live**: opening a pull request inside GitHub's fragment or a run inside CircleCI's turns the affected rows partial at once, in words, with no round trip; the re-synthesis that follows re-points what it can, its note saying what changed.
-4. **Appear, live**: rerunning a workflow inside the CircleCI fragment makes a new workflow appear in its run; the walk fires re-synthesis with an appeared entry; the row re-points to the new workflow.
+3. **Vanish, live**: opening a pull request inside GitHub's fragment or a run inside CircleCI's turns the affected rows partial at once, in words, with no round trip; the re-synthesis that follows re-points what it can, its note saying what changed. Opening an issue inside Linear's fragment, the home source, turns the rows' Linear values absent at once, and what the re-synthesis leaves shows nothing false (task 7.9 decision 5).
+4. **Appear, live**: after a workflow is rerun inside the CircleCI fragment on a run a merged row reads, the row tells the truth about CI — through an appeared entry and a re-synthesis, or through a value changing in place with no model call; on the deterministic bed, an appearance no row reads fires nothing (task 7.9 decision 3).
 5. **Broken, deterministic**: a scripted repaint that changes a matched field marks the values it cut off broken.
 6. **Unmatched**: a Linear issue with no pull request shows the empty cell disclosed as 0 of 0; a pull request with no issue is not a row and stays in its fragment.
-7. **Navigation, live**: a tap on a value cell lands on the element's row in the vendor fragment; a tap on a value whose field the fragment does not render lands on its row by degradation; a tap on an absent cell lands on the fragment boundary. No request leaves the client.
+7. **Navigation, live**: a tap on a value cell lands on the element's row in the vendor fragment; a tap on a value whose field the fragment does not render lands on its row by degradation; an absent cell is not a button (task 7.9 decision 2). No request leaves the client.
 8. **Regression**: the temporal merge, a single-agent turn, a platform question, and the mocks' comparison all compose.
 9. **Recorded**: the entity-join turn as a beat over the live roster, replayable; dead air measured over three sources and written into the backlog.
 
@@ -110,4 +110,4 @@ SPEC §6.2's accepted hazard, a reused identifier resolving to the wrong entity,
 
 - Slot expansion into a focused or full view of one fragment — moved to the Backlog in task 7.7; navigation lands in the slot as the Planner sized it.
 - The CircleCI project and config on this repository, and the Linear workspace with its GitHub integration, as real setup — the agent sub-tasks.
-- How the broken state is provoked on the deterministic bed — the acceptance sub-task.
+- How the broken state is provoked on the deterministic bed — settled in task 7.9 decision 1: a scripted repaint on a synthetic client beat.

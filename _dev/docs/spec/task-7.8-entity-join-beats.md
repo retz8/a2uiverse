@@ -23,6 +23,8 @@ The beats are recorded before 7.13 and 7.9. They are re-recorded only if 7.9 cha
 
 #6, linked to Linear issue A2U-5 by its branch name, and #7, linked to A2U-6 by "Fixes A2U-6" in its description, stay as they are. One new placeholder pull request is added, not meant to be merged, with no Linear issue. A2U-7 stays the Linear issue with no pull request.
 
+*Amended by task 7.9 decision 16:* after the beats were recorded, the placeholder pull request, #8, gains a Linear issue, in progress, linked by "Fixes" and its identifier in #8's description. The recorded beats keep it without one.
+
 ### 3. The new pull request fails CI
 
 Its change carries a deliberate formatting violation, so its CircleCI run fails. #6 and #7 stay green.
@@ -30,6 +32,8 @@ Its change carries a deliberate formatting violation, so its CircleCI run fails.
 ### 4. The new pull request's topic
 
 Its topic is one no Linear issue covers.
+
+*Amended by task 7.9 decision 16:* a Linear issue is created for it after the recording.
 
 ### 5. Gmail holds no part
 
