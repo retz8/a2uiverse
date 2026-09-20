@@ -37,6 +37,11 @@ export type Format = z.infer<typeof FormatSchema>;
 export interface CellObject {
   /** The computed value; undefined when nothing contributed. */
   value: unknown;
+  /**
+   * What the value names, when it names something the host has its own name for: a source
+   * selector's value is an app id, drawn by the app's display name. Sorting and the data keep the id.
+   */
+  names?: 'app';
   /** Inputs that resolved. */
   contributed: number;
   /** Inputs the formula declared. */

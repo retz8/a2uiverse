@@ -8,7 +8,9 @@ import {describe, expect, test} from 'vitest';
 import {
   changeAccount,
   checkSynthesisPayload,
+  firesResynthesis,
   refValid,
+  seenOf,
   watchedArrays,
   watchOf,
 } from '../src/composition/integrity.js';
@@ -64,6 +66,7 @@ test('the change account names the refs that stopped resolving, once each', () =
     absent: [{surface: B, pointer: '/products[sku="x100"]/price'}],
     appeared: [],
     unheld: [],
+    repainted: [],
   });
 });
 
@@ -212,5 +215,67 @@ describe('appearance and the relations that no longer hold (task-7.6 decisions 1
         ],
       },
     ]);
+  });
+});
+
+describe('a source the view reads nothing from, painting again (task-7.9)', () => {
+  const LIST = 'circleci:runs';
+  const DETAIL = 'circleci:run-detail';
+  const GH = 'github:prs';
+
+  function paint(models: Record<string, unknown>, into = new Partitions()): Partitions {
+    const message = (op: Record<string, unknown>) => ({
+      kind: 'message' as const,
+      messageId: 'm',
+      role: 'agent' as const,
+      parts: [{kind: 'data' as const, data: {version: 'v0.9', ...op}}],
+    });
+    for (const [surface, value] of Object.entries(models)) {
+      if (!into.has(surface))
+        into.apply(message({createSurface: {surfaceId: surface, catalogId: 'c'}}));
+      into.apply(message({updateDataModel: {surfaceId: surface, value}}));
+    }
+    return into;
+  }
+
+  // The view detached CircleCI: every ref it holds is GitHub's.
+  const detached: SynthesisPayload = {
+    dataModel: {
+      rows: [{title: {op: 'value', args: [{surface: GH, pointer: '/prs[number=8]/title'}]}}],
+    },
+    sorts: [],
+  };
+  const github = {prs: [{number: 8, title: 'Effort'}]};
+
+  test('its surface is named repainted, and that fires a re-synthesis', () => {
+    const p = paint({[GH]: github, [LIST]: {runs: [{id: 'r1'}]}});
+    const seen = seenOf(p);
+    expect(changeAccount(detached, p, undefined, seen).repainted).toEqual([]);
+
+    // The vendor paints a detail as a new surface: one the last accept never saw.
+    paint({[DETAIL]: {run: {currentWorkflow: {status: 'Running'}}}}, p);
+    const changes = changeAccount(detached, p, undefined, seen);
+    expect(changes).toMatchObject({absent: [], appeared: [], repainted: [DETAIL]});
+    expect(firesResynthesis(changes)).toBe(true);
+
+    // Accepted again, the same data fires nothing; a change under it does.
+    const again = seenOf(p);
+    expect(changeAccount(detached, p, undefined, again).repainted).toEqual([]);
+    paint({[DETAIL]: {run: {currentWorkflow: {status: 'Success'}}}}, p);
+    expect(changeAccount(detached, p, undefined, again).repainted).toEqual([DETAIL]);
+  });
+
+  test('a surface the view reads is never named: its changes are the refs’ and the watch’s', () => {
+    const p = paint({[GH]: github, [LIST]: {runs: []}});
+    const seen = seenOf(p);
+    paint({[GH]: {prs: [{number: 8, title: 'Effort, renamed'}], note: 'new'}}, p);
+    const changes = changeAccount(detached, p, undefined, seen);
+    expect(changes.repainted).toEqual([]);
+    expect(firesResynthesis(changes)).toBe(false);
+  });
+
+  test('without what the last accept saw, nothing is named', () => {
+    const p = paint({[GH]: github, [LIST]: {runs: []}});
+    expect(changeAccount(detached, p).repainted).toEqual([]);
   });
 });

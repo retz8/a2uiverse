@@ -476,6 +476,9 @@ describe('the entity join', () => {
     };
     const cell = run(selector, partitions()).latest as CellObject;
     expect(cell).toMatchObject({value: 'circleci', target: {pointer: '/runs[id="r2"]/seq'}});
+    // The value names an app, and says so, for the catalog to draw it by the host's name.
+    expect(cell.names).toBe('app');
+    expect((run(payload(byLink), partitions()).rows as unknown[])[0]).not.toHaveProperty('names');
   });
 
   test('a nested sort orders the list inside every row, by one choice', () => {

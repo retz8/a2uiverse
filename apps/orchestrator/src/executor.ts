@@ -8,7 +8,7 @@ import {STAMP_KEY} from './agentsPool/relay.js';
 import type {DispatchHandle, DispatchOutcome} from './agentsPool/types.js';
 import {classifyTurn, unnamespaceAction, type Turn} from './composition/classify.js';
 import {composeFragment} from './composition/fragmentRelay.js';
-import {changeAccount, firesResynthesis, watchOf} from './composition/integrity.js';
+import {changeAccount, firesResynthesis, seenOf, watchOf} from './composition/integrity.js';
 import {A2UI_CLIENT_DATA_MODEL_KEY} from './composition/partition.js';
 import {
   synthesisEnvelope,
@@ -60,6 +60,12 @@ export interface OrchestratorDeps {
 export class OrchestratorExecutor implements AgentExecutor {
   readonly #deps: OrchestratorDeps;
   readonly #compositions: Map<string, CompositionState>;
+  /**
+   * The message ids already taken in, newest last (task-7.9). The client re-sends a request that
+   * got no answer through the tunnel under the same id; were the first only slow to answer, a
+   * second run would repeat a vendor's write. Bounded: a retry follows its original by seconds.
+   */
+  readonly #received = new Set<string>();
 
   constructor(deps: OrchestratorDeps) {
     this.#deps = deps;
@@ -70,6 +76,16 @@ export class OrchestratorExecutor implements AgentExecutor {
     // Always first: the task store needs a Task before any update, and a
     // cancel arriving before the first paint must find the task.
     bus.publish(syntheticTask(ctx));
+    const {messageId} = ctx.userMessage;
+    if (this.#received.has(messageId)) {
+      logLine(`← duplicate message=${messageId} task=${ctx.taskId} — refused`);
+      bus.publish(finalStatus(ctx, 'failed', 'This request was already received.'));
+      return;
+    }
+    this.#received.add(messageId);
+    if (this.#received.size > RECEIVED_IDS_KEPT) {
+      this.#received.delete(this.#received.values().next().value as string);
+    }
     const turnKind = classifyTurn(ctx.userMessage);
     const startedAt = Date.now();
     logLine(
@@ -243,8 +259,8 @@ export class OrchestratorExecutor implements AgentExecutor {
     // Tier 2, the IntegrityChecker's walk: a ref that stopped resolving or a key that appeared
     // in a watched array reopens the merged view; a fact that stopped holding rides along.
     if (composition?.synthesis) {
-      const {payload, document, watch} = composition.synthesis;
-      const changes = changeAccount(payload, composition.partitions, watch);
+      const {payload, document, watch, seen} = composition.synthesis;
+      const changes = changeAccount(payload, composition.partitions, watch, seen);
       if (firesResynthesis(changes)) {
         await this.#synthesize(ctx, bus, turn, composition, {previous: document, changes});
       }
@@ -328,7 +344,9 @@ export class OrchestratorExecutor implements AgentExecutor {
     // The key sets at accept: every array this document or an earlier one of the composition
     // selects into by key (task-7.6 decision 14).
     const watch = watchOf(payload, state.partitions, state.synthesis?.watch);
-    state.synthesis = {document, payload, watch};
+    // What every surface holds now: a source this document reads nothing from fires the next
+    // re-synthesis by holding something else (task-7.9).
+    state.synthesis = {document, payload, watch, seen: seenOf(state.partitions)};
     state.mergedView = {outcome: 'synthesized'};
     const paint = synthesisEnvelope(ctx, synthesisParts(document.tree), payload);
     bus.publish(paint);
@@ -431,6 +449,9 @@ function syntheticTask(ctx: RequestContext): Task {
     metadata: {[STAMP_KEY]: {source: SHELL_SOURCE_ID, role: 'shell'}},
   };
 }
+
+/** How many received message ids are remembered for refusing a repeat. */
+const RECEIVED_IDS_KEPT = 256;
 
 function finalStatus(ctx: RequestContext, state: TaskState, error?: string): TaskStatusUpdateEvent {
   return {

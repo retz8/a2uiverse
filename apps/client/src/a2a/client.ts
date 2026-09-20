@@ -79,17 +79,30 @@ export interface SendAndApplyOptions {
 }
 
 /**
+ * How long a request may go without its first event before it is taken for lost (task-7.9). A
+ * convention, set between what was measured through the dev tunnel: every request that arrived
+ * answered within 0.9–2.0 s — the hub publishes the turn's task before any model runs — and every
+ * lost one died at the tunnel's 100 s. Applies to the first event only: a stream that has
+ * answered may go quiet for as long as a model takes.
+ */
+export const FIRST_EVENT_TIMEOUT_MS = 10_000;
+
+/**
  * Send one message over the event stream, applying the A2UI carried by each event as it arrives
  * and capturing the conversation contextId into the session. Throws on wire failure — callers own
  * their error policy. An aborted `signal` tears the stream down mid-flight (true cancel); the
  * throw it produces is the caller's to recognise via `signal.aborted`.
+ *
+ * A request that gets no first event in time is aborted and sent once more, the same message under
+ * the same id — a request is sometimes lost in the tunnel before it reaches the orchestrator, and
+ * the orchestrator refuses an id it has already taken in, so a slow first send is never run twice.
  */
 export async function sendAndApply(
   sender: A2AMessageSender,
   params: MessageSendParams,
   {apply, session, onAgentText, signal, onPaintMeta}: SendAndApplyOptions,
 ): Promise<void> {
-  for await (const event of sender.sendMessageStream(params, {signal})) {
+  const handle = (event: A2AStreamEventData) => {
     const contextId = extractContextId(event);
     if (contextId) session?.set(contextId);
     // Metas before messages: the title leads the paint, and the shell part is emitted
@@ -99,5 +112,37 @@ export async function sendAndApply(
     const messages = extractA2uiMessagesFromEvent(event);
     if (messages.length) apply(messages, stamp, extractSynthesisFromEvent(event));
     if (onAgentText) for (const text of extractAgentTextFromEvent(event)) onAgentText(text, stamp);
+  };
+
+  for (let attempt = 1; ; attempt++) {
+    // The attempt's own abort, so a silence can be cut without cancelling the caller's turn.
+    const attemptAbort = new AbortController();
+    const forward = () => attemptAbort.abort(signal?.reason);
+    if (signal?.aborted) forward();
+    signal?.addEventListener('abort', forward, {once: true});
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      const stream = sender.sendMessageStream(params, {signal: attemptAbort.signal});
+      const first = stream.next();
+      const silence = new Promise<'silence'>(resolve => {
+        timer = setTimeout(() => resolve('silence'), FIRST_EVENT_TIMEOUT_MS);
+      });
+      const answered = await Promise.race([first, silence]);
+      clearTimeout(timer);
+      if (answered === 'silence') {
+        first.catch(() => {}); // the abort below rejects it; that rejection is this one's doing
+        attemptAbort.abort();
+        if (attempt === 1) {
+          console.warn(`[A2UI:a2a] no answer in ${FIRST_EVENT_TIMEOUT_MS} ms — sending once more`);
+          continue;
+        }
+        throw new Error('The orchestrator did not answer.');
+      }
+      for (let result = answered; !result.done; result = await stream.next()) handle(result.value);
+      return;
+    } finally {
+      clearTimeout(timer);
+      signal?.removeEventListener('abort', forward);
+    }
   }
 }

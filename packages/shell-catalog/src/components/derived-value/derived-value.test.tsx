@@ -161,6 +161,28 @@ const joined = (join: CellObject['join'], rest: Partial<CellObject> = {}): CellO
   ...rest,
 });
 
+test("a value that names an app is drawn by the host's name for it, its id when the host has none (task-7.9)", () => {
+  const {rerender} = render(
+    <DerivedValueView
+      cell={{value: 'linear', names: 'app', contributed: 2, of: 2, absent: []}}
+      appDisplayName={appDisplayName}
+    />,
+  );
+  expect(screen.getByLabelText('Linear · 2 of 2 sources')).toHaveTextContent('Linear');
+  rerender(
+    <DerivedValueView cell={{value: 'shop-z', names: 'app', contributed: 1, of: 1, absent: []}} />,
+  );
+  expect(screen.getByLabelText('shop-z · 1 of 1 sources')).toBeInTheDocument();
+  // A plain value that happens to spell an app's id stays as it is.
+  rerender(
+    <DerivedValueView
+      cell={{value: 'linear', contributed: 1, of: 1, absent: []}}
+      appDisplayName={appDisplayName}
+    />,
+  );
+  expect(screen.getByLabelText('linear · 1 of 1 sources')).toBeInTheDocument();
+});
+
 test('a confirmed value carries no join mark and says where it came from and what matched on focus', async () => {
   const user = userEvent.setup();
   render(

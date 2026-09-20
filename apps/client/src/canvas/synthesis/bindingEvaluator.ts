@@ -130,6 +130,7 @@ function evaluateFormula(formula: Formula, input: EvaluateInput, claim?: Claim):
     if (winner !== undefined) {
       return {
         value: appOf(winner.surface),
+        names: 'app',
         contributed: survivors.length,
         ...base,
         target: targetOf(winner),

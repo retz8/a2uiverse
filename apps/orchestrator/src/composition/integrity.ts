@@ -15,8 +15,11 @@ import {runFact} from './relations.js';
  * other half of the same walk, appearance. Refs select elements by key, so resolution *is*
  * validity (task-5.10 decisions 1 and 4) — a ref is good while its keys resolve, and a partition
  * that merely reorders or repaints under it breaks nothing. A key that was not in a watched array
- * at the last accept has appeared (task-7.6 decision 14). Either fires a re-synthesis; a fact that
- * stops holding fires nothing and is told to whatever re-synthesis runs (task-7.6 decision 13).
+ * at the last accept has appeared (task-7.6 decision 14). A surface the document reads nothing
+ * from, holding other data than at the last accept, has been repainted (task-7.9): a source the
+ * view detached has no ref to go absent and no watched array to appear in, so its painting again
+ * is told as itself. Each fires a re-synthesis; a fact that stops holding fires nothing and is
+ * told to whatever re-synthesis runs (task-7.6 decision 13).
  */
 export function refValid(ref: Ref, partitions: {resolve(ref: Ref): {found: boolean}}): boolean {
   return partitions.resolve(ref).found;
@@ -46,7 +49,25 @@ export interface WatchedArray {
 /** The watched arrays with the keys each held at the last accept. */
 export type Watch = ReadonlyMap<string, {watched: WatchedArray; keys: ReadonlySet<string>}>;
 
-type Partitions = {resolve(ref: Ref): Resolution};
+type Partitions = {
+  resolve(ref: Ref): Resolution;
+  entries?(): Array<[surface: string, model: unknown]>;
+};
+
+/** What every surface held at the last accept, to tell a repaint from a standstill. */
+export type Seen = ReadonlyMap<string, string>;
+
+export function seenOf(partitions: {entries(): Array<[string, unknown]>}): Seen {
+  return new Map(partitions.entries().map(([surface, model]) => [surface, JSON.stringify(model)]));
+}
+
+/** The surfaces the payload reads nothing from that hold other data than at the last accept. */
+function repainted(payload: SynthesisPayload, partitions: Partitions, seen: Seen): string[] {
+  const read = new Set(refsOf(payload.dataModel).map(ref => ref.surface));
+  return (partitions.entries?.() ?? [])
+    .filter(([surface, model]) => !read.has(surface) && seen.get(surface) !== JSON.stringify(model))
+    .map(([surface]) => surface);
+}
 
 function escape(key: string): string {
   return key.replace(/~/g, '~0').replace(/\//g, '~1');
@@ -153,29 +174,32 @@ function unheld(payload: SynthesisPayload, partitions: Partitions): UnheldRelati
 /**
  * The runtime's account of what changed under the live synthesis (task-7.6 decision 15): the refs
  * that no longer resolve, each once; the entries that appeared in a watched array; the facts that
- * no longer hold. A re-synthesis fires on the first two.
+ * no longer hold; the surfaces the view reads nothing from that were repainted (task-7.9). A
+ * re-synthesis fires on all but the facts.
  */
 export function changeAccount(
   payload: SynthesisPayload,
   partitions: Partitions,
   watch?: Watch,
+  seen?: Seen,
 ): ChangeAccount {
   const absent: Ref[] = [];
-  const seen = new Set<string>();
+  const counted = new Set<string>();
   for (const ref of refsOf(payload.dataModel)) {
     const key = `${ref.surface}${ref.pointer}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
+    if (counted.has(key)) continue;
+    counted.add(key);
     if (!refValid(ref, partitions)) absent.push(ref);
   }
   return {
     absent,
     appeared: watch ? appeared(watch, partitions) : [],
     unheld: unheld(payload, partitions),
+    repainted: seen ? repainted(payload, partitions, seen) : [],
   };
 }
 
-/** Whether the account fires a re-synthesis: something vanished or appeared. */
+/** Whether the account fires a re-synthesis: something vanished, appeared, or painted again unread. */
 export function firesResynthesis(changes: ChangeAccount): boolean {
-  return changes.absent.length > 0 || changes.appeared.length > 0;
+  return changes.absent.length > 0 || changes.appeared.length > 0 || changes.repainted.length > 0;
 }

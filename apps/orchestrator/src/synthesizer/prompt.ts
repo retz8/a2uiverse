@@ -47,6 +47,8 @@ export interface ChangeAccount {
   absent: Ref[];
   appeared: Ref[];
   unheld: UnheldRelation[];
+  /** Surfaces the previous document reads nothing from, holding other data than when it was accepted. */
+  repainted: string[];
 }
 
 /** What the Synthesizer is briefed from: its rules doc, the catalog's guidance, its pruned catalog. */
@@ -139,8 +141,8 @@ function renderSources(sources: readonly SynthesisSource[]): string {
 }
 
 function renderChanges(changes: ChangeAccount): string {
-  const {absent, appeared, unheld} = changes;
-  if (absent.length + appeared.length + unheld.length === 0) {
+  const {absent, appeared, unheld, repainted} = changes;
+  if (absent.length + appeared.length + unheld.length + repainted.length === 0) {
     return '- nothing named; the sources were repainted';
   }
   const lines: string[] = [];
@@ -157,6 +159,7 @@ function renderChanges(changes: ChangeAccount): string {
     '- these entries appeared:',
     appeared.map(ref => `${ref.surface}${ref.pointer}`),
   );
+  section('- these sources painted again, and your view reads nothing from them:', repainted);
   section(
     '- these facts no longer hold:',
     unheld.map(
@@ -187,7 +190,7 @@ export function buildSynthesisTurn(inputs: SynthesisTurnInputs): string {
     if (previous !== undefined) parts.push(`Your previous document:\n${previous}`);
   } else if (inputs.changes) {
     parts.push(
-      `The user is looking at your previous view, and the sources changed under it. Keep the view: re-point the refs that broke; attach each entry that appeared — to a row, into a row’s list, or as a new row when it is the home source’s — or leave it out; re-point, re-evidence or detach each fact that no longer holds; keep the tree and the shape of the model unless the data no longer supports them; and say what changed in the note. What changed:\n${renderChanges(inputs.changes)}`,
+      `The user is looking at your previous view, and the sources changed under it. Keep the view: re-point the refs that broke; attach each entry that appeared — to a row, into a row’s list, or as a new row when it is the home source’s — or leave it out; attach what a source that painted again now carries, where it belongs to a row, or leave it out; re-point, re-evidence or detach each fact that no longer holds; keep the tree and the shape of the model unless the data no longer supports them; and say what changed in the note. What changed:\n${renderChanges(inputs.changes)}`,
     );
     if (previous !== undefined) parts.push(`Your previous document:\n${previous}`);
   } else if (previous !== undefined) {

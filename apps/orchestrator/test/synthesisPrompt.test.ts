@@ -184,6 +184,7 @@ describe('the turn', () => {
         ],
         appeared: [],
         unheld: [],
+        repainted: [],
       },
     });
     expect(turn).toContain('The user is looking at your previous view');
@@ -198,7 +199,7 @@ describe('the turn', () => {
     const turn = buildSynthesisTurn({
       ...base,
       previous: {declined: true, reason: 'x'},
-      changes: {absent: [], appeared: [], unheld: []},
+      changes: {absent: [], appeared: [], unheld: [], repainted: []},
     });
     expect(turn).toContain('- nothing named; the sources were repainted');
   });
@@ -211,6 +212,7 @@ describe('the turn', () => {
         absent: [],
         appeared: [{surface: 'circleci:runs', pointer: '/runs[id="r1"]/workflows[id="w2"]'}],
         unheld: [],
+        repainted: [],
       },
     });
     expect(turn).toContain('- these entries appeared:');
@@ -219,6 +221,19 @@ describe('the turn', () => {
       'attach each entry that appeared — to a row, into a row’s list, or as a new row when it is the home source’s — or leave it out',
     );
     expect(turn).not.toContain('- these refs no longer resolve:');
+  });
+
+  test('a re-synthesis names the sources that painted again unread, to attach or leave out (task-7.9)', () => {
+    const turn = buildSynthesisTurn({
+      ...base,
+      previous: {declined: true, reason: 'x'},
+      changes: {absent: [], appeared: [], unheld: [], repainted: ['circleci:run-detail']},
+    });
+    expect(turn).toContain(
+      '- these sources painted again, and your view reads nothing from them:\n  - circleci:run-detail',
+    );
+    expect(turn).toContain('attach what a source that painted again now carries');
+    expect(turn).not.toContain('the sources were repainted');
   });
 
   test('a re-synthesis names the facts that no longer hold, to re-point, re-evidence or detach (task-7.6 decisions 8, 13)', () => {
@@ -238,6 +253,7 @@ describe('the turn', () => {
             ],
           },
         ],
+        repainted: [],
       },
     });
     expect(turn).toContain('- these facts no longer hold:');

@@ -488,6 +488,7 @@ describe('Synthesizer (the loop)', () => {
           absent: [{surface: A, pointer: '/items[id="x100"]/price'}],
           appeared: [],
           unheld: [],
+          repainted: [],
         },
       },
       partitions(),

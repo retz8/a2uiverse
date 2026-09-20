@@ -167,11 +167,13 @@ than repeat one source.
 
 The view you wrote stays live after you answer. When a source changes under it, you are called
 again with your previous answer and an account of what changed: refs that no longer resolve — the
-element they named is no longer in the data; entries that appeared in a list your view reads; facts
-under `match` that no longer hold. The user is looking at your view. Keep its shape and its
+element they named is no longer in the data; entries that appeared in a list your view reads;
+sources that painted again while your view reads nothing from them; facts under `match` that no
+longer hold. The user is looking at your view. Keep its shape and its
 columns. Re-point the refs that broke, or drop what the data no longer carries. Attach each entry
 that appeared — to a row, into a row's list, or as a new row when it is the home source's — or
-leave it out. Re-point, re-evidence or detach each fact that no longer holds. Change the shape only
+leave it out. Look at what a source that painted again now carries: attach it where it belongs to
+a row, or leave it out. Re-point, re-evidence or detach each fact that no longer holds. Change the shape only
 when the data no longer supports it, and say what changed in the note.
 
 ## The answer

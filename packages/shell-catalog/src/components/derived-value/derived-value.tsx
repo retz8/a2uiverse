@@ -108,7 +108,10 @@ export function DerivedValueView({
   if (!cell) return null;
   const nameOf: NameOf = appId => appDisplayName?.(appId) || appId;
   const state = cellState(cell);
-  const text = formatValue(cell.value, format);
+  const text =
+    cell.names === 'app' && typeof cell.value === 'string'
+      ? nameOf(cell.value)
+      : formatValue(cell.value, format);
   const mark = cell.join?.mark ?? 'none';
   const contributors = contributorDetail(state, cell, nameOf);
   const provenance = cell.join ? joinDetail(cell.join, nameOf) : undefined;

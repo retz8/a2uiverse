@@ -240,6 +240,24 @@ describe('orchestrator', () => {
     expect(shell.record.catalogPackage).toBe('@a2uiverse/shell-catalog');
   });
 
+  test('a message received twice runs once: the second is refused, nothing dispatched again (task-7.9)', async () => {
+    // The client re-sends a request that got no answer through the tunnel, under the same
+    // message id. Were the first only slow, a second run would repeat a vendor's write.
+    const planner = new FakePlanner();
+    const {client} = await boot({planner});
+    const message = utterance('what apps do I have?');
+    const first = await collect(client, message);
+    expect((first.at(-1) as TaskStatusUpdateEvent).status.state).toBe('completed');
+    expect(planner.calls).toHaveLength(1);
+
+    const second = await collect(client, {...message, contextId: first[0]!.contextId!});
+    const final = second.at(-1) as TaskStatusUpdateEvent;
+    expect(final.final).toBe(true);
+    expect(final.status.state).toBe('failed');
+    expect(planner.calls).toHaveLength(1);
+    expect(await journalLines(1)).toHaveLength(1);
+  });
+
   test('fan-out: shell paint precedes every vendor event; fragments stamped and namespaced; one final', async () => {
     const {client} = await boot();
     const events = await collect(client, utterance('my day at a glance'));
@@ -916,6 +934,42 @@ describe('synthesis (tasks 4.4, 5.4)', () => {
     expect(lines[3]!.synthesis).toMatchObject({outcome: 'synthesized'});
   });
 
+  test('a source the view reads nothing from fires a re-synthesis when it paints again, told which (task-7.9)', async () => {
+    // The document reads GitHub alone: the other source is dispatched, arrived, and unread.
+    const githubOnly = (call: SynthesisCall): Synthesis => {
+      const document = bestPriceView(call);
+      for (const row of document.dataModel.rows as Array<{best: {args: Array<{surface: string}>}}>)
+        row.best.args = row.best.args.filter(ref => ref.surface === 'github:s1');
+      return document;
+    };
+    const synthesizer = new FakeSynthesizer([githubOnly, githubOnly]);
+    const gmail = shopScript(camerasB, () => ({path: '/note', value: 'painted again'}));
+    const {client} = await boot({
+      planner: planner(),
+      synthesizer,
+      scripts: {github: shopScript(camerasA), gmail},
+    });
+    const first = await collect(client, utterance('compare camera prices'));
+    const contextId = first[0]!.contextId!;
+    expect(synthesizer.calls).toHaveLength(1);
+
+    const repainted = await collect(client, actionOn('gmail:s1', contextId));
+    expect(synthesizer.calls).toHaveLength(2);
+    const again = synthesizer.calls[1]!;
+    expect(again.input.changes).toEqual({
+      absent: [],
+      appeared: [],
+      unheld: [],
+      repainted: ['gmail:s1'],
+    });
+    expect(again.prompt).toContain('- these sources painted again, and your view reads nothing');
+    expect(synthesisEvents(repainted)).toHaveLength(1);
+
+    // Accepted again over what it now holds: the same paint a second time fires nothing.
+    await collect(client, actionOn('gmail:s1', contextId));
+    expect(synthesizer.calls).toHaveLength(2);
+  });
+
   test('a fact that stops holding fires nothing; an entry that appears fires a re-synthesis told what appeared (task-7.6 decisions 13–15)', async () => {
     const named = (items: Array<{id: string; price: number}>, name: string) =>
       items.map((item, i) => (i === 0 ? {...item, name} : item));
@@ -963,6 +1017,7 @@ describe('synthesis (tasks 4.4, 5.4)', () => {
       absent: [],
       appeared: [{surface: 'github:s1', pointer: '/items[id="x300"]'}],
       unheld: [],
+      repainted: [],
     });
     expect(again.prompt).toContain('- these entries appeared:');
     expect(synthesisEvents(grown)).toHaveLength(1);

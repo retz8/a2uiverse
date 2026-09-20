@@ -1,5 +1,5 @@
 import type {SynthesisPayload} from '@a2uiverse/sdk';
-import type {Watch} from './integrity.js';
+import type {Seen, Watch} from './integrity.js';
 import type {Synthesis} from '../synthesizer/document.js';
 import type {DispatchOutcome} from '../agentsPool/types.js';
 import type {SurfaceTouches} from '../journal/surfaces.js';
@@ -29,6 +29,8 @@ export interface LiveSynthesis {
   payload: SynthesisPayload;
   /** The key sets the IntegrityChecker compares against on its walk, recorded at accept. */
   watch: Watch;
+  /** What every surface held at this accept (task-7.9): a repaint of an unread source is told by it. */
+  seen: Seen;
 }
 
 /**
