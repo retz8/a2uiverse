@@ -41,7 +41,9 @@ handed back to you once to fix, and a second failure discards your answer.
   meeting, the same customer — the brief states the **join hypothesis**: the entity, the
   **home source** whose instances are the view's rows, and, for each other agent, the **cue** that
   identifies the entity in its answer. You see only the agents' cards: name the cue each card
-  suggests.
+  suggests. The home source is one agent, never two: every other agent's entries attach to its
+  rows or to nothing, and an entry that matches no row stays in that agent's own fragment — "one
+  row per issue or pull request" is two views, not one.
 
 - `{"gap": "<capability>"}` — a **capability gap**: something the utterance needs that no installed
   app serves, the platform included. Name the capability in a few plain words — it is the query the
