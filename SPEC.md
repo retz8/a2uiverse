@@ -231,6 +231,7 @@ Re-synthesis fires on changes to the **user's question** — a new source joins,
 
 - Entities **vanishing** (filter, drill-down, detail view) degrade locally and free: affected refs go absent, formulas recompute over what still resolves, and the affected values disclose the narrowed source set. Reconnection is free.
 - Entities **appearing** need entity resolution → Synthesizer. On its post-action walk the IntegrityChecker compares the key set of every array any accepted document of the composition has referenced against the set at the last accept — empty when the array is not there; a new key is a change-account entry of its own kind, and the re-synthesis is told what appeared, to attach or ignore it. Vanish and appear are the two halves of one walk.
+- A source the accepted document reads nothing from — one the Synthesizer detached, or never attached — has no ref to go absent and no watched array to appear in. When a surface of it holds other data than at the last accept, the walk names it **repainted**, and the re-synthesis is told which, to attach what it now carries or leave it out. It costs a model call for each change inside a fragment the merged view does not read.
 - A match claim's fact that stops holding while its refs resolve is disclosed as **broken** (§5.4) and fires nothing; a re-synthesis that runs is told which relations no longer hold.
 
 ### 6.4 Returning via timeline
@@ -358,7 +359,7 @@ CLIENT (canvas shell)                        ORCHESTRATOR (A2A agent server)
 | **AgentsPool**       | ▪     | A2A connections. Dispatch unit `(endpoint, credential)`. Parallelism, per-source deadlines, quiescence.                                           |
 | **UIComposer**       | ▪     | Mechanical tree assembly: namespace, mount, catalog scope, provenance + attribution, subtree replacement. Understands nothing.                    |
 | **BindingEvaluator** | ▪     | Spreadsheet/signals semantics over derived formulas. Every local change, zero model cost.                                                         |
-| **IntegrityChecker** | ▪     | Per-binding validity: does the ref's key still resolve; per referenced array: did a key appear. Gates whether the Synthesizer runs.                   |
+| **IntegrityChecker** | ▪     | Per-binding validity: does the ref's key still resolve; per referenced array: did a key appear; per unread surface: was it repainted. Gates whether the Synthesizer runs. |
 | **Validator**        | ▪     | Agent trees against their declared catalog; LLM output against its schema.                                                                        |
 | **AuthVault**        | ▪     | Credentials by `(app, account)`. Triggers consent; never paints it.                                                                               |
 | **Registry**         | ▪     | Installed bundles — the orchestrator's local state, written only by the orchestrator. Serves the orchestrator's AgentCard and indexes it under the reserved `shell` id beside the installed apps' cards, so the platform routes like any app.                        |

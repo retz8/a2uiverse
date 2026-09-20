@@ -14,6 +14,7 @@ import type {Planner} from '../src/planner/planner.js';
 import {FakeEmbedder} from './fakeEmbedder.js';
 import {FakePlanner, layoutFor, MalformedPlanner, ThrowingPlanner} from './fakePlanner.js';
 import {bestPriceView, decline, FakeSynthesizer} from './fakeSynthesizer.js';
+import {defaultEntries} from '../src/registry/entries.js';
 import type {SynthesisCall, SynthesisModel} from '../src/synthesizer/synthesizer.js';
 import {SYNTHESIS_KEY, type SynthesisPayload} from '@a2uiverse/sdk';
 import type {Synthesis} from '../src/synthesizer/document.js';
@@ -48,7 +49,12 @@ async function boot(
     closeAfterInit?: AppId[];
   } = {},
 ) {
-  const agentUrls: Record<string, string> = {};
+  // Every hardcoded entry the test does not fake is pointed at a port nothing listens on: left
+  // at its default, it answers its card whenever a dev bed is up on this machine, and the
+  // shortlist — and so the test — changes with what else is running (task-7.9).
+  const agentUrls: Record<string, string> = Object.fromEntries(
+    defaultEntries().map(entry => [entry.id, 'http://127.0.0.1:1']),
+  );
   for (const appId of APPS) {
     const vendor = await startFakeVendor({
       name: appId,
