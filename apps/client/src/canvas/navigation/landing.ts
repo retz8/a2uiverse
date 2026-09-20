@@ -15,7 +15,7 @@ import type {CellTarget} from '@a2uiverse/shell-catalog';
 import {FRAGMENT_BOUNDARY_ATTR} from '../composition/FragmentBoundary';
 import type {BindingIndex} from './bindingIndex';
 
-/** How long the ring stays; a starting value, adjusted in 7.9's live sitting. */
+/** How long the ring stays; judged by eye on the navigation beat in 7.9 and kept. */
 export const RING_MS = 1500;
 
 export const RING_CLASS = 'canvas-landing-ring';
