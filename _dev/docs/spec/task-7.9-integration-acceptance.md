@@ -129,6 +129,7 @@ Each surfaced by a tunnel pass; fixed in the same session, with tests.
 - **Item 7.** Deterministic and live: a tap on a pull request value lands on it in GitHub's fragment, a tap on a build value on the run in CircleCI's, a tap on a Linear status on the issue's row by degradation — Linear draws the status as an icon bound to no text. No request left the client, no marker stayed in the DOM. No absent cell was a button on any bed.
 - **Item 8.** The mocks: the comparison composed with an `equal` claim on the three cameras both shops list and none on the two single-shop rows, every value unmarked; the in-place reorder fired no synthesis; the decline spoke its reason into the slot. The deterministic real roster: the temporal merge composed over four sources, Linear now among them; "How are my CircleCI builds doing?" went to CircleCI alone; "what apps do I have?" was answered by the shell with no vendor.
 - **Item 9.** Beat 9: 179 batches, 69.6 s, four rows, the synthesis payload on one batch; fixture privacy check clean; replay smoke in `e2e/canvas-surface.spec.ts`. Dead air in the backlog item.
+- **The ring.** The user looked at the landing ring on the navigation beat in their own tab; 1.5 seconds stays (decision 14).
 - **Gates.** `pnpm verify` 15 of 15; Playwright 38 of 38.
 
 ## Findings, not fixed
