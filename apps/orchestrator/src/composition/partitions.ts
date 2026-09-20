@@ -1,4 +1,4 @@
-import {resolvePointer, type Ref, type Resolution} from '@a2uiverse/sdk';
+import {parseSurfaceId, resolvePointer, type Ref, type Resolution} from '@a2uiverse/sdk';
 import type {VendorEvent} from '../agentsPool/relay.js';
 import {a2uiMessagesIn, partsOf} from '../journal/surfaces.js';
 
@@ -64,6 +64,18 @@ export class Partitions {
     const create = op(message.createSurface);
     if (create) {
       const surface = create.surfaceId as string;
+      // One surface per slot (SPEC §4.1: repaint is surface replacement): a source's later
+      // surface retires its earlier one, as the client's slot does — a vendor that paints a
+      // detail as a new surface never deletes its list, and refs into a surface the canvas no
+      // longer holds must stop resolving here too, or absence is seen on one side only.
+      const appId = parseSurfaceId(surface)?.appId;
+      if (appId !== undefined) {
+        for (const other of [...this.#models.keys()]) {
+          if (other !== surface && parseSurfaceId(other)?.appId === appId) {
+            this.#models.delete(other);
+          }
+        }
+      }
       this.#models.set(surface, {});
       return undefined;
     }

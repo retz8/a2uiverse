@@ -46,6 +46,8 @@ test('a repaint that changes a matched field draws the values it cut off broken'
   // The detail says what no longer matches, with both values.
   await lumen.locator('[data-join="broken"]').first().hover();
   await expect(page.getByText(/title names the camera/)).toBeVisible();
+  // The app by its name, after an action turn that carried no shell paint to read it from.
+  await expect(page.getByText(/From Northlight/)).toBeVisible();
   await expect(page.getByText(/“Lumen X100”/)).toBeVisible();
 });
 

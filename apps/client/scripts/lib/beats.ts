@@ -70,4 +70,12 @@ export const BEATS: BeatSpec[] = [
     title: 'Mixed utterance',
     prompt: 'What can I do with my calendar?',
   },
+  {
+    // The entity join (task 7.9 decision 7): the phase's pinned utterance over Linear, GitHub and
+    // CircleCI, the merged view with its match claims riding the batch that paints it.
+    beat: 9,
+    slug: 'entity-join',
+    title: 'Entity join',
+    prompt: "what's the status of what I'm working on?",
+  },
 ];

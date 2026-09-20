@@ -84,6 +84,31 @@ test('beat 5: the temporal merge replays with its merged view as shell content',
 });
 
 /**
+ * The entity join (task 7.9 decision 7): Linear, GitHub and CircleCI and the merged view with its
+ * match claims, recorded through the hub. A replay smoke, as beat 5 is. What holds across
+ * recordings: a row's values are joined and unmarked where a fact holds, the issue with no pull
+ * request shows empty cells, and a cell showing no value is not a button.
+ */
+test('beat 9: the entity join replays, its joined values unmarked and its empty cells not buttons', async ({
+  page,
+}) => {
+  await settle(page, '9');
+  await expect(page.getByTestId('canvas-stage-content')).toHaveAttribute('data-slots', '4');
+  for (const source of ['linear', 'github', 'circleci']) {
+    await expect(page.locator(`[data-a2ui-fragment="${source}"]`)).toHaveCount(1);
+  }
+  const view = page.locator('[data-shell-content][data-surface^="shell:"]');
+  await expect(view).toHaveCount(1);
+  await expect(view.getByLabel('Sort by')).toBeVisible();
+  await expect(view.locator('[data-join="none"]').first()).toBeVisible();
+  await expect(view.locator('[data-join="guessed"], [data-join="broken"]')).toHaveCount(0);
+  await expect(view.locator('[data-state="absent"]').first()).toBeVisible();
+  await expect(view.locator('[data-state="absent"][role="button"]')).toHaveCount(0);
+  // A joined value says where it came from, by the app's name.
+  await expect(view.locator('[aria-label*="From GitHub"]').first()).toBeVisible();
+});
+
+/**
  * The shell as an agent (Phase 6), recorded through the hub. Replay smokes, not baselines: the
  * platform answer is one model's wording on one day. What holds across recordings is the shape —
  * the answer is bound to the data model the hub sent, no vendor painted, and the gap is the tile.

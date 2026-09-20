@@ -20,16 +20,17 @@ You need the orchestrator and the agents up too; `pnpm dev:all` from the root st
 
 **Recorded beats** are real agent output, captured through the hub over live MCP and kept as the stream they arrived as:
 
-| `?beat=` | What it is                                                                                                                                      |
-| -------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| `1`      | PR list — one slot, GitHub                                                                                                                      |
-| `2`      | PR detail — one slot                                                                                                                            |
-| `3`      | Compose-and-confirm review — chained after 2, so replay it as `2,3`                                                                             |
-| `4`      | **Side by side** — "put my inbox and my calendar side by side": two vendor slots on one row, no merged view; the layout-only fan-out            |
-| `5`      | **The temporal merge** — the three-vendor fan-out with the Synthesizer's merged view painted into its reserved slot, synthesis payload included |
-| `6`      | **A platform answer** — the shell answering "what apps do I have?" itself, from a data model of literals; no vendor dispatched                  |
-| `7`      | **A capability gap** — nothing installed serves the ask; the Planner places a gap slot and the catalog draws the tile                           |
-| `8`      | **A mixed utterance** — "what can I do with my calendar?": one vendor slot and the shell's own words in the same layout                         |
+| `?beat=` | What it is                                                                                                                                                   |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `1`      | PR list — one slot, GitHub                                                                                                                                   |
+| `2`      | PR detail — one slot                                                                                                                                         |
+| `3`      | Compose-and-confirm review — chained after 2, so replay it as `2,3`                                                                                          |
+| `4`      | **Side by side** — "put my inbox and my calendar side by side": two vendor slots on one row, no merged view; the layout-only fan-out                         |
+| `5`      | **The temporal merge** — the three-vendor fan-out with the Synthesizer's merged view painted into its reserved slot, synthesis payload included              |
+| `6`      | **A platform answer** — the shell answering "what apps do I have?" itself, from a data model of literals; no vendor dispatched                               |
+| `7`      | **A capability gap** — nothing installed serves the ask; the Planner places a gap slot and the catalog draws the tile                                        |
+| `8`      | **A mixed utterance** — "what can I do with my calendar?": one vendor slot and the shell's own words in the same layout                                      |
+| `9`      | **The entity join** — "what's the status of what I'm working on?": Linear, GitHub and CircleCI, and the merged view with its match claims, one row per issue |
 
 **Synthetic beats** are hand-built to construct states that are unreliable to catch live: `plain`, `plain-2`, `validation` (a fragment that fails to mount), `question` (the overlay), `composed` (two slots, one filling and one whose source speaks but never paints), `composed-solo` (the degenerate one-slot case), `composed-question` (a fragment the shell promotes in place), `synthesis` (two storefronts of unrelated shapes merged into the synthesis slot by the Synthesizer's camera comparison example (the client's own copy), then an in-place reorder its keyed refs survive), `navigation` (the two storefronts in their own catalogs under a merged view whose cells name a rendered field, a field neither renders, and a join held by judgment alone), `join` (a list of offers inside every row under one sort declaration, one row's held by a fact and the other's by judgment, then a storefront repaint that changes a matched title, so the values it cut off are drawn broken), `platform-answer` (the shell's own answer bound to its data model, with a button into the App Library) and `gap` (the capability tile).
 
@@ -67,7 +68,7 @@ Not part of `pnpm verify` — each needs live processes.
 **Re-record the beats.** Runs against live agents through the hub, so the fixtures carry what real agents actually paint.
 
 ```bash
-pnpm --filter @a2uiverse/client record:beats -- --model <model> [--beats 1,2,3,4,5,6,7]
+pnpm --filter @a2uiverse/client record:beats --model <model> [--beats 1,2,3,4,5,6,7,8,9]
 ```
 
 > **Start the Gmail agent with `A2UI_RECORD_DIR` set.** That flag is what arms its pseudonymizer, and this recorder captures whatever the hub relays — it cannot tell whether anything was scrubbed. GitHub reads public repos and Calendar reads a seeded demo calendar, so neither needs it for privacy.

@@ -425,14 +425,22 @@ export function createCanvasWiring({
   const navigator = createNavigator(bindingIndex);
 
   /**
-   * An app's display name as the mounted composition's roster has it (task-7.5 decision 11): the
-   * live turn's, or a parked composition's read off its own shell paint.
+   * An app's display name as the mounted composition's roster has it (task-7.5 decision 11),
+   * read off the shell paint on the stage — the live one's, or a parked composition's own.
    */
   const appDisplayName = (appId: string) => {
     const parked = parkedHolder.session;
-    const surface = parked?.processor.model.getSurface(parked.surfaceId);
-    const roster = surface ? rosterOfSurface(surface) : store.getState().roster;
-    return roster.find(entry => entry.appId === appId)?.displayName;
+    const stageId = store.getState().stageId;
+    // The store's roster is the turn's, emptied when the next one opens — and an action turn
+    // carries no shell paint to refill it. The mounted shell paint outlives the turn.
+    const surface = parked
+      ? parked.processor.model.getSurface(parked.surfaceId)
+      : stageId
+        ? processor.model.getSurface(stageId)
+        : undefined;
+    const named = (roster: readonly {appId: string; displayName: string}[]) =>
+      roster.find(entry => entry.appId === appId)?.displayName;
+    return (surface && named(rosterOfSurface(surface))) ?? named(store.getState().roster);
   };
 
   return {

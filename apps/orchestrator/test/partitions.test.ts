@@ -93,6 +93,28 @@ describe('materialization', () => {
     });
   });
 
+  test("a source's later surface retires its earlier one, as the client's slot does (SPEC §4.1)", () => {
+    const p = fresh();
+    const detail = 'shop-a:detail';
+    // The vendor paints a detail as a new surface and never deletes its list.
+    p.apply(
+      paint(
+        {createSurface: {surfaceId: detail, catalogId: 'c'}},
+        {updateDataModel: {surfaceId: detail, value: {item: {id: 'x100'}}}},
+      ),
+    );
+    expect(p.has(S)).toBe(false);
+    expect(p.resolve({surface: S, pointer: '/items[id="x100"]/price'})).toMatchObject({
+      found: false,
+    });
+    expect(p.get(detail)).toEqual({item: {id: 'x100'}});
+    // Another app's surface stands, and a repeat create of the same surface retires nothing else.
+    p.apply(paint({createSurface: {surfaceId: 'shop-b:list', catalogId: 'c'}}));
+    p.apply(paint({createSurface: {surfaceId: detail, catalogId: 'c'}}));
+    expect(p.has('shop-b:list')).toBe(true);
+    expect(p.has(detail)).toBe(true);
+  });
+
   test('pointers follow RFC 6901: escapes and the empty pointer', () => {
     const p = new Partitions();
     p.apply(paint({createSurface: {surfaceId: S, catalogId: 'cat'}}));
