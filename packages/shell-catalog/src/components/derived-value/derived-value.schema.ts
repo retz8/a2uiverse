@@ -45,6 +45,6 @@ export interface CellObject {
   absent: string[];
   /** The join of the object the cell belongs to; none when that object carries no match claim. */
   join?: CellJoin;
-  /** The element the cell navigates to; none when the formula has no refs. */
+  /** The element the cell navigates to; none when the formula has no refs, or none that resolves. */
   target?: CellTarget;
 }

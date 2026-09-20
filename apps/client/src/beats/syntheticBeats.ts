@@ -15,6 +15,7 @@ import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 import {CATALOG_ID as SHOP_A_CATALOG_ID} from 'shop-a-catalog';
 import {CATALOG_ID as SHOP_B_CATALOG_ID} from 'shop-b-catalog';
 import type {BeatFixture} from './beatFixtures';
+import {JOIN_DOCUMENT, JOIN_ITEMS, JOIN_PRODUCTS, JOIN_PRODUCTS_RETITLED} from './joinFixture';
 import {
   DOCUMENT,
   PAYLOAD,
@@ -614,6 +615,88 @@ export const NAVIGATION_BEAT: BeatFixture = {
   ],
 };
 
+/**
+ * The join's states on a rendered canvas (task-7.9 decisions 1, 6): each row carries a list of
+ * Northlight's offers, one row's held by a fact and the other's by judgment, under one sort
+ * declaration for the list inside every row. A second, action turn is Northlight retitling one
+ * matched listing in place: both refs still resolve, the fact fails, and the values it cut off
+ * are drawn broken. No re-synthesis follows — a broken fact fires nothing (task-7.6 decision 13).
+ */
+export const JOIN_BEAT: BeatFixture = {
+  ...base,
+  name: 'synthetic-join',
+  beat: 110,
+  title: 'The join, guessed and broken',
+  prompt: 'which offers are there for my cameras?',
+  turns: [
+    {
+      taskId: 'synthetic-join',
+      kind: 'utterance',
+      prompt: 'which offers are there for my cameras?',
+      action: null,
+      outcome: 'completed',
+      durationMs: 900,
+      batches: [
+        {
+          offsetMs: 0,
+          stamp: {source: 'shell', role: 'shell'},
+          messages: layoutPaint(SYNTHESIS_SLOTS, 'Row'),
+          texts: [],
+        },
+        {
+          offsetMs: 300,
+          stamp: {source: 'shop-a', role: 'fragment'},
+          messages: shopAMessages(SHOP_A_CATALOG_ID, JOIN_ITEMS),
+          texts: [],
+        },
+        {
+          offsetMs: 500,
+          stamp: {source: 'shop-b', role: 'fragment'},
+          messages: shopBMessages(SHOP_B_CATALOG_ID, JOIN_PRODUCTS),
+          texts: [],
+        },
+        {
+          offsetMs: 900,
+          stamp: {source: 'shell', role: 'fragment'},
+          messages: synthesisMessages(JOIN_DOCUMENT, SHELL_CATALOG_ID),
+          synthesis: {dataModel: JOIN_DOCUMENT.dataModel, sorts: JOIN_DOCUMENT.sorts},
+          texts: [],
+        },
+      ],
+    },
+    {
+      taskId: 'synthetic-join-retitle',
+      kind: 'surface-action',
+      prompt: '',
+      action: {
+        name: 'retitle',
+        context: {},
+        surfaceId: SHOP_B,
+        sourceComponentId: 'list',
+        timestamp: '2026-09-20T00:00:00Z',
+      },
+      outcome: 'completed',
+      durationMs: 300,
+      batches: [
+        {
+          offsetMs: 0,
+          stamp: {source: 'shop-b', role: 'fragment'},
+          messages: [
+            msg({
+              updateDataModel: {
+                surfaceId: SHOP_B,
+                path: '/products',
+                value: JOIN_PRODUCTS_RETITLED.map(product => ({...product})),
+              },
+            }),
+          ],
+          texts: [],
+        },
+      ],
+    },
+  ],
+};
+
 /** Resolve a synthetic beat by the name `?beat=` accepts. */
 export function syntheticBeat(name: string): BeatFixture | undefined {
   switch (name) {
@@ -635,6 +718,8 @@ export function syntheticBeat(name: string): BeatFixture | undefined {
       return SYNTHESIS_BEAT;
     case 'navigation':
       return NAVIGATION_BEAT;
+    case 'join':
+      return JOIN_BEAT;
     case 'platform-answer':
       return PLATFORM_ANSWER_BEAT;
     case 'gap':

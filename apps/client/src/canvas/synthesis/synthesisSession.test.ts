@@ -25,6 +25,13 @@ import {
   SYNTHESIS_SURFACE,
   synthesisMessages,
 } from '../../beats/synthesisFixture';
+import {
+  JOIN_DOCUMENT,
+  JOIN_ITEMS,
+  JOIN_PRODUCTS,
+  JOIN_PRODUCTS_RETITLED,
+  RETITLED_TITLE,
+} from '../../beats/joinFixture';
 import type {EvaluatedModel} from './bindingEvaluator';
 import {applyA2uiMessages} from '../../a2ui/applyMessages';
 import {createSynthesisSession, SORTS_PATH, type SynthesisFailure} from './synthesisSession';
@@ -212,6 +219,75 @@ describe('a reorder under keyed refs (task-5.10 decision 1)', () => {
     expect(rows().every(r => Object.values(r).every(c => !('stale' in c)))).toBe(true);
     expect(names()).toEqual(['Lumen X100', 'Verity A7']);
     expect(rows().map(r => r.priceA.value)).toEqual([1299, 1849]);
+  });
+});
+
+describe('the join fixture (task-7.9 decisions 1, 6)', () => {
+  type Offer = Record<'title' | 'price', CellObject>;
+  type JoinRow = {name: CellObject; offers: Offer[]; offerCount: CellObject};
+  const joinRows = () => model().rows as unknown as JoinRow[];
+  const marks = (row: JoinRow) => row.offers.map(o => [o.title.join?.mark, o.price.join?.mark]);
+
+  function paintJoin() {
+    processor.processMessages(shopAMessages(CATALOG_ID, JOIN_ITEMS));
+    processor.processMessages(shopBMessages(CATALOG_ID, JOIN_PRODUCTS));
+    paintSynthesis(JOIN_DOCUMENT, {
+      dataModel: JOIN_DOCUMENT.dataModel,
+      sorts: JOIN_DOCUMENT.sorts,
+    });
+  }
+
+  test('a repaint that changes a matched field marks the values it cut off broken, and no others', async () => {
+    paintJoin();
+    const [lumen, verity] = joinRows();
+    expect(marks(lumen!)).toEqual([
+      ['none', 'none'],
+      ['none', 'none'],
+    ]);
+    expect(marks(verity!)).toEqual([
+      ['guessed', 'guessed'],
+      ['guessed', 'guessed'],
+    ]);
+
+    processor.processMessages([
+      msg({updateDataModel: {surfaceId: SHOP_B, path: '/products', value: JOIN_PRODUCTS_RETITLED}}),
+    ]);
+    await settled();
+
+    const [after, judged] = joinRows();
+    // The retitled offer: both refs still resolve, the fact fails. Its sibling's fact holds.
+    expect(after!.offers.map(o => o.title.value)).toEqual([RETITLED_TITLE, 'Lumen X100 kit']);
+    expect(marks(after!)).toEqual([
+      ['broken', 'broken'],
+      ['none', 'none'],
+    ]);
+    expect(after!.offers[0]!.title.join!.evidence).toMatchObject([
+      {name: 'title names the camera', state: 'fails'},
+    ]);
+    // A row's own values belong to no claim, and judgment never breaks.
+    expect(after!.name.join).toBeUndefined();
+    expect(marks(judged!)).toEqual([
+      ['guessed', 'guessed'],
+      ['guessed', 'guessed'],
+    ]);
+    expect(after!.offerCount).toMatchObject({value: 2, contributed: 2});
+  });
+
+  test('one sort declaration orders the list inside every row, by one choice', async () => {
+    paintJoin();
+    const prices = () => joinRows().map(row => row.offers.map(o => o.price.value));
+    expect(prices()).toEqual([
+      [1349, 1499],
+      [1799, 2199],
+    ]);
+    sorts().set('/sorts/1', {...model().sorts[1], direction: 'desc'});
+    await settled();
+    expect(prices()).toEqual([
+      [1499, 1349],
+      [2199, 1799],
+    ]);
+    // The rows keep their own order: the other declaration was not touched.
+    expect(joinRows().map(row => row.name.value)).toEqual(['Lumen X100', 'Verity A7']);
   });
 });
 

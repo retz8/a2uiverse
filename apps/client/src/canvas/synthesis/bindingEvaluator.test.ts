@@ -448,7 +448,7 @@ describe('the entity join', () => {
     expect(gone[0]!.issue.join).toMatchObject({mark: 'none', evidence: [{state: 'absent'}]});
   });
 
-  test('every cell with a ref names its target; a cell with none has none', () => {
+  test('every cell showing a value names its target; a cell with no refs, or none resolving, has none', () => {
     const out = run(payload(byLink), partitions());
     const [row, empty] = joinRows(out);
     expect(row!.pr.title.target).toEqual({
@@ -458,9 +458,10 @@ describe('the entity join', () => {
     });
     expect(row!.runCount.target).toMatchObject({app: 'circleci', pointer: '/runs[id="r1"]/id'});
     expect(empty!.pr.title.target).toBeUndefined();
-    // Nothing resolves: the first declared ref.
+    // Nothing resolves: an absent cell is not a button (task-7.9 decision 2).
     const gone = joinRows(run(payload(byLink), {...partitions(), [GITHUB]: undefined}));
-    expect(gone[0]!.pr.title.target).toMatchObject({app: 'github'});
+    expect(gone[0]!.pr.title.target).toBeUndefined();
+    expect(gone[0]!.issue.target).toMatchObject({app: 'linear'});
   });
 
   test('a selector navigates to the entry that won', () => {

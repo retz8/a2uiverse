@@ -104,8 +104,9 @@ function evaluateFormula(formula: Formula, input: EvaluateInput, claim?: Claim):
       apps,
       apps.filter(app => !present.has(app)),
     );
-  // The first contributor, the first declared ref when none resolves; a selector's winner below.
-  const first = survivors[0]?.ref ?? formula.args[0];
+  // The first contributor; a selector's winner below. A cell none of whose refs resolves shows no
+  // value and names no target, like a cell with no refs (task-7.9 decision 2).
+  const first = survivors[0]?.ref;
   const base = {
     of: formula.args.length,
     absent,
