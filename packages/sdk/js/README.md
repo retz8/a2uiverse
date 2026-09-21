@@ -1,6 +1,6 @@
 # @a2uiverse/sdk
 
-The TypeScript projection of the A2UIVerse wire contract and its generic A2UI tools: the composition extension (SPEC §14) — extension URI, composition stamp, surface-id namespacing, and the synthesis payload with its validator and resolution kit — plus an A2UI v0.9.1 validator following upstream's and catalog pruning, with the app manifest to follow in Phase 10. The normative definition is [`../contracts`](../contracts); `src/composition.contract.test.ts` and `src/synthesis.contract.test.ts` assert this projection against it — drift is a red build.
+The TypeScript projection of the A2UIVerse wire contract and its generic A2UI tools: the composition extension (SPEC §14) — extension URI, composition stamp, surface-id namespacing, and the synthesis payload with its validator and resolution kit — plus an A2UI v0.9.1 validator following upstream's and catalog pruning. Usage and exports: [`../README.md`](../README.md). The normative definition is [`../contracts`](../contracts); `src/composition.contract.test.ts` and `src/synthesis.contract.test.ts` assert this projection against it — drift is a red build.
 
 This is the only projection. The extension is platform-internal (orchestrator ↔ client), so nothing a2uiverse-specific rides the vendor wire and an agent has nothing to consume here; a projection in another language is created when a real consumer for it exists.
 

@@ -1,13 +1,14 @@
 # Client — system design
 
 `apps/client`. The canvas shell (SPEC §4, §10–11): language in, full-screen generative UI out. It
-talks only to the orchestrator. State as of task 6.6: a composed canvas — one shell surface,
+talks only to the orchestrator. State as of task 7.9: a composed canvas — one shell surface,
 `shell:main`, a model-authored tree in the shell catalog holding slots, each filled by a different
 vendor's fragment in that vendor's own design system — plus the shell's own content in the same
 tree: the merged view as shell content in its reserved slot, whose data model the client computes
 from the vendors' partitions; platform answers bound to a literal data model the hub sends; the
-capability tile for a gap; and the two shell actions, handled on the canvas and reported to the
-hub. The synthesis mechanism end to end, both processes, is told in
+capability tile for a gap; the two shell actions, handled on the canvas and reported to the
+hub; and navigation from a merged cell into the vendor fragment it names, handled on the canvas
+alone. The synthesis mechanism end to end, both processes, is told in
 [`synthesis.md`](synthesis.md); this file records the client's classes and flows.
 
 Mechanics of the shell itself (hold-and-swap, timeline, interaction policy) live in
@@ -17,22 +18,26 @@ what each owns, and the flows between them.
 ## Runtime graph
 
 ```
-canvas.tsx ── createShellActionRelay() ── listCatalogs() ── resolveCatalogs() ── CanvasApp ── createCanvasWiring()
-                        │                       │                  │                │                  │
-                shellActionRelay        orchestratorApi     catalogs/resolver   binds the relay   store · session · sender
-                (the handler the        (catalog records)   (catalogId →        to onShellAction  live MessageProcessor
-                shell catalog is                            catalog+Provider;   while mounted     turn runner · synthesis session
-                built with)                                 the shell catalog                     onShellAction
-                                                            built with the
-                                                            relay's handler)
+canvas.tsx ── createHostRelay() ── listCatalogs() ── resolveCatalogs() ── CanvasApp ── createCanvasWiring()
+                     │                     │                  │                │                  │
+                hostRelay            orchestratorApi   catalogs/resolver   binds wiring.host  store · session · sender
+                (the host the        (catalog records) (catalogId →        to the relay       live MessageProcessor
+                shell catalog is                       catalog+Provider;   while mounted      turn runner · synthesis session
+                built with)                            the shell catalog                      binding index · navigator
+                                                       built with the                         host: onShellAction ·
+                                                       relay's host; every                    onNavigate · appDisplayName
+                                                       vendor catalog
+                                                       decorated)
 ```
 
 One `MessageProcessor` over every installed catalog. Per-surface catalog resolution is stock
 library behaviour — a surface carries its own catalog — so a composed canvas needs no dispatch of
-its own. The shell catalog alone is built rather than imported: `resolveCatalogs(records,
-{onShellAction})` calls the package's `createCatalog` with the host's handler, and with none given
-the two actions land nowhere — the catalog still validates and renders, which is what a test or a
-replay needs.
+its own. The shell catalog is built rather than imported: `resolveCatalogs(records, host)` —
+`host` a `Partial<CreateCatalogOptions>` — calls the package's `createCatalog` with the host's
+shell-action handler, navigation handler and app-name lookup; with none given the two actions land
+nowhere, cells are not interactive and app ids stand in for names — the catalog still validates
+and renders, which is what a test or a replay needs. Every vendor catalog is rebuilt through
+`decorateCatalog`, so its components register in the binding index (see Navigation).
 
 ## Composition
 
@@ -44,12 +49,14 @@ replay needs.
 | `composition/FragmentBoundary` | The one element a fragment mounts inside: provenance, isolation anchor, promotion treatment | — |
 | `composition/slotCount` | How many `Slot` components the surface holds, gap slots included — adaptive weight's input | — |
 | `composition/collisionDetector` | CSS collision rules over the installed catalogs | run from tests only |
-| `composition/roster` | `shellPaintSlots`: reads a shell paint's slots — the roster, each `Attribution` paired to its `Slot` through `child`, and the vendor slots a whole-tree paint left with no attribution (`unattributed`) | `canvasStore` (`RosterEntry`) |
-| `shellActionRelay` | The handler the shell catalog is built with, before any canvas exists: forwards a `ShellAction` to the handler the canvas bound, and warns and drops one raised with nothing bound | built in `canvas.tsx`; `CanvasApp` binds `wiring.onShellAction` while mounted |
+| `composition/roster` | `shellPaintSlots`: reads a shell paint's slots — the roster, each `Attribution` paired to its `Slot` through `child`, and the vendor slots a whole-tree paint left with no attribution (`unattributed`); `rosterOfSurface`: the roster of a mounted shell surface | `canvasStore` (`RosterEntry`); the wiring's `appDisplayName` |
+| `hostRelay` | The host the shell catalog is built with, before any canvas exists — `ShellHost {onShellAction, onNavigate, appDisplayName}`: forwards a shell action or a navigation to the host the canvas bound, and warns and drops one raised with nothing bound; the lookup answers nothing when unbound, so the app id stands in | built in `canvas.tsx`; `CanvasApp` binds `wiring.host` while mounted |
 | `components/TrustedPageOverlay` | The trusted-page layer over the canvas — the Store or the App Library — as `trustedPage` says: the page's title, the query when one was carried, "Back to the canvas" | `canvasStore` (`trustedPage`, `closeTrustedPage`) |
 | `components/AmbientNotice` | The notice stack and its two fade clocks | `canvasStore` via `orderedNotices` |
 | `synthesis/synthesisSession` | A composition's synthesis state: the payload, the data-model subscriptions that re-run the evaluator, the user's sort choices by array path, the last output written | fed by `turn/canvasTurn`; reads and writes the live processor's data models; reports an invalid payload through the fragment-failure channel |
-| `synthesis/bindingEvaluator` | Pure: `evaluate({payload, models, choices, functions}) → EvaluatedModel` — the derived model mirrored with a cell object at every formula path, each declared array sorted in place, `/sorts/N` with the choice in force; ref resolution through the sdk kit, absent-skipping, operator dispatch to the shell catalog, `argmin`/`argmax`/`source` mapped to an app id | the shell catalog's `functions`; `parseInstant` for the sort |
+| `synthesis/bindingEvaluator` | Pure: `evaluate({payload, models, choices, functions}) → EvaluatedModel` — the derived model mirrored with a cell object at every formula path, each cell's join and navigation target, every array a sort path reaches sorted in place, `/sorts/N` with the choice in force; ref resolution through the sdk kit, absent-skipping, operator and relation dispatch to the shell catalog, `argmin`/`argmax`/`source` mapped to an app id | the shell catalog's `functions` and `cellJoin`; the sdk's `reachSortPath`; `parseInstant` for the sort |
+| `navigation/bindingIndex` | The reverse index: from a partition's data path to the vendor component rendering it, over what is mounted | fed by `navigation/decorateCatalog`; asked by the navigator |
+| `navigation/landing` | `createNavigator(index)`: resolves a cell's target to an element and lands on it | the binding index; the sdk's `locatePointer` |
 | `synthesis/intake` | The payload's shape by the sdk's `validateSynthesisPayload` (never a private mirror, phase-5 decision 23), then every operator against the shell catalog's list, in its place — a match claim's relations among the catalog's `RELATIONS`, no relation outside `match` (task-7.5 decision 5); the first failure is the `VALIDATION_FAILED` report | `@a2uiverse/sdk` |
 
 ### The stamp is the routing input
@@ -91,6 +98,16 @@ An invalid payload reports `VALIDATION_FAILED` for `shell:synthesis` through the
 channel a fragment that will not render uses; the hub fails the synthesis slot. A ref into a surface
 the client does not hold is absent at evaluation time, never a rejection.
 
+**The join and the target.** A formula under an object carrying `match` is joined by that object's
+claim; the nearest claim covers every plain object and array below it, down to the next object
+with its own. `evaluateClaim` runs each relation now: `absent` when either side does not resolve,
+else `holds` or `fails` by the shell catalog's relation function, each side `{app, ref, value?}`.
+The shell catalog's `cellJoin` turns the claim, the cell's apps and its absent apps into the cell's
+`join` — its mark and evidence. Nothing is written at `match`. A cell's `target` is its first ref
+that resolves; a selector's is the winning ref, and its value, an app id, carries `names: 'app'`. A
+cell none of whose refs resolves gets no target and is not a button (task-7.9 decision 2). A sort
+path through `*` reorders every array it reaches, one choice per declaration (task 7.12).
+
 The merged view renders as shell content (phase-5 decision 22): the `Slot` the hub paints for it
 declares `content: "shell"`, and `renderSlotContent` mounts its surface in a bare
 `[data-shell-content]` element with the error boundary but no `FragmentBoundary` — no tile, no
@@ -125,10 +142,10 @@ A `ShellAction` is `{name: 'openStore', surfaceId, componentId?, query?}` or
 `{name: 'openAppLibrary', surfaceId, componentId?}` — `componentId` set only when a component
 raised it directly (the tile); a `functionCall` runs with no component in scope.
 
-**Relay.** The shell catalog is built at the entry, before any canvas exists, so its handler is
-the relay's: `createShellActionRelay()` in `canvas.tsx`, its `handler` given to
-`resolveCatalogs`. `CanvasApp` binds `wiring.onShellAction` in an effect and unbinds on unmount;
-a raise with nothing bound is warned and dropped.
+**Relay.** The shell catalog is built at the entry, before any canvas exists, so its host is the
+relay's: `createHostRelay()` in `canvas.tsx`, its `host` given to `resolveCatalogs`. `CanvasApp`
+binds `wiring.host` in an effect and unbinds on unmount; a raise with nothing bound is warned and
+dropped.
 
 **Overlay.** `onShellAction` opens the page at once: `store.openTrustedPage({page: 'store',
 query?})` or `({page: 'appLibrary'})`; a raise while a page is open retargets it, so the text
@@ -147,6 +164,41 @@ shell surface that raised it: `{name, surfaceId, sourceComponentId, timestamp, c
 messages it does return are applied straight into the live processor as the failure report's
 repaint is. The page never waits on the report; a failed one is logged and nothing more. Every
 raise is reported, an open page included.
+
+### Navigation lands locally
+
+A tap on a merged cell with a `target` calls the host's `onNavigate`; the navigator lands on the
+element that target names in the vendor's fragment (SPEC §7, task 7.7). Nothing is sent and
+nothing is journaled.
+
+**The binding index** (`navigation/bindingIndex.ts`) is one per canvas and holds what is mounted —
+the live stage or a parked composition, both under `BindingIndexContext`. `decorateCatalog` wraps
+every vendor component so it registers its surface, component model and data context while
+mounted; the shell catalog is not decorated. A component is bound to a path when a property binds
+it exactly (a `{path}` inside a function call's arguments included), when it is the root of a
+template instance whose base path it is, or when it owns a template child list over it — read when
+asked, never kept. Which element a component put on the page is read only at a tap: the
+candidates render a pair of hidden markers around their output for one synchronous read between
+two `flushSync` renders, gone before the browser paints. `nearest(surface, path)` walks the path up
+one segment at a time and takes the first bound element in document order.
+
+**Landing** (`navigation/landing.ts`). The target's key-based pointer is located in the partition
+now by the sdk's `locatePointer` — positions are where elements are at this moment — then:
+
+1. the nearest bound element, the exact path or an ancestor;
+2. else the fragment boundary for the surface;
+3. else the source's slot;
+4. else a warning and nothing.
+
+The element is scrolled to the middle of the view — instantly under reduced motion — and focused
+once the scroll ends (`scrollend`, or `SCROLL_SETTLE_MS` 700 ms), anything still out of view
+brought in at once. Focus goes through a `tabindex="-1"` the element carries until it blurs, when
+it had none. A ring drawn in the shell's own layer follows the element's box for `RING_MS`
+1500 ms; the shell never styles inside a fragment.
+
+**App names.** `appDisplayName` answers from the roster of the mounted shell paint — a parked
+composition's own, or the live stage's — through `rosterOfSurface`, then the store's roster. The
+store's roster is the turn's, and an action turn carries no shell paint to refill it.
 
 ### Prose composes through the same stamp
 
@@ -220,6 +272,15 @@ pending/failed/collapsed. `createParkedSession` rebuilds every surface through t
 three-message path and restores the placement, so a parked composition renders through the same
 resolver the live stage uses.
 
+### A request that gets no answer is sent once more
+
+`sendAndApply` gives every request `FIRST_EVENT_TIMEOUT_MS` (10 s) to produce its first event —
+utterances, actions, failure reports and shell-action reports alike. On silence it aborts the
+attempt and sends the same message under the same id once more, with a `[A2UI:a2a]` warning; a
+second silence throws "The orchestrator did not answer." The orchestrator refuses an id it has
+already taken in, so a first send that was only slow never runs twice (task 7.9). A stream that has
+answered may go quiet for as long as a model takes.
+
 ### Validation
 
 Client-side, where the catalog schemas physically are. Validation errors ride the existing
@@ -268,14 +329,18 @@ layout-only fan-out, two vendor slots on one `Row`, no merged view (task 6.6); 5
 merge, the three-vendor fan-out with the synthesis payload beside the stamp; 6 the platform
 answer, `shell:main` bound to its literal data model, no vendor dispatched; 7 the capability gap,
 one gap slot; 8 the mixed utterance, the reader's words in the tree beside the one vendor slot,
-which rests on Calendar's prose (task 6.6). Per beat the recorder prints the batch count, the
+which rests on Calendar's prose (task 6.6); 9 the entity join — Linear, GitHub and CircleCI on this
+repository, the merged view with its match claims (task 7.9). Per beat the recorder prints the batch count, the
 turn's duration, and two offsets from send: the layout, the first `createSurface` under a
 `shell` stamp, and the first vendor fragment, the first `createSurface` under a `fragment` stamp
 whose source is not `shell`.
 
 Synthetic beats (`beats/syntheticBeats.ts`, by name through `?beat=`): `plain`, `plain-2`,
 `validation`, `question`, `composed`, `composed-solo`, `composed-question`, `synthesis`,
-`platform-answer` — `shell:main` with its data model sent ahead of a tree bound through a `Table`
+`navigation` — two storefronts under a merged view whose cells name a rendered field, a field
+neither renders, and a join held by judgment alone — `join` — a list inside every row under one
+sort declaration, then a storefront repaint that changes a matched title, so the values it cut off
+draw broken (`beats/joinFixture.ts`) — `platform-answer` — `shell:main` with its data model sent ahead of a tree bound through a `Table`
 template and a `functionCall` button into the App Library — and `gap`, one `Slot` with `gap`.
 Their layouts are built on the painter's shape: each vendor slot the `child` of an `Attribution`
 standing where the slot stood in the parent, the synthesis slot bare.
@@ -284,7 +349,10 @@ Playwright: `e2e/canvas-surface.spec.ts` holds the baselines for beats 1–4 (be
 asserting the two vendor boundaries on one row by bounding box and no shell content) and replay
 smokes for 5 (four slots, the merged view as shell content with its sort), 6 (rows bound over
 `/apps`, no boundary, no attribution), 7 (the tile opens the Store with the gap as the query) and
-8 (one slot, the reader's skill names, a slot resting on prose). `e2e/shell-surface.spec.ts`
+8 (one slot, the reader's skill names, a slot resting on prose) and 9. `e2e/navigation.spec.ts`
+lands a tap on the bound element with focus, the ring and no request, lands a field the storefront
+does not render on its row, draws a judgment-only join guessed, and navigates a parked composition; `e2e/join.spec.ts` draws the broken values and the list inside every
+row under the nested sort. `e2e/shell-surface.spec.ts`
 proves the synthetic platform answer's rows, the tile into the Store overlay and back with the
 tile still attached, and three visual baselines: the platform answer, the tile, the Store
 overlay.
@@ -329,11 +397,9 @@ upstream hook under the catalog's own scope class introduces nothing onto the pa
 - **Two renderer patches** (`patches/@a2ui__react@0.10.2.patch`) — see the client README.
 - **`shell:synthesis` round-trips** in the returned client data model; the orchestrator ignores a
   derived surface harmlessly.
-- **The shell-action report through the tunnel is delayed or lost** (task 6.6: of four presses,
-  one arrived at once, one 40 s late, two never). Utterances through the same tunnel arrive at
-  once; the report is the same streaming `message/send`, answered with a final status in
-  milliseconds. The report path is covered by the turn-runner and orchestrator tests, not in the
-  browser.
+- **A request can be lost in the tunnel before it reaches the orchestrator** (task 6.6, traced in
+  7.9). The first-event timeout and one retry under the same id cover it; a request lost twice
+  fails. The retry has not yet fired in a live sitting.
 - **A streamed component is validated before it is whole.** Under progressive apply a vendor's
   first `updateComponents` may carry a component without the prop its next batch completes; the
   partial fails the catalog schema and logs, the whole one passes and renders (task 6.6).

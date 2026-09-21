@@ -7,7 +7,7 @@ the **orchestrator** asks a model to *author* the view and checks what comes bac
 *evaluates* it and keeps it live. This doc is the narrative end to end. The per-class records stay
 in [`orchestrator.md`](orchestrator.md), [`client.md`](client.md) and
 [`shell-catalog.md`](shell-catalog.md); the sdk's front page is `packages/sdk/README.md`. State
-as of task 5.7.
+as of task 7.9.
 
 ## The idea in one paragraph
 
@@ -21,8 +21,9 @@ model and sorts to the client beside the paint. The client's **BindingEvaluator*
 ref against the partitions it already holds, runs the operators, and writes the result into that
 surface's data model as ordinary values. The renderer sees plain values on plain paths. The
 merged view is a live query over partitions that stay isolated: the moment a partition changes,
-the client re-evaluates, and only when a ref stops resolving altogether does the orchestrator ask
-the model again.
+the client re-evaluates, and only when a ref stops resolving, an entry appears in a list the view
+reads, or a source the view reads nothing from paints again does the orchestrator ask the model
+again.
 
 ```
                           orchestrator                                        client
@@ -76,9 +77,9 @@ writing to its own data model. A **beat** is a recorded stream the canvas can re
 | Synthesizer | orchestrator `synthesizer/` | prompts the model, extracts and validates its text, retries once |
 | the payload validator | sdk `validate.ts` | the contract's own checks over the derived model and sorts, run by both processes |
 | the A2UI validator | sdk `a2ui/` | a tree against a catalog, following upstream's `A2uiValidator`; beside it, catalog pruning by keep-set |
-| the Synthesizer's validator | orchestrator `synthesizer/validate.ts` | the one validator over the model's document: output schema, the payload validator, the tree through the A2UI validator against the Synthesizer's pruned catalog, derived-value rule, operators, refs resolve now |
+| the Synthesizer's validator | orchestrator `synthesizer/validate.ts` | the one validator over the model's document: output schema, the payload validator, the tree through the A2UI validator against the Synthesizer's pruned catalog, derived-value rule, operators and relations, no binding under `match`, refs resolve now, match-claim facts hold now |
 | the painter | orchestrator `composition/synthesisPainter.ts` | paints the tree verbatim, the payload beside the stamp |
-| IntegrityChecker | orchestrator `composition/integrity.ts` | after an action, asks whether every ref still resolves and whether a key appeared in a watched array; accounts for what changed |
+| IntegrityChecker | orchestrator `composition/integrity.ts` | after an action, asks whether every ref still resolves, whether a key appeared in a watched array, whether a fact under `match` stopped holding, and whether a source the view reads nothing from painted again; accounts for what changed |
 | intake + session | client `canvas/synthesis/` | validates the payload, subscribes to the partitions, re-runs the evaluator |
 | BindingEvaluator | client `canvas/synthesis/bindingEvaluator.ts` | pure: payload + partitions → the surface's data model |
 | DerivedValue · SortControl · Table · DataList | shell catalog | what a merged view is made of; the operators live in the same catalog |
@@ -88,8 +89,8 @@ writing to its own data model. A **beat** is a recorded stream the canvas can re
 Take the utterance *"What needs my attention today?"* over Calendar, Gmail and GitHub — the S1
 scenario, recorded as beat 5.
 
-1. **The Planner reserves the slot and asks for the merge's data.** The plan gains a slot whose
-   `appId` is the reserved `shell` source; its `request` is the Planner's prose brief to the
+1. **The Planner reserves the slot and asks for the merge's data.** The plan gains a dispatch
+   entry whose `source` is the reserved `shell`; its `request` is the Planner's prose brief to the
    Synthesizer — what the merged view shows, what it orders by, what matters to the user. Whether
    the screen gets one, and where it sits, is the Planner's judgment. When it does, each vendor's
    request also asks, in plain words, for the fields a merge depends on: identifiers, and the full
@@ -97,7 +98,8 @@ scenario, recorded as beat 5.
    merge, the shell or the other agents (phase decision 9). When the view is over one kind of
    thing, the brief states the join hypothesis — the entity, the home source whose instances are
    the rows, each other source's cue — and each vendor is asked, in its own app's words, for the
-   fields its cue needs (task 7.6). The plan reaches the client as the
+   fields its cue needs (task 7.6). The home source is one agent, never two: every other agent's
+   entries attach to its rows or to nothing. The plan reaches the client as the
    shell's layout paint: a surface of `Slot`s, every one pending — the synthesis slot as bare
    shell content, with a quiet in-progress marker and no attribution — before any vendor has
    answered.
@@ -107,7 +109,8 @@ scenario, recorded as beat 5.
    each event passes through, the orchestrator **materializes the partition**: it applies the
    vendor's A2UI messages to a server-side copy of that surface's data model, keyed by the
    namespaced surface id, so it always knows what the client holds (the client also sends its
-   data models back on every request, so two-way edits reach the copy). A source that completes
+   data models back on every request, so two-way edits reach the copy). One surface per source: a
+   source's new surface retires its earlier one, as the client's slot does. A source that completes
    having painted counts as **arrived**; the moment the last dispatch settles is
    `lastSettledAt`, where the dead-air clock starts.
 
@@ -115,7 +118,9 @@ scenario, recorded as beat 5.
    all. Otherwise the model receives a system prompt assembled once at boot in the orchestrator:
    the role, the **rules doc** (`apps/orchestrator/src/synthesizer/synthesis.md` — partitions,
    refs and predicates, formula leaves, the join from the hypothesis — home rows, attaching by
-   evidence, one entry or a list with its count, declining without home rows — sorts, the tree,
+   evidence, `judged` only when nothing but understanding links two entries, one entry or a list
+   with its count, declining without home rows, the note saying where the view departed from the
+   hypothesis — sorts, the tree,
    the note, decline, re-synthesis, in a2uiverse words), the shell catalog's **guidance doc** (which components a merged view is made
    of, and the derived-value rule), the shell catalog pruned to the synthesis surface's keep-set,
    the output schema, and one worked example, the S1 timeline. The turn carries the utterance, the brief, and every arrived partition's live
@@ -176,7 +181,8 @@ scenario, recorded as beat 5.
    serves which view.)
 
 9. **The turn closes.** The journal records the whole conversation — every attempt's text and
-   errors, the accepted document, its note — and the **dead air**: the interval from the last
+   errors (the holds-now findings among them), the accepted document, its note, the change account
+   on a re-synthesis — and the **dead air**: the interval from the last
    source settling to the synthesis outcome (`deadAirMs`). Dead air is measured, not mitigated
    (phase decision 15).
 
@@ -334,17 +340,25 @@ every formula path and the reserved `sorts` array at the root:
 }
 ```
 
-A cell is `{value, contributed, of, absent}` and never a scalar. `DerivedValue` binds to it by
-one path and owns the interpretation, so a partial value can never render like a complete one —
-by construction rather than by review. `absent` lists the namespaced surfaces whose refs did not
-resolve; the component shows the app id. `SortControl` binds `/sorts/N` and writes the whole
+A cell is `{value, contributed, of, absent}` and never a scalar, plus `join` when its object
+carries a match claim, `target` when a ref resolves, and `names: 'app'` when the value is an app
+id. `DerivedValue` binds to it by one path and owns the interpretation, so a partial value can
+never render like a complete one — by construction rather than by review. `absent` lists the
+namespaced surfaces whose refs did not resolve; the component names them by the host's display
+name, the app id when it has none. `SortControl` binds `/sorts/N` and writes the whole
 declaration back to the same path when the user changes key or direction.
 
 Evaluation of one cell: resolve each ref through the sdk's resolver against its partition's root
 (any not-found answer, and a `null`, is absent), drop the absents, call the catalog function over
 the survivors' values, record `contributed` and `of`. `argmin`, `argmax` and `source` return an
-index over the survivors; the evaluator maps it back to the winning ref's surface and writes the
-**app id** as the value.
+index over the survivors; the evaluator maps it back to the winning ref's surface, writes the
+**app id** as the value and marks the cell `names: 'app'`, so `DerivedValue` draws the app's
+display name while sorting keeps the id.
+
+Every cell with a resolving ref navigates: `target` is `{app, surface, pointer}` of its first
+surviving ref, or of the winner for a selector. A cell none of whose refs resolves has no target
+and is not a button, like a cell with no refs (task-7.9 decision 2). A tap lands on that element
+in the vendor's fragment, on the client alone (`client.md`).
 
 A cell has four states. Contributor state and a claimed object's join share one channel — the
 value's own contrast, the less solid its basis the softer it reads — so a cell that is both partial
@@ -399,33 +413,39 @@ evaluator recomputes over what still resolves, and the cells show the narrowed s
 reorder inside a fragment re-points nothing: the same key still names the same element, so the
 cells do not move and no model is called.
 
-What *does* bring the Synthesizer back is absence or appearance seen from the orchestrator (SPEC
-§6.3, task 5.10 decision 4, task 7.6). A user's in-fragment interaction is an action turn:
+What *does* bring the Synthesizer back is absence, appearance, or an unread repaint seen from the
+orchestrator (SPEC §6.3, task 5.10 decision 4, task 7.6, task 7.9). A user's in-fragment interaction is an action turn:
 owner-only dispatch, then a final. Under synthesis that turn gains a tail. At every accept the
 orchestrator records a **watch**: every array the accepted payload's refs select into by key —
 and every array an earlier accepted document of the composition did — with the keys each holds
-now, one key set per field set, empty when the array is not there. After the vendor's pump
+now, one key set per field set, empty when the array is not there — and what every surface holds,
+as JSON. After the vendor's pump
 settles and its partition is updated, the **IntegrityChecker** walks the live payload and the
 watch and builds the **change account**: the refs that no longer resolve, each once; the entries
 whose key was not in their watched array at the last accept, each as a ref selecting it by key;
-and the facts under `match` that no longer hold while their refs resolve. The first two fire a
-re-synthesis; a fact that stops holding fires nothing — the client marks its values broken — and
+the facts under `match` that no longer hold while their refs resolve; and the surfaces the view
+reads nothing from whose data changed since the accept — a **repainted** source, whose new data may
+now belong to a row. Absent, appeared and repainted fire a re-synthesis; a fact that stops holding
+fires nothing — the client marks its values broken — and
 rides along in whatever re-synthesis runs. The Synthesizer is called again with the previous
 document beside the fresh partitions and told the user is looking at it: re-point what broke;
 attach each entry that appeared — to a row, into a row's list, or as a new row when it is the
-home source's — or leave it out; re-point, re-evidence or detach each fact that no longer holds;
+home source's — or leave it out; attach what a repainted source now carries where it belongs to a
+row, or leave it out; re-point, re-evidence or detach each fact that no longer holds;
 keep the tree and the shape unless the data no longer supports them; say what changed in the note.
 The repaint of `shell:synthesis` lands before the turn's final, and its accept records a new
-watch. A two-way edit or a scalar change that leaves every key resolving and adds none costs no
-model call.
+watch. A two-way edit or a scalar change inside a source the view reads, leaving every key
+resolving and adding none, costs no model call; any change to a source the view reads nothing from
+is a repaint and does.
 
 ```
 action turn
-  vendor answers ─▶ partitions.apply ─▶ changeAccount(payload, partitions, watch)
-                                              │ nothing absent, nothing appeared   │ some ref absent, or a key appeared
-                                              ▼                                    ▼
-                                         nothing moves                  Synthesizer(previous, changes)
-                                                                        → accept → watch → repaint shell:synthesis
+  vendor answers ─▶ partitions.apply ─▶ changeAccount(payload, partitions, watch, seen)
+                                              │ nothing absent, appeared or repainted   │ a ref absent, a key appeared,
+                                              │                                         │ or an unread source repainted
+                                              ▼                                         ▼
+                                         nothing moves                       Synthesizer(previous, changes)
+                                                                             → accept → watch, seen → repaint shell:synthesis
 ```
 
 On the client the repaint is a repeat `createSurface`, which the apply path expands to delete +
@@ -462,7 +482,7 @@ order, so nothing moves when nothing differs.
 - **The client rejects the payload.** Contract drift, in practice: the sdk validator or the
   operator check fails at intake. The client reports `VALIDATION_FAILED` for `shell:synthesis` on
   the **side channel** — the request it sends outside any turn to say a fragment cannot render —
-  and the orchestrator resolves `shell` to `slot-shell` and repaints it failed. A ref into a
+  and the orchestrator flips the slot keyed `shell` to failed and repaints the layout. A ref into a
   surface the client does not hold is *not* a rejection — that is absent at evaluation time. The
   two judgments differ on purpose: the orchestrator's checklist asks whether every ref resolves in
   *its* partitions at the moment of authoring, so the model is never allowed to point at nothing;
@@ -488,11 +508,15 @@ order, so nothing moves when nothing differs.
 - The Synthesizer's worked example, the S1 timeline, passes its whole validator in the
   orchestrator's tests. The storefront comparison left its prompt in task 7.6.
 - The client's synthesis fixture is its own copy of the storefront example; `?beat=synthesis` replays
-  it, and the canvas tests drive the dropped-key case end to end.
+  it, and the canvas tests drive the dropped-key case end to end. `?beat=navigation` puts cells
+  over a rendered field, a field no fragment renders, and a join held by judgment alone;
+  `?beat=join` holds a list of offers inside every row under one sort, then repaints a storefront
+  so a matched title changes and the values it cut off draw broken.
 - Beat 5 (`apps/client/recordings/beats/beat-5-temporal-merge.json`) is the temporal merge
   recorded through the hub over the live roster. The recorder keeps the synthesis payload beside
   the stamp on the one event that paints the merged view, so a replay evaluates the real
-  document over the real partitions.
+  document over the real partitions. Beat 9 (`beat-9-entity-join.json`) is the entity join —
+  Linear, GitHub and CircleCI on this repository, the merged view with its match claims.
 - The orchestrator's integration tests run the loop with a `FakeSynthesizer` in place of the
   **text seam** — the one-method interface the model call sits behind, text in, text out; the
   live smoke behind `A2UIVERSE_SYNTHESIZER_LIVE=1` runs the real model once.
@@ -501,13 +525,10 @@ order, so nothing moves when nothing differs.
 
 - **Dead air** between the last fragment and the synthesis paint is measured in the journal and
   not mitigated; streaming the synthesis fragment is a backlog item decided on that evidence.
-- **Navigation** from a merged cell to the originating vendor subtree is Phase 7 (phase decision
-  14).
 - **Per-source deadlines.** A vendor that never answers holds synthesis open (phase decision 12);
   Phase 8.
 - **The Synthesizer's judgment** of which sources share a key is stated as a rule and taught by
   example; it is not enforceable, and it varies run to run (task 5.7's findings).
-- **Display names** in a partial cell's detail, rather than app ids, are a nicety for later.
 
 ## Where the code is
 
@@ -518,9 +539,10 @@ order, so nothing moves when nothing differs.
 | Validation | `js/src/validate.ts` · `js/src/a2ui/` | `synthesizer/validate.ts` | `canvas/synthesis/intake.ts` | `src/keep-sets.ts` |
 | The prompt | — | `synthesizer/prompt.ts` · `synthesizer/synthesis.md` · `synthesizer/examples.ts` · `authoring/taggedBlock.ts` · `planner/prompt.ts` | — | `docs/synthesis-guidance.md` · `catalogs/v0.9.1/catalog.json` |
 | The model call | — | `synthesizer/synthesizer.ts` | — | — |
-| Integrity, re-synthesis | — | `composition/integrity.ts` · `executor.ts` | — | — |
+| Integrity, re-synthesis | — | `composition/integrity.ts` · `composition/relations.ts` · `executor.ts` | — | — |
 | The paint | — | `composition/synthesisPainter.ts` · `composition/state.ts` | `canvas/turn/canvasTurn.ts` · `a2a/messages.ts` | — |
-| Evaluation, session | — | — | `canvas/synthesis/synthesisSession.ts` · `canvas/synthesis/bindingEvaluator.ts` | `src/functions/operators.ts` |
+| Evaluation, session | — | — | `canvas/synthesis/synthesisSession.ts` · `canvas/synthesis/bindingEvaluator.ts` | `src/functions/operators.ts` · `src/functions/relations.ts` · `derived-value/join.ts` |
+| Navigation | `js/src/pointer.ts` (`locatePointer`) | — | `canvas/navigation/` | `src/components/derived-value` |
 | Rendering | — | — | `canvas/composition/slotContent.tsx` | `src/components/derived-value` · `sort-control` · `table` · `data-list` · `shared/instant.ts` |
 | Journal, logs | — | `journal/types.ts` · `log.ts` | — | — |
-| Proof without a model | `js/src/*.test.ts` | `test/orchestrator.test.ts` | `src/beats/synthesisFixture.ts` · `tests/canvas-synthesis.test.tsx` · `e2e/synthesis.spec.ts` · beat 5 | — |
+| Proof without a model | `js/src/*.test.ts` | `test/orchestrator.test.ts` | `src/beats/synthesisFixture.ts` · `src/beats/joinFixture.ts` · `tests/canvas-synthesis.test.tsx` · `e2e/synthesis.spec.ts` · `e2e/join.spec.ts` · `e2e/navigation.spec.ts` · beats 5 and 9 | — |

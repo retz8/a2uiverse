@@ -7,7 +7,7 @@ synthesis (`DerivedValue`, `SortControl`) and the merged view's shapes (`Table`,
 `openAppLibrary`; task 6.2), and the relations a match claim is written in (`equal`, `contains`,
 `judged`; task 7.5), as one catalog schema (`catalogs/v0.9.1/catalog.json`) and one React
 implementation, versioned together. Radix Themes is its design system, brought by its Provider
-under the one-provider-one-CSS-setup rule (SPEC §9.2). State as of task 7.5.
+under the one-provider-one-CSS-setup rule (SPEC §9.2). State as of task 7.9.
 
 ## Two faces of one catalog
 
@@ -24,7 +24,7 @@ from `@a2ui/web_core`, the primitives' own `*.schema.ts` — so they cannot disa
 `catalog.ts` binds each API to its Radix implementation with `createComponentImplementation`;
 `schema.ts` lists the APIs alone. Both carry the same functions — upstream's `BASIC_FUNCTIONS`,
 the formula operators (`OPERATORS`), the relations (`RELATIONS`) and the shell actions
-(`SHELL_ACTIONS`) — and both export the join's types and its mark rule, `cellJoin`. The rendering
+(`SHELL_ACTIONS`) — and both export the join's types and its mark rule, `cellJoin`. The package root also exports `cellState`, `relationFunctions` and the instant helpers (`parseInstant`, `formatInstant`, `INSTANT_LOCALE`, `INSTANT_TIME_ZONE`) the client's evaluator shares. The rendering
 face is built per host: `createCatalog({onShellAction})` (task 6.2) closes the shell actions and
 `Slot`'s capability tile over the host's `ShellActionHandler`; its optional `onNavigate` and
 `appDisplayName` (task 7.5) close `DerivedValue` over the host's `NavigationHandler` and its
@@ -88,7 +88,7 @@ carry no schema file of their own — their API is upstream's. Shared helpers li
 | --- | --- | --- |
 | `Slot` | pending/failed fragment slots hold the space they reserved and draw nothing around it, their quiet `Text` line flush at the leading edge (task 7.9); quiet `Text` lines for shell content; for a `gap`, the capability tile keeps its Radix panel, border and radius — SPEC §8 calls it a tile and it is shell UI with an action in it, not a placeholder for vendor pixels — one `Text` line, "No installed app can do this.", over a soft `Button` "Search the Store" (`data-slot-state="gap"`); `weight ?? 1` as the flex share, written before a filled fragment slot's reserved floor (`min-height: 4rem`) so the share's `min-height: 0` does not erase it; shell content keeps no floor | exactly one of `source` or `gap` (schema refine); a source's content from `SlotContentContext`, resolved by source, which the host fills; a gap resolves no content; the tile's button raises `openStore` with the gap as `query` and the slot's own id as `componentId`, through the handler `createSlotComponent` closes over |
 | `Attribution` | `Text` size 1 gray with Radix's info glyph; with a `child`, a `Flex` column (`data-attribution`) of marker over child carrying `weight ?? 1` as its flex share; without one, the bare marker | display name at rest, full detail on hover/focus, accessible name always; the wrapper of a vendor fragment's `Slot` (task 6.4): `child` the slot's id, `weight` the slot's, copied by the painter |
-| `DerivedValue` | `Text` size 2; the detail in a Radix `Tooltip` mounted in the portal root, so showing it moves nothing on the page; contributor state and the join ride **one mark, the value's own contrast** (`data-marked`, one of `partial` · `absent` · `empty` · `guessed` · `broken`) — full strength when complete and held by facts, Radix `color="gray"` for partial, absent, empty and guessed, `color="amber"` plus a size-1 amber ⚠ when broken; with a target under a host that navigates, `role="button"`, focusable, pointer cursor and a `--gray-a3` background while hovered or focused, raising the handler on click, Enter or Space; nothing in the tooltip navigates | the cell object the BindingEvaluator writes: value + contributor state, and — for a claimed object — `join` `{mark, apps, evidence}` and `target` `{app, surface, pointer}`; four states from `contributed`/`of` — `empty` (0 of 0), `absent` (0 of N), `partial`, `complete`; the tooltip appears only where the shell admitted something — a mark, or a contributor set short of complete — and carries the contributor detail then "From {apps} · {relation names}", each relation with its two values when the mark is guessed or broken; a confirmed complete cell is silent and the tap is its audit; the accessible name always carries value, contributor detail, mark ("guessed match" · "broken match") and join detail, independent of pointer state; apps named through the host's lookup, the app id when it has none; `format` `number` · `currency` · `datetime` (any year-and-clock spelling rendered in one fixed form — `en-US`, `America/New_York` — through `shared/instant`, which the client's sort shares) |
+| `DerivedValue` | `Text` size 2; the detail in a Radix `Tooltip` mounted in the portal root, so showing it moves nothing on the page; contributor state and the join ride **one mark, the value's own contrast** (`data-marked`, one of `partial` · `absent` · `empty` · `guessed` · `broken`) — full strength when complete and held by facts, Radix `color="gray"` for partial, absent, empty and guessed, `color="amber"` plus a size-1 amber ⚠ when broken; a value that names an app (`names: 'app'`) drawn by the host's name for it; `data-state` and `data-join` beside `data-marked`; with a target under a host that navigates, `role="button"`, focusable, pointer cursor and a `--gray-a3` background while hovered or focused, raising the handler on click, Enter or Space; a cell that speaks without navigating is focusable with the `help` cursor; nothing in the tooltip navigates | the cell object the BindingEvaluator writes: value + contributor state, `names?: 'app'`, `join` `{mark, apps, evidence}` for a claimed object, and `target` `{app, surface, pointer}` whenever a ref resolves — none on an absent cell, the evaluator's rule (task-7.9 decision 2), so the view navigates whatever target it is handed; four states from `contributed`/`of` — `empty` (0 of 0), `absent` (0 of N), `partial`, `complete`; the tooltip appears only where the shell admitted something — a mark, or a contributor set short of complete — and carries the contributor detail when partial or absent, then "From {apps} · {relation names}", each relation with its two values when the mark is guessed or broken; a confirmed complete cell is silent and the tap is its audit; the accessible name always carries value, contributor detail, mark ("guessed match" · "broken match") and join detail, independent of pointer state; apps named through the host's lookup, the app id when it has none; `format` `number` · `currency` · `datetime` (any year-and-clock spelling rendered in one fixed form — `en-US`, `America/New_York` — through `shared/instant`, which the client's sort shares) |
 | `SortControl` | `Select` + `IconButton` with Radix arrow icons | the declaration at `/sorts/N`, written back whole |
 | `Table` · `TableRow` | `Table.Root` size 1 `surface`; `Table.Row` of `Table.Cell`s | headings from `columns`, one row per child; a row outside a table draws as a flex row (context) |
 | `DataList` · `DataListItem` | `DataList.Root` size 2; `DataList.Item` with `Label` and `Value` | `label` a `DynamicString`, `child` the value; an item outside a list draws as a labelled row (context) |
@@ -197,8 +197,8 @@ tree raises, the surface returned for reading its data model.
 - Per-component tests where behaviour is non-trivial: two-way binding on every input, `ChoicePicker`
   in all four shapes and across two pickers, `Modal` into the portal root, `Icon` over the whole
   table, `Text` through a host markdown renderer; `DerivedValue` — the join marks, the detail with
-  both values when in doubt, the detail in a tooltip and never inside the cell, the two families
-  together, an absent value unmarked, app names with the id as fallback, the cell as the
+  both values when in doubt, the detail in a tooltip and never inside the cell, partial and guessed at once as one
+  statement, an absent value from a claimed object with no join mark, a value that names an app, app names with the id as fallback, the cell as the
   navigation button (click, Enter, nothing in the tooltip navigating, an absent cell), not interactive without a handler or a target, and `createCatalog`'s two options
   through the real renderer; `Slot` — exactly one of `source` or `gap` and a
   numeric `weight` in the schema, `weight` as the flex share, a gap tile resolving no content,
@@ -208,7 +208,7 @@ tree raises, the surface returned for reading its data model.
 - `fixture/` — the design-check page (`pnpm dev`, port 5174): the same matrix under Radix light,
   Radix dark and no host Theme; the task 5.11 timeline example (the fixture's own copy) evaluated
   and rendered as one merged view with a live sort; the `DerivedValue` join states — no claim,
-  confirmed, guessed, broken, partial and guessed, absent, no refs — from hand-built cells; the
+  partial, confirmed, guessed, broken, partial and guessed, absent, the empty cell (0 of 0) — from hand-built cells; the
   Slot/Attribution states, the capability
   tile among them; and the scoping proof — two Providers under two host Themes in one document.
   Its catalog is `createCatalog` over handlers that log the shell action and the navigation, with

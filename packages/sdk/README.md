@@ -1,70 +1,34 @@
 # @a2uiverse/sdk
 
-What several consumers of A2UIVerse must agree on, and nothing any one author owns: the
-composition contract that crosses between the orchestrator and the canvas client, and generic
-A2UI tools. One normative JSON contract, one pinned copy of the A2UI v0.9.1 spec, one TypeScript
-package.
+The composition contract shared by the orchestrator and the canvas client, plus generic A2UI
+tools: an A2UI v0.9.1 validator and catalog pruning. Used by the orchestrator, the client, the
+shell catalog and the marketplace. Vendor agents never import it — nothing a2uiverse-specific
+goes over the vendor wire.
 
 ```
-contracts/composition.v0.6.json   normative; the package is tested against it
-a2ui-spec/                        A2UI v0.9.1 schemas, basic catalog, validator conformance cases — pinned copy
-js/                               @a2uiverse/sdk — types, validators, resolution kit, A2UI tools
+contracts/composition.v0.6.json   the normative contract; the package is tested against it
+a2ui-spec/                        pinned copy of the A2UI v0.9.1 schemas, basic catalog and validator cases
+js/                               the TypeScript package
 ```
 
-Consumers today: the orchestrator, the client and the shell catalog. The sdk knows no author and
-never knows the shell catalog: a catalog and a keep-set reach it as inputs. Nothing here reaches a
-vendor agent; nothing a2uiverse-specific rides the vendor wire.
-
-## Background
-
-One turn on the canvas, and where this package sits in it:
-
-```
- utterance ──▶ ORCHESTRATOR                                  CLIENT (canvas shell)
-              Planner ▸ lays out slots, briefs each agent     paints the layout
-              AgentsPool ▸ relays each agent's answer ──stamp──▶ mounts it into its source's slot } fragments
-              Synthesizer ▸ writes the merged view ──payload──▶ evaluates it live                } merged view
-```
-
-- **Shell** — the platform's own canvas. It paints a layout of **slots**; each slot holds a
-  source, and that source's answer fills it as a **fragment**, its own A2UI surface in its own
-  catalog.
-- **Partition** — one fragment's data model as the client holds it, keyed by its namespaced surface
-  id `<appId>:<surfaceId>`. Partitions never see each other.
-- **Composition stamp** — metadata on every relayed event: which app painted it, and whether it is
-  the shell or a fragment. The client places a fragment by the stamp's `source`.
-- **Synthesis payload** — the merged view's wiring as the client receives it: a data model whose
-  every leaf is a **formula** over **refs** into partitions, and sort declarations. Wiring, never
-  values: the client evaluates the formulas and keeps the view live. The tree that binds to it is
-  painted as ordinary A2UI.
-- **Ref** — `{surface, pointer}`: a JSON Pointer into one partition, selecting array elements by
-  key (`/threads[id="…"]/time`), never by position.
-- **Match claim** — the Synthesizer's word that the entries an object joins from different apps
-  are one thing, under the object's reserved key `match`: named relations, each a formula over two
-  refs in two different apps (`"branch": equal(github…/branch, circleci…/branch)`). Written where
-  the Synthesizer judges a join; no object is required to carry one.
+How the pieces fit into a turn is in [`_dev/docs/design/synthesis.md`](../../_dev/docs/design/synthesis.md).
 
 ## Quick start
 
-Every snippet below is what the platform runs today.
-
-### Stamp a relayed event, place it on the client
+### Stamp an event, read the stamp back
 
 ```ts
-// orchestrator — on every event relayed from an agent
-import {STAMP_KEY, namespaceSurfaceId} from '@a2uiverse/sdk';
+import {STAMP_KEY, namespaceSurfaceId, readStamp} from '@a2uiverse/sdk';
 
+// orchestrator
 event.metadata = {...event.metadata, [STAMP_KEY]: {source: 'gmail', role: 'fragment'}};
-const surfaceId = namespaceSurfaceId('gmail', 'inbox'); // "gmail:inbox"
+namespaceSurfaceId('gmail', 'inbox'); // "gmail:inbox"
 
-// client — on every event received
-import {readStamp} from '@a2uiverse/sdk';
-
-const stamp = readStamp(event.metadata); // CompositionStamp | undefined
-if (stamp?.role === 'fragment') mount(event, stamp.source); // the Slot whose source is 'gmail'
+// client
+const stamp = readStamp(event.metadata); // {source: 'gmail', role: 'fragment'} | undefined
 ```
 
-### Validate a model-authored A2UI tree against a pruned catalog
+### Validate an A2UI tree against a pruned catalog
 
 ```ts
 import {createA2uiValidator, formatA2uiFinding, pruneCatalog} from '@a2uiverse/sdk';
@@ -73,59 +37,43 @@ const catalog = pruneCatalog(catalogJson, {
   components: ['Column', 'Text', 'Table', 'TableRow', 'DerivedValue'],
   functions: ['value', 'min'],
 });
-// The same pruned catalog goes into the author's prompt.
 const validator = createA2uiValidator({catalog});
 
 const findings = validator.validate([
   {version: 'v0.9', createSurface: {surfaceId: 's', catalogId}},
   {version: 'v0.9', updateComponents: {surfaceId: 's', components}},
 ]);
-if (findings.length > 0) return retryWith(findings.map(formatA2uiFinding));
+console.log(findings.map(formatA2uiFinding));
 ```
 
-The validator follows upstream's `A2uiValidator`: the messages against the spec's
-`server_to_client.json` and `common_types.json` with the given catalog — known components and
-props, functions through the catalog's declared ones — and the component graph: duplicate ids, the
-root, dangling references, self-references, cycles, depth, orphans, path syntax. A finding is
-`{category, message, path?, componentId?}`.
-
-### Send the merged view, receive it
+### Read and check a synthesis payload
 
 ```ts
-// orchestrator — paint the tree as ordinary A2UI; the wiring rides the metadata
-import {SYNTHESIS_KEY} from '@a2uiverse/sdk';
-
-event.metadata = {...stampOf(shell), [SYNTHESIS_KEY]: {dataModel, sorts}};
-
-// client — read it back and check it before evaluating
 import {readSynthesis, validateSynthesisPayload, walkModel} from '@a2uiverse/sdk';
 
-const payload = readSynthesis(event.metadata); // SynthesisPayload | undefined
-const checked = validateSynthesisPayload(payload);
-if (!checked.ok) report(checked.errors);
-for (const leaf of walkModel(checked.value.dataModel).leaves) assertKnownOperator(leaf.formula.op);
+const checked = validateSynthesisPayload(readSynthesis(event.metadata));
+if (checked.ok) {
+  const {leaves, claims} = walkModel(checked.value.dataModel);
+} else {
+  console.error(checked.errors); // one line per finding
+}
 ```
 
-### Resolve refs, notice what broke
+### Resolve a pointer
 
 ```ts
-import {resolvePointer, refsOf} from '@a2uiverse/sdk';
+import {locatePointer, resolvePointer} from '@a2uiverse/sdk';
 
-const hit = resolvePointer(partition, '/threads[id="1a06f2"]/time');
+resolvePointer(model, '/threads[id="1a06f2"]/time');
 // {found: true, value} | {found: false, reason: 'missing' | 'ambiguous' | 'null' | 'positional'}
 
-// after a vendor repaints: the refs that stopped resolving
-const absent = refsOf(payload.dataModel).filter(
-  ref => !resolvePointer(models(ref.surface), ref.pointer).found,
-);
+locatePointer(model, '/threads[id="1a06f2"]/time');
+// the same, plus `path`: the concrete path with positions, e.g. "/threads/3/time"
 ```
-
-Resolution is validity: a ref is good while its keys resolve, and an in-place reorder breaks
-nothing.
 
 ## Exports
 
-One entry point, `@a2uiverse/sdk`. Grouped by module.
+One entry point, `@a2uiverse/sdk`.
 
 **Composition stamp** — `js/src/composition.ts`
 
@@ -139,77 +87,75 @@ One entry point, `@a2uiverse/sdk`. Grouped by module.
 
 **Synthesis payload** — `js/src/synthesis.ts` · `js/src/validate.ts`
 
-| Export                                                               | What it is                                            |
-| -------------------------------------------------------------------- | ----------------------------------------------------- |
-| `SynthesisPayload`                                                   | `{dataModel, sorts}`, what the client receives        |
-| `Ref` · `Formula` · `ModelNode` · `DerivedModel` · `SortDeclaration` | the pieces                                            |
-| `Relation` · `MatchClaim` · `MATCH_KEY`                              | a match claim's pieces, and `"match"`, its key        |
-| `SYNTHESIS_SCHEMA` · `SYNTHESIS_DEFS`                                | the payload's JSON Schema, and its shared definitions |
-| `SYNTHESIS_KEY` · `readSynthesis(metadata)`                          | `"a2uiverseSynthesis"`, and read the payload back     |
-| `validateSynthesisPayload(input)`                                    | `{ok, value}` or `{ok, errors}`, one line per finding |
-| `schemaErrors(validate, input)`                                      | an ajv validator's errors as those lines              |
+| Export                                                               | What it is                                        |
+| -------------------------------------------------------------------- | ------------------------------------------------- |
+| `SynthesisPayload`                                                   | `{dataModel, sorts}`                              |
+| `Ref` · `Formula` · `ModelNode` · `DerivedModel` · `SortDeclaration` | its pieces                                        |
+| `Relation` · `MatchClaim` · `MATCH_KEY`                              | a match claim's pieces, and its key `"match"`     |
+| `SYNTHESIS_SCHEMA` · `SYNTHESIS_DEFS`                                | the payload's JSON Schema                         |
+| `SYNTHESIS_KEY` · `readSynthesis(metadata)`                          | `"a2uiverseSynthesis"`, and read the payload back |
+| `validateSynthesisPayload(input)`                                    | `{ok: true, value}` or `{ok: false, errors}`      |
+| `schemaErrors(validate, input)`                                      | an ajv validator's errors as finding lines        |
 
-Schema plus structure: every leaf a formula, every pointer parses, every match claim non-empty and
-flat with each relation over two refs in two different apps, one sort per array, every sort key a
-formula with refs in every element, the initial key an option. A sort path's steps are object keys
-and `*`: `/rows/*/runs` reaches the list `runs` inside every element of `rows`, at any depth, and
-every element it passes through carries the list, `[]` when it has none. Whether a relation's operator is a
-relation, and whether it holds, is the consumer's.
+`validateSynthesisPayload` checks:
 
-**Resolution kit** — `js/src/pointer.ts` · `js/src/walk.ts`
+- every leaf is a formula and every pointer parses;
+- every match claim is non-empty and flat, each relation over two refs in two different apps;
+- one sort per array, every sort key a formula with a ref in every element, the initial key an option;
+- sort paths are object keys and `*` (`/rows/*/runs` is the `runs` list inside every row).
 
-| Export                           | What it is                                                                                                         |
-| -------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `parsePointer(pointer)`          | pointer → steps; throws `PointerSyntaxError`                                                                       |
-| `resolvePointer(root, pointer)`  | `Resolution`: a value, or why not                                                                                  |
-| `locatePointer(root, pointer)`   | the resolution beside the concrete path it resolved to — positions for predicates — or the longest prefix that did |
-| `isFormula` · `walkModel(model)` | recognise a leaf; enumerate every leaf with its path, and every match claim with its relations                     |
-| `refsOf(model)`                  | every ref, in leaf order                                                                                           |
-| `reachSortPath(model, path)`     | every array a sort path reaches, each with its concrete location, and why it does not where it does not            |
+Whether a relation's operator is a real relation, and whether it holds, is left to the consumer.
+
+**Resolution** — `js/src/pointer.ts` · `js/src/walk.ts`
+
+| Export                           | What it is                                              |
+| -------------------------------- | ------------------------------------------------------- |
+| `parsePointer(pointer)`          | pointer → steps; throws `PointerSyntaxError`            |
+| `resolvePointer(root, pointer)`  | a value, or why not                                     |
+| `locatePointer(root, pointer)`   | the resolution plus the concrete path it reached        |
+| `isFormula` · `walkModel(model)` | recognise a leaf; list every leaf and every match claim |
+| `refsOf(model)`                  | every ref, in leaf order                                |
+| `reachSortPath(model, path)`     | every array a sort path reaches                         |
 
 **A2UI tools** — `js/src/a2ui/`
 
-| Export                                                            | What it is                                                           |
-| ----------------------------------------------------------------- | -------------------------------------------------------------------- |
-| `createA2uiValidator({catalog})`                                  | an A2UI v0.9.1 validator over a catalog; `validate(payload)`         |
-| `formatA2uiFinding(finding)`                                      | a finding as one line, path or component first                       |
-| `pruneCatalog(catalog, keepSet)`                                  | a `catalog.json` narrowed to a `KeepSet` of components and functions |
-| `A2uiCatalogSchema` · `A2uiFinding` · `A2uiComponent` · `KeepSet` | the shapes                                                           |
-| `A2UI_SPEC_COMMIT`                                                | the upstream commit the pinned spec was copied from                  |
+| Export                                                            | What it is                                                 |
+| ----------------------------------------------------------------- | ---------------------------------------------------------- |
+| `createA2uiValidator({catalog})`                                  | an A2UI v0.9.1 validator over a catalog, after upstream's  |
+| `formatA2uiFinding(finding)`                                      | a finding as one line                                      |
+| `pruneCatalog(catalog, keepSet)`                                  | a `catalog.json` narrowed to some components and functions |
+| `A2uiCatalogSchema` · `A2uiFinding` · `A2uiComponent` · `KeepSet` | the shapes                                                 |
+| `A2UI_SPEC_COMMIT`                                                | the upstream commit the pinned spec came from              |
 
-## The pinned spec
-
-`a2ui-spec/` holds the A2UI v0.9.1 `server_to_client.json` and `common_types.json`, the v0.9.1
-basic catalog, and upstream's validator conformance cases (`conformance/core/validator.yaml` with
-the schemas it names), copied from `upstream/main` of the sibling A2UI fork. `a2ui-spec/UPSTREAM.json`
-records the commit. The copy is never hand-edited; to refresh it, sync the spec and run:
+## Commands
 
 ```
-pnpm --filter @a2uiverse/sdk sync-a2ui-spec
+pnpm --filter @a2uiverse/sdk build | typecheck | test | lint
+pnpm --filter @a2uiverse/sdk sync-a2ui-spec    # refresh a2ui-spec/ from the A2UI fork's upstream/main
 ```
 
-The v0.9 conformance cases run in the sdk's tests; the v0.8 ones are skipped.
+`a2ui-spec/` is never edited by hand; `a2ui-spec/UPSTREAM.json` records the commit it was copied
+from. `build`, `typecheck` and `test` first embed the pinned schemas into
+`js/src/a2ui/spec.generated.ts` (generated, gitignored).
 
 ## Installing
 
-Inside this monorepo, every consumer takes the package from the workspace:
+Inside this monorepo:
 
 ```json
 "@a2uiverse/sdk": "workspace:*"
 ```
 
-Outside it, no registry publishes the package yet. Take it the way vendor catalogs are taken today,
-as a git dependency on this repo pinned to a commit in the lockfile:
+Outside it, as a git dependency pinned in the lockfile:
 
 ```json
 "@a2uiverse/sdk": "github:retz8/a2uiverse#path:packages/sdk/js"
 ```
 
-Later it ships to npm under the same name, its version tracking the contract's. The package is
-ESM, runs in Node and the browser, and depends on `ajv` alone.
+ESM, runs in Node and the browser, depends on `ajv` only.
 
 ## Further reading
 
 - `contracts/composition.v0.6.json` — the normative contract; SPEC §14 is its register entry.
-- `_dev/docs/design/synthesis.md` — how the pieces are used across a turn, both processes.
+- `_dev/docs/design/synthesis.md` — the merged view end to end.
 - `_dev/docs/design/orchestrator.md` · `_dev/docs/design/client.md` — each consumer's side.
