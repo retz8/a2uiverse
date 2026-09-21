@@ -31,6 +31,6 @@ app.listen(config.port, () => {
     .join(', ');
   const roster = config.agentsDir ? `roster from ${config.agentsDir}` : 'hardcoded roster';
   console.log(
-    `${APP_NAME} listening on :${config.port} · card url ${config.baseUrl} · state ${config.stateDir} · ${roster} · apps: ${apps}`,
+    `${APP_NAME} listening on http://localhost:${config.port} · card url ${config.baseUrl} · state ${config.stateDir} · ${roster} · apps: ${apps}`,
   );
 });
