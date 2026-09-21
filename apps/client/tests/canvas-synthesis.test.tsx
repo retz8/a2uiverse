@@ -136,9 +136,9 @@ describe('the synthesis turn on the canvas', () => {
         .querySelector(`[data-slot="${SYNTHESIS_SOURCE}"]`)!
         .getAttribute('data-slot-content'),
     ).toBe('shell');
-    // Every cell is complete: no marker, the bare value. Two rows of four.
+    // Every cell is complete: drawn at full strength, unmarked. Two rows of four.
     expect(view!.querySelectorAll('[data-state="complete"]').length).toBe(8);
-    expect(view!.querySelectorAll('[data-marker]').length).toBe(0);
+    expect(view!.querySelectorAll('[data-marked]').length).toBe(0);
     // The model's own words and the evaluator's values, side by side.
     expect(view!.textContent).toContain('Cameras in both stores');
     expect(view!.textContent).toContain('Best price');
@@ -207,8 +207,10 @@ describe('the synthesis turn on the canvas', () => {
     const view = container.querySelector(
       `[data-shell-content][data-surface="${SYNTHESIS_SURFACE}"]`,
     )!;
-    expect(view.querySelectorAll('[data-marker="absent"]').length).toBe(2);
-    expect(view.querySelectorAll('[data-marker="partial"]').length).toBe(1);
+    // Refs that existed and stopped resolving: the rule is there, unfilled (task-7.9 decision 21).
+    expect(view.querySelectorAll('[data-state="absent"]').length).toBe(2);
+    expect(view.querySelectorAll('[data-state="partial"]').length).toBe(1);
+    expect(view.querySelectorAll('[data-marked]').length).toBe(3);
     expect(view.querySelectorAll('[data-state="complete"]').length).toBe(5);
     // The partial cell names the source that left in its accessible name (SPEC §5.4).
     expect(view.querySelector('[data-state="partial"]')!.getAttribute('aria-label')).toContain(
@@ -229,7 +231,7 @@ describe('the synthesis turn on the canvas', () => {
     const restored = renderStage().container.querySelector(
       `[data-shell-content][data-surface="${SYNTHESIS_SURFACE}"]`,
     )!;
-    expect(restored.querySelectorAll('[data-marker]').length).toBe(0);
+    expect(restored.querySelectorAll('[data-marked]').length).toBe(0);
     expect(restored.querySelectorAll('[data-state="complete"]').length).toBe(8);
     expect(store.getState().appliedSeq).toBe(before);
   });

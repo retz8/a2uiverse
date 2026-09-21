@@ -292,6 +292,12 @@ const cell = (value: unknown, rest: Partial<CellObject> = {}): CellObject => ({
 });
 const JOIN_CELLS: Record<string, CellObject> = {
   plain: cell(899, {target: target('github')}),
+  partial: cell(1299, {
+    contributed: 2,
+    of: 3,
+    absent: ['github:list'],
+    target: target('github'),
+  }),
   confirmed: cell('In Progress', {
     join: {mark: 'none', apps: ['linear'], evidence: [SAME_PR]},
     target: target('linear'),
@@ -326,12 +332,13 @@ const JOIN_CELLS: Record<string, CellObject> = {
 };
 const JOIN_LABELS: Record<string, string> = {
   plain: 'no match claim',
+  partial: 'partial, 2 of 3',
   confirmed: 'confirmed',
   guessed: 'guessed',
   broken: 'broken',
   partialGuessed: 'partial + guessed',
   absent: 'absent, claimed',
-  noTarget: 'no refs (0 of 0)',
+  noTarget: 'the empty cell (0 of 0)',
 };
 const JOIN_TREE: TreeComponent[] = [
   {id: 'root', component: 'DataList', children: Object.keys(JOIN_CELLS).map(k => `i-${k}`)},

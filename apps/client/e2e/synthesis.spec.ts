@@ -35,7 +35,7 @@ test('the merged view is shell content: in its reserved slot, no boundary, no at
   // Every cell complete, through the derived-value component alone.
   await expect(page.locator(`${VIEW} table tbody tr`)).toHaveCount(2);
   await expect(page.locator(`${VIEW} [data-state="complete"]`)).toHaveCount(8);
-  await expect(page.locator(`${VIEW} [data-marker]`)).toHaveCount(0);
+  await expect(page.locator(`${VIEW} [data-marked]`)).toHaveCount(0);
 });
 
 test('the sort criterion is displayed and a change re-orders in place', async ({page}) => {

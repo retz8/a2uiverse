@@ -18,10 +18,20 @@ test('a complete value renders bare and formatted, with its source count as the 
   const cell = screen.getByLabelText('$899.00 · 2 of 2 sources');
   expect(cell).toHaveAttribute('data-state', 'complete');
   expect(cell).toHaveTextContent('$899.00');
-  expect(cell.querySelector('[data-marker]')).toBeNull();
+  expect(cell).not.toHaveAttribute('data-marked');
 });
 
-test('a partial value carries a marker at rest and names the missing source on focus', async () => {
+test('a complete value held by facts says nothing on focus: the shell shows rather than speaks (task-7.9 decision 22)', async () => {
+  const user = userEvent.setup();
+  render(<DerivedValueView cell={{value: 899, contributed: 2, of: 2, absent: []}} format={usd} />);
+  const cell = screen.getByLabelText('$899.00 · 2 of 2 sources');
+  expect(cell).not.toHaveAttribute('tabindex');
+  expect(cell).not.toHaveStyle({cursor: 'help'});
+  await user.hover(cell);
+  expect(screen.queryByRole('tooltip')).toBeNull();
+});
+
+test('a partial value steps back in contrast and names the missing source on focus', async () => {
   const user = userEvent.setup();
   render(
     <DerivedValueView
@@ -31,7 +41,7 @@ test('a partial value carries a marker at rest and names the missing source on f
   );
   const cell = screen.getByLabelText('$899.00 · 1 of 2 sources · shop-b not showing this');
   expect(cell).toHaveAttribute('data-state', 'partial');
-  expect(cell.querySelector('[data-marker="partial"]')).not.toBeNull();
+  expect(cell).toHaveAttribute('data-marked', 'partial');
   expect(cell).not.toHaveTextContent('1 of 2');
   await user.tab();
   expect(await screen.findByRole('tooltip')).toHaveTextContent(
@@ -40,7 +50,7 @@ test('a partial value carries a marker at rest and names the missing source on f
   expect(cell).not.toHaveTextContent('1 of 2');
 });
 
-test('an absent value renders a dash in place of the value', () => {
+test('an absent value renders a dash in the gray register: refs existed and stopped resolving', () => {
   render(
     <DerivedValueView
       cell={{value: undefined, contributed: 0, of: 2, absent: ['shop-a:list', 'shop-b:list']}}
@@ -49,7 +59,19 @@ test('an absent value renders a dash in place of the value', () => {
   const cell = screen.getByLabelText('— · no source is showing this');
   expect(cell).toHaveAttribute('data-state', 'absent');
   expect(cell).toHaveTextContent('—');
-  expect(cell.querySelector('[data-marker="absent"]')).not.toBeNull();
+  expect(cell).toHaveAttribute('data-marked', 'absent');
+});
+
+test('the empty cell is a bare dash: 0 of 0 is the world being empty, and the shell says nothing about it (task-7.9 decision 21)', async () => {
+  const user = userEvent.setup();
+  render(<DerivedValueView cell={{value: undefined, contributed: 0, of: 0, absent: []}} />);
+  const cell = screen.getByLabelText('— · nothing attached here');
+  expect(cell).toHaveAttribute('data-state', 'empty');
+  expect(cell).toHaveTextContent('—');
+  expect(cell).toHaveAttribute('data-marked', 'empty');
+  expect(cell).not.toHaveAttribute('tabindex');
+  await user.hover(cell);
+  expect(screen.queryByRole('tooltip')).toBeNull();
 });
 
 test('format is fixed configuration: number groups, text stringifies, default is text', () => {
@@ -183,26 +205,32 @@ test("a value that names an app is drawn by the host's name for it, its id when 
   expect(screen.getByLabelText('linear · 1 of 1 sources')).toBeInTheDocument();
 });
 
-test('a confirmed value carries no join mark and says where it came from and what matched on focus', async () => {
+test('a confirmed complete value draws no rule and stays silent: its audit is the tap (task-7.9 decision 22)', async () => {
   const user = userEvent.setup();
+  const onNavigate = vi.fn();
   render(
     <DerivedValueView
       cell={joined({mark: 'none', apps: ['linear'], evidence: [samePr]})}
       appDisplayName={appDisplayName}
+      onNavigate={onNavigate}
     />,
   );
+  // The provenance stays in the accessible name, as Attribution's does: hover discovers nothing
+  // for a screen-reader user.
   const cell = screen.getByLabelText(
     'In Progress · 1 of 1 sources · From Linear · same pull request',
   );
   expect(cell).toHaveAttribute('data-join', 'none');
+  expect(cell).not.toHaveAttribute('data-marked');
   expect(cell.querySelector('[data-join-marker]')).toBeNull();
-  expect(cell).not.toHaveTextContent('From Linear');
-  await user.tab();
-  expect(await screen.findByRole('tooltip')).toHaveTextContent('From Linear · same pull request');
-  expect(cell).not.toHaveTextContent('From Linear');
+  await user.hover(cell);
+  expect(screen.queryByRole('tooltip')).toBeNull();
+  // Silent, but still the button: the tap is what answers "why is this here".
+  await user.click(cell);
+  expect(onNavigate).toHaveBeenCalledWith(target);
 });
 
-test('a guessed value is underlined dotted with a small question mark, and its detail gives both values', async () => {
+test('a guessed value steps back in contrast, and its detail gives both values', async () => {
   const user = userEvent.setup();
   render(
     <DerivedValueView
@@ -213,13 +241,15 @@ test('a guessed value is underlined dotted with a small question mark, and its d
   const detail = 'From Linear · same issue: “Fix login” / “Login broken”';
   const cell = screen.getByLabelText(`In Progress · 1 of 1 sources · guessed match · ${detail}`);
   expect(cell).toHaveAttribute('data-join', 'guessed');
-  expect(cell.querySelector('[data-join-marker="guessed"]')).toHaveTextContent('?');
-  expect(cell.querySelector('[data-value]')).toHaveStyle({textDecorationStyle: 'dotted'});
+  expect(cell.querySelector('[data-join-marker]')).toBeNull();
+  // The value is whole; only the tie is judgment, so it steps back rather than gaining a glyph.
+  expect(cell).toHaveAttribute('data-marked', 'guessed');
+  expect(cell).toHaveAttribute('data-accent-color', 'gray');
   await user.tab();
   expect(await screen.findByRole('tooltip')).toHaveTextContent(detail);
 });
 
-test('a broken value carries an amber warning and its detail gives both values', () => {
+test('a broken value keeps the one escalating glyph and its detail gives both values', () => {
   render(
     <DerivedValueView
       cell={joined(
@@ -236,7 +266,7 @@ test('a broken value carries an amber warning and its detail gives both values',
   expect(cell.querySelector('[data-join-marker="broken"]')).toHaveTextContent('⚠');
 });
 
-test('the join marks are a second family: a value can be partial and guessed at once', () => {
+test('partial and guessed at once is one statement, not two marks', () => {
   render(
     <DerivedValueView
       cell={joined(
@@ -249,8 +279,8 @@ test('the join marks are a second family: a value can be partial and guessed at 
   const cell = screen.getByLabelText(
     'In Progress · 1 of 2 sources · GitHub not showing this · guessed match · From GitHub and Linear · same issue: “Fix login” / “Login broken”',
   );
-  expect(cell.querySelector('[data-marker="partial"]')).not.toBeNull();
-  expect(cell.querySelector('[data-join-marker="guessed"]')).not.toBeNull();
+  // One mark for one cell: the worse of the two readings, not two competing marks.
+  expect(cell).toHaveAttribute('data-marked', 'guessed');
 });
 
 test('an absent value from a claimed object keeps its absence and adds no join mark', () => {
@@ -266,7 +296,7 @@ test('an absent value from a claimed object keeps its absence and adds no join m
   const cell = screen.getByLabelText(
     '— · no source is showing this · From Linear · same pull request',
   );
-  expect(cell.querySelector('[data-marker="absent"]')).not.toBeNull();
+  expect(cell).toHaveAttribute('data-marked', 'absent');
   expect(cell.querySelector('[data-join-marker]')).toBeNull();
 });
 

@@ -102,8 +102,14 @@ test('beat 9: the entity join replays, its joined values unmarked and its empty 
   await expect(view.getByLabel('Sort by')).toBeVisible();
   await expect(view.locator('[data-join="none"]').first()).toBeVisible();
   await expect(view.locator('[data-join="guessed"], [data-join="broken"]')).toHaveCount(0);
-  await expect(view.locator('[data-state="absent"]').first()).toBeVisible();
-  await expect(view.locator('[data-state="absent"][role="button"]')).toHaveCount(0);
+  // The attachment the row never had: 0 of 0, the bare dash, nothing drawn on it (task-7.9
+  // decision 14) — distinct from a ref that stopped resolving.
+  await expect(view.locator('[data-state="empty"]').first()).toBeVisible();
+  await expect(view.locator('[data-state="empty"][role="button"]')).toHaveCount(0);
+  await expect(view.locator('[data-state="empty"]').first()).toHaveAttribute(
+    'data-marked',
+    'empty',
+  );
   // A joined value says where it came from, by the app's name.
   await expect(view.locator('[aria-label*="From GitHub"]').first()).toBeVisible();
 });
