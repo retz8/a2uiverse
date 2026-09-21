@@ -167,8 +167,8 @@ scenario, recorded as beat 5.
 
 8. **The screen.** The merged view is the shell writing on its own page (phase decision 22): no
    fragment boundary, no attribution tile, no source badge. Provenance is in the cells — each
-   `DerivedValue` shows its value and, when not every source contributed, a marker with the
-   detail on hover. The Gmail and GitHub entries sit on one axis ordered by instant, each row's
+   `DerivedValue` shows its value and, when not every source contributed, draws it in the quiet
+   register with the detail on hover. The Gmail and GitHub entries sit on one axis ordered by instant, each row's
    `Source` cell naming its app through the `source` operator; the `SortControl` above the table
    shows the criterion and lets the user change it. Calendar's entries stand in their own table
    with their times shown as labels. (A view of one thing's labelled fields — a summary, a detail
@@ -346,13 +346,31 @@ the survivors' values, record `contributed` and `of`. `argmin`, `argmax` and `so
 index over the survivors; the evaluator maps it back to the winning ref's surface and writes the
 **app id** as the value.
 
-A cell has three states:
+A cell has four states. Contributor state and a claimed object's join share one channel — the
+value's own contrast, the less solid its basis the softer it reads — so a cell that is both partial
+and guessed reads as one statement (task 7.9):
 
-| State | Meaning | At rest |
-| --- | --- | --- |
-| complete | every declared input resolved | the bare value |
-| partial | some inputs resolved | value + half-filled circle; detail names the missing sources |
-| absent | no input resolved | a dash + dashed ring |
+| State | Meaning | At rest | Speaks on hover or focus |
+| --- | --- | --- | --- |
+| complete | every declared input resolved | the value at full strength | only if the join is marked |
+| partial | some inputs resolved | the value in the gray register | names the missing sources |
+| absent | inputs were declared, none resolved | a dash, gray | "no source is showing this" |
+| empty | no input was declared — 0 of 0, the attachment a row never had | a bare dash, gray | nothing |
+
+`empty` and `absent` are not the same fact: the first is the world being empty, the second is the
+shell losing sight of a value it had. Only the second is disclosed.
+
+The join rides the same channel: `guessed` steps back to gray like a partial value, and `broken`
+goes amber and keeps a size-1 amber ⚠ beside the value — the one state that escalates, because it
+means the value may belong to another entity. `data-marked` carries the reading a cell is drawn at.
+A value complete and held by facts draws nothing and says nothing: its audit is the tap into the
+vendor's fragment. The accessible name always carries the full disclosure, whatever the cell draws.
+
+The mark was first drawn as a rule under the value, filled to the contributed fraction. Contrast
+replaced it (task-7.9 decision 24): a stroke borrowed the idiom that means "misspelled", attached
+the mark to the typography when the fact is about provenance, multiplied on a value that wraps in a
+table column, and stopped discriminating once a row's values were all marked together. The accepted
+cost is that `guessed` is carried visually by color alone.
 
 ## Reading time
 

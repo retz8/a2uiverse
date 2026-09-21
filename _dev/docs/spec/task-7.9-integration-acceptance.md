@@ -104,6 +104,48 @@ The code is worked directly on `main`, no worktree.
 - TODO: the 7.9 line rewritten to the decided scope.
 - For 7.10: the design records gain that an absent cell is not a button.
 
+## The look, decided after the run
+
+Three questions the user raised on the merged view and the composed screen, once every acceptance item held. Design decisions, not findings: nothing below was broken.
+
+### 21. A cell's state rides one mark, and the empty cell is not a state
+
+`cellState` gains a fourth reading. `empty` is a formula with no refs — the attachment a row never had, 0 of 0 (SPEC §5.2) — and `absent` is refs that were declared and stopped resolving (SPEC §6.2). They were one state showing one glyph; they are not one fact. The empty cell draws a bare dimmed dash and says nothing: nothing was lost, so nothing is disclosed.
+
+Contributor state and a claimed object's join stop being two families of glyph beside the value and become one mark. Decision 24 settles what draws it.
+
+What this fixes: the old vocabulary drew every state twice — a dash *and* a dashed ring, a dotted underline *and* a "?", amber *and* a ⚠ — except `partial`, the one state whose value reads as whole and therefore needs the mark most, which carried a single 10px half-circle. The redundancy was spent exactly inverted. One channel lets a cell that is partial *and* guessed read as one statement rather than two competing marks.
+
+### 22. The shell speaks where it is unsure and shows where it is sure
+
+The detail on hover or focus appears only where the shell has admitted something — a join mark, or a contributor set short of what the formula declared. A value held by facts over every source it declared is silent: no tooltip, no `help` cursor, not focusable unless it navigates.
+
+SPEC §5.4 had required every value from another app to say where it came from and what matched. On a confirmed cell that narrates the shell's own joining to a user who asked about their work, on every cell of a dense table. The audit that matters is still there and is better: the cell stays the button, and the tap lands the user on the originating element in the vendor's own fragment (SPEC §7). Showing CircleCI's own run beats telling the user "matching branch name".
+
+The accessible name is unchanged and always carries the whole disclosure, independent of pointer state, as `Attribution`'s does (SPEC §4.3) — a screen-reader user cannot hover to discover anything.
+
+### 23. Nothing is drawn around a fragment
+
+The shell draws no border, edge, background, padding or hover state around a fragment, however many share the canvas, and none around a pending or failed fragment slot. A region is its attribution marker, the vendor's own pixels, and the whitespace between regions. The fragment boundary is `display: flow-root`, so a vendor's top margin stays inside it rather than collapsing through. Pending and failed slots keep the floor they reserved, their quiet line flush at the leading edge under the attribution marker.
+
+A rectangle per fragment made the fragment graft read as the tiling it replaces (SPEC §1, where L2 fragment graft is the target and L1 tiled surfaces are what it improves on), and boxed a vendor's own cards inside a second box. Attribution is unchanged. The landing ring still marks where a navigation lands. The capability tile keeps its box — SPEC §8 calls it a tile and it is shell UI with an action in it, not a placeholder for vendor pixels.
+
+### 24. The one mark is the value's own contrast
+
+The less solid a value's basis, the softer it reads. Complete and held by facts, the value is drawn at full strength and gains nothing. `partial`, `absent`, `empty` and `guessed` step back to Radix's gray register. `broken` goes amber and keeps its size-1 amber ⚠ — the one state that escalates, because it means the value may belong to another entity. `data-marked` carries the reading a cell is drawn at.
+
+Decided against a first form built and looked at: a rule under the value, a faint track filled to `contributed / of`, solid for a fact and dotted for judgment. Seen on the join beat it was wrong on four counts. A dotted or colored underline is the web's idiom for "abbreviation" and every editor's for "misspelled", so a `judged` tie — the Synthesizer doing its job — read as a defect in the text. It attached the mark to the typography when the fact is about provenance. A value that wraps in a table column multiplied it: "Northlight Classic 100" carried three amber strokes and two ⚠ in one cell. And it stopped discriminating — a match claim belongs to the row, so a row's values are marked together, and a row of underlines says nothing.
+
+Contrast costs no space, no glyph and no extra line, survives wrapping, and degrades well: a fully guessed column simply reads quieter.
+
+Accepted weakness: `guessed` is carried visually by color alone, which is normally a smell. What holds it up is that the detail still fires on hover or focus for every marked cell, the accessible name always carries the full disclosure independent of pointer state, and the one state where being wrong costs something — `broken` — keeps a glyph of its own. Pairing the gray with italic was offered as a second channel and declined.
+
+### 25. Doc amendments for 21–24
+
+- SPEC §4.3 gains the boundary's treatment; §5.4 gains the speaks/shows rule and the one-mark rule, and loses the clause requiring every value to disclose on hover; §14 gains a row for each.
+- Design records, in this session: `synthesis.md`'s cell-state table (now four, with what each speaks) and the note on why contrast replaced the rule, `shell-catalog.md`'s `DerivedValue` and `Slot` rows, `client.md`'s isolation section for adaptive weight.
+- The catalog fixture's join gallery gains a plain partial cell, the one reading it did not show.
+
 ## Found and fixed during the run
 
 Each surfaced by a tunnel pass; fixed in the same session, with tests.

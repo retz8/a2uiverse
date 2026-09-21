@@ -295,6 +295,12 @@ Every fragment mounts inside a `FragmentBoundary` — a real element (not a Reac
 `display: contents`) carrying `data-a2ui-fragment`, since `@scope` and a portal root need
 something to anchor to. The vendor's Provider sits inside it.
 
+Nothing is drawn around it (task 7.9): no border, edge, background or hover state, however many
+fragments share the canvas; a rectangle made the graft read as tiling and boxed a vendor's own
+cards inside a second box. It is `display: flow-root`, so a vendor's top margin stays inside it
+rather than collapsing through — its box is what navigation lands on and what adjacent slots align
+by. Promotion is the one treatment it gets: an accent ring and raised panel.
+
 The trusted page is shell chrome, not a fragment concern: a fixed layer rendered beside the
 question overlay, outside every boundary, with nothing of a vendor under it.
 
