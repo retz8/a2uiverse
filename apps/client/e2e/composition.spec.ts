@@ -68,23 +68,45 @@ test('a vendor stylesheet resolves inside its fragment and nowhere else', async 
   expect((leaked as {onRoot: string}).onRoot).toBe('');
 });
 
-test('adaptive weight: a lone fragment owns the canvas, several read as distinct sources', async ({
+test('nothing is drawn around a fragment, alone or beside others (task-7.9 decision 23)', async ({
   page,
 }) => {
+  const drawn = (el: Element) => {
+    const style = getComputedStyle(el);
+    return {
+      border: [
+        style.borderTopWidth,
+        style.borderRightWidth,
+        style.borderBottomWidth,
+        style.borderLeftWidth,
+      ],
+      padding: [style.paddingTop, style.paddingRight, style.paddingBottom, style.paddingLeft],
+      background: style.backgroundColor,
+      shadow: style.boxShadow,
+    };
+  };
+  const none = {
+    border: ['0px', '0px', '0px', '0px'],
+    padding: ['0px', '0px', '0px', '0px'],
+    background: 'rgba(0, 0, 0, 0)',
+    shadow: 'none',
+  };
+
   await page.goto('/?beat=composed-solo&instant');
   await expect(page.locator('main[data-replay="done"]')).toBeAttached({timeout: 30_000});
   await expect(page.getByTestId('canvas-stage-content')).toHaveAttribute('data-slots', '1');
-
-  const solo = page.locator('[data-a2ui-fragment="github"]');
-  const soloBorder = await solo.evaluate(el => getComputedStyle(el).borderTopWidth);
-  expect(soloBorder).toBe('0px');
+  expect(await page.locator('[data-a2ui-fragment="github"]').evaluate(drawn)).toEqual(none);
 
   await settleComposed(page);
   await expect(page.getByTestId('canvas-stage-content')).toHaveAttribute('data-slots', '2');
   const shared = page.locator('[data-a2ui-fragment="github"]');
-  const sharedBorder = await shared.evaluate(el => getComputedStyle(el).borderTopWidth);
-  // Structure is constant; only prominence changed.
-  expect(sharedBorder).not.toBe('0px');
+  expect(await shared.evaluate(drawn)).toEqual(none);
+  // The slot around it, filled and failed, pads nothing either.
+  expect(await page.locator('[data-slot="github"]').evaluate(drawn)).toEqual(none);
+  expect(await page.locator('[data-slot="gmail"]').evaluate(drawn)).toEqual(none);
+  // Pointing at a region changes nothing about it.
+  await shared.hover();
+  expect(await shared.evaluate(drawn)).toEqual(none);
 });
 
 test('the shell and its painted surfaces agree on one palette in dark mode', async ({browser}) => {

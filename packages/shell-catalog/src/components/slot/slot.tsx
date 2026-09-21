@@ -21,8 +21,8 @@ import {SlotApi, type SlotProps} from './slot.schema.js';
  * the reserved position holds, but while pending it is one quiet line beside a
  * spinner rather than a tile with a floor, and a failure is a quiet line too.
  *
- * The tile a fragment slot shows while pending or failed is drawn on Radix's own
- * panel, border and radius tokens (task-5.9 decision 5).
+ * While pending or failed a fragment slot holds the space it reserved and draws nothing around it
+ * (task-7.9 decision 23).
  *
  * A slot holding a `gap` is the capability tile (task-6.2 decision 6): fixed shell UI, no model
  * wording — a minimal line and a button searching the Store for the missing capability, the gap.
@@ -67,7 +67,7 @@ export function SlotView({
       <div
         data-slot={source}
         data-slot-state="collapsed"
-        style={{...weighted, ...panelStyle, minHeight: 0}}
+        style={{...weighted, ...reservedStyle, minHeight: 0}}
       >
         {resolved}
       </div>
@@ -83,7 +83,7 @@ export function SlotView({
       );
     }
     return (
-      <div data-slot={source} data-slot-state="failed" style={{...weighted, ...panelStyle}}>
+      <div data-slot={source} data-slot-state="failed" style={{...weighted, ...reservedStyle}}>
         <Text as="span" size="1" color="gray">
           {label ?? source} didn&rsquo;t load
         </Text>
@@ -101,7 +101,7 @@ export function SlotView({
         // box collapse the instant a fragment mounted and then grow again as content streamed —
         // the slot giving back space it had already claimed. Shell content reserved no floor.
         // The floor is written after the flex share, whose `minHeight: 0` would erase it.
-        style={{...weighted, minWidth: 0, minHeight: shell ? 0 : panelStyle.minHeight}}
+        style={{...weighted, minWidth: 0, minHeight: shell ? 0 : reservedStyle.minHeight}}
       >
         {resolved}
       </div>
@@ -123,7 +123,7 @@ export function SlotView({
     <div
       data-slot={source}
       data-slot-state="pending"
-      style={{...weighted, ...panelStyle, opacity: 0.6}}
+      style={{...weighted, ...reservedStyle, opacity: 0.6}}
     >
       <Text as="span" size="1" color="gray">
         {label ?? source}…
@@ -141,6 +141,10 @@ function quietLine(text: string) {
   );
 }
 
+/**
+ * The capability tile's look. SPEC §8 calls it a tile and it is the shell's own deterministic UI
+ * with an action in it — not a placeholder for a vendor's pixels — so it keeps its box.
+ */
 const panelStyle: CSSProperties = {
   background: 'var(--color-panel-solid)',
   border: '1px solid var(--gray-6)',
@@ -150,6 +154,21 @@ const panelStyle: CSSProperties = {
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
+};
+
+/**
+ * What a fragment slot holds before its fragment arrives (task-7.9 decision 23): the space it has
+ * reserved and nothing drawn around it — no border, no background, no edge. The floor stays, so
+ * the layout does not jump as fragments stream in; the quiet line sits flush at the leading edge,
+ * under the attribution marker, where the fragment will start.
+ */
+const reservedStyle: CSSProperties = {
+  minHeight: '4rem',
+  display: 'flex',
+  // Top, not centred: a row stretches the slot to its tallest neighbour, and a centred line
+  // would float halfway down the canvas, away from the marker naming it.
+  alignItems: 'flex-start',
+  justifyContent: 'flex-start',
 };
 
 /**

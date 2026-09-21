@@ -376,23 +376,17 @@ body {
    tile — and carries only what isolation and provenance need. */
 .fragment-boundary {
   position: relative;
+  /* Contains the vendor's own margins. With no border or padding, a child's top margin would
+     collapse through the boundary, so its box — what navigation lands on and adjacent slots
+     align by — would start wherever the vendor's first margin put it. */
+  display: flow-root;
   min-width: 0;
   border-radius: var(--radius-3);
 }
 
-/* Adaptive weight (task 2.5, Q3): structure is constant, prominence is not. A lone
-   fragment owns the canvas exactly as a Phase 1 paint did; several gain the
-   separation that makes them read as distinct sources. */
-[data-slots='1'] .fragment-boundary {
-  border: none;
-  padding: 0;
-}
-
-[data-slots]:not([data-slots='1']) .fragment-boundary {
-  padding: var(--space-3);
-  border: 1px solid var(--gray-6);
-  background: var(--color-panel-solid);
-}
+/* Nothing is drawn around a fragment (task-7.9 decision 23): no border, no background, no
+   hover or focus treatment, however many share the canvas. The vendor's own pixels and the
+   attribution marker above them are the whole region. */
 
 /* Shell-granted promotion: the fragment asked for attention and the shell raised it.
    Emphasis must read on the boundary itself, because when every slot is promoted the
