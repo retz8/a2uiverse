@@ -43,15 +43,17 @@ and renders, which is what a test or a replay needs. Every vendor catalog is reb
 
 | Class | Owns | Collaborators |
 | --- | --- | --- |
-| `canvasStore` | Canvas state, including the **placement map** (a slot's source → `{surfaceId, source}`), the **promoted** set, by source, and the **trusted page** open over the canvas (`trustedPage: {page, query?} \| null`) | read by React through `useSyncExternalStore`; written by the turn runner and, for the trusted page, by the wiring's shell-action handler |
+| `canvasStore` | Canvas state, including the **placement map** (a slot's source → `{surfaceId, source}`), the **promoted** set, by source, the **trusted page** open over the canvas (`trustedPage: {page, query?} \| null`), the **question** (`{text, askedAt} \| null`), each slot's **painted state** by source (`slotStates`), and the in-flight cause's kind | read by React through `useSyncExternalStore`; written by the turn runner and, for the trusted page, by the wiring's shell-action handler |
 | `turn/canvasTurn` | Turn lifecycle and role routing: which surfaces are stage paints, which fill slots, which fragments are refused, when a composition is torn down and captured | `canvasStore`, the live processor, `applyMessages`, `composition/roster` |
 | `composition/slotContent` | What a `Slot` renders: boundary → vendor Provider → surface for a vendor fragment; surface alone, in a bare `[data-shell-content]` element, for the `shell` source (task-5.5 decision 2); for a slot on the roster that is unfilled, its source's prose, if any, as `[data-slot-resting="prose"]` | `FragmentBoundary`, `catalogs/CatalogContext` |
 | `composition/FragmentBoundary` | The one element a fragment mounts inside: provenance, isolation anchor, promotion treatment | — |
 | `composition/slotCount` | How many `Slot` components the surface holds, gap slots included — adaptive weight's input | — |
 | `composition/collisionDetector` | CSS collision rules over the installed catalogs | run from tests only |
-| `composition/roster` | `shellPaintSlots`: reads a shell paint's slots — the roster, each `Attribution` paired to its `Slot` through `child`, and the vendor slots a whole-tree paint left with no attribution (`unattributed`); `rosterOfSurface`: the roster of a mounted shell surface | `canvasStore` (`RosterEntry`); the wiring's `appDisplayName` |
+| `composition/roster` | `shellPaintSlots`: reads a shell paint's slots — the roster, each `Attribution` paired to its `Slot` through `child`, and the vendor slots a whole-tree paint left with no attribution (`unattributed`); `slotStatesOf`: each `Slot`'s painted `state` by source, the synthesis slot under `shell`; `rosterOfSurface`: the roster of a mounted shell surface | `canvasStore` (`RosterEntry`); the wiring's `appDisplayName` |
 | `hostRelay` | The host the shell catalog is built with, before any canvas exists — `ShellHost {onShellAction, onNavigate, appDisplayName}`: forwards a shell action or a navigation to the host the canvas bound, and warns and drops one raised with nothing bound; the lookup answers nothing when unbound, so the app id stands in | built in `canvas.tsx`; `CanvasApp` binds `wiring.host` while mounted |
 | `components/TrustedPageOverlay` | The trusted-page layer over the canvas — the Store or the App Library — as `trustedPage` says: the page's title, the query when one was carried, "Back to the canvas" | `canvasStore` (`trustedPage`, `closeTrustedPage`) |
+| `components/QuestionHeader` | The question heading the canvas: display size on one line, a fixed 4-line box (120px) past it, measured before paint; past 4 lines the 4th fades and "Show all +N lines" opens the whole question over the page (Esc closes); the header and "Edit and ask again" open the palette holding it | `CanvasApp` (keyed by the question, so a new one remeasures), `questionOnView` |
+| `turnProgress` · `components/ProgressLine` | Pure: the turn's progress off the store — planning (an utterance in flight, nothing planned), a step per vendor source in roster order (done once placed or spoken, failed as painted, working until then), the join over the vendor names — and its line under the question, the working step carrying `canvas-pending` | `canvasStore` |
 | `components/AmbientNotice` | The notice stack and its two fade clocks | `canvasStore` via `orderedNotices` |
 | `synthesis/synthesisSession` | A composition's synthesis state: the payload, the data-model subscriptions that re-run the evaluator, the user's sort choices by array path, the last output written | fed by `turn/canvasTurn`; reads and writes the live processor's data models; reports an invalid payload through the fragment-failure channel |
 | `synthesis/bindingEvaluator` | Pure: `evaluate({payload, models, choices, functions}) → EvaluatedModel` — the derived model mirrored with a cell object at every formula path, each cell's join and navigation target, every array a sort path reaches sorted in place, `/sorts/N` with the choice in force; ref resolution through the sdk kit, absent-skipping, operator and relation dispatch to the shell catalog, `argmin`/`argmax`/`source` mapped to an app id | the shell catalog's `functions` and `cellJoin`; the sdk's `reachSortPath`; `parseInstant` for the sort |
@@ -238,6 +240,20 @@ wrapper that still stands around it. The runner refuses that source's fragment (
 A shell repaint may legally carry only the components it changed, so a paint containing no
 attribution leaves the roster standing rather than emptying it. The roster is cleared per turn,
 never by a repaint.
+
+### The question heads the canvas
+
+An utterance sets the store's `question` at `runner.begin`; an action or an answer leaves it
+standing, the next utterance replaces it. A parked view shows its own: `questionOnView` walks the
+parked entry's causes back through its parents to the utterance that opened it. The head —
+`QuestionHeader` over `ProgressLine` — sits above the stage, 24px from the top, in the page column
+after a 56px gutter the Back button sits in. Every word of the progress line is computed; the join
+is named by the apps' display names, since the join hypothesis's nouns never reach the client. The
+status strip names the app and carries a sticky error only. The head, strip and Ask pill take
+their values from `--a2v-*` tokens on `.canvas-app` (with dark values), drawn to the Final page of
+the task 7.14 design canvas (https://claude.ai/artifact/W324EkZXFze2CxddzNve1o). The stage content
+sets `--a2v-layout-gap: 32px` for the shell's own regions and unsets it inside each fragment and
+the shell content; the notice stack sits above the Ask pill, the top edge being the question's.
 
 ### A composed turn abandons hold-and-swap
 
