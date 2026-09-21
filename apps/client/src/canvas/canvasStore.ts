@@ -6,7 +6,13 @@
  * the replay driver, the A2A callbacks), which is why it is a closure module and not
  * component state.
  */
-import type {PaintEntry, PaintFragment, PaintSnapshot, PaintSynthesis} from './timeline/paint';
+import type {
+  PaintCause,
+  PaintEntry,
+  PaintFragment,
+  PaintSnapshot,
+  PaintSynthesis,
+} from './timeline/paint';
 
 /** The ring cap — a stated policy bound, not a memory guard. */
 export const TIMELINE_CAP = 50;
@@ -39,6 +45,17 @@ export interface RosterEntry {
   appId: string;
   displayName: string;
 }
+
+/** The utterance that opened the turn on stage — the canvas's header until the next one. */
+export interface Question {
+  /** The user's words, verbatim. */
+  text: string;
+  /** Epoch ms of the Enter. */
+  askedAt: number;
+}
+
+/** A slot state the orchestrator painted on the shell surface; filled is never on the wire. */
+export type PaintedSlotState = 'pending' | 'failed' | 'collapsed';
 
 /** A notice as the stack renders it: ordered, and resolved against the roster. */
 export interface RenderedNotice extends Notice {
@@ -83,10 +100,23 @@ export interface CanvasState {
   viewing: number | null;
   /** A paint landed while parked — the "newer view exists" marker; cleared on return-to-live. */
   headAdvancedWhileParked: boolean;
-  /** Set while a paint is streaming; its label feeds the status strip. */
-  inFlight: {label: string} | null;
+  /**
+   * Set while a paint is streaming: its activity label, and the kind of cause that opened it —
+   * an utterance plans, an action or an answer works inside what is already there.
+   */
+  inFlight: {label: string; cause?: PaintCause['kind']} | null;
   /** Sticky failure text; cleared by the next dispatch (beginPaint). */
   error: string | null;
+  /**
+   * The live turn's question: set when an utterance opens a turn, kept through the actions that
+   * follow inside its fragments, replaced by the next utterance. Null before the first.
+   */
+  question: Question | null;
+  /**
+   * Each slot's state as the shell paint last said it, by source: what the progress line reads
+   * for a source that failed. Absent when the paint names none — pending until placed, then filled.
+   */
+  slotStates: ReadonlyMap<string, PaintedSlotState>;
   /**
    * The notice stack: one entry per source that has spoken this turn, plus at most one for the
    * shell. Plural because a fan-out has several voices, and buffered per source because their
@@ -121,10 +151,14 @@ export interface CanvasState {
 export interface CanvasStore {
   getState(): CanvasState;
   subscribe(listener: () => void): () => void;
-  beginPaint(label: string): void;
+  beginPaint(label: string, cause?: PaintCause['kind']): void;
   /** Upgrade the in-flight label (the agent-authored title); no-op when idle. */
   updateInFlightLabel(label: string): void;
   endPaint(): void;
+  setQuestion(question: Question): void;
+  /** Merge the slot states a shell paint carried; `null` clears a source's. */
+  mergeSlotStates(states: ReadonlyMap<string, PaintedSlotState | null>): void;
+  clearSlotStates(): void;
   reportError(text: string): void;
   setStage(stageId: string | null): void;
   setOverlay(overlay: OverlayState | null): void;
@@ -202,6 +236,26 @@ export function orderedNotices(state: CanvasState): readonly RenderedNotice[] {
     }));
 }
 
+/**
+ * The question heading what the user is looking at. Live, the turn's own; parked, the utterance
+ * that opened the parked paint — found by walking its causes back through the actions taken
+ * inside it, as far as the ring still holds them.
+ */
+export function questionOnView(state: CanvasState): Question | null {
+  if (state.viewing === null) return state.question;
+  const byId = new Map(state.timeline.map(e => [e.paintId, e]));
+  let entry = byId.get(state.viewing);
+  const seen = new Set<number>();
+  while (entry && !seen.has(entry.paintId)) {
+    seen.add(entry.paintId);
+    if (entry.cause.kind === 'utterance') {
+      return {text: entry.cause.payload.text, askedAt: entry.paintedAt};
+    }
+    entry = entry.cause.parent === null ? undefined : byId.get(entry.cause.parent);
+  }
+  return null;
+}
+
 export function currentPaintId(state: CanvasState): number | null {
   if (state.viewing !== null) return state.viewing;
   if (state.stageId === null) return null;
@@ -219,6 +273,8 @@ export function createCanvasStore(): CanvasStore {
     headAdvancedWhileParked: false,
     inFlight: null,
     error: null,
+    question: null,
+    slotStates: new Map(),
     notices: [],
     roster: [],
     prose: new Map(),
@@ -244,11 +300,24 @@ export function createCanvasStore(): CanvasStore {
       listeners.add(listener);
       return () => listeners.delete(listener);
     },
-    beginPaint: label => set({inFlight: {label}, error: null}),
+    beginPaint: (label, cause) => set({inFlight: {label, cause}, error: null}),
     updateInFlightLabel: label => {
-      if (state.inFlight) set({inFlight: {label}});
+      if (state.inFlight) set({inFlight: {...state.inFlight, label}});
     },
     endPaint: () => set({inFlight: null}),
+    setQuestion: question => set({question}),
+    mergeSlotStates: states => {
+      if (states.size === 0) return;
+      const next = new Map(state.slotStates);
+      for (const [source, slotState] of states) {
+        if (slotState === null) next.delete(source);
+        else next.set(source, slotState);
+      }
+      set({slotStates: next});
+    },
+    clearSlotStates: () => {
+      if (state.slotStates.size) set({slotStates: new Map()});
+    },
     reportError: text => set({error: text}),
     setStage: stageId => set({stageId}),
     setOverlay: overlay => set({overlay}),

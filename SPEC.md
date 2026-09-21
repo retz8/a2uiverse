@@ -102,6 +102,8 @@ Every grafted fragment carries a shell-owned **attribution affordance** — rend
 
 The boundary is **not drawn**. A rectangle around every fragment makes the target composition — the shell's layout with fragments grafted into its slots — read as the tiling it replaces (§1), and boxes a vendor's own cards inside a second box. The shell draws no border, edge, background or hover state around a fragment; a region is its attribution marker, the vendor's own pixels, and the whitespace between regions. A reserved slot draws nothing either and keeps the space it reserved, so first paint is a page assembling rather than a wireframe of empty boxes filling in.
 
+The **user's question heads the canvas**: their words, verbatim, from Enter until the next question, the one header of every turn — the screen carries no title of its own; the merged view's title labels the merged view. A question that fits one line is set at display size; a longer one at body size in a four-line box whose height is settled at Enter, and past four lines "Show all" opens the whole question over the page, nothing beneath it moving. Under it a progress line says where the turn stands — planning, then a tick per source as its fragment fills, then the merge — in words the client computes from what it holds, never a model's. The status strip no longer carries the question.
+
 Attribution is for vendor fragments. The shell's own content — the synthesis surface, and the framing and platform answers the Planner writes into the layout surface — carries none. The synthesis surface renders in its reserved position with no boundary and no tile, the shell writing on its own page, and its provenance is in each derived value (§5.4). The Planner never authors `Attribution`: the shell wraps every vendor-fragment `Slot` in it deterministically, and the synthesis slot and gap slots — the shell's own content — stay bare.
 
 ### 4.4 Agent awareness
@@ -195,7 +197,7 @@ Inherited from the canvas: streaming renders only on the first turn; subsequent 
 The Planner is the shell's designer and its voice. It authors the **layout surface** (`shell:main`) the way an agent authors its surface: as text against the shell catalog described in its prompt, parsed and validated after, one retry carrying the failure.
 
 1. A **dispatch list**: each source with its prose request, and each capability gap named in prose (§8).
-2. A **tree** in the shell catalog. `Slot` is its placeholder — one per dispatched source, one for the reserved synthesis slot when there is one, one per capability gap. A `shell` slot is the synthesis slot and nothing else. Around the slots the tree carries framing — headings, a restated question, the shell's own words — and answers to questions about the platform. It never contains `Attribution` or `Frame`.
+2. A **tree** in the shell catalog. `Slot` is its placeholder — one per dispatched source, one for the reserved synthesis slot when there is one, one per capability gap. A `shell` slot is the synthesis slot and nothing else. Around the slots the tree carries framing — headings, the shell's own words — and answers to questions about the platform. It never contains `Attribution` or `Frame`.
 3. A **data model of literal values** the tree binds to — never a formula, never a ref.
 4. Actions only from the shell's closed action set (§4.2, §7).
 

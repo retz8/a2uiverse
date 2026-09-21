@@ -21,7 +21,7 @@
  * the catalog's own: it names no source and enters no roster.
  */
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
-import type {RosterEntry} from '../canvasStore';
+import type {PaintedSlotState, RosterEntry} from '../canvasStore';
 
 /** The reserved source id the hub stamps its own content with — the shell speaking as itself. */
 export const SHELL_SOURCE = 'shell';
@@ -39,6 +39,7 @@ interface ShellComponent {
   source?: unknown;
   label?: unknown;
   content?: unknown;
+  state?: unknown;
 }
 
 /** What one shell paint says about its slots: the roster, and the vendor slots painted bare. */
@@ -101,6 +102,34 @@ export function shellPaintSlots(messages: readonly A2uiMessage[]): ShellPaintSlo
     }
   }
   return {roster: roster.length > 0 ? roster : undefined, unattributed};
+}
+
+const PAINTED_STATES: readonly string[] = ['pending', 'failed', 'collapsed'];
+
+/**
+ * The state each `Slot` in a shell paint declares, by source — the synthesis slot under
+ * `SHELL_SOURCE`. A slot painted with no state maps to null: whatever it said before no longer
+ * holds. Sources the paint does not carry are absent, since a repaint may carry only what changed.
+ */
+export function slotStatesOf(
+  messages: readonly A2uiMessage[],
+): Map<string, PaintedSlotState | null> {
+  const states = new Map<string, PaintedSlotState | null>();
+  for (const message of messages) {
+    const update = (message as {updateComponents?: {components?: unknown}}).updateComponents;
+    if (!update || !Array.isArray(update.components)) continue;
+    for (const raw of (update.components as ShellComponent[]).filter(Boolean)) {
+      if (raw.component !== SLOT || typeof raw.source !== 'string') continue;
+      const source = raw.content === 'shell' ? SHELL_SOURCE : raw.source;
+      states.set(
+        source,
+        typeof raw.state === 'string' && PAINTED_STATES.includes(raw.state)
+          ? (raw.state as PaintedSlotState)
+          : null,
+      );
+    }
+  }
+  return states;
 }
 
 /** The roster alone — see `ShellPaintSlots.roster`. */

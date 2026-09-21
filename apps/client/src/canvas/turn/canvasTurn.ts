@@ -45,7 +45,7 @@ import type {CompositionStamp, SynthesisPayload} from '@a2uiverse/sdk';
 import type {PaintMeta} from '../../a2a/messages';
 import {paintMetaOf, QUESTION_PAINT_KIND} from '../../a2a/messages';
 import {applyA2uiMessages} from '../../a2ui/applyMessages';
-import {shellPaintSlots} from '../composition/roster';
+import {shellPaintSlots, slotStatesOf} from '../composition/roster';
 import {describeError} from '../../shared/describeError';
 import type {CanvasState, CanvasStore} from '../canvasStore';
 import type {PaintCause} from '../timeline/paint';
@@ -620,6 +620,7 @@ export function createTurnRunner({
         if (stamp?.role === 'shell') {
           const {roster, unattributed} = shellPaintSlots(rest);
           if (roster) store.setRoster(roster);
+          store.mergeSlotStates(slotStatesOf(rest));
           for (const source of unattributed) refusedSources.add(source);
         }
         const source = slotOf(stamp);
@@ -676,7 +677,13 @@ export function createTurnRunner({
     store.clearNotices();
     store.clearProse();
     store.setRoster([]);
-    store.beginPaint(describeCause(cause));
+    store.clearSlotStates();
+    // The user's words head the canvas from Enter until the next utterance; an action inside a
+    // fragment is a step within the same question, so it leaves the header standing.
+    if (cause.kind === 'utterance') {
+      store.setQuestion({text: cause.payload.text, askedAt: Date.now()});
+    }
+    store.beginPaint(describeCause(cause), cause.kind);
     return handle;
   };
 

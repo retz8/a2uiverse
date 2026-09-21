@@ -47,3 +47,10 @@ export function justifyProps(justify: BasicJustify | undefined): {
 export function alignProp(align: BasicAlign | undefined): BasicAlign {
   return align ?? 'stretch';
 }
+
+/**
+ * The gap between the children of a `Row` or `Column`: Radix's space-3, unless the host spaces
+ * the regions of its own layout differently through `--a2v-layout-gap`. The client sets it on the
+ * layout surface and unsets it inside each region, so content painted within keeps space-3.
+ */
+export const LAYOUT_GAP = 'var(--a2v-layout-gap, var(--space-3))';

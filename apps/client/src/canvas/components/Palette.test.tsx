@@ -53,4 +53,14 @@ describe('Palette', () => {
     await userEvent.keyboard('{Escape}');
     expect(onDismiss).toHaveBeenCalled();
   });
+
+  it('opened from the header, holds the question to edit and ask again', async () => {
+    const onSubmit = vi.fn();
+    renderWithShell(
+      <Palette open initialText="show my PRs" onDismiss={() => {}} onSubmit={onSubmit} />,
+    );
+    expect(screen.getByRole('textbox')).toHaveValue('show my PRs');
+    await userEvent.type(screen.getByRole('textbox'), ' on a2ui{Enter}');
+    expect(onSubmit).toHaveBeenCalledWith('show my PRs on a2ui');
+  });
 });

@@ -14,7 +14,7 @@ import {CATALOG_ID} from 'github-catalog';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 import {CATALOG_ID as SHOP_A_CATALOG_ID} from 'shop-a-catalog';
 import {CATALOG_ID as SHOP_B_CATALOG_ID} from 'shop-b-catalog';
-import type {BeatFixture} from './beatFixtures';
+import {getBeatFixture, type BeatFixture} from './beatFixtures';
 import {JOIN_DOCUMENT, JOIN_ITEMS, JOIN_PRODUCTS, JOIN_PRODUCTS_RETITLED} from './joinFixture';
 import {
   DOCUMENT,
@@ -697,6 +697,27 @@ export const JOIN_BEAT: BeatFixture = {
   ],
 };
 
+/**
+ * A question past the header's four lines (task 7.14): the entity-join recording (beat 9)
+ * replayed under a paragraph that ends in its own utterance, so the header clips and the ask —
+ * the last sentence — sits behind "Show all". The agents' output is the recording's, unchanged.
+ */
+export const LONG_QUESTION =
+  "I'm wrapping up Phase 7 before Friday's demo. A few of my Linear issues already have pull requests open, and I think a CI run failed over the weekend, but I've lost track of which is which. I also want to know whether any of those pull requests is still waiting on a review, and whether the issue about the shell-action report hanging through the tunnel ever got a branch pushed. What's the status of what I'm working on, and is anything blocked?";
+
+function longQuestionBeat(): BeatFixture | undefined {
+  const recorded = getBeatFixture(9);
+  if (!recorded) return undefined;
+  return {
+    ...recorded,
+    name: 'synthetic-long-question',
+    beat: 116,
+    title: 'A question past four lines',
+    prompt: LONG_QUESTION,
+    turns: recorded.turns.map((turn, i) => (i === 0 ? {...turn, prompt: LONG_QUESTION} : turn)),
+  };
+}
+
 /** Resolve a synthetic beat by the name `?beat=` accepts. */
 export function syntheticBeat(name: string): BeatFixture | undefined {
   switch (name) {
@@ -724,6 +745,8 @@ export function syntheticBeat(name: string): BeatFixture | undefined {
       return PLATFORM_ANSWER_BEAT;
     case 'gap':
       return GAP_BEAT;
+    case 'long-question':
+      return longQuestionBeat();
     default:
       return undefined;
   }

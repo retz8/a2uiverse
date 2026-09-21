@@ -12,17 +12,326 @@ body {
 }
 
 .canvas-app {
+  /* The shell's own voice on the canvas — the question, the progress line, the strip and the
+     Ask pill — drawn to the design canvas's Final page (task 7.14). */
+  --a2v-ink: #18181b;
+  --a2v-ink-2: #3f3f46;
+  --a2v-muted: #52525b;
+  --a2v-faint: #71717a;
+  --a2v-line: #e4e4e7;
+  --a2v-line-2: #f0f0f2;
+  --a2v-surface: #fafafa;
+  --a2v-hover: #f4f4f5;
+  --a2v-chip: #f1f1f3;
+  --a2v-chip-hover: #e7e7ea;
+  --a2v-dot: #a1a1aa;
+  --a2v-skel-ring: #d4d4d8;
+  --a2v-accent: #3656d4;
+  /* The fill under white text — the pill and the primary button — the same in both appearances. */
+  --a2v-accent-fill: #3656d4;
+  --a2v-danger: #c42b1c;
+  --a2v-panel: #ffffff;
+  --a2v-scrim: rgba(24, 24, 27, 0.1);
+  /* The column the trail will hold (Phase 9); Back sits in it until then. */
+  --a2v-gutter: 56px;
+  --a2v-inset: 40px;
   display: flex;
   flex-direction: column;
   height: 100vh;
   background: var(--color-background);
+  font-variant-numeric: tabular-nums;
+}
+
+.dark .canvas-app {
+  --a2v-ink: #f4f4f5;
+  --a2v-ink-2: #d4d4d8;
+  --a2v-muted: #a1a1aa;
+  --a2v-faint: #8b8b94;
+  --a2v-line: #2e2e33;
+  --a2v-line-2: #232327;
+  --a2v-surface: #131316;
+  --a2v-hover: #1f1f23;
+  --a2v-chip: #232327;
+  --a2v-chip-hover: #2e2e33;
+  --a2v-dot: #52525b;
+  --a2v-skel-ring: #3f3f46;
+  --a2v-accent: #6e8bff;
+  --a2v-danger: #ff7b6b;
+  --a2v-panel: #18181b;
+  --a2v-scrim: rgba(0, 0, 0, 0.4);
 }
 
 .canvas-stage {
   flex: 1;
   min-height: 0;
   overflow: auto;
-  padding: 16px;
+  padding: 16px var(--a2v-inset) 16px calc(var(--a2v-gutter) + var(--a2v-inset));
+}
+
+/* ——— The question and the progress line ——— */
+
+.canvas-head {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 24px var(--a2v-inset) 0 calc(var(--a2v-gutter) + var(--a2v-inset));
+  color: var(--a2v-ink);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+}
+
+/* The parked banner holds the top edge; the question starts beneath it, on the parked tint. */
+.canvas-app--parked .canvas-head {
+  padding-top: 64px;
+  background: color-mix(in srgb, var(--amber-3, #fff8c5) 22%, var(--color-background));
+}
+
+.canvas-question-wrap {
+  position: relative;
+  max-width: 100%;
+  margin: -4px -8px;
+}
+
+.canvas-question {
+  all: unset;
+  box-sizing: border-box;
+  display: block;
+  max-width: 100%;
+  padding: 4px 8px;
+  border-radius: 8px;
+  color: var(--a2v-ink);
+  cursor: text;
+  overflow-wrap: anywhere;
+  font-variant-numeric: normal;
+}
+
+.canvas-question:hover {
+  background: var(--a2v-hover);
+}
+
+.canvas-question:focus-visible {
+  outline: 2px solid var(--a2v-accent);
+  outline-offset: 2px;
+}
+
+.canvas-question--display {
+  font-size: 28px;
+  line-height: 36px;
+  font-weight: 600;
+  letter-spacing: -0.018em;
+}
+
+/* A paragraph: body size in a four-line box whose height is settled at Enter. */
+.canvas-question--long {
+  width: 736px;
+  height: 120px;
+  overflow: hidden;
+  font-size: 18px;
+  line-height: 28px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+}
+
+/* Past four lines the fourth fades out from halfway across, where "Show all" sits. */
+.canvas-question--clipped {
+  -webkit-mask-image:
+    linear-gradient(#000, #000), linear-gradient(to right, #000 48%, transparent 74%);
+  mask-image: linear-gradient(#000, #000), linear-gradient(to right, #000 48%, transparent 74%);
+  -webkit-mask-size:
+    100% 88px,
+    100% 32px;
+  mask-size:
+    100% 88px,
+    100% 32px;
+  -webkit-mask-position: top, bottom;
+  mask-position: top, bottom;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+.canvas-question-showall {
+  position: absolute;
+  right: 8px;
+  bottom: 6px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px 0 10px;
+  border: 0;
+  border-radius: 6px;
+  background: var(--a2v-chip);
+  color: var(--a2v-ink);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.canvas-question-showall:hover {
+  background: var(--a2v-chip-hover);
+}
+
+.canvas-question-more {
+  font-weight: 400;
+  color: var(--a2v-muted);
+}
+
+.canvas-question-scrim {
+  position: fixed;
+  inset: 0;
+  background: var(--a2v-scrim);
+  z-index: 21;
+}
+
+/* The whole question over the page, its first lines exactly over the header's. */
+.canvas-question-overlay {
+  position: fixed;
+  z-index: 22;
+  width: 800px;
+  max-width: calc(100vw - 32px);
+  box-sizing: border-box;
+  padding: 8px 8px 12px;
+  border: 1px solid var(--a2v-line);
+  border-radius: 12px;
+  background: var(--a2v-panel);
+  color: var(--a2v-ink);
+  box-shadow:
+    0 2px 4px rgba(24, 24, 27, 0.06),
+    0 16px 40px rgba(24, 24, 27, 0.14);
+}
+
+.canvas-question-full {
+  box-sizing: border-box;
+  width: 736px;
+  max-width: calc(100% - 48px);
+  margin: 0;
+  padding: 4px 8px;
+  font-size: 18px;
+  line-height: 28px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  overflow-wrap: anywhere;
+}
+
+.canvas-question-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 6px 0 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--a2v-muted);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.canvas-question-close:hover {
+  background: var(--a2v-hover);
+}
+
+.canvas-question-esc {
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 11px;
+  line-height: 16px;
+  padding: 0 5px;
+  border: 1px solid var(--a2v-line);
+  border-radius: 4px;
+}
+
+.canvas-question-foot {
+  margin: 16px 8px 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--a2v-line-2);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.canvas-question-edit {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--a2v-accent-fill);
+  color: #ffffff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.canvas-question-when {
+  font-size: 12px;
+  color: var(--a2v-faint);
+}
+
+.canvas-progress {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 20px;
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--a2v-muted);
+  white-space: nowrap;
+}
+
+.canvas-progress-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.canvas-progress-step--done svg {
+  color: var(--a2v-ink-2);
+}
+
+.canvas-progress-step--failed {
+  color: var(--a2v-danger);
+}
+
+.canvas-progress-step--working {
+  color: var(--a2v-ink);
+}
+
+.canvas-progress-step--faint {
+  color: var(--a2v-faint);
+}
+
+.canvas-progress-dot {
+  flex: none;
+  width: 3px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--a2v-dot);
+}
+
+.canvas-spin {
+  animation: canvas-spin 1s linear infinite;
+}
+
+@keyframes canvas-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Under the question, the page begins 32px down. */
+.canvas-head + .canvas-stage {
+  padding-top: 32px;
 }
 
 .canvas-empty-ghost {
@@ -50,14 +359,15 @@ body {
 }
 
 .canvas-status-strip {
+  flex: none;
   display: flex;
   align-items: center;
-  min-height: 32px;
-  padding: 6px 16px;
-  border-top: 1px solid var(--gray-6);
-  background: var(--gray-2);
+  height: 32px;
+  padding: 0 var(--a2v-inset) 0 calc(var(--a2v-gutter) + var(--a2v-inset));
+  border-top: 1px solid var(--a2v-line);
+  background: var(--a2v-surface);
   font-size: 12px;
-  color: var(--gray-11);
+  color: var(--a2v-muted);
 }
 
 .canvas-status-message {
@@ -66,18 +376,11 @@ body {
   min-width: 0;
 }
 
-.canvas-status-pending {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-
 .canvas-status-error {
   color: var(--red-11);
 }
 
 .canvas-status-identity {
-  opacity: 0.7;
   user-select: none;
 }
 
@@ -107,36 +410,51 @@ body {
   color: var(--amber-11);
 }
 
+/* Centred on the page column — the gutter is the trail's, not the page's. */
 .canvas-app .canvas-ask-pill {
   position: fixed;
-  bottom: 56px;
-  left: 50%;
+  bottom: 48px;
+  left: calc(50% + var(--a2v-gutter) / 2);
   width: max-content;
+  height: 40px;
   transform: translateX(-50%);
-  border-radius: 999px;
-  padding-inline: 20px;
-  box-shadow: var(--shadow-4, 0 6px 18px rgba(31, 35, 40, 0.2));
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 8px 0 20px;
+  border-radius: 20px;
+  background: var(--a2v-accent-fill);
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 500;
+  box-shadow:
+    0 1px 2px rgba(24, 24, 27, 0.12),
+    0 8px 24px rgba(54, 86, 212, 0.24);
   z-index: 15;
 }
 
 .canvas-app .canvas-ask-kbd {
-  margin-left: 8px;
-  padding: 1px 6px;
+  margin: 0;
+  padding: 2px 6px;
   border-radius: 6px;
   font-size: 11px;
+  line-height: 16px;
   font-family: inherit;
-  background: rgba(255, 255, 255, 0.18);
-  border: 1px solid rgba(255, 255, 255, 0.35);
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.36);
+  box-shadow: none;
 }
 
-/* Top-anchored so it never overlaps the bottom furniture (Ask pill, status strip). */
+/* Bottom-anchored, just above the Ask pill: the top of the canvas is the question's, and
+   nothing is drawn over it (task 7.14). */
 /* The stack is the region; a notice is one source's line in it. Lines are laid out in slot
    order, so the stack echoes the layout below it, and each is clamped rather than the stack
    being capped — a source does not lose its voice for having answered late. */
 .canvas-notice-stack {
   position: fixed;
-  top: 16px;
-  left: 50%;
+  bottom: 104px;
+  left: calc(50% + var(--a2v-gutter) / 2);
   transform: translateX(-50%);
   display: flex;
   flex-direction: column;
@@ -355,14 +673,20 @@ body {
   background: color-mix(in srgb, var(--amber-3, #fff8c5) 22%, var(--color-background));
 }
 
-/* Both the banner and the notice claim the top edge; the notice offsets down while parked. */
-.canvas-app--parked .canvas-notice-stack {
-  top: 60px;
-}
-
-/* The stage clears the floating Back button so surface content never sits under it. */
+/* With no question over it, the stage clears the floating Back button itself. */
 .canvas-stage {
   padding-top: 48px;
+}
+
+/* The shell's own layout spaces its regions: 32px between the merged view and the fragments,
+   and between fragments. Content painted inside a region keeps its catalog's own spacing. */
+[data-testid='canvas-stage-content'] {
+  --a2v-layout-gap: 32px;
+}
+
+[data-shell-content],
+.fragment-boundary {
+  --a2v-layout-gap: initial;
 }
 
 /* ── Composition ──────────────────────────────────────────────────────────────

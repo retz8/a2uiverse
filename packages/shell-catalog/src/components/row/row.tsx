@@ -9,6 +9,7 @@ import {
   weightStyle,
   type BasicAlign,
   type BasicJustify,
+  LAYOUT_GAP,
 } from '../shared/layout.js';
 
 /**
@@ -33,7 +34,7 @@ export function RowView({
       gap="3"
       justify={j.justify}
       align={alignProp(align)}
-      style={{...style, ...j.style}}
+      style={{gap: LAYOUT_GAP, ...style, ...j.style}}
     >
       {children}
     </Flex>

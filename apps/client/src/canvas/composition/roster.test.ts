@@ -4,7 +4,7 @@
  */
 import {describe, it, expect} from 'vitest';
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
-import {rosterFromShellMessages, SHELL_SOURCE, shellPaintSlots} from './roster';
+import {rosterFromShellMessages, SHELL_SOURCE, shellPaintSlots, slotStatesOf} from './roster';
 
 const msg = (m: Record<string, unknown>): A2uiMessage =>
   ({version: 'v0.9', ...m}) as unknown as A2uiMessage;
@@ -216,5 +216,33 @@ describe('rosterFromShellMessages', () => {
         msg({updateDataModel: {surfaceId: 'shell:main', value: {}}}),
       ]),
     ).toBeUndefined();
+  });
+});
+
+describe('slotStatesOf', () => {
+  it("reads each slot's painted state by source, the synthesis slot under the shell source", () => {
+    const paint = msg({
+      updateComponents: {
+        surfaceId: 'shell:main',
+        components: [
+          {id: 'merged', component: 'Slot', source: 'shell', content: 'shell', state: 'pending'},
+          {id: 'linear', component: 'Slot', source: 'linear', state: 'failed'},
+          {id: 'github', component: 'Slot', source: 'github'},
+        ],
+      },
+    });
+    expect(slotStatesOf([paint])).toEqual(
+      new Map([
+        [SHELL_SOURCE, 'pending'],
+        ['linear', 'failed'],
+        ['github', null],
+      ]),
+    );
+  });
+
+  it('says nothing about a slot the repaint does not carry', () => {
+    expect(
+      slotStatesOf([msg({updateComponents: {surfaceId: 'shell:main', components: []}})]).size,
+    ).toBe(0);
   });
 });

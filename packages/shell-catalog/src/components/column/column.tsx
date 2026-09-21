@@ -9,6 +9,7 @@ import {
   weightStyle,
   type BasicAlign,
   type BasicJustify,
+  LAYOUT_GAP,
 } from '../shared/layout.js';
 
 /** `Column` on Radix `Flex`, direction column — `Row` turned on its side; see `row.tsx`. */
@@ -30,7 +31,7 @@ export function ColumnView({
       gap="3"
       justify={j.justify}
       align={alignProp(align)}
-      style={{...style, ...j.style}}
+      style={{gap: LAYOUT_GAP, ...style, ...j.style}}
     >
       {children}
     </Flex>

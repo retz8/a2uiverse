@@ -4,7 +4,13 @@
  */
 import {describe, it, expect, vi} from 'vitest';
 import type {PaintCause, PaintEntry, PaintSnapshot} from './timeline/paint';
-import {createCanvasStore, orderedNotices, currentPaintId, TIMELINE_CAP} from './canvasStore';
+import {
+  createCanvasStore,
+  orderedNotices,
+  currentPaintId,
+  questionOnView,
+  TIMELINE_CAP,
+} from './canvasStore';
 
 const CAUSE: PaintCause = {
   kind: 'utterance',
@@ -41,6 +47,8 @@ describe('createCanvasStore', () => {
       headAdvancedWhileParked: false,
       inFlight: null,
       error: null,
+      question: null,
+      slotStates: new Map(),
       notices: [],
       roster: [],
       prose: new Map(),
@@ -411,5 +419,70 @@ describe('updateInFlightLabel', () => {
     const store = createCanvasStore();
     store.updateInFlightLabel('too late');
     expect(store.getState().inFlight).toBeNull();
+  });
+});
+
+describe('questionOnView (task 7.14)', () => {
+  it("live: the turn's own question", () => {
+    const store = createCanvasStore();
+    store.setQuestion({text: 'show my PRs', askedAt: 5});
+    expect(questionOnView(store.getState())).toEqual({text: 'show my PRs', askedAt: 5});
+  });
+
+  it('parked: the utterance that opened the paint, walked back through actions taken in it', () => {
+    const store = createCanvasStore();
+    store.setQuestion({text: 'a later question', askedAt: 99});
+    store.appendEntry(
+      entry(1, {cause: {...CAUSE, payload: {text: 'what needs my attention today?'}}}),
+    );
+    store.appendEntry(
+      entry(2, {
+        cause: {
+          kind: 'surface-action',
+          parent: 1,
+          forked: false,
+          payload: {
+            action: {
+              name: 'sort-by',
+              context: {},
+              surfaceId: 's',
+              sourceComponentId: 'c',
+              timestamp: '2026-09-21T09:12:00Z',
+            },
+          },
+        },
+      }),
+    );
+    store.appendEntry(entry(3));
+    store.park(2);
+    expect(questionOnView(store.getState())).toEqual({
+      text: 'what needs my attention today?',
+      askedAt: 1001,
+    });
+  });
+
+  it('parked with no utterance left in the ring: no question', () => {
+    const store = createCanvasStore();
+    store.appendEntry(
+      entry(1, {
+        cause: {
+          kind: 'overlay-answer',
+          parent: null,
+          forked: false,
+          payload: {
+            answer: {
+              name: 'confirm',
+              context: {},
+              surfaceId: 's',
+              sourceComponentId: 'c',
+              timestamp: 't',
+            },
+          },
+        },
+      }),
+    );
+    store.appendEntry(entry(2));
+    store.park(1);
+    expect(questionOnView(store.getState())).toBeNull();
   });
 });

@@ -8,12 +8,17 @@ import {TextField} from '@radix-ui/themes';
 
 export interface PaletteProps {
   open: boolean;
+  /**
+   * Words to open holding — the question, when the palette is opened from the header. Read at
+   * mount: the canvas remounts the palette (by key) to hand it new words.
+   */
+  initialText?: string;
   onDismiss: () => void;
   onSubmit: (utterance: string) => void;
 }
 
-export function Palette({open, onDismiss, onSubmit}: PaletteProps) {
-  const [text, setText] = useState('');
+export function Palette({open, initialText, onDismiss, onSubmit}: PaletteProps) {
+  const [text, setText] = useState(initialText ?? '');
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {

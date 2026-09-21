@@ -17,7 +17,7 @@ import {SlotContentContext} from '@a2uiverse/shell-catalog';
 import {CatalogProvider} from '../catalogs/CatalogContext';
 import type {ResolvedCatalog} from '../catalogs/resolver';
 import {useSlotContent} from './composition/slotContent';
-import {orderedNotices} from './canvasStore';
+import {orderedNotices, questionOnView} from './canvasStore';
 import {createCanvasWiring} from './createCanvasWiring';
 import {replayBeatOnCanvas} from './replayBeat';
 import {AmbientNotice} from './components/AmbientNotice';
@@ -26,6 +26,8 @@ import {CanvasStage} from './components/CanvasStage';
 import {HistoryChrome} from './components/HistoryChrome';
 import {ParkedStage} from './components/ParkedStage';
 import {Palette} from './components/Palette';
+import {ProgressLine} from './components/ProgressLine';
+import {QuestionHeader} from './components/QuestionHeader';
 import {StatusStrip} from './components/StatusStrip';
 import {TrustedPageOverlay} from './components/TrustedPageOverlay';
 import type {HostRelay} from './hostRelay';
@@ -82,6 +84,15 @@ export function CanvasApp({serverUrl, client, catalogs, hostRelay}: CanvasAppPro
   // The palette auto-opens on an empty idle canvas (nothing else to do there) — unless a
   // beat replay is about to occupy the stage.
   const [paletteOpen, setPaletteOpen] = useState(beatParams === null);
+  /**
+   * What the palette opens holding — the question, when it is opened from the header. A new
+   * seed remounts the palette with those words; opening it otherwise keeps any draft.
+   */
+  const [paletteSeed, setPaletteSeed] = useState<{text?: string; key: number}>({key: 0});
+  const openPalette = (text?: string) => {
+    if (text !== undefined) setPaletteSeed(seed => ({text, key: seed.key + 1}));
+    setPaletteOpen(true);
+  };
   /** Set once the whole `?beat=` list has replayed — the settle signal for visual tests. */
   const [replayDone, setReplayDone] = useState(false);
 
@@ -120,6 +131,9 @@ export function CanvasApp({serverUrl, client, catalogs, hostRelay}: CanvasAppPro
 
   const parkedEntry =
     state.viewing !== null ? state.timeline.find(e => e.paintId === state.viewing) : undefined;
+  const question = questionOnView(state);
+  // The progress line belongs to the live turn; a parked view is a finished one.
+  const showProgress = !parkedEntry && (question !== null || state.inFlight !== null);
 
   return (
     <CatalogProvider catalogs={catalogs}>
@@ -129,6 +143,19 @@ export function CanvasApp({serverUrl, client, catalogs, hostRelay}: CanvasAppPro
             className={parkedEntry ? 'canvas-app canvas-app--parked' : 'canvas-app'}
             data-replay={replayDone ? 'done' : undefined}
           >
+            {(question || showProgress) && (
+              <header className="canvas-head" data-testid="canvas-head">
+                {question && (
+                  // Keyed by the question, so a new one starts over at display size, measured.
+                  <QuestionHeader
+                    key={`${question.askedAt}:${question.text}`}
+                    question={question}
+                    onEdit={openPalette}
+                  />
+                )}
+                {showProgress && <ProgressLine state={state} since={question?.askedAt ?? null} />}
+              </header>
+            )}
             {parkedEntry ? (
               <ParkedStage
                 key={parkedEntry.paintId}
@@ -157,7 +184,9 @@ export function CanvasApp({serverUrl, client, catalogs, hostRelay}: CanvasAppPro
               onRepaint={wiring.repaint}
             />
             <Palette
+              key={paletteSeed.key}
               open={paletteOpen}
+              initialText={paletteSeed.text}
               onDismiss={() => setPaletteOpen(false)}
               onSubmit={utterance => {
                 setPaletteOpen(false);
@@ -171,7 +200,7 @@ export function CanvasApp({serverUrl, client, catalogs, hostRelay}: CanvasAppPro
                 size="3"
                 className="canvas-ask-pill"
                 aria-label="Ask"
-                onClick={() => setPaletteOpen(true)}
+                onClick={() => openPalette()}
               >
                 Ask <Kbd className="canvas-ask-kbd">⌘K</Kbd>
               </Button>

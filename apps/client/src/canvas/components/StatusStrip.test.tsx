@@ -1,7 +1,7 @@
 /**
- * The status strip: the thin always-visible region for the status register — idle hint,
- * in-flight spinner + label, sticky error. Status only: the palette affordance is the canvas's
- * floating Ask pill, not strip furniture.
+ * The status strip: the thin always-visible region naming the app, and a sticky error. The
+ * turn's activity is the progress line's, under the question; the palette affordance is the
+ * canvas's floating Ask pill, not strip furniture.
  */
 import {describe, it, expect} from 'vitest';
 import {screen} from '@testing-library/react';
@@ -23,11 +23,13 @@ describe('StatusStrip', () => {
     expect(screen.queryByRole('button')).toBeNull();
   });
 
-  it('in flight: shows the paint label', () => {
+  it('in flight: still names the app — the question and its progress are the canvas head', () => {
     const store = createCanvasStore();
-    store.beginPaint('open PRs — generating…');
+    store.beginPaint('“open PRs” — generating…', 'utterance');
     renderWithShell(<StatusStrip state={store.getState()} />);
-    expect(screen.getByTestId('canvas-pending')).toHaveTextContent('open PRs — generating…');
+    expect(screen.queryByTestId('canvas-pending')).toBeNull();
+    expect(screen.getByTestId('canvas-status')).toHaveTextContent('A2UIVerse');
+    expect(screen.getByTestId('canvas-status')).not.toHaveTextContent('open PRs');
   });
 
   it('error: sticky failure text as an alert', () => {

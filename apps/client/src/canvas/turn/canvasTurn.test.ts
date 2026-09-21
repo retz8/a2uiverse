@@ -1162,3 +1162,41 @@ describe('shell-granted promotion', () => {
     expect(store.getState().promoted.size).toBe(0);
   });
 });
+
+describe('the question (task 7.14)', () => {
+  it('an utterance sets the question; an action inside the canvas leaves it standing', () => {
+    const {store, runner} = setup();
+    const first = runner.begin(utterance('show my PRs'));
+    expect(store.getState().question?.text).toBe('show my PRs');
+    expect(store.getState().inFlight?.cause).toBe('utterance');
+    first.end();
+
+    const action = runner.begin(surfaceAction('approve'));
+    expect(store.getState().question?.text).toBe('show my PRs');
+    expect(store.getState().inFlight?.cause).toBe('surface-action');
+    action.end();
+
+    runner.begin(utterance('now the issues'));
+    expect(store.getState().question?.text).toBe('now the issues');
+  });
+
+  it('a shell paint records the slot states it carries, and a new turn forgets them', () => {
+    const {store, runner} = setup();
+    const turn = runner.begin(utterance('status'));
+    turn.apply(
+      [
+        msg({
+          updateComponents: {
+            surfaceId: 'shell:main',
+            components: [{id: 'linear', component: 'Slot', source: 'linear', state: 'failed'}],
+          },
+        }),
+      ],
+      {source: 'shell', role: 'shell'},
+    );
+    expect(store.getState().slotStates.get('linear')).toBe('failed');
+    turn.end();
+    runner.begin(utterance('again'));
+    expect(store.getState().slotStates.size).toBe(0);
+  });
+});

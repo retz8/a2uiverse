@@ -30,7 +30,9 @@ export function CanvasStage({processor, state}: CanvasStageProps) {
             <SurfaceFrame surface={surface} />
           </SurfaceErrorBoundary>
         </div>
-      ) : (
+      ) : state.question ? null : (
+        // The mark belongs to a canvas nobody has asked anything of yet; once a question stands,
+        // the header is what the canvas shows while the plan is made.
         <div className="canvas-empty-ghost" data-testid="canvas-empty-ghost" aria-hidden="true">
           <div className="canvas-empty-mark">A2UIVerse</div>
           <div className="canvas-empty-hint">⌘K to ask</div>
