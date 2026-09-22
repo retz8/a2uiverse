@@ -7,7 +7,7 @@ the **orchestrator** asks a model to *author* the view and checks what comes bac
 *evaluates* it and keeps it live. This doc is the narrative end to end. The per-class records stay
 in [`orchestrator.md`](orchestrator.md), [`client.md`](client.md) and
 [`shell-catalog.md`](shell-catalog.md); the sdk's front page is `packages/sdk/README.md`. State
-as of task 7.9.
+as of task 7.16.
 
 ## The idea in one paragraph
 
@@ -133,8 +133,9 @@ scenario, recorded as beat 5.
 
 4. **The model writes the synthesize data model, as text.** One JSON document inside a
    `<synthesize-data-model>` block (phase decision 16). For the S1 shapes the Synthesizer's own worked
-   example shows the form: a `Column` holding a heading, a `SortControl`, a `Table` templated over
-   `/timeline`, and a second `Table` for Calendar, whose times of day carry no date and cannot
+   example shows the form: a `Column` holding a `Row` of the view's `h5` label and its
+   `SortControl`, a `Table` templated over `/timeline`, and, under its own `h5` label, a second
+   `Table` for Calendar, whose times of day carry no date and cannot
    join the axis; a `dataModel` with `timeline` (Gmail threads and GitHub PRs, selected by id or
    by repository-and-number) and `calendar` arrays; one sort over `/timeline` by `/when`; and a
    note explaining why Calendar stands apart.
@@ -177,8 +178,10 @@ scenario, recorded as beat 5.
    fragment boundary, no attribution tile, no source badge. Provenance is in the cells — each
    `DerivedValue` shows its value and, when not every source contributed, draws it in the quiet
    register with the detail on hover. The Gmail and GitHub entries sit on one axis ordered by instant, each row's
-   `Source` cell naming its app through the `source` operator; the `SortControl` above the table
-   shows the criterion and lets the user change it. Calendar's entries stand in their own table
+   `Source` cell naming its app through the `source` operator; the `SortControl`, on one row with
+   the view's small label at its leading edge, shows the criterion and lets the user change it —
+   the user's question heads the canvas, so the model's title is only the merged view's label
+   (task 7.16). Calendar's entries stand in their own table
    with their times shown as labels. (A view of one thing's labelled fields — a summary, a detail
    — is a `DataList` of `DataListItem`s instead of a `Table`; the guidance doc says which shape
    serves which view.)
@@ -228,8 +231,9 @@ And the tree that binds to it, as the painter sends it (the components list of a
 
 ```json
 [
-  {"id": "root", "component": "Column", "children": ["heading", "sort", "timeline", "calendar-heading", "calendar"]},
-  {"id": "heading", "component": "Text", "variant": "h3", "text": "Needs attention today"},
+  {"id": "root", "component": "Column", "children": ["head", "timeline", "calendar-heading", "calendar"]},
+  {"id": "head", "component": "Row", "justify": "spaceBetween", "align": "center", "children": ["heading", "sort"]},
+  {"id": "heading", "component": "Text", "variant": "h5", "text": "Needs attention today"},
   {"id": "sort", "component": "SortControl", "sort": {"path": "/sorts/0"}},
   {"id": "timeline", "component": "Table", "columns": ["Source", "When", "What"],
    "children": {"path": "/timeline", "componentId": "item"}},
@@ -299,8 +303,12 @@ declaration on every array the tree lists, the one exception being the array no 
 catalog, one of them `root`. It binds to the model with `{"path": …}`, absolute or relative
 inside a template. **The derived-value rule** (phase decision 18): a path whose leaf is a formula
 renders only through `DerivedValue`, and `DerivedValue` binds nothing else; `SortControl` binds
-`/sorts/N`. Literal props — headings, column labels — are presentation and the model's to write;
-a literal that restates a source's value is a copied value and is wrong there too. `Slot`,
+`/sorts/N`. Literal props — labels, column labels, a value's `danger` words, a format's `prefix`
+— are presentation and the model's to write; a literal that restates a source's value is a
+copied value and is wrong there too. A column about another entity than the row's shows that
+entity's short handle — its number under a `#` prefix — never its title, which would be the row's
+own words again; a column's `danger` words are the values a reader must act on, which the runtime
+draws in the danger tone (task 7.16). `Slot`,
 `Attribution` is the shell's own and never part of a merged view.
 
 **The note.** What was delivered and why it differs from the brief, when it differs; on a

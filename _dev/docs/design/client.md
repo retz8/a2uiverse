@@ -53,6 +53,7 @@ and renders, which is what a test or a replay needs. Every vendor catalog is reb
 | `hostRelay` | The host the shell catalog is built with, before any canvas exists — `ShellHost {onShellAction, onNavigate, appDisplayName}`: forwards a shell action or a navigation to the host the canvas bound, and warns and drops one raised with nothing bound; the lookup answers nothing when unbound, so the app id stands in | built in `canvas.tsx`; `CanvasApp` binds `wiring.host` while mounted |
 | `components/TrustedPageOverlay` | The trusted-page layer over the canvas — the Store or the App Library — as `trustedPage` says: the page's title, the query when one was carried, "Back to the canvas" | `canvasStore` (`trustedPage`, `closeTrustedPage`) |
 | `components/QuestionHeader` | The question heading the canvas: display size on one line, a fixed 4-line box (120px) past it, measured before paint; past 4 lines the 4th fades and "Show all +N lines" opens the whole question over the page (Esc closes); the header and "Edit and ask again" open the palette holding it | `CanvasApp` (keyed by the question, so a new one remeasures), `questionOnView` |
+| `components/CompactHead` | The header condensed: once the head has scrolled out of `.canvas-scroll`, a one-line bar over the page's top edge — the question, and the progress line's compact copy while the turn runs; nothing while the head is in view | `CanvasApp` (the scroller and head refs), `ProgressLine` |
 | `turnProgress` · `components/ProgressLine` | Pure: the turn's progress off the store — planning (an utterance in flight, nothing planned), a step per vendor source in roster order (done once placed or spoken, failed as painted, working until then), the join over the vendor names, or over each vendor's display name and noun with the home source first when the shell `RosterEntry` carries the plan's `join` ("Joining Linear issues to GitHub PRs and CircleCI runs", task 7.15) — and its line under the question, the working step carrying `canvas-pending` | `canvasStore` |
 | `components/AmbientNotice` | The notice stack and its two fade clocks | `canvasStore` via `orderedNotices` |
 | `synthesis/synthesisSession` | A composition's synthesis state: the payload, the data-model subscriptions that re-run the evaluator, the user's sort choices by array path, the last output written | fed by `turn/canvasTurn`; reads and writes the live processor's data models; reports an invalid payload through the fragment-failure channel |
@@ -248,8 +249,17 @@ never by a repaint.
 An utterance sets the store's `question` at `runner.begin`; an action or an answer leaves it
 standing, the next utterance replaces it. A parked view shows its own: `questionOnView` walks the
 parked entry's causes back through its parents to the utterance that opened it. The head —
-`QuestionHeader` over `ProgressLine` — sits above the stage, 24px from the top, in the page column
-after a 56px gutter the Back button sits in. Every word of the progress line is computed; the join
+`QuestionHeader` over `ProgressLine` — sits above the stage, 12px from the top, in the page column
+after a 56px gutter the Back button sits in; the Back button's row is also 12px from the top, so
+the question's first line and the button share one centre, 30px down (the parked banner grows
+around the button to 61px, the parked head starting beneath it). Head and stage share one scroller, `.canvas-scroll`, so
+the head scrolls away with the page it heads. `CompactHead` watches it leave (an
+`IntersectionObserver` rooted at the scroller) and then hangs a 60px bar — Back's row with 12px above and below, Back and the question on its
+middle line — from a zero-height sticky
+anchor at the scroller's top — under the parked banner while parked — so showing it moves nothing:
+the question on one line at 14px semibold, opening the palette holding it, and, while the turn is in
+flight, `ProgressLine`'s compact copy beside it, with no live region and no `canvas-pending` of its
+own (task 7.16). Every word of the progress line is computed; the join
 is named by the apps' display names, since the join hypothesis's nouns never reach the client. The
 status strip names the app and carries a sticky error only. The head, strip and Ask pill take
 their values from `--a2v-*` tokens on `.canvas-app` (with dark values), drawn to the Final page of
