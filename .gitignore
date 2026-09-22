@@ -17,6 +17,8 @@ __pycache__/
 # Playwright
 test-results/
 playwright-report/
+# Visual baselines stay local — taken per machine, never pushed
+*.spec.ts-snapshots/
 
 # Claude Code worktrees (native EnterWorktree) + SDD scratch ledger
 .claude/worktrees/

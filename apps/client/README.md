@@ -113,4 +113,4 @@ pnpm --filter @a2uiverse/client test:e2e   # playwright: builds, previews on 417
 pnpm --filter @a2uiverse/client lint
 ```
 
-Playwright browsers install separately (`pnpm exec playwright install chromium`). Baselines are captured at 1024×768, UTC; `--update-snapshots` recaptures them.
+Playwright browsers install separately (`pnpm exec playwright install chromium`). Baselines are captured at 1024×768, UTC; `--update-snapshots` recaptures them. They are local, not tracked: on a fresh clone, run `--update-snapshots` once to take them.
