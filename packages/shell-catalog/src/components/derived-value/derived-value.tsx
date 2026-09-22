@@ -1,7 +1,9 @@
 import {useContext, useState, type KeyboardEvent} from 'react';
 import {createComponentImplementation} from '@a2ui/react/v0_9';
 import {parseSurfaceId} from '@a2uiverse/sdk';
+import {CrossCircledIcon} from '@radix-ui/react-icons';
 import {Text, Tooltip} from '@radix-ui/themes';
+import {equal} from '../../functions/relations.js';
 import {PortalRootContext} from '../../provider.js';
 import {formatInstant} from '../shared/instant.js';
 import {type CellObject, DerivedValueApi, type Format} from './derived-value.schema.js';
@@ -31,6 +33,10 @@ export function cellState(cell: CellObject): CellState {
 
 function formatValue(value: unknown, format: Format | undefined): string {
   if (value === undefined || value === null) return '—';
+  return `${format?.prefix ?? ''}${formatKind(value, format)}`;
+}
+
+function formatKind(value: unknown, format: Format | undefined): string {
   if (format?.kind === 'currency' && typeof value === 'number') {
     return new Intl.NumberFormat(undefined, {style: 'currency', currency: format.currency}).format(
       value,
@@ -39,6 +45,15 @@ function formatValue(value: unknown, format: Format | undefined): string {
   if (format?.kind === 'number' && typeof value === 'number') return value.toLocaleString();
   if (format?.kind === 'datetime') return formatInstant(value);
   return String(value);
+}
+
+/**
+ * Whether the value is one the Synthesizer named as needing action (task 7.16), compared as the
+ * relations compare — word by word, case and punctuation not counting. The client judges nothing.
+ */
+function isDanger(value: unknown, danger: readonly string[] | undefined): boolean {
+  if (value === undefined || value === null || !danger) return false;
+  return danger.some(word => equal(value, word));
 }
 
 /** An app as the user knows it: the host's display name, the app id when the host has none. */
@@ -126,15 +141,23 @@ const MARK_WORDS: Record<Exclude<JoinMark, 'none'>, string> = {
  *
  * A cell with a target, under a host that navigates, is the button that takes the user to the
  * element it names (decision 13); its detail is text, and nothing in it navigates.
+ *
+ * A value the Synthesizer named in `danger` — a failed build — is a fact about the world, not
+ * about the shell's certainty, so it rides its own channel (task 7.16): a ✕-circle before the
+ * value, always, and the danger red with weight only where the value is drawn at full strength.
+ * Certainty wins the color: a guessed or partial failure stays gray, a broken one amber, so the
+ * shell never shouts about a failure that may belong to another entity.
  */
 export function DerivedValueView({
   cell,
   format,
+  danger,
   appDisplayName,
   onNavigate,
 }: {
   cell?: CellObject;
   format?: Format;
+  danger?: readonly string[];
   appDisplayName?: AppDisplayName;
   onNavigate?: NavigationHandler;
 }) {
@@ -160,7 +183,14 @@ export function DerivedValueView({
   // The one mark: how solid the value's basis is, carried by the value's own contrast.
   const marked =
     state !== 'complete' || mark !== 'none' ? (mark === 'none' ? state : mark) : undefined;
-  const label = [text, contributors, mark === 'none' ? undefined : MARK_WORDS[mark], provenance]
+  const alarming = isDanger(cell.value, danger);
+  const label = [
+    text,
+    alarming ? 'needs attention' : undefined,
+    contributors,
+    mark === 'none' ? undefined : MARK_WORDS[mark],
+    provenance,
+  ]
     .filter(Boolean)
     .join(' · ');
   const target = cell.target;
@@ -174,6 +204,7 @@ export function DerivedValueView({
       data-state={state}
       data-join={cell.join ? mark : undefined}
       data-marked={marked}
+      data-tone={alarming ? 'danger' : undefined}
       role={navigate ? 'button' : undefined}
       tabIndex={navigate || detail ? 0 : undefined}
       aria-label={label}
@@ -196,11 +227,15 @@ export function DerivedValueView({
         alignItems: 'baseline',
         gap: '0.35em',
         cursor: navigate ? 'pointer' : detail ? 'help' : undefined,
+        ...(alarming && !marked
+          ? {color: 'var(--a2v-danger, var(--red-11))', fontWeight: 600}
+          : undefined),
         ...(navigate && active
           ? {background: 'var(--gray-a3)', borderRadius: 'var(--radius-1)'}
           : undefined),
       }}
     >
+      {alarming && <DangerMarker />}
       <span data-value="" style={{fontVariantNumeric: 'tabular-nums'}}>
         {text}
       </span>
@@ -224,6 +259,19 @@ function BrokenMarker() {
   );
 }
 
+/** A value the reader must act on, shown whatever the value's certainty (task 7.16). */
+function DangerMarker() {
+  return (
+    <CrossCircledIcon
+      width={14}
+      height={14}
+      aria-hidden
+      data-tone-marker="danger"
+      style={{alignSelf: 'center', flex: 'none'}}
+    />
+  );
+}
+
 export interface DerivedValueHost {
   /** What the host does when a cell is activated; without it, cells are not interactive. */
   onNavigate?: NavigationHandler;
@@ -240,6 +288,7 @@ export function createDerivedValueComponent({onNavigate, appDisplayName}: Derive
     <DerivedValueView
       cell={props.cell as CellObject | undefined}
       format={props.format}
+      danger={props.danger}
       appDisplayName={appDisplayName}
       onNavigate={onNavigate}
     />

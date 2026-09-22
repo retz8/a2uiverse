@@ -120,9 +120,16 @@ export const TODAY_TIMELINE: SynthesisExample = {
         {
           id: 'root',
           component: 'Column',
-          children: ['heading', 'sort', 'timeline', 'calendar-heading', 'calendar'],
+          children: ['head', 'timeline', 'calendar-heading', 'calendar'],
         },
-        {id: 'heading', component: 'Text', variant: 'h3', text: 'Needs attention today'},
+        {
+          id: 'head',
+          component: 'Row',
+          justify: 'spaceBetween',
+          align: 'center',
+          children: ['heading', 'sort'],
+        },
+        {id: 'heading', component: 'Text', variant: 'h5', text: 'Needs attention today'},
         {id: 'sort', component: 'SortControl', sort: {path: '/sorts/0'}},
         {
           id: 'timeline',
@@ -134,7 +141,7 @@ export const TODAY_TIMELINE: SynthesisExample = {
         {id: 'i-source', component: 'DerivedValue', cell: {path: 'source'}},
         {id: 'i-when', component: 'DerivedValue', cell: {path: 'when'}, format: {kind: 'datetime'}},
         {id: 'i-what', component: 'DerivedValue', cell: {path: 'what'}},
-        {id: 'calendar-heading', component: 'Text', variant: 'h4', text: 'Calendar'},
+        {id: 'calendar-heading', component: 'Text', variant: 'h5', text: 'Calendar'},
         {
           id: 'calendar',
           component: 'Table',

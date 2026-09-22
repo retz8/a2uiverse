@@ -923,6 +923,10 @@
             "currency": {
               "type": "string",
               "description": "ISO 4217 code, required when kind is currency."
+            },
+            "prefix": {
+              "type": "string",
+              "description": "Written before the value when there is one \u2014 e.g. `#` over a pull request's number, so the cell reads `#8`. The value itself, its sort and its tap stay the source's."
             }
           },
           "required": ["kind"],
@@ -937,6 +941,12 @@
           "then": {
             "required": ["kind", "currency"]
           }
+        },
+        "danger": {
+          "type": "array",
+          "items": {"type": "string"},
+          "minItems": 1,
+          "description": "The values of this column a reader must act on \u2014 e.g. `[\"Failed\"]` on a CI status, in the words the source uses. When the evaluated value is one of them (compared word by word: case and punctuation do not count), the runtime draws it in the danger tone. Fixed; not data-bound; never shown."
         }
       },
       "required": ["component", "cell"],

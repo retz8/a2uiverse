@@ -418,3 +418,108 @@ describe('built for a host (decisions 11, 13)', () => {
     ).toBeInTheDocument();
   });
 });
+
+// The danger tone (task 7.16): the Synthesizer names the values a reader must act on; the view
+// compares and draws, and certainty wins the color.
+describe('a value named in danger', () => {
+  const failed = (rest: Partial<CellObject> = {}): CellObject => ({
+    value: 'Failed',
+    contributed: 1,
+    of: 1,
+    absent: [],
+    ...rest,
+  });
+
+  test('held at full strength, it is drawn in the danger red with its icon, and says it needs attention', () => {
+    render(<DerivedValueView cell={failed()} danger={['failed']} />);
+    const cell = screen.getByLabelText('Failed · needs attention · 1 of 1 sources');
+    expect(cell).toHaveAttribute('data-tone', 'danger');
+    expect(cell).not.toHaveAttribute('data-marked');
+    expect(cell).toHaveStyle({fontWeight: '600'});
+    expect(cell.style.color).toBe('var(--a2v-danger, var(--red-11))');
+    expect(cell.querySelector('[data-tone-marker="danger"]')).not.toBeNull();
+  });
+
+  test('compares word by word: case and punctuation do not count, and another value stays plain', () => {
+    const {rerender} = render(<DerivedValueView cell={failed()} danger={['FAILED.']} />);
+    expect(screen.getByLabelText(/^Failed · needs attention/)).toHaveAttribute(
+      'data-tone',
+      'danger',
+    );
+    rerender(<DerivedValueView cell={failed({value: 'Success'})} danger={['failed']} />);
+    const plain = screen.getByLabelText('Success · 1 of 1 sources');
+    expect(plain).not.toHaveAttribute('data-tone');
+    expect(plain.style.color).toBe('');
+    expect(plain.querySelector('[data-tone-marker]')).toBeNull();
+  });
+
+  test('guessed, it keeps the gray of its certainty and the icon', () => {
+    render(
+      <DerivedValueView
+        cell={joined({mark: 'guessed', apps: ['linear'], evidence: [sameIssue]}, {value: 'Failed'})}
+        danger={['Failed']}
+        appDisplayName={appDisplayName}
+      />,
+    );
+    const cell = screen.getByLabelText(
+      /^Failed · needs attention · 1 of 1 sources · guessed match/,
+    );
+    expect(cell).toHaveAttribute('data-tone', 'danger');
+    expect(cell).toHaveAttribute('data-accent-color', 'gray');
+    expect(cell.style.color).toBe('');
+    expect(cell.querySelector('[data-tone-marker="danger"]')).not.toBeNull();
+  });
+
+  test('broken, it keeps the amber and its ⚠ beside the icon', () => {
+    render(
+      <DerivedValueView
+        cell={joined(
+          {mark: 'broken', apps: ['circleci'], evidence: [sameBranch]},
+          {value: 'Failed'},
+        )}
+        danger={['Failed']}
+        appDisplayName={appDisplayName}
+      />,
+    );
+    const cell = screen.getByLabelText(/^Failed · needs attention · 1 of 1 sources · broken match/);
+    expect(cell).toHaveAttribute('data-accent-color', 'amber');
+    expect(cell.querySelector('[data-join-marker="broken"]')).toHaveTextContent('⚠');
+    expect(cell.querySelector('[data-tone-marker="danger"]')).not.toBeNull();
+  });
+
+  test('an absent value is never a danger', () => {
+    render(
+      <DerivedValueView
+        cell={{value: undefined, contributed: 0, of: 1, absent: ['circleci:runs']}}
+        danger={['Failed']}
+      />,
+    );
+    const cell = screen.getByLabelText('— · no source is showing this');
+    expect(cell).not.toHaveAttribute('data-tone');
+  });
+});
+
+test('a prefix is written before a present value and never before the dash (task 7.16)', () => {
+  const handle = {kind: 'text', prefix: '#'} as const;
+  const {rerender} = render(
+    <DerivedValueView cell={{value: 8, contributed: 1, of: 1, absent: []}} format={handle} />,
+  );
+  expect(screen.getByLabelText('#8 · 1 of 1 sources')).toHaveTextContent('#8');
+  rerender(
+    <DerivedValueView
+      cell={{value: undefined, contributed: 0, of: 0, absent: []}}
+      format={handle}
+    />,
+  );
+  expect(screen.getByLabelText('— · nothing attached here')).toHaveTextContent('—');
+});
+
+test('schema takes danger as a non-empty list of words and a prefix on format (task 7.16)', () => {
+  const cell = {path: 'ci'};
+  expect(DerivedValueApi.schema.safeParse({cell, danger: ['Failed']}).success).toBe(true);
+  expect(DerivedValueApi.schema.safeParse({cell, danger: []}).success).toBe(false);
+  expect(DerivedValueApi.schema.safeParse({cell, danger: [{path: 'x'}]}).success).toBe(false);
+  expect(
+    DerivedValueApi.schema.safeParse({cell, format: {kind: 'text', prefix: '#'}}).success,
+  ).toBe(true);
+});

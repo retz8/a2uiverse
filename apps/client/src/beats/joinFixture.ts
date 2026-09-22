@@ -67,8 +67,15 @@ function joinRow(id: string, skus: string[], name: string, relation: Relation) {
 export const JOIN_DOCUMENT: SynthesisDocument = {
   tree: {
     components: [
-      {id: 'root', component: 'Column', children: ['heading', 'sort-rows', 'sort-offers', 'rows']},
-      {id: 'heading', component: 'Text', variant: 'h3', text: 'Cameras and their offers'},
+      {id: 'root', component: 'Column', children: ['head', 'sort-offers', 'rows']},
+      {
+        id: 'head',
+        component: 'Row',
+        justify: 'spaceBetween',
+        align: 'center',
+        children: ['heading', 'sort-rows'],
+      },
+      {id: 'heading', component: 'Text', variant: 'h5', text: 'Cameras and their offers'},
       {id: 'sort-rows', component: 'SortControl', sort: {path: '/sorts/0'}},
       {id: 'sort-offers', component: 'SortControl', sort: {path: '/sorts/1'}},
       {

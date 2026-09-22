@@ -26,6 +26,7 @@ import {CanvasStage} from './components/CanvasStage';
 import {HistoryChrome} from './components/HistoryChrome';
 import {ParkedStage} from './components/ParkedStage';
 import {Palette} from './components/Palette';
+import {CompactHead} from './components/CompactHead';
 import {ProgressLine} from './components/ProgressLine';
 import {QuestionHeader} from './components/QuestionHeader';
 import {StatusStrip} from './components/StatusStrip';
@@ -93,6 +94,9 @@ export function CanvasApp({serverUrl, client, catalogs, hostRelay}: CanvasAppPro
     if (text !== undefined) setPaletteSeed(seed => ({text, key: seed.key + 1}));
     setPaletteOpen(true);
   };
+  /** The page that scrolls and the header at its top: the condensed header watches the one leave the other. */
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const headRef = useRef<HTMLElement>(null);
   /** Set once the whole `?beat=` list has replayed — the settle signal for visual tests. */
   const [replayDone, setReplayDone] = useState(false);
 
@@ -143,29 +147,41 @@ export function CanvasApp({serverUrl, client, catalogs, hostRelay}: CanvasAppPro
             className={parkedEntry ? 'canvas-app canvas-app--parked' : 'canvas-app'}
             data-replay={replayDone ? 'done' : undefined}
           >
-            {(question || showProgress) && (
-              <header className="canvas-head" data-testid="canvas-head">
-                {question && (
-                  // Keyed by the question, so a new one starts over at display size, measured.
-                  <QuestionHeader
-                    key={`${question.askedAt}:${question.text}`}
-                    question={question}
-                    onEdit={openPalette}
-                  />
-                )}
-                {showProgress && <ProgressLine state={state} since={question?.askedAt ?? null} />}
-              </header>
-            )}
-            {parkedEntry ? (
-              <ParkedStage
-                key={parkedEntry.paintId}
-                entry={parkedEntry}
-                create={wiring.createParked}
-                attach={wiring.attachParked}
+            {/* The header scrolls with the page it heads; once it has left, the condensed bar
+                holds the top edge (CompactHead). */}
+            <div className="canvas-scroll" data-testid="canvas-scroll" ref={scrollRef}>
+              <CompactHead
+                scroller={scrollRef}
+                head={headRef}
+                question={question}
+                state={state}
+                showProgress={showProgress}
+                onEdit={openPalette}
               />
-            ) : (
-              <CanvasStage processor={wiring.processor} state={state} />
-            )}
+              {(question || showProgress) && (
+                <header className="canvas-head" data-testid="canvas-head" ref={headRef}>
+                  {question && (
+                    // Keyed by the question, so a new one starts over at display size, measured.
+                    <QuestionHeader
+                      key={`${question.askedAt}:${question.text}`}
+                      question={question}
+                      onEdit={openPalette}
+                    />
+                  )}
+                  {showProgress && <ProgressLine state={state} since={question?.askedAt ?? null} />}
+                </header>
+              )}
+              {parkedEntry ? (
+                <ParkedStage
+                  key={parkedEntry.paintId}
+                  entry={parkedEntry}
+                  create={wiring.createParked}
+                  attach={wiring.attachParked}
+                />
+              ) : (
+                <CanvasStage processor={wiring.processor} state={state} />
+              )}
+            </div>
             {promotedCount > 0 && (
               <div className="canvas-scrim" data-testid="canvas-scrim" aria-hidden="true" />
             )}

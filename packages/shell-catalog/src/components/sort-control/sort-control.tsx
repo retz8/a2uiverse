@@ -27,8 +27,8 @@ export function SortControlView({
   const flipLabel = asc ? 'Ascending — switch to descending' : 'Descending — switch to ascending';
 
   return (
-    <Flex align="center" gap="2" display="inline-flex">
-      <Text size="1" color="gray">
+    <Flex align="center" gap="2" display="inline-flex" flexShrink="0">
+      <Text size="1" color="gray" wrap="nowrap">
         Sort by
       </Text>
       <Select.Root size="1" value={sort.key} onValueChange={key => onChange({...sort, key})}>

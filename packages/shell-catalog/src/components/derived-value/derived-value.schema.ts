@@ -8,12 +8,17 @@ import type {CellJoin, CellTarget} from './join.js';
  * - `cell` is the one binding: a path to the cell object the BindingEvaluator writes —
  *   value together with contributor state — so the component cannot be half-wired.
  * - `format` is fixed authoring-time configuration for rendering the value, never bound;
- *   `datetime` (task 5.7) renders any spelling of a date-and-time in one human form.
+ *   `datetime` (task 5.7) renders any spelling of a date-and-time in one human form; `prefix`
+ *   (task 7.16) is written before a present value, so a number reads as a handle (`#8`).
+ * - `danger` (task 7.16) is the values a reader must act on, named by the Synthesizer and never
+ *   bound: the view compares the evaluated value against them and draws a match in the danger
+ *   tone. The Synthesizer judges what a word means; the client only compares.
  */
 export const FormatSchema = z
   .object({
     kind: z.enum(['text', 'number', 'currency', 'datetime']),
     currency: z.string().optional(),
+    prefix: z.string().optional(),
   })
   .strict()
   .refine(f => f.kind !== 'currency' || typeof f.currency === 'string', {
@@ -26,6 +31,7 @@ export const DerivedValueApi = {
     .object({
       cell: BindingSchema,
       format: FormatSchema.optional(),
+      danger: z.array(z.string()).min(1).optional(),
     })
     .strict(),
 } as const;

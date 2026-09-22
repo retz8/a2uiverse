@@ -329,6 +329,12 @@ const JOIN_CELLS: Record<string, CellObject> = {
     of: 0,
     join: {mark: 'none', apps: [], evidence: []},
   }),
+  failed: cell('Failed', {target: target('circleci')}),
+  failedGuessed: cell('Failed', {
+    join: {mark: 'guessed', apps: ['circleci'], evidence: [SAME_ISSUE]},
+    target: target('circleci'),
+  }),
+  handle: cell(8, {target: target('github')}),
 };
 const JOIN_LABELS: Record<string, string> = {
   plain: 'no match claim',
@@ -339,6 +345,17 @@ const JOIN_LABELS: Record<string, string> = {
   partialGuessed: 'partial + guessed',
   absent: 'absent, claimed',
   noTarget: 'the empty cell (0 of 0)',
+  failed: 'danger, confirmed',
+  failedGuessed: 'danger, guessed',
+  handle: 'a handle, prefix #',
+};
+/** Per cell, what the Synthesizer would have written beside `cell` (task 7.16). */
+const JOIN_PROPS: Record<string, Record<string, unknown>> = {
+  partialGuessed: {format: {kind: 'datetime'}},
+  broken: {danger: ['Failed']},
+  failed: {danger: ['Failed']},
+  failedGuessed: {danger: ['Failed']},
+  handle: {format: {kind: 'text', prefix: '#'}},
 };
 const JOIN_TREE: TreeComponent[] = [
   {id: 'root', component: 'DataList', children: Object.keys(JOIN_CELLS).map(k => `i-${k}`)},
@@ -348,7 +365,7 @@ const JOIN_TREE: TreeComponent[] = [
       id: `v-${key}`,
       component: 'DerivedValue',
       cell: {path: `/cells/${key}`},
-      ...(key === 'partialGuessed' ? {format: {kind: 'datetime'}} : {}),
+      ...JOIN_PROPS[key],
     },
   ]),
 ];

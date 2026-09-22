@@ -4,18 +4,18 @@
   "title": "Entity join",
   "prompt": "what's the status of what I'm working on?",
   "model": "gemini-3.7-flash",
-  "recordedAt": "2026-09-22T03:53:46Z",
-  "contextId": "32af98d4-fccf-4fc8-baa0-3ee75003de4f",
+  "recordedAt": "2026-09-22T09:51:18Z",
+  "contextId": "2c0e5abc-357a-49a5-a5ea-d6fc544993fd",
   "chainedFrom": null,
   "turns": [
     {
-      "taskId": "ac11d2f0-dca7-4899-98c8-c83e4c377c67",
+      "taskId": "381ceb10-f93a-4442-adef-f33317d8a8ab",
       "kind": "utterance",
       "prompt": "what's the status of what I'm working on?",
       "action": null,
       "batches": [
         {
-          "offsetMs": 5701,
+          "offsetMs": 8402,
           "messages": [
             {
               "version": "v0.9",
@@ -33,12 +33,12 @@
                     "id": "root",
                     "component": "Column",
                     "children": [
-                      "overview",
+                      "work-status",
                       "sources"
                     ]
                   },
                   {
-                    "id": "overview",
+                    "id": "work-status",
                     "component": "Slot",
                     "source": "shell",
                     "state": "pending",
@@ -47,8 +47,9 @@
                     "columns": [
                       "Issue",
                       "Status",
+                      "Priority",
                       "Pull request",
-                      "CI build",
+                      "CI status",
                       "Updated"
                     ],
                     "join": {
@@ -128,525 +129,12 @@
           }
         },
         {
-          "offsetMs": 5706,
+          "offsetMs": 8590,
           "messages": [
             {
               "version": "v0.9",
               "createSurface": {
-                "surfaceId": "linear:linear-2",
-                "catalogId": "https://github.com/retz8/a2uiverse-apps/blob/main/linear/linear-catalog/catalogs/v0.9.1/catalog.json",
-                "sendDataModel": true
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "linear:linear-2",
-                "value": {
-                  "team": "A2uiverse"
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "linear:linear-2",
-                "value": {
-                  "issues": [
-                    {
-                      "id": "A2U-5",
-                      "title": "Say on the canvas when an utterance fails",
-                      "status": "In Review",
-                      "statusType": "started"
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "linear:linear-2",
-                "value": {
-                  "issues": [
-                    {
-                      "id": "A2U-5",
-                      "title": "Say on the canvas when an utterance fails",
-                      "status": "In Review",
-                      "statusType": "started",
-                      "priority": "High",
-                      "link": "PR #6"
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "linear:linear-2",
-                "value": {
-                  "issues": [
-                    {
-                      "id": "A2U-5",
-                      "title": "Say on the canvas when an utterance fails",
-                      "status": "In Review",
-                      "statusType": "started",
-                      "priority": "High",
-                      "link": "PR #6",
-                      "updatedAt": "Sep 19, 2026, 10:58:36 UTC"
-                    },
-                    {}
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "linear:linear-2",
-                "value": {
-                  "issues": [
-                    {
-                      "id": "A2U-5",
-                      "title": "Say on the canvas when an utterance fails",
-                      "status": "In Review",
-                      "statusType": "started",
-                      "priority": "High",
-                      "link": "PR #6",
-                      "updatedAt": "Sep 19, 2026, 10:58:36 UTC"
-                    },
-                    {
-                      "id": "A2U-7"
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "linear:linear-2",
-                "value": {
-                  "issues": [
-                    {
-                      "id": "A2U-5",
-                      "title": "Say on the canvas when an utterance fails",
-                      "status": "In Review",
-                      "statusType": "started",
-                      "priority": "High",
-                      "link": "PR #6",
-                      "updatedAt": "Sep 19, 2026, 10:58:36 UTC"
-                    },
-                    {
-                      "id": "A2U-7",
-                      "title": "Shell-action report hangs through the tunnel",
-                      "status": "In Progress",
-                      "statusType": "started"
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "linear:linear-2",
-                "value": {
-                  "issues": [
-                    {
-                      "id": "A2U-5",
-                      "title": "Say on the canvas when an utterance fails",
-                      "status": "In Review",
-                      "statusType": "started",
-                      "priority": "High",
-                      "link": "PR #6",
-                      "updatedAt": "Sep 19, 2026, 10:58:36 UTC"
-                    },
-                    {
-                      "id": "A2U-7",
-                      "title": "Shell-action report hangs through the tunnel",
-                      "status": "In Progress",
-                      "statusType": "started",
-                      "priority": "Low"
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "linear:linear-2",
-                "value": {
-                  "issues": [
-                    {
-                      "id": "A2U-5",
-                      "title": "Say on the canvas when an utterance fails",
-                      "status": "In Review",
-                      "statusType": "started",
-                      "priority": "High",
-                      "link": "PR #6",
-                      "updatedAt": "Sep 19, 2026, 10:58:36 UTC"
-                    },
-                    {
-                      "id": "A2U-7",
-                      "title": "Shell-action report hangs through the tunnel",
-                      "status": "In Progress",
-                      "statusType": "started",
-                      "priority": "Low",
-                      "link": "ekkicb71/a2u-7-shell-action-report-hangs-through-the-tunnel"
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "linear:linear-2",
-                "value": {
-                  "issues": [
-                    {
-                      "id": "A2U-5",
-                      "title": "Say on the canvas when an utterance fails",
-                      "status": "In Review",
-                      "statusType": "started",
-                      "priority": "High",
-                      "link": "PR #6",
-                      "updatedAt": "Sep 19, 2026, 10:58:36 UTC"
-                    },
-                    {
-                      "id": "A2U-7",
-                      "title": "Shell-action report hangs through the tunnel",
-                      "status": "In Progress",
-                      "statusType": "started",
-                      "priority": "Low",
-                      "link": "ekkicb71/a2u-7-shell-action-report-hangs-through-the-tunnel",
-                      "updatedAt": "Sep 19, 2026, 10:53:09 UTC"
-                    },
-                    {}
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "linear:linear-2",
-                "value": {
-                  "issues": [
-                    {
-                      "id": "A2U-5",
-                      "title": "Say on the canvas when an utterance fails",
-                      "status": "In Review",
-                      "statusType": "started",
-                      "priority": "High",
-                      "link": "PR #6",
-                      "updatedAt": "Sep 19, 2026, 10:58:36 UTC"
-                    },
-                    {
-                      "id": "A2U-7",
-                      "title": "Shell-action report hangs through the tunnel",
-                      "status": "In Progress",
-                      "statusType": "started",
-                      "priority": "Low",
-                      "link": "ekkicb71/a2u-7-shell-action-report-hangs-through-the-tunnel",
-                      "updatedAt": "Sep 19, 2026, 10:53:09 UTC"
-                    },
-                    {
-                      "id": "A2U-6"
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "linear:linear-2",
-                "value": {
-                  "issues": [
-                    {
-                      "id": "A2U-5",
-                      "title": "Say on the canvas when an utterance fails",
-                      "status": "In Review",
-                      "statusType": "started",
-                      "priority": "High",
-                      "link": "PR #6",
-                      "updatedAt": "Sep 19, 2026, 10:58:36 UTC"
-                    },
-                    {
-                      "id": "A2U-7",
-                      "title": "Shell-action report hangs through the tunnel",
-                      "status": "In Progress",
-                      "statusType": "started",
-                      "priority": "Low",
-                      "link": "ekkicb71/a2u-7-shell-action-report-hangs-through-the-tunnel",
-                      "updatedAt": "Sep 19, 2026, 10:53:09 UTC"
-                    },
-                    {
-                      "id": "A2U-6",
-                      "title": "Name the workflow, not its id, in the confirm status line",
-                      "status": "In Progress"
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "linear:linear-2",
-                "value": {
-                  "issues": [
-                    {
-                      "id": "A2U-5",
-                      "title": "Say on the canvas when an utterance fails",
-                      "status": "In Review",
-                      "statusType": "started",
-                      "priority": "High",
-                      "link": "PR #6",
-                      "updatedAt": "Sep 19, 2026, 10:58:36 UTC"
-                    },
-                    {
-                      "id": "A2U-7",
-                      "title": "Shell-action report hangs through the tunnel",
-                      "status": "In Progress",
-                      "statusType": "started",
-                      "priority": "Low",
-                      "link": "ekkicb71/a2u-7-shell-action-report-hangs-through-the-tunnel",
-                      "updatedAt": "Sep 19, 2026, 10:53:09 UTC"
-                    },
-                    {
-                      "id": "A2U-6",
-                      "title": "Name the workflow, not its id, in the confirm status line",
-                      "status": "In Progress",
-                      "statusType": "started",
-                      "priority": "Medium",
-                      "link": "PR #7"
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "linear:linear-2",
-                "value": {
-                  "issues": [
-                    {
-                      "id": "A2U-5",
-                      "title": "Say on the canvas when an utterance fails",
-                      "status": "In Review",
-                      "statusType": "started",
-                      "priority": "High",
-                      "link": "PR #6",
-                      "updatedAt": "Sep 19, 2026, 10:58:36 UTC"
-                    },
-                    {
-                      "id": "A2U-7",
-                      "title": "Shell-action report hangs through the tunnel",
-                      "status": "In Progress",
-                      "statusType": "started",
-                      "priority": "Low",
-                      "link": "ekkicb71/a2u-7-shell-action-report-hangs-through-the-tunnel",
-                      "updatedAt": "Sep 19, 2026, 10:53:09 UTC"
-                    },
-                    {
-                      "id": "A2U-6",
-                      "title": "Name the workflow, not its id, in the confirm status line",
-                      "status": "In Progress",
-                      "statusType": "started",
-                      "priority": "Medium",
-                      "link": "PR #7",
-                      "updatedAt": "Sep 18, 2026, 11:53:06 UTC"
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "linear:linear-2",
-                "path": "/",
-                "value": {
-                  "team": "A2uiverse",
-                  "issues": [
-                    {
-                      "id": "A2U-5",
-                      "title": "Say on the canvas when an utterance fails",
-                      "status": "In Review",
-                      "statusType": "started",
-                      "priority": "High",
-                      "link": "PR #6",
-                      "updatedAt": "Sep 19, 2026, 10:58:36 UTC"
-                    },
-                    {
-                      "id": "A2U-7",
-                      "title": "Shell-action report hangs through the tunnel",
-                      "status": "In Progress",
-                      "statusType": "started",
-                      "priority": "Low",
-                      "link": "ekkicb71/a2u-7-shell-action-report-hangs-through-the-tunnel",
-                      "updatedAt": "Sep 19, 2026, 10:53:09 UTC"
-                    },
-                    {
-                      "id": "A2U-6",
-                      "title": "Name the workflow, not its id, in the confirm status line",
-                      "status": "In Progress",
-                      "statusType": "started",
-                      "priority": "Medium",
-                      "link": "PR #7",
-                      "updatedAt": "Sep 18, 2026, 11:53:06 UTC"
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateComponents": {
-                "components": [
-                  {
-                    "id": "root",
-                    "component": "Card",
-                    "child": "body"
-                  },
-                  {
-                    "id": "body",
-                    "component": "Column",
-                    "children": [
-                      "heading",
-                      "sub",
-                      "divider",
-                      "issue-list"
-                    ]
-                  },
-                  {
-                    "id": "heading",
-                    "component": "Text",
-                    "text": "Assigned in-progress issues",
-                    "variant": "h3"
-                  },
-                  {
-                    "id": "sub",
-                    "component": "Text",
-                    "text": {
-                      "path": "/team"
-                    },
-                    "variant": "caption"
-                  },
-                  {
-                    "id": "divider",
-                    "component": "Divider"
-                  },
-                  {
-                    "id": "issue-list",
-                    "component": "Column",
-                    "children": {
-                      "path": "/issues",
-                      "componentId": "issue-row"
-                    }
-                  },
-                  {
-                    "id": "issue-row",
-                    "component": "Button",
-                    "variant": "borderless",
-                    "child": "issue-line",
-                    "action": {
-                      "event": {
-                        "name": "open-issue",
-                        "context": {
-                          "issueId": {
-                            "path": "id"
-                          }
-                        }
-                      }
-                    }
-                  },
-                  {
-                    "id": "issue-line",
-                    "component": "Row",
-                    "align": "center",
-                    "children": [
-                      "issue-priority",
-                      "issue-id",
-                      "issue-status",
-                      "issue-title",
-                      "issue-link",
-                      "issue-updated"
-                    ]
-                  },
-                  {
-                    "id": "issue-priority",
-                    "component": "PriorityIcon",
-                    "priority": {
-                      "path": "priority"
-                    }
-                  },
-                  {
-                    "id": "issue-id",
-                    "component": "Text",
-                    "text": {
-                      "path": "id"
-                    },
-                    "variant": "caption"
-                  },
-                  {
-                    "id": "issue-status",
-                    "component": "StatusIcon",
-                    "status": {
-                      "path": "status"
-                    },
-                    "type": {
-                      "path": "statusType"
-                    }
-                  },
-                  {
-                    "id": "issue-title",
-                    "component": "Text",
-                    "text": {
-                      "path": "title"
-                    },
-                    "weight": 1
-                  },
-                  {
-                    "id": "issue-link",
-                    "component": "Text",
-                    "text": {
-                      "path": "link"
-                    },
-                    "variant": "caption"
-                  },
-                  {
-                    "id": "issue-updated",
-                    "component": "Text",
-                    "text": {
-                      "path": "updatedAt"
-                    },
-                    "variant": "caption"
-                  }
-                ],
-                "surfaceId": "linear:linear-2"
-              }
-            }
-          ],
-          "texts": [],
-          "stamp": {
-            "source": "linear",
-            "role": "fragment"
-          }
-        },
-        {
-          "offsetMs": 5707,
-          "messages": [
-            {
-              "version": "v0.9",
-              "createSurface": {
-                "surfaceId": "github:notifications-2",
+                "surfaceId": "github:notifications-1",
                 "catalogId": "https://github.com/retz8/a2uiverse-apps/blob/main/github/github-catalog/catalogs/v0.9.1/catalog.json",
                 "sendDataModel": true
               }
@@ -654,7 +142,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-2",
+                "surfaceId": "github:notifications-1",
                 "value": {
                   "prs": [
                     {
@@ -670,7 +158,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-2",
+                "surfaceId": "github:notifications-1",
                 "value": {
                   "prs": [
                     {
@@ -688,7 +176,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-2",
+                "surfaceId": "github:notifications-1",
                 "value": {
                   "prs": [
                     {
@@ -708,7 +196,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-2",
+                "surfaceId": "github:notifications-1",
                 "value": {
                   "prs": [
                     {
@@ -730,7 +218,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-2",
+                "surfaceId": "github:notifications-1",
                 "value": {
                   "prs": [
                     {
@@ -754,7 +242,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-2",
+                "surfaceId": "github:notifications-1",
                 "value": {
                   "prs": [
                     {
@@ -779,7 +267,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-2",
+                "surfaceId": "github:notifications-1",
                 "value": {
                   "prs": [
                     {
@@ -806,7 +294,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-2",
+                "surfaceId": "github:notifications-1",
                 "value": {
                   "prs": [
                     {
@@ -835,7 +323,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-2",
+                "surfaceId": "github:notifications-1",
                 "value": {
                   "prs": [
                     {
@@ -867,7 +355,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-2",
+                "surfaceId": "github:notifications-1",
                 "value": {
                   "prs": [
                     {
@@ -900,7 +388,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-2",
+                "surfaceId": "github:notifications-1",
                 "value": {
                   "prs": [
                     {
@@ -934,7 +422,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-2",
+                "surfaceId": "github:notifications-1",
                 "value": {
                   "prs": [
                     {
@@ -970,7 +458,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-2",
+                "surfaceId": "github:notifications-1",
                 "value": {
                   "prs": [
                     {
@@ -1010,7 +498,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-2",
+                "surfaceId": "github:notifications-1",
                 "value": {
                   "prs": [
                     {
@@ -1051,7 +539,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-2",
+                "surfaceId": "github:notifications-1",
                 "value": {
                   "prs": [
                     {
@@ -1093,7 +581,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-2",
+                "surfaceId": "github:notifications-1",
                 "value": {
                   "prs": [
                     {
@@ -1137,7 +625,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-2",
+                "surfaceId": "github:notifications-1",
                 "value": {
                   "prs": [
                     {
@@ -1182,7 +670,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-2",
+                "surfaceId": "github:notifications-1",
                 "value": {
                   "prs": [
                     {
@@ -1231,7 +719,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-2",
+                "surfaceId": "github:notifications-1",
                 "value": {
                   "prs": [
                     {
@@ -1281,7 +769,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-2",
+                "surfaceId": "github:notifications-1",
                 "value": {
                   "prs": [
                     {
@@ -1332,7 +820,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-2",
+                "surfaceId": "github:notifications-1",
                 "value": {
                   "prs": [
                     {
@@ -1384,7 +872,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-2",
+                "surfaceId": "github:notifications-1",
                 "value": {
                   "prs": [
                     {
@@ -1438,7 +926,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-2",
+                "surfaceId": "github:notifications-1",
                 "value": {
                   "prs": [
                     {
@@ -1493,7 +981,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-2",
+                "surfaceId": "github:notifications-1",
                 "value": {
                   "prs": [
                     {
@@ -1551,7 +1039,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-2",
+                "surfaceId": "github:notifications-1",
                 "value": {
                   "prs": [
                     {
@@ -1611,7 +1099,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-2",
+                "surfaceId": "github:notifications-1",
                 "value": {
                   "prs": [
                     {
@@ -1672,7 +1160,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-2",
+                "surfaceId": "github:notifications-1",
                 "value": {
                   "prs": [
                     {
@@ -1735,7 +1223,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-2",
+                "surfaceId": "github:notifications-1",
                 "value": {
                   "prs": [
                     {
@@ -1799,7 +1287,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-2",
+                "surfaceId": "github:notifications-1",
                 "path": "/",
                 "value": {
                   "prs": [
@@ -2060,7 +1548,7 @@
                     "second": "2-digit"
                   }
                 ],
-                "surfaceId": "github:notifications-2"
+                "surfaceId": "github:notifications-1"
               }
             }
           ],
@@ -2071,7 +1559,520 @@
           }
         },
         {
-          "offsetMs": 5739,
+          "offsetMs": 8602,
+          "messages": [
+            {
+              "version": "v0.9",
+              "createSurface": {
+                "surfaceId": "linear:linear-1",
+                "catalogId": "https://github.com/retz8/a2uiverse-apps/blob/main/linear/linear-catalog/catalogs/v0.9.1/catalog.json",
+                "sendDataModel": true
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "linear:linear-1",
+                "value": {
+                  "team": "A2uiverse"
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "linear:linear-1",
+                "value": {
+                  "issues": [
+                    {
+                      "id": "A2U-5",
+                      "title": "Say on the canvas when an utterance fails",
+                      "status": "In Review",
+                      "statusType": "started"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "linear:linear-1",
+                "value": {
+                  "issues": [
+                    {
+                      "id": "A2U-5",
+                      "title": "Say on the canvas when an utterance fails",
+                      "status": "In Review",
+                      "statusType": "started",
+                      "priority": "High",
+                      "link": "PR #6"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "linear:linear-1",
+                "value": {
+                  "issues": [
+                    {
+                      "id": "A2U-5",
+                      "title": "Say on the canvas when an utterance fails",
+                      "status": "In Review",
+                      "statusType": "started",
+                      "priority": "High",
+                      "link": "PR #6",
+                      "updatedAt": "Sep 19, 2026, 10:58:36 UTC"
+                    },
+                    {}
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "linear:linear-1",
+                "value": {
+                  "issues": [
+                    {
+                      "id": "A2U-5",
+                      "title": "Say on the canvas when an utterance fails",
+                      "status": "In Review",
+                      "statusType": "started",
+                      "priority": "High",
+                      "link": "PR #6",
+                      "updatedAt": "Sep 19, 2026, 10:58:36 UTC"
+                    },
+                    {
+                      "id": "A2U-7"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "linear:linear-1",
+                "value": {
+                  "issues": [
+                    {
+                      "id": "A2U-5",
+                      "title": "Say on the canvas when an utterance fails",
+                      "status": "In Review",
+                      "statusType": "started",
+                      "priority": "High",
+                      "link": "PR #6",
+                      "updatedAt": "Sep 19, 2026, 10:58:36 UTC"
+                    },
+                    {
+                      "id": "A2U-7",
+                      "title": "Shell-action report hangs through the tunnel",
+                      "status": "In Progress",
+                      "statusType": "started"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "linear:linear-1",
+                "value": {
+                  "issues": [
+                    {
+                      "id": "A2U-5",
+                      "title": "Say on the canvas when an utterance fails",
+                      "status": "In Review",
+                      "statusType": "started",
+                      "priority": "High",
+                      "link": "PR #6",
+                      "updatedAt": "Sep 19, 2026, 10:58:36 UTC"
+                    },
+                    {
+                      "id": "A2U-7",
+                      "title": "Shell-action report hangs through the tunnel",
+                      "status": "In Progress",
+                      "statusType": "started",
+                      "priority": "Low"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "linear:linear-1",
+                "value": {
+                  "issues": [
+                    {
+                      "id": "A2U-5",
+                      "title": "Say on the canvas when an utterance fails",
+                      "status": "In Review",
+                      "statusType": "started",
+                      "priority": "High",
+                      "link": "PR #6",
+                      "updatedAt": "Sep 19, 2026, 10:58:36 UTC"
+                    },
+                    {
+                      "id": "A2U-7",
+                      "title": "Shell-action report hangs through the tunnel",
+                      "status": "In Progress",
+                      "statusType": "started",
+                      "priority": "Low",
+                      "link": "ekkicb71/a2u-7-shell-action-report-hangs-through-the-tunnel"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "linear:linear-1",
+                "value": {
+                  "issues": [
+                    {
+                      "id": "A2U-5",
+                      "title": "Say on the canvas when an utterance fails",
+                      "status": "In Review",
+                      "statusType": "started",
+                      "priority": "High",
+                      "link": "PR #6",
+                      "updatedAt": "Sep 19, 2026, 10:58:36 UTC"
+                    },
+                    {
+                      "id": "A2U-7",
+                      "title": "Shell-action report hangs through the tunnel",
+                      "status": "In Progress",
+                      "statusType": "started",
+                      "priority": "Low",
+                      "link": "ekkicb71/a2u-7-shell-action-report-hangs-through-the-tunnel",
+                      "updatedAt": "Sep 19, 2026, 10:53:09 UTC"
+                    },
+                    {}
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "linear:linear-1",
+                "value": {
+                  "issues": [
+                    {
+                      "id": "A2U-5",
+                      "title": "Say on the canvas when an utterance fails",
+                      "status": "In Review",
+                      "statusType": "started",
+                      "priority": "High",
+                      "link": "PR #6",
+                      "updatedAt": "Sep 19, 2026, 10:58:36 UTC"
+                    },
+                    {
+                      "id": "A2U-7",
+                      "title": "Shell-action report hangs through the tunnel",
+                      "status": "In Progress",
+                      "statusType": "started",
+                      "priority": "Low",
+                      "link": "ekkicb71/a2u-7-shell-action-report-hangs-through-the-tunnel",
+                      "updatedAt": "Sep 19, 2026, 10:53:09 UTC"
+                    },
+                    {
+                      "id": "A2U-6"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "linear:linear-1",
+                "value": {
+                  "issues": [
+                    {
+                      "id": "A2U-5",
+                      "title": "Say on the canvas when an utterance fails",
+                      "status": "In Review",
+                      "statusType": "started",
+                      "priority": "High",
+                      "link": "PR #6",
+                      "updatedAt": "Sep 19, 2026, 10:58:36 UTC"
+                    },
+                    {
+                      "id": "A2U-7",
+                      "title": "Shell-action report hangs through the tunnel",
+                      "status": "In Progress",
+                      "statusType": "started",
+                      "priority": "Low",
+                      "link": "ekkicb71/a2u-7-shell-action-report-hangs-through-the-tunnel",
+                      "updatedAt": "Sep 19, 2026, 10:53:09 UTC"
+                    },
+                    {
+                      "id": "A2U-6",
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "status": "In Progress"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "linear:linear-1",
+                "value": {
+                  "issues": [
+                    {
+                      "id": "A2U-5",
+                      "title": "Say on the canvas when an utterance fails",
+                      "status": "In Review",
+                      "statusType": "started",
+                      "priority": "High",
+                      "link": "PR #6",
+                      "updatedAt": "Sep 19, 2026, 10:58:36 UTC"
+                    },
+                    {
+                      "id": "A2U-7",
+                      "title": "Shell-action report hangs through the tunnel",
+                      "status": "In Progress",
+                      "statusType": "started",
+                      "priority": "Low",
+                      "link": "ekkicb71/a2u-7-shell-action-report-hangs-through-the-tunnel",
+                      "updatedAt": "Sep 19, 2026, 10:53:09 UTC"
+                    },
+                    {
+                      "id": "A2U-6",
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "status": "In Progress",
+                      "statusType": "started",
+                      "priority": "Medium",
+                      "link": "PR #7"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "linear:linear-1",
+                "value": {
+                  "issues": [
+                    {
+                      "id": "A2U-5",
+                      "title": "Say on the canvas when an utterance fails",
+                      "status": "In Review",
+                      "statusType": "started",
+                      "priority": "High",
+                      "link": "PR #6",
+                      "updatedAt": "Sep 19, 2026, 10:58:36 UTC"
+                    },
+                    {
+                      "id": "A2U-7",
+                      "title": "Shell-action report hangs through the tunnel",
+                      "status": "In Progress",
+                      "statusType": "started",
+                      "priority": "Low",
+                      "link": "ekkicb71/a2u-7-shell-action-report-hangs-through-the-tunnel",
+                      "updatedAt": "Sep 19, 2026, 10:53:09 UTC"
+                    },
+                    {
+                      "id": "A2U-6",
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "status": "In Progress",
+                      "statusType": "started",
+                      "priority": "Medium",
+                      "link": "PR #7",
+                      "updatedAt": "Sep 18, 2026, 11:53:06 UTC"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "linear:linear-1",
+                "path": "/",
+                "value": {
+                  "team": "A2uiverse",
+                  "issues": [
+                    {
+                      "id": "A2U-5",
+                      "title": "Say on the canvas when an utterance fails",
+                      "status": "In Review",
+                      "statusType": "started",
+                      "priority": "High",
+                      "link": "PR #6",
+                      "updatedAt": "Sep 19, 2026, 10:58:36 UTC"
+                    },
+                    {
+                      "id": "A2U-7",
+                      "title": "Shell-action report hangs through the tunnel",
+                      "status": "In Progress",
+                      "statusType": "started",
+                      "priority": "Low",
+                      "link": "ekkicb71/a2u-7-shell-action-report-hangs-through-the-tunnel",
+                      "updatedAt": "Sep 19, 2026, 10:53:09 UTC"
+                    },
+                    {
+                      "id": "A2U-6",
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "status": "In Progress",
+                      "statusType": "started",
+                      "priority": "Medium",
+                      "link": "PR #7",
+                      "updatedAt": "Sep 18, 2026, 11:53:06 UTC"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "root",
+                    "component": "Card",
+                    "child": "body"
+                  },
+                  {
+                    "id": "body",
+                    "component": "Column",
+                    "children": [
+                      "heading",
+                      "sub",
+                      "divider",
+                      "issue-list"
+                    ]
+                  },
+                  {
+                    "id": "heading",
+                    "component": "Text",
+                    "text": "Assigned in-progress issues",
+                    "variant": "h3"
+                  },
+                  {
+                    "id": "sub",
+                    "component": "Text",
+                    "text": {
+                      "path": "/team"
+                    },
+                    "variant": "caption"
+                  },
+                  {
+                    "id": "divider",
+                    "component": "Divider"
+                  },
+                  {
+                    "id": "issue-list",
+                    "component": "Column",
+                    "children": {
+                      "path": "/issues",
+                      "componentId": "issue-row"
+                    }
+                  },
+                  {
+                    "id": "issue-row",
+                    "component": "Button",
+                    "variant": "borderless",
+                    "child": "issue-line",
+                    "action": {
+                      "event": {
+                        "name": "open-issue",
+                        "context": {
+                          "issueId": {
+                            "path": "id"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "issue-line",
+                    "component": "Row",
+                    "align": "center",
+                    "children": [
+                      "issue-priority",
+                      "issue-id",
+                      "issue-status",
+                      "issue-title",
+                      "issue-link",
+                      "issue-updated"
+                    ]
+                  },
+                  {
+                    "id": "issue-priority",
+                    "component": "PriorityIcon",
+                    "priority": {
+                      "path": "priority"
+                    }
+                  },
+                  {
+                    "id": "issue-id",
+                    "component": "Text",
+                    "text": {
+                      "path": "id"
+                    },
+                    "variant": "caption"
+                  },
+                  {
+                    "id": "issue-status",
+                    "component": "StatusIcon",
+                    "status": {
+                      "path": "status"
+                    },
+                    "type": {
+                      "path": "statusType"
+                    }
+                  },
+                  {
+                    "id": "issue-title",
+                    "component": "Text",
+                    "text": {
+                      "path": "title"
+                    },
+                    "weight": 1
+                  },
+                  {
+                    "id": "issue-link",
+                    "component": "Text",
+                    "text": {
+                      "path": "link"
+                    },
+                    "variant": "caption"
+                  },
+                  {
+                    "id": "issue-updated",
+                    "component": "Text",
+                    "text": {
+                      "path": "updatedAt"
+                    },
+                    "variant": "caption"
+                  }
+                ],
+                "surfaceId": "linear:linear-1"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "linear",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 8741,
           "messages": [
             {
               "version": "v0.9",
@@ -5672,7 +5673,7 @@
           }
         },
         {
-          "offsetMs": 15230,
+          "offsetMs": 24612,
           "messages": [
             {
               "version": "v0.9",
@@ -5690,16 +5691,25 @@
                     "id": "root",
                     "component": "Column",
                     "children": [
-                      "heading",
-                      "sort",
+                      "head",
                       "table"
                     ]
                   },
                   {
-                    "id": "heading",
+                    "id": "head",
+                    "component": "Row",
+                    "justify": "spaceBetween",
+                    "align": "center",
+                    "children": [
+                      "title",
+                      "sort"
+                    ]
+                  },
+                  {
+                    "id": "title",
                     "component": "Text",
-                    "variant": "h3",
-                    "text": "Active work status"
+                    "variant": "h5",
+                    "text": "Active work items"
                   },
                   {
                     "id": "sort",
@@ -5714,8 +5724,9 @@
                     "columns": [
                       "Issue",
                       "Status",
+                      "Priority",
                       "Pull request",
-                      "CI build",
+                      "CI status",
                       "Updated"
                     ],
                     "children": {
@@ -5729,6 +5740,7 @@
                     "children": [
                       "c-issue",
                       "c-status",
+                      "c-priority",
                       "c-pr",
                       "c-ci",
                       "c-updated"
@@ -5749,24 +5761,38 @@
                     }
                   },
                   {
+                    "id": "c-priority",
+                    "component": "DerivedValue",
+                    "cell": {
+                      "path": "priority"
+                    }
+                  },
+                  {
                     "id": "c-pr",
                     "component": "DerivedValue",
                     "cell": {
                       "path": "pr"
+                    },
+                    "format": {
+                      "kind": "number",
+                      "prefix": "#"
                     }
                   },
                   {
                     "id": "c-ci",
                     "component": "DerivedValue",
                     "cell": {
-                      "path": "ci"
-                    }
+                      "path": "ciStatus"
+                    },
+                    "danger": [
+                      "Failed"
+                    ]
                   },
                   {
                     "id": "c-updated",
                     "component": "DerivedValue",
                     "cell": {
-                      "path": "updated"
+                      "path": "updatedAt"
                     },
                     "format": {
                       "kind": "datetime"
@@ -5786,29 +5812,42 @@
               "issues": [
                 {
                   "match": {
-                    "same title": {
-                      "op": "equal",
+                    "same PR reference": {
+                      "op": "contains",
                       "args": [
                         {
-                          "surface": "linear:linear-2",
-                          "pointer": "/issues[id=\"A2U-5\"]/title"
+                          "surface": "linear:linear-1",
+                          "pointer": "/issues[id=\"A2U-5\"]/link"
                         },
                         {
-                          "surface": "github:notifications-2",
-                          "pointer": "/prs[number=6]/title"
+                          "surface": "github:notifications-1",
+                          "pointer": "/prs[repository=\"retz8/a2uiverse\",number=6]/number"
                         }
                       ]
                     },
-                    "same branch": {
+                    "branch matches issue key": {
+                      "op": "contains",
+                      "args": [
+                        {
+                          "surface": "github:notifications-1",
+                          "pointer": "/prs[repository=\"retz8/a2uiverse\",number=6]/branch"
+                        },
+                        {
+                          "surface": "linear:linear-1",
+                          "pointer": "/issues[id=\"A2U-5\"]/id"
+                        }
+                      ]
+                    },
+                    "CI run on same branch": {
                       "op": "equal",
                       "args": [
                         {
-                          "surface": "github:notifications-2",
-                          "pointer": "/prs[number=6]/branch"
-                        },
-                        {
                           "surface": "circleci:circleci-1",
                           "pointer": "/runs[id=\"6039cf16-6db3-4974-af2b-517f8ce26c2a\"]/branch"
+                        },
+                        {
+                          "surface": "github:notifications-1",
+                          "pointer": "/prs[repository=\"retz8/a2uiverse\",number=6]/branch"
                         }
                       ]
                     }
@@ -5817,8 +5856,8 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "linear:linear-2",
-                        "pointer": "/issues[id=\"A2U-5\"]/title"
+                        "surface": "linear:linear-1",
+                        "pointer": "/issues[id=\"A2U-5\"]/id"
                       }
                     ]
                   },
@@ -5826,8 +5865,17 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "linear:linear-2",
+                        "surface": "linear:linear-1",
                         "pointer": "/issues[id=\"A2U-5\"]/status"
+                      }
+                    ]
+                  },
+                  "priority": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "linear:linear-1",
+                        "pointer": "/issues[id=\"A2U-5\"]/priority"
                       }
                     ]
                   },
@@ -5835,12 +5883,12 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "github:notifications-2",
-                        "pointer": "/prs[number=6]/prRef"
+                        "surface": "github:notifications-1",
+                        "pointer": "/prs[repository=\"retz8/a2uiverse\",number=6]/number"
                       }
                     ]
                   },
-                  "ci": {
+                  "ciStatus": {
                     "op": "value",
                     "args": [
                       {
@@ -5849,11 +5897,11 @@
                       }
                     ]
                   },
-                  "updated": {
+                  "updatedAt": {
                     "op": "value",
                     "args": [
                       {
-                        "surface": "linear:linear-2",
+                        "surface": "linear:linear-1",
                         "pointer": "/issues[id=\"A2U-5\"]/updatedAt"
                       }
                     ]
@@ -5864,8 +5912,8 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "linear:linear-2",
-                        "pointer": "/issues[id=\"A2U-7\"]/title"
+                        "surface": "linear:linear-1",
+                        "pointer": "/issues[id=\"A2U-7\"]/id"
                       }
                     ]
                   },
@@ -5873,8 +5921,17 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "linear:linear-2",
+                        "surface": "linear:linear-1",
                         "pointer": "/issues[id=\"A2U-7\"]/status"
+                      }
+                    ]
+                  },
+                  "priority": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "linear:linear-1",
+                        "pointer": "/issues[id=\"A2U-7\"]/priority"
                       }
                     ]
                   },
@@ -5882,15 +5939,15 @@
                     "op": "value",
                     "args": []
                   },
-                  "ci": {
+                  "ciStatus": {
                     "op": "value",
                     "args": []
                   },
-                  "updated": {
+                  "updatedAt": {
                     "op": "value",
                     "args": [
                       {
-                        "surface": "linear:linear-2",
+                        "surface": "linear:linear-1",
                         "pointer": "/issues[id=\"A2U-7\"]/updatedAt"
                       }
                     ]
@@ -5898,29 +5955,29 @@
                 },
                 {
                   "match": {
-                    "same title": {
-                      "op": "equal",
+                    "same PR reference": {
+                      "op": "contains",
                       "args": [
                         {
-                          "surface": "linear:linear-2",
-                          "pointer": "/issues[id=\"A2U-6\"]/title"
+                          "surface": "linear:linear-1",
+                          "pointer": "/issues[id=\"A2U-6\"]/link"
                         },
                         {
-                          "surface": "github:notifications-2",
-                          "pointer": "/prs[number=7]/title"
+                          "surface": "github:notifications-1",
+                          "pointer": "/prs[repository=\"retz8/a2uiverse\",number=7]/number"
                         }
                       ]
                     },
-                    "same branch": {
+                    "CI run on same branch": {
                       "op": "equal",
                       "args": [
                         {
-                          "surface": "github:notifications-2",
-                          "pointer": "/prs[number=7]/branch"
-                        },
-                        {
                           "surface": "circleci:circleci-1",
                           "pointer": "/runs[id=\"8ccc8586-fb31-49f8-96aa-daa8642abdb0\"]/branch"
+                        },
+                        {
+                          "surface": "github:notifications-1",
+                          "pointer": "/prs[repository=\"retz8/a2uiverse\",number=7]/branch"
                         }
                       ]
                     }
@@ -5929,8 +5986,8 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "linear:linear-2",
-                        "pointer": "/issues[id=\"A2U-6\"]/title"
+                        "surface": "linear:linear-1",
+                        "pointer": "/issues[id=\"A2U-6\"]/id"
                       }
                     ]
                   },
@@ -5938,8 +5995,17 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "linear:linear-2",
+                        "surface": "linear:linear-1",
                         "pointer": "/issues[id=\"A2U-6\"]/status"
+                      }
+                    ]
+                  },
+                  "priority": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "linear:linear-1",
+                        "pointer": "/issues[id=\"A2U-6\"]/priority"
                       }
                     ]
                   },
@@ -5947,12 +6013,12 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "github:notifications-2",
-                        "pointer": "/prs[number=7]/prRef"
+                        "surface": "github:notifications-1",
+                        "pointer": "/prs[repository=\"retz8/a2uiverse\",number=7]/number"
                       }
                     ]
                   },
-                  "ci": {
+                  "ciStatus": {
                     "op": "value",
                     "args": [
                       {
@@ -5961,11 +6027,11 @@
                       }
                     ]
                   },
-                  "updated": {
+                  "updatedAt": {
                     "op": "value",
                     "args": [
                       {
-                        "surface": "linear:linear-2",
+                        "surface": "linear:linear-1",
                         "pointer": "/issues[id=\"A2U-6\"]/updatedAt"
                       }
                     ]
@@ -5978,11 +6044,11 @@
                 "path": "/issues",
                 "options": [
                   {
-                    "key": "/updated",
+                    "key": "/updatedAt",
                     "label": "Updated"
                   }
                 ],
-                "key": "/updated",
+                "key": "/updatedAt",
                 "direction": "desc"
               }
             ]
@@ -5990,7 +6056,7 @@
         }
       ],
       "outcome": "completed",
-      "durationMs": 15230
+      "durationMs": 24614
     }
   ]
 }

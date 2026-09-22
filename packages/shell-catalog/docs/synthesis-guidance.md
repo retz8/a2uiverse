@@ -22,8 +22,14 @@ both.
 
 - **`DerivedValue`** for every value drawn from the sources. Give it a `format` when the value is a
   number, an amount of money, or a date-and-time — `datetime` renders every source's time in one
-  form, whatever each painted; leave it as text otherwise. Which source an entry came from is a
-  value too: a `DerivedValue` over the `source` operator, never a label of yours.
+  form, whatever each painted; leave it as text otherwise. A `prefix` on the format is written
+  before the value: a number with `"prefix": "#"` reads `#8`. Which source an entry
+  came from is a value too: a `DerivedValue` over the `source` operator, never a label of yours.
+- **`danger`** on a `DerivedValue` names the values of that column a reader must act on — a failure,
+  an error, a rejection — in the words the source uses: `"danger": ["Failed"]`. The
+  runtime draws a matching value in the danger tone and leaves every other value plain. Name only
+  what asks for action; a value that is merely not yet done is not a danger. The list is never
+  shown, so it is not a copied value.
 - **`Table`** for a list of like entries with several values each — the merged list. `columns` are
   the headings you write; `children` is a template over the array of your model whose component is
   a **`TableRow`**, and that row's `children` are the cells, one `DerivedValue` per column, in
@@ -37,10 +43,12 @@ both.
   `/sorts/N` where N is that entry's index. Place it where the user expects to change the order —
   above the table it sorts. It shows the criterion and lets the user change key and direction; you
   never bind it to your own model.
-- **`Text`** for what you write yourself: a heading, a group's title, a caption. Use `variant` for
-  hierarchy (`h3` for the view's heading, `caption` for a group's title).
-- **`Column` and `Row`** for structure around those: the view's heading over its control over its
-  table; a second group under the first. A `Column` whose `children` is a template —
+- **`Text`** for what you write yourself: the view's label, a caption. The user's question already
+  heads the screen, so the view's title is a label, not a heading: `h5`, on one `Row` with the
+  view's `SortControl` — `{"component": "Row", "justify": "spaceBetween", "align": "center"}` —
+  over the table. A second group carries an `h5` label of its own.
+- **`Column` and `Row`** for structure around those: the label row over the table; a second group
+  under the first. A `Column` whose `children` is a template —
   `{"path": "/rows", "componentId": "row"}` — templates any component over an array of your model,
   each element's bindings relative to it (`{"path": "price"}`, no leading slash); a `Card` per
   element is the shape for entries too unlike each other for one table.

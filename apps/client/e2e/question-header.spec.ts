@@ -80,3 +80,63 @@ test('"Show all" opens the whole question over the page, nothing beneath moving'
   await page.keyboard.press('Escape');
   await expect(overlay).toHaveCount(0);
 });
+
+/**
+ * The header scrolls with the page it heads; once it has left, a one-line bar holds the top edge
+ * — the question, and the progress while the turn runs — without moving anything beneath.
+ */
+test('scrolled past the header, the condensed bar holds the question; back at the top it goes', async ({
+  page,
+}) => {
+  await settle(page, '9');
+  const scroller = page.getByTestId('canvas-scroll');
+  await expect(page.getByTestId('canvas-compact-head')).toHaveCount(0);
+  const firstSlot = page.locator('[data-slot="linear"]');
+  const before = (await firstSlot.boundingBox())!.y;
+  await scroller.evaluate(el => el.scrollTo({top: 400}));
+  const bar = page.getByTestId('canvas-compact-head');
+  await expect(bar).toBeVisible();
+  await expect(bar.getByRole('button', {name: UTTERANCE})).toBeVisible();
+  // The turn has landed: the bar carries the question alone.
+  await expect(page.getByTestId('canvas-progress-compact')).toHaveCount(0);
+  // Nothing beneath moved for it: the page scrolled by exactly what was asked.
+  expect(Math.round(before - (await firstSlot.boundingBox())!.y)).toBe(400);
+  expect((await bar.boundingBox())!.y).toBe(0);
+  // Back and the question sit on the bar's middle line, 30px down — where Back and the full
+  // question meet at the top of the page.
+  const centre = async (locator: ReturnType<Page['locator']>) => {
+    const box = (await locator.boundingBox())!;
+    return box.y + box.height / 2;
+  };
+  const back = page.getByRole('button', {name: 'Back', exact: true});
+  expect(Math.abs((await centre(back)) - 30)).toBeLessThanOrEqual(1);
+  expect(Math.abs((await centre(bar)) - 30)).toBeLessThanOrEqual(1);
+  expect(
+    Math.abs((await centre(bar.getByRole('button', {name: UTTERANCE}))) - 30),
+  ).toBeLessThanOrEqual(1);
+  await expect(page).toHaveScreenshot('question-header-condensed.png');
+  await bar.getByRole('button', {name: UTTERANCE}).click();
+  await expect(page.getByRole('textbox', {name: 'Ask the agent'})).toHaveValue(UTTERANCE);
+  await page.keyboard.press('Escape');
+  await scroller.evaluate(el => el.scrollTo({top: 0}));
+  await expect(page.getByTestId('canvas-compact-head')).toHaveCount(0);
+  const top = (await page.getByTestId('canvas-question').boundingBox())!;
+  expect(Math.abs(top.y + top.height / 2 - (await centre(back)))).toBeLessThanOrEqual(1);
+});
+
+test('while the turn runs, the condensed bar carries the progress line', async ({page}) => {
+  await page.goto('/?beat=merging');
+  await expect(page.locator('[data-slot="shell"]')).toHaveAttribute('data-slot-state', 'pending', {
+    timeout: 30_000,
+  });
+  await page.getByTestId('canvas-scroll').evaluate(el => el.scrollTo({top: 400}));
+  const progress = page.getByTestId('canvas-progress-compact');
+  await expect(progress).toContainText('Joining Linear issues to GitHub PRs and CircleCI runs');
+  // The question and the progress line share one vertical centre.
+  const middle = async (locator: ReturnType<Page['locator']>) => {
+    const box = (await locator.boundingBox())!;
+    return box.y + box.height / 2;
+  };
+  const question = page.getByTestId('canvas-compact-head').getByRole('button', {name: UTTERANCE});
+  expect(Math.abs((await middle(question)) - (await middle(progress)))).toBeLessThanOrEqual(1);
+});

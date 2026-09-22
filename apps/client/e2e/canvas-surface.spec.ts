@@ -112,6 +112,15 @@ test('beat 9: the entity join replays, its joined values unmarked and its empty 
   );
   // A joined value says where it came from, by the app's name.
   await expect(view.locator('[aria-label*="From GitHub"]').first()).toBeVisible();
+  // The table reads as an answer (task 7.16): the model's title is the small label on the sort
+  // control's row, and a pull request is its handle. The deterministic roster holds no failed run
+  // on a joined row, so the danger tone is pinned by the shell catalog's own tests.
+  const label = view.locator('h5');
+  await expect(label).toHaveCount(1);
+  const sortTop = (await view.getByLabel('Sort by').boundingBox())!.y;
+  const labelBox = (await label.boundingBox())!;
+  expect(Math.abs(labelBox.y + labelBox.height / 2 - sortTop - 12)).toBeLessThan(12);
+  await expect(view.locator('[data-value]', {hasText: /^#\d+$/}).first()).toBeVisible();
 });
 
 /**

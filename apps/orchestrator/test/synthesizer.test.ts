@@ -138,6 +138,26 @@ describe('validateSynthesis (task-6.3 decision 9)', () => {
     expect(checkSynthesis(badProp).join('\n')).toMatch(/^\/tree\/components\/4\/cell \(c-id\): /m);
   });
 
+  test('a value’s danger words and a format prefix pass the catalog; an unknown format key does not (task 7.16)', () => {
+    const toned = good();
+    toned.tree.components[4] = {
+      id: 'c-id',
+      component: 'DerivedValue',
+      cell: {path: 'id'},
+      format: {kind: 'text', prefix: '#'},
+      danger: ['out of stock'],
+    };
+    expect(checkSynthesis(toned)).toEqual([]);
+    const unknownKey = good();
+    unknownKey.tree.components[4] = {
+      id: 'c-id',
+      component: 'DerivedValue',
+      cell: {path: 'id'},
+      format: {kind: 'text', suffix: '!'},
+    };
+    expect(checkSynthesis(unknownKey).join('\n')).toMatch(/^\/tree\/components\/4\/format/m);
+  });
+
   test('a child that is not declared, a missing root, and a shell layout primitive are refused', () => {
     const dangling = good();
     dangling.tree.components[3] = {

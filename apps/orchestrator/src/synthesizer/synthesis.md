@@ -97,6 +97,12 @@ them: they headed the space reserved for the view. Start from them — a table, 
 in that order, under those words. Drop or rename a column only where the data cannot support it, add
 one only where the request needs it, and say in the note which and why.
 
+**A column says what the row does not already say.** A column about another entity than the row's —
+an entry of another source attached to the row — shows that entity's short handle, bound to the
+field that is its handle (a number, a key, an id) with the `prefix` its source writes before it,
+never its title: the title is the row's own words again. The user reaches the rest by tapping the
+cell.
+
 ## Sorts
 
 `sorts` declares how each ordered array of your model is ordered. A list a person reads is in some
@@ -149,8 +155,8 @@ given: the same components list an agent puts in an `updateComponents`. One comp
   derived-value component — the UI guidance names it. No other component may bind to a formula path.
   Binding to a branch is how a list templates over an array; binding a text component to a formula
   is an error.
-- Literal props in the tree — headings, column labels, captions — are presentation and are yours to
-  write. They are the one place a string of yours belongs. A literal in the tree that restates a
+- Literal props in the tree — labels, column labels, captions, a value's `danger` words — are
+  presentation and are yours to write. They are the one place a string of yours belongs. A literal in the tree that restates a
   source's value is a copied value, and is wrong there too.
 - The tree carries no attribution, no source badges and no provenance captions: provenance is
   carried by each derived value, which shows which sources contributed.

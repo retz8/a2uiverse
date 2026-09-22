@@ -64,11 +64,96 @@ body {
   --a2v-scrim: rgba(0, 0, 0, 0.4);
 }
 
-.canvas-stage {
+/* The page: the question heads it and scrolls away with it; the stage below is its body. */
+.canvas-scroll {
   flex: 1;
   min-height: 0;
   overflow: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.canvas-stage {
+  flex: 1 0 auto;
   padding: 16px var(--a2v-inset) 16px calc(var(--a2v-gutter) + var(--a2v-inset));
+}
+
+/* ——— The header condensed ——— */
+
+/* A zero-height sticky anchor: the bar hangs from it over the page, so showing it moves nothing.
+   The Back button's row with its 12px above and below: Back and the question share its middle
+   line, 30px down, as the full question does. */
+.canvas-compact-anchor {
+  position: sticky;
+  top: 0;
+  height: 0;
+  z-index: 11;
+}
+
+/* While parked the banner holds the top edge; the bar sits under it. */
+.canvas-app--parked .canvas-compact-anchor {
+  top: 61px;
+}
+
+.canvas-compact {
+  box-sizing: border-box;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-right: var(--a2v-inset);
+  padding-left: calc(var(--a2v-gutter) + var(--a2v-inset));
+  background: var(--color-background);
+  border-bottom: 1px solid var(--a2v-line);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  animation: canvas-compact-in 120ms ease-out;
+}
+
+@keyframes canvas-compact-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .canvas-compact {
+    animation: none;
+  }
+}
+
+.canvas-compact-question {
+  all: unset;
+  box-sizing: border-box;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 60%;
+  margin: 0 -8px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+  color: var(--a2v-ink);
+  cursor: text;
+}
+
+.canvas-compact-question:hover {
+  background: var(--a2v-hover);
+}
+
+.canvas-compact-question:focus-visible {
+  outline: 2px solid var(--a2v-accent);
+  outline-offset: 2px;
+}
+
+/* Centred on the question's line, not hung 8px below it as under the full header. */
+.canvas-compact .canvas-progress--compact {
+  flex: 1 1 0;
+  min-width: 0;
+  margin-top: 0;
 }
 
 /* ——— The question and the progress line ——— */
@@ -78,14 +163,16 @@ body {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  padding: 24px var(--a2v-inset) 0 calc(var(--a2v-gutter) + var(--a2v-inset));
+  /* 12px from the top, the Back button's top: the question's first line and the button share one
+     centre, 30px down. */
+  padding: 12px var(--a2v-inset) 0 calc(var(--a2v-gutter) + var(--a2v-inset));
   color: var(--a2v-ink);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
 }
 
 /* The parked banner holds the top edge; the question starts beneath it, on the parked tint. */
 .canvas-app--parked .canvas-head {
-  padding-top: 64px;
+  padding-top: 72px;
   background: color-mix(in srgb, var(--amber-3, #fff8c5) 22%, var(--color-background));
 }
 
@@ -534,7 +621,7 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 12px;
+  padding: 12px;
   z-index: 12;
 }
 
@@ -603,7 +690,7 @@ body {
 
 .canvas-history-list {
   position: absolute;
-  top: 44px;
+  top: 52px;
   left: 12px;
   margin: 0;
   padding: 4px;
@@ -678,7 +765,7 @@ body {
 
 /* With no question over it, the stage clears the floating Back button itself. */
 .canvas-stage {
-  padding-top: 48px;
+  padding-top: 56px;
 }
 
 /* The shell's own layout spaces its regions: 32px between the merged view and the fragments,

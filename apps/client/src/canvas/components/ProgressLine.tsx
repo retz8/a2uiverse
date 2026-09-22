@@ -11,6 +11,11 @@ export interface ProgressLineProps {
   state: CanvasState;
   /** When the turn was asked — the planning wait counts from here. */
   since: number | null;
+  /**
+   * The copy the condensed header carries while the full one is scrolled away: the same line,
+   * not a second live region, and not the line tests and landings look up.
+   */
+  compact?: boolean;
 }
 
 const CheckIcon = () => (
@@ -51,12 +56,20 @@ export const WorkingIcon = () => (
   </svg>
 );
 
-function Step({status, children}: {status: StepStatus; children: string}) {
+function Step({
+  status,
+  compact,
+  children,
+}: {
+  status: StepStatus;
+  compact?: boolean;
+  children: string;
+}) {
   const working = status === 'working';
   return (
     <span
       className={`canvas-progress-step canvas-progress-step--${status}`}
-      data-testid={working ? 'canvas-pending' : undefined}
+      data-testid={working && !compact ? 'canvas-pending' : undefined}
       data-status={status}
     >
       {status === 'done' && <CheckIcon />}
@@ -80,29 +93,38 @@ function useElapsed(since: number | null, running: boolean): number {
   return since === null ? 0 : Math.max(0, Math.floor((now - since) / 1000));
 }
 
-export function ProgressLine({state, since}: ProgressLineProps) {
+export function ProgressLine({state, since, compact}: ProgressLineProps) {
   const progress = turnProgress(state);
   const planning = progress.working?.kind === 'planning';
   const elapsed = useElapsed(since, planning);
   return (
-    <div className="canvas-progress" data-testid="canvas-progress" aria-live="polite">
+    <div
+      className={compact ? 'canvas-progress canvas-progress--compact' : 'canvas-progress'}
+      data-testid={compact ? 'canvas-progress-compact' : 'canvas-progress'}
+      aria-live={compact ? undefined : 'polite'}
+    >
       {progress.working && (
         <>
-          <Step status="working">{progress.working.label}</Step>
+          <Step status="working" compact={compact}>
+            {progress.working.label}
+          </Step>
           {planning && elapsed > 0 && (
             <span className="canvas-progress-step canvas-progress-step--faint">{elapsed} s</span>
           )}
         </>
       )}
       {progress.sources.map(source => (
-        <Step key={source.appId} status={source.status}>
+        <Step key={source.appId} status={source.status} compact={compact}>
           {source.name}
         </Step>
       ))}
       {progress.join && progress.join.names.length > 0 && (
         <Fragment>
           <Dot />
-          <Step status={progress.join.status === 'done' ? 'idle' : progress.join.status}>
+          <Step
+            status={progress.join.status === 'done' ? 'idle' : progress.join.status}
+            compact={compact}
+          >
             {joinSentence(progress.join)}
           </Step>
         </Fragment>

@@ -23,6 +23,14 @@ test('headings render as Radix Heading on the element the variant names', () => 
   }
 });
 
+test("h5 is the merged view's label: a heading drawn at 13px semibold in the second ink (task 7.16)", () => {
+  renderTree([{id: 'root', component: 'Text', text: 'Active work status', variant: 'h5'}]);
+  const label = screen.getByRole('heading', {name: 'Active work status'});
+  expect(label.tagName).toBe('H5');
+  expect(label).toHaveStyle({fontSize: '13px', lineHeight: '20px', fontWeight: '600'});
+  expect(label.style.color).toBe('var(--a2v-ink-2, var(--gray-12))');
+});
+
 test('a caption is inline Radix Text in gray; body is a Radix Text block', () => {
   const caption = renderTree([{id: 'root', component: 'Text', text: 'note', variant: 'caption'}]);
   const captionEl = screen.getByText('note');

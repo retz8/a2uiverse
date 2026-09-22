@@ -540,8 +540,15 @@ const navigationRow = (id: string, match: Record<string, unknown>) => {
 const NAVIGATION_DOCUMENT: SynthesisDocument = {
   tree: {
     components: [
-      {id: 'root', component: 'Column', children: ['heading', 'sort', 'rows']},
-      {id: 'heading', component: 'Text', variant: 'h3', text: 'Cameras in both stores'},
+      {id: 'root', component: 'Column', children: ['head', 'rows']},
+      {
+        id: 'head',
+        component: 'Row',
+        justify: 'spaceBetween',
+        align: 'center',
+        children: ['heading', 'sort'],
+      },
+      {id: 'heading', component: 'Text', variant: 'h5', text: 'Cameras in both stores'},
       {id: 'sort', component: 'SortControl', sort: {path: '/sorts/0'}},
       {
         id: 'rows',

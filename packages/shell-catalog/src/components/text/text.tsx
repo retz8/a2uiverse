@@ -10,17 +10,36 @@ export type TextVariant = 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'caption' | 'body';
 /**
  * The heading variants onto Radix `Heading`: the element the variant names, at one Radix size
  * step per level. Radix's own default heading size is 6; the catalog's `h1` sits one step above
- * it and `h5` three below, which keeps a fragment's headings inside the canvas's scale.
+ * it and `h4` two below, which keeps a fragment's headings inside the canvas's scale. `h5` is the
+ * label, below.
  */
 const HEADINGS: Record<
-  Exclude<TextVariant, 'caption' | 'body'>,
-  {as: 'h1' | 'h2' | 'h3' | 'h4' | 'h5'; size: '7' | '6' | '5' | '4' | '3'}
+  Exclude<TextVariant, 'caption' | 'body' | 'h5'>,
+  {as: 'h1' | 'h2' | 'h3' | 'h4'; size: '7' | '6' | '5' | '4'}
 > = {
   h1: {as: 'h1', size: '7'},
   h2: {as: 'h2', size: '6'},
   h3: {as: 'h3', size: '5'},
   h4: {as: 'h4', size: '4'},
-  h5: {as: 'h5', size: '3'},
+};
+
+/**
+ * `h5` is the label a merged view carries on its sort control's row (task 7.16, the design
+ * canvas's F3): the model's title named small, since the user's question is the canvas's header
+ * (SPEC §4.3). Still a heading element, so the view keeps its accessible name.
+ */
+const LABEL_STYLE: CSSProperties = {
+  fontSize: 13,
+  lineHeight: '20px',
+  fontWeight: 600,
+  letterSpacing: 'normal',
+  color: 'var(--a2v-ink-2, var(--gray-12))',
+  // One line beside the sort control, as the canvas draws it; a narrow slot ends it in an
+  // ellipsis, the whole title still in the heading's text and its tooltip.
+  minWidth: 0,
+  whiteSpace: 'nowrap',
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
 };
 
 /**
@@ -44,6 +63,13 @@ export function TextView({
       <Text as="span" size="1" color="gray" style={style}>
         {text}
       </Text>
+    );
+  }
+  if (variant === 'h5') {
+    return (
+      <Heading as="h5" title={text} style={{...LABEL_STYLE, ...style}}>
+        {text}
+      </Heading>
     );
   }
   const heading = HEADINGS[variant];
