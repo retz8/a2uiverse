@@ -58,7 +58,7 @@ Catalog-authoring and renderer-design conventions live in the `a2ui-sdk-design` 
 The dev workflow (phases → sub-tasks, dispatch, branching, wrap-up) lives in the **`daily-work-harness` plugin** — its skills (`daily-work-harness:pick-up-task` / `:wrap-up` / `:rebase-with-main` / `:grill-to-spec`) and the `daily-workflow.md` reference doc they read. Operational rules it relies on:
 
 - **`_dev/` lives on `main`.** `_dev/TODO.md` and everything under `_dev/docs/` is edited and committed on `main` only — never on a worktree/sub-task branch. Worktree branches carry implementation code only.
-- **Implementation plans go to `_dev/docs/plan/`** as `task-<N.M>-<short>.md` — `superpowers:writing-plans` must emit there.
+- **Implementation plans go to `_dev/docs/plan/`** as `task-<N.M>-<short>.md`.
 - **Design records go to `_dev/docs/design/`** as `<area>.md` (e.g. `orchestrator.md`): the implemented system design — each component as a class with its responsibility, public surface, private state, and collaborators, plus the flows between them. Concise; states what is. Updated in the same session as the change that alters the design.
 - **Nightly routine.** `a2uiverse nightly producing routine` (Claude cloud Routine, 01:30 KST, Opus) drains `autonomous-ready` issues into labelled PRs per the harness's autonomous contract; triage with `daily-work-harness:review-nightly`. Labels are provisioned on the repo.
 - **Commit convention:** conventional commits — `<type>(phase-<N>): …` for phase/sub-task work, bare `<type>: …` off-phase.
