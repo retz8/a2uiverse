@@ -53,7 +53,7 @@ and renders, which is what a test or a replay needs. Every vendor catalog is reb
 | `hostRelay` | The host the shell catalog is built with, before any canvas exists — `ShellHost {onShellAction, onNavigate, appDisplayName}`: forwards a shell action or a navigation to the host the canvas bound, and warns and drops one raised with nothing bound; the lookup answers nothing when unbound, so the app id stands in | built in `canvas.tsx`; `CanvasApp` binds `wiring.host` while mounted |
 | `components/TrustedPageOverlay` | The trusted-page layer over the canvas — the Store or the App Library — as `trustedPage` says: the page's title, the query when one was carried, "Back to the canvas" | `canvasStore` (`trustedPage`, `closeTrustedPage`) |
 | `components/QuestionHeader` | The question heading the canvas: display size on one line, a fixed 4-line box (120px) past it, measured before paint; past 4 lines the 4th fades and "Show all +N lines" opens the whole question over the page (Esc closes); the header and "Edit and ask again" open the palette holding it | `CanvasApp` (keyed by the question, so a new one remeasures), `questionOnView` |
-| `turnProgress` · `components/ProgressLine` | Pure: the turn's progress off the store — planning (an utterance in flight, nothing planned), a step per vendor source in roster order (done once placed or spoken, failed as painted, working until then), the join over the vendor names — and its line under the question, the working step carrying `canvas-pending` | `canvasStore` |
+| `turnProgress` · `components/ProgressLine` | Pure: the turn's progress off the store — planning (an utterance in flight, nothing planned), a step per vendor source in roster order (done once placed or spoken, failed as painted, working until then), the join over the vendor names, or over each vendor's display name and noun with the home source first when the shell `RosterEntry` carries the plan's `join` ("Joining Linear issues to GitHub PRs and CircleCI runs", task 7.15) — and its line under the question, the working step carrying `canvas-pending` | `canvasStore` |
 | `components/AmbientNotice` | The notice stack and its two fade clocks | `canvasStore` via `orderedNotices` |
 | `synthesis/synthesisSession` | A composition's synthesis state: the payload, the data-model subscriptions that re-run the evaluator, the user's sort choices by array path, the last output written | fed by `turn/canvasTurn`; reads and writes the live processor's data models; reports an invalid payload through the fragment-failure channel |
 | `synthesis/bindingEvaluator` | Pure: `evaluate({payload, models, choices, functions}) → EvaluatedModel` — the derived model mirrored with a cell object at every formula path, each cell's join and navigation target, every array a sort path reaches sorted in place, `/sorts/N` with the choice in force; ref resolution through the sdk kit, absent-skipping, operator and relation dispatch to the shell catalog, `argmin`/`argmax`/`source` mapped to an app id | the shell catalog's `functions` and `cellJoin`; the sdk's `reachSortPath`; `parseInstant` for the sort |
@@ -113,8 +113,9 @@ path through `*` reorders every array it reaches, one choice per declaration (ta
 The merged view renders as shell content (phase-5 decision 22): the `Slot` the hub paints for it
 declares `content: "shell"`, and `renderSlotContent` mounts its surface in a bare
 `[data-shell-content]` element with the error boundary but no `FragmentBoundary` — no tile, no
-attribution, no region named after a source. Pending, it shows a quiet in-progress marker; declined,
-it rests on the shell's words.
+attribution, no region named after a source. Pending, the shell catalog's `Slot` reserves it as the
+merged view — a label bar, the planned headers, four skeleton rows (task 7.15); filled, it takes the
+view's own height; declined, it rests on the shell's words.
 
 The recorder (`scripts/lib/batch.ts`) keeps the synthesis payload beside the stamp on the one
 event that paints the merged view, so a recorded composition replays with the real document
@@ -229,7 +230,8 @@ the ids are the Planner's, the nesting whatever it drew — and the painter wrap
 `Slot` in an `Attribution` whose `child` names it (task 6.4), so a slot's attribution is found by
 that link and never by where either sits in the list; a slot enters the roster only when its
 attribution's `appId` is its own `source`. A `Slot` with `content: "shell"` pairs with no
-attribution and reads as the reserved `shell` source, named by its label. A `Slot` with `gap`
+attribution and reads as the reserved `shell` source, named by its label, carrying the `join` the
+painter wrote on it — `{home, nouns}`, the `RosterEntry`'s one optional field (task 7.15). A `Slot` with `gap`
 names no source and enters no roster. The roster orders the notice stack and names its lines —
 including for a source that never paints — and decides which unfilled slots rest on prose.
 
@@ -357,9 +359,12 @@ Synthetic beats (`beats/syntheticBeats.ts`, by name through `?beat=`): `plain`, 
 neither renders, and a join held by judgment alone — `join` — a list inside every row under one
 sort declaration, then a storefront repaint that changes a matched title, so the values it cut off
 draw broken (`beats/joinFixture.ts`) — `platform-answer` — `shell:main` with its data model sent ahead of a tree bound through a `Table`
-template and a `functionCall` button into the App Library — and `gap`, one `Slot` with `gap`.
+template and a `functionCall` button into the App Library — `gap`, one `Slot` with `gap` — and `merging` / `long-merging`, beat 9 and `long-question`
+with every batch before the merged view's at once and the merged view held back ten minutes, so a
+paced replay rests on the reserved slot (task 7.15).
 Their layouts are built on the painter's shape: each vendor slot the `child` of an `Attribution`
-standing where the slot stood in the parent, the synthesis slot bare.
+standing where the slot stood in the parent, the synthesis slot bare but for its planned
+`columns` and `join`.
 
 Playwright: `e2e/canvas-surface.spec.ts` holds the baselines for beats 1–4 (beat 4 at 1280×1600,
 asserting the two vendor boundaries on one row by bounding box and no shell content) and replay

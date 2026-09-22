@@ -99,10 +99,12 @@ scenario, recorded as beat 5.
    thing, the brief states the join hypothesis — the entity, the home source whose instances are
    the rows, each other source's cue — and each vendor is asked, in its own app's words, for the
    fields its cue needs (task 7.6). The home source is one agent, never two: every other agent's
-   entries attach to its rows or to nothing. The plan reaches the client as the
-   shell's layout paint: a surface of `Slot`s, every one pending — the synthesis slot as bare
-   shell content, with a quiet in-progress marker and no attribution — before any vendor has
-   answered.
+   entries attach to its rows or to nothing. Beside the brief the entry carries the view's planned
+   `columns` and, under a join hypothesis, the entity's noun in each source (task 7.15). The plan
+   reaches the client as the shell's layout paint: a surface of `Slot`s, every one pending — the
+   synthesis slot as bare shell content, reserved as the merged view under its planned headers
+   with four skeleton rows, the join's nouns on it for the progress line, no attribution — before
+   any vendor has answered.
 
 2. **Vendors fill their slots.** Each vendor's events are relayed as fragments; the stamp on
    names its source, and the layout's `Slot` holding that source is where the surface belongs. As
@@ -123,7 +125,8 @@ scenario, recorded as beat 5.
    hypothesis — sorts, the tree,
    the note, decline, re-synthesis, in a2uiverse words), the shell catalog's **guidance doc** (which components a merged view is made
    of, and the derived-value rule), the shell catalog pruned to the synthesis surface's keep-set,
-   the output schema, and one worked example, the S1 timeline. The turn carries the utterance, the brief, and every arrived partition's live
+   the output schema, and one worked example, the S1 timeline. The turn carries the utterance, the brief, the columns the user was shown — the view starts from
+   them, departures said in the note (task 7.15) — and every arrived partition's live
    data model with its app's display name. Never a vendor's component tree: Planner and
    Synthesizer know only the shell catalog (phase decision 7). The only tree the Synthesizer ever
    sees is its own previous one, on a retry or a re-synthesis.
