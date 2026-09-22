@@ -1,9 +1,10 @@
 import {useContext, type CSSProperties} from 'react';
 import {createComponentImplementation} from '@a2ui/react/v0_9';
-import {Button, Flex, Spinner, Text} from '@radix-ui/themes';
+import {Button, Flex, Table, Text} from '@radix-ui/themes';
 import type {ShellActionHandler} from '../../functions/shell-actions.js';
 import {SlotContentContext} from '../../slot-content.js';
 import {weightStyle} from '../shared/layout.js';
+import {bodyCellStyle, headingCellStyle} from '../table/table.js';
 import {SlotApi, type SlotProps} from './slot.schema.js';
 
 /**
@@ -17,9 +18,11 @@ import {SlotApi, type SlotProps} from './slot.schema.js';
  * its attribution stays would leave a label naming nothing. The host decides
  * what the resting state is; the slot only decides that there may be one.
  *
- * Shell content (task-5.5 decisions 1, 3) is the shell writing on its own page:
- * the reserved position holds, but while pending it is one quiet line beside a
- * spinner rather than a tile with a floor, and a failure is a quiet line too.
+ * Shell content (task-5.5 decisions 1, 3) is the shell writing on its own page: no tile, and a
+ * failure is a quiet line. While pending it is the merged view reserved at its size (task-7.15):
+ * a bar where its label will be, the planned column headers, and four skeleton rows, drawn in the
+ * table's own geometry. The skeleton only says a table will land here; the landed view takes its
+ * own height.
  *
  * While pending or failed a fragment slot holds the space it reserved and draws nothing around it
  * (task-7.9 decision 23).
@@ -38,6 +41,7 @@ export function SlotView({
   state = 'pending',
   label,
   content = 'fragment',
+  columns,
   onSearchStore,
 }: SlotProps & {onSearchStore?: (query: string | undefined) => void}) {
   const resolve = useContext(SlotContentContext);
@@ -110,11 +114,15 @@ export function SlotView({
 
   if (shell) {
     return (
-      <div data-slot={source} data-slot-state="pending" data-slot-content="shell" style={weighted}>
-        <Flex align="center" gap="2" display="inline-flex">
-          <Spinner size="1" />
-          {quietLine('Painting…')}
-        </Flex>
+      <div
+        data-slot={source}
+        data-slot-state="pending"
+        data-slot-content="shell"
+        aria-busy="true"
+        aria-label={label}
+        style={weighted}
+      >
+        <ReservedView columns={columns} />
       </div>
     );
   }
@@ -129,6 +137,68 @@ export function SlotView({
         {label ?? source}…
       </Text>
     </div>
+  );
+}
+
+/** The skeleton rows' bar widths, per row and column, as the merged view's board draws them. */
+const SKELETON_WIDTHS = [
+  [62, 64, 36, 70, 58, 72],
+  [48, 64, 36, 70, 58, 68],
+  [56, 64, 16, 16, 16, 68],
+  [70, 64, 36, 70, 58, 64],
+];
+
+/**
+ * The merged view before it lands: the label row with a bar in it, then a table — the planned
+ * headers when the plan named columns, one full-width column otherwise — over four rows of bars.
+ */
+function ReservedView({columns}: {columns?: string[]}) {
+  const count = columns?.length || 1;
+  return (
+    <Flex direction="column" gap="2">
+      <Flex align="center" style={{height: 24}}>
+        <SkeletonBar width={136} height={10} />
+      </Flex>
+      <Table.Root size="1" variant="ghost">
+        {columns && columns.length > 0 && (
+          <Table.Header>
+            <Table.Row>
+              {columns.map((column, index) => (
+                <Table.ColumnHeaderCell key={`${column}-${index}`} style={headingCellStyle(index)}>
+                  {column}
+                </Table.ColumnHeaderCell>
+              ))}
+            </Table.Row>
+          </Table.Header>
+        )}
+        <Table.Body>
+          {SKELETON_WIDTHS.map((widths, row) => (
+            <Table.Row key={row} data-skeleton-row="">
+              {Array.from({length: count}, (_, index) => (
+                <Table.Cell key={index} style={bodyCellStyle(index)}>
+                  <SkeletonBar width={`${widths[index % widths.length]}%`} height={8} />
+                </Table.Cell>
+              ))}
+            </Table.Row>
+          ))}
+        </Table.Body>
+      </Table.Root>
+    </Flex>
+  );
+}
+
+function SkeletonBar({width, height}: {width: number | string; height: number}) {
+  return (
+    <i
+      aria-hidden
+      style={{
+        display: 'block',
+        width,
+        height,
+        borderRadius: height / 2,
+        background: 'var(--a2v-skel, var(--gray-a3))',
+      }}
+    />
   );
 }
 
@@ -184,6 +254,7 @@ export function createSlotComponent(onShellAction: ShellActionHandler) {
       state={props.state}
       label={props.label}
       content={props.content}
+      columns={props.columns}
       onSearchStore={query => {
         const surfaceId = context.dataContext.surface.id;
         const componentId = context.componentModel.id;

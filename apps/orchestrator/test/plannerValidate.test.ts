@@ -203,8 +203,69 @@ describe('slot accounting', () => {
   });
 });
 
+describe('the merged view’s columns and join (task-7.15)', () => {
+  const joined = (): LayoutSurface => {
+    const doc = fanOut();
+    doc.dispatch[2] = {
+      source: 'shell',
+      request: 'One row per pull request — the home source — with the mail about it.',
+      columns: ['Pull request', 'Review', 'Latest mail'],
+      join: {home: 'github', nouns: {github: 'PRs', gmail: 'threads'}},
+    };
+    return doc;
+  };
+
+  test('columns and a join naming every dispatched vendor pass on the merged view', () => {
+    expect(check(joined())).toEqual([]);
+  });
+
+  test('a vendor entry carries neither', () => {
+    const doc = joined();
+    doc.dispatch[0] = {
+      source: 'github',
+      request: 'x',
+      columns: ['a'],
+      join: {home: 'github', nouns: {}},
+    };
+    expect(check(doc)).toEqual([
+      '/dispatch/0/columns: only the merged view (shell) has columns',
+      '/dispatch/0/join: only the merged view (shell) states a join',
+    ]);
+  });
+
+  test('a blank header is refused', () => {
+    const doc = joined();
+    doc.dispatch[2] = {
+      ...doc.dispatch[2]!,
+      columns: ['Pull request', ' '],
+    } as LayoutSurface['dispatch'][number];
+    expect(check(doc)).toEqual(['/dispatch/2/columns/1: the header is blank']);
+  });
+
+  test('the home and the nouns name exactly the dispatched vendor sources', () => {
+    const doc = joined();
+    doc.dispatch[2] = {
+      ...doc.dispatch[2]!,
+      join: {home: 'linear', nouns: {github: 'PRs', circleci: 'runs', gmail: ' '}},
+    } as LayoutSurface['dispatch'][number];
+    expect(check(doc)).toEqual([
+      "/dispatch/2/join/home: 'linear' is not a dispatched source",
+      "/dispatch/2/join/nouns/circleci: 'circleci' is not a dispatched source",
+      '/dispatch/2/join/nouns/gmail: the noun is blank',
+    ]);
+    const missing = joined();
+    missing.dispatch[2] = {
+      ...missing.dispatch[2]!,
+      join: {home: 'github', nouns: {github: 'PRs'}},
+    } as LayoutSurface['dispatch'][number];
+    expect(check(missing)).toEqual([
+      "/dispatch/2/join/nouns: no noun for 'gmail', a dispatched source",
+    ]);
+  });
+});
+
 describe('what the Planner may write on a Slot', () => {
-  test('state, label and content are the painter’s', () => {
+  test('state, label, content, columns and join are the painter’s', () => {
     const doc = fanOut();
     doc.tree.components[4] = {
       id: 'gh',
@@ -215,8 +276,16 @@ describe('what the Planner may write on a Slot', () => {
       content: 'fragment',
     };
     expect(check(doc)).toEqual([
-      '/tree (gh): Slot.state, Slot.label and Slot.content are written by the shell; write only source or gap, and weight',
+      "/tree (gh): Slot.state, Slot.label, Slot.content, Slot.columns and Slot.join are written by the shell; write only source or gap, and weight — the merged view's columns and join go on its dispatch entry",
     ]);
+    const onSlot = fanOut();
+    onSlot.tree.components[2] = {
+      id: 'merged',
+      component: 'Slot',
+      source: 'shell',
+      columns: ['Pull request'],
+    };
+    expect(check(onSlot)).toHaveLength(1);
   });
 
   test('weight is a positive number', () => {

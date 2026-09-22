@@ -121,6 +121,33 @@ describe('rosterFromShellMessages', () => {
     expect(SHELL_SOURCE).toBe('shell');
   });
 
+  it('the shell source carries the join’s nouns painted on its slot (task-7.15)', () => {
+    const paint = msg({
+      updateComponents: {
+        surfaceId: 'shell:main',
+        components: [
+          {
+            id: 'merged',
+            component: 'Slot',
+            source: 'shell',
+            state: 'pending',
+            label: 'Synthesis',
+            content: 'shell',
+            columns: ['Issue', 'Pull request'],
+            join: {home: 'linear', nouns: {linear: 'issues', github: 'PRs', bad: 3}},
+          },
+        ],
+      },
+    });
+    expect(rosterFromShellMessages([paint])).toEqual([
+      {
+        appId: SHELL_SOURCE,
+        displayName: 'Synthesis',
+        join: {home: 'linear', nouns: {linear: 'issues', github: 'PRs'}},
+      },
+    ]);
+  });
+
   it('a gap slot names no source and enters no roster', () => {
     const paint = msg({
       updateComponents: {

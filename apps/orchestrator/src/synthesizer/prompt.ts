@@ -114,6 +114,8 @@ export interface SynthesisTurnInputs {
   utterance: string;
   /** The Planner's request on the synthesis slot: its brief to the merge. */
   request: string;
+  /** The column headers the reserved slot showed the user from plan time. */
+  columns?: readonly string[];
   sources: readonly SynthesisSource[];
   /** The model's previous document — the failed one on a retry, the live one on a re-synthesis. */
   previous?: unknown;
@@ -175,6 +177,9 @@ export function buildSynthesisTurn(inputs: SynthesisTurnInputs): string {
   const parts = [
     `User utterance:\n${inputs.utterance}`,
     `Request for the merged view:\n${inputs.request}`,
+    ...(inputs.columns && inputs.columns.length > 0
+      ? [`Columns shown to the user while the view is made:\n${inputs.columns.join(' · ')}`]
+      : []),
     `Sources:\n${renderSources(inputs.sources)}`,
   ];
   const previous =

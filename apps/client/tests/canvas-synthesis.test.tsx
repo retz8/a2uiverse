@@ -98,7 +98,9 @@ describe('the synthesis turn on the canvas', () => {
     const slot = container.querySelector(`[data-slot="${SYNTHESIS_SOURCE}"]`)!;
     expect(slot.getAttribute('data-slot-state')).toBe('pending');
     expect(slot.getAttribute('data-slot-content')).toBe('shell');
-    expect(slot.textContent).toBe('Painting…');
+    // Reserved as the merged view (task-7.15): skeleton rows, no words of its own.
+    expect(slot.getAttribute('aria-busy')).toBe('true');
+    expect(slot.querySelectorAll('tbody tr[data-skeleton-row]')).toHaveLength(4);
     // No attribution tile for the shell's own content; the vendors keep theirs.
     expect(screen.queryByLabelText('Painted by Synthesis')).toBeNull();
     expect(screen.getByLabelText('Painted by Aperture & Co')).toBeInTheDocument();

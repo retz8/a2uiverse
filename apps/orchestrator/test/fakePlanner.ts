@@ -1,4 +1,4 @@
-import type {LayoutSurface} from '../src/planner/document.js';
+import type {JoinNouns, LayoutSurface} from '../src/planner/document.js';
 import type {PlanInput, Planner, PlanOutcome} from '../src/planner/planner.js';
 import {LAYOUT_SURFACE_TAG} from '../src/planner/prompt.js';
 import {SHELL_SOURCE_ID} from '../src/registry/types.js';
@@ -37,7 +37,13 @@ export class FakePlanner implements Planner {
 /** A column of slots: one per source in order, the merged view first when briefed, a gap slot per gap. */
 export function layoutFor(
   sources: readonly string[],
-  options: {merged?: string; gaps?: readonly string[]; request?: (source: string) => string} = {},
+  options: {
+    merged?: string;
+    columns?: string[];
+    join?: JoinNouns;
+    gaps?: readonly string[];
+    request?: (source: string) => string;
+  } = {},
 ): LayoutSurface {
   const request = options.request ?? ((source: string) => `Paint a compact ${source} card.`);
   const ids = [
@@ -48,7 +54,16 @@ export function layoutFor(
   return {
     dispatch: [
       ...sources.map(source => ({source, request: request(source)})),
-      ...(options.merged ? [{source: SHELL_SOURCE_ID, request: options.merged}] : []),
+      ...(options.merged
+        ? [
+            {
+              source: SHELL_SOURCE_ID,
+              request: options.merged,
+              ...(options.columns ? {columns: options.columns} : {}),
+              ...(options.join ? {join: options.join} : {}),
+            },
+          ]
+        : []),
       ...(options.gaps ?? []).map(gap => ({gap})),
     ],
     tree: {

@@ -53,6 +53,26 @@ describe('ProgressLine', () => {
     expect(screen.queryByTestId('canvas-pending')).toBeNull();
   });
 
+  it('a merge over an entity: the join in the nouns the plan painted (task-7.15)', () => {
+    const store = createCanvasStore();
+    store.beginPaint('“status” — generating…', 'utterance');
+    store.setRoster([
+      {
+        appId: 'shell',
+        displayName: 'Synthesis',
+        join: {home: 'linear', nouns: {linear: 'issues', github: 'PRs', circleci: 'runs'}},
+      },
+      ...ROSTER.filter(entry => entry.appId !== 'shell'),
+    ]);
+    for (const source of ['linear', 'github', 'circleci']) {
+      store.placeFragment(source, {surfaceId: `${source}:x`, source});
+    }
+    renderWithShell(<ProgressLine state={store.getState()} since={null} />);
+    expect(screen.getByTestId('canvas-pending')).toHaveTextContent(
+      'Joining Linear issues to GitHub PRs and CircleCI runs',
+    );
+  });
+
   it('a platform answer, no vendor dispatched: the line is empty', () => {
     const store = createCanvasStore();
     renderWithShell(<ProgressLine state={store.getState()} since={null} />);

@@ -10,6 +10,16 @@ import type {A2uiComponent} from '@a2uiverse/sdk';
 export interface SourceDispatch {
   source: string;
   request: string;
+  /** `shell` only: the merged view's column headers, in order, shown in its reserved slot from plan time. */
+  columns?: string[];
+  /** `shell` only, when the merge is over an entity: the join hypothesis's nouns, for the progress line. */
+  join?: JoinNouns;
+}
+
+/** The entity as each source calls it — `home` the source whose instances are the rows. */
+export interface JoinNouns {
+  home: string;
+  nouns: Record<string, string>;
 }
 
 /** A capability no installed app serves, in words: the Store query of the tile that fills its Slot. */
@@ -86,6 +96,33 @@ export const LAYOUT_SURFACE_SCHEMA = {
                 minLength: 1,
                 description:
                   'For an agent: the message it receives and the only thing it sees, in plain language. For `shell`: the brief for the merged view — what it shows, what it compares or orders by, what matters to the user.',
+              },
+              columns: {
+                type: 'array',
+                minItems: 1,
+                items: {type: 'string', minLength: 1},
+                description:
+                  '`shell` only, when the merged view is a table of one row per thing: its column headers in order, short, as the user reads them. Shown in the reserved slot until the view lands, and handed to the merge as its starting point.',
+              },
+              join: {
+                type: 'object',
+                additionalProperties: false,
+                required: ['home', 'nouns'],
+                description:
+                  '`shell` only, when the brief states a join hypothesis: the entity as each source calls it, for the line that says what is being joined.',
+                properties: {
+                  home: {
+                    type: 'string',
+                    minLength: 1,
+                    description: 'The home source: the app id whose instances are the rows.',
+                  },
+                  nouns: {
+                    type: 'object',
+                    additionalProperties: {type: 'string', minLength: 1},
+                    description:
+                      'Per dispatched agent, by app id, the plural noun for its entries as the user says it — e.g. `issues`, `PRs`, `runs`.',
+                  },
+                },
               },
             },
           },

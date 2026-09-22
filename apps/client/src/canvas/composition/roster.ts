@@ -17,11 +17,12 @@
  *
  * The synthesis slot is shell content (task-5.5 decision 1): painted with no attribution
  * around it, its `Slot` declares `content: "shell"`, and the roster reads it as the reserved
- * shell source — the one the merged view's own stamp names. A gap slot is the capability tile,
+ * shell source — the one the merged view's own stamp names — with the join's nouns the painter
+ * wrote on it (task-7.15), when the merge is over an entity. A gap slot is the capability tile,
  * the catalog's own: it names no source and enters no roster.
  */
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
-import type {PaintedSlotState, RosterEntry} from '../canvasStore';
+import type {JoinNouns, PaintedSlotState, RosterEntry} from '../canvasStore';
 
 /** The reserved source id the hub stamps its own content with — the shell speaking as itself. */
 export const SHELL_SOURCE = 'shell';
@@ -40,6 +41,7 @@ interface ShellComponent {
   label?: unknown;
   content?: unknown;
   state?: unknown;
+  join?: unknown;
 }
 
 /** What one shell paint says about its slots: the roster, and the vendor slots painted bare. */
@@ -90,9 +92,11 @@ export function shellPaintSlots(messages: readonly A2uiMessage[]): ShellPaintSlo
       if (raw.component !== SLOT || typeof raw.source !== 'string') continue;
       if (raw.content === 'shell') {
         // Shell content pairs with no attribution: the slot itself says whose it is.
+        const join = joinNouns(raw.join);
         roster.push({
           appId: SHELL_SOURCE,
           displayName: typeof raw.label === 'string' && raw.label ? raw.label : SHELL_SOURCE,
+          ...(join ? {join} : {}),
         });
         continue;
       }
@@ -102,6 +106,17 @@ export function shellPaintSlots(messages: readonly A2uiMessage[]): ShellPaintSlo
     }
   }
   return {roster: roster.length > 0 ? roster : undefined, unattributed};
+}
+
+/** The merged view's join nouns as painted — a home and string nouns — or nothing. */
+function joinNouns(raw: unknown): JoinNouns | undefined {
+  if (typeof raw !== 'object' || raw === null) return undefined;
+  const {home, nouns} = raw as {home?: unknown; nouns?: unknown};
+  if (typeof home !== 'string' || typeof nouns !== 'object' || nouns === null) return undefined;
+  const entries = Object.entries(nouns).filter(
+    (entry): entry is [string, string] => typeof entry[1] === 'string',
+  );
+  return {home, nouns: Object.fromEntries(entries)};
 }
 
 const PAINTED_STATES: readonly string[] = ['pending', 'failed', 'collapsed'];

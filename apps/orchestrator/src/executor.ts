@@ -327,7 +327,13 @@ export class OrchestratorExecutor implements AgentExecutor {
     let outcome;
     try {
       outcome = await this.#deps.synthesizer.synthesize(
-        {utterance, request: slot.plan.request, sources, ...again},
+        {
+          utterance,
+          request: slot.plan.request,
+          ...(slot.plan.columns ? {columns: slot.plan.columns} : {}),
+          sources,
+          ...again,
+        },
         state.partitions,
       );
     } catch (err) {

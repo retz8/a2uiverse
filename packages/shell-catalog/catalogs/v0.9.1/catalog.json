@@ -802,7 +802,7 @@
     },
     "Slot": {
       "type": "object",
-      "description": "A named region of a composed screen whose content is mounted by the client. Paint one per planned fragment; later repaints may change its state but never its position. While no content has arrived it renders a pending placeholder. A slot whose content is the shell's own \u2014 the merged view \u2014 is declared `content: \"shell\"`: it keeps its reserved position but is painted like the shell's own UI, with a quiet pending marker and no tile.",
+      "description": "A named region of a composed screen whose content is mounted by the client. Paint one per planned fragment; later repaints may change its state but never its position. While no content has arrived it renders a pending placeholder. A slot whose content is the shell's own \u2014 the merged view \u2014 is declared `content: \"shell\"`: it keeps its reserved position but is painted like the shell's own UI, with no tile: while pending it is reserved as the merged view's label, its planned column headers and a few skeleton rows, and the view takes its own height when it lands.",
       "properties": {
         "component": {
           "const": "Slot"
@@ -829,11 +829,26 @@
           "type": "string",
           "enum": ["fragment", "shell"],
           "default": "fragment",
-          "description": "Whose content fills the region. `fragment` is an agent's surface, mounted inside its boundary with the attribution painted beside the slot; `shell` is the shell's own content, rendered in place with no boundary and no attribution, resting quietly while pending."
+          "description": "Whose content fills the region. `fragment` is an agent's surface, mounted inside its boundary with the attribution painted beside the slot; `shell` is the shell's own content, rendered in place with no boundary and no attribution, reserved under its planned columns while pending."
         },
         "label": {
           "type": "string",
           "description": "Human-readable name for the awaited content, shown while pending or failed."
+        },
+        "columns": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Shell content only: the merged view's planned column headers, in order, drawn over the skeleton rows while pending."
+        },
+        "join": {
+          "type": "object",
+          "description": "Shell content only: the entity the merged view joins, as each source calls it — `home`, the source whose instances are the rows, and `nouns`, a plural noun per source id. Not drawn by the slot; the host reads it to say what is being joined.",
+          "properties": {
+            "home": {"type": "string"},
+            "nouns": {"type": "object", "additionalProperties": {"type": "string"}}
+          },
+          "required": ["home", "nouns"],
+          "additionalProperties": false
         }
       },
       "required": ["component"],

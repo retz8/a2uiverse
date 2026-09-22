@@ -37,7 +37,7 @@ test('landed: the question stands, a tick per source, the join in the past tense
   for (const app of ['Linear', 'GitHub', 'CircleCI']) {
     await expect(progress.locator('[data-status="done"]', {hasText: app})).toBeVisible();
   }
-  await expect(progress).toContainText('Joined Linear, GitHub and CircleCI');
+  await expect(progress).toContainText('Joined Linear issues to GitHub PRs and CircleCI runs');
   await expect(page.getByTestId('canvas-pending')).toHaveCount(0);
   await expect(page).toHaveScreenshot('question-header-landed.png');
 });

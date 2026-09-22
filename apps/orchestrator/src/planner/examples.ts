@@ -137,7 +137,8 @@ const MAILBOX: ExampleAgent = {
 /**
  * A merged view over one kind of thing: the brief states the join hypothesis — the entity, the home
  * source whose orders are the rows, and each other agent's cue — and each request asks its agent,
- * in its own app's words, for the fields its cue needs.
+ * in its own app's words, for the fields its cue needs. The entry carries the view's columns and
+ * the entity's noun in each source.
  */
 export const ORDERS_JOIN: LayoutExample = {
   name: 'orders-join',
@@ -164,6 +165,8 @@ export const ORDERS_JOIN: LayoutExample = {
         source: 'shell',
         request:
           'Where each order stands: one row per Harbor Goods order — the home source — with what was bought, its status, where its parcel is, and the latest mail about it; newest order first. A Swift Parcel parcel is the order’s by the tracking number the order carries; a Mailbox thread is the order’s by the order number in its subject.',
+        columns: ['Order', 'Items', 'Status', 'Parcel', 'Latest mail', 'Placed'],
+        join: {home: 'store', nouns: {store: 'orders', carrier: 'parcels', mailbox: 'threads'}},
       },
     ],
     tree: {
@@ -254,6 +257,11 @@ export const APPLICATIONS_JOIN: LayoutExample = {
         source: 'shell',
         request:
           'Where each application stands: one row per Careerline application — the home source — with the company, the role, its status, the next interview, and the latest mail about it; most recently updated first. A Mailbox thread is the application’s by the company named in its sender or subject; an Agenda event is the application’s by the company named in its title.',
+        columns: ['Company', 'Role', 'Status', 'Next interview', 'Latest mail', 'Updated'],
+        join: {
+          home: 'careers',
+          nouns: {careers: 'applications', mailbox: 'threads', agenda: 'interviews'},
+        },
       },
     ],
     tree: {

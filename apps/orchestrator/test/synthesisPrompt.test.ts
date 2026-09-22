@@ -161,6 +161,14 @@ describe('the turn', () => {
     expect(turn).not.toContain('What broke');
   });
 
+  test('the columns shown while the view was made follow the request; none, no line (task-7.15)', () => {
+    const turn = buildSynthesisTurn({...base, columns: ['Camera', 'Best price', 'Shops']});
+    expect(turn).toContain(
+      'Request for the merged view:\ncompare price per camera; best price first\n\nColumns shown to the user while the view is made:\nCamera · Best price · Shops',
+    );
+    expect(buildSynthesisTurn(base)).not.toContain('Columns shown');
+  });
+
   test('a retry carries the errors, one per line, and the failed document to fix', () => {
     const turn = buildSynthesisTurn({
       ...base,

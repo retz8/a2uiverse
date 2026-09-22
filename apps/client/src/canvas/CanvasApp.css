@@ -26,6 +26,8 @@ body {
   --a2v-chip-hover: #e7e7ea;
   --a2v-dot: #a1a1aa;
   --a2v-skel-ring: #d4d4d8;
+  /* The reserved merged view's skeleton bars (task 7.15). */
+  --a2v-skel: #ececef;
   --a2v-accent: #3656d4;
   /* The fill under white text — the pill and the primary button — the same in both appearances. */
   --a2v-accent-fill: #3656d4;
@@ -55,6 +57,7 @@ body {
   --a2v-chip-hover: #2e2e33;
   --a2v-dot: #52525b;
   --a2v-skel-ring: #3f3f46;
+  --a2v-skel: #2e2e33;
   --a2v-accent: #6e8bff;
   --a2v-danger: #ff7b6b;
   --a2v-panel: #18181b;

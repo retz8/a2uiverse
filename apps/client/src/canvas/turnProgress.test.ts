@@ -1,6 +1,6 @@
 /**
- * The progress line's reading of the store: planning, a step per source, the merge — every word
- * computed from what the client holds.
+ * The progress line's reading of the store: planning, a step per source, the merge — every
+ * sentence computed from what the client holds, the join's nouns the plan's (task-7.15).
  */
 import {describe, it, expect} from 'vitest';
 import {createCanvasStore} from './canvasStore';
@@ -78,6 +78,39 @@ describe('turnProgress', () => {
     expect(turnProgress(unfinished.getState()).join?.status).toBe('failed');
   });
 
+  it('a merge over an entity names the rows’ app first, each app with its noun, in slot order', () => {
+    const store = createCanvasStore();
+    store.beginPaint('“status” — generating…', 'utterance');
+    store.setRoster([
+      {
+        appId: 'shell',
+        displayName: 'Synthesis',
+        join: {home: 'linear', nouns: {linear: 'issues', github: 'PRs', circleci: 'runs'}},
+      },
+      {appId: 'github', displayName: 'GitHub'},
+      {appId: 'linear', displayName: 'Linear'},
+      {appId: 'circleci', displayName: 'CircleCI'},
+    ]);
+    expect(turnProgress(store.getState()).join).toEqual({
+      home: 'Linear issues',
+      names: ['GitHub PRs', 'CircleCI runs'],
+      status: 'working',
+    });
+  });
+
+  it('a join whose home is not among the sources names the apps alone', () => {
+    const store = createCanvasStore();
+    store.setRoster([
+      {appId: 'shell', displayName: 'Synthesis', join: {home: 'jira', nouns: {github: 'PRs'}}},
+      {appId: 'github', displayName: 'GitHub'},
+      {appId: 'gmail', displayName: 'Gmail'},
+    ]);
+    expect(turnProgress(store.getState()).join).toEqual({
+      names: ['GitHub PRs', 'Gmail'],
+      status: 'failed',
+    });
+  });
+
   it('a single-source turn has no merge step', () => {
     const store = createCanvasStore();
     store.setRoster([{appId: 'github', displayName: 'GitHub'}]);
@@ -92,6 +125,19 @@ describe('the join sentence', () => {
     expect(joinSentence({names, status: 'done'})).toBe('Joined Linear, GitHub and CircleCI');
     expect(joinSentence({names, status: 'failed'})).toBe(
       'Could not join Linear, GitHub and CircleCI',
+    );
+  });
+
+  it('over an entity: the rows’ phrase joined to the others, in the same tenses', () => {
+    const join = {home: 'Linear issues', names: ['GitHub PRs', 'CircleCI runs']};
+    expect(joinSentence({...join, status: 'working'})).toBe(
+      'Joining Linear issues to GitHub PRs and CircleCI runs',
+    );
+    expect(joinSentence({...join, status: 'done'})).toBe(
+      'Joined Linear issues to GitHub PRs and CircleCI runs',
+    );
+    expect(joinSentence({...join, status: 'failed'})).toBe(
+      'Could not join Linear issues to GitHub PRs and CircleCI runs',
     );
   });
 

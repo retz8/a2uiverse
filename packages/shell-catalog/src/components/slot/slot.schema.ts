@@ -17,7 +17,11 @@ import {z} from 'zod';
  * - `label` names the awaited content while pending or failed.
  * - `content` says whose content fills the region (task-5.5 decision 1): an agent's
  *   fragment (default), or the shell's own — the merged view — which keeps its reserved
- *   position but is painted like the shell's own UI: a quiet pending marker, no tile.
+ *   position but is painted like the shell's own UI, no tile: while pending, reserved as the
+ *   merged view's label, its planned column headers and skeleton rows (task-7.15).
+ * - `columns` (shell content) are the merged view's planned column headers.
+ * - `join` (shell content) is the entity as each source calls it — the home source and a plural
+ *   noun per source — which the slot does not draw; the host reads it for its progress line.
  */
 export const SlotApi = {
   name: 'Slot',
@@ -29,6 +33,11 @@ export const SlotApi = {
       state: z.enum(['pending', 'failed', 'collapsed']).optional(),
       label: z.string().optional(),
       content: z.enum(['fragment', 'shell']).optional(),
+      columns: z.array(z.string()).optional(),
+      join: z
+        .object({home: z.string(), nouns: z.record(z.string(), z.string())})
+        .strict()
+        .optional(),
     })
     .strict()
     .refine(props => (props.source === undefined) !== (props.gap === undefined), {

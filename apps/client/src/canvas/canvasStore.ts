@@ -44,6 +44,16 @@ export interface RosterEntry {
   /** The source the shell reserved a slot for — the key the slot is placed by. */
   appId: string;
   displayName: string;
+  /** The merged view's entry only, when its merge is over an entity: the join's nouns. */
+  join?: JoinNouns;
+}
+
+/** The entity as each source calls it, painted on the merged view's slot at plan time (task-7.15). */
+export interface JoinNouns {
+  /** The source whose instances are the merged view's rows. */
+  home: string;
+  /** A plural noun per source id — `issues`, `PRs`, `runs`. */
+  nouns: Readonly<Record<string, string>>;
 }
 
 /** The utterance that opened the turn on stage — the canvas's header until the next one. */

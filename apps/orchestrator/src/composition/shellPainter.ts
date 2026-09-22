@@ -71,8 +71,8 @@ function updateComponentsPart(state: CompositionState): Part {
  * marker over the fragment, one box of the layout — that names the source, holds the slot as its
  * child and carries the slot's weight; its parent names the wrapper where it named the slot. The
  * synthesis slot is shell content, bare, and a gap slot is left as authored: the catalog draws the
- * tile. `state` and `label` (and `content` on the synthesis slot) are the painter's, so a repaint
- * flips a slot by its source and every id stays put.
+ * tile. `state` and `label` (and `content`, `columns` and `join` on the synthesis slot) are the
+ * painter's, so a repaint flips a slot by its source and every id stays put.
  */
 export function paintLayout(state: CompositionState): ShellComponent[] {
   const {components} = state.layout.tree;
@@ -106,12 +106,15 @@ export function paintLayout(state: CompositionState): ShellComponent[] {
     const slotState = entry?.state ?? 'pending';
     if (source === SHELL_SOURCE_ID) {
       // The synthesis slot is shell content (task-5.5 decision 1): a reserved position painted
-      // like the shell's own UI — no attribution beside it, a quiet marker while pending.
+      // like the shell's own UI — no attribution beside it, reserved while pending under the
+      // planned columns (task-7.15), the join's nouns carried for the client's progress line.
       painted.push({
         ...component,
         state: slotState,
         label: SYNTHESIS_DISPLAY_NAME,
         content: 'shell',
+        ...(entry?.plan.columns ? {columns: entry.plan.columns} : {}),
+        ...(entry?.plan.join ? {join: entry.plan.join} : {}),
       });
       continue;
     }

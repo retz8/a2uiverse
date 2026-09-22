@@ -66,16 +66,55 @@ test('schema accepts the painted shape and rejects extras', () => {
   expect(SlotApi.schema.safeParse({name: 'slot-gmail'}).success).toBe(false);
 });
 
-test('shell content pending is one quiet line beside a spinner, no tile and no label', () => {
-  const {container} = render(<SlotView source="shell" label="Synthesis" content="shell" />);
+test('shell content pending is the merged view reserved: the planned headers over four skeleton rows', () => {
+  const {container} = render(
+    <SlotView
+      source="shell"
+      label="Synthesis"
+      content="shell"
+      columns={['Issue', 'Status', 'Pull request']}
+    />,
+  );
   const slot = container.querySelector('[data-slot="shell"]')!;
   expect(slot).toHaveAttribute('data-slot-state', 'pending');
   expect(slot).toHaveAttribute('data-slot-content', 'shell');
-  expect(slot.textContent).toBe('Painting…');
-  expect(slot.textContent).not.toContain('Synthesis');
+  expect(slot).toHaveAttribute('aria-busy', 'true');
+  expect([...slot.querySelectorAll('thead th')].map(th => th.textContent)).toEqual([
+    'Issue',
+    'Status',
+    'Pull request',
+  ]);
+  const rows = slot.querySelectorAll('tbody tr[data-skeleton-row]');
+  expect(rows).toHaveLength(4);
+  expect(rows[0]!.querySelectorAll('td')).toHaveLength(3);
+  // No tile, no words of its own: the label names the region for assistive tech only.
+  expect(slot.querySelector('table')!.textContent).toBe('IssueStatusPull request');
   expect((slot as HTMLElement).style.border).toBe('');
-  // No floor: the flex share's `minHeight: 0` is the absence of one, not a reserved height.
-  expect(['', '0px']).toContain((slot as HTMLElement).style.minHeight);
+});
+
+test('shell content pending with no planned columns reserves the rows alone', () => {
+  const {container} = render(<SlotView source="shell" label="Synthesis" content="shell" />);
+  const slot = container.querySelector('[data-slot="shell"]')!;
+  expect(slot.querySelector('thead')).toBeNull();
+  const rows = slot.querySelectorAll('tbody tr[data-skeleton-row]');
+  expect(rows).toHaveLength(4);
+  expect(rows[0]!.querySelectorAll('td')).toHaveLength(1);
+  expect(slot.querySelector('table')!.textContent).toBe('');
+});
+
+test('schema accepts the merged view’s columns and join', () => {
+  expect(
+    SlotApi.schema.safeParse({
+      source: 'shell',
+      content: 'shell',
+      columns: ['Issue', 'Status'],
+      join: {home: 'linear', nouns: {linear: 'issues', github: 'PRs'}},
+    }).success,
+  ).toBe(true);
+  expect(
+    SlotApi.schema.safeParse({source: 'shell', join: {home: 'linear', nouns: {}, extra: 1}})
+      .success,
+  ).toBe(false);
 });
 
 test('shell content failed is a quiet line in the same register', () => {

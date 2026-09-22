@@ -136,6 +136,34 @@ describe('paintLayout', () => {
     expect(byId.get('root')!.children).toEqual(['heading', 'merged', 'sources', 'flights']);
   });
 
+  test('the merged view’s planned columns and join nouns are written onto its slot (task-7.15)', () => {
+    const planned: LayoutSurface = {
+      ...layout,
+      dispatch: layout.dispatch.map(entry =>
+        'source' in entry && entry.source === 'shell'
+          ? {
+              ...entry,
+              columns: ['Item', 'When'],
+              join: {home: 'github', nouns: {github: 'PRs', gmail: 'threads', calendar: 'events'}},
+            }
+          : entry,
+      ),
+    };
+    const merged = paintLayout(compositionFrom(planned, registry, 'what now?')).find(
+      c => c.id === 'merged',
+    );
+    expect(merged).toEqual({
+      id: 'merged',
+      component: 'Slot',
+      source: 'shell',
+      state: 'pending',
+      label: 'Synthesis',
+      content: 'shell',
+      columns: ['Item', 'When'],
+      join: {home: 'github', nouns: {github: 'PRs', gmail: 'threads', calendar: 'events'}},
+    });
+  });
+
   test('a gap slot is painted as authored: the catalog’s tile, no wrapper, no state', () => {
     expect(byId.get('flights')).toEqual({id: 'flights', component: 'Slot', gap: 'flight booking'});
     expect(byId.has('attribution-flights')).toBe(false);

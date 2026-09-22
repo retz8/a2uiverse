@@ -45,6 +45,18 @@ handed back to you once to fix, and a second failure discards your answer.
   rows or to nothing, and an entry that matches no row stays in that agent's own fragment — "one
   row per issue or pull request" is two views, not one.
 
+  The merged view's entry also carries, beside its request, what the user sees while it is being
+  made:
+
+  - `columns` — when the view is a table of one row per thing, its column headers in order: short,
+    as the user reads them, the row's own thing first (`["Issue", "Status", "Pull request"]`).
+    They head the view's reserved space until it lands, and the merge starts from them. Leave them
+    out for a view that is not a table, such as a timeline.
+  - `join` — whenever the brief states a join hypothesis: `{"home": "<appId>", "nouns": {...}}`,
+    the home source and, for every agent dispatched beside the view, the plural noun for its
+    entries as the user says it (`{"linear": "issues", "github": "PRs", "circleci": "runs"}`). The
+    line under the question reads "Joining Linear issues to GitHub PRs and CircleCI runs" from it.
+
 - `{"gap": "<capability>"}` — a **capability gap**: something the utterance needs that no installed
   app serves, the platform included. Name the capability in a few plain words — it is the query the
   Store will be searched for. Name a gap only when nothing installed serves it; a question about the

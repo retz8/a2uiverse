@@ -49,6 +49,9 @@ interface LayoutSlot {
   /** The synthesis slot: shell content, no attribution around it (task-5.5 decision 1). */
   shell?: boolean;
   weight?: number;
+  /** The synthesis slot's planned columns and join nouns, as the painter writes them (task-7.15). */
+  columns?: string[];
+  join?: {home: string; nouns: Record<string, string>};
 }
 
 /**
@@ -78,7 +81,16 @@ function layoutComponents(
         label: s.name,
         ...weight,
       };
-      if (s.shell) return [{...slot, content: 'shell'}];
+      if (s.shell) {
+        return [
+          {
+            ...slot,
+            content: 'shell',
+            ...(s.columns ? {columns: s.columns} : {}),
+            ...(s.join ? {join: s.join} : {}),
+          },
+        ];
+      }
       return [
         {
           id: `attribution-${idOf(s)}`,
@@ -407,7 +419,13 @@ export const COMPOSED_QUESTION_BEAT: BeatFixture = {
  * attribution around it (task-5.5 decision 1) — then one attributed slot per store, in a row.
  */
 const SYNTHESIS_SLOTS: LayoutSlot[] = [
-  {appId: SYNTHESIS_SOURCE, name: 'Synthesis', shell: true},
+  {
+    appId: SYNTHESIS_SOURCE,
+    name: 'Synthesis',
+    shell: true,
+    columns: ['Camera', SHOP_A_NAME, SHOP_B_NAME, 'In stock'],
+    join: {home: 'shop-a', nouns: {'shop-a': 'cameras', 'shop-b': 'listings'}},
+  },
   {appId: 'shop-a', name: SHOP_A_NAME},
   {appId: 'shop-b', name: SHOP_B_NAME},
 ];
@@ -718,6 +736,37 @@ function longQuestionBeat(): BeatFixture | undefined {
   };
 }
 
+/** Far enough that a paced replay never reaches the merge while a page is looked at. */
+const MERGE_HELD_MS = 10 * 60 * 1000;
+
+/**
+ * A recorded turn caught while the merge is made (task 7.15): every batch before the merged
+ * view's own arrives at once, and the merged view is held back, so a paced replay rests with the
+ * fragments filled and the reserved slot pending — the design canvas's merging board.
+ */
+function mergeHeldBack(fixture: BeatFixture | undefined, name: string, beat: number) {
+  if (!fixture) return undefined;
+  return {
+    ...fixture,
+    name,
+    beat,
+    title: `${fixture.title}, the merge held back`,
+    turns: fixture.turns.map(turn => {
+      const merge = turn.batches.findIndex(
+        batch => batch.stamp?.source === SYNTHESIS_SOURCE && batch.stamp.role === 'fragment',
+      );
+      if (merge < 0) return turn;
+      return {
+        ...turn,
+        batches: turn.batches.map((batch, i) => ({
+          ...batch,
+          offsetMs: i < merge ? 0 : MERGE_HELD_MS,
+        })),
+      };
+    }),
+  };
+}
+
 /** Resolve a synthetic beat by the name `?beat=` accepts. */
 export function syntheticBeat(name: string): BeatFixture | undefined {
   switch (name) {
@@ -747,6 +796,10 @@ export function syntheticBeat(name: string): BeatFixture | undefined {
       return GAP_BEAT;
     case 'long-question':
       return longQuestionBeat();
+    case 'merging':
+      return mergeHeldBack(getBeatFixture(9), 'synthetic-merging', 117);
+    case 'long-merging':
+      return mergeHeldBack(longQuestionBeat(), 'synthetic-long-merging', 118);
     default:
       return undefined;
   }

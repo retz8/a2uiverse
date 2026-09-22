@@ -4,7 +4,7 @@ import type {Synthesis} from '../synthesizer/document.js';
 import type {DispatchOutcome} from '../agentsPool/types.js';
 import type {SurfaceTouches} from '../journal/surfaces.js';
 import type {SynthesisRecord} from '../journal/types.js';
-import {isGap, type LayoutSurface} from '../planner/document.js';
+import {isGap, type JoinNouns, type LayoutSurface} from '../planner/document.js';
 import type {Registry} from '../registry/registry.js';
 import {SHELL_SOURCE_ID} from '../registry/types.js';
 import {SYNTHESIS_DISPLAY_NAME} from './constants.js';
@@ -22,6 +22,10 @@ export interface SlotPlan {
   source: string;
   displayName: string;
   request: string;
+  /** The merged view's planned column headers: painted on its slot, handed to the Synthesizer. */
+  columns?: string[];
+  /** The merged view's join nouns: painted on its slot for the client's progress line. */
+  join?: JoinNouns;
 }
 
 export interface LiveSynthesis {
@@ -79,6 +83,8 @@ export function compositionFrom(
             ? SYNTHESIS_DISPLAY_NAME
             : registry.get(entry.source).displayName,
         request: entry.request,
+        ...(entry.columns ? {columns: entry.columns} : {}),
+        ...(entry.join ? {join: entry.join} : {}),
       },
       state: 'pending',
     });

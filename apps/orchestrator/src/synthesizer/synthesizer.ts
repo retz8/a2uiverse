@@ -19,6 +19,8 @@ export interface SynthesisInput {
   utterance: string;
   /** The Planner's request on the synthesis slot: its brief to the merge. */
   request: string;
+  /** The column headers the reserved slot showed the user from plan time: the view's starting point. */
+  columns?: readonly string[];
   sources: readonly SynthesisSource[];
   /** The live document, on a re-synthesis (task-5.4 decision 6). */
   previous?: Synthesis;
@@ -90,6 +92,7 @@ export class Synthesizer {
       const prompt = buildSynthesisTurn({
         utterance: input.utterance,
         request: input.request,
+        ...(input.columns ? {columns: input.columns} : {}),
         sources: input.sources,
         previous,
         ...(errors ? {errors} : {}),

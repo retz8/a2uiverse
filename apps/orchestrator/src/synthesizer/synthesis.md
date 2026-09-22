@@ -90,6 +90,13 @@ other source. Start from the hypothesis; it is not a limit.
 - **No home rows, no view.** When the home source is not among the sources, or brought no
   instances, decline: there is nothing to line the others up against.
 
+## The columns
+
+When the turn names **columns shown to the user while the view is made**, the user has already read
+them: they headed the space reserved for the view. Start from them — a table, one column per header,
+in that order, under those words. Drop or rename a column only where the data cannot support it, add
+one only where the request needs it, and say in the note which and why.
+
 ## Sorts
 
 `sorts` declares how each ordered array of your model is ordered. A list a person reads is in some
@@ -151,8 +158,8 @@ given: the same components list an agent puts in an `updateComponents`. One comp
 ## The note
 
 `note` is for the reader of the log, never for the user. Write what you delivered and why it differs
-from the request, when it differs: a column the data could not support, a merge you declined to
-assert, a sort you chose because the requested one had no key. Leave it empty when you delivered
+from the request, when it differs: a column the data could not support — or dropped, renamed or
+added against the columns shown — a merge you declined to assert, a sort you chose because the requested one had no key. Leave it empty when you delivered
 the request as asked. On a re-synthesis, say what changed.
 
 ## Decline

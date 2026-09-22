@@ -16,8 +16,10 @@ import {isGap, LAYOUT_SURFACE_SCHEMA, type LayoutSurface} from './document.js';
  * and any action but the shell's two are unknown; slot accounting — exactly one `Slot` per
  * dispatch entry matched by `source` or by the exact `gap`, none unmatched, a merged view only
  * with two or more vendor sources, every source on this turn's shortlist and none twice, no blank
- * request; what the Planner may write on a `Slot` (`source` or `gap`, and a positive `weight`;
- * `state`, `label` and `content` are the painter's); and a data model of literals. One line per
+ * request; the merged view's `columns` and `join` on `shell` alone, the join's home and nouns
+ * naming exactly the dispatched vendor sources; what the Planner may write on a `Slot` (`source`
+ * or `gap`, and a positive `weight`; `state`, `label`, `content`, `columns` and `join` are the
+ * painter's); and a data model of literals. One line per
  * finding, with its path, so the retry can hand them back.
  */
 export interface LayoutChecks {
@@ -72,7 +74,7 @@ function treeErrors(document: LayoutSurface, validator: A2uiValidator): string[]
 function dispatchErrors(document: LayoutSurface, shortlist: readonly string[]): string[] {
   const errors: string[] = [];
   const seen = new Set<string>();
-  let vendors = 0;
+  const vendorSources: string[] = [];
   let merged = false;
   document.dispatch.forEach((entry, i) => {
     if (isGap(entry)) {
@@ -81,26 +83,65 @@ function dispatchErrors(document: LayoutSurface, shortlist: readonly string[]): 
       seen.add(`gap:${entry.gap}`);
       return;
     }
-    const {source, request} = entry;
+    const {source, request, columns, join} = entry;
     if (seen.has(source)) errors.push(`/dispatch/${i}/source: '${source}' is dispatched twice`);
     seen.add(source);
     if (source === SHELL_SOURCE_ID) merged = true;
     else if (!shortlist.includes(source)) {
       errors.push(`/dispatch/${i}/source: '${source}' is not on this turn's shortlist`);
-    } else vendors += 1;
+    } else vendorSources.push(source);
     if (request.trim() === '') {
       errors.push(`/dispatch/${i}/request: the request for '${source}' is blank`);
     }
+    if (source !== SHELL_SOURCE_ID) {
+      if (columns !== undefined) {
+        errors.push(
+          `/dispatch/${i}/columns: only the merged view (${SHELL_SOURCE_ID}) has columns`,
+        );
+      }
+      if (join !== undefined) {
+        errors.push(`/dispatch/${i}/join: only the merged view (${SHELL_SOURCE_ID}) states a join`);
+      }
+    }
+    columns?.forEach((header, c) => {
+      if (header.trim() === '') errors.push(`/dispatch/${i}/columns/${c}: the header is blank`);
+    });
   });
-  if (merged && vendors < 2) {
+  if (merged && vendorSources.length < 2) {
     errors.push(
-      `/dispatch: a merged view (source ${SHELL_SOURCE_ID}) needs two or more vendor sources; ${vendors} dispatched`,
+      `/dispatch: a merged view (source ${SHELL_SOURCE_ID}) needs two or more vendor sources; ${vendorSources.length} dispatched`,
     );
+  }
+  errors.push(...joinErrors(document, vendorSources));
+  return errors;
+}
+
+/** The merged view's join names its home and a noun for each dispatched vendor source, and nothing else. */
+function joinErrors(document: LayoutSurface, vendorSources: readonly string[]): string[] {
+  const i = document.dispatch.findIndex(entry => !isGap(entry) && entry.source === SHELL_SOURCE_ID);
+  const shell = document.dispatch[i];
+  if (shell === undefined || isGap(shell) || shell.join === undefined) return [];
+  const {home, nouns} = shell.join;
+  const errors: string[] = [];
+  if (!vendorSources.includes(home)) {
+    errors.push(`/dispatch/${i}/join/home: '${home}' is not a dispatched source`);
+  }
+  for (const source of vendorSources) {
+    if (!(source in nouns)) {
+      errors.push(`/dispatch/${i}/join/nouns: no noun for '${source}', a dispatched source`);
+    }
+  }
+  for (const [source, noun] of Object.entries(nouns)) {
+    if (!vendorSources.includes(source)) {
+      errors.push(`/dispatch/${i}/join/nouns/${source}: '${source}' is not a dispatched source`);
+    } else if (noun.trim() === '') {
+      errors.push(`/dispatch/${i}/join/nouns/${source}: the noun is blank`);
+    }
   }
   return errors;
 }
 
-const PAINTER_PROPS = ['state', 'label', 'content'] as const;
+const PAINTER_PROPS = ['state', 'label', 'content', 'columns', 'join'] as const;
 
 /** Slot accounting against the dispatch list, and what the Planner may write on a `Slot`. */
 function slotErrors(document: LayoutSurface): string[] {
@@ -140,7 +181,7 @@ function slotErrors(document: LayoutSurface): string[] {
     }
     if (PAINTER_PROPS.some(prop => prop in slot)) {
       errors.push(
-        `/tree (${slot.id}): Slot.state, Slot.label and Slot.content are written by the shell; write only source or gap, and weight`,
+        `/tree (${slot.id}): Slot.state, Slot.label, Slot.content, Slot.columns and Slot.join are written by the shell; write only source or gap, and weight — the merged view's columns and join go on its dispatch entry`,
       );
     }
     if (slot.weight !== undefined && !(typeof slot.weight === 'number' && slot.weight > 0)) {

@@ -32,12 +32,12 @@ export function renderChildList(children: unknown, buildChild: BuildChild): Reac
 export function mapChildList(
   children: unknown,
   buildChild: BuildChild,
-  wrap: (node: ReactNode, key: string) => ReactNode,
+  wrap: (node: ReactNode, key: string, index: number) => ReactNode,
 ): ReactNode {
   if (!Array.isArray(children)) return null;
   return (children as ResolvedChildRef[]).map((child, index) =>
     typeof child === 'string'
-      ? wrap(buildChild(child), `${child}-${index}`)
-      : wrap(buildChild(child.id, child.basePath), `${child.id}-${child.basePath ?? index}`),
+      ? wrap(buildChild(child), `${child}-${index}`, index)
+      : wrap(buildChild(child.id, child.basePath), `${child.id}-${child.basePath ?? index}`, index),
   );
 }
