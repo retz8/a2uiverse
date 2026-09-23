@@ -4,7 +4,7 @@ import {expect, test} from 'vitest';
 import {PressStateContext, type PressRecord} from '../../press-state';
 import {SlotContentContext} from '../../slot-content';
 import {SlotStateContext} from '../../slot-state';
-import {renderTree, SURFACE_ID} from '../../testing/render';
+import {renderTree} from '../../testing/render';
 import {collapsedLines, landedLines, LOST_WORDS, UNREACHED_WORDS} from './press-lines';
 import {collapseLine, SlotView} from './slot';
 import {SlotApi} from './slot.schema';
@@ -718,5 +718,4 @@ test('a fact the runtime stops painting leaves the slot with its repaint (upstre
   });
   expect(container.textContent).not.toContain('Making the merged view…');
   expect(container.textContent).toContain('The merged view couldn’t be made.');
-  expect(SURFACE_ID).toBe('test');
 });

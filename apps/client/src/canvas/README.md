@@ -77,15 +77,21 @@ dispatched agent, then relays each agent's fragment stamped with the slot it bel
   several gain separation.
 - **Validation**: a fragment that will not validate or mount is reported to the hub as
   `VALIDATION_FAILED` on a side channel — never a turn, so it cannot cancel what the user has in
-  flight — and the hub answers by repainting its shell with that slot failed.
+  flight — and the hub answers by repainting its shell with that slot failed, which takes the
+  fragment off the canvas: a failed source's data shows nowhere.
+- **Presses** — Retry, Include and Try again go to the hub as the composition contract's
+  operation, each answered on a stream beside the turn that routes by the stamp as a turn's
+  batches do and never cancels it; a new utterance ends them all. A press is drawn at the click
+  and held until the paint catches up; one that never arrived, or lost its stream, is said in place.
 - **Prose is attributed too.** The stamp routes text as well as surfaces, so each source's
   chunks accumulate into their own notice line rather than interleaving into one string. Lines
   render in slot order — the stack echoes the layout below it — and each fades on its own clock
   once its source stops speaking. Prose stays in the shell's region and never enters a slot: a
   fragment's geometry is fixed for the turn.
 - **The roster** is the client's second projection of the shell paint, beside the placement map:
-  the turn's sources in slot order with the display names the orchestrator painted, read off the
-  shell surface's `Attribution` components at first paint. `placement` cannot serve — it is only
+  the composition's sources in slot order with the display names the orchestrator painted, read
+  off the shell surface's `Attribution` components at first paint and kept, with the slot states
+  and the merged view's facts, across the actions inside the composition. `placement` cannot serve — it is only
   written when a fragment actually lands, and iterates in fill order.
 - **A collapsed slot rests on what its source said.** An agent that answers in prose without
   painting has its slot collapsed; rendering nothing there would leave its attribution marker
