@@ -127,3 +127,28 @@ export function withoutFailureWords(event: VendorEvent): VendorEvent {
   const parts = message.parts.filter(part => part.kind !== 'text');
   return {...event, status: {...event.status, message: {...message, parts}}};
 }
+
+/**
+ * A relayed event moved onto another orchestrator task: an answer held under the plan's task and
+ * drawn by a Retry rides the Retry's stream (task-8.4 decision 15). Parts and stamp stay.
+ */
+export function retask(event: VendorEvent, taskId: string): VendorEvent {
+  const message = (m: Message): Message => (m.taskId !== undefined ? {...m, taskId} : m);
+  const status = (s: Task['status']): Task['status'] =>
+    s.message ? {...s, message: message(s.message)} : s;
+  switch (event.kind) {
+    case 'task':
+      return {
+        ...event,
+        id: taskId,
+        status: status(event.status),
+        ...(event.history ? {history: event.history.map(message)} : {}),
+      };
+    case 'status-update':
+      return {...event, taskId, status: status(event.status)};
+    case 'artifact-update':
+      return {...event, taskId};
+    case 'message':
+      return message(event);
+  }
+}

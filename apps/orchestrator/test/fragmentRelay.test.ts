@@ -1,6 +1,6 @@
 import type {TaskStatusUpdateEvent} from '@a2a-js/sdk';
 import {describe, expect, test} from 'vitest';
-import {composeFragment} from '../src/composition/fragmentRelay.js';
+import {composeFragment, retask} from '../src/composition/fragmentRelay.js';
 
 const ctx = {appId: 'github'};
 
@@ -119,4 +119,33 @@ describe('composeFragment', () => {
 test('the stamp carries source and role, and no generations', () => {
   const out = composeFragment(statusUpdate([], false), {appId: 'shop-a'});
   expect(out.metadata?.a2uiverse).toEqual({source: 'shop-a', role: 'fragment'});
+});
+
+describe('retask', () => {
+  test('moves an event onto another task, its parts and stamp untouched (task-8.4 decision 15)', () => {
+    const event: TaskStatusUpdateEvent = {
+      kind: 'status-update',
+      taskId: 'plan',
+      contextId: 'ctx',
+      final: false,
+      status: {
+        state: 'working',
+        message: {
+          kind: 'message',
+          messageId: 'm',
+          role: 'agent',
+          taskId: 'plan',
+          contextId: 'ctx',
+          parts: [{kind: 'data', data: {version: 'v0.9', createSurface: {surfaceId: 'gmail:s1'}}}],
+        },
+      },
+      metadata: {a2uiverse: {source: 'gmail', role: 'fragment'}},
+    };
+    const moved = retask(event, 'retry') as TaskStatusUpdateEvent;
+    expect(moved.taskId).toBe('retry');
+    expect(moved.status.message!.taskId).toBe('retry');
+    expect(moved.status.message!.parts).toBe(event.status.message!.parts);
+    expect(moved.metadata).toEqual(event.metadata);
+    expect(event.taskId).toBe('plan');
+  });
 });

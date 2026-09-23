@@ -16,7 +16,7 @@ import {FakePlanner, layoutFor, MalformedPlanner, ThrowingPlanner} from './fakeP
 import {bestPriceView, decline, FakeSynthesizer, HeldSynthesizer} from './fakeSynthesizer.js';
 import {defaultEntries} from '../src/registry/entries.js';
 import type {SynthesisCall, SynthesisModel} from '../src/synthesizer/synthesizer.js';
-import {SYNTHESIS_KEY, type SynthesisPayload} from '@a2uiverse/sdk';
+import {operationData, SYNTHESIS_KEY, type SynthesisPayload} from '@a2uiverse/sdk';
 import type {Synthesis} from '../src/synthesizer/document.js';
 import {startFakeVendor, type FakeVendor, type Script} from './fakeVendor.js';
 import type {FaultMap} from '../src/agentsPool/faults.js';
@@ -1713,3 +1713,475 @@ describe('quiescence (task 8.10)', () => {
     expect(input.missing).toBeUndefined();
   });
 });
+
+/** A press on the composition, as the client sends it (task-8.4 decision 14). */
+function press(
+  kind: 'retry' | 'include' | 'tryAgain',
+  sources: string[],
+  contextId: string,
+): Message {
+  return {
+    kind: 'message',
+    messageId: crypto.randomUUID(),
+    role: 'user',
+    contextId,
+    parts: [{kind: 'data', data: operationData({kind, sources}, 'v0.9')}],
+  };
+}
+
+/** The script answering as on a first turn: a vendor answering a new task paints anew. */
+const repaint = (script: Script): Script => after(0, script);
+
+/** One script per request, in order; the last answers every request after it. */
+function sequence(...scripts: Script[]): Script {
+  let n = 0;
+  return s => scripts[Math.min(n++, scripts.length - 1)]!(s);
+}
+
+const shellSlotOf = (events: AnyEvent[]) => slotsOf(shellPaints(events).at(-1)!)['shell']!;
+
+const finalOf = (events: AnyEvent[]) => events.at(-1) as TaskStatusUpdateEvent;
+
+describe('Include, Retry and Try again (task 8.4)', () => {
+  const three = ['github', 'gmail', 'calendar'] as const;
+
+  test('Retry puts the slot back to loading, sends the same request again, and folds the arrival into the landed merge with no second press', async () => {
+    const synthesizer = new FakeSynthesizer();
+    const {client} = await boot({
+      planner: new FakePlanner(() => layoutFor(three, {merged: 'Compare.'})),
+      synthesizer,
+      scripts: {
+        github: shopScript(camerasA),
+        gmail: shopScript(camerasB),
+        calendar: sequence(failing('Busy.'), repaint(shopScript(camerasA))),
+      },
+    });
+    const contextId = crypto.randomUUID();
+    const plan = await collect(client, utterance('compare', contextId));
+    expect(slotsOf(shellPaints(plan).at(-1)!)['calendar']).toMatchObject({state: 'failed'});
+    expect(shellSlotOf(plan)).toMatchObject({merged: ['github', 'gmail']});
+
+    const events = await collect(client, press('retry', ['calendar'], contextId));
+    expect(finalOf(events).status.state).toBe('completed');
+    const paints = shellPaints(events);
+    expect(slotsOf(paints[0]!)['calendar']).toMatchObject({state: 'pending'});
+    expect(slotsOf(paints[0]!)['calendar']).not.toHaveProperty('failure');
+    const requests = vendors.calendar!.requests.map(r => textsOf(r.message));
+    expect(requests).toEqual([requests[0], requests[0]]);
+
+    expect(synthesizer.calls).toHaveLength(2);
+    const {input} = synthesizer.calls[1]!;
+    expect(input.joined).toEqual([{appId: 'calendar', displayName: 'Google Calendar'}]);
+    expect(input.previous).toBeDefined();
+    expect(input.utterance).toBe('compare');
+    expect(input.sources.map(s => s.appId).sort()).toEqual(['calendar', 'github', 'gmail']);
+    expect(synthesisEvents(events)).toHaveLength(1);
+    expect(shellSlotOf(events)).toMatchObject({merged: ['github', 'gmail', 'calendar']});
+    expect(shellSlotOf(events)).not.toHaveProperty('working');
+
+    const lines = await journalLines(2);
+    const line = lines.find(l => l.kind === 'operation')!;
+    expect(line).toMatchObject({
+      descriptor: 'retry calendar',
+      composition: plan[0]!.id,
+      outcome: 'completed',
+      synthesis: {outcome: 'synthesized', release: {by: 'retry'}, joined: ['calendar']},
+    });
+  });
+
+  test('Retry draws an answer held past the hard cap at once, on its own stream, with no second request', async () => {
+    const {client} = await boot({
+      planner: new FakePlanner(() => layoutFor(['github', 'gmail'])),
+      scripts: {gmail: after(400, shopScript(camerasB))},
+      hardCapMs: 150,
+    });
+    const contextId = crypto.randomUUID();
+    const plan = await collect(client, utterance('everything', contextId));
+    expect(slotsOf(shellPaints(plan).at(-1)!)['gmail']).toMatchObject({
+      failure: {cause: 'timeout'},
+    });
+    await journalLines(1); // the plan's line closes once the held answer is in
+
+    const events = await collect(client, press('retry', ['gmail'], contextId));
+    expect(vendors.gmail!.requests).toHaveLength(1);
+    const drawn = events.filter(
+      e => stampOf(e)?.source === 'gmail' && a2uiDatas(e).some(d => d.createSurface),
+    );
+    expect(drawn).toHaveLength(1);
+    expect((drawn[0] as TaskStatusUpdateEvent).taskId).toBe(events[0]!.id);
+    const lines = await journalLines(2);
+    const record = (
+      lines.find(l => l.kind === 'operation')!.dispatch as Array<Record<string, unknown>>
+    )[0]!;
+    expect(record).toMatchObject({appId: 'gmail', outcome: 'completed'});
+    expect(record.heldAt).toBeDefined();
+    expect(record.drawnAt).toBeDefined();
+  });
+
+  test('racing a dispatch still running past its cap: the re-dispatch arriving first fills the slot and the original is cancelled', async () => {
+    const {client} = await boot({
+      planner: new FakePlanner(() => layoutFor(['github', 'gmail'])),
+      scripts: {gmail: sequence(after(3_000, shopScript(camerasB)), repaint(shopScript(camerasA)))},
+      hardCapMs: 150,
+    });
+    const contextId = crypto.randomUUID();
+    await collect(client, utterance('everything', contextId));
+    const events = await collect(client, press('retry', ['gmail'], contextId));
+    expect(vendors.gmail!.requests).toHaveLength(2);
+    expect(
+      events.some(e => stampOf(e)?.source === 'gmail' && a2uiDatas(e).some(d => d.createSurface)),
+    ).toBe(true);
+    await until(() => vendors.gmail!.methods.includes('tasks/cancel'), 'the original cancelled');
+    const lines = await journalLines(1);
+    const retried = lines.find(l => l.kind === 'operation');
+    expect(retried).toBeDefined();
+    expect((retried!.dispatch as Array<Record<string, unknown>>)[0]).toMatchObject({
+      race: 'won',
+    });
+  });
+
+  test('racing: the original arriving first is drawn on the Retry’s stream and the re-dispatch is cancelled', async () => {
+    const {client} = await boot({
+      planner: new FakePlanner(() => layoutFor(['github', 'gmail'])),
+      scripts: {
+        gmail: sequence(after(600, shopScript(camerasB)), after(5_000, shopScript(camerasA))),
+      },
+      hardCapMs: 400,
+    });
+    const contextId = crypto.randomUUID();
+    await collect(client, utterance('everything', contextId));
+    const events = await collect(client, press('retry', ['gmail'], contextId));
+    const drawn = events.filter(
+      e => stampOf(e)?.source === 'gmail' && a2uiDatas(e).some(d => d.updateDataModel),
+    );
+    expect(drawn).toHaveLength(1);
+    expect(JSON.stringify(a2uiDatas(drawn[0]!))).toContain('949'); // camerasB: the original's
+    expect((drawn[0] as TaskStatusUpdateEvent).taskId).toBe(events[0]!.id);
+    await until(() => vendors.gmail!.methods.includes('tasks/cancel'), 'the re-dispatch cancelled');
+  });
+
+  test('a retry that fails again brings the tile back with its new cause and words', async () => {
+    const {client} = await boot({
+      planner: new FakePlanner(() => layoutFor(['github', 'gmail'])),
+      scripts: {gmail: sequence(failing('Rate limited.'), failing('Still down.'))},
+    });
+    const contextId = crypto.randomUUID();
+    await collect(client, utterance('everything', contextId));
+    const events = await collect(client, press('retry', ['gmail'], contextId));
+    expect(finalOf(events).status.state).toBe('completed');
+    expect(slotsOf(shellPaints(events)[0]!)['gmail']).toMatchObject({state: 'pending'});
+    expect(slotsOf(shellPaints(events).at(-1)!)['gmail']).toMatchObject({
+      state: 'failed',
+      failure: {cause: 'vendor', message: 'Still down.'},
+    });
+  });
+
+  test('a source retried before the first merge rejoins the pack: the one merge takes it, the turn running beside the press', async () => {
+    const synthesizer = new FakeSynthesizer();
+    const {client} = await boot({
+      planner: new FakePlanner(() => layoutFor(three, {merged: 'Compare.'})),
+      synthesizer,
+      scripts: {
+        github: shopScript(camerasA),
+        gmail: sequence(failing(), after(100, shopScript(camerasB))),
+        calendar: after(800, shopScript(camerasA)),
+      },
+      softDeadlineMs: 5_000,
+    });
+    const contextId = crypto.randomUUID();
+    const turn = streamOf(client, utterance('compare', contextId));
+    await until(
+      () =>
+        shellPaints(turn.events).some(paint => slotStates(paint)['gmail'] === 'failed') &&
+        arrivedIn(turn.events, 'github'),
+      'Gmail failed fast',
+    );
+    const retry = await collect(client, press('retry', ['gmail'], contextId));
+    expect(finalOf(retry).status.state).toBe('completed');
+    expect(synthesisEvents(retry)).toHaveLength(0);
+
+    const events = await turn.done;
+    expect(arrivedIn(events, 'calendar')).toBe(true);
+    expect(finalOf(events).status.state).toBe('completed');
+    expect(synthesizer.calls).toHaveLength(1);
+    expect(synthesizer.calls[0]!.input.sources.map(s => s.appId).sort()).toEqual([
+      'calendar',
+      'github',
+      'gmail',
+    ]);
+    expect(synthesisEvents(events)).toHaveLength(1);
+  });
+
+  test('a late arrival waits on the merge slot; one Include folds it in with one call, the working sentence painted while it runs', async () => {
+    const synthesizer = new FakeSynthesizer();
+    const {client} = await boot({
+      planner: new FakePlanner(() => layoutFor(three, {merged: 'Compare.'})),
+      synthesizer,
+      scripts: {
+        github: shopScript(camerasA),
+        gmail: shopScript(camerasB),
+        calendar: after(300, shopScript(camerasA)),
+      },
+      softDeadlineMs: 50,
+    });
+    const contextId = crypto.randomUUID();
+    const plan = await collect(client, utterance('compare', contextId));
+    expect(shellSlotOf(plan)).toMatchObject({merged: ['github', 'gmail'], late: ['calendar']});
+
+    const events = await collect(client, press('include', ['calendar'], contextId));
+    expect(finalOf(events).status.state).toBe('completed');
+    expect(slotsOf(shellPaints(events)[0]!)['shell']).toMatchObject({
+      working: {sources: ['calendar']},
+    });
+    expect(slotsOf(shellPaints(events)[0]!)['shell']).not.toHaveProperty('late');
+    expect(synthesizer.calls).toHaveLength(2);
+    expect(synthesizer.calls[1]!.input.joined).toEqual([
+      {appId: 'calendar', displayName: 'Google Calendar'},
+    ]);
+    expect(synthesizer.calls[1]!.prompt).toContain('asked to include sources');
+    expect(synthesisEvents(events)).toHaveLength(1);
+    const shell = shellSlotOf(events);
+    expect(shell).toMatchObject({merged: ['github', 'gmail', 'calendar']});
+    expect(shell).not.toHaveProperty('late');
+    expect(shell).not.toHaveProperty('working');
+    const lines = await journalLines(2);
+    expect(lines.find(l => l.kind === 'operation')).toMatchObject({
+      descriptor: 'include calendar',
+      synthesis: {release: {by: 'include'}, joined: ['calendar']},
+    });
+  });
+
+  test('a fold-in that fails keeps the landed view: the source late again, the failure said on the slot', async () => {
+    const synthesizer = new FakeSynthesizer([bestPriceView, 'no block', 'no block']);
+    const {client} = await boot({
+      planner: new FakePlanner(() => layoutFor(three, {merged: 'Compare.'})),
+      synthesizer,
+      scripts: {
+        github: shopScript(camerasA),
+        gmail: shopScript(camerasB),
+        calendar: after(300, shopScript(camerasA)),
+      },
+      softDeadlineMs: 50,
+    });
+    const contextId = crypto.randomUUID();
+    await collect(client, utterance('compare', contextId));
+    const events = await collect(client, press('include', ['calendar'], contextId));
+    expect(finalOf(events).status.state).toBe('completed');
+    expect(synthesisEvents(events)).toHaveLength(0);
+    const shell = shellSlotOf(events);
+    expect(shell.state).toBe('pending');
+    expect(shell).not.toHaveProperty('collapse');
+    expect(shell).toMatchObject({
+      merged: ['github', 'gmail'],
+      late: ['calendar'],
+      callFailed: {kind: 'include', sources: ['calendar']},
+    });
+    const lines = await journalLines(2);
+    expect(lines.find(l => l.kind === 'operation')!.synthesis).toMatchObject({
+      outcome: 'malformed',
+      kept: true,
+    });
+  });
+
+  test('a re-synthesis after a press inside a fragment that fails keeps the view; Try again walks again and remakes it', async () => {
+    const synthesizer = new FakeSynthesizer([bestPriceView, 'no block', 'no block', bestPriceView]);
+    const {client} = await boot({
+      planner: new FakePlanner(() => planWithSynthesis(['github', 'gmail'])),
+      synthesizer,
+      scripts: {
+        github: shopScript(camerasA, () => ({path: '/items', value: [camerasA[0]]})),
+        gmail: shopScript(camerasB),
+      },
+    });
+    const contextId = crypto.randomUUID();
+    await collect(client, utterance('compare', contextId));
+    const action = await collect(client, actionOn('github:s1', contextId));
+    expect(synthesizer.calls).toHaveLength(3);
+    expect(synthesizer.calls[1]!.input.utterance).toBe('compare');
+    expect(shellSlotOf(action)).toMatchObject({callFailed: {kind: 'update', sources: []}});
+    expect(shellSlotOf(action).state).toBe('pending');
+
+    const events = await collect(client, press('tryAgain', [], contextId));
+    expect(finalOf(events).status.state).toBe('completed');
+    expect(synthesizer.calls).toHaveLength(4);
+    expect(synthesizer.calls[3]!.input.changes).toBeDefined();
+    expect(synthesisEvents(events)).toHaveLength(1);
+    expect(shellSlotOf(events)).not.toHaveProperty('callFailed');
+  });
+
+  test('a merge collapsed for its failed home source comes back through Retry: nothing moves until it lands, made over every arrived source', async () => {
+    const synthesizer = new FakeSynthesizer();
+    const {client} = await boot({
+      planner: new FakePlanner(() =>
+        layoutFor(three, {
+          merged: 'Join.',
+          join: {home: 'gmail', nouns: {github: 'PRs', gmail: 'threads', calendar: 'events'}},
+        }),
+      ),
+      synthesizer,
+      scripts: {
+        github: shopScript(camerasA),
+        gmail: sequence(failing(), after(200, shopScript(camerasB))),
+        calendar: shopScript(camerasA),
+      },
+    });
+    const contextId = crypto.randomUUID();
+    const plan = await collect(client, utterance('join', contextId));
+    expect(shellSlotOf(plan)).toMatchObject({state: 'collapsed', collapse: {cause: 'home'}});
+
+    const events = await collect(client, press('retry', ['gmail'], contextId));
+    const first = slotsOf(shellPaints(events)[0]!)['shell']!;
+    expect(first).toMatchObject({state: 'collapsed', retrying: ['gmail']});
+    expect(synthesizer.calls).toHaveLength(1);
+    expect(synthesizer.calls[0]!.input.previous).toBeUndefined();
+    expect(synthesizer.calls[0]!.input.sources.map(s => s.appId).sort()).toEqual([
+      'calendar',
+      'github',
+      'gmail',
+    ]);
+    // Until the view lands the slot stays collapsed: only its words change.
+    const beforeLanding = shellPaints(events).slice(0, -1);
+    expect(beforeLanding.every(paint => slotStates(paint)['shell'] === 'collapsed')).toBe(true);
+    expect(synthesisEvents(events)).toHaveLength(1);
+    const shell = shellSlotOf(events);
+    expect(shell.state).toBe('pending');
+    expect(shell).not.toHaveProperty('collapse');
+    expect(shell).not.toHaveProperty('retrying');
+    expect(shell).toMatchObject({merged: ['github', 'gmail', 'calendar']});
+  });
+
+  test('Try again makes a merge that couldn’t be made', async () => {
+    const synthesizer = new FakeSynthesizer(['no block', 'no block', bestPriceView]);
+    const {client} = await boot({
+      planner: new FakePlanner(() => planWithSynthesis(['github', 'gmail'])),
+      synthesizer,
+      scripts: {github: shopScript(camerasA), gmail: shopScript(camerasB)},
+    });
+    const contextId = crypto.randomUUID();
+    const plan = await collect(client, utterance('compare', contextId));
+    expect(shellSlotOf(plan)).toMatchObject({state: 'collapsed', collapse: {cause: 'unmade'}});
+    const events = await collect(client, press('tryAgain', [], contextId));
+    expect(synthesizer.calls).toHaveLength(3);
+    expect(synthesisEvents(events)).toHaveLength(1);
+    expect(shellSlotOf(events).state).toBe('pending');
+    const lines = await journalLines(2);
+    expect(lines.find(l => l.kind === 'operation')).toMatchObject({
+      descriptor: 'try again',
+      synthesis: {release: {by: 'tryAgain'}},
+    });
+  });
+
+  test('after a decline a late source is offered Include, which makes the merge over every arrived source', async () => {
+    const synthesizer = new FakeSynthesizer([decline('Nothing lines up.'), bestPriceView]);
+    const {client} = await boot({
+      planner: new FakePlanner(() => layoutFor(three, {merged: 'Compare.'})),
+      synthesizer,
+      scripts: {
+        github: shopScript(camerasA),
+        gmail: shopScript(camerasB),
+        calendar: after(300, shopScript(camerasA)),
+      },
+      softDeadlineMs: 50,
+    });
+    const contextId = crypto.randomUUID();
+    const plan = await collect(client, utterance('compare', contextId));
+    expect(shellSlotOf(plan)).toMatchObject({
+      state: 'collapsed',
+      declined: {reason: 'Nothing lines up.'},
+      late: ['calendar'],
+    });
+    const events = await collect(client, press('include', ['calendar'], contextId));
+    expect(synthesizer.calls).toHaveLength(2);
+    expect(synthesizer.calls[1]!.input.previous).toBeUndefined();
+    expect(synthesizer.calls[1]!.input.sources.map(s => s.appId).sort()).toEqual([
+      'calendar',
+      'github',
+      'gmail',
+    ]);
+    expect(synthesisEvents(events)).toHaveLength(1);
+    expect(shellSlotOf(events)).not.toHaveProperty('declined');
+  });
+
+  test('a retried source arriving while the merge is made folds in straight after, as its own call', async () => {
+    const made = gate();
+    const synthesizer = new HeldSynthesizer([made.opened]);
+    const {client} = await boot({
+      planner: new FakePlanner(() => layoutFor(three, {merged: 'Compare.'})),
+      synthesizer,
+      scripts: {
+        github: shopScript(camerasA),
+        gmail: shopScript(camerasB),
+        calendar: sequence(failing(), repaint(shopScript(camerasA))),
+      },
+    });
+    const contextId = crypto.randomUUID();
+    const turn = streamOf(client, utterance('compare', contextId));
+    await until(() => synthesizer.calls.length === 1, 'the merge is being made');
+    const retry = streamOf(client, press('retry', ['calendar'], contextId));
+    await until(() => vendors.calendar!.requests.length === 2, 'the retry reached Calendar');
+    await wait(100);
+    made.open();
+    const events = await turn.done;
+    const retried = await retry.done;
+    expect(synthesizer.calls).toHaveLength(2);
+    expect(synthesizer.calls[0]!.signal?.aborted).toBe(false);
+    expect(synthesizer.calls[1]!.input.joined).toEqual([
+      {appId: 'calendar', displayName: 'Google Calendar'},
+    ]);
+    expect(synthesisEvents(events)).toHaveLength(1);
+    expect(synthesisEvents(retried)).toHaveLength(1);
+  });
+
+  test('a press the composition cannot take is refused, saying why', async () => {
+    const {client} = await boot({
+      planner: new FakePlanner(() => planWithSynthesis(['github', 'gmail'])),
+      synthesizer: new FakeSynthesizer(),
+      scripts: {github: shopScript(camerasA), gmail: shopScript(camerasB)},
+    });
+    const contextId = crypto.randomUUID();
+    const none = await collect(client, press('retry', ['gmail'], crypto.randomUUID()));
+    expect(finalOf(none).status.state).toBe('failed');
+    expect(textsIn(none)).toContain('This canvas is no longer current.');
+
+    await collect(client, utterance('compare', contextId));
+    const notFailed = await collect(client, press('retry', ['gmail'], contextId));
+    expect(finalOf(notFailed).status.state).toBe('failed');
+    expect(textsIn(notFailed)).toContain('Gmail has not failed.');
+    const nothingLate = await collect(client, press('include', ['gmail'], contextId));
+    expect(textsIn(nothingLate)).toContain('No source is waiting to be included.');
+    const nothingToTry = await collect(client, press('tryAgain', [], contextId));
+    expect(textsIn(nothingToTry)).toContain('There is nothing to try again.');
+    const lines = await journalLines(5);
+    expect(lines.filter(l => l.refused).map(l => l.outcome)).toEqual([
+      'failed',
+      'failed',
+      'failed',
+      'failed',
+    ]);
+  });
+
+  test('a new utterance ends a Retry in flight: cancelled, its vendor told, journaled superseded', async () => {
+    const {client} = await boot({
+      planner: new FakePlanner(() => layoutFor(['github', 'gmail'])),
+      scripts: {gmail: sequence(failing(), after(5_000, shopScript(camerasB)))},
+    });
+    const contextId = crypto.randomUUID();
+    await collect(client, utterance('first', contextId));
+    const retry = streamOf(client, press('retry', ['gmail'], contextId));
+    await until(() => vendors.gmail!.requests.length === 2, 'the retry reached Gmail');
+    await wait(100);
+    await collect(client, utterance('second', contextId));
+    const events = await retry.done;
+    expect(finalOf(events).status.state).toBe('canceled');
+    await until(() => vendors.gmail!.methods.includes('tasks/cancel'), 'the retry cancelled');
+    const lines = await journalLines(3);
+    expect(lines.find(l => l.kind === 'operation')).toMatchObject({
+      superseded: true,
+      outcome: 'cancelled',
+    });
+  });
+});
+
+function textsOf(message: Message): string[] {
+  return message.parts.flatMap(p => (p.kind === 'text' ? [p.text] : []));
+}

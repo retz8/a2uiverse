@@ -32,6 +32,10 @@ export interface DispatchRecord {
   cappedAt?: string;
   /** When an answer arrived past the hard cap and was held (task-8.3 decision 2). */
   heldAt?: string;
+  /** When a Retry drew the held answer (task-8.4 decision 4). */
+  drawnAt?: string;
+  /** In a Retry race, whether this dispatch arrived first or was cancelled (task-8.4 decision 5). */
+  race?: 'won' | 'lost';
   /** The fault the dev-only fault map applied, when it hit this dispatch. */
   fault?: FaultKind;
 }

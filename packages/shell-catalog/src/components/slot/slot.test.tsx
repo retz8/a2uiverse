@@ -426,3 +426,21 @@ test('a vendor slot ignores a collapse cause: it rests on its content as before'
   expect(screen.getByText('the resting prose')).toBeInTheDocument();
   expect(screen.queryByText('The merged view couldn’t be made.')).not.toBeInTheDocument();
 });
+
+/* ── Task 8.4: the facts the presses' lines are drawn from ────────────────── */
+
+test('schema takes the merge’s source set, the late sources, a call in progress or failed, and the retried sources', () => {
+  const shell = (extra: Record<string, unknown>) =>
+    SlotApi.schema.safeParse({source: 'shell', content: 'shell', ...extra}).success;
+  expect(shell({merged: ['github', 'gmail'], late: ['calendar']})).toBe(true);
+  expect(shell({working: {sources: ['calendar']}})).toBe(true);
+  expect(shell({working: {sources: []}})).toBe(true);
+  expect(shell({callFailed: {kind: 'include', sources: ['calendar']}})).toBe(true);
+  expect(shell({callFailed: {kind: 'update', sources: []}})).toBe(true);
+  expect(shell({state: 'collapsed', collapse: {cause: 'unmade'}, retrying: ['gmail']})).toBe(true);
+  expect(shell({working: {}})).toBe(false);
+  expect(shell({working: {sources: ['x'], kind: 'include'}})).toBe(false);
+  expect(shell({callFailed: {kind: 'declined', sources: []}})).toBe(false);
+  expect(shell({callFailed: {kind: 'include'}})).toBe(false);
+  expect(shell({late: 'calendar'})).toBe(false);
+});

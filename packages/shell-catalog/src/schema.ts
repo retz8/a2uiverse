@@ -17,11 +17,14 @@ import {CATALOG_ID} from './catalog-id.js';
 import {AttributionApi} from './components/attribution/attribution.schema.js';
 import {DerivedValueApi} from './components/derived-value/derived-value.schema.js';
 import {
+  CALL_FAILED_KINDS,
   COLLAPSE_CAUSES,
   FAILURE_CAUSES,
   SlotApi,
   type CollapseCause,
   type FailureCause,
+  type CallFailedKind,
+  type SlotCallFailed,
   type SlotCollapse,
   type SlotFailure,
 } from './components/slot/slot.schema.js';
@@ -40,6 +43,7 @@ import {SHELL_ACTIONS, shellActionFunctions} from './functions/shell-actions.js'
 
 export {
   CATALOG_ID,
+  CALL_FAILED_KINDS,
   COLLAPSE_CAUSES,
   FAILURE_CAUSES,
   OPERATORS,
@@ -52,6 +56,8 @@ export {
   type Operator,
   type RelationKind,
   type RelationOp,
+  type CallFailedKind,
+  type SlotCallFailed,
   type SlotCollapse,
   type SlotFailure,
 };

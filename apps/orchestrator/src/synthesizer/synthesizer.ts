@@ -8,12 +8,13 @@ import {
   buildSynthesisTurn,
   SYNTHESIS_TAG,
   type ChangeAccount,
+  type JoinedSource,
   type MissingSource,
   type SynthesisSource,
 } from './prompt.js';
 import {validateSynthesis, type SynthesisChecks} from './validate.js';
 
-export type {MissingSource, SynthesisSource};
+export type {JoinedSource, MissingSource, SynthesisSource};
 
 /** One call of the turn's second model (SPEC §5 ◆ #2): the input as the runtime knows it. */
 export interface SynthesisInput {
@@ -30,6 +31,8 @@ export interface SynthesisInput {
   /** The live document, on a re-synthesis (task-5.4 decision 6). */
   previous?: Synthesis;
   changes?: ChangeAccount;
+  /** The sources folded into the live view at the reader's press (task-8.4 decision 12). */
+  joined?: readonly JoinedSource[];
 }
 
 /** What went to the model and what it answered. */
@@ -108,6 +111,7 @@ export class Synthesizer {
         previous,
         ...(errors ? {errors} : {}),
         ...(input.changes && !errors ? {changes: input.changes} : {}),
+        ...(input.joined && input.joined.length > 0 && !errors ? {joined: input.joined} : {}),
       });
       signal?.throwIfAborted();
       const text = await this.#model.generate({

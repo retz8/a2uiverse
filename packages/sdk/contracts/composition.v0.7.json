@@ -1,8 +1,8 @@
 {
   "name": "a2uiverse-composition",
-  "version": "0.6.0",
-  "description": "The A2UIVerse composition extension (SPEC §14): the A2A metadata contract for cross-agent UI composition, internal to the platform (orchestrator ↔ client). Two halves: the composition stamp (provenance, role) on every relayed event, and the synthesis payload — the derived data model of formula leaves, its match claims, and the sort declarations of a merged view — on the event that paints a synthesis surface. Nothing a2uiverse-specific rides the vendor wire. Normative for every language projection; each projection's contract test asserts against this file.",
-  "extensionUri": "https://a2uiverse.dev/ext/composition/v0.6",
+  "version": "0.7.0",
+  "description": "The A2UIVerse composition extension (SPEC §14): the A2A metadata contract for cross-agent UI composition, internal to the platform (orchestrator ↔ client). Outbound, the composition stamp (provenance, role) on every relayed event and the synthesis payload — the derived data model of formula leaves, its match claims, and the sort declarations of a merged view — on the event that paints a synthesis surface; inbound, the composition operation — the reader's press on the composition, Retry, Include or Try again — on a message of its own. Nothing a2uiverse-specific rides the vendor wire. Normative for every language projection; each projection's contract test asserts against this file.",
+  "extensionUri": "https://a2uiverse.dev/ext/composition/v0.7",
   "stampKey": "a2uiverse",
   "surfaceIdSeparator": ":",
   "surfaceIdNamespacing": {
@@ -23,6 +23,17 @@
         "role": "Which surface the canvas renders as the composition root: 'shell' | 'fragment'.",
         "vendorContextId": "Debug only, gated by orchestrator config.",
         "vendorTaskId": "Debug only, gated by orchestrator config."
+      }
+    },
+    "compositionOperation": {
+      "direction": "client → orchestrator",
+      "carriedOn": "a data part of its own, {version, operation}, on a new A2A message in the composition's context — beside the A2UI action, the error report and the utterance; version is the A2UI version the client speaks",
+      "required": ["kind", "sources"],
+      "optional": [],
+      "kinds": ["retry", "include", "tryAgain"],
+      "fields": {
+        "kind": "The press: 'retry' re-dispatches one failed source's request; 'include' folds the sources that arrived after the merge into it; 'tryAgain' makes again a merge whose call failed.",
+        "sources": "The source ids the press names: exactly one with 'retry', at least one with 'include', none with 'tryAgain'."
       }
     },
     "synthesizeDataModel": {

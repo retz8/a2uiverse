@@ -1,14 +1,17 @@
 import type {Message} from '@a2a-js/sdk';
+import {readOperation, type CompositionOperation} from '@a2uiverse/sdk';
 
 export type Turn =
   | {kind: 'utterance'; text: string}
   | {kind: 'action'; part: Record<string, unknown>; surfaceId: string}
   | {kind: 'clientError'; code: string; surfaceId: string}
+  | {kind: 'operation'; operation: CompositionOperation}
   | {kind: 'unknown'};
 
 /**
  * What kind of turn a client message opens. Actions and client errors carry a
- * (namespaced) surfaceId inside their A2UI payload; anything with plain text
+ * (namespaced) surfaceId inside their A2UI payload; a press on the composition carries the
+ * composition contract's operation (task-8.4 decision 14); anything with plain text
  * is an utterance.
  */
 export function classifyTurn(message: Message): Turn {
@@ -26,6 +29,8 @@ export function classifyTurn(message: Message): Turn {
         return {kind: 'action', part: part.data, surfaceId};
       }
     }
+    const operation = readOperation(part.data);
+    if (operation) return {kind: 'operation', operation};
     const error = part.data.error;
     if (typeof error === 'object' && error !== null) {
       const {code, surfaceId} = error as {code?: unknown; surfaceId?: unknown};

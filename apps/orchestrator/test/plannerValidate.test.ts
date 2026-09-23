@@ -325,6 +325,11 @@ describe('what the Planner may write on a Slot', () => {
       ['declined', {reason: 'x'}],
       ['collapse', {cause: 'unmade'}],
       ['columnSources', ['github']],
+      ['merged', ['github']],
+      ['late', ['gmail']],
+      ['working', {sources: []}],
+      ['callFailed', {kind: 'update', sources: []}],
+      ['retrying', ['github']],
     ] as const) {
       const painted = fanOut();
       painted.tree.components[4] = {id: 'gh', component: 'Slot', source: 'github', [prop]: value};

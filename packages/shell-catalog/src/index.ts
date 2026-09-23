@@ -24,6 +24,7 @@ export {PortalRootContext, Provider} from './provider.js';
 export {SlotContentContext, type SlotContentResolver} from './slot-content.js';
 export {SlotStateContext, type SlotStateResolver, type SourceSlotState} from './slot-state.js';
 export {
+  CALL_FAILED_KINDS,
   COLLAPSE_CAUSES,
   type CollapseCause,
   collapseLine,
@@ -32,6 +33,8 @@ export {
   failureLine,
   failureWords,
   SlotApi,
+  type CallFailedKind,
+  type SlotCallFailed,
   type SlotCollapse,
   type SlotFailure,
   SlotView,

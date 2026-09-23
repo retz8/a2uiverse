@@ -11,7 +11,7 @@ import {
 } from './synthesis';
 
 const contract = JSON.parse(
-  readFileSync(new URL('../../contracts/composition.v0.6.json', import.meta.url), 'utf8'),
+  readFileSync(new URL('../../contracts/composition.v0.7.json', import.meta.url), 'utf8'),
 ) as {
   version: string;
   extensionUri: string;
@@ -20,6 +20,7 @@ const contract = JSON.parse(
   matchKey: string;
   shapes: {
     compositionStamp: {direction: string};
+    compositionOperation: {direction: string};
     synthesizeDataModel: {
       direction: string;
       schemas: Record<string, unknown>;
@@ -28,8 +29,8 @@ const contract = JSON.parse(
 };
 
 test('one version line: file, version, extension URI', () => {
-  expect(contract.version).toBe('0.6.0');
-  expect(contract.extensionUri).toBe('https://a2uiverse.dev/ext/composition/v0.6');
+  expect(contract.version).toBe('0.7.0');
+  expect(contract.extensionUri).toBe('https://a2uiverse.dev/ext/composition/v0.7');
   expect(COMPOSITION_EXTENSION_URI).toBe(contract.extensionUri);
 });
 
@@ -39,9 +40,14 @@ test('the synthesis key matches the contract and is not the stamp key', () => {
   expect(SYNTHESIS_KEY).not.toBe(STAMP_KEY);
 });
 
-test('the contract carries the stamp and the synthesis payload, both orchestrator → client', () => {
-  expect(Object.keys(contract.shapes)).toEqual(['compositionStamp', 'synthesizeDataModel']);
+test('the contract carries the stamp and the synthesis payload orchestrator → client, the operation back', () => {
+  expect(Object.keys(contract.shapes)).toEqual([
+    'compositionStamp',
+    'compositionOperation',
+    'synthesizeDataModel',
+  ]);
   expect(contract.shapes.compositionStamp.direction).toBe('orchestrator → client');
+  expect(contract.shapes.compositionOperation.direction).toBe('client → orchestrator');
   expect(contract.shapes.synthesizeDataModel.direction).toBe('orchestrator → client');
 });
 

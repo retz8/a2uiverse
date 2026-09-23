@@ -904,6 +904,52 @@
           },
           "required": ["cause"],
           "additionalProperties": false
+        },
+        "merged": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Shell content only: the source ids the landed merged view was built over. Painted by the runtime and never written by an author."
+        },
+        "late": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Shell content only: the source ids that arrived after the merge — landed, declined or not made — and wait for the reader to include them. Painted by the runtime and never written by an author."
+        },
+        "working": {
+          "type": "object",
+          "description": "Shell content only: a call the reader's press caused is running. Painted by the runtime and never written by an author.",
+          "properties": {
+            "sources": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "The source ids the call folds in; none when it makes the view afresh or updates it."
+            }
+          },
+          "required": ["sources"],
+          "additionalProperties": false
+        },
+        "callFailed": {
+          "type": "object",
+          "description": "Shell content only: the last call the reader's press caused failed and the landed view was kept. Painted by the runtime and never written by an author.",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": ["include", "update"],
+              "description": "`include`: the sources it folded in stay out of the view; `update`: the view was left as it was."
+            },
+            "sources": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "With `kind: \"include\"`: the source ids it left out; none otherwise."
+            }
+          },
+          "required": ["kind", "sources"],
+          "additionalProperties": false
+        },
+        "retrying": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Shell content only, on a collapsed merge: the retried source ids whose arrival brings the merge back. Painted by the runtime and never written by an author."
         }
       },
       "required": ["component"],

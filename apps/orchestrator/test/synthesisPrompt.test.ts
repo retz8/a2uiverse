@@ -222,6 +222,32 @@ describe('the turn', () => {
     expect(turn).not.toContain('rejected');
   });
 
+  test('a fold-in names the sources that joined the view, beside what changed (task-8.4 decision 12)', () => {
+    const joined = buildSynthesisTurn({
+      ...base,
+      previous: {declined: true, reason: 'x'},
+      joined: [{appId: 'shop-b', displayName: 'Shop B'}],
+    });
+    expect(joined).toContain('asked to include sources that answered after it was made');
+    expect(joined).toContain('- these sources joined the view');
+    expect(joined).toContain('  - Shop B (shop-b)');
+    expect(joined).not.toContain('the sources changed under it');
+    expect(joined).not.toContain('nothing named');
+    const both = buildSynthesisTurn({
+      ...base,
+      previous: {declined: true, reason: 'x'},
+      joined: [{appId: 'shop-b', displayName: 'Shop B'}],
+      changes: {
+        absent: [{surface: 'shop-a:list', pointer: '/items[id="gone"]/price'}],
+        appeared: [],
+        unheld: [],
+        repainted: [],
+      },
+    });
+    expect(both).toContain('and the sources changed under it');
+    expect(both).toContain('  - shop-a:list/items[id="gone"]/price');
+  });
+
   test('a re-synthesis with nothing named says the sources were repainted', () => {
     const turn = buildSynthesisTurn({
       ...base,

@@ -188,6 +188,11 @@ const PAINTER_PROPS = [
   'failure',
   'declined',
   'collapse',
+  'merged',
+  'late',
+  'working',
+  'callFailed',
+  'retrying',
 ] as const;
 
 /** Slot accounting against the dispatch list, and what the Planner may write on a `Slot`. */

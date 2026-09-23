@@ -1,9 +1,12 @@
-import type {SynthesisPayload} from '@a2uiverse/sdk';
-import type {FailureCause, SlotCollapse} from '@a2uiverse/shell-catalog/schema';
+import type {Message} from '@a2a-js/sdk';
+import type {ExecutionEventBus} from '@a2a-js/sdk/server';
+import type {OperationKind, SynthesisPayload} from '@a2uiverse/sdk';
+import type {FailureCause, SlotCallFailed, SlotCollapse} from '@a2uiverse/shell-catalog/schema';
 import type {Seen, Watch} from './integrity.js';
 import type {Synthesis} from '../synthesizer/document.js';
 import type {VendorEvent} from '../agentsPool/relay.js';
-import type {DispatchOutcome, DispatchRecord} from '../agentsPool/types.js';
+import type {DispatchHandle, DispatchOutcome, DispatchRecord} from '../agentsPool/types.js';
+import type {JournalTurn} from '../journal/intentJournal.js';
 import type {SynthesisRecord} from '../journal/types.js';
 import {isGap, type JoinNouns, type LayoutSurface} from '../planner/document.js';
 import type {Registry} from '../registry/registry.js';
@@ -59,6 +62,47 @@ export interface SlotEntry {
   collapse?: SlotCollapse;
   /** A vendor slot's answer held past the hard cap (task-8.3 decision 2). */
   held?: HeldAnswer;
+  /** A dispatch of this source past its hard cap and still running: what a Retry races. */
+  running?: DispatchHandle;
+  /** An open Retry race (task-8.4 decision 5): the running dispatch's answer, handed to it. */
+  race?: (held: HeldAnswer) => void;
+}
+
+/** Where a turn's events go: its task, its stream, its journal line. */
+export interface Sink {
+  ctx: {taskId: string; contextId: string};
+  bus: ExecutionEventBus;
+  turn: JournalTurn;
+  /** The dispatches it started, which its journal line waits out. */
+  drains?: Promise<void>[];
+}
+
+/**
+ * A press on the composition, or the walk after a press inside a fragment, owed a call (task-8.4
+ * decision 7): what it asks of the merge, where the outcome is published, and its settle.
+ */
+export interface OwedPress {
+  kind: OperationKind | 'walk';
+  sink: Sink;
+  resolve(): void;
+}
+
+/** Everything owed while the merge is in the making: made as one call once it lands. */
+export interface Owed {
+  /** Sources to fold into a landed view: an Include's, and each retried source that arrived. */
+  joining: Set<string>;
+  /** Make the merge afresh over every arrived source — a collapsed merge brought back. */
+  make: boolean;
+  /** Walk again from the last accepted document — Try again after the view couldn't be updated. */
+  walk: boolean;
+  presses: OwedPress[];
+}
+
+/** A press running on the composition: what a new utterance ends (task-8.4 decision 11). */
+export interface Operation {
+  taskId: string;
+  controller: AbortController;
+  journal: JournalTurn;
 }
 
 export interface LiveSynthesis {
@@ -80,6 +124,10 @@ export interface CompositionState {
   layout: LayoutSurface;
   /** The utterance the composition came from — the this-canvas reader's first line. */
   utterance: string;
+  /** The turn that planned it: what a press's journal line links to. */
+  turnId: string;
+  /** The utterance's metadata, which a Retry re-dispatches the plan's request with. */
+  requestMetadata?: Message['metadata'];
   /** Keyed by source (task-6.3 decision 6), in dispatch order. */
   slots: Map<string, SlotEntry>;
   /** The capability gaps the Planner named, in dispatch order; each has a `Slot` in the tree. */
@@ -90,10 +138,23 @@ export interface CompositionState {
   arrived: Set<string>;
   /**
    * The merge's own source set (task-8.3 decision 11): the sources the accepted synthesis was
-   * built over. The IntegrityChecker's walk and any re-synthesis it fires cover only these; only
-   * Include and Retry add to it, and a failure removes a source from it.
+   * built over — or, once it declined or couldn't be made, the ones it was made over. The
+   * IntegrityChecker's walk and any re-synthesis it fires cover only these; only Include, Retry
+   * and Try again add to it, and a failure removes a source from it.
    */
   merged: Set<string>;
+  /** Sources a call owes or is folding into the view, out of the late ones meanwhile. */
+  folding: Set<string>;
+  /** Calls a press caused, owed or running: while any, the working sentence (task-8.4 decision 13). */
+  pressWork: number;
+  /** The last call a press caused failed, the landed view kept (task-8.4 decision 3). */
+  callFailed?: SlotCallFailed;
+  /** On a collapsed merge, the retried sources whose arrival brings it back (task-8.4 decision 8). */
+  retrying: Set<string>;
+  /** What is owed a call while the merge is in the making (task-8.4 decision 7). */
+  owed?: Owed;
+  /** How many times the merge collapsed: a merge in the making sees a collapse under it. */
+  collapses: number;
   /** Whether the turn's one automatic synthesis has been released, or the merge collapsed instead. */
   mergeDecided: boolean;
   /** The reader's presses in flight, per source: what the merge waits on (task-8.10 decision 1). */
@@ -102,6 +163,15 @@ export interface CompositionState {
   making?: Promise<void>;
   /** While the utterance turn runs: re-weighs the synthesis trigger after a slot changed outside it. */
   reevaluate?: () => void;
+  /**
+   * While the turn's one automatic synthesis is undecided: a retried source rejoins the pack and
+   * settles again (task-8.4 decision 6).
+   */
+  trigger?: {unsettle(appId: string): void; settle(appId: string): void};
+  /** The presses running on it: what a new utterance ends. */
+  operations: Set<Operation>;
+  /** Aborted once a new utterance replaces it: every call a press caused ends. */
+  retired: AbortController;
   /** The live synthesis, once painted: the document as accepted and the payload the client holds; what the IntegrityChecker guards. */
   synthesis?: LiveSynthesis;
   /** What became of the merged view, once decided — what the this-canvas reader reports. */
@@ -114,6 +184,7 @@ export function compositionFrom(
   layout: LayoutSurface,
   registry: Registry,
   utterance: string,
+  origin: {turnId: string; metadata?: Message['metadata']} = {turnId: ''},
 ): CompositionState {
   const slots = new Map<string, SlotEntry>();
   const gaps: string[] = [];
@@ -145,14 +216,41 @@ export function compositionFrom(
   return {
     layout,
     utterance,
+    turnId: origin.turnId,
+    ...(origin.metadata ? {requestMetadata: origin.metadata} : {}),
     slots,
     gaps,
     partitions: new Partitions(),
     arrived: new Set(),
     merged: new Set(),
+    folding: new Set(),
+    pressWork: 0,
+    retrying: new Set(),
+    collapses: 0,
     mergeDecided: false,
     presses: new Presses(),
+    operations: new Set(),
+    retired: new AbortController(),
   };
+}
+
+/** The dispatched vendor sources among `appIds`, in slot order. */
+export function inSlotOrder(state: CompositionState, appIds: ReadonlySet<string>): string[] {
+  return [...state.slots.keys()].filter(appId => appId !== SHELL_SOURCE_ID && appIds.has(appId));
+}
+
+/**
+ * The sources that arrived after the merge — landed, declined or not made — and wait for Include
+ * (task-8.4 decisions 1, 9): arrived, not in the merge's set, not being folded in. A merge still
+ * undecided or being made first has none; nor one collapsed for a failed home source or too few.
+ */
+export function lateSources(state: CompositionState): string[] {
+  const outcome = state.mergedView?.outcome;
+  if (!synthesisSlot(state) || !outcome || outcome === 'home' || outcome === 'skipped') return [];
+  const waiting = new Set(
+    [...state.arrived].filter(appId => !state.merged.has(appId) && !state.folding.has(appId)),
+  );
+  return inSlotOrder(state, waiting);
 }
 
 /** The synthesis slot, when the plan reserved one. */

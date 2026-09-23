@@ -44,10 +44,19 @@ export interface SynthesisRecord {
    */
   outcome: 'synthesized' | 'declined' | 'malformed' | 'skipped' | 'failed' | 'home' | 'thrown-away';
   reason?: string;
+  /** A re-synthesis that failed with the landed view kept (task-8.4 decision 3). */
+  kept?: true;
   /** A collapsed merge's cause as painted (task-8.3 decision 9). */
   collapse?: 'declined' | 'home' | 'few' | 'unmade';
-  /** What released the turn's automatic synthesis, and when (task-8.3 decision 15). */
-  release?: {by: 'settled' | 'soft-deadline' | 'home'; at: string};
+  /**
+   * What released the synthesis, and when: the turn's automatic one by every source settled, the
+   * soft deadline or the home source landing (task-8.3 decision 15); every further one by the
+   * press behind it — Include, Retry, Try again — or the walk after a press inside a fragment
+   * (task-8.4 decision 16).
+   */
+  release?: {by: SynthesisRelease; at: string};
+  /** The sources the synthesis folded into the view (task-8.4 decision 12). */
+  joined?: string[];
   /** The sources the synthesis ran over. */
   sources?: string[];
   /** The dispatched sources it ran without, each still loading, failed, or arrived after the merge. */
@@ -67,6 +76,9 @@ export interface SynthesisRecord {
   /** From the synthesis's release — or, on a re-synthesis, the last settle — to its outcome. */
   deadAirMs?: number;
 }
+
+export type SynthesisRelease =
+  'settled' | 'soft-deadline' | 'home' | 'include' | 'retry' | 'tryAgain' | 'walk';
 
 /** One line of the intent journal (SPEC §10): per turn, free-form descriptor + embedding. */
 export interface JournalEntry {
@@ -90,6 +102,10 @@ export interface JournalEntry {
   deadlines?: {softMs: number; capMs: number};
   /** A new utterance ended this turn while it ran (task-8.3 decision 4). */
   superseded?: true;
+  /** A press: the turn whose composition it acts on (task-8.4 decision 16). */
+  composition?: string;
+  /** A press the orchestrator refused, and why. */
+  refused?: string;
   /** The descriptor, embedded at write time with the Router's model; null when embedding failed. */
   embedding: number[] | null;
 }

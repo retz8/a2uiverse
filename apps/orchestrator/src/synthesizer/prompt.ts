@@ -37,6 +37,12 @@ export interface MissingSource {
   state: 'loading' | 'failed' | 'arrived';
 }
 
+/** A source folded into the live view at the reader's press (task-8.4 decision 12). */
+export interface JoinedSource {
+  appId: string;
+  displayName: string;
+}
+
 /** A fact of a match claim that stopped holding while both its refs resolve (task-7.6 decision 13). */
 export interface UnheldRelation {
   /** Where it sits in the derived model: `/rows/0/match/same branch`. */
@@ -135,6 +141,8 @@ export interface SynthesisTurnInputs {
   errors?: readonly string[];
   /** What changed under `previous`: this turn is a re-synthesis. */
   changes?: ChangeAccount;
+  /** The sources the reader asked to fold into `previous`: this turn is a re-synthesis. */
+  joined?: readonly JoinedSource[];
 }
 
 function indent(text: string, spaces: number): string {
@@ -224,6 +232,13 @@ export function buildSynthesisTurn(inputs: SynthesisTurnInputs): string {
   if (inputs.errors && inputs.errors.length > 0) {
     parts.push(
       `Your previous document was rejected. Fix these errors in it and answer with the corrected document; do not start over:\n${inputs.errors.map(e => `- ${e}`).join('\n')}`,
+    );
+    if (previous !== undefined) parts.push(`Your previous document:\n${previous}`);
+  } else if (inputs.joined && inputs.joined.length > 0) {
+    const joined = inputs.joined.map(s => `  - ${s.displayName} (${s.appId})`).join('\n');
+    const changed = inputs.changes ? `\n${renderChanges(inputs.changes)}` : '';
+    parts.push(
+      `The user is looking at your previous view and asked to include sources that answered after it was made${inputs.changes ? ', and the sources changed under it' : ''}. Keep the view: fold in each source that joined — attach its entries to the rows they belong to, into a row’s list, or as new rows when it is the home source, and fill the columns marked to it — or leave out what belongs nowhere; re-point the refs that broke; attach each entry that appeared, or leave it out; re-point, re-evidence or detach each fact that no longer holds; keep the tree and the shape of the model unless the data no longer supports them; and say what changed in the note. What changed:\n- these sources joined the view, their data among the sources above:\n${joined}${changed}`,
     );
     if (previous !== undefined) parts.push(`Your previous document:\n${previous}`);
   } else if (inputs.changes) {

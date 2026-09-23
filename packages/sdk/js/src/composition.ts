@@ -2,13 +2,13 @@
  * The composition extension (SPEC §14): the A2A metadata contract for
  * cross-agent UI composition, internal to the platform (orchestrator ↔
  * client) — nothing a2uiverse-specific rides the vendor wire. The normative
- * definition is `../contracts/composition.v0.6.json`;
+ * definition is `../contracts/composition.v0.7.json`;
  * `composition.contract.test.ts` asserts this projection against it. The
  * synthesis half of the contract (the synthesize data model) lives in `synthesis.ts`.
  */
 
 /** The A2A extension URI this project declares for composition. */
-export const COMPOSITION_EXTENSION_URI = 'https://a2uiverse.dev/ext/composition/v0.6';
+export const COMPOSITION_EXTENSION_URI = 'https://a2uiverse.dev/ext/composition/v0.7';
 
 /** Metadata key the orchestrator owns on relayed events. */
 export const STAMP_KEY = 'a2uiverse';
@@ -64,4 +64,60 @@ export function readStamp(
   if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return undefined;
   const source = (raw as Record<string, unknown>).source;
   return typeof source === 'string' ? (raw as unknown as CompositionStamp) : undefined;
+}
+
+/** The reader's presses on the composition (task-8.4 decisions 9, 14). */
+export const OPERATION_KINDS = ['retry', 'include', 'tryAgain'] as const;
+export type OperationKind = (typeof OPERATION_KINDS)[number];
+
+/**
+ * Outbound, client → orchestrator: a press on the composition, as a data part of its own —
+ * `{version, operation}` — on a new A2A message in the composition's context. `retry` names the
+ * one failed source it re-dispatches, `include` the late sources it folds in, `tryAgain` none.
+ */
+export interface CompositionOperation {
+  kind: OperationKind;
+  sources: string[];
+}
+
+/** Wire field names, typechecked against the interface; the contract test compares them to the contract. */
+export const OPERATION_FIELDS = [
+  'kind',
+  'sources',
+] as const satisfies readonly (keyof CompositionOperation)[];
+
+const _operationComplete: Exclude<
+  keyof CompositionOperation,
+  (typeof OPERATION_FIELDS)[number]
+> extends never
+  ? true
+  : never = true;
+void _operationComplete;
+
+/** The data part's body carrying a press: `{version, operation}`. */
+export function operationData(
+  operation: CompositionOperation,
+  version: string,
+): {version: string; operation: CompositionOperation} {
+  return {version, operation: {kind: operation.kind, sources: [...operation.sources]}};
+}
+
+/**
+ * The press a data part's body carries, if it is one and well formed: a known kind, a list of
+ * source ids, as many as the kind names — one for `retry`, at least one for `include`, none for
+ * `tryAgain`.
+ */
+export function readOperation(data: Record<string, unknown>): CompositionOperation | undefined {
+  if (typeof data.version !== 'string') return undefined;
+  const raw = data.operation;
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return undefined;
+  const {kind, sources} = raw as Record<string, unknown>;
+  if (!OPERATION_KINDS.includes(kind as OperationKind)) return undefined;
+  if (!Array.isArray(sources) || !sources.every(s => typeof s === 'string' && s !== '')) {
+    return undefined;
+  }
+  const count = sources.length;
+  const fits = kind === 'retry' ? count === 1 : kind === 'include' ? count >= 1 : count === 0;
+  if (!fits || new Set(sources).size !== count) return undefined;
+  return {kind: kind as OperationKind, sources: sources as string[]};
 }

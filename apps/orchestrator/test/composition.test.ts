@@ -49,6 +49,17 @@ describe('classifyTurn', () => {
       surfaceId: 'github:s1',
     });
   });
+  test('a press on the composition classifies as an operation; a malformed one is unknown (task-8.4 decision 14)', () => {
+    const data = {version: 'v0.9', operation: {kind: 'include', sources: ['calendar']}};
+    expect(classifyTurn({...base, parts: [{kind: 'data', data}]})).toEqual({
+      kind: 'operation',
+      operation: {kind: 'include', sources: ['calendar']},
+    });
+    const malformed = {version: 'v0.9', operation: {kind: 'retry', sources: []}};
+    expect(classifyTurn({...base, parts: [{kind: 'data', data: malformed}]})).toEqual({
+      kind: 'unknown',
+    });
+  });
   test('a VALIDATION_FAILED error part classifies as clientError', () => {
     const data = {
       version: 'v0.9',

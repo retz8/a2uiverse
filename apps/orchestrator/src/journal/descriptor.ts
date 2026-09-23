@@ -1,12 +1,13 @@
 import type {Message} from '@a2a-js/sdk';
+import {readOperation, type CompositionOperation} from '@a2uiverse/sdk';
 
-export type TurnKind = 'utterance' | 'action' | 'error' | 'unknown';
+export type TurnKind = 'utterance' | 'action' | 'error' | 'operation' | 'unknown';
 
 export interface Description {
   kind: TurnKind;
   /** Free-form; the utterance verbatim for palette turns. */
   descriptor: string;
-  /** The action's `context`, for action turns; the error object, for error turns. */
+  /** The action's `context`, for action turns; the error object, for error turns; the press, for operations. */
   payload?: unknown;
 }
 
@@ -28,6 +29,16 @@ export function describe(message: Message, appId?: string): Description {
     const surfaceId = typeof error.surfaceId === 'string' ? error.surfaceId : '?';
     return {kind: 'error', descriptor: `${code} on surface ${surfaceId}`, payload: error};
   }
+  const operation = findOperation(message);
+  if (operation) {
+    const named = operation.kind === 'tryAgain' ? 'try again' : operation.kind;
+    const sources = operation.sources.join(', ');
+    return {
+      kind: 'operation',
+      descriptor: sources ? `${named} ${sources}` : named,
+      payload: operation,
+    };
+  }
   const texts = message.parts.flatMap(p => (p.kind === 'text' ? [p.text] : []));
   if (texts.length) return {kind: 'utterance', descriptor: texts.join('\n')};
   return {kind: 'unknown', descriptor: JSON.stringify(message.parts)};
@@ -38,6 +49,15 @@ function findError(message: Message): Record<string, unknown> | undefined {
     if (part.kind !== 'data') continue;
     const error = part.data.error;
     if (typeof error === 'object' && error !== null) return error as Record<string, unknown>;
+  }
+  return undefined;
+}
+
+function findOperation(message: Message): CompositionOperation | undefined {
+  for (const part of message.parts) {
+    if (part.kind !== 'data') continue;
+    const operation = readOperation(part.data);
+    if (operation) return operation;
   }
   return undefined;
 }

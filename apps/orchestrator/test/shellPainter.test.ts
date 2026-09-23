@@ -203,6 +203,41 @@ describe('paintLayout', () => {
     expect(slot('shell')).toMatchObject({collapse: {cause: 'home', home: 'GitHub PRs'}});
   });
 
+  test('the facts the presses’ lines are drawn from are painted on the merge slot (task-8.4 decision 13)', () => {
+    const state = compositionFrom(layout, registry, 'my day');
+    const merge = () =>
+      paintLayout(state).find(c => c.component === 'Slot' && c.source === 'shell')!;
+    for (const prop of ['merged', 'late', 'working', 'callFailed', 'retrying']) {
+      expect(merge()).not.toHaveProperty(prop);
+    }
+    // A landed view: its own set, in slot order; a source arrived after it, waiting for Include.
+    state.mergeDecided = true;
+    state.mergedView = {outcome: 'synthesized'};
+    state.synthesis = {} as NonNullable<typeof state.synthesis>;
+    state.merged = new Set(['gmail', 'github']);
+    state.arrived = new Set(['github', 'gmail', 'calendar']);
+    expect(merge()).toMatchObject({merged: ['github', 'gmail'], late: ['calendar']});
+    // Being folded in, it is no longer late: the working sentence names it.
+    state.folding.add('calendar');
+    state.pressWork = 1;
+    expect(merge()).toMatchObject({working: {sources: ['calendar']}});
+    expect(merge()).not.toHaveProperty('late');
+    // The fold-in failed with the view kept: late again, the failure said.
+    state.folding.clear();
+    state.pressWork = 0;
+    state.callFailed = {kind: 'include', sources: ['calendar']};
+    expect(merge()).toMatchObject({late: ['calendar'], callFailed: {kind: 'include'}});
+    expect(merge()).not.toHaveProperty('working');
+    // A merge collapsed for its home source offers no Include; a retry that brings it back is named.
+    state.synthesis = undefined;
+    state.mergedView = {outcome: 'home'};
+    state.slots.get('shell')!.state = 'collapsed';
+    state.slots.get('shell')!.collapse = {cause: 'home', home: 'GitHub PRs'};
+    state.retrying.add('github');
+    expect(merge()).toMatchObject({retrying: ['github']});
+    for (const prop of ['merged', 'late', 'callFailed']) expect(merge()).not.toHaveProperty(prop);
+  });
+
   test('a gap slot is painted as authored: the catalog’s tile, no wrapper, no state', () => {
     expect(byId.get('flights')).toEqual({id: 'flights', component: 'Slot', gap: 'flight booking'});
     expect(byId.has('attribution-flights')).toBe(false);

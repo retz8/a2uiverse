@@ -1,13 +1,13 @@
 import {randomUUID} from 'node:crypto';
 import type {Message, Task, TaskState, TaskStatusUpdateEvent} from '@a2a-js/sdk';
 import type {AgentExecutor, ExecutionEventBus, RequestContext} from '@a2a-js/sdk/server';
-import {parseSurfaceId, type SynthesisPayload} from '@a2uiverse/sdk';
+import {parseSurfaceId, type CompositionOperation, type SynthesisPayload} from '@a2uiverse/sdk';
 import {SHELL_ACTIONS, type SlotCollapse} from '@a2uiverse/shell-catalog/schema';
 import type {AgentsPool} from './agentsPool/agentsPool.js';
 import {STAMP_KEY, type VendorEvent} from './agentsPool/relay.js';
 import type {DispatchHandle, DispatchOutcome, DispatchRecord} from './agentsPool/types.js';
 import {classifyTurn, unnamespaceAction, type Turn} from './composition/classify.js';
-import {composeFragment, withoutFailureWords} from './composition/fragmentRelay.js';
+import {composeFragment, retask, withoutFailureWords} from './composition/fragmentRelay.js';
 import {changeAccount, firesResynthesis, seenOf, watchOf} from './composition/integrity.js';
 import {A2UI_CLIENT_DATA_MODEL_KEY} from './composition/partition.js';
 import {
@@ -19,23 +19,30 @@ import {vendorMetadata} from './composition/partition.js';
 import {shellCreateParts, shellEnvelope, shellRepaintParts} from './composition/shellPainter.js';
 import {
   compositionFrom,
+  inSlotOrder,
+  lateSources,
   outcomeToSlotState,
   synthesisSlot,
   type CompositionState,
+  type HeldAnswer,
+  type Operation,
+  type Owed,
+  type OwedPress,
+  type Sink,
   type SlotFailure,
 } from './composition/state.js';
 import type {PressWait} from './composition/presses.js';
 import {decideTrigger, mergePossible} from './composition/trigger.js';
 import type {IntentJournal, JournalTurn} from './journal/intentJournal.js';
-import type {SynthesisRecord} from './journal/types.js';
+import type {SynthesisRecord, SynthesisRelease} from './journal/types.js';
 import {elapsedMs, logLine} from './log.js';
 import {emptyTouches, mergeTouches, touchesOf, type SurfaceTouches} from './journal/surfaces.js';
 import type {Planner} from './planner/planner.js';
 import type {Registry} from './registry/registry.js';
 import {SHELL_SOURCE_ID} from './registry/types.js';
 import type {Router} from './router/router.js';
-import type {Synthesis} from './synthesizer/document.js';
 import type {ChangeAccount, MissingSource} from './synthesizer/prompt.js';
+import type {Synthesis} from './synthesizer/document.js';
 import type {Synthesizer} from './synthesizer/synthesizer.js';
 
 export interface OrchestratorDeps {
@@ -61,10 +68,31 @@ interface LiveTurn {
   journal: JournalTurn;
 }
 
-/** Why a synthesis runs: the turn's one automatic release, or a re-synthesis — walked as it is made. */
+/**
+ * Why a synthesis runs. The turn's one automatic release, over every source arrived by then; a
+ * collapsed merge made afresh at a press, the same way (task-8.4 decision 8); or a re-synthesis
+ * of the landed view — the sources a press folds in, and the walk — walked as it is made.
+ */
 type SynthesisRun =
-  | {release: {by: 'settled' | 'soft-deadline' | 'home'; at: number}; signal: AbortSignal}
-  | {again: true};
+  | {kind: 'first'; by: 'settled' | 'soft-deadline' | 'home'; at: number; signal: AbortSignal}
+  | {kind: 'make'; by: SynthesisRelease; at: number; signal: AbortSignal}
+  | {kind: 'again'; by: SynthesisRelease; at: number; joining: string[]; signal: AbortSignal};
+
+/** What became of a synthesis: landed, failed with the view kept, collapsed, or nothing to make. */
+type SynthesisEnd = 'landed' | 'kept' | 'collapsed' | 'none';
+
+/** What the pump does with a dispatch beyond relaying it. */
+interface PumpOptions {
+  /** Flip the slot per outcome when the dispatch ends. */
+  collapse: boolean;
+  /** Once aborted, the dispatch settles nothing: the turn ended, or a Retry race was lost. */
+  signal?: AbortSignal;
+  onSettled?: () => void;
+  /** Hold the answer until it ends, drawn whole or not at all — a Retry race (task-8.4 decision 5). */
+  buffer?: boolean;
+  /** A retried source: once the merge is decided its arrival is folded in, never late. */
+  folding?: boolean;
+}
 
 /**
  * The turn (SPEC §5) at M6. Utterance: Router → Planner (the one model call, the readers as
@@ -77,18 +105,22 @@ type SynthesisRun =
  * the merge with no call. A dispatch past its hard cap fails its slot and runs on, what it answers
  * held until Retry; the turn's journal line closes when the last dispatch ends. A new utterance
  * in the same conversation ends the turn before it: its dispatches aborted and their vendors told
- * to cancel, its model calls aborted, what it held dropped. A turn that dispatches nothing — a
- * platform answer, a gap — closes right after first paint. Action: owner-only dispatch, no
- * Router/Planner; then, if the partition change invalidated the live synthesis, re-synthesis
- * inline before the final over the merge's own source set, handed the previous document and what
- * broke (task-5.4 decision 6). Quiescence (task-8.10): the press is in flight until its dispatch
- * settles, and the merge that reads its source — the first or a re-synthesis — is made and
- * lands only once it is answered; an answer that changed what the merge in the making reads
- * throws it away and it is made again; one merge is in the making at a time, a press during it
- * covered by it. A shell action — one of the shell catalog's closed set, raised on
- * a shell surface and handled by the client itself (SPEC §7) — is journaled and nothing else: no
- * dispatch, no paint. Client error: the slot fails `invalid` by shell repaint, its data out of the
- * merge. Composition state is canonical here; the shell surface is its projection.
+ * to cancel, its model calls aborted, what it held dropped — and every press still running on the
+ * composition it replaces. A turn that dispatches nothing — a platform answer, a gap — closes
+ * right after first paint. Action: owner-only dispatch, no Router/Planner; then, if the partition
+ * change invalidated the live synthesis, re-synthesis inline before the final over the merge's
+ * own source set, handed the previous document and what broke (task-5.4 decision 6).
+ * Quiescence (task-8.10): the press is in flight until its dispatch settles, and the merge that
+ * reads its source — the first or a re-synthesis — is made and lands only once it is answered;
+ * an answer that changed what the merge in the making reads throws it away and it is made again.
+ * One merge is in the making at a time; everything owed meanwhile — the walk after a press
+ * inside a fragment, the sources a press folds in — is made as one call once it lands (task-8.4
+ * decision 7). Operation (task 8.4): the reader's press on the composition — Retry, Include, Try
+ * again — on its own stream, running beside the turn. A shell action — one of the shell catalog's
+ * closed set, raised on a shell surface and handled by the client itself (SPEC §7) — is journaled
+ * and nothing else: no dispatch, no paint. Client error: the slot fails `invalid` by shell
+ * repaint, its data out of the merge. Composition state is canonical here; the shell surface is
+ * its projection.
  */
 export class OrchestratorExecutor implements AgentExecutor {
   readonly #deps: OrchestratorDeps;
@@ -156,13 +188,22 @@ export class OrchestratorExecutor implements AgentExecutor {
           await this.#actionTurn(ctx, bus, turn, turnKind);
           break;
         }
+        case 'operation': {
+          turn = this.#deps.journal.open({
+            turnId: ctx.taskId,
+            clientContextId: ctx.contextId,
+            message: ctx.userMessage,
+          });
+          await this.#operationTurn(ctx, bus, turn, turnKind.operation);
+          break;
+        }
         case 'clientError': {
           turn = this.#deps.journal.open({
             turnId: ctx.taskId,
             clientContextId: ctx.contextId,
             message: ctx.userMessage,
           });
-          this.#clientErrorTurn(ctx, bus, turn, turnKind);
+          this.#clientErrorTurn({ctx, bus, turn}, turnKind);
           bus.publish(finalStatus(ctx, 'completed'));
           await turn.close('completed');
           break;
@@ -195,6 +236,11 @@ export class OrchestratorExecutor implements AgentExecutor {
       this.#live.delete(contextId);
       live.controller.abort();
     }
+    for (const state of this.#compositions.values()) {
+      for (const operation of state.operations) {
+        if (operation.taskId === taskId) operation.controller.abort();
+      }
+    }
     this.#deps.pool.cancel(taskId);
   }
 
@@ -213,6 +259,25 @@ export class OrchestratorExecutor implements AgentExecutor {
     this.#deps.pool.cancel(live.taskId);
   }
 
+  /**
+   * A composition a new utterance replaces (task-8.4 decision 11): every press running on it
+   * ends — its re-dispatches aborted and their vendors told to cancel, its calls aborted, its
+   * journal line marked superseded — and no press reaches it again.
+   */
+  #retire(state: CompositionState): void {
+    if (state.retired.signal.aborted) return;
+    state.retired.abort();
+    for (const operation of state.operations) {
+      logLine(`⤫ task=${operation.taskId} superseded`);
+      operation.journal.superseded();
+      operation.controller.abort();
+      this.#deps.pool.cancel(operation.taskId);
+    }
+    const owed = state.owed;
+    state.owed = undefined;
+    for (const press of owed?.presses ?? []) press.resolve();
+  }
+
   async #utteranceTurn(
     ctx: RequestContext,
     bus: ExecutionEventBus,
@@ -220,6 +285,8 @@ export class OrchestratorExecutor implements AgentExecutor {
     text: string,
   ): Promise<void> {
     this.#supersede(ctx.contextId);
+    const replaced = this.#compositions.get(ctx.contextId);
+    if (replaced) this.#retire(replaced);
     const live: LiveTurn = {taskId: ctx.taskId, controller: new AbortController(), journal: turn};
     this.#live.set(ctx.contextId, live);
     const {signal} = live.controller;
@@ -270,8 +337,12 @@ export class OrchestratorExecutor implements AgentExecutor {
       );
     }
 
-    const state = compositionFrom(outcome.document, this.#deps.registry, text);
+    const state = compositionFrom(outcome.document, this.#deps.registry, text, {
+      turnId: ctx.taskId,
+      metadata: ctx.userMessage.metadata,
+    });
     this.#compositions.set(ctx.contextId, state);
+    const sink: Sink = {ctx, bus, turn};
 
     // First paint precedes every dispatch, structurally (SPEC §4.5).
     const shellPaint = shellEnvelope(ctx, shellCreateParts(state));
@@ -284,6 +355,11 @@ export class OrchestratorExecutor implements AgentExecutor {
     const merge = synthesisSlot(state);
     const home = merge?.plan.join?.home;
     const settled = new Set<string>();
+    // What the turn waits on past its own dispatches: a source retried before the release.
+    const wakers = new Set<() => void>();
+    const wake = () => {
+      for (const waker of [...wakers]) waker();
+    };
     let released: Promise<void> | undefined;
     let softDeadline: ReturnType<typeof setTimeout> | undefined;
     const disarm = () => {
@@ -295,8 +371,9 @@ export class OrchestratorExecutor implements AgentExecutor {
       state.mergeDecided = true;
       logLine(`merge task=${ctx.taskId} released (${by})`);
       released = this.#making(state, () =>
-        this.#synthesize(ctx, bus, turn, state, {release: {by, at: Date.now()}, signal}),
+        this.#synthesize([sink], state, {kind: 'first', by, at: Date.now(), signal}).then(() => {}),
       );
+      wake();
     };
     // Weighs the trigger after every settle, and after a slot fails outside the turn's own
     // dispatches — a paint the client could not draw.
@@ -324,10 +401,8 @@ export class OrchestratorExecutor implements AgentExecutor {
           return release(decision.by);
         case 'collapse':
           disarm();
-          return this.#collapseMerge(
-            ctx,
-            bus,
-            turn,
+          this.#collapseMerge(
+            [sink],
             state,
             decision.cause === 'home'
               ? {collapse: homeCollapse(state, home!)}
@@ -341,9 +416,27 @@ export class OrchestratorExecutor implements AgentExecutor {
                   attempts: [],
                 },
           );
+          return wake();
       }
     };
-    state.reevaluate = () => evaluate();
+    state.reevaluate = () => {
+      evaluate();
+      wake();
+    };
+    // A source retried before the merge is decided rejoins the pack (task-8.4 decision 6): out
+    // again from the press — the soft deadline's quiet not restarted — and settled again when its
+    // re-dispatch ends. The turn waits for it as for any dispatch of its own.
+    state.trigger = {
+      unsettle: appId => {
+        settled.delete(appId);
+        wake();
+      },
+      settle: appId => {
+        settled.add(appId);
+        evaluate(appId);
+        wake();
+      },
+    };
 
     const runs = sources.map(({plan: slot}) => {
       const request: Message = {
@@ -359,7 +452,7 @@ export class OrchestratorExecutor implements AgentExecutor {
         message: request,
         fromPlan: true,
       });
-      return this.#pump(ctx, bus, turn, state, handle, slot.source, {
+      return this.#pump(sink, state, handle, slot.source, {
         collapse: true,
         signal,
         onSettled: () => {
@@ -369,11 +462,29 @@ export class OrchestratorExecutor implements AgentExecutor {
       });
     });
     // The final waits for every dispatch to arrive, fail or reach the hard cap (task-8.3
-    // decision 4), and for the synthesis the last of them released.
+    // decision 4), a source retried before the merge was decided among them, and for the
+    // synthesis the last of them released.
     const outcomes = await Promise.all(runs.map(run => run.settled));
+    while (
+      merge &&
+      !state.mergeDecided &&
+      !signal.aborted &&
+      vendorSources.some(source => !settled.has(source))
+    ) {
+      await new Promise<void>(resolve => {
+        const woken = () => {
+          wakers.delete(woken);
+          signal.removeEventListener('abort', woken);
+          resolve();
+        };
+        wakers.add(woken);
+        signal.addEventListener('abort', woken, {once: true});
+      });
+    }
     disarm();
     if (released) await released;
     state.reevaluate = undefined;
+    state.trigger = undefined;
 
     // One agent failing never fails the turn; only an all-cancelled turn — or one a new
     // utterance ended — is cancelled. A turn that dispatched nothing completed at first paint.
@@ -399,6 +510,7 @@ export class OrchestratorExecutor implements AgentExecutor {
     const composition = this.#compositions.get(ctx.contextId);
     // Two-way edits reach the partitions through the returning client data model.
     composition?.partitions.applyClientDataModel(clientSurfaces(ctx.userMessage.metadata));
+    const sink: Sink = {ctx, bus, turn};
 
     const message: Message = {
       ...ctx.userMessage,
@@ -415,12 +527,14 @@ export class OrchestratorExecutor implements AgentExecutor {
       message,
     });
     // An action that repaints nothing must not collapse a filled slot.
-    const run = this.#pump(ctx, bus, turn, undefined, handle, owner.id, {collapse: false});
+    const run = this.#pump(sink, undefined, handle, owner.id, {collapse: false});
     // The press is in flight until its dispatch settles: the merge that would read this source
     // waits for it (task-8.10 decision 1).
     composition?.presses.begin(owner.id);
     const outcome = await run.settled.finally(() => composition?.presses.end(owner.id));
-    if (composition) await this.#rebuild(ctx, bus, turn, composition);
+    // The re-synthesis its answer calls for, on this turn — unless a merge is in the making,
+    // which covers the press (task-8.10 decision 3): the walk runs once it is done.
+    if (composition) await this.#owe(composition, {}, 'walk', sink);
     const state: TaskState =
       outcome === 'cancelled' ? 'canceled' : outcome === 'completed' ? 'completed' : 'failed';
     bus.publish(finalStatus(ctx, state, handleError(outcome)));
@@ -428,57 +542,349 @@ export class OrchestratorExecutor implements AgentExecutor {
   }
 
   /**
-   * SPEC §5 t6–t7: the second model call, over the sources the run names — what arrived by the
-   * time it is made, or the merge's own set on a re-synthesis — each other dispatched source named
-   * as missing with its state, its columns kept. Fewer than two ⇒ no call, the slot collapses
-   * (§5.1). A decline, a malformed output or a model failure collapse it too, each with its line
-   * (task-8.3 decision 9). Otherwise the accepted document's derived model and sorts are sent to
-   * the client, the partitions it ran over snapshotted, the merge's set made those sources, and
-   * the model's tree painted into the synthesis slot (nothing else moves). A re-synthesis is the
-   * same call handed the live document and the account of what broke, walked afresh each time it
-   * is made; the journal records the whole conversation (task-5.4 decision 7). Quiescence
-   * (task-8.10 decisions 1–2): it is made only once no source it would read has a press in
-   * flight, and lands only once none it read has; a press whose answer changed what a source it
-   * read holds throws it away — the call aborted — and it is made again. A turn ended by a new
-   * utterance paints nothing.
+   * The reader's press on the composition (task 8.4), a task of its own beside the turn: Retry
+   * re-dispatches one failed source, Include folds the late sources into the merge, Try again
+   * makes a merge whose call failed. Its stream carries what the press causes and ends when that
+   * is done; the final is `completed` whenever the press was handled, the outcome on the canvas.
+   * A press the composition cannot take — no longer current, a source not failed, nothing late,
+   * nothing to try again — is refused.
    */
-  async #synthesize(
+  async #operationTurn(
     ctx: RequestContext,
     bus: ExecutionEventBus,
     turn: JournalTurn,
+    operation: CompositionOperation,
+  ): Promise<void> {
+    const refuse = (reason: string): never => {
+      turn.refused(reason);
+      throw new Error(reason);
+    };
+    const state = this.#compositions.get(ctx.contextId);
+    if (!state || state.retired.signal.aborted) return refuse('This canvas is no longer current.');
+    turn.composition(state.turnId);
+    const sink: Sink = {ctx, bus, turn, drains: []};
+    const merge = synthesisSlot(state);
+    let work: (signal: AbortSignal) => Promise<void>;
+    switch (operation.kind) {
+      case 'retry': {
+        const appId = operation.sources[0]!;
+        const slot = state.slots.get(appId);
+        if (!slot || appId === SHELL_SOURCE_ID || slot.state !== 'failed') {
+          return refuse(`${slot?.plan.displayName ?? appId} has not failed.`);
+        }
+        work = signal => this.#retry(sink, state, appId, signal);
+        break;
+      }
+      case 'include': {
+        const late = new Set(lateSources(state));
+        const sources = operation.sources.filter(appId => late.has(appId));
+        if (sources.length === 0) return refuse('No source is waiting to be included.');
+        work = () => this.#owe(state, {joining: sources}, 'include', sink);
+        break;
+      }
+      case 'tryAgain': {
+        if (merge?.state === 'collapsed' && merge.collapse?.cause === 'unmade') {
+          work = () => this.#owe(state, {make: true}, 'tryAgain', sink);
+        } else if (state.synthesis && state.callFailed?.kind === 'update') {
+          work = () => this.#owe(state, {walk: true}, 'tryAgain', sink);
+        } else {
+          return refuse('There is nothing to try again.');
+        }
+        break;
+      }
+    }
+    const running: Operation = {
+      taskId: ctx.taskId,
+      controller: new AbortController(),
+      journal: turn,
+    };
+    state.operations.add(running);
+    try {
+      await work(running.controller.signal);
+    } finally {
+      state.operations.delete(running);
+    }
+    const superseded = running.controller.signal.aborted;
+    bus.publish(finalStatus(ctx, superseded ? 'canceled' : 'completed'));
+    // The journal line closes when its dispatches end: an answer held past the cap is on it.
+    void Promise.all(sink.drains ?? []).then(() =>
+      turn.close(superseded ? 'cancelled' : 'completed'),
+    );
+  }
+
+  /**
+   * Retry (task-8.4 decisions 4–8): the failure tile gives way to the pending slot at once; an
+   * answer held past the hard cap is drawn, otherwise the plan's request goes again — racing a
+   * dispatch still running past its cap. Before the merge is decided the source rejoins the pack
+   * and the first merge takes it; after, its arrival is folded in with no second press, or
+   * brings a collapsed merge back.
+   */
+  async #retry(
+    sink: Sink,
+    state: CompositionState,
+    appId: string,
+    signal: AbortSignal,
+  ): Promise<void> {
+    const slot = state.slots.get(appId)!;
+    const merge = synthesisSlot(state);
+    const pack = !state.mergeDecided && state.trigger !== undefined;
+    slot.state = 'pending';
+    delete slot.failure;
+    if (pack) state.trigger!.unsettle(appId);
+    // A collapsed merge this arrival can bring back waits on it, in the client's words.
+    const bringsBack =
+      merge?.state === 'collapsed' &&
+      (merge.collapse?.cause !== 'home' || merge.plan.join?.home === appId);
+    if (bringsBack) state.retrying.add(appId);
+    this.#repaint([sink], state);
+
+    const arrived = await this.#redispatch(sink, state, appId, signal);
+    const wasRetrying = state.retrying.delete(appId);
+    if (pack) state.trigger?.settle(appId);
+    if (signal.aborted) return;
+    if (!arrived) {
+      if (wasRetrying) this.#repaint([sink], state);
+      return;
+    }
+    if (!merge || !state.mergeDecided) return;
+    await this.#owe(state, {joining: [appId]}, 'retry', sink);
+  }
+
+  /**
+   * The retried source's answer: the one held past the hard cap, drawn at once; else the plan's
+   * request dispatched again under its own cap. While a dispatch past its cap still runs, the
+   * two race (task-8.4 decision 5): the first to arrive holding a surface is drawn whole and the
+   * other cancelled; the slot follows the re-dispatch, so its failure brings the tile back while
+   * the original runs on, an answer from it held for the next Retry. True when the source arrived.
+   */
+  async #redispatch(
+    sink: Sink,
+    state: CompositionState,
+    appId: string,
+    signal: AbortSignal,
+  ): Promise<boolean> {
+    const slot = state.slots.get(appId)!;
+    if (slot.held) return this.#draw(sink, state, appId, slot.held);
+    const original = slot.running;
+    const message: Message = {
+      kind: 'message',
+      messageId: randomUUID(),
+      role: 'user',
+      parts: [{kind: 'text', text: slot.plan.request}],
+      metadata: vendorMetadata(state.requestMetadata, appId),
+    };
+    const handle = this.#deps.pool.dispatch(appId, {
+      clientContextId: sink.ctx.contextId,
+      clientTaskId: sink.ctx.taskId,
+      message,
+    });
+    const lost = new AbortController();
+    const abort = () => lost.abort();
+    signal.addEventListener('abort', abort, {once: true});
+    const run = this.#pump(sink, state, handle, appId, {
+      collapse: true,
+      signal: lost.signal,
+      buffer: original !== undefined,
+      folding: true,
+    });
+    sink.drains?.push(run.drained);
+    type Winner = {retry: DispatchOutcome} | {original: HeldAnswer};
+    const contenders: Promise<Winner>[] = [run.settled.then(outcome => ({retry: outcome}))];
+    let race: ((held: HeldAnswer) => void) | undefined;
+    if (original) {
+      contenders.push(
+        new Promise<HeldAnswer>(resolve => {
+          race = resolve;
+          slot.race = resolve;
+        }).then(held => ({original: held})),
+      );
+    }
+    const winner = await Promise.race(contenders);
+    if (race && slot.race === race) delete slot.race;
+    signal.removeEventListener('abort', abort);
+    if ('original' in winner) {
+      handle.record.race = 'lost';
+      lost.abort();
+      handle.cancel();
+      return this.#draw(sink, state, appId, winner.original, 'won');
+    }
+    const arrived = winner.retry === 'completed' && state.arrived.has(appId);
+    if (arrived && original && slot.running === original) {
+      handle.record.race = 'won';
+      original.record.race = 'lost';
+      original.cancel();
+    }
+    return arrived;
+  }
+
+  /** An answer held past the hard cap drawn on the Retry's stream (task-8.4 decision 4). */
+  #draw(
+    sink: Sink,
+    state: CompositionState,
+    appId: string,
+    held: HeldAnswer,
+    race?: 'won',
+  ): boolean {
+    const slot = state.slots.get(appId);
+    if (slot?.held === held) delete slot.held;
+    let touches = emptyTouches();
+    for (const event of held.events) {
+      const moved = retask(event, sink.ctx.taskId);
+      touches = mergeTouches(touches, touchesOf(moved));
+      state.partitions.apply(moved);
+      sink.bus.publish(moved);
+    }
+    sink.turn.surfaces(touches);
+    held.record.drawnAt = new Date().toISOString();
+    if (race) held.record.race = race;
+    sink.turn.dispatched({...held.record});
+    logLine(`▶ ${appId} task=${sink.ctx.taskId} held answer drawn`);
+    if (!state.partitions.holdsSurfaceOf(appId)) return false;
+    if (state.mergeDecided && synthesisSlot(state)) state.folding.add(appId);
+    state.arrived.add(appId);
+    return true;
+  }
+
+  /**
+   * Owes the merge a call (task-8.4 decision 7): the sources a press folds in, a merge made
+   * afresh, or a walk. Made at once when no merge is in the making; otherwise everything owed
+   * when it lands is made as one call. A press's work paints the working sentence from here.
+   * Settles when the call it was made in is done.
+   */
+  #owe(
+    state: CompositionState,
+    what: {joining?: readonly string[]; make?: boolean; walk?: boolean},
+    kind: OwedPress['kind'],
+    sink: Sink,
+  ): Promise<void> {
+    if (state.retired.signal.aborted) return Promise.resolve();
+    const owed = (state.owed ??= {joining: new Set(), make: false, walk: false, presses: []});
+    for (const appId of what.joining ?? []) {
+      owed.joining.add(appId);
+      state.folding.add(appId);
+    }
+    owed.make ||= what.make === true;
+    owed.walk ||= what.walk === true;
+    const pressed = kind !== 'walk';
+    if (pressed) state.pressWork++;
+    const done = new Promise<void>(resolve => owed.presses.push({kind, sink, resolve}));
+    if (pressed) this.#repaint([sink], state);
+    this.#kick(state);
+    return done;
+  }
+
+  /** Starts the call for what is owed, unless a merge is in the making. */
+  #kick(state: CompositionState): void {
+    if (state.making || !state.owed) return;
+    const owed = state.owed;
+    state.owed = undefined;
+    const settle = () => {
+      for (const press of owed.presses) press.resolve();
+    };
+    if (state.retired.signal.aborted) return settle();
+    void this.#making(state, () => this.#runOwed(state, owed)).then(settle, settle);
+  }
+
+  /** Runs `make` as the composition's one merge in the making; then what is owed. */
+  #making(state: CompositionState, make: () => Promise<void>): Promise<void> {
+    const making: Promise<void> = make().finally(() => {
+      if (state.making === making) state.making = undefined;
+      this.#kick(state);
+    });
+    state.making = making;
+    return making;
+  }
+
+  /**
+   * One call for everything owed (task-8.4 decisions 7–9, 12): over a landed view, the sources
+   * joining it and the walk — a re-synthesis; over a collapsed merge, the merge made afresh over
+   * every arrived source, once it can be. Its outcome goes to every stream that owed it.
+   */
+  async #runOwed(state: CompositionState, owed: Owed): Promise<void> {
+    const sinks = [...new Map(owed.presses.map(({sink}) => [sink.ctx.taskId, sink])).values()];
+    const pressed = owed.presses.filter(({kind}) => kind !== 'walk');
+    const by: SynthesisRelease = pressed[0]?.kind ?? 'walk';
+    const {signal} = state.retired;
+    let end: SynthesisEnd = 'none';
+    try {
+      const slot = synthesisSlot(state);
+      if (!slot || signal.aborted) return;
+      const joining = inSlotOrder(state, owed.joining).filter(
+        appId => state.arrived.has(appId) && !state.merged.has(appId),
+      );
+      if (state.synthesis) {
+        const at = pressed.length > 0 ? Date.now() : (state.lastSettledAt ?? Date.now());
+        end = await this.#synthesize(sinks, state, {kind: 'again', by, at, joining, signal});
+        if (end === 'none' && owed.walk) delete state.callFailed;
+      } else if (slot.state === 'collapsed' && (owed.make || joining.length > 0)) {
+        if (!mergePossible(state.arrived, slot.plan.join?.home)) return;
+        end = await this.#synthesize(sinks, state, {kind: 'make', by, at: Date.now(), signal});
+      }
+    } finally {
+      for (const appId of owed.joining) state.folding.delete(appId);
+      state.pressWork -= pressed.length;
+      if (!signal.aborted && (pressed.length > 0 || end === 'kept' || owed.walk)) {
+        this.#repaint(sinks, state);
+      }
+    }
+  }
+
+  /**
+   * SPEC §5 t6–t7: the second model call, over the sources the run names — what arrived by the
+   * time it is made, or the merge's own set and the sources joining it on a re-synthesis — each
+   * other dispatched source named as missing with its state, its columns kept. Fewer than two ⇒
+   * no call, the slot collapses (§5.1). A decline collapses it too; a malformed output or a
+   * model failure collapses a merge made afresh, each with its line (task-8.3 decision 9), and
+   * leaves a landed view as it was, the failure said beside it (task-8.4 decision 3). Otherwise
+   * the accepted document's derived model and sorts are sent to the client, the partitions it
+   * ran over snapshotted, the merge's set made those sources, and the model's tree painted into
+   * the synthesis slot (nothing else moves). A re-synthesis is the same call handed the live
+   * document, the sources joining it and the account of what broke, walked afresh each time it
+   * is made; the journal records the whole conversation (task-5.4 decision 7). Quiescence
+   * (task-8.10 decisions 1–2): it is made only once no source it would read has a press in
+   * flight, and lands only once none it read has; a press whose answer changed what a source it
+   * read holds throws it away — the call aborted — and it is made again. A composition ended by
+   * a new utterance, or a merge collapsed under it, paints nothing.
+   */
+  async #synthesize(
+    sinks: readonly Sink[],
     state: CompositionState,
     run: SynthesisRun,
-  ): Promise<void> {
+  ): Promise<SynthesisEnd> {
     const slot = synthesisSlot(state);
-    if (!slot) return;
-    const first = 'release' in run;
-    const signal = first ? run.signal : undefined;
-    // Ended by a new utterance, or collapsed meanwhile — the home source failed: nothing painted.
-    const gone = () => signal?.aborted === true || slot.state === 'collapsed';
-    const startedAt = first ? run.release.at : (state.lastSettledAt ?? Date.now());
-    const deadAir = () => Date.now() - startedAt;
+    if (!slot) return 'none';
+    const fresh = run.kind !== 'again';
+    const {signal} = run;
+    const collapses = state.collapses;
+    const gone = () => signal.aborted || state.collapses !== collapses;
+    const deadAir = () => Date.now() - run.at;
     const waited: PressWait[] = [];
     const thrownAway: {changed: string[]; at: string}[] = [];
+    const joiningNow = () =>
+      run.kind === 'again'
+        ? run.joining.filter(appId => state.arrived.has(appId) && !state.merged.has(appId))
+        : [];
+    const within = (): ReadonlySet<string> =>
+      fresh ? state.arrived : new Set([...state.merged, ...joiningNow()]);
+    const journal = (record: SynthesisRecord) => {
+      for (const sink of sinks) sink.turn.synthesis(record);
+    };
 
     for (;;) {
-      waited.push(
-        ...(await state.presses.quiet(() => (first ? state.arrived : state.merged), signal)),
-      );
-      if (gone()) return;
-      const again = first ? undefined : this.#walk(state);
-      if (!first && !again) {
-        if (thrownAway.length > 0) {
-          turn.synthesis({outcome: 'thrown-away', attempts: [], ...quiescence()});
-        }
-        return;
+      waited.push(...(await state.presses.quiet(within, signal)));
+      if (gone()) return 'none';
+      const joined = joiningNow();
+      const again = fresh ? undefined : this.#walk(state);
+      if (!fresh && !again && joined.length === 0) {
+        if (thrownAway.length > 0) journal({outcome: 'thrown-away', attempts: [], ...quiescence()});
+        return 'none';
       }
-      const over = new Set(first ? state.arrived : state.merged);
+      const over = new Set(within());
       const missing = this.#missing(state, over);
       const context: Partial<SynthesisRecord> = {
-        ...(first
-          ? {release: {by: run.release.by, at: new Date(run.release.at).toISOString()}}
-          : {}),
+        release: {by: run.by, at: new Date(run.at).toISOString()},
         sources: [...over],
+        ...(joined.length > 0 ? {joined} : {}),
         ...(missing.length > 0
           ? {missing: missing.map(({appId, state: at}) => ({appId, state: at}))}
           : {}),
@@ -488,14 +894,14 @@ export class OrchestratorExecutor implements AgentExecutor {
         outcome: 'declined' | 'malformed' | 'skipped' | 'failed',
         reason: string | undefined,
         attempts: {text: string; errors: string[]}[],
-      ) => {
+      ): SynthesisEnd => {
         // A decline is the Synthesizer's own judgment in its own words; the prose copy stays
         // until the client reads the painted reason (task 8.5).
-        if (outcome === 'declined' && reason) bus.publish(synthesisProseEnvelope(ctx, reason));
+        if (outcome === 'declined' && reason) {
+          for (const sink of sinks) sink.bus.publish(synthesisProseEnvelope(sink.ctx, reason));
+        }
         this.#collapseMerge(
-          ctx,
-          bus,
-          turn,
+          sinks,
           state,
           outcome === 'declined'
             ? {declined: reason ?? ''}
@@ -513,7 +919,29 @@ export class OrchestratorExecutor implements AgentExecutor {
             ...quiescence(),
             deadAirMs: deadAir(),
           },
+          over,
         );
+        return 'collapsed';
+      };
+      // A re-synthesis that failed leaves the landed view as it was, the failure said beside it
+      // (task-8.4 decision 3): the sources it folded in stay out, late again.
+      const keep = (
+        outcome: 'malformed' | 'failed',
+        reason: string | undefined,
+        attempts: {text: string; errors: string[]}[],
+      ): SynthesisEnd => {
+        state.callFailed = {kind: joined.length > 0 ? 'include' : 'update', sources: joined};
+        logLine(`merge task=${sinks[0]?.ctx.taskId} kept (${outcome})`);
+        journal({
+          outcome,
+          ...(reason ? {reason} : {}),
+          kept: true,
+          attempts,
+          ...context,
+          ...quiescence(),
+          deadAirMs: deadAir(),
+        });
+        return 'kept';
       };
 
       if (over.size < 2) return collapse('skipped', `${over.size} source(s) arrived`, []);
@@ -524,14 +952,13 @@ export class OrchestratorExecutor implements AgentExecutor {
         if (!appId) return [];
         return [{surface, appId, displayName: this.#deps.registry.get(appId).displayName, data}];
       });
-      const utterance = ctx.userMessage.parts.find(p => p.kind === 'text')?.text ?? '';
 
       // What the sources it reads hold as the call starts: a press answered with other data
       // throws this one away, the call aborted at once (task-8.10 decision 2).
       const snapshot = state.partitions.snapshot(over);
       const call = new AbortController();
       const endCall = () => call.abort();
-      signal?.addEventListener('abort', endCall, {once: true});
+      signal.addEventListener('abort', endCall, {once: true});
       let changed: string[] = [];
       const stopWatching = state.presses.onEnd(appId => {
         if (!over.has(appId) || changed.length > 0) return;
@@ -543,13 +970,22 @@ export class OrchestratorExecutor implements AgentExecutor {
       try {
         outcome = await this.#deps.synthesizer.synthesize(
           {
-            utterance,
+            utterance: state.utterance,
             request: slot.plan.request,
             ...(slot.plan.columns ? {columns: slot.plan.columns} : {}),
             ...(slot.plan.columnSources ? {columnSources: slot.plan.columnSources} : {}),
             sources,
             ...(missing.length > 0 ? {missing} : {}),
-            ...again,
+            ...(!fresh && state.synthesis ? {previous: state.synthesis.document} : {}),
+            ...(again ? {changes: again.changes} : {}),
+            ...(joined.length > 0
+              ? {
+                  joined: joined.map(appId => ({
+                    appId,
+                    displayName: this.#deps.registry.get(appId).displayName,
+                  })),
+                }
+              : {}),
           },
           view,
           call.signal,
@@ -560,23 +996,27 @@ export class OrchestratorExecutor implements AgentExecutor {
       // Never lands before a press on a source it read is answered (task-8.10 decision 2).
       waited.push(...(await state.presses.quiet(() => over, signal)));
       stopWatching();
-      signal?.removeEventListener('abort', endCall);
-      if (gone()) return;
+      signal.removeEventListener('abort', endCall);
+      if (gone()) return 'none';
       if (changed.length === 0) changed = state.partitions.changedSince(snapshot, over);
       if (changed.length > 0) {
         thrownAway.push({changed, at: new Date().toISOString()});
-        logLine(`merge task=${ctx.taskId} thrown away (${changed.join(', ')} changed)`);
+        logLine(`merge task=${sinks[0]?.ctx.taskId} thrown away (${changed.join(', ')} changed)`);
         continue;
       }
       if (!outcome) {
-        return collapse('failed', error instanceof Error ? error.message : String(error), []);
+        const reason = error instanceof Error ? error.message : String(error);
+        return fresh ? collapse('failed', reason, []) : keep('failed', reason, []);
       }
       if (outcome.kind === 'declined') {
         return collapse('declined', outcome.reason, outcome.attempts);
       }
       if (outcome.kind === 'malformed') {
         const last = outcome.attempts.at(-1);
-        return collapse('malformed', last?.errors.join('; '), outcome.attempts);
+        const reason = last?.errors.join('; ');
+        return fresh
+          ? collapse('malformed', reason, outcome.attempts)
+          : keep('malformed', reason, outcome.attempts);
       }
 
       const {document} = outcome;
@@ -591,10 +1031,23 @@ export class OrchestratorExecutor implements AgentExecutor {
       // (task-8.10 decision 5).
       state.merged = new Set([...over].filter(appId => state.slots.get(appId)?.state !== 'failed'));
       state.mergedView = {outcome: 'synthesized'};
-      const paint = synthesisEnvelope(ctx, synthesisParts(document.tree), payload);
-      bus.publish(paint);
-      turn.surfaces(touchesOf(paint));
-      turn.synthesis({
+      delete state.callFailed;
+      // A collapsed merge brought back takes its place only now (task-8.4 decision 8).
+      if (slot.state === 'collapsed') {
+        slot.state = 'pending';
+        delete slot.declined;
+        delete slot.collapse;
+      }
+      state.retrying.clear();
+      for (const sink of sinks) {
+        const paint = synthesisEnvelope(sink.ctx, synthesisParts(document.tree), payload);
+        sink.bus.publish(paint);
+        sink.turn.surfaces(touchesOf(paint));
+      }
+      // The merge's own set and the late sources, painted for the client's lines; a press's
+      // call repaints once its work is done.
+      if (run.kind === 'first') this.#repaint(sinks, state);
+      journal({
         outcome: 'synthesized',
         synthesizeDataModel: document,
         note: document.note,
@@ -603,7 +1056,7 @@ export class OrchestratorExecutor implements AgentExecutor {
         ...quiescence(),
         deadAirMs: deadAir(),
       });
-      return;
+      return 'landed';
     }
 
     function quiescence(): Partial<SynthesisRecord> {
@@ -612,32 +1065,6 @@ export class OrchestratorExecutor implements AgentExecutor {
         ...(thrownAway.length > 0 ? {thrownAway} : {}),
       };
     }
-  }
-
-  /**
-   * After a press: the re-synthesis its answer calls for, on this turn — unless a merge is in the
-   * making, which covers the press (task-8.10 decision 3): thrown away and made again when the
-   * answer changed what it reads, landing as made when it did not. The walk runs once it is done.
-   */
-  async #rebuild(
-    ctx: RequestContext,
-    bus: ExecutionEventBus,
-    turn: JournalTurn,
-    state: CompositionState,
-  ): Promise<void> {
-    // Another turn's merge failing is that turn's failure, not this press's.
-    while (state.making) await state.making.catch(() => {});
-    if (!this.#walk(state)) return;
-    await this.#making(state, () => this.#synthesize(ctx, bus, turn, state, {again: true}));
-  }
-
-  /** Runs `make` as the composition's one merge in the making. */
-  #making(state: CompositionState, make: () => Promise<void>): Promise<void> {
-    const making: Promise<void> = make().finally(() => {
-      if (state.making === making) state.making = undefined;
-    });
-    state.making = making;
-    return making;
   }
 
   /**
@@ -682,21 +1109,25 @@ export class OrchestratorExecutor implements AgentExecutor {
 
   /**
    * The merge slot collapses (task-8.3 decisions 8, 9): its one line — the decline's reason, or
-   * the cause the shell words — painted on it, the merge's set emptied, the journal told why.
+   * the cause the shell words — painted on it, the journal told why. A declined merge, or one
+   * that couldn't be made, keeps the sources it was made over: a source arriving after it waits
+   * for Include (task-8.4 decision 9). Any other collapse empties the merge's set.
    */
   #collapseMerge(
-    ctx: RequestContext,
-    bus: ExecutionEventBus,
-    turn: JournalTurn,
+    sinks: readonly Sink[],
     state: CompositionState,
     why: {declined: string} | {collapse: SlotCollapse},
     record: SynthesisRecord,
+    over?: ReadonlySet<string>,
   ): void {
     const slot = synthesisSlot(state);
     if (!slot) return;
     state.mergeDecided = true;
+    state.collapses++;
     state.synthesis = undefined;
-    state.merged = new Set();
+    const kept = 'declined' in why || why.collapse.cause === 'unmade';
+    state.merged = new Set(kept ? (over ?? []) : []);
+    delete state.callFailed;
     state.mergedView = {outcome: record.outcome, ...(record.reason ? {reason: record.reason} : {})};
     if ('declined' in why) {
       slot.declined = why.declined;
@@ -706,9 +1137,14 @@ export class OrchestratorExecutor implements AgentExecutor {
       delete slot.declined;
     }
     slot.state = 'collapsed';
-    logLine(`merge task=${ctx.taskId} collapsed (${record.collapse ?? record.outcome})`);
-    bus.publish(shellEnvelope(ctx, shellRepaintParts(state)));
-    turn.synthesis(record);
+    logLine(`merge task=${sinks[0]?.ctx.taskId} collapsed (${record.collapse ?? record.outcome})`);
+    this.#repaint(sinks, state);
+    for (const sink of sinks) sink.turn.synthesis(record);
+  }
+
+  /** The shell surface repainted from the composition's state, on each stream. */
+  #repaint(sinks: readonly Sink[], state: CompositionState): void {
+    for (const sink of sinks) sink.bus.publish(shellEnvelope(sink.ctx, shellRepaintParts(state)));
   }
 
   /**
@@ -729,22 +1165,17 @@ export class OrchestratorExecutor implements AgentExecutor {
    * and its data leaves the merge, with no model call — a home source takes the merge down with
    * it. The merged view's own payload failing leaves the shell slot's quiet line.
    */
-  #clientErrorTurn(
-    ctx: RequestContext,
-    bus: ExecutionEventBus,
-    turn: JournalTurn,
-    error: Turn & {kind: 'clientError'},
-  ): void {
+  #clientErrorTurn(sink: Sink, error: Turn & {kind: 'clientError'}): void {
     const parsed = parseSurfaceId(error.surfaceId);
-    const state = this.#compositions.get(ctx.contextId);
+    const state = this.#compositions.get(sink.ctx.contextId);
     const slot = parsed && state?.slots.get(parsed.appId);
     if (!state || !slot || slot.state === 'failed') return;
     if (parsed.appId === SHELL_SOURCE_ID) {
       slot.state = 'failed';
-      bus.publish(shellEnvelope(ctx, shellRepaintParts(state)));
+      this.#repaint([sink], state);
       return;
     }
-    this.#failSlot(ctx, bus, turn, state, parsed.appId, {cause: 'invalid'});
+    this.#failSlot(sink, state, parsed.appId, {cause: 'invalid'});
     state.reevaluate?.();
   }
 
@@ -753,27 +1184,18 @@ export class OrchestratorExecutor implements AgentExecutor {
    * on it, its data out of the merge — not arrived, out of the merge's set — and, under a join,
    * the merge collapsed at once when it was the home source.
    */
-  #failSlot(
-    ctx: RequestContext,
-    bus: ExecutionEventBus,
-    turn: JournalTurn,
-    state: CompositionState,
-    appId: string,
-    failure: SlotFailure,
-  ): void {
+  #failSlot(sink: Sink, state: CompositionState, appId: string, failure: SlotFailure): void {
     state.arrived.delete(appId);
     state.merged.delete(appId);
     const slot = state.slots.get(appId);
     if (!slot) return;
     slot.state = 'failed';
     slot.failure = failure;
-    bus.publish(shellEnvelope(ctx, shellRepaintParts(state)));
+    this.#repaint([sink], state);
     const merge = synthesisSlot(state);
     if (merge && merge.state !== 'collapsed' && merge.plan.join?.home === appId) {
       this.#collapseMerge(
-        ctx,
-        bus,
-        turn,
+        [sink],
         state,
         {collapse: homeCollapse(state, appId)},
         {outcome: 'home', collapse: 'home', attempts: []},
@@ -783,17 +1205,15 @@ export class OrchestratorExecutor implements AgentExecutor {
 
   /** A dispatch that ended: the slot state it ends in, and whether its source arrived. */
   #settleSlot(
-    ctx: RequestContext,
-    bus: ExecutionEventBus,
-    turn: JournalTurn,
+    sink: Sink,
     state: CompositionState,
     appId: string,
     record: DispatchRecord,
-    options: {collapse: boolean},
+    options: PumpOptions,
   ): void {
     const next = outcomeToSlotState(record.outcome, state.partitions.holdsSurfaceOf(appId));
     if (next === 'failed') {
-      return this.#failSlot(ctx, bus, turn, state, appId, {
+      return this.#failSlot(sink, state, appId, {
         cause: record.cause ?? 'unreachable',
         ...(record.cause === 'vendor' && record.vendorMessage
           ? {message: record.vendorMessage}
@@ -802,14 +1222,21 @@ export class OrchestratorExecutor implements AgentExecutor {
     }
     // Left to the client means it holds a surface: this source has arrived.
     if (next === undefined) {
-      if (record.outcome === 'completed') state.arrived.add(appId);
+      if (record.outcome !== 'completed' || state.arrived.has(appId)) return;
+      if (options.folding && state.mergeDecided && synthesisSlot(state)) {
+        state.folding.add(appId);
+      }
+      state.arrived.add(appId);
+      // A source arriving after the merge waits for Include, said on the merge slot
+      // (task-8.4 decision 1).
+      if (lateSources(state).includes(appId)) this.#repaint([sink], state);
       return;
     }
     state.arrived.delete(appId);
     const slot = state.slots.get(appId);
     if (slot && options.collapse && slot.state !== next) {
       slot.state = next;
-      bus.publish(shellEnvelope(ctx, shellRepaintParts(state)));
+      this.#repaint([sink], state);
     }
   }
 
@@ -817,19 +1244,18 @@ export class OrchestratorExecutor implements AgentExecutor {
    * Streams one dispatch's composed events onto the bus. It settles when the dispatch ends — the
    * slot flipped per outcome — or when it reaches the hard cap: the slot fails `timeout` and the
    * stream runs on, whatever arrives after held on the slot, undrawn, until Retry (task-8.3
-   * decision 2). `drained` resolves when the dispatch has ended either way. A turn ended by a new
-   * utterance flips nothing.
+   * decision 2) — or handed to the Retry racing it (task-8.4 decision 5). A buffered dispatch is
+   * drawn whole when it ends, or not at all. `drained` resolves when the dispatch has ended either
+   * way. A turn ended by a new utterance flips nothing.
    */
   #pump(
-    ctx: RequestContext,
-    bus: ExecutionEventBus,
-    turn: JournalTurn,
+    sink: Sink,
     state: CompositionState | undefined,
     handle: DispatchHandle,
     appId: string,
-    options: {collapse: boolean; signal?: AbortSignal; onSettled?: () => void},
+    options: PumpOptions,
   ): {settled: Promise<DispatchOutcome>; drained: Promise<void>} {
-    const composition = state ?? this.#compositions.get(ctx.contextId);
+    const composition = state ?? this.#compositions.get(sink.ctx.contextId);
     const record = handle.record;
     let capped = false;
     let isSettled = false;
@@ -838,7 +1264,7 @@ export class OrchestratorExecutor implements AgentExecutor {
     const settle = (outcome: DispatchOutcome) => {
       isSettled = true;
       record.settledAt = new Date().toISOString();
-      turn.dispatched(record);
+      sink.turn.dispatched(record);
       if (composition) composition.lastSettledAt = Date.now();
       options.onSettled?.();
       resolveSettled(outcome);
@@ -846,39 +1272,54 @@ export class OrchestratorExecutor implements AgentExecutor {
     void handle.capped.then(() => {
       if (isSettled || options.signal?.aborted) return;
       capped = true;
-      if (composition) this.#failSlot(ctx, bus, turn, composition, appId, {cause: 'timeout'});
+      const slot = composition?.slots.get(appId);
+      if (slot) slot.running = handle;
+      if (composition) this.#failSlot(sink, composition, appId, {cause: 'timeout'});
       settle('timeout');
     });
     const drained = (async () => {
       let touches: SurfaceTouches = emptyTouches();
       const held: VendorEvent[] = [];
-      for await (const event of handle.events) {
-        const composed = composeFragment(withoutFailureWords(event), {appId});
-        if (capped) {
-          held.push(composed);
-          continue;
-        }
+      const buffered: VendorEvent[] = [];
+      const relay = (composed: VendorEvent) => {
         const touched = touchesOf(composed);
         if (!record.firstPaintAt && touchedAny(touched)) {
           record.firstPaintAt = new Date().toISOString();
         }
         touches = mergeTouches(touches, touched);
         composition?.partitions.apply(composed);
-        bus.publish(composed);
+        sink.bus.publish(composed);
+      };
+      for await (const event of handle.events) {
+        const composed = composeFragment(withoutFailureWords(event), {appId});
+        if (capped) held.push(composed);
+        else if (options.buffer) buffered.push(composed);
+        else relay(composed);
       }
       const ended = await handle.done;
+      const slot = composition?.slots.get(appId);
+      if (slot?.running === handle) delete slot.running;
       if (capped) {
-        const slot = composition?.slots.get(appId);
-        if (ended.outcome === 'completed' && held.some(e => touchedAny(touchesOf(e))) && slot) {
+        if (
+          ended.outcome === 'completed' &&
+          held.some(e => touchedAny(touchesOf(e))) &&
+          slot &&
+          !composition?.retired.signal.aborted
+        ) {
           record.heldAt = new Date().toISOString();
-          slot.held = {events: held, record};
-          logLine(`⏸ ${appId} task=${ctx.taskId} answered past the hard cap — held`);
+          const answer: HeldAnswer = {events: held, record};
+          logLine(`⏸ ${appId} task=${sink.ctx.taskId} answered past the hard cap — held`);
+          if (slot.race) slot.race(answer);
+          else slot.held = answer;
         }
         return;
       }
-      turn.surfaces(touches);
+      if (options.buffer && ended.outcome === 'completed' && !options.signal?.aborted) {
+        for (const composed of buffered) relay(composed);
+      }
+      sink.turn.surfaces(touches);
       if (composition && !options.signal?.aborted) {
-        this.#settleSlot(ctx, bus, turn, composition, appId, ended, options);
+        this.#settleSlot(sink, composition, appId, ended, options);
       }
       settle(ended.outcome);
     })();

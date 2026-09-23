@@ -5,7 +5,7 @@ import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 import {PAINTER_ID_PREFIX} from '../planner/validate.js';
 import {SHELL_SOURCE_ID} from '../registry/types.js';
 import {shellSurfaceId, SYNTHESIS_DISPLAY_NAME} from './constants.js';
-import type {CompositionState} from './state.js';
+import {inSlotOrder, lateSources, type CompositionState} from './state.js';
 
 /** The client's extractor keys off this inline version field. */
 export const A2UI_VERSION = 'v0.9';
@@ -75,7 +75,10 @@ function updateComponentsPart(state: CompositionState): Part {
  * slot) are the painter's, so a repaint flips a slot by its source and every id stays put. So are
  * the facts a state carries (task-8.3 decisions 6, 9, 10): a vendor slot's `noun` under a join
  * and its `failure` once failed; the merge slot's `declined` reason or `collapse` cause once
- * collapsed.
+ * collapsed. And the facts the presses' lines are drawn from (task-8.4 decision 13): the merge's
+ * own source set once a view landed, the late sources waiting for Include, a call a press caused
+ * in progress, the last one failed with the view kept, and the retried sources a collapsed merge
+ * waits on.
  */
 export function paintLayout(state: CompositionState): ShellComponent[] {
   const {components} = state.layout.tree;
@@ -112,6 +115,11 @@ export function paintLayout(state: CompositionState): ShellComponent[] {
       // like the shell's own UI — no attribution beside it, reserved while pending under the
       // planned columns (task-7.15), the join's nouns carried for the client's progress line.
       const collapsed = slotState === 'collapsed';
+      const late = lateSources(state);
+      const folding = inSlotOrder(
+        state,
+        new Set([...state.folding].filter(appId => state.arrived.has(appId))),
+      );
       painted.push({
         ...component,
         state: slotState,
@@ -127,6 +135,13 @@ export function paintLayout(state: CompositionState): ShellComponent[] {
           : collapsed && entry?.collapse
             ? {collapse: entry.collapse}
             : {}),
+        ...(state.synthesis ? {merged: inSlotOrder(state, state.merged)} : {}),
+        ...(late.length > 0 ? {late} : {}),
+        ...(state.pressWork > 0 ? {working: {sources: folding}} : {}),
+        ...(state.synthesis && state.callFailed ? {callFailed: state.callFailed} : {}),
+        ...(collapsed && state.retrying.size > 0
+          ? {retrying: inSlotOrder(state, state.retrying)}
+          : {}),
       });
       continue;
     }

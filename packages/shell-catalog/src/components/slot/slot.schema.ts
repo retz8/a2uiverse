@@ -36,6 +36,17 @@ import {z} from 'zod';
  *   the runtime with `state: "collapsed"` and drawn as one line in the shell's words (task-8.3
  *   decision 9): the home source failed (`home`, its phrase), fewer than two sources arrived
  *   (`few`, the names of those that did), or the merged view couldn't be made (`unmade`).
+ * - `merged` (shell content) is the merge's own source set once a merged view has landed — the
+ *   sources it was built over (task-8.4 decision 13).
+ * - `late` (shell content) names the sources that arrived after the merge — landed, declined or
+ *   not made — and wait for Include.
+ * - `working` (shell content) says a call the reader's press caused is running, and the sources
+ *   it folds in — none when it makes the view afresh or updates it.
+ * - `callFailed` (shell content) says the last such call failed with the landed view kept: an
+ *   `include` that left its sources out, or an `update` that left the view as it was.
+ * - `retrying` (shell content) names, on a collapsed merge, the retried sources whose arrival
+ *   brings it back.
+ * All five are painted by the runtime, never written by an author.
  */
 export const FAILURE_CAUSES = ['vendor', 'unreachable', 'timeout', 'invalid'] as const;
 export type FailureCause = (typeof FAILURE_CAUSES)[number];
@@ -67,6 +78,16 @@ const CollapseSchema = z
     message: 'a collapse lists the sources that answered exactly when too few did',
   });
 
+export const CALL_FAILED_KINDS = ['include', 'update'] as const;
+export type CallFailedKind = (typeof CALL_FAILED_KINDS)[number];
+
+const CallFailedSchema = z
+  .object({
+    kind: z.enum(CALL_FAILED_KINDS),
+    sources: z.array(z.string()),
+  })
+  .strict();
+
 export const SlotApi = {
   name: 'Slot',
   schema: z
@@ -87,6 +108,14 @@ export const SlotApi = {
         .optional(),
       declined: z.object({reason: z.string()}).strict().optional(),
       collapse: CollapseSchema.optional(),
+      merged: z.array(z.string()).optional(),
+      late: z.array(z.string()).optional(),
+      working: z
+        .object({sources: z.array(z.string())})
+        .strict()
+        .optional(),
+      callFailed: CallFailedSchema.optional(),
+      retrying: z.array(z.string()).optional(),
     })
     .strict()
     .refine(props => (props.source === undefined) !== (props.gap === undefined), {
@@ -103,3 +132,4 @@ export const SlotApi = {
 export type SlotProps = z.infer<typeof SlotApi.schema>;
 export type SlotFailure = z.infer<typeof FailureSchema>;
 export type SlotCollapse = z.infer<typeof CollapseSchema>;
+export type SlotCallFailed = z.infer<typeof CallFailedSchema>;

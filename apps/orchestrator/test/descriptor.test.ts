@@ -28,6 +28,18 @@ describe('describe', () => {
     });
   });
 
+  test('a press on the composition: its kind and sources, plus the press (task-8.4 decision 16)', () => {
+    const press = (kind: string, sources: string[]) =>
+      describeMessage(msg([{kind: 'data', data: {version: 'v0.9', operation: {kind, sources}}}]));
+    expect(press('retry', ['gmail'])).toEqual({
+      kind: 'operation',
+      descriptor: 'retry gmail',
+      payload: {kind: 'retry', sources: ['gmail']},
+    });
+    expect(press('include', ['github', 'circleci']).descriptor).toBe('include github, circleci');
+    expect(press('tryAgain', []).descriptor).toBe('try again');
+  });
+
   test('unknown shape: JSON of the parts', () => {
     const parts: Message['parts'] = [{kind: 'data', data: {something: 1}}];
     const out = describeMessage(msg(parts), 'github');

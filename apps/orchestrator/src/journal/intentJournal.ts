@@ -23,6 +23,10 @@ export interface JournalTurn {
   deadlines(deadlines: {softMs: number; capMs: number}): void;
   /** A new utterance ended the turn while it ran. */
   superseded(): void;
+  /** A press: the turn whose composition it acts on. */
+  composition(turnId: string): void;
+  /** A press refused, and why. */
+  refused(reason: string): void;
   /**
    * Appends the entry, once: a second close does nothing. A turn still listening past its final
    * closes when the listening ends, so what arrives after the hard cap is on its line. Never
@@ -89,6 +93,12 @@ export class IntentJournal {
       },
       superseded: () => {
         entry.superseded = true;
+      },
+      composition: turnId => {
+        entry.composition = turnId;
+      },
+      refused: reason => {
+        entry.refused = reason;
       },
       close: async outcome => {
         if (closed) return;
