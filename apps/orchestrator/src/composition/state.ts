@@ -10,6 +10,7 @@ import type {Registry} from '../registry/registry.js';
 import {SHELL_SOURCE_ID} from '../registry/types.js';
 import {SYNTHESIS_DISPLAY_NAME} from './constants.js';
 import {Partitions} from './partitions.js';
+import {Presses} from './presses.js';
 
 /**
  * The orchestrator-side slot states. `filled` is deliberately absent — a slot
@@ -95,6 +96,10 @@ export interface CompositionState {
   merged: Set<string>;
   /** Whether the turn's one automatic synthesis has been released, or the merge collapsed instead. */
   mergeDecided: boolean;
+  /** The reader's presses in flight, per source: what the merge waits on (task-8.10 decision 1). */
+  presses: Presses;
+  /** The merge in the making, the first or a re-synthesis — one at a time (task-8.10 decision 3). */
+  making?: Promise<void>;
   /** While the utterance turn runs: re-weighs the synthesis trigger after a slot changed outside it. */
   reevaluate?: () => void;
   /** The live synthesis, once painted: the document as accepted and the payload the client holds; what the IntegrityChecker guards. */
@@ -146,6 +151,7 @@ export function compositionFrom(
     arrived: new Set(),
     merged: new Set(),
     mergeDecided: false,
+    presses: new Presses(),
   };
 }
 

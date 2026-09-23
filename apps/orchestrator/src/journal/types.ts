@@ -1,6 +1,7 @@
 import type {LayoutSurface} from '../planner/document.js';
 import type {Synthesis} from '../synthesizer/document.js';
 import type {ChangeAccount} from '../synthesizer/prompt.js';
+import type {PressWait} from '../composition/presses.js';
 import type {DispatchOutcome, DispatchRecord} from '../agentsPool/types.js';
 import type {TurnKind} from './descriptor.js';
 import type {SurfaceTouches} from './surfaces.js';
@@ -36,8 +37,12 @@ export interface PlanRecord {
  * the outcome — phase decision 15's measurement, read from here.
  */
 export interface SynthesisRecord {
-  /** `home`: the home source failed and the merge collapsed with no call (task-8.3 decision 8). */
-  outcome: 'synthesized' | 'declined' | 'malformed' | 'skipped' | 'failed' | 'home';
+  /**
+   * `home`: the home source failed and the merge collapsed with no call (task-8.3 decision 8).
+   * `thrown-away`: a re-synthesis thrown away by a press, the walk after it finding nothing left
+   * to rebuild (task-8.10 decision 2).
+   */
+  outcome: 'synthesized' | 'declined' | 'malformed' | 'skipped' | 'failed' | 'home' | 'thrown-away';
   reason?: string;
   /** A collapsed merge's cause as painted (task-8.3 decision 9). */
   collapse?: 'declined' | 'home' | 'few' | 'unmade';
@@ -55,6 +60,10 @@ export interface SynthesisRecord {
   attempts?: {text: string; errors: string[]}[];
   /** What was sent on a re-synthesis. */
   changes?: ChangeAccount;
+  /** Each reader's press the merge waited on, and how long it held the merge (task-8.10 decision 7). */
+  waited?: PressWait[];
+  /** Each merge thrown away while it was made, with the surfaces whose change threw it away (task-8.10 decision 7). */
+  thrownAway?: {changed: string[]; at: string}[];
   /** From the synthesis's release — or, on a re-synthesis, the last settle — to its outcome. */
   deadAirMs?: number;
 }

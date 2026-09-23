@@ -87,6 +87,36 @@ export function bestPriceView(call: SynthesisCall): Synthesis {
   };
 }
 
+/**
+ * A {@link FakeSynthesizer} whose Nth call answers only once the Nth gate opens — a call with no
+ * gate answers at once. An aborted call rejects the way the model's does.
+ */
+export class HeldSynthesizer extends FakeSynthesizer {
+  #gates: Array<Promise<void> | undefined>;
+
+  constructor(
+    gates: Array<Promise<void> | undefined>,
+    make?: ConstructorParameters<typeof FakeSynthesizer>[0],
+  ) {
+    super(make);
+    this.#gates = gates;
+  }
+
+  override async generate(call: SynthesisCall): Promise<string> {
+    const gate = this.#gates[this.calls.length];
+    const answer = super.generate(call);
+    if (gate) await Promise.race([gate, abortion(call.signal)]);
+    return answer;
+  }
+}
+
+function abortion(signal: AbortSignal | undefined): Promise<never> {
+  return new Promise((_, reject) => {
+    if (signal?.aborted) return reject(signal.reason);
+    signal?.addEventListener('abort', () => reject(signal.reason), {once: true});
+  });
+}
+
 export class ThrowingSynthesizer implements SynthesisModel {
   #error: Error;
   constructor(error: Error) {

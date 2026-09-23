@@ -24,6 +24,7 @@ import {
   type CompositionState,
   type SlotFailure,
 } from './composition/state.js';
+import type {PressWait} from './composition/presses.js';
 import {decideTrigger, mergePossible} from './composition/trigger.js';
 import type {IntentJournal, JournalTurn} from './journal/intentJournal.js';
 import type {SynthesisRecord} from './journal/types.js';
@@ -60,10 +61,10 @@ interface LiveTurn {
   journal: JournalTurn;
 }
 
-/** Why a synthesis runs: the turn's one automatic release, or a re-synthesis handed what broke. */
+/** Why a synthesis runs: the turn's one automatic release, or a re-synthesis — walked as it is made. */
 type SynthesisRun =
   | {release: {by: 'settled' | 'soft-deadline' | 'home'; at: number}; signal: AbortSignal}
-  | {again: {previous: Synthesis; changes: ChangeAccount}};
+  | {again: true};
 
 /**
  * The turn (SPEC §5) at M6. Utterance: Router → Planner (the one model call, the readers as
@@ -80,7 +81,11 @@ type SynthesisRun =
  * platform answer, a gap — closes right after first paint. Action: owner-only dispatch, no
  * Router/Planner; then, if the partition change invalidated the live synthesis, re-synthesis
  * inline before the final over the merge's own source set, handed the previous document and what
- * broke (task-5.4 decision 6). A shell action — one of the shell catalog's closed set, raised on
+ * broke (task-5.4 decision 6). Quiescence (task-8.10): the press is in flight until its dispatch
+ * settles, and the merge that reads its source — the first or a re-synthesis — is made and
+ * lands only once it is answered; an answer that changed what the merge in the making reads
+ * throws it away and it is made again; one merge is in the making at a time, a press during it
+ * covered by it. A shell action — one of the shell catalog's closed set, raised on
  * a shell surface and handled by the client itself (SPEC §7) — is journaled and nothing else: no
  * dispatch, no paint. Client error: the slot fails `invalid` by shell repaint, its data out of the
  * merge. Composition state is canonical here; the shell surface is its projection.
@@ -289,10 +294,9 @@ export class OrchestratorExecutor implements AgentExecutor {
       disarm();
       state.mergeDecided = true;
       logLine(`merge task=${ctx.taskId} released (${by})`);
-      released = this.#synthesize(ctx, bus, turn, state, {
-        release: {by, at: Date.now()},
-        signal,
-      });
+      released = this.#making(state, () =>
+        this.#synthesize(ctx, bus, turn, state, {release: {by, at: Date.now()}, signal}),
+      );
     };
     // Weighs the trigger after every settle, and after a slot fails outside the turn's own
     // dispatches — a paint the client could not draw.
@@ -412,19 +416,11 @@ export class OrchestratorExecutor implements AgentExecutor {
     });
     // An action that repaints nothing must not collapse a filled slot.
     const run = this.#pump(ctx, bus, turn, undefined, handle, owner.id, {collapse: false});
-    const outcome = await run.settled;
-    // Tier 2, the IntegrityChecker's walk over the merge's own source set (task-8.3 decision 11):
-    // a ref that stopped resolving, a key that appeared in a watched array or a source of the set
-    // painting again reopens the merged view; a fact that stopped holding rides along. A source
-    // that arrived after the merge is not in the set: only Include or Retry brings it in.
-    if (composition?.synthesis) {
-      const {payload, document, watch, seen} = composition.synthesis;
-      const view = composition.partitions.view(composition.merged);
-      const changes = changeAccount(payload, view, watch, seen);
-      if (firesResynthesis(changes)) {
-        await this.#synthesize(ctx, bus, turn, composition, {again: {previous: document, changes}});
-      }
-    }
+    // The press is in flight until its dispatch settles: the merge that would read this source
+    // waits for it (task-8.10 decision 1).
+    composition?.presses.begin(owner.id);
+    const outcome = await run.settled.finally(() => composition?.presses.end(owner.id));
+    if (composition) await this.#rebuild(ctx, bus, turn, composition);
     const state: TaskState =
       outcome === 'cancelled' ? 'canceled' : outcome === 'completed' ? 'completed' : 'failed';
     bus.publish(finalStatus(ctx, state, handleError(outcome)));
@@ -433,14 +429,18 @@ export class OrchestratorExecutor implements AgentExecutor {
 
   /**
    * SPEC §5 t6–t7: the second model call, over the sources the run names — what arrived by the
-   * turn's release, or the merge's own set on a re-synthesis — each other dispatched source named
+   * time it is made, or the merge's own set on a re-synthesis — each other dispatched source named
    * as missing with its state, its columns kept. Fewer than two ⇒ no call, the slot collapses
    * (§5.1). A decline, a malformed output or a model failure collapse it too, each with its line
    * (task-8.3 decision 9). Otherwise the accepted document's derived model and sorts are sent to
    * the client, the partitions it ran over snapshotted, the merge's set made those sources, and
    * the model's tree painted into the synthesis slot (nothing else moves). A re-synthesis is the
-   * same call handed the live document and the account of what broke; the journal records the
-   * whole conversation (task-5.4 decision 7). A turn ended by a new utterance paints nothing.
+   * same call handed the live document and the account of what broke, walked afresh each time it
+   * is made; the journal records the whole conversation (task-5.4 decision 7). Quiescence
+   * (task-8.10 decisions 1–2): it is made only once no source it would read has a press in
+   * flight, and lands only once none it read has; a press whose answer changed what a source it
+   * read holds throws it away — the call aborted — and it is made again. A turn ended by a new
+   * utterance paints nothing.
    */
   async #synthesize(
     ctx: RequestContext,
@@ -453,104 +453,205 @@ export class OrchestratorExecutor implements AgentExecutor {
     if (!slot) return;
     const first = 'release' in run;
     const signal = first ? run.signal : undefined;
-    const over = new Set(first ? state.arrived : state.merged);
+    // Ended by a new utterance, or collapsed meanwhile — the home source failed: nothing painted.
+    const gone = () => signal?.aborted === true || slot.state === 'collapsed';
     const startedAt = first ? run.release.at : (state.lastSettledAt ?? Date.now());
     const deadAir = () => Date.now() - startedAt;
-    const missing = this.#missing(state, over);
-    const context: Partial<SynthesisRecord> = {
-      ...(first ? {release: {by: run.release.by, at: new Date(run.release.at).toISOString()}} : {}),
-      sources: [...over],
-      ...(missing.length > 0
-        ? {missing: missing.map(({appId, state: at}) => ({appId, state: at}))}
-        : {}),
-      ...(first ? {} : {changes: run.again.changes}),
-    };
-    const collapse = (
-      outcome: 'declined' | 'malformed' | 'skipped' | 'failed',
-      reason: string | undefined,
-      attempts: {text: string; errors: string[]}[],
-    ) => {
-      // A decline is the Synthesizer's own judgment in its own words; the prose copy stays until
-      // the client reads the painted reason (task 8.5).
-      if (outcome === 'declined' && reason) bus.publish(synthesisProseEnvelope(ctx, reason));
-      this.#collapseMerge(
-        ctx,
-        bus,
-        turn,
-        state,
-        outcome === 'declined'
-          ? {declined: reason ?? ''}
-          : {collapse: outcome === 'skipped' ? this.#fewCollapse(state, over) : {cause: 'unmade'}},
-        {
-          outcome,
-          ...(reason ? {reason} : {}),
-          collapse: outcome === 'declined' ? 'declined' : outcome === 'skipped' ? 'few' : 'unmade',
-          attempts,
-          ...context,
-          deadAirMs: deadAir(),
-        },
+    const waited: PressWait[] = [];
+    const thrownAway: {changed: string[]; at: string}[] = [];
+
+    for (;;) {
+      waited.push(
+        ...(await state.presses.quiet(() => (first ? state.arrived : state.merged), signal)),
       );
-    };
+      if (gone()) return;
+      const again = first ? undefined : this.#walk(state);
+      if (!first && !again) {
+        if (thrownAway.length > 0) {
+          turn.synthesis({outcome: 'thrown-away', attempts: [], ...quiescence()});
+        }
+        return;
+      }
+      const over = new Set(first ? state.arrived : state.merged);
+      const missing = this.#missing(state, over);
+      const context: Partial<SynthesisRecord> = {
+        ...(first
+          ? {release: {by: run.release.by, at: new Date(run.release.at).toISOString()}}
+          : {}),
+        sources: [...over],
+        ...(missing.length > 0
+          ? {missing: missing.map(({appId, state: at}) => ({appId, state: at}))}
+          : {}),
+        ...(again ? {changes: again.changes} : {}),
+      };
+      const collapse = (
+        outcome: 'declined' | 'malformed' | 'skipped' | 'failed',
+        reason: string | undefined,
+        attempts: {text: string; errors: string[]}[],
+      ) => {
+        // A decline is the Synthesizer's own judgment in its own words; the prose copy stays
+        // until the client reads the painted reason (task 8.5).
+        if (outcome === 'declined' && reason) bus.publish(synthesisProseEnvelope(ctx, reason));
+        this.#collapseMerge(
+          ctx,
+          bus,
+          turn,
+          state,
+          outcome === 'declined'
+            ? {declined: reason ?? ''}
+            : {
+                collapse:
+                  outcome === 'skipped' ? this.#fewCollapse(state, over) : {cause: 'unmade'},
+              },
+          {
+            outcome,
+            ...(reason ? {reason} : {}),
+            collapse:
+              outcome === 'declined' ? 'declined' : outcome === 'skipped' ? 'few' : 'unmade',
+            attempts,
+            ...context,
+            ...quiescence(),
+            deadAirMs: deadAir(),
+          },
+        );
+      };
 
-    if (over.size < 2) return collapse('skipped', `${over.size} source(s) arrived`, []);
+      if (over.size < 2) return collapse('skipped', `${over.size} source(s) arrived`, []);
 
-    const view = state.partitions.view(over);
-    const sources = view.entries().flatMap(([surface, data]) => {
-      const appId = parseSurfaceId(surface)?.appId;
-      if (!appId) return [];
-      return [{surface, appId, displayName: this.#deps.registry.get(appId).displayName, data}];
-    });
-    const utterance = ctx.userMessage.parts.find(p => p.kind === 'text')?.text ?? '';
+      const view = state.partitions.view(over);
+      const sources = view.entries().flatMap(([surface, data]) => {
+        const appId = parseSurfaceId(surface)?.appId;
+        if (!appId) return [];
+        return [{surface, appId, displayName: this.#deps.registry.get(appId).displayName, data}];
+      });
+      const utterance = ctx.userMessage.parts.find(p => p.kind === 'text')?.text ?? '';
 
-    let outcome;
-    try {
-      outcome = await this.#deps.synthesizer.synthesize(
-        {
-          utterance,
-          request: slot.plan.request,
-          ...(slot.plan.columns ? {columns: slot.plan.columns} : {}),
-          ...(slot.plan.columnSources ? {columnSources: slot.plan.columnSources} : {}),
-          sources,
-          ...(missing.length > 0 ? {missing} : {}),
-          ...(first ? {} : run.again),
-        },
-        view,
-        signal,
-      );
-    } catch (err) {
-      if (signal?.aborted) return;
-      return collapse('failed', err instanceof Error ? err.message : String(err), []);
+      // What the sources it reads hold as the call starts: a press answered with other data
+      // throws this one away, the call aborted at once (task-8.10 decision 2).
+      const snapshot = state.partitions.snapshot(over);
+      const call = new AbortController();
+      const endCall = () => call.abort();
+      signal?.addEventListener('abort', endCall, {once: true});
+      let changed: string[] = [];
+      const stopWatching = state.presses.onEnd(appId => {
+        if (!over.has(appId) || changed.length > 0) return;
+        changed = state.partitions.changedSince(snapshot, over);
+        if (changed.length > 0) call.abort();
+      });
+      let outcome;
+      let error: unknown;
+      try {
+        outcome = await this.#deps.synthesizer.synthesize(
+          {
+            utterance,
+            request: slot.plan.request,
+            ...(slot.plan.columns ? {columns: slot.plan.columns} : {}),
+            ...(slot.plan.columnSources ? {columnSources: slot.plan.columnSources} : {}),
+            sources,
+            ...(missing.length > 0 ? {missing} : {}),
+            ...again,
+          },
+          view,
+          call.signal,
+        );
+      } catch (err) {
+        error = err;
+      }
+      // Never lands before a press on a source it read is answered (task-8.10 decision 2).
+      waited.push(...(await state.presses.quiet(() => over, signal)));
+      stopWatching();
+      signal?.removeEventListener('abort', endCall);
+      if (gone()) return;
+      if (changed.length === 0) changed = state.partitions.changedSince(snapshot, over);
+      if (changed.length > 0) {
+        thrownAway.push({changed, at: new Date().toISOString()});
+        logLine(`merge task=${ctx.taskId} thrown away (${changed.join(', ')} changed)`);
+        continue;
+      }
+      if (!outcome) {
+        return collapse('failed', error instanceof Error ? error.message : String(error), []);
+      }
+      if (outcome.kind === 'declined') {
+        return collapse('declined', outcome.reason, outcome.attempts);
+      }
+      if (outcome.kind === 'malformed') {
+        const last = outcome.attempts.at(-1);
+        return collapse('malformed', last?.errors.join('; '), outcome.attempts);
+      }
+
+      const {document} = outcome;
+      const payload: SynthesisPayload = {dataModel: document.dataModel, sorts: document.sorts};
+      // The key sets at accept: every array this document or an earlier one of the composition
+      // selects into by key (task-7.6 decision 14).
+      const watch = watchOf(payload, view, state.synthesis?.watch);
+      // What every surface of the set holds now: a source this document reads nothing from
+      // fires the next re-synthesis by holding something else (task-7.9).
+      state.synthesis = {document, payload, watch, seen: seenOf(view)};
+      // A source that failed while it was made leaves the merge as it would once landed
+      // (task-8.10 decision 5).
+      state.merged = new Set([...over].filter(appId => state.slots.get(appId)?.state !== 'failed'));
+      state.mergedView = {outcome: 'synthesized'};
+      const paint = synthesisEnvelope(ctx, synthesisParts(document.tree), payload);
+      bus.publish(paint);
+      turn.surfaces(touchesOf(paint));
+      turn.synthesis({
+        outcome: 'synthesized',
+        synthesizeDataModel: document,
+        note: document.note,
+        attempts: outcome.attempts,
+        ...context,
+        ...quiescence(),
+        deadAirMs: deadAir(),
+      });
+      return;
     }
-    // Ended by a new utterance, or collapsed while the call ran — the home source failed: the
-    // answer is not painted.
-    if (signal?.aborted || slot.state === 'collapsed') return;
-    if (outcome.kind === 'declined') return collapse('declined', outcome.reason, outcome.attempts);
-    if (outcome.kind === 'malformed') {
-      const last = outcome.attempts.at(-1);
-      return collapse('malformed', last?.errors.join('; '), outcome.attempts);
-    }
 
-    const {document} = outcome;
-    const payload: SynthesisPayload = {dataModel: document.dataModel, sorts: document.sorts};
-    // The key sets at accept: every array this document or an earlier one of the composition
-    // selects into by key (task-7.6 decision 14).
-    const watch = watchOf(payload, view, state.synthesis?.watch);
-    // What every surface of the set holds now: a source this document reads nothing from fires
-    // the next re-synthesis by holding something else (task-7.9).
-    state.synthesis = {document, payload, watch, seen: seenOf(view)};
-    state.merged = over;
-    state.mergedView = {outcome: 'synthesized'};
-    const paint = synthesisEnvelope(ctx, synthesisParts(document.tree), payload);
-    bus.publish(paint);
-    turn.surfaces(touchesOf(paint));
-    turn.synthesis({
-      outcome: 'synthesized',
-      synthesizeDataModel: document,
-      note: document.note,
-      attempts: outcome.attempts,
-      ...context,
-      deadAirMs: deadAir(),
+    function quiescence(): Partial<SynthesisRecord> {
+      return {
+        ...(waited.length > 0 ? {waited} : {}),
+        ...(thrownAway.length > 0 ? {thrownAway} : {}),
+      };
+    }
+  }
+
+  /**
+   * After a press: the re-synthesis its answer calls for, on this turn — unless a merge is in the
+   * making, which covers the press (task-8.10 decision 3): thrown away and made again when the
+   * answer changed what it reads, landing as made when it did not. The walk runs once it is done.
+   */
+  async #rebuild(
+    ctx: RequestContext,
+    bus: ExecutionEventBus,
+    turn: JournalTurn,
+    state: CompositionState,
+  ): Promise<void> {
+    // Another turn's merge failing is that turn's failure, not this press's.
+    while (state.making) await state.making.catch(() => {});
+    if (!this.#walk(state)) return;
+    await this.#making(state, () => this.#synthesize(ctx, bus, turn, state, {again: true}));
+  }
+
+  /** Runs `make` as the composition's one merge in the making. */
+  #making(state: CompositionState, make: () => Promise<void>): Promise<void> {
+    const making: Promise<void> = make().finally(() => {
+      if (state.making === making) state.making = undefined;
     });
+    state.making = making;
+    return making;
+  }
+
+  /**
+   * Tier 2, the IntegrityChecker's walk over the merge's own source set (task-8.3 decision 11):
+   * a ref that stopped resolving, a key that appeared in a watched array or a source of the set
+   * painting again reopens the merged view — what broke, or nothing when nothing did; a fact that
+   * stopped holding rides along. A source that arrived after the merge is not in the set: only
+   * Include or Retry brings it in.
+   */
+  #walk(state: CompositionState): {previous: Synthesis; changes: ChangeAccount} | undefined {
+    if (!state.synthesis) return undefined;
+    const {payload, document, watch, seen} = state.synthesis;
+    const changes = changeAccount(payload, state.partitions.view(state.merged), watch, seen);
+    return firesResynthesis(changes) ? {previous: document, changes} : undefined;
   }
 
   /** The dispatched sources a synthesis over `over` runs without, each with where it stands. */

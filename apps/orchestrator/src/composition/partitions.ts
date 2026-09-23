@@ -77,6 +77,22 @@ export class Partitions {
     };
   }
 
+  /** What the given sources' surfaces hold now, to ask later what changed (task-8.10 decision 2). */
+  snapshot(appIds: ReadonlySet<string>): ReadonlyMap<string, unknown> {
+    return new Map(this.view(appIds).entries());
+  }
+
+  /** The given sources' surfaces holding other data than at the snapshot — added and gone ones too. */
+  changedSince(snapshot: ReadonlyMap<string, unknown>, appIds: ReadonlySet<string>): string[] {
+    const now = new Map(this.view(appIds).entries());
+    const surfaces = new Set([...snapshot.keys(), ...now.keys()]);
+    return [...surfaces].filter(
+      surface =>
+        snapshot.has(surface) !== now.has(surface) ||
+        !deepEqual(snapshot.get(surface), now.get(surface)),
+    );
+  }
+
   /**
    * Resolves a ref through the sdk's kit (phase decision 23): a value, or absent with the
    * reason — which the checklist reports, so a positional segment is named as the rule it

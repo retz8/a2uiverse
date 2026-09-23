@@ -22,6 +22,8 @@ utterance → Router (embed + rank, the platform's card among the candidates)
 
 **The hard cap.** 300 s after a dispatch, its slot fails with `timeout`. The dispatch runs on: an answer arriving past the cap is held on the slot, undrawn, until Retry. The turn's journal line closes when its last dispatch ends. A new utterance in the same conversation ends the turn before it — its dispatches aborted and each vendor sent A2A's `tasks/cancel`, its model calls aborted, anything held dropped — and its line is marked `superseded`.
 
+**Quiescence.** A press inside a fragment is in flight until its dispatch settles, and the merge that reads that source waits for it — the first merge and a re-synthesis alike, the soft deadline not cutting the wait short — so the merged view lands once, over what the fragment then shows. A merge already being made never lands before such a press is answered: if the answer changed what one of its sources holds, the merge is thrown away (its call aborted) and made again; if not, it lands as made. One merge is in the making at a time, and a press during it is covered by it. A source failing meanwhile does not throw it away: the merge lands and the source leaves it, as it would once landed. Until the first merge lands, every source that has arrived by the time it is made is part of it. The journal records each wait on a press (`waited`) and each merge thrown away (`thrownAway`).
+
 Two properties fall out of that order and are worth knowing before reading the code:
 
 **First paint precedes every dispatch.** The layout and its pending slots reach the canvas before any agent has been asked anything, so time-to-first-paint is the Planner's latency, not the slowest agent's.

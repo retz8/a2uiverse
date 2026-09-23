@@ -146,3 +146,32 @@ describe('changes', () => {
     expect(p.apply(paint({updateComponents: {surfaceId: S, components: []}}))).toEqual([]);
   });
 });
+
+describe('what changed since a snapshot (task-8.10 decision 2)', () => {
+  const sources = new Set(['shop-a']);
+
+  test('the same data painted again is no change; a value that moved is', () => {
+    const p = fresh();
+    const before = p.snapshot(sources);
+    p.apply(
+      paint({updateDataModel: {surfaceId: S, path: '/items', value: structuredClone(items)}}),
+    );
+    expect(p.changedSince(before, sources)).toEqual([]);
+    p.apply(paint({updateDataModel: {surfaceId: S, path: '/items', value: [items[0]]}}));
+    expect(p.changedSince(before, sources)).toEqual([S]);
+  });
+
+  test('a surface painted in place of the one it replaced is a change to both', () => {
+    const p = fresh();
+    const before = p.snapshot(sources);
+    p.apply(paint({createSurface: {surfaceId: 'shop-a:detail', catalogId: 'c'}}));
+    expect(p.changedSince(before, sources).sort()).toEqual(['shop-a:detail', S]);
+  });
+
+  test('only the sources asked about', () => {
+    const p = fresh();
+    const before = p.snapshot(new Set(['shop-b']));
+    p.apply(paint({updateDataModel: {surfaceId: S, path: '/note', value: 1}}));
+    expect(p.changedSince(before, new Set(['shop-b']))).toEqual([]);
+  });
+});

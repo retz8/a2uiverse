@@ -13,7 +13,7 @@ import type {LayoutSurface} from '../src/planner/document.js';
 import type {Planner} from '../src/planner/planner.js';
 import {FakeEmbedder} from './fakeEmbedder.js';
 import {FakePlanner, layoutFor, MalformedPlanner, ThrowingPlanner} from './fakePlanner.js';
-import {bestPriceView, decline, FakeSynthesizer} from './fakeSynthesizer.js';
+import {bestPriceView, decline, FakeSynthesizer, HeldSynthesizer} from './fakeSynthesizer.js';
 import {defaultEntries} from '../src/registry/entries.js';
 import type {SynthesisCall, SynthesisModel} from '../src/synthesizer/synthesizer.js';
 import {SYNTHESIS_KEY, type SynthesisPayload} from '@a2uiverse/sdk';
@@ -27,11 +27,15 @@ type AppId = (typeof APPS)[number];
 let dir: string;
 let vendors: Partial<Record<AppId, FakeVendor>> = {};
 let server: Server | undefined;
+/** Every gate a test made, opened at teardown so a failed test leaves no press hanging. */
+let gates: Array<() => void> = [];
 
 beforeEach(async () => {
   dir = await mkdtemp(join(tmpdir(), 'a2uiverse-orch-'));
 });
 afterEach(async () => {
+  for (const open of gates) open();
+  gates = [];
   await new Promise<void>(resolve => (server ? server.close(() => resolve()) : resolve()));
   server = undefined;
   for (const vendor of Object.values(vendors)) await vendor.close().catch(() => {});
@@ -1404,5 +1408,308 @@ describe('late arrival and failure (task 8.3)', () => {
       collapse: {cause: 'home', home: 'GitHub PRs'},
     });
     expect(synthesizer.calls).toHaveLength(1);
+  });
+});
+
+/** A gate the test opens by hand. */
+function gate(): {opened: Promise<void>; open: () => void} {
+  let open!: () => void;
+  const opened = new Promise<void>(resolve => (open = resolve));
+  gates.push(open);
+  return {opened, open};
+}
+
+/** The same script, each press on it answered only once `opened` resolves. */
+function pressHeld(opened: Promise<void>, script: Script): Script {
+  return async function* (s) {
+    if (!s.firstTurn) await opened;
+    for await (const event of script(s)) yield event;
+  };
+}
+
+/** A turn's events as they arrive, and the whole of them once it ends. */
+function streamOf(client: Client, message: Message) {
+  const events: AnyEvent[] = [];
+  const done = (async () => {
+    for await (const e of client.sendMessageStream({message})) events.push(e);
+    return events;
+  })();
+  return {events, done};
+}
+
+async function until(check: () => boolean, what: string) {
+  const deadline = Date.now() + 5_000;
+  while (!check()) {
+    if (Date.now() > deadline) throw new Error(`never: ${what}`);
+    await wait(10);
+  }
+}
+
+const arrivedIn = (events: AnyEvent[], source: string) =>
+  events.some(e => stampOf(e)?.source === source && a2uiDatas(e).some(d => d.updateDataModel));
+
+const itemsOf = (call: SynthesisCall, appId: string) =>
+  (call.input.sources.find(s => s.appId === appId)?.data as {items: unknown[]}).items;
+
+describe('quiescence (task 8.10)', () => {
+  const three = ['github', 'gmail', 'calendar'] as const;
+
+  test('a press holds the first merge past the soft deadline; it lands once, over what the fragment then shows', async () => {
+    const press = gate();
+    const synthesizer = new FakeSynthesizer();
+    const {client} = await boot({
+      planner: new FakePlanner(() => layoutFor(three, {merged: 'Compare.'})),
+      synthesizer,
+      scripts: {
+        github: pressHeld(
+          press.opened,
+          shopScript(camerasA, () => ({path: '/items', value: [camerasA[0]]})),
+        ),
+        gmail: shopScript(camerasB),
+        calendar: after(3_000, shopScript(camerasA)),
+      },
+      softDeadlineMs: 300,
+    });
+    const contextId = crypto.randomUUID();
+    const turn = streamOf(client, utterance('compare', contextId));
+    await until(
+      () => arrivedIn(turn.events, 'github') && arrivedIn(turn.events, 'gmail'),
+      'both arrived',
+    );
+    const action = streamOf(client, actionOn('github:s1', contextId));
+    await until(() => vendors.github!.requests.length === 2, 'the press reached GitHub');
+
+    // Well past the soft deadline, the press still out: nothing is made.
+    await wait(700);
+    expect(synthesizer.calls).toHaveLength(0);
+
+    press.open();
+    await action.done;
+    const events = await turn.done;
+    expect(synthesizer.calls).toHaveLength(1);
+    expect(itemsOf(synthesizer.calls[0]!, 'github')).toEqual([camerasA[0]]);
+    expect(synthesisEvents(events)).toHaveLength(1);
+    const lines = await journalLines(2);
+    const line = lines.find(l => l.turnId === events[0]!.id)!;
+    expect(line.synthesis).toMatchObject({release: {by: 'soft-deadline'}});
+    const waited = (line.synthesis as {waited: Array<{appId: string; ms: number}>}).waited;
+    expect(waited.map(w => w.appId)).toEqual(['github']);
+    expect(waited[0]!.ms).toBeGreaterThan(300);
+  });
+
+  test('a merge in the making never lands before the press is answered; an answer that changes nothing lets it land as made', async () => {
+    const press = gate();
+    const made = gate();
+    const synthesizer = new HeldSynthesizer([made.opened]);
+    const {client} = await boot({
+      planner: new FakePlanner(() => planWithSynthesis(['github', 'gmail'])),
+      synthesizer,
+      scripts: {
+        github: pressHeld(
+          press.opened,
+          shopScript(camerasA, () => ({path: '/items', value: camerasA})),
+        ),
+        gmail: shopScript(camerasB),
+      },
+    });
+    const contextId = crypto.randomUUID();
+    const turn = streamOf(client, utterance('compare', contextId));
+    await until(() => synthesizer.calls.length === 1, 'the merge is being made');
+    const action = streamOf(client, actionOn('github:s1', contextId));
+    await until(() => vendors.github!.requests.length === 2, 'the press reached GitHub');
+
+    made.open();
+    await wait(300);
+    expect(synthesisEvents(turn.events)).toHaveLength(0);
+
+    press.open();
+    await action.done;
+    const events = await turn.done;
+    expect(synthesizer.calls).toHaveLength(1);
+    expect(synthesisEvents(events)).toHaveLength(1);
+  });
+
+  test('a press whose answer changes the fragment throws the merge in the making away; it is made again once, after', async () => {
+    const made = gate();
+    const synthesizer = new HeldSynthesizer([made.opened]);
+    const {client} = await boot({
+      planner: new FakePlanner(() => planWithSynthesis(['github', 'gmail'])),
+      synthesizer,
+      scripts: {
+        github: shopScript(camerasA, () => ({path: '/items', value: [camerasA[0]]})),
+        gmail: shopScript(camerasB),
+      },
+    });
+    const contextId = crypto.randomUUID();
+    const turn = streamOf(client, utterance('compare', contextId));
+    await until(() => synthesizer.calls.length === 1, 'the merge is being made');
+    const action = await collect(client, actionOn('github:s1', contextId));
+    made.open();
+    const events = await turn.done;
+
+    expect(synthesizer.calls).toHaveLength(2);
+    expect(synthesizer.calls[0]!.signal?.aborted).toBe(true);
+    expect(itemsOf(synthesizer.calls[1]!, 'github')).toEqual([camerasA[0]]);
+    expect(synthesizer.calls[1]!.input.previous).toBeUndefined();
+    expect(synthesisEvents([...events, ...action])).toHaveLength(1);
+    const lines = await journalLines(2);
+    const line = lines.find(l => l.turnId === events[0]!.id)!;
+    expect(line.synthesis).toMatchObject({
+      outcome: 'synthesized',
+      thrownAway: [{changed: ['github:s1']}],
+    });
+  });
+
+  test('one merge in the making at a time: a press during a rebuild throws it away, and it is made once after both', async () => {
+    const rebuild = gate();
+    const gmailPress = gate();
+    const synthesizer = new HeldSynthesizer([undefined, rebuild.opened]);
+    const {client} = await boot({
+      planner: new FakePlanner(() => planWithSynthesis(['github', 'gmail'])),
+      synthesizer,
+      scripts: {
+        github: shopScript(camerasA, () => ({path: '/items', value: [camerasA[0]]})),
+        gmail: pressHeld(
+          gmailPress.opened,
+          shopScript(camerasB, () => ({path: '/items', value: [camerasB[0]]})),
+        ),
+      },
+    });
+    const contextId = crypto.randomUUID();
+    await collect(client, utterance('compare', contextId));
+    expect(synthesizer.calls).toHaveLength(1);
+
+    const first = streamOf(client, actionOn('github:s1', contextId));
+    await until(() => synthesizer.calls.length === 2, 'the rebuild is being made');
+    const second = streamOf(client, actionOn('gmail:s1', contextId));
+    await until(() => vendors.gmail!.requests.length === 2, 'the press reached Gmail');
+    gmailPress.open();
+    const events = [...(await first.done), ...(await second.done)];
+
+    expect(synthesizer.calls).toHaveLength(3);
+    expect(synthesizer.calls[1]!.signal?.aborted).toBe(true);
+    const absent = synthesizer.calls[2]!.input.changes!.absent.map(r => r.surface);
+    expect(new Set(absent)).toEqual(new Set(['github:s1', 'gmail:s1']));
+    expect(synthesisEvents(events)).toHaveLength(1);
+  });
+
+  test('a press in a fragment the merge does not read neither holds it nor throws it away', async () => {
+    const rebuild = gate();
+    const calendarPress = gate();
+    const calendarShop = shopScript(camerasA, () => ({path: '/items', value: []}));
+    const synthesizer = new HeldSynthesizer([undefined, rebuild.opened]);
+    const {client} = await boot({
+      planner: new FakePlanner(() => layoutFor(three, {merged: 'Compare.'})),
+      synthesizer,
+      scripts: {
+        github: shopScript(camerasA, () => ({path: '/items', value: [camerasA[0]]})),
+        gmail: shopScript(camerasB),
+        // Arrives after the merge, so the merge does not read it.
+        calendar: async function* (s) {
+          await (s.firstTurn ? wait(300) : calendarPress.opened);
+          for await (const event of calendarShop(s)) yield event;
+        },
+      },
+      softDeadlineMs: 50,
+    });
+    const contextId = crypto.randomUUID();
+    await collect(client, utterance('compare', contextId));
+    expect(synthesizer.calls[0]!.input.sources.map(s => s.appId).sort()).toEqual([
+      'github',
+      'gmail',
+    ]);
+
+    const calendar = streamOf(client, actionOn('calendar:s1', contextId));
+    await until(() => vendors.calendar!.requests.length === 2, 'the press reached Calendar');
+    const github = streamOf(client, actionOn('github:s1', contextId));
+    await until(() => synthesizer.calls.length === 2, 'the rebuild is being made');
+    rebuild.open();
+    expect(synthesisEvents(await github.done)).toHaveLength(1);
+    expect(calendar.events.some(e => e.kind === 'status-update' && e.final)).toBe(false);
+
+    calendarPress.open();
+    await calendar.done;
+    expect(synthesizer.calls).toHaveLength(2);
+    expect(synthesizer.calls[1]!.signal?.aborted).toBe(false);
+  });
+
+  test('a source failing while the merge is made does not throw it away; it leaves the merge as it would once landed', async () => {
+    const made = gate();
+    const synthesizer = new HeldSynthesizer([made.opened]);
+    const {client} = await boot({
+      planner: new FakePlanner(() => layoutFor(three, {merged: 'Compare.'})),
+      synthesizer,
+      scripts: {
+        github: shopScript(camerasA, () => ({path: '/items', value: [camerasA[0]]})),
+        gmail: shopScript(camerasB),
+        calendar: shopScript(camerasA),
+      },
+    });
+    const contextId = crypto.randomUUID();
+    const turn = streamOf(client, utterance('compare', contextId));
+    await until(() => synthesizer.calls.length === 1, 'the merge is being made');
+    await collect(client, {
+      kind: 'message',
+      messageId: crypto.randomUUID(),
+      role: 'user',
+      contextId,
+      parts: [
+        {
+          kind: 'data',
+          data: {
+            version: 'v0.9',
+            error: {code: 'VALIDATION_FAILED', surfaceId: 'gmail:s1', path: '/', message: 'bad'},
+          },
+        },
+      ],
+    });
+    made.open();
+    const events = await turn.done;
+    expect(synthesisEvents(events)).toHaveLength(1);
+    expect(synthesizer.calls).toHaveLength(1);
+    const lines = await journalLines(2);
+    const line = lines.find(l => l.turnId === events[0]!.id)!;
+    expect(line.synthesis).toMatchObject({outcome: 'synthesized'});
+    expect(line.synthesis).not.toHaveProperty('thrownAway');
+
+    // The next rebuild runs over the merge's own set, Gmail no longer in it.
+    await collect(client, actionOn('github:s1', contextId));
+    expect(synthesizer.calls).toHaveLength(2);
+    expect(synthesizer.calls[1]!.input.sources.map(s => s.appId).sort()).toEqual([
+      'calendar',
+      'github',
+    ]);
+  });
+
+  test('a source arriving while the first merge waits on a press joins it, with no Include', async () => {
+    const press = gate();
+    const synthesizer = new FakeSynthesizer();
+    const {client} = await boot({
+      planner: new FakePlanner(() => layoutFor(three, {merged: 'Compare.'})),
+      synthesizer,
+      scripts: {
+        github: pressHeld(press.opened, shopScript(camerasA)),
+        gmail: shopScript(camerasB),
+        calendar: after(1_000, shopScript(camerasA)),
+      },
+      softDeadlineMs: 400,
+    });
+    const contextId = crypto.randomUUID();
+    const turn = streamOf(client, utterance('compare', contextId));
+    await until(
+      () => arrivedIn(turn.events, 'github') && arrivedIn(turn.events, 'gmail'),
+      'both arrived',
+    );
+    const action = streamOf(client, actionOn('github:s1', contextId));
+    await until(() => arrivedIn(turn.events, 'calendar'), 'the straggler arrived');
+    expect(synthesizer.calls).toHaveLength(0);
+    press.open();
+    await action.done;
+    await turn.done;
+
+    expect(synthesizer.calls).toHaveLength(1);
+    const {input} = synthesizer.calls[0]!;
+    expect(input.sources.map(s => s.appId).sort()).toEqual(['calendar', 'github', 'gmail']);
+    expect(input.missing).toBeUndefined();
   });
 });
