@@ -207,6 +207,10 @@ for a surface taken off is dropped; a fresh `createSurface` for it — a Retry's
 belong to the composition, not the turn: an action inside a fragment keeps them; the next
 composition opening, or the stage retiring, resets them with `superseded`.
 
+**In a replay.** `attachReplay(sender)` stands a sender in for the orchestrator on every stream
+beside the turn — the press, the fragment-failure report, the shell-action report — until detached;
+the turn's own paths are untouched (task 8.6).
+
 ### Navigation lands locally
 
 A tap on a merged cell with a `target` calls the host's `onNavigate`; the navigator lands on the
@@ -415,6 +419,34 @@ Their layouts are built on the painter's shape: each vendor slot the `child` of 
 standing where the slot stood in the parent, the synthesis slot bare but for its planned
 `columns` and `join`.
 
+Phase 8's cases (task 8.6). Recorded beats 10–18, each through an orchestrator the recorder starts
+on `--fault-port` (`scripts/lib/orchestrator.ts`) with the case's fault map and deadlines over the
+deterministic roster — beat 5's utterance among peers, beat 9's under Linear's join: 10 a fast
+failure then Retry, 11 a late arrival then Include, 12 the home source straggling, 13 an answer held
+past a 15 s cap drawn by Retry, 14 Retry racing a capped dispatch, 15 a broken stream, 16 a paint
+the canvas reports and the report's answer failing its slot, 17 the home
+source failing then Retry bringing the merge back, 18 fewer than two sources. A `FaultCase` names
+what its recording must show; a take that does not is taken again. A fixture carries the
+`deadlines` and `faults` it was recorded under. Synthetic (`beats/lateFailureBeats.ts`), over three
+storefronts joined on the camera — Aperture & Co home, Northlight and Fieldstone attached, all in the
+shell catalog: `fast-failure`, `late-include`, `home-straggling`, `held-retry`, `retry-race`,
+`half-drawn`, `invalid-paint`, `failed-fold-in`, `include-after-decline`, `try-again`, `home-retry`,
+`too-few`; each with a press also as `<name>-offered`, the beat ending before it, and
+`home-straggling-waiting`, the home source's arrival and the merge held back ten minutes.
+
+**Streams beside the turn in a beat.** A `BeatTurn` of kind `press` (its `operation`) or
+`failure-report` belongs to the utterance or action before it; `atMs` is its send, from that turn's
+start, and its batches' offsets run from its own send. `replayBeatOnCanvas` takes the wiring as
+`sides` for a beat that carries one and refuses it otherwise. It runs each turn and its presses on
+one clock — the turn's batches, its end, each press's send and batches, sorted by time — so instant
+mode keeps the order they arrived in. A press fires through `sides.press`, the handler the buttons
+call; `canvas/replayTransport` — attached through `attachReplay` for the beat — answers it on the
+channel armed for it, each batch rebuilt into the hub's status-update event after a `task` event at
+once, and a push settles when the handler has applied it. A failure report the canvas sends is
+answered with the next recorded answer, paced from its own send; any other side send with a stream
+that ends at once. A press the handler never sends leaves its channel abandoned. The next turn's
+`begin` ends them all, as a live utterance does.
+
 Playwright: `e2e/canvas-surface.spec.ts` holds the baselines for beats 1–4 (beat 4 at 1280×1600,
 asserting the two vendor boundaries on one row by bounding box and no shell content) and replay
 smokes for 5 (four slots, the merged view as shell content with its sort), 6 (rows bound over
@@ -425,7 +457,13 @@ does not render on its row, draws a judgment-only join guessed, and navigates a 
 row under the nested sort. `e2e/shell-surface.spec.ts`
 proves the synthetic platform answer's rows, the tile into the Store overlay and back with the
 tile still attached, and three visual baselines: the platform answer, the tile, the Store
-overlay.
+overlay. `e2e/late-failure.spec.ts` names the state each Phase 8 synthetic beat lands on at
+1440×900 — the failure tile in each cause, the late row with Include, a failed fold-in, the merge
+waiting on its home source, each collapse's line, the decline with Include beneath it, and the view
+Retry made whole — each with its screenshot. `tests/canvas-late-failure.test.tsx` replays every
+Phase 8 beat on the page, synthetic and recorded, and asserts where it ends with nothing sent;
+`tests/canvas-beats.test.tsx` replays every recorded beat through the wiring, a failed source's
+surfaces taken off what stands.
 
 ## Isolation
 
