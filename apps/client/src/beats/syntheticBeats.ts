@@ -7,7 +7,8 @@
  * and a capability gap (the fixed tile). They are deliberately NOT in `recordings/beats/`
  * and never enter `BEAT_FIXTURES`: they are inputs for the transition tests and the chrome
  * baselines, replayable by name through `?beat=` (see `SYNTHETIC_BEATS`). Recorded beats are
- * re-recorded through the orchestrator in 1.4.
+ * re-recorded through the orchestrator in 1.4. Phase 8's late-arrival and failure cases live in
+ * `lateFailureBeats.ts`.
  */
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
 import {CATALOG_ID} from 'github-catalog';
@@ -16,6 +17,7 @@ import {CATALOG_ID as SHOP_A_CATALOG_ID} from 'shop-a-catalog';
 import {CATALOG_ID as SHOP_B_CATALOG_ID} from 'shop-b-catalog';
 import {getBeatFixture, type BeatFixture} from './beatFixtures';
 import {JOIN_DOCUMENT, JOIN_ITEMS, JOIN_PRODUCTS, JOIN_PRODUCTS_RETITLED} from './joinFixture';
+import {LATE_FAILURE_BEATS, LATE_FAILURE_RESTING} from './lateFailureBeats';
 import {
   DOCUMENT,
   PAYLOAD,
@@ -808,7 +810,11 @@ export function syntheticBeat(name: string): BeatFixture | undefined {
     case 'long-merging':
       return mergeHeldBack(longQuestionBeat(), 'synthetic-long-merging', 118);
     default:
-      return undefined;
+      // Phase 8's cases by the name less its prefix — `?beat=fast-failure` — and each resting
+      // where its press is offered: `?beat=fast-failure-offered`.
+      return [...LATE_FAILURE_BEATS, ...LATE_FAILURE_RESTING].find(
+        fixture => fixture.name === `synthetic-${name}`,
+      );
   }
 }
 

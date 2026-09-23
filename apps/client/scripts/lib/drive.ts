@@ -7,7 +7,14 @@ import {ClientFactory} from '@a2a-js/sdk/client';
 import type {MessageSendParams} from '@a2a-js/sdk';
 import type {A2AMessageSender} from '../../src/a2a/client';
 import type {A2AStreamEventData} from '../../src/a2a/messages';
-import {buildTextMessageParams, extractContextId} from '../../src/a2a/messages';
+import type {CompositionOperation} from '@a2uiverse/sdk';
+import type {A2uiClientError} from '../../src/a2a/messages';
+import {
+  buildErrorMessageParams,
+  buildOperationMessageParams,
+  buildTextMessageParams,
+  extractContextId,
+} from '../../src/a2a/messages';
 import {readFile} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 import {dirname, resolve} from 'node:path';
@@ -65,20 +72,47 @@ export async function supportedCatalogIds(): Promise<string[]> {
 }
 
 /** Send one text prompt and collect every streamed event with its arrival offset. */
-export async function driveTurn(
+export function driveTurn(
   sender: A2AMessageSender,
   prompt: string,
   contextId: string | undefined,
   catalogIds: string[],
   onEvent?: (e: TimedEvent) => void,
 ): Promise<DrivenTurn> {
-  const params: MessageSendParams = buildTextMessageParams(
-    prompt,
-    contextId,
-    undefined,
-    undefined,
-    catalogIds,
-  );
+  const params = buildTextMessageParams(prompt, contextId, undefined, undefined, catalogIds);
+  return driveMessage(sender, params, contextId, onEvent);
+}
+
+/** The reader's press on the composition in `contextId`, on a stream of its own (task-8.6 decision 1). */
+export function drivePress(
+  sender: A2AMessageSender,
+  operation: CompositionOperation,
+  contextId: string,
+  catalogIds: string[],
+  onEvent?: (e: TimedEvent) => void,
+): Promise<DrivenTurn> {
+  const params = buildOperationMessageParams(operation, contextId, catalogIds);
+  return driveMessage(sender, params, contextId, onEvent);
+}
+
+/** The client's report of a fragment it could not draw, as the canvas sends it. */
+export function driveReport(
+  sender: A2AMessageSender,
+  error: A2uiClientError,
+  contextId: string,
+  catalogIds: string[],
+  onEvent?: (e: TimedEvent) => void,
+): Promise<DrivenTurn> {
+  const params = buildErrorMessageParams(error, contextId, undefined, catalogIds);
+  return driveMessage(sender, params, contextId, onEvent);
+}
+
+async function driveMessage(
+  sender: A2AMessageSender,
+  params: MessageSendParams,
+  contextId: string | undefined,
+  onEvent?: (e: TimedEvent) => void,
+): Promise<DrivenTurn> {
   const started = performance.now();
   const events: TimedEvent[] = [];
   let taskId: string | null = null;
@@ -93,11 +127,12 @@ export async function driveTurn(
   return {events, contextId: learned, taskId, durationMs: Math.round(performance.now() - started)};
 }
 
-/** Parse `--beats 1,2,3` into a sorted, deduplicated list of integers. */
+/** Parse `--beats 1,2,10-18` into a sorted, deduplicated list of integers. */
 export function parseBeatList(value: string): number[] {
-  const beats = value
-    .split(',')
-    .map(s => Number(s.trim()))
-    .filter(n => Number.isInteger(n) && n > 0);
-  return [...new Set(beats)].sort((a, b) => a - b);
+  const beats = value.split(',').flatMap(token => {
+    const [from, to] = token.split('-').map(s => Number(s.trim()));
+    if (to === undefined) return [from];
+    return Array.from({length: Math.max(0, to - from + 1)}, (_, i) => from + i);
+  });
+  return [...new Set(beats.filter(n => Number.isInteger(n) && n > 0))].sort((a, b) => a - b);
 }

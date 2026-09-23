@@ -172,7 +172,8 @@ export function shopBMessages(
 // A copy: the data model stores by reference, and a fixture must not be edited in place.
 const clone = <T>(rows: readonly T[]): T[] => rows.map(row => ({...row}));
 
-function listMessages(
+/** A storefront's fragment: a heading over one list of the partition, each entry named and priced. */
+export function listMessages(
   surfaceId: string,
   catalogId: string,
   title: string,

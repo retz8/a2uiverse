@@ -32,7 +32,25 @@ You need the orchestrator and the agents up too; `pnpm dev:all` from the root st
 | `8`      | **A mixed utterance** — "what can I do with my calendar?": one vendor slot and the shell's own words in the same layout                                      |
 | `9`      | **The entity join** — "what's the status of what I'm working on?": Linear, GitHub and CircleCI, and the merged view with its match claims, one row per issue |
 
-**Synthetic beats** are hand-built to construct states that are unreliable to catch live: `plain`, `plain-2`, `validation` (a fragment that fails to mount), `question` (the overlay), `composed` (two slots, one filling and one whose source speaks but never paints), `composed-solo` (the degenerate one-slot case), `composed-question` (a fragment the shell promotes in place), `synthesis` (two storefronts of unrelated shapes merged into the synthesis slot by the Synthesizer's camera comparison example (the client's own copy), then an in-place reorder its keyed refs survive), `navigation` (the two storefronts in their own catalogs under a merged view whose cells name a rendered field, a field neither renders, and a join held by judgment alone), `join` (a list of offers inside every row under one sort declaration, one row's held by a fact and the other's by judgment, then a storefront repaint that changes a matched title, so the values it cut off are drawn broken), `platform-answer` (the shell's own answer bound to its data model, with a button into the App Library), `gap` (the capability tile) and `long-question` (beat 9 under a paragraph past the header's four lines, so it clips behind "Show all").
+Beats 10–18 are Phase 8's late-arrival and failure cases, recorded over the deterministic roster through the AgentsPool's fault map — beat 5's utterance where every source is a peer, beat 9's where Linear is the join's home source. Each carries the fault map and the deadlines it was recorded under, and the reader's presses as streams of their own beside the turn:
+
+| `?beat=` | What it is                                                                                                                 |
+| -------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `10`     | **A fast failure, then Retry** — Calendar fails at once; Retry's answer is folded into the merged view                     |
+| `11`     | **A late arrival, then Include** — Gmail lands while the merge is made; Include folds it in                                |
+| `12`     | **The home source straggling** — the merge waits for Linear, then runs                                                     |
+| `13`     | **An answer held past the cap, drawn by Retry** — Gmail fails at a 15 s cap; its later answer waits for Retry              |
+| `14`     | **Retry racing a capped dispatch** — Retry's re-dispatch answers before the capped one, which is cancelled                 |
+| `15`     | **A broken stream** — GitHub paints, its stream breaks; its fragment comes off for the failure tile                        |
+| `16`     | **A paint the client cannot draw** — GitHub’s paint fails its catalog; the canvas reports it and the answer fails the slot |
+| `17`     | **The home source failing, then Retry** — the merge collapses on Linear; Retry brings it back                              |
+| `18`     | **Fewer than two sources** — only GitHub answers; the merge collapses to its line                                          |
+
+**Synthetic beats** are hand-built to construct states that are unreliable to catch live: `plain`, `plain-2`, `validation` (a fragment that fails to mount), `question` (the overlay), `composed` (two slots, one filling and one whose source speaks but never paints), `composed-solo` (the degenerate one-slot case), `composed-question` (a fragment the shell promotes in place), `synthesis` (two storefronts of unrelated shapes merged into the synthesis slot by the Synthesizer's camera comparison example (the client's own copy), then an in-place reorder its keyed refs survive), `navigation` (the two storefronts in their own catalogs under a merged view whose cells name a rendered field, a field neither renders, and a join held by judgment alone), `join` (a list of offers inside every row under one sort declaration, one row's held by a fact and the other's by judgment, then a storefront repaint that changes a matched title, so the values it cut off are drawn broken), `platform-answer` (the shell's own answer bound to its data model, with a button into the App Library), `gap` (the capability tile), `long-question` (beat 9 under a paragraph past the header's four lines, so it clips behind "Show all"), and `merging` and `long-merging` (beat 9 and `long-question` with the merged view held back, resting on the reserved slot).
+
+Phase 8's cases are synthetic beats too, over three storefronts joined on the camera — Aperture & Co the home source, Northlight and Fieldstone attached: `fast-failure`, `late-include`, `home-straggling`, `held-retry`, `retry-race`, `half-drawn`, `invalid-paint` (a paint the canvas reports, answered from the beat), `failed-fold-in`, `include-after-decline`, `try-again` (the merged view couldn't be made) and `home-retry` (the home source failing, then Retry bringing the merge back), and `too-few`. Each case with a press also replays up to it — `fast-failure-offered` rests on the failure tile with Retry — and `home-straggling-waiting` rests while the merge waits for its home source.
+
+**Presses in a beat.** A beat's Retry, Include and Try again fire at their recorded time through the same handler the buttons call — the pressed state, the focus, the announcements — and are answered from the beat itself, as is the orchestrator's answer to a failure report the canvas sends; nothing reaches the orchestrator.
 
 **Shell actions.** A shell surface's two actions — open the Store with an optional query, open the App Library — are handled here, never as a turn: the page opens as an overlay over the canvas (a placeholder naming the page and the query until Phase 13 builds them; the canvas stays mounted beneath), and the action is reported to the orchestrator on the side, as a standard A2UI action on the shell surface, so the journal records the intent.
 
@@ -69,6 +87,12 @@ Not part of `pnpm verify` — each needs live processes.
 
 ```bash
 pnpm --filter @a2uiverse/client record:beats --model <model> [--beats 1,2,3,4,5,6,7,8,9]
+```
+
+Beats 10–18 need the agents up in their deterministic mode (`pnpm dev:agents`) and nothing on port 10091: for each, the recorder starts an orchestrator of its own there with the case's fault map and deadlines — the Gemini key from the orchestrator's `.env` — sends the utterance, then the client's failure report and the reader's presses on streams of their own, and stops it. A take that does not show its case is taken again, up to three times; the orchestrator's log is written to the system's temporary directory.
+
+```bash
+pnpm --filter @a2uiverse/client record:beats --model <model> --beats 10-18 [--fault-port 10091]
 ```
 
 > **Start the Gmail agent with `A2UI_RECORD_DIR` set.** That flag is what arms its pseudonymizer, and this recorder captures whatever the hub relays — it cannot tell whether anything was scrubbed. GitHub reads public repos and Calendar reads a seeded demo calendar, so neither needs it for privacy.

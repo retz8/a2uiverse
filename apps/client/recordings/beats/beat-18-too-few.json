@@ -1,0 +1,2053 @@
+{
+  "name": "beat-18-too-few",
+  "beat": 18,
+  "title": "Fewer than two sources arriving",
+  "prompt": "What needs my attention today?",
+  "model": "gemini-3.7-flash",
+  "recordedAt": "2026-09-23T13:24:08Z",
+  "contextId": "3b56816f-4b1c-4f03-9ed4-fcbba67383c0",
+  "chainedFrom": null,
+  "deadlines": {
+    "softDeadlineSeconds": 10,
+    "hardCapSeconds": 300
+  },
+  "faults": {
+    "gmail": {
+      "fault": "fail",
+      "message": "Gmail is not responding right now."
+    },
+    "calendar": {
+      "fault": "refuse"
+    },
+    "linear": {
+      "fault": "refuse"
+    },
+    "circleci": {
+      "fault": "refuse"
+    }
+  },
+  "turns": [
+    {
+      "taskId": "f1765505-ae53-417d-8d7d-020720bbc0df",
+      "kind": "utterance",
+      "prompt": "What needs my attention today?",
+      "action": null,
+      "batches": [
+        {
+          "offsetMs": 7658,
+          "messages": [
+            {
+              "version": "v0.9",
+              "createSurface": {
+                "surfaceId": "shell:main",
+                "catalogId": "https://github.com/retz8/a2uiverse/blob/main/packages/shell-catalog/catalogs/v0.9.1/catalog.json"
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "surfaceId": "shell:main",
+                "components": [
+                  {
+                    "id": "root",
+                    "component": "Column",
+                    "children": [
+                      "overview",
+                      "sources"
+                    ]
+                  },
+                  {
+                    "id": "overview",
+                    "component": "Slot",
+                    "source": "shell",
+                    "state": "pending",
+                    "label": "Synthesis",
+                    "content": "shell"
+                  },
+                  {
+                    "id": "sources",
+                    "component": "Row",
+                    "children": [
+                      "attribution-calendar",
+                      "attribution-gmail",
+                      "attribution-github",
+                      "attribution-linear"
+                    ]
+                  },
+                  {
+                    "id": "attribution-calendar",
+                    "component": "Attribution",
+                    "displayName": "Google Calendar",
+                    "appId": "calendar",
+                    "child": "calendar",
+                    "weight": 1
+                  },
+                  {
+                    "id": "calendar",
+                    "component": "Slot",
+                    "source": "calendar",
+                    "weight": 1,
+                    "state": "pending",
+                    "label": "Google Calendar"
+                  },
+                  {
+                    "id": "attribution-gmail",
+                    "component": "Attribution",
+                    "displayName": "Gmail",
+                    "appId": "gmail",
+                    "child": "gmail",
+                    "weight": 1
+                  },
+                  {
+                    "id": "gmail",
+                    "component": "Slot",
+                    "source": "gmail",
+                    "weight": 1,
+                    "state": "pending",
+                    "label": "Gmail"
+                  },
+                  {
+                    "id": "attribution-github",
+                    "component": "Attribution",
+                    "displayName": "GitHub",
+                    "appId": "github",
+                    "child": "github",
+                    "weight": 1
+                  },
+                  {
+                    "id": "github",
+                    "component": "Slot",
+                    "source": "github",
+                    "weight": 1,
+                    "state": "pending",
+                    "label": "GitHub"
+                  },
+                  {
+                    "id": "attribution-linear",
+                    "component": "Attribution",
+                    "displayName": "Linear",
+                    "appId": "linear",
+                    "child": "linear",
+                    "weight": 1
+                  },
+                  {
+                    "id": "linear",
+                    "component": "Slot",
+                    "source": "linear",
+                    "weight": 1,
+                    "state": "pending",
+                    "label": "Linear"
+                  }
+                ]
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "shell",
+            "role": "shell"
+          }
+        },
+        {
+          "offsetMs": 7658,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "surfaceId": "shell:main",
+                "components": [
+                  {
+                    "id": "root",
+                    "component": "Column",
+                    "children": [
+                      "overview",
+                      "sources"
+                    ]
+                  },
+                  {
+                    "id": "overview",
+                    "component": "Slot",
+                    "source": "shell",
+                    "state": "pending",
+                    "label": "Synthesis",
+                    "content": "shell"
+                  },
+                  {
+                    "id": "sources",
+                    "component": "Row",
+                    "children": [
+                      "attribution-calendar",
+                      "attribution-gmail",
+                      "attribution-github",
+                      "attribution-linear"
+                    ]
+                  },
+                  {
+                    "id": "attribution-calendar",
+                    "component": "Attribution",
+                    "displayName": "Google Calendar",
+                    "appId": "calendar",
+                    "child": "calendar",
+                    "weight": 1
+                  },
+                  {
+                    "id": "calendar",
+                    "component": "Slot",
+                    "source": "calendar",
+                    "weight": 1,
+                    "state": "failed",
+                    "label": "Google Calendar",
+                    "failure": {
+                      "cause": "unreachable"
+                    }
+                  },
+                  {
+                    "id": "attribution-gmail",
+                    "component": "Attribution",
+                    "displayName": "Gmail",
+                    "appId": "gmail",
+                    "child": "gmail",
+                    "weight": 1
+                  },
+                  {
+                    "id": "gmail",
+                    "component": "Slot",
+                    "source": "gmail",
+                    "weight": 1,
+                    "state": "pending",
+                    "label": "Gmail"
+                  },
+                  {
+                    "id": "attribution-github",
+                    "component": "Attribution",
+                    "displayName": "GitHub",
+                    "appId": "github",
+                    "child": "github",
+                    "weight": 1
+                  },
+                  {
+                    "id": "github",
+                    "component": "Slot",
+                    "source": "github",
+                    "weight": 1,
+                    "state": "pending",
+                    "label": "GitHub"
+                  },
+                  {
+                    "id": "attribution-linear",
+                    "component": "Attribution",
+                    "displayName": "Linear",
+                    "appId": "linear",
+                    "child": "linear",
+                    "weight": 1
+                  },
+                  {
+                    "id": "linear",
+                    "component": "Slot",
+                    "source": "linear",
+                    "weight": 1,
+                    "state": "pending",
+                    "label": "Linear"
+                  }
+                ]
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "shell",
+            "role": "shell"
+          }
+        },
+        {
+          "offsetMs": 7658,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "surfaceId": "shell:main",
+                "components": [
+                  {
+                    "id": "root",
+                    "component": "Column",
+                    "children": [
+                      "overview",
+                      "sources"
+                    ]
+                  },
+                  {
+                    "id": "overview",
+                    "component": "Slot",
+                    "source": "shell",
+                    "state": "pending",
+                    "label": "Synthesis",
+                    "content": "shell"
+                  },
+                  {
+                    "id": "sources",
+                    "component": "Row",
+                    "children": [
+                      "attribution-calendar",
+                      "attribution-gmail",
+                      "attribution-github",
+                      "attribution-linear"
+                    ]
+                  },
+                  {
+                    "id": "attribution-calendar",
+                    "component": "Attribution",
+                    "displayName": "Google Calendar",
+                    "appId": "calendar",
+                    "child": "calendar",
+                    "weight": 1
+                  },
+                  {
+                    "id": "calendar",
+                    "component": "Slot",
+                    "source": "calendar",
+                    "weight": 1,
+                    "state": "failed",
+                    "label": "Google Calendar",
+                    "failure": {
+                      "cause": "unreachable"
+                    }
+                  },
+                  {
+                    "id": "attribution-gmail",
+                    "component": "Attribution",
+                    "displayName": "Gmail",
+                    "appId": "gmail",
+                    "child": "gmail",
+                    "weight": 1
+                  },
+                  {
+                    "id": "gmail",
+                    "component": "Slot",
+                    "source": "gmail",
+                    "weight": 1,
+                    "state": "pending",
+                    "label": "Gmail"
+                  },
+                  {
+                    "id": "attribution-github",
+                    "component": "Attribution",
+                    "displayName": "GitHub",
+                    "appId": "github",
+                    "child": "github",
+                    "weight": 1
+                  },
+                  {
+                    "id": "github",
+                    "component": "Slot",
+                    "source": "github",
+                    "weight": 1,
+                    "state": "pending",
+                    "label": "GitHub"
+                  },
+                  {
+                    "id": "attribution-linear",
+                    "component": "Attribution",
+                    "displayName": "Linear",
+                    "appId": "linear",
+                    "child": "linear",
+                    "weight": 1
+                  },
+                  {
+                    "id": "linear",
+                    "component": "Slot",
+                    "source": "linear",
+                    "weight": 1,
+                    "state": "failed",
+                    "label": "Linear",
+                    "failure": {
+                      "cause": "unreachable"
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "shell",
+            "role": "shell"
+          }
+        },
+        {
+          "offsetMs": 7658,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "surfaceId": "shell:main",
+                "components": [
+                  {
+                    "id": "root",
+                    "component": "Column",
+                    "children": [
+                      "overview",
+                      "sources"
+                    ]
+                  },
+                  {
+                    "id": "overview",
+                    "component": "Slot",
+                    "source": "shell",
+                    "state": "pending",
+                    "label": "Synthesis",
+                    "content": "shell"
+                  },
+                  {
+                    "id": "sources",
+                    "component": "Row",
+                    "children": [
+                      "attribution-calendar",
+                      "attribution-gmail",
+                      "attribution-github",
+                      "attribution-linear"
+                    ]
+                  },
+                  {
+                    "id": "attribution-calendar",
+                    "component": "Attribution",
+                    "displayName": "Google Calendar",
+                    "appId": "calendar",
+                    "child": "calendar",
+                    "weight": 1
+                  },
+                  {
+                    "id": "calendar",
+                    "component": "Slot",
+                    "source": "calendar",
+                    "weight": 1,
+                    "state": "failed",
+                    "label": "Google Calendar",
+                    "failure": {
+                      "cause": "unreachable"
+                    }
+                  },
+                  {
+                    "id": "attribution-gmail",
+                    "component": "Attribution",
+                    "displayName": "Gmail",
+                    "appId": "gmail",
+                    "child": "gmail",
+                    "weight": 1
+                  },
+                  {
+                    "id": "gmail",
+                    "component": "Slot",
+                    "source": "gmail",
+                    "weight": 1,
+                    "state": "failed",
+                    "label": "Gmail",
+                    "failure": {
+                      "cause": "vendor",
+                      "message": "Gmail is not responding right now."
+                    }
+                  },
+                  {
+                    "id": "attribution-github",
+                    "component": "Attribution",
+                    "displayName": "GitHub",
+                    "appId": "github",
+                    "child": "github",
+                    "weight": 1
+                  },
+                  {
+                    "id": "github",
+                    "component": "Slot",
+                    "source": "github",
+                    "weight": 1,
+                    "state": "pending",
+                    "label": "GitHub"
+                  },
+                  {
+                    "id": "attribution-linear",
+                    "component": "Attribution",
+                    "displayName": "Linear",
+                    "appId": "linear",
+                    "child": "linear",
+                    "weight": 1
+                  },
+                  {
+                    "id": "linear",
+                    "component": "Slot",
+                    "source": "linear",
+                    "weight": 1,
+                    "state": "failed",
+                    "label": "Linear",
+                    "failure": {
+                      "cause": "unreachable"
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "shell",
+            "role": "shell"
+          }
+        },
+        {
+          "offsetMs": 7669,
+          "messages": [
+            {
+              "version": "v0.9",
+              "createSurface": {
+                "surfaceId": "github:notifications-10",
+                "catalogId": "https://github.com/retz8/a2uiverse-apps/blob/main/github/github-catalog/catalogs/v0.9.1/catalog.json",
+                "sendDataModel": true
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "github:notifications-10",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 8,
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#8"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "github:notifications-10",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 8,
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#8",
+                      "branch": "synthesizer-effort-apart-from-planner",
+                      "reviewStatus": "No reviews"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "github:notifications-10",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 8,
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#8",
+                      "branch": "synthesizer-effort-apart-from-planner",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:26Z"
+                    },
+                    {}
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "github:notifications-10",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 8,
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#8",
+                      "branch": "synthesizer-effort-apart-from-planner",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:26Z"
+                    },
+                    {
+                      "number": 7
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "github:notifications-10",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 8,
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#8",
+                      "branch": "synthesizer-effort-apart-from-planner",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:26Z"
+                    },
+                    {
+                      "number": 7,
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "repository": "retz8/a2uiverse"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "github:notifications-10",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 8,
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#8",
+                      "branch": "synthesizer-effort-apart-from-planner",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:26Z"
+                    },
+                    {
+                      "number": 7,
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#7"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "github:notifications-10",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 8,
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#8",
+                      "branch": "synthesizer-effort-apart-from-planner",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:26Z"
+                    },
+                    {
+                      "number": 7,
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#7",
+                      "branch": "status-line-names-the-workflow",
+                      "reviewStatus": "No reviews"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "github:notifications-10",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 8,
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#8",
+                      "branch": "synthesizer-effort-apart-from-planner",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:26Z"
+                    },
+                    {
+                      "number": 7,
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#7",
+                      "branch": "status-line-names-the-workflow",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:34Z"
+                    },
+                    {}
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "github:notifications-10",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 8,
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#8",
+                      "branch": "synthesizer-effort-apart-from-planner",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:26Z"
+                    },
+                    {
+                      "number": 7,
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#7",
+                      "branch": "status-line-names-the-workflow",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:34Z"
+                    },
+                    {
+                      "number": 6,
+                      "title": "Say on the canvas when an utterance fails"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "github:notifications-10",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 8,
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#8",
+                      "branch": "synthesizer-effort-apart-from-planner",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:26Z"
+                    },
+                    {
+                      "number": 7,
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#7",
+                      "branch": "status-line-names-the-workflow",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:34Z"
+                    },
+                    {
+                      "number": 6,
+                      "title": "Say on the canvas when an utterance fails",
+                      "repository": "retz8/a2uiverse"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "github:notifications-10",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 8,
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#8",
+                      "branch": "synthesizer-effort-apart-from-planner",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:26Z"
+                    },
+                    {
+                      "number": 7,
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#7",
+                      "branch": "status-line-names-the-workflow",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:34Z"
+                    },
+                    {
+                      "number": 6,
+                      "title": "Say on the canvas when an utterance fails",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#6"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "github:notifications-10",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 8,
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#8",
+                      "branch": "synthesizer-effort-apart-from-planner",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:26Z"
+                    },
+                    {
+                      "number": 7,
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#7",
+                      "branch": "status-line-names-the-workflow",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:34Z"
+                    },
+                    {
+                      "number": 6,
+                      "title": "Say on the canvas when an utterance fails",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#6",
+                      "branch": "ekkicb71/a2u-5-say-on-the-canvas-when-an-utterance-fails",
+                      "reviewStatus": "No reviews"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "github:notifications-10",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 8,
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#8",
+                      "branch": "synthesizer-effort-apart-from-planner",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:26Z"
+                    },
+                    {
+                      "number": 7,
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#7",
+                      "branch": "status-line-names-the-workflow",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:34Z"
+                    },
+                    {
+                      "number": 6,
+                      "title": "Say on the canvas when an utterance fails",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#6",
+                      "branch": "ekkicb71/a2u-5-say-on-the-canvas-when-an-utterance-fails",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:33Z"
+                    },
+                    {
+                      "number": 2639
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "github:notifications-10",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 8,
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#8",
+                      "branch": "synthesizer-effort-apart-from-planner",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:26Z"
+                    },
+                    {
+                      "number": 7,
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#7",
+                      "branch": "status-line-names-the-workflow",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:34Z"
+                    },
+                    {
+                      "number": 6,
+                      "title": "Say on the canvas when an utterance fails",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#6",
+                      "branch": "ekkicb71/a2u-5-say-on-the-canvas-when-an-utterance-fails",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:33Z"
+                    },
+                    {
+                      "number": 2639,
+                      "title": "fix(react): ship working basic catalog styles from the published package"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "github:notifications-10",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 8,
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#8",
+                      "branch": "synthesizer-effort-apart-from-planner",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:26Z"
+                    },
+                    {
+                      "number": 7,
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#7",
+                      "branch": "status-line-names-the-workflow",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:34Z"
+                    },
+                    {
+                      "number": 6,
+                      "title": "Say on the canvas when an utterance fails",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#6",
+                      "branch": "ekkicb71/a2u-5-say-on-the-canvas-when-an-utterance-fails",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:33Z"
+                    },
+                    {
+                      "number": 2639,
+                      "title": "fix(react): ship working basic catalog styles from the published package",
+                      "repository": "a2ui-project/a2ui"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "github:notifications-10",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 8,
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#8",
+                      "branch": "synthesizer-effort-apart-from-planner",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:26Z"
+                    },
+                    {
+                      "number": 7,
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#7",
+                      "branch": "status-line-names-the-workflow",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:34Z"
+                    },
+                    {
+                      "number": 6,
+                      "title": "Say on the canvas when an utterance fails",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#6",
+                      "branch": "ekkicb71/a2u-5-say-on-the-canvas-when-an-utterance-fails",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:33Z"
+                    },
+                    {
+                      "number": 2639,
+                      "title": "fix(react): ship working basic catalog styles from the published package",
+                      "repository": "a2ui-project/a2ui",
+                      "prRef": "a2ui-project/a2ui#2639",
+                      "branch": "fix/react-basic-catalog-styles"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "github:notifications-10",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 8,
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#8",
+                      "branch": "synthesizer-effort-apart-from-planner",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:26Z"
+                    },
+                    {
+                      "number": 7,
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#7",
+                      "branch": "status-line-names-the-workflow",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:34Z"
+                    },
+                    {
+                      "number": 6,
+                      "title": "Say on the canvas when an utterance fails",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#6",
+                      "branch": "ekkicb71/a2u-5-say-on-the-canvas-when-an-utterance-fails",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:33Z"
+                    },
+                    {
+                      "number": 2639,
+                      "title": "fix(react): ship working basic catalog styles from the published package",
+                      "repository": "a2ui-project/a2ui",
+                      "prRef": "a2ui-project/a2ui#2639",
+                      "branch": "fix/react-basic-catalog-styles",
+                      "reviewStatus": "Commented"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "github:notifications-10",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 8,
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#8",
+                      "branch": "synthesizer-effort-apart-from-planner",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:26Z"
+                    },
+                    {
+                      "number": 7,
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#7",
+                      "branch": "status-line-names-the-workflow",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:34Z"
+                    },
+                    {
+                      "number": 6,
+                      "title": "Say on the canvas when an utterance fails",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#6",
+                      "branch": "ekkicb71/a2u-5-say-on-the-canvas-when-an-utterance-fails",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:33Z"
+                    },
+                    {
+                      "number": 2639,
+                      "title": "fix(react): ship working basic catalog styles from the published package",
+                      "repository": "a2ui-project/a2ui",
+                      "prRef": "a2ui-project/a2ui#2639",
+                      "branch": "fix/react-basic-catalog-styles",
+                      "reviewStatus": "Commented",
+                      "updatedAt": "2026-09-12T15:15:21Z"
+                    },
+                    {
+                      "number": 2531
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "github:notifications-10",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 8,
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#8",
+                      "branch": "synthesizer-effort-apart-from-planner",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:26Z"
+                    },
+                    {
+                      "number": 7,
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#7",
+                      "branch": "status-line-names-the-workflow",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:34Z"
+                    },
+                    {
+                      "number": 6,
+                      "title": "Say on the canvas when an utterance fails",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#6",
+                      "branch": "ekkicb71/a2u-5-say-on-the-canvas-when-an-utterance-fails",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:33Z"
+                    },
+                    {
+                      "number": 2639,
+                      "title": "fix(react): ship working basic catalog styles from the published package",
+                      "repository": "a2ui-project/a2ui",
+                      "prRef": "a2ui-project/a2ui#2639",
+                      "branch": "fix/react-basic-catalog-styles",
+                      "reviewStatus": "Commented",
+                      "updatedAt": "2026-09-12T15:15:21Z"
+                    },
+                    {
+                      "number": 2531,
+                      "title": "fix(web_core): classify dynamic unions nested inside wider unions as DYNAMIC"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "github:notifications-10",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 8,
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#8",
+                      "branch": "synthesizer-effort-apart-from-planner",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:26Z"
+                    },
+                    {
+                      "number": 7,
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#7",
+                      "branch": "status-line-names-the-workflow",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:34Z"
+                    },
+                    {
+                      "number": 6,
+                      "title": "Say on the canvas when an utterance fails",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#6",
+                      "branch": "ekkicb71/a2u-5-say-on-the-canvas-when-an-utterance-fails",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:33Z"
+                    },
+                    {
+                      "number": 2639,
+                      "title": "fix(react): ship working basic catalog styles from the published package",
+                      "repository": "a2ui-project/a2ui",
+                      "prRef": "a2ui-project/a2ui#2639",
+                      "branch": "fix/react-basic-catalog-styles",
+                      "reviewStatus": "Commented",
+                      "updatedAt": "2026-09-12T15:15:21Z"
+                    },
+                    {
+                      "number": 2531,
+                      "title": "fix(web_core): classify dynamic unions nested inside wider unions as DYNAMIC",
+                      "repository": "a2ui-project/a2ui"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "github:notifications-10",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 8,
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#8",
+                      "branch": "synthesizer-effort-apart-from-planner",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:26Z"
+                    },
+                    {
+                      "number": 7,
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#7",
+                      "branch": "status-line-names-the-workflow",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:34Z"
+                    },
+                    {
+                      "number": 6,
+                      "title": "Say on the canvas when an utterance fails",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#6",
+                      "branch": "ekkicb71/a2u-5-say-on-the-canvas-when-an-utterance-fails",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:33Z"
+                    },
+                    {
+                      "number": 2639,
+                      "title": "fix(react): ship working basic catalog styles from the published package",
+                      "repository": "a2ui-project/a2ui",
+                      "prRef": "a2ui-project/a2ui#2639",
+                      "branch": "fix/react-basic-catalog-styles",
+                      "reviewStatus": "Commented",
+                      "updatedAt": "2026-09-12T15:15:21Z"
+                    },
+                    {
+                      "number": 2531,
+                      "title": "fix(web_core): classify dynamic unions nested inside wider unions as DYNAMIC",
+                      "repository": "a2ui-project/a2ui",
+                      "prRef": "a2ui-project/a2ui#2531"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "github:notifications-10",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 8,
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#8",
+                      "branch": "synthesizer-effort-apart-from-planner",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:26Z"
+                    },
+                    {
+                      "number": 7,
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#7",
+                      "branch": "status-line-names-the-workflow",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:34Z"
+                    },
+                    {
+                      "number": 6,
+                      "title": "Say on the canvas when an utterance fails",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#6",
+                      "branch": "ekkicb71/a2u-5-say-on-the-canvas-when-an-utterance-fails",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:33Z"
+                    },
+                    {
+                      "number": 2639,
+                      "title": "fix(react): ship working basic catalog styles from the published package",
+                      "repository": "a2ui-project/a2ui",
+                      "prRef": "a2ui-project/a2ui#2639",
+                      "branch": "fix/react-basic-catalog-styles",
+                      "reviewStatus": "Commented",
+                      "updatedAt": "2026-09-12T15:15:21Z"
+                    },
+                    {
+                      "number": 2531,
+                      "title": "fix(web_core): classify dynamic unions nested inside wider unions as DYNAMIC",
+                      "repository": "a2ui-project/a2ui",
+                      "prRef": "a2ui-project/a2ui#2531",
+                      "branch": "fix/web_core-nested-dynamic-union-scrape",
+                      "reviewStatus": "Changes requested"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "github:notifications-10",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 8,
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#8",
+                      "branch": "synthesizer-effort-apart-from-planner",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:26Z"
+                    },
+                    {
+                      "number": 7,
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#7",
+                      "branch": "status-line-names-the-workflow",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:34Z"
+                    },
+                    {
+                      "number": 6,
+                      "title": "Say on the canvas when an utterance fails",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#6",
+                      "branch": "ekkicb71/a2u-5-say-on-the-canvas-when-an-utterance-fails",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:33Z"
+                    },
+                    {
+                      "number": 2639,
+                      "title": "fix(react): ship working basic catalog styles from the published package",
+                      "repository": "a2ui-project/a2ui",
+                      "prRef": "a2ui-project/a2ui#2639",
+                      "branch": "fix/react-basic-catalog-styles",
+                      "reviewStatus": "Commented",
+                      "updatedAt": "2026-09-12T15:15:21Z"
+                    },
+                    {
+                      "number": 2531,
+                      "title": "fix(web_core): classify dynamic unions nested inside wider unions as DYNAMIC",
+                      "repository": "a2ui-project/a2ui",
+                      "prRef": "a2ui-project/a2ui#2531",
+                      "branch": "fix/web_core-nested-dynamic-union-scrape",
+                      "reviewStatus": "Changes requested",
+                      "updatedAt": "2026-09-14T01:08:02Z"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "github:notifications-10",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 8,
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#8",
+                      "branch": "synthesizer-effort-apart-from-planner",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:26Z"
+                    },
+                    {
+                      "number": 7,
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#7",
+                      "branch": "status-line-names-the-workflow",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:34Z"
+                    },
+                    {
+                      "number": 6,
+                      "title": "Say on the canvas when an utterance fails",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#6",
+                      "branch": "ekkicb71/a2u-5-say-on-the-canvas-when-an-utterance-fails",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:33Z"
+                    },
+                    {
+                      "number": 2639,
+                      "title": "fix(react): ship working basic catalog styles from the published package",
+                      "repository": "a2ui-project/a2ui",
+                      "prRef": "a2ui-project/a2ui#2639",
+                      "branch": "fix/react-basic-catalog-styles",
+                      "reviewStatus": "Commented",
+                      "updatedAt": "2026-09-12T15:15:21Z"
+                    },
+                    {
+                      "number": 2531,
+                      "title": "fix(web_core): classify dynamic unions nested inside wider unions as DYNAMIC",
+                      "repository": "a2ui-project/a2ui",
+                      "prRef": "a2ui-project/a2ui#2531",
+                      "branch": "fix/web_core-nested-dynamic-union-scrape",
+                      "reviewStatus": "Changes requested",
+                      "updatedAt": "2026-09-14T01:08:02Z"
+                    },
+                    {
+                      "number": 2529
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "github:notifications-10",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 8,
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#8",
+                      "branch": "synthesizer-effort-apart-from-planner",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:26Z"
+                    },
+                    {
+                      "number": 7,
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#7",
+                      "branch": "status-line-names-the-workflow",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:34Z"
+                    },
+                    {
+                      "number": 6,
+                      "title": "Say on the canvas when an utterance fails",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#6",
+                      "branch": "ekkicb71/a2u-5-say-on-the-canvas-when-an-utterance-fails",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:33Z"
+                    },
+                    {
+                      "number": 2639,
+                      "title": "fix(react): ship working basic catalog styles from the published package",
+                      "repository": "a2ui-project/a2ui",
+                      "prRef": "a2ui-project/a2ui#2639",
+                      "branch": "fix/react-basic-catalog-styles",
+                      "reviewStatus": "Commented",
+                      "updatedAt": "2026-09-12T15:15:21Z"
+                    },
+                    {
+                      "number": 2531,
+                      "title": "fix(web_core): classify dynamic unions nested inside wider unions as DYNAMIC",
+                      "repository": "a2ui-project/a2ui",
+                      "prRef": "a2ui-project/a2ui#2531",
+                      "branch": "fix/web_core-nested-dynamic-union-scrape",
+                      "reviewStatus": "Changes requested",
+                      "updatedAt": "2026-09-14T01:08:02Z"
+                    },
+                    {
+                      "number": 2529,
+                      "title": "fix(web_core): make the setter for a binding-only prop callable",
+                      "repository": "a2ui-project/a2ui"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "github:notifications-10",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 8,
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#8",
+                      "branch": "synthesizer-effort-apart-from-planner",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:26Z"
+                    },
+                    {
+                      "number": 7,
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#7",
+                      "branch": "status-line-names-the-workflow",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:34Z"
+                    },
+                    {
+                      "number": 6,
+                      "title": "Say on the canvas when an utterance fails",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#6",
+                      "branch": "ekkicb71/a2u-5-say-on-the-canvas-when-an-utterance-fails",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:33Z"
+                    },
+                    {
+                      "number": 2639,
+                      "title": "fix(react): ship working basic catalog styles from the published package",
+                      "repository": "a2ui-project/a2ui",
+                      "prRef": "a2ui-project/a2ui#2639",
+                      "branch": "fix/react-basic-catalog-styles",
+                      "reviewStatus": "Commented",
+                      "updatedAt": "2026-09-12T15:15:21Z"
+                    },
+                    {
+                      "number": 2531,
+                      "title": "fix(web_core): classify dynamic unions nested inside wider unions as DYNAMIC",
+                      "repository": "a2ui-project/a2ui",
+                      "prRef": "a2ui-project/a2ui#2531",
+                      "branch": "fix/web_core-nested-dynamic-union-scrape",
+                      "reviewStatus": "Changes requested",
+                      "updatedAt": "2026-09-14T01:08:02Z"
+                    },
+                    {
+                      "number": 2529,
+                      "title": "fix(web_core): make the setter for a binding-only prop callable",
+                      "repository": "a2ui-project/a2ui",
+                      "prRef": "a2ui-project/a2ui#2529"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "github:notifications-10",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 8,
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#8",
+                      "branch": "synthesizer-effort-apart-from-planner",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:26Z"
+                    },
+                    {
+                      "number": 7,
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#7",
+                      "branch": "status-line-names-the-workflow",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:34Z"
+                    },
+                    {
+                      "number": 6,
+                      "title": "Say on the canvas when an utterance fails",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#6",
+                      "branch": "ekkicb71/a2u-5-say-on-the-canvas-when-an-utterance-fails",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:33Z"
+                    },
+                    {
+                      "number": 2639,
+                      "title": "fix(react): ship working basic catalog styles from the published package",
+                      "repository": "a2ui-project/a2ui",
+                      "prRef": "a2ui-project/a2ui#2639",
+                      "branch": "fix/react-basic-catalog-styles",
+                      "reviewStatus": "Commented",
+                      "updatedAt": "2026-09-12T15:15:21Z"
+                    },
+                    {
+                      "number": 2531,
+                      "title": "fix(web_core): classify dynamic unions nested inside wider unions as DYNAMIC",
+                      "repository": "a2ui-project/a2ui",
+                      "prRef": "a2ui-project/a2ui#2531",
+                      "branch": "fix/web_core-nested-dynamic-union-scrape",
+                      "reviewStatus": "Changes requested",
+                      "updatedAt": "2026-09-14T01:08:02Z"
+                    },
+                    {
+                      "number": 2529,
+                      "title": "fix(web_core): make the setter for a binding-only prop callable",
+                      "repository": "a2ui-project/a2ui",
+                      "prRef": "a2ui-project/a2ui#2529",
+                      "branch": "fix/web_core-binding-only-prop-setter",
+                      "reviewStatus": "Changes requested"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "github:notifications-10",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 8,
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#8",
+                      "branch": "synthesizer-effort-apart-from-planner",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:26Z"
+                    },
+                    {
+                      "number": 7,
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#7",
+                      "branch": "status-line-names-the-workflow",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:34Z"
+                    },
+                    {
+                      "number": 6,
+                      "title": "Say on the canvas when an utterance fails",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#6",
+                      "branch": "ekkicb71/a2u-5-say-on-the-canvas-when-an-utterance-fails",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:33Z"
+                    },
+                    {
+                      "number": 2639,
+                      "title": "fix(react): ship working basic catalog styles from the published package",
+                      "repository": "a2ui-project/a2ui",
+                      "prRef": "a2ui-project/a2ui#2639",
+                      "branch": "fix/react-basic-catalog-styles",
+                      "reviewStatus": "Commented",
+                      "updatedAt": "2026-09-12T15:15:21Z"
+                    },
+                    {
+                      "number": 2531,
+                      "title": "fix(web_core): classify dynamic unions nested inside wider unions as DYNAMIC",
+                      "repository": "a2ui-project/a2ui",
+                      "prRef": "a2ui-project/a2ui#2531",
+                      "branch": "fix/web_core-nested-dynamic-union-scrape",
+                      "reviewStatus": "Changes requested",
+                      "updatedAt": "2026-09-14T01:08:02Z"
+                    },
+                    {
+                      "number": 2529,
+                      "title": "fix(web_core): make the setter for a binding-only prop callable",
+                      "repository": "a2ui-project/a2ui",
+                      "prRef": "a2ui-project/a2ui#2529",
+                      "branch": "fix/web_core-binding-only-prop-setter",
+                      "reviewStatus": "Changes requested",
+                      "updatedAt": "2026-09-14T01:08:00Z"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "github:notifications-10",
+                "path": "/",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 8,
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#8",
+                      "branch": "synthesizer-effort-apart-from-planner",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:26Z"
+                    },
+                    {
+                      "number": 7,
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#7",
+                      "branch": "status-line-names-the-workflow",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:34Z"
+                    },
+                    {
+                      "number": 6,
+                      "title": "Say on the canvas when an utterance fails",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#6",
+                      "branch": "ekkicb71/a2u-5-say-on-the-canvas-when-an-utterance-fails",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:33Z"
+                    },
+                    {
+                      "number": 2639,
+                      "title": "fix(react): ship working basic catalog styles from the published package",
+                      "repository": "a2ui-project/a2ui",
+                      "prRef": "a2ui-project/a2ui#2639",
+                      "branch": "fix/react-basic-catalog-styles",
+                      "reviewStatus": "Commented",
+                      "updatedAt": "2026-09-12T15:15:21Z"
+                    },
+                    {
+                      "number": 2531,
+                      "title": "fix(web_core): classify dynamic unions nested inside wider unions as DYNAMIC",
+                      "repository": "a2ui-project/a2ui",
+                      "prRef": "a2ui-project/a2ui#2531",
+                      "branch": "fix/web_core-nested-dynamic-union-scrape",
+                      "reviewStatus": "Changes requested",
+                      "updatedAt": "2026-09-14T01:08:02Z"
+                    },
+                    {
+                      "number": 2529,
+                      "title": "fix(web_core): make the setter for a binding-only prop callable",
+                      "repository": "a2ui-project/a2ui",
+                      "prRef": "a2ui-project/a2ui#2529",
+                      "branch": "fix/web_core-binding-only-prop-setter",
+                      "reviewStatus": "Changes requested",
+                      "updatedAt": "2026-09-14T01:08:00Z"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "normal",
+                    "padding": "normal",
+                    "children": [
+                      "ph",
+                      "list"
+                    ]
+                  },
+                  {
+                    "id": "ph",
+                    "component": "PageHeader",
+                    "aria-label": "Open Pull Requests Header",
+                    "children": [
+                      "ph-ta"
+                    ]
+                  },
+                  {
+                    "id": "ph-ta",
+                    "component": "PageHeader.TitleArea",
+                    "variant": "medium",
+                    "children": [
+                      "ph-lv",
+                      "ph-title",
+                      "ph-tv"
+                    ]
+                  },
+                  {
+                    "id": "ph-lv",
+                    "component": "PageHeader.LeadingVisual",
+                    "children": [
+                      "ph-icon"
+                    ]
+                  },
+                  {
+                    "id": "ph-icon",
+                    "component": "Icon",
+                    "name": "git-pull-request",
+                    "fill": "open",
+                    "accessibility": {
+                      "label": "Open Pull Requests"
+                    }
+                  },
+                  {
+                    "id": "ph-title",
+                    "component": "PageHeader.Title",
+                    "text": "My Open Pull Requests",
+                    "as": "h1"
+                  },
+                  {
+                    "id": "ph-tv",
+                    "component": "PageHeader.TrailingVisual",
+                    "children": [
+                      "ph-count"
+                    ]
+                  },
+                  {
+                    "id": "ph-count",
+                    "component": "CounterLabel",
+                    "count": 6,
+                    "variant": "primary"
+                  },
+                  {
+                    "id": "list",
+                    "component": "ActionList",
+                    "role": "listbox",
+                    "showDividers": true,
+                    "children": {
+                      "componentId": "pr-item",
+                      "path": "/prs"
+                    }
+                  },
+                  {
+                    "id": "pr-item",
+                    "component": "ActionList.Item",
+                    "children": [
+                      "item-lv",
+                      "item-content"
+                    ],
+                    "action": {
+                      "event": {
+                        "name": "open-pull-request",
+                        "context": {
+                          "repository": {
+                            "path": "repository"
+                          },
+                          "number": {
+                            "path": "number"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "item-lv",
+                    "component": "ActionList.LeadingVisual",
+                    "children": [
+                      "item-icon"
+                    ]
+                  },
+                  {
+                    "id": "item-icon",
+                    "component": "Icon",
+                    "name": "git-pull-request",
+                    "fill": "open"
+                  },
+                  {
+                    "id": "item-content",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "condensed",
+                    "children": [
+                      "item-title",
+                      "item-meta"
+                    ]
+                  },
+                  {
+                    "id": "item-title",
+                    "component": "Text",
+                    "text": {
+                      "path": "title"
+                    },
+                    "weight": "semibold"
+                  },
+                  {
+                    "id": "item-meta",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "gap": "condensed",
+                    "align": "center",
+                    "wrap": "wrap",
+                    "children": [
+                      "meta-ref",
+                      "meta-branch",
+                      "meta-review",
+                      "meta-sep",
+                      "meta-updated-label",
+                      "meta-time"
+                    ]
+                  },
+                  {
+                    "id": "meta-ref",
+                    "component": "Text",
+                    "text": {
+                      "path": "prRef"
+                    },
+                    "size": "small",
+                    "weight": "medium"
+                  },
+                  {
+                    "id": "meta-branch",
+                    "component": "BranchName",
+                    "text": {
+                      "path": "branch"
+                    },
+                    "as": "span"
+                  },
+                  {
+                    "id": "meta-review",
+                    "component": "Label",
+                    "text": {
+                      "path": "reviewStatus"
+                    },
+                    "size": "small",
+                    "variant": "secondary"
+                  },
+                  {
+                    "id": "meta-sep",
+                    "component": "Text",
+                    "text": "•",
+                    "size": "small"
+                  },
+                  {
+                    "id": "meta-updated-label",
+                    "component": "Text",
+                    "text": "Updated:",
+                    "size": "small"
+                  },
+                  {
+                    "id": "meta-time",
+                    "component": "RelativeTime",
+                    "datetime": {
+                      "path": "updatedAt"
+                    },
+                    "format": "datetime",
+                    "month": "short",
+                    "day": "numeric",
+                    "year": "numeric",
+                    "hour": "numeric",
+                    "minute": "2-digit",
+                    "second": "2-digit"
+                  }
+                ],
+                "surfaceId": "github:notifications-10"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "github",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 7671,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "surfaceId": "shell:main",
+                "components": [
+                  {
+                    "id": "root",
+                    "component": "Column",
+                    "children": [
+                      "overview",
+                      "sources"
+                    ]
+                  },
+                  {
+                    "id": "overview",
+                    "component": "Slot",
+                    "source": "shell",
+                    "state": "collapsed",
+                    "label": "Synthesis",
+                    "content": "shell",
+                    "collapse": {
+                      "cause": "few",
+                      "answered": [
+                        "GitHub"
+                      ]
+                    }
+                  },
+                  {
+                    "id": "sources",
+                    "component": "Row",
+                    "children": [
+                      "attribution-calendar",
+                      "attribution-gmail",
+                      "attribution-github",
+                      "attribution-linear"
+                    ]
+                  },
+                  {
+                    "id": "attribution-calendar",
+                    "component": "Attribution",
+                    "displayName": "Google Calendar",
+                    "appId": "calendar",
+                    "child": "calendar",
+                    "weight": 1
+                  },
+                  {
+                    "id": "calendar",
+                    "component": "Slot",
+                    "source": "calendar",
+                    "weight": 1,
+                    "state": "failed",
+                    "label": "Google Calendar",
+                    "failure": {
+                      "cause": "unreachable"
+                    }
+                  },
+                  {
+                    "id": "attribution-gmail",
+                    "component": "Attribution",
+                    "displayName": "Gmail",
+                    "appId": "gmail",
+                    "child": "gmail",
+                    "weight": 1
+                  },
+                  {
+                    "id": "gmail",
+                    "component": "Slot",
+                    "source": "gmail",
+                    "weight": 1,
+                    "state": "failed",
+                    "label": "Gmail",
+                    "failure": {
+                      "cause": "vendor",
+                      "message": "Gmail is not responding right now."
+                    }
+                  },
+                  {
+                    "id": "attribution-github",
+                    "component": "Attribution",
+                    "displayName": "GitHub",
+                    "appId": "github",
+                    "child": "github",
+                    "weight": 1
+                  },
+                  {
+                    "id": "github",
+                    "component": "Slot",
+                    "source": "github",
+                    "weight": 1,
+                    "state": "pending",
+                    "label": "GitHub"
+                  },
+                  {
+                    "id": "attribution-linear",
+                    "component": "Attribution",
+                    "displayName": "Linear",
+                    "appId": "linear",
+                    "child": "linear",
+                    "weight": 1
+                  },
+                  {
+                    "id": "linear",
+                    "component": "Slot",
+                    "source": "linear",
+                    "weight": 1,
+                    "state": "failed",
+                    "label": "Linear",
+                    "failure": {
+                      "cause": "unreachable"
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "shell",
+            "role": "shell"
+          }
+        }
+      ],
+      "outcome": "completed",
+      "durationMs": 7671
+    }
+  ]
+}

@@ -8,8 +8,10 @@ import type {A2uiMessage} from '@a2ui/web_core/v0_9';
 import {createCanvasStore} from './canvasStore';
 import type {TurnHandle} from './turn/canvasTurn';
 import type {PaintCause} from './timeline/paint';
-import {replayBeatOnCanvas} from './replayBeat';
-import type {BeatFixture} from '../beats/beatFixtures';
+import {replayBeatOnCanvas, type ReplaySides} from './replayBeat';
+import type {BeatFixture, BeatTurn} from '../beats/beatFixtures';
+import type {A2AMessageSender} from '../a2a/client';
+import {buildOperationMessageParams, extractA2uiMessagesFromEvent} from '../a2a/messages';
 
 const msg = (id: number) => ({version: 'v0.9', marker: id}) as unknown as A2uiMessage;
 
@@ -181,5 +183,76 @@ describe('replayBeatOnCanvas', () => {
     await replayBeatOnCanvas(multi, {runner, store, paced: false});
     expect(runner.applied).toEqual([[msg(1)], [msg(2)]]);
     expect(runner.causes).toHaveLength(2);
+  });
+
+  describe('a press beside the turn (task 8.6)', () => {
+    const include = {kind: 'include' as const, sources: ['gmail']};
+    const pressTurn = (atMs: number, offsets: number[]): BeatTurn => ({
+      taskId: 'p1',
+      kind: 'press',
+      prompt: '',
+      action: null,
+      operation: include,
+      atMs,
+      outcome: 'completed',
+      durationMs: offsets.at(-1) ?? 0,
+      batches: offsets.map((offsetMs, i) => ({offsetMs, messages: [msg(100 + i)], texts: []})),
+    });
+
+    /** Sides whose press reads its answer from the attached sender, as the wiring's does. */
+    function sides(log: A2uiMessage[][]) {
+      let sender: A2AMessageSender | null = null;
+      const pressed: unknown[] = [];
+      const value: ReplaySides = {
+        attachReplay: attached => {
+          sender = attached;
+          return () => {
+            sender = null;
+          };
+        },
+        press: async operation => {
+          pressed.push(operation);
+          for await (const event of sender!.sendMessageStream(
+            buildOperationMessageParams(operation),
+          )) {
+            const messages = extractA2uiMessagesFromEvent(event);
+            if (messages.length) log.push(messages);
+          }
+        },
+      };
+      return {value, pressed, detached: () => sender === null};
+    }
+
+    it('fires through the press handler at its time, its batches on the turn’s clock', async () => {
+      const store = createCanvasStore();
+      const runner = mockRunner(store);
+      const {value, pressed, detached} = sides(runner.applied);
+      const beat = fixture();
+      beat.turns = [...beat.turns, pressTurn(50, [0, 100])];
+      await replayBeatOnCanvas(beat, {runner, store, paced: false, sides: value});
+      // The press at 50 answers at 50 and 150: between the turn's batches at 0 and 100, then after.
+      expect(runner.applied).toEqual([[msg(1)], [msg(100)], [msg(2)], [msg(101)]]);
+      expect(pressed).toEqual([include]);
+      expect(detached()).toBe(true);
+    });
+
+    it('a beat carrying one is refused without the wiring', async () => {
+      const store = createCanvasStore();
+      const beat = fixture();
+      beat.turns = [...beat.turns, pressTurn(0, [0])];
+      await expect(
+        replayBeatOnCanvas(beat, {runner: mockRunner(store), store, paced: false}),
+      ).rejects.toThrow(/beside its turns/);
+    });
+
+    it('a press the handler never sends leaves nothing waiting', async () => {
+      const store = createCanvasStore();
+      const runner = mockRunner(store);
+      const refusing: ReplaySides = {attachReplay: () => () => {}, press: async () => {}};
+      const beat = fixture();
+      beat.turns = [...beat.turns, pressTurn(300, [0, 10])];
+      await replayBeatOnCanvas(beat, {runner, store, paced: false, sides: refusing});
+      expect(runner.applied).toEqual([[msg(1)], [msg(2)]]);
+    });
   });
 });

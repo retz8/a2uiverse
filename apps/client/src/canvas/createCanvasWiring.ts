@@ -26,7 +26,7 @@ import type {
 import type {ReactComponentImplementation} from '@a2ui/react/v0_9';
 import {OPERATORS, RELATIONS, type PressHandler, type ShellAction} from '@a2uiverse/shell-catalog';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
-import type {A2ASenderOptions} from '../a2a/client';
+import type {A2AMessageSender, A2ASenderOptions} from '../a2a/client';
 import {createSenderResolver, sendAndApply} from '../a2a/client';
 import type {ForkContext} from '../a2a/messages';
 import {
@@ -73,6 +73,11 @@ export interface CanvasWiring {
   onShellAction(action: ShellAction): void;
   /** The reader's press on the composition: sent on a stream of its own beside the turn. */
   press(operation: CompositionOperation): Promise<void>;
+  /**
+   * A beat replay (task-8.6 decision 2): every stream beside the turn — a press, a failure report,
+   * a shell action's report — is sent to `sender` instead of the orchestrator until detached.
+   */
+  attachReplay(sender: A2AMessageSender): () => void;
   /** What the shell catalog takes from this canvas, bound through the host relay while mounted. */
   host: ShellHost;
   /** What the vendor components' markers register in: the reverse index navigation lands by. */
@@ -92,6 +97,15 @@ export function createCanvasWiring({
   const store = createCanvasStore();
   const session = createA2ASession();
   const getSender = createSenderResolver({serverUrl, client});
+  /** A beat replay's transport, while one is attached: where the streams beside the turn go. */
+  let replaySender: A2AMessageSender | null = null;
+  const getSideSender = () => (replaySender ? Promise.resolve(replaySender) : getSender());
+  const attachReplay = (sender: A2AMessageSender) => {
+    replaySender = sender;
+    return () => {
+      if (replaySender === sender) replaySender = null;
+    };
+  };
   const supportedCatalogIds = catalogs.map(c => c.id);
   const processor = new MessageProcessor(catalogs, action => actionHandler(action));
   // The evaluator dispatches to the shell catalog's operators; the synthesis surface is painted
@@ -228,7 +242,7 @@ export function createCanvasWiring({
     const stream = runner.beginSideStream();
     let answered = false;
     try {
-      const sender = await getSender();
+      const sender = await getSideSender();
       await sendAndApply(
         sender,
         buildOperationMessageParams(operation, session.get(), supportedCatalogIds),
@@ -285,7 +299,7 @@ export function createCanvasWiring({
       return;
     const stream = runner.beginSideStream();
     try {
-      const sender = await getSender();
+      const sender = await getSideSender();
       await sendAndApply(
         sender,
         buildErrorMessageParams(
@@ -340,7 +354,7 @@ export function createCanvasWiring({
     // failure report's repaint does rather than being dropped.
     const stream = runner.beginSideStream();
     try {
-      const sender = await getSender();
+      const sender = await getSideSender();
       await sendAndApply(
         sender,
         buildActionMessageParams(
@@ -504,6 +518,7 @@ export function createCanvasWiring({
     attachParked,
     onShellAction,
     press,
+    attachReplay,
     host: {onShellAction, onNavigate: navigator.navigate, appDisplayName, onPress},
     bindingIndex,
   };

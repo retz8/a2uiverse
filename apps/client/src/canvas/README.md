@@ -176,6 +176,13 @@ by the sdk's example, then an in-place reorder its keyed refs survive). Recorded
 (`recordings/beats/*.json`, addressed by number) are captured through the composing hub over
 live MCP: `1`–`3` are one-slot compositions of a single vendor, `4` is the three-source fan-out.
 
+A beat's presses replay as streams beside the turn, on the turn's own clock: each fires at its
+recorded time through the wiring's press handler — the one the buttons call — and is answered from
+the beat by `replayTransport.ts`, attached through `attachReplay`, as is the hub's answer to a failure
+report the canvas sends (task 8.6). Phase 8's late-arrival and failure cases are synthetic beats in
+`src/beats/lateFailureBeats.ts`, and recorded beats `10`–`18` over the deterministic roster through
+the AgentsPool's fault map.
+
 The two families do different jobs. A recording is evidence of what real agents produce; a
 synthetic beat constructs a state — a mid-turn failure, a promoted question — that is unreliable
 to catch live and would make a tracked fixture depend on a race.
@@ -188,7 +195,8 @@ createCanvasWiring.ts   the runtime graph, built once: store, A2A session/sender
                         live processor, turn runner, dispatch handlers
 canvasStore.ts          external store (useSyncExternalStore): stage/overlay occupancy,
                         in-flight status, the paint ring, head/viewing
-replayBeat.ts           drives a recorded beat through the turn runner
+replayBeat.ts           drives a recorded beat through the turn runner, its presses beside it
+replayTransport.ts      answers a replayed beat's streams beside the turn from the beat
 synthesis/
   synthesisSession.ts   a composition's synthesis state: payload, subscriptions, the user's
                         sort choices by path; writes the evaluated model into

@@ -1,5 +1,5 @@
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
-import type {CompositionStamp, SynthesisPayload} from '@a2uiverse/sdk';
+import type {CompositionOperation, CompositionStamp, SynthesisPayload} from '@a2uiverse/sdk';
 
 /**
  * One streamed batch as the client received it: the A2UI messages and the agent prose carried
@@ -20,15 +20,39 @@ export interface BeatBatch {
   synthesis?: SynthesisPayload;
 }
 
-/** What one prompt produced. `outcome` is `completed` for a paint, `apology`/`unavailable` otherwise. */
+/**
+ * What one prompt produced. `outcome` is `completed` for a paint, `apology`/`unavailable` otherwise.
+ *
+ * A `press` or a `failure-report` is a stream beside the turn (task-8.6 decision 1): the reader's
+ * Retry, Include or Try again, or the hub's answer to the client's report of a fragment it could
+ * not draw. It belongs to the utterance or action before it, and `atMs` says when it was sent,
+ * measured from the start of that turn; its batches' offsets are measured from its own send.
+ */
 export interface BeatTurn {
   taskId: string | null;
-  kind: 'utterance' | 'surface-action';
+  kind: 'utterance' | 'surface-action' | 'press' | 'failure-report';
   prompt: string;
   action: Record<string, unknown> | null;
+  /** A press's composition operation. */
+  operation?: CompositionOperation;
+  /** A stream beside the turn: when it was sent, from the start of the turn it runs beside. */
+  atMs?: number;
   batches: BeatBatch[];
   outcome: string;
   durationMs: number;
+}
+
+/** A press or a failure report's answer: a stream beside the turn before it. */
+export const isBesideTurn = (turn: BeatTurn) =>
+  turn.kind === 'press' || turn.kind === 'failure-report';
+
+/**
+ * The orchestrator's deadlines a beat was recorded under (task-8.6 decision 4), from its
+ * environment: a beat that reaches the hard cap is recorded under a short one.
+ */
+export interface BeatDeadlines {
+  softDeadlineSeconds: number;
+  hardCapSeconds: number;
 }
 
 /**
@@ -48,6 +72,10 @@ export interface BeatFixture {
   contextId: string;
   /** Set when the beat was recorded as a follow-up inside another beat's conversation. */
   chainedFrom: string | null;
+  /** Set when the recorder started the orchestrator itself, so it knows them. */
+  deadlines?: BeatDeadlines;
+  /** The AgentsPool's fault map the beat was recorded under (`A2UIVERSE_FAULTS`), when any. */
+  faults?: Record<string, unknown>;
   turns: BeatTurn[];
 }
 

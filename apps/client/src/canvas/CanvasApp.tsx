@@ -6,7 +6,8 @@
  * handler live in `createCanvasWiring`, built once at mount.
  *
  * `?beat=N[,M…]` replays recorded beats in sequence (paced by the recorded offsets; `&instant`
- * collapses the waits) — the zero-LLM verification path.
+ * collapses the waits) — the zero-LLM verification path. A beat's presses fire through the same
+ * handler the buttons call, answered by the beat's own recording, never the orchestrator.
  */
 import {useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore} from 'react';
 import {Button, Kbd} from '@radix-ui/themes';
@@ -139,6 +140,7 @@ export function CanvasApp({serverUrl, client, catalogs, hostRelay}: CanvasAppPro
           runner: wiring.runner,
           store: wiring.store,
           paced: !beatParams.instant,
+          sides: wiring,
         });
       }
       setReplayDone(true);
