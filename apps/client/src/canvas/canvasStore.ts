@@ -6,6 +6,8 @@
  * the replay driver, the A2A callbacks), which is why it is a closure module and not
  * component state.
  */
+import type {CompositionOperation} from '@a2uiverse/sdk';
+import type {MergeFacts} from '@a2uiverse/shell-catalog';
 import type {
   PaintCause,
   PaintEntry,
@@ -67,6 +69,26 @@ export interface Question {
 /** A slot state the orchestrator painted on the shell surface; filled is never on the wire. */
 export type PaintedSlotState = 'pending' | 'failed' | 'collapsed';
 
+/**
+ * What the orchestrator painted on the merged view's slot (task-8.4 decision 13): the merge's own
+ * source set once a view has landed, and the facts the press lines are drawn from.
+ */
+export interface PaintedMerge extends MergeFacts {
+  merged?: string[];
+}
+
+/**
+ * A press the reader made (task-8.5 decision 8): `sent` from the click until the paint catches up,
+ * `running` while its stream stays open after that, `unreached` when it never reached the
+ * orchestrator, `lost` when its stream broke after it had answered. The last two stand until the
+ * next press of the same kind or the composition's retirement.
+ */
+export interface Press {
+  key: number;
+  operation: CompositionOperation;
+  status: 'sent' | 'running' | 'unreached' | 'lost';
+}
+
 /** A notice as the stack renders it: ordered, and resolved against the roster. */
 export interface RenderedNotice extends Notice {
   /** The source's display name; null for the shell, which speaks unlabeled. */
@@ -125,15 +147,28 @@ export interface CanvasState {
   /**
    * Each slot's state as the shell paint last said it, by source: what the progress line reads
    * for a source that failed. Absent when the paint names none — pending until placed, then filled.
+   * The composition's, like the roster: kept across the actions inside it, cleared when it retires.
    */
   slotStates: ReadonlyMap<string, PaintedSlotState>;
+  /** The merged view's painted facts, as the last shell paint carrying its slot said them. */
+  merge: PaintedMerge | null;
+  /** The presses made on the composition on stage, until the paint catches up or they end. */
+  presses: readonly Press[];
+  /**
+   * A newer question was sent and the composition on stage is being replaced: no press can be
+   * made on it, and the progress line belongs to the question on its way.
+   */
+  superseded: boolean;
   /**
    * The notice stack: one entry per source that has spoken this turn, plus at most one for the
    * shell. Plural because a fan-out has several voices, and buffered per source because their
    * chunks interleave on the wire.
    */
   notices: readonly Notice[];
-  /** The turn's sources in slot order, from the shell paint; empty outside a composed turn. */
+  /**
+   * The composition's sources in slot order, from the shell paint; empty outside a composed turn.
+   * Kept across the actions inside the composition, cleared when it retires (task-8.5 decision 13).
+   */
   roster: readonly RosterEntry[];
   /**
    * What each source said this turn, by app id — kept for the whole turn, where `notices` is
@@ -168,7 +203,19 @@ export interface CanvasStore {
   setQuestion(question: Question): void;
   /** Merge the slot states a shell paint carried; `null` clears a source's. */
   mergeSlotStates(states: ReadonlyMap<string, PaintedSlotState | null>): void;
-  clearSlotStates(): void;
+  /** The merged view's facts, from a shell paint carrying its slot. */
+  setMerge(merge: PaintedMerge | null): void;
+  /**
+   * A press made: recorded `sent`, replacing what an earlier press of the same kind — for Retry,
+   * of the same source — left standing. Returns its key.
+   */
+  addPress(operation: CompositionOperation): number;
+  updatePress(key: number, status: Press['status']): void;
+  removePress(key: number): void;
+  /** A newer question was sent: the composition on stage is being replaced. */
+  supersede(): void;
+  /** The composition retired: its roster, slot states, merge facts and presses go with it. */
+  resetComposition(): void;
   reportError(text: string): void;
   setStage(stageId: string | null): void;
   setOverlay(overlay: OverlayState | null): void;
@@ -216,6 +263,8 @@ export interface CanvasStore {
   placeFragment(source: string, fragment: PlacedFragment): void;
   /** The composition left the canvas: forget where its fragments were. */
   clearPlacement(): void;
+  /** A source's fragment left its slot — its slot failed (task-8.5 decision 3). */
+  unplace(source: string): void;
   /** A fragment asks for attention; the shell grants it. */
   promoteSlot(source: string): void;
   /** Answered, failed, or gone: the slot drops back to the rest of the canvas. */
@@ -285,6 +334,9 @@ export function createCanvasStore(): CanvasStore {
     error: null,
     question: null,
     slotStates: new Map(),
+    merge: null,
+    presses: [],
+    superseded: false,
     notices: [],
     roster: [],
     prose: new Map(),
@@ -294,6 +346,7 @@ export function createCanvasStore(): CanvasStore {
   };
   let noticeKey = 0;
   let paintId = 0;
+  let pressKey = 0;
   const listeners = new Set<() => void>();
 
   const set = (patch: Partial<CanvasState>) => {
@@ -325,9 +378,37 @@ export function createCanvasStore(): CanvasStore {
       }
       set({slotStates: next});
     },
-    clearSlotStates: () => {
-      if (state.slotStates.size) set({slotStates: new Map()});
+    setMerge: merge => set({merge}),
+    addPress: operation => {
+      const key = ++pressKey;
+      const same = (press: Press) =>
+        press.operation.kind === operation.kind &&
+        (operation.kind !== 'retry' || press.operation.sources[0] === operation.sources[0]);
+      set({
+        presses: [
+          ...state.presses.filter(
+            press => !(same(press) && (press.status === 'unreached' || press.status === 'lost')),
+          ),
+          {key, operation, status: 'sent'},
+        ],
+      });
+      return key;
     },
+    updatePress: (key, status) => {
+      if (state.presses.some(press => press.key === key && press.status !== status))
+        set({
+          presses: state.presses.map(press => (press.key === key ? {...press, status} : press)),
+        });
+    },
+    removePress: key => {
+      if (state.presses.some(press => press.key === key))
+        set({presses: state.presses.filter(press => press.key !== key)});
+    },
+    supersede: () => {
+      if (!state.superseded) set({superseded: true});
+    },
+    resetComposition: () =>
+      set({roster: [], slotStates: new Map(), merge: null, presses: [], superseded: false}),
     reportError: text => set({error: text}),
     setStage: stageId => set({stageId}),
     setOverlay: overlay => set({overlay}),
@@ -402,6 +483,12 @@ export function createCanvasStore(): CanvasStore {
       set({placement: new Map(state.placement).set(source, fragment)}),
     clearPlacement: () => {
       if (state.placement.size) set({placement: new Map()});
+    },
+    unplace: source => {
+      if (!state.placement.has(source)) return;
+      const placement = new Map(state.placement);
+      placement.delete(source);
+      set({placement});
     },
     promoteSlot: source => {
       if (!state.promoted.has(source)) set({promoted: new Set(state.promoted).add(source)});

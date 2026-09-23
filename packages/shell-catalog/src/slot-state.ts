@@ -6,8 +6,11 @@
  */
 import {createContext} from 'react';
 
-/** A source's slot as the host sees it: the three painted states, plus `filled` once its content mounted. */
-export type SourceSlotState = 'pending' | 'filled' | 'failed' | 'collapsed';
+/**
+ * A source's slot as the host sees it: the three painted states, `filled` once its content mounted,
+ * and `late` once it arrived after the merge and waits for Include (task-8.5 decision 12).
+ */
+export type SourceSlotState = 'pending' | 'filled' | 'failed' | 'collapsed' | 'late';
 
 /** What the host knows about a source's slot; `undefined` when it knows nothing, which reads as filled. */
 export type SlotStateResolver = (source: string) => SourceSlotState | undefined;

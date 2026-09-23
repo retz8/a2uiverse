@@ -3,7 +3,7 @@
  * overlay slot for question paints, last-intent-wins cancel, and the timeline entry lifecycle —
  * an entry appended the moment a paint lands, its snapshot filled at serialize-on-swap.
  */
-import {describe, it, expect} from 'vitest';
+import {describe, it, expect, vi} from 'vitest';
 import {MessageProcessor} from '@a2ui/web_core/v0_9';
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
 import {CATALOG, CATALOG_ID} from 'github-catalog';
@@ -834,7 +834,7 @@ describe('composed turns (the hub stamps its events)', () => {
     expect(processor.model.getSurface('github:a')).toBeUndefined();
   });
 
-  it('a bare shell repaint flips a slot without tearing the canvas down', () => {
+  it('a bare shell repaint flips a slot without tearing the canvas down, the failed fragment taken off it', () => {
     const {processor, store, runner} = composedSetup();
     const turn = runner.begin(utterance('compose'));
     turn.apply(shellPaint(['github']), SHELL);
@@ -857,11 +857,10 @@ describe('composed turns (the hub stamps its events)', () => {
     flip.end();
 
     expect(store.getState().stageId).toBe('shell:main');
-    expect(store.getState().placement.get('github')).toEqual({
-      surfaceId: 'github:prs',
-      source: 'github',
-    });
-    expect(processor.model.getSurface('github:prs')).toBeDefined();
+    // A failed source's data shows nowhere on the canvas (task-8.5 decision 3).
+    expect(store.getState().placement.has('github')).toBe(false);
+    expect(processor.model.getSurface('github:prs')).toBeUndefined();
+    expect(processor.model.getSurface('shell:main')).toBeDefined();
   });
 
   it('the departing composition is captured whole, so time travel is not a lie', () => {
@@ -1180,7 +1179,7 @@ describe('the question (task 7.14)', () => {
     expect(store.getState().question?.text).toBe('now the issues');
   });
 
-  it('a shell paint records the slot states it carries, and a new turn forgets them', () => {
+  it('a shell paint records the slot states it carries, kept across an action, gone with the composition', () => {
     const {store, runner} = setup();
     const turn = runner.begin(utterance('status'));
     turn.apply(
@@ -1196,7 +1195,143 @@ describe('the question (task 7.14)', () => {
     );
     expect(store.getState().slotStates.get('linear')).toBe('failed');
     turn.end();
-    runner.begin(utterance('again'));
-    expect(store.getState().slotStates.size).toBe(0);
+    runner.begin(surfaceAction('open')).end();
+    expect(store.getState().slotStates.get('linear')).toBe('failed');
+    const next = runner.begin(utterance('again'));
+    expect(store.getState().superseded).toBe(true);
+    next.apply(
+      [
+        msg({createSurface: {surfaceId: 'shell:main', catalogId: 'x'}}),
+        msg({
+          updateComponents: {
+            surfaceId: 'shell:main',
+            components: [{id: 'github', component: 'Slot', source: 'github'}],
+          },
+        }),
+      ],
+      {source: 'shell', role: 'shell'},
+    );
+    expect(store.getState().slotStates.has('linear')).toBe(false);
+    expect(store.getState().superseded).toBe(false);
+  });
+});
+
+describe('streams beside the turn (task 8.5)', () => {
+  const SHELL: CompositionStamp = {source: 'shell', role: 'shell'};
+  const fragment = (source: string): CompositionStamp => ({source, role: 'fragment'});
+  const slotRepaint = (props: Record<string, unknown>[]) =>
+    msg({
+      updateComponents: {
+        surfaceId: 'shell:main',
+        components: props.map(p => ({id: p.source, component: 'Slot', ...p})),
+      },
+    });
+
+  /** A composition over GitHub and Gmail, the turn over, Gmail's fragment on the canvas. */
+  function composed(failures: FragmentFailure[] = []) {
+    const catalogs = [CATALOG, SHELL_CATALOG];
+    const processor = new MessageProcessor(catalogs);
+    const store = createCanvasStore();
+    const synthesis = {accept: vi.fn(), retire: vi.fn()};
+    const runner = createTurnRunner({
+      processor,
+      store,
+      createStaging: () => new MessageProcessor(catalogs),
+      onFragmentFailure: failure => failures.push(failure),
+      synthesis: synthesis as never,
+    });
+    const turn = runner.begin(utterance('compose'));
+    turn.apply(paintedLayout(['github', 'gmail']), SHELL);
+    turn.apply([create('gmail:inbox'), textRoot('gmail:inbox', 'inbox')], fragment('gmail'));
+    turn.end();
+    return {processor, store, runner, synthesis};
+  }
+
+  it('a slot painted failed takes its source’s fragment off the canvas, on any stream', () => {
+    const {processor, store, runner} = composed();
+    const stream = runner.beginSideStream();
+    stream.apply([slotRepaint([{source: 'gmail', state: 'failed', label: 'Gmail'}])], SHELL);
+    expect(store.getState().slotStates.get('gmail')).toBe('failed');
+    expect(store.getState().placement.has('gmail')).toBe(false);
+    expect(processor.model.getSurface('gmail:inbox')).toBeUndefined();
+    // A late message for the fragment taken off is dropped, not failed against a missing surface.
+    stream.apply([textRoot('gmail:inbox', 'late')], fragment('gmail'));
+    expect(store.getState().error).toBeNull();
+  });
+
+  it('a Retry’s answer fills its slot in the live composition, touching nothing of the turn', () => {
+    const {processor, store, runner} = composed();
+    runner.beginSideStream().apply([slotRepaint([{source: 'gmail', state: 'failed'}])], SHELL);
+    const {timeline, stageId} = store.getState();
+    const retry = runner.beginSideStream();
+    retry.apply([slotRepaint([{source: 'gmail', state: 'pending'}])], SHELL);
+    retry.apply([create('gmail:inbox'), textRoot('gmail:inbox', 'again')], fragment('gmail'));
+    retry.end();
+    const state = store.getState();
+    expect(state.placement.get('gmail')).toEqual({surfaceId: 'gmail:inbox', source: 'gmail'});
+    expect(processor.model.getSurface('gmail:inbox')).toBeDefined();
+    expect(state.stageId).toBe(stageId);
+    expect(state.timeline).toBe(timeline);
+    expect(state.inFlight).toBeNull();
+  });
+
+  it('the merged view’s painted facts are read, and a synthesis payload handed over', () => {
+    const {store, runner, synthesis} = composed();
+    const stream = runner.beginSideStream();
+    stream.apply(
+      [slotRepaint([{source: 'shell', content: 'shell', merged: ['github'], late: ['gmail']}])],
+      SHELL,
+    );
+    expect(store.getState().merge).toEqual({merged: ['github'], late: ['gmail']});
+    const payload = {dataModel: {}, sorts: []};
+    stream.apply(
+      [
+        msg({createSurface: {surfaceId: 'shell:synthesis', catalogId: SHELL_CATALOG_ID}}),
+        msg({
+          updateComponents: {
+            surfaceId: 'shell:synthesis',
+            components: [{id: 'root', component: 'Text', text: 'merged'}],
+          },
+        }),
+      ],
+      fragment('shell'),
+      payload as never,
+    );
+    expect(store.getState().placement.get('shell')?.surfaceId).toBe('shell:synthesis');
+    expect(synthesis.accept).toHaveBeenCalledWith(
+      {surfaceId: 'shell:synthesis', source: 'shell'},
+      payload,
+    );
+  });
+
+  it('a new utterance ends every stream beside the turn; what still arrives is dropped', () => {
+    const {store, runner} = composed();
+    const stream = runner.beginSideStream();
+    runner.begin(utterance('next'));
+    expect(stream.signal.aborted).toBe(true);
+    expect(store.getState().superseded).toBe(true);
+    stream.apply([slotRepaint([{source: 'gmail', state: 'failed'}])], SHELL);
+    expect(store.getState().slotStates.get('gmail')).toBe('pending');
+    expect(store.getState().placement.has('gmail')).toBe(true);
+  });
+
+  it('an action inside the composition leaves its streams running', () => {
+    const {runner} = composed();
+    const stream = runner.beginSideStream();
+    runner.begin(surfaceAction('open')).end();
+    expect(stream.signal.aborted).toBe(false);
+  });
+
+  it('a retried fragment that will not render is reported once, at the stream’s end', () => {
+    const failures: FragmentFailure[] = [];
+    const {runner} = composed(failures);
+    const stream = runner.beginSideStream();
+    stream.apply([create('github:prs')], fragment('github'));
+    stream.end();
+    expect(failures).toEqual([
+      expect.objectContaining({surfaceId: 'github:prs', source: 'github', path: '/'}),
+    ]);
+    stream.end();
+    expect(failures).toHaveLength(1);
   });
 });

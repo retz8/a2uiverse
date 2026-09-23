@@ -22,7 +22,7 @@
  * the catalog's own: it names no source and enters no roster.
  */
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
-import type {JoinNouns, PaintedSlotState, RosterEntry} from '../canvasStore';
+import type {JoinNouns, PaintedMerge, PaintedSlotState, RosterEntry} from '../canvasStore';
 
 /** The reserved source id the hub stamps its own content with — the shell speaking as itself. */
 export const SHELL_SOURCE = 'shell';
@@ -42,6 +42,13 @@ interface ShellComponent {
   content?: unknown;
   state?: unknown;
   join?: unknown;
+  merged?: unknown;
+  late?: unknown;
+  working?: unknown;
+  callFailed?: unknown;
+  retrying?: unknown;
+  declined?: unknown;
+  collapse?: unknown;
 }
 
 /** What one shell paint says about its slots: the roster, and the vendor slots painted bare. */
@@ -145,6 +152,44 @@ export function slotStatesOf(
     }
   }
   return states;
+}
+
+const strings = (raw: unknown): string[] | undefined =>
+  Array.isArray(raw) && raw.every(item => typeof item === 'string') ? raw : undefined;
+
+/**
+ * What the orchestrator painted on the merged view's slot, when the paint carries it (task-8.4
+ * decision 13): the merge's own source set, the late sources, a press's call running or failed, the
+ * retried sources a collapsed merge waits on, the decline and the collapse's cause. The shell
+ * catalog validated the props on apply; this reads them for the progress line and the columns.
+ * Undefined when the paint carries no merged view's slot — a repaint says only what it carries.
+ */
+export function mergeFactsOf(messages: readonly A2uiMessage[]): PaintedMerge | undefined {
+  let facts: PaintedMerge | undefined;
+  for (const message of messages) {
+    const update = (message as {updateComponents?: {components?: unknown}}).updateComponents;
+    if (!update || !Array.isArray(update.components)) continue;
+    for (const raw of (update.components as ShellComponent[]).filter(Boolean)) {
+      if (raw.component !== SLOT || raw.content !== 'shell') continue;
+      const merged = strings(raw.merged);
+      const late = strings(raw.late);
+      const retrying = strings(raw.retrying);
+      const working = raw.working as PaintedMerge['working'];
+      const callFailed = raw.callFailed as PaintedMerge['callFailed'];
+      const declined = raw.declined as PaintedMerge['declined'];
+      const collapse = raw.collapse as PaintedMerge['collapse'];
+      facts = {
+        ...(merged ? {merged} : {}),
+        ...(late ? {late} : {}),
+        ...(retrying ? {retrying} : {}),
+        ...(working && strings(working.sources) ? {working} : {}),
+        ...(callFailed && strings(callFailed.sources) ? {callFailed} : {}),
+        ...(declined && typeof declined.reason === 'string' ? {declined} : {}),
+        ...(collapse && typeof collapse.cause === 'string' ? {collapse} : {}),
+      };
+    }
+  }
+  return facts;
 }
 
 /** The roster alone — see `ShellPaintSlots.roster`. */

@@ -676,6 +676,43 @@ describe('CanvasApp shell surface', () => {
     expect(screen.getByRole('button', {name: 'Search the Store'})).toBeInTheDocument();
   });
 
+  it('Retry on a failed slot sends the retry beside the turn and gives the tile way at once (task 8.5)', async () => {
+    window.history.replaceState(null, '', '?beat=composed&instant');
+    // The press's stream stays open: the orchestrator has not answered yet.
+    const sent: MessageSendParams[] = [];
+    const silent = {
+      next: () => new Promise<never>(() => {}),
+      return: () => Promise.resolve({done: true as const, value: undefined}),
+      throw: (thrown: unknown) => Promise.reject(thrown),
+      [Symbol.asyncIterator]: () => silent,
+    };
+    const sender: A2AMessageSender = {
+      sendMessageStream(params) {
+        sent.push(params);
+        return silent as unknown as ReturnType<A2AMessageSender['sendMessageStream']>;
+      },
+    };
+    render(
+      <Providers>
+        <CanvasApp client={sender} catalogs={BOUND_CATALOGS} hostRelay={HOST_RELAY} />
+      </Providers>,
+    );
+    const retry = await screen.findByRole('button', {name: 'Retry'});
+    await userEvent.click(retry);
+    // Drawn at the press, before any answer: the pending line in the tile's place, focus on it.
+    expect(screen.queryByRole('button', {name: 'Retry'})).toBeNull();
+    const pending = screen.getByText('Gmail…');
+    expect(document.activeElement).toBe(pending);
+    await waitFor(() => expect(sent).toHaveLength(1));
+    const part = sent[0].message.parts[0];
+    expect(part.kind === 'data' ? part.data : {}).toEqual({
+      version: 'v0.9',
+      operation: {kind: 'retry', sources: ['gmail']},
+    });
+    // Not a turn: nothing in the history.
+    expect(screen.getByRole('button', {name: 'Back'})).toBeDisabled();
+  });
+
   it('the model’s button opens the App Library; every raise is reported, an open page included', async () => {
     const {sent} = renderShellCanvas('platform-answer');
     const button = await screen.findByRole('button', {name: 'Manage apps'});

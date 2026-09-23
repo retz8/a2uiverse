@@ -10,11 +10,7 @@ import {classifyTurn, unnamespaceAction, type Turn} from './composition/classify
 import {composeFragment, retask, withoutFailureWords} from './composition/fragmentRelay.js';
 import {changeAccount, firesResynthesis, seenOf, watchOf} from './composition/integrity.js';
 import {A2UI_CLIENT_DATA_MODEL_KEY} from './composition/partition.js';
-import {
-  synthesisEnvelope,
-  synthesisParts,
-  synthesisProseEnvelope,
-} from './composition/synthesisPainter.js';
+import {synthesisEnvelope, synthesisParts} from './composition/synthesisPainter.js';
 import {vendorMetadata} from './composition/partition.js';
 import {shellCreateParts, shellEnvelope, shellRepaintParts} from './composition/shellPainter.js';
 import {
@@ -895,11 +891,8 @@ export class OrchestratorExecutor implements AgentExecutor {
         reason: string | undefined,
         attempts: {text: string; errors: string[]}[],
       ): SynthesisEnd => {
-        // A decline is the Synthesizer's own judgment in its own words; the prose copy stays
-        // until the client reads the painted reason (task 8.5).
-        if (outcome === 'declined' && reason) {
-          for (const sink of sinks) sink.bus.publish(synthesisProseEnvelope(sink.ctx, reason));
-        }
+        // A decline is the Synthesizer's own judgment in its own words, said once: on the
+        // collapsed slot the repaint carries (task 8.5).
         this.#collapseMerge(
           sinks,
           state,

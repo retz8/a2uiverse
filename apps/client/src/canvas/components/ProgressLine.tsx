@@ -1,11 +1,12 @@
 /**
  * The progress line under the question: planning, then a tick per source as its fragment fills,
- * then the merge in computed words. It stays after the turn lands, the ticks and the join in the
- * past tense. The step that is working carries the in-flight marker (`canvas-pending`).
+ * then the merge in computed words. It stays after the turn lands, the ticks and the merge in the
+ * past tense, and follows the reader's presses on the composition (task 8.5). The step that is
+ * working carries the in-flight marker (`canvas-pending`).
  */
 import {Fragment, useEffect, useState} from 'react';
 import type {CanvasState} from '../canvasStore';
-import {joinSentence, turnProgress, type StepStatus} from '../turnProgress';
+import {turnProgress, type StepStatus} from '../turnProgress';
 
 export interface ProgressLineProps {
   state: CanvasState;
@@ -118,14 +119,14 @@ export function ProgressLine({state, since, compact}: ProgressLineProps) {
           {source.name}
         </Step>
       ))}
-      {progress.join && progress.join.names.length > 0 && (
+      {progress.merge && (
         <Fragment>
           <Dot />
           <Step
-            status={progress.join.status === 'done' ? 'idle' : progress.join.status}
+            status={progress.merge.status === 'done' ? 'idle' : progress.merge.status}
             compact={compact}
           >
-            {joinSentence(progress.join)}
+            {progress.merge.text}
           </Step>
         </Fragment>
       )}

@@ -11,6 +11,7 @@ test('the relay forwards to the bound canvas, and to nothing once it unbinds', (
     onShellAction: vi.fn(),
     onNavigate: vi.fn(),
     appDisplayName: appId => (appId === 'github' ? 'GitHub' : undefined),
+    onPress: vi.fn(),
   };
 
   relay.host.onNavigate(TARGET);
@@ -20,6 +21,13 @@ test('the relay forwards to the bound canvas, and to nothing once it unbinds', (
   const unbind = relay.bind(canvas);
   relay.host.onNavigate(TARGET);
   relay.host.onShellAction({name: 'openAppLibrary', surfaceId: 'shell:main'});
+  const press = {
+    operation: {kind: 'retry' as const, sources: ['github']},
+    surfaceId: 'shell:main',
+    componentId: 'slot-github',
+  };
+  relay.host.onPress(press);
+  expect(canvas.onPress).toHaveBeenCalledWith(press);
   expect(canvas.onNavigate).toHaveBeenCalledWith(TARGET);
   expect(canvas.onShellAction).toHaveBeenCalledOnce();
   expect(relay.host.appDisplayName('github')).toBe('GitHub');

@@ -76,6 +76,11 @@ export interface SendAndApplyOptions {
   onAgentText?: (text: string, stamp?: CompositionStamp) => void;
   signal?: AbortSignal;
   onPaintMeta?: (meta: PaintMeta) => void;
+  /**
+   * The stream's first event arrived: the request reached the orchestrator. A throw after this is
+   * a stream that broke, before it a request that never arrived (task-8.5 decision 8).
+   */
+  onFirstEvent?: () => void;
 }
 
 /**
@@ -100,7 +105,7 @@ export const FIRST_EVENT_TIMEOUT_MS = 10_000;
 export async function sendAndApply(
   sender: A2AMessageSender,
   params: MessageSendParams,
-  {apply, session, onAgentText, signal, onPaintMeta}: SendAndApplyOptions,
+  {apply, session, onAgentText, signal, onPaintMeta, onFirstEvent}: SendAndApplyOptions,
 ): Promise<void> {
   const handle = (event: A2AStreamEventData) => {
     const contextId = extractContextId(event);
@@ -138,6 +143,7 @@ export async function sendAndApply(
         }
         throw new Error('The orchestrator did not answer.');
       }
+      onFirstEvent?.();
       for (let result = answered; !result.done; result = await stream.next()) handle(result.value);
       return;
     } finally {

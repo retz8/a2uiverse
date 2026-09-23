@@ -8,14 +8,20 @@
  * `?beat=N[,M…]` replays recorded beats in sequence (paced by the recorded offsets; `&instant`
  * collapses the waits) — the zero-LLM verification path.
  */
-import {useEffect, useRef, useState, useSyncExternalStore} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore} from 'react';
 import {Button, Kbd} from '@radix-ui/themes';
 import type {A2ASenderOptions} from '../a2a/client';
 import {getBeatFixture} from '../beats/beatFixtures';
 import {syntheticBeat} from '../beats/syntheticBeats';
-import {SlotContentContext} from '@a2uiverse/shell-catalog';
+import {
+  type PressState,
+  PressStateContext,
+  SlotContentContext,
+  SlotStateContext,
+} from '@a2uiverse/shell-catalog';
 import {CatalogProvider} from '../catalogs/CatalogContext';
 import type {ResolvedCatalog} from '../catalogs/resolver';
+import {columnState} from './composition/columnState';
 import {useSlotContent} from './composition/slotContent';
 import {orderedNotices, questionOnView} from './canvasStore';
 import {createCanvasWiring} from './createCanvasWiring';
@@ -69,6 +75,24 @@ export function CanvasApp({serverUrl, client, catalogs, hostRelay}: CanvasAppPro
     state.promoted,
     state.roster,
     state.prose,
+  );
+
+  // What a reserved column in the merged view says of its source (task-8.5 decision 12).
+  const {merge, slotStates, placement, presses, superseded} = state;
+  const slotStateOf = useCallback(
+    (source: string) => columnState({merge, slotStates, placement, presses}, source),
+    [merge, slotStates, placement, presses],
+  );
+  // The presses the paint has not caught up with, and whether a press can be made at all: not on
+  // a composition a newer question is replacing (task-8.5 decisions 8, 9).
+  const pressState = useMemo<PressState>(
+    () => ({
+      enabled: !superseded,
+      presses: presses.flatMap(({operation, status}) =>
+        status === 'running' ? [] : [{operation, status}],
+      ),
+    }),
+    [presses, superseded],
   );
 
   // Promotion is plural, so it is emphasis rather than a modal: no focus trap, and the count
@@ -179,7 +203,11 @@ export function CanvasApp({serverUrl, client, catalogs, hostRelay}: CanvasAppPro
                   attach={wiring.attachParked}
                 />
               ) : (
-                <CanvasStage processor={wiring.processor} state={state} />
+                <SlotStateContext.Provider value={slotStateOf}>
+                  <PressStateContext.Provider value={pressState}>
+                    <CanvasStage processor={wiring.processor} state={state} />
+                  </PressStateContext.Provider>
+                </SlotStateContext.Provider>
               )}
             </div>
             {promotedCount > 0 && (

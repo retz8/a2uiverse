@@ -10,6 +10,7 @@ import type {A2uiClientAction, A2uiClientDataModel} from '@a2ui/web_core/v0_9';
 import type {ForkContext} from './messages';
 import {
   buildActionMessageParams,
+  buildOperationMessageParams,
   buildTextMessageParams,
   extractA2uiMessages,
   extractA2uiMessagesFromEvent,
@@ -121,6 +122,22 @@ describe('buildActionMessageParams', () => {
     expect(params.message.metadata).toEqual({
       a2uiClientCapabilities: {'v0.9': {supportedCatalogIds: ['cat-a']}},
       a2uiClientDataModel: CLIENT_DM,
+    });
+  });
+});
+
+describe('buildOperationMessageParams', () => {
+  it('carries the reader’s press as the composition operation, a data part of its own (task-8.4 decision 14)', () => {
+    const params = buildOperationMessageParams({kind: 'include', sources: ['gmail']}, 'ctx', [
+      'cat',
+    ]);
+    expect(params.message.contextId).toBe('ctx');
+    expect(params.message.parts).toEqual([
+      {kind: 'data', data: {version: 'v0.9', operation: {kind: 'include', sources: ['gmail']}}},
+    ]);
+    // It acts on the composition in its context: no data model rides it.
+    expect(params.message.metadata).toEqual({
+      a2uiClientCapabilities: {'v0.9': {supportedCatalogIds: ['cat']}},
     });
   });
 });

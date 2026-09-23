@@ -167,3 +167,18 @@ test('a filled source, or one the host says nothing about, leaves the authored c
   expect(silent.container.querySelector('[data-column-reserved]')).toBeNull();
   expect(consoleError.mock.calls).toEqual([]);
 });
+
+test('a column whose source waits for Include keeps its authored dashes and says not included', () => {
+  const {container} = renderTree(RESERVED_TREE, {
+    wrap: withStates({linear: 'filled', github: 'filled', circleci: 'late'}),
+  });
+  const headings = [...container.querySelectorAll('thead th')].map(th =>
+    th.textContent?.replace(/\s+/g, ' '),
+  );
+  expect(headings[2]).toBe('CI build · not included');
+  const cell = container.querySelectorAll('tbody td')[2]!;
+  expect(cell.textContent).toBe('—');
+  expect(cell.querySelector('[data-skeleton-bar]')).toBeNull();
+  expect(cell).toHaveAttribute('data-column-reserved', 'late');
+  expect(consoleError.mock.calls).toEqual([]);
+});

@@ -15,7 +15,7 @@
  * A forked turn reports the parked snapshot's data model, not the head's. The live processor is
  * the live registry, exactly what the agent may see.
  */
-import type {CompositionStamp} from '@a2uiverse/sdk';
+import type {CompositionOperation, CompositionStamp} from '@a2uiverse/sdk';
 import {MessageProcessor} from '@a2ui/web_core/v0_9';
 import type {
   ActionListener,
@@ -24,7 +24,7 @@ import type {
   Catalog,
 } from '@a2ui/web_core/v0_9';
 import type {ReactComponentImplementation} from '@a2ui/react/v0_9';
-import {OPERATORS, RELATIONS, type ShellAction} from '@a2uiverse/shell-catalog';
+import {OPERATORS, RELATIONS, type PressHandler, type ShellAction} from '@a2uiverse/shell-catalog';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 import type {A2ASenderOptions} from '../a2a/client';
 import {createSenderResolver, sendAndApply} from '../a2a/client';
@@ -32,10 +32,10 @@ import type {ForkContext} from '../a2a/messages';
 import {
   buildActionMessageParams,
   buildErrorMessageParams,
+  buildOperationMessageParams,
   VALIDATION_FAILED,
 } from '../a2a/messages';
 import {createA2ASession} from '../a2a/session';
-import {applyA2uiMessages} from '../a2ui/applyMessages';
 import {streamUserMessage} from '../a2a/streamUserMessage';
 import {describeError} from '../shared/describeError';
 import {createCanvasStore} from './canvasStore';
@@ -48,7 +48,7 @@ import {entryTitle} from './timeline/paint';
 import type {ParkedSession} from './timeline/parkedSession';
 import {flushSync} from 'react-dom';
 import {createParkedSession} from './timeline/parkedSession';
-import {rosterOfSurface} from './composition/roster';
+import {rosterOfSurface, SHELL_SOURCE} from './composition/roster';
 import type {ShellHost} from './hostRelay';
 import {createBindingIndex, type BindingIndex} from './navigation/bindingIndex';
 import {createNavigator} from './navigation/landing';
@@ -71,6 +71,8 @@ export interface CanvasWiring {
   attachParked(parked: ParkedSession<ReactComponentImplementation>): () => void;
   /** A shell action raised from a shell surface: handled here, reported for the journal. */
   onShellAction(action: ShellAction): void;
+  /** The reader's press on the composition: sent on a stream of its own beside the turn. */
+  press(operation: CompositionOperation): Promise<void>;
   /** What the shell catalog takes from this canvas, bound through the host relay while mounted. */
   host: ShellHost;
   /** What the vendor components' markers register in: the reverse index navigation lands by. */
@@ -211,12 +213,66 @@ export function createCanvasWiring({
   };
 
   /**
+   * The reader's press — Retry, Include or Try again (task 8.5): the composition operation, sent
+   * on a stream of its own beside the turn and answered there. Not a turn: it lights no status
+   * strip, adds no history row, and never cancels the turn in flight. The press is drawn at the
+   * click and held in the store until the paint catches up — the stream's first shell repaint — or
+   * the stream ends; a press that never reached the orchestrator, or whose stream broke after it
+   * answered, stands so the slot can say so. A refused press ends quietly: the paint already shows
+   * what won. No press is made on a composition being replaced, or from a parked view.
+   */
+  const press = async (operation: CompositionOperation) => {
+    const {superseded, viewing} = store.getState();
+    if (superseded || viewing !== null || parkedHolder.session) return;
+    const key = store.addPress(operation);
+    const stream = runner.beginSideStream();
+    let answered = false;
+    try {
+      const sender = await getSender();
+      await sendAndApply(
+        sender,
+        buildOperationMessageParams(operation, session.get(), supportedCatalogIds),
+        {
+          apply: (messages, stamp, payload) => {
+            stream.apply(messages, stamp, payload);
+            if (stamp?.role === 'shell') store.updatePress(key, 'running');
+          },
+          session,
+          signal: stream.signal,
+          onFirstEvent: () => {
+            answered = true;
+          },
+          // A retried vendor may answer in words; the shell's own words on this stream are a
+          // refusal, which the canvas does not show.
+          onAgentText: (text, stamp) => {
+            if (stamp?.role === 'fragment' && stamp.source !== SHELL_SOURCE)
+              reportAgentText(text, stamp);
+            else if (text.trim()) console.info('[A2UI:a2a] press:', text);
+          },
+          onPaintMeta: stream.acceptPaintMeta,
+        },
+      );
+      store.removePress(key);
+    } catch (err) {
+      if (stream.signal.aborted) store.removePress(key);
+      else {
+        console.error('[A2UI:a2a] press failed', err);
+        store.updatePress(key, answered ? 'lost' : 'unreached');
+      }
+    } finally {
+      stream.end();
+    }
+  };
+
+  const onPress: PressHandler = ({operation}) => void press(operation);
+
+  /**
    * A fragment the canvas could not render, reported to the hub — which owns slot lifecycle and
    * answers by repainting its own shell surface with that slot failed.
    *
    * Deliberately not a turn: beginning one would cancel whatever the user has in flight, light
    * the status strip for something they never asked for, and put a row in the history. So it
-   * sends on the side and applies the repaint straight into the live processor.
+   * sends on the side and routes the answer as a stream beside the turn (task-8.5 decision 3).
    */
   const reportFragmentFailure = async (failure: FragmentFailure) => {
     // `shell:main` is reused every turn, so a late report from an abandoned composition would
@@ -227,6 +283,7 @@ export function createCanvasWiring({
       store.getState().placement.get(failure.source)?.surfaceId !== failure.surfaceId
     )
       return;
+    const stream = runner.beginSideStream();
     try {
       const sender = await getSender();
       await sendAndApply(
@@ -242,17 +299,13 @@ export function createCanvasWiring({
           getClientDataModel(),
           supportedCatalogIds,
         ),
-        {
-          apply: messages => {
-            applyA2uiMessages(processor, messages);
-            store.bumpApplied();
-          },
-          session,
-        },
+        {apply: stream.apply, session, signal: stream.signal},
       );
     } catch (err) {
       // A failed failure report must not cascade into the turn that produced it.
-      console.error('[A2UI:a2a] validation report failed', err);
+      if (!stream.signal.aborted) console.error('[A2UI:a2a] validation report failed', err);
+    } finally {
+      stream.end();
     }
   };
 
@@ -283,6 +336,9 @@ export function createCanvasWiring({
       context:
         action.name === 'openStore' && action.query !== undefined ? {query: action.query} : {},
     };
+    // The hub answers with nothing. Should it ever answer with a paint, it lands like the
+    // failure report's repaint does rather than being dropped.
+    const stream = runner.beginSideStream();
     try {
       const sender = await getSender();
       await sendAndApply(
@@ -294,18 +350,12 @@ export function createCanvasWiring({
           undefined,
           supportedCatalogIds,
         ),
-        {
-          // The hub answers with nothing. Should it ever answer with a paint, it lands like the
-          // failure report's repaint does rather than being dropped.
-          apply: messages => {
-            applyA2uiMessages(processor, messages);
-            store.bumpApplied();
-          },
-          session,
-        },
+        {apply: stream.apply, session, signal: stream.signal},
       );
     } catch (err) {
-      console.error('[A2UI:a2a] shell action report failed', err);
+      if (!stream.signal.aborted) console.error('[A2UI:a2a] shell action report failed', err);
+    } finally {
+      stream.end();
     }
   };
 
@@ -431,8 +481,8 @@ export function createCanvasWiring({
   const appDisplayName = (appId: string) => {
     const parked = parkedHolder.session;
     const stageId = store.getState().stageId;
-    // The store's roster is the turn's, emptied when the next one opens — and an action turn
-    // carries no shell paint to refill it. The mounted shell paint outlives the turn.
+    // The store's roster is the live composition's; a parked composition names its apps by its
+    // own shell paint.
     const surface = parked
       ? parked.processor.model.getSurface(parked.surfaceId)
       : stageId
@@ -453,7 +503,8 @@ export function createCanvasWiring({
     createParked,
     attachParked,
     onShellAction,
-    host: {onShellAction, onNavigate: navigator.navigate, appDisplayName},
+    press,
+    host: {onShellAction, onNavigate: navigator.navigate, appDisplayName, onPress},
     bindingIndex,
   };
 }

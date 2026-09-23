@@ -1,10 +1,12 @@
 /**
  * The turn's progress, read off the store: what the progress line under the question says.
  * Every sentence is computed from what the client already holds — the roster the shell paint
- * named, the slots placed, the slot states the orchestrator painted. The one model word in it is
- * the entity's noun in each source, from the Planner's join hypothesis (task-7.15).
+ * named, the slots placed, the slot states and the merged view's facts the orchestrator painted,
+ * the presses the reader made. The one model word in it is the entity's noun in each source, from
+ * the Planner's join hypothesis (task-7.15).
  */
 import type {CanvasState, JoinNouns, RosterEntry} from './canvasStore';
+import {retrying} from './composition/columnState';
 import {SHELL_SOURCE} from './composition/roster';
 
 /** Where one step of the turn stands. */
@@ -17,66 +19,61 @@ export interface SourceStep {
 }
 
 export interface TurnProgress {
-  /** In flight with nothing planned yet: the Planner's wait, or an action's. */
+  /** In flight with nothing planned yet — the Planner's wait — or an action running inside the composition. */
   working: {kind: 'planning' | 'other'; label: string} | null;
   /** One step per vendor source the shell reserved a slot for, in slot order. */
   sources: SourceStep[];
-  /**
-   * The merge, when the plan reserved one, and where it stands. Over an entity, `home` is the rows'
-   * phrase ("Linear issues") and `names` the others' ("GitHub PRs"); otherwise `names` are the apps.
-   */
-  join: {home?: string; names: string[]; status: StepStatus} | null;
+  /** The merge, when the plan reserved one: where it stands, in the client's words (task-8.5 decision 11). */
+  merge: {text: string; status: StepStatus} | null;
 }
 
-const sourceStatus = (state: CanvasState, appId: string, inFlight: boolean): StepStatus => {
-  if (state.slotStates.get(appId) === 'failed') return 'failed';
+/** Something runs on the composition: the turn, or a press beside it (task-8.5 decision 10). */
+export function running(state: CanvasState): boolean {
+  return (
+    state.inFlight !== null ||
+    state.presses.some(press => press.status === 'sent' || press.status === 'running')
+  );
+}
+
+const sourceStatus = (state: CanvasState, appId: string, busy: boolean): StepStatus => {
+  // The reader's Retry is drawn from the press, before the paint says so.
+  const retried = retrying(state, appId);
+  const painted = state.slotStates.get(appId);
+  if (painted === 'failed' && !retried) return 'failed';
   // A source that answered in prose without painting still answered.
   if (state.placement.has(appId) || state.prose.has(appId)) return 'done';
-  if (state.slotStates.get(appId) === 'collapsed') return 'done';
-  return inFlight ? 'working' : 'idle';
-};
-
-const joinStatus = (state: CanvasState, inFlight: boolean): StepStatus => {
-  if (state.placement.has(SHELL_SOURCE)) return 'done';
-  if (state.slotStates.get(SHELL_SOURCE) === 'failed') return 'failed';
-  // Declined: the shell said why in words instead of painting the merge.
-  if (state.prose.has(SHELL_SOURCE)) return 'failed';
-  return inFlight ? 'working' : 'failed';
+  if (painted === 'collapsed') return 'done';
+  return busy || retried ? 'working' : 'idle';
 };
 
 export function turnProgress(state: CanvasState): TurnProgress {
-  const inFlight = state.inFlight !== null;
-  const vendors = state.roster.filter(entry => entry.appId !== SHELL_SOURCE);
-  const merged = state.roster.find(entry => entry.appId === SHELL_SOURCE);
+  const busy = running(state);
+  // A newer question was sent: the composition on stage is not what the line speaks for.
+  const roster = state.superseded ? [] : state.roster;
+  const vendors = roster.filter(entry => entry.appId !== SHELL_SOURCE);
+  const merged = roster.find(entry => entry.appId === SHELL_SOURCE);
+  // An utterance plans until its roster lands; an action runs inside the composition, its label
+  // beside the composition's ticks (task-8.5 decision 13).
+  const planning =
+    state.inFlight !== null &&
+    (state.inFlight.cause === 'utterance' || state.inFlight.cause === undefined);
   const working =
-    state.inFlight && state.roster.length === 0
-      ? state.inFlight.cause === 'utterance' || state.inFlight.cause === undefined
-        ? {kind: 'planning' as const, label: 'Planning which apps can answer'}
-        : {kind: 'other' as const, label: state.inFlight.label}
-      : null;
+    state.inFlight === null
+      ? null
+      : planning
+        ? roster.length === 0
+          ? {kind: 'planning' as const, label: 'Planning which apps can answer'}
+          : null
+        : {kind: 'other' as const, label: state.inFlight.label};
   return {
     working,
     sources: vendors.map(entry => ({
       appId: entry.appId,
       name: entry.displayName,
-      status: sourceStatus(state, entry.appId, inFlight),
+      status: sourceStatus(state, entry.appId, busy),
     })),
-    join: merged ? {...joinNames(vendors, merged.join), status: joinStatus(state, inFlight)} : null,
+    merge: merged && vendors.length > 0 ? mergeStep(state, vendors, merged.join, busy) : null,
   };
-}
-
-/** Each vendor as the join names it: its app, then its noun when the plan gave one. */
-function joinNames(
-  vendors: readonly RosterEntry[],
-  join: JoinNouns | undefined,
-): {home?: string; names: string[]} {
-  const phrase = (entry: RosterEntry) => {
-    const noun = join?.nouns[entry.appId];
-    return noun ? `${entry.displayName} ${noun}` : entry.displayName;
-  };
-  const home = join && vendors.find(entry => entry.appId === join.home);
-  if (!home) return {names: vendors.map(phrase)};
-  return {home: phrase(home), names: vendors.filter(entry => entry !== home).map(phrase)};
 }
 
 /** `a`, `a and b`, `a, b and c`. */
@@ -85,15 +82,106 @@ export function listed(names: readonly string[]): string {
   return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
 }
 
-/** The join step's words for where it stands. */
-export function joinSentence(join: NonNullable<TurnProgress['join']>): string {
-  const apps = join.home ? `${join.home} to ${listed(join.names)}` : listed(join.names);
-  switch (join.status) {
-    case 'working':
-      return `Joining ${apps}`;
-    case 'done':
-      return `Joined ${apps}`;
-    default:
-      return `Could not join ${apps}`;
+/**
+ * The merge step (task-8.5 decision 11). Under a join the phrase is the home source's noun joined
+ * to the others' — "Linear issues to GitHub PRs and CircleCI runs" — otherwise the apps listed. A
+ * merge landed without some source names the view over what it holds, then one clause per missing
+ * source in slot order, after the pattern of the design canvas's F6: "· no CircleCI runs to join".
+ */
+function mergeStep(
+  state: CanvasState,
+  vendors: readonly RosterEntry[],
+  join: JoinNouns | undefined,
+  busy: boolean,
+): {text: string; status: StepStatus} {
+  const facts = state.merge ?? {};
+  const noun = (entry: RosterEntry) => join?.nouns[entry.appId];
+  const phrase = (entry: RosterEntry) =>
+    noun(entry) ? `${entry.displayName} ${noun(entry)}` : entry.displayName;
+  const home = join ? vendors.find(entry => entry.appId === join.home) : undefined;
+  const joined = (entries: readonly RosterEntry[]) => {
+    const others = entries.filter(entry => entry !== home).map(phrase);
+    if (!home || !entries.includes(home)) return listed(entries.map(phrase));
+    return others.length > 0 ? `${phrase(home)} to ${listed(others)}` : phrase(home);
+  };
+  const by = (ids: readonly string[] | undefined) => vendors.filter(v => ids?.includes(v.appId));
+  const pressed = (kind: 'include' | 'tryAgain') =>
+    state.presses.find(press => press.status === 'sent' && press.operation.kind === kind);
+  const shell = state.slotStates.get(SHELL_SOURCE);
+  const arrived = vendors.filter(v => state.placement.has(v.appId));
+
+  if (shell === 'collapsed') {
+    if (facts.working || pressed('include') || pressed('tryAgain'))
+      return {text: `Joining ${joined(arrived)}`, status: 'working'};
+    if (facts.retrying?.length)
+      return {
+        text: `Waiting for ${listed(by(facts.retrying).map(phrase))}, then joining`,
+        status: 'working',
+      };
+    if (facts.declined) {
+      const over = arrived.length > 0 ? arrived : vendors;
+      return {text: `Found nothing to join across ${listed(over.map(phrase))}`, status: 'idle'};
+    }
+    switch (facts.collapse?.cause) {
+      case 'home':
+        return {
+          text: `Can’t join without ${facts.collapse.home ?? phrase(home ?? vendors[0]!)}`,
+          status: 'idle',
+        };
+      case 'few': {
+        const answered = facts.collapse.answered ?? [];
+        return {
+          text:
+            answered.length === 0
+              ? 'No app answered, nothing to join'
+              : `Only ${listed(answered)} answered, nothing to join`,
+          status: 'idle',
+        };
+      }
+      default:
+        return {text: `Could not join ${joined(vendors)}`, status: 'failed'};
+    }
   }
+
+  if (state.placement.has(SHELL_SOURCE) && shell !== 'failed') {
+    const inMerge = facts.merged ? by(facts.merged) : vendors;
+    if ((facts.working && facts.working.sources.length === 0) || pressed('tryAgain'))
+      return {text: `Joining ${joined(inMerge)}`, status: 'working'};
+    const including = [
+      ...(facts.working?.sources ?? []),
+      ...(pressed('include')?.operation.sources ?? []),
+    ];
+    const failedInclude = facts.callFailed?.kind === 'include' ? facts.callFailed.sources : [];
+    const clauses = vendors
+      .filter(entry => !inMerge.includes(entry))
+      .flatMap(entry => {
+        const id = entry.appId;
+        if (including.includes(id)) return [`including ${phrase(entry)}`];
+        if (failedInclude.includes(id)) return [`couldn’t include ${phrase(entry)}`];
+        if (facts.late?.includes(id)) return [`${phrase(entry)} arrived after this merge`];
+        if (state.slotStates.get(id) === 'failed' && !retrying(state, id))
+          return [noun(entry) ? `no ${phrase(entry)} to join` : `without ${entry.displayName}`];
+        if (!state.placement.has(id) && state.slotStates.get(id) !== 'collapsed')
+          return [`${phrase(entry)} still loading`];
+        return [];
+      });
+    return {text: [`Joined ${joined(inMerge)}`, ...clauses].join(' · '), status: 'done'};
+  }
+
+  if (shell === 'failed' || !busy)
+    return {text: `Could not join ${joined(vendors)}`, status: 'failed'};
+  // Under a join the reserved view waits for the home source alone once every other has settled.
+  if (home && !state.placement.has(home.appId) && state.slotStates.get(home.appId) !== 'failed') {
+    const settled = vendors
+      .filter(entry => entry !== home)
+      .every(
+        entry =>
+          state.placement.has(entry.appId) ||
+          state.prose.has(entry.appId) ||
+          state.slotStates.get(entry.appId) === 'failed' ||
+          state.slotStates.get(entry.appId) === 'collapsed',
+      );
+    if (settled) return {text: `Waiting for ${phrase(home)}, then joining`, status: 'working'};
+  }
+  return {text: `Joining ${joined(vendors)}`, status: 'working'};
 }

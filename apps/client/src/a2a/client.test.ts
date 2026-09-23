@@ -57,6 +57,13 @@ describe('sendAndApply — a request that gets no answer (task-7.9)', () => {
 
   afterEach(() => vi.useRealTimers());
 
+  it('says when the first event arrives — a throw after it is a stream that broke (task 8.5)', async () => {
+    const reached = vi.fn();
+    const sender: A2AMessageSender = {sendMessageStream: () => answering('one', 'two')};
+    await sendAndApply(sender, params, {apply: () => {}, onFirstEvent: reached});
+    expect(reached).toHaveBeenCalledOnce();
+  });
+
   it('is aborted and sent once more under the same message id; the second answer is applied', async () => {
     vi.useFakeTimers();
     const sent: MessageSendParams[] = [];

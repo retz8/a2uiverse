@@ -830,21 +830,16 @@ describe('synthesis (tasks 4.4, 5.4)', () => {
     const events = await collect(client, utterance('compare'));
     expect(synthesisEvents(events)).toHaveLength(0);
     expect(slotStates(shellPaints(events).at(-1)!)['shell']).toBe('collapsed');
-    // The reason reaches the canvas as the shell's words in the synthesis slot, before the collapse.
-    const spoken = events.findIndex(
+    // The reason is said once, on the collapsed slot — never as prose beside it (task 8.5).
+    const spoken = events.some(
       e =>
         e.kind === 'status-update' &&
         e.status.message?.parts.some(p => p.kind === 'text' && p.text === 'nothing joinable'),
     );
-    expect(spoken).toBeGreaterThanOrEqual(0);
-    expect(stampOf(events[spoken])).toEqual({
-      source: 'shell',
-      role: 'fragment',
+    expect(spoken).toBe(false);
+    expect(slotsOf(shellPaints(events).at(-1)!)['shell']).toMatchObject({
+      declined: {reason: 'nothing joinable'},
     });
-    const collapsedAt = events.findIndex(
-      e => stampOf(e)?.role === 'shell' && slotStates(a2uiDatas(e))['shell'] === 'collapsed',
-    );
-    expect(collapsedAt).toBeGreaterThan(spoken);
     const [line] = await journalLines(1);
     expect(line.synthesis).toMatchObject({outcome: 'declined', reason: 'nothing joinable'});
     expect((line.synthesis as {attempts: unknown[]}).attempts).toHaveLength(1);

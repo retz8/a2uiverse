@@ -8,7 +8,7 @@
  */
 import {useEffect, useState} from 'react';
 import type {ReactComponentImplementation} from '@a2ui/react/v0_9';
-import {SlotContentContext} from '@a2uiverse/shell-catalog';
+import {type PressState, PressStateContext, SlotContentContext} from '@a2uiverse/shell-catalog';
 import {SurfaceFrame} from '../../catalogs/CatalogContext';
 import {SurfaceErrorBoundary} from '../../shared/SurfaceErrorBoundary';
 import {slotCountOf} from '../composition/slotCount';
@@ -22,6 +22,12 @@ export interface ParkedStageProps {
   /** Register the session as the active parked view; returns the commit-and-release teardown. */
   attach: (session: ParkedSession<ReactComponentImplementation>) => () => void;
 }
+
+/**
+ * No press is made on a parked composition: its buttons draw disabled, its lines as captured
+ * (task-8.5 decision 9).
+ */
+const PARKED_PRESSES: PressState = {enabled: false, presses: []};
 
 export function ParkedStage({entry, create, attach}: ParkedStageProps) {
   const [session] = useState(() => create(entry));
@@ -39,9 +45,11 @@ export function ParkedStage({entry, create, attach}: ParkedStageProps) {
         // The inner wrapper bounds the surface content alone — what the chrome baselines mask.
         <div data-testid="canvas-stage-content" data-slots={slotCountOf(surface) || undefined}>
           <SlotContentContext.Provider value={slotContent}>
-            <SurfaceErrorBoundary surfaceId={session.surfaceId} resetKey={entry.paintId}>
-              <SurfaceFrame surface={surface} />
-            </SurfaceErrorBoundary>
+            <PressStateContext.Provider value={PARKED_PRESSES}>
+              <SurfaceErrorBoundary surfaceId={session.surfaceId} resetKey={entry.paintId}>
+                <SurfaceFrame surface={surface} />
+              </SurfaceErrorBoundary>
+            </PressStateContext.Provider>
           </SlotContentContext.Provider>
         </div>
       ) : null}

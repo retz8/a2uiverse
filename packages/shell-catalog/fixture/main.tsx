@@ -2,8 +2,9 @@
  * Design-check fixture (task-5.9 decision 6): the whole catalog — every component in every
  * value of every enum prop, generated from `catalog.json` and rendered through the real renderer
  * from A2UI trees — under Radix light · Radix dark · no host Theme; the task 5.11 timeline
- * example as one merged view; the Slot/Attribution states; the DerivedValue join states (task
- * 7.5); and the scoping proof (two Providers under different host Themes, one document).
+ * example as one merged view; the Slot/Attribution states; the failure tile, the reserved column
+ * and the reader's presses (tasks 8.2–8.5); the DerivedValue join states (task 7.5); and the
+ * scoping proof (two Providers under different host Themes, one document).
  */
 import {StrictMode, useEffect, useMemo, useState, type ReactNode} from 'react';
 import {createRoot} from 'react-dom/client';
@@ -17,6 +18,8 @@ import {
   type CellObject,
   createCatalog,
   type EvaluatedRelation,
+  type PressRecord,
+  PressStateContext,
   Provider,
   SlotContentContext,
   SlotStateContext,
@@ -37,7 +40,7 @@ const APP_NAMES: Record<string, string> = {
 
 const CATALOG = createCatalog({
   onShellAction: action => console.log('[fixture shell action]', action),
-  onRetry: retry => console.log('[fixture retry]', retry),
+  onPress: press => console.log('[fixture press]', press),
   onNavigate: target => console.log('[fixture navigate]', target),
   appDisplayName: appId => APP_NAMES[appId],
 });
@@ -354,11 +357,38 @@ function FailureMatrix() {
           <SlotView
             {...props}
             state="failed"
-            onRetry={source => console.log('[fixture retry]', source)}
+            onPress={operation => console.log('[fixture press]', operation)}
           />
         </Cell>
       ))}
-      <Cell label="no retry handler: the tile stands without Retry">
+      <Cell label="Retry pressed, before the paint catches up: the pending line">
+        <PressStateContext.Provider
+          value={{enabled: true, presses: [press('retry', ['circleci'], 'sent')]}}
+        >
+          <AttributionView displayName="CircleCI" account={null} />
+          <SlotView {...PRESS_TILE} state="failed" onPress={logPress} />
+        </PressStateContext.Provider>
+      </Cell>
+      <Cell label="Retry never reached A2UIVerse">
+        <PressStateContext.Provider
+          value={{enabled: true, presses: [press('retry', ['circleci'], 'unreached')]}}
+        >
+          <SlotView {...PRESS_TILE} state="failed" onPress={logPress} />
+        </PressStateContext.Provider>
+      </Cell>
+      <Cell label="Retry’s stream broke after it answered">
+        <PressStateContext.Provider
+          value={{enabled: true, presses: [press('retry', ['circleci'], 'lost')]}}
+        >
+          <SlotView {...PRESS_TILE} onPress={logPress} />
+        </PressStateContext.Provider>
+      </Cell>
+      <Cell label="no press possible here (parked, or a newer question sent): Retry disabled">
+        <PressStateContext.Provider value={{enabled: false, presses: []}}>
+          <SlotView {...PRESS_TILE} state="failed" onPress={logPress} />
+        </PressStateContext.Provider>
+      </Cell>
+      <Cell label="no press handler: the tile stands without Retry">
         <SlotView source="circleci" label="CircleCI" state="failed" failure={{cause: 'timeout'}} />
       </Cell>
     </section>
@@ -397,11 +427,137 @@ function ReservedColumnMatrix() {
       <h3 style={{font: '600 12px sans-serif', opacity: 0.8, margin: '12px 0 0'}}>
         Table · a column reserved for its source
       </h3>
-      {(['pending', 'failed', 'filled'] as const).map(state => (
+      {(['pending', 'failed', 'late', 'filled'] as const).map(state => (
         <Cell key={state} label={`CircleCI ${state}`}>
           <SlotStateContext.Provider value={source => (source === 'circleci' ? state : 'filled')}>
             <Tree components={RESERVED_TABLE} data={RESERVED_ROWS} />
           </SlotStateContext.Provider>
+        </Cell>
+      ))}
+    </section>
+  );
+}
+
+/* ── The reader's presses on the merged view (task 8.5) ─────────────────────── */
+
+const logPress = (operation: unknown) => console.log('[fixture press]', operation);
+const press = (
+  kind: 'retry' | 'include' | 'tryAgain',
+  sources: string[],
+  status: PressRecord['status'],
+): PressRecord => ({operation: {kind, sources}, status});
+const PRESS_TILE = {
+  source: 'circleci',
+  label: 'CircleCI',
+  noun: 'CircleCI runs',
+  failure: {cause: 'timeout' as const},
+};
+const nameOf = (appId: string) => APP_NAMES[appId] ?? appId;
+
+const LANDED_PRESSES: {label: string; props: Record<string, unknown>; presses?: PressRecord[]}[] = [
+  {label: 'a late source waits', props: {late: ['circleci']}},
+  {label: 'two late sources, one Include', props: {late: ['circleci', 'gmail']}},
+  {label: 'including (painted)', props: {working: {sources: ['circleci']}}},
+  {
+    label: 'Include pressed, before the paint catches up',
+    props: {late: ['circleci']},
+    presses: [press('include', ['circleci'], 'sent')],
+  },
+  {label: 'updating (Try again)', props: {working: {sources: []}}},
+  {
+    label: 'couldn’t include',
+    props: {late: ['circleci'], callFailed: {kind: 'include', sources: ['circleci']}},
+  },
+  {
+    label: 'couldn’t include, and a newer source waits',
+    props: {late: ['circleci', 'gmail'], callFailed: {kind: 'include', sources: ['circleci']}},
+  },
+  {
+    label: 'couldn’t be updated, and a late source waits: two rows',
+    props: {callFailed: {kind: 'update', sources: []}, late: ['gmail']},
+  },
+  {
+    label: 'Include never reached A2UIVerse',
+    props: {late: ['circleci']},
+    presses: [press('include', ['circleci'], 'unreached')],
+  },
+  {
+    label: 'Include’s stream broke after it answered',
+    props: {working: {sources: ['circleci']}},
+    presses: [press('include', ['circleci'], 'lost')],
+  },
+];
+
+const COLLAPSED_PRESSES: {
+  label: string;
+  props: Record<string, unknown>;
+  presses?: PressRecord[];
+}[] = [
+  {
+    label: 'declined, a late source waits: Include under the line',
+    props: {
+      declined: {reason: 'Nothing to join: no GitHub PR names a Linear issue.'},
+      late: ['circleci'],
+    },
+  },
+  {label: 'couldn’t be made: Try again inline', props: {collapse: {cause: 'unmade'}}},
+  {
+    label: 'a Retry that could bring it back runs: waiting',
+    props: {collapse: {cause: 'home', home: 'Linear issues'}, retrying: ['linear']},
+  },
+  {
+    label: 'a press makes it: working',
+    props: {collapse: {cause: 'unmade'}, working: {sources: []}},
+  },
+  {
+    label: 'Try again pressed, before the paint catches up',
+    props: {collapse: {cause: 'unmade'}},
+    presses: [press('tryAgain', [], 'sent')],
+  },
+];
+
+function PressMatrix() {
+  return (
+    <section style={{display: 'grid', gap: 12}}>
+      <h3 style={{font: '600 12px sans-serif', opacity: 0.8, margin: '12px 0 0'}}>
+        Slot · the reader’s presses on the merged view
+      </h3>
+      {LANDED_PRESSES.map(({label, props, presses = []}) => (
+        <Cell key={label} label={`landed · ${label}`}>
+          <PressStateContext.Provider value={{enabled: true, presses}}>
+            <SlotStateContext.Provider
+              value={source => (source === 'circleci' ? 'late' : 'filled')}
+            >
+              <SlotContentContext.Provider
+                value={() => <Tree components={RESERVED_TABLE} data={RESERVED_ROWS} />}
+              >
+                <SlotView
+                  source="shell"
+                  content="shell"
+                  label="Synthesis"
+                  {...props}
+                  nameOf={nameOf}
+                  onPress={logPress}
+                />
+              </SlotContentContext.Provider>
+            </SlotStateContext.Provider>
+          </PressStateContext.Provider>
+        </Cell>
+      ))}
+      {COLLAPSED_PRESSES.map(({label, props, presses = []}) => (
+        <Cell key={label} label={`collapsed · ${label}`}>
+          <PressStateContext.Provider value={{enabled: true, presses}}>
+            <hr />
+            <SlotView
+              source="shell"
+              content="shell"
+              state="collapsed"
+              {...props}
+              nameOf={nameOf}
+              onPress={logPress}
+            />
+            <hr />
+          </PressStateContext.Provider>
         </Cell>
       ))}
     </section>
@@ -564,6 +720,7 @@ function Everything() {
       <SlotMatrix />
       <FailureMatrix />
       <ReservedColumnMatrix />
+      <PressMatrix />
       <CatalogMatrix />
     </div>
   );

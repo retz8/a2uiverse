@@ -7,8 +7,8 @@ import type {
   Part,
 } from '@a2a-js/sdk';
 import type {A2uiClientAction, A2uiClientDataModel, A2uiMessage} from '@a2ui/web_core/v0_9';
-import type {CompositionStamp, SynthesisPayload} from '@a2uiverse/sdk';
-import {readStamp, readSynthesis} from '@a2uiverse/sdk';
+import type {CompositionOperation, CompositionStamp, SynthesisPayload} from '@a2uiverse/sdk';
+import {operationData, readStamp, readSynthesis} from '@a2uiverse/sdk';
 import {logClientDataModelSize} from './dataModelSize';
 
 /**
@@ -119,6 +119,28 @@ export function buildErrorMessageParams(
       contextId,
       parts: [{kind: 'data', data: {version: A2UI_VERSION, error}}],
       metadata: messageMetadata(clientDataModel, undefined, supportedCatalogIds),
+    },
+  };
+}
+
+/**
+ * Wrap the reader's press — Retry, Include or Try again — as A2A send params carrying the
+ * composition contract's operation as a data part of its own (task-8.4 decision 14). The press acts
+ * on the composition in its context; it carries no data model.
+ */
+export function buildOperationMessageParams(
+  operation: CompositionOperation,
+  contextId?: string,
+  supportedCatalogIds?: string[],
+): MessageSendParams {
+  return {
+    message: {
+      kind: 'message',
+      role: 'user',
+      messageId: crypto.randomUUID(),
+      contextId,
+      parts: [{kind: 'data', data: operationData(operation, A2UI_VERSION)}],
+      metadata: messageMetadata(undefined, undefined, supportedCatalogIds),
     },
   };
 }

@@ -4,7 +4,13 @@
  */
 import {describe, it, expect} from 'vitest';
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
-import {rosterFromShellMessages, SHELL_SOURCE, shellPaintSlots, slotStatesOf} from './roster';
+import {
+  mergeFactsOf,
+  rosterFromShellMessages,
+  SHELL_SOURCE,
+  shellPaintSlots,
+  slotStatesOf,
+} from './roster';
 
 const msg = (m: Record<string, unknown>): A2uiMessage =>
   ({version: 'v0.9', ...m}) as unknown as A2uiMessage;
@@ -271,5 +277,56 @@ describe('slotStatesOf', () => {
     expect(
       slotStatesOf([msg({updateComponents: {surfaceId: 'shell:main', components: []}})]).size,
     ).toBe(0);
+  });
+});
+
+describe('mergeFactsOf', () => {
+  const paint = (components: Record<string, unknown>[]) =>
+    [{version: 'v0.9', updateComponents: {surfaceId: 'shell:main', components}}] as never;
+
+  it('reads what the orchestrator painted on the merged view’s slot (task-8.4 decision 13)', () => {
+    expect(
+      mergeFactsOf(
+        paint([
+          {id: 'github', component: 'Slot', source: 'github', state: 'failed'},
+          {
+            id: 'merge',
+            component: 'Slot',
+            source: 'shell',
+            content: 'shell',
+            merged: ['linear'],
+            late: ['circleci'],
+            working: {sources: []},
+            callFailed: {kind: 'update', sources: []},
+          },
+        ]),
+      ),
+    ).toEqual({
+      merged: ['linear'],
+      late: ['circleci'],
+      working: {sources: []},
+      callFailed: {kind: 'update', sources: []},
+    });
+    expect(
+      mergeFactsOf(
+        paint([
+          {
+            id: 'merge',
+            component: 'Slot',
+            source: 'shell',
+            content: 'shell',
+            state: 'collapsed',
+            declined: {reason: 'Nothing lines up.'},
+            retrying: ['gmail'],
+          },
+        ]),
+      ),
+    ).toEqual({declined: {reason: 'Nothing lines up.'}, retrying: ['gmail']});
+  });
+
+  it('says nothing when the paint does not carry the merged view’s slot', () => {
+    expect(
+      mergeFactsOf(paint([{id: 'github', component: 'Slot', source: 'github'}])),
+    ).toBeUndefined();
   });
 });

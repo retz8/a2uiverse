@@ -3,7 +3,7 @@ export {
   createSlotComponent,
   failureLine,
   failureWords,
-  type RetryHandler,
+  type PressHandler,
   SlotView,
 } from './slot.js';
 export {
@@ -19,3 +19,14 @@ export {
   type SlotFailure,
   type SlotProps,
 } from './slot.schema.js';
+export {
+  collapsedLines,
+  landedLines,
+  listed,
+  LOST_WORDS,
+  type MergeFacts,
+  type PressLine,
+  UNMADE_WORDS,
+  UNREACHED_WORDS,
+  UNUPDATED_WORDS,
+} from './press-lines.js';

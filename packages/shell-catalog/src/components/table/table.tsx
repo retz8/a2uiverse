@@ -13,11 +13,11 @@ import {TableApi, TableRowApi} from './table.schema.js';
 const InTableContext = createContext<{reserved: (ReservedState | undefined)[]} | null>(null);
 
 /**
- * A column reserved for its source (task-8.2 decisions 7–8): `pending` while the source is in
- * flight, `failed` once it failed. Filled, collapsed, unmarked, or unknown to the host — the
- * column draws what was authored.
+ * A column reserved for its source (task-8.2 decisions 7–8, task-8.5 decision 12): `pending` while
+ * the source is in flight or being included, `failed` once it failed, `late` while it waits for
+ * Include. Filled, collapsed, unmarked, or unknown to the host — the column draws what was authored.
  */
-export type ReservedState = 'pending' | 'failed';
+export type ReservedState = 'pending' | 'failed' | 'late';
 
 export function reservedColumnState(
   resolve: SlotStateResolver,
@@ -25,18 +25,19 @@ export function reservedColumnState(
 ): ReservedState | undefined {
   if (!source) return undefined;
   const state = resolve(source);
-  return state === 'pending' || state === 'failed' ? state : undefined;
+  return state === 'pending' || state === 'failed' || state === 'late' ? state : undefined;
 }
 
 /** The heading's state word, the client's, in the heading's own register and its accessible name. */
 const RESERVED_WORDS: Record<ReservedState, string> = {
   pending: 'loading',
   failed: 'unavailable',
+  late: 'not included',
 };
 
 /**
- * A column heading: the authored text, and "· loading" or "· unavailable" after it while the
- * column is reserved for a source that has not arrived. Shared with the reserved merge slot.
+ * A column heading: the authored text, and "· loading", "· unavailable" or "· not included" after
+ * it while the column is reserved for its source. Shared with the reserved merge slot.
  */
 export function ColumnHeading({column, reserved}: {column: string; reserved?: ReservedState}) {
   if (!reserved) return <>{column}</>;
@@ -56,9 +57,9 @@ export function ColumnHeading({column, reserved}: {column: string; reserved?: Re
  * or not a row fills it. The reserved merge slot draws its skeleton through the same geometry.
  *
  * A column marked to a source through `columnSources` is reserved while the host's slot state
- * for that source is pending or failed (task 8.2): its heading says so and its cells draw a
- * skeleton bar or the empty dash in place of the authored cell, which is drawn once the source
- * has filled — the Synthesizer's own dash until a re-synthesis writes real cells.
+ * for that source is pending, failed or late (tasks 8.2, 8.5): its heading says so; while pending
+ * or failed its cells draw a skeleton bar or the empty dash in place of the authored cell, and while
+ * late the authored cells stand — the Synthesizer's own dashes until an Include writes real cells.
  */
 export function TableView({
   columns,
@@ -120,7 +121,7 @@ export function bodyCellStyle(index: number): CSSProperties {
 }
 
 /** The reserved cell's content: a skeleton bar while loading, the empty dash once failed. */
-function ReservedCell({state}: {state: ReservedState}) {
+function ReservedCell({state}: {state: 'pending' | 'failed'}) {
   if (state === 'pending') return <SkeletonBar width="56%" height={8} />;
   return <span style={{color: 'var(--a2v-muted, var(--gray-11))'}}>—</span>;
 }
@@ -149,7 +150,7 @@ export function TableRowView({children, buildChild}: {children: unknown; buildCh
             style={bodyCellStyle(index)}
             {...(reserved ? {'data-column-reserved': reserved} : {})}
           >
-            {reserved ? <ReservedCell state={reserved} /> : node}
+            {reserved && reserved !== 'late' ? <ReservedCell state={reserved} /> : node}
           </Table.Cell>
         );
       })}

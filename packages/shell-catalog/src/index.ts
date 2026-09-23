@@ -5,7 +5,7 @@ export {
   createCatalog,
   type CreateCatalogOptions,
   type NavigationHandler,
-  type RetryHandler,
+  type PressHandler,
   OPERATORS,
   type Operator,
   RELATIONS,
@@ -24,6 +24,12 @@ export {PortalRootContext, Provider} from './provider.js';
 export {SlotContentContext, type SlotContentResolver} from './slot-content.js';
 export {SlotStateContext, type SlotStateResolver, type SourceSlotState} from './slot-state.js';
 export {
+  PressStateContext,
+  type PressRecord,
+  type PressState,
+  type PressStatus,
+} from './press-state.js';
+export {
   CALL_FAILED_KINDS,
   COLLAPSE_CAUSES,
   type CollapseCause,
@@ -32,6 +38,14 @@ export {
   type FailureCause,
   failureLine,
   failureWords,
+  collapsedLines,
+  landedLines,
+  LOST_WORDS,
+  type MergeFacts,
+  type PressLine,
+  UNMADE_WORDS,
+  UNREACHED_WORDS,
+  UNUPDATED_WORDS,
   SlotApi,
   type CallFailedKind,
   type SlotCallFailed,

@@ -1,8 +1,11 @@
 import {render, screen} from '@testing-library/react';
+import type {ReactNode} from 'react';
 import {expect, test} from 'vitest';
+import {PressStateContext, type PressRecord} from '../../press-state';
 import {SlotContentContext} from '../../slot-content';
 import {SlotStateContext} from '../../slot-state';
 import {renderTree} from '../../testing/render';
+import {collapsedLines, landedLines, LOST_WORDS, UNREACHED_WORDS} from './press-lines';
 import {collapseLine, SlotView} from './slot';
 import {SlotApi} from './slot.schema';
 
@@ -260,19 +263,19 @@ test.each([
   expect(screen.getByText(reason)).toBeInTheDocument();
 });
 
-test('Retry is drawn only under a host that retries, and hands it the source', () => {
-  const retried: string[] = [];
+test('Retry is drawn only under a host that takes presses, and hands it the retry of the source', () => {
+  const pressed: unknown[] = [];
   const {unmount} = render(
     <SlotView
       source="circleci"
       state="failed"
       label="CircleCI"
       failure={{cause: 'timeout'}}
-      onRetry={() => retried.push('circleci')}
+      onPress={operation => pressed.push(operation)}
     />,
   );
   screen.getByRole('button', {name: 'Retry'}).click();
-  expect(retried).toEqual(['circleci']);
+  expect(pressed).toEqual([{kind: 'retry', sources: ['circleci']}]);
   unmount();
   render(
     <SlotView source="circleci" state="failed" label="CircleCI" failure={{cause: 'timeout'}} />,
@@ -348,8 +351,8 @@ test('the reserved view marks a column whose source is still pending or has fail
   ).toEqual(['Issue', 'Pull request · loading', 'CI build · unavailable']);
 });
 
-test('through the catalog, Retry hands the host the source, the surface and the slot’s own id', () => {
-  const retries: unknown[] = [];
+test('through the catalog, Retry hands the host the operation, the surface and the slot’s own id', () => {
+  const presses: unknown[] = [];
   const {container} = renderTree(
     [
       {
@@ -362,10 +365,12 @@ test('through the catalog, Retry hands the host the source, the surface and the 
         failure: {cause: 'timeout'},
       },
     ],
-    {onRetry: retry => retries.push(retry)},
+    {onPress: press => presses.push(press)},
   );
   (container.querySelector('button') as HTMLButtonElement).click();
-  expect(retries).toEqual([{source: 'circleci', surfaceId: 'test', componentId: 'root'}]);
+  expect(presses).toEqual([
+    {operation: {kind: 'retry', sources: ['circleci']}, surfaceId: 'test', componentId: 'root'},
+  ]);
 });
 
 /* ── Task 8.3: every collapse of the merge leaves one line ─────────────────── */
@@ -443,4 +448,255 @@ test('schema takes the merge’s source set, the late sources, a call in progres
   expect(shell({callFailed: {kind: 'declined', sources: []}})).toBe(false);
   expect(shell({callFailed: {kind: 'include'}})).toBe(false);
   expect(shell({late: 'calendar'})).toBe(false);
+});
+
+/* ── Task 8.5: the presses' lines, drawn from the painted facts and the host's presses ─────── */
+
+const NAMES: Record<string, string> = {circleci: 'CircleCI', gmail: 'Gmail', linear: 'Linear'};
+const nameOf = (appId: string) => NAMES[appId] ?? appId;
+const texts = (lines: {text: string}[]) => lines.map(line => line.text);
+
+test('over a landed view, the working sentence alone while a press’s call runs', () => {
+  expect(
+    texts(landedLines({working: {sources: ['circleci']}, late: ['gmail']}, [], nameOf)),
+  ).toEqual(['Including CircleCI…']);
+  expect(texts(landedLines({working: {sources: []}}, [], nameOf))).toEqual([
+    'Updating the merged view…',
+  ]);
+  expect(landedLines({working: {sources: []}}, [], nameOf)[0]).toMatchObject({working: true});
+});
+
+test('over a landed view, the late sources’ line with one Include covering them all', () => {
+  const [line] = landedLines({late: ['circleci', 'gmail']}, [], nameOf);
+  expect(line).toMatchObject({
+    text: 'CircleCI and Gmail arrived after this merge.',
+    press: {label: 'Include', operation: {kind: 'include', sources: ['circleci', 'gmail']}},
+  });
+});
+
+test('a failed Include says so, with Include again — or Include when a newer source waits too', () => {
+  const failed = {kind: 'include' as const, sources: ['circleci']};
+  expect(landedLines({late: ['circleci'], callFailed: failed}, [], nameOf)[0]).toMatchObject({
+    text: 'Couldn’t include CircleCI.',
+    press: {label: 'Include again'},
+  });
+  expect(
+    landedLines({late: ['circleci', 'gmail'], callFailed: failed}, [], nameOf)[0],
+  ).toMatchObject({
+    text: 'Couldn’t include CircleCI. Gmail arrived after this merge.',
+    press: {label: 'Include', operation: {kind: 'include', sources: ['circleci', 'gmail']}},
+  });
+});
+
+test('couldn’t be updated carries Try again, and stands beside a late line as a second row', () => {
+  const lines = landedLines(
+    {callFailed: {kind: 'update', sources: []}, late: ['gmail']},
+    [],
+    nameOf,
+  );
+  expect(texts(lines)).toEqual([
+    'The merged view couldn’t be updated.',
+    'Gmail arrived after this merge.',
+  ]);
+  expect(lines[0]).toMatchObject({
+    press: {label: 'Try again', operation: {kind: 'tryAgain', sources: []}},
+    announce: true,
+  });
+});
+
+test('a press is drawn the moment it is made; one that never reached says so beside its button', () => {
+  const sent: PressRecord = {operation: {kind: 'include', sources: ['gmail']}, status: 'sent'};
+  expect(texts(landedLines({late: ['gmail']}, [sent], nameOf))).toEqual(['Including Gmail…']);
+  const unreached: PressRecord = {...sent, status: 'unreached'};
+  expect(landedLines({late: ['gmail']}, [unreached], nameOf)[0]).toMatchObject({
+    text: `Gmail arrived after this merge. ${UNREACHED_WORDS}`,
+    announce: true,
+  });
+  const lost: PressRecord = {...sent, status: 'lost'};
+  expect(texts(landedLines({working: {sources: ['gmail']}}, [lost], nameOf))).toEqual([LOST_WORDS]);
+});
+
+test('on a collapsed merge: making, waiting, couldn’t be made with Try again, else the line', () => {
+  expect(texts(collapsedLines({working: {sources: []}}, [], nameOf, 'x'))).toEqual([
+    'Making the merged view…',
+  ]);
+  expect(texts(collapsedLines({retrying: ['circleci', 'gmail']}, [], nameOf, 'x'))).toEqual([
+    'Waiting for CircleCI and Gmail, then merging…',
+  ]);
+  expect(
+    collapsedLines({collapse: {cause: 'unmade'}, late: ['gmail']}, [], nameOf, 'unused'),
+  ).toEqual([
+    {
+      text: 'The merged view couldn’t be made.',
+      press: {label: 'Try again', operation: {kind: 'tryAgain', sources: []}},
+    },
+  ]);
+  expect(
+    texts(
+      collapsedLines(
+        {collapse: {cause: 'home', home: 'Linear issues'}},
+        [],
+        nameOf,
+        'Can’t join without Linear issues.',
+      ),
+    ),
+  ).toEqual(['Can’t join without Linear issues.']);
+});
+
+test('under a decline’s line only, the late sources with Include', () => {
+  const lines = collapsedLines(
+    {declined: {reason: 'Nothing lines up.'}, late: ['gmail']},
+    [],
+    nameOf,
+    'Nothing lines up.',
+  );
+  expect(texts(lines)).toEqual(['Nothing lines up.', 'Gmail has answered since.']);
+  expect(lines[1]).toMatchObject({press: {label: 'Include', operation: {kind: 'include'}}});
+  expect(
+    texts(collapsedLines({declined: {reason: 'r'}, late: ['gmail', 'circleci']}, [], nameOf, 'r')),
+  ).toEqual(['r', 'Gmail and CircleCI have answered since.']);
+});
+
+const pressState =
+  (presses: PressRecord[], enabled = true) =>
+  (node: ReactNode) => (
+    <PressStateContext.Provider value={{enabled, presses}}>{node}</PressStateContext.Provider>
+  );
+
+test('the row sits above the landed view, its Include pressing every late source', () => {
+  const pressed: unknown[] = [];
+  const {container} = render(
+    <SlotContentContext.Provider value={() => <em>the merged view</em>}>
+      <SlotView
+        source="shell"
+        content="shell"
+        late={['circleci']}
+        nameOf={nameOf}
+        onPress={operation => pressed.push(operation)}
+      />
+    </SlotContentContext.Provider>,
+  );
+  const slot = container.querySelector('[data-slot="shell"]') as HTMLElement;
+  const row = slot.querySelector('[data-slot-press-row]') as HTMLElement;
+  expect(row.style.height).toBe('24px');
+  expect(row.textContent).toContain('CircleCI arrived after this merge.');
+  expect(
+    row.compareDocumentPosition(screen.getByText('the merged view')) &
+      Node.DOCUMENT_POSITION_FOLLOWING,
+  ).toBeTruthy();
+  screen.getByRole('button', {name: 'Include'}).click();
+  expect(pressed).toEqual([{kind: 'include', sources: ['circleci']}]);
+});
+
+test('no row over a landed view with nothing to say', () => {
+  const {container} = render(
+    <SlotContentContext.Provider value={() => <em>the merged view</em>}>
+      <SlotView source="shell" content="shell" merged={['github']} onPress={() => {}} />
+    </SlotContentContext.Provider>,
+  );
+  expect(container.querySelector('[data-slot-press-row]')).toBeNull();
+});
+
+test('press buttons draw disabled where no press can be made', () => {
+  render(
+    pressState(
+      [],
+      false,
+    )(
+      <SlotView
+        source="circleci"
+        state="failed"
+        label="CircleCI"
+        failure={{cause: 'timeout'}}
+        onPress={() => {}}
+      />,
+    ),
+  );
+  expect(screen.getByRole('button', {name: 'Retry'})).toBeDisabled();
+});
+
+test('Retry gives the tile way to the pending line at the press; one that never reached says so', () => {
+  const retry = {kind: 'retry' as const, sources: ['circleci']};
+  const tile = (presses: PressRecord[], state: 'failed' | 'pending' = 'failed') =>
+    render(
+      pressState(presses)(
+        <SlotView
+          source="circleci"
+          state={state}
+          label="CircleCI"
+          failure={state === 'failed' ? {cause: 'timeout'} : undefined}
+          onPress={() => {}}
+        />,
+      ),
+    );
+  const sent = tile([{operation: retry, status: 'sent'}]);
+  expect(screen.getByText('CircleCI…')).toBeInTheDocument();
+  expect(screen.queryByRole('button', {name: 'Retry'})).not.toBeInTheDocument();
+  sent.unmount();
+  const unreached = tile([{operation: retry, status: 'unreached'}]);
+  expect(screen.getByRole('button', {name: 'Retry'})).toBeEnabled();
+  expect(screen.getAllByText(UNREACHED_WORDS)[0]!.closest('[data-slot-press-note]')).not.toBeNull();
+  unreached.unmount();
+  tile([{operation: retry, status: 'lost'}], 'pending');
+  expect(screen.getAllByText(LOST_WORDS).length).toBeGreaterThan(0);
+});
+
+test('the three outcomes the progress line does not say are announced from the slot', () => {
+  const {container} = render(
+    <SlotContentContext.Provider value={() => <em>view</em>}>
+      <SlotView source="shell" content="shell" callFailed={{kind: 'update', sources: []}} />
+    </SlotContentContext.Provider>,
+  );
+  expect(container.querySelector('[role="status"]')).toHaveTextContent(
+    'The merged view couldn’t be updated.',
+  );
+  const late = render(
+    <SlotContentContext.Provider value={() => <em>view</em>}>
+      <SlotView source="shell" content="shell" late={['gmail']} />
+    </SlotContentContext.Provider>,
+  );
+  expect(late.container.querySelector('[role="status"]')).toHaveTextContent('');
+});
+
+test('focus moves from a pressed button to the line that replaced it', () => {
+  let presses: PressRecord[] = [];
+  const view = () =>
+    pressState(presses)(
+      <SlotContentContext.Provider value={() => <em>view</em>}>
+        <SlotView
+          source="shell"
+          content="shell"
+          late={['gmail']}
+          nameOf={nameOf}
+          onPress={operation => {
+            presses = [{operation, status: 'sent'}];
+            rerender(view());
+          }}
+        />
+      </SlotContentContext.Provider>,
+    );
+  const {rerender} = render(view());
+  const include = screen.getByRole('button', {name: 'Include'});
+  include.focus();
+  include.click();
+  expect(document.activeElement).toBe(screen.getByText('Including Gmail…'));
+});
+
+test('a collapsed merge’s lines keep the collapse’s markers on the first row', () => {
+  const {container} = render(
+    <SlotView
+      source="shell"
+      content="shell"
+      state="collapsed"
+      declined={{reason: 'Nothing lines up.'}}
+      late={['gmail']}
+      nameOf={nameOf}
+      onPress={() => {}}
+    />,
+  );
+  const rows = container.querySelectorAll('[data-slot-press-row]');
+  expect(rows).toHaveLength(2);
+  expect(rows[0]).toHaveAttribute('data-slot-declined');
+  expect(rows[1]).toHaveTextContent('Gmail has answered since.');
+  expect(screen.getByRole('button', {name: 'Include'})).toBeInTheDocument();
 });

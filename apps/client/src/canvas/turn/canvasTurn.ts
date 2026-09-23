@@ -31,6 +31,12 @@
  *   is canceled, or resolves to a question leaves the user where they acted.
  * - **Cancel**: aborts the transport signal and discards the staged work; a canceled paint
  *   never reaches the stage and never enters the timeline.
+ * - **Streams beside the turn** (task-8.5 decisions 1–3): a press, or a report the canvas sends on
+ *   the side, is answered on a stream of its own. What it carries is routed by the stamp as a
+ *   turn's batches are — a shell repaint, a fragment into its slot, a synthesis payload — straight
+ *   into the live composition; it is not a turn and never touches the stage, the timeline or the
+ *   turn in flight. A new utterance ends every one of them. Whatever stream carries it, a shell
+ *   repaint that paints a vendor slot failed takes that source's fragment off the canvas.
  * - **Streamed partials**: the agent streams a component as it is generated, and the
  *   processor validates every batch, so a batch carrying a half-built component is thrown
  *   away. Those validation failures are deferred and judged at turn end against the settled
@@ -45,7 +51,7 @@ import type {CompositionStamp, SynthesisPayload} from '@a2uiverse/sdk';
 import type {PaintMeta} from '../../a2a/messages';
 import {paintMetaOf, QUESTION_PAINT_KIND} from '../../a2a/messages';
 import {applyA2uiMessages} from '../../a2ui/applyMessages';
-import {shellPaintSlots, slotStatesOf} from '../composition/roster';
+import {mergeFactsOf, SHELL_SOURCE, shellPaintSlots, slotStatesOf} from '../composition/roster';
 import {describeError} from '../../shared/describeError';
 import type {CanvasState, CanvasStore} from '../canvasStore';
 import type {PaintCause} from '../timeline/paint';
@@ -110,10 +116,25 @@ export interface TurnRunnerOptions {
   synthesis?: SynthesisIntake;
 }
 
+/** A stream beside the turn: a press's, or a side report's answer (module header). */
+export interface SideStream {
+  /** Aborts the stream's transport when a new utterance ends it. */
+  readonly signal: AbortSignal;
+  apply(messages: A2uiMessage[], stamp?: CompositionStamp, synthesis?: SynthesisPayload): void;
+  acceptPaintMeta(meta: PaintMeta): void;
+  /** The stream is exhausted: its fragments are judged, once. */
+  end(): void;
+}
+
 export interface TurnRunner {
   readonly current: TurnHandle | null;
-  /** Begin a turn; an in-flight one is canceled first (last-intent-wins). */
+  /**
+   * Begin a turn; an in-flight one is canceled first (last-intent-wins). An utterance also ends
+   * every stream beside the turn and marks the composition on stage as being replaced.
+   */
   begin(cause: PaintCause): TurnHandle;
+  /** Open a stream beside the turn, into the live composition. */
+  beginSideStream(): SideStream;
   /**
    * Remove the pending question paint from the canvas and the live registry. Shared by Q&A's
    * two exits — answering (the answer is captured into the next cause by the caller) and
@@ -137,6 +158,136 @@ export function createTurnRunner({
 
   const reportMessageError = (err: unknown) =>
     store.reportError(`Part of this response could not be displayed. ${describeError(err)}`);
+
+  /** The streams beside the turn still open (module header). */
+  const sideStreams = new Set<{cancel(): void}>();
+  const cancelSideStreams = () => {
+    for (const stream of [...sideStreams]) stream.cancel();
+  };
+
+  /**
+   * Surfaces taken off the canvas with their failed slot. A late message for one is dropped rather
+   * than failing against a surface that is gone; a fresh create for it — a Retry's answer — lands.
+   */
+  const dropped = new Set<string>();
+  const admits = (message: A2uiMessage) => {
+    const {kind, surfaceId} = targetOf(message);
+    if (surfaceId === undefined || !dropped.has(surfaceId)) return true;
+    if (kind !== 'create') return false;
+    dropped.delete(surfaceId);
+    return true;
+  };
+
+  /** A failed source's fragment leaves the canvas: out of the registry, out of its slot. */
+  const dropFragment = (source: string) => {
+    const placed = store.getState().placement.get(source);
+    if (!placed) return;
+    if (processor.model.getSurface(placed.surfaceId))
+      processor.model.deleteSurface(placed.surfaceId);
+    dropped.add(placed.surfaceId);
+    store.unplace(source);
+    store.demoteSlot(source);
+  };
+
+  /**
+   * What a shell paint says about the composition, on whichever stream carries it: the roster,
+   * each slot's state, the merged view's facts — and a vendor slot painted failed takes its
+   * fragment off the canvas (task-8.5 decision 3). Returns the vendor slots painted with no
+   * attribution around them.
+   */
+  const applyShellPaint = (messages: A2uiMessage[]): string[] => {
+    const {roster, unattributed} = shellPaintSlots(messages);
+    if (roster) store.setRoster(roster);
+    const states = slotStatesOf(messages);
+    store.mergeSlotStates(states);
+    const merge = mergeFactsOf(messages);
+    if (merge) store.setMerge(merge);
+    for (const [source, state] of states) {
+      if (state === 'failed' && source !== SHELL_SOURCE) dropFragment(source);
+    }
+    return unattributed;
+  };
+
+  /** A fragment claims its source's slot. One surface per slot: a later claim retires the earlier. */
+  const claimSlot = (source: string, surfaceId: string) => {
+    const previous = store.getState().placement.get(source);
+    if (previous && previous.surfaceId !== surfaceId)
+      processor.model.deleteSurface(previous.surfaceId);
+    store.placeFragment(source, {surfaceId, source});
+  };
+
+  /** The source whose slot a batch's stamp claims, when it is a fragment's. */
+  const slotOf = (stamp?: CompositionStamp) =>
+    stamp?.role === 'fragment' ? stamp.source : undefined;
+
+  /**
+   * The surface a payload describes: the fragment created in its batch, or the one already
+   * filling the stamp's source's slot when the paint is a bare update.
+   */
+  const synthesisTarget = (messages: A2uiMessage[], stamp: CompositionStamp | undefined) => {
+    const source = slotOf(stamp);
+    if (!source) return undefined;
+    const created = messages.map(targetOf).find(t => t.kind === 'create' && t.surfaceId);
+    const surfaceId = created?.surfaceId ?? store.getState().placement.get(source)?.surfaceId;
+    return surfaceId ? {surfaceId, source} : undefined;
+  };
+
+  /**
+   * One stream's fragments: the slot each claimed and the one report each may make — at the
+   * turn's end, or a side stream's — never a second.
+   */
+  const createFragmentLedger = () => {
+    const fragmentSlots = new Map<string, string>();
+    const reported = new Set<string>();
+    const fail = (surfaceId: string, path: string, message: string, refused = false) => {
+      if (!onFragmentFailure || reported.has(surfaceId)) return;
+      const source = fragmentSlots.get(surfaceId);
+      if (source === undefined) return;
+      reported.add(surfaceId);
+      // A slot that failed has nothing left to answer.
+      store.demoteSlot(source);
+      onFragmentFailure({surfaceId, source, path, message, ...(refused ? {refused} : {})});
+    };
+    /** A batch for a refused source: nothing of it enters the registry; its create is reported. */
+    const refuse = (messages: A2uiMessage[], source: string) => {
+      for (const message of messages) {
+        const {kind, surfaceId} = targetOf(message);
+        if (kind !== 'create' || !surfaceId) continue;
+        fragmentSlots.set(surfaceId, source);
+        fail(surfaceId, '/', 'the shell drew this slot with no attribution', true);
+      }
+    };
+    /**
+     * The stream's end for fragments: judged on their settled state, per fragment, reported
+     * outward. A fragment displaced by a later claim on its slot, or taken off with a failed slot,
+     * is not a failure — it was superseded.
+     */
+    const settle = () => {
+      if (!onFragmentFailure) return;
+      const {placement} = store.getState();
+      for (const [surfaceId, source] of fragmentSlots) {
+        if (placement.get(source)?.surfaceId !== surfaceId) continue;
+        const surface = processor.model.getSurface(surfaceId);
+        if (surface === undefined) {
+          fail(surfaceId, '/', 'the fragment never reached the canvas');
+          continue;
+        }
+        if (surface.componentsModel.get(ROOT_COMPONENT_ID) === undefined) {
+          fail(surfaceId, '/', 'the fragment produced no root component');
+          continue;
+        }
+        const invalid = invalidComponentsOf(surface);
+        if (invalid.length > 0) {
+          fail(
+            surfaceId,
+            `/${invalid[0]}`,
+            `components failed catalog validation: ${invalid.join(', ')}`,
+          );
+        }
+      }
+    };
+    return {fragmentSlots, fail, refuse, settle};
+  };
 
   /** Materialize a live surface's content — the snapshot half of a paint entry. */
   const snapshotOf = (surfaceId: string) => {
@@ -208,7 +359,16 @@ export function createTurnRunner({
     store.setStage(null);
     // The synthesis belongs to the composition: its payload and sorts go with it.
     synthesis?.retire();
+    // So do its roster, slot states, merge facts and presses, and the streams beside it.
+    retireComposition();
   };
+
+  /** The composition on stage is gone: what the client held of it goes, and its streams end. */
+  function retireComposition() {
+    cancelSideStreams();
+    dropped.clear();
+    store.resetComposition();
+  }
 
   /** A newer question replaces any pending one — an unanswered question leaves no trace. */
   const replaceOverlay = (surfaceId: string) => {
@@ -238,9 +398,8 @@ export function createTurnRunner({
     /** Surface ids this turn created — the turn's own paint, as opposed to live surfaces. */
     const createdIds = new Set<string>();
     /** Of those, the fragments and the source whose slot each claimed: they never contend for the stage. */
-    const fragmentSlots = new Map<string, string>();
-    /** Fragments already reported this turn — one report per fragment, never a second. */
-    const reported = new Set<string>();
+    const ledger = createFragmentLedger();
+    const fragmentSlots = ledger.fragmentSlots;
     /** Staged-mode slot claims, applied once their surfaces reach the live processor. */
     const claims: Array<{surfaceId: string; source: string}> = [];
     /** Staged-mode buffer: the messages replayed into the live processor at swap. */
@@ -261,26 +420,8 @@ export function createTurnRunner({
      */
     const refusedSources = new Set<string>();
 
-    /** Report one fragment as unrenderable, at most once. */
-    const failFragment = (surfaceId: string, path: string, message: string, refused = false) => {
-      if (!onFragmentFailure || reported.has(surfaceId)) return;
-      const source = fragmentSlots.get(surfaceId);
-      if (source === undefined) return;
-      reported.add(surfaceId);
-      // A slot that failed has nothing left to answer.
-      store.demoteSlot(source);
-      onFragmentFailure({surfaceId, source, path, message, ...(refused ? {refused} : {})});
-    };
-
-    /** A batch for a refused source: nothing of it enters the registry; its create is reported. */
-    const refuseBatch = (messages: A2uiMessage[], source: string) => {
-      for (const message of messages) {
-        const {kind, surfaceId} = targetOf(message);
-        if (kind !== 'create' || !surfaceId) continue;
-        fragmentSlots.set(surfaceId, source);
-        failFragment(surfaceId, '/', 'the shell drew this slot with no attribution', true);
-      }
-    };
+    const failFragment = ledger.fail;
+    const refuseBatch = ledger.refuse;
 
     const onMessageError = (err: unknown, message: A2uiMessage) => {
       if (err instanceof A2uiValidationError) {
@@ -306,34 +447,7 @@ export function createTurnRunner({
       if (unsettled) reportMessageError(deferredValidation[deferredValidation.length - 1]);
     };
 
-    /**
-     * Turn end for fragments: the same judgment, per fragment, reported outward. A fragment
-     * displaced by a later claim on its slot is not a failure — it was superseded.
-     */
-    const settleFragments = () => {
-      if (!onFragmentFailure) return;
-      const {placement} = store.getState();
-      for (const [surfaceId, source] of fragmentSlots) {
-        if (placement.get(source)?.surfaceId !== surfaceId) continue;
-        const surface = processor.model.getSurface(surfaceId);
-        if (surface === undefined) {
-          failFragment(surfaceId, '/', 'the fragment never reached the canvas');
-          continue;
-        }
-        if (surface.componentsModel.get(ROOT_COMPONENT_ID) === undefined) {
-          failFragment(surfaceId, '/', 'the fragment produced no root component');
-          continue;
-        }
-        const invalid = invalidComponentsOf(surface);
-        if (invalid.length > 0) {
-          failFragment(
-            surfaceId,
-            `/${invalid[0]}`,
-            `components failed catalog validation: ${invalid.join(', ')}`,
-          );
-        }
-      }
-    };
+    const settleFragments = ledger.settle;
 
     /** The paintMetas accepted this turn, by surface id. */
     const metas = new Map<string, PaintMeta>();
@@ -387,14 +501,6 @@ export function createTurnRunner({
       fragmentSlots.has(id) ||
       [...store.getState().placement.values()].some(p => p.surfaceId === id);
 
-    /** A fragment claims its source's slot. One surface per slot: a later claim retires the earlier. */
-    const claimSlot = (source: string, surfaceId: string) => {
-      const previous = store.getState().placement.get(source);
-      if (previous && previous.surfaceId !== surfaceId)
-        processor.model.deleteSurface(previous.surfaceId);
-      store.placeFragment(source, {surfaceId, source});
-    };
-
     /**
      * A fragment declaring a question does not get the overlay — that would re-parent it out of
      * the slot the shell promised it, and would let one vendor block the whole canvas. The shell
@@ -405,10 +511,6 @@ export function createTurnRunner({
       if (placed && isQuestion(placed.surfaceId)) store.promoteSlot(source);
     };
 
-    /** The source whose slot a batch's stamp claims, when it is a fragment's. */
-    const slotOf = (stamp?: CompositionStamp) =>
-      stamp?.role === 'fragment' ? stamp.source : undefined;
-
     /**
      * A composed turn cannot hold-and-swap: its whole point is that the layout lands before the
      * agents answer, and the slots then fill in place. The shell paint's arrival retires the
@@ -418,18 +520,6 @@ export function createTurnRunner({
      */
     const opensComposition = (messages: A2uiMessage[], stamp?: CompositionStamp) =>
       stamp?.role === 'shell' && messages.some(m => targetOf(m).kind === 'create');
-
-    /**
-     * The surface a payload describes: the fragment created in its batch, or the one already
-     * filling the stamp's source's slot when the paint is a bare update.
-     */
-    const synthesisTarget = (messages: A2uiMessage[], stamp: CompositionStamp | undefined) => {
-      const source = slotOf(stamp);
-      if (!source) return undefined;
-      const created = messages.map(targetOf).find(t => t.kind === 'create' && t.surfaceId);
-      const surfaceId = created?.surfaceId ?? store.getState().placement.get(source)?.surfaceId;
-      return surfaceId ? {surfaceId, source} : undefined;
-    };
 
     const goProgressive = () => {
       stagedMode = false;
@@ -615,22 +705,26 @@ export function createTurnRunner({
           else rest.push(message);
         }
         if (rest.length === 0) return;
+        // A composition opening retires the one on stage — what the client held of it included —
+        // before its own shell paint is read.
+        if (opensComposition(rest, stamp)) {
+          if (stagedMode) goProgressive();
+          else retireComposition();
+        }
         // The shell's paint is the only place the plan's slot order and the Registry's display
         // names reach the client; the roster is that read, re-derived on every shell repaint.
         if (stamp?.role === 'shell') {
-          const {roster, unattributed} = shellPaintSlots(rest);
-          if (roster) store.setRoster(roster);
-          store.mergeSlotStates(slotStatesOf(rest));
-          for (const source of unattributed) refusedSources.add(source);
+          for (const source of applyShellPaint(rest)) refusedSources.add(source);
         }
         const source = slotOf(stamp);
         if (source !== undefined && refusedSources.has(source)) {
           refuseBatch(rest, source);
           return;
         }
-        if (stagedMode && opensComposition(rest, stamp)) goProgressive();
-        if (stagedMode) applyStaged(rest, stamp, payload);
-        else applyProgressive(rest, stamp, payload);
+        const admitted = rest.filter(admits);
+        if (admitted.length === 0) return;
+        if (stagedMode) applyStaged(admitted, stamp, payload);
+        else applyProgressive(admitted, stamp, payload);
       },
       acceptPaintMeta,
       end: () => {
@@ -672,19 +766,107 @@ export function createTurnRunner({
     };
 
     current = handle;
-    // The stack and the roster it is ordered by both belong to the turn: the previous turn's
-    // answers and its cast of sources go the moment a new one opens.
+    // The stack belongs to the turn: the previous turn's answers go the moment a new one opens.
+    // The roster the stack is ordered by, and the slot states, belong to the composition — kept
+    // across the actions inside it, gone when it retires (task-8.5 decision 13).
     store.clearNotices();
     store.clearProse();
-    store.setRoster([]);
-    store.clearSlotStates();
     // The user's words head the canvas from Enter until the next utterance; an action inside a
-    // fragment is a step within the same question, so it leaves the header standing.
+    // fragment is a step within the same question, so it leaves the header standing. An utterance
+    // replaces the composition on stage: every stream beside it ends, and no press is made on it
+    // (task-8.5 decision 2).
     if (cause.kind === 'utterance') {
       store.setQuestion({text: cause.payload.text, askedAt: Date.now()});
+      cancelSideStreams();
+      store.supersede();
     }
     store.beginPaint(describeCause(cause), cause.kind);
     return handle;
+  };
+
+  /**
+   * A stream beside the turn (module header): what it carries lands in the live composition as a
+   * progressive turn's batches would — slot claims, the shell's facts, a synthesis payload — with no
+   * stage, no timeline, no mode, and nothing of the turn in flight touched.
+   */
+  const beginSideStream = (): SideStream => {
+    const controller = new AbortController();
+    const ledger = createFragmentLedger();
+    const refused = new Set<string>();
+    const metas = new Map<string, PaintMeta>();
+    let open = true;
+    const close = () => {
+      open = false;
+      sideStreams.delete(entry);
+    };
+    const entry = {
+      cancel: () => {
+        if (!open) return;
+        close();
+        controller.abort();
+      },
+    };
+    sideStreams.add(entry);
+
+    const onMessageError = (err: unknown, message: A2uiMessage) => {
+      // A partial the vendor completes in its next batch fails validation on the way; the
+      // fragment is judged whole at the stream's end.
+      if (err instanceof A2uiValidationError) return;
+      reportMessageError(err);
+      const {surfaceId} = targetOf(message);
+      if (surfaceId) ledger.fail(surfaceId, '/', describeError(err));
+    };
+
+    return {
+      signal: controller.signal,
+      apply: (messages, stamp, payload) => {
+        if (!open) return;
+        const rest: A2uiMessage[] = [];
+        for (const message of messages) {
+          const meta = paintMetaOf(message);
+          if (meta) metas.set(meta.surfaceId, meta);
+          else rest.push(message);
+        }
+        if (stamp?.role === 'shell') {
+          for (const source of applyShellPaint(rest)) refused.add(source);
+        }
+        const source = slotOf(stamp);
+        if (source !== undefined && refused.has(source)) {
+          ledger.refuse(rest, source);
+          return;
+        }
+        const admitted = rest.filter(admits);
+        if (admitted.length === 0) return;
+        if (source) {
+          for (const message of admitted) {
+            const {kind, surfaceId} = targetOf(message);
+            if (kind !== 'create' || !surfaceId) continue;
+            ledger.fragmentSlots.set(surfaceId, source);
+            claimSlot(source, surfaceId);
+          }
+        }
+        applyA2uiMessages(processor, admitted, {onMessageError});
+        if (source) {
+          const placed = store.getState().placement.get(source);
+          if (placed && metas.get(placed.surfaceId)?.kind === QUESTION_PAINT_KIND)
+            store.promoteSlot(source);
+        }
+        if (payload) {
+          const target = synthesisTarget(admitted, stamp);
+          if (target && processor.model.getSurface(target.surfaceId))
+            synthesis?.accept(target, payload);
+        }
+        store.bumpApplied();
+      },
+      acceptPaintMeta: meta => {
+        if (open) metas.set(meta.surfaceId, meta);
+      },
+      end: () => {
+        if (!open) return;
+        close();
+        ledger.settle();
+      },
+    };
   };
 
   return {
@@ -692,6 +874,7 @@ export function createTurnRunner({
       return current;
     },
     begin,
+    beginSideStream,
     removeOverlay,
   };
 }
