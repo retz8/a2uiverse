@@ -1,6 +1,6 @@
 # Task 8.4 — Orchestrator: Include, Retry and Try again
 
-The orchestrator's part of Phase 8's presses (`_dev/docs/spec/phase-8-late-arrival-failure.md`, decisions 6, 10 and 11 as amended): Include, Retry and Try again as operations on the composition, what each covers, a press's call that fails, a collapsed merge brought back, the facts painted for the client's lines, the operation's wire shape in the composition contract, and the journal. SPEC §4.5, §5.3, §8, §14.
+The orchestrator's part of Phase 8's presses (`_dev/docs/spec/phase-8-late-arrival-failure.md`, decisions 6, 10, 11 and 12 as amended): Include, Retry and Try again as operations on the composition, what each covers, a press's call that fails, a collapsed merge brought back, the facts painted for the client's lines, the operation's wire shape in the composition contract, and the journal. SPEC §4.5, §5.3, §8, §14.
 
 ## Scope
 
@@ -83,7 +83,7 @@ A press is a journal turn of its own kind, `operation`, described by its kind an
 
 ### 17. SPEC, phase spec and TODO amendments
 
-SPEC §5.3 records Try again as the third press, a failed re-synthesis keeping the landed view, and Include after a decline or a merge that couldn't be made; SPEC §4.5 records a collapsed merge brought back moving nothing until it lands. The phase spec's decisions 6, 10 and 11 and its invariants gain Try again. The delta register's Include row covers Try again. TODO: 8.4's line; 8.5 gains the new lines and buttons; 8.6, 8.7 and 8.8 follow; Phase 9 gains the parked composition as a previous tab, not frozen — whether presses work there and what it keeps running.
+SPEC §5.3 records Try again as the third press, a failed re-synthesis keeping the landed view, and Include after a decline or a merge that couldn't be made; SPEC §4.5 records a collapsed merge brought back moving nothing until it lands. The phase spec's decisions 6, 11 and 12 gain Try again. The delta register's Include row covers Try again. TODO: 8.4's line; 8.5 gains the new lines and buttons; 8.6, 8.7 and 8.8 follow; Phase 9 gains the parked composition as a previous tab, not frozen — whether presses work there and what it keeps running.
 
 ## Invariants
 

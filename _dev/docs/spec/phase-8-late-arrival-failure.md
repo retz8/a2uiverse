@@ -38,7 +38,7 @@ A source's planned column stays in the merged view when synthesis lands without 
 
 ### 6. A late arrival mounts free; absorb is on request
 
-A source arriving after the merge landed mounts its fragment in its own slot with no model call, the progress line naming it. The merged view stays as it landed. Its label row, beside the view's label and the sort control, carries a client-worded line that the source arrived after this merge and an Include button, drawn by the shell, never in the Synthesizer's tree. The press is one client operation on the composition to the orchestrator, which runs the existing inline re-synthesis handed the previous synthesize data model beside the fresh partition, told the source joined. While it runs the line becomes the working sentence and the reserved column's cells show loading; both settle when the document lands. In a temporal merge Include adds the source's rows the same way. If the reader never presses, the composition stands as it landed. The merge keeps the set of sources it was built over: only Include and Retry add to it, a failure removes from it, and a re-synthesis for any other reason runs over that set.
+A source arriving after the merge landed mounts its fragment in its own slot with no model call, the progress line naming it. The merged view stays as it landed. Its label row, beside the view's label and the sort control, carries a client-worded line that the source arrived after this merge and an Include button, drawn by the shell, never in the Synthesizer's tree. The press is one client operation on the composition to the orchestrator, which runs the existing inline re-synthesis handed the previous synthesize data model beside the fresh partition, told the source joined. While it runs the line becomes the working sentence and the reserved column's cells show loading; both settle when the document lands. In a temporal merge Include adds the source's rows the same way. If the reader never presses, the composition stands as it landed. The merge keeps the set of sources it was built over: only Include, Retry and Try again add to it, a failure removes from it, and a re-synthesis for any other reason runs over that set. A re-synthesis whose call fails leaves the landed view as it was, with a line saying so beside the press that tries again. After a decline, or a merge that couldn't be made, a source arriving later gets Include under the collapse line.
 
 ### 7. The failure tile is board F6
 
@@ -58,11 +58,11 @@ Retry is an action turn on the composition for that slot alone, no re-plan. An a
 
 ### 11. One automatic synthesis per turn
 
-The turn's first synthesis is its only automatic Synthesizer call. Every further call has a press behind it: Include, or Retry.
+The turn's first synthesis is its only automatic Synthesizer call. Every further call has a press behind it: Include, Retry, or Try again.
 
 ### 12. Every collapse of the merge leaves one line
 
-A collapsed merge leaves one quiet line where the merged view's label would have sat. The reserved view's skeleton height goes and the fragments move up once to meet that line. A decline's line is the Synthesizer's reason. Every other collapse's line is the client's, from a cause the painter sets: the home source failed, fewer than two sources arrived, or the merged view couldn't be made. The progress line's merge step gains its own declined state in the client's words.
+A collapsed merge leaves one quiet line where the merged view's label would have sat. The reserved view's skeleton height goes and the fragments move up once to meet that line. A decline's line is the Synthesizer's reason. Every other collapse's line is the client's, from a cause the painter sets: the home source failed, fewer than two sources arrived, or the merged view couldn't be made. The merged view couldn't be made carries Try again. A collapsed merge a press brings back moves nothing until its view lands. The progress line's merge step gains its own declined state in the client's words.
 
 ### 13. A dev-only fault map in the AgentsPool
 
