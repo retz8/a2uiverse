@@ -35,6 +35,11 @@ both.
   a **`TableRow`**, and that row's `children` are the cells, one `DerivedValue` per column, in
   column order. The columns align by construction. Do not build a list as a heading `Row` over a
   `Column` of `Row`s: a `Row` sizes its children by content and the columns never line up.
+  `columnSources` names, per column, the one source whose values it shows, or null for a value
+  computed across sources; start from the plan's. Keep the column for a source that brought no
+  data — it failed, or has not answered — and write the empty cell in it, a `Text` dash `—`, one
+  cell per column as always: the runtime draws that column reserved from the source's state, and a
+  later synthesis fills it in place.
 - **`DataList`** for the labelled values of one thing — an entry's fields, a summary, a detail.
   Each child is a **`DataListItem`**: a `label` you write beside its one `child`, a `DerivedValue`
   when the value comes from a source. `orientation` stacks label over value when the values are

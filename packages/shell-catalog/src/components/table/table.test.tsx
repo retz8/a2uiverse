@@ -78,3 +78,92 @@ test('a TableRow outside a Table draws as a row, not as a stray table row', () =
   expect(container.textContent).toContain('AB');
   expect(consoleError.mock.calls).toEqual([]);
 });
+
+/* ── Task 8.2: the reserved column ───────────────────────────────────────────── */
+
+import {SlotStateContext, type SlotStateResolver} from '../../slot-state';
+import {TableApi} from './table.schema';
+
+const RESERVED_TREE = [
+  {
+    id: 'root',
+    component: 'Table',
+    columns: ['Issue', 'Pull request', 'CI build'],
+    columnSources: ['linear', 'github', 'circleci'],
+    children: ['r1'],
+  },
+  {id: 'r1', component: 'TableRow', children: ['a1', 'a2', 'a3']},
+  {id: 'a1', component: 'Text', text: 'Fix login'},
+  {id: 'a2', component: 'Text', text: '#6'},
+  {id: 'a3', component: 'Text', text: '—'},
+];
+
+const withStates =
+  (states: Record<string, ReturnType<SlotStateResolver>>) => (node: React.ReactNode) => (
+    <SlotStateContext.Provider value={source => states[source]}>{node}</SlotStateContext.Provider>
+  );
+
+test('schema takes columnSources, a source or null per column', () => {
+  const table = (extra: Record<string, unknown>) =>
+    TableApi.schema.safeParse({columns: ['Issue', 'CI build'], children: ['r'], ...extra}).success;
+  expect(table({columnSources: ['linear', 'circleci']})).toBe(true);
+  expect(table({columnSources: [null, 'circleci']})).toBe(true);
+  expect(table({columnSources: ['linear', 2]})).toBe(false);
+});
+
+test('a columnSources shorter than the columns marks only the columns it covers', () => {
+  const {container} = renderTree(
+    [{...RESERVED_TREE[0]!, columnSources: ['linear']}, ...RESERVED_TREE.slice(1)],
+    {wrap: withStates({linear: 'pending', circleci: 'pending'})},
+  );
+  const headings = [...container.querySelectorAll('thead th')].map(th =>
+    th.textContent?.replace(/\s+/g, ' '),
+  );
+  expect(headings).toEqual(['Issue · loading', 'Pull request', 'CI build']);
+  expect(container.querySelectorAll('tbody td')[2]!.textContent).toBe('—');
+  expect(consoleError.mock.calls).toEqual([]);
+});
+
+test('a column whose source is pending draws skeleton bars in place of its cells and says so in the heading', () => {
+  const {container} = renderTree(RESERVED_TREE, {
+    wrap: withStates({linear: 'filled', github: 'filled', circleci: 'pending'}),
+  });
+  const headings = [...container.querySelectorAll('thead th')].map(th =>
+    th.textContent?.replace(/\s+/g, ' '),
+  );
+  expect(headings).toEqual(['Issue', 'Pull request', 'CI build · loading']);
+  const cells = [...container.querySelectorAll('tbody td')];
+  expect(cells[0]!.textContent).toBe('Fix login');
+  expect(cells[2]!.textContent).toBe('');
+  expect(cells[2]!.querySelector('[data-skeleton-bar]')).not.toBeNull();
+  expect(cells[2]!).toHaveAttribute('data-column-reserved', 'pending');
+  expect(consoleError.mock.calls).toEqual([]);
+});
+
+test('a column whose source failed draws the empty dash and says unavailable', () => {
+  const {container} = renderTree(RESERVED_TREE, {
+    wrap: withStates({linear: 'filled', github: 'filled', circleci: 'failed'}),
+  });
+  const headings = [...container.querySelectorAll('thead th')].map(th =>
+    th.textContent?.replace(/\s+/g, ' '),
+  );
+  expect(headings[2]).toBe('CI build · unavailable');
+  const cell = container.querySelectorAll('tbody td')[2]!;
+  expect(cell.textContent).toBe('—');
+  expect(cell).toHaveAttribute('data-column-reserved', 'failed');
+  expect(consoleError.mock.calls).toEqual([]);
+});
+
+test('a filled source, or one the host says nothing about, leaves the authored cell and heading alone', () => {
+  const filled = renderTree(RESERVED_TREE, {
+    wrap: withStates({linear: 'filled', github: 'filled', circleci: 'filled'}),
+  });
+  expect(filled.container.querySelectorAll('tbody td')[2]!.textContent).toBe('—');
+  expect(filled.container.querySelectorAll('thead th')[2]!.textContent).toBe('CI build');
+  filled.unmount();
+  const silent = renderTree(RESERVED_TREE);
+  expect(silent.container.querySelectorAll('tbody td')[2]!.textContent).toBe('—');
+  expect(silent.container.querySelectorAll('thead th')[2]!.textContent).toBe('CI build');
+  expect(silent.container.querySelector('[data-column-reserved]')).toBeNull();
+  expect(consoleError.mock.calls).toEqual([]);
+});

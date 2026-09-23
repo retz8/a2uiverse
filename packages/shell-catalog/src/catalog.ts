@@ -19,7 +19,7 @@ import {CheckBoxComponent} from './components/check-box/index.js';
 import {ChoicePickerComponent} from './components/choice-picker/index.js';
 import {SliderComponent} from './components/slider/index.js';
 import {DateTimeInputComponent} from './components/date-time-input/index.js';
-import {createSlotComponent} from './components/slot/index.js';
+import {createSlotComponent, type RetryHandler} from './components/slot/index.js';
 import {AttributionComponent} from './components/attribution/index.js';
 import {
   type AppDisplayName,
@@ -42,6 +42,7 @@ export {
   type RelationOp,
 } from './functions/relations.js';
 export type {AppDisplayName, NavigationHandler} from './components/derived-value/index.js';
+export type {RetryHandler} from './components/slot/index.js';
 export {
   SHELL_ACTIONS,
   type ShellAction,
@@ -77,17 +78,18 @@ export const BASIC_IMPLEMENTATIONS: readonly ReactComponentImplementation[] = [
 
 /**
  * The shell's own primitives — composition, synthesis and the merged view's shapes — also on
- * Radix Themes. `Slot` is bound to the host's shell-action handler: its capability tile raises
- * `openStore`. `DerivedValue` is bound to the host's navigation handler and app names (task-7.5
+ * Radix Themes. `Slot` is bound to the host's shell-action and retry handlers: its capability tile
+ * raises `openStore`, its failure tile a retry. `DerivedValue` is bound to the host's navigation handler and app names (task-7.5
  * decisions 11, 13). Layout is the basic catalog's `Row` and `Column` (task-6.4 decision 4).
  */
 function shellImplementations({
   onShellAction,
+  onRetry,
   onNavigate,
   appDisplayName,
 }: CreateCatalogOptions): ReactComponentImplementation[] {
   return [
-    createSlotComponent(onShellAction),
+    createSlotComponent(onShellAction, onRetry),
     AttributionComponent,
     createDerivedValueComponent({onNavigate, appDisplayName}),
     SortControlComponent,
@@ -101,6 +103,11 @@ function shellImplementations({
 export interface CreateCatalogOptions {
   /** What the host does when a shell surface raises `openStore` or `openAppLibrary`. */
   onShellAction: ShellActionHandler;
+  /**
+   * What the host does when the reader presses Retry on a failed slot: re-dispatch that source.
+   * Without it, the failure tile draws no Retry (task 8.2).
+   */
+  onRetry?: RetryHandler;
   /**
    * What the host does when a derived-value cell is activated: land on the element its target
    * names. Without it, cells are not interactive.

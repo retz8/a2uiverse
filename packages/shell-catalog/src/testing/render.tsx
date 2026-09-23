@@ -12,6 +12,7 @@ import {
   type AppDisplayName,
   createCatalog,
   type NavigationHandler,
+  type RetryHandler,
   type ShellActionHandler,
 } from '../catalog.js';
 import {CATALOG_ID} from '../catalog-id.js';
@@ -28,6 +29,8 @@ export interface TreeOptions {
   onAction?: (action: A2uiClientAction) => void;
   /** Receives every shell action a button or a capability tile raises. */
   onShellAction?: ShellActionHandler;
+  /** Receives every retry a failure tile raises. */
+  onRetry?: RetryHandler;
   /** Receives every navigation a derived-value cell raises. */
   onNavigate?: NavigationHandler;
   /** The host's display names for apps. */
@@ -48,6 +51,7 @@ export function surfaceFor(
     [
       createCatalog({
         onShellAction: options.onShellAction ?? (() => {}),
+        onRetry: options.onRetry,
         onNavigate: options.onNavigate,
         appDisplayName: options.appDisplayName,
       }),

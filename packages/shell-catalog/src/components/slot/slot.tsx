@@ -1,11 +1,26 @@
 import {useContext, type CSSProperties} from 'react';
 import {createComponentImplementation} from '@a2ui/react/v0_9';
+import {UpdateIcon} from '@radix-ui/react-icons';
 import {Button, Flex, Table, Text} from '@radix-ui/themes';
 import type {ShellActionHandler} from '../../functions/shell-actions.js';
 import {SlotContentContext} from '../../slot-content.js';
+import {SlotStateContext} from '../../slot-state.js';
 import {weightStyle} from '../shared/layout.js';
-import {bodyCellStyle, headingCellStyle} from '../table/table.js';
-import {SlotApi, type SlotProps} from './slot.schema.js';
+import {SkeletonBar} from '../shared/skeleton.js';
+import {
+  bodyCellStyle,
+  ColumnHeading,
+  headingCellStyle,
+  reservedColumnState,
+} from '../table/table.js';
+import {SlotApi, type SlotFailure, type SlotProps} from './slot.schema.js';
+
+/** What the host does when the reader presses Retry on a failed slot: the slot's source, and where it was raised. */
+export type RetryHandler = (retry: {
+  source: string;
+  surfaceId: string;
+  componentId: string;
+}) => void;
 
 /**
  * Host-resolved content wins whenever the state allows it: `failed` renders the
@@ -16,7 +31,16 @@ import {SlotApi, type SlotProps} from './slot.schema.js';
  * if the host has nothing to rest it on* — a source that answered in prose
  * rather than in UI still occupied a slot, and letting that slot vanish while
  * its attribution stays would leave a label naming nothing. The host decides
- * what the resting state is; the slot only decides that there may be one.
+ * what the resting state is; the slot only decides that there may be one. A
+ * declined merge is the exception (task-8.2 decision 9): the shell slot collapses to
+ * one line in the Synthesizer's words, at the 24px row where the merged view's
+ * label would have sat, the skeleton's height given back.
+ *
+ * A failed fragment slot is the failure tile (task 8.2, the design canvas's F6): the failure
+ * said at body size in the shell's words, composed from the label and the noun the source was
+ * asked for; Retry, under a host that retries; and beneath, the vendor's own words under a
+ * heading naming it, or the shell's reason under "What happened", per the painted cause. No
+ * box, the reserved floor, one face throughout.
  *
  * Shell content (task-5.5 decisions 1, 3) is the shell writing on its own page: no tile, and a
  * failure is a quiet line. While pending it is the merged view reserved at its size (task-7.15):
@@ -40,10 +64,18 @@ export function SlotView({
   weight,
   state = 'pending',
   label,
+  noun,
+  failure,
   content = 'fragment',
   columns,
+  columnSources,
+  declined,
   onSearchStore,
-}: SlotProps & {onSearchStore?: (query: string | undefined) => void}) {
+  onRetry,
+}: SlotProps & {
+  onSearchStore?: (query: string | undefined) => void;
+  onRetry?: (source: string) => void;
+}) {
   const resolve = useContext(SlotContentContext);
   const shell = content === 'shell';
   const weighted = weightStyle(weight ?? 1);
@@ -66,6 +98,20 @@ export function SlotView({
   const resolved = source === undefined ? null : resolve(source);
 
   if (state === 'collapsed') {
+    if (shell && declined) {
+      return (
+        <div
+          data-slot={source}
+          data-slot-state="collapsed"
+          data-slot-content="shell"
+          style={{...weighted, minHeight: 0}}
+        >
+          <Flex align="center" style={{height: 24}} data-slot-declined="">
+            {quietLine(declined.reason)}
+          </Flex>
+        </div>
+      );
+    }
     if (resolved == null) return null;
     return (
       <div
@@ -86,11 +132,31 @@ export function SlotView({
         </div>
       );
     }
+    const name = label ?? source ?? '';
+    const words = failureWords(name, failure);
     return (
       <div data-slot={source} data-slot-state="failed" style={{...weighted, ...reservedStyle}}>
-        <Text as="span" size="1" color="gray">
-          {label ?? source} didn&rsquo;t load
-        </Text>
+        <Flex direction="column" align="start" gap="4">
+          <Text as="p" size="2" data-slot-failure-line="">
+            {failureLine(name, noun)}
+          </Text>
+          {onRetry && source !== undefined && (
+            <Button size="2" variant="outline" color="gray" onClick={() => onRetry(source)}>
+              <UpdateIcon aria-hidden />
+              Retry
+            </Button>
+          )}
+          {words && (
+            <Flex direction="column" gap="1" data-slot-failure-words="">
+              <Text as="span" size="1" color="gray">
+                {words.heading}
+              </Text>
+              <Text as="span" size="1" color="gray">
+                {words.text}
+              </Text>
+            </Flex>
+          )}
+        </Flex>
       </div>
     );
   }
@@ -122,7 +188,7 @@ export function SlotView({
         aria-label={label}
         style={weighted}
       >
-        <ReservedView columns={columns} />
+        <ReservedView columns={columns} columnSources={columnSources} />
       </div>
     );
   }
@@ -149,10 +215,55 @@ const SKELETON_WIDTHS = [
 ];
 
 /**
+ * The failure tile's line (task-8.2 decision 3): the source's name and what it was asked for.
+ * A noun that starts with the name — "CircleCI runs" — reads as "its runs"; another noun is
+ * shown as written; with no noun the source simply couldn't answer.
+ */
+export function failureLine(name: string, noun: string | undefined): string {
+  if (!noun) return `${name} couldn’t answer.`;
+  const own = name && noun.startsWith(`${name} `) ? `its ${noun.slice(name.length + 1)}` : noun;
+  return `${name} couldn’t show ${own}.`;
+}
+
+/**
+ * What stands beneath Retry (task-8.2 decision 4): the vendor's own words under a heading naming
+ * it, or the shell's reason under "What happened"; nothing when the vendor ended its task without
+ * a word, and nothing when no cause was painted.
+ */
+export function failureWords(
+  name: string,
+  failure: SlotFailure | undefined,
+): {heading: string; text: string} | null {
+  if (!failure) return null;
+  switch (failure.cause) {
+    case 'vendor':
+      return failure.message ? {heading: `${name} said`, text: failure.message} : null;
+    case 'unreachable':
+      return {heading: 'What happened', text: `${name} couldn’t be reached.`};
+    case 'timeout':
+      return {heading: 'What happened', text: 'No answer within the time allowed.'};
+    case 'invalid':
+      return {
+        heading: 'What happened',
+        text: `${name} answered, but its screen couldn’t be shown.`,
+      };
+  }
+}
+
+/**
  * The merged view before it lands: the label row with a bar in it, then a table — the planned
  * headers when the plan named columns, one full-width column otherwise — over four rows of bars.
+ * A column marked to a source says in its heading when that source is still loading or has
+ * failed, as the landed table does (task 8.2).
  */
-function ReservedView({columns}: {columns?: string[]}) {
+function ReservedView({
+  columns,
+  columnSources,
+}: {
+  columns?: string[];
+  columnSources?: (string | null)[];
+}) {
+  const resolve = useContext(SlotStateContext);
   const count = columns?.length || 1;
   return (
     <Flex direction="column" gap="2">
@@ -165,7 +276,10 @@ function ReservedView({columns}: {columns?: string[]}) {
             <Table.Row>
               {columns.map((column, index) => (
                 <Table.ColumnHeaderCell key={`${column}-${index}`} style={headingCellStyle(index)}>
-                  {column}
+                  <ColumnHeading
+                    column={column}
+                    reserved={reservedColumnState(resolve, columnSources?.[index])}
+                  />
                 </Table.ColumnHeaderCell>
               ))}
             </Table.Row>
@@ -184,21 +298,6 @@ function ReservedView({columns}: {columns?: string[]}) {
         </Table.Body>
       </Table.Root>
     </Flex>
-  );
-}
-
-function SkeletonBar({width, height}: {width: number | string; height: number}) {
-  return (
-    <i
-      aria-hidden
-      style={{
-        display: 'block',
-        width,
-        height,
-        borderRadius: height / 2,
-        background: 'var(--a2v-skel, var(--gray-a3))',
-      }}
-    />
   );
 }
 
@@ -242,10 +341,11 @@ const reservedStyle: CSSProperties = {
 };
 
 /**
- * Catalog entry, bound to the host's shell-action handler: the generic binder resolves props,
- * then renders SlotView, whose capability tile raises `openStore` from this slot's surface.
+ * Catalog entry, bound to the host's handlers: the generic binder resolves props, then renders
+ * SlotView, whose capability tile raises `openStore` and whose failure tile raises a retry from
+ * this slot's surface. Without a retry handler the tile draws no Retry.
  */
-export function createSlotComponent(onShellAction: ShellActionHandler) {
+export function createSlotComponent(onShellAction: ShellActionHandler, onRetry?: RetryHandler) {
   return createComponentImplementation(SlotApi, ({props, context}) => (
     <SlotView
       source={props.source}
@@ -253,13 +353,26 @@ export function createSlotComponent(onShellAction: ShellActionHandler) {
       weight={props.weight}
       state={props.state}
       label={props.label}
+      noun={props.noun}
+      failure={props.failure}
       content={props.content}
       columns={props.columns}
+      columnSources={props.columnSources}
+      declined={props.declined}
       onSearchStore={query => {
         const surfaceId = context.dataContext.surface.id;
         const componentId = context.componentModel.id;
         onShellAction({name: 'openStore', surfaceId, componentId, ...(query ? {query} : {})});
       }}
+      onRetry={
+        onRetry &&
+        (source =>
+          onRetry({
+            source,
+            surfaceId: context.dataContext.surface.id,
+            componentId: context.componentModel.id,
+          }))
+      }
     />
   ));
 }

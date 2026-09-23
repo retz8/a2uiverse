@@ -19,6 +19,7 @@ import {
   type EvaluatedRelation,
   Provider,
   SlotContentContext,
+  SlotStateContext,
   SlotView,
 } from '../src/index.js';
 import schema from '../catalogs/v0.9.1/catalog.json';
@@ -36,6 +37,7 @@ const APP_NAMES: Record<string, string> = {
 
 const CATALOG = createCatalog({
   onShellAction: action => console.log('[fixture shell action]', action),
+  onRetry: retry => console.log('[fixture retry]', retry),
   onNavigate: target => console.log('[fixture navigate]', target),
   appDisplayName: appId => APP_NAMES[appId],
 });
@@ -230,6 +232,30 @@ function SlotMatrix() {
         <SlotView source="shell" content="shell" label="Synthesis" />
       </div>
       <div>
+        reserved with columns marked to their sources (Linear filled · GitHub loading · CircleCI
+        failed):
+        <SlotStateContext.Provider value={source => RESERVED_STATES[source]}>
+          <SlotView
+            source="shell"
+            content="shell"
+            label="Synthesis"
+            columns={['Issue', 'Status', 'Pull request', 'CI build']}
+            columnSources={['linear', 'linear', 'github', 'circleci']}
+          />
+        </SlotStateContext.Provider>
+      </div>
+      <div>
+        declined (one line where the label would have sat):
+        <hr />
+        <SlotView
+          source="shell"
+          content="shell"
+          state="collapsed"
+          declined={{reason: 'Nothing to join: no GitHub PR names a Linear issue.'}}
+        />
+        <hr />
+      </div>
+      <div>
         <SlotView
           gap="flight booking"
           onSearchStore={query => console.log('[fixture capability tile]', query)}
@@ -241,6 +267,123 @@ function SlotMatrix() {
         <SlotView source="gmail" state="collapsed" />
         <hr />
       </div>
+    </section>
+  );
+}
+
+/* ── The failure tile (task 8.2, the design canvas's F6), per cause ─────────── */
+
+const RESERVED_STATES: Record<string, 'pending' | 'filled' | 'failed'> = {
+  linear: 'filled',
+  github: 'pending',
+  circleci: 'failed',
+};
+
+const FAILURES: {label: string; props: Parameters<typeof SlotView>[0]}[] = [
+  {
+    label: 'vendor, with its message',
+    props: {
+      source: 'circleci',
+      label: 'CircleCI',
+      noun: 'CircleCI runs',
+      failure: {cause: 'vendor', message: 'Project not found: retz8/a2uiverse'},
+    },
+  },
+  {
+    label: 'vendor, no message',
+    props: {
+      source: 'circleci',
+      label: 'CircleCI',
+      noun: 'CircleCI runs',
+      failure: {cause: 'vendor'},
+    },
+  },
+  {
+    label: 'unreachable',
+    props: {
+      source: 'github',
+      label: 'GitHub',
+      noun: 'pull requests',
+      failure: {cause: 'unreachable'},
+    },
+  },
+  {
+    label: 'timeout, the hard cap',
+    props: {
+      source: 'circleci',
+      label: 'CircleCI',
+      noun: 'CircleCI runs',
+      failure: {cause: 'timeout'},
+    },
+  },
+  {
+    label: 'invalid paint, no noun',
+    props: {source: 'gmail', label: 'Gmail', failure: {cause: 'invalid'}},
+  },
+];
+
+function FailureMatrix() {
+  return (
+    <section style={{display: 'grid', gap: 12}}>
+      <h3 style={{font: '600 12px sans-serif', opacity: 0.8, margin: '12px 0 0'}}>
+        Slot · the failure tile
+      </h3>
+      {FAILURES.map(({label, props}) => (
+        <Cell key={label} label={label}>
+          <AttributionView displayName={props.label ?? ''} account={null} />
+          <SlotView
+            {...props}
+            state="failed"
+            onRetry={source => console.log('[fixture retry]', source)}
+          />
+        </Cell>
+      ))}
+      <Cell label="no retry handler: the tile stands without Retry">
+        <SlotView source="circleci" label="CircleCI" state="failed" failure={{cause: 'timeout'}} />
+      </Cell>
+    </section>
+  );
+}
+
+/* ── A landed table with a column reserved for its source ───────────────────── */
+
+const RESERVED_TABLE: TreeComponent[] = [
+  {id: 'root', component: 'Column', children: ['label', 'table']},
+  {id: 'label', component: 'Text', variant: 'h5', text: 'Active work status'},
+  {
+    id: 'table',
+    component: 'Table',
+    columns: ['Issue', 'Status', 'Pull request', 'CI build'],
+    columnSources: ['linear', 'linear', 'github', 'circleci'],
+    children: {path: '/rows', componentId: 'row'},
+  },
+  {id: 'row', component: 'TableRow', children: ['c-issue', 'c-status', 'c-pr', 'c-ci']},
+  {id: 'c-issue', component: 'Text', text: {path: 'issue'}},
+  {id: 'c-status', component: 'Text', text: {path: 'status'}},
+  {id: 'c-pr', component: 'Text', text: {path: 'pr'}},
+  {id: 'c-ci', component: 'Text', text: '—'},
+];
+const RESERVED_ROWS = {
+  rows: [
+    {issue: 'Give the Synthesizer more thinking effort', status: 'In Progress', pr: '#8'},
+    {issue: 'Say on the canvas when an utterance fails', status: 'In Progress', pr: '#6'},
+    {issue: 'Name the workflow, not its id', status: 'In Progress', pr: '#7'},
+  ],
+};
+
+function ReservedColumnMatrix() {
+  return (
+    <section style={{display: 'grid', gap: 12}}>
+      <h3 style={{font: '600 12px sans-serif', opacity: 0.8, margin: '12px 0 0'}}>
+        Table · a column reserved for its source
+      </h3>
+      {(['pending', 'failed', 'filled'] as const).map(state => (
+        <Cell key={state} label={`CircleCI ${state}`}>
+          <SlotStateContext.Provider value={source => (source === 'circleci' ? state : 'filled')}>
+            <Tree components={RESERVED_TABLE} data={RESERVED_ROWS} />
+          </SlotStateContext.Provider>
+        </Cell>
+      ))}
     </section>
   );
 }
@@ -399,6 +542,8 @@ function Everything() {
       <Timeline />
       <JoinMatrix />
       <SlotMatrix />
+      <FailureMatrix />
+      <ReservedColumnMatrix />
       <CatalogMatrix />
     </div>
   );

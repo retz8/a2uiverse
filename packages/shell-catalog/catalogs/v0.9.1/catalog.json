@@ -802,7 +802,7 @@
     },
     "Slot": {
       "type": "object",
-      "description": "A named region of a composed screen whose content is mounted by the client. Paint one per planned fragment; later repaints may change its state but never its position. While no content has arrived it renders a pending placeholder. A slot whose content is the shell's own \u2014 the merged view \u2014 is declared `content: \"shell\"`: it keeps its reserved position but is painted like the shell's own UI, with no tile: while pending it is reserved as the merged view's label, its planned column headers and a few skeleton rows, and the view takes its own height when it lands.",
+      "description": "A named region of a composed screen whose content is mounted by the client. Paint one per planned fragment; later repaints may change its state but never its position. While no content has arrived it renders a pending placeholder. A slot whose content is the shell's own \u2014 the merged view \u2014 is declared `content: \"shell\"`: it keeps its reserved position but is painted like the shell's own UI, with no tile: while pending it is reserved as the merged view's label, its planned column headers and a few skeleton rows, and the view takes its own height when it lands. A source that fails shows the failure tile in its region: the failure said in the shell's words, Retry, and the vendor's own words beneath. A declined merge collapses its slot to one line saying why.",
       "properties": {
         "component": {
           "const": "Slot"
@@ -823,7 +823,7 @@
           "type": "string",
           "enum": ["pending", "failed", "collapsed"],
           "default": "pending",
-          "description": "The region\u2019s lifecycle state. `pending` shows a placeholder until content arrives; `failed` shows that the content could not be produced; `collapsed` removes the region from view without moving its neighbours."
+          "description": "The region\u2019s lifecycle state, painted by the runtime and never written by an author. `pending` shows a placeholder until content arrives; `failed` shows the failure tile; `collapsed` removes the region from view without moving its neighbours."
         },
         "content": {
           "type": "string",
@@ -835,10 +835,36 @@
           "type": "string",
           "description": "Human-readable name for the awaited content, shown while pending or failed."
         },
+        "noun": {
+          "type": "string",
+          "description": "Fragment content only: what the source was asked for, as the merged view's join calls it — \"CircleCI runs\". Written beside `label` at plan time; the failure tile's line is composed from the two."
+        },
+        "failure": {
+          "type": "object",
+          "description": "Fragment content only: why the source failed. Painted by the runtime with `state: \"failed\"` and never written by an author.",
+          "properties": {
+            "cause": {
+              "type": "string",
+              "enum": ["vendor", "unreachable", "timeout", "invalid"],
+              "description": "`vendor`: the vendor ended its task failed; `unreachable`: the connection or stream broke, nothing said; `timeout`: no answer within the time allowed; `invalid`: the paint arrived and could not be rendered."
+            },
+            "message": {
+              "type": "string",
+              "description": "The vendor's own words, only with `cause: \"vendor\"` and only when the vendor gave any."
+            }
+          },
+          "required": ["cause"],
+          "additionalProperties": false
+        },
         "columns": {
           "type": "array",
           "items": {"type": "string"},
           "description": "Shell content only: the merged view's planned column headers, in order, drawn over the skeleton rows while pending."
+        },
+        "columnSources": {
+          "type": "array",
+          "items": {"type": ["string", "null"]},
+          "description": "Shell content only: one entry per planned column, the source id the column belongs to — the source whose values it shows — or null for a column of no single source. The same length as `columns`. A column whose source has not answered is drawn reserved: its heading says so and its cells hold a bar until the source arrives."
         },
         "join": {
           "type": "object",
@@ -848,6 +874,13 @@
             "nouns": {"type": "object", "additionalProperties": {"type": "string"}}
           },
           "required": ["home", "nouns"],
+          "additionalProperties": false
+        },
+        "declined": {
+          "type": "object",
+          "description": "Shell content only: the reason the merge was declined, in the Synthesizer's words. Painted by the runtime with `state: \"collapsed\"` and never written by an author; drawn as one line where the merged view's label would have sat.",
+          "properties": {"reason": {"type": "string"}},
+          "required": ["reason"],
           "additionalProperties": false
         }
       },
@@ -987,6 +1020,11 @@
             "type": "string"
           },
           "description": "The column headings, in order, one per cell of each row. Yours to write; fixed, never bound."
+        },
+        "columnSources": {
+          "type": "array",
+          "items": {"type": ["string", "null"]},
+          "description": "One entry per column, in column order: the source id the column belongs to — the one source whose values it shows — or null for a column of no single source, such as a value computed across sources. The same length as `columns`. Start from the plan's. A column whose source brought no data is drawn reserved from that source's state: its heading says the source is loading or unavailable, and its cells hold a bar or the empty dash in place of yours until the source is included. Fixed, never bound."
         },
         "children": {
           "description": "The rows: TableRow ids, or a template over an array of the model whose componentId is a TableRow.",
