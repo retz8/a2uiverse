@@ -1,10 +1,6 @@
 import {afterEach, describe, expect, test, vi} from 'vitest';
 import type {Message, Task, TaskStatusUpdateEvent} from '@a2a-js/sdk';
-import {
-  AgentsPool,
-  type AgentsPoolOptions,
-  UNKNOWN_COMPONENT,
-} from '../src/agentsPool/agentsPool.js';
+import {AgentsPool, type AgentsPoolOptions, REJECTED_VALUE} from '../src/agentsPool/agentsPool.js';
 import type {Fault} from '../src/agentsPool/faults.js';
 import type {DispatchTurn} from '../src/agentsPool/types.js';
 import {Registry} from '../src/registry/registry.js';
@@ -401,7 +397,26 @@ describe('AgentsPool — the fault map (task 8.3 decision 14)', () => {
     expect(record).toMatchObject({outcome: 'failed', cause: 'unreachable', sawFinal: false});
   });
 
-  test('invalid renames a component of the paint to one no catalog has', async () => {
+  test('break ends with no final after a paint that rode the vendor’s final', async () => {
+    const script: Script = ({ctx, vendorContextId}) => [
+      {
+        kind: 'status-update',
+        taskId: ctx.taskId,
+        contextId: vendorContextId,
+        final: true,
+        status: {
+          state: 'completed',
+          message: {kind: 'message', messageId: 'm', role: 'agent', parts: [A2UI_PART]},
+        },
+      },
+    ];
+    const {pool} = await poolFor({script}, faulted({fault: 'break'}));
+    const {events, record} = await drain(pool.dispatch('github', turn({fromPlan: true})));
+    expect(events).toHaveLength(1);
+    expect(record).toMatchObject({outcome: 'failed', cause: 'unreachable', sawFinal: false});
+  });
+
+  test('invalid gives a component of the paint a prop its catalog rejects', async () => {
     const script: Script = ({ctx, vendorContextId}) => [
       {
         kind: 'status-update',
@@ -436,11 +451,11 @@ describe('AgentsPool — the fault map (task 8.3 decision 14)', () => {
     const {pool} = await poolFor({script}, faulted({fault: 'invalid'}));
     const {events, record} = await drain(pool.dispatch('github', turn({fromPlan: true})));
     const data = (events[0] as TaskStatusUpdateEvent).status.message!.parts[0] as {
-      data: {updateComponents: {components: Array<{id: string; component: string}>}};
+      data: {updateComponents: {components: Array<Record<string, unknown>>}};
     };
-    expect(data.data.updateComponents.components.map(c => c.component)).toEqual([
-      'Column',
-      UNKNOWN_COMPONENT,
+    expect(data.data.updateComponents.components).toEqual([
+      {id: 'root', component: 'Column', children: REJECTED_VALUE},
+      {id: 't', component: 'Text', text: 'hi'},
     ]);
     expect(record).toMatchObject({outcome: 'completed', fault: 'invalid'});
   });

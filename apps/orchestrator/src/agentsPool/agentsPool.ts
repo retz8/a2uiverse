@@ -180,12 +180,15 @@ export class AgentsPool {
           }
           let out: VendorEvent = event;
           if (fault?.fault === 'invalid' && !injected) {
-            const swapped = withUnknownComponent(event);
+            const swapped = withRejectedProp(event);
             injected = swapped !== event;
             out = swapped;
           }
           yield relayEvent(out, relayCtx);
-          if (fault?.fault === 'break' && carriesA2ui(event) && !record.sawFinal) {
+          // The first paint forwarded, then no final — even where the vendor's paint rode its final,
+          // which the relay has already demoted (task 8.6: the deterministic roster paints that way).
+          if (fault?.fault === 'break' && carriesA2ui(event)) {
+            record.sawFinal = false;
             broke = true;
             break;
           }
@@ -335,26 +338,32 @@ function carriesA2ui(event: VendorEvent): boolean {
   return partsOfEvent(event).some(part => part.kind === 'data' && isA2ui(part.data));
 }
 
-/** The name the `invalid` fault gives a component: one no catalog has. */
-export const UNKNOWN_COMPONENT = 'FaultMapUnknownComponent';
+/** The props the `invalid` fault breaks: every catalog types them, none as a number. */
+const BREAKABLE_PROPS = ['children', 'child', 'text'] as const;
+
+/** The value the `invalid` fault gives the prop. */
+export const REJECTED_VALUE = 0;
 
 /**
- * The `invalid` fault: the first `updateComponents` in the event with one component — the first
- * that is not the root, when there is one — renamed to a component no catalog has, so the client
- * cannot draw the paint. The same event back when it carries none.
+ * The `invalid` fault: the first `updateComponents` in the event with the first component carrying
+ * `children`, `child` or `text` given a number for it — a value its catalog rejects, so the update
+ * fails validation, the client cannot draw the paint and reports it at the turn's end. The same
+ * event back when it carries none.
  */
-function withUnknownComponent(event: VendorEvent): VendorEvent {
+function withRejectedProp(event: VendorEvent): VendorEvent {
   let swapped = false;
   const swap = (parts: Part[]): Part[] =>
     parts.map(part => {
       if (swapped || part.kind !== 'data') return part;
       const update = part.data.updateComponents as {components?: unknown} | undefined;
       const components = update?.components;
-      if (!Array.isArray(components) || components.length === 0) return part;
-      const index = Math.max(
-        0,
-        components.findIndex(c => (c as {id?: unknown}).id !== 'root'),
+      if (!Array.isArray(components)) return part;
+      const index = components.findIndex(c =>
+        BREAKABLE_PROPS.some(prop => typeof c === 'object' && c !== null && prop in c),
       );
+      if (index < 0) return part;
+      const component = components[index] as Record<string, unknown>;
+      const prop = BREAKABLE_PROPS.find(p => p in component)!;
       swapped = true;
       return {
         ...part,
@@ -363,7 +372,7 @@ function withUnknownComponent(event: VendorEvent): VendorEvent {
           updateComponents: {
             ...update,
             components: components.map((c, i) =>
-              i === index ? {...(c as object), component: UNKNOWN_COMPONENT} : c,
+              i === index ? {...component, [prop]: REJECTED_VALUE} : c,
             ),
           },
         },
