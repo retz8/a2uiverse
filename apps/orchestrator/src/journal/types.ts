@@ -36,8 +36,17 @@ export interface PlanRecord {
  * the outcome — phase decision 15's measurement, read from here.
  */
 export interface SynthesisRecord {
-  outcome: 'synthesized' | 'declined' | 'malformed' | 'skipped' | 'failed';
+  /** `home`: the home source failed and the merge collapsed with no call (task-8.3 decision 8). */
+  outcome: 'synthesized' | 'declined' | 'malformed' | 'skipped' | 'failed' | 'home';
   reason?: string;
+  /** A collapsed merge's cause as painted (task-8.3 decision 9). */
+  collapse?: 'declined' | 'home' | 'few' | 'unmade';
+  /** What released the turn's automatic synthesis, and when (task-8.3 decision 15). */
+  release?: {by: 'settled' | 'soft-deadline' | 'home'; at: string};
+  /** The sources the synthesis ran over. */
+  sources?: string[];
+  /** The dispatched sources it ran without, each still loading, failed, or arrived after the merge. */
+  missing?: {appId: string; state: 'loading' | 'failed' | 'arrived'}[];
   /** The accepted document, on `synthesized`. */
   synthesizeDataModel?: Synthesis;
   /** The document's note, on `synthesized`: the deviation from the brief, when any. */
@@ -46,6 +55,7 @@ export interface SynthesisRecord {
   attempts?: {text: string; errors: string[]}[];
   /** What was sent on a re-synthesis. */
   changes?: ChangeAccount;
+  /** From the synthesis's release — or, on a re-synthesis, the last settle — to its outcome. */
   deadAirMs?: number;
 }
 
@@ -67,6 +77,10 @@ export interface JournalEntry {
   clientMetadata: {keys: string[]; dataModelBytes: number};
   /** Turn-level outcome; one agent failing never fails a fan-out turn. */
   outcome: DispatchOutcome;
+  /** The soft deadline and the hard cap in force for the turn's dispatches (task-8.3 decision 15). */
+  deadlines?: {softMs: number; capMs: number};
+  /** A new utterance ended this turn while it ran (task-8.3 decision 4). */
+  superseded?: true;
   /** The descriptor, embedded at write time with the Router's model; null when embedding failed. */
   embedding: number[] | null;
 }

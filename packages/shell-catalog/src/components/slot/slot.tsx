@@ -13,7 +13,7 @@ import {
   headingCellStyle,
   reservedColumnState,
 } from '../table/table.js';
-import {SlotApi, type SlotFailure, type SlotProps} from './slot.schema.js';
+import {SlotApi, type SlotCollapse, type SlotFailure, type SlotProps} from './slot.schema.js';
 
 /** What the host does when the reader presses Retry on a failed slot: the slot's source, and where it was raised. */
 export type RetryHandler = (retry: {
@@ -32,9 +32,10 @@ export type RetryHandler = (retry: {
  * rather than in UI still occupied a slot, and letting that slot vanish while
  * its attribution stays would leave a label naming nothing. The host decides
  * what the resting state is; the slot only decides that there may be one. A
- * declined merge is the exception (task-8.2 decision 9): the shell slot collapses to
- * one line in the Synthesizer's words, at the 24px row where the merged view's
- * label would have sat, the skeleton's height given back.
+ * collapsed merge is the exception: the shell slot collapses to one line at the 24px row where
+ * the merged view's label would have sat, the skeleton's height given back — the Synthesizer's
+ * words for a decline (task-8.2 decision 9), the shell's own for every other cause (task-8.3
+ * decision 9).
  *
  * A failed fragment slot is the failure tile (task 8.2, the design canvas's F6): the failure
  * said at body size in the shell's words, composed from the label and the noun the source was
@@ -70,6 +71,7 @@ export function SlotView({
   columns,
   columnSources,
   declined,
+  collapse,
   onSearchStore,
   onRetry,
 }: SlotProps & {
@@ -98,7 +100,8 @@ export function SlotView({
   const resolved = source === undefined ? null : resolve(source);
 
   if (state === 'collapsed') {
-    if (shell && declined) {
+    const line = shell ? (declined?.reason ?? (collapse && collapseLine(collapse))) : undefined;
+    if (line) {
       return (
         <div
           data-slot={source}
@@ -106,8 +109,12 @@ export function SlotView({
           data-slot-content="shell"
           style={{...weighted, minHeight: 0}}
         >
-          <Flex align="center" style={{height: 24}} data-slot-declined="">
-            {quietLine(declined.reason)}
+          <Flex
+            align="center"
+            style={{height: 24}}
+            {...(declined ? {'data-slot-declined': ''} : {'data-slot-collapse': collapse!.cause})}
+          >
+            {quietLine(line)}
           </Flex>
         </div>
       );
@@ -223,6 +230,30 @@ export function failureLine(name: string, noun: string | undefined): string {
   if (!noun) return `${name} couldn’t answer.`;
   const own = name && noun.startsWith(`${name} `) ? `its ${noun.slice(name.length + 1)}` : noun;
   return `${name} couldn’t show ${own}.`;
+}
+
+/**
+ * The collapsed merge's line when it was not declined (task-8.3 decision 9), in the shell's
+ * words: the home source it cannot join without, the one source that answered — or none — or the
+ * view that could not be made.
+ */
+export function collapseLine(collapse: SlotCollapse): string {
+  switch (collapse.cause) {
+    case 'home':
+      return `Can’t join without ${collapse.home ?? 'the home source'}.`;
+    case 'few': {
+      const answered = collapse.answered ?? [];
+      return answered.length === 0
+        ? 'No app answered, so there’s nothing to merge.'
+        : `Only ${listed(answered)} answered, so there’s nothing to merge.`;
+    }
+    case 'unmade':
+      return 'The merged view couldn’t be made.';
+  }
+}
+
+function listed(names: readonly string[]): string {
+  return names.length < 2 ? names.join('') : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`;
 }
 
 /**
@@ -359,6 +390,7 @@ export function createSlotComponent(onShellAction: ShellActionHandler, onRetry?:
       columns={props.columns}
       columnSources={props.columnSources}
       declined={props.declined}
+      collapse={props.collapse}
       onSearchStore={query => {
         const surfaceId = context.dataContext.surface.id;
         const componentId = context.componentModel.id;

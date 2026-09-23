@@ -3,7 +3,6 @@ import {classifyTurn, unnamespaceAction} from '../src/composition/classify.js';
 import {shellSurfaceId} from '../src/composition/constants.js';
 import {filterClientDataModel, vendorMetadata} from '../src/composition/partition.js';
 import {outcomeToSlotState} from '../src/composition/state.js';
-import {emptyTouches} from '../src/journal/surfaces.js';
 
 describe('constants', () => {
   test('the shell surface is namespaced like a fragment', () => {
@@ -12,17 +11,16 @@ describe('constants', () => {
 });
 
 describe('outcomeToSlotState', () => {
-  const touched = {...emptyTouches(), created: ['github:s1']};
   test('failed and timeout fail the slot', () => {
-    expect(outcomeToSlotState('failed', touched)).toBe('failed');
-    expect(outcomeToSlotState('timeout', emptyTouches())).toBe('failed');
+    expect(outcomeToSlotState('failed', true)).toBe('failed');
+    expect(outcomeToSlotState('timeout', false)).toBe('failed');
   });
   test('cancelled collapses', () => {
-    expect(outcomeToSlotState('cancelled', touched)).toBe('collapsed');
+    expect(outcomeToSlotState('cancelled', true)).toBe('collapsed');
   });
-  test('clean completion with zero surfaces collapses; with surfaces it is left to the client', () => {
-    expect(outcomeToSlotState('completed', emptyTouches())).toBe('collapsed');
-    expect(outcomeToSlotState('completed', touched)).toBeUndefined();
+  test('clean completion holding no surface collapses; holding one it is left to the client (task-8.3 decision 5)', () => {
+    expect(outcomeToSlotState('completed', false)).toBe('collapsed');
+    expect(outcomeToSlotState('completed', true)).toBeUndefined();
   });
 });
 

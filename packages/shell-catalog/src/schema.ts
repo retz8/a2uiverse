@@ -16,7 +16,15 @@ import {
 import {CATALOG_ID} from './catalog-id.js';
 import {AttributionApi} from './components/attribution/attribution.schema.js';
 import {DerivedValueApi} from './components/derived-value/derived-value.schema.js';
-import {SlotApi} from './components/slot/slot.schema.js';
+import {
+  COLLAPSE_CAUSES,
+  FAILURE_CAUSES,
+  SlotApi,
+  type CollapseCause,
+  type FailureCause,
+  type SlotCollapse,
+  type SlotFailure,
+} from './components/slot/slot.schema.js';
 import {SortControlApi} from './components/sort-control/sort-control.schema.js';
 import {TableApi, TableRowApi} from './components/table/table.schema.js';
 import {DataListApi, DataListItemApi} from './components/data-list/data-list.schema.js';
@@ -32,14 +40,20 @@ import {SHELL_ACTIONS, shellActionFunctions} from './functions/shell-actions.js'
 
 export {
   CATALOG_ID,
+  COLLAPSE_CAUSES,
+  FAILURE_CAUSES,
   OPERATORS,
   RELATIONS,
   relationFunctions,
   relationKind,
   SHELL_ACTIONS,
+  type CollapseCause,
+  type FailureCause,
   type Operator,
   type RelationKind,
   type RelationOp,
+  type SlotCollapse,
+  type SlotFailure,
 };
 export {LAYOUT_SURFACE_KEEP_SET, SYNTHESIS_SURFACE_KEEP_SET} from './keep-sets.js';
 export {

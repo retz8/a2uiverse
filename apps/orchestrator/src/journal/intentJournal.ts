@@ -20,7 +20,14 @@ export interface JournalTurn {
   synthesis(record: SynthesisRecord): void;
   dispatched(record: DispatchRecord): void;
   surfaces(touches: SurfaceTouches): void;
-  /** Appends the entry. Never throws: a journal failure must not fail the turn. */
+  deadlines(deadlines: {softMs: number; capMs: number}): void;
+  /** A new utterance ended the turn while it ran. */
+  superseded(): void;
+  /**
+   * Appends the entry, once: a second close does nothing. A turn still listening past its final
+   * closes when the listening ends, so what arrives after the hard cap is on its line. Never
+   * throws: a journal failure must not fail the turn.
+   */
   close(outcome: DispatchOutcome): Promise<void>;
 }
 
@@ -63,6 +70,7 @@ export class IntentJournal {
       outcome: 'failed',
       embedding: null,
     };
+    let closed = false;
     return {
       plan: record => {
         entry.plan = record;
@@ -76,7 +84,15 @@ export class IntentJournal {
       surfaces: touches => {
         entry.surfaces = mergeTouches(entry.surfaces, touches);
       },
+      deadlines: deadlines => {
+        entry.deadlines = deadlines;
+      },
+      superseded: () => {
+        entry.superseded = true;
+      },
       close: async outcome => {
+        if (closed) return;
+        closed = true;
         entry.outcome = outcome;
         this.#remember(entry);
         entry.embedding = await this.#embed(entry.descriptor);

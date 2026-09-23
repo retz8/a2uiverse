@@ -1,4 +1,5 @@
 import {resolve} from 'node:path';
+import {parseFaults, type FaultMap} from './agentsPool/faults.js';
 import {DEFAULT_PLANNER_MODEL_ID, DEFAULT_SYNTHESIZER_MODEL_ID} from './planner/getModel.js';
 
 export interface Config {
@@ -29,12 +30,23 @@ export interface Config {
   synthesizerModelId: string;
   /** Synthesizer effort (`A2UIVERSE_SYNTHESIZER_EFFORT`); `low` by default — dead air is measured first. */
   synthesizerEffort: 'low' | 'default';
+  /**
+   * The soft deadline (`A2UIVERSE_SOFT_DEADLINE_SECONDS`, task-8.3 decision 1): once the sources
+   * that arrived could make a merge, how long with no source settling releases the synthesis.
+   */
+  softDeadlineMs: number;
+  /** The hard cap (`A2UIVERSE_HARD_CAP_SECONDS`, task-8.3 decision 2): from each dispatch to its slot failing. */
+  hardCapMs: number;
+  /** The dev-only fault map (`A2UIVERSE_FAULTS`, task-8.3 decision 14); empty when unset. */
+  faults: FaultMap;
 }
 
 type Env = Readonly<Record<string, string | undefined>>;
 
 const DEFAULT_PORT = 10001;
 const DEFAULT_SHORTLIST_CAP = 5;
+export const DEFAULT_SOFT_DEADLINE_SECONDS = 10;
+export const DEFAULT_HARD_CAP_SECONDS = 300;
 
 export function loadConfig(env: Env = process.env): Config {
   const port = parsePort(env.PORT);
@@ -57,7 +69,27 @@ export function loadConfig(env: Env = process.env): Config {
       env.A2UIVERSE_SYNTHESIZER_EFFORT,
       'A2UIVERSE_SYNTHESIZER_EFFORT',
     ),
+    softDeadlineMs: parseSeconds(
+      env.A2UIVERSE_SOFT_DEADLINE_SECONDS,
+      'A2UIVERSE_SOFT_DEADLINE_SECONDS',
+      DEFAULT_SOFT_DEADLINE_SECONDS,
+    ),
+    hardCapMs: parseSeconds(
+      env.A2UIVERSE_HARD_CAP_SECONDS,
+      'A2UIVERSE_HARD_CAP_SECONDS',
+      DEFAULT_HARD_CAP_SECONDS,
+    ),
+    faults: parseFaults(env.A2UIVERSE_FAULTS),
   };
+}
+
+/** A positive number of seconds, as milliseconds; fractions allowed so a test can run fast. */
+function parseSeconds(raw: string | undefined, key: string, fallback: number): number {
+  if (raw === undefined || raw.trim() === '') return fallback * 1000;
+  const seconds = Number(raw);
+  if (!Number.isFinite(seconds) || seconds <= 0)
+    throw new Error(`${key}: expected a positive number of seconds, got "${raw}"`);
+  return seconds * 1000;
 }
 
 function parseEffort(raw: string | undefined, key: string): 'low' | 'default' {

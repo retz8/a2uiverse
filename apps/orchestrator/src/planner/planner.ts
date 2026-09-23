@@ -14,6 +14,8 @@ export interface PlanInput {
   shortlist: readonly ShortlistEntry[];
   /** The client conversation — what the this-canvas and recent-turns readers are bound to. */
   conversationId: string;
+  /** Aborts the call when a new utterance supersedes the turn (task-8.3 decision 4). */
+  signal?: AbortSignal;
 }
 
 /** One attempt as journaled: the raw text the model returned and why it was refused, if it was. */
@@ -81,6 +83,7 @@ export class ModelPlanner implements Planner {
         tools,
         stopWhen: stepCountIs(MAX_STEPS),
         ...(this.#providerOptions ? {providerOptions: this.#providerOptions} : {}),
+        ...(input.signal ? {abortSignal: input.signal} : {}),
       });
       // Every step's messages — each reader call and its result, then the answer — stay in the
       // conversation the retry continues (task-6.4 decision 6); the result's own `response`

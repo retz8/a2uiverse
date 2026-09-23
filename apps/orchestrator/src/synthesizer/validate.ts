@@ -41,6 +41,16 @@ export interface SynthesisChecks {
   /** The pruned catalog's relations: what a match claim is written in, and nothing else. */
   relations: readonly string[];
   partitions: {has(surface: string): boolean; resolve(ref: Ref): Resolution};
+  /**
+   * The brief's columns (task-8.3 decision 13): the sources a column may be marked to, the
+   * planned headers with their marks, and the sources missing from this synthesis, whose planned
+   * columns the view keeps.
+   */
+  columns?: {
+    sources: readonly string[];
+    planned: readonly {header: string; source: string | null}[];
+    missing: readonly string[];
+  };
 }
 
 export type SynthesisValidation =
@@ -70,6 +80,7 @@ export function validateSynthesis(input: unknown, checks: SynthesisChecks): Synt
   const errors = [
     ...(structure.ok ? [] : structure.errors),
     ...tree,
+    ...columnErrors(document.tree, checks.columns),
     ...(modelSound
       ? [
           ...derivedValueErrors(document),
@@ -97,6 +108,44 @@ function treeErrors(tree: SynthesisTree, validator: A2uiValidator): string[] {
       : '/tree';
     return formatA2uiFinding({...finding, path});
   });
+}
+
+/**
+ * The Table's column marks (task-8.3 decision 13): one per column, each a source of this
+ * composition or null; and every column the plan marked to a source missing from this synthesis
+ * kept, marked to it, so the reserved column holds its place until the source is included.
+ */
+function columnErrors(tree: SynthesisTree, columns: SynthesisChecks['columns']): string[] {
+  const errors: string[] = [];
+  const kept = new Set<string>();
+  for (const component of tree.components) {
+    if (component.component !== 'Table') continue;
+    const {columnSources} = component as {columnSources?: unknown};
+    if (!Array.isArray(columnSources)) continue;
+    const headers = Array.isArray(component.columns) ? component.columns : [];
+    if (columnSources.length !== headers.length) {
+      errors.push(
+        `/tree (${component.id}): Table.columnSources has ${columnSources.length} marks for ${headers.length} columns; one per column`,
+      );
+    }
+    columnSources.forEach((mark, i) => {
+      if (typeof mark === 'string') kept.add(mark);
+      if (typeof mark === 'string' && columns && !columns.sources.includes(mark)) {
+        errors.push(
+          `/tree (${component.id}): Table.columnSources[${i}] is '${mark}', not a source of this composition`,
+        );
+      }
+    });
+  }
+  if (!columns) return errors;
+  for (const missing of columns.missing) {
+    const planned = columns.planned.filter(column => column.source === missing);
+    if (planned.length === 0 || kept.has(missing)) continue;
+    errors.push(
+      `/tree: the plan marks ${planned.map(c => `'${c.header}'`).join(', ')} to ${missing}, which has no data in this view; keep that column in the Table, marked to ${missing} in columnSources, with the empty cell in each row`,
+    );
+  }
+  return errors;
 }
 
 type Template = {path: string; componentId: string};

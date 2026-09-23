@@ -3,6 +3,7 @@ import {namespaceSurfaceId, STAMP_KEY} from '@a2uiverse/sdk';
 import type {VendorEvent} from '../agentsPool/relay.js';
 
 const TERMINAL: ReadonlySet<TaskState> = new Set(['completed', 'failed', 'canceled', 'rejected']);
+const FAILED: ReadonlySet<TaskState> = new Set(['failed', 'canceled', 'rejected']);
 const A2UI_OPS = ['createSurface', 'updateComponents', 'updateDataModel', 'deleteSurface'] as const;
 
 /**
@@ -112,4 +113,17 @@ function namespaceMessage(message: Data, appId: string): Data {
     return {...message, [op]: {...body, surfaceId: namespaceSurfaceId(appId, surfaceId)}};
   }
   return message;
+}
+
+/**
+ * A vendor's failed final without its words (task-8.3 decision 6): they ride on the `Slot`'s
+ * failure, painted by the shell, and reach the client nowhere else. Data parts stay.
+ */
+export function withoutFailureWords(event: VendorEvent): VendorEvent {
+  if (event.kind !== 'status-update' && event.kind !== 'task') return event;
+  const failed = FAILED.has(event.status.state) && (event.kind === 'task' || event.final);
+  const message = event.status.message;
+  if (!failed || !message || !message.parts.some(part => part.kind === 'text')) return event;
+  const parts = message.parts.filter(part => part.kind !== 'text');
+  return {...event, status: {...event.status, message: {...message, parts}}};
 }

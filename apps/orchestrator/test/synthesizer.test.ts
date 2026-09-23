@@ -437,6 +437,86 @@ describe('validateSynthesis (task-6.3 decision 9)', () => {
   });
 });
 
+describe('the Table’s column marks (task-8.3 decision 13)', () => {
+  const tabled = (columnSources?: (string | null)[]): Synthesis => ({
+    ...good(),
+    tree: {
+      components: [
+        {id: 'root', component: 'Column', children: ['sort', 'table']},
+        {id: 'sort', component: 'SortControl', sort: {path: '/sorts/0'}},
+        {
+          id: 'table',
+          component: 'Table',
+          columns: ['Camera', 'Best price'],
+          ...(columnSources ? {columnSources} : {}),
+          children: {path: '/rows', componentId: 'row'},
+        },
+        {id: 'row', component: 'TableRow', children: ['c-id', 'c-best']},
+        {id: 'c-id', component: 'DerivedValue', cell: {path: 'id'}},
+        {id: 'c-best', component: 'DerivedValue', cell: {path: 'best'}},
+      ],
+    },
+  });
+  const columns = {
+    sources: ['shop-a', 'shop-b', 'shop-c'],
+    planned: [
+      {header: 'Camera', source: null},
+      {header: 'Best price', source: null},
+      {header: 'At C', source: 'shop-c'},
+    ],
+    missing: ['shop-c'],
+  };
+
+  test('one mark per column, each a source of the composition or null', () => {
+    expect(checkSynthesis(tabled([null, 'shop-a']))).toEqual([]);
+    expect(checkSynthesis(tabled([null]))).toEqual([
+      '/tree (table): Table.columnSources has 1 marks for 2 columns; one per column',
+    ]);
+    expect(checkSynthesis(tabled([null, 'shop-z']), {...checks(), columns})).toContain(
+      "/tree (table): Table.columnSources[1] is 'shop-z', not a source of this composition",
+    );
+  });
+
+  test('a column the plan marked to a missing source is kept, marked to it', () => {
+    expect(checkSynthesis(tabled([null, 'shop-a']), {...checks(), columns})).toEqual([
+      "/tree: the plan marks 'At C' to shop-c, which has no data in this view; keep that column in the Table, marked to shop-c in columnSources, with the empty cell in each row",
+    ]);
+    expect(checkSynthesis(tabled([null, 'shop-c']), {...checks(), columns})).toEqual([]);
+  });
+
+  test('the loop hands the brief’s marks to the validator: a dropped reserved column is retried', async () => {
+    const model = new FakeSynthesizer([tabled([null, null]), tabled([null, 'shop-c'])]);
+    const outcome = await new Synthesizer({
+      model,
+      systemPrompt: 'SYSTEM',
+      catalog: files.catalog,
+    }).synthesize(
+      {
+        ...input,
+        columns: ['Camera', 'Best price', 'At C'],
+        columnSources: [null, null, 'shop-c'],
+        missing: [{appId: 'shop-c', displayName: 'Shop C', state: 'loading'}],
+      },
+      partitions(),
+    );
+    expect(outcome.kind).toBe('synthesized');
+    expect(outcome.attempts[0]!.errors[0]).toContain("marks 'At C' to shop-c");
+    expect(model.calls[0]!.prompt).toContain('Shop C (shop-c): has not answered yet');
+  });
+
+  test('an aborted call ends the loop with the abort, never a malformed outcome', async () => {
+    const controller = new AbortController();
+    controller.abort();
+    await expect(
+      new Synthesizer({
+        model: new FakeSynthesizer(),
+        systemPrompt: 'SYSTEM',
+        catalog: files.catalog,
+      }).synthesize(input, partitions(), controller.signal),
+    ).rejects.toThrow();
+  });
+});
+
 describe('Synthesizer (the loop)', () => {
   const synthesizer = (model: FakeSynthesizer) =>
     new Synthesizer({model, systemPrompt: 'SYSTEM', catalog: files.catalog});

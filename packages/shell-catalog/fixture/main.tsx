@@ -256,6 +256,26 @@ function SlotMatrix() {
         <hr />
       </div>
       <div>
+        the other collapses (the shell’s words, the same row):
+        <hr />
+        <SlotView
+          source="shell"
+          content="shell"
+          state="collapsed"
+          collapse={{cause: 'home', home: 'Linear issues'}}
+        />
+        <hr />
+        <SlotView
+          source="shell"
+          content="shell"
+          state="collapsed"
+          collapse={{cause: 'few', answered: ['GitHub']}}
+        />
+        <hr />
+        <SlotView source="shell" content="shell" state="collapsed" collapse={{cause: 'unmade'}} />
+        <hr />
+      </div>
+      <div>
         <SlotView
           gap="flight booking"
           onSearchStore={query => console.log('[fixture capability tile]', query)}

@@ -29,7 +29,6 @@ import {AiSdkSynthesisModel, Synthesizer, type SynthesisModel} from './synthesiz
 export const ORIGIN_RE =
   /^(https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?|https:\/\/[a-z0-9-]+\.[a-z0-9-]+\.devtunnels\.ms)$/;
 
-export const DEFAULT_DEADLINE_MS = 30_000;
 export const JOURNAL_FILE = 'intent-journal.jsonl';
 
 export interface Orchestrator {
@@ -77,8 +76,9 @@ export function buildOrchestrator({
   const synthesizer = synthesizerFrom(config, overrides?.synthesisModel);
   const router = new Router(registry, embedder, {shortlistCap: config.shortlistCap});
   const pool = new AgentsPool(registry, {
-    defaultDeadlineMs: DEFAULT_DEADLINE_MS,
+    hardCapMs: config.hardCapMs,
     debugIds: config.debugIds,
+    faults: config.faults,
   });
   const executor = new OrchestratorExecutor({
     registry,
@@ -88,6 +88,7 @@ export function buildOrchestrator({
     planner,
     synthesizer,
     compositions,
+    deadlines: {softMs: config.softDeadlineMs, capMs: config.hardCapMs},
   });
   const requestHandler = new DefaultRequestHandler(card, new InMemoryTaskStore(), executor);
 

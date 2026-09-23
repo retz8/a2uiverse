@@ -164,6 +164,45 @@ describe('paintLayout', () => {
     });
   });
 
+  test('the facts a state carries are painted with it (task-8.3 decisions 6, 9, 10, 12)', () => {
+    const planned: LayoutSurface = {
+      ...layout,
+      dispatch: layout.dispatch.map(entry =>
+        'source' in entry && entry.source === 'shell'
+          ? {
+              ...entry,
+              columns: ['PR', 'Latest mail'],
+              columnSources: ['github', 'gmail'],
+              join: {home: 'github', nouns: {github: 'PRs', gmail: 'threads', calendar: 'events'}},
+            }
+          : entry,
+      ),
+    };
+    const state = compositionFrom(planned, registry, 'what now?');
+    const slot = (source: string) =>
+      paintLayout(state).find(c => c.component === 'Slot' && c.source === source)!;
+    // From plan time: the column marks on the merge slot, each vendor slot's noun.
+    expect(slot('shell')).toMatchObject({columnSources: ['github', 'gmail']});
+    expect(slot('gmail')).toMatchObject({noun: 'Gmail threads'});
+    expect(slot('gmail')).not.toHaveProperty('failure');
+    // A failure's cause and words ride on the failed slot.
+    state.slots.get('gmail')!.state = 'failed';
+    state.slots.get('gmail')!.failure = {cause: 'vendor', message: 'Rate limited'};
+    expect(slot('gmail')).toMatchObject({
+      state: 'failed',
+      failure: {cause: 'vendor', message: 'Rate limited'},
+    });
+    // A collapsed merge carries its decline's reason, or its cause.
+    const merge = state.slots.get('shell')!;
+    merge.state = 'collapsed';
+    merge.declined = 'Nothing lines up.';
+    expect(slot('shell')).toMatchObject({declined: {reason: 'Nothing lines up.'}});
+    expect(slot('shell')).not.toHaveProperty('collapse');
+    delete merge.declined;
+    merge.collapse = {cause: 'home', home: 'GitHub PRs'};
+    expect(slot('shell')).toMatchObject({collapse: {cause: 'home', home: 'GitHub PRs'}});
+  });
+
   test('a gap slot is painted as authored: the catalog’s tile, no wrapper, no state', () => {
     expect(byId.get('flights')).toEqual({id: 'flights', component: 'Slot', gap: 'flight booking'});
     expect(byId.has('attribution-flights')).toBe(false);

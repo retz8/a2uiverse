@@ -8,11 +8,12 @@ import {
   buildSynthesisTurn,
   SYNTHESIS_TAG,
   type ChangeAccount,
+  type MissingSource,
   type SynthesisSource,
 } from './prompt.js';
 import {validateSynthesis, type SynthesisChecks} from './validate.js';
 
-export type {SynthesisSource};
+export type {MissingSource, SynthesisSource};
 
 /** One call of the turn's second model (SPEC §5 ◆ #2): the input as the runtime knows it. */
 export interface SynthesisInput {
@@ -21,7 +22,11 @@ export interface SynthesisInput {
   request: string;
   /** The column headers the reserved slot showed the user from plan time: the view's starting point. */
   columns?: readonly string[];
+  /** Per planned column, the source it belongs to, or null (task-8.3 decision 13). */
+  columnSources?: readonly (string | null)[];
   sources: readonly SynthesisSource[];
+  /** The dispatched sources that bring no data to this synthesis, and why: their columns stay. */
+  missing?: readonly MissingSource[];
   /** The live document, on a re-synthesis (task-5.4 decision 6). */
   previous?: Synthesis;
   changes?: ChangeAccount;
@@ -32,6 +37,8 @@ export interface SynthesisCall {
   system: string;
   prompt: string;
   input: SynthesisInput;
+  /** Aborts the call when the turn is superseded (task-8.3 decision 4). */
+  signal?: AbortSignal;
 }
 
 /** The text seam: one call, the raw text back. The AI SDK model behind it, or a fake. */
@@ -84,7 +91,9 @@ export class Synthesizer {
   async synthesize(
     input: SynthesisInput,
     partitions: SynthesisChecks['partitions'],
+    signal?: AbortSignal,
   ): Promise<SynthesisOutcome> {
+    const columns = columnChecks(input);
     const attempts: SynthesisAttempt[] = [];
     let previous: unknown = input.previous;
     let errors: string[] | undefined;
@@ -93,13 +102,22 @@ export class Synthesizer {
         utterance: input.utterance,
         request: input.request,
         ...(input.columns ? {columns: input.columns} : {}),
+        ...(input.columnSources ? {columnSources: input.columnSources} : {}),
         sources: input.sources,
+        ...(input.missing && input.missing.length > 0 ? {missing: input.missing} : {}),
         previous,
         ...(errors ? {errors} : {}),
         ...(input.changes && !errors ? {changes: input.changes} : {}),
       });
-      const text = await this.#model.generate({system: this.#system, prompt, input});
-      const result = this.#accept(text, partitions);
+      signal?.throwIfAborted();
+      const text = await this.#model.generate({
+        system: this.#system,
+        prompt,
+        input,
+        ...(signal ? {signal} : {}),
+      });
+      signal?.throwIfAborted();
+      const result = this.#accept(text, partitions, columns);
       attempts.push({text, errors: result.errors});
       if (result.ok) {
         const {document} = result;
@@ -116,6 +134,7 @@ export class Synthesizer {
   #accept(
     text: string,
     partitions: SynthesisChecks['partitions'],
+    columns: SynthesisChecks['columns'],
   ):
     | {ok: true; document: SynthesizeDataModel; errors: string[]}
     | {ok: false; document?: unknown; errors: string[]} {
@@ -138,10 +157,28 @@ export class Synthesizer {
       operators: this.#operators,
       relations: this.#relations,
       partitions,
+      ...(columns ? {columns} : {}),
     });
     if (!validation.ok) return {ok: false, document: parsed, errors: validation.errors};
     return {ok: true, document: validation.document, errors: []};
   }
+}
+
+/** What the validator checks the Table's column marks against, from the brief. */
+function columnChecks(input: SynthesisInput): SynthesisChecks['columns'] {
+  const sources = [
+    ...input.sources.map(source => source.appId),
+    ...(input.missing ?? []).map(source => source.appId),
+  ];
+  if (sources.length === 0) return undefined;
+  return {
+    sources: [...new Set(sources)],
+    planned: (input.columns ?? []).map((header, i) => ({
+      header,
+      source: input.columnSources?.[i] ?? null,
+    })),
+    missing: (input.missing ?? []).map(source => source.appId),
+  };
 }
 
 /** The AI SDK behind the text seam; effort via provider options as the Planner. */
@@ -160,6 +197,7 @@ export class AiSdkSynthesisModel implements SynthesisModel {
       system: call.system,
       prompt: call.prompt,
       ...(this.#providerOptions ? {providerOptions: this.#providerOptions} : {}),
+      ...(call.signal ? {abortSignal: call.signal} : {}),
     });
     return result.text;
   }

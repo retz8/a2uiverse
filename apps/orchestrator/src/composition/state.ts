@@ -1,8 +1,9 @@
 import type {SynthesisPayload} from '@a2uiverse/sdk';
+import type {FailureCause, SlotCollapse} from '@a2uiverse/shell-catalog/schema';
 import type {Seen, Watch} from './integrity.js';
 import type {Synthesis} from '../synthesizer/document.js';
-import type {DispatchOutcome} from '../agentsPool/types.js';
-import type {SurfaceTouches} from '../journal/surfaces.js';
+import type {VendorEvent} from '../agentsPool/relay.js';
+import type {DispatchOutcome, DispatchRecord} from '../agentsPool/types.js';
 import type {SynthesisRecord} from '../journal/types.js';
 import {isGap, type JoinNouns, type LayoutSurface} from '../planner/document.js';
 import type {Registry} from '../registry/registry.js';
@@ -26,6 +27,37 @@ export interface SlotPlan {
   columns?: string[];
   /** The merged view's join nouns: painted on its slot for the client's progress line. */
   join?: JoinNouns;
+  /** The merged view's column marks, one per column: a source id, or null (task-8.3 decision 12). */
+  columnSources?: (string | null)[];
+  /** A vendor slot's entries as the join calls them — "CircleCI runs" — for its failure tile. */
+  noun?: string;
+}
+
+/** Why a vendor slot failed (task-8.3 decision 5): painted on it with `failed`. */
+export interface SlotFailure {
+  cause: FailureCause;
+  /** The vendor's own words, only with `vendor`. */
+  message?: string;
+}
+
+/** An answer that arrived past the hard cap: held, undrawn, until the reader presses Retry. */
+export interface HeldAnswer {
+  /** The dispatch's events after the cap, composed as they would have been relayed. */
+  events: VendorEvent[];
+  record: DispatchRecord;
+}
+
+export interface SlotEntry {
+  plan: SlotPlan;
+  state: SlotState;
+  /** A failed vendor slot's cause and words. */
+  failure?: SlotFailure;
+  /** The merge slot collapsed by a decline: the Synthesizer's reason. */
+  declined?: string;
+  /** The merge slot collapsed for any other cause (task-8.3 decision 9). */
+  collapse?: SlotCollapse;
+  /** A vendor slot's answer held past the hard cap (task-8.3 decision 2). */
+  held?: HeldAnswer;
 }
 
 export interface LiveSynthesis {
@@ -48,13 +80,23 @@ export interface CompositionState {
   /** The utterance the composition came from — the this-canvas reader's first line. */
   utterance: string;
   /** Keyed by source (task-6.3 decision 6), in dispatch order. */
-  slots: Map<string, {plan: SlotPlan; state: SlotState}>;
+  slots: Map<string, SlotEntry>;
   /** The capability gaps the Planner named, in dispatch order; each has a `Slot` in the tree. */
   gaps: string[];
   /** Every surface's data model. */
   partitions: Partitions;
-  /** Sources whose dispatch completed having painted — what synthesis runs over. */
+  /** Sources whose dispatch completed holding a surface, and not failed since — what the first synthesis runs over. */
   arrived: Set<string>;
+  /**
+   * The merge's own source set (task-8.3 decision 11): the sources the accepted synthesis was
+   * built over. The IntegrityChecker's walk and any re-synthesis it fires cover only these; only
+   * Include and Retry add to it, and a failure removes a source from it.
+   */
+  merged: Set<string>;
+  /** Whether the turn's one automatic synthesis has been released, or the merge collapsed instead. */
+  mergeDecided: boolean;
+  /** While the utterance turn runs: re-weighs the synthesis trigger after a slot changed outside it. */
+  reevaluate?: () => void;
   /** The live synthesis, once painted: the document as accepted and the payload the client holds; what the IntegrityChecker guards. */
   synthesis?: LiveSynthesis;
   /** What became of the merged view, once decided — what the this-canvas reader reports. */
@@ -68,49 +110,61 @@ export function compositionFrom(
   registry: Registry,
   utterance: string,
 ): CompositionState {
-  const slots = new Map<string, {plan: SlotPlan; state: SlotState}>();
+  const slots = new Map<string, SlotEntry>();
   const gaps: string[] = [];
+  const merged = layout.dispatch.find(entry => !isGap(entry) && entry.source === SHELL_SOURCE_ID);
+  const join = merged && !isGap(merged) ? merged.join : undefined;
   for (const entry of layout.dispatch) {
     if (isGap(entry)) {
       gaps.push(entry.gap);
       continue;
     }
+    const displayName =
+      entry.source === SHELL_SOURCE_ID
+        ? SYNTHESIS_DISPLAY_NAME
+        : registry.get(entry.source).displayName;
+    const noun = join?.nouns[entry.source];
     slots.set(entry.source, {
       plan: {
         source: entry.source,
-        displayName:
-          entry.source === SHELL_SOURCE_ID
-            ? SYNTHESIS_DISPLAY_NAME
-            : registry.get(entry.source).displayName,
+        displayName,
         request: entry.request,
         ...(entry.columns ? {columns: entry.columns} : {}),
+        ...(entry.columnSources ? {columnSources: entry.columnSources} : {}),
         ...(entry.join ? {join: entry.join} : {}),
+        ...(noun && entry.source !== SHELL_SOURCE_ID ? {noun: `${displayName} ${noun}`} : {}),
       },
       state: 'pending',
     });
   }
-  return {layout, utterance, slots, gaps, partitions: new Partitions(), arrived: new Set()};
+  return {
+    layout,
+    utterance,
+    slots,
+    gaps,
+    partitions: new Partitions(),
+    arrived: new Set(),
+    merged: new Set(),
+    mergeDecided: false,
+  };
 }
 
 /** The synthesis slot, when the plan reserved one. */
-export function synthesisSlot(
-  state: CompositionState,
-): {plan: SlotPlan; state: SlotState} | undefined {
+export function synthesisSlot(state: CompositionState): SlotEntry | undefined {
   return state.slots.get(SHELL_SOURCE_ID);
 }
 
 /**
- * Maps a settled dispatch to the slot state it ends in — or undefined when
- * the slot is left to the client (a clean completion that painted surfaces).
- * Collapsed needs no vendor cooperation: a clean completion that never
- * touched a surface simply folds away, and a cancellation folds with it.
+ * Maps a settled dispatch to the slot state it ends in — or undefined when the slot is left to
+ * the client (a clean completion holding a surface). Collapsed needs no vendor cooperation: a
+ * clean completion holding no surface — it painted nothing, or took back what it painted —
+ * simply folds away, and a cancellation folds with it.
  */
 export function outcomeToSlotState(
   outcome: DispatchOutcome,
-  touches: SurfaceTouches,
+  holdsSurface: boolean,
 ): SlotState | undefined {
   if (outcome === 'failed' || outcome === 'timeout') return 'failed';
   if (outcome === 'cancelled') return 'collapsed';
-  const touched = touches.created.length + touches.updated.length + touches.deleted.length;
-  return touched === 0 ? 'collapsed' : undefined;
+  return holdsSurface ? undefined : 'collapsed';
 }

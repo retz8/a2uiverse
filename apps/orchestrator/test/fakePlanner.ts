@@ -40,6 +40,7 @@ export function layoutFor(
   options: {
     merged?: string;
     columns?: string[];
+    columnSources?: (string | null)[];
     join?: JoinNouns;
     gaps?: readonly string[];
     request?: (source: string) => string;
@@ -60,6 +61,7 @@ export function layoutFor(
               source: SHELL_SOURCE_ID,
               request: options.merged,
               ...(options.columns ? {columns: options.columns} : {}),
+              ...(options.columnSources ? {columnSources: options.columnSources} : {}),
               ...(options.join ? {join: options.join} : {}),
             },
           ]

@@ -1,5 +1,6 @@
+import {describeFaults} from './agentsPool/faults.js';
 import {buildOrchestrator} from './app.js';
-import {loadConfig} from './config.js';
+import {DEFAULT_HARD_CAP_SECONDS, DEFAULT_SOFT_DEADLINE_SECONDS, loadConfig} from './config.js';
 
 export const APP_NAME = '@a2uiverse/orchestrator';
 
@@ -8,6 +9,18 @@ const {app, registry, init} = buildOrchestrator({config});
 
 if (!config.googleApiKey) {
   console.warn(`${APP_NAME}: GOOGLE_API_KEY not set — palette turns will fail until it is`);
+}
+// A changed deadline or an active fault is said once, loudly: a run with either is not a clean one.
+if (
+  config.softDeadlineMs !== DEFAULT_SOFT_DEADLINE_SECONDS * 1000 ||
+  config.hardCapMs !== DEFAULT_HARD_CAP_SECONDS * 1000
+) {
+  console.warn(
+    `${APP_NAME}: deadlines changed — soft ${config.softDeadlineMs / 1000} s (default ${DEFAULT_SOFT_DEADLINE_SECONDS}), hard cap ${config.hardCapMs / 1000} s (default ${DEFAULT_HARD_CAP_SECONDS})`,
+  );
+}
+if (config.faults.size > 0) {
+  console.warn(`${APP_NAME}: FAULT MAP ACTIVE — ${describeFaults(config.faults)}`);
 }
 
 // Cards are fetched at startup only (SPEC decision 11): an agent unreachable

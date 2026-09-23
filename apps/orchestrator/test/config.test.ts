@@ -71,3 +71,49 @@ describe('loadConfig', () => {
     expect(() => loadConfig({A2UIVERSE_AGENT_URLS: '{nope'})).toThrow('A2UIVERSE_AGENT_URLS');
   });
 });
+
+describe('loadConfig — deadlines and the fault map (task 8.3)', () => {
+  test('unset, the soft deadline is 10 s and the hard cap 300 s, and no fault is set', () => {
+    const config = loadConfig({});
+    expect(config.softDeadlineMs).toBe(10_000);
+    expect(config.hardCapMs).toBe(300_000);
+    expect(config.faults.size).toBe(0);
+  });
+  test('both lengths are read in seconds, fractions allowed; nonsense fails boot naming the variable', () => {
+    const config = loadConfig({
+      A2UIVERSE_SOFT_DEADLINE_SECONDS: '0.5',
+      A2UIVERSE_HARD_CAP_SECONDS: '12',
+    });
+    expect(config.softDeadlineMs).toBe(500);
+    expect(config.hardCapMs).toBe(12_000);
+    expect(() => loadConfig({A2UIVERSE_HARD_CAP_SECONDS: '0'})).toThrow(
+      'A2UIVERSE_HARD_CAP_SECONDS',
+    );
+    expect(() => loadConfig({A2UIVERSE_SOFT_DEADLINE_SECONDS: 'soon'})).toThrow(
+      'A2UIVERSE_SOFT_DEADLINE_SECONDS',
+    );
+  });
+  test('A2UIVERSE_FAULTS is JSON keyed by app id; each fault is checked', () => {
+    const {faults} = loadConfig({
+      A2UIVERSE_FAULTS: JSON.stringify({
+        github: {fault: 'delay', seconds: 40},
+        circleci: {fault: 'fail', message: 'Project not found', seconds: 2, every: true},
+        linear: {fault: 'hang'},
+      }),
+    });
+    expect(faults.get('github')).toEqual({fault: 'delay', seconds: 40});
+    expect(faults.get('circleci')).toEqual({
+      fault: 'fail',
+      message: 'Project not found',
+      seconds: 2,
+      every: true,
+    });
+    expect(faults.get('linear')).toEqual({fault: 'hang'});
+    const bad = (value: unknown) => () => loadConfig({A2UIVERSE_FAULTS: JSON.stringify(value)});
+    expect(bad({github: {fault: 'explode'}})).toThrow('A2UIVERSE_FAULTS.github.fault');
+    expect(bad({github: {fault: 'delay'}})).toThrow('A2UIVERSE_FAULTS.github.seconds');
+    expect(bad({github: {fault: 'hang', message: 'x'}})).toThrow('A2UIVERSE_FAULTS.github.message');
+    expect(bad({github: {fault: 'hang', when: 1}})).toThrow('unknown field');
+    expect(() => loadConfig({A2UIVERSE_FAULTS: '{'})).toThrow('A2UIVERSE_FAULTS: invalid JSON');
+  });
+});

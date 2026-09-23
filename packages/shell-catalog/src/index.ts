@@ -24,11 +24,15 @@ export {PortalRootContext, Provider} from './provider.js';
 export {SlotContentContext, type SlotContentResolver} from './slot-content.js';
 export {SlotStateContext, type SlotStateResolver, type SourceSlotState} from './slot-state.js';
 export {
+  COLLAPSE_CAUSES,
+  type CollapseCause,
+  collapseLine,
   FAILURE_CAUSES,
   type FailureCause,
   failureLine,
   failureWords,
   SlotApi,
+  type SlotCollapse,
   type SlotFailure,
   SlotView,
   type SlotProps,

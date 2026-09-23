@@ -3,7 +3,7 @@ import {expect, test} from 'vitest';
 import {SlotContentContext} from '../../slot-content';
 import {SlotStateContext} from '../../slot-state';
 import {renderTree} from '../../testing/render';
-import {SlotView} from './slot';
+import {collapseLine, SlotView} from './slot';
 import {SlotApi} from './slot.schema';
 
 test('pending renders a placeholder naming the awaited content', () => {
@@ -366,4 +366,63 @@ test('through the catalog, Retry hands the host the source, the surface and the 
   );
   (container.querySelector('button') as HTMLButtonElement).click();
   expect(retries).toEqual([{source: 'circleci', surfaceId: 'test', componentId: 'root'}]);
+});
+
+/* ── Task 8.3: every collapse of the merge leaves one line ─────────────────── */
+
+test('schema takes a collapse cause with its names only where the cause has them', () => {
+  const shell = (collapse: unknown) =>
+    SlotApi.schema.safeParse({source: 'shell', content: 'shell', state: 'collapsed', collapse})
+      .success;
+  expect(shell({cause: 'home', home: 'Linear issues'})).toBe(true);
+  expect(shell({cause: 'few', answered: ['GitHub']})).toBe(true);
+  expect(shell({cause: 'few', answered: []})).toBe(true);
+  expect(shell({cause: 'unmade'})).toBe(true);
+  expect(shell({cause: 'home'})).toBe(false);
+  expect(shell({cause: 'few'})).toBe(false);
+  expect(shell({cause: 'unmade', home: 'Linear issues'})).toBe(false);
+  expect(shell({cause: 'declined'})).toBe(false);
+});
+
+test('the collapse line says why in the shell’s words, per cause', () => {
+  expect(collapseLine({cause: 'home', home: 'Linear issues'})).toBe(
+    'Can’t join without Linear issues.',
+  );
+  expect(collapseLine({cause: 'few', answered: ['GitHub']})).toBe(
+    'Only GitHub answered, so there’s nothing to merge.',
+  );
+  expect(collapseLine({cause: 'few', answered: []})).toBe(
+    'No app answered, so there’s nothing to merge.',
+  );
+  expect(collapseLine({cause: 'unmade'})).toBe('The merged view couldn’t be made.');
+});
+
+test('a merge collapsed for another cause is one line at the label row, like a decline', () => {
+  const {container} = render(
+    <SlotContentContext.Provider value={() => <em>stale merged view</em>}>
+      <SlotView
+        source="shell"
+        content="shell"
+        state="collapsed"
+        collapse={{cause: 'home', home: 'Linear issues'}}
+      />
+    </SlotContentContext.Provider>,
+  );
+  const slot = container.querySelector('[data-slot="shell"]') as HTMLElement;
+  expect(slot).toHaveAttribute('data-slot-state', 'collapsed');
+  expect(screen.getByText('Can’t join without Linear issues.')).toBeInTheDocument();
+  expect(screen.queryByText('stale merged view')).not.toBeInTheDocument();
+  const line = slot.querySelector('[data-slot-collapse="home"]') as HTMLElement;
+  expect(line.style.height).toBe('24px');
+  expect(['', '0px']).toContain(slot.style.minHeight);
+});
+
+test('a vendor slot ignores a collapse cause: it rests on its content as before', () => {
+  render(
+    <SlotContentContext.Provider value={() => <em>the resting prose</em>}>
+      <SlotView source="github" label="GitHub" state="collapsed" collapse={{cause: 'unmade'}} />
+    </SlotContentContext.Provider>,
+  );
+  expect(screen.getByText('the resting prose')).toBeInTheDocument();
+  expect(screen.queryByText('The merged view couldn’t be made.')).not.toBeInTheDocument();
 });

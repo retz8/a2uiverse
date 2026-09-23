@@ -802,7 +802,7 @@
     },
     "Slot": {
       "type": "object",
-      "description": "A named region of a composed screen whose content is mounted by the client. Paint one per planned fragment; later repaints may change its state but never its position. While no content has arrived it renders a pending placeholder. A slot whose content is the shell's own \u2014 the merged view \u2014 is declared `content: \"shell\"`: it keeps its reserved position but is painted like the shell's own UI, with no tile: while pending it is reserved as the merged view's label, its planned column headers and a few skeleton rows, and the view takes its own height when it lands. A source that fails shows the failure tile in its region: the failure said in the shell's words, Retry, and the vendor's own words beneath. A declined merge collapses its slot to one line saying why.",
+      "description": "A named region of a composed screen whose content is mounted by the client. Paint one per planned fragment; later repaints may change its state but never its position. While no content has arrived it renders a pending placeholder. A slot whose content is the shell's own \u2014 the merged view \u2014 is declared `content: \"shell\"`: it keeps its reserved position but is painted like the shell's own UI, with no tile: while pending it is reserved as the merged view's label, its planned column headers and a few skeleton rows, and the view takes its own height when it lands. A source that fails shows the failure tile in its region: the failure said in the shell's words, Retry, and the vendor's own words beneath. A collapsed merge leaves its slot as one line saying why: the Synthesizer's reason when it declined, the shell's own words otherwise.",
       "properties": {
         "component": {
           "const": "Slot"
@@ -881,6 +881,28 @@
           "description": "Shell content only: the reason the merge was declined, in the Synthesizer's words. Painted by the runtime with `state: \"collapsed\"` and never written by an author; drawn as one line where the merged view's label would have sat.",
           "properties": {"reason": {"type": "string"}},
           "required": ["reason"],
+          "additionalProperties": false
+        },
+        "collapse": {
+          "type": "object",
+          "description": "Shell content only: why the merge collapsed when it was not declined. Painted by the runtime with `state: \"collapsed\"` and never written by an author; drawn as one line in the shell's words where the merged view's label would have sat.",
+          "properties": {
+            "cause": {
+              "type": "string",
+              "enum": ["home", "few", "unmade"],
+              "description": "`home`: the home source failed, so nothing can be joined; `few`: fewer than two sources answered; `unmade`: the merged view couldn't be made."
+            },
+            "home": {
+              "type": "string",
+              "description": "With `cause: \"home\"` only: the home source's entries as the join calls them — \"Linear issues\"."
+            },
+            "answered": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "With `cause: \"few\"` only: the display names of the sources that answered, none or one."
+            }
+          },
+          "required": ["cause"],
           "additionalProperties": false
         }
       },

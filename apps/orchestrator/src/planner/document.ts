@@ -12,6 +12,11 @@ export interface SourceDispatch {
   request: string;
   /** `shell` only: the merged view's column headers, in order, shown in its reserved slot from plan time. */
   columns?: string[];
+  /**
+   * `shell` only, required beside `columns` (task-8.3 decision 12): per column, the dispatched
+   * source whose values it shows, or null for a column of no single source.
+   */
+  columnSources?: (string | null)[];
   /** `shell` only, when the merge is over an entity: the join hypothesis's nouns, for the progress line. */
   join?: JoinNouns;
 }
@@ -103,6 +108,13 @@ export const LAYOUT_SURFACE_SCHEMA = {
                 items: {type: 'string', minLength: 1},
                 description:
                   '`shell` only, when the merged view is a table of one row per thing: its column headers in order, short, as the user reads them. Shown in the reserved slot until the view lands, and handed to the merge as its starting point.',
+              },
+              columnSources: {
+                type: 'array',
+                minItems: 1,
+                items: {type: ['string', 'null']},
+                description:
+                  '`shell` only, required whenever `columns` is written, one entry per column in the same order: the app id of the dispatched agent whose values the column shows, or null for a column that shows no single agent’s values. A column marked to an agent that has not answered stays in the view, marked as waiting for it.',
               },
               join: {
                 type: 'object',

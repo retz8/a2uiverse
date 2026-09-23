@@ -1,6 +1,11 @@
 import {afterEach, describe, expect, test, vi} from 'vitest';
 import type {Message, Task, TaskStatusUpdateEvent} from '@a2a-js/sdk';
-import {AgentsPool} from '../src/agentsPool/agentsPool.js';
+import {
+  AgentsPool,
+  type AgentsPoolOptions,
+  UNKNOWN_COMPONENT,
+} from '../src/agentsPool/agentsPool.js';
+import type {Fault} from '../src/agentsPool/faults.js';
 import type {DispatchTurn} from '../src/agentsPool/types.js';
 import {Registry} from '../src/registry/registry.js';
 import {A2UI_PART, startFakeVendor, type FakeVendor, type Script} from './fakeVendor.js';
@@ -10,7 +15,10 @@ afterEach(async () => {
   await Promise.all(vendors.splice(0).map(v => v.close()));
 });
 
-async function poolFor(options: Parameters<typeof startFakeVendor>[0] = {}) {
+async function poolFor(
+  options: Parameters<typeof startFakeVendor>[0] = {},
+  extra: Partial<AgentsPoolOptions> = {},
+) {
   const vendor = await startFakeVendor(options);
   vendors.push(vendor);
   const registry = new Registry([
@@ -23,7 +31,7 @@ async function poolFor(options: Parameters<typeof startFakeVendor>[0] = {}) {
       catalogPackage: 'pkg',
     },
   ]);
-  const pool = new AgentsPool(registry, {defaultDeadlineMs: 30000, debugIds: false});
+  const pool = new AgentsPool(registry, {hardCapMs: 30000, debugIds: false, ...extra});
   return {vendor, pool};
 }
 
@@ -214,10 +222,248 @@ describe('AgentsPool.dispatch', () => {
     expect(record.sawFinal).toBe(false);
   });
 
-  test('the deadline is recorded but not enforced', async () => {
+  test('the hard cap is recorded; a dispatch ending before it is never capped', async () => {
     const {pool} = await poolFor();
-    const {record} = await drain(pool.dispatch('github', turn()));
+    const handle = pool.dispatch('github', turn());
+    let capped = false;
+    void handle.capped.then(() => (capped = true));
+    const {record} = await drain(handle);
     expect(record.deadlineMs).toBe(30000);
     expect(record.outcome).toBe('completed');
+    expect(record.cappedAt).toBeUndefined();
+    expect(capped).toBe(false);
   });
 });
+
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+/** A vendor that says it has the task, then paints after `ms`. */
+function slowScript(ms: number): Script {
+  return async function* ({ctx, vendorContextId}) {
+    yield {
+      kind: 'task' as const,
+      id: ctx.taskId,
+      contextId: vendorContextId,
+      status: {state: 'submitted' as const},
+    };
+    await sleep(ms);
+    yield {
+      kind: 'status-update' as const,
+      taskId: ctx.taskId,
+      contextId: vendorContextId,
+      final: true,
+      status: {
+        state: 'completed' as const,
+        message: {
+          kind: 'message' as const,
+          messageId: crypto.randomUUID(),
+          role: 'agent' as const,
+          parts: [A2UI_PART],
+          contextId: vendorContextId,
+          taskId: ctx.taskId,
+        },
+      },
+    };
+  };
+}
+
+describe('AgentsPool — the hard cap, the cause of a failure, cancel (task 8.3)', () => {
+  test('the hard cap fires while the dispatch runs on: capped, then completed past it', async () => {
+    const {pool} = await poolFor({script: slowScript(300)}, {hardCapMs: 60});
+    const handle = pool.dispatch('github', turn());
+    let cappedAt = 0;
+    void handle.capped.then(() => (cappedAt = Date.now()));
+    const {events, record} = await drain(handle);
+    expect(cappedAt).toBeGreaterThan(0);
+    expect(record.cappedAt).toBeDefined();
+    expect(record.outcome).toBe('completed');
+    expect(events.at(-1)?.kind).toBe('status-update');
+  });
+
+  test('a vendor final of failed carries the vendor cause and its words', async () => {
+    const script: Script = ({ctx, vendorContextId}) => [
+      {
+        kind: 'status-update',
+        taskId: ctx.taskId,
+        contextId: vendorContextId,
+        final: true,
+        status: {
+          state: 'rejected',
+          message: {
+            kind: 'message',
+            messageId: 'm',
+            role: 'agent',
+            parts: [{kind: 'text', text: 'Project not found: retz8/a2uiverse'}],
+          },
+        },
+      },
+    ];
+    const {pool} = await poolFor({script});
+    const {record} = await drain(pool.dispatch('github', turn()));
+    expect(record).toMatchObject({
+      outcome: 'failed',
+      cause: 'vendor',
+      vendorMessage: 'Project not found: retz8/a2uiverse',
+    });
+  });
+
+  test('a broken connection and a stream with no final are unreachable, with no words', async () => {
+    const {pool, vendor} = await poolFor();
+    await vendor.close();
+    vendors.length = 0;
+    const {record} = await drain(pool.dispatch('github', turn()));
+    expect(record).toMatchObject({outcome: 'failed', cause: 'unreachable'});
+    expect(record.vendorMessage).toBeUndefined();
+  });
+
+  test('an aborted dispatch asks its vendor to cancel the task over A2A', async () => {
+    const {pool, vendor} = await poolFor({script: slowScript(2_000)});
+    const handle = pool.dispatch('github', turn());
+    const events = [];
+    for await (const e of handle.events) {
+      events.push(e);
+      handle.cancel();
+    }
+    expect((await handle.done).outcome).toBe('cancelled');
+    for (let i = 0; i < 100 && !vendor.methods.includes('tasks/cancel'); i++) await sleep(10);
+    expect(vendor.methods).toContain('tasks/cancel');
+  });
+});
+
+describe('AgentsPool — the fault map (task 8.3 decision 14)', () => {
+  const faulted = (fault: Fault) => ({faults: new Map([['github', fault]])});
+
+  test('delay holds the stream, then forwards it whole', async () => {
+    const {pool} = await poolFor({}, faulted({fault: 'delay', seconds: 0.15}));
+    const started = Date.now();
+    const {events, record} = await drain(pool.dispatch('github', turn({fromPlan: true})));
+    expect(Date.now() - started).toBeGreaterThanOrEqual(140);
+    expect(events.map(e => e.kind)).toEqual(['task', 'status-update']);
+    expect(record).toMatchObject({outcome: 'completed', fault: 'delay'});
+  });
+
+  test('hang forwards nothing and never ends; the cap fires and a cancel ends it', async () => {
+    const {pool, vendor} = await poolFor({}, {...faulted({fault: 'hang'}), hardCapMs: 50});
+    const handle = pool.dispatch('github', turn({fromPlan: true}));
+    await handle.capped;
+    handle.cancel();
+    const {events, record} = await drain(handle);
+    expect(events).toEqual([]);
+    expect(record.outcome).toBe('cancelled');
+    expect(vendor.requests).toHaveLength(0);
+  });
+
+  test('refuse fails as unreachable before any event, the vendor never asked', async () => {
+    const {pool, vendor} = await poolFor({}, faulted({fault: 'refuse'}));
+    const {events, record} = await drain(pool.dispatch('github', turn({fromPlan: true})));
+    expect(events).toEqual([]);
+    expect(record).toMatchObject({outcome: 'failed', cause: 'unreachable', fault: 'refuse'});
+    expect(vendor.requests).toHaveLength(0);
+  });
+
+  test('fail ends with a vendor failed final carrying the message', async () => {
+    const {pool, vendor} = await poolFor({}, faulted({fault: 'fail', message: 'Rate limited'}));
+    const {events, record} = await drain(pool.dispatch('github', turn({fromPlan: true})));
+    const final = events[0] as TaskStatusUpdateEvent;
+    expect(final.final).toBe(true);
+    expect(final.status.state).toBe('failed');
+    expect(final.taskId).toBe('o-task');
+    expect(record).toMatchObject({
+      outcome: 'failed',
+      cause: 'vendor',
+      vendorMessage: 'Rate limited',
+    });
+    expect(vendor.requests).toHaveLength(0);
+  });
+
+  test('break forwards the first paint, then ends with no final', async () => {
+    const script: Script = async function* ({ctx, vendorContextId}) {
+      yield {
+        kind: 'status-update' as const,
+        taskId: ctx.taskId,
+        contextId: vendorContextId,
+        final: false,
+        status: {
+          state: 'working' as const,
+          message: {
+            kind: 'message' as const,
+            messageId: 'm1',
+            role: 'agent' as const,
+            parts: [A2UI_PART],
+          },
+        },
+      };
+      yield* deterministicTail(ctx.taskId, vendorContextId);
+    };
+    const {pool} = await poolFor({script}, faulted({fault: 'break'}));
+    const {events, record} = await drain(pool.dispatch('github', turn({fromPlan: true})));
+    expect(events).toHaveLength(1);
+    expect(record).toMatchObject({outcome: 'failed', cause: 'unreachable', sawFinal: false});
+  });
+
+  test('invalid renames a component of the paint to one no catalog has', async () => {
+    const script: Script = ({ctx, vendorContextId}) => [
+      {
+        kind: 'status-update',
+        taskId: ctx.taskId,
+        contextId: vendorContextId,
+        final: true,
+        status: {
+          state: 'completed',
+          message: {
+            kind: 'message',
+            messageId: 'm',
+            role: 'agent',
+            parts: [
+              {
+                kind: 'data',
+                data: {
+                  version: 'v0.9',
+                  updateComponents: {
+                    surfaceId: 's1',
+                    components: [
+                      {id: 'root', component: 'Column', children: ['t']},
+                      {id: 't', component: 'Text', text: 'hi'},
+                    ],
+                  },
+                },
+              },
+            ],
+          },
+        },
+      },
+    ];
+    const {pool} = await poolFor({script}, faulted({fault: 'invalid'}));
+    const {events, record} = await drain(pool.dispatch('github', turn({fromPlan: true})));
+    const data = (events[0] as TaskStatusUpdateEvent).status.message!.parts[0] as {
+      data: {updateComponents: {components: Array<{id: string; component: string}>}};
+    };
+    expect(data.data.updateComponents.components.map(c => c.component)).toEqual([
+      'Column',
+      UNKNOWN_COMPONENT,
+    ]);
+    expect(record).toMatchObject({outcome: 'completed', fault: 'invalid'});
+  });
+
+  test('a fault hits the plan’s dispatch only, unless marked for every dispatch', async () => {
+    const plain = await poolFor({}, faulted({fault: 'refuse'}));
+    const action = await drain(plain.pool.dispatch('github', turn()));
+    expect(action.record.outcome).toBe('completed');
+    expect(action.record.fault).toBeUndefined();
+    const every = await poolFor({}, faulted({fault: 'refuse', every: true}));
+    const again = await drain(every.pool.dispatch('github', turn()));
+    expect(again.record).toMatchObject({outcome: 'failed', fault: 'refuse'});
+  });
+});
+
+function deterministicTail(taskId: string, contextId: string) {
+  return [
+    {
+      kind: 'status-update' as const,
+      taskId,
+      contextId,
+      final: true,
+      status: {state: 'completed' as const},
+    },
+  ];
+}

@@ -16,11 +16,11 @@ import {isGap, LAYOUT_SURFACE_SCHEMA, type LayoutSurface} from './document.js';
  * and any action but the shell's two are unknown; slot accounting — exactly one `Slot` per
  * dispatch entry matched by `source` or by the exact `gap`, none unmatched, a merged view only
  * with two or more vendor sources, every source on this turn's shortlist and none twice, no blank
- * request; the merged view's `columns` and `join` on `shell` alone, the join's home and nouns
- * naming exactly the dispatched vendor sources; what the Planner may write on a `Slot` (`source`
- * or `gap`, and a positive `weight`; `state`, `label`, `content`, `columns` and `join` are the
- * painter's); and a data model of literals. One line per
- * finding, with its path, so the retry can hand them back.
+ * request; the merged view's `columns`, `columnSources` and `join` on `shell` alone, the join's
+ * home and nouns naming exactly the dispatched vendor sources, a column mark beside every column
+ * naming a dispatched vendor source or null (task-8.3 decision 12); what the Planner may write on
+ * a `Slot` (`source` or `gap`, and a positive `weight`; the rest are the painter's); and a data
+ * model of literals. One line per finding, with its path, so the retry can hand them back.
  */
 export interface LayoutChecks {
   /** The sdk's A2UI validator over the layout surface's pruned catalog. */
@@ -83,7 +83,7 @@ function dispatchErrors(document: LayoutSurface, shortlist: readonly string[]): 
       seen.add(`gap:${entry.gap}`);
       return;
     }
-    const {source, request, columns, join} = entry;
+    const {source, request, columns, columnSources, join} = entry;
     if (seen.has(source)) errors.push(`/dispatch/${i}/source: '${source}' is dispatched twice`);
     seen.add(source);
     if (source === SHELL_SOURCE_ID) merged = true;
@@ -102,6 +102,11 @@ function dispatchErrors(document: LayoutSurface, shortlist: readonly string[]): 
       if (join !== undefined) {
         errors.push(`/dispatch/${i}/join: only the merged view (${SHELL_SOURCE_ID}) states a join`);
       }
+      if (columnSources !== undefined) {
+        errors.push(
+          `/dispatch/${i}/columnSources: only the merged view (${SHELL_SOURCE_ID}) marks columns`,
+        );
+      }
     }
     columns?.forEach((header, c) => {
       if (header.trim() === '') errors.push(`/dispatch/${i}/columns/${c}: the header is blank`);
@@ -113,6 +118,37 @@ function dispatchErrors(document: LayoutSurface, shortlist: readonly string[]): 
     );
   }
   errors.push(...joinErrors(document, vendorSources));
+  errors.push(...columnMarkErrors(document, vendorSources));
+  return errors;
+}
+
+/** Every planned column marked, to a dispatched vendor source or null (task-8.3 decision 12). */
+function columnMarkErrors(document: LayoutSurface, vendorSources: readonly string[]): string[] {
+  const i = document.dispatch.findIndex(entry => !isGap(entry) && entry.source === SHELL_SOURCE_ID);
+  const shell = document.dispatch[i];
+  if (shell === undefined || isGap(shell)) return [];
+  const {columns, columnSources} = shell;
+  if (columns === undefined) {
+    return columnSources === undefined
+      ? []
+      : [`/dispatch/${i}/columnSources: marks columns the entry does not have; write columns`];
+  }
+  if (columnSources === undefined) {
+    return [
+      `/dispatch/${i}/columnSources: required beside columns — per column, the dispatched agent whose values it shows, or null`,
+    ];
+  }
+  const errors: string[] = [];
+  if (columnSources.length !== columns.length) {
+    errors.push(
+      `/dispatch/${i}/columnSources: ${columnSources.length} marks for ${columns.length} columns; one per column`,
+    );
+  }
+  columnSources.forEach((mark, c) => {
+    if (mark !== null && !vendorSources.includes(mark)) {
+      errors.push(`/dispatch/${i}/columnSources/${c}: '${mark}' is not a dispatched agent`);
+    }
+  });
   return errors;
 }
 
@@ -141,7 +177,18 @@ function joinErrors(document: LayoutSurface, vendorSources: readonly string[]): 
   return errors;
 }
 
-const PAINTER_PROPS = ['state', 'label', 'content', 'columns', 'join'] as const;
+const PAINTER_PROPS = [
+  'state',
+  'label',
+  'content',
+  'columns',
+  'columnSources',
+  'join',
+  'noun',
+  'failure',
+  'declined',
+  'collapse',
+] as const;
 
 /** Slot accounting against the dispatch list, and what the Planner may write on a `Slot`. */
 function slotErrors(document: LayoutSurface): string[] {
@@ -181,7 +228,7 @@ function slotErrors(document: LayoutSurface): string[] {
     }
     if (PAINTER_PROPS.some(prop => prop in slot)) {
       errors.push(
-        `/tree (${slot.id}): Slot.state, Slot.label, Slot.content, Slot.columns and Slot.join are written by the shell; write only source or gap, and weight — the merged view's columns and join go on its dispatch entry`,
+        `/tree (${slot.id}): Slot.${PAINTER_PROPS.filter(prop => prop in slot).join(', Slot.')} ${PAINTER_PROPS.filter(prop => prop in slot).length > 1 ? 'are' : 'is'} written by the shell; write only source or gap, and weight — the merged view's columns, column marks and join go on its dispatch entry`,
       );
     }
     if (slot.weight !== undefined && !(typeof slot.weight === 'number' && slot.weight > 0)) {

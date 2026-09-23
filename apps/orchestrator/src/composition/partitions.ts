@@ -4,6 +4,14 @@ import {a2uiMessagesIn, partsOf} from '../journal/surfaces.js';
 
 type Model = Record<string, unknown>;
 
+/** A read-only window on some sources' partitions. */
+export interface PartitionsView {
+  has(surface: string): boolean;
+  get(surface: string): unknown;
+  entries(): Array<[surface: string, model: unknown]>;
+  resolve(ref: Ref): Resolution;
+}
+
 /**
  * The orchestrator's materialized copy of every surface's data model, keyed by
  * namespaced surface id — the Synthesizer's input (SPEC §10: all partitions,
@@ -47,6 +55,26 @@ export class Partitions {
 
   entries(): Array<[surface: string, model: unknown]> {
     return [...this.#models.entries()];
+  }
+
+  /** Whether the source holds a surface now: what arriving means (task-8.3 decision 5). */
+  holdsSurfaceOf(appId: string): boolean {
+    return [...this.#models.keys()].some(surface => parseSurfaceId(surface)?.appId === appId);
+  }
+
+  /**
+   * The partitions of the given sources only — the merge's source set, or the sources one
+   * synthesis runs over (task-8.3 decision 11). A surface of any other source is not there: the
+   * Synthesizer's refs into it are refused, and the IntegrityChecker's walk does not see it.
+   */
+  view(appIds: ReadonlySet<string>): PartitionsView {
+    const within = (surface: string) => appIds.has(parseSurfaceId(surface)?.appId ?? '');
+    return {
+      has: surface => within(surface) && this.has(surface),
+      get: surface => (within(surface) ? this.get(surface) : undefined),
+      entries: () => this.entries().filter(([surface]) => within(surface)),
+      resolve: ref => (within(ref.surface) ? this.resolve(ref) : {found: false, reason: 'missing'}),
+    };
   }
 
   /**

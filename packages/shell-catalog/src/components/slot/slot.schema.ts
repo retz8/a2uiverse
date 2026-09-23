@@ -32,6 +32,10 @@ import {z} from 'zod';
  *   noun per source — which the slot does not draw; the host reads it for its progress line.
  * - `declined` (shell content) is the Synthesizer's reason for declining the merge, painted by
  *   the runtime with `state: "collapsed"` and drawn as one line (task-8.2 decision 9).
+ * - `collapse` (shell content) is why the merge collapsed when it was not declined, painted by
+ *   the runtime with `state: "collapsed"` and drawn as one line in the shell's words (task-8.3
+ *   decision 9): the home source failed (`home`, its phrase), fewer than two sources arrived
+ *   (`few`, the names of those that did), or the merged view couldn't be made (`unmade`).
  */
 export const FAILURE_CAUSES = ['vendor', 'unreachable', 'timeout', 'invalid'] as const;
 export type FailureCause = (typeof FAILURE_CAUSES)[number];
@@ -44,6 +48,23 @@ const FailureSchema = z
   .strict()
   .refine(failure => failure.message === undefined || failure.cause === 'vendor', {
     message: 'a failure carries a message only when the vendor said it',
+  });
+
+export const COLLAPSE_CAUSES = ['home', 'few', 'unmade'] as const;
+export type CollapseCause = (typeof COLLAPSE_CAUSES)[number];
+
+const CollapseSchema = z
+  .object({
+    cause: z.enum(COLLAPSE_CAUSES),
+    home: z.string().optional(),
+    answered: z.array(z.string()).optional(),
+  })
+  .strict()
+  .refine(collapse => (collapse.home !== undefined) === (collapse.cause === 'home'), {
+    message: 'a collapse names the home source exactly when the home source failed',
+  })
+  .refine(collapse => (collapse.answered !== undefined) === (collapse.cause === 'few'), {
+    message: 'a collapse lists the sources that answered exactly when too few did',
   });
 
 export const SlotApi = {
@@ -65,6 +86,7 @@ export const SlotApi = {
         .strict()
         .optional(),
       declined: z.object({reason: z.string()}).strict().optional(),
+      collapse: CollapseSchema.optional(),
     })
     .strict()
     .refine(props => (props.source === undefined) !== (props.gap === undefined), {
@@ -80,3 +102,4 @@ export const SlotApi = {
 
 export type SlotProps = z.infer<typeof SlotApi.schema>;
 export type SlotFailure = z.infer<typeof FailureSchema>;
+export type SlotCollapse = z.infer<typeof CollapseSchema>;

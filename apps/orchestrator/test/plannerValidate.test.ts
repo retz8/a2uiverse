@@ -210,6 +210,7 @@ describe('the merged view’s columns and join (task-7.15)', () => {
       source: 'shell',
       request: 'One row per pull request — the home source — with the mail about it.',
       columns: ['Pull request', 'Review', 'Latest mail'],
+      columnSources: ['github', 'github', 'gmail'],
       join: {home: 'github', nouns: {github: 'PRs', gmail: 'threads'}},
     };
     return doc;
@@ -233,11 +234,51 @@ describe('the merged view’s columns and join (task-7.15)', () => {
     ]);
   });
 
+  test('every column is marked, to a dispatched vendor source or null (task-8.3 decision 12)', () => {
+    const unmarked = joined();
+    const {columnSources: _marks, ...rest} = unmarked.dispatch[2] as {columnSources?: unknown};
+    unmarked.dispatch[2] = rest as LayoutSurface['dispatch'][number];
+    expect(check(unmarked)).toEqual([
+      '/dispatch/2/columnSources: required beside columns — per column, the dispatched agent whose values it shows, or null',
+    ]);
+    const short = joined();
+    short.dispatch[2] = {
+      ...short.dispatch[2]!,
+      columnSources: ['github', null],
+    } as LayoutSurface['dispatch'][number];
+    expect(check(short)).toEqual([
+      '/dispatch/2/columnSources: 2 marks for 3 columns; one per column',
+    ]);
+    const stranger = joined();
+    stranger.dispatch[2] = {
+      ...stranger.dispatch[2]!,
+      columnSources: ['github', null, 'linear'],
+    } as LayoutSurface['dispatch'][number];
+    expect(check(stranger)).toEqual([
+      "/dispatch/2/columnSources/2: 'linear' is not a dispatched agent",
+    ]);
+    const noColumns = fanOut();
+    noColumns.dispatch[2] = {
+      source: 'shell',
+      request: 'A timeline.',
+      columnSources: [null],
+    };
+    expect(check(noColumns)).toEqual([
+      '/dispatch/2/columnSources: marks columns the entry does not have; write columns',
+    ]);
+    const onVendor = joined();
+    onVendor.dispatch[0] = {source: 'github', request: 'x', columnSources: [null]};
+    expect(check(onVendor)).toContain(
+      '/dispatch/0/columnSources: only the merged view (shell) marks columns',
+    );
+  });
+
   test('a blank header is refused', () => {
     const doc = joined();
     doc.dispatch[2] = {
       ...doc.dispatch[2]!,
       columns: ['Pull request', ' '],
+      columnSources: ['github', 'github'],
     } as LayoutSurface['dispatch'][number];
     expect(check(doc)).toEqual(['/dispatch/2/columns/1: the header is blank']);
   });
@@ -265,7 +306,7 @@ describe('the merged view’s columns and join (task-7.15)', () => {
 });
 
 describe('what the Planner may write on a Slot', () => {
-  test('state, label, content, columns and join are the painter’s', () => {
+  test('state, label, content, columns, column marks, join and the runtime’s facts are the painter’s', () => {
     const doc = fanOut();
     doc.tree.components[4] = {
       id: 'gh',
@@ -276,8 +317,21 @@ describe('what the Planner may write on a Slot', () => {
       content: 'fragment',
     };
     expect(check(doc)).toEqual([
-      "/tree (gh): Slot.state, Slot.label, Slot.content, Slot.columns and Slot.join are written by the shell; write only source or gap, and weight — the merged view's columns and join go on its dispatch entry",
+      "/tree (gh): Slot.state, Slot.label, Slot.content are written by the shell; write only source or gap, and weight — the merged view's columns, column marks and join go on its dispatch entry",
     ]);
+    for (const [prop, value] of [
+      ['noun', 'GitHub PRs'],
+      ['failure', {cause: 'timeout'}],
+      ['declined', {reason: 'x'}],
+      ['collapse', {cause: 'unmade'}],
+      ['columnSources', ['github']],
+    ] as const) {
+      const painted = fanOut();
+      painted.tree.components[4] = {id: 'gh', component: 'Slot', source: 'github', [prop]: value};
+      expect(check(painted)).toEqual([
+        `/tree (gh): Slot.${prop} is written by the shell; write only source or gap, and weight — the merged view's columns, column marks and join go on its dispatch entry`,
+      ]);
+    }
     const onSlot = fanOut();
     onSlot.tree.components[2] = {
       id: 'merged',

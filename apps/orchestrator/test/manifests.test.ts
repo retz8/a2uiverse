@@ -130,6 +130,9 @@ describe('buildOrchestrator — roster source (task 4.7)', () => {
     shortlistCap: 5,
     synthesizerModelId: 'test-model',
     synthesizerEffort: 'low' as const,
+    softDeadlineMs: 10_000,
+    hardCapMs: 300_000,
+    faults: new Map(),
   };
 
   test('no agents dir ⇒ the hardcoded roster', () => {

@@ -71,8 +71,11 @@ function updateComponentsPart(state: CompositionState): Part {
  * marker over the fragment, one box of the layout — that names the source, holds the slot as its
  * child and carries the slot's weight; its parent names the wrapper where it named the slot. The
  * synthesis slot is shell content, bare, and a gap slot is left as authored: the catalog draws the
- * tile. `state` and `label` (and `content`, `columns` and `join` on the synthesis slot) are the
- * painter's, so a repaint flips a slot by its source and every id stays put.
+ * tile. `state` and `label` (and `content`, `columns`, `columnSources` and `join` on the synthesis
+ * slot) are the painter's, so a repaint flips a slot by its source and every id stays put. So are
+ * the facts a state carries (task-8.3 decisions 6, 9, 10): a vendor slot's `noun` under a join
+ * and its `failure` once failed; the merge slot's `declined` reason or `collapse` cause once
+ * collapsed.
  */
 export function paintLayout(state: CompositionState): ShellComponent[] {
   const {components} = state.layout.tree;
@@ -108,13 +111,22 @@ export function paintLayout(state: CompositionState): ShellComponent[] {
       // The synthesis slot is shell content (task-5.5 decision 1): a reserved position painted
       // like the shell's own UI — no attribution beside it, reserved while pending under the
       // planned columns (task-7.15), the join's nouns carried for the client's progress line.
+      const collapsed = slotState === 'collapsed';
       painted.push({
         ...component,
         state: slotState,
         label: SYNTHESIS_DISPLAY_NAME,
         content: 'shell',
         ...(entry?.plan.columns ? {columns: entry.plan.columns} : {}),
+        ...(entry?.plan.columns && entry.plan.columnSources
+          ? {columnSources: entry.plan.columnSources}
+          : {}),
         ...(entry?.plan.join ? {join: entry.plan.join} : {}),
+        ...(collapsed && entry?.declined !== undefined
+          ? {declined: {reason: entry.declined}}
+          : collapsed && entry?.collapse
+            ? {collapse: entry.collapse}
+            : {}),
       });
       continue;
     }
@@ -128,7 +140,13 @@ export function paintLayout(state: CompositionState): ShellComponent[] {
         child: component.id,
         ...(typeof component.weight === 'number' ? {weight: component.weight} : {}),
       },
-      {...component, state: slotState, label: displayName},
+      {
+        ...component,
+        state: slotState,
+        label: displayName,
+        ...(entry?.plan.noun ? {noun: entry.plan.noun} : {}),
+        ...(slotState === 'failed' && entry?.failure ? {failure: entry.failure} : {}),
+      },
     );
   }
   return painted;

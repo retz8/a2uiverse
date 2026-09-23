@@ -2,12 +2,12 @@ import {randomUUID} from 'node:crypto';
 import type {Message, Task, TaskState, TaskStatusUpdateEvent} from '@a2a-js/sdk';
 import type {AgentExecutor, ExecutionEventBus, RequestContext} from '@a2a-js/sdk/server';
 import {parseSurfaceId, type SynthesisPayload} from '@a2uiverse/sdk';
-import {SHELL_ACTIONS} from '@a2uiverse/shell-catalog/schema';
+import {SHELL_ACTIONS, type SlotCollapse} from '@a2uiverse/shell-catalog/schema';
 import type {AgentsPool} from './agentsPool/agentsPool.js';
-import {STAMP_KEY} from './agentsPool/relay.js';
-import type {DispatchHandle, DispatchOutcome} from './agentsPool/types.js';
+import {STAMP_KEY, type VendorEvent} from './agentsPool/relay.js';
+import type {DispatchHandle, DispatchOutcome, DispatchRecord} from './agentsPool/types.js';
 import {classifyTurn, unnamespaceAction, type Turn} from './composition/classify.js';
-import {composeFragment} from './composition/fragmentRelay.js';
+import {composeFragment, withoutFailureWords} from './composition/fragmentRelay.js';
 import {changeAccount, firesResynthesis, seenOf, watchOf} from './composition/integrity.js';
 import {A2UI_CLIENT_DATA_MODEL_KEY} from './composition/partition.js';
 import {
@@ -22,8 +22,11 @@ import {
   outcomeToSlotState,
   synthesisSlot,
   type CompositionState,
+  type SlotFailure,
 } from './composition/state.js';
+import {decideTrigger, mergePossible} from './composition/trigger.js';
 import type {IntentJournal, JournalTurn} from './journal/intentJournal.js';
+import type {SynthesisRecord} from './journal/types.js';
 import {elapsedMs, logLine} from './log.js';
 import {emptyTouches, mergeTouches, touchesOf, type SurfaceTouches} from './journal/surfaces.js';
 import type {Planner} from './planner/planner.js';
@@ -31,7 +34,7 @@ import type {Registry} from './registry/registry.js';
 import {SHELL_SOURCE_ID} from './registry/types.js';
 import type {Router} from './router/router.js';
 import type {Synthesis} from './synthesizer/document.js';
-import type {ChangeAccount} from './synthesizer/prompt.js';
+import type {ChangeAccount, MissingSource} from './synthesizer/prompt.js';
 import type {Synthesizer} from './synthesizer/synthesizer.js';
 
 export interface OrchestratorDeps {
@@ -43,19 +46,44 @@ export interface OrchestratorDeps {
   synthesizer: Synthesizer;
   /** Per-conversation composition state, shared with the Planner's this-canvas reader. */
   compositions: Map<string, CompositionState>;
+  /**
+   * The soft deadline and the hard cap (task-8.3 decisions 1–3). The executor runs the soft
+   * deadline; the AgentsPool enforces the cap; the journal records both per turn.
+   */
+  deadlines: {softMs: number; capMs: number};
 }
 
+/** An utterance turn from its arrival until its last dispatch ends: what a new utterance ends. */
+interface LiveTurn {
+  taskId: string;
+  controller: AbortController;
+  journal: JournalTurn;
+}
+
+/** Why a synthesis runs: the turn's one automatic release, or a re-synthesis handed what broke. */
+type SynthesisRun =
+  | {release: {by: 'settled' | 'soft-deadline' | 'home'; at: number}; signal: AbortSignal}
+  | {again: {previous: Synthesis; changes: ChangeAccount}};
+
 /**
- * The turn (SPEC §5) at M3s. Utterance: Router → Planner (the one model call, the readers as
+ * The turn (SPEC §5) at M6. Utterance: Router → Planner (the one model call, the readers as
  * steps inside it) → shell paint of the model-authored layout → fan-out → slot-lifecycle repaints
- * → synthesis into the reserved slot → one turn-final. A turn that dispatches nothing — a
+ * → synthesis into the reserved slot when the trigger releases it → one turn-final once every
+ * dispatch has arrived, failed or reached the hard cap. The trigger (task-8.3 decisions 1, 4, 8):
+ * a merge is possible once two sources arrived, the home source among them under a join; every
+ * source settled releases it, and while some are still out the soft deadline — quiet after the
+ * last settle — releases it without them; a failed home source, or too few arrivals, collapses
+ * the merge with no call. A dispatch past its hard cap fails its slot and runs on, what it answers
+ * held until Retry; the turn's journal line closes when the last dispatch ends. A new utterance
+ * in the same conversation ends the turn before it: its dispatches aborted and their vendors told
+ * to cancel, its model calls aborted, what it held dropped. A turn that dispatches nothing — a
  * platform answer, a gap — closes right after first paint. Action: owner-only dispatch, no
  * Router/Planner; then, if the partition change invalidated the live synthesis, re-synthesis
- * inline before the final, handed the previous document and what broke (task-5.4 decision 6).
- * A shell action — one of the shell catalog's closed set, raised on a shell surface and handled
- * by the client itself (SPEC §7) — is journaled and nothing else: no dispatch, no paint.
- * Client error: slot flip by shell repaint.
- * Composition state is canonical here; the shell surface is its projection.
+ * inline before the final over the merge's own source set, handed the previous document and what
+ * broke (task-5.4 decision 6). A shell action — one of the shell catalog's closed set, raised on
+ * a shell surface and handled by the client itself (SPEC §7) — is journaled and nothing else: no
+ * dispatch, no paint. Client error: the slot fails `invalid` by shell repaint, its data out of the
+ * merge. Composition state is canonical here; the shell surface is its projection.
  */
 export class OrchestratorExecutor implements AgentExecutor {
   readonly #deps: OrchestratorDeps;
@@ -66,6 +94,8 @@ export class OrchestratorExecutor implements AgentExecutor {
    * second run would repeat a vendor's write. Bounded: a retry follows its original by seconds.
    */
   readonly #received = new Set<string>();
+  /** Per conversation, the utterance turn still running, if any (task-8.3 decision 4). */
+  readonly #live = new Map<string, LiveTurn>();
 
   constructor(deps: OrchestratorDeps) {
     this.#deps = deps;
@@ -127,7 +157,7 @@ export class OrchestratorExecutor implements AgentExecutor {
             clientContextId: ctx.contextId,
             message: ctx.userMessage,
           });
-          this.#clientErrorTurn(ctx, bus, turnKind);
+          this.#clientErrorTurn(ctx, bus, turn, turnKind);
           bus.publish(finalStatus(ctx, 'completed'));
           await turn.close('completed');
           break;
@@ -155,7 +185,27 @@ export class OrchestratorExecutor implements AgentExecutor {
 
   async cancelTask(taskId: string): Promise<void> {
     // Every handle of the turn aborts; the pumps observe it as 'cancelled'.
+    for (const [contextId, live] of this.#live) {
+      if (live.taskId !== taskId) continue;
+      this.#live.delete(contextId);
+      live.controller.abort();
+    }
     this.#deps.pool.cancel(taskId);
+  }
+
+  /**
+   * Ends the conversation's running utterance turn (task-8.3 decision 4): its model calls
+   * aborted, its dispatches aborted and their vendors told to cancel — past the hard cap too, so
+   * what it would have held is dropped — and its journal line marked superseded.
+   */
+  #supersede(contextId: string): void {
+    const live = this.#live.get(contextId);
+    if (!live) return;
+    this.#live.delete(contextId);
+    logLine(`⤫ task=${live.taskId} superseded`);
+    live.journal.superseded();
+    live.controller.abort();
+    this.#deps.pool.cancel(live.taskId);
   }
 
   async #utteranceTurn(
@@ -164,15 +214,39 @@ export class OrchestratorExecutor implements AgentExecutor {
     turn: JournalTurn,
     text: string,
   ): Promise<void> {
+    this.#supersede(ctx.contextId);
+    const live: LiveTurn = {taskId: ctx.taskId, controller: new AbortController(), journal: turn};
+    this.#live.set(ctx.contextId, live);
+    const {signal} = live.controller;
+    const done = () => {
+      if (this.#live.get(ctx.contextId) === live) this.#live.delete(ctx.contextId);
+    };
+    const superseded = async () => {
+      done();
+      bus.publish(finalStatus(ctx, 'canceled'));
+      await turn.close('cancelled');
+    };
+    turn.deadlines(this.#deps.deadlines);
+
     // The first-paint clock (task-6.6 decision 3): from here to the tree accepted, the shortlist
     // included, since nothing paints before either.
     const receivedAt = Date.now();
-    const shortlist = await this.#deps.router.shortlist(text);
-    const outcome = await this.#deps.planner.plan({
-      utterance: text,
-      shortlist,
-      conversationId: ctx.contextId,
-    });
+    let outcome;
+    try {
+      const shortlist = await this.#deps.router.shortlist(text);
+      signal.throwIfAborted();
+      outcome = await this.#deps.planner.plan({
+        utterance: text,
+        shortlist,
+        conversationId: ctx.contextId,
+        signal,
+      });
+    } catch (err) {
+      if (signal.aborted) return superseded();
+      done();
+      throw err;
+    }
+    if (signal.aborted) return superseded();
     const planMs = Date.now() - receivedAt;
     logLine(`plan task=${ctx.taskId} ${outcome.kind} ${planMs} ms`);
     turn.plan({
@@ -183,6 +257,7 @@ export class OrchestratorExecutor implements AgentExecutor {
       planMs,
     });
     if (outcome.kind === 'malformed') {
+      done();
       // Both attempts refused: a broken turn, the findings on the final (task-6.4 decision 6).
       const last = outcome.attempts.at(-1);
       throw new Error(
@@ -200,7 +275,73 @@ export class OrchestratorExecutor implements AgentExecutor {
 
     // The synthesis slot is the shell's own (task-4.4 decision 6): never dispatched.
     const sources = [...state.slots.values()].filter(({plan}) => plan.source !== SHELL_SOURCE_ID);
-    const pumps = sources.map(({plan: slot}) => {
+    const vendorSources = sources.map(({plan}) => plan.source);
+    const merge = synthesisSlot(state);
+    const home = merge?.plan.join?.home;
+    const settled = new Set<string>();
+    let released: Promise<void> | undefined;
+    let softDeadline: ReturnType<typeof setTimeout> | undefined;
+    const disarm = () => {
+      clearTimeout(softDeadline);
+      softDeadline = undefined;
+    };
+    const release = (by: 'settled' | 'soft-deadline' | 'home') => {
+      disarm();
+      state.mergeDecided = true;
+      logLine(`merge task=${ctx.taskId} released (${by})`);
+      released = this.#synthesize(ctx, bus, turn, state, {
+        release: {by, at: Date.now()},
+        signal,
+      });
+    };
+    // Weighs the trigger after every settle, and after a slot fails outside the turn's own
+    // dispatches — a paint the client could not draw.
+    const evaluate = (justSettled?: string) => {
+      if (!merge || state.mergeDecided || signal.aborted) return disarm();
+      const decision = decideTrigger({
+        sources: vendorSources,
+        settled,
+        arrived: state.arrived,
+        ...(home !== undefined ? {home} : {}),
+        ...(justSettled !== undefined ? {justSettled} : {}),
+      });
+      switch (decision.kind) {
+        case 'wait':
+          return disarm();
+        case 'arm':
+          disarm();
+          softDeadline = setTimeout(() => {
+            softDeadline = undefined;
+            if (state.mergeDecided || signal.aborted) return;
+            if (mergePossible(state.arrived, home)) release('soft-deadline');
+          }, this.#deps.deadlines.softMs);
+          return;
+        case 'release':
+          return release(decision.by);
+        case 'collapse':
+          disarm();
+          return this.#collapseMerge(
+            ctx,
+            bus,
+            turn,
+            state,
+            decision.cause === 'home'
+              ? {collapse: homeCollapse(state, home!)}
+              : {collapse: this.#fewCollapse(state, state.arrived)},
+            decision.cause === 'home'
+              ? {outcome: 'home', collapse: 'home', attempts: []}
+              : {
+                  outcome: 'skipped',
+                  reason: `${state.arrived.size} source(s) arrived`,
+                  collapse: 'few',
+                  attempts: [],
+                },
+          );
+      }
+    };
+    state.reevaluate = () => evaluate();
+
+    const runs = sources.map(({plan: slot}) => {
       const request: Message = {
         kind: 'message',
         messageId: randomUUID(),
@@ -212,17 +353,34 @@ export class OrchestratorExecutor implements AgentExecutor {
         clientContextId: ctx.contextId,
         clientTaskId: ctx.taskId,
         message: request,
+        fromPlan: true,
       });
-      return this.#pump(ctx, bus, turn, state, handle, slot.source, {collapse: true});
+      return this.#pump(ctx, bus, turn, state, handle, slot.source, {
+        collapse: true,
+        signal,
+        onSettled: () => {
+          settled.add(slot.source);
+          evaluate(slot.source);
+        },
+      });
     });
-    const outcomes = await Promise.all(pumps);
-    await this.#synthesize(ctx, bus, turn, state);
+    // The final waits for every dispatch to arrive, fail or reach the hard cap (task-8.3
+    // decision 4), and for the synthesis the last of them released.
+    const outcomes = await Promise.all(runs.map(run => run.settled));
+    disarm();
+    if (released) await released;
+    state.reevaluate = undefined;
 
-    // One agent failing never fails the turn; only an all-cancelled turn is cancelled. A turn
-    // that dispatched nothing — a platform answer, a gap — completed at first paint.
-    const allCancelled = outcomes.length > 0 && outcomes.every(outcome => outcome === 'cancelled');
-    bus.publish(finalStatus(ctx, allCancelled ? 'canceled' : 'completed'));
-    await turn.close(allCancelled ? 'cancelled' : 'completed');
+    // One agent failing never fails the turn; only an all-cancelled turn — or one a new
+    // utterance ended — is cancelled. A turn that dispatched nothing completed at first paint.
+    const cancelled =
+      signal.aborted || (outcomes.length > 0 && outcomes.every(o => o === 'cancelled'));
+    bus.publish(finalStatus(ctx, cancelled ? 'canceled' : 'completed'));
+    // The journal line closes when the last dispatch ends: an answer held past the cap is on it.
+    void Promise.all(runs.map(run => run.drained)).then(async () => {
+      done();
+      await turn.close(cancelled ? 'cancelled' : 'completed');
+    });
   }
 
   async #actionTurn(
@@ -253,73 +411,93 @@ export class OrchestratorExecutor implements AgentExecutor {
       message,
     });
     // An action that repaints nothing must not collapse a filled slot.
-    const outcome = await this.#pump(ctx, bus, turn, undefined, handle, owner.id, {
-      collapse: false,
-    });
-    // Tier 2, the IntegrityChecker's walk: a ref that stopped resolving or a key that appeared
-    // in a watched array reopens the merged view; a fact that stopped holding rides along.
+    const run = this.#pump(ctx, bus, turn, undefined, handle, owner.id, {collapse: false});
+    const outcome = await run.settled;
+    // Tier 2, the IntegrityChecker's walk over the merge's own source set (task-8.3 decision 11):
+    // a ref that stopped resolving, a key that appeared in a watched array or a source of the set
+    // painting again reopens the merged view; a fact that stopped holding rides along. A source
+    // that arrived after the merge is not in the set: only Include or Retry brings it in.
     if (composition?.synthesis) {
       const {payload, document, watch, seen} = composition.synthesis;
-      const changes = changeAccount(payload, composition.partitions, watch, seen);
+      const view = composition.partitions.view(composition.merged);
+      const changes = changeAccount(payload, view, watch, seen);
       if (firesResynthesis(changes)) {
-        await this.#synthesize(ctx, bus, turn, composition, {previous: document, changes});
+        await this.#synthesize(ctx, bus, turn, composition, {again: {previous: document, changes}});
       }
     }
     const state: TaskState =
       outcome === 'cancelled' ? 'canceled' : outcome === 'completed' ? 'completed' : 'failed';
     bus.publish(finalStatus(ctx, state, handleError(outcome)));
-    await turn.close(outcome);
+    void run.drained.then(() => turn.close(outcome));
   }
 
   /**
-   * SPEC §5 t6–t7: when every dispatched source has resolved, the second model call — or not.
-   * Fewer than two sources arrived ⇒ no call, the slot collapses (§5.1). A decline, a malformed
-   * output or a model failure collapse it too, told apart in the journal. Otherwise the accepted
-   * document's derived model and sorts are sent to the client, the partitions are snapshotted,
-   * and the model's tree is painted into the synthesis slot (nothing else moves). A re-synthesis is the same call handed the live document and the
-   * account of what broke; the journal records the whole conversation (task-5.4 decision 7).
+   * SPEC §5 t6–t7: the second model call, over the sources the run names — what arrived by the
+   * turn's release, or the merge's own set on a re-synthesis — each other dispatched source named
+   * as missing with its state, its columns kept. Fewer than two ⇒ no call, the slot collapses
+   * (§5.1). A decline, a malformed output or a model failure collapse it too, each with its line
+   * (task-8.3 decision 9). Otherwise the accepted document's derived model and sorts are sent to
+   * the client, the partitions it ran over snapshotted, the merge's set made those sources, and
+   * the model's tree painted into the synthesis slot (nothing else moves). A re-synthesis is the
+   * same call handed the live document and the account of what broke; the journal records the
+   * whole conversation (task-5.4 decision 7). A turn ended by a new utterance paints nothing.
    */
   async #synthesize(
     ctx: RequestContext,
     bus: ExecutionEventBus,
     turn: JournalTurn,
     state: CompositionState,
-    again?: {previous: Synthesis; changes: ChangeAccount},
+    run: SynthesisRun,
   ): Promise<void> {
     const slot = synthesisSlot(state);
     if (!slot) return;
-    const startedAt = state.lastSettledAt ?? Date.now();
+    const first = 'release' in run;
+    const signal = first ? run.signal : undefined;
+    const over = new Set(first ? state.arrived : state.merged);
+    const startedAt = first ? run.release.at : (state.lastSettledAt ?? Date.now());
     const deadAir = () => Date.now() - startedAt;
-    const sent = again ? {changes: again.changes} : {};
+    const missing = this.#missing(state, over);
+    const context: Partial<SynthesisRecord> = {
+      ...(first ? {release: {by: run.release.by, at: new Date(run.release.at).toISOString()}} : {}),
+      sources: [...over],
+      ...(missing.length > 0
+        ? {missing: missing.map(({appId, state: at}) => ({appId, state: at}))}
+        : {}),
+      ...(first ? {} : {changes: run.again.changes}),
+    };
     const collapse = (
       outcome: 'declined' | 'malformed' | 'skipped' | 'failed',
       reason: string | undefined,
       attempts: {text: string; errors: string[]}[],
     ) => {
-      state.synthesis = undefined;
-      state.mergedView = {outcome, ...(reason ? {reason} : {})};
-      // A decline is the Synthesizer's own judgment in its own words; the collapsed slot rests
-      // on them rather than folding away unexplained. The other outcomes are the runtime's.
+      // A decline is the Synthesizer's own judgment in its own words; the prose copy stays until
+      // the client reads the painted reason (task 8.5).
       if (outcome === 'declined' && reason) bus.publish(synthesisProseEnvelope(ctx, reason));
-      if (slot.state !== 'collapsed') {
-        slot.state = 'collapsed';
-        bus.publish(shellEnvelope(ctx, shellRepaintParts(state)));
-      }
-      turn.synthesis({
-        outcome,
-        ...(reason ? {reason} : {}),
-        attempts,
-        ...sent,
-        deadAirMs: deadAir(),
-      });
+      this.#collapseMerge(
+        ctx,
+        bus,
+        turn,
+        state,
+        outcome === 'declined'
+          ? {declined: reason ?? ''}
+          : {collapse: outcome === 'skipped' ? this.#fewCollapse(state, over) : {cause: 'unmade'}},
+        {
+          outcome,
+          ...(reason ? {reason} : {}),
+          collapse: outcome === 'declined' ? 'declined' : outcome === 'skipped' ? 'few' : 'unmade',
+          attempts,
+          ...context,
+          deadAirMs: deadAir(),
+        },
+      );
     };
 
-    if (state.arrived.size < 2)
-      return collapse('skipped', `${state.arrived.size} source(s) arrived`, []);
+    if (over.size < 2) return collapse('skipped', `${over.size} source(s) arrived`, []);
 
-    const sources = state.partitions.entries().flatMap(([surface, data]) => {
+    const view = state.partitions.view(over);
+    const sources = view.entries().flatMap(([surface, data]) => {
       const appId = parseSurfaceId(surface)?.appId;
-      if (!appId || !state.arrived.has(appId)) return [];
+      if (!appId) return [];
       return [{surface, appId, displayName: this.#deps.registry.get(appId).displayName, data}];
     });
     const utterance = ctx.userMessage.parts.find(p => p.kind === 'text')?.text ?? '';
@@ -331,14 +509,21 @@ export class OrchestratorExecutor implements AgentExecutor {
           utterance,
           request: slot.plan.request,
           ...(slot.plan.columns ? {columns: slot.plan.columns} : {}),
+          ...(slot.plan.columnSources ? {columnSources: slot.plan.columnSources} : {}),
           sources,
-          ...again,
+          ...(missing.length > 0 ? {missing} : {}),
+          ...(first ? {} : run.again),
         },
-        state.partitions,
+        view,
+        signal,
       );
     } catch (err) {
+      if (signal?.aborted) return;
       return collapse('failed', err instanceof Error ? err.message : String(err), []);
     }
+    // Ended by a new utterance, or collapsed while the call ran — the home source failed: the
+    // answer is not painted.
+    if (signal?.aborted || slot.state === 'collapsed') return;
     if (outcome.kind === 'declined') return collapse('declined', outcome.reason, outcome.attempts);
     if (outcome.kind === 'malformed') {
       const last = outcome.attempts.at(-1);
@@ -349,10 +534,11 @@ export class OrchestratorExecutor implements AgentExecutor {
     const payload: SynthesisPayload = {dataModel: document.dataModel, sorts: document.sorts};
     // The key sets at accept: every array this document or an earlier one of the composition
     // selects into by key (task-7.6 decision 14).
-    const watch = watchOf(payload, state.partitions, state.synthesis?.watch);
-    // What every surface holds now: a source this document reads nothing from fires the next
-    // re-synthesis by holding something else (task-7.9).
-    state.synthesis = {document, payload, watch, seen: seenOf(state.partitions)};
+    const watch = watchOf(payload, view, state.synthesis?.watch);
+    // What every surface of the set holds now: a source this document reads nothing from fires
+    // the next re-synthesis by holding something else (task-7.9).
+    state.synthesis = {document, payload, watch, seen: seenOf(view)};
+    state.merged = over;
     state.mergedView = {outcome: 'synthesized'};
     const paint = synthesisEnvelope(ctx, synthesisParts(document.tree), payload);
     bus.publish(paint);
@@ -362,9 +548,66 @@ export class OrchestratorExecutor implements AgentExecutor {
       synthesizeDataModel: document,
       note: document.note,
       attempts: outcome.attempts,
-      ...sent,
+      ...context,
       deadAirMs: deadAir(),
     });
+  }
+
+  /** The dispatched sources a synthesis over `over` runs without, each with where it stands. */
+  #missing(state: CompositionState, over: ReadonlySet<string>): MissingSource[] {
+    return [...state.slots.values()]
+      .filter(({plan}) => plan.source !== SHELL_SOURCE_ID && !over.has(plan.source))
+      .map(({plan, state: slotState}) => ({
+        appId: plan.source,
+        displayName: plan.displayName,
+        state:
+          slotState === 'failed'
+            ? 'failed'
+            : state.arrived.has(plan.source)
+              ? 'arrived'
+              : 'loading',
+      }));
+  }
+
+  /** Too few arrived: the ones that did, by display name, in slot order. */
+  #fewCollapse(state: CompositionState, arrived: ReadonlySet<string>): SlotCollapse {
+    return {
+      cause: 'few',
+      answered: [...state.slots.values()]
+        .filter(({plan}) => plan.source !== SHELL_SOURCE_ID && arrived.has(plan.source))
+        .map(({plan}) => plan.displayName),
+    };
+  }
+
+  /**
+   * The merge slot collapses (task-8.3 decisions 8, 9): its one line — the decline's reason, or
+   * the cause the shell words — painted on it, the merge's set emptied, the journal told why.
+   */
+  #collapseMerge(
+    ctx: RequestContext,
+    bus: ExecutionEventBus,
+    turn: JournalTurn,
+    state: CompositionState,
+    why: {declined: string} | {collapse: SlotCollapse},
+    record: SynthesisRecord,
+  ): void {
+    const slot = synthesisSlot(state);
+    if (!slot) return;
+    state.mergeDecided = true;
+    state.synthesis = undefined;
+    state.merged = new Set();
+    state.mergedView = {outcome: record.outcome, ...(record.reason ? {reason: record.reason} : {})};
+    if ('declined' in why) {
+      slot.declined = why.declined;
+      delete slot.collapse;
+    } else {
+      slot.collapse = why.collapse;
+      delete slot.declined;
+    }
+    slot.state = 'collapsed';
+    logLine(`merge task=${ctx.taskId} collapsed (${record.collapse ?? record.outcome})`);
+    bus.publish(shellEnvelope(ctx, shellRepaintParts(state)));
+    turn.synthesis(record);
   }
 
   /**
@@ -380,57 +623,176 @@ export class OrchestratorExecutor implements AgentExecutor {
     }
   }
 
+  /**
+   * A paint the client could not draw (task-8.3 decision 7): the source's slot fails `invalid`
+   * and its data leaves the merge, with no model call — a home source takes the merge down with
+   * it. The merged view's own payload failing leaves the shell slot's quiet line.
+   */
   #clientErrorTurn(
     ctx: RequestContext,
     bus: ExecutionEventBus,
+    turn: JournalTurn,
     error: Turn & {kind: 'clientError'},
   ): void {
     const parsed = parseSurfaceId(error.surfaceId);
     const state = this.#compositions.get(ctx.contextId);
     const slot = parsed && state?.slots.get(parsed.appId);
-    if (slot && slot.state !== 'failed') {
+    if (!state || !slot || slot.state === 'failed') return;
+    if (parsed.appId === SHELL_SOURCE_ID) {
       slot.state = 'failed';
-      bus.publish(shellEnvelope(ctx, shellRepaintParts(state!)));
+      bus.publish(shellEnvelope(ctx, shellRepaintParts(state)));
+      return;
+    }
+    this.#failSlot(ctx, bus, turn, state, parsed.appId, {cause: 'invalid'});
+    state.reevaluate?.();
+  }
+
+  /**
+   * A vendor slot fails (task-8.3 decisions 5, 7, 8): its cause and the vendor's words painted
+   * on it, its data out of the merge — not arrived, out of the merge's set — and, under a join,
+   * the merge collapsed at once when it was the home source.
+   */
+  #failSlot(
+    ctx: RequestContext,
+    bus: ExecutionEventBus,
+    turn: JournalTurn,
+    state: CompositionState,
+    appId: string,
+    failure: SlotFailure,
+  ): void {
+    state.arrived.delete(appId);
+    state.merged.delete(appId);
+    const slot = state.slots.get(appId);
+    if (!slot) return;
+    slot.state = 'failed';
+    slot.failure = failure;
+    bus.publish(shellEnvelope(ctx, shellRepaintParts(state)));
+    const merge = synthesisSlot(state);
+    if (merge && merge.state !== 'collapsed' && merge.plan.join?.home === appId) {
+      this.#collapseMerge(
+        ctx,
+        bus,
+        turn,
+        state,
+        {collapse: homeCollapse(state, appId)},
+        {outcome: 'home', collapse: 'home', attempts: []},
+      );
+    }
+  }
+
+  /** A dispatch that ended: the slot state it ends in, and whether its source arrived. */
+  #settleSlot(
+    ctx: RequestContext,
+    bus: ExecutionEventBus,
+    turn: JournalTurn,
+    state: CompositionState,
+    appId: string,
+    record: DispatchRecord,
+    options: {collapse: boolean},
+  ): void {
+    const next = outcomeToSlotState(record.outcome, state.partitions.holdsSurfaceOf(appId));
+    if (next === 'failed') {
+      return this.#failSlot(ctx, bus, turn, state, appId, {
+        cause: record.cause ?? 'unreachable',
+        ...(record.cause === 'vendor' && record.vendorMessage
+          ? {message: record.vendorMessage}
+          : {}),
+      });
+    }
+    // Left to the client means it holds a surface: this source has arrived.
+    if (next === undefined) {
+      if (record.outcome === 'completed') state.arrived.add(appId);
+      return;
+    }
+    state.arrived.delete(appId);
+    const slot = state.slots.get(appId);
+    if (slot && options.collapse && slot.state !== next) {
+      slot.state = next;
+      bus.publish(shellEnvelope(ctx, shellRepaintParts(state)));
     }
   }
 
   /**
-   * Streams one dispatch's composed events onto the bus, then flips its slot
-   * per outcome — repainting the shell surface when the state changed.
+   * Streams one dispatch's composed events onto the bus. It settles when the dispatch ends — the
+   * slot flipped per outcome — or when it reaches the hard cap: the slot fails `timeout` and the
+   * stream runs on, whatever arrives after held on the slot, undrawn, until Retry (task-8.3
+   * decision 2). `drained` resolves when the dispatch has ended either way. A turn ended by a new
+   * utterance flips nothing.
    */
-  async #pump(
+  #pump(
     ctx: RequestContext,
     bus: ExecutionEventBus,
     turn: JournalTurn,
     state: CompositionState | undefined,
     handle: DispatchHandle,
     appId: string,
-    options: {collapse: boolean},
-  ): Promise<DispatchOutcome> {
+    options: {collapse: boolean; signal?: AbortSignal; onSettled?: () => void},
+  ): {settled: Promise<DispatchOutcome>; drained: Promise<void>} {
     const composition = state ?? this.#compositions.get(ctx.contextId);
-    let touches: SurfaceTouches = emptyTouches();
-    for await (const event of handle.events) {
-      const composed = composeFragment(event, {appId});
-      touches = mergeTouches(touches, touchesOf(composed));
-      composition?.partitions.apply(composed);
-      bus.publish(composed);
-    }
-    const record = await handle.done;
-    turn.dispatched(record);
-    turn.surfaces(touches);
-    if (composition) composition.lastSettledAt = Date.now();
-
-    const slot = composition?.slots.get(appId);
-    const next = outcomeToSlotState(record.outcome, touches);
-    // Left to the client means it painted: this source has arrived.
-    if (next === undefined && record.outcome === 'completed') composition?.arrived.add(appId);
-    const flip = next === 'failed' || (next === 'collapsed' && options.collapse);
-    if (slot && flip && slot.state !== next) {
-      slot.state = next!;
-      bus.publish(shellEnvelope(ctx, shellRepaintParts(composition!)));
-    }
-    return record.outcome;
+    const record = handle.record;
+    let capped = false;
+    let isSettled = false;
+    let resolveSettled!: (outcome: DispatchOutcome) => void;
+    const settled = new Promise<DispatchOutcome>(resolve => (resolveSettled = resolve));
+    const settle = (outcome: DispatchOutcome) => {
+      isSettled = true;
+      record.settledAt = new Date().toISOString();
+      turn.dispatched(record);
+      if (composition) composition.lastSettledAt = Date.now();
+      options.onSettled?.();
+      resolveSettled(outcome);
+    };
+    void handle.capped.then(() => {
+      if (isSettled || options.signal?.aborted) return;
+      capped = true;
+      if (composition) this.#failSlot(ctx, bus, turn, composition, appId, {cause: 'timeout'});
+      settle('timeout');
+    });
+    const drained = (async () => {
+      let touches: SurfaceTouches = emptyTouches();
+      const held: VendorEvent[] = [];
+      for await (const event of handle.events) {
+        const composed = composeFragment(withoutFailureWords(event), {appId});
+        if (capped) {
+          held.push(composed);
+          continue;
+        }
+        const touched = touchesOf(composed);
+        if (!record.firstPaintAt && touchedAny(touched)) {
+          record.firstPaintAt = new Date().toISOString();
+        }
+        touches = mergeTouches(touches, touched);
+        composition?.partitions.apply(composed);
+        bus.publish(composed);
+      }
+      const ended = await handle.done;
+      if (capped) {
+        const slot = composition?.slots.get(appId);
+        if (ended.outcome === 'completed' && held.some(e => touchedAny(touchesOf(e))) && slot) {
+          record.heldAt = new Date().toISOString();
+          slot.held = {events: held, record};
+          logLine(`⏸ ${appId} task=${ctx.taskId} answered past the hard cap — held`);
+        }
+        return;
+      }
+      turn.surfaces(touches);
+      if (composition && !options.signal?.aborted) {
+        this.#settleSlot(ctx, bus, turn, composition, appId, ended, options);
+      }
+      settle(ended.outcome);
+    })();
+    return {settled, drained};
   }
+}
+
+/** The home source failed: the line names its entries as the join calls them. */
+function homeCollapse(state: CompositionState, home: string): SlotCollapse {
+  const plan = state.slots.get(home)?.plan;
+  return {cause: 'home', home: plan?.noun ?? plan?.displayName ?? home};
+}
+
+function touchedAny(touches: SurfaceTouches): boolean {
+  return touches.created.length + touches.updated.length + touches.deleted.length > 0;
 }
 
 /** The client's returned data model, keyed by namespaced surface id; empty when absent. */

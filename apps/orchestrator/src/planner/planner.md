@@ -52,6 +52,10 @@ handed back to you once to fix, and a second failure discards your answer.
     as the user reads them, the row's own thing first (`["Issue", "Status", "Pull request"]`).
     They head the view's reserved space until it lands, and the merge starts from them. Leave them
     out for a view that is not a table, such as a timeline.
+  - `columnSources` — whenever you write `columns`, one entry per column in the same order: the app
+    id of the agent whose values that column shows, or `null` for a column that shows no single
+    agent's values (`["linear", "linear", "github", "circleci"]`). A column marked to an agent that
+    has not answered stays in the view, marked as waiting for it.
   - `join` — whenever the brief states a join hypothesis: `{"home": "<appId>", "nouns": {...}}`,
     the home source and, for every agent dispatched beside the view, the plural noun for its
     entries as the user says it (`{"linear": "issues", "github": "PRs", "circleci": "runs"}`). The

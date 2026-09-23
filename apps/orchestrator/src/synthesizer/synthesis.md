@@ -87,8 +87,8 @@ other source. Start from the hypothesis; it is not a limit.
   row, each entry an object with its own `match` against the row. Every row carries the list, `[]`
   when nothing matches. Beside every list, write a `count` over its entries' refs, so a list with no
   entries shows the empty cell; give the list a sort declaration (below).
-- **No home rows, no view.** When the home source is not among the sources, or brought no
-  instances, decline: there is nothing to line the others up against.
+- **No home rows, no view.** When the home source brought no instances, decline: there is nothing
+  to line the others up against.
 
 ## The columns
 
@@ -96,6 +96,11 @@ When the turn names **columns shown to the user while the view is made**, the us
 them: they headed the space reserved for the view. Start from them — a table, one column per header,
 in that order, under those words. Drop or rename a column only where the data cannot support it, add
 one only where the request needs it, and say in the note which and why.
+
+Each column comes marked with the source whose values it shows, or with no single source: write the
+marks as the `Table`'s `columnSources`, one per column. A source the turn names as having **no data
+in this view** — it has not answered yet, or it failed — keeps its marked column: write the column,
+marked to it, with the empty cell in every row. It is filled in place when the source joins.
 
 **A column says what the row does not already say.** A column about another entity than the row's —
 an entry of another source attached to the row — shows that entity's short handle, bound to the

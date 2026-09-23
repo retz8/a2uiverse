@@ -169,6 +169,25 @@ describe('the turn', () => {
     expect(buildSynthesisTurn(base)).not.toContain('Columns shown');
   });
 
+  test('marked columns name their source; the sources with no data are named with where they stand (task-8.3 decision 13)', () => {
+    const turn = buildSynthesisTurn({
+      ...base,
+      columns: ['Camera', 'Price at A', 'Price at C'],
+      columnSources: [null, 'shop-a', 'shop-c'],
+      missing: [
+        {appId: 'shop-c', displayName: 'Shop C', state: 'loading'},
+        {appId: 'shop-d', displayName: 'Shop D', state: 'failed'},
+      ],
+    });
+    expect(turn).toContain(
+      "Columns shown to the user while the view is made, each with the source it belongs to — write them as the Table's columnSources:\n- Camera — no single source\n- Price at A — shop-a\n- Price at C — shop-c",
+    );
+    expect(turn).toContain(
+      'Sources with no data in this view — keep every column marked to one, the empty cell in each of its rows:\n- Shop C (shop-c): has not answered yet\n- Shop D (shop-d): failed',
+    );
+    expect(buildSynthesisTurn(base)).not.toContain('Sources with no data');
+  });
+
   test('a retry carries the errors, one per line, and the failed document to fix', () => {
     const turn = buildSynthesisTurn({
       ...base,

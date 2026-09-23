@@ -29,6 +29,14 @@ export interface SynthesisSource {
   data: unknown;
 }
 
+/** A dispatched source that brings no data to this synthesis (task-8.3 decision 13). */
+export interface MissingSource {
+  appId: string;
+  displayName: string;
+  /** Still in flight, failed, or answered after the merge was made and not included yet. */
+  state: 'loading' | 'failed' | 'arrived';
+}
+
 /** A fact of a match claim that stopped holding while both its refs resolve (task-7.6 decision 13). */
 export interface UnheldRelation {
   /** Where it sits in the derived model: `/rows/0/match/same branch`. */
@@ -116,7 +124,11 @@ export interface SynthesisTurnInputs {
   request: string;
   /** The column headers the reserved slot showed the user from plan time. */
   columns?: readonly string[];
+  /** Per column, the source it belongs to, or null. */
+  columnSources?: readonly (string | null)[];
   sources: readonly SynthesisSource[];
+  /** The dispatched sources with no data in this synthesis. */
+  missing?: readonly MissingSource[];
   /** The model's previous document — the failed one on a retry, the live one on a re-synthesis. */
   previous?: unknown;
   /** The validator's findings on `previous`, one per line with its path: this turn is a retry. */
@@ -172,15 +184,36 @@ function renderChanges(changes: ChangeAccount): string {
   return lines.join('\n');
 }
 
+/** The planned headers, each with the source it belongs to when the plan marked them. */
+function renderColumns(
+  columns: readonly string[],
+  marks: readonly (string | null)[] | undefined,
+): string {
+  if (!marks) return `Columns shown to the user while the view is made:\n${columns.join(' · ')}`;
+  const lines = columns.map((header, i) => `- ${header} — ${marks[i] ?? 'no single source'}`);
+  return `Columns shown to the user while the view is made, each with the source it belongs to — write them as the Table's columnSources:\n${lines.join('\n')}`;
+}
+
+function renderMissing(missing: readonly MissingSource[]): string {
+  const said = {
+    loading: 'has not answered yet',
+    failed: 'failed',
+    arrived: 'answered after this view was made, and is not in it yet',
+  } as const;
+  const lines = missing.map(s => `- ${s.displayName} (${s.appId}): ${said[s.state]}`);
+  return `Sources with no data in this view — keep every column marked to one, the empty cell in each of its rows:\n${lines.join('\n')}`;
+}
+
 /** The user-turn content: the question, the brief, the sources, and what this turn is. */
 export function buildSynthesisTurn(inputs: SynthesisTurnInputs): string {
   const parts = [
     `User utterance:\n${inputs.utterance}`,
     `Request for the merged view:\n${inputs.request}`,
     ...(inputs.columns && inputs.columns.length > 0
-      ? [`Columns shown to the user while the view is made:\n${inputs.columns.join(' · ')}`]
+      ? [renderColumns(inputs.columns, inputs.columnSources)]
       : []),
     `Sources:\n${renderSources(inputs.sources)}`,
+    ...(inputs.missing && inputs.missing.length > 0 ? [renderMissing(inputs.missing)] : []),
   ];
   const previous =
     inputs.previous === undefined

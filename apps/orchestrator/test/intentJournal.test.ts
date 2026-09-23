@@ -189,3 +189,22 @@ test('a turn records its synthesis outcome beside the plan', async () => {
   const [line] = await lines(join(dir, 'j.jsonl'));
   expect(line!.synthesis).toEqual({outcome: 'declined', reason: 'nothing joinable', deadAirMs: 12});
 });
+
+describe('IntentJournal — deadlines and supersession (task 8.3)', () => {
+  test('a line carries the deadlines in force and the superseded mark, and closes once', async () => {
+    const file = join(dir, 'intent-journal.jsonl');
+    const journal = new IntentJournal(file);
+    const turn = journal.open({turnId: 't1', clientContextId: 'c1', message: utterance});
+    turn.deadlines({softMs: 10_000, capMs: 300_000});
+    turn.superseded();
+    await turn.close('cancelled');
+    await turn.close('completed');
+    const written = await lines(file);
+    expect(written).toHaveLength(1);
+    expect(written[0]).toMatchObject({
+      outcome: 'cancelled',
+      superseded: true,
+      deadlines: {softMs: 10_000, capMs: 300_000},
+    });
+  });
+});

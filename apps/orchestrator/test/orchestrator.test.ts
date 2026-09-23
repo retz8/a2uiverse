@@ -19,6 +19,7 @@ import type {SynthesisCall, SynthesisModel} from '../src/synthesizer/synthesizer
 import {SYNTHESIS_KEY, type SynthesisPayload} from '@a2uiverse/sdk';
 import type {Synthesis} from '../src/synthesizer/document.js';
 import {startFakeVendor, type FakeVendor, type Script} from './fakeVendor.js';
+import type {FaultMap} from '../src/agentsPool/faults.js';
 
 const APPS = ['github', 'gmail', 'calendar'] as const;
 type AppId = (typeof APPS)[number];
@@ -47,6 +48,9 @@ async function boot(
     planner?: Planner;
     synthesizer?: SynthesisModel;
     closeAfterInit?: AppId[];
+    softDeadlineMs?: number;
+    hardCapMs?: number;
+    faults?: FaultMap;
   } = {},
 ) {
   // Every hardcoded entry the test does not fake is pointed at a port nothing listens on: left
@@ -81,6 +85,12 @@ async function boot(
       plannerModelId: 'test-model',
       plannerEffort: 'low',
       shortlistCap: 5,
+      synthesizerModelId: 'test-model',
+      synthesizerEffort: 'low',
+      softDeadlineMs: options.softDeadlineMs ?? 10_000,
+      hardCapMs: options.hardCapMs ?? 300_000,
+      faults: options.faults ?? new Map(),
+      agentsDir: undefined,
     },
     overrides: {
       embedder: new FakeEmbedder(),
@@ -1036,5 +1046,363 @@ describe('synthesis (tasks 4.4, 5.4)', () => {
     // Accepted again, the watch now holds x300: the same list repainted fires nothing.
     await collect(client, actionOn('github:s1', contextId));
     expect(synthesizer.calls).toHaveLength(2);
+  });
+});
+
+/** The Slot components of a shell paint, by source. */
+function slotsOf(paint: Array<Record<string, unknown>>): Record<string, Record<string, unknown>> {
+  const update = paint.find(d => d.updateComponents) ?? {};
+  const components =
+    (update.updateComponents as {components?: Array<Record<string, unknown>>})?.components ?? [];
+  return Object.fromEntries(
+    components.filter(c => c.component === 'Slot').map(c => [c.source as string, c]),
+  );
+}
+
+const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+/** The same script, answering only after `ms`; a Task first, so the vendor's task id is known. */
+function after(ms: number, script: Script): Script {
+  return async function* (s) {
+    yield {
+      kind: 'task' as const,
+      id: s.ctx.taskId,
+      contextId: s.vendorContextId,
+      status: {state: 'submitted' as const},
+    };
+    await wait(ms);
+    for await (const event of script({...s, firstTurn: true})) {
+      if (event.kind !== 'task') yield event;
+    }
+  };
+}
+
+/** A vendor that ends its task failed, with words or without. */
+function failing(words?: string): Script {
+  return ({ctx, vendorContextId}) => [
+    {
+      kind: 'status-update',
+      taskId: ctx.taskId,
+      contextId: vendorContextId,
+      final: true,
+      status: {
+        state: 'failed',
+        ...(words
+          ? {
+              message: {
+                kind: 'message' as const,
+                messageId: crypto.randomUUID(),
+                role: 'agent' as const,
+                parts: [{kind: 'text' as const, text: words}],
+                contextId: vendorContextId,
+                taskId: ctx.taskId,
+              },
+            }
+          : {}),
+      },
+    },
+  ];
+}
+
+function textsIn(events: AnyEvent[]): string[] {
+  return events.flatMap(e => {
+    const parts =
+      e.kind === 'message'
+        ? e.parts
+        : e.kind === 'task' || e.kind === 'status-update'
+          ? (e.status.message?.parts ?? [])
+          : [];
+    return parts.flatMap(p => (p.kind === 'text' ? [p.text] : []));
+  });
+}
+
+describe('late arrival and failure (task 8.3)', () => {
+  const three = ['github', 'gmail', 'calendar'] as const;
+
+  test('the soft deadline releases the synthesis over what arrived; the straggler mounts free inside the turn', async () => {
+    const synthesizer = new FakeSynthesizer();
+    const {client} = await boot({
+      planner: new FakePlanner(() => layoutFor(three, {merged: 'Compare.'})),
+      synthesizer,
+      scripts: {
+        github: shopScript(camerasA),
+        gmail: shopScript(camerasB),
+        calendar: after(600, shopScript(camerasA)),
+      },
+      softDeadlineMs: 100,
+    });
+    const events = await collect(client, utterance('compare'));
+    expect(synthesizer.calls).toHaveLength(1);
+    expect(synthesizer.calls[0]!.input.sources.map(s => s.appId).sort()).toEqual([
+      'github',
+      'gmail',
+    ]);
+    expect(synthesizer.calls[0]!.input.missing).toEqual([
+      {appId: 'calendar', displayName: 'Google Calendar', state: 'loading'},
+    ]);
+    // The merge lands before the straggler; the straggler's fragment still arrives in the turn.
+    const merged = events.findIndex(e => e.metadata?.[SYNTHESIS_KEY] !== undefined);
+    const late = events.findIndex(
+      e => stampOf(e)?.source === 'calendar' && a2uiDatas(e).some(d => d.createSurface),
+    );
+    expect(merged).toBeGreaterThan(-1);
+    expect(late).toBeGreaterThan(merged);
+    expect((events.at(-1) as TaskStatusUpdateEvent).final).toBe(true);
+    const [line] = await journalLines(1);
+    expect(line.synthesis).toMatchObject({
+      outcome: 'synthesized',
+      release: {by: 'soft-deadline'},
+      sources: ['github', 'gmail'],
+      missing: [{appId: 'calendar', state: 'loading'}],
+    });
+    expect(line.deadlines).toEqual({softMs: 100, capMs: 300_000});
+  });
+
+  test('under a join the home source is waited for, never on the soft deadline', async () => {
+    const synthesizer = new FakeSynthesizer();
+    const {client} = await boot({
+      planner: new FakePlanner(() =>
+        layoutFor(three, {
+          merged: 'Join.',
+          join: {home: 'calendar', nouns: {github: 'PRs', gmail: 'threads', calendar: 'events'}},
+        }),
+      ),
+      synthesizer,
+      scripts: {
+        github: shopScript(camerasA),
+        gmail: shopScript(camerasB),
+        calendar: after(400, shopScript(camerasA)),
+      },
+      softDeadlineMs: 50,
+    });
+    await collect(client, utterance('join'));
+    expect(synthesizer.calls).toHaveLength(1);
+    expect(synthesizer.calls[0]!.input.sources.map(s => s.appId).sort()).toEqual([
+      'calendar',
+      'github',
+      'gmail',
+    ]);
+    const [line] = await journalLines(1);
+    expect(line.synthesis).toMatchObject({release: {by: 'home'}});
+  });
+
+  test('the hard cap fails the slot with timeout; the answer past it is held, never relayed', async () => {
+    const {client} = await boot({
+      planner: new FakePlanner(() => layoutFor(['github', 'gmail'])),
+      scripts: {gmail: after(500, shopScript(camerasB))},
+      hardCapMs: 150,
+    });
+    const events = await collect(client, utterance('everything'));
+    const gmail = slotsOf(shellPaints(events).at(-1)!)['gmail']!;
+    expect(gmail).toMatchObject({state: 'failed', failure: {cause: 'timeout'}});
+    expect(
+      events.some(e => stampOf(e)?.source === 'gmail' && a2uiDatas(e).some(d => d.createSurface)),
+    ).toBe(false);
+    // The line closes when the held answer has arrived: it says when.
+    const [line] = await journalLines(1);
+    const record = (line.dispatch as Array<Record<string, unknown>>).find(
+      d => d.appId === 'gmail',
+    )!;
+    expect(record.cappedAt).toBeDefined();
+    expect(record.heldAt).toBeDefined();
+    expect(record.outcome).toBe('completed');
+  });
+
+  test('a failed vendor’s cause and words ride on its Slot, and nowhere else', async () => {
+    const {client} = await boot({
+      planner: new FakePlanner(() => layoutFor(['github', 'gmail'])),
+      scripts: {gmail: failing('Rate limited — try again in a minute.')},
+    });
+    const events = await collect(client, utterance('everything'));
+    expect(slotsOf(shellPaints(events).at(-1)!)['gmail']).toMatchObject({
+      state: 'failed',
+      failure: {cause: 'vendor', message: 'Rate limited — try again in a minute.'},
+    });
+    expect(textsIn(events)).not.toContain('Rate limited — try again in a minute.');
+    const [line] = await journalLines(1);
+    expect(
+      (line.dispatch as Array<Record<string, unknown>>).find(d => d.appId === 'gmail'),
+    ).toMatchObject({cause: 'vendor', vendorMessage: 'Rate limited — try again in a minute.'});
+  });
+
+  test('a vendor down is unreachable, with no words', async () => {
+    const {client} = await boot({closeAfterInit: ['gmail']});
+    const events = await collect(client, utterance('everything'));
+    const gmail = slotsOf(shellPaints(events).at(-1)!)['gmail']!;
+    expect(gmail).toMatchObject({state: 'failed', failure: {cause: 'unreachable'}});
+    expect(gmail.failure).not.toHaveProperty('message');
+  });
+
+  test('the fault map reaches a vendor failure without the vendor being asked', async () => {
+    const {client} = await boot({
+      planner: new FakePlanner(() => layoutFor(['github', 'gmail'])),
+      faults: new Map([['gmail', {fault: 'fail', message: 'boom'}]]),
+    });
+    const events = await collect(client, utterance('everything'));
+    expect(slotsOf(shellPaints(events).at(-1)!)['gmail']).toMatchObject({
+      failure: {cause: 'vendor', message: 'boom'},
+    });
+    expect(vendors.gmail!.requests).toHaveLength(0);
+  });
+
+  test('a failed home source collapses the merge at once, with no call, in the shell’s words', async () => {
+    const synthesizer = new FakeSynthesizer();
+    const {client} = await boot({
+      planner: new FakePlanner(() =>
+        layoutFor(three, {
+          merged: 'Join.',
+          join: {home: 'gmail', nouns: {github: 'PRs', gmail: 'threads', calendar: 'events'}},
+        }),
+      ),
+      synthesizer,
+      scripts: {github: shopScript(camerasA), gmail: failing(), calendar: shopScript(camerasB)},
+    });
+    const events = await collect(client, utterance('join'));
+    expect(synthesizer.calls).toHaveLength(0);
+    const slots = slotsOf(shellPaints(events).at(-1)!);
+    expect(slots['shell']).toMatchObject({
+      state: 'collapsed',
+      collapse: {cause: 'home', home: 'Gmail threads'},
+    });
+    expect(slots['gmail']).toMatchObject({state: 'failed', noun: 'Gmail threads'});
+    const [line] = await journalLines(1);
+    expect(line.synthesis).toMatchObject({outcome: 'home', collapse: 'home', attempts: []});
+  });
+
+  test('too few arrivals collapse the merge naming who answered', async () => {
+    const {client} = await boot({
+      planner: new FakePlanner(() => planWithSynthesis(['github', 'gmail'])),
+      scripts: {github: shopScript(camerasA)},
+      closeAfterInit: ['gmail'],
+    });
+    const events = await collect(client, utterance('compare'));
+    expect(slotsOf(shellPaints(events).at(-1)!)['shell']).toMatchObject({
+      state: 'collapsed',
+      collapse: {cause: 'few', answered: ['GitHub']},
+    });
+  });
+
+  test('a decline paints its reason on the slot; a malformed merge says it couldn’t be made', async () => {
+    const scripts = {github: shopScript(camerasA), gmail: shopScript(camerasB)};
+    const declined = await boot({
+      planner: new FakePlanner(() => planWithSynthesis(['github', 'gmail'])),
+      synthesizer: new FakeSynthesizer(decline('No price lines up.')),
+      scripts,
+    });
+    const declinedEvents = await collect(declined.client, utterance('compare'));
+    expect(slotsOf(shellPaints(declinedEvents).at(-1)!)['shell']).toMatchObject({
+      state: 'collapsed',
+      declined: {reason: 'No price lines up.'},
+    });
+  });
+
+  test('the merge that could not be made collapses to the shell’s line', async () => {
+    const {client} = await boot({
+      planner: new FakePlanner(() => planWithSynthesis(['github', 'gmail'])),
+      synthesizer: new FakeSynthesizer('no block at all'),
+      scripts: {github: shopScript(camerasA), gmail: shopScript(camerasB)},
+    });
+    const events = await collect(client, utterance('compare'));
+    expect(slotsOf(shellPaints(events).at(-1)!)['shell']).toMatchObject({
+      state: 'collapsed',
+      collapse: {cause: 'unmade'},
+    });
+  });
+
+  test('the column marks and the join nouns are painted from plan time', async () => {
+    const {client} = await boot({
+      planner: new FakePlanner(() =>
+        layoutFor(['github', 'gmail'], {
+          merged: 'Join.',
+          columns: ['PR', 'Latest mail'],
+          columnSources: ['github', 'gmail'],
+          join: {home: 'github', nouns: {github: 'PRs', gmail: 'threads'}},
+        }),
+      ),
+      synthesizer: new FakeSynthesizer(decline('x')),
+    });
+    const events = await collect(client, utterance('join'));
+    const first = slotsOf(shellPaints(events)[0]!);
+    expect(first['shell']).toMatchObject({
+      columns: ['PR', 'Latest mail'],
+      columnSources: ['github', 'gmail'],
+    });
+    expect(first['github']).toMatchObject({noun: 'GitHub PRs'});
+    expect(first['gmail']).toMatchObject({noun: 'Gmail threads'});
+  });
+
+  test('a new utterance ends the turn before it: cancelled, its vendor told, journaled superseded', async () => {
+    const {client} = await boot({
+      planner: new FakePlanner(() => layoutFor(['github', 'gmail'])),
+      scripts: {gmail: after(1_500, shopScript(camerasB))},
+    });
+    const contextId = crypto.randomUUID();
+    const firstTurn = collect(client, utterance('first', contextId));
+    await wait(200);
+    await collect(client, utterance('second', contextId));
+    const events = await firstTurn;
+    expect((events.at(-1) as TaskStatusUpdateEvent).status.state).toBe('canceled');
+    for (let i = 0; i < 100 && !vendors.gmail!.methods.includes('tasks/cancel'); i++) {
+      await wait(10);
+    }
+    expect(vendors.gmail!.methods).toContain('tasks/cancel');
+    const lines = await journalLines(2);
+    expect(lines.find(l => l.superseded)).toMatchObject({outcome: 'cancelled'});
+  });
+
+  test('a late arrival stays out of the merge until a press includes it: an unrelated action re-synthesizes nothing', async () => {
+    const synthesizer = new FakeSynthesizer();
+    const {client} = await boot({
+      planner: new FakePlanner(() => layoutFor(three, {merged: 'Compare.'})),
+      synthesizer,
+      scripts: {
+        github: shopScript(camerasA),
+        gmail: shopScript(camerasB),
+        calendar: after(300, shopScript(camerasA)),
+      },
+      softDeadlineMs: 50,
+    });
+    const events = await collect(client, utterance('compare'));
+    expect(synthesizer.calls).toHaveLength(1);
+    await collect(client, actionOn('github:s1', events[0]!.contextId!));
+    expect(synthesizer.calls).toHaveLength(1);
+  });
+
+  test('a paint the client could not draw fails its slot invalid; a home source’s takes the merge down', async () => {
+    const synthesizer = new FakeSynthesizer();
+    const {client} = await boot({
+      planner: new FakePlanner(() =>
+        layoutFor(['github', 'gmail'], {
+          merged: 'Join.',
+          join: {home: 'github', nouns: {github: 'PRs', gmail: 'threads'}},
+        }),
+      ),
+      synthesizer,
+      scripts: {github: shopScript(camerasA), gmail: shopScript(camerasB)},
+    });
+    const [first] = await collect(client, utterance('join'));
+    const report = (surfaceId: string): Message => ({
+      kind: 'message',
+      messageId: crypto.randomUUID(),
+      role: 'user',
+      contextId: first!.contextId,
+      parts: [
+        {
+          kind: 'data',
+          data: {
+            version: 'v0.9',
+            error: {code: 'VALIDATION_FAILED', surfaceId, path: '/', message: 'bad'},
+          },
+        },
+      ],
+    });
+    const events = await collect(client, report('github:s1'));
+    const slots = slotsOf(shellPaints(events).at(-1)!);
+    expect(slots['github']).toMatchObject({state: 'failed', failure: {cause: 'invalid'}});
+    expect(slots['shell']).toMatchObject({
+      state: 'collapsed',
+      collapse: {cause: 'home', home: 'GitHub PRs'},
+    });
+    expect(synthesizer.calls).toHaveLength(1);
   });
 });

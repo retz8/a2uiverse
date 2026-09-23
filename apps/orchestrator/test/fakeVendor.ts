@@ -37,6 +37,8 @@ export interface ReceivedRequest {
 export interface FakeVendor {
   url: string;
   requests: ReceivedRequest[];
+  /** Every JSON-RPC method called on it, in order — `message/stream`, `tasks/cancel`, … */
+  methods: string[];
   /** Conversation ids the fake minted, in order. */
   contextIds: string[];
   close(): Promise<void>;
@@ -96,6 +98,7 @@ export async function startFakeVendor(options: FakeVendorOptions = {}): Promise<
     script = deterministicScript,
   } = options;
   const requests: ReceivedRequest[] = [];
+  const methods: string[] = [];
   const contextIds: string[] = [];
   // The SDK hands each turn a contextId: the client's if it sent one, else a fresh uuid.
   // A "first turn" is one whose contextId we have not seen before.
@@ -136,7 +139,9 @@ export async function startFakeVendor(options: FakeVendorOptions = {}): Promise<
   // Parse once here; the SDK's own express.json() skips already-parsed bodies.
   app.use(express.json());
   app.use((req: Request, _res: Response, next: NextFunction) => {
-    const message = (req.body as {params?: {message?: Message}} | undefined)?.params?.message;
+    const body = req.body as {method?: string; params?: {message?: Message}} | undefined;
+    if (typeof body?.method === 'string') methods.push(body.method);
+    const message = body?.params?.message;
     if (message) requests.push({extensionsHeader: req.header(HTTP_EXTENSION_HEADER), message});
     next();
   });
@@ -154,6 +159,7 @@ export async function startFakeVendor(options: FakeVendorOptions = {}): Promise<
   return {
     url,
     requests,
+    methods,
     contextIds,
     close: () =>
       new Promise<void>((resolve, reject) => server.close(err => (err ? reject(err) : resolve()))),
