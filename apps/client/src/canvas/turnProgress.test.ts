@@ -254,6 +254,22 @@ describe('the merge step, collapsed', () => {
     });
   });
 
+  it('declined: a source that answered since is not among what found nothing to join', () => {
+    const store = collapsed();
+    store.setMerge({declined: {reason: 'Nothing lines up.'}});
+    store.placeFragment('linear', {surfaceId: 'linear:s', source: 'linear'});
+    store.setMerge({declined: {reason: 'Nothing lines up.'}, late: ['linear']});
+    expect(turnProgress(store.getState()).merge).toEqual({
+      text: 'Found nothing to join across GitHub PRs and CircleCI runs · Linear issues answered since',
+      status: 'idle',
+    });
+    // Include makes the merge over every arrived source, the late one among them.
+    store.addPress({kind: 'include', sources: ['linear']});
+    expect(turnProgress(store.getState()).merge?.text).toBe(
+      'Joining Linear issues to GitHub PRs and CircleCI runs',
+    );
+  });
+
   it('the home source failed, too few answered, couldn’t be made', () => {
     const store = collapsed();
     const text = () => turnProgress(store.getState()).merge?.text;

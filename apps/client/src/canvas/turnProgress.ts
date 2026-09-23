@@ -119,8 +119,16 @@ function mergeStep(
         status: 'working',
       };
     if (facts.declined) {
-      const over = arrived.length > 0 ? arrived : vendors;
-      return {text: `Found nothing to join across ${listed(over.map(phrase))}`, status: 'idle'};
+      // A source that arrived after the decline was not among what it found nothing to join; it
+      // waits for Include, said in its own clause after the shell catalog's line.
+      const late = by(facts.late);
+      const before = (entries: readonly RosterEntry[]) => entries.filter(v => !late.includes(v));
+      const over = before(arrived).length > 0 ? before(arrived) : before(vendors);
+      const since = late.map(entry => `${phrase(entry)} answered since`);
+      return {
+        text: [`Found nothing to join across ${listed(over.map(phrase))}`, ...since].join(' · '),
+        status: 'idle',
+      };
     }
     switch (facts.collapse?.cause) {
       case 'home':
