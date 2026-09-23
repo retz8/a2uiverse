@@ -65,7 +65,7 @@ and renders, which is what a test or a replay needs. Every vendor catalog is reb
 ### The stamp is the routing input
 
 The hub stamps every event it relays (`metadata.a2uiverse`, `@a2uiverse/sdk`, composition
-contract v0.6): `{source, role}`. `sendAndApply` extracts
+contract v0.7): `{source, role}`. `sendAndApply` extracts
 it (`extractStampFromEvent`, over the sdk's `readStamp`) and hands it to the turn handle alongside
 the batch. Placement is by `source`: the stamp names no slot, and the `Slot` a fragment fills is
 the one whose `source` is the stamp's.
