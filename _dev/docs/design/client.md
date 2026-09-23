@@ -1,14 +1,14 @@
 # Client — system design
 
 `apps/client`. The canvas shell (SPEC §4, §10–11): language in, full-screen generative UI out. It
-talks only to the orchestrator. State as of task 7.9: a composed canvas — one shell surface,
+talks only to the orchestrator. State as of task 8.5: a composed canvas — one shell surface,
 `shell:main`, a model-authored tree in the shell catalog holding slots, each filled by a different
 vendor's fragment in that vendor's own design system — plus the shell's own content in the same
 tree: the merged view as shell content in its reserved slot, whose data model the client computes
 from the vendors' partitions; platform answers bound to a literal data model the hub sends; the
 capability tile for a gap; the two shell actions, handled on the canvas and reported to the
-hub; and navigation from a merged cell into the vendor fragment it names, handled on the canvas
-alone. The synthesis mechanism end to end, both processes, is told in
+hub; navigation from a merged cell into the vendor fragment it names, handled on the canvas
+alone; and the reader's presses — Retry, Include, Try again — sent on streams beside the turn. The synthesis mechanism end to end, both processes, is told in
 [`synthesis.md`](synthesis.md); this file records the client's classes and flows.
 
 Mechanics of the shell itself (hold-and-swap, timeline, interaction policy) live in
@@ -43,18 +43,19 @@ and renders, which is what a test or a replay needs. Every vendor catalog is reb
 
 | Class | Owns | Collaborators |
 | --- | --- | --- |
-| `canvasStore` | Canvas state, including the **placement map** (a slot's source → `{surfaceId, source}`), the **promoted** set, by source, the **trusted page** open over the canvas (`trustedPage: {page, query?} \| null`), the **question** (`{text, askedAt} \| null`), each slot's **painted state** by source (`slotStates`), and the in-flight cause's kind | read by React through `useSyncExternalStore`; written by the turn runner and, for the trusted page, by the wiring's shell-action handler |
-| `turn/canvasTurn` | Turn lifecycle and role routing: which surfaces are stage paints, which fill slots, which fragments are refused, when a composition is torn down and captured | `canvasStore`, the live processor, `applyMessages`, `composition/roster` |
+| `canvasStore` | Canvas state, including the **placement map** (a slot's source → `{surfaceId, source}`), the **promoted** set, by source, the **trusted page** open over the canvas (`trustedPage: {page, query?} \| null`), the **question** (`{text, askedAt} \| null`), and the in-flight cause's kind; the composition's own state (task 8.5) — the roster, each slot's **painted state** by source (`slotStates`), the merged view's painted facts (`merge`: `merged`, `late`, `working`, `callFailed`, `retrying`, `declined`, `collapse`), the reader's **presses** (`{key, operation, status}`, status `sent` · `running` · `unreached` · `lost`), and `superseded` — kept across the actions inside the composition, reset when it retires | read by React through `useSyncExternalStore`; written by the turn runner and, for the trusted page, by the wiring's shell-action handler |
+| `turn/canvasTurn` | Turn lifecycle and role routing: which surfaces are stage paints, which fill slots, which fragments are refused, when a composition is torn down and captured; **streams beside the turn** (`beginSideStream`) routed the same way; a vendor slot painted failed taking its fragment off the canvas, on any stream | `canvasStore`, the live processor, `applyMessages`, `composition/roster` |
 | `composition/slotContent` | What a `Slot` renders: boundary → vendor Provider → surface for a vendor fragment; surface alone, in a bare `[data-shell-content]` element, for the `shell` source (task-5.5 decision 2); for a slot on the roster that is unfilled, its source's prose, if any, as `[data-slot-resting="prose"]` | `FragmentBoundary`, `catalogs/CatalogContext` |
 | `composition/FragmentBoundary` | The one element a fragment mounts inside: provenance, isolation anchor, promotion treatment | — |
 | `composition/slotCount` | How many `Slot` components the surface holds, gap slots included — adaptive weight's input | — |
 | `composition/collisionDetector` | CSS collision rules over the installed catalogs | run from tests only |
-| `composition/roster` | `shellPaintSlots`: reads a shell paint's slots — the roster, each `Attribution` paired to its `Slot` through `child`, and the vendor slots a whole-tree paint left with no attribution (`unattributed`); `slotStatesOf`: each `Slot`'s painted `state` by source, the synthesis slot under `shell`; `rosterOfSurface`: the roster of a mounted shell surface | `canvasStore` (`RosterEntry`); the wiring's `appDisplayName` |
-| `hostRelay` | The host the shell catalog is built with, before any canvas exists — `ShellHost {onShellAction, onNavigate, appDisplayName}`: forwards a shell action or a navigation to the host the canvas bound, and warns and drops one raised with nothing bound; the lookup answers nothing when unbound, so the app id stands in | built in `canvas.tsx`; `CanvasApp` binds `wiring.host` while mounted |
+| `composition/roster` | `shellPaintSlots`: reads a shell paint's slots — the roster, each `Attribution` paired to its `Slot` through `child`, and the vendor slots a whole-tree paint left with no attribution (`unattributed`); `slotStatesOf`: each `Slot`'s painted `state` by source, the synthesis slot under `shell`; `mergeFactsOf`: the merged view's painted facts, when the paint carries its slot; `rosterOfSurface`: the roster of a mounted shell surface | `canvasStore` (`RosterEntry`); the wiring's `appDisplayName` |
+| `composition/columnState` | Pure: a reserved column's state by its source (task-8.5 decision 12), provided as the shell catalog's `SlotStateContext` — `filled` once in the merge, `failed` once painted failed, `pending` while loading, while its Retry is pressed or runs and while it is being included, `late` while it waits for Include, `collapsed` for a source that answered in words | `canvasStore` |
+| `hostRelay` | The host the shell catalog is built with, before any canvas exists — `ShellHost {onShellAction, onNavigate, appDisplayName, onPress}`: forwards a shell action or a navigation to the host the canvas bound, and warns and drops one raised with nothing bound; the lookup answers nothing when unbound, so the app id stands in | built in `canvas.tsx`; `CanvasApp` binds `wiring.host` while mounted |
 | `components/TrustedPageOverlay` | The trusted-page layer over the canvas — the Store or the App Library — as `trustedPage` says: the page's title, the query when one was carried, "Back to the canvas" | `canvasStore` (`trustedPage`, `closeTrustedPage`) |
 | `components/QuestionHeader` | The question heading the canvas: display size on one line, a fixed 4-line box (120px) past it, measured before paint; past 4 lines the 4th fades and "Show all +N lines" opens the whole question over the page (Esc closes); the header and "Edit and ask again" open the palette holding it | `CanvasApp` (keyed by the question, so a new one remeasures), `questionOnView` |
 | `components/CompactHead` | The header condensed: once the head has scrolled out of `.canvas-scroll`, a one-line bar over the page's top edge — the question, and the progress line's compact copy while the turn runs; nothing while the head is in view | `CanvasApp` (the scroller and head refs), `ProgressLine` |
-| `turnProgress` · `components/ProgressLine` | Pure: the turn's progress off the store — planning (an utterance in flight, nothing planned), a step per vendor source in roster order (done once placed or spoken, failed as painted, working until then), the join over the vendor names, or over each vendor's display name and noun with the home source first when the shell `RosterEntry` carries the plan's `join` ("Joining Linear issues to GitHub PRs and CircleCI runs", task 7.15) — and its line under the question, the working step carrying `canvas-pending` | `canvasStore` |
+| `turnProgress` · `components/ProgressLine` | Pure: the turn's progress off the store — planning (an utterance in flight, nothing planned, or a newer question replacing the composition), an action's label beside the composition's steps, a step per vendor source in roster order (✓ once placed or spoken, ✕ as painted, the spinner while loading or while its own Retry is pressed or runs, whether or not the turn is in flight), and the merge step in the client's words (task-8.5 decision 11): "Joining …" over each vendor's display name and noun with the home source first when the shell `RosterEntry` carries the plan's `join`, "Waiting for Linear issues, then joining" while only the home source loads, "Joined …" over the merge's own set with a clause per missing source after F6 ("· no CircleCI runs to join", "· still loading", "· arrived after this merge", "· including", "· couldn't include"), "Found nothing to join across …" for a decline, the collapse causes shortened, "Could not join …" for a merge that couldn't be made — and its line under the question, the working step carrying `canvas-pending` | `canvasStore` |
 | `components/AmbientNotice` | The notice stack and its two fade clocks | `canvasStore` via `orderedNotices` |
 | `synthesis/synthesisSession` | A composition's synthesis state: the payload, the data-model subscriptions that re-run the evaluator, the user's sort choices by array path, the last output written | fed by `turn/canvasTurn`; reads and writes the live processor's data models; reports an invalid payload through the fragment-failure channel |
 | `synthesis/bindingEvaluator` | Pure: `evaluate({payload, models, choices, functions}) → EvaluatedModel` — the derived model mirrored with a cell object at every formula path, each cell's join and navigation target, every array a sort path reaches sorted in place, `/sorts/N` with the choice in force; ref resolution through the sdk kit, absent-skipping, operator and relation dispatch to the shell catalog, `argmin`/`argmax`/`source` mapped to an app id | the shell catalog's `functions` and `cellJoin`; the sdk's `reachSortPath`; `parseInstant` for the sort |
@@ -116,7 +117,8 @@ declares `content: "shell"`, and `renderSlotContent` mounts its surface in a bar
 `[data-shell-content]` element with the error boundary but no `FragmentBoundary` — no tile, no
 attribution, no region named after a source. Pending, the shell catalog's `Slot` reserves it as the
 merged view — a label bar, the planned headers, four skeleton rows (task 7.15); filled, it takes the
-view's own height; declined, it rests on the shell's words.
+view's own height; collapsed, it is the line the `Slot` draws from the painted decline or cause.
+The merged view never rests on prose: a decline is said on the collapsed slot alone (task 8.5).
 
 The recorder (`scripts/lib/batch.ts`) keeps the synthesis payload beside the stamp on the one
 event that paints the merged view, so a recorded composition replays with the real document
@@ -165,9 +167,45 @@ shell surface that raised it: `{name, surfaceId, sourceComponentId, timestamp, c
 (`FUNCTION_CALL_SOURCE`), `context` `{query}` for an `openStore` carrying one, else `{}` — through
 `buildActionMessageParams` with no data model and no fork context, on the **side channel** beside
 `reportFragmentFailure`: no turn, no status strip, no history row. The hub answers with nothing;
-messages it does return are applied straight into the live processor as the failure report's
+messages it does return are routed as a stream beside the turn, as the failure report's
 repaint is. The page never waits on the report; a failed one is logged and nothing more. Every
 raise is reported, an open page included.
+
+### Presses: a stream beside the turn
+
+Retry, Include and Try again (task 8.5) reach the client through the shell catalog's one press
+handler — `ShellHost.onPress`, bound through the relay — as the composition operation
+`{kind, sources}`. `press` sends it with `buildOperationMessageParams` — the operation as a data part
+of its own (`operationData`, contract v0.7), the supported catalogs, no data model — and answers it
+on a **stream beside the turn**: `runner.beginSideStream()`. Not a turn: no status strip, no history
+row, no timeline entry, and the turn in flight is never cancelled. The stream routes by the stamp
+exactly as a turn's batches do — a shell repaint read for the roster, the slot states and the merged
+view's facts; a fragment claiming its slot; a synthesis payload handed to the session — straight into
+the live composition. Several can be open at once. The fragment-failure report's and the
+shell-action report's answers are routed through the same kind of stream.
+
+**The pressed state.** At the click the press is recorded `sent`; the shell catalog draws it from
+`PressStateContext` before any answer — the tile gives way to the pending line, the row says
+"Including …" — and the progress line and the columns read it too. The first shell repaint on its
+stream makes it `running`: the paint has caught up. The stream's end removes it. A send that never
+produced a first event (`sendAndApply`'s `onFirstEvent`) stands `unreached`; one that broke after it
+answered stands `lost`; each stays until the next press of its kind, or the composition's
+retirement, so the slot can say so in place. A refused press ends quietly: its words are the
+orchestrator's, only logged, and the paint already shows what won.
+
+**Where no press is made.** From a new utterance's `begin` the composition on stage is
+`superseded`: every stream beside the turn is aborted and whatever still arrives on it dropped, no
+press is sent, the buttons draw disabled, and the progress line speaks for the question on its way.
+A parked composition's `ParkedStage` provides a `PressStateContext` that makes no press either.
+
+**A failed source leaves the canvas.** Whatever stream carries it, a shell repaint painting a vendor
+slot `failed` deletes that source's surfaces from the live processor and clears its placement: refs
+into it go absent and its cells stop navigating, and a Retry shows the pending slot. A late message
+for a surface taken off is dropped; a fresh `createSurface` for it — a Retry's answer — lands.
+
+**The composition's states.** The roster, the slot states, the merged view's facts and the presses
+belong to the composition, not the turn: an action inside a fragment keeps them; the next
+composition opening, or the stage retiring, resets them with `superseded`.
 
 ### Navigation lands locally
 
@@ -241,8 +279,8 @@ whole-tree paint — one carrying `root` — since a partial repaint may carry a
 wrapper that still stands around it. The runner refuses that source's fragment (see Validation).
 
 A shell repaint may legally carry only the components it changed, so a paint containing no
-attribution leaves the roster standing rather than emptying it. The roster is cleared per turn,
-never by a repaint.
+attribution leaves the roster standing rather than emptying it. The roster belongs to the
+composition: kept across the actions inside it, cleared when it retires, never by a repaint.
 
 ### The question heads the canvas
 
@@ -257,8 +295,8 @@ the head scrolls away with the page it heads. `CompactHead` watches it leave (an
 `IntersectionObserver` rooted at the scroller) and then hangs a 60px bar — Back's row with 12px above and below, Back and the question on its
 middle line — from a zero-height sticky
 anchor at the scroller's top — under the parked banner while parked — so showing it moves nothing:
-the question on one line at 14px semibold, opening the palette holding it, and, while the turn is in
-flight, `ProgressLine`'s compact copy beside it, with no live region and no `canvas-pending` of its
+the question on one line at 14px semibold, opening the palette holding it, and, while the turn or a
+press runs, `ProgressLine`'s compact copy beside it, with no live region and no `canvas-pending` of its
 own (task 7.16). Every word of the progress line is computed; the join
 is named by the apps' display names, since the join hypothesis's nouns never reach the client. The
 status strip names the app and carries a sticky error only. The head, strip and Ask pill take
@@ -318,7 +356,8 @@ surface reports nothing outward — that is the platform failing, not a vendor.
 
 The report goes out on a **side channel**: no turn, so it cannot cancel the user's in-flight work,
 put a row in the history, or light the status strip. The hub answers by repainting its shell with
-that slot failed. A report whose composition has been superseded is dropped, because `shell:main`
+that slot failed, on a stream beside the turn that takes the failed fragment off the canvas. A
+report whose composition has been superseded is dropped, because `shell:main`
 is reused every turn.
 
 **The refusal.** A vendor fragment never renders unattributed (task-6.5 decision 7). The runner

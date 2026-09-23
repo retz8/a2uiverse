@@ -489,3 +489,39 @@ Two parts, either useful alone:
 2. **Export a TypeScript validator** equivalent to the Python `A2uiValidator` — schema validation
    against a given catalog plus the integrity checks — tested against `conformance/core/validator.yaml`
    so the two implementations cannot drift.
+
+---
+
+## 9. A prop removed by `updateComponents` keeps its last value (web_core generic binder)
+
+**Component:** `@a2ui/web_core` 0.10.6, `src/v0_9/rendering/generic-binder.ts`
+(`rebuildAllBindings`, `resolveInitialProps`); the same lines stand on `upstream/main`.
+
+**Severity:** functional bug — a component repainted without a prop still renders with it; no
+error raised.
+
+### Issue
+
+`updateComponents` replaces a component's properties wholesale (`message-processor`
+`existing.properties = properties`), and the binder rebuilds on the model's `onUpdated`. But
+`rebuildAllBindings` resolves the new properties and merges them over the old:
+
+```ts
+this.currentProps = {...this.currentProps, ...resolved};
+```
+
+A key present in the previous properties and absent from the new ones is never cleared, so the
+component keeps receiving the value it last had. Only a prop whose new value is set explicitly
+changes; a prop that is dropped to mean "no longer so" cannot be expressed at all.
+
+### Reproduction
+
+`updateComponents` with `{id: 'x', component: 'Button', child: 'l', variant: 'primary'}`, then
+again with `{id: 'x', component: 'Button', child: 'l'}`: the model's properties have no
+`variant`, and the rendered button is still primary.
+
+### Fix
+
+Rebuild from an empty object — `this.currentProps = {}` before resolving in
+`rebuildAllBindings` — so the resolution's own writes (`isValid`, `validationErrors` from
+checkable rules) land in the fresh props and nothing the new properties dropped survives.
