@@ -568,39 +568,46 @@ export function createSlotComponent(
   onShellAction: ShellActionHandler,
   {onPress, appDisplayName}: {onPress?: PressHandler; appDisplayName?: AppDisplayName} = {},
 ) {
-  return createComponentImplementation(SlotApi, ({props, context}) => (
-    <SlotView
-      source={props.source}
-      gap={props.gap}
-      weight={props.weight}
-      state={props.state}
-      label={props.label}
-      noun={props.noun}
-      failure={props.failure}
-      content={props.content}
-      columns={props.columns}
-      columnSources={props.columnSources}
-      declined={props.declined}
-      collapse={props.collapse}
-      late={props.late}
-      working={props.working}
-      callFailed={props.callFailed}
-      retrying={props.retrying}
-      onSearchStore={query => {
-        const surfaceId = context.dataContext.surface.id;
-        const componentId = context.componentModel.id;
-        onShellAction({name: 'openStore', surfaceId, componentId, ...(query ? {query} : {})});
-      }}
-      onPress={
-        onPress &&
-        (operation =>
-          onPress({
-            operation,
-            surfaceId: context.dataContext.surface.id,
-            componentId: context.componentModel.id,
-          }))
-      }
-      nameOf={appId => appDisplayName?.(appId) ?? appId}
-    />
-  ));
+  return createComponentImplementation(SlotApi, ({context}) => {
+    // Read from the component's own model, not the binder's resolved props: upstream's binder
+    // merges each repaint over the last, so a prop the runtime stops painting — `working`, `late`,
+    // `retrying` — would keep its old value (`_dev/a2ui-findings.md` §9). Every Slot prop is a
+    // literal the runtime paints and repaints, so the model is the whole truth.
+    const props = context.componentModel.properties as SlotProps;
+    return (
+      <SlotView
+        source={props.source}
+        gap={props.gap}
+        weight={props.weight}
+        state={props.state}
+        label={props.label}
+        noun={props.noun}
+        failure={props.failure}
+        content={props.content}
+        columns={props.columns}
+        columnSources={props.columnSources}
+        declined={props.declined}
+        collapse={props.collapse}
+        late={props.late}
+        working={props.working}
+        callFailed={props.callFailed}
+        retrying={props.retrying}
+        onSearchStore={query => {
+          const surfaceId = context.dataContext.surface.id;
+          const componentId = context.componentModel.id;
+          onShellAction({name: 'openStore', surfaceId, componentId, ...(query ? {query} : {})});
+        }}
+        onPress={
+          onPress &&
+          (operation =>
+            onPress({
+              operation,
+              surfaceId: context.dataContext.surface.id,
+              componentId: context.componentModel.id,
+            }))
+        }
+        nameOf={appId => appDisplayName?.(appId) ?? appId}
+      />
+    );
+  });
 }

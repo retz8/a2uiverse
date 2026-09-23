@@ -1,10 +1,10 @@
-import {render, screen} from '@testing-library/react';
+import {act, render, screen} from '@testing-library/react';
 import type {ReactNode} from 'react';
 import {expect, test} from 'vitest';
 import {PressStateContext, type PressRecord} from '../../press-state';
 import {SlotContentContext} from '../../slot-content';
 import {SlotStateContext} from '../../slot-state';
-import {renderTree} from '../../testing/render';
+import {renderTree, SURFACE_ID} from '../../testing/render';
 import {collapsedLines, landedLines, LOST_WORDS, UNREACHED_WORDS} from './press-lines';
 import {collapseLine, SlotView} from './slot';
 import {SlotApi} from './slot.schema';
@@ -699,4 +699,24 @@ test('a collapsed merge’s lines keep the collapse’s markers on the first row
   expect(rows[0]).toHaveAttribute('data-slot-declined');
   expect(rows[1]).toHaveTextContent('Gmail has answered since.');
   expect(screen.getByRole('button', {name: 'Include'})).toBeInTheDocument();
+});
+
+test('a fact the runtime stops painting leaves the slot with its repaint (upstream binder keeps removed props)', () => {
+  const merged = {
+    id: 'root',
+    component: 'Slot',
+    source: 'shell',
+    content: 'shell',
+    state: 'collapsed',
+  };
+  const {surface, container} = renderTree([
+    {...merged, collapse: {cause: 'unmade'}, working: {sources: []}},
+  ]);
+  expect(container.textContent).toContain('Making the merged view…');
+  act(() => {
+    surface.componentsModel.get('root')!.properties = {...merged, collapse: {cause: 'unmade'}};
+  });
+  expect(container.textContent).not.toContain('Making the merged view…');
+  expect(container.textContent).toContain('The merged view couldn’t be made.');
+  expect(SURFACE_ID).toBe('test');
 });
