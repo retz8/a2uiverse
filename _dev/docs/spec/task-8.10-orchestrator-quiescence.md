@@ -32,6 +32,8 @@ A merge made again after a press threw one away has that press behind it; it doe
 
 A source that fails while the merge is being made does not throw it away. The merge lands, and the failed source leaves it as it would right after landing: its column unavailable, the values computed over it recomputed without it, no further call. A failed home source collapses the merge at once, as before.
 
+*Amended by task 8.7 decision 25.* A source the merge reads that is reported undrawable while the merge is being made throws that merge away, and it is made again once over the set without it, as decision 2 does for a fragment that changes under a press; the made-again merge is the turn's one automatic synthesis, the thrown-away call journaled as such. A failure after the merge has landed keeps the rule above.
+
 ### 6. The first merge is made over every source arrived by then
 
 Until the first merge has landed, every source that has arrived by the time the merge is made — including one arriving while the merge waited on a press or was being made again — is part of it, with no Include. Once a merge has landed it keeps its own source set (task-8.3 decision 11).

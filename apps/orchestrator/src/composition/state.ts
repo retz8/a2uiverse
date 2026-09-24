@@ -164,6 +164,11 @@ export interface CompositionState {
   /** While the utterance turn runs: re-weighs the synthesis trigger after a slot changed outside it. */
   reevaluate?: () => void;
   /**
+   * While a merge is being made: a source it reads has been reported undrawable and left the
+   * set, so the call is thrown away and made again without it (task-8.7 decision 25).
+   */
+  left?: (appId: string) => void;
+  /**
    * While the turn's one automatic synthesis is undecided: a retried source rejoins the pack and
    * settles again (task-8.4 decision 6).
    */

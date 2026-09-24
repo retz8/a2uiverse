@@ -258,35 +258,47 @@ export function createTurnRunner({
       }
     };
     /**
-     * The stream's end for fragments: judged on their settled state, per fragment, reported
-     * outward. A fragment displaced by a later claim on its slot, or taken off with a failed slot,
-     * is not a failure — it was superseded.
+     * A fragment judged on its settled state and reported outward. A fragment displaced by a
+     * later claim on its slot, or taken off with a failed slot, is not a failure — it was
+     * superseded. A surface not yet on the live canvas is left for the end, when the turn's
+     * staging has swapped in; only the end calls one that never arrived a failure.
      */
-    const settle = () => {
-      if (!onFragmentFailure) return;
-      const {placement} = store.getState();
-      for (const [surfaceId, source] of fragmentSlots) {
-        if (placement.get(source)?.surfaceId !== surfaceId) continue;
-        const surface = processor.model.getSurface(surfaceId);
-        if (surface === undefined) {
-          fail(surfaceId, '/', 'the fragment never reached the canvas');
-          continue;
-        }
-        if (surface.componentsModel.get(ROOT_COMPONENT_ID) === undefined) {
-          fail(surfaceId, '/', 'the fragment produced no root component');
-          continue;
-        }
-        const invalid = invalidComponentsOf(surface);
-        if (invalid.length > 0) {
-          fail(
-            surfaceId,
-            `/${invalid[0]}`,
-            `components failed catalog validation: ${invalid.join(', ')}`,
-          );
-        }
+    const judge = (surfaceId: string, source: string, atEnd: boolean) => {
+      if (store.getState().placement.get(source)?.surfaceId !== surfaceId) return;
+      const surface = processor.model.getSurface(surfaceId);
+      if (surface === undefined) {
+        if (atEnd) fail(surfaceId, '/', 'the fragment never reached the canvas');
+        return;
+      }
+      if (surface.componentsModel.get(ROOT_COMPONENT_ID) === undefined) {
+        fail(surfaceId, '/', 'the fragment produced no root component');
+        return;
+      }
+      const invalid = invalidComponentsOf(surface);
+      if (invalid.length > 0) {
+        fail(
+          surfaceId,
+          `/${invalid[0]}`,
+          `components failed catalog validation: ${invalid.join(', ')}`,
+        );
       }
     };
-    return {fragmentSlots, fail, refuse, settle};
+    /**
+     * One source's stream has ended (its stamp says settled, task-8.7 decision 25): its fragments
+     * are judged now, so a paint the canvas cannot draw is reported before any merge over it.
+     */
+    const settleSource = (source: string) => {
+      if (!onFragmentFailure) return;
+      for (const [surfaceId, owner] of fragmentSlots) {
+        if (owner === source) judge(surfaceId, owner, false);
+      }
+    };
+    /** The stream's end for fragments: every fragment not judged at its source's end. */
+    const settle = () => {
+      if (!onFragmentFailure) return;
+      for (const [surfaceId, source] of fragmentSlots) judge(surfaceId, source, true);
+    };
+    return {fragmentSlots, fail, refuse, settle, settleSource};
   };
 
   /** Materialize a live surface's content — the snapshot half of a paint entry. */
@@ -428,16 +440,22 @@ export function createTurnRunner({
         deferredValidation.push(err);
         return;
       }
-      reportMessageError(err);
       // A structural failure cannot self-heal — an unknown catalogId means the fragment can
       // never mount — so it reports now rather than waiting for a turn end that tells us nothing.
+      // A fragment's failure is its tile's to say; the strip speaks for what no slot carries.
       const {surfaceId} = targetOf(message);
+      if (!surfaceId || !fragmentSlots.has(surfaceId)) reportMessageError(err);
       if (surfaceId) failFragment(surfaceId, '/', describeError(err));
     };
-    /** Turn end: the deferred failures stand only if a surface of this turn is still invalid. */
+    /**
+     * Turn end: the deferred failures stand only if a surface of this turn is still invalid —
+     * and only a surface no slot carries lights the strip; a fragment's failure is the tile's
+     * to say (task-8.7 decision 26).
+     */
     const settleDeferred = () => {
       if (deferredValidation.length === 0) return;
       const unsettled = Array.from(createdIds).some(id => {
+        if (fragmentSlots.has(id)) return false;
         const surface = processor.model.getSurface(id);
         if (surface === undefined) return false;
         // A surface whose root never landed is the partial that was thrown away.
@@ -704,7 +722,12 @@ export function createTurnRunner({
           if (meta) acceptPaintMeta(meta);
           else rest.push(message);
         }
-        if (rest.length === 0) return;
+        // A source's settled marker: nothing to apply, its fragments judged now.
+        const ended = stamp?.settled ? slotOf(stamp) : undefined;
+        if (rest.length === 0) {
+          if (ended !== undefined) ledger.settleSource(ended);
+          return;
+        }
         // A composition opening retires the one on stage — what the client held of it included —
         // before its own shell paint is read.
         if (opensComposition(rest, stamp)) {
@@ -725,6 +748,7 @@ export function createTurnRunner({
         if (admitted.length === 0) return;
         if (stagedMode) applyStaged(admitted, stamp, payload);
         else applyProgressive(admitted, stamp, payload);
+        if (ended !== undefined) ledger.settleSource(ended);
       },
       acceptPaintMeta,
       end: () => {
@@ -812,8 +836,8 @@ export function createTurnRunner({
       // A partial the vendor completes in its next batch fails validation on the way; the
       // fragment is judged whole at the stream's end.
       if (err instanceof A2uiValidationError) return;
-      reportMessageError(err);
       const {surfaceId} = targetOf(message);
+      if (!surfaceId || !ledger.fragmentSlots.has(surfaceId)) reportMessageError(err);
       if (surfaceId) ledger.fail(surfaceId, '/', describeError(err));
     };
 
@@ -833,6 +857,10 @@ export function createTurnRunner({
         const source = slotOf(stamp);
         if (source !== undefined && refused.has(source)) {
           ledger.refuse(rest, source);
+          return;
+        }
+        if (stamp?.settled && source !== undefined && rest.length === 0) {
+          ledger.settleSource(source);
           return;
         }
         const admitted = rest.filter(admits);

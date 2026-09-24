@@ -333,6 +333,15 @@ describe('orchestrator', () => {
       }
     }
     expect(createdSurfaces).toEqual(new Set(['github:s1', 'gmail:s1', 'calendar:s1']));
+    // Each source's stream ends with one marker event: the stamp says settled, no parts ride it
+    // (task-8.7 decision 25).
+    for (const appId of APPS) {
+      const own = fragmentEvents.filter(e => stampOf(e)?.source === appId);
+      const last = own[own.length - 1]!;
+      expect(stampOf(last)).toMatchObject({source: appId, role: 'fragment', settled: true});
+      expect(a2uiDatas(last)).toEqual([]);
+      expect(own.slice(0, -1).every(e => stampOf(e)?.settled === undefined)).toBe(true);
+    }
 
     // Exactly one final, owned by the executor, completed.
     const finals = events.filter(e => e.kind === 'status-update' && e.final);
@@ -1628,7 +1637,7 @@ describe('quiescence (task 8.10)', () => {
     expect(synthesizer.calls[1]!.signal?.aborted).toBe(false);
   });
 
-  test('a source failing while the merge is made does not throw it away; it leaves the merge as it would once landed', async () => {
+  test('a source reported undrawable while the merge is made throws it away; it is made again once, without it (task-8.7 decision 25)', async () => {
     const made = gate();
     const synthesizer = new HeldSynthesizer([made.opened]);
     const {client} = await boot({
@@ -1661,16 +1670,25 @@ describe('quiescence (task 8.10)', () => {
     made.open();
     const events = await turn.done;
     expect(synthesisEvents(events)).toHaveLength(1);
-    expect(synthesizer.calls).toHaveLength(1);
+    // The call over Gmail's data was aborted the moment the report took Gmail out; the one that
+    // landed read the set without it, and no Gmail row can reach the canvas.
+    expect(synthesizer.calls).toHaveLength(2);
+    expect(synthesizer.calls[0]!.signal?.aborted).toBe(true);
+    expect(synthesizer.calls[1]!.input.sources.map(s => s.appId).sort()).toEqual([
+      'calendar',
+      'github',
+    ]);
     const lines = await journalLines(2);
     const line = lines.find(l => l.turnId === events[0]!.id)!;
-    expect(line.synthesis).toMatchObject({outcome: 'synthesized'});
-    expect(line.synthesis).not.toHaveProperty('thrownAway');
+    expect(line.synthesis).toMatchObject({
+      outcome: 'synthesized',
+      thrownAway: [{changed: ['gmail']}],
+    });
 
     // The next rebuild runs over the merge's own set, Gmail no longer in it.
     await collect(client, actionOn('github:s1', contextId));
-    expect(synthesizer.calls).toHaveLength(2);
-    expect(synthesizer.calls[1]!.input.sources.map(s => s.appId).sort()).toEqual([
+    expect(synthesizer.calls).toHaveLength(3);
+    expect(synthesizer.calls[2]!.input.sources.map(s => s.appId).sort()).toEqual([
       'calendar',
       'github',
     ]);

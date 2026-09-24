@@ -127,11 +127,9 @@ describe('canvas shell over the recorded beats', () => {
       await replay(fixture);
 
       const state = store.getState();
-      // The whole stream applied: any per-message failure lands in the sticky error — the one a
-      // paint the canvas reported leaves (task 8.6).
-      if (fixture.turns.some(turn => turn.kind === 'failure-report'))
-        expect(state.error).toMatch(/could not be displayed/);
-      else expect(state.error).toBeNull();
+      // The whole stream applied: any per-message failure lands in the sticky error — except a
+      // paint the canvas reported, whose failure is its tile's to say (task-8.7 decision 26).
+      expect(state.error).toBeNull();
       // The stage holds the shell for a composition, the paint itself otherwise.
       expect(state.stageId).toBe(stageSurfaceIdOf(fixture));
       // The live registry is exactly canvas occupancy: a lone paint, or the shell plus the

@@ -984,6 +984,35 @@ describe('fragment failure reporting', () => {
     expect(failures).toEqual([]);
   });
 
+  it('a source is judged at its own stream’s end, before the turn ends; the strip stays clear (task-8.7 decisions 25, 26)', () => {
+    const {failures, runner, store} = failureSetup();
+    const turn = runner.begin(utterance('compose'));
+    turn.apply(shellPaint(['github', 'gmail']), SHELL);
+    turn.apply(
+      [
+        create('github:prs'),
+        msg({
+          updateComponents: {
+            surfaceId: 'github:prs',
+            components: [{id: 'root', component: 'Link', text: 'no href yet'}],
+          },
+        }),
+      ],
+      fragment('github'),
+    );
+    turn.apply([create('gmail:inbox'), textRoot('gmail:inbox', 'Inbox')], fragment('gmail'));
+    expect(failures).toHaveLength(0);
+    // GitHub's stream ends: its fragment is judged now, Gmail's not yet.
+    turn.apply([], {source: 'github', role: 'fragment', settled: true});
+    expect(failures).toHaveLength(1);
+    expect(failures[0]).toMatchObject({surfaceId: 'github:prs', source: 'github'});
+    turn.apply([], {source: 'gmail', role: 'fragment', settled: true});
+    turn.end();
+    expect(failures).toHaveLength(1);
+    // The failure is the tile's to say: the strip carries no line for it.
+    expect(store.getState().error).toBeFalsy();
+  });
+
   it('a fragment displaced by a later claim on its slot is superseded, not failed', () => {
     const {failures, runner} = failureSetup();
     const turn = runner.begin(utterance('compose'));

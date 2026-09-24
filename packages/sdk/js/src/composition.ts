@@ -25,6 +25,13 @@ export interface CompositionStamp {
   source: string;
   /** Which surface the canvas renders as the composition root. */
   role?: 'shell' | 'fragment';
+  /**
+   * This source's stream has ended (task-8.7 decision 25): set on one event the orchestrator
+   * emits after relaying a fragment source's last event, carrying no A2UI parts. The client
+   * judges that source's fragments there — a paint it cannot draw is reported before the merge
+   * is made — instead of at the turn's end.
+   */
+  settled?: boolean;
   /** Debug only, gated by orchestrator config. */
   vendorContextId?: string;
   vendorTaskId?: string;
@@ -34,6 +41,7 @@ export interface CompositionStamp {
 export const STAMP_FIELDS = [
   'source',
   'role',
+  'settled',
   'vendorContextId',
   'vendorTaskId',
 ] as const satisfies readonly (keyof CompositionStamp)[];

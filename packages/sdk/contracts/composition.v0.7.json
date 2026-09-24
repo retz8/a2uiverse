@@ -17,12 +17,13 @@
       "direction": "orchestrator → client",
       "carriedOn": "every relayed A2A event's metadata, keyed by stampKey",
       "required": ["source"],
-      "optional": ["role", "vendorContextId", "vendorTaskId"],
+      "optional": ["role", "settled", "vendorContextId", "vendorTaskId"],
       "fields": {
         "source": "Provenance and placement: the app id the event came from. A fragment's surface fills the layout's Slot whose source is this id.",
         "role": "Which surface the canvas renders as the composition root: 'shell' | 'fragment'.",
         "vendorContextId": "Debug only, gated by orchestrator config.",
-        "vendorTaskId": "Debug only, gated by orchestrator config."
+        "vendorTaskId": "Debug only, gated by orchestrator config.",
+        "settled": "This source's stream has ended: set on one event the orchestrator emits after relaying a fragment source's last event, with no A2UI parts. The client judges that source's fragments there instead of at the turn's end."
       }
     },
     "compositionOperation": {

@@ -958,6 +958,14 @@ export class OrchestratorExecutor implements AgentExecutor {
         changed = state.partitions.changedSince(snapshot, over);
         if (changed.length > 0) call.abort();
       });
+      // A source this call reads, reported undrawable meanwhile, has left the set: the call is
+      // thrown away and made again without it (task-8.7 decision 25, amending 8.10 decision 5).
+      let left: string[] = [];
+      state.left = appId => {
+        if (!over.has(appId) || left.length > 0) return;
+        left = [appId];
+        call.abort();
+      };
       let outcome;
       let error: unknown;
       try {
@@ -989,8 +997,15 @@ export class OrchestratorExecutor implements AgentExecutor {
       // Never lands before a press on a source it read is answered (task-8.10 decision 2).
       waited.push(...(await state.presses.quiet(() => over, signal)));
       stopWatching();
+      state.left = undefined;
       signal.removeEventListener('abort', endCall);
       if (gone()) return 'none';
+      if (left.length === 0) left = [...over].filter(appId => !within().has(appId));
+      if (left.length > 0) {
+        thrownAway.push({changed: left, at: new Date().toISOString()});
+        logLine(`merge task=${sinks[0]?.ctx.taskId} thrown away (${left.join(', ')} left)`);
+        continue;
+      }
       if (changed.length === 0) changed = state.partitions.changedSince(snapshot, over);
       if (changed.length > 0) {
         thrownAway.push({changed, at: new Date().toISOString()});
@@ -1174,6 +1189,7 @@ export class OrchestratorExecutor implements AgentExecutor {
       return;
     }
     this.#failSlot(sink, state, parsed.appId, {cause: 'invalid'});
+    state.left?.(parsed.appId);
     state.reevaluate?.();
   }
 
@@ -1315,6 +1331,11 @@ export class OrchestratorExecutor implements AgentExecutor {
       if (options.buffer && ended.outcome === 'completed' && !options.signal?.aborted) {
         for (const composed of buffered) relay(composed);
       }
+      // The source's stream has ended: one event with no parts says so on its stamp, so the
+      // client judges this source's fragments now, before any merge over them (task 8.7).
+      if (ended.outcome === 'completed' && !options.signal?.aborted) {
+        sink.bus.publish(settledMarker(sink.ctx, appId));
+      }
       sink.turn.surfaces(touches);
       if (composition && !options.signal?.aborted) {
         this.#settleSlot(sink, composition, appId, ended, options);
@@ -1360,6 +1381,18 @@ function syntheticTask(ctx: RequestContext): Task {
 
 /** How many received message ids are remembered for refusing a repeat. */
 const RECEIVED_IDS_KEPT = 256;
+
+/** A fragment source's stream has ended (task-8.7 decision 25): the stamp says so, nothing else rides it. */
+function settledMarker(ctx: RequestContext, appId: string): TaskStatusUpdateEvent {
+  return {
+    kind: 'status-update',
+    taskId: ctx.taskId,
+    contextId: ctx.contextId,
+    final: false,
+    status: {state: 'working', timestamp: new Date().toISOString()},
+    metadata: {[STAMP_KEY]: {source: appId, role: 'fragment', settled: true}},
+  };
+}
 
 function finalStatus(ctx: RequestContext, state: TaskState, error?: string): TaskStatusUpdateEvent {
   return {
