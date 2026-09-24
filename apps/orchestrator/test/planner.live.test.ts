@@ -101,7 +101,6 @@ describe.skipIf(!live)('Planner (live)', () => {
     const outcome = await planner.plan({
       utterance: 'What needs my attention today?',
       shortlist,
-      conversationId: 'live',
     });
     console.log(`live plan in ${Date.now() - started}ms:`, JSON.stringify(outcome));
     expect(outcome.kind).toBe('planned');
@@ -115,7 +114,6 @@ describe.skipIf(!live)('Planner (live)', () => {
     const outcome = await planner.plan({
       utterance: 'What apps do I have?',
       shortlist,
-      conversationId: 'live',
     });
     console.log(`live platform answer in ${Date.now() - started}ms:`, JSON.stringify(outcome));
     expect(outcome.kind).toBe('planned');
@@ -130,7 +128,6 @@ describe.skipIf(!live)('Planner (live)', () => {
     const outcome = await planner.plan({
       utterance: 'Book me a flight to Seoul next Friday.',
       shortlist,
-      conversationId: 'live',
     });
     console.log(`live gap in ${Date.now() - started}ms:`, JSON.stringify(outcome));
     expect(outcome.kind).toBe('planned');

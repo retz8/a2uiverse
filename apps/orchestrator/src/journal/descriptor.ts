@@ -33,9 +33,10 @@ export function describe(message: Message, appId?: string): Description {
   if (operation) {
     const named = operation.kind === 'tryAgain' ? 'try again' : operation.kind;
     const sources = operation.sources.join(', ');
+    const step = operation.kind === 'step' ? ` to ${operation.step}` : '';
     return {
       kind: 'operation',
-      descriptor: sources ? `${named} ${sources}` : named,
+      descriptor: sources ? `${named} ${sources}${step}` : named,
       payload: operation,
     };
   }

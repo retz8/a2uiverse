@@ -38,6 +38,17 @@ describe('describe', () => {
     });
     expect(press('include', ['github', 'circleci']).descriptor).toBe('include github, circleci');
     expect(press('tryAgain', []).descriptor).toBe('try again');
+    expect(press('close', []).descriptor).toBe('close');
+    expect(
+      describeMessage(
+        msg([
+          {
+            kind: 'data',
+            data: {version: 'v0.9', operation: {kind: 'step', sources: ['github'], step: 0}},
+          },
+        ]),
+      ).descriptor,
+    ).toBe('step github to 0');
   });
 
   test('unknown shape: JSON of the parts', () => {

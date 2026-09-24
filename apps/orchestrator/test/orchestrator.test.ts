@@ -16,7 +16,14 @@ import {FakePlanner, layoutFor, MalformedPlanner, ThrowingPlanner} from './fakeP
 import {bestPriceView, decline, FakeSynthesizer, HeldSynthesizer} from './fakeSynthesizer.js';
 import {defaultEntries} from '../src/registry/entries.js';
 import type {SynthesisCall, SynthesisModel} from '../src/synthesizer/synthesizer.js';
-import {operationData, SYNTHESIS_KEY, type SynthesisPayload} from '@a2uiverse/sdk';
+import {
+  canvasParentMetadata,
+  clipPaintMetaTitle,
+  operationData,
+  PAINT_META_MIME_TYPE,
+  SYNTHESIS_KEY,
+  type SynthesisPayload,
+} from '@a2uiverse/sdk';
 import type {Synthesis} from '../src/synthesizer/document.js';
 import {startFakeVendor, type FakeVendor, type Script} from './fakeVendor.js';
 import type {FaultMap} from '../src/agentsPool/faults.js';
@@ -114,14 +121,21 @@ async function boot(
   return {url, client};
 }
 
-function utterance(text: string, contextId?: string): Message {
+/**
+ * A question at the palette. It opens a canvas of its own (task-9.3 decision 1): no contextId
+ * unless a test sets one, and, asked from a canvas, that canvas as its parent (decision 2).
+ */
+function utterance(text: string, contextId?: string, parent?: string): Message {
   return {
     kind: 'message',
     messageId: crypto.randomUUID(),
     role: 'user',
     parts: [{kind: 'text', text}],
     ...(contextId ? {contextId} : {}),
-    metadata: {a2uiClientDataModel: {version: 'v0.9', surfaces: {}}},
+    metadata: {
+      a2uiClientDataModel: {version: 'v0.9', surfaces: {}},
+      ...(parent ? canvasParentMetadata(parent) : {}),
+    },
   };
 }
 
@@ -249,17 +263,79 @@ describe('orchestrator', () => {
     ]);
   });
 
-  test('the Planner is handed the conversation and a shortlist carrying the platform’s card (phase-6 decision 1)', async () => {
+  test('the Planner is handed the canvas the question was asked from and a shortlist carrying the platform’s card (phase-6 decision 1, task-9.3 decision 2)', async () => {
     const planner = new FakePlanner();
     const {client} = await boot({planner});
     const [first] = await collect(client, utterance('what apps do I have?'));
     expect(planner.calls).toHaveLength(1);
-    expect(planner.calls[0]!.conversationId).toBe(first.contextId);
+    // A root canvas: nothing to read from.
+    expect(planner.calls[0]!.askedFrom).toBeUndefined();
     const ids = planner.calls[0]!.shortlist.map(e => e.record.id).sort();
     expect(ids).toEqual(['calendar', 'github', 'gmail', 'shell']);
     const shell = planner.calls[0]!.shortlist.find(e => e.record.id === 'shell')!;
     expect(shell.card.skills.map(s => s.id)).toContain('installed-apps');
     expect(shell.record.catalogPackage).toBe('@a2uiverse/shell-catalog');
+
+    // A question asked from that canvas names it: the readers describe it.
+    const [child] = await collect(
+      client,
+      utterance('and the calendar?', undefined, first.contextId),
+    );
+    expect(child.contextId).not.toBe(first.contextId);
+    expect(planner.calls[1]!.askedFrom).toBe(first.contextId);
+    const lines = await journalLines(2);
+    expect(lines.find(l => l.clientContextId === child.contextId)!.plan).toMatchObject({
+      parent: first.contextId,
+    });
+  });
+
+  test('a parent the session does not hold is planned as a root (task-9.3 decision 3)', async () => {
+    const planner = new FakePlanner();
+    const {client} = await boot({planner});
+    const events = await collect(client, utterance('hello', undefined, 'ctx-gone'));
+    expect(finalOf(events).status.state).toBe('completed');
+    expect(planner.calls[0]!.askedFrom).toBeUndefined();
+    const lines = await journalLines(1);
+    expect(lines[0]!.plan).not.toHaveProperty('parent');
+  });
+
+  test('the Planner’s title leads the shell create as the shell’s own paintMeta, clipped to the cap (task-9.3 decision 4)', async () => {
+    const long = 'Pull requests, issues and runs waiting on you across every tool';
+    const {client} = await boot({
+      planner: new FakePlanner(() => ({...layoutFor(['github']), title: long})),
+    });
+    const events = await collect(client, utterance('what needs my review?'));
+    const create = events.find(
+      e =>
+        e.kind === 'status-update' &&
+        stampOf(e)?.role === 'shell' &&
+        a2uiDatas(e).some(d => d.createSurface !== undefined),
+    ) as TaskStatusUpdateEvent;
+    const parts = create.status.message!.parts;
+    expect(parts[0]).toEqual({
+      kind: 'data',
+      data: {paintMeta: {surfaceId: 'shell:main', title: clipPaintMetaTitle(long)}},
+      metadata: {mimeType: PAINT_META_MIME_TYPE},
+    });
+    expect((parts[1] as {data: Record<string, unknown>}).data.createSurface).toBeDefined();
+    // Not an A2UI message: the extractor never takes it.
+    expect(a2uiDatas(create).some(d => d.paintMeta !== undefined)).toBe(false);
+    const lines = await journalLines(1);
+    expect(lines[0]!.plan).toMatchObject({title: clipPaintMetaTitle(long), titleClipped: true});
+  });
+
+  test('a plan without a title paints no paintMeta', async () => {
+    const {client} = await boot({planner: new FakePlanner(() => layoutFor(['github']))});
+    const events = await collect(client, utterance('what needs my review?'));
+    const create = events.find(
+      e =>
+        e.kind === 'status-update' &&
+        stampOf(e)?.role === 'shell' &&
+        a2uiDatas(e).some(d => d.createSurface !== undefined),
+    ) as TaskStatusUpdateEvent;
+    expect(
+      (create.status.message!.parts[0] as {data: Record<string, unknown>}).data.createSurface,
+    ).toBeDefined();
   });
 
   test('a message received twice runs once: the second is refused, nothing dispatched again (task-7.9)', async () => {
@@ -365,14 +441,15 @@ describe('orchestrator', () => {
     }
   });
 
-  test('degenerate single-agent turn routes, paints, and reuses the vendor conversation', async () => {
+  test('degenerate single-agent turn routes and paints; a question asked from it opens its own canvas with a fresh vendor conversation (task-9.3)', async () => {
     const {client} = await boot({planner: new FakePlanner(() => planFor(['github']))});
     const [first] = await collect(client, utterance('what needs my review?'));
-    const events = await collect(client, utterance('and now?', first.contextId));
+    const events = await collect(client, utterance('and now?', undefined, first.contextId));
 
     const github = vendors.github!;
-    expect(github.contextIds).toHaveLength(1);
-    expect(github.requests[1].message.contextId).toBe(github.contextIds[0]);
+    expect(events[0]!.contextId).not.toBe(first.contextId);
+    expect(github.contextIds).toHaveLength(2);
+    expect(github.requests[1].message.contextId).toBeUndefined();
     expect(vendors.gmail!.requests).toHaveLength(0);
     const finals = events.filter(e => e.kind === 'status-update' && e.final);
     expect(finals).toHaveLength(1);
@@ -1341,23 +1418,97 @@ describe('late arrival and failure (task 8.3)', () => {
     expect(first['gmail']).toMatchObject({noun: 'Gmail threads'});
   });
 
-  test('a new utterance ends the turn before it: cancelled, its vendor told, journaled superseded', async () => {
+  test('a question inside an existing context is refused: a question opens a canvas of its own (task-9.3 decision 1)', async () => {
+    const planner = new FakePlanner(() => layoutFor(['github']));
+    const {client} = await boot({planner});
+    const [first] = await collect(client, utterance('first'));
+    const events = await collect(client, utterance('second', first.contextId));
+    expect(finalOf(events).status.state).toBe('failed');
+    expect(textsOf(finalOf(events).status.message!)).toEqual([
+      'A question opens a canvas of its own.',
+    ]);
+    expect(planner.calls).toHaveLength(1);
+    const lines = await journalLines(2);
+    expect(lines.find(l => l.refused)).toMatchObject({
+      refused: 'A question opens a canvas of its own.',
+      outcome: 'failed',
+    });
+  });
+
+  test('a second question opens its own canvas: the first runs on to its answer (task-9.3, phase-9 decision 6)', async () => {
     const {client} = await boot({
       planner: new FakePlanner(() => layoutFor(['github', 'gmail'])),
       scripts: {gmail: after(1_500, shopScript(camerasB))},
     });
-    const contextId = crypto.randomUUID();
-    const firstTurn = collect(client, utterance('first', contextId));
+    const firstTurn = streamOf(client, utterance('first'));
+    await until(() => firstTurn.events.length > 0, 'the first canvas opened');
+    const contextId = firstTurn.events[0]!.contextId!;
     await wait(200);
-    await collect(client, utterance('second', contextId));
-    const events = await firstTurn;
-    expect((events.at(-1) as TaskStatusUpdateEvent).status.state).toBe('canceled');
-    for (let i = 0; i < 100 && !vendors.gmail!.methods.includes('tasks/cancel'); i++) {
-      await wait(10);
-    }
-    expect(vendors.gmail!.methods).toContain('tasks/cancel');
-    const lines = await journalLines(2);
-    expect(lines.find(l => l.superseded)).toMatchObject({outcome: 'cancelled'});
+    const second = await collect(client, utterance('second', undefined, contextId));
+    expect(second[0]!.contextId).not.toBe(contextId);
+    expect(finalOf(second).status.state).toBe('completed');
+    const events = await firstTurn.done;
+    expect(finalOf(events).status.state).toBe('completed');
+    expect(arrivedIn(events, 'gmail')).toBe(true);
+    expect(vendors.gmail!.methods).not.toContain('tasks/cancel');
+  });
+
+  test('closing a canvas still loading cancels its turn: its vendor told, journaled closed; nothing reaches it after (task-9.3 decision 5)', async () => {
+    const {client} = await boot({
+      planner: new FakePlanner(() => layoutFor(['github', 'gmail'])),
+      scripts: {gmail: after(1_500, shopScript(camerasB))},
+    });
+    const firstTurn = streamOf(client, utterance('first'));
+    await until(
+      () => firstTurn.events.some(e => stampOf(e)?.source === 'github' && stampOf(e)?.settled),
+      'GitHub settled',
+    );
+    const contextId = firstTurn.events[0]!.contextId!;
+    const closed = await collect(client, press('close', [], contextId));
+    expect(finalOf(closed).status.state).toBe('completed');
+    const events = await firstTurn.done;
+    expect(finalOf(events).status.state).toBe('canceled');
+    await until(() => vendors.gmail!.methods.includes('tasks/cancel'), 'Gmail cancelled');
+    const later = await collect(client, actionOn('github:s1', contextId));
+    expect(finalOf(later).status.state).toBe('failed');
+    expect(textsOf(finalOf(later).status.message!)).toEqual(['This canvas is closed.']);
+    const again = await collect(client, press('close', [], contextId));
+    expect(finalOf(again).status.state).toBe('failed');
+    const lines = await journalLines(4);
+    expect(lines.find(l => l.kind === 'utterance')).toMatchObject({
+      closed: true,
+      outcome: 'cancelled',
+    });
+    expect(lines.find(l => l.kind === 'operation' && !l.refused)).toMatchObject({
+      outcome: 'completed',
+      composition: lines.find(l => l.kind === 'utterance')!.turnId,
+    });
+  });
+
+  test('closing a canvas before it is planned: the Planner’s call aborted, the turn cancelled', async () => {
+    const held = gate();
+    const planner: Planner = {
+      plan: async input => {
+        await Promise.race([
+          held.opened,
+          new Promise((_, reject) =>
+            input.signal?.addEventListener('abort', () => reject(new Error('aborted')), {
+              once: true,
+            }),
+          ),
+        ]);
+        return {kind: 'planned', document: layoutFor(['github']), attempts: [], toolCalls: []};
+      },
+    };
+    const {client} = await boot({planner});
+    const turn = streamOf(client, utterance('first'));
+    await until(() => turn.events.length > 0, 'the canvas opened');
+    const contextId = turn.events[0]!.contextId!;
+    const closed = await collect(client, press('close', [], contextId));
+    expect(finalOf(closed).status.state).toBe('completed');
+    const events = await turn.done;
+    expect(finalOf(events).status.state).toBe('canceled');
+    held.open();
   });
 
   test('a late arrival stays out of the merge until a press includes it: an unrelated action re-synthesizes nothing', async () => {
@@ -1758,7 +1909,7 @@ describe('quiescence (task 8.10)', () => {
 
 /** A press on the composition, as the client sends it (task-8.4 decision 14). */
 function press(
-  kind: 'retry' | 'include' | 'tryAgain',
+  kind: 'retry' | 'include' | 'tryAgain' | 'close',
   sources: string[],
   contextId: string,
 ): Message {
@@ -2183,7 +2334,7 @@ describe('Include, Retry and Try again (task 8.4)', () => {
     const contextId = crypto.randomUUID();
     const none = await collect(client, press('retry', ['gmail'], crypto.randomUUID()));
     expect(finalOf(none).status.state).toBe('failed');
-    expect(textsIn(none)).toContain('This canvas is no longer current.');
+    expect(textsIn(none)).toContain('No such canvas.');
 
     await collect(client, utterance('compare', contextId));
     const notFailed = await collect(client, press('retry', ['gmail'], contextId));
@@ -2202,7 +2353,7 @@ describe('Include, Retry and Try again (task 8.4)', () => {
     ]);
   });
 
-  test('a new utterance ends a Retry in flight: cancelled, its vendor told, journaled superseded', async () => {
+  test('closing the canvas ends a Retry in flight: cancelled, its vendor told, journaled closed (task-9.3 decision 5)', async () => {
     const {client} = await boot({
       planner: new FakePlanner(() => layoutFor(['github', 'gmail'])),
       scripts: {gmail: sequence(failing(), after(5_000, shopScript(camerasB)))},
@@ -2212,13 +2363,13 @@ describe('Include, Retry and Try again (task 8.4)', () => {
     const retry = streamOf(client, press('retry', ['gmail'], contextId));
     await until(() => vendors.gmail!.requests.length === 2, 'the retry reached Gmail');
     await wait(100);
-    await collect(client, utterance('second', contextId));
+    await collect(client, press('close', [], contextId));
     const events = await retry.done;
     expect(finalOf(events).status.state).toBe('canceled');
     await until(() => vendors.gmail!.methods.includes('tasks/cancel'), 'the retry cancelled');
     const lines = await journalLines(3);
-    expect(lines.find(l => l.kind === 'operation')).toMatchObject({
-      superseded: true,
+    expect(lines.find(l => l.kind === 'operation' && l.closed)).toMatchObject({
+      closed: true,
       outcome: 'cancelled',
     });
   });

@@ -36,10 +36,13 @@ export interface CanvasView {
 export interface PlatformReaders {
   /** Installed apps — from the Registry: id, display name, the card's name, description and skills, reachability. */
   installedApps(): InstalledApp[];
-  /** This canvas — the current composition's structure for the conversation; undefined when there is none. */
-  thisCanvas(conversationId: string): CanvasView | undefined;
-  /** Recent turns — the last few turns of the conversation, one line each, oldest first. */
-  recentTurns(conversationId: string): string[];
+  /**
+   * This canvas — the structure of the canvas the question was asked from (task-9.3 decision 2);
+   * undefined on a root canvas or when that canvas is gone.
+   */
+  thisCanvas(askedFrom: string | undefined): CanvasView | undefined;
+  /** Recent turns — the canvas the question was asked from and its ancestry, one line each, oldest first. */
+  recentTurns(askedFrom: string | undefined): string[];
 }
 
 export const READER_NAMES = ['installed_apps', 'this_canvas', 'recent_turns'] as const;
@@ -51,8 +54,11 @@ const NO_INPUT = jsonSchema<Record<string, never>>({
   additionalProperties: false,
 });
 
-/** The readers as the AI SDK's tools, bound to one conversation; results as JSON, recent turns as lines. */
-export function readerTools(readers: PlatformReaders, conversationId: string): ToolSet {
+/**
+ * The readers as the AI SDK's tools, bound to the canvas the question was asked from; results as
+ * JSON, recent turns as lines.
+ */
+export function readerTools(readers: PlatformReaders, askedFrom: string | undefined): ToolSet {
   return {
     installed_apps: tool({
       description:
@@ -62,16 +68,16 @@ export function readerTools(readers: PlatformReaders, conversationId: string): T
     }),
     this_canvas: tool({
       description:
-        'What is on the canvas right now, as structure: the utterance it came from, which sources hold a slot and each slot’s state, whether a merged view is live, collapsed or declined and why, and any capability gaps. Never an app’s data. Call it to answer what the user is looking at.',
+        'The canvas the user is looking at — the one this question was asked from — as structure: the utterance it came from, which sources hold a slot and each slot’s state, whether a merged view is live, collapsed or declined and why, and any capability gaps. Never an app’s data. Call it to answer what the user is looking at.',
       inputSchema: NO_INPUT,
       execute: async () =>
-        readers.thisCanvas(conversationId) ?? {empty: true, note: 'Nothing is on the canvas yet.'},
+        readers.thisCanvas(askedFrom) ?? {empty: true, note: 'Nothing is on the canvas yet.'},
     }),
     recent_turns: tool({
       description:
-        'The last few turns of this conversation, oldest first, one line each: when, what was asked, which sources answered and how, the outcome. Call it to answer what was asked or what happened before.',
+        'The trail the user walked to the canvas they are looking at: that canvas and the ones it was asked from, oldest first, one line each — when, what was asked, which sources answered and how, what became of the merged view, whether it is still loading or was closed. Call it to answer what was asked or what happened before.',
       inputSchema: NO_INPUT,
-      execute: async () => readers.recentTurns(conversationId),
+      execute: async () => readers.recentTurns(askedFrom),
     }),
   };
 }

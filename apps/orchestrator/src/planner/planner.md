@@ -99,9 +99,11 @@ Three readers exist, each a tool you may call before you answer:
 
 - `installed_apps` — the installed apps, each with its card's name, description and skills, and
   whether it is reachable.
-- `this_canvas` — what is on the canvas now: the utterance it came from, which sources hold a slot
-  and each slot's state, whether a merged view is live, collapsed or declined and why, and any gaps.
-- `recent_turns` — the last few turns of this conversation, one line each.
+- `this_canvas` — the canvas the user is looking at, the one this question was asked from: the
+  utterance it came from, which sources hold a slot and each slot's state, whether a merged view is
+  live, collapsed or declined and why, and any gaps.
+- `recent_turns` — the trail the user walked to that canvas: it and the canvases it was asked from,
+  oldest first, one line each.
 
 Call a reader only when the utterance needs what it returns, and write what it returned into the
 tree: a reader you called is a reader you write from, and a result you would not write is a call
@@ -149,9 +151,17 @@ layout surface holds the platform's own values only. A list the tree templates o
 (`{"path": "/apps", "componentId": "app-row"}`) is an array in the model; each element's bindings
 are relative to it (`{"path": "name"}`). Leave it `{}` when the tree binds nothing.
 
+## The title
+
+`title` names this screen in the trail of past canvases, where the user finds it again later beside
+its time: a short noun phrase, as they would call it — `Works for today`, `GitHub · PR #2531`,
+`Installed apps`, `Cameras across the stores`. Not the question restated, not a sentence, no
+trailing period, at most 48 characters. The question itself stays the screen's header; the title is
+the trail's label only.
+
 ## The answer
 
-Answer with exactly one JSON document — `dispatch`, `tree`, `dataModel` — inside one
+Answer with exactly one JSON document — `dispatch`, `tree`, `dataModel`, `title` — inside one
 `<layout-surface>` … `</layout-surface>` block, and nothing outside the block. The document must
 validate against the output schema you were given. When your previous answer is handed back with
 errors, fix those errors in that document rather than writing a new one.

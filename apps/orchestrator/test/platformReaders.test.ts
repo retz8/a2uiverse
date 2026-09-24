@@ -5,9 +5,9 @@
  */
 import type {AgentCard} from '@a2a-js/sdk';
 import {describe, expect, test} from 'vitest';
+import {Canvases} from '../src/composition/canvases.js';
 import {compositionFrom, type CompositionState} from '../src/composition/state.js';
-import type {JournalEntry} from '../src/journal/types.js';
-import {canvasView, platformReaders, recentTurnLine} from '../src/planner/platformReaders.js';
+import {canvasLine, canvasView, platformReaders} from '../src/planner/platformReaders.js';
 import {READER_NAMES, readerTools, type PlatformReaders} from '../src/planner/readers.js';
 import {Registry} from '../src/registry/registry.js';
 import type {AppRecord} from '../src/registry/types.js';
@@ -76,22 +76,6 @@ const layout = {
   dataModel: {},
 };
 
-function entry(overrides: Partial<JournalEntry>): JournalEntry {
-  return {
-    turnId: 't',
-    clientContextId: 'c1',
-    at: '2026-09-13T06:00:00.000Z',
-    kind: 'utterance',
-    descriptor: 'what needs my review?',
-    dispatch: [],
-    surfaces: {created: [], updated: [], deleted: []},
-    clientMetadata: {keys: [], dataModelBytes: 0},
-    outcome: 'completed',
-    embedding: null,
-    ...overrides,
-  };
-}
-
 describe('installed apps', () => {
   test('lists every installed app with its card content and reachability; the platform is not an app', async () => {
     const registry = await registryWith({
@@ -100,7 +84,7 @@ describe('installed apps', () => {
       ]),
       gmail: undefined,
     });
-    const readers = platformReaders({registry, canvas: () => undefined, recent: () => []});
+    const readers = platformReaders({registry, canvas: () => undefined, ancestry: () => []});
     expect(readers.installedApps()).toEqual([
       {
         id: 'github',
@@ -165,28 +149,80 @@ describe('this canvas', () => {
     expect(view).not.toContain('2531');
   });
 
-  test('the reader answers with nothing when the conversation has no composition', () => {
-    const readers = platformReaders({registry, canvas: () => undefined, recent: () => []});
+  test('the reader answers with nothing on a root canvas, or when the canvas asked from is gone', () => {
+    const readers = platformReaders({registry, canvas: () => undefined, ancestry: () => []});
+    expect(readers.thisCanvas(undefined)).toBeUndefined();
     expect(readers.thisCanvas('c1')).toBeUndefined();
   });
 });
 
-describe('recent turns', () => {
-  test('one line per turn: when, what was asked, which sources answered, the outcome', () => {
-    const line = recentTurnLine(
-      entry({
-        dispatch: [
-          {appId: 'github', outcome: 'completed'} as never,
-          {appId: 'gmail', outcome: 'failed'} as never,
-        ],
-      }),
+describe('recent turns — the ancestry (task-9.3 decision 2)', () => {
+  const registry = new Registry([record('github', 'GitHub'), record('gmail', 'Gmail')]);
+  const opened = Date.parse('2026-09-13T06:00:00.000Z');
+
+  test('one line per canvas: when it was opened, what was asked, which sources answered, the merged view, whether it still loads', () => {
+    const state = compositionFrom(layout, registry, 'what needs my review?', {
+      turnId: 't',
+      openedAt: opened,
+    });
+    state.arrived.add('github');
+    state.slots.get('gmail')!.state = 'failed';
+    expect(canvasLine({kind: 'open', state})).toBe(
+      '2026-09-13T06:00:00.000Z · "what needs my review?" → github (answered), gmail (failed) · still loading',
     );
-    expect(line).toBe(
-      '2026-09-13T06:00:00.000Z · utterance "what needs my review?" → github (completed), gmail (failed) · completed',
+    state.answeredAt = opened + 5_000;
+    state.mergedView = {outcome: 'declined', reason: 'nothing joinable'};
+    expect(canvasLine({kind: 'open', state})).toBe(
+      '2026-09-13T06:00:00.000Z · "what needs my review?" → github (answered), gmail (failed) · merged view declined: nothing joinable · answered',
     );
-    expect(recentTurnLine(entry({kind: 'action', descriptor: 'action approve on github:s1'}))).toBe(
-      '2026-09-13T06:00:00.000Z · action "action approve on github:s1" → no source · completed',
-    );
+    state.mergedView = {outcome: 'synthesized'};
+    expect(canvasLine({kind: 'open', state})).toContain('· merged view live · answered');
+  });
+
+  test('a closed canvas keeps its line; the chain runs oldest first through it, at most five deep', () => {
+    const askedIn = (line: string) => /"[^"]*"/.exec(line)?.[0];
+    const canvases = new Canvases();
+    const open = (id: string, utterance: string, parent?: string) => {
+      const state = compositionFrom(layout, registry, utterance, {
+        turnId: id,
+        openedAt: opened,
+        ...(parent ? {parent} : {}),
+      });
+      state.answeredAt = opened + 1;
+      canvases.open(id, state);
+      return state;
+    };
+    open('c1', 'one');
+    open('c2', 'two', 'c1').arrived.add('gmail');
+    open('c3', 'three', 'c2');
+    open('c4', 'four', 'c3');
+    open('c5', 'five', 'c4');
+    open('c6', 'six', 'c5');
+    open('c7', 'seven', 'c6');
+    expect(canvases.close('c2')).toMatchObject({
+      utterance: 'two',
+      parent: 'c1',
+      answered: ['gmail'],
+    });
+    expect(canvases.get('c2')).toBeUndefined();
+    expect(canvases.isClosed('c2')).toBe(true);
+    expect(canvases.has('c2')).toBe(true);
+
+    const readers = platformReaders({
+      registry,
+      canvas: id => canvases.get(id),
+      ancestry: id => canvases.ancestry(id),
+    });
+    const lines = readers.recentTurns('c7');
+    expect(lines).toHaveLength(5);
+    expect(lines.map(l => askedIn(l))).toEqual(['"three"', '"four"', '"five"', '"six"', '"seven"']);
+    expect(readers.recentTurns('c3').map(l => askedIn(l))).toEqual(['"one"', '"two"', '"three"']);
+    expect(readers.recentTurns('c3')[1]).toBe('2026-09-13T06:00:00.000Z · "two" → gmail · closed');
+    expect(readers.recentTurns(undefined)).toEqual([]);
+    expect(readers.recentTurns('nowhere')).toEqual([]);
+    // A parent the session does not hold ends the chain.
+    open('c9', 'nine', 'gone');
+    expect(readers.recentTurns('c9').map(l => askedIn(l))).toEqual(['"nine"']);
   });
 });
 

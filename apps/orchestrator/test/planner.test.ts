@@ -126,7 +126,7 @@ const readers: PlatformReaders = {
 const planner = (model: MockLanguageModelV3) =>
   new ModelPlanner({model, systemPrompt: 'SYSTEM', catalog: files.catalog, readers});
 
-const input = {utterance: 'catch me up', shortlist, conversationId: 'c1'};
+const input = {utterance: 'catch me up', shortlist, askedFrom: 'c1'};
 
 /** The text of every message of a role in a call's prompt, flattened. */
 function messagesOf(call: LanguageModelV3CallOptions, role: string): string[] {

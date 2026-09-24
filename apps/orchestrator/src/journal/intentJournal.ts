@@ -21,8 +21,8 @@ export interface JournalTurn {
   dispatched(record: DispatchRecord): void;
   surfaces(touches: SurfaceTouches): void;
   deadlines(deadlines: {softMs: number; capMs: number}): void;
-  /** A new utterance ended the turn while it ran. */
-  superseded(): void;
+  /** The user closed the canvas while the turn ran. */
+  canvasClosed(): void;
   /** A press: the turn whose composition it acts on. */
   composition(turnId: string): void;
   /** A press refused, and why. */
@@ -35,14 +35,15 @@ export interface JournalTurn {
   close(outcome: DispatchOutcome): Promise<void>;
 }
 
-/** How many closed turns a conversation's ring keeps for the recent-turns reader. */
+/** How many closed turns a canvas's ring keeps. */
 export const RECENT_TURNS = 5;
 
 /**
- * Append-only JSON lines in the orchestrator's state directory, plus, since Phase 6, an
- * in-memory ring of the last few entries per conversation (task-6.4 decision 7): the same entry
- * the file gets, kept for the Planner's recent-turns reader. Nothing is seeded from the file — a
- * restart starts empty, as the composition state does.
+ * Append-only JSON lines in the orchestrator's state directory, plus an in-memory ring of the
+ * last few entries per canvas — per context — the same entry the file gets. The Planner's
+ * recent-turns reader no longer reads it (task-9.3 decision 2: the ancestry is read from the
+ * canvases); it stays for the journal's own callers. Nothing is seeded from the file — a restart
+ * starts empty, as the composition state does.
  */
 export class IntentJournal {
   readonly #filePath: string;
@@ -91,8 +92,8 @@ export class IntentJournal {
       deadlines: deadlines => {
         entry.deadlines = deadlines;
       },
-      superseded: () => {
-        entry.superseded = true;
+      canvasClosed: () => {
+        entry.closed = true;
       },
       composition: turnId => {
         entry.composition = turnId;
@@ -111,7 +112,7 @@ export class IntentJournal {
     };
   }
 
-  /** The last closed turns of a conversation, oldest first; at most `RECENT_TURNS`. */
+  /** The last closed turns of a canvas, oldest first; at most `RECENT_TURNS`. */
   recent(clientContextId: string): readonly JournalEntry[] {
     return this.#recent.get(clientContextId) ?? [];
   }

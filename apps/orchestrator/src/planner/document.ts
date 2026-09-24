@@ -53,6 +53,11 @@ export interface LayoutSurface {
   tree: LayoutTree;
   /** Literal values only — never a formula, never a ref (phase decision 8). */
   dataModel: Record<string, unknown>;
+  /**
+   * A short noun phrase naming this canvas in the trail (task-9.3, phase-9 decision 10). Optional:
+   * absent, the client falls back to the question. Clipped to the contract's cap when emitted.
+   */
+  title?: string;
 }
 
 const treeSchema = {
@@ -79,11 +84,17 @@ export const LAYOUT_SURFACE_SCHEMA = {
   $schema: 'https://json-schema.org/draft/2020-12/schema',
   title: 'LayoutSurface',
   description:
-    'What the Planner emits, written as text and validated after: the dispatch list, the layout tree, and the data model of literals the tree binds to.',
+    'What the Planner emits, written as text and validated after: the dispatch list, the layout tree, the data model of literals the tree binds to, and a title for the canvas.',
   type: 'object',
   additionalProperties: false,
   required: ['dispatch', 'tree', 'dataModel'],
   properties: {
+    title: {
+      type: 'string',
+      minLength: 1,
+      description:
+        'A short noun phrase naming this screen in the trail of past canvases — what the user would call it when looking for it later: `Works for today`, `GitHub · PR #2531`, `Installed apps`. Not the question restated, not a sentence; at most 48 characters, no trailing period.',
+    },
     dispatch: {
       type: 'array',
       description:

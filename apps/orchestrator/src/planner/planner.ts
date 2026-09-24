@@ -12,9 +12,12 @@ import {validateLayoutSurface} from './validate.js';
 export interface PlanInput {
   utterance: string;
   shortlist: readonly ShortlistEntry[];
-  /** The client conversation — what the this-canvas and recent-turns readers are bound to. */
-  conversationId: string;
-  /** Aborts the call when a new utterance supersedes the turn (task-8.3 decision 4). */
+  /**
+   * The canvas the question was asked from (task-9.3 decision 2) — what the this-canvas and
+   * recent-turns readers are bound to; none on a root canvas.
+   */
+  askedFrom?: string;
+  /** Aborts the call when the canvas is closed while it plans (task-9.3 decision 5). */
   signal?: AbortSignal;
 }
 
@@ -71,7 +74,7 @@ export class ModelPlanner implements Planner {
 
   async plan(input: PlanInput): Promise<PlanOutcome> {
     const shortlist = input.shortlist.map(entry => entry.record.id);
-    const tools = readerTools(this.#readers, input.conversationId);
+    const tools = readerTools(this.#readers, input.askedFrom);
     const attempts: PlanAttempt[] = [];
     const toolCalls: ToolCallRecord[] = [];
     let messages: ModelMessage[] = [{role: 'user', content: buildPlannerTurn(input)}];

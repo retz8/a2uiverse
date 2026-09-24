@@ -1,6 +1,6 @@
 import {randomUUID} from 'node:crypto';
 import type {Part, TaskStatusUpdateEvent} from '@a2a-js/sdk';
-import {STAMP_KEY, type A2uiComponent} from '@a2uiverse/sdk';
+import {PAINT_META_MIME_TYPE, paintMetaData, STAMP_KEY, type A2uiComponent} from '@a2uiverse/sdk';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 import {PAINTER_ID_PREFIX} from '../planner/validate.js';
 import {SHELL_SOURCE_ID} from '../registry/types.js';
@@ -13,13 +13,20 @@ export const A2UI_VERSION = 'v0.9';
 type ShellComponent = A2uiComponent;
 
 /**
- * First paint of a turn: createSurface, the literal data model when the tree binds one, and the
- * full component tree with every slot pending.
+ * First paint of a turn: the canvas's `paintMeta` when the Planner titled it (task-9.3 decision
+ * 4) — the contract's part, ahead of the `createSurface` it names — then createSurface, the
+ * literal data model when the tree binds one, and the full component tree with every slot pending.
  */
 export function shellCreateParts(state: CompositionState): Part[] {
-  const parts = [
-    a2uiPart({createSurface: {surfaceId: shellSurfaceId(), catalogId: SHELL_CATALOG_ID}}),
-  ];
+  const parts: Part[] = [];
+  if (state.title) {
+    parts.push({
+      kind: 'data',
+      data: paintMetaData({surfaceId: shellSurfaceId(), title: state.title}),
+      metadata: {mimeType: PAINT_META_MIME_TYPE},
+    });
+  }
+  parts.push(a2uiPart({createSurface: {surfaceId: shellSurfaceId(), catalogId: SHELL_CATALOG_ID}}));
   if (Object.keys(state.layout.dataModel).length > 0) {
     parts.push(
       a2uiPart({updateDataModel: {surfaceId: shellSurfaceId(), value: state.layout.dataModel}}),

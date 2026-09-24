@@ -3,6 +3,7 @@
  * each vendor `Slot` wrapped in an `Attribution` carrying its weight, the synthesis slot and gap
  * slots bare, the painter-owned props written, the literal data model sent, repaints by source.
  */
+import {clipPaintMetaTitle, PAINT_META_MIME_TYPE} from '@a2uiverse/sdk';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 import {describe, expect, test} from 'vitest';
 import {compositionFrom} from '../src/composition/state.js';
@@ -245,6 +246,21 @@ describe('paintLayout', () => {
 });
 
 describe('shellCreateParts', () => {
+  test('a titled canvas leads with the shell’s own paintMeta, clipped to the cap (task-9.3 decision 4)', () => {
+    const long = 'Pull requests, issues and runs waiting on you across every tool';
+    const parts = shellCreateParts(compositionFrom({...layout, title: long}, registry, 'x'));
+    expect(parts).toHaveLength(3);
+    expect(parts[0]).toEqual({
+      kind: 'data',
+      data: {paintMeta: {surfaceId: 'shell:main', title: clipPaintMetaTitle(long)}},
+      metadata: {mimeType: PAINT_META_MIME_TYPE},
+    });
+    expect(dataOf(parts[1]!).createSurface).toBeDefined();
+    expect(shellCreateParts(compositionFrom({...layout, title: '  '}, registry, 'x'))).toHaveLength(
+      2,
+    );
+  });
+
   test('paints createSurface for shell:main in the shell catalog, then the components; no data part for an empty model', () => {
     const parts = shellCreateParts(compositionFrom(layout, registry, 'x'));
     expect(parts).toHaveLength(2);
