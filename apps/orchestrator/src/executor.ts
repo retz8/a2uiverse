@@ -1090,13 +1090,18 @@ export class OrchestratorExecutor implements AgentExecutor {
       }));
   }
 
-  /** Too few arrived: the ones that did, by display name, in slot order. */
+  /**
+   * Too few arrived: the ones that did, by display name, and the ones that did not, by id — the
+   * line's Retry all covers them (task-8.7 decision 24) — each in slot order.
+   */
   #fewCollapse(state: CompositionState, arrived: ReadonlySet<string>): SlotCollapse {
+    const vendors = [...state.slots.values()].filter(({plan}) => plan.source !== SHELL_SOURCE_ID);
     return {
       cause: 'few',
-      answered: [...state.slots.values()]
-        .filter(({plan}) => plan.source !== SHELL_SOURCE_ID && arrived.has(plan.source))
+      answered: vendors
+        .filter(({plan}) => arrived.has(plan.source))
         .map(({plan}) => plan.displayName),
+      failed: vendors.filter(({plan}) => !arrived.has(plan.source)).map(({plan}) => plan.source),
     };
   }
 

@@ -278,7 +278,13 @@ export function createCanvasWiring({
     }
   };
 
-  const onPress: PressHandler = ({operation}) => void press(operation);
+  // Retry is a one-slot operation (phase decision 10); a line's Retry all names several sources,
+  // and is sent as one Retry per source, each on its own stream (task-8.7 decision 24).
+  const onPress: PressHandler = ({operation}) => {
+    if (operation.kind === 'retry' && operation.sources.length > 1) {
+      for (const source of operation.sources) void press({kind: 'retry', sources: [source]});
+    } else void press(operation);
+  };
 
   /**
    * A fragment the canvas could not render, reported to the hub — which owns slot lifecycle and

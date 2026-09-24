@@ -366,10 +366,10 @@ test('the collapse line says why in the shell’s words, per cause', () => {
     'The merged view needs Linear issues, which didn’t load.',
   );
   expect(collapseLine({cause: 'few', answered: ['GitHub']})).toBe(
-    'Only GitHub answered, so there’s nothing to merge.',
+    'The merged view needs at least two sources, and only GitHub answered.',
   );
   expect(collapseLine({cause: 'few', answered: []})).toBe(
-    'No app answered, so there’s nothing to merge.',
+    'The merged view needs at least two sources, and none answered.',
   );
   expect(collapseLine({cause: 'unmade'})).toBe('The merged view couldn’t be made.');
 });
@@ -530,6 +530,36 @@ test('a collapse on the home source carries that source’s Retry on the line; p
   // A retry of another source leaves the line and its press as they are.
   const other: PressRecord = {operation: {kind: 'retry', sources: ['gmail']}, status: 'sent'};
   expect(texts(collapsedLines(facts, [other], nameOf, line))).toEqual([line]);
+});
+
+test('too few arrived: the line carries Retry all over the sources that did not, one by name (task-8.7 decision 24)', () => {
+  const line = 'The merged view needs at least two sources, and only GitHub answered.';
+  const two = {
+    collapse: {cause: 'few' as const, answered: ['GitHub'], failed: ['gmail', 'circleci']},
+  };
+  expect(collapsedLines(two, [], nameOf, line)).toEqual([
+    {
+      text: line,
+      press: {label: 'Retry all', operation: {kind: 'retry', sources: ['gmail', 'circleci']}},
+    },
+  ]);
+  const one = {collapse: {cause: 'few' as const, answered: ['GitHub'], failed: ['gmail']}};
+  expect(collapsedLines(one, [], nameOf, line)[0]!.press).toEqual({
+    label: 'Retry Gmail',
+    operation: {kind: 'retry', sources: ['gmail']},
+  });
+  // Pressed: the host sends one Retry per source; the line waits for the ones sent.
+  const sent = (source: string): PressRecord => ({
+    operation: {kind: 'retry', sources: [source]},
+    status: 'sent',
+  });
+  expect(collapsedLines(two, [sent('gmail'), sent('circleci')], nameOf, line)).toEqual([
+    {text: 'Waiting for Gmail and CircleCI, then merging…', working: true},
+  ]);
+  // Painted without the list, the line only tells.
+  expect(
+    collapsedLines({collapse: {cause: 'few', answered: ['GitHub']}}, [], nameOf, line),
+  ).toEqual([{text: line}]);
 });
 
 test('under a decline’s line only, the late sources with Include', () => {

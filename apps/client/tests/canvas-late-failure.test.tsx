@@ -7,6 +7,7 @@
  */
 import {afterEach, describe, expect, it} from 'vitest';
 import {cleanup, render, screen, waitFor, within} from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import type {MessageSendParams} from '@a2a-js/sdk';
 import type {A2AMessageSender} from '../src/a2a/client';
 import {getBeatFixture} from '../src/beats/beatFixtures';
@@ -105,14 +106,26 @@ describe('Phase 8’s synthetic beats, played to their ends', () => {
     expect(view.querySelector('[data-column-reserved="late"]')).not.toBeNull();
   });
 
-  it('too-few: the merge collapses to its one line in the client’s words', async () => {
+  it('too-few: the merge collapses to its one line in the client’s words, with Retry all sent as one Retry per source', async () => {
     const {sent, slot} = await replay('too-few');
     expect(sent).toEqual([]);
     const view = slot('shell')!;
     expect(stateOf(view)).toBe('collapsed');
     expect(view.querySelector('[data-slot-collapse="few"]')).toHaveTextContent(
-      'Only Aperture & Co answered, so there’s nothing to merge.',
+      'The merged view needs at least two sources, and only Aperture & Co answered.',
     );
+    await userEvent.click(within(view).getByRole('button', {name: 'Retry all'}));
+    await waitFor(() => expect(sent).toHaveLength(2));
+    const operations = sent.map(params => {
+      const part = params.message.parts[0];
+      return part && part.kind === 'data' ? (part.data as {operation: unknown}).operation : null;
+    });
+    expect(operations).toEqual([
+      {kind: 'retry', sources: ['shop-b']},
+      {kind: 'retry', sources: ['shop-c']},
+    ]);
+    // The replay's sender refuses every press, so both are said in place as never reached.
+    expect(within(view).getByText(/didn’t reach A2UIVerse/)).toBeInTheDocument();
   });
 });
 

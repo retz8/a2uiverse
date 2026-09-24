@@ -130,12 +130,20 @@ export function collapsedLines(
   const sent = find(presses, 'sent', ['include', 'tryAgain']);
   const making = facts.working !== undefined || sent !== undefined;
   const retrying = facts.retrying ?? [];
-  const home = facts.collapse?.cause === 'home' && !facts.declined ? facts.home : undefined;
-  const homeRetrySent =
-    home !== undefined &&
+  // The sources whose Retry the collapse line carries (task-8.7 decisions 23 and 24): the home
+  // source when the merge collapsed on it, every source that did not arrive when too few did.
+  const collapse = facts.declined ? undefined : facts.collapse;
+  const retryable =
+    collapse?.cause === 'home' && facts.home !== undefined
+      ? [facts.home]
+      : collapse?.cause === 'few'
+        ? (collapse.failed ?? [])
+        : [];
+  const retrySent = retryable.filter(source =>
     presses.some(
-      p => p.status === 'sent' && p.operation.kind === 'retry' && p.operation.sources[0] === home,
-    );
+      p => p.status === 'sent' && p.operation.kind === 'retry' && p.operation.sources[0] === source,
+    ),
+  );
   let first: PressLine | undefined;
   if (making) {
     first =
@@ -152,20 +160,24 @@ export function collapsedLines(
     first = lost
       ? {text: LOST_WORDS, announce: true}
       : {text: `Waiting for ${names(retrying)}, then merging…`, working: true};
-  } else if (homeRetrySent) {
+  } else if (retrySent.length > 0) {
     // Drawn at the press, before the paint says `retrying` (task-8.5 decision 8).
-    first = {text: `Waiting for ${name(home)}, then merging…`, working: true};
+    first = {text: `Waiting for ${names(retrySent)}, then merging…`, working: true};
   } else if (!facts.declined && facts.collapse?.cause === 'unmade') {
     first = {
       text: UNMADE_WORDS,
       press: {label: 'Try again', operation: {kind: 'tryAgain', sources: []}},
     };
-  } else if (collapseLine && home !== undefined) {
-    // The view's own action: the same Retry the home source's tile carries, on the line where
-    // the view was, so the reader is not sent hunting for it.
+  } else if (collapseLine && retryable.length > 0) {
+    // The view's own action: the same Retry the tiles carry, on the line where the view was, so
+    // the reader is not sent hunting for it — one source by name, several as "all", which the
+    // host sends as one Retry per source.
     first = {
       text: collapseLine,
-      press: {label: `Retry ${name(home)}`, operation: {kind: 'retry', sources: [home]}},
+      press: {
+        label: retryable.length === 1 ? `Retry ${name(retryable[0]!)}` : 'Retry all',
+        operation: {kind: 'retry', sources: retryable},
+      },
     };
   } else if (collapseLine) {
     first = {text: collapseLine};

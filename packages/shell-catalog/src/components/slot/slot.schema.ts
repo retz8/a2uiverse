@@ -69,6 +69,8 @@ const CollapseSchema = z
     cause: z.enum(COLLAPSE_CAUSES),
     home: z.string().optional(),
     answered: z.array(z.string()).optional(),
+    /** The dispatched sources that did not arrive, by id: what the line's Retry all covers. */
+    failed: z.array(z.string()).optional(),
   })
   .strict()
   .refine(collapse => (collapse.home !== undefined) === (collapse.cause === 'home'), {
@@ -76,6 +78,9 @@ const CollapseSchema = z
   })
   .refine(collapse => (collapse.answered !== undefined) === (collapse.cause === 'few'), {
     message: 'a collapse lists the sources that answered exactly when too few did',
+  })
+  .refine(collapse => collapse.failed === undefined || collapse.cause === 'few', {
+    message: 'a collapse lists the sources that did not arrive only when too few did',
   });
 
 export const CALL_FAILED_KINDS = ['include', 'update'] as const;

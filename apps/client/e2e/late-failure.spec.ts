@@ -104,11 +104,14 @@ test('the home source failed: the merge collapses to its line, the fragments mov
   await expect(page).toHaveScreenshot('late-failure-home-collapsed.png');
 });
 
-test('fewer than two sources: the collapse line names who answered', async ({page}) => {
+test('fewer than two sources: the collapse line names who answered, with Retry all', async ({
+  page,
+}) => {
   await landed(page, 'too-few');
-  await expect(page.locator(`${MERGE} [data-slot-collapse="few"]`)).toHaveText(
-    'Only Aperture & Co answered, so there’s nothing to merge.',
+  await expect(page.locator(`${MERGE} [data-slot-collapse="few"]`)).toContainText(
+    'The merged view needs at least two sources, and only Aperture & Co answered.',
   );
+  await expect(page.locator(MERGE).getByRole('button', {name: 'Retry all'})).toBeEnabled();
   await expect(page).toHaveScreenshot('late-failure-too-few.png');
 });
 

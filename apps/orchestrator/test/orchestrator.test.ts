@@ -1277,7 +1277,7 @@ describe('late arrival and failure (task 8.3)', () => {
     const events = await collect(client, utterance('compare'));
     expect(slotsOf(shellPaints(events).at(-1)!)['shell']).toMatchObject({
       state: 'collapsed',
-      collapse: {cause: 'few', answered: ['GitHub']},
+      collapse: {cause: 'few', answered: ['GitHub'], failed: ['gmail']},
     });
   });
 

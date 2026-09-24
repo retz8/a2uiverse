@@ -433,10 +433,11 @@ export function collapseLine(collapse: SlotCollapse): string {
       // Said for the reader (task-8.7 decision 23): what the view needs and what happened to it.
       return `The merged view needs ${collapse.home ?? 'the home source'}, which didn’t load.`;
     case 'few': {
+      // Said for the reader (task-8.7 decision 24): what the view needs and who answered.
       const answered = collapse.answered ?? [];
       return answered.length === 0
-        ? 'No app answered, so there’s nothing to merge.'
-        : `Only ${listed(answered)} answered, so there’s nothing to merge.`;
+        ? 'The merged view needs at least two sources, and none answered.'
+        : `The merged view needs at least two sources, and only ${listed(answered)} answered.`;
     }
     case 'unmade':
       return 'The merged view couldn’t be made.';

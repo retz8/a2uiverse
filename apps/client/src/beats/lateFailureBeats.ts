@@ -591,7 +591,10 @@ export const TOO_FEW_BEAT = beat('too-few', 131, 'Fewer than two sources arrivin
     }),
     fragment(400, 'shop-a'),
     repaint(900, {
-      merge: {state: 'collapsed', collapse: {cause: 'few', answered: [SHOP_A_NAME]}},
+      merge: {
+        state: 'collapsed',
+        collapse: {cause: 'few', answered: [SHOP_A_NAME], failed: ['shop-b', 'shop-c']},
+      },
       'shop-b': {state: 'failed', failure: {cause: 'unreachable'}},
       'shop-c': {state: 'failed', failure: {cause: 'vendor', message: FIELDSTONE_WORDS}},
     }),
