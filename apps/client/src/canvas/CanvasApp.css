@@ -659,6 +659,33 @@ body {
   z-index: 12;
 }
 
+/* The scrim behind the drawer: a faint wash over the page, a click on it closing the drawer. */
+.canvas-trail-scrim {
+  position: fixed;
+  inset: 0;
+  background: var(--a2v-scrim);
+  /* Over everything of the page — the band, the Ask pill, the notices — under the drawer. */
+  z-index: 16;
+  animation: canvas-trail-scrim-in 240ms ease-out;
+}
+
+.canvas-trail-scrim--closing {
+  animation: canvas-trail-scrim-out 240ms ease-in forwards;
+  pointer-events: none;
+}
+
+@keyframes canvas-trail-scrim-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes canvas-trail-scrim-out {
+  to {
+    opacity: 0;
+  }
+}
+
 /* The rail: the trail of the session's canvases, a drawer over the page's left edge — 272px,
    and 16px more for each lane the spine needs past its second. */
 .canvas-trail {
@@ -678,7 +705,7 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
   font-size: 14px;
   line-height: 20px;
-  z-index: 13;
+  z-index: 17;
   box-shadow:
     1px 0 0 var(--a2v-line),
     8px 0 24px rgba(24, 24, 27, 0.08);
@@ -922,7 +949,7 @@ body {
     0 1px 2px rgba(24, 24, 27, 0.08),
     0 8px 24px rgba(24, 24, 27, 0.12);
   pointer-events: none;
-  z-index: 14;
+  z-index: 18;
 }
 
 .canvas-trail-preview-frame {
@@ -1056,7 +1083,9 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .canvas-trail-label,
   .canvas-trail,
-  .canvas-trail--closing {
+  .canvas-trail--closing,
+  .canvas-trail-scrim,
+  .canvas-trail-scrim--closing {
     animation: none;
   }
 }

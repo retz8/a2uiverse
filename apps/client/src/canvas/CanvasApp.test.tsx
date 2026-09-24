@@ -437,6 +437,15 @@ describe('CanvasApp trail (task 9.6)', () => {
     await waitFor(() =>
       expect(screen.queryByRole('navigation', {name: 'Trail of past canvases'})).toBeNull(),
     );
+
+    // And a click on the scrim over the page closes it, landing nowhere else.
+    await userEvent.click(screen.getByRole('button', {name: 'Trail'}));
+    await screen.findByRole('navigation', {name: 'Trail of past canvases'});
+    await userEvent.click(screen.getByTestId('canvas-trail-scrim'));
+    await waitFor(() =>
+      expect(screen.queryByRole('navigation', {name: 'Trail of past canvases'})).toBeNull(),
+    );
+    expect(screen.getByRole('checkbox', {name: 'urgent only'})).toBeInTheDocument();
   });
 
   it('a question asked from a past canvas is its child, marked "from" in the rail; the parent stands (decision 5)', async () => {

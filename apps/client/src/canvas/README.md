@@ -133,8 +133,7 @@ Phase 9's durable composition (task 9.6), drawn to board F5 of the task 7.14 des
   under a day header, each its label, its time, "Live" on the newest, "Viewing" on the one on
   screen, the loading mark, "from HH:MM" on a branch — a canvas asked from one that is not its
   chronological predecessor — with the parent's title on hover and a way to it while it stands,
-  and a close on hover. Picking an entry views it and closes the drawer, which covers what the pick brought on screen; Escape, Trail and the
-  rail's own icon close it. Hover or focus on an entry shows its preview: the canvas's shell
+  and a close on hover. Picking an entry views it and closes the drawer, which covers what the pick brought on screen; Escape, Trail, the rail's own icon and a click on the faint scrim over the page close it. Hover or focus on an entry shows its preview: the canvas's shell
   surface mounted a second time, inert and scaled, with one line per source naming its current
   paint's title.
 - **The close** sends `{kind: "close"}` on the canvas's context, ends its turn and every stream

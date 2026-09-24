@@ -8,7 +8,8 @@
  *   newest, "Viewing" on the one on screen, a quiet mark on one still loading, a branch glyph on
  *   one asked from a past canvas — its parent named on hover and for assistive technology, the
  *   spine drawing the line — and a close. Picking an entry views it and closes the rail, since the drawer covers what the pick brought on screen; it closes on its own
- *   icon, on Trail again, and on Escape. Hover or focus on an entry shows its preview.
+ *   icon, on Trail again, on Escape, and on a click on the scrim over the page, which lands nowhere
+ *   else. Hover or focus on an entry shows its preview.
  * - On a past canvas, the band over the page: "Parked · asked at HH:MM", "Ask this again now",
  *   "Return to live" naming the live question.
  *
@@ -350,6 +351,20 @@ export function TrailChrome({
             <TrailIcon />
           </button>
         </div>
+      )}
+      {shown && (
+        // The scrim: the page behind the drawer, a click on it closing the drawer and landing
+        // nowhere else.
+        <div
+          className={
+            exiting ? 'canvas-trail-scrim canvas-trail-scrim--closing' : 'canvas-trail-scrim'
+          }
+          data-testid="canvas-trail-scrim"
+          aria-hidden="true"
+          onClick={() => {
+            if (open) onToggle();
+          }}
+        />
       )}
       {shown && (
         <nav
