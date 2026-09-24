@@ -105,6 +105,10 @@ The orchestrator paints nothing when the soft deadline releases the synthesis, s
 
 A row that carries a press — the late sources' line with Include, a failed fold-in with Include again, a view that couldn't be updated or made with Try again, a decline's late sources with Include — reads at body size in ink with a soft accent button named for its object: "Include Gmail" for one source, "Include all" for several. A row that only tells, the working sentence and the decline's reason, stays at caption size in the quiet register. The late line says what the reader needs, not the mechanism: "Gmail answered after this view was made.", and the progress line's clause "Gmail not in this view yet". The absorb stays on request: case 4 showed the fold-in rebuilding the view, a change the reader should choose, not have happen under them. Amends task 8.5 decision 6's wording and decision 11's late-arrival clause. Raised on case 4: the row read as a footnote when it was the one thing left to do.
 
+### 22. The condensed bar keeps the progress line
+
+Once the header has scrolled away, the one-line bar at the top edge carries the question and the progress line whenever the full header carries one, landed as well as running — "Joined … · Gmail not in this view yet" stays in view as the reader scrolls. It had dropped the line the moment the turn was over. SPEC §4.3's sentence and task 8.5 decision 11's compact-bar sentence follow. Raised on case 4, scrolling after Include.
+
 ## Invariants
 
 - Live verification drives tunnel URLs, never localhost.
