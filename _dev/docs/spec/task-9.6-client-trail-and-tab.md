@@ -51,7 +51,7 @@ On hover or focus of an entry the canvas's shell surface is mounted a second tim
 
 ### 10. One time, on the banner
 
-The band reads "Parked · asked at HH:MM", with "Ask this again now" and "Return to live" naming the live question, laid out as board F5 draws it. The progress line shows on a past canvas exactly as on live — its own state, running or landed — with no time appended. Per-fragment time is out of 9.6.
+The band reads "Parked · asked at HH:MM", with "Ask this again now" and "Return to live" naming the live question, laid out as board F5 draws it. Once the question has scrolled away, its condensed copy and the progress line fold into the band's middle, between the note and the buttons — one row of chrome on a past canvas, never a second bar beneath the band. The progress line shows on a past canvas exactly as on live — its own state, running or landed — with no time appended. Per-fragment time is out of 9.6.
 
 ### 11. The rail stays open
 
