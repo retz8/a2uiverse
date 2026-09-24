@@ -101,6 +101,10 @@ A fragment slot waiting for its source, before the first answer or again from Re
 
 The orchestrator paints nothing when the soft deadline releases the synthesis, so the step never claims to know whether a straggler will make it. Until a merge is possible — two sources arrived, the home source among them under a join — it reads "Waiting for X and Y, then joining", the sources still awaited in slot order, a failed one not among them. From then it reads "Joining A, B and C" over the arrived sources, then one clause per source not yet in: "X still loading", or for a failed one "no X to join" with a noun and "without X" without, the same clauses the landed form carries. Amends task 8.5 decision 11's first two rows. Raised on case 2: the step read "Joining Google Calendar, Gmail, GitHub and Linear" while the merge was being made over three.
 
+### 21. A press line that asks for a press is the view's action
+
+A row that carries a press — the late sources' line with Include, a failed fold-in with Include again, a view that couldn't be updated or made with Try again, a decline's late sources with Include — reads at body size in ink with a soft accent button named for its object: "Include Gmail" for one source, "Include all" for several. A row that only tells, the working sentence and the decline's reason, stays at caption size in the quiet register. The late line says what the reader needs, not the mechanism: "Gmail answered after this view was made.", and the progress line's clause "Gmail not in this view yet". The absorb stays on request: case 4 showed the fold-in rebuilding the view, a change the reader should choose, not have happen under them. Amends task 8.5 decision 6's wording and decision 11's late-arrival clause. Raised on case 4: the row read as a footnote when it was the one thing left to do.
+
 ## Invariants
 
 - Live verification drives tunnel URLs, never localhost.
