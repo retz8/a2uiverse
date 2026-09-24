@@ -32,6 +32,8 @@ The turn's single final is emitted once every dispatch has arrived, failed, or r
 
 Under a join hypothesis the reserved merge slot waits for the home source, skeleton in place, the progress line saying it is waiting for the home source's instances to join. Synthesis fires when the home source lands, over whatever else has arrived. When the home source fails — at the hard cap, fast, or its paint found invalid after the merge landed — the merge slot collapses at once with no model call, and the home source's slot carries the failure tile. A home source arriving with no instances goes to the Synthesizer, which declines. Retry on the home source can bring the merge back. Without a join hypothesis every source is a peer and no exemption applies.
 
+*Amended by task 8.7 decision 30.* The exemption holds under an anchored join hypothesis. A union hypothesis has no home source: every source is a peer, as without a hypothesis.
+
 ### 5. The reserved column
 
 A source's planned column stays in the merged view when synthesis lands without that source. The column is marked to its source from plan time, so the reserved skeleton shows the mark too. Its cells are drawn by the client from the slot's state the client already holds: loading while the source is in flight, the failed state once it failed, the header saying the same. When the source is later included, the cells fill in place and nothing moves. The shell catalog's Table gains the per-column source mark as a literal presentation prop the Synthesizer emits. The Planner writes the mark beside the columns whenever it writes them. The Synthesizer is handed the marks and the sources missing from its synthesis, and keeps every column marked to a missing source.
@@ -44,9 +46,13 @@ A source arriving after the merge landed mounts its fragment in its own slot wit
 
 A failed vendor slot draws: the failure said at body size, a Retry button, and the vendor's words beneath under a heading naming the vendor, with no top bubble.
 
+*Amended by task 8.7 decision 17.* The tile draws one statement at body size in ink, then Retry: the vendor's own words when it spoke, otherwise the client's reason for the cause. No line above the words and no heading naming the vendor — the attribution marker above the tile names it.
+
 ### 8. The client writes the failure line
 
 The tile's line is the client's, computed from the source's display name and the noun the plan carries for that source under a join hypothesis, falling back to a line that the source couldn't answer when there is no noun. No model wording. Beneath it the vendor's own words when the vendor spoke; when nothing was said, a network failure or the hard cap, the orchestrator's own reason in plain words, and the heading changes to fit. The kinds of failure and their exact phrasings are the task's.
+
+*Amended by task 8.7 decision 17.* The client's line stands only when the vendor said nothing, and names neither the source nor the plan's noun for it: "Couldn't be reached.", "No answer within the time allowed.", "Answered, but its screen couldn't be shown.", and "Couldn't answer." when the vendor ended without a word or no cause was painted.
 
 ### 9. The failure rides on the Slot
 
@@ -63,6 +69,8 @@ The turn's first synthesis is its only automatic Synthesizer call. Every further
 ### 12. Every collapse of the merge leaves one line
 
 A collapsed merge leaves one quiet line where the merged view's label would have sat. The reserved view's skeleton height goes and the fragments move up once to meet that line. A decline's line is the Synthesizer's reason. Every other collapse's line is the client's, from a cause the painter sets: the home source failed, fewer than two sources arrived, or the merged view couldn't be made. The merged view couldn't be made carries Try again. A collapsed merge a press brings back moves nothing until its view lands. The progress line's merge step gains its own declined state in the client's words.
+
+*Amended by task 8.7 decisions 23, 24 and 27.* A collapse line the reader can act on carries its press and reads at body size in ink: the home source failed carries that source's Retry, the same press as its tile; fewer than two sources arrived carries a Retry over every source that did not arrive, which the orchestrator paints by id beside who answered. The decline's reason also reads at body size in ink, with no press. The working and waiting sentences stay quiet.
 
 ### 13. A dev-only fault map in the AgentsPool
 

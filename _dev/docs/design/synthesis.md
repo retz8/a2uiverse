@@ -7,13 +7,13 @@ the **orchestrator** asks a model to *author* the view and checks what comes bac
 *evaluates* it and keeps it live. This doc is the narrative end to end. The per-class records stay
 in [`orchestrator.md`](orchestrator.md), [`client.md`](client.md) and
 [`shell-catalog.md`](shell-catalog.md); the sdk's front page is `packages/sdk/README.md`. State
-as of task 7.16.
+as of task 8.7.
 
 ## The idea in one paragraph
 
 Every vendor paints its own surface with its own data model — its **partition**. Nothing ever
-copies data out of a partition. Instead, once every vendor has answered, a second model call (the
-**Synthesizer**) writes the **synthesize data model**: a component tree in the shell's own
+copies data out of a partition. Instead, once the vendors have answered — or the soft deadline
+stops waiting for the stragglers — a second model call (the **Synthesizer**) writes the **synthesize data model**: a component tree in the shell's own
 catalog, a free-form JSON model whose every leaf is a **formula** — one operator over **refs**
 into the partitions — a sort declaration for each list the tree shows, and a note for the log.
 The orchestrator validates it, paints the tree into the slot the Planner reserved, and sends the
@@ -23,7 +23,7 @@ surface's data model as ordinary values. The renderer sees plain values on plain
 merged view is a live query over partitions that stay isolated: the moment a partition changes,
 the client re-evaluates, and only when a ref stops resolving, an entry appears in a list the view
 reads, or a source the view reads nothing from paints again does the orchestrator ask the model
-again.
+again — that, or the reader pressing to fold a late source in, retry a failed one, or try again.
 
 ```
                           orchestrator                                        client
@@ -46,9 +46,11 @@ The words to hold on to:
   (the **hub**) stamps its own paints with the reserved source id `shell`.
 - A **composition** is one screen: the Planner's plan, its **slots** — the regions of the layout
   the shell paints first, one per agent, each a `Slot` component of the shell catalog whose state
-  (pending · failed · collapsed) the hub repaints; a collapsed slot folds away — and the
-  partitions behind them. An **utterance turn** is the user asking; an **action turn** is the
-  user acting inside a fragment, dispatched to that fragment's owner alone.
+  (pending · failed · collapsed) the hub repaints; a collapsed vendor slot folds away, a collapsed
+  merge slot leaves one line — and the partitions behind them. An **utterance turn** is the user
+  asking; an **action turn** is the user acting inside a fragment, dispatched to that fragment's
+  owner alone; a **press** is the reader's Retry, Include or Try again, an operation on the
+  composition sent beside the turn.
 - A **ref** is a surface id plus a pointer into that surface's data model. Elements of an array
   are selected by key (`/threads[id="…"]`), never by position.
 - A **formula** is `{op, args}`: one operator the shell catalog declares over zero or more refs.
@@ -73,6 +75,7 @@ writing to its own data model. A **beat** is a recorded stream the canvas can re
 | Who | Where | Does |
 | --- | --- | --- |
 | Planner | orchestrator `planner/` | reserves the synthesis slot with a prose brief, and asks each vendor in prose for the data a merge needs |
+| the trigger | orchestrator `composition/trigger.ts` | after every settle, whether the merge waits, arms the soft deadline, is released, or collapses |
 | Partitions | orchestrator `composition/partitions.ts` | the server-side copy of every surface's data model; resolves refs through the sdk kit |
 | Synthesizer | orchestrator `synthesizer/` | prompts the model, extracts and validates its text, retries once |
 | the payload validator | sdk `validate.ts` | the contract's own checks over the derived model and sorts, run by both processes |
@@ -83,6 +86,7 @@ writing to its own data model. A **beat** is a recorded stream the canvas can re
 | intake + session | client `canvas/synthesis/` | validates the payload, subscribes to the partitions, re-runs the evaluator |
 | BindingEvaluator | client `canvas/synthesis/bindingEvaluator.ts` | pure: payload + partitions → the surface's data model |
 | DerivedValue · SortControl · Table · DataList | shell catalog | what a merged view is made of; the operators live in the same catalog |
+| the press lines | shell catalog `components/slot/press-lines.ts` | the lines on and above the merged view — collapse, late arrival, a press running or failed — from the facts painted on its `Slot` |
 
 ## A turn, step by step
 
@@ -96,15 +100,20 @@ scenario, recorded as beat 5.
    request also asks, in plain words, for the fields a merge depends on: identifiers, and the full
    date and time of each entry. It asks for data, never a format, and says nothing about the
    merge, the shell or the other agents (phase decision 9). When the view is over one kind of
-   thing, the brief states the join hypothesis — the entity, the home source whose instances are
-   the rows, each other source's cue — and each vendor is asked, in its own app's words, for the
-   fields its cue needs (task 7.6). The home source is one agent, never two: every other agent's
-   entries attach to its rows or to nothing. Beside the brief the entry carries the view's planned
-   `columns` and, under a join hypothesis, the entity's noun in each source (task 7.15). The plan
-   reaches the client as the shell's layout paint: a surface of `Slot`s, every one pending — the
-   synthesis slot as bare shell content, reserved as the merged view under its planned headers
-   with four skeleton rows, the join's nouns on it for the progress line, no attribution — before
-   any vendor has answered.
+   thing, the brief states the join hypothesis — the entity, its kind, each source's cue — and each
+   vendor is asked, in its own app's words, for the fields its cue needs (task 7.6). The hypothesis
+   is **anchored** when the question owns the entities through one source ("issues assigned to
+   me"): that source is the **home source**, one agent never two, whose instances are the rows,
+   every other agent's entries attaching to its rows or to nothing. It is a **union** when the
+   question ranges over all of the things wherever they are ("all cameras across the stores"): no
+   home source, the rows every instance any source lists (task-8.7 decision 30). Beside the brief
+   the entry carries the view's planned `columns`, each marked to the source whose values it shows
+   (`columnSources`, task 8.3), and, under a join hypothesis, the entity's noun in each source —
+   a union's noun for the thing itself beside them (task 7.15). The plan reaches the client as the
+   shell's layout paint: a surface of `Slot`s, every one pending — the synthesis slot as bare shell
+   content, reserved as the merged view under its planned headers with four skeleton rows, each
+   marked heading saying whether its source is loading or has failed, the join's nouns on it for
+   the progress line, no attribution — before any vendor has answered.
 
 2. **Vendors fill their slots.** Each vendor's events are relayed as fragments; the stamp on
    names its source, and the layout's `Slot` holding that source is where the surface belongs. As
@@ -113,21 +122,27 @@ scenario, recorded as beat 5.
    namespaced surface id, so it always knows what the client holds (the client also sends its
    data models back on every request, so two-way edits reach the copy). One surface per source: a
    source's new surface retires its earlier one, as the client's slot does. A source that completes
-   having painted counts as **arrived**; the moment the last dispatch settles is
-   `lastSettledAt`, where the dead-air clock starts.
+   having painted counts as **arrived**, and its stream's end is marked for the client: one event
+   with no parts, its stamp `settled`, where the client judges that source's fragments — a paint it
+   cannot draw is reported then, before the merge reads it (task-8.7 decision 25). A source that
+   fails — the vendor failing, unreachable, cut off mid-paint, at the hard cap, or its paint
+   reported undrawable — flips its slot to the failure tile, its data out of every merge and its
+   fragment off the canvas. The moment the last dispatch settles is `lastSettledAt`.
 
-3. **All sources settle → the Synthesizer is prompted.** Fewer than two arrived means no call at
-   all. Otherwise the model receives a system prompt assembled once at boot in the orchestrator:
+3. **The trigger releases the merge → the Synthesizer is prompted.** The next section says when;
+   fewer than two arrived means no call at all. Otherwise the model receives a system prompt assembled once at boot in the orchestrator:
    the role, the **rules doc** (`apps/orchestrator/src/synthesizer/synthesis.md` — partitions,
-   refs and predicates, formula leaves, the join from the hypothesis — home rows, attaching by
-   evidence, `judged` only when nothing but understanding links two entries, one entry or a list
-   with its count, declining without home rows, the note saying where the view departed from the
+   refs and predicates, formula leaves, the join from the hypothesis — an anchored join's home rows or a
+   union's rows of every instance, attaching by evidence, `judged` only when nothing but
+   understanding links two entries, one entry or a list with its count, declining without home
+   rows, or under a union without any instance, the note saying where the view departed from the
    hypothesis — sorts, the tree,
    the note, decline, re-synthesis, in a2uiverse words), the shell catalog's **guidance doc** (which components a merged view is made
    of, and the derived-value rule), the shell catalog pruned to the synthesis surface's keep-set,
-   the output schema, and one worked example, the S1 timeline. The turn carries the utterance, the brief, the columns the user was shown — the view starts from
-   them, departures said in the note (task 7.15) — and every arrived partition's live
-   data model with its app's display name. Never a vendor's component tree: Planner and
+   the output schema, and one worked example, the S1 timeline. The turn carries the utterance, the brief, the columns the user was shown, each with its source —
+   the view starts from them, departures said in the note (task 7.15) — the sources missing from
+   this synthesis, each with its state, every column marked to one of them kept (task 8.3), and the
+   live data model of every partition the merge is over, with its app's display name. Never a vendor's component tree: Planner and
    Synthesizer know only the shell catalog (phase decision 7). The only tree the Synthesizer ever
    sees is its own previous one, on a retry or a re-synthesis.
 
@@ -153,7 +168,9 @@ scenario, recorded as beat 5.
    non-empty one, every ref into a held partition and resolving *now*, and every `equal` and
    `contains` of a match claim holding *now* on the shell catalog's own relation functions — a
    failing one named with both values and "write a fact that holds, or do not attach the entry",
-   never offering `judged` (task 7.6). Any finding goes back to the model as one line
+   never offering `judged` (task 7.6); and the Table's column marks, one per column, each a source
+   of the composition or null, every column marked to a missing source kept — a mark written as a
+   source's surface id taken as that source (task 8.7). Any finding goes back to the model as one line
    per error with the failed document; a second failure is `malformed`. Within one synthesis the
    retry is the only second call; a re-synthesis later in the composition's life is a new
    synthesis with its own retry.
@@ -184,13 +201,71 @@ scenario, recorded as beat 5.
    (task 7.16). Calendar's entries stand in their own table
    with their times shown as labels. (A view of one thing's labelled fields — a summary, a detail
    — is a `DataList` of `DataListItem`s instead of a `Table`; the guidance doc says which shape
-   serves which view.)
+   serves which view.) A column marked to a source the merge landed without stays **reserved**:
+   the client draws its cells from that source's slot state — a skeleton bar while it loads, the
+   dash and "unavailable" once it failed, "not included" while it waits for Include — and they fill
+   in place once it is included; nothing moves (task 8.2, 8.5).
 
 9. **The turn closes.** The journal records the whole conversation — every attempt's text and
    errors (the holds-now findings among them), the accepted document, its note, the change account
-   on a re-synthesis — and the **dead air**: the interval from the last
-   source settling to the synthesis outcome (`deadAirMs`). Dead air is measured, not mitigated
+   on a re-synthesis, what released it — settled, the soft deadline or the home source landing, or
+   the press behind a later call — the sources it ran over and those missing — and the **dead air**:
+   the interval from the release to the synthesis outcome (`deadAirMs`). Dead air is measured, not mitigated
    (phase decision 15).
+
+## When the merge runs
+
+The **trigger** (`composition/trigger.ts`) is weighed after every settle (SPEC §5.3, phase-8 decisions
+1–4):
+
+- **Every source settled** — arrived, failed or at its hard cap — releases the merge (`settled`), or
+  collapses it when fewer than two arrived (`few`).
+- **The soft deadline** is patience after the pack. It arms once the sources that arrived could
+  make a merge on their own — two, the home source among them under an anchored join — and fires
+  after 10 s in which no source has settled, each settle restarting it. Firing releases the merge
+  over what arrived (`soft-deadline`); the stragglers' dispatches are not aborted and run on.
+- **The home source is exempt** under an anchored join: the reserved slot waits for it and the
+  merge is released when it lands (`home`); a home source that fails collapses the merge at once,
+  with no call. A union's sources are all peers.
+- **The hard cap** fails a dispatch 300 s after it went out: its slot takes the failure tile
+  (`timeout`). The dispatch runs on, and an answer arriving past the cap is held — not drawn, not
+  in the partitions — until the reader presses Retry.
+
+Both lengths come from the orchestrator's environment. That release is the turn's **one automatic
+synthesis**; every later Synthesizer call has a press behind it (phase-8 decision 11). The turn's
+final waits for every dispatch to arrive, fail or reach the cap, so a straggler lands inside its
+turn's stream; a new utterance ends the turn — its dispatches cancelled, each vendor sent A2A's
+cancel, its model calls aborted.
+
+**The merge in the making.** One merge is made at a time per composition. It starts only once no
+source it reads has a press in flight, and lands only once none does (task 8.10). A partition it
+reads changing while the call runs throws the call away, and so does a source it reads being
+reported undrawable meanwhile — the settled marker brings that report one round trip after the
+source's stream ends, which can fall while the merge is made (task-8.7 decision 25). Either way it
+is made again, over the set as it now stands, journaled `thrownAway`.
+
+**The merge's own set.** The merge keeps the sources it was built over; the walk and any
+re-synthesis run over that set. Only Include, Retry and Try again add to it; a failure removes
+from it (phase-8 decision 6).
+
+**Late arrivals and the presses.** A source arriving after the view landed mounts its fragment in
+its slot with no model call. The view stays as it landed, its column for that source reading "not
+included", and a row above the view's label says "Gmail answered after this view was made." beside
+"Include Gmail" (task-8.7 decision 21). Each press is an operation on the composition, sent on a
+stream beside the turn (contract v0.7):
+
+- **Include** folds the late sources in: the inline re-synthesis, handed the previous document
+  beside the fresh partitions and told which sources joined. While it runs the row says "Including
+  Gmail…" and the reserved cells load; they fill in place when the document lands.
+- **Retry** re-dispatches one failed slot with the plan's request, no re-plan. An answer held past
+  the cap is drawn at once; while the capped dispatch still runs, the re-dispatch races it and the
+  first to arrive fills the slot, the other cancelled. A source retried before the first merge
+  rejoins the pack; after it, its arrival is folded in without a second press.
+- **Try again** makes again a merge whose call failed, over every arrived source.
+
+Whatever is owed while a merge is being made — Includes, retried arrivals, a walk — runs as one
+call once it ends (task 8.4). A re-synthesis whose call fails keeps the landed view, with "The
+merged view couldn't be updated." and Try again, or "Couldn't include Gmail." and Include again.
 
 ## What rides the wire
 
@@ -199,6 +274,8 @@ scenario, recorded as beat 5.
 ```json
 {"source": "gmail", "role": "fragment"}
 ```
+
+and, on the one event with no parts that closes a source's stream, `"settled": true` beside them.
 
 **The synthesis paint** (one event): the A2UI parts carry the tree; the metadata carries the
 stamp and the payload. A trimmed payload for the timeline:
@@ -316,7 +393,8 @@ re-synthesis, what changed. Journaled, never painted — the user never saw the 
 decision 8).
 
 **Decline.** `{declined: true, reason}` when the sources give nothing to merge. The reason is
-written for the user and spoken into the slot as the shell's own words (phase decision 17).
+written for the user; it rides on the collapsed synthesis `Slot` and is drawn where the view was,
+at body size in ink — the one line on the canvas in a model's words (task-8.7 decision 27).
 
 ## What the client writes
 
@@ -424,8 +502,9 @@ evaluator recomputes over what still resolves, and the cells show the narrowed s
 reorder inside a fragment re-points nothing: the same key still names the same element, so the
 cells do not move and no model is called.
 
-What *does* bring the Synthesizer back is absence, appearance, or an unread repaint seen from the
-orchestrator (SPEC §6.3, task 5.10 decision 4, task 7.6, task 7.9). A user's in-fragment interaction is an action turn:
+What *does* bring the Synthesizer back, short of a press, is absence, appearance, or an unread
+repaint seen from the orchestrator (SPEC §6.3, task 5.10 decision 4, task 7.6, task 7.9), over the
+merge's own set. A user's in-fragment interaction is an action turn:
 owner-only dispatch, then a final. Under synthesis that turn gains a tail. At every accept the
 orchestrator records a **watch**: every array the accepted payload's refs select into by key —
 and every array an earlier accepted document of the composition did — with the keys each holds
@@ -478,27 +557,43 @@ own writes and ignores the notification they raise, and an unchanged output is n
 all. No round trip, no model call. Absent cells sort last in both directions; ties keep model
 order, so nothing moves when nothing differs.
 
-## When nothing is joinable
+## When the merge collapses
 
-- **Decline.** The Synthesizer answers `declined: true` with a reason. The orchestrator publishes
-  the reason as the shell's own words in the synthesis slot — a text part stamped as the synthesis
-  fragment, no payload beside it — then collapses the slot through the ordinary slot-state
-  repaint; the collapsed slot rests on those words and the fragments stand side by side. Journaled
-  `declined`. Only a decline speaks: it is the model's judgment in its own words. The other
-  collapses are the runtime's and stay silent.
-- **Malformed.** Both attempts failed the validator or the checklist. Journaled `malformed` with
-  the last attempt's errors. Never a broken turn — the fragments have already painted correctly.
-- **Fewer than two sources arrived.** No model call; the slot collapses; journaled `skipped`.
-- **The model call failed** (no key, a provider error). Journaled `failed`; the slot collapses.
-- **The client rejects the payload.** Contract drift, in practice: the sdk validator or the
-  operator check fails at intake. The client reports `VALIDATION_FAILED` for `shell:synthesis` on
-  the **side channel** — the request it sends outside any turn to say a fragment cannot render —
-  and the orchestrator flips the slot keyed `shell` to failed and repaints the layout. A ref into a
-  surface the client does not hold is *not* a rejection — that is absent at evaluation time. The
-  two judgments differ on purpose: the orchestrator's checklist asks whether every ref resolves in
-  *its* partitions at the moment of authoring, so the model is never allowed to point at nothing;
-  the client asks again at every evaluation, when a surface may since have been torn down or
-  drilled into, and answers with a state, not an error.
+A collapsed merge leaves one line where the view's label would have sat; the skeleton's height is
+given back and the fragments move up once. The cause, or the decline's reason, rides on the
+synthesis `Slot`, and the shell catalog composes the line from it — in the client's words for every
+cause but the decline (SPEC §4.5, phase-8 decision 12):
+
+- **Decline.** The Synthesizer answers `declined: true` with a reason when the sources give nothing
+  to merge — always under an anchored join whose home source brought no instances, under a union only
+  when no source brought one. The reason rides
+  only on the slot, drawn at body size in ink with no press (task-8.7 decision 27). A source
+  arriving after the decline is offered beneath it — "Gmail has answered since." with "Include
+  Gmail" — and Include then makes the merge over every arrived source. Journaled `declined`.
+- **The home source failed.** No call. "The merged view needs Linear issues, which didn't load."
+  carries "Retry Linear", the same press as the home source's tile (task-8.7 decision 23).
+  Journaled `home`.
+- **Fewer than two sources arrived.** No call. "The merged view needs at least two sources, and
+  only GitHub answered." carries "Retry all" over the sources that did not arrive, painted by id
+  beside who answered, and the client sends it as one Retry per source (task-8.7 decision 24).
+  Journaled `skipped`.
+- **The merged view couldn't be made.** Both attempts failed the validator — journaled `malformed`
+  with the last attempt's errors — or the model call failed (no key, a provider error) — journaled
+  `failed`. "The merged view couldn't be made." carries Try again. Never a broken turn — the
+  fragments have already painted correctly.
+
+A press that could bring the merge back changes only the line's words — "Waiting for Linear, then
+merging…", "Making the merged view…" — and nothing moves until the view lands.
+
+**The client rejects the payload.** Contract drift, in practice: the sdk validator or the
+operator check fails at intake. The client reports `VALIDATION_FAILED` for `shell:synthesis` on
+the **side channel** — the request it sends outside any turn to say a fragment cannot render —
+and the orchestrator flips the slot keyed `shell` to failed and repaints the layout. A ref into a
+surface the client does not hold is *not* a rejection — that is absent at evaluation time. The
+two judgments differ on purpose: the orchestrator's checklist asks whether every ref resolves in
+*its* partitions at the moment of authoring, so the model is never allowed to point at nothing;
+the client asks again at every evaluation, when a surface may since have been torn down or
+drilled into, and answers with a state, not an error.
 
 ## Lifetimes
 
@@ -528,6 +623,11 @@ order, so nothing moves when nothing differs.
   the stamp on the one event that paints the merged view, so a replay evaluates the real
   document over the real partitions. Beat 9 (`beat-9-entity-join.json`) is the entity join —
   Linear, GitHub and CircleCI on this repository, the merged view with its match claims.
+- Phase 8's cases: the synthetic beats in `apps/client/src/beats/lateFailureBeats.ts` — three
+  storefronts joined on the camera, each late-arrival, failure and collapse case, each press also
+  offered unpressed — and recorded beats 10–18, each through an orchestrator started with its case's
+  fault map (`A2UIVERSE_FAULTS`, the AgentsPool's dev-only faults) and deadlines; `client.md` lists
+  them.
 - The orchestrator's integration tests run the loop with a `FakeSynthesizer` in place of the
   **text seam** — the one-method interface the model call sits behind, text in, text out; the
   live smoke behind `A2UIVERSE_SYNTHESIZER_LIVE=1` runs the real model once.
@@ -536,8 +636,6 @@ order, so nothing moves when nothing differs.
 
 - **Dead air** between the last fragment and the synthesis paint is measured in the journal and
   not mitigated; streaming the synthesis fragment is a backlog item decided on that evidence.
-- **Per-source deadlines.** A vendor that never answers holds synthesis open (phase decision 12);
-  Phase 8.
 - **The Synthesizer's judgment** of which sources share a key is stated as a rule and taught by
   example; it is not enforceable, and it varies run to run (task 5.7's findings).
 
@@ -550,10 +648,11 @@ order, so nothing moves when nothing differs.
 | Validation | `js/src/validate.ts` · `js/src/a2ui/` | `synthesizer/validate.ts` | `canvas/synthesis/intake.ts` | `src/keep-sets.ts` |
 | The prompt | — | `synthesizer/prompt.ts` · `synthesizer/synthesis.md` · `synthesizer/examples.ts` · `authoring/taggedBlock.ts` · `planner/prompt.ts` | — | `docs/synthesis-guidance.md` · `catalogs/v0.9.1/catalog.json` |
 | The model call | — | `synthesizer/synthesizer.ts` | — | — |
+| Trigger, presses | — | `composition/trigger.ts` · `composition/presses.ts` · `executor.ts` · `agentsPool/faults.ts` | `canvas/createCanvasWiring.ts` (the press) · `canvas/composition/columnState.ts` · `canvas/turnProgress.ts` | `src/components/slot` · `slot/press-lines.ts` · `table` |
 | Integrity, re-synthesis | — | `composition/integrity.ts` · `composition/relations.ts` · `executor.ts` | — | — |
 | The paint | — | `composition/synthesisPainter.ts` · `composition/state.ts` | `canvas/turn/canvasTurn.ts` · `a2a/messages.ts` | — |
 | Evaluation, session | — | — | `canvas/synthesis/synthesisSession.ts` · `canvas/synthesis/bindingEvaluator.ts` | `src/functions/operators.ts` · `src/functions/relations.ts` · `derived-value/join.ts` |
 | Navigation | `js/src/pointer.ts` (`locatePointer`) | — | `canvas/navigation/` | `src/components/derived-value` |
 | Rendering | — | — | `canvas/composition/slotContent.tsx` | `src/components/derived-value` · `sort-control` · `table` · `data-list` · `shared/instant.ts` |
 | Journal, logs | — | `journal/types.ts` · `log.ts` | — | — |
-| Proof without a model | `js/src/*.test.ts` | `test/orchestrator.test.ts` | `src/beats/synthesisFixture.ts` · `src/beats/joinFixture.ts` · `tests/canvas-synthesis.test.tsx` · `e2e/synthesis.spec.ts` · `e2e/join.spec.ts` · `e2e/navigation.spec.ts` · beats 5 and 9 | — |
+| Proof without a model | `js/src/*.test.ts` | `test/orchestrator.test.ts` | `src/beats/synthesisFixture.ts` · `src/beats/joinFixture.ts` · `tests/canvas-synthesis.test.tsx` · `e2e/synthesis.spec.ts` · `e2e/join.spec.ts` · `e2e/navigation.spec.ts` · beats 5 and 9 · `src/beats/lateFailureBeats.ts` · `tests/canvas-late-failure.test.tsx` · `e2e/late-failure.spec.ts` · beats 10–18 | — |

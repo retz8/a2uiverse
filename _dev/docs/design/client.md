@@ -1,7 +1,7 @@
 # Client — system design
 
 `apps/client`. The canvas shell (SPEC §4, §10–11): language in, full-screen generative UI out. It
-talks only to the orchestrator. State as of task 8.5: a composed canvas — one shell surface,
+talks only to the orchestrator. State as of task 8.7: a composed canvas — one shell surface,
 `shell:main`, a model-authored tree in the shell catalog holding slots, each filled by a different
 vendor's fragment in that vendor's own design system — plus the shell's own content in the same
 tree: the merged view as shell content in its reserved slot, whose data model the client computes
@@ -54,8 +54,8 @@ and renders, which is what a test or a replay needs. Every vendor catalog is reb
 | `hostRelay` | The host the shell catalog is built with, before any canvas exists — `ShellHost {onShellAction, onNavigate, appDisplayName, onPress}`: forwards a shell action or a navigation to the host the canvas bound, and warns and drops one raised with nothing bound; the lookup answers nothing when unbound, so the app id stands in | built in `canvas.tsx`; `CanvasApp` binds `wiring.host` while mounted |
 | `components/TrustedPageOverlay` | The trusted-page layer over the canvas — the Store or the App Library — as `trustedPage` says: the page's title, the query when one was carried, "Back to the canvas" | `canvasStore` (`trustedPage`, `closeTrustedPage`) |
 | `components/QuestionHeader` | The question heading the canvas: display size on one line, a fixed 4-line box (120px) past it, measured before paint; past 4 lines the 4th fades and "Show all +N lines" opens the whole question over the page (Esc closes); the header and "Edit and ask again" open the palette holding it | `CanvasApp` (keyed by the question, so a new one remeasures), `questionOnView` |
-| `components/CompactHead` | The header condensed: once the head has scrolled out of `.canvas-scroll`, a one-line bar over the page's top edge — the question, and the progress line's compact copy while the turn runs; nothing while the head is in view | `CanvasApp` (the scroller and head refs), `ProgressLine` |
-| `turnProgress` · `components/ProgressLine` | Pure: the turn's progress off the store — planning (an utterance in flight, nothing planned, or a newer question replacing the composition), an action's label beside the composition's steps, a step per vendor source in roster order (✓ once placed or spoken, ✕ as painted, the spinner while loading or while its own Retry is pressed or runs, whether or not the turn is in flight), and the merge step in the client's words (task-8.5 decision 11): "Joining …" over each vendor's display name and noun with the home source first when the shell `RosterEntry` carries the plan's `join`, "Waiting for Linear issues, then joining" while only the home source loads, "Joined …" over the merge's own set with a clause per missing source after F6 ("· no CircleCI runs to join", "· still loading", "· arrived after this merge", "· including", "· couldn't include"), "Found nothing to join across …" for a decline, the collapse causes shortened, "Could not join …" for a merge that couldn't be made — and its line under the question, the working step carrying `canvas-pending` | `canvasStore` |
+| `components/CompactHead` | The header condensed: once the head has scrolled out of `.canvas-scroll`, a one-line bar over the page's top edge — the question, and the progress line's compact copy whenever the full header carries one, running or landed (task-8.7 decision 22); nothing while the head is in view | `CanvasApp` (the scroller and head refs), `ProgressLine` |
+| `turnProgress` · `components/ProgressLine` | Pure: the turn's progress off the store — planning (an utterance in flight, nothing planned, or a newer question replacing the composition), an action's label beside the composition's steps, a step per vendor source in roster order (✓ once placed or spoken, ✕ as painted, the spinner while loading or while its own Retry is pressed or runs, whether or not the turn is in flight), and the merge step in the client's words (task-8.5 decision 11, task-8.7 decision 20), the join phrased from the shell `RosterEntry`'s `join` — the home source's noun to the others' under an anchored join ("Linear issues to GitHub PRs and CircleCI runs"), the thing across the sources under a union ("cameras across Aperture & Co, Northlight and Fieldstone", task-8.7 decision 30), the apps listed with none: before the view lands, "Joining …" over the plan while nothing has arrived, "Waiting for X and Y, then joining" over the sources still awaited, a failed one not among them, until a merge is possible — two arrived, the home source among them under an anchored join — then "Joining …" over the arrived sources with a clause per source not yet in ("· CircleCI runs still loading", "· no CircleCI runs to join", "· without CircleCI" with no noun), since the hub paints nothing at the soft deadline's release; "Joined …" over the merge's own set with a clause per missing source after F6 (those, and "· Gmail not in this view yet", "· including …", "· couldn't include …"); "Found nothing to join across …" over the sources the decline was made over, a source that answered since in its own clause; the collapse causes shortened ("Can't join without Linear issues", "Only GitHub answered, nothing to join"); "Could not join …" for a merge that couldn't be made — and its line under the question, the working step carrying `canvas-pending`; with nothing to say — a platform answer, no source dispatched, no merge — it draws nothing and takes no room (task-8.7 decision 28) | `canvasStore` |
 | `components/AmbientNotice` | The notice stack and its two fade clocks | `canvasStore` via `orderedNotices` |
 | `synthesis/synthesisSession` | A composition's synthesis state: the payload, the data-model subscriptions that re-run the evaluator, the user's sort choices by array path, the last output written | fed by `turn/canvasTurn`; reads and writes the live processor's data models; reports an invalid payload through the fragment-failure channel |
 | `synthesis/bindingEvaluator` | Pure: `evaluate({payload, models, choices, functions}) → EvaluatedModel` — the derived model mirrored with a cell object at every formula path, each cell's join and navigation target, every array a sort path reaches sorted in place, `/sorts/N` with the choice in force; ref resolution through the sdk kit, absent-skipping, operator and relation dispatch to the shell catalog, `argmin`/`argmax`/`source` mapped to an app id | the shell catalog's `functions` and `cellJoin`; the sdk's `reachSortPath`; `parseInstant` for the sort |
@@ -66,9 +66,9 @@ and renders, which is what a test or a replay needs. Every vendor catalog is reb
 ### The stamp is the routing input
 
 The hub stamps every event it relays (`metadata.a2uiverse`, `@a2uiverse/sdk`, composition
-contract v0.7): `{source, role}`. `sendAndApply` extracts
+contract v0.7): `{source, role, settled?}`. `sendAndApply` extracts
 it (`extractStampFromEvent`, over the sdk's `readStamp`) and hands it to the turn handle alongside
-the batch. Placement is by `source`: the stamp names no slot, and the `Slot` a fragment fills is
+the batch — an event with no A2UI messages only when its stamp is `settled`. Placement is by `source`: the stamp names no slot, and the `Slot` a fragment fills is
 the one whose `source` is the stamp's.
 
 - `role: 'shell'` — an ordinary stage paint; the roster and the refused set are read off it.
@@ -76,6 +76,9 @@ the one whose `source` is the stamp's.
   for the stage or the timeline.
 - **absent** — a stage paint. Composition is opt-in via the stamp, which is what keeps every
   pre-composition fixture and test valid.
+- `settled` — the one event the hub sends after a fragment source's last, carrying no A2UI parts
+  (task-8.7 decision 25): nothing is applied, and the runner judges that source's fragments at once
+  (`settleSource`), so a paint the canvas cannot draw is reported before the merge reads it.
 
 ### Synthesis: the paint carries the tree, the payload rides beside the stamp
 
@@ -177,7 +180,8 @@ Retry, Include and Try again (task 8.5) reach the client through the shell catal
 handler — `ShellHost.onPress`, bound through the relay — as the composition operation
 `{kind, sources}`. `press` sends it with `buildOperationMessageParams` — the operation as a data part
 of its own (`operationData`, contract v0.7), the supported catalogs, no data model — and answers it
-on a **stream beside the turn**: `runner.beginSideStream()`. Not a turn: no status strip, no history
+on a **stream beside the turn**: `runner.beginSideStream()`. A line's Retry naming several sources —
+Retry all — is sent as one Retry per source, each on its own stream (task-8.7 decision 24). Not a turn: no status strip, no history
 row, no timeline entry, and the turn in flight is never cancelled. The stream routes by the stamp
 exactly as a turn's batches do — a shell repaint read for the roster, the slot states and the merged
 view's facts; a fragment claiming its slot; a synthesis payload handed to the session — straight into
@@ -274,7 +278,8 @@ the ids are the Planner's, the nesting whatever it drew — and the painter wrap
 that link and never by where either sits in the list; a slot enters the roster only when its
 attribution's `appId` is its own `source`. A `Slot` with `content: "shell"` pairs with no
 attribution and reads as the reserved `shell` source, named by its label, carrying the `join` the
-painter wrote on it — `{home, nouns}`, the `RosterEntry`'s one optional field (task 7.15). A `Slot` with `gap`
+painter wrote on it — `{home, entity?, nouns}`, `home` null and `entity` the thing the rows are under
+a union join (task-8.7 decision 30) — the `RosterEntry`'s one optional field (task 7.15). A `Slot` with `gap`
 names no source and enters no roster. The roster orders the notice stack and names its lines —
 including for a source that never paints — and decides which unfilled slots rest on prose.
 
@@ -299,11 +304,12 @@ the head scrolls away with the page it heads. `CompactHead` watches it leave (an
 `IntersectionObserver` rooted at the scroller) and then hangs a 60px bar — Back's row with 12px above and below, Back and the question on its
 middle line — from a zero-height sticky
 anchor at the scroller's top — under the parked banner while parked — so showing it moves nothing:
-the question on one line at 14px semibold, opening the palette holding it, and, while the turn or a
-press runs, `ProgressLine`'s compact copy beside it, with no live region and no `canvas-pending` of its
-own (task 7.16). Every word of the progress line is computed; the join
-is named by the apps' display names, since the join hypothesis's nouns never reach the client. The
-status strip names the app and carries a sticky error only. The head, strip and Ask pill take
+the question on one line at 14px semibold, opening the palette holding it, and, whenever the full
+header carries one, `ProgressLine`'s compact copy beside it, running or landed (task-8.7 decision 22),
+with no live region and no `canvas-pending` of its own (task 7.16). Every word of the progress line is
+computed; the join is named from the nouns the plan painted on the merged view's slot. The status
+strip is chrome, its text starting on Back's left edge, 12px in (task-8.7 decision 16): it names the
+app and carries a sticky error only. The head, strip and Ask pill take
 their values from `--a2v-*` tokens on `.canvas-app` (with dark values), drawn to the Final page of
 the task 7.14 design canvas (https://claude.ai/artifact/W324EkZXFze2CxddzNve1o). The stage content
 sets `--a2v-layout-gap: 32px` for the shell's own regions and unsets it inside each fragment and
@@ -349,13 +355,21 @@ utterances, actions, failure reports and shell-action reports alike. On silence 
 attempt and sends the same message under the same id once more, with a `[A2UI:a2a]` warning; a
 second silence throws "The orchestrator did not answer." The orchestrator refuses an id it has
 already taken in, so a first send that was only slow never runs twice (task 7.9). A stream that has
-answered may go quiet for as long as a model takes.
+answered may go quiet for as long as a model takes; the hub's heartbeat — an empty `working` event
+after 30 s of silence, nothing to apply — keeps a proxy's idle timeout from cutting it. A turn that
+answered and then lost its stream is said on the strip in the client's words, "Lost the connection to
+A2UIVerse. Ask again to see where this stands." (`LOST_TURN_WORDS`), the sentence a press uses; one
+that never reached the orchestrator, "That didn't reach A2UIVerse. Ask again."
+(`UNREACHED_TURN_WORDS`); the browser's error goes to the console (task-8.7 decision 31).
 
 ### Validation
 
-Client-side, where the catalog schemas physically are. Validation errors ride the existing
-deferred/settle path and are judged at turn end per fragment; a structural failure that can never
-self-heal (an unknown `catalogId`) reports immediately. One report per fragment. A broken *shell*
+Client-side, where the catalog schemas physically are. Validation errors ride the deferred/settle
+path: a fragment is judged when its source's stream ends — the stamp's `settled` — and at the turn's
+end whatever was not, a fragment that never reached the canvas failing only there; a structural
+failure that can never self-heal (an unknown `catalogId`) reports immediately. One report per
+fragment. A fragment's failure never lights the status strip — its tile says it; the strip speaks
+for a surface no slot carries (task-8.7 decision 26). A broken *shell*
 surface reports nothing outward — that is the platform failing, not a vendor.
 
 The report goes out on a **side channel**: no turn, so it cannot cancel the user's in-flight work,
@@ -507,7 +521,8 @@ upstream hook under the catalog's own scope class introduces nothing onto the pa
   derived surface harmlessly.
 - **A request can be lost in the tunnel before it reaches the orchestrator** (task 6.6, traced in
   7.9). The first-event timeout and one retry under the same id cover it; a request lost twice
-  fails. The retry has not yet fired in a live sitting.
+  fails. The retry fired in task 8.7's sittings: three utterances whose first send was lost landed
+  on the resend.
 - **A streamed component is validated before it is whole.** Under progressive apply a vendor's
   first `updateComponents` may carry a component without the prop its next batch completes; the
   partial fails the catalog schema and logs, the whole one passes and renders (task 6.6).
