@@ -123,7 +123,9 @@ Phase 9's durable composition (task 9.6), drawn to board F5 of the task 7.14 des
   "Return to live" to the newest question's. A past canvas draws as the live one does and is
   actable — actions, presses, sort — its answers landing in it, on its own context. The band over
   it reads "Parked · asked at HH:MM" with "Ask this again now" (its question sent again as a
-  child of it) and "Return to live"; the Ask pill reads "Ask from this view", and a question
+  child of it) and "Return to live"; once the question has scrolled away its condensed copy and the
+  progress line fold into the band's middle, one row of chrome rather than two; the Ask pill
+  reads "Ask from this view", and a question
   asked there is a child of that canvas.
 - **A canvas keeps running after the user leaves it.** Its streams arrive, its synthesis
   evaluates, its presses finish, in the background; its entry carries a quiet loading mark

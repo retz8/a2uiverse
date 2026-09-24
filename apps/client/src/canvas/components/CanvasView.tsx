@@ -29,9 +29,11 @@ export interface CanvasViewProps {
   runtime: CanvasRuntime;
   /** Open the palette holding these words — the header's "Edit and ask again". */
   onEdit: (text: string) => void;
+  /** A past canvas, under the band. */
+  past?: boolean;
 }
 
-export function CanvasView({runtime, onEdit}: CanvasViewProps) {
+export function CanvasView({runtime, onEdit, past = false}: CanvasViewProps) {
   const state = useSyncExternalStore(runtime.store.subscribe, runtime.store.getState);
 
   // What a `Slot` in the shell surface renders: the fragment placed in it, inside its boundary —
@@ -87,6 +89,7 @@ export function CanvasView({runtime, onEdit}: CanvasViewProps) {
             state={state}
             showProgress={showProgress}
             onEdit={onEdit}
+            past={past}
           />
           {(question || showProgress) && (
             <header className="canvas-head" data-testid="canvas-head" ref={headRef}>

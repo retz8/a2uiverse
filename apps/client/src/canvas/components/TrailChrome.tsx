@@ -28,6 +28,7 @@ import {
 } from '../trail/trailStore';
 import {LANE_GAP, LANE_X, ROW_HEIGHT, spineOf} from '../trail/spine';
 import {dayOf, timeOf} from '../trail/time';
+import {BAND_MIDDLE_ID} from './CompactHead';
 import {TrailPreview} from './TrailPreview';
 
 export interface TrailChromeProps {
@@ -511,6 +512,8 @@ export function TrailChrome({
             <ParkedIcon />
             <b>Parked</b> · asked at {timeOf(viewed.askedAt)}
           </span>
+          {/* The condensed question and progress fold in here once the head has scrolled away. */}
+          <div className="canvas-band-middle" id={BAND_MIDDLE_ID} />
           <button type="button" className="canvas-band-primary" onClick={onAskAgain}>
             <AgainIcon />
             Ask this again now

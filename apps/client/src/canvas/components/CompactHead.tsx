@@ -8,6 +8,7 @@
  * header does.
  */
 import {useEffect, useState, type RefObject} from 'react';
+import {createPortal} from 'react-dom';
 import type {CanvasState, Question} from '../canvasStore';
 import {ProgressLine} from './ProgressLine';
 
@@ -20,7 +21,15 @@ export interface CompactHeadProps {
   /** The progress line belongs to the live turn: shown whenever the full header shows it. */
   showProgress: boolean;
   onEdit: (text: string) => void;
+  /**
+   * A past canvas: the band holds the top edge, so the condensed copy folds into the band's
+   * middle rather than hanging a second bar beneath it (task 9.6).
+   */
+  past?: boolean;
 }
+
+/** Where the band takes the condensed copy on a past canvas. */
+export const BAND_MIDDLE_ID = 'canvas-band-middle';
 
 /** Whether the full header has left the scroller's view. */
 function useScrolledPast(
@@ -52,25 +61,31 @@ export function CompactHead({
   state,
   showProgress,
   onEdit,
+  past = false,
 }: CompactHeadProps) {
-  const past = useScrolledPast(scroller, head, question !== null || showProgress);
-  return (
-    <div className="canvas-compact-anchor">
-      {past && (question || showProgress) && (
-        <div className="canvas-compact" data-testid="canvas-compact-head">
-          {question && (
-            <button
-              type="button"
-              className="canvas-compact-question"
-              title="Edit and ask again"
-              onClick={() => onEdit(question.text)}
-            >
-              {question.text}
-            </button>
-          )}
-          {showProgress && <ProgressLine state={state} since={question?.askedAt ?? null} compact />}
-        </div>
-      )}
-    </div>
-  );
+  const scrolled = useScrolledPast(scroller, head, question !== null || showProgress);
+  const shown = scrolled && (question || showProgress);
+  // The band is the page's chrome, rendered beside this view; it stands by the time anything
+  // has scrolled.
+  const bandMiddle = past && shown ? document.getElementById(BAND_MIDDLE_ID) : null;
+  if (bandMiddle) return createPortal(bar(), bandMiddle);
+  return <div className="canvas-compact-anchor">{shown && bar()}</div>;
+
+  function bar() {
+    return (
+      <div className="canvas-compact" data-testid="canvas-compact-head">
+        {question && (
+          <button
+            type="button"
+            className="canvas-compact-question"
+            title="Edit and ask again"
+            onClick={() => onEdit(question.text)}
+          >
+            {question.text}
+          </button>
+        )}
+        {showProgress && <ProgressLine state={state} since={question?.askedAt ?? null} compact />}
+      </div>
+    );
+  }
 }

@@ -130,7 +130,7 @@ export function CanvasApp({serverUrl, client, catalogs, hostRelay}: CanvasAppPro
     <CatalogProvider catalogs={catalogs}>
       <main className={className} data-replay={replayDone ? 'done' : undefined}>
         {runtime ? (
-          <CanvasView key={runtime.id} runtime={runtime} onEdit={openPalette} />
+          <CanvasView key={runtime.id} runtime={runtime} onEdit={openPalette} past={past} />
         ) : (
           <>
             <div className="canvas-scroll" data-testid="canvas-scroll">

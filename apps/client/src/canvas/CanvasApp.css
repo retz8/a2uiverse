@@ -1013,6 +1013,28 @@ body {
   white-space: nowrap;
 }
 
+/* The band's middle: the condensed question and progress once the head has scrolled away, one
+   row with the note and the buttons rather than a bar beneath them. */
+.canvas-band-middle {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+
+.canvas-band-middle .canvas-compact {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.canvas-band-middle .canvas-compact-question {
+  max-width: 50%;
+}
+
 .canvas-band-note b {
   color: var(--a2v-ink);
   font-weight: 600;
