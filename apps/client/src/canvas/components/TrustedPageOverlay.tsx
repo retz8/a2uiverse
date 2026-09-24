@@ -8,7 +8,7 @@
  * Distinct from `CanvasOverlay`, which mounts a pending question surface.
  */
 import {Button, Heading, Text} from '@radix-ui/themes';
-import type {TrustedPageState} from '../canvasStore';
+import type {TrustedPageState} from '../trail/trailStore';
 
 export interface TrustedPageOverlayProps {
   page: TrustedPageState | null;

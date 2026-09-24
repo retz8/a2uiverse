@@ -1,57 +1,23 @@
 /**
- * The canvas store: stage/overlay occupancy, in-flight status, and the single append-only ring
- * of paint entries with head/viewing time travel.
+ * The canvas store: one canvas's stage/overlay occupancy, in-flight status, question and
+ * composition facts (task-9.6 decision 2).
  */
 import {describe, it, expect, vi} from 'vitest';
-import type {PaintCause, PaintEntry, PaintSnapshot} from './timeline/paint';
-import {
-  createCanvasStore,
-  orderedNotices,
-  currentPaintId,
-  questionOnView,
-  TIMELINE_CAP,
-} from './canvasStore';
-
-const CAUSE: PaintCause = {
-  kind: 'utterance',
-  parent: null,
-  forked: false,
-  payload: {text: 'show my PRs'},
-};
-
-const entry = (paintId: number, overrides: Partial<PaintEntry> = {}): PaintEntry => ({
-  paintId,
-  surfaceId: `surface-${paintId}`,
-  catalogId: 'primer',
-  cause: CAUSE,
-  paintedAt: 1000 + paintId,
-  snapshot: null,
-  ...overrides,
-});
-
-const snapshot = (): PaintSnapshot => ({
-  tree: {root: {id: 'root', type: 'Text'}},
-  dataModel: {},
-  capturedAt: 2000,
-});
+import {createCanvasStore, orderedNotices} from './canvasStore';
 
 describe('createCanvasStore', () => {
-  it('starts empty, idle, and live', () => {
+  it('starts empty and idle', () => {
     const store = createCanvasStore();
     expect(store.getState()).toEqual({
       stageId: null,
       overlay: null,
-      trustedPage: null,
-      timeline: [],
-      viewing: null,
-      headAdvancedWhileParked: false,
       inFlight: null,
       error: null,
       question: null,
       slotStates: new Map(),
       merge: null,
       presses: [],
-      superseded: false,
+      paintTitles: new Map(),
       notices: [],
       roster: [],
       prose: new Map(),
@@ -101,98 +67,6 @@ describe('createCanvasStore', () => {
     expect(store.getState().promoted.size).toBe(0);
   });
 
-  it('appendEntry grows the timeline immutably, in order', () => {
-    const store = createCanvasStore();
-    const before = store.getState().timeline;
-    store.appendEntry(entry(1));
-    store.appendEntry(entry(2));
-    expect(before).toEqual([]);
-    expect(store.getState().timeline.map(e => e.paintId)).toEqual([1, 2]);
-  });
-
-  it('fillSnapshot completes the addressed entry and no other', () => {
-    const store = createCanvasStore();
-    store.appendEntry(entry(1));
-    store.appendEntry(entry(2));
-    store.fillSnapshot(1, snapshot());
-    const [first, second] = store.getState().timeline;
-    expect(first.snapshot).not.toBeNull();
-    expect(second.snapshot).toBeNull();
-  });
-
-  it('replaceSnapshotDataModel swaps the data model wholesale, touching nothing else', () => {
-    const store = createCanvasStore();
-    store.appendEntry(entry(1, {snapshot: snapshot()}));
-    store.replaceSnapshotDataModel(1, {selected: [117]});
-    const stored = store.getState().timeline[0].snapshot!;
-    expect(stored.dataModel).toEqual({selected: [117]});
-    expect(stored.tree).toEqual({root: {id: 'root', type: 'Text'}});
-    expect(stored.capturedAt).toBe(2000);
-  });
-
-  it('park sets viewing; returnToLive clears it', () => {
-    const store = createCanvasStore();
-    store.appendEntry(entry(1, {snapshot: snapshot()}));
-    store.appendEntry(entry(2));
-    store.park(1);
-    expect(store.getState().viewing).toBe(1);
-    store.returnToLive();
-    expect(store.getState().viewing).toBeNull();
-  });
-
-  it('park ignores an unknown paint id', () => {
-    const store = createCanvasStore();
-    store.appendEntry(entry(1));
-    store.park(99);
-    expect(store.getState().viewing).toBeNull();
-  });
-
-  it('a paint landing while parked leaves the user parked and raises the marker', () => {
-    const store = createCanvasStore();
-    store.appendEntry(entry(1, {snapshot: snapshot()}));
-    store.appendEntry(entry(2));
-    store.park(1);
-    store.appendEntry(entry(3));
-    const state = store.getState();
-    expect(state.viewing).toBe(1);
-    expect(state.headAdvancedWhileParked).toBe(true);
-  });
-
-  it('returnToLive clears the newer-view marker', () => {
-    const store = createCanvasStore();
-    store.appendEntry(entry(1, {snapshot: snapshot()}));
-    store.park(1);
-    store.appendEntry(entry(2));
-    store.returnToLive();
-    expect(store.getState().headAdvancedWhileParked).toBe(false);
-  });
-
-  it('a paint landing while live raises no marker', () => {
-    const store = createCanvasStore();
-    store.appendEntry(entry(1));
-    store.appendEntry(entry(2));
-    expect(store.getState().headAdvancedWhileParked).toBe(false);
-  });
-
-  it(`the ring evicts beyond ${TIMELINE_CAP} entries, oldest first`, () => {
-    const store = createCanvasStore();
-    for (let i = 1; i <= TIMELINE_CAP + 3; i++) store.appendEntry(entry(i));
-    const timeline = store.getState().timeline;
-    expect(timeline).toHaveLength(TIMELINE_CAP);
-    expect(timeline[0].paintId).toBe(4);
-    expect(timeline[timeline.length - 1].paintId).toBe(TIMELINE_CAP + 3);
-  });
-
-  it('eviction of the parked entry forces return-to-live', () => {
-    const store = createCanvasStore();
-    for (let i = 1; i <= TIMELINE_CAP; i++) store.appendEntry(entry(i));
-    store.park(1);
-    store.appendEntry(entry(TIMELINE_CAP + 1));
-    const state = store.getState();
-    expect(state.viewing).toBeNull();
-    expect(state.headAdvancedWhileParked).toBe(false);
-  });
-
   it('beginPaint marks in-flight with its label; endPaint settles back to idle', () => {
     const store = createCanvasStore();
     store.beginPaint('Generating…');
@@ -229,29 +103,20 @@ describe('createCanvasStore', () => {
     expect(store.getState().overlay).toBeNull();
   });
 
-  it('a shell action opens its trusted page over the canvas; a second raise retargets it; close is a no-op when none is open', () => {
+  it('a paint title is kept per source, dropped when the next paint names nothing, gone with the composition', () => {
     const store = createCanvasStore();
-    expect(store.getState().trustedPage).toBeNull();
     const listener = vi.fn();
     store.subscribe(listener);
-
-    store.closeTrustedPage();
+    store.setPaintTitle('github', undefined);
     expect(listener).not.toHaveBeenCalled();
 
-    store.openTrustedPage({page: 'store', query: 'flight booking'});
-    expect(store.getState().trustedPage).toEqual({page: 'store', query: 'flight booking'});
-    store.openTrustedPage({page: 'appLibrary'});
-    expect(store.getState().trustedPage).toEqual({page: 'appLibrary'});
-
-    store.closeTrustedPage();
-    expect(store.getState().trustedPage).toBeNull();
-  });
-
-  it('nextPaintId is monotonic and never reused', () => {
-    const store = createCanvasStore();
-    expect(store.nextPaintId()).toBe(1);
-    expect(store.nextPaintId()).toBe(2);
-    expect(store.nextPaintId()).toBe(3);
+    store.setPaintTitle('github', 'Pull requests waiting on you');
+    store.setPaintTitle('gmail', 'Unread — needs reply');
+    expect(store.getState().paintTitles.get('github')).toBe('Pull requests waiting on you');
+    store.setPaintTitle('github', undefined);
+    expect(store.getState().paintTitles.has('github')).toBe(false);
+    store.resetComposition();
+    expect(store.getState().paintTitles.size).toBe(0);
   });
 
   it("each of the shell's cues gets a fresh key so repeats restart the fade", () => {
@@ -386,30 +251,6 @@ describe('createCanvasStore', () => {
   });
 });
 
-describe('currentPaintId', () => {
-  it('is the parked paint while parked', () => {
-    const store = createCanvasStore();
-    store.appendEntry(entry(1, {snapshot: snapshot()}));
-    store.appendEntry(entry(2));
-    store.setStage('surface-2');
-    store.park(1);
-    expect(currentPaintId(store.getState())).toBe(1);
-  });
-
-  it('is the head paint while live with an occupied stage', () => {
-    const store = createCanvasStore();
-    store.appendEntry(entry(1));
-    store.setStage('surface-1');
-    expect(currentPaintId(store.getState())).toBe(1);
-  });
-
-  it('is null while live on an empty canvas — even when departed history exists', () => {
-    const store = createCanvasStore();
-    store.appendEntry(entry(1, {snapshot: snapshot()}));
-    expect(currentPaintId(store.getState())).toBeNull();
-  });
-});
-
 describe('updateInFlightLabel', () => {
   it('upgrades the label while a paint is in flight', () => {
     const store = createCanvasStore();
@@ -422,70 +263,5 @@ describe('updateInFlightLabel', () => {
     const store = createCanvasStore();
     store.updateInFlightLabel('too late');
     expect(store.getState().inFlight).toBeNull();
-  });
-});
-
-describe('questionOnView (task 7.14)', () => {
-  it("live: the turn's own question", () => {
-    const store = createCanvasStore();
-    store.setQuestion({text: 'show my PRs', askedAt: 5});
-    expect(questionOnView(store.getState())).toEqual({text: 'show my PRs', askedAt: 5});
-  });
-
-  it('parked: the utterance that opened the paint, walked back through actions taken in it', () => {
-    const store = createCanvasStore();
-    store.setQuestion({text: 'a later question', askedAt: 99});
-    store.appendEntry(
-      entry(1, {cause: {...CAUSE, payload: {text: 'what needs my attention today?'}}}),
-    );
-    store.appendEntry(
-      entry(2, {
-        cause: {
-          kind: 'surface-action',
-          parent: 1,
-          forked: false,
-          payload: {
-            action: {
-              name: 'sort-by',
-              context: {},
-              surfaceId: 's',
-              sourceComponentId: 'c',
-              timestamp: '2026-09-21T09:12:00Z',
-            },
-          },
-        },
-      }),
-    );
-    store.appendEntry(entry(3));
-    store.park(2);
-    expect(questionOnView(store.getState())).toEqual({
-      text: 'what needs my attention today?',
-      askedAt: 1001,
-    });
-  });
-
-  it('parked with no utterance left in the ring: no question', () => {
-    const store = createCanvasStore();
-    store.appendEntry(
-      entry(1, {
-        cause: {
-          kind: 'overlay-answer',
-          parent: null,
-          forked: false,
-          payload: {
-            answer: {
-              name: 'confirm',
-              context: {},
-              surfaceId: 's',
-              sourceComponentId: 'c',
-              timestamp: 't',
-            },
-          },
-        },
-      }),
-    );
-    store.appendEntry(entry(2));
-    store.park(1);
-    expect(questionOnView(store.getState())).toBeNull();
   });
 });

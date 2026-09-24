@@ -37,6 +37,11 @@ export interface BeatTurn {
   operation?: CompositionOperation;
   /** A stream beside the turn: when it was sent, from the start of the turn it runs beside. */
   atMs?: number;
+  /**
+   * An utterance asked from a past canvas (task-9.6 decision 14): the ordinal, among the beat's
+   * utterance turns, of the canvas on screen when it was asked. Absent, it was asked from live.
+   */
+  askedFrom?: number;
   batches: BeatBatch[];
   outcome: string;
   durationMs: number;

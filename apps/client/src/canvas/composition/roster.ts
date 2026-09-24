@@ -26,6 +26,8 @@ import type {JoinNouns, PaintedMerge, PaintedSlotState, RosterEntry} from '../ca
 
 /** The reserved source id the hub stamps its own content with — the shell speaking as itself. */
 export const SHELL_SOURCE = 'shell';
+/** The layout surface the orchestrator paints, and the one its `paintMeta` title names (task-9.3 decision 4). */
+export const SHELL_MAIN_SURFACE = 'shell:main';
 
 /** The shell catalog's own composition primitives. */
 const ATTRIBUTION = 'Attribution';

@@ -7,7 +7,6 @@ import type {
   TaskStatusUpdateEvent,
 } from '@a2a-js/sdk';
 import type {A2uiClientAction, A2uiClientDataModel} from '@a2ui/web_core/v0_9';
-import type {ForkContext} from './messages';
 import {
   buildActionMessageParams,
   buildOperationMessageParams,
@@ -73,13 +72,8 @@ describe('buildTextMessageParams', () => {
     expect(params.message.contextId).toBeUndefined();
   });
 
-  it('threads a contextId when given', () => {
-    const params = buildTextMessageParams('again', 'ctx-9');
-    expect(params.message.contextId).toBe('ctx-9');
-  });
-
   it('attaches the client data model as message metadata when given', () => {
-    const params = buildTextMessageParams('show', 'ctx-9', CLIENT_DM);
+    const params = buildTextMessageParams('show', CLIENT_DM);
     expect(params.message.metadata).toEqual({a2uiClientDataModel: CLIENT_DM});
   });
 
@@ -88,7 +82,7 @@ describe('buildTextMessageParams', () => {
   });
 
   it('advertises the supported catalogs as a2uiClientCapabilities when given', () => {
-    const params = buildTextMessageParams('show', undefined, undefined, undefined, ['cat-a']);
+    const params = buildTextMessageParams('show', undefined, ['cat-a']);
     expect(params.message.metadata).toEqual({
       a2uiClientCapabilities: {'v0.9': {supportedCatalogIds: ['cat-a']}},
     });
@@ -117,7 +111,7 @@ describe('buildActionMessageParams', () => {
   });
 
   it('advertises the supported catalogs alongside the data model', () => {
-    const params = buildActionMessageParams(ACTION, 'ctx-9', CLIENT_DM, undefined, ['cat-a']);
+    const params = buildActionMessageParams(ACTION, 'ctx-9', CLIENT_DM, ['cat-a']);
     expect(params.message.metadata).toEqual({
       a2uiClientCapabilities: {'v0.9': {supportedCatalogIds: ['cat-a']}},
       a2uiClientDataModel: CLIENT_DM,
@@ -223,37 +217,25 @@ describe('extractAgentTextFromEvent', () => {
   });
 });
 
-const FORK: ForkContext = {
-  paintId: 4,
-  title: 'Open PRs — a2ui',
-  paintedAt: 1755230000000,
-  position: 3,
-};
-
-describe('fork context metadata', () => {
-  it('rides beside the client data model on an action message', () => {
-    const params = buildActionMessageParams(ACTION, 'ctx-9', CLIENT_DM, FORK);
+describe('the canvas on a message (task-9.2 decisions 1, 2)', () => {
+  it('a question opens a canvas of its own: no contextId, the parent under the stamp key', () => {
+    const params = buildTextMessageParams('what changed?', CLIENT_DM, undefined, 'ctx-parent');
+    expect(params.message.contextId).toBeUndefined();
     expect(params.message.metadata).toEqual({
       a2uiClientDataModel: CLIENT_DM,
-      a2uiForkContext: FORK,
+      a2uiverse: {parent: 'ctx-parent'},
     });
   });
 
-  it('rides alone when no data model is reported', () => {
-    const params = buildActionMessageParams(ACTION, 'ctx-9', undefined, FORK);
-    expect(params.message.metadata).toEqual({a2uiForkContext: FORK});
+  it('a root question names no parent', () => {
+    const params = buildTextMessageParams('what changed?');
+    expect(params.message.contextId).toBeUndefined();
+    expect(params.message.metadata).toBeUndefined();
   });
 
-  it('rides on a text message too — a parked utterance is also a fork', () => {
-    const params = buildTextMessageParams('what changed?', 'ctx-9', CLIENT_DM, FORK);
-    expect(params.message.metadata).toEqual({
-      a2uiClientDataModel: CLIENT_DM,
-      a2uiForkContext: FORK,
-    });
-  });
-
-  it('a live dispatch carries no fork key', () => {
+  it('an action carries its canvas as the contextId and no parent', () => {
     const params = buildActionMessageParams(ACTION, 'ctx-9', CLIENT_DM);
+    expect(params.message.contextId).toBe('ctx-9');
     expect(params.message.metadata).toEqual({a2uiClientDataModel: CLIENT_DM});
   });
 });

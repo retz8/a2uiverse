@@ -74,7 +74,6 @@ export function createA2AActionHandler(opts: A2AActionHandlerOptions): ActionLis
           action,
           session?.get(),
           getClientDataModel?.(),
-          undefined,
           opts.supportedCatalogIds,
         ),
         {apply, session, onAgentText},

@@ -1,17 +1,13 @@
 /**
  * Surface baselines: the recorded beats painted through the full canvas, stage unmasked — the
  * Primer-rendered vendor fragment is the subject. Driven off `?beat=<n>&instant`, zero LLM.
- * Only the "data as of" clock is masked (its pixels are per-run). The chrome spec keeps
- * guarding the shell over synthetic paints; this one guards what a recorded vendor paint looks
- * like, which is what a catalog-package swap would change.
+ * The chrome spec keeps guarding the shell over synthetic paints; this one guards what a
+ * recorded vendor paint looks like, which is what a catalog-package swap would change.
  */
 import {test, expect} from '@playwright/test';
 import type {Page} from '@playwright/test';
 
-const surfaceShot = (page: Page) => ({
-  mask: [page.locator('.canvas-history-stale')],
-  fullPage: true,
-});
+const surfaceShot = (_page: Page) => ({fullPage: true});
 
 /** Replay the listed beats instantly and wait for the whole list to settle. */
 async function settle(page: Page, beats: string) {

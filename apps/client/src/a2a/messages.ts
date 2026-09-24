@@ -13,7 +13,13 @@ import type {
   PaintMeta,
   SynthesisPayload,
 } from '@a2uiverse/sdk';
-import {operationData, readPaintMeta, readStamp, readSynthesis} from '@a2uiverse/sdk';
+import {
+  canvasParentMetadata,
+  operationData,
+  readPaintMeta,
+  readStamp,
+  readSynthesis,
+} from '@a2uiverse/sdk';
 import {logClientDataModelSize} from './dataModelSize';
 
 /**
@@ -31,25 +37,6 @@ const A2UI_VERSION = 'v0.9' as const;
 export const A2UI_CLIENT_DATA_MODEL_KEY = 'a2uiClientDataModel';
 
 /**
- * A2A message-metadata key under which the canvas attaches fork context when a turn is
- * dispatched from a parked (historical) view. Presence of the key IS the historical-view
- * flag; a live dispatch never carries it.
- */
-export const A2UI_FORK_CONTEXT_KEY = 'a2uiForkContext';
-
-/** The fork-context object: which paint the user was acting on, spec-minimal. */
-export interface ForkContext {
-  /** The parked paint's monotonic id — the stable identifier. */
-  paintId: number;
-  /** The paint's display title (agent-authored, or the cause-derived fallback). */
-  title: string;
-  /** Epoch ms of the moment the paint took the stage. */
-  paintedAt: number;
-  /** Depth behind the live head at dispatch time (0 = parked on the head entry). */
-  position: number;
-}
-
-/**
  * A2A message-metadata key under which the client advertises what it can render, per the A2UI
  * extension spec — attached to every message when the catalog list is known.
  */
@@ -57,8 +44,8 @@ export const A2UI_CLIENT_CAPABILITIES_KEY = 'a2uiClientCapabilities';
 
 function messageMetadata(
   clientDataModel?: A2uiClientDataModel,
-  forkContext?: ForkContext,
   supportedCatalogIds?: string[],
+  parent?: string,
 ): {[k: string]: unknown} | undefined {
   const metadata: {[k: string]: unknown} = {};
   if (supportedCatalogIds) {
@@ -69,7 +56,8 @@ function messageMetadata(
     logClientDataModelSize(clientDataModel);
     metadata[A2UI_CLIENT_DATA_MODEL_KEY] = clientDataModel;
   }
-  if (forkContext) metadata[A2UI_FORK_CONTEXT_KEY] = forkContext;
+  // The canvas this question was asked from rides under the stamp key (task-9.2 decision 2).
+  if (parent !== undefined) Object.assign(metadata, canvasParentMetadata(parent));
   return Object.keys(metadata).length ? metadata : undefined;
 }
 
@@ -78,7 +66,6 @@ export function buildActionMessageParams(
   action: A2uiClientAction,
   contextId?: string,
   clientDataModel?: A2uiClientDataModel,
-  forkContext?: ForkContext,
   supportedCatalogIds?: string[],
 ): MessageSendParams {
   return {
@@ -88,7 +75,7 @@ export function buildActionMessageParams(
       messageId: crypto.randomUUID(),
       contextId,
       parts: [{kind: 'data', data: {version: A2UI_VERSION, action}}],
-      metadata: messageMetadata(clientDataModel, forkContext, supportedCatalogIds),
+      metadata: messageMetadata(clientDataModel, supportedCatalogIds),
     },
   };
 }
@@ -123,7 +110,7 @@ export function buildErrorMessageParams(
       messageId: crypto.randomUUID(),
       contextId,
       parts: [{kind: 'data', data: {version: A2UI_VERSION, error}}],
-      metadata: messageMetadata(clientDataModel, undefined, supportedCatalogIds),
+      metadata: messageMetadata(clientDataModel, supportedCatalogIds),
     },
   };
 }
@@ -145,27 +132,29 @@ export function buildOperationMessageParams(
       messageId: crypto.randomUUID(),
       contextId,
       parts: [{kind: 'data', data: operationData(operation, A2UI_VERSION)}],
-      metadata: messageMetadata(undefined, undefined, supportedCatalogIds),
+      metadata: messageMetadata(undefined, supportedCatalogIds),
     },
   };
 }
 
-/** Wrap user prompt text as A2A send params carrying one TextPart. */
+/**
+ * Wrap user prompt text as A2A send params carrying one TextPart. A question opens a canvas of
+ * its own (task-9.2 decision 1): it is sent with no `contextId` — the orchestrator mints one — and
+ * names the canvas it was asked from as `parent`, when there was one.
+ */
 export function buildTextMessageParams(
   text: string,
-  contextId?: string,
   clientDataModel?: A2uiClientDataModel,
-  forkContext?: ForkContext,
   supportedCatalogIds?: string[],
+  parent?: string,
 ): MessageSendParams {
   return {
     message: {
       kind: 'message',
       role: 'user',
       messageId: crypto.randomUUID(),
-      contextId,
       parts: [{kind: 'text', text}],
-      metadata: messageMetadata(clientDataModel, forkContext, supportedCatalogIds),
+      metadata: messageMetadata(clientDataModel, supportedCatalogIds, parent),
     },
   };
 }

@@ -29,13 +29,15 @@ body {
   /* The reserved merged view's skeleton bars (task 7.15). */
   --a2v-skel: #ececef;
   --a2v-accent: #3656d4;
+  --a2v-accent-tint: #eef1fc;
   /* The fill under white text — the pill and the primary button — the same in both appearances. */
   --a2v-accent-fill: #3656d4;
   --a2v-danger: #c42b1c;
   --a2v-panel: #ffffff;
   --a2v-scrim: rgba(24, 24, 27, 0.1);
-  /* The column the trail will hold (Phase 9); Back sits in it until then. */
+  /* The column the trail holds (task 9.6): Back and Trail closed, the rail open. */
   --a2v-gutter: 56px;
+  --a2v-rail: 272px;
   --a2v-inset: 40px;
   display: flex;
   flex-direction: column;
@@ -59,6 +61,7 @@ body {
   --a2v-skel-ring: #3f3f46;
   --a2v-skel: #2e2e33;
   --a2v-accent: #6e8bff;
+  --a2v-accent-tint: #1f2a52;
   --a2v-danger: #ff7b6b;
   --a2v-panel: #18181b;
   --a2v-scrim: rgba(0, 0, 0, 0.4);
@@ -90,9 +93,11 @@ body {
   z-index: 11;
 }
 
-/* While parked the banner holds the top edge; the bar sits under it. */
+/* The rail opens over the page (phase-9 decision 16): nothing beneath it moves. */
+
+/* On a past canvas the band holds the top edge; the bar sits under it. */
 .canvas-app--parked .canvas-compact-anchor {
-  top: 61px;
+  top: 56px;
 }
 
 .canvas-compact {
@@ -170,10 +175,9 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
 }
 
-/* The parked banner holds the top edge; the question starts beneath it, on the parked tint. */
+/* The band holds the top edge of a past canvas; the question starts beneath it. */
 .canvas-app--parked .canvas-head {
-  padding-top: 72px;
-  background: color-mix(in srgb, var(--amber-3, #fff8c5) 22%, var(--color-background));
+  padding-top: 68px;
 }
 
 .canvas-question-wrap {
@@ -612,160 +616,452 @@ body {
   margin: 0;
 }
 
-/* ——— History chrome ——— */
+/* ——— The trail chrome (task 9.6, board F5) ——— */
 
-/* Back floats top-left, always in the same spot; while parked, the same container grows
-   into a full-width banner materialising around it — Back never moves. */
-.canvas-history {
-  position: fixed;
-  top: 0;
-  left: 0;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px;
-  z-index: 12;
-}
-
-.canvas-history--parked {
-  right: 0;
-  background: var(--amber-3, #fff8c5);
-  border-bottom: 1px solid var(--amber-6, #d4a72c66);
-}
-
-.canvas-history-back {
+/* The icon button of the chrome: Back, Trail, the rail's close, an entry's close. */
+.canvas-iconbtn {
+  all: unset;
+  box-sizing: border-box;
+  width: 32px;
+  height: 32px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  border: 1px solid var(--gray-6);
-  background: var(--color-background);
-  color: var(--gray-11);
+  border-radius: 8px;
+  color: var(--a2v-muted);
   cursor: pointer;
-  box-shadow: var(--shadow-3, 0 3px 12px rgba(140, 149, 159, 0.15));
-  transition:
-    background 0.15s ease,
-    color 0.15s ease,
-    box-shadow 0.15s ease;
 }
 
-.canvas-history-back:hover:not(:disabled) {
-  background: var(--gray-2);
-  color: var(--gray-12);
-  box-shadow: var(--shadow-4, 0 6px 18px rgba(31, 35, 40, 0.2));
+.canvas-iconbtn:hover:not(:disabled) {
+  background: var(--a2v-hover);
+  color: var(--a2v-ink);
 }
 
-.canvas-history-back:active:not(:disabled) {
-  background: var(--gray-12, var(--gray-2));
+.canvas-iconbtn:focus-visible {
+  outline: 2px solid var(--a2v-accent);
+  outline-offset: 2px;
 }
 
-.canvas-history-back:disabled {
+.canvas-iconbtn:disabled {
   opacity: 0.4;
   cursor: default;
-  box-shadow: none;
 }
 
-.canvas-history-stale {
-  flex: 1;
-  text-align: center;
-  font-size: 12px;
-  color: var(--gray-11);
+/* The gutter, the rail closed: Back at the top — its centre 30px down, on the question's first
+   line — and Trail beneath it. */
+.canvas-gutter {
+  position: fixed;
+  top: 14px;
+  left: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 12;
+}
+
+/* The rail: the trail of the session's canvases, a drawer over the page's left edge — 272px,
+   and 16px more for each lane the spine needs past its second. */
+.canvas-trail {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: calc(var(--a2v-rail) + max(0px, var(--a2v-trail-col, 48px) - 48px));
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
   min-width: 0;
+  overflow-y: auto;
+  background: var(--a2v-surface);
+  border-right: 1px solid var(--a2v-line);
+  color: var(--a2v-ink);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  z-index: 13;
+  box-shadow:
+    1px 0 0 var(--a2v-line),
+    8px 0 24px rgba(24, 24, 27, 0.08);
+  animation: canvas-trail-in 240ms ease-out;
+}
+
+.canvas-trail--closing {
+  animation: canvas-trail-out 240ms ease-in forwards;
+}
+
+@keyframes canvas-trail-in {
+  from {
+    transform: translateX(-100%);
+  }
+}
+
+@keyframes canvas-trail-out {
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+.canvas-trail-top {
+  flex: none;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+}
+
+.canvas-trail-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--a2v-ink);
+}
+
+.canvas-trail-group {
+  padding: 8px 16px 4px;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--a2v-faint);
+}
+
+.canvas-trail-entries {
+  position: relative;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* The spine beside the entries (board F5): lanes, connectors, a node per entry. */
+.canvas-trail-spine {
+  position: absolute;
+  left: 12px;
+  top: 0;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.canvas-trail-spine-line {
+  stroke: var(--a2v-skel-ring);
+}
+
+/* The viewed canvas's lineage, in ink: where the reader is and how they got there. */
+.canvas-trail-spine-line--lit {
+  stroke: var(--a2v-ink-2);
+}
+
+.canvas-trail-spine-node {
+  fill: var(--a2v-surface);
+  stroke: var(--a2v-dot);
+}
+
+.canvas-trail-spine-node--lit {
+  fill: var(--a2v-surface);
+  stroke: var(--a2v-ink);
+}
+
+/* The ring fills with its row on hover. */
+.canvas-trail-spine-node--hover {
+  fill: var(--a2v-skel-ring);
+  stroke: var(--a2v-dot);
+}
+
+.canvas-trail-spine-node--lit.canvas-trail-spine-node--hover {
+  stroke: var(--a2v-ink);
+}
+
+.canvas-trail-spine-halo {
+  fill: var(--a2v-accent-tint);
+}
+
+.canvas-trail-spine-live {
+  fill: var(--a2v-accent);
+}
+
+.canvas-trail-spine-viewing {
+  fill: var(--a2v-ink);
+}
+
+/* One canvas: its pick, and beside it the branch it was asked from and its close. The row's
+   highlight covers the names alone — the node column stays the spine's, as a commit graph's. */
+.canvas-trail-entry {
+  position: relative;
+  z-index: 0;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  height: 56px;
+  margin: 0 8px;
+  padding: 0 8px 0 4px;
+}
+
+/* The highlight begins after the node column — 48px, wider when the spine needs more lanes;
+   the names sit 8px inside it. */
+.canvas-trail-entry::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 0 calc(var(--a2v-trail-col, 48px) + 4px);
+  z-index: -1;
+  border-radius: 8px;
+}
+
+.canvas-trail-entry:hover::before,
+.canvas-trail-entry--lit::before {
+  background: var(--a2v-chip);
+}
+
+.canvas-trail-entry--viewing::before {
+  background: var(--a2v-skel);
+}
+
+.canvas-trail-pick {
+  all: unset;
+  box-sizing: border-box;
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 100%;
+  display: grid;
+  grid-template-columns: var(--a2v-trail-col, 48px) minmax(0, 1fr);
+  align-items: center;
+  cursor: pointer;
+  border-radius: 8px;
+}
+
+.canvas-trail-pick:focus-visible {
+  outline: 2px solid var(--a2v-accent);
+  outline-offset: -2px;
+}
+
+.canvas-trail-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: 0 8px;
+}
+
+/* The label: the Planner's title, the question until it arrives — a short crossfade at the
+   handoff (task-9.6 decision 4). */
+.canvas-trail-label {
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 500;
+  color: var(--a2v-ink);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  animation: canvas-trail-label-in 240ms ease-out;
 }
 
-.canvas-history-newer {
-  color: var(--amber-11);
-  font-style: normal;
+@keyframes canvas-trail-label-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.canvas-trail-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--a2v-faint);
+}
+
+.canvas-trail-live {
+  color: var(--a2v-accent);
   font-weight: 600;
 }
 
-.canvas-history-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 13;
+.canvas-trail-viewing {
+  color: var(--a2v-ink);
+  font-weight: 600;
 }
 
-.canvas-history-list {
-  position: absolute;
-  top: 52px;
-  left: 12px;
-  margin: 0;
-  padding: 4px;
-  list-style: none;
-  min-width: 260px;
-  max-width: min(400px, calc(100vw - 24px));
-  max-height: 60vh;
-  overflow-y: auto;
-  border: 1px solid var(--gray-6);
+.canvas-trail-loading {
+  display: inline-flex;
+  align-items: center;
+  color: var(--a2v-muted);
+}
+
+/* The branch glyph in the meta line: the canvas this one was asked from is named on hover and
+   drawn by the spine; hovering the glyph lights that canvas's row. */
+.canvas-trail-from {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+}
+
+/* The close shows on hover and focus of its entry (task-9.6 decision 8). */
+.canvas-trail-close {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  opacity: 0;
+}
+
+.canvas-trail-entry:hover .canvas-trail-close,
+.canvas-trail-entry:focus-within .canvas-trail-close,
+.canvas-trail-close:focus-visible {
+  opacity: 1;
+}
+
+/* The preview beside the rail, level with its entry: the canvas scaled, its progress beneath. */
+.canvas-trail-preview {
+  position: fixed;
+  left: calc(var(--a2v-rail) + max(0px, var(--a2v-trail-col, 48px) - 48px) + 8px);
+  box-sizing: border-box;
+  width: 296px;
+  max-height: calc(100vh - 16px);
+  padding: 8px;
+  border: 1px solid var(--a2v-line);
   border-radius: 12px;
-  background: var(--color-panel-solid, var(--color-background));
-  box-shadow: var(--shadow-5, 0 8px 24px rgba(140, 149, 159, 0.2));
+  background: var(--a2v-panel);
+  box-shadow:
+    0 1px 2px rgba(24, 24, 27, 0.08),
+    0 8px 24px rgba(24, 24, 27, 0.12);
+  pointer-events: none;
   z-index: 14;
 }
 
-.canvas-history-item {
+.canvas-trail-preview-frame {
+  height: 180px;
+  overflow: hidden;
+  border-radius: 6px;
+  background: var(--color-background);
+}
+
+.canvas-trail-preview-scale {
+  transform-origin: top left;
+  padding: 16px;
+  --a2v-layout-gap: 32px;
+}
+
+.canvas-trail-preview-caption {
+  padding: 8px 4px 0;
+  min-width: 0;
+}
+
+/* The canvas's own progress line, one line, cut where the box ends. */
+.canvas-trail-preview-caption .canvas-progress {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.canvas-trail-preview-caption .canvas-progress-step {
+  margin-right: 8px;
+}
+
+/* The band over a past canvas: parked, asked at, ask again, return to live. */
+.canvas-band {
+  position: fixed;
+  top: 0;
+  left: var(--a2v-gutter);
+  right: 0;
+  box-sizing: border-box;
+  height: 56px;
   display: flex;
   align-items: center;
-  gap: 4px;
-}
-
-.canvas-history-item > [role='menuitem'] {
-  flex: 1;
-  min-width: 0;
-  text-align: left;
-  padding: 6px 8px;
-  border: none;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--gray-12);
+  gap: 16px;
+  padding: 0 var(--a2v-inset);
+  background: var(--a2v-surface);
+  border-bottom: 1px solid var(--a2v-line);
+  color: var(--a2v-ink);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
   font-size: 13px;
-  cursor: pointer;
+  line-height: 20px;
+  z-index: 12;
+}
+
+.canvas-band-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--a2v-muted);
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
-.canvas-history-item > [role='menuitem']:hover {
-  background: var(--gray-2);
-}
-
-.canvas-history-live {
-  color: var(--green-11);
+.canvas-band-note b {
+  color: var(--a2v-ink);
   font-weight: 600;
 }
 
-.canvas-history-chip {
-  flex: none;
-  padding: 2px 8px;
-  border: 1px solid var(--gray-6);
-  border-radius: 999px;
-  background: var(--gray-2);
-  color: var(--gray-11);
-  font-size: 11px;
+.canvas-band-primary {
+  all: unset;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 14px;
+  border-radius: 8px;
+  background: var(--a2v-accent-fill);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
   cursor: pointer;
-  max-width: 140px;
+}
+
+.canvas-band-primary:focus-visible,
+.canvas-band-tolive:focus-visible {
+  outline: 2px solid var(--a2v-accent);
+  outline-offset: 2px;
+}
+
+.canvas-band-tolive {
+  all: unset;
+  box-sizing: border-box;
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  height: 32px;
+  padding: 0 4px 0 16px;
+  border-left: 1px solid var(--a2v-line);
+  color: var(--a2v-ink);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.canvas-band-tolive-label {
+  flex: none;
+  font-weight: 600;
+}
+
+.canvas-band-tolive:hover .canvas-band-tolive-label {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.canvas-band-tolive-dest {
+  max-width: 300px;
+  color: var(--a2v-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.canvas-history-chip:disabled {
-  cursor: default;
-  opacity: 0.6;
+/* A past canvas's page reads as the past: the design canvas greys it. */
+.canvas-app--parked .canvas-stage {
+  filter: grayscale(1);
 }
 
-/* The parked stage: same layout slot as the live stage; the banner carries the past-state
-   signal, so the stage itself gets only a whisper of tint. */
-.canvas-stage--parked {
-  background: color-mix(in srgb, var(--amber-3, #fff8c5) 22%, var(--color-background));
+@media (prefers-reduced-motion: reduce) {
+  .canvas-trail-label,
+  .canvas-trail,
+  .canvas-trail--closing {
+    animation: none;
+  }
 }
 
-/* With no question over it, the stage clears the floating Back button itself. */
+/* With no question over it, the stage clears the chrome's row itself. */
 .canvas-stage {
   padding-top: 56px;
 }

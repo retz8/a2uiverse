@@ -6,36 +6,29 @@
 import {describe, it, expect} from 'vitest';
 import {screen} from '@testing-library/react';
 import {renderWithShell} from '../../../tests/helpers';
-import {createCanvasStore} from '../canvasStore';
 import {StatusStrip} from './StatusStrip';
 
 describe('StatusStrip', () => {
   it('idle: shows the quiet identity label, no shortcut hint (the Ask pill carries that)', () => {
-    const store = createCanvasStore();
-    renderWithShell(<StatusStrip state={store.getState()} />);
+    renderWithShell(<StatusStrip error={null} />);
     expect(screen.queryByText(/⌘K/)).toBeNull();
     expect(screen.getByTestId('canvas-status')).toHaveTextContent('A2UIVerse');
   });
 
   it('carries status only — no buttons live in the strip', () => {
-    const store = createCanvasStore();
-    renderWithShell(<StatusStrip state={store.getState()} />);
+    renderWithShell(<StatusStrip error={null} />);
     expect(screen.queryByRole('button')).toBeNull();
   });
 
   it('in flight: still names the app — the question and its progress are the canvas head', () => {
-    const store = createCanvasStore();
-    store.beginPaint('“open PRs” — generating…', 'utterance');
-    renderWithShell(<StatusStrip state={store.getState()} />);
+    renderWithShell(<StatusStrip error={null} />);
     expect(screen.queryByTestId('canvas-pending')).toBeNull();
     expect(screen.getByTestId('canvas-status')).toHaveTextContent('A2UIVerse');
     expect(screen.getByTestId('canvas-status')).not.toHaveTextContent('open PRs');
   });
 
   it('error: sticky failure text as an alert', () => {
-    const store = createCanvasStore();
-    store.reportError('The agent request failed.');
-    renderWithShell(<StatusStrip state={store.getState()} />);
+    renderWithShell(<StatusStrip error="The agent request failed." />);
     expect(screen.getByRole('alert')).toHaveTextContent('The agent request failed.');
   });
 });

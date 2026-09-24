@@ -64,17 +64,6 @@ describe('turnProgress', () => {
     expect(progress.merge).not.toBeNull();
   });
 
-  it('a newer question sent: the line is the Planner’s, not the composition it replaces', () => {
-    const store = landed();
-    store.supersede();
-    store.beginPaint('“next” — generating…', 'utterance');
-    expect(turnProgress(store.getState())).toEqual({
-      working: {kind: 'planning', label: 'Planning which apps can answer'},
-      sources: [],
-      merge: null,
-    });
-  });
-
   it('a step per vendor source in slot order: done once placed, failed as painted, working until then', () => {
     const store = createCanvasStore();
     store.beginPaint('“status” — generating…', 'utterance');

@@ -7,7 +7,8 @@
  * Captures what the client receives from the hub — source stamp and synthesis payload included — one `BeatBatch` per
  * stream event, into the `BeatFixture` shape the canvas replays. Run against the LLM agent on
  * the stub tool backend so no account data lands in committed fixtures. Beat 3 is a follow-up
- * inside beat 2's conversation, so asking for 3 pulls 2 in and both share one contextId.
+ * asked from beat 2's canvas, so asking for 3 pulls 2 in: each opens a canvas of its own, 3's
+ * naming 2's as its parent (task-9.3 decision 1).
  *
  * Beats 10–18 are Phase 8's cases (task 8.6): each runs through an orchestrator the recorder
  * starts on `--fault-port` with the case's fault map and deadlines, over the agents already
@@ -62,11 +63,11 @@ function groupsOf(wanted: number[]): BeatSpec[][] {
 async function takeTurn(
   sender: A2AMessageSender,
   prompt: string,
-  contextId: string | undefined,
+  parent: string | undefined,
   catalogIds: string[],
 ): Promise<{batches: BeatBatch[]; driven: DrivenTurn}> {
   const batches: BeatBatch[] = [];
-  const driven = await driveTurn(sender, prompt, contextId, catalogIds, collect(batches));
+  const driven = await driveTurn(sender, prompt, parent, catalogIds, collect(batches));
   return {batches, driven};
 }
 

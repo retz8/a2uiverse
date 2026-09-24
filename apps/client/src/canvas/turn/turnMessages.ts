@@ -5,17 +5,16 @@
  * orchestration and calls into here.
  */
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
-import type {SnapshotSourceSurface} from '../timeline/snapshotSurface';
 
-/** The slice of a live/staging surface the runner reads: root type, title, catalog, serialization. */
-export interface CanvasSurface extends SnapshotSourceSurface {
-  componentsModel: SnapshotSourceSurface['componentsModel'] & {
+/** The slice of a live/staging surface the runner reads: root type, title, catalog, data model. */
+export interface CanvasSurface {
+  componentsModel: {
     get(id: string): CanvasComponent | undefined;
     readonly entries: IterableIterator<
       [string, CanvasComponent & {readonly componentTree: unknown}]
     >;
   };
-  /** Captured into the entry so rehydration can rebuild the surface's createSurface. */
+  dataModel: {get(path: string): unknown};
   catalog: {
     readonly id: string;
     readonly components: ReadonlyMap<string, {schema: {safeParse(v: unknown): {success: boolean}}}>;

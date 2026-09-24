@@ -48,8 +48,7 @@ const sourceStatus = (state: CanvasState, appId: string, busy: boolean): StepSta
 
 export function turnProgress(state: CanvasState): TurnProgress {
   const busy = running(state);
-  // A newer question was sent: the composition on stage is not what the line speaks for.
-  const roster = state.superseded ? [] : state.roster;
+  const roster = state.roster;
   const vendors = roster.filter(entry => entry.appId !== SHELL_SOURCE);
   const merged = roster.find(entry => entry.appId === SHELL_SOURCE);
   // An utterance plans until its roster lands; an action runs inside the composition, its label

@@ -31,13 +31,30 @@ export function CanvasStage({processor, state}: CanvasStageProps) {
           </SurfaceErrorBoundary>
         </div>
       ) : state.question ? null : (
-        // The mark belongs to a canvas nobody has asked anything of yet; once a question stands,
-        // the header is what the canvas shows while the plan is made.
-        <div className="canvas-empty-ghost" data-testid="canvas-empty-ghost" aria-hidden="true">
-          <div className="canvas-empty-mark">A2UIVerse</div>
-          <div className="canvas-empty-hint">⌘K to ask</div>
-        </div>
+        <EmptyGhost />
       )}
+    </div>
+  );
+}
+
+/**
+ * The mark belonging to a canvas nobody has asked anything of yet; once a question stands, the
+ * header is what the canvas shows while the plan is made.
+ */
+function EmptyGhost() {
+  return (
+    <div className="canvas-empty-ghost" data-testid="canvas-empty-ghost" aria-hidden="true">
+      <div className="canvas-empty-mark">A2UIVerse</div>
+      <div className="canvas-empty-hint">⌘K to ask</div>
+    </div>
+  );
+}
+
+/** The page with no canvas at all: before the first question, or after the last was closed. */
+export function EmptyCanvas() {
+  return (
+    <div className="canvas-stage" data-testid="canvas-stage">
+      <EmptyGhost />
     </div>
   );
 }

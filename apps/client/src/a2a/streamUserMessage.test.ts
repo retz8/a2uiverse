@@ -89,16 +89,19 @@ describe('streamUserMessage', () => {
     expect(apply).not.toHaveBeenCalled();
   });
 
-  it('captures the contextId into the session and resends it on the next message', async () => {
+  it('captures the minted contextId into the session; the question itself names none (task-9.2 decision 1)', async () => {
     const session = createA2ASession();
     const {getSender, sent} = fakeSender([statusUpdate([DATA_PART], 'ctx-42', true)]);
 
     await streamUserMessage('first', {getSender, apply: () => {}, session});
     expect(session.get()).toBe('ctx-42');
-
-    await streamUserMessage('second', {getSender, apply: () => {}, session});
     expect(sent[0].message.contextId).toBeUndefined();
-    expect(sent[1].message.contextId).toBe('ctx-42');
+  });
+
+  it('names the canvas it was asked from as the parent', async () => {
+    const {getSender, sent} = fakeSender([statusUpdate([DATA_PART], 'ctx-43', true)]);
+    await streamUserMessage('child', {getSender, apply: () => {}, parent: 'ctx-42'});
+    expect(sent[0].message.metadata).toEqual({a2uiverse: {parent: 'ctx-42'}});
   });
 
   it('sends the current client data model as message metadata when a supplier is given', async () => {

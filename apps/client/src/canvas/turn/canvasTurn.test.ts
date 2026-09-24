@@ -1,7 +1,7 @@
 /**
- * The turn runner: hold-and-swap with the net-effect validation gate, the
- * overlay slot for question paints, last-intent-wins cancel, and the timeline entry lifecycle —
- * an entry appended the moment a paint lands, its snapshot filled at serialize-on-swap.
+ * The turn runner: hold-and-swap with the net-effect validation gate, the overlay slot for
+ * question paints, last-intent-wins cancel, the composition's facts, and the streams beside the
+ * turn — one runner per canvas (task 9.6).
  */
 import {describe, it, expect, vi} from 'vitest';
 import {MessageProcessor} from '@a2ui/web_core/v0_9';
@@ -9,7 +9,7 @@ import type {A2uiMessage} from '@a2ui/web_core/v0_9';
 import {CATALOG, CATALOG_ID} from 'github-catalog';
 import {CATALOG_ID as SHELL_CATALOG_ID, createCatalog} from '@a2uiverse/shell-catalog';
 import type {CompositionStamp} from '@a2uiverse/sdk';
-import type {PaintCause} from '../timeline/paint';
+import type {PaintCause} from './cause';
 import {createCanvasStore} from '../canvasStore';
 import type {FragmentFailure} from './canvasTurn';
 import {createTurnRunner} from './canvasTurn';
@@ -81,18 +81,11 @@ const questionPaint = (surfaceId: string, title: string) => [
   dialogRoot(surfaceId, title),
 ];
 
-const utterance = (text: string, parent: number | null = null): PaintCause => ({
-  kind: 'utterance',
-  parent,
-  forked: false,
-  payload: {text},
-});
+const utterance = (text: string): PaintCause => ({kind: 'utterance', payload: {text}});
 
 /** A turn the user opened from inside a fragment, rather than by asking. */
 const surfaceAction = (name: string): PaintCause => ({
   kind: 'surface-action',
-  parent: null,
-  forked: false,
   payload: {
     action: {
       name,
@@ -126,28 +119,19 @@ const rootText = (processor: ReturnType<typeof setup>['processor'], id: string):
   processor.model.getSurface(id)?.componentsModel.get('root')?.properties.text;
 
 describe('progressive mode (empty canvas)', () => {
-  it('streams the paint straight onto the stage and appends its live entry at turn end', () => {
+  it('streams the paint straight onto the stage', () => {
     const {processor, store, runner} = setup();
     const turn = runner.begin(utterance('show my PRs'));
     expect(store.getState().inFlight?.label).toBe('“show my PRs” — generating…');
 
     turn.apply([create('pull-request-list')]);
-    // Progressive: visible mid-turn, before the stream ends — but not yet a timeline entry.
+    // Progressive: visible mid-turn, before the stream ends.
     expect(store.getState().stageId).toBe('pull-request-list');
     turn.apply([textRoot('pull-request-list', 'PRs')]);
-    expect(store.getState().timeline).toEqual([]);
 
     turn.end();
     const state = store.getState();
     expect(state.inFlight).toBeNull();
-    expect(state.timeline).toHaveLength(1);
-    expect(state.timeline[0]).toMatchObject({
-      paintId: 1,
-      surfaceId: 'pull-request-list',
-      catalogId: CATALOG_ID,
-      snapshot: null,
-    });
-    expect(state.timeline[0].cause).toEqual(utterance('show my PRs'));
     expect(processor.model.getSurface('pull-request-list')).toBeTruthy();
   });
 
@@ -160,12 +144,11 @@ describe('progressive mode (empty canvas)', () => {
 
     const state = store.getState();
     expect(state.stageId).toBeNull();
-    expect(state.timeline).toEqual([]);
     expect(state.error).toMatch(/withdrawn/);
     expect(processor.model.getSurface('broken')).toBeFalsy();
   });
 
-  it('a dialog-rooted paint routes to the overlay, not the stage or the timeline', () => {
+  it('a dialog-rooted paint routes to the overlay, not the stage', () => {
     const {store, runner} = setup();
     const turn = runner.begin(utterance('delete everything'));
     turn.apply([create('confirm-wipe'), ...questionPaint('confirm-wipe', 'Really wipe it all?')]);
@@ -174,10 +157,9 @@ describe('progressive mode (empty canvas)', () => {
     const state = store.getState();
     expect(state.stageId).toBeNull();
     expect(state.overlay).toEqual({surfaceId: 'confirm-wipe', question: 'Really wipe it all?'});
-    expect(state.timeline).toEqual([]);
   });
 
-  it('a canceled progressive paint is removed from the stage and never enters the timeline', () => {
+  it('a canceled progressive paint is removed from the stage', () => {
     const {processor, store, runner} = setup();
     const turn = runner.begin(utterance('show my PRs'));
     turn.apply([create('partial'), textRoot('partial', 'half')]);
@@ -189,17 +171,16 @@ describe('progressive mode (empty canvas)', () => {
     expect(turn.signal.aborted).toBe(true);
     expect(state.stageId).toBeNull();
     expect(state.inFlight).toBeNull();
-    expect(state.timeline).toEqual([]);
     expect(processor.model.getSurface('partial')).toBeFalsy();
   });
 });
 
 describe('staged mode (occupied stage): hold-and-swap', () => {
-  it('holds the stage while the new paint streams off-stage, then swaps and fills the snapshot', () => {
+  it('holds the stage while the new paint streams off-stage, then swaps', () => {
     const {processor, store, runner} = setup();
     paintStage(runner, 'old-stage', 'old content');
 
-    const turn = runner.begin(utterance('now the issues', 1));
+    const turn = runner.begin(utterance('now the issues'));
     turn.apply([create('issue-list')]);
     // The hold: the outgoing surface stays, the new paint is not in the live registry yet.
     expect(store.getState().stageId).toBe('old-stage');
@@ -210,23 +191,14 @@ describe('staged mode (occupied stage): hold-and-swap', () => {
     const state = store.getState();
     expect(state.stageId).toBe('issue-list');
     expect(rootText(processor, 'issue-list')).toBe('Issues');
-    // Serialize-on-swap: the departed entry filled in place; the new head has no snapshot yet.
-    expect(state.timeline).toHaveLength(2);
-    expect(state.timeline[0]).toMatchObject({paintId: 1, surfaceId: 'old-stage'});
-    expect(state.timeline[0].snapshot?.tree.root).toMatchObject({
-      type: 'Text',
-      text: 'old content',
-    });
-    expect(Object.isFrozen(state.timeline[0].snapshot?.tree.root)).toBe(true);
-    expect(state.timeline[1]).toMatchObject({paintId: 2, surfaceId: 'issue-list', snapshot: null});
     expect(Array.from(processor.model.surfacesMap.keys())).toEqual(['issue-list']);
   });
 
-  it('a same-id repaint holds the old content until the swap, then departs as its own entry', () => {
+  it('a same-id repaint holds the old content until the swap', () => {
     const {processor, store, runner} = setup();
     paintStage(runner, 'user-profile', 'v1');
 
-    const turn = runner.begin(utterance('refresh it', 1));
+    const turn = runner.begin(utterance('refresh it'));
     turn.apply([create('user-profile'), textRoot('user-profile', 'v2')]);
     // Staging shadows live: the visible surface still carries the old content.
     expect(rootText(processor, 'user-profile')).toBe('v1');
@@ -235,9 +207,6 @@ describe('staged mode (occupied stage): hold-and-swap', () => {
     expect(rootText(processor, 'user-profile')).toBe('v2');
     const state = store.getState();
     expect(state.stageId).toBe('user-profile');
-    expect(state.timeline.map(e => e.paintId)).toEqual([1, 2]);
-    expect(state.timeline[0].snapshot?.tree.root).toMatchObject({text: 'v1'});
-    expect(state.timeline[1].snapshot).toBeNull();
     expect(Array.from(processor.model.surfacesMap.keys())).toEqual(['user-profile']);
   });
 
@@ -245,16 +214,13 @@ describe('staged mode (occupied stage): hold-and-swap', () => {
     const {processor, store, runner} = setup();
     paintStage(runner, 'old-stage', 'still here');
 
-    const turn = runner.begin(utterance('something invalid', 1));
+    const turn = runner.begin(utterance('something invalid'));
     turn.apply([create('doomed'), textRoot('doomed', 'partial'), del('doomed')]);
     turn.end();
 
     const state = store.getState();
     expect(state.stageId).toBe('old-stage');
     expect(rootText(processor, 'old-stage')).toBe('still here');
-    // The held paint is still the live head — no departure, no new entry.
-    expect(state.timeline).toHaveLength(1);
-    expect(state.timeline[0]).toMatchObject({paintId: 1, surfaceId: 'old-stage', snapshot: null});
     expect(state.error).toMatch(/keeping the current view/);
     expect(processor.model.getSurface('doomed')).toBeFalsy();
   });
@@ -263,20 +229,18 @@ describe('staged mode (occupied stage): hold-and-swap', () => {
     const {processor, store, runner} = setup();
     paintStage(runner, 'stage', 'before');
 
-    const turn = runner.begin(utterance('tweak it', 1));
+    const turn = runner.begin(utterance('tweak it'));
     turn.apply([textRoot('stage', 'after')]);
     // Live before the turn ends.
     expect(rootText(processor, 'stage')).toBe('after');
     turn.end();
 
     const state = store.getState();
-    expect(state.timeline).toHaveLength(1);
-    expect(state.timeline[0]).toMatchObject({paintId: 1, snapshot: null});
     expect(state.error).toBeNull();
   });
 
   it('a data-model update to the live stage applies mid-turn', () => {
-    const {processor, store, runner} = setup();
+    const {processor, runner} = setup();
     const first = runner.begin(utterance('paint'));
     first.apply([
       create('stage'),
@@ -290,37 +254,32 @@ describe('staged mode (occupied stage): hold-and-swap', () => {
     ]);
     first.end();
 
-    const turn = runner.begin(utterance('update', 1));
+    const turn = runner.begin(utterance('update'));
     turn.apply([dataUpdate('stage', {title: 'two'})]);
     expect(processor.model.getSurface('stage')?.dataModel.get('/')).toMatchObject({title: 'two'});
     turn.end();
-    expect(store.getState().timeline).toHaveLength(1);
   });
 
-  it('a deliberate delete of the live stage is honored: snapshot fills, canvas is live and empty', () => {
+  it('a deliberate delete of the live stage is honored: the canvas is empty', () => {
     const {processor, store, runner} = setup();
     paintStage(runner, 'stage', 'goodbye');
 
-    const turn = runner.begin(utterance('clear the canvas', 1));
+    const turn = runner.begin(utterance('clear the canvas'));
     turn.apply([del('stage')]);
     turn.end();
 
     const state = store.getState();
     expect(state.stageId).toBeNull();
-    // Live and empty: the newest entry is a departed paint.
-    expect(state.timeline).toHaveLength(1);
-    expect(state.timeline[0]).toMatchObject({paintId: 1, surfaceId: 'stage'});
-    expect(state.timeline[0].snapshot?.tree.root).toMatchObject({text: 'goodbye'});
     expect(state.notices[0]?.text).toMatch(/cleared/);
     expect(state.error).toBeNull();
     expect(processor.model.getSurface('stage')).toBeFalsy();
   });
 
-  it('when one turn creates several stage surfaces, the last takes the stage and all enter the timeline', () => {
+  it('when one turn creates several stage surfaces, the last takes the stage', () => {
     const {processor, store, runner} = setup();
     paintStage(runner, 'old-stage', 'old');
 
-    const turn = runner.begin(utterance('two views', 1));
+    const turn = runner.begin(utterance('two views'));
     turn.apply([
       create('first'),
       textRoot('first', 'one'),
@@ -331,9 +290,6 @@ describe('staged mode (occupied stage): hold-and-swap', () => {
 
     const state = store.getState();
     expect(state.stageId).toBe('second');
-    expect(state.timeline.map(e => e.surfaceId)).toEqual(['old-stage', 'first', 'second']);
-    // Intermediates arrive already departed; only the head is live.
-    expect(state.timeline.map(e => e.snapshot === null)).toEqual([false, false, true]);
     expect(Array.from(processor.model.surfacesMap.keys())).toEqual(['second']);
   });
 });
@@ -343,7 +299,7 @@ describe('question paints and the overlay slot', () => {
     const {processor, store, runner} = setup();
     paintStage(runner, 'stage', 'held content');
 
-    const turn = runner.begin(utterance('which repo?', 1));
+    const turn = runner.begin(utterance('which repo?'));
     turn.apply([create('which-repo'), ...questionPaint('which-repo', 'Which repository?')]);
     // Gated: the question is not live mid-turn.
     expect(store.getState().overlay).toBeNull();
@@ -352,8 +308,6 @@ describe('question paints and the overlay slot', () => {
     const state = store.getState();
     expect(state.overlay).toEqual({surfaceId: 'which-repo', question: 'Which repository?'});
     expect(state.stageId).toBe('stage');
-    expect(state.timeline).toHaveLength(1);
-    expect(state.timeline[0]).toMatchObject({paintId: 1, surfaceId: 'stage', snapshot: null});
     expect(Array.from(processor.model.surfacesMap.keys())).toEqual(['stage', 'which-repo']);
   });
 
@@ -361,31 +315,29 @@ describe('question paints and the overlay slot', () => {
     const {processor, store, runner} = setup();
     paintStage(runner, 'stage', 'held');
 
-    const first = runner.begin(utterance('q1', 1));
+    const first = runner.begin(utterance('q1'));
     first.apply([create('question-1'), ...questionPaint('question-1', 'First?')]);
     first.end();
 
-    const second = runner.begin(utterance('q2', 1));
+    const second = runner.begin(utterance('q2'));
     second.apply([create('question-2'), ...questionPaint('question-2', 'Second?')]);
     second.end();
 
     const state = store.getState();
     expect(state.overlay).toEqual({surfaceId: 'question-2', question: 'Second?'});
-    expect(state.timeline).toHaveLength(1);
     expect(processor.model.getSurface('question-1')).toBeFalsy();
   });
 
   it('removeOverlay drops the question from canvas and registry with no trace', () => {
     const {processor, store, runner} = setup();
     paintStage(runner, 'stage', 'held');
-    const turn = runner.begin(utterance('ask', 1));
+    const turn = runner.begin(utterance('ask'));
     turn.apply([create('question'), ...questionPaint('question', 'Sure?')]);
     turn.end();
 
     runner.removeOverlay();
     const state = store.getState();
     expect(state.overlay).toBeNull();
-    expect(state.timeline).toHaveLength(1);
     expect(processor.model.getSurface('question')).toBeFalsy();
     expect(Array.from(processor.model.surfacesMap.keys())).toEqual(['stage']);
   });
@@ -394,7 +346,7 @@ describe('question paints and the overlay slot', () => {
     const {store, runner} = setup();
     paintStage(runner, 'old-stage', 'old');
 
-    const turn = runner.begin(utterance('both', 1));
+    const turn = runner.begin(utterance('both'));
     turn.apply([
       create('new-stage'),
       textRoot('new-stage', 'new'),
@@ -406,7 +358,6 @@ describe('question paints and the overlay slot', () => {
     const state = store.getState();
     expect(state.stageId).toBe('new-stage');
     expect(state.overlay).toEqual({surfaceId: 'question', question: 'Also this?'});
-    expect(state.timeline.map(e => e.surfaceId)).toEqual(['old-stage', 'new-stage']);
   });
 });
 
@@ -415,7 +366,7 @@ describe('cancel: last-intent-wins', () => {
     const {processor, store, runner} = setup();
     paintStage(runner, 'stage', 'held');
 
-    const turn = runner.begin(utterance('slow one', 1));
+    const turn = runner.begin(utterance('slow one'));
     turn.apply([create('slow'), textRoot('slow', 'half')]);
     turn.cancel();
 
@@ -423,23 +374,21 @@ describe('cancel: last-intent-wins', () => {
     expect(turn.signal.aborted).toBe(true);
     expect(state.stageId).toBe('stage');
     expect(state.inFlight).toBeNull();
-    expect(state.timeline).toHaveLength(1);
     expect(processor.model.getSurface('slow')).toBeFalsy();
 
     // A canceled turn is inert: late batches and the stream-exhaustion end are no-ops.
     turn.apply([textRoot('slow', 'late')]);
     turn.end();
     expect(store.getState().stageId).toBe('stage');
-    expect(store.getState().timeline).toHaveLength(1);
   });
 
   it('beginning a new turn cancels the in-flight one and takes over the in-flight slot', () => {
     const {store, runner} = setup();
     paintStage(runner, 'stage', 'held');
 
-    const first = runner.begin(utterance('first ask', 1));
+    const first = runner.begin(utterance('first ask'));
     first.apply([create('a'), textRoot('a', 'A')]);
-    const second = runner.begin(utterance('second ask', 1));
+    const second = runner.begin(utterance('second ask'));
 
     expect(first.canceled).toBe(true);
     expect(first.signal.aborted).toBe(true);
@@ -449,9 +398,7 @@ describe('cancel: last-intent-wins', () => {
     second.apply([create('b'), textRoot('b', 'B')]);
     second.end();
     const state = store.getState();
-    // Only the real swap departed the old stage — the canceled paint left nothing.
     expect(state.stageId).toBe('b');
-    expect(state.timeline.map(e => e.surfaceId)).toEqual(['stage', 'b']);
   });
 });
 
@@ -466,10 +413,8 @@ describe('paint meta', () => {
     turn.acceptPaintMeta({surfaceId: 'pull-request-list', title: 'Open PRs — a2ui'});
     expect(store.getState().inFlight?.label).toBe('“show my PRs” — generating…');
 
-    // The title is still the paint's own, and still lands on the timeline entry.
     turn.apply([create('pull-request-list'), textRoot('pull-request-list', 'PRs')]);
     turn.end();
-    expect(store.getState().timeline[0].title).toBe('Open PRs — a2ui');
   });
 
   it('an action inside a fragment shows that agent’s title', () => {
@@ -483,20 +428,6 @@ describe('paint meta', () => {
     turn.end();
   });
 
-  it('a titled staged paint carries its title onto the swapped-in entry', () => {
-    const {store, runner} = setup();
-    paintStage(runner, 'first', 'one');
-    const turn = runner.begin(utterance('next'));
-    turn.acceptPaintMeta({surfaceId: 'second', title: 'Second view'});
-    turn.apply([create('second'), textRoot('second', 'two')]);
-    turn.end();
-
-    const state = store.getState();
-    expect(state.stageId).toBe('second');
-    expect(state.timeline[1].title).toBe('Second view');
-    expect(state.timeline[0].title).toBeUndefined(); // untitled paints keep the fallback
-  });
-
   it('kind="question" routes a non-dialog paint to the overlay — the marker is the contract', () => {
     const {store, runner} = setup();
     const turn = runner.begin(utterance('which repo?'));
@@ -507,7 +438,6 @@ describe('paint meta', () => {
     const state = store.getState();
     expect(state.stageId).toBeNull();
     expect(state.overlay?.surfaceId).toBe('which-repo');
-    expect(state.timeline).toEqual([]); // questions never enter the timeline
   });
 
   it('an undeclared dialog-rooted paint is an ordinary stage paint', () => {
@@ -534,7 +464,6 @@ describe('paint meta', () => {
     const state = store.getState();
     expect(state.stageId).toBe('dlg');
     expect(state.overlay).toBeNull();
-    expect(state.timeline).toHaveLength(1);
   });
 
   it('staged mode routes a marker-declared question to the overlay while the stage holds', () => {
@@ -548,7 +477,6 @@ describe('paint meta', () => {
     const state = store.getState();
     expect(state.stageId).toBe('first'); // the held stage survives a question paint
     expect(state.overlay?.surfaceId).toBe('q');
-    expect(state.timeline).toHaveLength(1);
   });
 
   it('paintMeta objects inline in an applied batch are consumed, not fed to the processor', () => {
@@ -565,90 +493,6 @@ describe('paint meta', () => {
     const state = store.getState();
     expect(state.error).toBeNull();
     expect(state.stageId).toBe('s');
-    expect(state.timeline[0].title).toBe('Replayed title');
-  });
-});
-
-describe('forked turns (dispatched from a parked view)', () => {
-  const forkedUtterance = (text: string, parent: number): PaintCause => ({
-    kind: 'utterance',
-    parent,
-    forked: true,
-    parentTitle: 'parent view',
-    payload: {text},
-  });
-
-  /** Two landed paints with the first parked — the canonical fork starting point. */
-  function setupParked() {
-    const ctx = setup();
-    paintStage(ctx.runner, 's1', 'first');
-    paintStage(ctx.runner, 's2', 'second');
-    const parkedId = ctx.store.getState().timeline[0].paintId;
-    ctx.store.park(parkedId);
-    return {...ctx, parkedId};
-  }
-
-  it('holds the parked view while the fork streams, then returns to live when it lands', () => {
-    const {store, runner, parkedId} = setupParked();
-    const turn = runner.begin(forkedUtterance('fork it', parkedId));
-    turn.apply([create('s3'), textRoot('s3', 'third')]);
-    expect(store.getState().viewing).toBe(parkedId);
-
-    turn.end();
-    const state = store.getState();
-    expect(state.stageId).toBe('s3');
-    expect(state.viewing).toBeNull();
-    expect(state.headAdvancedWhileParked).toBe(false);
-  });
-
-  it('a failed fork leaves the user parked on the view they acted from', () => {
-    const {store, runner, parkedId} = setupParked();
-    const turn = runner.begin(forkedUtterance('fork it', parkedId));
-    turn.apply([create('s3'), textRoot('s3', 'third'), del('s3')]);
-    turn.end();
-
-    const state = store.getState();
-    expect(state.stageId).toBe('s2');
-    expect(state.viewing).toBe(parkedId);
-    expect(state.error).not.toBeNull();
-  });
-
-  it('a canceled fork leaves the user parked', () => {
-    const {store, runner, parkedId} = setupParked();
-    const turn = runner.begin(forkedUtterance('fork it', parkedId));
-    turn.apply([create('s3')]);
-    turn.cancel();
-
-    expect(store.getState().viewing).toBe(parkedId);
-  });
-
-  it('a fork resolving to a question stays parked — the overlay shows over the parked view', () => {
-    const {store, runner, parkedId} = setupParked();
-    const turn = runner.begin(forkedUtterance('fork it', parkedId));
-    turn.apply([create('q'), ...questionPaint('q', 'Proceed?')]);
-    turn.end();
-
-    const state = store.getState();
-    expect(state.overlay?.surfaceId).toBe('q');
-    expect(state.viewing).toBe(parkedId);
-  });
-
-  it('a forked paint landing on an empty stage also returns the view to live', () => {
-    const {store, runner, parkedId} = setupParked();
-    // Clear the stage first (a deliberate delete of the live surface).
-    const clearing = runner.begin(utterance('clear'));
-    clearing.apply([del('s2')]);
-    clearing.end();
-    expect(store.getState().stageId).toBeNull();
-    expect(store.getState().viewing).toBe(parkedId);
-
-    const turn = runner.begin(forkedUtterance('fork it', parkedId));
-    turn.apply([create('s3'), textRoot('s3', 'third')]);
-    turn.end();
-
-    const state = store.getState();
-    expect(state.stageId).toBe('s3');
-    expect(state.viewing).toBeNull();
   });
 });
 
@@ -793,7 +637,6 @@ describe('composed turns (the hub stamps its events)', () => {
     });
     // The fragment lives in the registry to be mounted, but is not a paint of its own.
     expect(processor.model.getSurface('github:prs')).toBeDefined();
-    expect(store.getState().timeline.map(e => e.surfaceId)).toEqual(['shell:main']);
   });
 
   it('a composition abandons hold-and-swap so its slots can fill in place', () => {
@@ -863,32 +706,6 @@ describe('composed turns (the hub stamps its events)', () => {
     expect(processor.model.getSurface('shell:main')).toBeDefined();
   });
 
-  it('the departing composition is captured whole, so time travel is not a lie', () => {
-    const {store, runner} = composedSetup();
-    const first = runner.begin(utterance('compose'));
-    first.apply(shellPaint(['github']), SHELL);
-    first.apply(
-      [create('github:prs'), textRoot('github:prs', 'Pull requests')],
-      fragment('github'),
-    );
-    first.end();
-
-    // Serialize-on-swap: the composition materialises as the next one displaces it.
-    const second = runner.begin(utterance('compose again'));
-    second.apply(shellPaint(['github']), SHELL);
-    second.end();
-
-    const [entry] = store.getState().timeline;
-    expect(entry.snapshot).not.toBeNull();
-    expect(entry.fragments).toHaveLength(1);
-    const [captured] = entry.fragments!;
-    expect(captured).toMatchObject({
-      surfaceId: 'github:prs',
-      source: 'github',
-    });
-    expect(captured.snapshot?.tree).toHaveProperty('root');
-  });
-
   it('an unstamped stream is a stage paint — pre-composition fixtures are unchanged', () => {
     const {store, runner} = composedSetup();
     const turn = runner.begin(utterance('plain'));
@@ -897,7 +714,6 @@ describe('composed turns (the hub stamps its events)', () => {
 
     expect(store.getState().stageId).toBe('plain-view');
     expect(store.getState().placement.size).toBe(0);
-    expect(store.getState().timeline.map(e => e.surfaceId)).toEqual(['plain-view']);
   });
 });
 
@@ -1227,7 +1043,6 @@ describe('the question (task 7.14)', () => {
     runner.begin(surfaceAction('open')).end();
     expect(store.getState().slotStates.get('linear')).toBe('failed');
     const next = runner.begin(utterance('again'));
-    expect(store.getState().superseded).toBe(true);
     next.apply(
       [
         msg({createSurface: {surfaceId: 'shell:main', catalogId: 'x'}}),
@@ -1241,7 +1056,6 @@ describe('the question (task 7.14)', () => {
       {source: 'shell', role: 'shell'},
     );
     expect(store.getState().slotStates.has('linear')).toBe(false);
-    expect(store.getState().superseded).toBe(false);
   });
 });
 
@@ -1291,7 +1105,7 @@ describe('streams beside the turn (task 8.5)', () => {
   it('a Retry’s answer fills its slot in the live composition, touching nothing of the turn', () => {
     const {processor, store, runner} = composed();
     runner.beginSideStream().apply([slotRepaint([{source: 'gmail', state: 'failed'}])], SHELL);
-    const {timeline, stageId} = store.getState();
+    const {stageId} = store.getState();
     const retry = runner.beginSideStream();
     retry.apply([slotRepaint([{source: 'gmail', state: 'pending'}])], SHELL);
     retry.apply([create('gmail:inbox'), textRoot('gmail:inbox', 'again')], fragment('gmail'));
@@ -1300,7 +1114,6 @@ describe('streams beside the turn (task 8.5)', () => {
     expect(state.placement.get('gmail')).toEqual({surfaceId: 'gmail:inbox', source: 'gmail'});
     expect(processor.model.getSurface('gmail:inbox')).toBeDefined();
     expect(state.stageId).toBe(stageId);
-    expect(state.timeline).toBe(timeline);
     expect(state.inFlight).toBeNull();
   });
 
@@ -1333,12 +1146,14 @@ describe('streams beside the turn (task 8.5)', () => {
     );
   });
 
-  it('a new utterance ends every stream beside the turn; what still arrives is dropped', () => {
+  it('the close ends the turn in flight and every stream beside it; what still arrives is dropped (task-9.6 decision 8)', () => {
     const {store, runner} = composed();
     const stream = runner.beginSideStream();
-    runner.begin(utterance('next'));
+    const turn = runner.begin(surfaceAction('open'));
+    runner.cancelAll();
+    expect(turn.canceled).toBe(true);
     expect(stream.signal.aborted).toBe(true);
-    expect(store.getState().superseded).toBe(true);
+    expect(store.getState().inFlight).toBeNull();
     stream.apply([slotRepaint([{source: 'gmail', state: 'failed'}])], SHELL);
     expect(store.getState().slotStates.get('gmail')).toBe('pending');
     expect(store.getState().placement.has('gmail')).toBe(true);
@@ -1349,6 +1164,21 @@ describe('streams beside the turn (task 8.5)', () => {
     const stream = runner.beginSideStream();
     runner.begin(surfaceAction('open')).end();
     expect(stream.signal.aborted).toBe(false);
+  });
+
+  it('a fragment’s paint title is kept per source, from the meta that led it, on any stream (task-9.3 decision 6)', () => {
+    const {store, runner} = composed();
+    expect(store.getState().paintTitles.get('gmail')).toBeUndefined();
+    const retry = runner.beginSideStream();
+    retry.acceptPaintMeta({surfaceId: 'gmail:inbox', title: 'Unread — needs reply'});
+    retry.apply([create('gmail:inbox'), textRoot('gmail:inbox', 'again')], fragment('gmail'));
+    retry.end();
+    expect(store.getState().paintTitles.get('gmail')).toBe('Unread — needs reply');
+    // A later paint that names nothing drops the title with the paint it named.
+    const drill = runner.begin(surfaceAction('open'));
+    drill.apply([create('gmail:thread'), textRoot('gmail:thread', 'thread')], fragment('gmail'));
+    drill.end();
+    expect(store.getState().paintTitles.has('gmail')).toBe(false);
   });
 
   it('a retried fragment that will not render is reported once, at the stream’s end', () => {

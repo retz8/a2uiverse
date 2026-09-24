@@ -1,45 +1,32 @@
 /**
- * The canvas page: the canvas-first shell — a full-screen stage, an overlay slot for question
- * paints, a summonable command palette as the language control plane, a thin status strip,
- * transient ambient notices, and the top-edge history chrome. It owns only layout and the
- * page-level affordances (palette summon, beat replay); the runtime graph and every dispatch
- * handler live in `createCanvasWiring`, built once at mount.
+ * The canvas page: the canvas-first shell — the canvas on screen (`CanvasView`, keyed by the
+ * canvas), a summonable command palette as the language control plane, the trail chrome (Back,
+ * Trail, the rail, the band on a past canvas), the trusted page over the canvas, and the Ask
+ * pill. It owns only layout and the page-level affordances (palette summon, beat replay); the
+ * runtime graph and every dispatch handler live in `createCanvasWiring`, built once at mount.
  *
  * `?beat=N[,M…]` replays recorded beats in sequence (paced by the recorded offsets; `&instant`
- * collapses the waits) — the zero-LLM verification path. A beat's presses fire through the same
- * handler the buttons call, answered by the beat's own recording, never the orchestrator.
+ * collapses the waits) — the zero-LLM verification path. Every utterance of a beat opens a canvas
+ * of its own in the trail (task-9.6 decision 14). A beat's presses fire through the same handler
+ * the buttons call, answered by the beat's own recording, never the orchestrator.
  */
-import {useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore} from 'react';
+import {useCallback, useEffect, useRef, useState, useSyncExternalStore} from 'react';
 import {Button, Kbd} from '@radix-ui/themes';
 import type {A2ASenderOptions} from '../a2a/client';
 import {getBeatFixture} from '../beats/beatFixtures';
 import {syntheticBeat} from '../beats/syntheticBeats';
-import {
-  type PressState,
-  PressStateContext,
-  SlotContentContext,
-  SlotStateContext,
-} from '@a2uiverse/shell-catalog';
 import {CatalogProvider} from '../catalogs/CatalogContext';
 import type {ResolvedCatalog} from '../catalogs/resolver';
-import {columnState} from './composition/columnState';
-import {useSlotContent} from './composition/slotContent';
-import {orderedNotices, questionOnView} from './canvasStore';
 import {createCanvasWiring} from './createCanvasWiring';
 import {replayBeatOnCanvas} from './replayBeat';
-import {AmbientNotice} from './components/AmbientNotice';
-import {CanvasOverlay} from './components/CanvasOverlay';
-import {CanvasStage} from './components/CanvasStage';
-import {HistoryChrome} from './components/HistoryChrome';
-import {ParkedStage} from './components/ParkedStage';
+import {CanvasView} from './components/CanvasView';
+import {EmptyCanvas} from './components/CanvasStage';
 import {Palette} from './components/Palette';
-import {CompactHead} from './components/CompactHead';
-import {ProgressLine} from './components/ProgressLine';
-import {QuestionHeader} from './components/QuestionHeader';
 import {StatusStrip} from './components/StatusStrip';
+import {TrailChrome} from './components/TrailChrome';
 import {TrustedPageOverlay} from './components/TrustedPageOverlay';
 import type {HostRelay} from './hostRelay';
-import {BindingIndexContext} from './navigation/decorateCatalog';
+import {viewedCanvasId} from './trail/trailStore';
 import './CanvasApp.css';
 
 export interface CanvasAppProps extends A2ASenderOptions {
@@ -60,45 +47,15 @@ export function CanvasApp({serverUrl, client, catalogs, hostRelay}: CanvasAppPro
     createCanvasWiring({serverUrl, client, catalogs: catalogs.map(c => c.catalog)}),
   );
 
-  const state = useSyncExternalStore(wiring.store.subscribe, wiring.store.getState);
+  const trail = useSyncExternalStore(wiring.trail.subscribe, wiring.trail.getState);
+  const viewedId = viewedCanvasId(trail);
+  const runtime = viewedId === null ? undefined : wiring.runtimeOf(viewedId);
+  const past = trail.viewing !== null;
 
   // What the shell's surfaces raise — a shell action from the model's button or the capability
-  // tile, a navigation from a merged cell — lands in this canvas for as long as it is mounted,
-  // and its roster names the apps.
+  // tile, a navigation from a merged cell, a press — lands in the canvas on screen for as long as
+  // the page is mounted, and that canvas's roster names the apps.
   useEffect(() => hostRelay?.bind(wiring.host), [hostRelay, wiring]);
-
-  // What a `Slot` in the shell surface renders: the fragment placed in it, inside its boundary —
-  // or, for a slot whose source answered in prose and never painted, what that source said.
-  const slotContent = useSlotContent(
-    wiring.processor,
-    state.placement,
-    state.appliedSeq,
-    state.promoted,
-    state.roster,
-    state.prose,
-  );
-
-  // What a reserved column in the merged view says of its source (task-8.5 decision 12).
-  const {merge, slotStates, placement, presses, superseded} = state;
-  const slotStateOf = useCallback(
-    (source: string) => columnState({merge, slotStates, placement, presses}, source),
-    [merge, slotStates, placement, presses],
-  );
-  // The presses the paint has not caught up with, and whether a press can be made at all: not on
-  // a composition a newer question is replacing (task-8.5 decisions 8, 9).
-  const pressState = useMemo<PressState>(
-    () => ({
-      enabled: !superseded,
-      presses: presses.flatMap(({operation, status}) =>
-        status === 'running' ? [] : [{operation, status}],
-      ),
-    }),
-    [presses, superseded],
-  );
-
-  // Promotion is plural, so it is emphasis rather than a modal: no focus trap, and the count
-  // is announced instead of the focus being seized.
-  const promotedCount = state.promoted.size;
 
   // The ?beat= replay affordance, read once at mount. A comma-separated list runs in sequence.
   const [beatParams] = useState(() => {
@@ -115,15 +72,24 @@ export function CanvasApp({serverUrl, client, catalogs, hostRelay}: CanvasAppPro
    * seed remounts the palette with those words; opening it otherwise keeps any draft.
    */
   const [paletteSeed, setPaletteSeed] = useState<{text?: string; key: number}>({key: 0});
-  const openPalette = (text?: string) => {
+  const openPalette = useCallback((text?: string) => {
     if (text !== undefined) setPaletteSeed(seed => ({text, key: seed.key + 1}));
     setPaletteOpen(true);
-  };
-  /** The page that scrolls and the header at its top: the condensed header watches the one leave the other. */
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const headRef = useRef<HTMLElement>(null);
+  }, []);
+  /** The rail, opened from Trail beside Back (task-9.6 decision 11); a pick closes it. */
+  const [trailOpen, setTrailOpen] = useState(false);
+  const toggleTrail = useCallback(() => setTrailOpen(open => !open), []);
+  const viewFromTrail = useCallback(
+    (id: string) => {
+      wiring.view(id);
+      setTrailOpen(false);
+    },
+    [wiring],
+  );
   /** Set once the whole `?beat=` list has replayed — the settle signal for visual tests. */
   const [replayDone, setReplayDone] = useState(false);
+  /** A replay that could not start: the sticky error with no canvas to carry it. */
+  const [replayError, setReplayError] = useState<string | null>(null);
 
   const replayStarted = useRef(false);
   useEffect(() => {
@@ -133,12 +99,11 @@ export function CanvasApp({serverUrl, client, catalogs, hostRelay}: CanvasAppPro
       for (const beat of beatParams.beats) {
         const fixture = beatFixtureFor(beat);
         if (!fixture) {
-          wiring.store.reportError(`Unknown beat: ${beat}.`);
+          setReplayError(`Unknown beat: ${beat}.`);
           return;
         }
         await replayBeatOnCanvas(fixture, {
-          runner: wiring.runner,
-          store: wiring.store,
+          canvases: wiring,
           paced: !beatParams.instant,
           sides: wiring,
         });
@@ -159,102 +124,57 @@ export function CanvasApp({serverUrl, client, catalogs, hostRelay}: CanvasAppPro
     return () => window.removeEventListener('keydown', onKeyDown);
   }, []);
 
-  const parkedEntry =
-    state.viewing !== null ? state.timeline.find(e => e.paintId === state.viewing) : undefined;
-  const question = questionOnView(state);
-  // The progress line belongs to the live turn; a parked view is a finished one.
-  const showProgress = !parkedEntry && (question !== null || state.inFlight !== null);
+  const className = past ? 'canvas-app canvas-app--parked' : 'canvas-app';
 
   return (
     <CatalogProvider catalogs={catalogs}>
-      <BindingIndexContext.Provider value={wiring.bindingIndex}>
-        <SlotContentContext.Provider value={slotContent}>
-          <main
-            className={parkedEntry ? 'canvas-app canvas-app--parked' : 'canvas-app'}
-            data-replay={replayDone ? 'done' : undefined}
+      <main className={className} data-replay={replayDone ? 'done' : undefined}>
+        {runtime ? (
+          <CanvasView key={runtime.id} runtime={runtime} onEdit={openPalette} />
+        ) : (
+          <>
+            <div className="canvas-scroll" data-testid="canvas-scroll">
+              <EmptyCanvas />
+            </div>
+            <StatusStrip error={replayError} />
+          </>
+        )}
+        <TrustedPageOverlay page={trail.trustedPage} onClose={wiring.trail.closeTrustedPage} />
+        <TrailChrome
+          trail={trail}
+          open={trailOpen}
+          onToggle={toggleTrail}
+          onView={viewFromTrail}
+          onReturnToLive={wiring.returnToLive}
+          onClose={wiring.closeCanvas}
+          onAskAgain={() => void wiring.askAgain()}
+          runtimeOf={wiring.runtimeOf}
+        />
+        <Palette
+          key={paletteSeed.key}
+          open={paletteOpen}
+          initialText={paletteSeed.text}
+          onDismiss={() => setPaletteOpen(false)}
+          onSubmit={utterance => {
+            setPaletteOpen(false);
+            void wiring.sendUtterance(utterance);
+          }}
+        />
+        {/* The canvas's one call-to-action; yields to the palette while it is open. On a past
+            canvas it says so: the question starts a branch from this view (board F5). */}
+        {!paletteOpen && (
+          <Button
+            variant="solid"
+            size="3"
+            className="canvas-ask-pill"
+            aria-label={past ? 'Ask from this view' : 'Ask'}
+            title={past ? 'Starts a branch from this view' : undefined}
+            onClick={() => openPalette()}
           >
-            {/* The header scrolls with the page it heads; once it has left, the condensed bar
-                holds the top edge (CompactHead). */}
-            <div className="canvas-scroll" data-testid="canvas-scroll" ref={scrollRef}>
-              <CompactHead
-                scroller={scrollRef}
-                head={headRef}
-                question={question}
-                state={state}
-                showProgress={showProgress}
-                onEdit={openPalette}
-              />
-              {(question || showProgress) && (
-                <header className="canvas-head" data-testid="canvas-head" ref={headRef}>
-                  {question && (
-                    // Keyed by the question, so a new one starts over at display size, measured.
-                    <QuestionHeader
-                      key={`${question.askedAt}:${question.text}`}
-                      question={question}
-                      onEdit={openPalette}
-                    />
-                  )}
-                  {showProgress && <ProgressLine state={state} since={question?.askedAt ?? null} />}
-                </header>
-              )}
-              {parkedEntry ? (
-                <ParkedStage
-                  key={parkedEntry.paintId}
-                  entry={parkedEntry}
-                  create={wiring.createParked}
-                  attach={wiring.attachParked}
-                />
-              ) : (
-                <SlotStateContext.Provider value={slotStateOf}>
-                  <PressStateContext.Provider value={pressState}>
-                    <CanvasStage processor={wiring.processor} state={state} />
-                  </PressStateContext.Provider>
-                </SlotStateContext.Provider>
-              )}
-            </div>
-            {promotedCount > 0 && (
-              <div className="canvas-scrim" data-testid="canvas-scrim" aria-hidden="true" />
-            )}
-            <div role="status" aria-live="polite" className="canvas-visually-hidden">
-              {promotedCount > 0
-                ? `${promotedCount} ${promotedCount === 1 ? 'source needs' : 'sources need'} your answer`
-                : ''}
-            </div>
-            <CanvasOverlay processor={wiring.processor} state={state} />
-            <TrustedPageOverlay page={state.trustedPage} onClose={wiring.store.closeTrustedPage} />
-            <AmbientNotice notices={orderedNotices(state)} onDismiss={wiring.store.dismissNotice} />
-            <HistoryChrome
-              state={state}
-              onPark={wiring.store.park}
-              onReturnToLive={wiring.store.returnToLive}
-              onRepaint={wiring.repaint}
-            />
-            <Palette
-              key={paletteSeed.key}
-              open={paletteOpen}
-              initialText={paletteSeed.text}
-              onDismiss={() => setPaletteOpen(false)}
-              onSubmit={utterance => {
-                setPaletteOpen(false);
-                void wiring.sendUtterance(utterance);
-              }}
-            />
-            {/* The canvas's one call-to-action; yields to the palette while it is open. */}
-            {!paletteOpen && (
-              <Button
-                variant="solid"
-                size="3"
-                className="canvas-ask-pill"
-                aria-label="Ask"
-                onClick={() => openPalette()}
-              >
-                Ask <Kbd className="canvas-ask-kbd">⌘K</Kbd>
-              </Button>
-            )}
-            <StatusStrip state={state} />
-          </main>
-        </SlotContentContext.Provider>
-      </BindingIndexContext.Provider>
+            {past ? 'Ask from this view' : 'Ask'} <Kbd className="canvas-ask-kbd">⌘K</Kbd>
+          </Button>
+        )}
+      </main>
     </CatalogProvider>
   );
 }

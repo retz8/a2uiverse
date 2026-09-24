@@ -94,10 +94,11 @@ test('a join held by judgment alone is drawn guessed, and says what matched', as
   await expect(page.getByText(/same camera/)).toBeVisible();
 });
 
-test('navigation works on a parked composition', async ({page}) => {
+test('navigation works on a past canvas', async ({page}) => {
   await settle(page, 'navigation,plain');
   await page.getByRole('button', {name: 'Back'}).click();
-  await expect(page.getByTestId('canvas-parked-stage')).not.toBeEmpty();
+  await expect(page.getByTestId('canvas-band')).toBeVisible();
+  await expect(page.getByTestId('canvas-stage-content')).not.toBeEmpty();
 
   await cell(page, 'Lumen X100', 2).click();
   const landed = await focused(page, SHOP_A);

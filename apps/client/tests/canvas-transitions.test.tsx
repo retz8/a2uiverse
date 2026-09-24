@@ -40,8 +40,6 @@ describe('validation-failure turn (partial paint → cleanup delete → final)',
     const state = store.getState();
     expect(state.stageId).toBe(held);
     expect(state.error).toMatch(/keeping the current view/);
-    // The failed paint added nothing: only the held beat's own live entry is present.
-    expect(state.timeline.map(e => e.surfaceId)).toEqual([held]);
     expect(state.inFlight).toBeNull();
     expect(processor.model.getSurface('doomed-view')).toBeFalsy();
     expect(Array.from(processor.model.surfacesMap.keys())).toEqual([held]);
@@ -55,7 +53,6 @@ describe('validation-failure turn (partial paint → cleanup delete → final)',
     const state = store.getState();
     expect(state.stageId).toBeNull();
     expect(state.error).toMatch(/withdrawn/);
-    expect(state.timeline).toEqual([]);
     // The agent's apology prose still reaches the ambient channel.
     expect(state.notices[0]?.text).toMatch(/could not build/);
     expect(processor.model.getSurface('doomed-view')).toBeFalsy();
@@ -67,15 +64,12 @@ describe('question paint (declared kind="question")', () => {
     const {processor, store, runner} = setup();
     await replayBeatOnCanvas(PLAIN_PAINT_BEAT, {runner, store, paced: false});
     const held = store.getState().stageId;
-    const heldTimeline = store.getState().timeline;
 
     await replayBeatOnCanvas(QUESTION_BEAT, {runner, store, paced: false});
 
     const state = store.getState();
     expect(state.overlay).toEqual({surfaceId: 'which-repo', question: 'Which repository?'});
     expect(state.stageId).toBe(held);
-    // Questions are never timeline nodes; the live registry is stage + overlay, nothing else.
-    expect(state.timeline).toEqual(heldTimeline);
     expect(Array.from(processor.model.surfacesMap.keys())).toEqual([held, 'which-repo']);
   });
 });
@@ -100,8 +94,6 @@ describe('cancel mid-stream (last-intent-wins)', () => {
     const state = store.getState();
     expect(state.stageId).toBe(held);
     expect(state.inFlight).toBeNull();
-    // The canceled paint added nothing: only the held beat's own live entry is present.
-    expect(state.timeline.map(e => e.surfaceId)).toEqual([held]);
     expect(processor.model.getSurface('doomed-view')).toBeFalsy();
   });
 });

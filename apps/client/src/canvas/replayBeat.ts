@@ -5,6 +5,11 @@
  * paced by the recorded `offsetMs` by default; instant mode collapses the waits for tests and
  * the `&instant` query param.
  *
+ * On the page (task-9.6 decision 14) every utterance turn opens a canvas of its own through the
+ * wiring — a turn's `askedFrom` views that earlier canvas first, so the new one is its child — and
+ * an action or press runs on the canvas last opened. A test over one runtime passes its runner
+ * and store instead, and every turn runs there.
+ *
  * Unlike `beats/replay.ts` (the bare apply-loop), this rehearses the full shell:
  * turn lifecycle around each turn, and the recorded agent prose routed into the ambient-notice
  * channel.
@@ -14,17 +19,16 @@
  * the replay transport answers it with its recorded batches, each at its place on that clock — so
  * instant mode applies the turn's and the press's batches in the order they arrived. A failure
  * report is the client's own doing: the transport answers it with the next recorded answer when
- * the client sends it. The next utterance ends them all, as a live one does.
+ * the client sends it.
  */
 import type {A2uiClientAction} from '@a2ui/web_core/v0_9';
 import type {CompositionOperation} from '@a2uiverse/sdk';
 import type {A2AMessageSender} from '../a2a/client';
 import {isBesideTurn, type BeatFixture, type BeatTurn} from '../beats/beatFixtures';
 import type {CanvasStore} from './canvasStore';
-import {currentPaintId} from './canvasStore';
 import {createReplayTransport} from './replayTransport';
 import type {TurnHandle} from './turn/canvasTurn';
-import type {PaintCause} from './timeline/paint';
+import type {PaintCause} from './turn/cause';
 
 /** What a beat's streams beside the turn replay through: the wiring's own. */
 export interface ReplaySides {
@@ -34,10 +38,22 @@ export interface ReplaySides {
   attachReplay(sender: A2AMessageSender): () => void;
 }
 
-export interface ReplayBeatOptions {
+/** One canvas's runner and store — where a turn runs. */
+export interface ReplayRuntime {
   /** The canvas turn runner; one turn per recorded turn, exactly as the live client runs. */
   runner: {begin(cause: PaintCause): TurnHandle};
   store: CanvasStore;
+}
+
+/** The page's canvases: a replayed utterance opens one, as a real question does. */
+export interface ReplayCanvases {
+  openReplayCanvas(prompt: string): ReplayRuntime & {id: string};
+  view(id: string): void;
+}
+
+export interface ReplayBeatOptions extends Partial<ReplayRuntime> {
+  /** The page's canvases; without them every turn runs on `runner` and `store`. */
+  canvases?: ReplayCanvases;
   /** Honour the recorded offsets (default); false applies everything immediately. */
   paced?: boolean;
   /** Required by a beat that carries a press or a failure report's answer. */
@@ -46,19 +62,11 @@ export interface ReplayBeatOptions {
 
 const sleep = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));
 
-function causeOf(turn: BeatTurn, store: CanvasStore): PaintCause {
-  const state = store.getState();
-  const parent = currentPaintId(state);
-  const forked = state.viewing !== null;
+function causeOf(turn: BeatTurn): PaintCause {
   if (turn.kind === 'surface-action' && turn.action) {
-    return {
-      kind: 'surface-action',
-      parent,
-      forked,
-      payload: {action: turn.action as unknown as A2uiClientAction},
-    };
+    return {kind: 'surface-action', payload: {action: turn.action as unknown as A2uiClientAction}};
   }
-  return {kind: 'utterance', parent, forked, payload: {text: turn.prompt}};
+  return {kind: 'utterance', payload: {text: turn.prompt}};
 }
 
 /** A turn and the streams beside it, in recorded order. */
@@ -81,17 +89,33 @@ interface Step {
 
 export async function replayBeatOnCanvas(
   fixture: BeatFixture,
-  {runner, store, paced = true, sides}: ReplayBeatOptions,
+  {runner, store, canvases, paced = true, sides}: ReplayBeatOptions,
 ): Promise<void> {
   const groups = groupsOf(fixture);
   const needsSides = groups.some(g => g.beside.length > 0);
   if (needsSides && !sides) {
     throw new Error(`${fixture.name} carries streams beside its turns; replay it with the wiring`);
   }
+  if (!canvases && !(runner && store)) {
+    throw new Error(`${fixture.name}: replay it with the page's canvases or one runtime`);
+  }
   const transport = needsSides ? createReplayTransport(fixture.contextId) : undefined;
   const detach = transport && sides ? sides.attachReplay(transport.sender) : undefined;
+  /** The canvases the beat's utterances opened, in order — what `askedFrom` indexes. */
+  const opened: string[] = [];
+  let current: ReplayRuntime | undefined = runner && store ? {runner, store} : undefined;
   try {
-    for (const group of groups) await replayGroup(group, {runner, store, paced, sides, transport});
+    for (const group of groups) {
+      if (canvases && group.turn.kind === 'utterance') {
+        const from = group.turn.askedFrom;
+        if (from !== undefined && opened[from] !== undefined) canvases.view(opened[from]);
+        const runtime = canvases.openReplayCanvas(group.turn.prompt);
+        opened.push(runtime.id);
+        current = runtime;
+      }
+      if (!current) throw new Error(`${fixture.name}: a ${group.turn.kind} before any question`);
+      await replayGroup(group, {...current, paced, sides, transport});
+    }
   } finally {
     detach?.();
   }
@@ -105,7 +129,8 @@ async function replayGroup(
     paced,
     sides,
     transport,
-  }: Required<Pick<ReplayBeatOptions, 'runner' | 'store' | 'paced'>> & {
+  }: ReplayRuntime & {
+    paced: boolean;
     sides?: ReplaySides;
     transport?: ReturnType<typeof createReplayTransport>;
   },
@@ -114,7 +139,7 @@ async function replayGroup(
     beside.filter(t => t.kind === 'failure-report'),
     paced,
   );
-  const handle = runner.begin(causeOf(turn, store));
+  const handle = runner.begin(causeOf(turn));
   const steps: Step[] = [];
   const pressing: Promise<void>[] = [];
   let ended = false;

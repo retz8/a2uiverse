@@ -17,6 +17,8 @@ export interface ProgressLineProps {
    * not a second live region, and not the line tests and landings look up.
    */
   compact?: boolean;
+  /** The sources' ticks alone, without the merge step — the trail's preview caption. */
+  sourcesOnly?: boolean;
 }
 
 const CheckIcon = () => (
@@ -94,7 +96,7 @@ function useElapsed(since: number | null, running: boolean): number {
   return since === null ? 0 : Math.max(0, Math.floor((now - since) / 1000));
 }
 
-export function ProgressLine({state, since, compact}: ProgressLineProps) {
+export function ProgressLine({state, since, compact, sourcesOnly}: ProgressLineProps) {
   const progress = turnProgress(state);
   const planning = progress.working?.kind === 'planning';
   const elapsed = useElapsed(since, planning);
@@ -122,7 +124,7 @@ export function ProgressLine({state, since, compact}: ProgressLineProps) {
           {source.name}
         </Step>
       ))}
-      {progress.merge && (
+      {progress.merge && !sourcesOnly && (
         <Fragment>
           <Dot />
           <Step

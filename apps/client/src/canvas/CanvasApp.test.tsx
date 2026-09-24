@@ -1,11 +1,11 @@
 /**
- * The canvas page: stage + overlay + palette + status strip + ambient notice assembled over
- * the A2A transport and the turn runner, with the ?beat= fixture-replay affordance and the
- * interaction policy (last-intent-wins palette, blocked actions with a cue, always-live
- * overlay answers).
+ * The canvas page: the canvas on screen + overlay + palette + status strip + ambient notice
+ * assembled over the A2A transport and the turn runner, with the ?beat= fixture-replay
+ * affordance, the interaction policy (blocked actions with a cue, always-live overlay answers),
+ * and the trail — every question a canvas of its own, a past canvas a tab (task 9.6).
  */
 import {describe, it, expect, afterEach} from 'vitest';
-import {render, screen, cleanup, waitFor} from '@testing-library/react';
+import {render, screen, cleanup, waitFor, within} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type {MessageSendParams, Part, TaskStatusUpdateEvent} from '@a2a-js/sdk';
 import {CATALOG_ID} from 'github-catalog';
@@ -162,8 +162,9 @@ describe('CanvasApp', () => {
     expect(screen.queryByText('Open issue')).toBeNull();
   });
 
-  it('holds the stage while a new paint streams, swapping only when it lands', async () => {
-    // First send resolves immediately; the second stays gated so the hold is observable.
+  it('a new question opens a canvas of its own: on screen at once, the previous one running on in the trail (task-9.6 decisions 1, 13)', async () => {
+    // First send resolves immediately; the second stays gated so the new canvas is observably
+    // in flight while the first stands behind it.
     const sent: MessageSendParams[] = [];
     let release: () => void = () => {};
     const gate = new Promise<void>(resolve => {
@@ -174,11 +175,11 @@ describe('CanvasApp', () => {
         const index = sent.length;
         sent.push(params);
         if (index === 0) {
-          yield eventOf(SURFACE_MESSAGES);
+          yield eventOf(SURFACE_MESSAGES, [], 'ctx-1');
           return;
         }
         await gate;
-        yield eventOf(ACTIONABLE_MESSAGES);
+        yield eventOf(ACTIONABLE_MESSAGES, [], 'ctx-2');
       },
     };
     renderCanvas(sender);
@@ -187,59 +188,22 @@ describe('CanvasApp', () => {
 
     await userEvent.keyboard('{Meta>}k{/Meta}');
     await ask('now the issues');
-    // The hold: the outgoing surface stays visible while the new paint is in flight.
+    // The new canvas is on screen, planning; the first left the screen but not the session.
     expect(screen.getByTestId('canvas-pending')).toBeInTheDocument();
-    expect(screen.getByText('hello from the agent')).toBeInTheDocument();
-    expect(screen.queryByText('Open issue')).toBeNull();
+    expect(screen.queryByText('hello from the agent')).toBeNull();
+    expect(screen.getByTestId('canvas-question')).toHaveTextContent('now the issues');
+
+    // Back: the first canvas, as it was, under the band; the new one still loads behind it.
+    await userEvent.click(screen.getByRole('button', {name: 'Back'}));
+    expect(await screen.findByText('hello from the agent')).toBeInTheDocument();
+    expect(screen.getByTestId('canvas-band')).toHaveTextContent(/Parked · asked at/);
+    expect(screen.getByRole('button', {name: 'Ask from this view'})).toBeInTheDocument();
 
     release();
+    await userEvent.click(screen.getByRole('button', {name: /Return to live/}));
     expect(await screen.findByRole('button', {name: 'Open issue'})).toBeInTheDocument();
-    expect(screen.queryByText('hello from the agent')).toBeNull();
-  });
-
-  it('a palette utterance while a paint is in flight cancels it and dispatches (last-intent-wins)', async () => {
-    // Send 0 lands the first stage; send 1 never resolves until released (the paint to cancel);
-    // send 2 is the overriding utterance. The stale send-1 event released later must be inert.
-    const sent: MessageSendParams[] = [];
-    let releaseStale: () => void = () => {};
-    const staleGate = new Promise<void>(resolve => {
-      releaseStale = resolve;
-    });
-    const sender: A2AMessageSender = {
-      async *sendMessageStream(params) {
-        const index = sent.length;
-        sent.push(params);
-        if (index === 0) {
-          yield eventOf(ACTIONABLE_MESSAGES);
-          return;
-        }
-        if (index === 1) {
-          await staleGate;
-          yield eventOf(ACTIONABLE_MESSAGES);
-          return;
-        }
-        yield eventOf(SURFACE_MESSAGES);
-      },
-    };
-    renderCanvas(sender);
-    await ask('show me issues');
-    await screen.findByRole('button', {name: 'Open issue'});
-
-    await userEvent.keyboard('{Meta>}k{/Meta}');
-    await ask('slow one');
-    expect(screen.getByTestId('canvas-pending')).toBeInTheDocument();
-
-    await userEvent.keyboard('{Meta>}k{/Meta}');
-    await ask('actually, show me something else');
-
-    expect(sent).toHaveLength(3);
-    expect(await screen.findByText('hello from the agent')).toBeInTheDocument();
+    expect(screen.queryByTestId('canvas-band')).toBeNull();
     await waitFor(() => expect(screen.queryByTestId('canvas-pending')).toBeNull());
-
-    // The canceled turn's late stream is discarded, not painted.
-    releaseStale();
-    await waitFor(() => expect(screen.getByText('hello from the agent')).toBeInTheDocument());
-    expect(screen.queryByText('Open issue')).toBeNull();
   });
 
   it('a question paint lands in the overlay; answering dispatches the action and dismisses it', async () => {
@@ -326,9 +290,9 @@ describe('CanvasApp', () => {
 
     await waitFor(() => expect(screen.getByTestId('canvas-stage')).not.toBeEmptyDOMElement());
     await waitFor(() => expect(screen.queryByTestId('canvas-pending')).toBeNull());
-    // Both beats ran: the first departed into the timeline, the second is the live head.
+    // Both beats ran, each a canvas of its own: the second live, the first a step back.
     await userEvent.click(screen.getByRole('button', {name: 'Back'}));
-    expect(await screen.findByText(/past view/i)).toBeInTheDocument();
+    expect(await screen.findByTestId('canvas-band')).toBeInTheDocument();
   });
 
   it('?beat= replays a synthetic beat onto the stage', async () => {
@@ -369,238 +333,263 @@ const BOUND_MESSAGES = [
   {version: 'v0.9', updateDataModel: {surfaceId: 'filters', value: {urgent: false}}},
 ];
 
-/** Land two paints so there is a past to park on: `filters` departs, `answer` is live. */
-async function landTwoPaints(script: TaskStatusUpdateEvent[] = []) {
-  const {sender, sent, release} = scriptedSender(
-    [eventOf(BOUND_MESSAGES), eventOf(SURFACE_MESSAGES), ...script.slice(2)].slice(
-      0,
-      2 + script.length,
-    ),
-  );
-  renderCanvas(sender);
-  await ask('show my filters');
-  await screen.findByRole('checkbox', {name: 'urgent only'});
-  await userEvent.keyboard('{Meta>}k{/Meta}');
-  await ask('show me something');
-  await screen.findByText('hello from the agent');
-  return {sent, release};
+/** A sender that answers each send from `script`, each answer in its own context. */
+function contextualSender(script: Array<Record<string, unknown>[]>) {
+  const sent: MessageSendParams[] = [];
+  const sender: A2AMessageSender = {
+    async *sendMessageStream(params) {
+      const index = sent.length;
+      sent.push(params);
+      yield eventOf(script[Math.min(index, script.length - 1)], [], `ctx-${index + 1}`);
+    },
+  };
+  return {sender, sent};
 }
 
-describe('CanvasApp time travel', () => {
-  it('Back parks on the previous paint: its content renders under the past-view banner', async () => {
-    await landTwoPaints();
+/** What each scripted answer puts on screen, to wait for. */
+const probes = new Map<unknown, () => Promise<unknown>>([
+  [BOUND_MESSAGES, () => screen.findByRole('checkbox', {name: 'urgent only'})],
+  [SURFACE_MESSAGES, () => screen.findByText('hello from the agent')],
+  [ACTIONABLE_MESSAGES, () => screen.findByRole('button', {name: 'Open issue'})],
+]);
 
+/** Two questions, each its own canvas: `show my filters` first, then `show me something`, live. */
+async function askTwo(
+  script: Array<Record<string, unknown>[]> = [BOUND_MESSAGES, SURFACE_MESSAGES],
+) {
+  const {sender, sent} = contextualSender(script);
+  renderCanvas(sender);
+  await ask('show my filters');
+  await probes.get(script[0])!();
+  await userEvent.keyboard('{Meta>}k{/Meta}');
+  await ask('show me something');
+  await probes.get(script[1])!();
+  return {sent};
+}
+
+/** The rail's pick for the entry labelled so. */
+const pick = (label: string) =>
+  within(
+    screen
+      .getAllByTestId('canvas-trail-entry')
+      .find(entry => within(entry).getByTestId('canvas-trail-label').textContent === label)!,
+  ).getByTestId('canvas-trail-pick');
+
+const metadataOf = (params: MessageSendParams) =>
+  params.message.metadata as Record<string, unknown> | undefined;
+
+describe('CanvasApp trail (task 9.6)', () => {
+  it('Back views the previous canvas under the band; Return to live restores live', async () => {
+    await askTwo();
     await userEvent.click(screen.getByRole('button', {name: 'Back'}));
 
     expect(await screen.findByRole('checkbox', {name: 'urgent only'})).toBeInTheDocument();
     expect(screen.queryByText('hello from the agent')).toBeNull();
-    expect(screen.getByText(/past view/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Return to live'})).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Repaint'})).toBeInTheDocument();
+    const band = screen.getByTestId('canvas-band');
+    expect(band).toHaveTextContent(/Parked · asked at \d\d:\d\d/);
+    expect(screen.getByRole('button', {name: 'Ask this again now'})).toBeInTheDocument();
+    // Return to live names the live question.
+    expect(screen.getByRole('button', {name: /Return to live/})).toHaveTextContent(
+      'show me something',
+    );
+    expect(screen.getByRole('button', {name: 'Back'})).toBeDisabled();
+
+    await userEvent.click(screen.getByRole('button', {name: /Return to live/}));
+    expect(await screen.findByText('hello from the agent')).toBeInTheDocument();
+    expect(screen.queryByTestId('canvas-band')).toBeNull();
   });
 
-  it('Back is disabled with nothing to go back to; the parked chrome is absent while live', async () => {
+  it('Back and Trail are disabled with nothing behind; the band is absent while live', () => {
     renderCanvas();
     expect(screen.getByRole('button', {name: 'Back'})).toBeDisabled();
-    expect(screen.queryByRole('button', {name: 'Return to live'})).toBeNull();
-    expect(screen.queryByText(/past view/i)).toBeNull();
+    expect(screen.getByRole('button', {name: 'Trail'})).toBeDisabled();
+    expect(screen.queryByTestId('canvas-band')).toBeNull();
   });
 
-  it('Return to live restores the head', async () => {
-    await landTwoPaints();
-    await userEvent.click(screen.getByRole('button', {name: 'Back'}));
-    await screen.findByRole('checkbox', {name: 'urgent only'});
+  it('Trail opens the rail: newest first, Live and Viewing marked; picking an entry views it and closes the rail (decisions 9, 11)', async () => {
+    await askTwo();
+    await userEvent.click(screen.getByRole('button', {name: 'Trail'}));
+    const rail = await screen.findByRole('navigation', {name: 'Trail of past canvases'});
+    expect(rail).toHaveTextContent('Today');
+    const labels = screen.getAllByTestId('canvas-trail-label').map(el => el.textContent);
+    expect(labels).toEqual(['show me something', 'show my filters']);
+    const entries = screen.getAllByTestId('canvas-trail-entry');
+    expect(entries[0]).toHaveTextContent('Live');
+    expect(entries[0]).toHaveTextContent('Viewing');
+    expect(entries[1]).not.toHaveTextContent('Viewing');
+    // The gutter's buttons give way to the rail's own top row.
+    expect(screen.queryByRole('button', {name: 'Back'})).toBeNull();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Return to live'}));
-
-    expect(await screen.findByText('hello from the agent')).toBeInTheDocument();
-    expect(screen.queryByText(/past view/i)).toBeNull();
-  });
-
-  it('right-clicking Back opens the titled history list; picking an entry parks on it', async () => {
-    await landTwoPaints();
-
-    await userEvent.pointer({
-      keys: '[MouseRight]',
-      target: screen.getByRole('button', {name: 'Back'}),
-    });
-    const list = await screen.findByRole('menu');
-    // Every retained entry, titles cause-derived, the live head marked.
-    expect(list).toHaveTextContent('“show my filters”');
-    expect(list).toHaveTextContent('“show me something”');
-    expect(list).toHaveTextContent(/live/i);
-
-    await userEvent.click(screen.getByRole('menuitem', {name: /show my filters/i}));
+    await userEvent.click(pick('show my filters'));
     expect(await screen.findByRole('checkbox', {name: 'urgent only'})).toBeInTheDocument();
-    expect(screen.getByText(/past view/i)).toBeInTheDocument();
+    expect(screen.getByTestId('canvas-band')).toBeInTheDocument();
+    // The pick closes the drawer, which slides out: gone once its exit has run.
+    await waitFor(() =>
+      expect(screen.queryByRole('navigation', {name: 'Trail of past canvases'})).toBeNull(),
+    );
+    expect(screen.getByRole('button', {name: 'Back'})).toBeInTheDocument();
+
+    // Reopened, the viewed one is marked; the rail's own icon closes it too.
+    await userEvent.click(screen.getByRole('button', {name: 'Trail'}));
+    await screen.findByRole('navigation', {name: 'Trail of past canvases'});
+    expect(screen.getAllByTestId('canvas-trail-entry')[1]).toHaveTextContent('Viewing');
+    await userEvent.click(screen.getByRole('button', {name: 'Close the trail'}));
+    await waitFor(() =>
+      expect(screen.queryByRole('navigation', {name: 'Trail of past canvases'})).toBeNull(),
+    );
   });
 
-  it('Repaint re-fires the parked cause as a fork and jumps to live', async () => {
-    const {sent} = await landTwoPaints([
-      eventOf(BOUND_MESSAGES),
-      eventOf(SURFACE_MESSAGES),
-      eventOf(ACTIONABLE_MESSAGES),
-    ]);
+  it('a question asked from a past canvas is its child, marked "from" in the rail; the parent stands (decision 5)', async () => {
+    const {sent} = await askTwo([BOUND_MESSAGES, SURFACE_MESSAGES, ACTIONABLE_MESSAGES]);
     await userEvent.click(screen.getByRole('button', {name: 'Back'}));
     await screen.findByRole('checkbox', {name: 'urgent only'});
 
-    await userEvent.click(screen.getByRole('button', {name: 'Repaint'}));
-
-    // The cause re-fired verbatim; the resulting paint landed at the head, live.
+    await userEvent.click(screen.getByRole('button', {name: 'Ask from this view'}));
+    await ask('branch off');
     expect(await screen.findByRole('button', {name: 'Open issue'})).toBeInTheDocument();
+    expect(screen.queryByTestId('canvas-band')).toBeNull();
+
+    // On the wire: no contextId, the viewed canvas's context as the parent.
     expect(sent).toHaveLength(3);
+    expect(sent[2].message.contextId).toBeUndefined();
+    expect(metadataOf(sent[2])?.a2uiverse).toEqual({parent: 'ctx-1'});
+    // The second question, asked from live, named live as its parent — a child, not a branch.
+    expect(metadataOf(sent[1])?.a2uiverse).toEqual({parent: 'ctx-1'});
+    expect(metadataOf(sent[0])?.a2uiverse).toBeUndefined();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Trail'}));
+    const entries = await screen.findAllByTestId('canvas-trail-entry');
+    expect(entries).toHaveLength(3);
+    expect(entries[0]).toHaveAttribute('data-branch', 'true');
+    expect(
+      within(entries[0]).getByRole('img', {name: 'Asked from show my filters'}),
+    ).toBeInTheDocument();
+    expect(entries[1]).not.toHaveAttribute('data-branch');
+    // The mark names the parent, which still stands; hovering it lights the parent's row.
+    await userEvent.hover(screen.getByTitle('Asked from show my filters'));
+    expect(entries[2]).toHaveClass('canvas-trail-entry--lit');
+    await userEvent.unhover(screen.getByTitle('Asked from show my filters'));
+    expect(entries[2]).not.toHaveClass('canvas-trail-entry--lit');
+  });
+
+  it('"Ask this again now" sends the viewed question as a child of that canvas and shows the new live canvas (decision 7)', async () => {
+    const {sent} = await askTwo([BOUND_MESSAGES, SURFACE_MESSAGES, ACTIONABLE_MESSAGES]);
+    await userEvent.click(screen.getByRole('button', {name: 'Back'}));
+    await screen.findByRole('checkbox', {name: 'urgent only'});
+
+    await userEvent.click(screen.getByRole('button', {name: 'Ask this again now'}));
+    expect(await screen.findByRole('button', {name: 'Open issue'})).toBeInTheDocument();
+    expect(screen.queryByTestId('canvas-band')).toBeNull();
+    expect(screen.getByTestId('canvas-question')).toHaveTextContent('show my filters');
     const textPart = sent[2].message.parts.find(p => p.kind === 'text') as
       Extract<Part, {kind: 'text'}> | undefined;
     expect(textPart?.text).toBe('show my filters');
-    // A forked turn reports the parked snapshot's data model, not the head's.
-    const metadata = sent[2].message.metadata as
-      {a2uiClientDataModel?: {surfaces: Record<string, unknown>}} | undefined;
-    expect(metadata?.a2uiClientDataModel?.surfaces).toEqual({filters: {urgent: false}});
-    expect(screen.queryByText(/past view/i)).toBeNull();
+    expect(metadataOf(sent[2])?.a2uiverse).toEqual({parent: 'ctx-1'});
+    expect(metadataOf(sent[2])?.a2uiClientDataModel).toBeUndefined();
   });
 
-  it('an agent-bound action fired from a parked surface forks and jumps to live', async () => {
-    // Land the actionable surface first, then a second paint, then park back onto it.
-    const {sender, sent} = scriptedSender([
-      eventOf(ACTIONABLE_MESSAGES),
-      eventOf(SURFACE_MESSAGES),
-      eventOf(BOUND_MESSAGES),
-    ]);
-    renderCanvas(sender);
-    await ask('show me issues');
-    await screen.findByRole('button', {name: 'Open issue'});
-    await userEvent.keyboard('{Meta>}k{/Meta}');
-    await ask('show me something');
-    await screen.findByText('hello from the agent');
-
+  it('an action inside a past canvas lands in it, on its own context; the live canvas is untouched (phase decision 4)', async () => {
+    const {sent} = await askTwo([ACTIONABLE_MESSAGES, SURFACE_MESSAGES, BOUND_MESSAGES]);
     await userEvent.click(screen.getByRole('button', {name: 'Back'}));
     await userEvent.click(await screen.findByRole('button', {name: 'Open issue'}));
 
-    // Dispatched from the past: the consequence lands at the head, live.
+    // The answer landed in the past canvas, still parked; nothing moved to live.
     expect(await screen.findByRole('checkbox', {name: 'urgent only'})).toBeInTheDocument();
+    expect(screen.getByTestId('canvas-band')).toBeInTheDocument();
     expect(sent).toHaveLength(3);
-    expect(screen.queryByText(/past view/i)).toBeNull();
+    expect(sent[2].message.contextId).toBe('ctx-1');
+    expect(metadataOf(sent[2])?.a2uiverse).toBeUndefined();
+
+    await userEvent.click(screen.getByRole('button', {name: /Return to live/}));
+    expect(await screen.findByText('hello from the agent')).toBeInTheDocument();
   });
 
-  it('parked interaction state persists across visits (teardown write-back)', async () => {
-    await landTwoPaints();
-
+  it('a past canvas keeps the state the user left it in', async () => {
+    await askTwo();
     await userEvent.click(screen.getByRole('button', {name: 'Back'}));
     await userEvent.click(await screen.findByRole('checkbox', {name: 'urgent only'}));
     expect(screen.getByRole('checkbox', {name: 'urgent only'})).toBeChecked();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Return to live'}));
+    await userEvent.click(screen.getByRole('button', {name: /Return to live/}));
     await screen.findByText('hello from the agent');
     await userEvent.click(screen.getByRole('button', {name: 'Back'}));
-
-    // State as of the last time you touched it.
     expect(await screen.findByRole('checkbox', {name: 'urgent only'})).toBeChecked();
   });
 
-  it('a paint landing while parked leaves the view parked, with a newer-view signal', async () => {
-    // Sends: two immediate paints, then a gated third dispatched from live before parking.
-    const sent: MessageSendParams[] = [];
-    let release: () => void = () => {};
-    const gate = new Promise<void>(resolve => {
-      release = resolve;
+  it('closing: the viewed canvas returns to live, live makes the newest remaining live, the last leaves the empty canvas; the orchestrator is told (decision 8)', async () => {
+    const {sent} = await askTwo();
+    await userEvent.click(screen.getByRole('button', {name: 'Trail'}));
+    await screen.findByRole('navigation', {name: 'Trail of past canvases'});
+    await userEvent.click(pick('show my filters'));
+    await screen.findByRole('checkbox', {name: 'urgent only'});
+    // The pick closed the drawer; the close is in it.
+    await waitFor(() =>
+      expect(screen.queryByRole('navigation', {name: 'Trail of past canvases'})).toBeNull(),
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Trail'}));
+    await screen.findByRole('navigation', {name: 'Trail of past canvases'});
+
+    await userEvent.click(screen.getByRole('button', {name: 'Close show my filters'}));
+    expect(await screen.findByText('hello from the agent')).toBeInTheDocument();
+    expect(screen.queryByTestId('canvas-band')).toBeNull();
+    expect(screen.getAllByTestId('canvas-trail-entry')).toHaveLength(1);
+    await waitFor(() => expect(sent).toHaveLength(3));
+    expect(sent[2].message.contextId).toBe('ctx-1');
+    const part = sent[2].message.parts[0];
+    expect(part.kind === 'data' ? part.data : {}).toEqual({
+      version: 'v0.9',
+      operation: {kind: 'close', sources: []},
     });
-    const sender: A2AMessageSender = {
-      async *sendMessageStream(params) {
-        const index = sent.length;
-        sent.push(params);
-        if (index === 0) yield eventOf(BOUND_MESSAGES);
-        else if (index === 1) yield eventOf(SURFACE_MESSAGES);
-        else {
-          await gate;
-          yield eventOf(ACTIONABLE_MESSAGES);
-        }
-      },
-    };
-    renderCanvas(sender);
-    await ask('show my filters');
-    await screen.findByRole('checkbox', {name: 'urgent only'});
-    await userEvent.keyboard('{Meta>}k{/Meta}');
-    await ask('show me something');
-    await screen.findByText('hello from the agent');
-    await userEvent.keyboard('{Meta>}k{/Meta}');
-    await ask('now the issues');
 
-    // Park during the flight; the paint lands behind the parked view.
-    await userEvent.click(screen.getByRole('button', {name: 'Back'}));
-    await screen.findByRole('checkbox', {name: 'urgent only'});
-    release();
-
-    expect(await screen.findByText(/newer view/i)).toBeInTheDocument();
-    expect(screen.getByRole('checkbox', {name: 'urgent only'})).toBeInTheDocument();
-    expect(screen.queryByRole('button', {name: 'Open issue'})).toBeNull();
-
-    await userEvent.click(screen.getByRole('button', {name: 'Return to live'}));
-    expect(await screen.findByRole('button', {name: 'Open issue'})).toBeInTheDocument();
-  });
-});
-
-describe('CanvasApp wire contracts', () => {
-  it('a parked dispatch attaches the exact fork context as message metadata', async () => {
-    const {sender, sent} = scriptedSender([
-      eventOf(ACTIONABLE_MESSAGES),
-      eventOf(SURFACE_MESSAGES),
-      eventOf(BOUND_MESSAGES),
-    ]);
-    renderCanvas(sender);
-    await ask('show me issues');
-    await screen.findByRole('button', {name: 'Open issue'});
-    await userEvent.keyboard('{Meta>}k{/Meta}');
-    await ask('show me something');
-    await screen.findByText('hello from the agent');
-
-    await userEvent.click(screen.getByRole('button', {name: 'Back'}));
-    await userEvent.click(await screen.findByRole('button', {name: 'Open issue'}));
-    await screen.findByRole('checkbox', {name: 'urgent only'});
-
-    expect(sent).toHaveLength(3);
-    const metadata = sent[2].message.metadata as {a2uiForkContext?: unknown} | undefined;
-    expect(metadata?.a2uiForkContext).toEqual({
-      paintId: 1,
-      title: '“show me issues”',
-      paintedAt: expect.any(Number),
-      position: 1,
-    });
+    await userEvent.click(screen.getByRole('button', {name: 'Close show me something'}));
+    expect(screen.queryByText('hello from the agent')).toBeNull();
+    expect(screen.getByTestId('canvas-empty-ghost')).toBeInTheDocument();
+    expect(screen.queryAllByTestId('canvas-trail-entry')).toHaveLength(0);
   });
 
-  it('a live dispatch never carries the fork key', async () => {
-    const {sender, sent} = scriptedSender([
-      eventOf(ACTIONABLE_MESSAGES),
-      eventOf(SURFACE_MESSAGES),
-    ]);
-    renderCanvas(sender);
-    await ask('show me issues');
-    await userEvent.click(await screen.findByRole('button', {name: 'Open issue'}));
-    await screen.findByText('hello from the agent');
-
-    const metadata = sent[1].message.metadata as {a2uiForkContext?: unknown} | undefined;
-    expect(metadata?.a2uiForkContext).toBeUndefined();
-  });
-
-  it('an agent-authored paint title streams into the history list', async () => {
+  it('the entry is labelled by the question until the Planner’s title arrives (decision 4)', async () => {
     const titled = [
-      {paintMeta: {surfaceId: 'answer', title: 'Agent-titled view'}},
-      ...SURFACE_MESSAGES,
+      {paintMeta: {surfaceId: 'shell:main', title: 'Agent-titled view'}},
+      {version: 'v0.9', createSurface: {surfaceId: 'shell:main', catalogId: CATALOG_ID}},
+      {
+        version: 'v0.9',
+        updateComponents: {
+          surfaceId: 'shell:main',
+          components: [{id: 'root', component: 'Text', text: 'the titled paint'}],
+        },
+      },
     ];
-    const {sender} = scriptedSender([eventOf(ACTIONABLE_MESSAGES), eventOf(titled)]);
+    const {sender} = contextualSender([ACTIONABLE_MESSAGES, titled]);
     renderCanvas(sender);
     await ask('show me issues');
     await screen.findByRole('button', {name: 'Open issue'});
     await userEvent.keyboard('{Meta>}k{/Meta}');
     await ask('show me something');
-    await screen.findByText('hello from the agent');
+    await screen.findByText('the titled paint');
 
-    await userEvent.pointer({
-      keys: '[MouseRight]',
-      target: screen.getByRole('button', {name: 'Back'}),
-    });
-    const list = await screen.findByRole('menu');
-    expect(list).toHaveTextContent('Agent-titled view');
-    expect(list).toHaveTextContent('“show me issues”'); // the untitled entry keeps the fallback
+    await userEvent.click(screen.getByRole('button', {name: 'Trail'}));
+    const labels = (await screen.findAllByTestId('canvas-trail-label')).map(el => el.textContent);
+    expect(labels).toEqual(['Agent-titled view', 'show me issues']);
+    // The question stays the canvas's header, verbatim.
+    expect(screen.getByTestId('canvas-question')).toHaveTextContent('show me something');
+  });
+
+  it('hovering an entry shows its preview: the canvas scaled, its fragments named', async () => {
+    await askTwo();
+    await userEvent.click(screen.getByRole('button', {name: 'Trail'}));
+    await screen.findByRole('navigation', {name: 'Trail of past canvases'});
+    // No preview for the entry being viewed.
+    await userEvent.hover(pick('show me something'));
+    expect(screen.queryByTestId('canvas-trail-preview')).toBeNull();
+
+    await userEvent.hover(pick('show my filters'));
+    const preview = await screen.findByTestId('canvas-trail-preview');
+    expect(preview).toHaveAttribute('aria-label', 'Preview of show my filters');
+    expect(preview.querySelector('[inert]')).not.toBeNull();
+    expect(preview.querySelectorAll('input[type="checkbox"]')).toHaveLength(1);
+
+    await userEvent.unhover(pick('show my filters'));
+    expect(screen.queryByTestId('canvas-trail-preview')).toBeNull();
   });
 });
 

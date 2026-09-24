@@ -113,19 +113,21 @@ function setup() {
     },
     catalogs,
   });
-  const {processor, store, runner} = wiring;
   const replay = (fixture: BeatFixture) =>
-    replayBeatOnCanvas(fixture, {runner, store, paced: false, sides: wiring});
-  return {processor, store, replay};
+    replayBeatOnCanvas(fixture, {canvases: wiring, paced: false, sides: wiring});
+  /** The canvas the replay left on screen. */
+  const viewed = () => wiring.viewed()!;
+  return {wiring, viewed, replay};
 }
 
 describe('canvas shell over the recorded beats', () => {
   describe.each(BEAT_FIXTURES.map(f => [f.name, f] as const))('%s', (_name, fixture) => {
     it('replays through the canvas turn runner and lands the paint on the stage', async () => {
-      const {processor, store, replay} = setup();
+      const {viewed, replay} = setup();
 
       await replay(fixture);
 
+      const {processor, store} = viewed();
       const state = store.getState();
       // The whole stream applied: any per-message failure lands in the sticky error — except a
       // paint the canvas reported, whose failure is its tile's to say (task-8.7 decision 26).
@@ -139,9 +141,7 @@ describe('canvas shell over the recorded beats', () => {
       );
       // Every press the beat made was answered and caught up with.
       expect(state.presses).toEqual([]);
-      // The turn appended its live entry and settled back to idle.
-      const head = state.timeline[state.timeline.length - 1];
-      expect(head).toMatchObject({surfaceId: state.stageId, snapshot: null});
+      // The turn settled back to idle.
       expect(state.inFlight).toBeNull();
 
       // And the stage actually renders it.
@@ -150,29 +150,31 @@ describe('canvas shell over the recorded beats', () => {
     });
   });
 
-  it('a second beat over the occupied stage swaps in and snapshots the outgoing paint', async () => {
+  it('a second beat opens a canvas of its own; the first stands as it was (task-9.6 decision 1)', async () => {
     const [first, second] = BEAT_FIXTURES;
-    const {processor, store, replay} = setup();
+    const {wiring, viewed, replay} = setup();
 
     await replay(first);
-    const firstStage = store.getState().stageId;
-    const firstPaintId = store.getState().timeline.at(-1)?.paintId;
+    const one = viewed();
+    const firstStage = one.store.getState().stageId;
     await replay(second);
+    const two = viewed();
 
-    const state = store.getState();
-    expect(state.error).toBeNull();
-    expect(state.stageId).toBe(stageSurfaceIdOf(second));
-    // Serialize-on-swap: the first beat's entry filled with its deep-frozen snapshot and
-    // left the live registry (the data-model growth fix — reporting sees only the stage).
-    expect(state.timeline).toHaveLength(2);
-    expect(state.timeline[0]).toMatchObject({paintId: firstPaintId, surfaceId: firstStage});
-    expect(Object.keys(state.timeline[0].snapshot!.tree).length).toBeGreaterThan(0);
-    expect(Object.isFrozen(state.timeline[0].snapshot!.tree)).toBe(true);
-    expect(state.timeline[1].snapshot).toBeNull();
-    expect(state.timeline[1].paintId).not.toBe(firstPaintId);
-    // The outgoing composition is gone; what stands is the incoming beat's own surfaces.
-    expect([...processor.model.surfacesMap.keys()].sort()).toEqual(
+    expect(two).not.toBe(one);
+    expect(two.store.getState().error).toBeNull();
+    expect(two.store.getState().stageId).toBe(stageSurfaceIdOf(second));
+    expect([...two.processor.model.surfacesMap.keys()].sort()).toEqual(
       standingSurfaceIds(second).sort(),
     );
+    // The first canvas runs on untouched: its own registry, its own stage.
+    expect(one.store.getState().stageId).toBe(firstStage);
+    expect([...one.processor.model.surfacesMap.keys()].sort()).toEqual(
+      standingSurfaceIds(first).sort(),
+    );
+    // Both in the trail, the second live, the first its parent.
+    const {entries, live} = wiring.trail.getState();
+    expect(entries.map(e => e.question)).toEqual([first.prompt, second.prompt]);
+    expect(live).toBe(two.id);
+    expect(entries[1].parent).toBe(one.id);
   });
 });

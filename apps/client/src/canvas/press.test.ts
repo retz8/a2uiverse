@@ -65,7 +65,9 @@ function wiringWith(stream: (params: MessageSendParams) => AsyncGenerator<TaskSt
     },
   };
   const wiring = createCanvasWiring({client, catalogs: CATALOGS.map(c => c.catalog)});
-  return {wiring, sent};
+  // A press lands in the canvas on screen: one open, nothing sent for it.
+  const canvas = wiring.openReplayCanvas('what needs my attention');
+  return {wiring, canvas, sent};
 }
 
 const include = {kind: 'include' as const, sources: ['gmail']};
@@ -85,34 +87,34 @@ describe('a press', () => {
   it('is the composition operation as a data part of its own, drawn at the click, gone at the end', async () => {
     let release!: () => void;
     const gate = new Promise<void>(resolve => (release = resolve));
-    const {wiring, sent} = wiringWith(async function* () {
+    const {wiring, canvas, sent} = wiringWith(async function* () {
       yield shellRepaint({working: {sources: ['gmail']}});
       await gate;
     });
     const pressing = wiring.press(include);
-    expect(wiring.store.getState().presses).toEqual([
+    expect(canvas.store.getState().presses).toEqual([
       expect.objectContaining({operation: include, status: 'sent'}),
     ]);
-    await vi.waitFor(() => expect(wiring.store.getState().presses[0]?.status).toBe('running'));
-    expect(wiring.store.getState().merge).toEqual({working: {sources: ['gmail']}});
+    await vi.waitFor(() => expect(canvas.store.getState().presses[0]?.status).toBe('running'));
+    expect(canvas.store.getState().merge).toEqual({working: {sources: ['gmail']}});
     expect(sent[0]!.message.parts).toEqual([
       {kind: 'data', data: {version: 'v0.9', operation: include}},
     ]);
     // Not a turn: nothing in flight, nothing in the status strip.
-    expect(wiring.store.getState().inFlight).toBeNull();
+    expect(canvas.store.getState().inFlight).toBeNull();
     release();
     await pressing;
-    expect(wiring.store.getState().presses).toEqual([]);
+    expect(canvas.store.getState().presses).toEqual([]);
   });
 
   it('refused, ends quietly: the orchestrator’s words are not the canvas’s', async () => {
-    const {wiring} = wiringWith(async function* () {
+    const {wiring, canvas} = wiringWith(async function* () {
       yield refusal;
     });
     const info = vi.spyOn(console, 'info').mockImplementation(() => {});
     await wiring.press(include);
-    expect(wiring.store.getState().presses).toEqual([]);
-    expect(wiring.store.getState().notices).toEqual([]);
+    expect(canvas.store.getState().presses).toEqual([]);
+    expect(canvas.store.getState().notices).toEqual([]);
     info.mockRestore();
   });
 
@@ -120,12 +122,12 @@ describe('a press', () => {
     const error = vi.spyOn(console, 'error').mockImplementation(() => {});
     const unreached = wiringWith(() => failing(new Error('Failed to fetch')));
     await unreached.wiring.press(include);
-    expect(unreached.wiring.store.getState().presses).toEqual([
+    expect(unreached.canvas.store.getState().presses).toEqual([
       expect.objectContaining({status: 'unreached'}),
     ]);
     // The next press of the kind replaces what the last one left standing.
     const again = unreached.wiring.press(include);
-    expect(unreached.wiring.store.getState().presses).toEqual([
+    expect(unreached.canvas.store.getState().presses).toEqual([
       expect.objectContaining({status: 'sent'}),
     ]);
     await again;
@@ -135,26 +137,20 @@ describe('a press', () => {
       throw new Error('network changed');
     });
     await lost.wiring.press(include);
-    expect(lost.wiring.store.getState().presses).toEqual([
+    expect(lost.canvas.store.getState().presses).toEqual([
       expect.objectContaining({status: 'lost'}),
     ]);
     error.mockRestore();
   });
 
-  it('is not made on a composition a newer question is replacing', async () => {
-    const {wiring, sent} = wiringWith(async function* () {
-      yield refusal;
-    });
-    wiring.store.supersede();
-    await wiring.press(include);
-    expect(sent).toEqual([]);
-    expect(wiring.store.getState().presses).toEqual([]);
-  });
-
-  it('ends with the composition when a new utterance is sent', async () => {
+  it('ends when its canvas closes; a new question elsewhere leaves it running (task-9.6 decisions 8, 13)', async () => {
     let seen!: AbortSignal;
+    const sent: MessageSendParams[] = [];
     const client: A2AMessageSender = {
-      sendMessageStream: (_params: MessageSendParams, options?: {signal?: AbortSignal}) => {
+      sendMessageStream: (params: MessageSendParams, options?: {signal?: AbortSignal}) => {
+        sent.push(params);
+        // The press's own stream; the close that follows it answers at once.
+        if (sent.length > 1) return (async function* () {})();
         seen = options!.signal!;
         return (async function* () {
           yield shellRepaint({working: {sources: ['gmail']}});
@@ -165,11 +161,23 @@ describe('a press', () => {
       },
     };
     const live = createCanvasWiring({client, catalogs: CATALOGS.map(c => c.catalog)});
+    const canvas = live.openReplayCanvas('first');
     const pressing = live.press(include);
-    await vi.waitFor(() => expect(live.store.getState().presses[0]?.status).toBe('running'));
-    live.runner.begin({kind: 'utterance', parent: null, forked: false, payload: {text: 'next'}});
+    await vi.waitFor(() => expect(canvas.store.getState().presses[0]?.status).toBe('running'));
+    // A new question opens a canvas of its own; the press in the first runs on.
+    live.openReplayCanvas('next');
+    expect(seen.aborted).toBe(false);
+    expect(live.trail.getState().entries.map(e => e.loading)).toEqual([true, false]);
+    live.closeCanvas(canvas.id);
     await pressing;
     expect(seen.aborted).toBe(true);
-    expect(live.store.getState().presses).toEqual([]);
+    expect(canvas.store.getState().presses).toEqual([]);
+    expect(live.trail.getState().entries.map(e => e.question)).toEqual(['next']);
+    // The orchestrator is told, on the canvas's context (task-9.2 decision 6).
+    await vi.waitFor(() => expect(sent).toHaveLength(2));
+    expect(sent[1].message.contextId).toBe('ctx-1');
+    expect(sent[1].message.parts).toEqual([
+      {kind: 'data', data: {version: 'v0.9', operation: {kind: 'close', sources: []}}},
+    ]);
   });
 });

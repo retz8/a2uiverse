@@ -2,7 +2,6 @@ import type {A2uiClientDataModel, A2uiMessage} from '@a2ui/web_core/v0_9';
 import type {CompositionStamp, PaintMeta} from '@a2uiverse/sdk';
 import type {GetSender} from './client';
 import {sendAndApply} from './client';
-import type {ForkContext} from './messages';
 import {buildTextMessageParams} from './messages';
 import type {A2ASession} from './session';
 
@@ -10,7 +9,11 @@ export interface StreamUserMessageOptions {
   getSender: GetSender;
   /** Applies the streamed A2UI messages into the processor, with their event's composition stamp. */
   apply: (messages: A2uiMessage[], stamp?: CompositionStamp) => void;
-  /** Conversation session; threads the contextId across turns when given. */
+  /**
+   * The canvas's session: a question opens a canvas of its own, so the message carries no
+   * contextId — the orchestrator mints one, captured here from the first event (task-9.2
+   * decision 1).
+   */
   session?: A2ASession;
   /**
    * Supplies the current client data model of `sendDataModel`-flagged surfaces
@@ -32,11 +35,8 @@ export interface StreamUserMessageOptions {
    * a canceled turn is not an error, so `onError` is not called for it.
    */
   signal?: AbortSignal;
-  /**
-   * Fork context for a turn dispatched from a parked (historical) view; attached as message
-   * metadata. Absent on a live dispatch.
-   */
-  forkContext?: ForkContext;
+  /** The canvas the question was asked from — its context — named as the parent; absent on a root. */
+  parent?: string;
   /** Called for each paintMeta shell object the agent streams (title / question marker). */
   onPaintMeta?: (meta: PaintMeta) => void;
   /** The catalogs the client can render; advertised as `a2uiClientCapabilities` when given. */
@@ -59,13 +59,7 @@ export async function streamUserMessage(
     const sender = await getSender();
     await sendAndApply(
       sender,
-      buildTextMessageParams(
-        text,
-        session?.get(),
-        getClientDataModel?.(),
-        opts.forkContext,
-        opts.supportedCatalogIds,
-      ),
+      buildTextMessageParams(text, getClientDataModel?.(), opts.supportedCatalogIds, opts.parent),
       {
         apply,
         session,

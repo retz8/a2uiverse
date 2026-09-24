@@ -20,7 +20,6 @@
  */
 import type {FunctionImplementation} from '@a2ui/web_core/v0_9';
 import {refsOf, type SynthesisPayload} from '@a2uiverse/sdk';
-import type {PaintSynthesis} from '../timeline/paint';
 import {
   choicesOf,
   evaluate as evaluatePayload,
@@ -45,8 +44,6 @@ export interface SynthesisIntake {
   accept(target: {surfaceId: string; source: string}, payload: unknown): void;
   /** The composition left the canvas. */
   retire(): void;
-  /** What a parked entry carries of the synthesis: the payload and its surface. */
-  capture?(): PaintSynthesis | undefined;
 }
 
 interface ObservableDataModel {
@@ -185,9 +182,6 @@ export function createSynthesisSession({
     evaluate();
   };
 
-  const capture: SynthesisIntake['capture'] = () =>
-    payload && surfaceId ? {surfaceId, payload} : undefined;
-
   const retire: SynthesisIntake['retire'] = () => {
     unwatchAll();
     payload = undefined;
@@ -221,7 +215,6 @@ export function createSynthesisSession({
     },
     accept,
     retire,
-    capture,
     evaluate,
     dispose: () => {
       retire();

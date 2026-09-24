@@ -22,21 +22,18 @@
  *   live — at apply in progressive mode, at the swap in staged mode. Retiring a composition
  *   retires its
  *   synthesis.
- * - **Timeline entries**: a landing stage paint appends its entry with a null snapshot — the
- *   live head. Serialize-on-swap then fills that entry when the surface leaves the canvas,
- *   before its removal from the live processor; intermediates of a multi-surface turn append
- *   already departed.
- * - **Forked turns**: a turn dispatched from a parked view leaves the user parked while it
- *   streams; its stage paint's landing is what returns the view to live. A fork that fails,
- *   is canceled, or resolves to a question leaves the user where they acted.
+ * - **One canvas** (task-9.6 decision 1): a runner serves one canvas for the session. The canvas
+ *   opens with its utterance turn; every later turn is an action inside it. A stage paint that
+ *   replaces another leaves no record here — the per-agent history is 9.7's — and nothing ends the
+ *   canvas but its close (`cancelAll`).
  * - **Cancel**: aborts the transport signal and discards the staged work; a canceled paint
- *   never reaches the stage and never enters the timeline.
+ *   never reaches the stage.
  * - **Streams beside the turn** (task-8.5 decisions 1–3): a press, or a report the canvas sends on
  *   the side, is answered on a stream of its own. What it carries is routed by the stamp as a
  *   turn's batches are — a shell repaint, a fragment into its slot, a synthesis payload — straight
- *   into the live composition; it is not a turn and never touches the stage, the timeline or the
- *   turn in flight. A new utterance ends every one of them. Whatever stream carries it, a shell
- *   repaint that paints a vendor slot failed takes that source's fragment off the canvas.
+ *   into the live composition; it is not a turn and never touches the stage or the turn in flight.
+ *   Whatever stream carries it, a shell repaint that paints a vendor slot failed takes that
+ *   source's fragment off the canvas.
  * - **Streamed partials**: the agent streams a component as it is generated, and the
  *   processor validates every batch, so a batch carrying a half-built component is thrown
  *   away. Those validation failures are deferred and judged at turn end against the settled
@@ -52,10 +49,9 @@ import {QUESTION_PAINT_KIND, readPaintMeta} from '@a2uiverse/sdk';
 import {applyA2uiMessages} from '../../a2ui/applyMessages';
 import {mergeFactsOf, SHELL_SOURCE, shellPaintSlots, slotStatesOf} from '../composition/roster';
 import {describeError} from '../../shared/describeError';
-import type {CanvasState, CanvasStore} from '../canvasStore';
-import type {PaintCause} from '../timeline/paint';
-import {describeCause} from '../timeline/paint';
-import {serializeSurface} from '../timeline/snapshotSurface';
+import type {CanvasStore} from '../canvasStore';
+import type {PaintCause} from './cause';
+import {describeCause} from './cause';
 import type {SynthesisIntake} from '../synthesis/synthesisSession';
 import type {TurnProcessor} from './turnMessages';
 import {ROOT_COMPONENT_ID, invalidComponentsOf, questionTitleOf, targetOf} from './turnMessages';
@@ -74,9 +70,9 @@ export interface TurnHandle {
    */
   apply(messages: A2uiMessage[], stamp?: CompositionStamp, synthesis?: SynthesisPayload): void;
   /**
-   * Accept one paintMeta shell object: the agent-authored title upgrades the in-flight label
-   * immediately and lands on the paint's timeline entry; `kind: "question"` is the routing
-   * contract, and the only thing that sends a paint to the overlay or promotes a slot.
+   * Accept one paintMeta shell object: the agent-authored title upgrades the in-flight label of
+   * an action turn and is kept per source when its fragment claims a slot; `kind: "question"` is
+   * the routing contract, and the only thing that sends a paint to the overlay or promotes a slot.
    */
   acceptPaintMeta(meta: PaintMeta): void;
   /** The stream is exhausted: run the gate — swap in, or discard. No-op if canceled. */
@@ -113,6 +109,11 @@ export interface TurnRunnerOptions {
   onFragmentFailure?: (failure: FragmentFailure) => void;
   /** The synthesis session: fed payloads and the composition's retirement. */
   synthesis?: SynthesisIntake;
+  /**
+   * Every paintMeta the canvas accepts, on the turn or a stream beside it, inline in a replayed
+   * batch or ahead of a live one — the Planner's title for the layout reaches the trail this way.
+   */
+  onPaintMeta?: (meta: PaintMeta) => void;
 }
 
 /** A stream beside the turn: a press's, or a side report's answer (module header). */
@@ -127,13 +128,12 @@ export interface SideStream {
 
 export interface TurnRunner {
   readonly current: TurnHandle | null;
-  /**
-   * Begin a turn; an in-flight one is canceled first (last-intent-wins). An utterance also ends
-   * every stream beside the turn and marks the composition on stage as being replaced.
-   */
+  /** Begin a turn; an in-flight one is canceled first (last-intent-wins). */
   begin(cause: PaintCause): TurnHandle;
   /** Open a stream beside the turn, into the live composition. */
   beginSideStream(): SideStream;
+  /** The canvas is closing: the turn in flight and every stream beside it end (task-9.6 decision 8). */
+  cancelAll(): void;
   /**
    * Remove the pending question paint from the canvas and the live registry. Shared by Q&A's
    * two exits — answering (the answer is captured into the next cause by the caller) and
@@ -152,6 +152,7 @@ export function createTurnRunner({
   createStaging,
   onFragmentFailure,
   synthesis,
+  onPaintMeta,
 }: TurnRunnerOptions): TurnRunner {
   let current: TurnHandle | null = null;
 
@@ -207,12 +208,16 @@ export function createTurnRunner({
     return unattributed;
   };
 
-  /** A fragment claims its source's slot. One surface per slot: a later claim retires the earlier. */
-  const claimSlot = (source: string, surfaceId: string) => {
+  /**
+   * A fragment claims its source's slot. One surface per slot: a later claim retires the earlier.
+   * The paint's title, from the meta that led it, is what the trail's preview says of the source.
+   */
+  const claimSlot = (source: string, surfaceId: string, title: string | undefined) => {
     const previous = store.getState().placement.get(source);
     if (previous && previous.surfaceId !== surfaceId)
       processor.model.deleteSurface(previous.surfaceId);
     store.placeFragment(source, {surfaceId, source});
+    store.setPaintTitle(source, title);
   };
 
   /** The source whose slot a batch's stamp claims, when it is a fragment's. */
@@ -300,67 +305,10 @@ export function createTurnRunner({
     return {fragmentSlots, fail, refuse, settle, settleSource};
   };
 
-  /** Materialize a live surface's content — the snapshot half of a paint entry. */
-  const snapshotOf = (surfaceId: string) => {
-    const surface = processor.model.getSurface(surfaceId);
-    if (!surface) return null;
-    return Object.freeze({...serializeSurface(surface), capturedAt: Date.now()});
-  };
-
-  /** A landed stage paint enters the timeline as the live head — snapshot pending. */
-  const appendLiveEntry = (surfaceId: string, cause: PaintCause, title?: string) => {
-    const surface = processor.model.getSurface(surfaceId);
-    if (!surface) return;
-    store.appendEntry({
-      paintId: store.nextPaintId(),
-      surfaceId,
-      catalogId: surface.catalog.id,
-      cause,
-      paintedAt: Date.now(),
-      ...(title !== undefined ? {title} : {}),
-      snapshot: null,
-    });
-  };
-
-  /**
-   * Capture the composition filling the stage: every slot's fragment with its own content, so a
-   * parked composition rehydrates as what was on screen and not as a layout of empty slots.
-   * Captured unconditionally — `Slot`'s failed branch wins over content at render, so a fragment
-   * whose slot later failed costs nothing to keep and needs no second rule to agree with.
-   */
-  const snapshotComposition = (placement: CanvasState['placement']) =>
-    [...placement].flatMap(([, placed]) => {
-      const surface = processor.model.getSurface(placed.surfaceId);
-      if (!surface) return [];
-      return [
-        {
-          surfaceId: placed.surfaceId,
-          source: placed.source,
-          catalogId: surface.catalog.id,
-          snapshot: snapshotOf(placed.surfaceId),
-        },
-      ];
-    });
-
-  /** Serialize-on-swap: the stage is leaving the canvas — fill its entry, then remove. */
+  /** The stage is leaving the canvas: the shell and everything filling its slots go. */
   const retireStage = () => {
-    const {stageId, timeline, placement} = store.getState();
-    if (stageId) {
-      const head = timeline[timeline.length - 1];
-      if (head && head.surfaceId === stageId && head.snapshot === null) {
-        const snapshot = snapshotOf(stageId);
-        // Snapshot before delete: the cascade below is what makes these unreachable.
-        if (snapshot) {
-          store.fillSnapshot(
-            head.paintId,
-            snapshot,
-            snapshotComposition(placement),
-            synthesis?.capture?.(),
-          );
-        }
-      }
-      processor.model.deleteSurface(stageId);
-    }
+    const {stageId, placement} = store.getState();
+    if (stageId) processor.model.deleteSurface(stageId);
     // A composition leaves with its shell: the fragments belong to that paint, not to the canvas.
     // Without the cascade they would linger in the live registry and ride back out to their
     // vendors through the hub's per-dispatch partition filter as stale state.
@@ -412,7 +360,7 @@ export function createTurnRunner({
     const ledger = createFragmentLedger();
     const fragmentSlots = ledger.fragmentSlots;
     /** Staged-mode slot claims, applied once their surfaces reach the live processor. */
-    const claims: Array<{surfaceId: string; source: string}> = [];
+    const claims: Claim[] = [];
     /** Staged-mode buffer: the messages replayed into the live processor at swap. */
     const buffered: A2uiMessage[] = [];
     /** Staged-mode payload, handed over once its surface reaches the live processor at swap. */
@@ -469,6 +417,8 @@ export function createTurnRunner({
     /** The paintMetas accepted this turn, by surface id. */
     const metas = new Map<string, PaintMeta>();
     const titleOf = (surfaceId: string) => metas.get(surfaceId)?.title;
+    /** The claims a fragment's create made, with the title its meta led with. */
+    type Claim = {surfaceId: string; source: string; title: string | undefined};
 
     /**
      * Question routing: the declared marker is the whole contract. There used to be a structural
@@ -483,6 +433,7 @@ export function createTurnRunner({
     const acceptPaintMeta = (meta: PaintMeta) => {
       if (canceled) return;
       metas.set(meta.surfaceId, meta);
+      onPaintMeta?.(meta);
       // The title leads the paint: it upgrades the in-flight label the moment it arrives.
       // Whose words the status line carries. On an utterance the user asked the question, and
       // their own phrasing is the only stable answer to "is this still working" — under fan-out
@@ -494,23 +445,9 @@ export function createTurnRunner({
       }
     };
 
-    /** Every non-final stage surface of a turn still enters the timeline. */
+    /** A non-final stage surface of a turn: the last one created keeps the stage. */
     const retireIntermediate = (surfaceId: string) => {
-      const surface = processor.model.getSurface(surfaceId);
-      if (surface) {
-        const title = titleOf(surfaceId);
-        // An intermediate lands and departs in one breath — its entry arrives already filled.
-        store.appendEntry({
-          paintId: store.nextPaintId(),
-          surfaceId,
-          catalogId: surface.catalog.id,
-          cause,
-          paintedAt: Date.now(),
-          ...(title !== undefined ? {title} : {}),
-          snapshot: snapshotOf(surfaceId),
-        });
-        processor.model.deleteSurface(surfaceId);
-      }
+      if (processor.model.getSurface(surfaceId)) processor.model.deleteSurface(surfaceId);
     };
 
     /** A surface that fills a slot rather than the stage — this turn's, or the composition's. */
@@ -559,7 +496,7 @@ export function createTurnRunner({
           createdIds.add(surfaceId);
           if (source) {
             fragmentSlots.set(surfaceId, source);
-            claimSlot(source, surfaceId);
+            claimSlot(source, surfaceId, titleOf(surfaceId));
           }
         }
       }
@@ -601,7 +538,7 @@ export function createTurnRunner({
           if (source && kind === 'create') {
             fragmentSlots.set(surfaceId, source);
             // Held until the surface reaches live at swap — a slot may not point into staging.
-            claims.push({surfaceId, source});
+            claims.push({surfaceId, source, title: titleOf(surfaceId)});
           }
           applyA2uiMessages(staging as TurnProcessor, [message], {onMessageError});
           buffered.push(message);
@@ -642,19 +579,11 @@ export function createTurnRunner({
         return;
       }
       if (isQuestion(stageId)) {
-        // A question over the empty canvas: overlay slot, empty stage, no timeline entry.
+        // A question over the empty canvas: overlay slot, empty stage.
         replaceOverlay(stageId);
         store.setStage(null);
         store.bumpApplied();
-        return;
       }
-      appendLiveEntry(stageId, cause, titleOf(stageId));
-      jumpToLiveIfForked();
-    };
-
-    /** A forked paint's landing is the moment the view leaves the parked parent. */
-    const jumpToLiveIfForked = () => {
-      if (cause.forked && store.getState().viewing !== null) store.returnToLive();
     };
 
     const endStaged = () => {
@@ -682,9 +611,9 @@ export function createTurnRunner({
       applyA2uiMessages(processor, replayable, {onMessageError});
       // Claims land only now: retireStage cleared the outgoing composition's placement, and the
       // replay above is what put these surfaces in the live processor.
-      for (const {surfaceId, source} of claims) {
+      for (const {surfaceId, source, title} of claims) {
         if (!survivorSet.has(surfaceId)) continue;
-        claimSlot(source, surfaceId);
+        claimSlot(source, surfaceId, title);
         settlePromotion(source);
       }
       // The synthesis surface reached live with the replay: its payload lands with it.
@@ -694,12 +623,7 @@ export function createTurnRunner({
       }
       pendingSynthesis = undefined;
       for (const id of stagePaints.slice(0, -1)) retireIntermediate(id);
-      if (stagePaints.length > 0) {
-        const stageId = stagePaints[stagePaints.length - 1];
-        store.setStage(stageId);
-        appendLiveEntry(stageId, cause, titleOf(stageId));
-        jumpToLiveIfForked();
-      }
+      if (stagePaints.length > 0) store.setStage(stagePaints[stagePaints.length - 1]);
       for (const id of questions.slice(0, -1)) processor.model.deleteSurface(id);
       if (questions.length > 0) replaceOverlay(questions[questions.length - 1]);
       store.bumpApplied();
@@ -770,7 +694,7 @@ export function createTurnRunner({
         controller.abort();
         if (!stagedMode && createdIds.size > 0) {
           // Progressive paints stream straight onto the stage; a canceled one must not
-          // linger there — it never happened (never enters the timeline either).
+          // linger there — it never happened.
           for (const id of createdIds) {
             if (processor.model.getSurface(id)) processor.model.deleteSurface(id);
           }
@@ -794,15 +718,10 @@ export function createTurnRunner({
     // across the actions inside it, gone when it retires (task-8.5 decision 13).
     store.clearNotices();
     store.clearProse();
-    // The user's words head the canvas from Enter until the next utterance; an action inside a
-    // fragment is a step within the same question, so it leaves the header standing. An utterance
-    // replaces the composition on stage: every stream beside it ends, and no press is made on it
-    // (task-8.5 decision 2).
-    if (cause.kind === 'utterance') {
+    // The user's words head the canvas from Enter; an action inside a fragment is a step within
+    // the same question, so it leaves the header standing.
+    if (cause.kind === 'utterance')
       store.setQuestion({text: cause.payload.text, askedAt: Date.now()});
-      cancelSideStreams();
-      store.supersede();
-    }
     store.beginPaint(describeCause(cause), cause.kind);
     return handle;
   };
@@ -831,6 +750,11 @@ export function createTurnRunner({
     };
     sideStreams.add(entry);
 
+    const accept = (meta: PaintMeta) => {
+      metas.set(meta.surfaceId, meta);
+      onPaintMeta?.(meta);
+    };
+
     const onMessageError = (err: unknown, message: A2uiMessage) => {
       // A partial the vendor completes in its next batch fails validation on the way; the
       // fragment is judged whole at the stream's end.
@@ -847,7 +771,7 @@ export function createTurnRunner({
         const rest: A2uiMessage[] = [];
         for (const message of messages) {
           const meta = readPaintMeta(message);
-          if (meta) metas.set(meta.surfaceId, meta);
+          if (meta) accept(meta);
           else rest.push(message);
         }
         if (stamp?.role === 'shell') {
@@ -869,7 +793,7 @@ export function createTurnRunner({
             const {kind, surfaceId} = targetOf(message);
             if (kind !== 'create' || !surfaceId) continue;
             ledger.fragmentSlots.set(surfaceId, source);
-            claimSlot(source, surfaceId);
+            claimSlot(source, surfaceId, metas.get(surfaceId)?.title);
           }
         }
         applyA2uiMessages(processor, admitted, {onMessageError});
@@ -886,7 +810,7 @@ export function createTurnRunner({
         store.bumpApplied();
       },
       acceptPaintMeta: meta => {
-        if (open) metas.set(meta.surfaceId, meta);
+        if (open) accept(meta);
       },
       end: () => {
         if (!open) return;
@@ -896,12 +820,18 @@ export function createTurnRunner({
     };
   };
 
+  const cancelAll = () => {
+    current?.cancel();
+    cancelSideStreams();
+  };
+
   return {
     get current() {
       return current;
     },
     begin,
     beginSideStream,
+    cancelAll,
     removeOverlay,
   };
 }

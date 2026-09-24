@@ -16,24 +16,27 @@ SPEC.md §4 and §10–11.
 - **Palette** — the summonable command input (`⌘K` / `Ctrl+K`; `Escape`
   closes). Open by default on an empty canvas.
 - **Overlay slot** — where **question paints** land: a surface the agent _declares_ a question
-  renders above the stage instead of replacing it, and never enters the timeline. Only a
-  shell-role paint takes it; a fragment that asks is promoted in its slot instead.
+  renders above the stage instead of replacing it. Only a shell-role paint takes it; a fragment
+  that asks is promoted in its slot instead.
 - **Status strip** — the thin in-flight/status readout.
 - **Ambient notices** — the sources' prose, one attributed line each, transient
   (for example, declining an action it cannot perform).
-- **History chrome** — the top-edge timeline UI: back, the press-list of past
-  paints, return-to-live.
+- **Trail chrome** — Back and Trail in the gutter; the rail of the session's canvases; the band
+  over a past canvas ("Parked · asked at", "Ask this again now", "Return to live"). See
+  Canvases and the trail.
 - **Fragment boundary** — the one element a vendor's surface mounts inside, carrying its
   provenance and its style isolation. Every fragment on the canvas is inside one.
 - **Scrim** — dims the slots that are not asking, when the shell grants a fragment promotion.
 
 ## Vocabulary
 
-- A **paint** is one turn's surface landing on the stage. Each paint records a
-  typed **cause** — the utterance or surface action that produced it, the paint
-  the user was looking at when they dispatched it (`parent`), and whether that
-  view was parked (`forked`). Titles shown in the history are derived from the
-  cause at render time; an agent-authored title, when present, sits on top.
+- A **canvas** is one question's answer: a runtime of its own — store, live processor, turn
+  runner, synthesis session, binding index — kept for the session (task 9.6). The **trail** is
+  the list of them, one entry per question.
+- A **paint** is one turn's surface landing on a canvas's stage. Each paint records a typed
+  **cause** — the utterance that opened the canvas, a surface action inside one of its fragments,
+  or the answer to an overlay question. The in-flight label is derived from the cause at render
+  time; an agent-authored title, when present, sits on top.
 - A **turn** is the unit every agent response (or replayed fixture) enters
   through: begin → apply batches → end. The turn runner (`turn/canvasTurn.ts`)
   owns the lifecycle.
@@ -62,7 +65,7 @@ Every utterance turn is composed: the orchestrator paints a shell surface with o
 dispatched agent, then relays each agent's fragment stamped with the slot it belongs to.
 
 - **Roles come from the stamp.** `role: 'shell'` is an ordinary stage paint; `role: 'fragment'`
-  registers in the placement map and never contends for the stage or the timeline. **An unstamped
+  registers in the placement map and never contends for the stage. **An unstamped
   stream is a shell paint**, which is what keeps every pre-composition fixture valid — composition
   is opt-in via the stamp.
 - **A composed turn does not hold-and-swap.** Its whole point is that the layout lands before its
@@ -103,42 +106,54 @@ dispatched agent, then relays each agent's fragment stamped with the slot it bel
   canvas it shares. Promotion is plural, so it is emphasis rather than a modal: the count is
   announced, focus is not trapped. The overlay stays for shell-painted questions.
 
-## Timeline & time travel
+## Canvases and the trail
 
-- Landed paints append to a single append-only ring (capped at 50 entries).
-  The newest is the **live head**; browsing back **parks** the view on an older
-  paint, with a stale banner and return-to-live.
-- Snapshots are captured by **serialize-on-swap**: a surface is materialized to
-  plain frozen JSON only when it leaves the canvas — until then the timeline
-  entry holds a null snapshot and the live processor is authoritative.
-- A **parked view** renders its frozen snapshot by replaying the reconstructed
-  wire messages through a sandbox `MessageProcessor` — the identical path a
-  live paint takes, so bindings and local functions work while parked. The
-  sandbox's interaction state is written back to the entry when the view
-  unparks.
-- A composed paint is captured **whole**: the shell's snapshot plus every fragment filling a slot.
-  A shell-only capture could not even represent a filled slot — `Slot.state` is orchestrator-painted
-  and only ever pending/failed/collapsed — so parking one would have shown every slot loading
-  forever. The parked session rebuilds all of them and restores the placement.
-- A dispatch **from** a parked view is a **fork**: the paint records its parked
-  parent as provenance, the turn reports the parked snapshot's data model (not
-  the head's), and the parked view holds until the forked paint lands — landing
-  is what returns the view to live.
+Phase 9's durable composition (task 9.6), drawn to board F5 of the task 7.14 design canvas.
+
+- **A question opens a canvas of its own.** Asking mints a canvas id on the client, creates the
+  canvas's runtime, and sends the question with no `contextId` — the orchestrator mints one, the
+  runtime learns it from the first event — naming the canvas that was on screen as `parent`
+  under the stamp key. Only the session's first question is a root. The new canvas is live and
+  on screen; the one the user was looking at runs on.
+- **Only asking makes a trail entry.** An action inside a fragment, a press, a sort, a re-synthesis
+  are that canvas's own life. The entry is labelled by the truncated question until the Planner's
+  title arrives as the `paintMeta` on `shell:main`, then by the title, with a short crossfade; the
+  question stays the canvas's header verbatim.
+- **A past canvas is a tab.** Back goes to the canvas asked just before the one on screen;
+  "Return to live" to the newest question's. A past canvas draws as the live one does and is
+  actable — actions, presses, sort — its answers landing in it, on its own context. The band over
+  it reads "Parked · asked at HH:MM" with "Ask this again now" (its question sent again as a
+  child of it) and "Return to live"; the Ask pill reads "Ask from this view", and a question
+  asked there is a child of that canvas.
+- **A canvas keeps running after the user leaves it.** Its streams arrive, its synthesis
+  evaluates, its presses finish, in the background; its entry carries a quiet loading mark
+  whenever its progress line would show a spinner. Nothing ends a canvas but its close.
+- **The rail** opens from Trail beside Back as a drawer over the page, 272px and wider as the
+  spine's lanes need, nothing beneath it moving: entries newest first
+  under a day header, each its label, its time, "Live" on the newest, "Viewing" on the one on
+  screen, the loading mark, "from HH:MM" on a branch — a canvas asked from one that is not its
+  chronological predecessor — with the parent's title on hover and a way to it while it stands,
+  and a close on hover. Picking an entry views it and closes the drawer, which covers what the pick brought on screen; Escape, Trail and the
+  rail's own icon close it. Hover or focus on an entry shows its preview: the canvas's shell
+  surface mounted a second time, inert and scaled, with one line per source naming its current
+  paint's title.
+- **The close** sends `{kind: "close"}` on the canvas's context, ends its turn and every stream
+  beside it, drops its runtime and its entry: the viewed canvas closed returns to live, live
+  closed makes the newest remaining canvas live, the last closed leaves the empty canvas. A canvas
+  whose question never reached the orchestrator closes with nothing sent.
+- **In memory for the session.** A reload starts fresh.
 
 ## Interaction policy (while a paint is in flight)
 
-- Palette utterances and Repaint are **last-intent-wins** — a new dispatch
-  supersedes the in-flight one.
-- Agent-bound surface actions — live or parked — are blocked with a status cue.
-- Answering an overlay question and all shell chrome (history, palette summon)
-  are always live.
+- A palette utterance opens a new canvas; nothing in flight is cancelled by it.
+- Agent-bound surface actions inside the canvas in flight are blocked with a status cue.
+- Answering an overlay question and all shell chrome (the trail, palette summon) are always live.
 
 ## The live registry
 
-The live `MessageProcessor` holds exactly the surfaces the agent may see —
-stage plus overlay. Everything else lives as frozen snapshots in the timeline
-or inside a parked sandbox the live registry holds no reference to. This is
-what keeps a long session's data model from growing without bound.
+Each canvas's `MessageProcessor` holds exactly the surfaces the agent may see of that canvas —
+its stage plus its overlay, and the fragments filling its slots. A message on a canvas reports
+that processor's data models and no other's.
 
 ## Wire additions for the canvas
 
@@ -158,21 +173,22 @@ binding (both defined in `src/a2a/messages.ts`; the standard
   the parts — `{source, slot?, role}`, defined by `@a2uiverse/sdk`'s composition extension. It is
   what tells the canvas whether a batch paints the shell or fills a slot. Recorded beats carry it
   per batch, because which slot a fragment fills is not recoverable from the A2UI it carries.
-- **`a2uiForkContext`** (client → agent): an A2A message-metadata key attached
-  only when a turn is dispatched from a parked view —
-  `{paintId, title, paintedAt, position}`, identifying which historical paint
-  the user was acting on. Presence of the key _is_ the historical-view flag; a
-  live dispatch never carries it.
+- **`a2uiverse: {parent}`** (client → hub): the same stamp key inbound, on the opening
+  utterance of a child canvas — the context of the canvas the question was asked from
+  (`@a2uiverse/sdk`'s `canvasParentMetadata`). Absent on a root canvas.
 
 ## Beat replay — zero-LLM verification
 
 `?beat=<name>[,<name>…]` on the canvas page replays beat fixtures through the
 full turn lifecycle — the same hold-and-swap gate, paced by the recorded stream
 offsets. `&instant` collapses the waits. This is how the shell is verified with
-no LLM in the loop. The synthetic beats ship with the client
+no LLM in the loop. Every utterance of a beat opens a canvas of its own in the trail, as a real
+question does; an action or press runs on the canvas last opened; a turn's `askedFrom` views that
+earlier canvas first, so the new one is its child (task 9.6). The synthetic beats ship with the client
 (`src/beats/syntheticBeats.ts`: `plain`, `plain-2`, `validation`, `question`, the composed
-trio `composed`, `composed-solo`, `composed-question`, and `synthesis` — two storefronts merged
-by the sdk's example, then an in-place reorder its keyed refs survive). Recorded beats
+trio `composed`, `composed-solo`, `composed-question`, `synthesis` — two storefronts merged
+by the sdk's example, then an in-place reorder its keyed refs survive — and `trail`, four
+canvases with every mark of the rail at once). Recorded beats
 (`recordings/beats/*.json`, addressed by number) are captured through the composing hub over
 live MCP: `1`–`3` are one-slot compositions of a single vendor, `4` is the three-source fan-out.
 
@@ -190,11 +206,17 @@ to catch live and would make a tracked fixture depend on a race.
 ## Module map
 
 ```
-CanvasApp.tsx           page layout + page-level affordances (palette summon, ?beat= replay)
-createCanvasWiring.ts   the runtime graph, built once: store, A2A session/sender,
-                        live processor, turn runner, dispatch handlers
-canvasStore.ts          external store (useSyncExternalStore): stage/overlay occupancy,
-                        in-flight status, the paint ring, head/viewing
+CanvasApp.tsx           page layout + page-level affordances (palette summon, ?beat= replay,
+                        the trail chrome)
+createCanvasWiring.ts   the page's runtime graph, built once: the trail store, the canvases'
+                        runtimes, the A2A sender, asking / viewing / closing
+canvasRuntime.ts        one canvas: its A2A session, store, live processor, turn runner,
+                        synthesis session, binding index, dispatch handlers, close
+canvasStore.ts          external store (useSyncExternalStore), one per canvas: stage/overlay
+                        occupancy, in-flight status, the question, the composition's facts
+trail/
+  trailStore.ts         the trail: the canvases of the session, live and viewed, the page's
+                        trusted page
 replayBeat.ts           drives a recorded beat through the turn runner, its presses beside it
 replayTransport.ts      answers a replayed beat's streams beside the turn from the beat
 synthesis/
@@ -204,19 +226,15 @@ synthesis/
   bindingEvaluator.ts   pure: payload + partitions + choices → the derived model
                         with a cell at every formula path, sorted arrays, /sorts/N
   intake.ts             the sdk's payload validator + the client's operator check
-components/             stage, palette, overlay, status strip, ambient notice,
-                        history chrome, parked stage
+components/             the canvas view, stage, palette, overlay, status strip, ambient notice,
+                        the trail chrome and the preview
 turn/
   canvasTurn.ts         the turn runner — hold-and-swap lives here
+  cause.ts              the cause vocabulary + the in-flight label's derivation
   turnMessages.ts       pure message-shape inspection for the runner
 composition/
   slotContent.tsx       what a Slot renders: boundary → vendor Provider → surface
   FragmentBoundary.tsx  the one element a fragment mounts inside (provenance + isolation)
   slotCount.ts          how many slots the plan laid out — adaptive weight's input
   collisionDetector.ts  the CSS collision rules, run over the installed catalogs
-timeline/
-  paint.ts              the paint/cause vocabulary + title derivation
-  snapshotSurface.ts    serialize-on-swap materialization
-  parkedSession.ts      the parked-view sandbox + unpark write-back
-  causeContext.ts       provenance builders for a dispatch
 ```

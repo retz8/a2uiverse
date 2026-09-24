@@ -7,7 +7,7 @@ import {describe, it, expect, vi, afterEach} from 'vitest';
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
 import {createCanvasStore} from './canvasStore';
 import type {TurnHandle} from './turn/canvasTurn';
-import type {PaintCause} from './timeline/paint';
+import type {PaintCause} from './turn/cause';
 import {replayBeatOnCanvas, type ReplaySides} from './replayBeat';
 import type {BeatFixture, BeatTurn} from '../beats/beatFixtures';
 import type {A2AMessageSender} from '../a2a/client';
@@ -79,22 +79,11 @@ describe('replayBeatOnCanvas', () => {
     const store = createCanvasStore();
     const runner = mockRunner(store);
     await replayBeatOnCanvas(fixture(), {runner, store, paced: false});
-    expect(runner.causes).toEqual([
-      {kind: 'utterance', parent: null, forked: false, payload: {text: 'show me'}},
-    ]);
+    expect(runner.causes).toEqual([{kind: 'utterance', payload: {text: 'show me'}}]);
   });
 
-  it('maps a surface-action turn to a surface-action cause with the live paint as parent', async () => {
+  it('maps a surface-action turn to a surface-action cause', async () => {
     const store = createCanvasStore();
-    // A live paint on the stage: entry #7 is the head and its surface occupies the stage.
-    store.appendEntry({
-      paintId: 7,
-      surfaceId: 'stage',
-      catalogId: 'primer',
-      cause: {kind: 'utterance', parent: null, forked: false, payload: {text: 'earlier'}},
-      paintedAt: 1000,
-      snapshot: null,
-    });
     store.setStage('stage');
     const runner = mockRunner(store);
     const beat = fixture();
@@ -108,12 +97,7 @@ describe('replayBeatOnCanvas', () => {
     ];
     await replayBeatOnCanvas(beat, {runner, store, paced: false});
     expect(runner.causes).toEqual([
-      {
-        kind: 'surface-action',
-        parent: 7,
-        forked: false,
-        payload: {action: {name: 'open-issue', context: {}}},
-      },
+      {kind: 'surface-action', payload: {action: {name: 'open-issue', context: {}}}},
     ]);
   });
 
@@ -183,6 +167,76 @@ describe('replayBeatOnCanvas', () => {
     await replayBeatOnCanvas(multi, {runner, store, paced: false});
     expect(runner.applied).toEqual([[msg(1)], [msg(2)]]);
     expect(runner.causes).toHaveLength(2);
+  });
+
+  describe('on the page (task-9.6 decision 14)', () => {
+    /** The page's canvases: each opened utterance its own runner and store. */
+    function canvases() {
+      const opened: Array<{id: string; prompt: string; runner: ReturnType<typeof mockRunner>}> = [];
+      const viewed: string[] = [];
+      const page = {
+        openReplayCanvas(prompt: string) {
+          const store = createCanvasStore();
+          const runner = mockRunner(store);
+          const id = `c${opened.length + 1}`;
+          opened.push({id, prompt, runner});
+          return {id, runner, store};
+        },
+        view(id: string) {
+          viewed.push(id);
+        },
+      };
+      return {page, opened, viewed};
+    }
+
+    it('every utterance opens a canvas of its own; an action runs on the one last opened', async () => {
+      const {page, opened} = canvases();
+      const multi = fixture();
+      multi.turns = [
+        {...multi.turns[0], batches: [{offsetMs: 0, messages: [msg(1)], texts: []}]},
+        {
+          ...multi.turns[0],
+          kind: 'surface-action',
+          action: {name: 'open', context: {}},
+          batches: [{offsetMs: 0, messages: [msg(2)], texts: []}],
+        },
+        {
+          ...multi.turns[0],
+          prompt: 'and then',
+          batches: [{offsetMs: 0, messages: [msg(3)], texts: []}],
+        },
+      ];
+      await replayBeatOnCanvas(multi, {canvases: page, paced: false});
+      expect(opened.map(c => c.prompt)).toEqual(['show me', 'and then']);
+      expect(opened[0].runner.applied).toEqual([[msg(1)], [msg(2)]]);
+      expect(opened[1].runner.applied).toEqual([[msg(3)]]);
+    });
+
+    it('a turn asked from an earlier canvas views it first, so the new one is its child', async () => {
+      const {page, opened, viewed} = canvases();
+      const multi = fixture();
+      multi.turns = [
+        {...multi.turns[0], batches: [{offsetMs: 0, messages: [msg(1)], texts: []}]},
+        {
+          ...multi.turns[0],
+          prompt: 'second',
+          batches: [{offsetMs: 0, messages: [msg(2)], texts: []}],
+        },
+        {
+          ...multi.turns[0],
+          prompt: 'from the first',
+          askedFrom: 0,
+          batches: [{offsetMs: 0, messages: [msg(3)], texts: []}],
+        },
+      ];
+      await replayBeatOnCanvas(multi, {canvases: page, paced: false});
+      expect(viewed).toEqual([opened[0].id]);
+      expect(opened[2].runner.applied).toEqual([[msg(3)]]);
+    });
+
+    it('refuses a beat with neither the page nor a runtime', async () => {
+      await expect(replayBeatOnCanvas(fixture(), {paced: false})).rejects.toThrow(/runtime/);
+    });
   });
 
   describe('a press beside the turn (task 8.6)', () => {

@@ -1,23 +1,14 @@
 /**
  * The canvas store: one hand-rolled external store (subscribe + snapshot, read by React via
- * useSyncExternalStore) owning the canvas state — stage and overlay occupancy, in-flight
- * status, and the single append-only ring of paint entries with head/viewing time travel.
- * Written from non-React code (the turn runner,
- * the replay driver, the A2A callbacks), which is why it is a closure module and not
- * component state.
+ * useSyncExternalStore) owning one canvas's state — stage and overlay occupancy, in-flight
+ * status, the question, and the composition's own facts. One per canvas (task-9.6 decision 2):
+ * the trail store above it holds which canvases exist, which is live and which is viewed.
+ * Written from non-React code (the turn runner, the replay driver, the A2A callbacks), which is
+ * why it is a closure module and not component state.
  */
 import type {CompositionOperation} from '@a2uiverse/sdk';
 import type {MergeFacts} from '@a2uiverse/shell-catalog';
-import type {
-  PaintCause,
-  PaintEntry,
-  PaintFragment,
-  PaintSnapshot,
-  PaintSynthesis,
-} from './timeline/paint';
-
-/** The ring cap — a stated policy bound, not a memory guard. */
-export const TIMELINE_CAP = 50;
+import type {PaintCause} from './turn/cause';
 
 /** A fragment mounted into a slot: which surface, and which app painted it. */
 export interface PlacedFragment {
@@ -60,7 +51,7 @@ export interface JoinNouns {
   nouns: Readonly<Record<string, string>>;
 }
 
-/** The utterance that opened the turn on stage — the canvas's header until the next one. */
+/** The utterance that opened the canvas — its header, verbatim. */
 export interface Question {
   /** The user's words, verbatim. */
   text: string;
@@ -104,36 +95,11 @@ export interface OverlayState {
   question?: string;
 }
 
-/** The trusted pages a shell action opens (SPEC §7, §9.3). */
-export type TrustedPage = 'store' | 'appLibrary';
-
-/**
- * The trusted page open over the canvas: the Store or the App Library, as an overlay — the
- * canvas stays mounted beneath it (task-6.5 decisions 2, 3). Until Phase 13 builds the pages
- * it is a placeholder naming the page and the query it was opened with.
- */
-export interface TrustedPageState {
-  page: TrustedPage;
-  /** The Store's search, when the action carried one — the capability the tile forwards. */
-  query?: string;
-}
-
 export interface CanvasState {
   /** The surface occupying the stage; null is the empty canvas. */
   stageId: string | null;
   /** The one transient question paint above the stage; null when no question is pending. */
   overlay: OverlayState | null;
-  /** The trusted page open over the canvas; null when none is. */
-  trustedPage: TrustedPageState | null;
-  /**
-   * The ring of paint entries, appended on land, chronological, never reordered. The newest
-   * entry is the live paint — the only one whose snapshot may still be null.
-   */
-  timeline: readonly PaintEntry[];
-  /** The parked paint's id; null is live. */
-  viewing: number | null;
-  /** A paint landed while parked — the "newer view exists" marker; cleared on return-to-live. */
-  headAdvancedWhileParked: boolean;
   /**
    * Set while a paint is streaming: its activity label, and the kind of cause that opened it —
    * an utterance plans, an action or an answer works inside what is already there.
@@ -142,8 +108,8 @@ export interface CanvasState {
   /** Sticky failure text; cleared by the next dispatch (beginPaint). */
   error: string | null;
   /**
-   * The live turn's question: set when an utterance opens a turn, kept through the actions that
-   * follow inside its fragments, replaced by the next utterance. Null before the first.
+   * The canvas's question: set when its utterance opens the turn, kept through the actions that
+   * follow inside its fragments. Null before it is asked.
    */
   question: Question | null;
   /**
@@ -157,10 +123,11 @@ export interface CanvasState {
   /** The presses made on the composition on stage, until the paint catches up or they end. */
   presses: readonly Press[];
   /**
-   * A newer question was sent and the composition on stage is being replaced: no press can be
-   * made on it, and the progress line belongs to the question on its way.
+   * Each source's current paint title, from the vendor's `paintMeta` on the surface filling its
+   * slot (task-9.3 decision 6): what the trail's preview says of where each fragment stands.
+   * Absent for a source whose paint named nothing.
    */
-  superseded: boolean;
+  paintTitles: ReadonlyMap<string, string>;
   /**
    * The notice stack: one entry per source that has spoken this turn, plus at most one for the
    * shell. Plural because a fan-out has several voices, and buffered per source because their
@@ -214,35 +181,13 @@ export interface CanvasStore {
   addPress(operation: CompositionOperation): number;
   updatePress(key: number, status: Press['status']): void;
   removePress(key: number): void;
-  /** A newer question was sent: the composition on stage is being replaced. */
-  supersede(): void;
-  /** The composition retired: its roster, slot states, merge facts and presses go with it. */
+  /** A source's fragment claimed its slot: the title its paint carried, if any. */
+  setPaintTitle(source: string, title: string | undefined): void;
+  /** The composition retired: its roster, slot states, merge facts, presses and titles go with it. */
   resetComposition(): void;
   reportError(text: string): void;
   setStage(stageId: string | null): void;
   setOverlay(overlay: OverlayState | null): void;
-  /** A shell action landed: open its page over the canvas, or retarget the one already open. */
-  openTrustedPage(page: TrustedPageState): void;
-  closeTrustedPage(): void;
-  /** Append a landed paint; evicts past the ring cap and raises the parked marker. */
-  appendEntry(entry: PaintEntry): void;
-  /**
-   * Serialize-on-swap: complete the addressed entry with its captured content — the shell's
-   * snapshot, and for a composition the fragments that were filling its slots.
-   */
-  fillSnapshot(
-    paintId: number,
-    snapshot: PaintSnapshot,
-    fragments?: readonly PaintFragment[],
-    synthesis?: PaintSynthesis,
-  ): void;
-  /** Parked write-back: replace the snapshot's data model wholesale. */
-  replaceSnapshotDataModel(paintId: number, dataModel: unknown): void;
-  /** View a past entry. Unknown ids are ignored. */
-  park(paintId: number): void;
-  returnToLive(): void;
-  /** Monotonic paint ids — never reused; causes reference ids, not slots. */
-  nextPaintId(): number;
   /**
    * Agent prose: append a streamed chunk to its source's buffer, creating the line on first
    * chunk. `null` is the shell's bucket — prose that arrived with no fragment stamp.
@@ -275,11 +220,6 @@ export interface CanvasStore {
 }
 
 /**
- * The paint the user is looking at: the parked paint, else the head while the stage is
- * occupied, else null — an empty live canvas has no current paint, however much departed
- * history exists.
- */
-/**
  * The stack as rendered: one line per source in the order the plan gave the slots, so the stack
  * echoes the layout below it and never reorders under a reader, with the shell's own line last.
  * A source the roster does not know keeps its appId — the degenerate, uncomposed case.
@@ -297,48 +237,17 @@ export function orderedNotices(state: CanvasState): readonly RenderedNotice[] {
     }));
 }
 
-/**
- * The question heading what the user is looking at. Live, the turn's own; parked, the utterance
- * that opened the parked paint — found by walking its causes back through the actions taken
- * inside it, as far as the ring still holds them.
- */
-export function questionOnView(state: CanvasState): Question | null {
-  if (state.viewing === null) return state.question;
-  const byId = new Map(state.timeline.map(e => [e.paintId, e]));
-  let entry = byId.get(state.viewing);
-  const seen = new Set<number>();
-  while (entry && !seen.has(entry.paintId)) {
-    seen.add(entry.paintId);
-    if (entry.cause.kind === 'utterance') {
-      return {text: entry.cause.payload.text, askedAt: entry.paintedAt};
-    }
-    entry = entry.cause.parent === null ? undefined : byId.get(entry.cause.parent);
-  }
-  return null;
-}
-
-export function currentPaintId(state: CanvasState): number | null {
-  if (state.viewing !== null) return state.viewing;
-  if (state.stageId === null) return null;
-  const head = state.timeline[state.timeline.length - 1];
-  return head?.paintId ?? null;
-}
-
 export function createCanvasStore(): CanvasStore {
   let state: CanvasState = {
     stageId: null,
     overlay: null,
-    trustedPage: null,
-    timeline: [],
-    viewing: null,
-    headAdvancedWhileParked: false,
     inFlight: null,
     error: null,
     question: null,
     slotStates: new Map(),
     merge: null,
     presses: [],
-    superseded: false,
+    paintTitles: new Map(),
     notices: [],
     roster: [],
     prose: new Map(),
@@ -347,7 +256,6 @@ export function createCanvasStore(): CanvasStore {
     promoted: new Set(),
   };
   let noticeKey = 0;
-  let paintId = 0;
   let pressKey = 0;
   const listeners = new Set<() => void>();
 
@@ -355,9 +263,6 @@ export function createCanvasStore(): CanvasStore {
     state = {...state, ...patch};
     for (const listener of listeners) listener();
   };
-
-  const patchEntry = (id: number, patch: (entry: PaintEntry) => PaintEntry) =>
-    set({timeline: state.timeline.map(e => (e.paintId === id ? patch(e) : e))});
 
   return {
     getState: () => state,
@@ -406,46 +311,24 @@ export function createCanvasStore(): CanvasStore {
       if (state.presses.some(press => press.key === key))
         set({presses: state.presses.filter(press => press.key !== key)});
     },
-    supersede: () => {
-      if (!state.superseded) set({superseded: true});
+    setPaintTitle: (source, title) => {
+      if (state.paintTitles.get(source) === title) return;
+      const next = new Map(state.paintTitles);
+      if (title === undefined) next.delete(source);
+      else next.set(source, title);
+      set({paintTitles: next});
     },
     resetComposition: () =>
-      set({roster: [], slotStates: new Map(), merge: null, presses: [], superseded: false}),
+      set({
+        roster: [],
+        slotStates: new Map(),
+        merge: null,
+        presses: [],
+        paintTitles: new Map(),
+      }),
     reportError: text => set({error: text}),
     setStage: stageId => set({stageId}),
     setOverlay: overlay => set({overlay}),
-    openTrustedPage: page => set({trustedPage: page}),
-    closeTrustedPage: () => {
-      if (state.trustedPage) set({trustedPage: null});
-    },
-    appendEntry: entry => {
-      const grown = [...state.timeline, entry];
-      const evicted = grown.slice(0, Math.max(0, grown.length - TIMELINE_CAP));
-      const parkedEvicted = evicted.some(e => e.paintId === state.viewing);
-      set({
-        timeline: grown.slice(evicted.length),
-        // Eviction of the parked entry forces return-to-live; otherwise a landing while
-        // parked leaves the user parked and raises the newer-view marker.
-        viewing: parkedEvicted ? null : state.viewing,
-        headAdvancedWhileParked: parkedEvicted
-          ? false
-          : state.viewing !== null || state.headAdvancedWhileParked,
-      });
-    },
-    fillSnapshot: (id, snapshot, fragments, synthesis) =>
-      patchEntry(id, e => ({
-        ...e,
-        snapshot,
-        ...(fragments?.length ? {fragments} : {}),
-        ...(synthesis ? {synthesis} : {}),
-      })),
-    replaceSnapshotDataModel: (id, dataModel) =>
-      patchEntry(id, e => (e.snapshot ? {...e, snapshot: {...e.snapshot, dataModel}} : e)),
-    park: id => {
-      if (state.timeline.some(e => e.paintId === id)) set({viewing: id});
-    },
-    returnToLive: () => set({viewing: null, headAdvancedWhileParked: false}),
-    nextPaintId: () => ++paintId,
     appendProse: (source, text) => {
       const existing = state.notices.find(n => n.source === source);
       // A line is minted by the first chunk that says something: prose often opens with

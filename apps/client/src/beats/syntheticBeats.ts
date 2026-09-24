@@ -15,7 +15,7 @@ import {CATALOG_ID} from 'github-catalog';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 import {CATALOG_ID as SHOP_A_CATALOG_ID} from 'shop-a-catalog';
 import {CATALOG_ID as SHOP_B_CATALOG_ID} from 'shop-b-catalog';
-import {getBeatFixture, type BeatFixture} from './beatFixtures';
+import {getBeatFixture, type BeatFixture, type BeatTurn} from './beatFixtures';
 import {JOIN_DOCUMENT, JOIN_ITEMS, JOIN_PRODUCTS, JOIN_PRODUCTS_RETITLED} from './joinFixture';
 import {LATE_FAILURE_BEATS, LATE_FAILURE_RESTING} from './lateFailureBeats';
 import {
@@ -809,6 +809,8 @@ export function syntheticBeat(name: string): BeatFixture | undefined {
       return mergeHeldBack(getBeatFixture(9), 'synthetic-merging', 117);
     case 'long-merging':
       return mergeHeldBack(longQuestionBeat(), 'synthetic-long-merging', 118);
+    case 'trail':
+      return trailBeat();
     default:
       // Phase 8's cases by the name less its prefix — `?beat=fast-failure` — and each resting
       // where its press is offered: `?beat=fast-failure-offered`.
@@ -816,6 +818,40 @@ export function syntheticBeat(name: string): BeatFixture | undefined {
         fixture => fixture.name === `synthetic-${name}`,
       );
   }
+}
+
+/**
+ * The trail (task-9.6 decision 14): four questions, each a canvas of its own — a root, a child
+ * asked from live, a branch asked from the first canvas, and the newest still loading with its
+ * merge held back — so the rail shows every mark at once: Live, Viewing, from, the loading mark;
+ * and the band stands on any past one. The first and third carry the Planner's title on the
+ * layout surface; the second keeps the question as its label.
+ */
+function trailBeat(): BeatFixture | undefined {
+  const held = mergeHeldBack(getBeatFixture(9), 'synthetic-trail', 119);
+  if (!held) return undefined;
+  const titled = (turn: BeatTurn, title: string): BeatTurn => ({
+    ...turn,
+    batches: turn.batches.map((batch, i) =>
+      i === 0
+        ? {
+            ...batch,
+            messages: [msg({paintMeta: {surfaceId: 'shell:main', title}}), ...batch.messages],
+          }
+        : batch,
+    ),
+  });
+  return {
+    ...held,
+    title: 'The trail',
+    prompt: COMPOSED_BEAT.prompt,
+    turns: [
+      titled(COMPOSED_BEAT.turns[0], 'Needs attention today'),
+      PLATFORM_ANSWER_BEAT.turns[0],
+      {...titled(SYNTHESIS_BEAT.turns[0], 'Camera prices, both stores'), askedFrom: 0},
+      ...held.turns,
+    ],
+  };
 }
 
 /**

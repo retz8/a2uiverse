@@ -239,20 +239,12 @@ describe('the synthesis turn on the canvas', () => {
     expect(store.getState().appliedSeq).toBe(before);
   });
 
-  it('the next composition retires the synthesis with the one it replaces, and the timeline keeps it with its payload', async () => {
+  it('the next composition retires the synthesis with the one it replaces', async () => {
     const {processor, store, runner, synthesis} = setup();
     await replayBeatOnCanvas(SYNTHESIS_BEAT, {runner, store, paced: false});
     await replayBeatOnCanvas(COMPOSED_BEAT, {runner, store, paced: false});
 
     expect(synthesis.payload).toBeUndefined();
     expect(processor.model.getSurface(SYNTHESIS_SURFACE)).toBeUndefined();
-    const parked = store.getState().timeline[0]!;
-    const fragment = parked.fragments?.find(f => f.surfaceId === SYNTHESIS_SURFACE);
-    expect(fragment?.snapshot?.dataModel).toMatchObject({
-      sorts: [{key: '/best', direction: 'asc'}],
-      rows: [{name: {value: 'Lumen X100'}}, {name: {value: 'Verity A7'}}],
-    });
-    // Captured beside the fragments: what a parked visit re-sorts with (task 4.8).
-    expect(parked.synthesis).toEqual({surfaceId: SYNTHESIS_SURFACE, payload: PAYLOAD});
   });
 });

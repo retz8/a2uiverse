@@ -71,16 +71,20 @@ export async function supportedCatalogIds(): Promise<string[]> {
   );
 }
 
-/** Send one text prompt and collect every streamed event with its arrival offset. */
+/**
+ * Send one text prompt and collect every streamed event with its arrival offset. A question
+ * opens a canvas of its own (task-9.2 decision 1): the message carries no contextId, and names
+ * the canvas it was asked from as `parent` when the beat chains after another.
+ */
 export function driveTurn(
   sender: A2AMessageSender,
   prompt: string,
-  contextId: string | undefined,
+  parent: string | undefined,
   catalogIds: string[],
   onEvent?: (e: TimedEvent) => void,
 ): Promise<DrivenTurn> {
-  const params = buildTextMessageParams(prompt, contextId, undefined, undefined, catalogIds);
-  return driveMessage(sender, params, contextId, onEvent);
+  const params = buildTextMessageParams(prompt, undefined, catalogIds, parent);
+  return driveMessage(sender, params, undefined, onEvent);
 }
 
 /** The reader's press on the composition in `contextId`, on a stream of its own (task-8.6 decision 1). */
