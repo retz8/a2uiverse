@@ -83,7 +83,18 @@ export interface SynthesisRecord {
 }
 
 export type SynthesisRelease =
-  'settled' | 'soft-deadline' | 'home' | 'include' | 'retry' | 'tryAgain' | 'walk';
+  'settled' | 'soft-deadline' | 'home' | 'include' | 'retry' | 'tryAgain' | 'walk' | 'step';
+
+/**
+ * A fragment stepped in its history (task-9.4 decision 7): the combination of steps it landed
+ * on — every painted source's index — whether the wiring accepted over it was remembered, and
+ * what the walk did: nothing, or the call whose record is the turn's synthesis.
+ */
+export interface StepRecord {
+  combination: Record<string, number>;
+  seen: boolean;
+  walk: 'silent' | 'landed' | 'kept' | 'collapsed';
+}
 
 /** One line of the intent journal (SPEC §10): per turn, free-form descriptor + embedding. */
 export interface JournalEntry {
@@ -111,6 +122,8 @@ export interface JournalEntry {
   composition?: string;
   /** A press the orchestrator refused, and why. */
   refused?: string;
+  /** A step in a fragment's history: where it landed and what it cost (task 9.4). */
+  step?: StepRecord;
   /** The descriptor, embedded at write time with the Router's model; null when embedding failed. */
   embedding: number[] | null;
 }

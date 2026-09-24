@@ -5,7 +5,7 @@ import type {DispatchOutcome, DispatchRecord} from '../agentsPool/types.js';
 import type {Embedder} from '../embedder/types.js';
 import {describe} from './descriptor.js';
 import {emptyTouches, mergeTouches, type SurfaceTouches} from './surfaces.js';
-import type {JournalEntry, PlanRecord, SynthesisRecord} from './types.js';
+import type {JournalEntry, PlanRecord, StepRecord, SynthesisRecord} from './types.js';
 
 export interface OpenTurn {
   turnId: string;
@@ -27,6 +27,8 @@ export interface JournalTurn {
   composition(turnId: string): void;
   /** A press refused, and why. */
   refused(reason: string): void;
+  /** A step in a fragment's history: where it landed and what it cost. */
+  step(record: StepRecord): void;
   /**
    * Appends the entry, once: a second close does nothing. A turn still listening past its final
    * closes when the listening ends, so what arrives after the hard cap is on its line. Never
@@ -100,6 +102,9 @@ export class IntentJournal {
       },
       refused: reason => {
         entry.refused = reason;
+      },
+      step: record => {
+        entry.step = record;
       },
       close: async outcome => {
         if (closed) return;

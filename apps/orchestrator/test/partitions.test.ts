@@ -140,6 +140,27 @@ describe('changes', () => {
     expect('generation' in new Partitions()).toBe(false);
   });
 
+  test("a step replaces the source's partition with what the client sent for it (task-9.4 decision 2)", () => {
+    const p = fresh();
+    p.apply(paint({createSurface: {surfaceId: 'shop-b:list', catalogId: 'c'}}));
+    p.apply(paint({createSurface: {surfaceId: 'shop-a:detail', catalogId: 'c'}}));
+    expect(p.has(S)).toBe(false);
+    // Back to the list: a surface the partitions no longer hold, taken with its data as sent;
+    // the detail retired; the other source untouched; a surface of another source ignored.
+    const sent = {[S]: {items}, 'shop-b:list': {x: 1}};
+    expect(p.replace('shop-a', sent)).toEqual([S]);
+    expect(p.get(S)).toEqual({items});
+    expect(p.has('shop-a:detail')).toBe(false);
+    expect(p.get('shop-b:list')).toEqual({});
+    expect(p.resolve({surface: S, pointer: '/items[id="x100"]/price'})).toEqual({
+      found: true,
+      value: 899,
+    });
+    // Nothing sent for the source: its partition is emptied, and nothing is taken.
+    expect(p.replace('shop-a', {})).toEqual([]);
+    expect(p.holdsSurfaceOf('shop-a')).toBe(false);
+  });
+
   test('apply returns the namespaced surfaces the event changed', () => {
     const p = fresh();
     expect(p.apply(paint({updateDataModel: {surfaceId: S, path: '/note', value: 1}}))).toEqual([S]);

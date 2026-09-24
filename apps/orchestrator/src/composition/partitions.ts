@@ -45,6 +45,26 @@ export class Partitions {
     return changed;
   }
 
+  /**
+   * A fragment stepped in its history (task-9.4 decision 2): the source's partition becomes
+   * exactly what the client sent for it — every surface of the source dropped, the sent ones
+   * taken with their data as sent — so the merge and the vendor's next answer see what the user
+   * sees, a surface the partitions no longer held included. Returns the surfaces taken.
+   */
+  replace(appId: string, surfaces: Record<string, unknown>): string[] {
+    for (const surface of [...this.#models.keys()]) {
+      if (parseSurfaceId(surface)?.appId === appId) this.#models.delete(surface);
+    }
+    const taken: string[] = [];
+    for (const [surface, model] of Object.entries(surfaces)) {
+      if (parseSurfaceId(surface)?.appId !== appId) continue;
+      if (typeof model !== 'object' || model === null) continue;
+      this.#models.set(surface, structuredClone(model) as Model);
+      taken.push(surface);
+    }
+    return taken;
+  }
+
   get(surface: string): unknown {
     return this.#models.get(surface);
   }

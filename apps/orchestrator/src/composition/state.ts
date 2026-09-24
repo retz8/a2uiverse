@@ -12,6 +12,7 @@ import {isGap, type JoinNouns, type LayoutSurface} from '../planner/document.js'
 import type {Registry} from '../registry/registry.js';
 import {SHELL_SOURCE_ID} from '../registry/types.js';
 import {SYNTHESIS_DISPLAY_NAME} from './constants.js';
+import {History} from './history.js';
 import {Partitions} from './partitions.js';
 import {Presses} from './presses.js';
 
@@ -82,11 +83,19 @@ export interface Sink {
  * decision 7): what it asks of the merge, where the outcome is published, and its settle.
  */
 export interface OwedPress {
-  /** The presses that owe the merge a call; a step (task 9.4) and a close (task 9.3) owe none. */
-  kind: Exclude<OperationKind, 'step' | 'close'> | 'walk';
+  /**
+   * The presses that owe the merge a call, the walk after a press inside a fragment, and a step
+   * in a fragment's history (task 9.4) — a walk with the step's name on it; a close (task 9.3)
+   * owes none.
+   */
+  kind: Exclude<OperationKind, 'close'> | 'walk';
   sink: Sink;
-  resolve(): void;
+  /** Settles with what became of the call it was made in. */
+  resolve(end: SynthesisEnd): void;
 }
+
+/** What became of a synthesis: landed, failed with the view kept, collapsed, or nothing to make. */
+export type SynthesisEnd = 'landed' | 'kept' | 'collapsed' | 'none';
 
 /** Everything owed while the merge is in the making: made as one call once it lands. */
 export interface Owed {
@@ -143,6 +152,8 @@ export interface CompositionState {
   gaps: string[];
   /** Every surface's data model. */
   partitions: Partitions;
+  /** Each agent's steps in this canvas and the wiring accepted per combination of them (task 9.4). */
+  history: History;
   /** Sources whose dispatch completed holding a surface, and not failed since — what the first synthesis runs over. */
   arrived: Set<string>;
   /**
@@ -244,6 +255,7 @@ export function compositionFrom(
     slots,
     gaps,
     partitions: new Partitions(),
+    history: new History(),
     arrived: new Set(),
     merged: new Set(),
     folding: new Set(),

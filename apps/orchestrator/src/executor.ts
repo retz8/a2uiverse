@@ -32,6 +32,7 @@ import {
   type OwedPress,
   type Sink,
   type SlotFailure,
+  type SynthesisEnd,
 } from './composition/state.js';
 import type {PressWait} from './composition/presses.js';
 import {decideTrigger, mergePossible} from './composition/trigger.js';
@@ -89,9 +90,6 @@ type SynthesisRun =
   | {kind: 'first'; by: 'settled' | 'soft-deadline' | 'home'; at: number; signal: AbortSignal}
   | {kind: 'make'; by: SynthesisRelease; at: number; signal: AbortSignal}
   | {kind: 'again'; by: SynthesisRelease; at: number; joining: string[]; signal: AbortSignal};
-
-/** What became of a synthesis: landed, failed with the view kept, collapsed, or nothing to make. */
-type SynthesisEnd = 'landed' | 'kept' | 'collapsed' | 'none';
 
 /** What the pump does with a dispatch beyond relaying it. */
 interface PumpOptions {
@@ -343,7 +341,7 @@ export class OrchestratorExecutor implements AgentExecutor {
       }
       const owed = state.owed;
       state.owed = undefined;
-      for (const press of owed?.presses ?? []) press.resolve();
+      for (const press of owed?.presses ?? []) press.resolve('none');
       this.#canvases.close(contextId);
     } else if (live) {
       // Closed before it was planned: the record is what the utterance turn knew.
@@ -480,8 +478,8 @@ export class OrchestratorExecutor implements AgentExecutor {
       state.mergeDecided = true;
       logLine(`merge task=${ctx.taskId} released (${by})`);
       released = this.#making(state, () =>
-        this.#synthesize([sink], state, {kind: 'first', by, at: Date.now(), signal}).then(() => {}),
-      );
+        this.#synthesize([sink], state, {kind: 'first', by, at: Date.now(), signal}),
+      ).then(() => {});
       wake();
     };
     // Weighs the trigger after every settle, and after a slot fails outside the turn's own
@@ -654,7 +652,9 @@ export class OrchestratorExecutor implements AgentExecutor {
   /**
    * The reader's press on the composition (task 8.4), a task of its own beside the turn: Retry
    * re-dispatches one failed source, Include folds the late sources into the merge, Try again
-   * makes a merge whose call failed; the close ends the canvas (task 9.3). Its stream carries
+   * makes a merge whose call failed; the close ends the canvas (task 9.3); a step puts a
+   * fragment's paint back on its partition and restores or walks the merged view's wiring
+   * (task 9.4). Its stream carries
    * what the press causes and ends when that is done; the final is `completed` whenever the press
    * was handled, the outcome on the canvas. A press the composition cannot take — no canvas here,
    * a source not failed, nothing late, nothing to try again — is refused.
@@ -683,7 +683,7 @@ export class OrchestratorExecutor implements AgentExecutor {
     turn.composition(state.turnId);
     const sink: Sink = {ctx, bus, turn, drains: []};
     const merge = synthesisSlot(state);
-    let work: (signal: AbortSignal) => Promise<void>;
+    let work: (signal: AbortSignal) => Promise<unknown>;
     switch (operation.kind) {
       case 'retry': {
         const appId = operation.sources[0]!;
@@ -711,9 +711,26 @@ export class OrchestratorExecutor implements AgentExecutor {
         }
         break;
       }
-      // Contract v0.8 (task 9.2); the step is task 9.4's.
-      case 'step':
-        return refuse('This canvas cannot take that yet.');
+      case 'step': {
+        // The fragment stepped in its history (task-9.4 decision 6): refused when the source
+        // has no stack here, when the stack has no such step, or when the message carries no
+        // surface of the source — the partition would be left stale.
+        const appId = operation.sources[0]!;
+        const slot = state.slots.get(appId);
+        const name = slot?.plan.displayName ?? appId;
+        const stack = state.history.stackOf(appId);
+        if (!slot || appId === SHELL_SOURCE_ID || !stack) return refuse(`${name} has not painted.`);
+        const index = operation.step ?? 0;
+        if (index >= stack.length) return refuse(`${name} has no step ${index}.`);
+        const surfaces = Object.fromEntries(
+          Object.entries(clientSurfaces(ctx.userMessage.metadata)).filter(
+            ([surface]) => parseSurfaceId(surface)?.appId === appId,
+          ),
+        );
+        if (Object.keys(surfaces).length === 0) return refuse('The step carries no paint.');
+        work = () => this.#step(sink, state, appId, index, surfaces);
+        break;
+      }
     }
     const running: Operation = {
       taskId: ctx.taskId,
@@ -732,6 +749,49 @@ export class OrchestratorExecutor implements AgentExecutor {
     void Promise.all(sink.drains ?? []).then(() =>
       turn.close(superseded ? 'cancelled' : 'completed'),
     );
+  }
+
+  /**
+   * A fragment stepped back or forward in its history (SPEC §6.5, task-9.4 decisions 2–5): the
+   * source's partition becomes the paint the client now shows; when the combination of steps
+   * it landed on was seen, the wiring accepted over it is restored — the live synthesis and the
+   * merge's set, less a source failed since — with no call; then the IntegrityChecker's walk
+   * runs over the restored state, free, and the Synthesizer is called only if it fires, the
+   * outcome filed under the combination. Nothing is painted on a silent walk: the client
+   * restored its own paint and wiring. The index the fragment already shows is a no-op past
+   * the partition write.
+   */
+  async #step(
+    sink: Sink,
+    state: CompositionState,
+    appId: string,
+    index: number,
+    surfaces: Record<string, unknown>,
+  ): Promise<void> {
+    state.history.stepTo(appId, index);
+    state.partitions.replace(appId, surfaces);
+    const remembered = state.history.recall();
+    if (remembered) {
+      state.synthesis = remembered.synthesis;
+      state.merged = new Set(
+        [...remembered.merged].filter(id => state.slots.get(id)?.state !== 'failed'),
+      );
+      // The failure said beside the view was the last call's; the restored view is not it.
+      if (state.callFailed) {
+        delete state.callFailed;
+        this.#repaint([sink], state);
+      }
+    }
+    const end = await this.#owe(state, {}, 'step', sink);
+    const walk = end === 'none' ? 'silent' : end;
+    logLine(
+      `↶ ${appId} task=${sink.ctx.taskId} step ${index} (${remembered ? 'seen' : 'unseen'}, walk ${walk})`,
+    );
+    sink.turn.step({
+      combination: state.history.combination(),
+      seen: remembered !== undefined,
+      walk,
+    });
   }
 
   /**
@@ -856,6 +916,7 @@ export class OrchestratorExecutor implements AgentExecutor {
       const moved = retask(event, sink.ctx.taskId);
       touches = mergeTouches(touches, touchesOf(moved));
       state.partitions.apply(moved);
+      state.history.observe(moved);
       sink.bus.publish(moved);
     }
     sink.turn.surfaces(touches);
@@ -880,8 +941,8 @@ export class OrchestratorExecutor implements AgentExecutor {
     what: {joining?: readonly string[]; make?: boolean; walk?: boolean},
     kind: OwedPress['kind'],
     sink: Sink,
-  ): Promise<void> {
-    if (state.retired.signal.aborted) return Promise.resolve();
+  ): Promise<SynthesisEnd> {
+    if (state.retired.signal.aborted) return Promise.resolve('none');
     const owed = (state.owed ??= {joining: new Set(), make: false, walk: false, presses: []});
     for (const appId of what.joining ?? []) {
       owed.joining.add(appId);
@@ -889,9 +950,10 @@ export class OrchestratorExecutor implements AgentExecutor {
     }
     owed.make ||= what.make === true;
     owed.walk ||= what.walk === true;
-    const pressed = kind !== 'walk';
+    // A step's call is on its own stream, as an action's walk is: no working sentence for it.
+    const pressed = kind !== 'walk' && kind !== 'step';
     if (pressed) state.pressWork++;
-    const done = new Promise<void>(resolve => owed.presses.push({kind, sink, resolve}));
+    const done = new Promise<SynthesisEnd>(resolve => owed.presses.push({kind, sink, resolve}));
     if (pressed) this.#repaint([sink], state);
     this.#kick(state);
     return done;
@@ -902,21 +964,26 @@ export class OrchestratorExecutor implements AgentExecutor {
     if (state.making || !state.owed) return;
     const owed = state.owed;
     state.owed = undefined;
-    const settle = () => {
-      for (const press of owed.presses) press.resolve();
+    const settle = (end: SynthesisEnd) => {
+      for (const press of owed.presses) press.resolve(end);
     };
-    if (state.retired.signal.aborted) return settle();
-    void this.#making(state, () => this.#runOwed(state, owed)).then(settle, settle);
+    if (state.retired.signal.aborted) return settle('none');
+    void this.#making(state, () => this.#runOwed(state, owed)).then(settle, () => settle('none'));
   }
 
   /** Runs `make` as the composition's one merge in the making; then what is owed. */
-  #making(state: CompositionState, make: () => Promise<void>): Promise<void> {
-    const making: Promise<void> = make().finally(() => {
-      if (state.making === making) state.making = undefined;
+  #making<T>(state: CompositionState, make: () => Promise<T>): Promise<T> {
+    const held: {making?: Promise<void>} = {};
+    const result = make().finally(() => {
+      if (state.making === held.making) state.making = undefined;
       this.#kick(state);
     });
-    state.making = making;
-    return making;
+    held.making = result.then(
+      () => undefined,
+      () => undefined,
+    );
+    state.making = held.making;
+    return result;
   }
 
   /**
@@ -924,24 +991,31 @@ export class OrchestratorExecutor implements AgentExecutor {
    * joining it and the walk — a re-synthesis; over a collapsed merge, the merge made afresh over
    * every arrived source, once it can be. Its outcome goes to every stream that owed it.
    */
-  async #runOwed(state: CompositionState, owed: Owed): Promise<void> {
+  async #runOwed(state: CompositionState, owed: Owed): Promise<SynthesisEnd> {
     const sinks = [...new Map(owed.presses.map(({sink}) => [sink.ctx.taskId, sink])).values()];
-    const pressed = owed.presses.filter(({kind}) => kind !== 'walk');
-    const by: SynthesisRelease = pressed[0]?.kind ?? 'walk';
+    // A step names the release like a press does, but its call is no press work (task 9.4).
+    const named = owed.presses.filter(({kind}) => kind !== 'walk');
+    const pressed = named.filter(({kind}) => kind !== 'step');
+    const by: SynthesisRelease = named[0]?.kind ?? 'walk';
     const {signal} = state.retired;
     let end: SynthesisEnd = 'none';
     try {
       const slot = synthesisSlot(state);
-      if (!slot || signal.aborted) return;
+      if (!slot || signal.aborted) return end;
       const joining = inSlotOrder(state, owed.joining).filter(
         appId => state.arrived.has(appId) && !state.merged.has(appId),
       );
       if (state.synthesis) {
-        const at = pressed.length > 0 ? Date.now() : (state.lastSettledAt ?? Date.now());
+        const at = named.length > 0 ? Date.now() : (state.lastSettledAt ?? Date.now());
         end = await this.#synthesize(sinks, state, {kind: 'again', by, at, joining, signal});
         if (end === 'none' && owed.walk) delete state.callFailed;
+        // A walk that found nothing: the live wiring holds over this combination of steps
+        // too, so it is remembered there without a call (task-9.4 decision 4).
+        if (end === 'none' && !signal.aborted && state.synthesis) {
+          state.history.remember({synthesis: state.synthesis, merged: state.merged});
+        }
       } else if (slot.state === 'collapsed' && (owed.make || joining.length > 0)) {
-        if (!mergePossible(state.arrived, slot.plan.join?.home ?? undefined)) return;
+        if (!mergePossible(state.arrived, slot.plan.join?.home ?? undefined)) return end;
         end = await this.#synthesize(sinks, state, {kind: 'make', by, at: Date.now(), signal});
       }
     } finally {
@@ -951,6 +1025,7 @@ export class OrchestratorExecutor implements AgentExecutor {
         this.#repaint(sinks, state);
       }
     }
+    return end;
   }
 
   /**
@@ -1166,6 +1241,8 @@ export class OrchestratorExecutor implements AgentExecutor {
       // A source that failed while it was made leaves the merge as it would once landed
       // (task-8.10 decision 5).
       state.merged = new Set([...over].filter(appId => state.slots.get(appId)?.state !== 'failed'));
+      // Remembered under the combination of steps it was accepted over (task-9.4 decision 4).
+      state.history.remember({synthesis: state.synthesis, merged: state.merged});
       state.mergedView = {outcome: 'synthesized'};
       delete state.callFailed;
       // A collapsed merge brought back takes its place only now (task-8.4 decision 8).
@@ -1430,6 +1507,7 @@ export class OrchestratorExecutor implements AgentExecutor {
         }
         touches = mergeTouches(touches, touched);
         composition?.partitions.apply(composed);
+        composition?.history.observe(composed);
         sink.bus.publish(composed);
       };
       for await (const event of handle.events) {

@@ -2378,3 +2378,211 @@ describe('Include, Retry and Try again (task 8.4)', () => {
 function textsOf(message: Message): string[] {
   return message.parts.flatMap(p => (p.kind === 'text' ? [p.text] : []));
 }
+
+/**
+ * A storefront that paints its list on the first turn and, on each action, paints anew on the
+ * next surface id — a drill-down as a new surface, its list on it — so every action is a step
+ * in its history (task-9.4 decision 1).
+ */
+function drillScript(items: unknown[]): Script {
+  let paints = 0;
+  return ({ctx, vendorContextId}) => {
+    const surfaceId = `s${++paints}`;
+    const part = (op: Record<string, unknown>) => ({
+      kind: 'data' as const,
+      data: {version: 'v0.9', ...op},
+    });
+    return [
+      {
+        kind: 'status-update' as const,
+        taskId: ctx.taskId,
+        contextId: vendorContextId,
+        final: true,
+        status: {
+          state: 'completed' as const,
+          message: {
+            kind: 'message' as const,
+            messageId: crypto.randomUUID(),
+            role: 'agent' as const,
+            parts: [
+              part({createSurface: {surfaceId, catalogId: 'cat'}}),
+              part({updateDataModel: {surfaceId, value: {items}}}),
+            ],
+            contextId: vendorContextId,
+            taskId: ctx.taskId,
+          },
+        },
+      },
+    ];
+  };
+}
+
+/** A fragment stepped in its history, as the client reports it: the paint's data model rides along. */
+function step(
+  appId: string,
+  index: number,
+  contextId: string,
+  surfaces: Record<string, unknown>,
+): Message {
+  return {
+    kind: 'message',
+    messageId: crypto.randomUUID(),
+    role: 'user',
+    contextId,
+    parts: [
+      {kind: 'data', data: operationData({kind: 'step', sources: [appId], step: index}, 'v0.9')},
+    ],
+    metadata: {a2uiClientDataModel: {version: 'v0.9', surfaces}},
+  };
+}
+
+describe("the fragment's history (task 9.4)", () => {
+  const planner = () => new FakePlanner(() => planWithSynthesis(['github', 'gmail']));
+
+  test('a step back to a combination already seen restores its wiring with no call, the partition put back; the current index is a no-op', async () => {
+    const synthesizer = new FakeSynthesizer();
+    const {client} = await boot({
+      planner: planner(),
+      synthesizer,
+      scripts: {github: drillScript(camerasA), gmail: shopScript(camerasB)},
+    });
+    const first = await collect(client, utterance('compare camera prices'));
+    const contextId = first[0]!.contextId!;
+    expect(synthesizer.calls).toHaveLength(1);
+
+    // The drill-down paints a new surface: the list's refs go absent, the walk calls.
+    await collect(client, actionOn('github:s1', contextId));
+    expect(synthesizer.calls).toHaveLength(2);
+    expect(synthesizer.calls[1]!.input.sources.map(s => s.surface).sort()).toEqual([
+      'github:s2',
+      'gmail:s1',
+    ]);
+
+    // Back to the list: the combination was seen, so nothing is called and nothing painted.
+    const back = await collect(
+      client,
+      step('github', 0, contextId, {'github:s1': {items: camerasA}}),
+    );
+    expect(finalOf(back).status.state).toBe('completed');
+    expect(synthesizer.calls).toHaveLength(2);
+    expect(synthesisEvents(back)).toHaveLength(0);
+
+    // The partition was put back: a press inside the other fragment walks over the list's
+    // wiring and finds every ref resolving — had the detail stayed, the walk would have called.
+    await collect(client, actionOn('gmail:s1', contextId));
+    expect(synthesizer.calls).toHaveLength(2);
+
+    // The index the fragment already shows: accepted, nothing else.
+    const same = await collect(
+      client,
+      step('github', 0, contextId, {'github:s1': {items: camerasA}}),
+    );
+    expect(finalOf(same).status.state).toBe('completed');
+    expect(synthesizer.calls).toHaveLength(2);
+
+    const lines = await journalLines(5);
+    const steps = lines.filter(l => l.descriptor === 'step github to 0');
+    expect(steps).toHaveLength(2);
+    expect(steps[0]).toMatchObject({
+      kind: 'operation',
+      composition: first[0]!.id,
+      outcome: 'completed',
+      step: {combination: {github: 0, gmail: 0}, seen: true, walk: 'silent'},
+    });
+    expect(steps[0]).not.toHaveProperty('synthesis');
+    expect(steps[0]).not.toHaveProperty('refused');
+  });
+
+  test('a step to a combination never seen falls to the walk and its call, released by the step, and is remembered', async () => {
+    const synthesizer = new FakeSynthesizer();
+    const {client} = await boot({
+      planner: planner(),
+      synthesizer,
+      scripts: {github: drillScript(camerasA), gmail: drillScript(camerasB)},
+    });
+    const first = await collect(client, utterance('compare camera prices'));
+    const contextId = first[0]!.contextId!;
+    await collect(client, actionOn('github:s1', contextId));
+    await collect(client, actionOn('gmail:s1', contextId));
+    expect(synthesizer.calls).toHaveLength(3);
+
+    // GitHub back to its list while Gmail stays on its detail: never seen together.
+    const unseen = await collect(
+      client,
+      step('github', 0, contextId, {'github:s1': {items: camerasA}}),
+    );
+    expect(finalOf(unseen).status.state).toBe('completed');
+    expect(synthesizer.calls).toHaveLength(4);
+    const again = synthesizer.calls[3]!;
+    expect(again.input.sources.map(s => s.surface).sort()).toEqual(['github:s1', 'gmail:s2']);
+    expect(again.input.changes!.absent.every(r => r.surface === 'github:s2')).toBe(true);
+    expect(synthesisEvents(unseen)).toHaveLength(1);
+
+    // Gmail back to its list too: the opening combination, seen — no call.
+    const seen = await collect(
+      client,
+      step('gmail', 0, contextId, {'gmail:s1': {items: camerasB}}),
+    );
+    expect(synthesizer.calls).toHaveLength(4);
+    expect(synthesisEvents(seen)).toHaveLength(0);
+    // And forward again to the combination the step just filed: no call either.
+    await collect(client, step('gmail', 1, contextId, {'gmail:s2': {items: camerasB}}));
+    expect(synthesizer.calls).toHaveLength(4);
+
+    const lines = await journalLines(6);
+    expect(lines.find(l => l.descriptor === 'step github to 0')).toMatchObject({
+      step: {combination: {github: 0, gmail: 1}, seen: false, walk: 'landed'},
+      synthesis: {outcome: 'synthesized', release: {by: 'step'}},
+    });
+    expect(lines.find(l => l.descriptor === 'step gmail to 0')).toMatchObject({
+      step: {combination: {github: 0, gmail: 0}, seen: true, walk: 'silent'},
+    });
+    expect(lines.find(l => l.descriptor === 'step gmail to 1')).toMatchObject({
+      step: {combination: {github: 0, gmail: 1}, seen: true, walk: 'silent'},
+    });
+  });
+
+  test('a paint after a step back drops the steps past it; a step the stack does not hold, a source that never painted, or a step carrying no paint is refused', async () => {
+    const synthesizer = new FakeSynthesizer();
+    const {client} = await boot({
+      planner: new FakePlanner(() => planWithSynthesis(['github', 'gmail', 'calendar'])),
+      synthesizer,
+      scripts: {github: drillScript(camerasA), gmail: shopScript(camerasB), calendar: failing()},
+    });
+    const first = await collect(client, utterance('compare camera prices'));
+    const contextId = first[0]!.contextId!;
+    await collect(client, actionOn('github:s1', contextId));
+    await collect(client, actionOn('github:s2', contextId));
+    await collect(client, step('github', 0, contextId, {'github:s1': {items: camerasA}}));
+    // The vendor answers the next press with a new paint: it lands at step 1, steps 2 gone.
+    await collect(client, actionOn('github:s1', contextId));
+    const gone = await collect(
+      client,
+      step('github', 2, contextId, {'github:s4': {items: camerasA}}),
+    );
+    expect(finalOf(gone).status.state).toBe('failed');
+    expect(textsIn(gone)).toContain('GitHub has no step 2.');
+    const okay = await collect(
+      client,
+      step('github', 1, contextId, {'github:s4': {items: camerasA}}),
+    );
+    expect(finalOf(okay).status.state).toBe('completed');
+
+    const never = await collect(client, step('calendar', 0, contextId, {'calendar:s1': {}}));
+    expect(finalOf(never).status.state).toBe('failed');
+    expect(textsIn(never)).toContain('Google Calendar has not painted.');
+    const bare = await collect(
+      client,
+      step('github', 0, contextId, {'gmail:s1': {items: camerasB}}),
+    );
+    expect(finalOf(bare).status.state).toBe('failed');
+    expect(textsIn(bare)).toContain('The step carries no paint.');
+
+    const lines = await journalLines(9);
+    expect(lines.filter(l => l.refused).map(l => l.refused)).toEqual([
+      'GitHub has no step 2.',
+      'Google Calendar has not painted.',
+      'The step carries no paint.',
+    ]);
+  });
+});
