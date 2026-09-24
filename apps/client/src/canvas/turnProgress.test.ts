@@ -147,9 +147,9 @@ describe('turnProgress', () => {
     const store = createCanvasStore();
     store.beginPaint('“status” — generating…', 'utterance');
     store.setRoster([JOINED[0]!, JOINED[2]!, JOINED[1]!, JOINED[3]!]);
-    // Nothing arrived: every source awaited, in slot order (task-8.7 decision 20).
+    // Nothing arrived: the plan in one sentence (task-8.7 decision 20, shortened on case 9).
     expect(turnProgress(store.getState()).merge?.text).toBe(
-      'Waiting for GitHub PRs, Linear issues and CircleCI runs, then joining',
+      'Joining Linear issues to GitHub PRs and CircleCI runs',
     );
     for (const app of ['linear', 'github'])
       store.placeFragment(app, {surfaceId: `${app}:s`, source: app});

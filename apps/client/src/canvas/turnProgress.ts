@@ -189,6 +189,8 @@ function mergeStep(
   );
   const awaited = out.filter(entry => !failed(entry.appId));
   const possible = arrived.length >= 2 && (!home || arrived.includes(home));
+  // Nothing arrived yet: the plan, in one short sentence, rather than every source awaited.
+  if (arrived.length === 0) return {text: `Joining ${joined(vendors)}`, status: 'working'};
   if (!possible && awaited.length > 0)
     return {text: `Waiting for ${listed(awaited.map(phrase))}, then joining`, status: 'working'};
   const clauses = out.map(entry =>
