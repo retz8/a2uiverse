@@ -117,6 +117,14 @@ The collapse line for a failed home source reads for the reader, "The merged vie
 
 The collapse line for fewer than two sources reads for the reader, "The merged view needs at least two sources, and only GitHub answered.", or "… and none answered.", and is an action row: it carries "Retry all" over every dispatched source that did not arrive, or "Retry Gmail" when there is one. The orchestrator paints those sources by id on the collapse fact beside who answered, a delta-register amendment to the collapse-cause row. Retry stays a one-slot operation (phase decision 10): the client sends a line's Retry over several sources as one Retry per source, each on its own stream, so every tile's Retry gives way at once and the line reads "Waiting for Gmail, Google Calendar and Linear, then merging…"; the first arrival makes the merge and later ones fold in, by 8.4's rule. A source the bed refuses fails again on its tile, the honest outcome. Amends task 8.5 decision 7. Raised on case 7.
 
+### 25. An undrawable paint is out of the merge before the merge is made
+
+The orchestrator marks the end of each fragment source's stream: one event after the source's last, carrying no A2UI parts, its stamp saying the source is settled — an optional field of the composition stamp, contract v0.7, a delta-register addition. The client judges that source's fragments there, not at the turn's end, so a paint the canvas cannot draw is reported one round trip after the source's stream ends. Because the merge is released the instant the last source settles, the report can still arrive while the merge is being made: a source the merge reads that is reported undrawable then throws that merge away, and it is made again once over the set without it, journaled as thrown away. Amends task 8.10 decision 5 for that case; a failure after the merge has landed keeps its rule. Found on case 8: the merge landed over GitHub's data and the report, at the turn's end 22 s later, left eight rows of dashes.
+
+### 26. The strip does not carry a fragment's failure
+
+The status strip's sticky line is not lit by a fragment's validation failure or structural failure: the tile in that source's slot says it, in the reader's words, and the validator's message goes to the console. The strip keeps its line for a failure no slot carries. Closes the second finding task 8.6 left. Raised on case 8.
+
 ## Invariants
 
 - Live verification drives tunnel URLs, never localhost.
