@@ -113,6 +113,10 @@ Once the header has scrolled away, the one-line bar at the top edge carries the 
 
 The collapse line for a failed home source reads for the reader, "The merged view needs Linear issues, which didn't load.", and is an action row under decision 21: it carries "Retry Linear", the same Retry operation the home source's tile carries, so the two buttons are one press drawn in sync. Pressed from either, the line becomes "Waiting for Linear, then merging…" at once and the tile its loading line. The other collapse lines keep their register: "Only GitHub answered, so there's nothing to merge." tells, since Retry is per source and each failed source has its tile; the decline's reason stays the Synthesizer's, quiet. The progress line's step keeps "Can't join without Linear issues" as its status vocabulary. Amends phase decision 12's one-line rule to the extent that the line carries a press, and task 8.5 decision 7. Raised on case 6: a first-time reader saw a table's skeleton vanish into a grey line in the shell's own words, the button that restores it on another slot.
 
+### 24. A merge collapsed for too few sources carries Retry all
+
+The collapse line for fewer than two sources reads for the reader, "The merged view needs at least two sources, and only GitHub answered.", or "… and none answered.", and is an action row: it carries "Retry all" over every dispatched source that did not arrive, or "Retry Gmail" when there is one. The orchestrator paints those sources by id on the collapse fact beside who answered, a delta-register amendment to the collapse-cause row. Retry stays a one-slot operation (phase decision 10): the client sends a line's Retry over several sources as one Retry per source, each on its own stream, so every tile's Retry gives way at once and the line reads "Waiting for Gmail, Google Calendar and Linear, then merging…"; the first arrival makes the merge and later ones fold in, by 8.4's rule. A source the bed refuses fails again on its tile, the honest outcome. Amends task 8.5 decision 7. Raised on case 7.
+
 ## Invariants
 
 - Live verification drives tunnel URLs, never localhost.
