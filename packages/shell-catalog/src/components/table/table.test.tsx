@@ -1,3 +1,4 @@
+import {bodyCellStyle} from './table';
 /**
  * `Table` and `TableRow`: a merged list with columns that align (task 5.7, the merged-view
  * finding). Rows are `TableRow`s, cells their children; a row rendered on its own falls back to
@@ -181,4 +182,11 @@ test('a column whose source waits for Include keeps its authored dashes and says
   expect(cell.querySelector('[data-skeleton-bar]')).toBeNull();
   expect(cell).toHaveAttribute('data-column-reserved', 'late');
   expect(consoleError.mock.calls).toEqual([]);
+});
+
+test('the first column reads on one line, the others wrap under a cap; the table scrolls sideways when it cannot fit (task-8.7 decision 29)', () => {
+  expect(bodyCellStyle(0)).toMatchObject({whiteSpace: 'nowrap'});
+  expect(bodyCellStyle(0)).not.toHaveProperty('maxWidth');
+  expect(bodyCellStyle(1)).toMatchObject({maxWidth: '56ch', overflowWrap: 'anywhere'});
+  expect(bodyCellStyle(1)).not.toHaveProperty('whiteSpace');
 });

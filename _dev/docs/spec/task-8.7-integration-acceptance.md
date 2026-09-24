@@ -135,6 +135,10 @@ The decline's reason, the Synthesizer's words and the one line on the canvas tha
 
 On a platform answer, with no vendor dispatched and no merge, the progress line is not drawn at all, so the question header sits flush over the answer; it had kept its 20px and its margin empty. Raised on case 12.
 
+### 29. A table's first column reads on one line; a table that cannot fit scrolls in its slot
+
+The shell catalog's Table names the row's own thing in its first column, so that column's cells never wrap; every other column wraps, capped at 56 characters so one long-text column cannot take the width from the rest, with 8px above and below so a wrapped cell keeps clear of its dividers. A table that still cannot fit its slot scrolls sideways inside the slot rather than crushing a column. Raised on case 12: the platform's apps table folded "Google Calendar" onto two lines while its description column took the width.
+
 ## Found and fixed during the run
 
 Each surfaced by a sitting; fixed in the same session, with tests.
@@ -145,6 +149,8 @@ Each surfaced by a sitting; fixed in the same session, with tests.
 - **A Retry's re-dispatch outlived its composition.** After the race was decided the re-dispatch's abort listener was dropped, so a new utterance ended the turn's own dispatches but left the retry's listening past its cap. It stays the composition's to end until it drains; a new utterance now cancels both, the log showing the turn's Gmail dispatch cancelled at 31 s and the Retry's at 2.7 s in. Case 12.
 
 ## Findings, not fixed
+
+- **The layout has no narrow-width rule.** The Planner's `Row` of slots is a flex row with weights that never wraps, and nothing in SPEC or the 7.14 design canvas sets a breakpoint, so on a narrow canvas the fragments share the width however narrow it gets. The rule that fits the design is a container query on the stage: below a width, a `Row` of slots stacks into a column in slot order, each fragment full width. It touches the shell catalog's `Row`, the reserved slots' floors and the design canvas, and is its own design pass with the canvas redrawn narrow. Raised on case 12 over the apps table.
 
 - **A join without a home source has no shape.** The merged view has two shapes: the peer merge, every source's entries on one axis with a Source column, and the entity join, one row per entity of one home source with the other sources attached by match claims. A question over the union of entities across sources — "all cameras across the three stores", one row per distinct camera anyone lists, a price per store — fits neither: a home source drops the other stores' unmatched entries, a peer merge gives one row per listing. A third shape, the union join, whose entity set is the union of matched entries across sources, touches the Planner's join hypothesis, the Synthesizer's brief and the match-claim rules, and is its own phase. Raised on case 11 over the camera beat, whose question "which of my cameras…" makes the home source right there.
 

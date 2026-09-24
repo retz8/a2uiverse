@@ -73,7 +73,9 @@ export function TableView({
   const resolve = useContext(SlotStateContext);
   const reserved = columns.map((_, index) => reservedColumnState(resolve, columnSources?.[index]));
   return (
-    <Table.Root size="1" variant="ghost">
+    // A table that cannot fit its slot scrolls sideways inside it rather than crushing a column
+    // (task-8.7 decision 29).
+    <Table.Root size="1" variant="ghost" style={{overflowX: 'auto', maxWidth: '100%'}}>
       <Table.Header>
         <Table.Row>
           {columns.map((column, index) => (
@@ -110,13 +112,20 @@ export function headingCellStyle(index: number): CSSProperties {
   };
 }
 
-/** A body cell: 40px, over the row divider. */
+/**
+ * A body cell: 40px, over the row divider. The first column names the row's own thing and reads
+ * on one line; every other column wraps, capped so one long-text column cannot take the whole
+ * width from the rest (task-8.7 decision 29).
+ */
 export function bodyCellStyle(index: number): CSSProperties {
   return {
     ...cellPadding(index),
+    // 8px above and below: a wrapped cell keeps clear of its dividers; a one-line row stays 40px.
+    paddingBlock: 8,
     height: 40,
     verticalAlign: 'middle',
     boxShadow: 'inset 0 -1px var(--a2v-line-2, var(--gray-a3))',
+    ...(index === 0 ? {whiteSpace: 'nowrap'} : {maxWidth: '56ch', overflowWrap: 'anywhere'}),
   };
 }
 
