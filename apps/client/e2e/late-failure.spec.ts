@@ -20,24 +20,22 @@ async function landed(page: Page, beat: string) {
   await expect(page.locator('main[data-replay="done"]')).toBeAttached({timeout: 30_000});
 }
 
-test('the failure tile: the client’s line, Retry, the vendor’s words; its column failed', async ({
+test('the failure tile: the vendor’s words as its one statement, Retry; its column failed', async ({
   page,
 }) => {
   await landed(page, 'fast-failure-offered');
   const tile = slot(page, 'shop-c');
   await expect(tile).toHaveAttribute('data-slot-state', 'failed');
-  await expect(tile.locator('[data-slot-failure-line]')).toHaveText(
-    'Fieldstone couldn’t show its offers.',
-  );
+  await expect(tile.locator('[data-slot-failure-line]')).not.toContainText('Fieldstone');
   await expect(tile.getByRole('button', {name: 'Retry'})).toBeEnabled();
-  await expect(tile.locator('[data-slot-failure-words]')).toContainText('Fieldstone said');
+  await expect(tile.locator('[data-slot-failure-words]')).toHaveCount(0);
   await expect(page.locator(`${MERGE} [data-column-reserved="failed"]`)).not.toHaveCount(0);
   await expect(page).toHaveScreenshot('late-failure-tile.png');
 });
 
 test('the tile at the hard cap: no answer within the time allowed', async ({page}) => {
   await landed(page, 'held-retry-offered');
-  await expect(slot(page, 'shop-c').locator('[data-slot-failure-words]')).toContainText(
+  await expect(slot(page, 'shop-c').locator('[data-slot-failure-line]')).toHaveText(
     'No answer within the time allowed.',
   );
   await expect(page).toHaveScreenshot('late-failure-timeout.png');
@@ -45,8 +43,8 @@ test('the tile at the hard cap: no answer within the time allowed', async ({page
 
 test('a half-drawn fragment: taken off for the tile, the source unreachable', async ({page}) => {
   await landed(page, 'half-drawn');
-  await expect(slot(page, 'shop-c').locator('[data-slot-failure-words]')).toContainText(
-    'Fieldstone couldn’t be reached.',
+  await expect(slot(page, 'shop-c').locator('[data-slot-failure-line]')).toHaveText(
+    'Couldn’t be reached.',
   );
   await expect(page.getByText('Lumen X100 kit')).toHaveCount(0);
   await expect(page).toHaveScreenshot('late-failure-half-drawn.png');
@@ -54,8 +52,8 @@ test('a half-drawn fragment: taken off for the tile, the source unreachable', as
 
 test('a paint the client cannot draw: failed once the report is answered', async ({page}) => {
   await landed(page, 'invalid-paint');
-  await expect(slot(page, 'shop-c').locator('[data-slot-failure-words]')).toContainText(
-    'Fieldstone answered, but its screen couldn’t be shown.',
+  await expect(slot(page, 'shop-c').locator('[data-slot-failure-line]')).toHaveText(
+    'Answered, but its screen couldn’t be shown.',
   );
   await expect(page).toHaveScreenshot('late-failure-invalid.png');
 });

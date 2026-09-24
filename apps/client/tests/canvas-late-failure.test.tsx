@@ -82,8 +82,7 @@ describe('Phase 8’s synthetic beats, played to their ends', () => {
     const {sent, slot} = await replay('half-drawn');
     expect(sent).toEqual([]);
     expect(stateOf(slot('shop-c'))).toBe('failed');
-    expect(screen.getByText('Fieldstone couldn’t show its offers.')).toBeInTheDocument();
-    expect(screen.getByText('Fieldstone couldn’t be reached.')).toBeInTheDocument();
+    expect(screen.getByText('Couldn’t be reached.')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Retry'})).toBeEnabled();
     expect(screen.queryByText('Lumen X100 kit')).toBeNull();
     expect(slot('shell')!.querySelector('[data-column-reserved="failed"]')).not.toBeNull();
@@ -93,9 +92,7 @@ describe('Phase 8’s synthetic beats, played to their ends', () => {
     const {sent, slot} = await replay('invalid-paint');
     expect(sent).toEqual([]);
     await waitFor(() => expect(stateOf(slot('shop-c'))).toBe('failed'));
-    expect(
-      screen.getByText('Fieldstone answered, but its screen couldn’t be shown.'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Answered, but its screen couldn’t be shown.')).toBeInTheDocument();
   });
 
   it('failed-fold-in: the landed view kept, the late line saying so beside Include again', async () => {
@@ -123,8 +120,8 @@ describe('Phase 8’s synthetic beats, up to their presses', () => {
   it('fast-failure: the failure tile, Retry, the vendor’s words beneath; its column failed', async () => {
     const {slot} = await replay('fast-failure-offered');
     expect(stateOf(slot('shop-c'))).toBe('failed');
-    expect(screen.getByText('Fieldstone couldn’t show its offers.')).toBeInTheDocument();
-    expect(screen.getByText('Fieldstone said')).toBeInTheDocument();
+    expect(screen.queryByText(/Fieldstone said/)).toBeNull();
+    expect(screen.queryByText(/couldn’t show/)).toBeNull();
     expect(screen.getByRole('button', {name: 'Retry'})).toBeEnabled();
     expect(slot('shell')!.querySelector('[data-column-reserved="failed"]')).not.toBeNull();
   });
@@ -174,7 +171,8 @@ describe('Phase 8’s synthetic beats, up to their presses', () => {
       'Can’t join without Aperture & Co cameras.',
     );
     expect(stateOf(slot('shop-a'))).toBe('failed');
-    expect(screen.getByText('Aperture & Co said')).toBeInTheDocument();
+    expect(screen.getByText('Aperture & Co could not load your cameras.')).toBeInTheDocument();
+    expect(screen.queryByText(/Aperture & Co said/)).toBeNull();
     expect(screen.getByRole('button', {name: 'Retry'})).toBeEnabled();
   });
 

@@ -35,7 +35,7 @@ test('failed renders the failure panel even when content exists', () => {
     </SlotContentContext.Provider>,
   );
   expect(screen.queryByText('stale')).not.toBeInTheDocument();
-  expect(screen.getByText('Gmail couldn’t answer.')).toBeInTheDocument();
+  expect(screen.getByText('Couldn’t answer.')).toBeInTheDocument();
 });
 
 test('collapsed renders nothing when the host has nothing to rest it on', () => {
@@ -193,74 +193,45 @@ test('schema accepts a failure with one of four causes, a message only with vend
   ).toBe(true);
 });
 
-test('the failed line is composed from the label and the noun: its runs', () => {
-  render(
+test('the tile’s one statement is the vendor’s own words when it spoke, naming nobody (task-8.7 decision 17)', () => {
+  const {container} = render(
     <SlotView
       source="circleci"
       state="failed"
       label="CircleCI"
       noun="CircleCI runs"
-      failure={{cause: 'timeout'}}
-    />,
-  );
-  expect(screen.getByText('CircleCI couldn’t show its runs.')).toBeInTheDocument();
-  expect(screen.queryByText(/didn’t load/)).not.toBeInTheDocument();
-});
-
-test('a noun that does not start with the name is shown as it is', () => {
-  render(
-    <SlotView
-      source="github"
-      state="failed"
-      label="GitHub"
-      noun="pull requests"
-      failure={{cause: 'unreachable'}}
-    />,
-  );
-  expect(screen.getByText('GitHub couldn’t show pull requests.')).toBeInTheDocument();
-});
-
-test('with no noun the line says the source couldn’t answer, and a failed slot with no failure prop draws the same', () => {
-  const {unmount} = render(
-    <SlotView source="github" state="failed" label="GitHub" failure={{cause: 'unreachable'}} />,
-  );
-  expect(screen.getByText('GitHub couldn’t answer.')).toBeInTheDocument();
-  unmount();
-  render(<SlotView source="github" state="failed" label="GitHub" />);
-  expect(screen.getByText('GitHub couldn’t answer.')).toBeInTheDocument();
-});
-
-test('a vendor failure with a message is quoted under a heading naming the vendor', () => {
-  render(
-    <SlotView
-      source="circleci"
-      state="failed"
-      label="CircleCI"
       failure={{cause: 'vendor', message: 'Project not found: retz8/a2uiverse'}}
     />,
   );
-  expect(screen.getByText('CircleCI said')).toBeInTheDocument();
-  expect(screen.getByText('Project not found: retz8/a2uiverse')).toBeInTheDocument();
-  expect(screen.queryByText('What happened')).not.toBeInTheDocument();
-});
-
-test('a vendor failure with no message shows nothing beneath Retry', () => {
-  const {container} = render(
-    <SlotView source="circleci" state="failed" label="CircleCI" failure={{cause: 'vendor'}} />,
-  );
-  expect(screen.queryByText('CircleCI said')).not.toBeInTheDocument();
-  expect(screen.queryByText('What happened')).not.toBeInTheDocument();
+  const line = screen.getByText('Project not found: retz8/a2uiverse');
+  expect(line.closest('[data-slot-failure-line]')).not.toBeNull();
+  expect(screen.queryByText(/CircleCI said/)).not.toBeInTheDocument();
+  expect(screen.queryByText(/couldn’t show/)).not.toBeInTheDocument();
   expect(container.querySelector('[data-slot-failure-words]')).toBeNull();
 });
 
 test.each([
-  ['unreachable', 'CircleCI couldn’t be reached.'],
+  ['unreachable', 'Couldn’t be reached.'],
   ['timeout', 'No answer within the time allowed.'],
-  ['invalid', 'CircleCI answered, but its screen couldn’t be shown.'],
-] as const)('the shell’s reason for %s is set under “What happened”', (cause, reason) => {
-  render(<SlotView source="circleci" state="failed" label="CircleCI" failure={{cause}} />);
-  expect(screen.getByText('What happened')).toBeInTheDocument();
-  expect(screen.getByText(reason)).toBeInTheDocument();
+  ['invalid', 'Answered, but its screen couldn’t be shown.'],
+] as const)(
+  'with no vendor words the statement is the shell’s reason for %s, with no name in it',
+  (cause, reason) => {
+    render(<SlotView source="circleci" state="failed" label="CircleCI" failure={{cause}} />);
+    expect(screen.getByText(reason)).toBeInTheDocument();
+    expect(screen.queryByText('What happened')).not.toBeInTheDocument();
+    expect(screen.queryByText(/CircleCI/)).not.toBeInTheDocument();
+  },
+);
+
+test('a vendor failure with no message, and a failed slot with no failure prop, say the source couldn’t answer', () => {
+  const {unmount} = render(
+    <SlotView source="circleci" state="failed" label="CircleCI" failure={{cause: 'vendor'}} />,
+  );
+  expect(screen.getByText('Couldn’t answer.')).toBeInTheDocument();
+  unmount();
+  render(<SlotView source="github" state="failed" label="GitHub" />);
+  expect(screen.getByText('Couldn’t answer.')).toBeInTheDocument();
 });
 
 test('Retry is drawn only under a host that takes presses, and hands it the retry of the source', () => {
@@ -291,7 +262,7 @@ test('the tile keeps no box and the reserved floor, the line at body size', () =
   expect(slot).toHaveAttribute('data-slot-state', 'failed');
   expect(slot.style.border).toBe('');
   expect(slot.style.minHeight).toBe('4rem');
-  const line = screen.getByText('CircleCI couldn’t answer.');
+  const line = screen.getByText('No answer within the time allowed.');
   expect(line.closest('[data-slot-failure-line]')).not.toBeNull();
 });
 

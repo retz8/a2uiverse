@@ -30,7 +30,7 @@ test('a composed turn renders one screen: layout, a filled slot, a failed slot',
 
   // Attribution sits in the shell's surface, beside the slot — outside the fragment's reach.
   await expect(boundary.locator('text=Painted by')).toHaveCount(0);
-  await expect(page.getByLabel('Painted by GitHub', {exact: true})).toBeVisible();
+  await expect(page.getByLabel('GitHub', {exact: true})).toBeVisible();
 });
 
 test('a vendor design system stays inside its boundary', async ({page}) => {

@@ -51,11 +51,12 @@ export type PressHandler = (press: {
  * words for a decline (task-8.2 decision 9), the shell's own for every other cause (task-8.3
  * decision 9).
  *
- * A failed fragment slot is the failure tile (task 8.2, the design canvas's F6): the failure
- * said at body size in the shell's words, composed from the label and the noun the source was
- * asked for; Retry, under a host that takes presses; and beneath, the vendor's own words under a
- * heading naming it, or the shell's reason under "What happened", per the painted cause. No
- * box, the reserved floor, one face throughout.
+ * A failed fragment slot is the failure tile (task 8.2, the design canvas's F6, as task-8.7
+ * decision 17 pared it): one statement at body size — the vendor's own words when it spoke, else
+ * the shell's reason for the painted cause, neither naming the source, since the attribution
+ * marker above already does; then Retry, under a host that takes presses. No box, the reserved
+ * floor, one face throughout. The plan's noun for the source stays a painted prop; the tile no
+ * longer says it.
  *
  * The reader's presses (task 8.5): Retry gives the tile way to the pending line the moment it is
  * pressed; over a landed merged view a row of the shell's own, above the view's label row, carries
@@ -87,7 +88,6 @@ export function SlotView({
   weight,
   state = 'pending',
   label,
-  noun,
   failure,
   content = 'fragment',
   columns,
@@ -200,14 +200,12 @@ export function SlotView({
           </div>
         );
       }
-      const name = label ?? source ?? '';
-      const words = failureWords(name, failure);
       if (retry === 'unreached') announcement = UNREACHED_WORDS;
       return (
         <div data-slot={source} data-slot-state="failed" style={{...weighted, ...reservedStyle}}>
           <Flex direction="column" align="start" gap="4">
             <Text as="p" size="2" data-slot-failure-line="">
-              {failureLine(name, noun)}
+              {failureStatement(failure)}
             </Text>
             {onPress && source !== undefined && (
               <Flex align="center" gap="3">
@@ -226,16 +224,6 @@ export function SlotView({
                     {UNREACHED_WORDS}
                   </Text>
                 )}
-              </Flex>
-            )}
-            {words && (
-              <Flex direction="column" gap="1" data-slot-failure-words="">
-                <Text as="span" size="1" color="gray">
-                  {words.heading}
-                </Text>
-                <Text as="span" size="1" color="gray">
-                  {words.text}
-                </Text>
               </Flex>
             )}
           </Flex>
@@ -408,14 +396,24 @@ const SKELETON_WIDTHS = [
 ];
 
 /**
- * The failure tile's line (task-8.2 decision 3): the source's name and what it was asked for.
- * A noun that starts with the name — "CircleCI runs" — reads as "its runs"; another noun is
- * shown as written; with no noun the source simply couldn't answer.
+ * The failure tile's one statement (task-8.7 decision 17): the vendor's own words when it spoke,
+ * else the shell's reason for the painted cause — with no name in it, since the attribution
+ * marker above the tile already says whose it is — and "Couldn't answer." when the vendor ended
+ * its task without a word or no cause was painted.
  */
-export function failureLine(name: string, noun: string | undefined): string {
-  if (!noun) return `${name} couldn’t answer.`;
-  const own = name && noun.startsWith(`${name} `) ? `its ${noun.slice(name.length + 1)}` : noun;
-  return `${name} couldn’t show ${own}.`;
+export function failureStatement(failure: SlotFailure | undefined): string {
+  switch (failure?.cause) {
+    case 'vendor':
+      return failure.message ?? 'Couldn’t answer.';
+    case 'unreachable':
+      return 'Couldn’t be reached.';
+    case 'timeout':
+      return 'No answer within the time allowed.';
+    case 'invalid':
+      return 'Answered, but its screen couldn’t be shown.';
+    default:
+      return 'Couldn’t answer.';
+  }
 }
 
 /**
@@ -440,31 +438,6 @@ export function collapseLine(collapse: SlotCollapse): string {
 
 function listed(names: readonly string[]): string {
   return names.length < 2 ? names.join('') : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`;
-}
-
-/**
- * What stands beneath Retry (task-8.2 decision 4): the vendor's own words under a heading naming
- * it, or the shell's reason under "What happened"; nothing when the vendor ended its task without
- * a word, and nothing when no cause was painted.
- */
-export function failureWords(
-  name: string,
-  failure: SlotFailure | undefined,
-): {heading: string; text: string} | null {
-  if (!failure) return null;
-  switch (failure.cause) {
-    case 'vendor':
-      return failure.message ? {heading: `${name} said`, text: failure.message} : null;
-    case 'unreachable':
-      return {heading: 'What happened', text: `${name} couldn’t be reached.`};
-    case 'timeout':
-      return {heading: 'What happened', text: 'No answer within the time allowed.'};
-    case 'invalid':
-      return {
-        heading: 'What happened',
-        text: `${name} answered, but its screen couldn’t be shown.`,
-      };
-  }
 }
 
 /**

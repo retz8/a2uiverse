@@ -1,8 +1,7 @@
 export {
   collapseLine,
   createSlotComponent,
-  failureLine,
-  failureWords,
+  failureStatement,
   type PressHandler,
   SlotView,
 } from './slot.js';

@@ -101,9 +101,10 @@ describe('the synthesis turn on the canvas', () => {
     // Reserved as the merged view (task-7.15): skeleton rows, no words of its own.
     expect(slot.getAttribute('aria-busy')).toBe('true');
     expect(slot.querySelectorAll('tbody tr[data-skeleton-row]')).toHaveLength(4);
-    // No attribution tile for the shell's own content; the vendors keep theirs.
-    expect(screen.queryByLabelText('Painted by Synthesis')).toBeNull();
-    expect(screen.getByLabelText('Painted by Aperture & Co')).toBeInTheDocument();
+    // No attribution marker for the shell's own content; the vendors keep theirs. The marker is
+    // the span whose accessible name is the app's; the slot region under it is a div.
+    expect(screen.queryByLabelText('Synthesis', {selector: 'span'})).toBeNull();
+    expect(screen.getByLabelText('Aperture & Co', {selector: 'span'})).toBeInTheDocument();
   });
 
   it('paints the merged view into its slot with evaluated cells, ordered by the declared sort', async () => {

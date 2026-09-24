@@ -28,9 +28,9 @@ test('the merged view is shell content: in its reserved slot, no boundary, no at
     .locator(VIEW)
     .evaluate(el => (el.closest('.fragment-boundary, [data-a2ui-fragment]') ? 1 : 0));
   expect(boundaries).toBe(0);
-  await expect(page.getByLabel('Painted by Synthesis', {exact: true})).toHaveCount(0);
+  await expect(page.getByLabel('Synthesis', {exact: true})).toHaveCount(0);
   // The vendors keep theirs.
-  await expect(page.getByLabel('Painted by Aperture & Co', {exact: true})).toBeVisible();
+  await expect(page.getByLabel('Aperture & Co', {exact: true})).toBeVisible();
 
   // Every cell complete, through the derived-value component alone.
   await expect(page.locator(`${VIEW} table tbody tr`)).toHaveCount(2);

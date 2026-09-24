@@ -7,9 +7,12 @@ import {AttributionApi, type AttributionProps} from './attribution.schema.js';
 
 /**
  * The quiet marker (SPEC §4.3): a small gray caption with an info glyph, always present,
- * expanding to full attribution on hover or keyboard focus. The accessible name always
- * carries the full detail, independent of pointer state. Rendered on Radix `Text` in the
- * caption register with Radix's own info glyph (task-5.9 decision 5).
+ * expanding to full attribution on hover or keyboard focus. Full attribution is the name and
+ * the account label when one is in play; with none, hover and focus only brighten the marker —
+ * it never says "Painted by", since the name already says whose the region is (task-8.7
+ * decision 18). The accessible name always carries the full detail, independent of pointer
+ * state. Rendered on Radix `Text` in the caption register with Radix's own info glyph (task-5.9
+ * decision 5).
  *
  * With a child it is the wrapper of that region (task-6.4 decision 3): marker over content in
  * one flex column, 8px apart so the marker reads as its region's (task 7.14), the box's `weight` as its own flex share inside the parent `Row` or `Column`,
@@ -25,7 +28,7 @@ export function AttributionView({
   children?: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
-  const detail = `Painted by ${displayName}${account ? ` · ${account}` : ''}`;
+  const detail = account ? `${displayName} · ${account}` : displayName;
 
   const marker = (
     <Text

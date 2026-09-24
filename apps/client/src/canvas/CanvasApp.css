@@ -453,7 +453,9 @@ body {
   display: flex;
   align-items: center;
   height: 32px;
-  padding: 0 var(--a2v-inset) 0 calc(var(--a2v-gutter) + var(--a2v-inset));
+  /* Chrome, not content: its text starts on Back's left edge, 12px in, not on the content
+     column (task-8.7 decision 16). */
+  padding: 0 var(--a2v-inset) 0 12px;
   border-top: 1px solid var(--a2v-line);
   background: var(--a2v-surface);
   font-size: 12px;

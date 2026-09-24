@@ -6,7 +6,7 @@ import {AttributionApi} from './attribution.schema';
 
 test('at rest shows only the display name, with full detail as the accessible name', () => {
   render(<AttributionView displayName="Gmail" account="work" />);
-  const marker = screen.getByLabelText('Painted by Gmail · work');
+  const marker = screen.getByLabelText('Gmail · work');
   expect(marker).toHaveTextContent('Gmail');
   expect(marker).not.toHaveTextContent('Painted by');
 });
@@ -15,14 +15,12 @@ test('keyboard focus expands to the full detail', async () => {
   const user = userEvent.setup();
   render(<AttributionView displayName="Gmail" account="work" />);
   await user.tab();
-  expect(screen.getByLabelText('Painted by Gmail · work')).toHaveTextContent(
-    'Painted by Gmail · work',
-  );
+  expect(screen.getByLabelText('Gmail · work')).toHaveTextContent('Gmail · work');
 });
 
 test('single-account apps omit the account clause', () => {
   render(<AttributionView displayName="GitHub" account={null} />);
-  expect(screen.getByLabelText('Painted by GitHub')).toBeInTheDocument();
+  expect(screen.getByLabelText('GitHub')).toBeInTheDocument();
 });
 
 test('schema accepts the painted shape and rejects extras', () => {
@@ -55,7 +53,7 @@ test('wraps its child under the marker and carries the weight as its own flex sh
   );
   const wrapper = container.querySelector('[data-attribution]') as HTMLElement;
   expect(wrapper.style.flex).toBe('2 1 0%');
-  const marker = screen.getByLabelText('Painted by Gmail');
+  const marker = screen.getByLabelText('Gmail');
   const child = container.querySelector('[data-child="gmail-slot"]')!;
   expect(wrapper.contains(marker)).toBe(true);
   expect(wrapper.contains(child)).toBe(true);
@@ -76,5 +74,5 @@ test('an unweighted wrapper takes one share: unweighted regions split their axis
 test('without a child it is the bare marker, no wrapper box', () => {
   const {container} = render(<AttributionView displayName="Gmail" />);
   expect(container.querySelector('[data-attribution]')).toBeNull();
-  expect(screen.getByLabelText('Painted by Gmail')).toBeInTheDocument();
+  expect(screen.getByLabelText('Gmail')).toBeInTheDocument();
 });

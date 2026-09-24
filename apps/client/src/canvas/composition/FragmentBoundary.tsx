@@ -9,9 +9,9 @@
  *
  * The visible attribution marker is not here — the orchestrator paints it into the shell's own
  * surface as the slot's sibling, where the fragment cannot address it. What the boundary carries
- * is the machine-readable half: the source, and a region name. The two must not say the same
- * thing: the marker announces "Painted by X", so the region names itself simply "X", and a
- * screen reader gets one region and one provenance statement rather than the sentence twice.
+ * is the machine-readable half: the source, and a region name. The marker announces the app's
+ * display name and its account when one is in play; the region names itself by the source id,
+ * so a screen reader gets one region and one provenance statement rather than a sentence twice.
  */
 import type {ReactNode} from 'react';
 

@@ -108,7 +108,7 @@ describe('slot mounting', () => {
     expect(screen.getByRole('group', {name: 'github'})).toBeInTheDocument();
     // The orchestrator-painted marker is a sibling of the slot, outside the fragment's reach —
     // and says something different, so the two do not read as a stutter.
-    expect(screen.getByLabelText('Painted by GitHub')).toBeInTheDocument();
+    expect(screen.getByLabelText('GitHub')).toBeInTheDocument();
   });
 
   it('an unclaimed slot renders its own pending state and no boundary', () => {
@@ -133,7 +133,7 @@ describe('slot mounting', () => {
     expect(slot!.textContent).toContain('I could not compose that view.');
     // It is the shell quoting the source, not a fragment: no boundary, no vendor provider.
     expect(container.querySelector(`[${FRAGMENT_BOUNDARY_ATTR}]`)).toBeNull();
-    expect(screen.getByLabelText('Painted by GitHub')).toBeInTheDocument();
+    expect(screen.getByLabelText('GitHub')).toBeInTheDocument();
   });
 
   it('a collapsed slot with nothing to rest on renders nothing at all', () => {
