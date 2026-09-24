@@ -633,6 +633,10 @@ export class OrchestratorExecutor implements AgentExecutor {
         }
         break;
       }
+      // Contract v0.8 (task 9.2); the step is task 9.4's, the close task 9.3's.
+      case 'step':
+      case 'close':
+        return refuse('This canvas cannot take that yet.');
     }
     const running: Operation = {
       taskId: ctx.taskId,

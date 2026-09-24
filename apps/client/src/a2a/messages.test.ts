@@ -17,7 +17,6 @@ import {
   extractAgentTextFromEvent,
   extractContextId,
   extractPaintMetasFromEvent,
-  paintMetaOf,
 } from './messages';
 
 const A2UI_DATA = {version: 'v0.9', createSurface: {surfaceId: 's', catalogId: 'cat'}};
@@ -284,19 +283,5 @@ describe('paintMeta extraction', () => {
     expect(extractPaintMetasFromEvent(agentMessage([part]))).toEqual([
       {surfaceId: 'q', title: 'Which repo?', kind: 'question'},
     ]);
-  });
-
-  it('rejects malformed metas', () => {
-    expect(paintMetaOf({paintMeta: {title: 'no surface'}})).toBeUndefined();
-    expect(paintMetaOf({paintMeta: {surfaceId: 42}})).toBeUndefined();
-    expect(paintMetaOf({paintMeta: 'nope'})).toBeUndefined();
-    expect(paintMetaOf(A2UI_DATA)).toBeUndefined();
-    expect(paintMetaOf(null)).toBeUndefined();
-  });
-
-  it('drops empty title and kind rather than carrying empty strings', () => {
-    expect(paintMetaOf({paintMeta: {surfaceId: 's', title: '', kind: ''}})).toEqual({
-      surfaceId: 's',
-    });
   });
 });

@@ -7,8 +7,13 @@ import type {
   Part,
 } from '@a2a-js/sdk';
 import type {A2uiClientAction, A2uiClientDataModel, A2uiMessage} from '@a2ui/web_core/v0_9';
-import type {CompositionOperation, CompositionStamp, SynthesisPayload} from '@a2uiverse/sdk';
-import {operationData, readStamp, readSynthesis} from '@a2uiverse/sdk';
+import type {
+  CompositionOperation,
+  CompositionStamp,
+  PaintMeta,
+  SynthesisPayload,
+} from '@a2uiverse/sdk';
+import {operationData, readPaintMeta, readStamp, readSynthesis} from '@a2uiverse/sdk';
 import {logClientDataModelSize} from './dataModelSize';
 
 /**
@@ -234,36 +239,10 @@ export function extractA2uiMessages(result: Task | Message): A2uiMessage[] {
 }
 
 /**
- * The paintMeta shell object: the agent's per-paint metadata — a short human
- * title, and the question marker the canvas routes on. Rides the A2A stream as a dedicated
- * DataPart (`{paintMeta: {...}}`, no inline `version` field), emitted ahead of the
- * `createSurface` it names, so the A2UI extractor above never sees it.
+ * Pull paintMeta shell objects — the composition contract's `paintMeta` part, `@a2uiverse/sdk`'s
+ * `readPaintMeta` — out of a single A2A stream event. Emitted ahead of the `createSurface` it
+ * names, so the A2UI extractor above never sees it.
  */
-export interface PaintMeta {
-  surfaceId: string;
-  /** The agent-authored paint title; best-effort — absent falls back to cause-derived. */
-  title?: string;
-  /** The paint's declared kind; `"question"` routes to the overlay slot. */
-  kind?: string;
-}
-
-/** The question-marker value of `PaintMeta.kind`. */
-export const QUESTION_PAINT_KIND = 'question';
-
-/** A paintMeta shell object when `data` is one, else undefined. */
-export function paintMetaOf(data: unknown): PaintMeta | undefined {
-  const meta = (data as {paintMeta?: unknown} | null | undefined)?.paintMeta;
-  if (!meta || typeof meta !== 'object') return undefined;
-  const {surfaceId, title, kind} = meta as {surfaceId?: unknown; title?: unknown; kind?: unknown};
-  if (typeof surfaceId !== 'string' || !surfaceId) return undefined;
-  return {
-    surfaceId,
-    ...(typeof title === 'string' && title ? {title} : {}),
-    ...(typeof kind === 'string' && kind ? {kind} : {}),
-  };
-}
-
-/** Pull paintMeta shell objects out of a single A2A stream event. */
 export function extractPaintMetasFromEvent(event: A2AStreamEventData): PaintMeta[] {
   let parts: Part[];
   switch (event.kind) {
@@ -279,7 +258,7 @@ export function extractPaintMetasFromEvent(event: A2AStreamEventData): PaintMeta
   }
   return parts
     .filter((p): p is Extract<Part, {kind: 'data'}> => p.kind === 'data')
-    .map(p => paintMetaOf(p.data))
+    .map(p => readPaintMeta(p.data))
     .filter((m): m is PaintMeta => m !== undefined);
 }
 

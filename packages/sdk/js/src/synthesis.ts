@@ -2,7 +2,7 @@
  * The synthesis half of the composition extension (SPEC §5.2, §14): the payload the orchestrator
  * sends the client beside a painted synthesis surface — the derived data model whose every leaf is
  * a formula over refs into partitions, its match claims, and the sort declarations — and the pieces
- * both sides agree on. Normative definition: `../contracts/composition.v0.7.json`
+ * both sides agree on. Normative definition: `../contracts/composition.v0.8.json`
  * (`shapes.synthesizeDataModel`); `synthesis.contract.test.ts` asserts this projection against it.
  * What the Synthesizer writes, and how it is told to, belongs to the orchestrator; the tree it
  * writes is painted as ordinary A2UI and never rides this payload.

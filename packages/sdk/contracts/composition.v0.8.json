@@ -1,8 +1,8 @@
 {
   "name": "a2uiverse-composition",
-  "version": "0.7.0",
-  "description": "The A2UIVerse composition extension (SPEC §14): the A2A metadata contract for cross-agent UI composition, internal to the platform (orchestrator ↔ client). Outbound, the composition stamp (provenance, role) on every relayed event and the synthesis payload — the derived data model of formula leaves, its match claims, and the sort declarations of a merged view — on the event that paints a synthesis surface; inbound, the composition operation — the reader's press on the composition, Retry, Include or Try again — on a message of its own. Nothing a2uiverse-specific rides the vendor wire. Normative for every language projection; each projection's contract test asserts against this file.",
-  "extensionUri": "https://a2uiverse.dev/ext/composition/v0.7",
+  "version": "0.8.0",
+  "description": "The A2UIVerse composition extension (SPEC §14): the A2A metadata contract for cross-agent UI composition, internal to the platform (orchestrator ↔ client). A canvas is an A2A context: an utterance that opens one carries no contextId, the orchestrator mints it, and every later message in the canvas carries it. Outbound, the composition stamp (provenance, role) on every relayed event, the paintMeta part naming a paint ahead of its createSurface — the orchestrator's own for the layout surface, carrying the Planner's title for the canvas — and the synthesis payload — the derived data model of formula leaves, its match claims, and the sort declarations of a merged view — on the event that paints a synthesis surface; inbound, the parent canvas on the utterance that opens a child, and the composition operation — the reader's press on the composition: Retry, Include, Try again, a fragment's step back, the canvas closed — on a message of its own. Nothing a2uiverse-specific rides the vendor wire. Normative for every language projection; each projection's contract test asserts against this file.",
+  "extensionUri": "https://a2uiverse.dev/ext/composition/v0.8",
   "stampKey": "a2uiverse",
   "surfaceIdSeparator": ":",
   "surfaceIdNamespacing": {
@@ -26,16 +26,39 @@
         "settled": "This source's stream has ended: set on one event the orchestrator emits after relaying a fragment source's last event, with no A2UI parts. The client judges that source's fragments there instead of at the turn's end."
       }
     },
+    "canvasParent": {
+      "direction": "client → orchestrator",
+      "carriedOn": "the opening utterance's message metadata, keyed by stampKey — the key is two-directional: the stamp outbound, the parent inbound; absent on a root canvas",
+      "required": ["parent"],
+      "optional": [],
+      "fields": {
+        "parent": "The contextId of the canvas this question was asked from: the trail's edge, and the canvas the Planner reads as this canvas, its ancestry as the recent turns."
+      }
+    },
     "compositionOperation": {
       "direction": "client → orchestrator",
-      "carriedOn": "a data part of its own, {version, operation}, on a new A2A message in the composition's context — beside the A2UI action, the error report and the utterance; version is the A2UI version the client speaks",
+      "carriedOn": "a data part of its own, {version, operation}, on a new A2A message in the canvas's context — beside the A2UI action, the error report and the utterance; version is the A2UI version the client speaks",
       "required": ["kind", "sources"],
-      "optional": [],
-      "kinds": ["retry", "include", "tryAgain"],
+      "optional": ["step"],
+      "kinds": ["retry", "include", "tryAgain", "step", "close"],
       "fields": {
-        "kind": "The press: 'retry' re-dispatches one failed source's request; 'include' folds the sources that arrived after the merge into it; 'tryAgain' makes again a merge whose call failed.",
-        "sources": "The source ids the press names: exactly one with 'retry', at least one with 'include', none with 'tryAgain'."
+        "kind": "The press: 'retry' re-dispatches one failed source's request; 'include' folds the sources that arrived after the merge into it; 'tryAgain' makes again a merge whose call failed; 'step' reports a fragment stepped back or forward in its own history — the paint's data model rides a2uiClientDataModel as on an action; 'close' ends the canvas: everything running in it cancelled, its composition dropped.",
+        "sources": "The source ids the press names: exactly one with 'retry' and 'step', at least one with 'include', none with 'tryAgain' and 'close'.",
+        "step": "With 'step' only, required there: the index in that agent's stack — one step per surface replacement, counted the same way on both sides, from 0 — the fragment now shows. A non-negative integer."
       }
+    },
+    "paintMeta": {
+      "direction": "orchestrator → client",
+      "carriedOn": "a data part of its own, {paintMeta: {...}} with no version field, its part metadata mimeType paintMetaMimeType, emitted ahead of the createSurface it names; the A2UI extractor never takes it",
+      "required": ["surfaceId"],
+      "optional": ["title", "kind"],
+      "kinds": ["question"],
+      "fields": {
+        "surfaceId": "The surface the paint creates, as the client will see it — namespaced for a fragment, shell:main for the layout surface.",
+        "title": "A short title for the paint, at most paintMetaTitleMaxLength characters. On the layout surface it is the Planner's title for the canvas, naming its entry in the trail; a longer one is clipped with an ellipsis by the orchestrator and journaled, never a plan finding; absent, the client falls back to the question. On a fragment it is the agent's own title for the paint, naming the step in the fragment's history.",
+        "kind": "The paint's declared kind: 'question' marks a surface the canvas routes to its overlay slot."
+      },
+      "authors": "The orchestrator emits the part for its own layout surface. A vendor agent's part is the agent kit's, in this same shape, relayed untouched; the contract describes the part, it does not own the kit's emission — an agent that never emits one composes, its paints titled from their cause."
     },
     "synthesizeDataModel": {
       "direction": "orchestrator → client",
@@ -214,5 +237,11 @@
         }
       }
     }
-  }
+  },
+  "canvasIdentity": {
+    "is": "the A2A contextId",
+    "rule": "Each canvas is its own A2A context. The utterance that opens a canvas is sent with no contextId; the orchestrator mints one and the client reads it from the first event. Every later message in the canvas — action, press, error report — carries it. The orchestrator holds one composition per context for the session; a vendor's context is per canvas."
+  },
+  "paintMetaMimeType": "application/json+a2ui-shell",
+  "paintMetaTitleMaxLength": 48
 }

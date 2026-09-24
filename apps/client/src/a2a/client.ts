@@ -1,8 +1,8 @@
 import {A2AClient} from '@a2a-js/sdk/client';
 import type {MessageSendParams} from '@a2a-js/sdk';
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
-import type {CompositionStamp, SynthesisPayload} from '@a2uiverse/sdk';
-import type {A2AStreamEventData, PaintMeta} from './messages';
+import type {CompositionStamp, PaintMeta, SynthesisPayload} from '@a2uiverse/sdk';
+import type {A2AStreamEventData} from './messages';
 import {
   extractA2uiMessagesFromEvent,
   extractAgentTextFromEvent,

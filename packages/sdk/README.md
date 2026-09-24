@@ -6,7 +6,7 @@ shell catalog and the marketplace. Vendor agents never import it — nothing a2u
 goes over the vendor wire.
 
 ```
-contracts/composition.v0.7.json   the normative contract; the package is tested against it
+contracts/composition.v0.8.json   the normative contract; the package is tested against it
 a2ui-spec/                        pinned copy of the A2UI v0.9.1 schemas, basic catalog and validator cases
 js/                               the TypeScript package
 ```
@@ -85,12 +85,33 @@ One entry point, `@a2uiverse/sdk`.
 | `namespaceSurfaceId` · `parseSurfaceId` | `<appId>:<surfaceId>` and back  |
 | `readStamp(metadata)`                   | the stamp, or `undefined`       |
 
+A canvas is an A2A context: the utterance that opens one carries no `contextId`, the orchestrator mints it, and every later message in the canvas carries it. The contract names no canvas id of its own.
+
+**Canvas parent** — `js/src/composition.ts`: on the utterance that opens a child canvas, client → orchestrator, under the stamp key
+
+| Export                         | What it is                                            |
+| ------------------------------ | ----------------------------------------------------- |
+| `CanvasParent`                 | `{parent}` — the `contextId` it was asked from        |
+| `canvasParentMetadata(parent)` | the message metadata, `{a2uiverse: {parent}}`         |
+| `readCanvasParent(metadata)`   | the parent an opening utterance names, or `undefined` |
+
+**Paint meta** — `js/src/composition.ts`: a per-paint shell object ahead of the `createSurface` it names, orchestrator → client; the orchestrator's own for `shell:main` carries the Planner's title for the canvas, a vendor's is the agent kit's in the same shape
+
+| Export                                                      | What it is                                                                     |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `PaintMeta`                                                 | `{surfaceId, title?, kind?}`                                                   |
+| `PAINT_META_MIME_TYPE`                                      | `"application/json+a2ui-shell"`, the data part's `metadata.mimeType`           |
+| `PAINT_META_KINDS` · `QUESTION_PAINT_KIND`                  | `question`                                                                     |
+| `PAINT_META_TITLE_MAX_LENGTH` · `clipPaintMetaTitle(title)` | 48, and a title cut to it with an ellipsis                                     |
+| `paintMetaData(meta)`                                       | the data part's body, `{paintMeta}`                                            |
+| `readPaintMeta(data)`                                       | the paintMeta a data part carries, or `undefined` when it is none or malformed |
+
 **Composition operation** — `js/src/composition.ts`: the reader's press on the composition, client → orchestrator
 
 | Export                              | What it is                                                                 |
 | ----------------------------------- | -------------------------------------------------------------------------- |
-| `CompositionOperation`              | `{kind, sources}`                                                          |
-| `OPERATION_KINDS`                   | `retry` · `include` · `tryAgain`                                           |
+| `CompositionOperation`              | `{kind, sources, step?}`                                                   |
+| `OPERATION_KINDS`                   | `retry` · `include` · `tryAgain` · `step` · `close`                        |
 | `operationData(operation, version)` | the data part's body, `{version, operation}`                               |
 | `readOperation(data)`               | the press a data part carries, or `undefined` when it is none or malformed |
 
@@ -165,6 +186,6 @@ ESM, runs in Node and the browser, depends on `ajv` only.
 
 ## Further reading
 
-- `contracts/composition.v0.7.json` — the normative contract; SPEC §14 is its register entry.
+- `contracts/composition.v0.8.json` — the normative contract; SPEC §14 is its register entry.
 - `_dev/docs/design/synthesis.md` — the merged view end to end.
 - `_dev/docs/design/orchestrator.md` · `_dev/docs/design/client.md` — each consumer's side.

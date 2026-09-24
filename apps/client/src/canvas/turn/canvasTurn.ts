@@ -47,9 +47,8 @@
  */
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
 import {A2uiValidationError} from '@a2ui/web_core/v0_9';
-import type {CompositionStamp, SynthesisPayload} from '@a2uiverse/sdk';
-import type {PaintMeta} from '../../a2a/messages';
-import {paintMetaOf, QUESTION_PAINT_KIND} from '../../a2a/messages';
+import type {CompositionStamp, PaintMeta, SynthesisPayload} from '@a2uiverse/sdk';
+import {QUESTION_PAINT_KIND, readPaintMeta} from '@a2uiverse/sdk';
 import {applyA2uiMessages} from '../../a2ui/applyMessages';
 import {mergeFactsOf, SHELL_SOURCE, shellPaintSlots, slotStatesOf} from '../composition/roster';
 import {describeError} from '../../shared/describeError';
@@ -718,7 +717,7 @@ export function createTurnRunner({
         // acceptor instead of the processor. Live streams deliver metas via acceptPaintMeta.
         const rest: A2uiMessage[] = [];
         for (const message of messages) {
-          const meta = paintMetaOf(message);
+          const meta = readPaintMeta(message);
           if (meta) acceptPaintMeta(meta);
           else rest.push(message);
         }
@@ -847,7 +846,7 @@ export function createTurnRunner({
         if (!open) return;
         const rest: A2uiMessage[] = [];
         for (const message of messages) {
-          const meta = paintMetaOf(message);
+          const meta = readPaintMeta(message);
           if (meta) metas.set(meta.surfaceId, meta);
           else rest.push(message);
         }

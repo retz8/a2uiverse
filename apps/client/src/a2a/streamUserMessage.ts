@@ -1,8 +1,8 @@
 import type {A2uiClientDataModel, A2uiMessage} from '@a2ui/web_core/v0_9';
-import type {CompositionStamp} from '@a2uiverse/sdk';
+import type {CompositionStamp, PaintMeta} from '@a2uiverse/sdk';
 import type {GetSender} from './client';
 import {sendAndApply} from './client';
-import type {ForkContext, PaintMeta} from './messages';
+import type {ForkContext} from './messages';
 import {buildTextMessageParams} from './messages';
 import type {A2ASession} from './session';
 

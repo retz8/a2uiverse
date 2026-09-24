@@ -82,7 +82,8 @@ export interface Sink {
  * decision 7): what it asks of the merge, where the outcome is published, and its settle.
  */
 export interface OwedPress {
-  kind: OperationKind | 'walk';
+  /** The presses that owe the merge a call; a step (task 9.4) and a close (task 9.3) owe none. */
+  kind: Exclude<OperationKind, 'step' | 'close'> | 'walk';
   sink: Sink;
   resolve(): void;
 }

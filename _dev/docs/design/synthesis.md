@@ -322,7 +322,7 @@ And the tree that binds to it, as the painter sends it (the components list of a
 ]
 ```
 
-The contract is one file, `packages/sdk/contracts/composition.v0.7.json`: the stamp and the
+The contract is one file, `packages/sdk/contracts/composition.v0.8.json`: the stamp and the
 synthesize data model outbound, the composition operation — the reader's press — inbound. The JS projection is `packages/sdk/js/src/synthesis.ts`.
 
 ## The synthesize data model, piece by piece
@@ -643,7 +643,7 @@ drilled into, and answers with a state, not an error.
 
 | Concern | sdk | Orchestrator | Client | Shell catalog |
 | --- | --- | --- | --- | --- |
-| Contract, types | `contracts/composition.v0.7.json` · `js/src/synthesis.ts` | `synthesizer/document.ts` | — | — |
+| Contract, types | `contracts/composition.v0.8.json` · `js/src/synthesis.ts` | `synthesizer/document.ts` | — | — |
 | Pointers, predicates, the walk | `js/src/pointer.ts` · `js/src/walk.ts` | `composition/partitions.ts` (`resolve`) | `canvas/synthesis/bindingEvaluator.ts` | — |
 | Validation | `js/src/validate.ts` · `js/src/a2ui/` | `synthesizer/validate.ts` | `canvas/synthesis/intake.ts` | `src/keep-sets.ts` |
 | The prompt | — | `synthesizer/prompt.ts` · `synthesizer/synthesis.md` · `synthesizer/examples.ts` · `authoring/taggedBlock.ts` · `planner/prompt.ts` | — | `docs/synthesis-guidance.md` · `catalogs/v0.9.1/catalog.json` |
