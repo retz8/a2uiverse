@@ -701,7 +701,7 @@ describe('CanvasApp shell surface', () => {
     await userEvent.click(retry);
     // Drawn at the press, before any answer: the pending line in the tile's place, focus on it.
     expect(screen.queryByRole('button', {name: 'Retry'})).toBeNull();
-    const pending = screen.getByText('Gmail…');
+    const pending = screen.getByText('Loading…');
     expect(document.activeElement).toBe(pending);
     await waitFor(() => expect(sent).toHaveLength(1));
     const part = sent[0].message.parts[0];

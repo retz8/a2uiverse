@@ -178,18 +178,26 @@ function mergeStep(
 
   if (shell === 'failed' || !busy)
     return {text: `Could not join ${joined(vendors)}`, status: 'failed'};
-  // Under a join the reserved view waits for the home source alone once every other has settled.
-  if (home && !state.placement.has(home.appId) && state.slotStates.get(home.appId) !== 'failed') {
-    const settled = vendors
-      .filter(entry => entry !== home)
-      .every(
-        entry =>
-          state.placement.has(entry.appId) ||
-          state.prose.has(entry.appId) ||
-          state.slotStates.get(entry.appId) === 'failed' ||
-          state.slotStates.get(entry.appId) === 'collapsed',
-      );
-    if (settled) return {text: `Waiting for ${phrase(home)}, then joining`, status: 'working'};
-  }
-  return {text: `Joining ${joined(vendors)}`, status: 'working'};
+  // Before the view lands the step says what the client knows (task-8.7 decision 20): a merge is
+  // possible once two sources have arrived, the home source among them under a join. Until then,
+  // the sources still awaited; from then, the arrived ones being joined, and one clause per source
+  // still out or failed, as the landed form has them. The orchestrator paints nothing at the soft
+  // deadline's release, so the sentence never claims to know whether a straggler will make it.
+  const failed = (id: string) => state.slotStates.get(id) === 'failed' && !retrying(state, id);
+  const out = vendors.filter(
+    entry => !state.placement.has(entry.appId) && !state.prose.has(entry.appId),
+  );
+  const awaited = out.filter(entry => !failed(entry.appId));
+  const possible = arrived.length >= 2 && (!home || arrived.includes(home));
+  if (!possible && awaited.length > 0)
+    return {text: `Waiting for ${listed(awaited.map(phrase))}, then joining`, status: 'working'};
+  const clauses = out.map(entry =>
+    failed(entry.appId)
+      ? noun(entry)
+        ? `no ${phrase(entry)} to join`
+        : `without ${entry.displayName}`
+      : `${phrase(entry)} still loading`,
+  );
+  const over = arrived.length > 0 ? arrived : vendors;
+  return {text: [`Joining ${joined(over)}`, ...clauses].join(' · '), status: 'working'};
 }

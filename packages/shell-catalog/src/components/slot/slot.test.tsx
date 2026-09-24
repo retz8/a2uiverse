@@ -9,9 +9,10 @@ import {collapsedLines, landedLines, LOST_WORDS, UNREACHED_WORDS} from './press-
 import {collapseLine, SlotView} from './slot';
 import {SlotApi} from './slot.schema';
 
-test('pending renders a placeholder naming the awaited content', () => {
+test('pending renders a loading line naming nobody — the marker above names the source', () => {
   render(<SlotView source="gmail" label="Gmail" />);
-  const slot = screen.getByText(/Gmail…/);
+  const slot = screen.getByText('Loading…');
+  expect(screen.queryByText(/Gmail/)).toBeNull();
   expect(slot).toBeInTheDocument();
   expect(slot.closest('[data-slot="gmail"]')).toHaveAttribute('data-slot-state', 'pending');
 });
@@ -601,7 +602,7 @@ test('Retry gives the tile way to the pending line at the press; one that never 
       ),
     );
   const sent = tile([{operation: retry, status: 'sent'}]);
-  expect(screen.getByText('CircleCI…')).toBeInTheDocument();
+  expect(screen.getByText('Loading…')).toBeInTheDocument();
   expect(screen.queryByRole('button', {name: 'Retry'})).not.toBeInTheDocument();
   sent.unmount();
   const unreached = tile([{operation: retry, status: 'unreached'}]);

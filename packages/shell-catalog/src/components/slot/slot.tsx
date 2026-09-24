@@ -276,7 +276,9 @@ export function SlotView({
     }
 
     // Pending: before the source's first answer, or again from the reader's Retry — drawn at the
-    // press, before the paint says so (task-8.5 decision 8). A Retry whose stream broke says so here.
+    // press, before the paint says so (task-8.5 decision 8). A spinner and "Loading…", naming
+    // nobody: the attribution marker above says whose the slot is (task-8.7 decision 19). A Retry
+    // whose stream broke says so here.
     const lost = retry === 'lost' && state !== 'failed';
     if (lost) announcement = LOST_WORDS;
     return (
@@ -292,8 +294,10 @@ export function SlotView({
           tabIndex={-1}
           data-press-line=""
           ref={element => takeFocus(element, focusLine)}
+          style={{display: 'inline-flex', alignItems: 'center', gap: 6}}
         >
-          {lost ? LOST_WORDS : `${label ?? source}…`}
+          {!lost && <Spinner size="1" />}
+          {lost ? LOST_WORDS : 'Loading…'}
         </Text>
       </div>
     );

@@ -88,8 +88,14 @@ describe('turnProgress', () => {
       {appId: 'github', name: 'GitHub', status: 'working'},
       {appId: 'circleci', name: 'CircleCI', status: 'failed'},
     ]);
+    // One arrived, one failed: no merge is possible yet, so the step waits for the one still out.
     expect(progress.merge).toEqual({
-      text: 'Joining Linear, GitHub and CircleCI',
+      text: 'Waiting for GitHub, then joining',
+      status: 'working',
+    });
+    store.placeFragment('github', {surfaceId: 'github:s', source: 'github'});
+    expect(turnProgress(store.getState()).merge).toEqual({
+      text: 'Joining Linear and GitHub · without CircleCI',
       status: 'working',
     });
   });
@@ -141,6 +147,17 @@ describe('turnProgress', () => {
     const store = createCanvasStore();
     store.beginPaint('“status” — generating…', 'utterance');
     store.setRoster([JOINED[0]!, JOINED[2]!, JOINED[1]!, JOINED[3]!]);
+    // Nothing arrived: every source awaited, in slot order (task-8.7 decision 20).
+    expect(turnProgress(store.getState()).merge?.text).toBe(
+      'Waiting for GitHub PRs, Linear issues and CircleCI runs, then joining',
+    );
+    for (const app of ['linear', 'github'])
+      store.placeFragment(app, {surfaceId: `${app}:s`, source: app});
+    // The home source and one other arrived: joining them, the straggler said still loading.
+    expect(turnProgress(store.getState()).merge?.text).toBe(
+      'Joining Linear issues to GitHub PRs · CircleCI runs still loading',
+    );
+    store.placeFragment('circleci', {surfaceId: 'circleci:s', source: 'circleci'});
     expect(turnProgress(store.getState()).merge?.text).toBe(
       'Joining Linear issues to GitHub PRs and CircleCI runs',
     );
@@ -152,7 +169,7 @@ describe('turnProgress', () => {
     store.setRoster(JOINED);
     store.placeFragment('github', {surfaceId: 'github:s', source: 'github'});
     expect(turnProgress(store.getState()).merge?.text).toBe(
-      'Joining Linear issues to GitHub PRs and CircleCI runs',
+      'Waiting for Linear issues and CircleCI runs, then joining',
     );
     store.mergeSlotStates(new Map([['circleci', 'failed' as const]]));
     expect(turnProgress(store.getState()).merge).toEqual({
