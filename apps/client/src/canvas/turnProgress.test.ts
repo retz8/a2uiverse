@@ -211,9 +211,7 @@ describe('the merge step, landed without a source', () => {
     expect(text()).toBe('Joined Linear issues to GitHub PRs · CircleCI runs still loading');
     store.placeFragment('circleci', {surfaceId: 'circleci:s', source: 'circleci'});
     store.setMerge({merged: ['linear', 'github'], late: ['circleci']});
-    expect(text()).toBe(
-      'Joined Linear issues to GitHub PRs · CircleCI runs arrived after this merge',
-    );
+    expect(text()).toBe('Joined Linear issues to GitHub PRs · CircleCI runs not in this view yet');
     const key = store.addPress({kind: 'include', sources: ['circleci']});
     expect(text()).toBe('Joined Linear issues to GitHub PRs · including CircleCI runs');
     store.removePress(key);

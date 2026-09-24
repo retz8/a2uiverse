@@ -323,9 +323,11 @@ function takeFocus(element: HTMLElement | null, focusLine: MutableRefObject<bool
 }
 
 /**
- * The press lines, each a 24px row in the collapse line's geometry (task-8.5 decision 4): the
- * sentence at caption size in the quiet register, a spinner before it while something runs, the
- * press inline at its end. The first row carries the collapse's markers when it stands for one.
+ * The press lines, each a 24px row in the collapse line's geometry (task-8.5 decision 4): a
+ * spinner before the sentence while something runs, the press inline at its end. A row that asks
+ * the reader for a press is the view's action, so it reads at body size in ink with a soft accent
+ * button (task-8.7 decision 21); a row that only tells stays at caption size in the quiet
+ * register. The first row carries the collapse's markers when it stands for one.
  */
 function PressRows({
   lines,
@@ -353,8 +355,8 @@ function PressRows({
         >
           {line.working && <Spinner size="1" />}
           <Text
-            size="1"
-            color="gray"
+            size={line.press ? '2' : '1'}
+            color={line.press ? undefined : 'gray'}
             tabIndex={-1}
             data-press-line=""
             ref={element => takeFocus(element, focusLine)}
@@ -364,8 +366,7 @@ function PressRows({
           {line.press && onPress && (
             <Button
               size="1"
-              variant="outline"
-              color="gray"
+              variant="soft"
               disabled={!enabled}
               onClick={event => onPress(line.press!.operation, event.currentTarget)}
             >

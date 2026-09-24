@@ -441,8 +441,8 @@ test('over a landed view, the working sentence alone while a press’s call runs
 test('over a landed view, the late sources’ line with one Include covering them all', () => {
   const [line] = landedLines({late: ['circleci', 'gmail']}, [], nameOf);
   expect(line).toMatchObject({
-    text: 'CircleCI and Gmail arrived after this merge.',
-    press: {label: 'Include', operation: {kind: 'include', sources: ['circleci', 'gmail']}},
+    text: 'CircleCI and Gmail answered after this view was made.',
+    press: {label: 'Include all', operation: {kind: 'include', sources: ['circleci', 'gmail']}},
   });
 });
 
@@ -455,8 +455,8 @@ test('a failed Include says so, with Include again — or Include when a newer s
   expect(
     landedLines({late: ['circleci', 'gmail'], callFailed: failed}, [], nameOf)[0],
   ).toMatchObject({
-    text: 'Couldn’t include CircleCI. Gmail arrived after this merge.',
-    press: {label: 'Include', operation: {kind: 'include', sources: ['circleci', 'gmail']}},
+    text: 'Couldn’t include CircleCI. Gmail answered after this view was made.',
+    press: {label: 'Include all', operation: {kind: 'include', sources: ['circleci', 'gmail']}},
   });
 });
 
@@ -468,7 +468,7 @@ test('couldn’t be updated carries Try again, and stands beside a late line as 
   );
   expect(texts(lines)).toEqual([
     'The merged view couldn’t be updated.',
-    'Gmail arrived after this merge.',
+    'Gmail answered after this view was made.',
   ]);
   expect(lines[0]).toMatchObject({
     press: {label: 'Try again', operation: {kind: 'tryAgain', sources: []}},
@@ -481,7 +481,7 @@ test('a press is drawn the moment it is made; one that never reached says so bes
   expect(texts(landedLines({late: ['gmail']}, [sent], nameOf))).toEqual(['Including Gmail…']);
   const unreached: PressRecord = {...sent, status: 'unreached'};
   expect(landedLines({late: ['gmail']}, [unreached], nameOf)[0]).toMatchObject({
-    text: `Gmail arrived after this merge. ${UNREACHED_WORDS}`,
+    text: `Gmail answered after this view was made. ${UNREACHED_WORDS}`,
     announce: true,
   });
   const lost: PressRecord = {...sent, status: 'lost'};
@@ -523,7 +523,7 @@ test('under a decline’s line only, the late sources with Include', () => {
     'Nothing lines up.',
   );
   expect(texts(lines)).toEqual(['Nothing lines up.', 'Gmail has answered since.']);
-  expect(lines[1]).toMatchObject({press: {label: 'Include', operation: {kind: 'include'}}});
+  expect(lines[1]).toMatchObject({press: {label: 'Include Gmail', operation: {kind: 'include'}}});
   expect(
     texts(collapsedLines({declined: {reason: 'r'}, late: ['gmail', 'circleci']}, [], nameOf, 'r')),
   ).toEqual(['r', 'Gmail and CircleCI have answered since.']);
@@ -551,12 +551,12 @@ test('the row sits above the landed view, its Include pressing every late source
   const slot = container.querySelector('[data-slot="shell"]') as HTMLElement;
   const row = slot.querySelector('[data-slot-press-row]') as HTMLElement;
   expect(row.style.height).toBe('24px');
-  expect(row.textContent).toContain('CircleCI arrived after this merge.');
+  expect(row.textContent).toContain('CircleCI answered after this view was made.');
   expect(
     row.compareDocumentPosition(screen.getByText('the merged view')) &
       Node.DOCUMENT_POSITION_FOLLOWING,
   ).toBeTruthy();
-  screen.getByRole('button', {name: 'Include'}).click();
+  screen.getByRole('button', {name: 'Include CircleCI'}).click();
   expect(pressed).toEqual([{kind: 'include', sources: ['circleci']}]);
 });
 
@@ -648,7 +648,7 @@ test('focus moves from a pressed button to the line that replaced it', () => {
       </SlotContentContext.Provider>,
     );
   const {rerender} = render(view());
-  const include = screen.getByRole('button', {name: 'Include'});
+  const include = screen.getByRole('button', {name: 'Include Gmail'});
   include.focus();
   include.click();
   expect(document.activeElement).toBe(screen.getByText('Including Gmail…'));
@@ -670,7 +670,7 @@ test('a collapsed merge’s lines keep the collapse’s markers on the first row
   expect(rows).toHaveLength(2);
   expect(rows[0]).toHaveAttribute('data-slot-declined');
   expect(rows[1]).toHaveTextContent('Gmail has answered since.');
-  expect(screen.getByRole('button', {name: 'Include'})).toBeInTheDocument();
+  expect(screen.getByRole('button', {name: 'Include Gmail'})).toBeInTheDocument();
 });
 
 test('a fact the runtime stops painting leaves the slot with its repaint (upstream binder keeps removed props)', () => {

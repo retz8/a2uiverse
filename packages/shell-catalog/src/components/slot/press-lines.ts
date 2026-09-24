@@ -39,6 +39,10 @@ export function listed(names: readonly string[]): string {
 
 type Name = (appId: string) => string;
 
+/** The Include press named for its object: one late source by name, several as "all". */
+const includeLabel = (late: readonly string[], name: Name) =>
+  late.length === 1 ? `Include ${name(late[0]!)}` : 'Include all';
+
 const find = (
   presses: readonly PressRecord[],
   status: PressRecord['status'],
@@ -87,16 +91,18 @@ export function landedLines(
     const failed = facts.callFailed?.kind === 'include' ? facts.callFailed.sources : [];
     const again = late.filter(source => failed.includes(source));
     const fresh = late.filter(source => !failed.includes(source));
+    // Said for the reader, not the mechanism (task-8.7 decision 21): the view was made before
+    // the source answered, so it is not in it — no "merge", no deadline.
     const text =
       again.length === 0
-        ? `${names(late)} arrived after this merge.`
+        ? `${names(late)} answered after this view was made.`
         : fresh.length === 0
           ? `Couldn’t include ${names(again)}.`
-          : `Couldn’t include ${names(again)}. ${names(fresh)} arrived after this merge.`;
+          : `Couldn’t include ${names(again)}. ${names(fresh)} answered after this view was made.`;
     lines.push({
       text,
       press: {
-        label: again.length > 0 && fresh.length === 0 ? 'Include again' : 'Include',
+        label: again.length > 0 && fresh.length === 0 ? 'Include again' : includeLabel(late, name),
         operation: {kind: 'include', sources: late},
       },
     });
@@ -149,7 +155,7 @@ export function collapsedLines(
   if (facts.declined && late.length > 0 && !making) {
     lines.push({
       text: `${names(late)} ${late.length === 1 ? 'has' : 'have'} answered since.`,
-      press: {label: 'Include', operation: {kind: 'include', sources: late}},
+      press: {label: includeLabel(late, name), operation: {kind: 'include', sources: late}},
     });
   }
   return lines.map(line => withUnreached(line, presses));

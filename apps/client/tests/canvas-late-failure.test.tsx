@@ -130,8 +130,10 @@ describe('Phase 8’s synthetic beats, up to their presses', () => {
     const {slot} = await replay('late-include-offered');
     const view = slot('shell')!;
     expect(stateOf(slot('shop-c'))).toBe('filled');
-    expect(within(view).getByText('Fieldstone arrived after this merge.')).toBeInTheDocument();
-    expect(within(view).getByRole('button', {name: 'Include'})).toBeEnabled();
+    expect(
+      within(view).getByText('Fieldstone answered after this view was made.'),
+    ).toBeInTheDocument();
+    expect(within(view).getByRole('button', {name: 'Include Fieldstone'})).toBeEnabled();
     expect(view.querySelector('[data-column-reserved="late"]')).not.toBeNull();
   });
 
@@ -153,7 +155,7 @@ describe('Phase 8’s synthetic beats, up to their presses', () => {
       'Northlight lists these cameras under other names',
     );
     expect(within(view).getByText('Fieldstone has answered since.')).toBeInTheDocument();
-    expect(within(view).getByRole('button', {name: 'Include'})).toBeEnabled();
+    expect(within(view).getByRole('button', {name: 'Include Fieldstone'})).toBeEnabled();
   });
 
   it('try-again: the merged view couldn’t be made, with Try again', async () => {
@@ -178,7 +180,7 @@ describe('Phase 8’s synthetic beats, up to their presses', () => {
 
   it('failed-fold-in: up to Include, the same row as a late arrival', async () => {
     const {slot} = await replay('failed-fold-in-offered');
-    expect(within(slot('shell')!).getByRole('button', {name: 'Include'})).toBeEnabled();
+    expect(within(slot('shell')!).getByRole('button', {name: 'Include Fieldstone'})).toBeEnabled();
   });
 });
 

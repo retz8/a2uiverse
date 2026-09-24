@@ -64,7 +64,7 @@ test('a late arrival: the row above the label with Include; its column not inclu
   await landed(page, 'late-include-offered');
   const view = page.locator(MERGE);
   await expect(view.locator('[data-slot-press-row]')).toHaveText(
-    'Fieldstone arrived after this merge.Include',
+    'Fieldstone answered after this view was made.Include Fieldstone',
   );
   await expect(view.locator('[data-column-reserved="late"]')).not.toHaveCount(0);
   await expect(page).toHaveScreenshot('late-failure-late-row.png');
@@ -125,7 +125,7 @@ test('a decline: the Synthesizer’s reason, a later source offered Include bene
   await expect(page.locator(`${MERGE} [data-slot-declined]`)).toContainText(
     'Northlight lists these cameras under other names',
   );
-  await expect(page.locator(MERGE).getByRole('button', {name: 'Include'})).toBeEnabled();
+  await expect(page.locator(MERGE).getByRole('button', {name: 'Include Fieldstone'})).toBeEnabled();
   await expect(page).toHaveScreenshot('late-failure-declined-include.png');
 });
 

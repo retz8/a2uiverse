@@ -166,7 +166,7 @@ function mergeStep(
         const id = entry.appId;
         if (including.includes(id)) return [`including ${phrase(entry)}`];
         if (failedInclude.includes(id)) return [`couldn’t include ${phrase(entry)}`];
-        if (facts.late?.includes(id)) return [`${phrase(entry)} arrived after this merge`];
+        if (facts.late?.includes(id)) return [`${phrase(entry)} not in this view yet`];
         if (state.slotStates.get(id) === 'failed' && !retrying(state, id))
           return [noun(entry) ? `no ${phrase(entry)} to join` : `without ${entry.displayName}`];
         if (!state.placement.has(id) && state.slotStates.get(id) !== 'collapsed')
