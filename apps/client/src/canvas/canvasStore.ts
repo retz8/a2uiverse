@@ -52,8 +52,10 @@ export interface RosterEntry {
 
 /** The entity as each source calls it, painted on the merged view's slot at plan time (task-7.15). */
 export interface JoinNouns {
-  /** The source whose instances are the merged view's rows. */
-  home: string;
+  /** Anchored: the source whose instances are the merged view's rows. Union: null (task-8.7 decision 30). */
+  home: string | null;
+  /** Union only: the thing the rows are, as the user says it — `cameras`. */
+  entity?: string;
   /** A plural noun per source id — `issues`, `PRs`, `runs`. */
   nouns: Readonly<Record<string, string>>;
 }

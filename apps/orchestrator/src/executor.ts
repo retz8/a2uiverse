@@ -349,7 +349,8 @@ export class OrchestratorExecutor implements AgentExecutor {
     const sources = [...state.slots.values()].filter(({plan}) => plan.source !== SHELL_SOURCE_ID);
     const vendorSources = sources.map(({plan}) => plan.source);
     const merge = synthesisSlot(state);
-    const home = merge?.plan.join?.home;
+    // A union join has no home source: every source is a peer for the trigger.
+    const home = merge?.plan.join?.home ?? undefined;
     const settled = new Set<string>();
     // What the turn waits on past its own dispatches: a source retried before the release.
     const wakers = new Set<() => void>();
@@ -815,7 +816,7 @@ export class OrchestratorExecutor implements AgentExecutor {
         end = await this.#synthesize(sinks, state, {kind: 'again', by, at, joining, signal});
         if (end === 'none' && owed.walk) delete state.callFailed;
       } else if (slot.state === 'collapsed' && (owed.make || joining.length > 0)) {
-        if (!mergePossible(state.arrived, slot.plan.join?.home)) return;
+        if (!mergePossible(state.arrived, slot.plan.join?.home ?? undefined)) return;
         end = await this.#synthesize(sinks, state, {kind: 'make', by, at: Date.now(), signal});
       }
     } finally {
@@ -1385,7 +1386,10 @@ function syntheticTask(ctx: RequestContext): Task {
 const RECEIVED_IDS_KEPT = 256;
 
 /** A fragment source's stream has ended (task-8.7 decision 25): the stamp says so, nothing else rides it. */
-function settledMarker(ctx: RequestContext, appId: string): TaskStatusUpdateEvent {
+function settledMarker(
+  ctx: Pick<RequestContext, 'taskId' | 'contextId'>,
+  appId: string,
+): TaskStatusUpdateEvent {
   return {
     kind: 'status-update',
     taskId: ctx.taskId,

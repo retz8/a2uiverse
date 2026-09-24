@@ -120,7 +120,15 @@ export function SlotView({
     if (button.ownerDocument.activeElement === button) focusLine.current = true;
     onPress?.(operation);
   };
-  const facts = {home: join?.home, late, working, callFailed, retrying, declined, collapse};
+  const facts = {
+    home: join?.home ?? undefined,
+    late,
+    working,
+    callFailed,
+    retrying,
+    declined,
+    collapse,
+  };
   const retry = source === undefined || shell ? undefined : retryStatus(presses, source);
 
   // The outcomes the progress line does not say, spoken politely from the slot; the region stands

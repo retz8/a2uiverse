@@ -108,7 +108,11 @@ export const SlotApi = {
       columns: z.array(z.string()).optional(),
       columnSources: z.array(z.string().nullable()).optional(),
       join: z
-        .object({home: z.string(), nouns: z.record(z.string(), z.string())})
+        .object({
+          home: z.string().nullable(),
+          entity: z.string().optional(),
+          nouns: z.record(z.string(), z.string()),
+        })
         .strict()
         .optional(),
       declined: z.object({reason: z.string()}).strict().optional(),

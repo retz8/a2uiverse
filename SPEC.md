@@ -383,7 +383,7 @@ Open seams, task-internal: where the Composition object is canonical (client or 
 
 Routing is **taxonomy-free**: no intent enums; embedding retrieve → LLM rerank over skill descriptions and examples.
 
-Entity resolution runs top-down. The Planner, choosing the sources, states the join hypothesis in its brief — the entity, its home source, each other source's cue — and the Synthesizer confirms it against the arrived data inside its one call, as a match claim the validator checks (§5.2). A deterministic pre-pass — exact overlaps, then embed-and-match, the model on the ambiguous middle — is the unbuilt later stage for scale, feeding candidates into the same claim shape.
+Entity resolution runs top-down. The Planner, choosing the sources, states the join hypothesis in its brief — the entity, its kind, each source's cue — and the Synthesizer confirms it against the arrived data inside its one call, as a match claim the validator checks (§5.2). The hypothesis is one of two kinds: **anchored**, when the question owns the entities through one source ("my cameras"), whose instances are the rows and to which every other source attaches or does not; or a **union**, when the question ranges over all of the things wherever they are ("all cameras across the stores"), whose rows are every instance any source lists, the same thing across sources merged into one row, an unmatched entry a row of its own. A deterministic pre-pass — exact overlaps, then embed-and-match, the model on the ambiguous middle — is the unbuilt later stage for scale, feeding candidates into the same claim shape.
 
 ---
 

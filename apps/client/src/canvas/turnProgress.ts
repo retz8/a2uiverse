@@ -98,8 +98,12 @@ function mergeStep(
   const noun = (entry: RosterEntry) => join?.nouns[entry.appId];
   const phrase = (entry: RosterEntry) =>
     noun(entry) ? `${entry.displayName} ${noun(entry)}` : entry.displayName;
-  const home = join ? vendors.find(entry => entry.appId === join.home) : undefined;
+  const home = join?.home ? vendors.find(entry => entry.appId === join.home) : undefined;
+  // A union join (task-8.7 decision 30) names the thing across the sources: "cameras across
+  // Aperture & Co, Northlight and Fieldstone"; an anchored one the home's noun to the others'.
   const joined = (entries: readonly RosterEntry[]) => {
+    if (join && join.home === null && join.entity)
+      return `${join.entity} across ${listed(entries.map(entry => entry.displayName))}`;
     const others = entries.filter(entry => entry !== home).map(phrase);
     if (!home || !entries.includes(home)) return listed(entries.map(phrase));
     return others.length > 0 ? `${phrase(home)} to ${listed(others)}` : phrase(home);

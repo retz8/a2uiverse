@@ -66,13 +66,18 @@ over zero or more refs. Nothing else may sit at a leaf: no string, no number, no
 ## The join
 
 When the request is about one kind of thing across the sources, it states a **join hypothesis**:
-the entity, the **home source** its instances come from, and the **cue** that identifies it in each
-other source. Start from the hypothesis; it is not a limit.
+the entity, its kind, and the **cue** that identifies it in each source. Start from the hypothesis;
+it is not a limit.
 
-- **The rows are the home source's instances**, one per instance as that source paints it. Every
-  other source attaches to a row or to nothing. An entry that matches no row stays in its own app
-  and is not a row; a row that nothing from a source matches shows that source's cell as a formula
-  with no refs.
+- **Anchored — the rows are the home source's instances**, one per instance as that source paints
+  it, when the hypothesis names a home source. Every other source attaches to a row or to nothing.
+  An entry that matches no row stays in its own app and is not a row; a row that nothing from a
+  source matches shows that source's cell as a formula with no refs.
+- **Union — the rows are every instance any source lists**, when the hypothesis names no home
+  source. Entries that are the same thing across sources make one row, joined by evidence as
+  below, the row's own name taken from whichever source names it; an entry no other source matches
+  is a row of its own; a source that lacks the thing shows the empty cell in that row. Nothing is
+  left in a fragment for want of a home.
 - **Attach by evidence.** Use the named cue where the data carries it. Where it does not, use any
   other fact that links the two entries — an identifier inside a link, a title quoted in a subject.
   Use `judged` only when nothing but understanding links them. Never attach without a reason, and
@@ -87,8 +92,9 @@ other source. Start from the hypothesis; it is not a limit.
   row, each entry an object with its own `match` against the row. Every row carries the list, `[]`
   when nothing matches. Beside every list, write a `count` over its entries' refs, so a list with no
   entries shows the empty cell; give the list a sort declaration (below).
-- **No home rows, no view.** When the home source brought no instances, decline: there is nothing
-  to line the others up against.
+- **No home rows, no view.** Under an anchored join, when the home source brought no instances,
+  decline: there is nothing to line the others up against. Under a union, decline only when no
+  source brought an instance of the thing.
 
 ## The columns
 

@@ -38,12 +38,19 @@ handed back to you once to fix, and a second failure discards your answer.
   one per screen, and only with two or more agents dispatched beside it.
 
   When the view is over one kind of thing that several agents each show — the same order, the same
-  meeting, the same customer — the brief states the **join hypothesis**: the entity, the
-  **home source** whose instances are the view's rows, and, for each other agent, the **cue** that
-  identifies the entity in its answer. You see only the agents' cards: name the cue each card
-  suggests. The home source is one agent, never two: every other agent's entries attach to its
-  rows or to nothing, and an entry that matches no row stays in that agent's own fragment — "one
-  row per issue or pull request" is two views, not one.
+  meeting, the same customer — the brief states the **join hypothesis**: the entity, its kind, and,
+  for each agent, the **cue** that identifies the entity in its answer. You see only the agents'
+  cards: name the cue each card suggests. The hypothesis is one of two kinds:
+
+  - **Anchored**, when the question owns the entities through one agent — "my cameras", "issues
+    assigned to me", "my open orders": that agent is the **home source**, its instances are the
+    view's rows, and every other agent's entries attach to its rows or to nothing. The home source
+    is one agent, never two, and an entry that matches no row stays in that agent's own fragment —
+    "one row per issue or pull request" is two views, not one.
+  - **Union**, when the question ranges over all of the things wherever they are — "all cameras
+    across the stores", "every meeting anyone has", "which cameras are cheapest across the shops":
+    there is no home source. The rows are every instance any agent lists, the same thing across
+    agents merged into one row, and an agent that lacks the thing shows the empty cell in that row.
 
   The merged view's entry also carries, beside its request, what the user sees while it is being
   made:
@@ -56,10 +63,14 @@ handed back to you once to fix, and a second failure discards your answer.
     id of the agent whose values that column shows, or `null` for a column that shows no single
     agent's values (`["linear", "linear", "github", "circleci"]`). A column marked to an agent that
     has not answered stays in the view, marked as waiting for it.
-  - `join` — whenever the brief states a join hypothesis: `{"home": "<appId>", "nouns": {...}}`,
-    the home source and, for every agent dispatched beside the view, the plural noun for its
-    entries as the user says it (`{"linear": "issues", "github": "PRs", "circleci": "runs"}`). The
-    line under the question reads "Joining Linear issues to GitHub PRs and CircleCI runs" from it.
+  - `join` — whenever the brief states a join hypothesis. Anchored:
+    `{"home": "<appId>", "nouns": {...}}`, the home source and, for every agent dispatched beside
+    the view, the plural noun for its entries as the user says it
+    (`{"linear": "issues", "github": "PRs", "circleci": "runs"}`); the line under the question
+    reads "Joining Linear issues to GitHub PRs and CircleCI runs" from it. Union:
+    `{"home": null, "entity": "cameras", "nouns": {...}}`, the thing the rows are as the user says
+    it beside the per-agent nouns; the line reads "Joining cameras across Aperture & Co, Northlight
+    and Fieldstone".
 
 - `{"gap": "<capability>"}` — a **capability gap**: something the utterance needs that no installed
   app serves, the platform included. Name the capability in a few plain words — it is the query the

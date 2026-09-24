@@ -21,9 +21,14 @@ export interface SourceDispatch {
   join?: JoinNouns;
 }
 
-/** The entity as each source calls it — `home` the source whose instances are the rows. */
+/**
+ * The entity as each source calls it. Anchored: `home` is the source whose instances are the rows.
+ * Union (task-8.7 decision 30): `home` is null and `entity` names the thing — the rows are every
+ * instance any source lists, entries of the same thing merged into one row.
+ */
 export interface JoinNouns {
-  home: string;
+  home: string | null;
+  entity?: string;
   nouns: Record<string, string>;
 }
 
@@ -121,12 +126,19 @@ export const LAYOUT_SURFACE_SCHEMA = {
                 additionalProperties: false,
                 required: ['home', 'nouns'],
                 description:
-                  '`shell` only, when the brief states a join hypothesis: the entity as each source calls it, for the line that says what is being joined.',
+                  '`shell` only, when the brief states a join hypothesis: its kind and the entity as each source calls it, for the line that says what is being joined.',
                 properties: {
                   home: {
+                    type: ['string', 'null'],
+                    minLength: 1,
+                    description:
+                      'Anchored: the home source, the app id whose instances are the rows. Union: null — the rows are every instance any agent lists, the same thing across agents merged into one row.',
+                  },
+                  entity: {
                     type: 'string',
                     minLength: 1,
-                    description: 'The home source: the app id whose instances are the rows.',
+                    description:
+                      'Union only, required when `home` is null: the plural noun for the thing the rows are, as the user says it — e.g. `cameras`.',
                   },
                   nouns: {
                     type: 'object',

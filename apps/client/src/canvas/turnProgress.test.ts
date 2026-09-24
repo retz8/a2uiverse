@@ -163,6 +163,29 @@ describe('turnProgress', () => {
     );
   });
 
+  it('a union join names the thing across the sources (task-8.7 decision 30)', () => {
+    const store = createCanvasStore();
+    store.beginPaint('“cameras” — generating…', 'utterance');
+    store.setRoster([
+      {
+        appId: 'shell',
+        displayName: 'Synthesis',
+        join: {home: null, entity: 'cameras', nouns: {'shop-a': 'cameras', 'shop-b': 'cameras'}},
+      },
+      {appId: 'shop-a', displayName: 'Aperture & Co'},
+      {appId: 'shop-b', displayName: 'Northlight'},
+    ]);
+    const text = () => turnProgress(store.getState()).merge?.text;
+    expect(text()).toBe('Joining cameras across Aperture & Co and Northlight');
+    store.placeFragment('shop-a', {surfaceId: 'shop-a:s', source: 'shop-a'});
+    // One arrived among peers: no home exemption, the other awaited.
+    expect(text()).toBe('Waiting for Northlight cameras, then joining');
+    store.placeFragment('shop-b', {surfaceId: 'shop-b:s', source: 'shop-b'});
+    store.placeFragment('shell', {surfaceId: 'shell:s', source: 'shell'});
+    store.setMerge({merged: ['shop-a', 'shop-b']});
+    expect(text()).toBe('Joined cameras across Aperture & Co and Northlight');
+  });
+
   it('under a join, the home source alone still loading: waiting for it, then joining', () => {
     const store = createCanvasStore();
     store.beginPaint('“status” — generating…', 'utterance');

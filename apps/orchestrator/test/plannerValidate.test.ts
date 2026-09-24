@@ -220,6 +220,19 @@ describe('the merged view’s columns and join (task-7.15)', () => {
     expect(check(joined())).toEqual([]);
   });
 
+  test('a union join names no home and the thing its rows are (task-8.7 decision 30)', () => {
+    const union = joined();
+    const shell = union.dispatch.find(d => !('gap' in d) && d.source === 'shell') as {
+      join: {home: string | null; entity?: string; nouns: Record<string, string>};
+    };
+    shell.join = {home: null, entity: 'cameras', nouns: shell.join.nouns};
+    expect(check(union)).toEqual([]);
+    shell.join = {home: null, nouns: shell.join.nouns};
+    expect(check(union).join('\n')).toContain(
+      '/join/entity: a union join (home null) names the thing',
+    );
+  });
+
   test('a vendor entry carries neither', () => {
     const doc = joined();
     doc.dispatch[0] = {

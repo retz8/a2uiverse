@@ -152,14 +152,24 @@ function columnMarkErrors(document: LayoutSurface, vendorSources: readonly strin
   return errors;
 }
 
-/** The merged view's join names its home and a noun for each dispatched vendor source, and nothing else. */
+/**
+ * The merged view's join names its kind — a home source among the dispatched, or null with the
+ * entity's noun for a union (task-8.7 decision 30) — and a noun for each dispatched vendor
+ * source, and nothing else.
+ */
 function joinErrors(document: LayoutSurface, vendorSources: readonly string[]): string[] {
   const i = document.dispatch.findIndex(entry => !isGap(entry) && entry.source === SHELL_SOURCE_ID);
   const shell = document.dispatch[i];
   if (shell === undefined || isGap(shell) || shell.join === undefined) return [];
-  const {home, nouns} = shell.join;
+  const {home, entity, nouns} = shell.join;
   const errors: string[] = [];
-  if (!vendorSources.includes(home)) {
+  if (home === null) {
+    if (entity === undefined || entity.trim() === '') {
+      errors.push(
+        `/dispatch/${i}/join/entity: a union join (home null) names the thing its rows are — the plural noun, as the user says it`,
+      );
+    }
+  } else if (!vendorSources.includes(home)) {
     errors.push(`/dispatch/${i}/join/home: '${home}' is not a dispatched source`);
   }
   for (const source of vendorSources) {

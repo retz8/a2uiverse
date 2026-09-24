@@ -118,12 +118,17 @@ export function shellPaintSlots(messages: readonly A2uiMessage[]): ShellPaintSlo
 /** The merged view's join nouns as painted — a home and string nouns — or nothing. */
 function joinNouns(raw: unknown): JoinNouns | undefined {
   if (typeof raw !== 'object' || raw === null) return undefined;
-  const {home, nouns} = raw as {home?: unknown; nouns?: unknown};
-  if (typeof home !== 'string' || typeof nouns !== 'object' || nouns === null) return undefined;
+  const {home, entity, nouns} = raw as {home?: unknown; entity?: unknown; nouns?: unknown};
+  if ((typeof home !== 'string' && home !== null) || typeof nouns !== 'object' || nouns === null)
+    return undefined;
   const entries = Object.entries(nouns).filter(
     (entry): entry is [string, string] => typeof entry[1] === 'string',
   );
-  return {home, nouns: Object.fromEntries(entries)};
+  return {
+    home: home ?? null,
+    ...(typeof entity === 'string' ? {entity} : {}),
+    nouns: Object.fromEntries(entries),
+  };
 }
 
 const PAINTED_STATES: readonly string[] = ['pending', 'failed', 'collapsed'];

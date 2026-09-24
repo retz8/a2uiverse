@@ -44,6 +44,8 @@ A claimed object's join is disclosed on its values by the shell's derived-value 
 
 The Planner's hypothesis names where the entity's instances come from; the merged view has one row per instance as that source paints it. Every other source attaches to a row or attaches to nothing. Unmatched entries in the other sources are not rows and stay visible in their vendor's fragment. A row missing an attachment shows the empty cell, a formula with no refs, disclosed as 0 of 0.
 
+*Amended by task 8.7 decision 30.* This is the anchored kind of hypothesis, stated when the question owns the entities through one source. A union hypothesis, stated when the question ranges over all of the things across the sources, has no home source: its rows are every instance any source lists, the same thing across sources merged into one row, an unmatched entry a row of its own.
+
 ### 8. Every derived-value cell navigates
 
 A tap on a derived-value cell focuses the element its ref names in that source's fragment. A cell over several sources goes to its winning contributor for a selector operator and to its first contributor otherwise, and every other source of a row is reached through its own values.

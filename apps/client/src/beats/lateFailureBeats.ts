@@ -170,7 +170,12 @@ interface VendorSlot {
 interface MergeSlot {
   state?: 'pending' | 'collapsed';
   declined?: {reason: string};
-  collapse?: {cause: 'home' | 'few' | 'unmade'; home?: string; answered?: string[]};
+  collapse?: {
+    cause: 'home' | 'few' | 'unmade';
+    home?: string;
+    answered?: string[];
+    failed?: Store[];
+  };
   merged?: Store[];
   late?: Store[];
   working?: {sources: Store[]};
