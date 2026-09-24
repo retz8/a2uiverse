@@ -157,7 +157,52 @@ Each surfaced by a sitting; fixed in the same session, with tests.
 - **The tunnel cut a silent turn at 100 s.** Decision 31. The live cap.
 - **A Retry's re-dispatch outlived its composition.** After the race was decided the re-dispatch's abort listener was dropped, so a new utterance ended the turn's own dispatches but left the retry's listening past its cap. It stays the composition's to end until it drains; a new utterance now cancels both, the log showing the turn's Gmail dispatch cancelled at 31 s and the Retry's at 2.7 s in. Case 12.
 
+## Evidence
+
+Deterministic bed: the real roster in deterministic mode through the tunnel, the orchestrator booted per case with the case's faults, the hard cap 15 s where a case needed it and 300 s otherwise, the soft deadline 10 s throughout. Live bed: the real roster in live mode, both deadlines at their defaults. Every case watched in the controlled browser by the reader.
+
+- **Case 1, a fast failure and Retry.** Calendar failed 2 ms in with the vendor's words; the merge landed over the three that arrived, "without Google Calendar"; Retry drew Calendar's fragment within 10 s and the fold-in landed with Calendar as a second group, the Synthesizer's note saying its times carry no date.
+- **Case 2, the cap and the held answer.** Under a 15 s cap with Gmail delayed 20 s: the soft deadline landed the merge without Gmail; the tile at the cap, "No answer within the time allowed."; the answer arriving 5 s later held, the tile unchanged; Retry drew it, the log saying "held answer drawn", no re-dispatch; the fold-in landed with Gmail's rows.
+- **Case 3, the Retry race.** Gmail delayed 90 s under the 15 s cap: Retry pressed with nothing held; the re-dispatch completed in 8 ms and the capped dispatch was cancelled at 30 s; the merge, released before the press and still in the making, landed without Gmail and the fold-in followed as one call.
+- **Case 4, a late arrival then Include.** Gmail delayed 25 s under the default cap arrived after the view had landed by the soft deadline, mounted free, the row and Include above the label; the fold-in took 20 s and rebuilt the view with Gmail's eight threads on the timeline.
+- **Case 5, the home source waiting.** Linear delayed 20 s on the entity join: the skeleton with Linear's columns marked loading, "Waiting for Linear issues, then joining", no release until Linear landed at 20 s, then "home"; the view landed with three rows once the column-mark fix was in (found and fixed, below); before it, the collapse as "couldn't be made" and Try again making the view.
+- **Case 6, the home source failing.** Linear failed 2 ms in; the merge collapsed at once with no call, zero attempts in the journal; Retry from the line or the tile brought it back, the view landing 12 s after the press.
+- **Case 7, fewer than two sources.** Gmail failing and Calendar, Linear and CircleCI refused: the collapse with no call; Retry all sent three Retries, Calendar's arrival made the merge over two, Gmail and Linear folded in together as one call, the journal showing both entries sharing one synthesis.
+- **Case 8, an undrawable paint.** GitHub's paint made invalid: before the fix the merge was made over GitHub's data and the report, at the turn's end 22 s later, left eight rows of dashes; after decisions 25 and 26 the report arrived a round trip after GitHub's stream ended, the merge in the making was thrown away and made again without it, the view landed with no trace of GitHub, the tile "Answered, but its screen couldn't be shown.", the strip clean.
+- **Case 9, a half-drawn fragment.** GitHub's stream broken after its first paint: the slot went from loading to "Couldn't be reached.", the half-drawn fragment never shown, the merge over the other three with no trace of GitHub.
+- **Case 10, the decline and Include after it.** Live on the mocks, "Compare camera prices and shipping costs across both shops" declined in one call, the reason in ink where the view was; Include after a decline on the synthetic beat through the tunnel, the press firing at its recorded time and the merge made over all three stores (decision 3, amended).
+- **Case 11, Try again and the failed fold-in.** Both on their synthetic beats through the tunnel: "The merged view couldn't be made." with Try again, the press making the view; the reserved column "Fieldstone · not included" with empty cells, the failed fold-in leaving the view as it was with "Couldn't include Fieldstone." and Include again.
+- **Case 12, a new utterance ending the turn.** Gmail delayed 90 s on every dispatch under a 15 s cap, Retry pressed at the cap, a new question 3 s later: both Gmail dispatches cancelled, the turn's at 31 s of listening past its cap and the Retry's at 2.7 s in (the second only after the fix below); the old composition's buttons disabled under the new question, the platform answer landing flush under its header.
+- **Regression, no faults.** The entity join anchored over three sources, the temporal merge over four, a single-agent turn to CircleCI alone, the platform answer with no dispatch, one call or none each; the mocks composing on the union question and declining on the policy one.
+- **Live, the soft deadline and a late arrival.** On the entity join with no fault: Linear settled at 28 s, CircleCI at 33 s, the soft deadline released the merge 10 s after CircleCI over the two; GitHub's first paint reached the orchestrator 0.3 s before the release but its stream ran until 75 s, so it arrived after the view and was offered; Include folded it in, the reserved Pull Request column filling in place, nothing moving.
+- **Live, the cancel.** A new question 9.9 s into the entity join: Linear and GitHub cancelled, the orchestrator's cancel sent to both, both vendors' logs showing the agent kit cancelling the running task.
+- **Live, the cap waited out.** Calendar delayed 330 s under the 300 s cap on the "today" prompt. The first attempt died at 160 s: the tunnel cut the silent stream at 100 s after the merge landed (decision 31). The second, with the heartbeat, held for the full five minutes with the strip clean: the tile at 300 s, Retry pressed 1.9 s before the answer arrived, the original's answer winning the race and drawn as the held answer, the re-dispatch cancelled with A2A's cancel to the live vendor, the fold-in landing with Calendar's four events on the timeline.
+- **Gates.** `pnpm verify` green at every commit; the repository typecheck green; Playwright's behavioural specs green, the visual baselines — local files, ignored by git as before — taken once at the end (decision 9), 60 of 60 green against them, each diff read first: the strip's text moving to Back's edge in every page baseline, the tile, the marker, the press rows, the table's first column and the reserved column where those changed.
+
+### The invariant, from the journal
+
+Every utterance turn's synthesis released by settled, the soft deadline or the home source at most once; every other call with a press behind it.
+
+| Case | Utterance turn | Further calls |
+|---|---|---|
+| 1 | settled | retry |
+| 2 | soft deadline | retry |
+| 3 | soft deadline | retry |
+| 4 | soft deadline | include |
+| 5 | home, malformed twice, then home once after the fix | tryAgain |
+| 6 | none, collapsed on the home source | retry |
+| 7 | none, collapsed for too few | retry (the merge), retry × 2 (one fold-in shared) |
+| 8 | settled, then thrown away and made again once (decision 25) | — |
+| 9 | settled | — |
+| 10 | settled, declined | — |
+| 12 | soft deadline | retry, ended by the new utterance |
+| Regression | settled × 2, none × 2 | — |
+| Live soft deadline | soft deadline | include |
+| Live cap | soft deadline | retry |
+
 ## Findings, not fixed
+
+- **A request through the tunnel is still sometimes lost.** Three utterances in the sittings showed "Planning" for 14 s where the orchestrator saw the message once, 4–7 s after it was typed: the first send lost, the 10 s resend from 7.9 landing. Two page loads through the tunnel rendered nothing until a reload. 7.9's finding, unchanged.
 
 - **The layout has no narrow-width rule.** The Planner's `Row` of slots is a flex row with weights that never wraps, and nothing in SPEC or the 7.14 design canvas sets a breakpoint, so on a narrow canvas the fragments share the width however narrow it gets. The rule that fits the design is a container query on the stage: below a width, a `Row` of slots stacks into a column in slot order, each fragment full width. It touches the shell catalog's `Row`, the reserved slots' floors and the design canvas, and is its own design pass with the canvas redrawn narrow. Raised on case 12 over the apps table.
 
