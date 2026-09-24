@@ -131,6 +131,19 @@ The status strip's sticky line is not lit by a fragment's validation failure or 
 
 The decline's reason, the Synthesizer's words and the one line on the canvas that is not the client's, is the whole answer to the merge the reader was promised, so it reads at body size in ink where the view was — not in the quiet register of an aside. It carries no press: Include only applies to a source arriving later, Try again to a view a failed call could not make, and a second call over the same answers would mostly decline again; the reader's next move is to ask differently, which the question header offers. The late sources' Include row stands under it as decision 21 has it; the working and waiting sentences stay quiet. Raised on case 10.
 
+### 28. The progress line takes no room when it has nothing to say
+
+On a platform answer, with no vendor dispatched and no merge, the progress line is not drawn at all, so the question header sits flush over the answer; it had kept its 20px and its margin empty. Raised on case 12.
+
+## Found and fixed during the run
+
+Each surfaced by a sitting; fixed in the same session, with tests.
+
+- **The progress line after a decline named a late source among what found nothing to join** (task 8.6's first finding). Fixed before the sittings: the sentence runs over the sources the decline was made over, a source that answered since said in its own clause.
+- **The Synthesizer wrote the Table's column marks as surface ids.** Twice on the deterministic roster it marked a column "linear:linear-9" where the check wants "linear", the prompt listing every source by its surface; the retry then failed the merge as unmade. A mark that is a surface id of a source in the composition is taken as that source and rewritten before the check. Case 5.
+- **An undrawable paint reached the merge.** Reported at the turn's end, 22 s after the source's stream ended, so the merge was made over the source's data and then lost it to rows of dashes. Decisions 25 and 26. Case 8.
+- **A Retry's re-dispatch outlived its composition.** After the race was decided the re-dispatch's abort listener was dropped, so a new utterance ended the turn's own dispatches but left the retry's listening past its cap. It stays the composition's to end until it drains; a new utterance now cancels both, the log showing the turn's Gmail dispatch cancelled at 31 s and the Retry's at 2.7 s in. Case 12.
+
 ## Findings, not fixed
 
 - **A join without a home source has no shape.** The merged view has two shapes: the peer merge, every source's entries on one axis with a Source column, and the entity join, one row per entity of one home source with the other sources attached by match claims. A question over the union of entities across sources — "all cameras across the three stores", one row per distinct camera anyone lists, a price per store — fits neither: a home source drops the other stores' unmatched entries, a peer merge gives one row per listing. A third shape, the union join, whose entity set is the union of matched entries across sources, touches the Planner's join hypothesis, the Synthesizer's brief and the match-claim rules, and is its own phase. Raised on case 11 over the camera beat, whose question "which of my cameras…" makes the home source right there.
