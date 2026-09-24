@@ -170,8 +170,10 @@ describe('Phase 8’s synthetic beats, up to their presses', () => {
   it('home-retry: the merge collapsed on its home source, the home source’s tile with Retry', async () => {
     const {slot} = await replay('home-retry-offered');
     expect(slot('shell')!.querySelector('[data-slot-collapse="home"]')).toHaveTextContent(
-      'Can’t join without Aperture & Co cameras.',
+      'The merged view needs Aperture & Co cameras, which didn’t load.',
     );
+    // The view's own Retry, beside the tile's: one press, two buttons (task-8.7 decision 23).
+    expect(within(slot('shell')!).getByRole('button', {name: 'Retry Aperture & Co'})).toBeEnabled();
     expect(stateOf(slot('shop-a'))).toBe('failed');
     expect(screen.getByText('Aperture & Co could not load your cameras.')).toBeInTheDocument();
     expect(screen.queryByText(/Aperture & Co said/)).toBeNull();

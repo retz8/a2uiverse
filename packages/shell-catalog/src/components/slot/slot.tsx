@@ -92,6 +92,7 @@ export function SlotView({
   content = 'fragment',
   columns,
   columnSources,
+  join,
   declined,
   collapse,
   late,
@@ -119,7 +120,7 @@ export function SlotView({
     if (button.ownerDocument.activeElement === button) focusLine.current = true;
     onPress?.(operation);
   };
-  const facts = {late, working, callFailed, retrying, declined, collapse};
+  const facts = {home: join?.home, late, working, callFailed, retrying, declined, collapse};
   const retry = source === undefined || shell ? undefined : retryStatus(presses, source);
 
   // The outcomes the progress line does not say, spoken politely from the slot; the region stands
@@ -429,7 +430,8 @@ export function failureStatement(failure: SlotFailure | undefined): string {
 export function collapseLine(collapse: SlotCollapse): string {
   switch (collapse.cause) {
     case 'home':
-      return `Can’t join without ${collapse.home ?? 'the home source'}.`;
+      // Said for the reader (task-8.7 decision 23): what the view needs and what happened to it.
+      return `The merged view needs ${collapse.home ?? 'the home source'}, which didn’t load.`;
     case 'few': {
       const answered = collapse.answered ?? [];
       return answered.length === 0
@@ -564,6 +566,7 @@ export function createSlotComponent(
         content={props.content}
         columns={props.columns}
         columnSources={props.columnSources}
+        join={props.join}
         declined={props.declined}
         collapse={props.collapse}
         late={props.late}

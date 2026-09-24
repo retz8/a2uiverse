@@ -363,7 +363,7 @@ test('schema takes a collapse cause with its names only where the cause has them
 
 test('the collapse line says why in the shell’s words, per cause', () => {
   expect(collapseLine({cause: 'home', home: 'Linear issues'})).toBe(
-    'Can’t join without Linear issues.',
+    'The merged view needs Linear issues, which didn’t load.',
   );
   expect(collapseLine({cause: 'few', answered: ['GitHub']})).toBe(
     'Only GitHub answered, so there’s nothing to merge.',
@@ -387,7 +387,9 @@ test('a merge collapsed for another cause is one line at the label row, like a d
   );
   const slot = container.querySelector('[data-slot="shell"]') as HTMLElement;
   expect(slot).toHaveAttribute('data-slot-state', 'collapsed');
-  expect(screen.getByText('Can’t join without Linear issues.')).toBeInTheDocument();
+  expect(
+    screen.getByText('The merged view needs Linear issues, which didn’t load.'),
+  ).toBeInTheDocument();
   expect(screen.queryByText('stale merged view')).not.toBeInTheDocument();
   const line = slot.querySelector('[data-slot-collapse="home"]') as HTMLElement;
   expect(line.style.height).toBe('24px');
@@ -509,10 +511,25 @@ test('on a collapsed merge: making, waiting, couldn’t be made with Try again, 
         {collapse: {cause: 'home', home: 'Linear issues'}},
         [],
         nameOf,
-        'Can’t join without Linear issues.',
+        'The merged view needs Linear issues, which didn’t load.',
       ),
     ),
-  ).toEqual(['Can’t join without Linear issues.']);
+  ).toEqual(['The merged view needs Linear issues, which didn’t load.']);
+});
+
+test('a collapse on the home source carries that source’s Retry on the line; pressed, the waiting sentence (task-8.7 decision 23)', () => {
+  const facts = {collapse: {cause: 'home' as const, home: 'Linear issues'}, home: 'linear'};
+  const line = 'The merged view needs Linear issues, which didn’t load.';
+  expect(collapsedLines(facts, [], nameOf, line)).toEqual([
+    {text: line, press: {label: 'Retry Linear', operation: {kind: 'retry', sources: ['linear']}}},
+  ]);
+  const sent: PressRecord = {operation: {kind: 'retry', sources: ['linear']}, status: 'sent'};
+  expect(collapsedLines(facts, [sent], nameOf, line)).toEqual([
+    {text: 'Waiting for Linear, then merging…', working: true},
+  ]);
+  // A retry of another source leaves the line and its press as they are.
+  const other: PressRecord = {operation: {kind: 'retry', sources: ['gmail']}, status: 'sent'};
+  expect(texts(collapsedLines(facts, [other], nameOf, line))).toEqual([line]);
 });
 
 test('under a decline’s line only, the late sources with Include', () => {

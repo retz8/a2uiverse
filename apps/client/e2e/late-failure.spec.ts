@@ -94,9 +94,12 @@ test('the home source failed: the merge collapses to its line, the fragments mov
   page,
 }) => {
   await landed(page, 'home-retry-offered');
-  await expect(page.locator(`${MERGE} [data-slot-collapse="home"]`)).toHaveText(
-    'Can’t join without Aperture & Co cameras.',
+  await expect(page.locator(`${MERGE} [data-slot-collapse="home"]`)).toContainText(
+    'The merged view needs Aperture & Co cameras, which didn’t load.',
   );
+  await expect(
+    page.locator(MERGE).getByRole('button', {name: 'Retry Aperture & Co'}),
+  ).toBeEnabled();
   await expect(page.locator(`${MERGE} tbody tr[data-skeleton-row]`)).toHaveCount(0);
   await expect(page).toHaveScreenshot('late-failure-home-collapsed.png');
 });

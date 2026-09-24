@@ -10,6 +10,8 @@ import type {SlotCallFailed, SlotCollapse} from './slot.schema.js';
 
 /** What the runtime paints on the shell `Slot` that the lines are drawn from. */
 export interface MergeFacts {
+  /** The join's home source, when the plan has one: the collapse on it carries its Retry. */
+  home?: string;
   late?: string[];
   working?: {sources: string[]};
   callFailed?: SlotCallFailed;
@@ -112,9 +114,11 @@ export function landedLines(
 
 /**
  * The lines on a collapsed merge: the working sentence while a press makes it, the waiting sentence
- * while a Retry that could bring it back runs, "couldn't be made" with Try again, else the decline's
- * reason or the cause's own line; under a decline's line, the late sources with Include. The
- * collapse line is the caller's — the reason, or the cause's words.
+ * while a Retry that could bring it back runs — or is pressed and not yet painted — "couldn't be
+ * made" with Try again, a collapse on the home source with that source's Retry on the line itself
+ * (task-8.7 decision 23), else the decline's reason or the cause's own line; under a decline's
+ * line, the late sources with Include. The collapse line is the caller's — the reason, or the
+ * cause's words.
  */
 export function collapsedLines(
   facts: MergeFacts,
@@ -126,6 +130,12 @@ export function collapsedLines(
   const sent = find(presses, 'sent', ['include', 'tryAgain']);
   const making = facts.working !== undefined || sent !== undefined;
   const retrying = facts.retrying ?? [];
+  const home = facts.collapse?.cause === 'home' && !facts.declined ? facts.home : undefined;
+  const homeRetrySent =
+    home !== undefined &&
+    presses.some(
+      p => p.status === 'sent' && p.operation.kind === 'retry' && p.operation.sources[0] === home,
+    );
   let first: PressLine | undefined;
   if (making) {
     first =
@@ -142,10 +152,20 @@ export function collapsedLines(
     first = lost
       ? {text: LOST_WORDS, announce: true}
       : {text: `Waiting for ${names(retrying)}, then merging…`, working: true};
+  } else if (homeRetrySent) {
+    // Drawn at the press, before the paint says `retrying` (task-8.5 decision 8).
+    first = {text: `Waiting for ${name(home)}, then merging…`, working: true};
   } else if (!facts.declined && facts.collapse?.cause === 'unmade') {
     first = {
       text: UNMADE_WORDS,
       press: {label: 'Try again', operation: {kind: 'tryAgain', sources: []}},
+    };
+  } else if (collapseLine && home !== undefined) {
+    // The view's own action: the same Retry the home source's tile carries, on the line where
+    // the view was, so the reader is not sent hunting for it.
+    first = {
+      text: collapseLine,
+      press: {label: `Retry ${name(home)}`, operation: {kind: 'retry', sources: [home]}},
     };
   } else if (collapseLine) {
     first = {text: collapseLine};
