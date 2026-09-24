@@ -356,8 +356,8 @@ function PressRows({
         >
           {line.working && <Spinner size="1" />}
           <Text
-            size={line.press ? '2' : '1'}
-            color={line.press ? undefined : 'gray'}
+            size={line.press || line.ink ? '2' : '1'}
+            color={line.press || line.ink ? undefined : 'gray'}
             tabIndex={-1}
             data-press-line=""
             ref={element => takeFocus(element, focusLine)}

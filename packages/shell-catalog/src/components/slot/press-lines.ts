@@ -24,6 +24,8 @@ export interface MergeFacts {
 export interface PressLine {
   text: string;
   working?: boolean;
+  /** Read at body size in ink though it carries no press: the decline's reason, the whole answer to the merge (task-8.7 decision 27). */
+  ink?: boolean;
   press?: {label: string; operation: CompositionOperation};
   /** Said politely from the slot: the outcomes the progress line does not say (decision 15). */
   announce?: boolean;
@@ -180,7 +182,7 @@ export function collapsedLines(
       },
     };
   } else if (collapseLine) {
-    first = {text: collapseLine};
+    first = {text: collapseLine, ...(facts.declined ? {ink: true} : {})};
   }
   const lines = first ? [first] : [];
   const late = facts.late ?? [];

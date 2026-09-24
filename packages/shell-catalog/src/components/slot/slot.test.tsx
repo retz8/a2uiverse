@@ -570,6 +570,9 @@ test('under a decline’s line only, the late sources with Include', () => {
     'Nothing lines up.',
   );
   expect(texts(lines)).toEqual(['Nothing lines up.', 'Gmail has answered since.']);
+  // The decline's reason is the whole answer to the merge: read in ink, with no press (task-8.7 decision 27).
+  expect(lines[0]).toMatchObject({ink: true});
+  expect(lines[0]).not.toHaveProperty('press');
   expect(lines[1]).toMatchObject({press: {label: 'Include Gmail', operation: {kind: 'include'}}});
   expect(
     texts(collapsedLines({declined: {reason: 'r'}, late: ['gmail', 'circleci']}, [], nameOf, 'r')),
