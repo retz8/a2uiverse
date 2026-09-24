@@ -26,7 +26,10 @@ test('the failure tile: the vendor’s words as its one statement, Retry; its co
   await landed(page, 'fast-failure-offered');
   const tile = slot(page, 'shop-c');
   await expect(tile).toHaveAttribute('data-slot-state', 'failed');
-  await expect(tile.locator('[data-slot-failure-line]')).not.toContainText('Fieldstone');
+  // The vendor's own words are the statement; the client adds no line naming the source above them.
+  await expect(tile.locator('[data-slot-failure-line]')).toHaveText(
+    'Fieldstone’s catalogue is being updated. Try again in a minute.',
+  );
   await expect(tile.getByRole('button', {name: 'Retry'})).toBeEnabled();
   await expect(tile.locator('[data-slot-failure-words]')).toHaveCount(0);
   await expect(page.locator(`${MERGE} [data-column-reserved="failed"]`)).not.toHaveCount(0);

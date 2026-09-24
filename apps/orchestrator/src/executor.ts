@@ -55,6 +55,12 @@ export interface OrchestratorDeps {
    * deadline; the AgentsPool enforces the cap; the journal records both per turn.
    */
   deadlines: {softMs: number; capMs: number};
+  /**
+   * The heartbeat (task-8.7 decision 31): a stream open with nothing sent for this long sends an
+   * empty working event, so a proxy's idle timeout — the dev tunnel cuts a silent response at
+   * 100 s — never ends a turn waiting on a slow source or the hard cap.
+   */
+  heartbeatMs: number;
 }
 
 /** An utterance turn from its arrival until its last dispatch ends: what a new utterance ends. */
@@ -149,6 +155,7 @@ export class OrchestratorExecutor implements AgentExecutor {
     if (this.#received.size > RECEIVED_IDS_KEPT) {
       this.#received.delete(this.#received.values().next().value as string);
     }
+    const stopHeartbeat = this.#heartbeat(ctx, bus);
     const turnKind = classifyTurn(ctx.userMessage);
     const startedAt = Date.now();
     logLine(
@@ -218,11 +225,48 @@ export class OrchestratorExecutor implements AgentExecutor {
       bus.publish(finalStatus(ctx, 'failed', message));
       await turn?.close('failed');
     } finally {
+      stopHeartbeat();
       bus.finished();
       logLine(
         `${outcome === 'completed' ? '✓' : '✗'} ${turnKind.kind} task=${ctx.taskId} ${outcome} ${elapsedMs(startedAt)} ms`,
       );
     }
+  }
+
+  /**
+   * The heartbeat on this request's stream (task-8.7 decision 31): every publish resets the
+   * clock; when it runs past the interval an empty working event goes out — no parts, no stamp,
+   * nothing the client paints — so bytes keep flowing while the turn waits. Stopped with the
+   * stream's end.
+   */
+  #heartbeat(ctx: RequestContext, bus: ExecutionEventBus): () => void {
+    const every = this.#deps.heartbeatMs;
+    if (!(every > 0)) return () => {};
+    const publish = bus.publish.bind(bus);
+    let last = Date.now();
+    bus.publish = event => {
+      last = Date.now();
+      publish(event);
+    };
+    const timer = setInterval(
+      () => {
+        if (Date.now() - last < every) return;
+        last = Date.now();
+        publish({
+          kind: 'status-update',
+          taskId: ctx.taskId,
+          contextId: ctx.contextId,
+          final: false,
+          status: {state: 'working', timestamp: new Date().toISOString()},
+        });
+      },
+      Math.max(50, Math.floor(every / 4)),
+    );
+    timer.unref?.();
+    return () => {
+      clearInterval(timer);
+      bus.publish = publish;
+    };
   }
 
   async cancelTask(taskId: string): Promise<void> {

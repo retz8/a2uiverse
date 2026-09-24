@@ -147,7 +147,10 @@ test('a question fragment is promoted in place, with the rest of the canvas dimm
   // The shell grants attention; it does not seize it. Promotion is plural, so it puts up no
   // modal of its own and no focus trap — the demand is announced instead.
   await expect(page.getByTestId('canvas-overlay')).toHaveCount(0);
-  await expect(page.getByRole('status')).toContainText('1 source needs your answer');
+  // The slots carry polite status regions of their own (task 8.5): the canvas's is the one that speaks here.
+  await expect(page.getByRole('status').filter({hasText: 'needs your answer'})).toContainText(
+    '1 source needs your answer',
+  );
   const shellModal = await page.evaluate(
     () =>
       [...document.querySelectorAll('[aria-modal="true"]')].filter(

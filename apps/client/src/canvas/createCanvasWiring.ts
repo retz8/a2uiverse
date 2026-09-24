@@ -89,6 +89,11 @@ export interface CanvasWiringOptions extends A2ASenderOptions {
   catalogs: Catalog<ReactComponentImplementation>[];
 }
 
+/** A turn whose stream dropped after it had answered, and one that never reached the orchestrator (task-8.7 decision 31). */
+export const LOST_TURN_WORDS =
+  'Lost the connection to A2UIVerse. Ask again to see where this stands.';
+export const UNREACHED_TURN_WORDS = 'That didn’t reach A2UIVerse. Ask again.';
+
 export function createCanvasWiring({
   serverUrl,
   client,
@@ -153,6 +158,10 @@ export function createCanvasWiring({
     forkContext?: ForkContext,
   ) => {
     const turn = startTurn(cause);
+    // A turn that answered and then lost its stream is said in the client's words, as a press
+    // is (task-8.7 decision 31); one that never reached the orchestrator likewise. The browser's
+    // own error text goes to the console.
+    let answered = false;
     try {
       await streamUserMessage(text, {
         getSender,
@@ -160,7 +169,13 @@ export function createCanvasWiring({
         session,
         getClientDataModel: () => dataModel ?? getClientDataModel(),
         signal: turn.signal,
-        onError: err => store.reportError(`The agent request failed. ${describeError(err)}`),
+        onFirstEvent: () => {
+          answered = true;
+        },
+        onError: err => {
+          console.error('[A2UI:a2a] turn failed', err);
+          store.reportError(answered ? LOST_TURN_WORDS : UNREACHED_TURN_WORDS);
+        },
         onAgentText: reportAgentText,
         forkContext,
         onPaintMeta: turn.acceptPaintMeta,

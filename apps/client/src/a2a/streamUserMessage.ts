@@ -41,6 +41,8 @@ export interface StreamUserMessageOptions {
   onPaintMeta?: (meta: PaintMeta) => void;
   /** The catalogs the client can render; advertised as `a2uiClientCapabilities` when given. */
   supportedCatalogIds?: string[];
+  /** Called once, on the stream's first event: the host tells a lost turn from one that never reached. */
+  onFirstEvent?: () => void;
 }
 
 /**
@@ -64,7 +66,14 @@ export async function streamUserMessage(
         opts.forkContext,
         opts.supportedCatalogIds,
       ),
-      {apply, session, onAgentText, signal, onPaintMeta: opts.onPaintMeta},
+      {
+        apply,
+        session,
+        onAgentText,
+        signal,
+        onPaintMeta: opts.onPaintMeta,
+        ...(opts.onFirstEvent ? {onFirstEvent: opts.onFirstEvent} : {}),
+      },
     );
   } catch (err) {
     if (signal?.aborted) return;

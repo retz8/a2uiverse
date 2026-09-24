@@ -54,6 +54,7 @@ async function boot(
     closeAfterInit?: AppId[];
     softDeadlineMs?: number;
     hardCapMs?: number;
+    heartbeatMs?: number;
     faults?: FaultMap;
   } = {},
 ) {
@@ -93,6 +94,7 @@ async function boot(
       synthesizerEffort: 'low',
       softDeadlineMs: options.softDeadlineMs ?? 10_000,
       hardCapMs: options.hardCapMs ?? 300_000,
+      heartbeatMs: options.heartbeatMs ?? 30_000,
       faults: options.faults ?? new Map(),
       agentsDir: undefined,
     },
@@ -1530,6 +1532,33 @@ describe('quiescence (task 8.10)', () => {
     await action.done;
     const events = await turn.done;
     expect(synthesizer.calls).toHaveLength(1);
+    expect(synthesisEvents(events)).toHaveLength(1);
+  });
+
+  test('a stream open and silent sends a heartbeat: an empty working event, nothing to paint (task-8.7 decision 31)', async () => {
+    const made = gate();
+    const synthesizer = new HeldSynthesizer([made.opened]);
+    const {client} = await boot({
+      planner: new FakePlanner(() => planWithSynthesis(['github', 'gmail'])),
+      synthesizer,
+      scripts: {github: shopScript(camerasA), gmail: shopScript(camerasB)},
+      heartbeatMs: 200,
+    });
+    const contextId = crypto.randomUUID();
+    const turn = streamOf(client, utterance('compare', contextId));
+    await until(() => synthesizer.calls.length === 1, 'the merge is being made');
+    const before = turn.events.length;
+    await wait(700);
+    const beats = turn.events
+      .slice(before)
+      .filter(e => e.kind === 'status-update' && e.status.state === 'working' && !e.final);
+    expect(beats.length).toBeGreaterThanOrEqual(2);
+    for (const beat of beats) {
+      expect((beat as {status: {message?: unknown}}).status.message).toBeUndefined();
+      expect(stampOf(beat)).toBeUndefined();
+    }
+    made.open();
+    const events = await turn.done;
     expect(synthesisEvents(events)).toHaveLength(1);
   });
 

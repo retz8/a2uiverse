@@ -89,6 +89,7 @@ export function buildOrchestrator({
     synthesizer,
     compositions,
     deadlines: {softMs: config.softDeadlineMs, capMs: config.hardCapMs},
+    heartbeatMs: config.heartbeatMs,
   });
   const requestHandler = new DefaultRequestHandler(card, new InMemoryTaskStore(), executor);
 

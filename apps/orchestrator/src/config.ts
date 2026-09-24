@@ -37,6 +37,12 @@ export interface Config {
   softDeadlineMs: number;
   /** The hard cap (`A2UIVERSE_HARD_CAP_SECONDS`, task-8.3 decision 2): from each dispatch to its slot failing. */
   hardCapMs: number;
+  /**
+   * The heartbeat (`A2UIVERSE_HEARTBEAT_SECONDS`, task-8.7 decision 31): an open stream that has
+   * sent nothing for this long sends an empty working event, so a proxy's idle timeout never cuts
+   * a turn waiting on a slow source.
+   */
+  heartbeatMs: number;
   /** The dev-only fault map (`A2UIVERSE_FAULTS`, task-8.3 decision 14); empty when unset. */
   faults: FaultMap;
 }
@@ -47,6 +53,8 @@ const DEFAULT_PORT = 10001;
 const DEFAULT_SHORTLIST_CAP = 5;
 export const DEFAULT_SOFT_DEADLINE_SECONDS = 10;
 export const DEFAULT_HARD_CAP_SECONDS = 300;
+/** The heartbeat on an open stream (task-8.7 decision 31): an empty working event after this much silence. */
+export const DEFAULT_HEARTBEAT_SECONDS = 30;
 
 export function loadConfig(env: Env = process.env): Config {
   const port = parsePort(env.PORT);
@@ -78,6 +86,11 @@ export function loadConfig(env: Env = process.env): Config {
       env.A2UIVERSE_HARD_CAP_SECONDS,
       'A2UIVERSE_HARD_CAP_SECONDS',
       DEFAULT_HARD_CAP_SECONDS,
+    ),
+    heartbeatMs: parseSeconds(
+      env.A2UIVERSE_HEARTBEAT_SECONDS,
+      'A2UIVERSE_HEARTBEAT_SECONDS',
+      DEFAULT_HEARTBEAT_SECONDS,
     ),
     faults: parseFaults(env.A2UIVERSE_FAULTS),
   };
