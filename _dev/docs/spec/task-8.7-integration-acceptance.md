@@ -77,6 +77,22 @@ The shell catalog's design-check fixture is updated in the same session as any c
 
 This spec gains: the design decisions made during the tour, numbered, each with what it replaced; found and fixed during the run, each with its case and its test; evidence per case, including the journal table of decision 8; findings not fixed. The TODO's 8.7 line is rewritten to this scope; 8.8's line accumulates what it is to record. The phase spec is amended only where a decision made during the run changes one of its locked decisions, marked as amended during the run; SPEC and its §14 delta register likewise where a design decision adds or changes a convention. The design records stay with 8.8, which reads this write-up.
 
+## The look, decided during the run
+
+Raised by the reader on the tour, each fixed on the spot and shown in its case (decision 6). Design decisions, not findings.
+
+### 16. The status strip's text starts on Back's left edge
+
+The strip is chrome, on the same level as Back, not content. Its text — the app's name, and the sticky error in its place — starts on Back's left edge, 12px in, not on the content column. Raised on case 1.
+
+### 17. The failure tile is one statement, then Retry
+
+The tile under a failed source's attribution marker draws one statement at body size in ink, then Retry. The statement is the vendor's own words when it spoke; otherwise the client's reason for the painted cause, with no name in it, since the marker above already says whose the tile is: "Couldn't be reached.", "No answer within the time allowed.", "Answered, but its screen couldn't be shown.", and "Couldn't answer." when the vendor ended without a word or no cause was painted. No client line above the words, no heading naming the vendor, and the plan's noun for the source is no longer said on the tile — the reserved column's header and the progress line's clause already say it. Amends phase decisions 7 and 8 and the delta register's failure-tile row. Raised on case 1: the name appeared four times in five lines.
+
+### 18. The attribution marker never says "Painted by"
+
+Full attribution on hover or focus is the app's name and its account label when one is in play. With no account, the hover adds nothing over the resting marker, so it only brightens; the marker's text and accessible name are the name alone, or "name · account". The info glyph stays: it is what tells the marker apart from a vendor's own caption. Raised on case 1.
+
 ## Invariants
 
 - Live verification drives tunnel URLs, never localhost.
