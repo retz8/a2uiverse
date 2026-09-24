@@ -55,7 +55,7 @@ The band reads "Parked · asked at HH:MM", with "Ask this again now" and "Return
 
 ### 11. The rail stays open
 
-The Trail button beside Back opens the rail as a drawer over the canvas, as board F5 draws it — nothing beneath it moves; the rail is 272px and grows 16px per lane the spine needs past its second, so the names keep their room however many branches there are. Picking an entry switches the view and closes the rail, since the drawer covers what the pick brought on screen; the rail also closes on its own icon, on the Trail button again, and on Escape. Entries group under day headers — "Today", "Yesterday", then the date. Closed, the canvas shows only Back — to the older neighbour by asked-at, disabled on the oldest, no Forward — and, on a past canvas, the banner.
+The Trail button beside Back opens the rail as a drawer over the canvas, as board F5 draws it — nothing beneath it moves; the rail is 272px and grows 16px per lane the spine needs past its second, so the names keep their room however many branches there are. Picking an entry switches the view and closes the rail, since the drawer covers what the pick brought on screen; the rail also closes on its own icon, on the Trail button again, on Escape, and on a click on the faint scrim over the page, which lands nowhere else. Entries group under day headers — "Today", "Yesterday", then the date. Closed, the canvas shows only Back — to the older neighbour by asked-at, disabled on the oldest, no Forward — and, on a past canvas, the banner.
 
 ### 12. Board F5 is followed as closely as the client can
 
