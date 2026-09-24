@@ -109,6 +109,10 @@ A row that carries a press — the late sources' line with Include, a failed fol
 
 Once the header has scrolled away, the one-line bar at the top edge carries the question and the progress line whenever the full header carries one, landed as well as running — "Joined … · Gmail not in this view yet" stays in view as the reader scrolls. It had dropped the line the moment the turn was over. SPEC §4.3's sentence and task 8.5 decision 11's compact-bar sentence follow. Raised on case 4, scrolling after Include.
 
+### 23. A merge collapsed on its home source carries that source's Retry on the line
+
+The collapse line for a failed home source reads for the reader, "The merged view needs Linear issues, which didn't load.", and is an action row under decision 21: it carries "Retry Linear", the same Retry operation the home source's tile carries, so the two buttons are one press drawn in sync. Pressed from either, the line becomes "Waiting for Linear, then merging…" at once and the tile its loading line. The other collapse lines keep their register: "Only GitHub answered, so there's nothing to merge." tells, since Retry is per source and each failed source has its tile; the decline's reason stays the Synthesizer's, quiet. The progress line's step keeps "Can't join without Linear issues" as its status vocabulary. Amends phase decision 12's one-line rule to the extent that the line carries a press, and task 8.5 decision 7. Raised on case 6: a first-time reader saw a table's skeleton vanish into a grey line in the shell's own words, the button that restores it on another slot.
+
 ## Invariants
 
 - Live verification drives tunnel URLs, never localhost.
