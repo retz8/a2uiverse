@@ -477,6 +477,22 @@ describe('the Table’s column marks (task-8.3 decision 13)', () => {
     );
   });
 
+  test('a mark written as a surface id of a source is taken as that source and rewritten to its app id (task-8.7, found on case 5)', () => {
+    const surfaces = {'shop-a:list': 'shop-a', 'shop-c:list': 'shop-c'};
+    const withSurfaces = {...checks(), columns: {...columns, surfaces}};
+    expect(checkSynthesis(tabled([null, 'shop-c:list']), withSurfaces)).toEqual([]);
+    const result = validateSynthesis(tabled([null, 'shop-c:list']), withSurfaces);
+    expect(result.ok).toBe(true);
+    const table = (result as {document: Synthesis}).document.tree.components.find(
+      c => c.id === 'table',
+    ) as {columnSources?: (string | null)[]};
+    expect(table.columnSources).toEqual([null, 'shop-c']);
+    // A surface of no source in this composition is still refused.
+    expect(checkSynthesis(tabled([null, 'shop-z:list']), withSurfaces)).toContain(
+      "/tree (table): Table.columnSources[1] is 'shop-z:list', not a source of this composition",
+    );
+  });
+
   test('a column the plan marked to a missing source is kept, marked to it', () => {
     expect(checkSynthesis(tabled([null, 'shop-a']), {...checks(), columns})).toEqual([
       "/tree: the plan marks 'At C' to shop-c, which has no data in this view; keep that column in the Table, marked to shop-c in columnSources, with the empty cell in each row",

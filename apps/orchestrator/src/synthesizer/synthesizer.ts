@@ -182,6 +182,7 @@ function columnChecks(input: SynthesisInput): SynthesisChecks['columns'] {
       source: input.columnSources?.[i] ?? null,
     })),
     missing: (input.missing ?? []).map(source => source.appId),
+    surfaces: Object.fromEntries(input.sources.map(source => [source.surface, source.appId])),
   };
 }
 

@@ -50,6 +50,11 @@ export interface SynthesisChecks {
     sources: readonly string[];
     planned: readonly {header: string; source: string | null}[];
     missing: readonly string[];
+    /**
+     * Each source's surface, by surface id: a mark written as a surface id names its source
+     * unambiguously, so it is taken as that source and rewritten (task-8.7, found on case 5).
+     */
+    surfaces?: Readonly<Record<string, string>>;
   };
 }
 
@@ -113,7 +118,9 @@ function treeErrors(tree: SynthesisTree, validator: A2uiValidator): string[] {
 /**
  * The Table's column marks (task-8.3 decision 13): one per column, each a source of this
  * composition or null; and every column the plan marked to a source missing from this synthesis
- * kept, marked to it, so the reserved column holds its place until the source is included.
+ * kept, marked to it, so the reserved column holds its place until the source is included. A
+ * mark written as one of the sources' surface ids — the prompt lists every source by its surface,
+ * and the model reaches for that name — is rewritten in place to the source's id (task 8.7).
  */
 function columnErrors(tree: SynthesisTree, columns: SynthesisChecks['columns']): string[] {
   const errors: string[] = [];
@@ -129,6 +136,10 @@ function columnErrors(tree: SynthesisTree, columns: SynthesisChecks['columns']):
       );
     }
     columnSources.forEach((mark, i) => {
+      if (typeof mark === 'string' && columns?.surfaces?.[mark] !== undefined) {
+        mark = columns.surfaces[mark]!;
+        columnSources[i] = mark;
+      }
       if (typeof mark === 'string') kept.add(mark);
       if (typeof mark === 'string' && columns && !columns.sources.includes(mark)) {
         errors.push(
