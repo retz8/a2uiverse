@@ -1,7 +1,7 @@
 /**
  * The header condensed: nothing while the full header is in view; once it has scrolled out, the
- * question on one line, the progress beside it while the turn runs, and the way back into the
- * palette.
+ * question on one line, the progress line beside it whenever the full header carries one, and
+ * the way back into the palette.
  */
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 import {act, fireEvent, screen} from '@testing-library/react';
@@ -74,10 +74,10 @@ describe('CompactHead', () => {
     expect(screen.queryByTestId('canvas-compact-head')).toBeNull();
   });
 
-  it('after the turn lands it carries the question alone, which opens the palette with it', () => {
+  it('after the turn lands it keeps the progress line beside the question, which opens the palette with it (task-8.7 decision 22)', () => {
     const {onEdit} = setup(false);
     act(() => report?.(false));
-    expect(screen.queryByTestId('canvas-progress-compact')).toBeNull();
+    expect(screen.getByTestId('canvas-progress-compact')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', {name: question.text}));
     expect(onEdit).toHaveBeenCalledWith(question.text);
   });

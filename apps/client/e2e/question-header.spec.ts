@@ -97,8 +97,8 @@ test('scrolled past the header, the condensed bar holds the question; back at th
   const bar = page.getByTestId('canvas-compact-head');
   await expect(bar).toBeVisible();
   await expect(bar.getByRole('button', {name: UTTERANCE})).toBeVisible();
-  // The turn has landed: the bar carries the question alone.
-  await expect(page.getByTestId('canvas-progress-compact')).toHaveCount(0);
+  // The turn has landed: the bar keeps the progress line, in the past tense (task-8.7 decision 22).
+  await expect(page.getByTestId('canvas-progress-compact')).toContainText('Joined');
   // Nothing beneath moved for it: the page scrolled by exactly what was asked.
   expect(Math.round(before - (await firstSlot.boundingBox())!.y)).toBe(400);
   expect((await bar.boundingBox())!.y).toBe(0);

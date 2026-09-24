@@ -69,7 +69,7 @@ A parked composition draws its press buttons disabled, its lines as captured.
 
 ### 10. The per-source ticks
 
-A source's step is ✓ once it has arrived, a late arrival included; ✕ while painted failed; the spinner while painted pending with nothing placed, or while its own Retry is pressed or running, whether or not the turn is in flight. The compact bar shows the progress line while the turn or any press runs.
+A source's step is ✓ once it has arrived, a late arrival included; ✕ while painted failed; the spinner while painted pending with nothing placed, or while its own Retry is pressed or running, whether or not the turn is in flight. The compact bar shows the progress line whenever the full header does, running or landed (amended by task 8.7 decision 22).
 
 ### 11. The merge step
 

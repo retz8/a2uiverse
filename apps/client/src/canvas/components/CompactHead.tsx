@@ -1,14 +1,14 @@
 /**
  * The header condensed: once the question and its progress line have scrolled out of the page,
  * a one-line bar holds the top edge — the question cut to one line, the progress line beside it
- * while the turn or a press runs — so what the screen answers, and where the turn stands, follow the reader
- * down without the full header taking its room at every scroll position. The bar hangs from a
- * zero-height sticky anchor, so showing it moves nothing beneath. Clicking the question opens the
- * palette with it, as the full header does.
+ * whenever the full header carries one, running or landed (task-8.7 decision 22) — so what the
+ * screen answers, and where the turn stands, follow the reader down without the full header
+ * taking its room at every scroll position. The bar hangs from a zero-height sticky anchor, so
+ * showing it moves nothing beneath. Clicking the question opens the palette with it, as the full
+ * header does.
  */
 import {useEffect, useState, type RefObject} from 'react';
 import type {CanvasState, Question} from '../canvasStore';
-import {running as composing} from '../turnProgress';
 import {ProgressLine} from './ProgressLine';
 
 export interface CompactHeadProps {
@@ -17,7 +17,7 @@ export interface CompactHeadProps {
   head: RefObject<HTMLElement | null>;
   question: Question | null;
   state: CanvasState;
-  /** The progress line belongs to the live turn: shown while it, or a press beside it, runs. */
+  /** The progress line belongs to the live turn: shown whenever the full header shows it. */
   showProgress: boolean;
   onEdit: (text: string) => void;
 }
@@ -53,11 +53,10 @@ export function CompactHead({
   showProgress,
   onEdit,
 }: CompactHeadProps) {
-  const running = showProgress && composing(state);
-  const past = useScrolledPast(scroller, head, question !== null || running);
+  const past = useScrolledPast(scroller, head, question !== null || showProgress);
   return (
     <div className="canvas-compact-anchor">
-      {past && (question || running) && (
+      {past && (question || showProgress) && (
         <div className="canvas-compact" data-testid="canvas-compact-head">
           {question && (
             <button
@@ -69,7 +68,7 @@ export function CompactHead({
               {question.text}
             </button>
           )}
-          {running && <ProgressLine state={state} since={question?.askedAt ?? null} compact />}
+          {showProgress && <ProgressLine state={state} since={question?.askedAt ?? null} compact />}
         </div>
       )}
     </div>
