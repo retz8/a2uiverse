@@ -29,6 +29,8 @@ The deterministic bed runs a shortened hard cap for the cases that need the cap,
 
 The decline, and Include after it, are provoked live on the mock storefronts' pinned decline utterance from Phase 4, with a delay fault on one storefront so a source arrives after the decline. Try again and the failed fold-in are not provoked live: their synthetic beats are replayed through the tunnel, and the write-up says so. No fault is added for the Synthesizer's call.
 
+*Amended during the run.* The mock roster has two storefronts, and among two peers a merge is possible only once both have arrived, so a delayed storefront holds the merge and is declined with the other rather than arriving after the decline. The decline is provoked live on the mocks with "Compare camera prices and shipping costs across both shops"; Include after a decline joins Try again and the failed fold-in on the synthetic beats replayed through the tunnel.
+
 ### 4. The soft deadline live
 
 The soft deadline is first left to fire on its own over the entity join with no fault. If every source settles inside it, a delay fault on one peer provokes it, and the write-up says which happened.
@@ -124,6 +126,10 @@ The orchestrator marks the end of each fragment source's stream: one event after
 ### 26. The strip does not carry a fragment's failure
 
 The status strip's sticky line is not lit by a fragment's validation failure or structural failure: the tile in that source's slot says it, in the reader's words, and the validator's message goes to the console. The strip keeps its line for a failure no slot carries. Closes the second finding task 8.6 left. Raised on case 8.
+
+### 27. The decline's reason reads in ink, with no press
+
+The decline's reason, the Synthesizer's words and the one line on the canvas that is not the client's, is the whole answer to the merge the reader was promised, so it reads at body size in ink where the view was — not in the quiet register of an aside. It carries no press: Include only applies to a source arriving later, Try again to a view a failed call could not make, and a second call over the same answers would mostly decline again; the reader's next move is to ask differently, which the question header offers. The late sources' Include row stands under it as decision 21 has it; the working and waiting sentences stay quiet. Raised on case 10.
 
 ## Invariants
 
