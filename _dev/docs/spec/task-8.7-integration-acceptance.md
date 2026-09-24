@@ -131,6 +131,10 @@ The status strip's sticky line is not lit by a fragment's validation failure or 
 
 The decline's reason, the Synthesizer's words and the one line on the canvas that is not the client's, is the whole answer to the merge the reader was promised, so it reads at body size in ink where the view was — not in the quiet register of an aside. It carries no press: Include only applies to a source arriving later, Try again to a view a failed call could not make, and a second call over the same answers would mostly decline again; the reader's next move is to ask differently, which the question header offers. The late sources' Include row stands under it as decision 21 has it; the working and waiting sentences stay quiet. Raised on case 10.
 
+## Findings, not fixed
+
+- **A join without a home source has no shape.** The merged view has two shapes: the peer merge, every source's entries on one axis with a Source column, and the entity join, one row per entity of one home source with the other sources attached by match claims. A question over the union of entities across sources — "all cameras across the three stores", one row per distinct camera anyone lists, a price per store — fits neither: a home source drops the other stores' unmatched entries, a peer merge gives one row per listing. A third shape, the union join, whose entity set is the union of matched entries across sources, touches the Planner's join hypothesis, the Synthesizer's brief and the match-claim rules, and is its own phase. Raised on case 11 over the camera beat, whose question "which of my cameras…" makes the home source right there.
+
 ## Invariants
 
 - Live verification drives tunnel URLs, never localhost.
