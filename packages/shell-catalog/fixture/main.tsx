@@ -232,6 +232,39 @@ function SlotMatrix() {
         <SlotView source="github" state="failed" label="GitHub" />
       </div>
       <div>
+        the way back (task 9.5): a back arrow with somewhere to go, back and forward after a back, a
+        neighbour the agent did not name, and disabled where no press can be made:
+        <AttributionView
+          displayName="GitHub"
+          appId="github"
+          history={{back: {step: 0, title: 'Open pull requests'}}}
+          onPress={logPress}
+        />
+        <AttributionView
+          displayName="GitHub"
+          appId="github"
+          history={{
+            back: {step: 0, title: 'Open pull requests'},
+            forward: {step: 2, title: 'PR #42'},
+          }}
+          onPress={logPress}
+        />
+        <AttributionView
+          displayName="Linear"
+          appId="linear"
+          history={{back: {step: 0}, forward: {step: 2}}}
+          onPress={logPress}
+        />
+        <PressStateContext.Provider value={{enabled: false, presses: []}}>
+          <AttributionView
+            displayName="GitHub"
+            appId="github"
+            history={{back: {step: 0, title: 'Open pull requests'}}}
+            onPress={logPress}
+          />
+        </PressStateContext.Provider>
+      </div>
+      <div>
         <SlotView source="shell" content="shell" label="Synthesis" />
       </div>
       <div>

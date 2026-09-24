@@ -20,7 +20,7 @@ import {ChoicePickerComponent} from './components/choice-picker/index.js';
 import {SliderComponent} from './components/slider/index.js';
 import {DateTimeInputComponent} from './components/date-time-input/index.js';
 import {createSlotComponent, type PressHandler} from './components/slot/index.js';
-import {AttributionComponent} from './components/attribution/index.js';
+import {createAttributionComponent} from './components/attribution/index.js';
 import {
   type AppDisplayName,
   createDerivedValueComponent,
@@ -80,7 +80,7 @@ export const BASIC_IMPLEMENTATIONS: readonly ReactComponentImplementation[] = [
  * The shell's own primitives — composition, synthesis and the merged view's shapes — also on
  * Radix Themes. `Slot` is bound to the host's shell-action and press handlers and its app names:
  * its capability tile raises `openStore`, its failure tile and the merged view's lines the reader's
- * presses. `DerivedValue` is bound to the host's navigation handler and app names (task-7.5
+ * presses. `Attribution` is bound to the press handler too: its arrows raise the step (task 9.5). `DerivedValue` is bound to the host's navigation handler and app names (task-7.5
  * decisions 11, 13). Layout is the basic catalog's `Row` and `Column` (task-6.4 decision 4).
  */
 function shellImplementations({
@@ -91,7 +91,7 @@ function shellImplementations({
 }: CreateCatalogOptions): ReactComponentImplementation[] {
   return [
     createSlotComponent(onShellAction, {onPress, appDisplayName}),
-    AttributionComponent,
+    createAttributionComponent({onPress}),
     createDerivedValueComponent({onNavigate, appDisplayName}),
     SortControlComponent,
     TableComponent,
@@ -105,8 +105,9 @@ export interface CreateCatalogOptions {
   /** What the host does when a shell surface raises `openStore` or `openAppLibrary`. */
   onShellAction: ShellActionHandler;
   /**
-   * What the host does when the reader presses Retry, Include or Try again: send the composition
-   * operation. Without it, no press button is drawn (task-8.5 decision 5).
+   * What the host does when the reader presses Retry, Include or Try again, or a fragment's back
+   * or forward arrow (task 9.5): send the composition operation. Without it, no press button and
+   * no arrow is drawn (task-8.5 decision 5).
    */
   onPress?: PressHandler;
   /**

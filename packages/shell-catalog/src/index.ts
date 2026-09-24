@@ -24,6 +24,12 @@ export {PortalRootContext, Provider} from './provider.js';
 export {SlotContentContext, type SlotContentResolver} from './slot-content.js';
 export {SlotStateContext, type SlotStateResolver, type SourceSlotState} from './slot-state.js';
 export {
+  FragmentHistoryContext,
+  type FragmentHistory,
+  type FragmentHistoryResolver,
+  type HistoryStep,
+} from './fragment-history.js';
+export {
   PressStateContext,
   type PressRecord,
   type PressState,
