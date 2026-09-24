@@ -31,7 +31,7 @@ The truncated question is the entry's label from the send. The Planner's title, 
 
 ### 5. The parent on every question, "from" only on a branch
 
-Every opening utterance carries the viewed canvas as its parent; only the session's first question, asked on an empty canvas, is a root. The opening utterance carries no client data model. The trail draws "from HH:MM" only when the parent is not the entry's chronological predecessor — a real branch. The mark names the parent by its time, carries the parent's title for hover and assistive technology, and views the parent while it stands; once the parent is closed it is plain text.
+Every opening utterance carries the viewed canvas as its parent; only the session's first question, asked on an empty canvas, is a root. The opening utterance carries no client data model. A real branch — an entry whose parent is not its chronological predecessor — is annotated by the spine's line into its parent and a branch glyph in its meta line, no time: the glyph names the parent's title on hover and for assistive technology, and hovering it lights the parent's row; once the parent is closed it says so.
 
 ### 6. The loading mark follows the running predicate
 
@@ -45,9 +45,9 @@ On a past canvas the banner's button sends the canvas's question verbatim as a n
 
 The close on an entry shows on hover and focus. The click sends the close operation on the canvas's context, aborts every stream on the canvas, drops its runtime and its entry, with no confirmation. Closing the viewed canvas goes to live; closing live makes the newest remaining canvas live and shows it; closing the last canvas leaves an empty canvas with the palette open.
 
-### 9. The preview is a scaled second mount with a caption
+### 9. The preview is a scaled second mount with the canvas's progress line
 
-On hover or focus of an entry the canvas's shell surface is mounted a second time from its own runtime, in an inert box scaled down, pointer events off. Beneath it one line per source names its current paint's title from the vendor's `paintMeta`, which is also the text assistive technology gets. One preview exists at a time, torn down when the pointer leaves; the entry being viewed gets none.
+On hover or focus of an entry the canvas's shell surface is mounted a second time from its own runtime, in an inert box scaled down, pointer events off. Beneath it, one line: the canvas's own progress line — the words under its question, where that canvas got to — which is also the preview's accessible name. No list of sources or paint titles. One preview exists at a time, torn down when the pointer leaves; the entry being viewed gets none.
 
 ### 10. One time, on the banner
 
@@ -55,11 +55,11 @@ The band reads "Parked · asked at HH:MM", with "Ask this again now" and "Return
 
 ### 11. The rail stays open
 
-The Trail button beside Back opens the rail over the canvas as board F5 draws it. Picking an entry switches the view under it and leaves the rail open; it closes on its own icon, on the Trail button again, and on Escape. Entries group under day headers — "Today", "Yesterday", then the date. Closed, the canvas shows only Back — to the older neighbour by asked-at, disabled on the oldest, no Forward — and, on a past canvas, the banner.
+The Trail button beside Back opens the rail as a drawer over the canvas, as board F5 draws it — nothing beneath it moves; the rail is 272px and grows 16px per lane the spine needs past its second, so the names keep their room however many branches there are. Picking an entry switches the view and closes the rail, since the drawer covers what the pick brought on screen; the rail also closes on its own icon, on the Trail button again, and on Escape. Entries group under day headers — "Today", "Yesterday", then the date. Closed, the canvas shows only Back — to the older neighbour by asked-at, disabled on the oldest, no Forward — and, on a past canvas, the banner.
 
 ### 12. Board F5 is followed as closely as the client can
 
-The rail, its entries and marks, the band and the Trail button follow board F5's drawing — its layout, words and placement — as closely as the client can, departing only where a phase decision says otherwise (the banner's time, the close per entry, the loading mark).
+The rail, its entries and marks, the band and the Trail button follow board F5's drawing — its layout, words, icons and placement — as closely as the client can, departing only where a phase decision says otherwise (the banner's time, the close per entry, the loading mark). The trail's branching is drawn as F5 draws it: a spine beside the entries, newest first with live at the top — a node per entry, the live one filled with a halo, the viewed one filled, the rest rings — each entry's line running down to its parent's node, a branch in a lane of its own curving into the canvas it was asked from. The viewed canvas's lineage is drawn in ink, the rest in the faint grey; hovering a "from" mark lights its parent's row. The node column is 48px and the row's highlight covers the names alone, 8px inside it. The Trail button's icon is a branch; the rail closes on a close icon.
 
 ### 13. A new utterance ends nothing
 
