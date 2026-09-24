@@ -93,6 +93,14 @@ The tile under a failed source's attribution marker draws one statement at body 
 
 Full attribution on hover or focus is the app's name and its account label when one is in play. With no account, the hover adds nothing over the resting marker, so it only brightens; the marker's text and accessible name are the name alone, or "name · account". The info glyph stays: it is what tells the marker apart from a vendor's own caption. Raised on case 1.
 
+### 19. The pending slot is a spinner and "Loading…"
+
+A fragment slot waiting for its source, before the first answer or again from Retry, draws a small spinner and "Loading…" in the quiet register, naming nobody: the attribution marker above it says whose the slot is. Raised on case 2: the line read "Gmail…" directly under a marker reading "Gmail".
+
+### 20. The merge step says what the client knows before the view lands
+
+The orchestrator paints nothing when the soft deadline releases the synthesis, so the step never claims to know whether a straggler will make it. Until a merge is possible — two sources arrived, the home source among them under a join — it reads "Waiting for X and Y, then joining", the sources still awaited in slot order, a failed one not among them. From then it reads "Joining A, B and C" over the arrived sources, then one clause per source not yet in: "X still loading", or for a failed one "no X to join" with a noun and "without X" without, the same clauses the landed form carries. Amends task 8.5 decision 11's first two rows. Raised on case 2: the step read "Joining Google Calendar, Gmail, GitHub and Linear" while the merge was being made over three.
+
 ## Invariants
 
 - Live verification drives tunnel URLs, never localhost.
