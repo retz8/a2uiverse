@@ -98,6 +98,9 @@ export function ProgressLine({state, since, compact}: ProgressLineProps) {
   const progress = turnProgress(state);
   const planning = progress.working?.kind === 'planning';
   const elapsed = useElapsed(since, planning);
+  // Nothing to say — a platform answer, no vendor dispatched — takes no room under the question
+  // (task-8.7 decision 28).
+  if (!progress.working && progress.sources.length === 0 && !progress.merge) return null;
   return (
     <div
       className={compact ? 'canvas-progress canvas-progress--compact' : 'canvas-progress'}

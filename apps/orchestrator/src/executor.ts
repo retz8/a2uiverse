@@ -697,7 +697,9 @@ export class OrchestratorExecutor implements AgentExecutor {
     }
     const winner = await Promise.race(contenders);
     if (race && slot.race === race) delete slot.race;
-    signal.removeEventListener('abort', abort);
+    // The re-dispatch may listen past its cap after the race is decided: it stays the
+    // composition's to end until it drains, so a new utterance cancels it too (task 8.7).
+    void run.drained.finally(() => signal.removeEventListener('abort', abort));
     if ('original' in winner) {
       handle.record.race = 'lost';
       lost.abort();

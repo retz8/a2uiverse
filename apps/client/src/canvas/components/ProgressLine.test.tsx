@@ -73,9 +73,9 @@ describe('ProgressLine', () => {
     );
   });
 
-  it('a platform answer, no vendor dispatched: the line is empty', () => {
+  it('a platform answer, no vendor dispatched: no line, no room taken (task-8.7 decision 28)', () => {
     const store = createCanvasStore();
     renderWithShell(<ProgressLine state={store.getState()} since={null} />);
-    expect(screen.getByTestId('canvas-progress')).toBeEmptyDOMElement();
+    expect(screen.queryByTestId('canvas-progress')).toBeNull();
   });
 });
