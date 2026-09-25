@@ -70,6 +70,10 @@ This spec gains: the design decisions made during the tour, numbered, each with 
 
 Each fragment's paint carries the time it landed on its slot; a step back shows the older paint's own time. The attribution marker shows it after the name and the account on hover and focus, and its accessible name always carries it; at rest the marker is the name alone. Replaced: the time after the name at rest, drawn at the start of case 1 under decision 2, the same stamp on every fragment. Raised on case 1.
 
+### 14. A past canvas keeps its colors
+
+A past canvas's page is drawn as the live one is; the parked band, the trail's Viewing mark and Return to live say it is past. Replaced: the page drawn in grayscale after board F5 (task 9.6). Raised on case 2.
+
 ## Invariants
 
 - Live verification drives tunnel URLs, never localhost.
