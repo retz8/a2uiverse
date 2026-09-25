@@ -1,6 +1,6 @@
 # A2UIVerse — Project Spec
 
-> **A2UIVerse = A2UI + Universe.** The application ecosystem for A2UI agents. A2UI defines how agents describe user interfaces; A2UIVerse defines how those interfaces become composable applications — agents as first-class, composable application primitives that can be packaged, discovered, installed, orchestrated, and composed into interactive experiences.
+> **A2UIVerse = A2UI + Universe.** The application ecosystem for A2UI agents, built as a **semantic application runtime** on A2UI and A2A: it composes independently-owned agent UIs into one persistent, interactive application. A2UI defines how an agent paints an application; A2UIVerse defines how applications understand and compose one another — agents as first-class, composable application primitives that can be packaged, discovered, installed, orchestrated, and composed into interactive experiences.
 
 ## 1. What this is
 
@@ -15,7 +15,7 @@ No SSM/OS work is in scope. The lower layers survive as an intent journal and a 
 
 ### Differentiator
 
-**Cross-agent UI composition.** Multiple agents, each in its own design system, painted into one surface with a shell-authored synthesis surface over their data. This is the first-class citizen; everything else serves it.
+**Semantic composition across independently-owned applications.** The unit of composition is not the component but the relationship between independently-owned application states. Multiple agents, each in its own design system and owning its own UI and data, are painted into one surface, and the shell authors a synthesis surface over the relationships between their data: a Linear issue, its GitHub pull request and its CircleCI run joined as one work item, not three panes side by side. This is the first-class citizen; everything else serves it.
 
 Composition spectrum:
 
@@ -26,7 +26,25 @@ L0 single surface   L1 tiled          L2 fragment graft        L3 deep merge
                                        ← target                ← ruled out
 ```
 
-L3 is ruled out permanently. Anything L3 would have served is served by the synthesis surface instead.
+L3 is ruled out permanently. Anything L3 would have served is served by the synthesis surface instead: **semantic composition, not component-ownership composition.** At L2 every fragment's tree, design system, data, events and lifecycle stay with the agent that owns them; the shell composes what their states mean together.
+
+### Shape of the runtime
+
+```
+intent ─▶ Planner ◆ ─▶ agents, in parallel ─▶ partitions: each agent's UI and data, isolated
+                                                   │
+                                   Synthesizer ◆ ◀─┘   semantic composition: which entries are one thing
+                                        │
+                              synthesize data model    the composition's IR: refs · formulas · relations · tree · sorts
+                                        │
+                                   validator ▪
+                                        │
+                         deterministic runtime ▪      bind · evaluate · sort · navigate · isolate · history · replay
+                                        │
+                              one live application
+```
+
+◆ a model call, ▪ deterministic. Models answer what needs meaning; the runtime holds every invariant (axiom 5). The Synthesizer's output is an intermediate representation, not UI: authored by a model, checked against a closed vocabulary, interpreted deterministically (§5.2).
 
 ---
 
@@ -36,6 +54,7 @@ L3 is ruled out permanently. Anything L3 would have served is served by the synt
 2. **Open semantics, thin closed projection.** Free-form wherever an LLM is the reader; tiny fixed vocabularies only where deterministic code must act.
 3. **Replace pre-agreement with understanding.** No pre-declared schemas, no intent taxonomies, no per-app integration code, no shell token contract imposed on apps. The shell understands what flows through it at composition time. Understanding is expensive so it runs once; arithmetic is cheap so it runs always.
 4. **Trusted pixels.** Any UI that grants authority is deterministic shell UI, never generated. Browsing is rich; consent is boring. This is a distinct pattern from 1–3: not bounded generation, but no generation.
+5. **Models for meaning, software for invariants.** A model is called only where understanding is required: choosing the apps and the layout (the Planner), relating entries across apps (the Synthesizer). Everything that must hold every time (validation, isolation, binding, evaluation, sorting, navigation, history, replay) is deterministic code. The model writes wiring, never values (§5.2).
 
 ---
 
@@ -157,6 +176,8 @@ t8  ▪ steady state, forever: BindingEvaluator on local change; IntegrityChecke
 
 The Synthesizer emits the **synthesize data model** — the data model for a2ui composition — as **wiring, never values**. It authors it the way an agent authors its surface: JSON as text against the contract and the shell catalog described in its prompt, parsed and validated after, one retry carrying the failure.
 
+The synthesize data model is the composition's intermediate representation. The model authors it, the validator checks it against a closed vocabulary, and the runtime interprets it deterministically (resolving refs, evaluating formulas, holding relations, sorting), so no value on the screen comes from the model.
+
 1. A derived data model: a free-form JSON shape of the model's choosing whose every leaf is a formula — one operator the shell catalog declares over refs into partitions — never a literal value, e.g. `min(ref(bh, /items[sku=…]/price), ref(keh, /results[id=…]/cost/amount))`. Entity resolution is expressed as which refs land in the same object; where the Synthesizer judges entries from different apps to be one thing, the object carries its **match claim** under the reserved key `match`: named relations — `equal` and `contains`, facts checked against the data, or `judged`, the Synthesizer's judgment — each over two refs in two different apps. No rule states which objects carry one. The validator checks each relation against the partitions at accept time; the client evaluates them live, so the evidence goes absent with the cells.
 2. A synthesis fragment tree in the shell catalog bound to those paths. A formula-bound path renders only through the shell's derived-value component (§14), and a claimed object's join is disclosed on its values by the same component (§5.4); the tree binds no path under `match`; literal props in the tree — labels, headings — are presentation.
 3. **Sort declarations**: for each sorted array, its path, the key path inside each element, and the direction. A path passes through the enclosing arrays with `*`, so one declaration orders the list inside every row alike. The model names the criterion from the Planner's brief; the runtime sorts. The criterion is always displayed and always user-changeable.
@@ -218,6 +239,8 @@ No reader returns a partition's contents or the synthesis document; the Planner 
 ## 6. Composition lifetime
 
 A **Composition** is a durable object that outlives the turn that created it: slots, fragments, partitions, derived bindings, source set, the question's time, and — per agent — the sequence of its paints in this canvas with the wiring accepted over each combination of them (§6.5). There is one per canvas, held on the orchestrator for the session and named on every client message (§14); durable means outliving the turn, not the process — a reload starts fresh.
+
+History is part of the application model, not a transcript: the trail across questions (§6.4) and each agent's steps (§6.5) restore live state through the same path a live paint takes, never a picture of it.
 
 ### 6.1 Invalidation tiers
 
@@ -445,6 +468,8 @@ M12  ecosystem run   publish a new app → discover → install → compose with
 ```
 
 Until M7, the registry is hardcoded.
+
+M0 to M6 build the composition runtime. M7 onward builds the ecosystem around it: bundles, authority, the marketplace and the Store.
 
 ---
 
