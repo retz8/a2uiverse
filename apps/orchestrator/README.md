@@ -100,6 +100,12 @@ flowchart LR
 
 Clicking into something inside an app's answer, like a CI run or an issue, makes the app paint a new screen in its slot, and a back arrow appears at the right of the app's row.
 
+<p align="center">
+  <img src="../../docs/images/way-back.gif" width="320" alt="CircleCI's slot going Back from a run to its runs list, then Forward again">
+  <br>
+  <em>CircleCI's slot: Back from a run to the runs list, then Forward to the run again.</em>
+</p>
+
 The orchestrator remembers the merged view's wiring for every combination of screens it has shown:
 
 | When             | GitHub | CircleCI | Merged view                               |
