@@ -16,6 +16,11 @@ test('the sheet is still Radix: tokens, components and the appearance classes ar
   expect(css).toMatch(/\.dark\b/);
 });
 
+test('a button of the shell shows the pointer: the wrapper outranks Radix’s default cursor', () => {
+  expect(css).toMatch(/\.radix-themes\s*\{[^}]*--cursor-button:\s*default/);
+  expect(css).toContain('.a2uiverse-shell-catalog.radix-themes{--cursor-button:pointer;}');
+});
+
 test('every custom property the sheet reads is declared by the sheet — none is borrowed', () => {
   const declared = new Set([...css.matchAll(/(--[\w-]+)\s*:/g)].map(m => m[1]));
   const borrowed = [...new Set([...css.matchAll(/var\(\s*(--[\w-]+)/g)].map(m => m[1]))].filter(

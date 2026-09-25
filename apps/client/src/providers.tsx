@@ -1,4 +1,4 @@
-import {useEffect, useState, type ReactNode} from 'react';
+import {useEffect, useState, type CSSProperties, type ReactNode} from 'react';
 import {Theme} from '@radix-ui/themes';
 import '@radix-ui/themes/styles.css';
 
@@ -24,7 +24,18 @@ function useSystemAppearance(): 'light' | 'dark' {
   return appearance;
 }
 
+/**
+ * A button of the shell's shows the pointer, as every other pressable thing on the canvas does:
+ * Radix's own cursor token, left at `default` by Radix (task-9.9 decision 24). The shell
+ * catalog's Provider sets the same on its own Theme.
+ */
+const CURSORS = {'--cursor-button': 'pointer'} as CSSProperties;
+
 /** The shell's design system: Radix Themes. Vendor fragments bring their own (see `catalogs/`). */
 export function Providers({children}: {children: ReactNode}) {
-  return <Theme appearance={useSystemAppearance()}>{children}</Theme>;
+  return (
+    <Theme appearance={useSystemAppearance()} style={CURSORS}>
+      {children}
+    </Theme>
+  );
 }
