@@ -43,7 +43,7 @@ utterance:
         pool.cancel(each), journaled superseded, what they owed settled, state.retired aborted (task 8.4)
    1  bus.publish(synthetic Task{state: working})            always first, stamp {source:'shell', role:'shell'}
    2  turn = journal.open(...); turn.deadlines({softMs, capMs})
-   3  shortlist = router.shortlist(text)                     ranked, capped, no threshold; the platform's card ranks
+   3  shortlist = router.shortlist(text, parent's sources)   ranked, capped, no threshold; the platform's card ranks
                                                               among the vendors'; empty is handed on as is
    4  outcome = planner.plan({utterance, shortlist, conversationId, signal})   the one model call, the readers
         as steps inside it; planMs (from 3 to here) logged and journaled; malformed (both attempts refused) ⇒
@@ -215,7 +215,7 @@ The one embedding model (SPEC decision 10), injected into Registry, Router, and 
 
 ### Router — `router/router.ts`
 
-Retrieval only: embed the query, cosine-rank `registry.routable()`, cap the shortlist. No similarity threshold — the Planner makes the semantic selection from the shortlist. `ShortlistEntry {record, card, score}`; the platform's card is one entry like a vendor's. Empty corpus ⇒ empty shortlist, handed to the Planner as is.
+Retrieval only: embed the query, cosine-rank `registry.routable()`, cap the shortlist. No similarity threshold — the Planner makes the semantic selection from the shortlist. `shortlist(text, keep)`: the sources of the canvas a question was asked from ride past the cap, so a child planned from the view can keep what is on screen (phase-9 decision 12). `ShortlistEntry {record, card, score}`; the platform's card is one entry like a vendor's. Empty corpus ⇒ empty shortlist, handed to the Planner as is.
 
 ### Planner — `planner/`
 
