@@ -34,6 +34,8 @@ It explores what an application ecosystem looks like when AI agents can be packa
 | Tabs and a history stack                  | An answer per question, each still working, on a trail that branches |
 | Permission prompts only the browser draws | Sign-in and consent only the shell draws, never an app (to come)     |
 
+The full design, from its axioms to its milestones, is in **[SPEC.md](SPEC.md)**.
+
 ## What it does
 
 ### One question, one screen
@@ -111,7 +113,7 @@ The client talks only to the orchestrator, and the orchestrator to the apps. One
 | [`packages/shell-catalog`](packages/shell-catalog/)         | The shell's own A2UI catalog: the basic catalog on Radix Themes, plus the components that compose a screen  |
 | [`a2uiverse-apps`](https://github.com/retz8/a2uiverse-apps) | The apps, their agent kit and the scaffolder, in their own repo                                             |
 
-The design is in [SPEC.md](SPEC.md).
+Going deeper: **[SPEC.md](SPEC.md)** is the full design, and [`docs/design/`](docs/design/) has a guide to each part: the [synthesis](docs/design/synthesis.md) behind the merged view, the [client](docs/design/client.md), the [orchestrator](docs/design/orchestrator.md), the [shell catalog](docs/design/shell-catalog.md) and the [agent kit](docs/design/agent-kit.md).
 
 ## Getting it running
 
