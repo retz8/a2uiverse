@@ -23,6 +23,17 @@ Rather than treating agents as features inside applications, A2UIVerse treats ag
 
 It explores what an application ecosystem looks like when AI agents can be packaged, discovered, installed, orchestrated, and composed into interactive experiences.
 
+**A2UIVerse is to A2UI agents what a browser is to websites.** A browser draws pages from any site, in markup it didn't write; A2UIVerse draws UI from any A2UI agent. But where a browser needs an address and shows one site at a time, A2UIVerse takes a question and puts every app that holds part of the answer on one screen.
+
+| On the web                                | In A2UIVerse                                                        |
+| ----------------------------------------- | ------------------------------------------------------------------- |
+| A website                                 | An app: an A2A agent that answers with UI in A2UI                   |
+| HTML and CSS                              | A2UI, drawn with the app's own catalog                              |
+| Typing an address                         | Asking a question; A2UIVerse picks the apps                         |
+| One site per tab                          | Several apps on one screen, each in its own look, and a merged view |
+| Tabs and a history stack                  | A canvas per question, each still working, on a trail that branches |
+| Permission prompts only the browser draws | Sign-in and consent only the shell draws, never an app (to come)    |
+
 ## What it does
 
 ### One question, one screen
