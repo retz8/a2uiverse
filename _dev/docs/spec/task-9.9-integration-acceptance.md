@@ -114,6 +114,10 @@ An action's paint is held per source, not per turn: the source's settled marker 
 
 Every button the shell draws on Radix Themes — a fragment's back and forward arrows, the sort control and its direction, Retry, Include, Try again, the capability tile's press, a painted `Button`, the Ask pill — shows the pointer on hover, as the gutter's Trail, a trail entry and a merged cell do. Replaced: Radix's default arrow cursor on its buttons. Raised on case 6.
 
+### 25. An action is its source's tick
+
+An action inside a fragment names no action on the progress line: that source's tick is working from the press until the source's settled marker, then done, and the merge step says the rest. Replaced: a working step before the ticks, "<the action's name and its first context value> — generating…", upgraded to the vendor's `paintMeta` title when one came, standing until the turn ended (task-8.5 decision 13). Raised on case 2, decided on case 7.
+
 ## Found and fixed during the run
 
 - **A trail entry picked under the pointer left its preview behind.** The pick closes the rail with the pointer still on the row, so the row never saw it leave, and the next opening of the rail showed that entry's preview unasked. A closed rail clears its preview. Case 3; the canvas app suite's test of an entry picked under the pointer.
