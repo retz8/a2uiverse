@@ -171,7 +171,10 @@ function arrowName(direction: 'Back' | 'Forward', step: HistoryStep): string {
   return step.title ? `${direction} to ${step.title}` : direction;
 }
 
-/** One arrow: a soft accent icon button, named for where it goes (task-9.9 decision 15). */
+/**
+ * One arrow: a soft accent icon button, named for where it goes (task-9.9 decision 15), marked
+ * `data-way` so the host can hold its fragment in place while the step runs (decision 19).
+ */
 function Arrow({
   direction,
   step,
@@ -191,6 +194,7 @@ function Arrow({
       ref={buttonRef}
       size="1"
       variant="soft"
+      data-way={direction === 'Back' ? 'back' : 'forward'}
       aria-label={name}
       title={name}
       disabled={!enabled}

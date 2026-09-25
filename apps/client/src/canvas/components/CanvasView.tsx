@@ -28,6 +28,7 @@ import {CompactHead} from './CompactHead';
 import {ProgressLine} from './ProgressLine';
 import {QuestionHeader} from './QuestionHeader';
 import {StatusStrip} from './StatusStrip';
+import {useStepHold} from './useStepHold';
 
 export interface CanvasViewProps {
   runtime: CanvasRuntime;
@@ -90,6 +91,12 @@ export function CanvasView({runtime, onEdit, past = false}: CanvasViewProps) {
 
   /** The page that scrolls and the header at its top: the condensed header watches the one leave the other. */
   const scrollRef = useRef<HTMLDivElement>(null);
+  // A fragment's way back pressed: its row holds its place while the step runs (task-9.9
+  // decision 19).
+  useStepHold(
+    scrollRef,
+    presses.some(({operation}) => operation.kind === 'step'),
+  );
   const headRef = useRef<HTMLElement>(null);
 
   const question = state.question;

@@ -84,8 +84,8 @@ body {
 /* ——— The header condensed ——— */
 
 /* A zero-height sticky anchor: the bar hangs from it over the page, so showing it moves nothing.
-   The Back button's row with its 12px above and below: Back and the question share its middle
-   line, 30px down, as the full question does. */
+   Its middle line is Back's, 30px down, as the full question's is; the bar itself starts past the
+   gutter's sidebar. */
 .canvas-compact-anchor {
   position: sticky;
   top: 0;
@@ -106,8 +106,10 @@ body {
   display: flex;
   align-items: center;
   gap: 16px;
+  /* Past the gutter's sidebar, never under it (task-9.9 decision 18). */
+  margin-left: var(--a2v-gutter);
   padding-right: var(--a2v-inset);
-  padding-left: calc(var(--a2v-gutter) + var(--a2v-inset));
+  padding-left: var(--a2v-inset);
   background: var(--color-background);
   border-bottom: 1px solid var(--a2v-line);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
@@ -647,15 +649,24 @@ body {
   cursor: default;
 }
 
-/* The gutter, the rail closed: Back at the top — its centre 30px down, on the question's first
-   line — and Trail beneath it. */
+/* The gutter, the rail closed: a sidebar of its own down the left edge, no divider (task-9.9
+   decision 18),
+   Back at the top — its centre 30px down, on the question's first line — and Trail beneath it.
+   Every bar across the top starts past it; it stops on the status strip, which runs the full
+   width beneath. */
 .canvas-gutter {
   position: fixed;
-  top: 14px;
-  left: 12px;
+  top: 0;
+  left: 0;
+  bottom: 32px;
+  width: var(--a2v-gutter);
+  box-sizing: border-box;
+  padding-top: 14px;
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 4px;
+  background: var(--color-background);
   z-index: 12;
 }
 
@@ -1026,6 +1037,7 @@ body {
   flex: 1 1 auto;
   min-width: 0;
   height: auto;
+  margin: 0;
   padding: 0;
   border: 0;
   background: transparent;
