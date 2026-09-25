@@ -44,6 +44,29 @@ When the plan reserves a merged view and at least two apps answer, the Synthesiz
 
 When the merge is over one thing seen by several apps, like a Linear issue, its pull request in GitHub and its CircleCI run, the Synthesizer says which entries are the same thing, and each of those claims is checked against the data before it's accepted. A cell shows how sure it is and where it came from, and clicking it goes to the value in its app's slot.
 
+Take the first row of the table at the top, issue A2U-5. The three apps answered it in their own data:
+
+```text
+Linear    issue A2U-5    status "In Review"   link "PR #6"
+GitHub    PR #6          branch "ekkicb71/a2u-5-say-on-the-canvas-…"
+CircleCI  run 6039cf16   status "Success"     branch "ekkicb71/a2u-5-say-on-the-canvas-…"
+```
+
+The Synthesizer writes the row as formulas pointing at those entries, with a match claim: the facts that make them one work item, named in its own words. Shortened, it reads:
+
+```text
+status     value(linear   /issues[id="A2U-5"]/status)
+pr         value(github   /prs[repository="retz8/a2uiverse",number=6]/number)
+ciStatus   value(circleci /runs[id="6039cf16-…"]/status)
+
+match
+  same PR reference          contains(linear …/link,    github …/number)
+  branch matches issue key   contains(github …/branch,  linear …/id)
+  CI run on same branch      equal(circleci …/branch,   github …/branch)
+```
+
+The orchestrator runs each fact against the apps' data before accepting the row; a fact that doesn't hold goes back to the Synthesizer with the values it found. The client then evaluates the formulas into In Review, #6 and Success, and again whenever the data they point at changes.
+
 ### Stays honest when apps are slow or fail
 
 - **One app failing never fails the rest.** Its slot says why (the app's own words, unreachable, timed out, or a paint the client couldn't draw) and offers Retry, and its data leaves the merge.
