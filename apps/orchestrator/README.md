@@ -98,13 +98,7 @@ flowchart LR
 
 ## Going back inside an app's answer
 
-<p align="center">
-  <img src="../../docs/images/way-back.png" width="640" alt="CircleCI's runs list after Back">
-  <br>
-  <em>CircleCI stepped back from one run to its runs list. The arrow at the right of its row leads forward again.</em>
-</p>
-
-Clicking into something inside an app's answer, like a CI run or an issue, makes the app paint a new screen in its slot, and a back arrow appears at the right of the app's row. In the screenshot, the merged table is the one from before the run was opened.
+Clicking into something inside an app's answer, like a CI run or an issue, makes the app paint a new screen in its slot, and a back arrow appears at the right of the app's row.
 
 The orchestrator remembers the merged view's wiring for every combination of screens it has shown:
 
