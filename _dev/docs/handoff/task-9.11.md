@@ -20,7 +20,7 @@ Done along the way, outside READMEs: the orchestrator's `Canvases` renamed to `C
 - **Context before mechanism.** Give the broad picture (where it sits, what the reader is looking at) before any detail that would read as absurd on its own.
 - **Show it.** Screenshots and GIFs where they explain, captioned, displayed smaller than full size; drop any that don't earn their place.
 - **Reference folds away.** Configuration, module tables, on-demand scripts, source maps and long lists go in `<details>` blocks. Commands stay open, in "Running it".
-- **Each component in its own words.** "Canvas" is the client's word; the orchestrator speaks of an A2A context and its composition. Don't borrow a term across components.
+- **Each component in its own words.** "The canvas" is the client's name for its UI, never a unit: one question's screen is an answer (a past answer, a trail of answers). The orchestrator speaks of an A2A context and its composition. Don't borrow a term across components.
 - **Never write the chat into the README.** No reasoning from the conversation, no restating the user's instructions (e.g. why the basic catalog was chosen), no "doesn't depend on A2UIVerse" framing.
 - **Check every fact against the code** (commands, env vars, ports, counts, vendor doc links) and fix stale facts found on the way.
 
