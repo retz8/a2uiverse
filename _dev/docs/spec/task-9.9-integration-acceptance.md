@@ -94,6 +94,10 @@ The gutter holding Back and Trail is a sidebar down the left edge on the page's 
 
 From a press on a fragment's back or forward arrow until the step ends, every change above that fragment — the merged view restored over another combination, the late row the orchestrator's repaint adds or takes away — is absorbed by scrolling, so the fragment's row and the arrow under the pointer stay where they were. The reader's own scrolling ends the hold. Replaced: the fragment row moving by the merged view's change in height on every step, the arrow leaving the pointer, and moving again a round trip later with the late row. Raised on case 2.
 
+### 20. No status strip; the canvas's error closes the progress line
+
+The status strip at the foot of the canvas is gone, and with it the app's name there. The canvas's sticky error — a message of its own that failed or never arrived, cleared by its next dispatch — closes the progress line under the question in the danger tone, an alert on the full line, the condensed bar carrying it too; with no canvas, a replay that could not start says so under the empty page's hint. The Ask pill and the notices sit 24px and 80px above the page's foot. Replaced: the strip naming the app, carrying the error in its place (task-8.7 decision 16). Raised on case 2.
+
 ## Found and fixed during the run
 
 - **The journal read a step's combination after its wait.** A step waiting behind a merge in the making was journaled with the combination a later step had left, so a Forward read `calendar 0`. The combination is read as the step makes it. Case 2; the orchestrator's abandoned-walk test asserts both steps' combinations.
