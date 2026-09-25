@@ -31,18 +31,30 @@ A new paint over one already on screen is built and checked off screen, then swa
 ### Keeps every question
 
 <p align="center">
-  <img src="../../docs/images/trail.png" width="640" alt="The trail of four questions">
+  <img src="../../docs/images/past-canvas.png" width="720" alt="A past question's canvas under its Parked band">
   <br>
-  <em>The trail: four questions asked this session, the newest still loading.</em>
+  <em>A past question's canvas: parked, stamped with when it was asked, with Ask this again now and Return to live.</em>
 </p>
 
-Every question opens its own canvas, and the trail keeps them all. A past canvas works like a browser tab: clicks, presses and sorts on it land in it, and it keeps loading in the background after you move on.
+Every question opens its own canvas, and none is thrown away when the next one is asked. Going back to one shows it as it was left, under a band with the time it was asked. It still works like a live tab: clicks, presses and sorts land in it, and anything it was still loading keeps arriving in the background.
 
-"Ask this again now" asks a past canvas's question again as a new canvas, leaving the old answer as it was. A question asked while viewing a past canvas is a follow-up to it, and Back follows that branch. It all lives in memory; a reload starts fresh.
+"Ask this again now" asks its question again as a new canvas and leaves this answer as it was. "Return to live" goes to the newest question. Here the palette reads "Ask from this view": whatever you ask is a follow-up to this answer. It all lives in memory; a reload starts fresh.
 
-### Back and forward inside an app's answer
+### History that branches
 
-Each app's screens in a canvas form a history, with arrows at the right of the app's name. Going back restores the app's earlier screen from the client's own copy, and the merged view that went with it, with no model call.
+<p align="center">
+  <img src="../../docs/images/trail-drawer.png" width="276" alt="The trail drawer: four questions on two branches">
+  <br>
+  <em>The trail: four questions on two branches, the newest live.</em>
+</p>
+
+A browser keeps one history stack: go back a few pages and open something new, and everything ahead of you is gone. Here nothing is dropped. A question asked from an earlier answer starts a branch from it, and the trail draws every question on the branch it grew from. Hovering an entry previews its canvas.
+
+Back goes up the branch, not to the page before. Above, "Camera prices" was asked from "Needs attention today" (the fork mark), though "what apps do I have?" came in between, so Back from "Camera prices" goes to "Needs attention today".
+
+#### Inside each app's answer
+
+Each app's slot has its own Back and Forward, at the right of its name, apart from the trail and from the other apps: stepping CircleCI back to its runs list leaves GitHub and Linear where they are. The merged view follows the step, restored with no model call from the wiring remembered for that combination of screens.
 
 <table>
   <tr>
@@ -59,9 +71,13 @@ Each app's screens in a canvas form a history, with arrows at the right of the a
 
 ```bash
 pnpm dev:client     # from the repo root: Vite on port 5173
+pnpm --filter @a2uiverse/client build | typecheck | test | lint
+pnpm --filter @a2uiverse/client test:e2e   # Playwright: builds, serves on 4173, compares screenshots
 ```
 
 It sends to `VITE_ORCHESTRATOR_URL`, `http://localhost:10001` by default (see `.env.example`). When the orchestrator is somewhere else, set it in an uncommitted `.env.local`. It needs the orchestrator and the apps running too; `pnpm dev:all` from the root starts everything in order.
+
+Playwright's browser installs separately (`pnpm exec playwright install chromium`). Its screenshots are taken at 1024×768 in UTC and aren't committed: on a fresh clone, run `test:e2e --update-snapshots` once to take them.
 
 ## Working without a model
 
@@ -139,21 +155,6 @@ A2UI_FIXTURE_FORBIDDEN="<real address>,<real name>" pnpm --filter @a2uiverse/cli
 ```bash
 pnpm --filter @a2uiverse/client check:transparency
 ```
-
-</details>
-
-<details>
-<summary><b>Commands</b></summary>
-
-```bash
-pnpm --filter @a2uiverse/client build      # typecheck, then vite build
-pnpm --filter @a2uiverse/client typecheck
-pnpm --filter @a2uiverse/client test       # vitest
-pnpm --filter @a2uiverse/client test:e2e   # Playwright: builds, serves on 4173, compares screenshots
-pnpm --filter @a2uiverse/client lint
-```
-
-Playwright's browser installs separately (`pnpm exec playwright install chromium`). Screenshots are taken at 1024×768 in UTC and aren't committed: on a fresh clone, run `test:e2e --update-snapshots` once to take them.
 
 </details>
 
