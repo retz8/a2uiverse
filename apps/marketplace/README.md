@@ -1,18 +1,12 @@
 # @a2uiverse/marketplace
 
-The marketplace (SPEC §9.3): a local process holding the AgentCard index (skill embeddings), package hosting, the publish step, and the hello-fragment smoke test. The Store page in the client browses it.
+Where A2UIVerse apps will be published and found. The marketplace will keep an index of every published app's agent card, so a question can be matched to an app the user hasn't installed yet; host each app's packages; run the publish step; and try a new app by rendering its first surface before it's listed. The Store page in the client will browse it.
 
-## Dependencies
-
-`@a2uiverse/sdk` (publish gate: manifest validation, catalog review rules).
+**Not built yet.** Today the process prints its name and exits. Its port, **10002**, is reserved for it.
 
 ## Commands
 
-```
-pnpm --filter @a2uiverse/marketplace dev          # run the process (placeholder in Phase 0)
+```bash
+pnpm dev:marketplace                                            # from the repo root
 pnpm --filter @a2uiverse/marketplace build | typecheck | test | lint
 ```
-
-## Port
-
-`10002`, reserved; the process lands in Phase 12. See `_dev/docs/tunnel-environment.md`.
