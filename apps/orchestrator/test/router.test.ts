@@ -69,6 +69,20 @@ describe('Router', () => {
     expect(await router.shortlist('anything at all')).toHaveLength(2);
   });
 
+  test('a question asked from a view keeps the viewed sources past the cap', async () => {
+    const router = await routerWith(
+      {
+        github: cardFor('GitHub', 'github repositories pull requests'),
+        gmail: cardFor('Gmail', 'gmail email inbox'),
+        calendar: cardFor('Calendar', 'calendar events'),
+      },
+      1,
+    );
+    const out = await router.shortlist('add github pull requests', ['gmail', 'calendar']);
+    expect(out.map(e => e.record.id).sort()).toEqual(['calendar', 'github', 'gmail']);
+    expect(out[0]!.record.id).toBe('github');
+  });
+
   test('a null-card agent is never shortlisted', async () => {
     const router = await routerWith({
       github: cardFor('GitHub', 'github code'),

@@ -396,7 +396,10 @@ export class OrchestratorExecutor implements AgentExecutor {
     // included, since nothing paints before either.
     let outcome;
     try {
-      const shortlist = await this.#deps.router.shortlist(text);
+      // Asked from a view: what is on screen there stays plannable (phase-9 decision 12).
+      const viewed = parent !== undefined ? this.#canvases.get(parent) : undefined;
+      const onScreen = [...(viewed?.slots.keys() ?? [])].filter(id => id !== SHELL_SOURCE_ID);
+      const shortlist = await this.#deps.router.shortlist(text, onScreen);
       signal.throwIfAborted();
       outcome = await this.#deps.planner.plan({
         utterance: text,
