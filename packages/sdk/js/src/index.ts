@@ -1,4 +1,4 @@
-/** @a2uiverse/sdk — the wire contract and generic A2UI tools. The composition extension is its first real content; the manifest schema lands with Phase 10. */
+/** @a2uiverse/sdk — the wire contract and generic A2UI tools. The composition extension is its first real content; the manifest schema lands with Phase 11. */
 export const SDK_NAME = '@a2uiverse/sdk';
 export * from './composition.js';
 export * from './synthesis.js';

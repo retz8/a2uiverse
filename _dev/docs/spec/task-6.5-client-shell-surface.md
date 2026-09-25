@@ -10,7 +10,7 @@ The client half of Phase 6 (`_dev/docs/spec/phase-6-shell-as-agent.md`, decision
 - The two shell actions handled locally: a placeholder overlay for the Store and the App Library, and the action reported to the orchestrator for the journal.
 - The orchestrator's intake of a shell-source action: journaled, nothing painted.
 - Fixtures re-recorded on 6.4's shapes, plus two new beats.
-- The phase spec's decision 7 and acceptance item 1, and the Phase 13 note in `_dev/TODO.md`, amended as decision 10 states.
+- The phase spec's decision 7 and acceptance item 1, and the Phase 14 note in `_dev/TODO.md`, amended as decision 10 states.
 
 ## Locked decisions
 
@@ -52,7 +52,7 @@ The five recorded beats are re-recorded live against the 6.4 orchestrator; the s
 
 ### 10. Docs
 
-The phase spec's decision 7 and acceptance item 1 are amended from the notice to the overlay. The Phase 13 note in `_dev/TODO.md` is rewritten: the Store and the App Library are an overlay over the canvas; URL addressability and whether they are one route with two tabs or two routes remain Phase 13's. SPEC is untouched: §7 already states the client opens the trusted page and reports to the orchestrator for the journal.
+The phase spec's decision 7 and acceptance item 1 are amended from the notice to the overlay. The Phase 14 note in `_dev/TODO.md` is rewritten: the Store and the App Library are an overlay over the canvas; URL addressability and whether they are one route with two tabs or two routes remain Phase 14's. SPEC is untouched: §7 already states the client opens the trusted page and reports to the orchestrator for the journal.
 
 ## Invariants
 
@@ -63,4 +63,4 @@ The phase spec's decision 7 and acceptance item 1 are amended from the notice to
 ## Open items
 
 - Whether `Slot` should draw its own attribution and `Attribution` leave the tree — carried from 6.4, still closed for this phase.
-- URL addressability of the overlay and one route or two — Phase 13.
+- URL addressability of the overlay and one route or two — Phase 14.

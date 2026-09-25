@@ -1,5 +1,5 @@
 /**
- * The trusted-page layer: the placeholder for the Store and the App Library until Phase 13
+ * The trusted-page layer: the placeholder for the Store and the App Library until Phase 14
  * builds them — the page's name, the query it opened with, and the way back.
  */
 import {describe, it, expect, vi} from 'vitest';

@@ -1,8 +1,8 @@
 /**
  * The trusted-page layer: the Store or the App Library, opened over the canvas by a shell
  * action (SPEC §7, §9.3). The pages are an overlay, not a route — the canvas stays mounted
- * beneath, so Phase 14's resume after an install finds the composition that raised the gap.
- * Until Phase 13 builds them this is the placeholder: the page's name, the query it was opened
+ * beneath, so Phase 15's resume after an install finds the composition that raised the gap.
+ * Until Phase 14 builds them this is the placeholder: the page's name, the query it was opened
  * with, and a way back. Two actions, one component: the page is a value, not a second layer.
  *
  * Distinct from `CanvasOverlay`, which mounts a pending question surface.

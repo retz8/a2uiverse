@@ -573,7 +573,7 @@ body {
 }
 
 /* The trusted-page layer: the Store or the App Library over the canvas, which stays mounted
-   beneath. A placeholder until Phase 13; it takes the whole viewport so the page reads as the
+   beneath. A placeholder until Phase 14; it takes the whole viewport so the page reads as the
    place the user went, not a notice about it. */
 .canvas-trusted-page {
   position: fixed;

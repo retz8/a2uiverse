@@ -29,7 +29,7 @@ export type TrustedPage = 'store' | 'appLibrary';
 
 /**
  * The trusted page open over the canvas: the Store or the App Library, as an overlay — the
- * canvas stays mounted beneath it (task-6.5 decisions 2, 3). Until Phase 13 builds the pages
+ * canvas stays mounted beneath it (task-6.5 decisions 2, 3). Until Phase 14 builds the pages
  * it is a placeholder naming the page and the query it was opened with.
  */
 export interface TrustedPageState {

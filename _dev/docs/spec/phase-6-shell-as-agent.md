@@ -39,7 +39,7 @@ Vendor partitions never reach the Planner. SPEC §10's "never sees data" resolve
 
 ### 5. The shell knows what; deterministic pages are how
 
-The shell answers what A2UIVerse is and what is there. Every *how* that changes state is a deterministic page. The Store page stays a trusted route: its content is third-party-authored marketplace cards, prompt-injection surface named in SPEC §16, sitting in front of the install grant, so the whole path from browsing to grant is model-free, not only the consent dialog. The App Library stays a trusted route for management — uninstall, accounts, permissions — every one of which touches a grant. The model may describe installed apps in the canvas from the Registry reader and may paint an affordance into either page; it authors neither, and never reads the marketplace index. Whether the two pages are two routes or one route with two tabs is Phase 13's.
+The shell answers what A2UIVerse is and what is there. Every *how* that changes state is a deterministic page. The Store page stays a trusted route: its content is third-party-authored marketplace cards, prompt-injection surface named in SPEC §16, sitting in front of the install grant, so the whole path from browsing to grant is model-free, not only the consent dialog. The App Library stays a trusted route for management — uninstall, accounts, permissions — every one of which touches a grant. The model may describe installed apps in the canvas from the Registry reader and may paint an affordance into either page; it authors neither, and never reads the marketplace index. Whether the two pages are two routes or one route with two tabs is Phase 14's.
 
 ### 6. A capability gap is a `Slot` with a gap source
 
@@ -47,7 +47,7 @@ When the Planner judges that nothing installed serves the utterance — the plat
 
 ### 7. The shell's actions are a closed set, declared in the shell catalog, journaled
 
-Two actions: **open the Store**, with an optional query, and **open the App Library**. They are declared in the shell catalog's schema as the actions a shell surface may raise, so the validator rejects any other name in the Planner's tree. A shell-source action is handled by the client locally, no turn. The Store and the App Library are an overlay over the canvas; until Phase 13 builds them, the client opens a placeholder overlay naming the page and the query and reports the action to the orchestrator as an action turn so the journal records the intent. The capability tile and the model's button share the one action and the one landing.
+Two actions: **open the Store**, with an optional query, and **open the App Library**. They are declared in the shell catalog's schema as the actions a shell surface may raise, so the validator rejects any other name in the Planner's tree. A shell-source action is handled by the client locally, no turn. The Store and the App Library are an overlay over the canvas; until Phase 14 builds them, the client opens a placeholder overlay naming the page and the query and reports the action to the orchestrator as an action turn so the journal records the intent. The capability tile and the model's button share the one action and the one landing.
 
 ### 8. `shell:main` carries a data model of literals
 
@@ -68,7 +68,7 @@ On the real roster (GitHub · Gmail · Calendar) with the platform's card beside
 5. **First paint measured** on the real roster, the number recorded, the streaming decision (decision 9) taken against it.
 6. **Vocabulary checks** — the validator rejecting a tree with an unknown action, a formula in `shell:main`, an `Attribution` authored by the model, and a missing source `Slot`.
 
-Not in the list: tile wording beyond a minimal line (Phase 14), the pages themselves (Phase 13), re-planning an existing composition (Phase 9).
+Not in the list: tile wording beyond a minimal line (Phase 15), the pages themselves (Phase 14), re-planning an existing composition (Phase 9).
 
 ## Invariants
 
@@ -80,5 +80,5 @@ Not in the list: tile wording beyond a minimal line (Phase 14), the pages themse
 
 ## Open items
 
-- What the capability tile says beyond a minimal line, and whether a gap slot collapses or stands — Phase 14's grill, as the backlog records.
+- What the capability tile says beyond a minimal line, and whether a gap slot collapses or stands — Phase 15's grill, as the backlog records.
 - The streaming sub-task, conditional on the first-paint measurement (decision 9).

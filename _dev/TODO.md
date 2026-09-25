@@ -142,29 +142,32 @@ Spec: `_dev/docs/spec/phase-9-durable-composition.md`.
 - [x] **9.10** Design records — client.md's trail, tab and fragment history, orchestrator.md's composition per canvas and the running tabs, synthesis.md's remembered wiring, shell-catalog.md's arrows; the delta-register rows; the phase spec's decisions amended by 9.9; from 9.8: client.md's replay of a beat spanning canvases (turns naming their canvas, a question beside a streaming turn, view and close) and the recorder's sessions, the apps repo's agent-kit.md for a deterministic drill-down answering on a fresh surface (task-9.8 decision 7); orchestrator.md already carries the Router's kept sources (task-9.8 decision 8); from 9.7: 9.5's wording on the arrows disabled while the source is busy (task-9.7 decision 6); from 9.9 (task-9.9 decisions 13–25): client.md's fragment with no time of its own, the past canvas in its colors, Back and Trail as a sidebar, the pressed fragment holding its place, no status strip and the canvas's error on the progress line, no refresh press on the live canvas, Back following the branch, a drill-down swapped in at its source's settled marker with the merged view held, an action as its source's tick; orchestrator.md's and synthesis.md's combination covered by one remembered over fewer sources and a step's walk abandoned by the next step; shell-catalog.md's arrows as soft accent icons at the attribution row's right edge and the pointer on the shell's buttons; its found-and-fixed items — a closed rail clearing its preview, a step's combination journaled as the step made it (after 9.9)
 - [x] **9.11** README sweep — all READMEs swept; GIFs or images may be added to demonstrate the features; the five design records in `docs/design/` rewritten as a really friendly guide for a junior frontend engineer: A2UIVerse's new concepts explained clearly, with diagrams where they help, and the engineering decisions, algorithms, data structures and engineering structures behind them. One first, the way of writing them settled on its review, then the other four (after 9.10)
 
-## Phase 10 — App bundle + registry
+## Phase 10 — Community proposal
+Propose A2UIVerse to the A2UI community on the runtime as it stands, with no marketplace or app bundles. An A2UI agent built outside A2UIVerse composing as it is; the demo's apps drawn in catalogs that feel like the real products rather than the basic catalog themed; one short live demo of independent agents composed into one application; a guide to bringing your own agent; the proposal itself, from the upstream candidates in SPEC's protocol delta register.
+
+## Phase 11 — App bundle + registry [WIP]
 Bundle format, local install, registry no longer hardcoded, the GitHub app installed as a bundle (M7).
 
-## Phase 11 — Authority surfaces
+## Phase 12 — Authority surfaces
 Auth-required → authority tile, consent dialog, AuthVault, credential components barred from all catalogs (M8). Expand the orchestrator's slot naming policy for multi-account: slot names derived from appId alone stop being collision-free once one app can fan out under two accounts.
 
-## Phase 12 — Marketplace + publish
+## Phase 13 — Marketplace + publish
 Local index, package hosting, publish step, hello-fragment smoke test (M9).
 
-## Phase 13 — Shell trusted pages
-Store page, App Library, accounts (M10). Opening a trusted page must not unmount the canvas: the client holds its whole session in memory, created when the canvas mounts, and Phase 14's resume after install needs the canvas that raised the capability gap. The Store and the App Library are an overlay over the canvas (6.5); 6.5's placeholder overlay is the shell to fill. URL addressability, and whether one route with two tabs or two routes, are decided here.
+## Phase 14 — Shell trusted pages
+Store page, App Library, accounts (M10). Opening a trusted page must not unmount the canvas: the client holds its whole session in memory, created when the canvas mounts, and Phase 15's resume after install needs the canvas that raised the capability gap. The Store and the App Library are an overlay over the canvas (6.5); 6.5's placeholder overlay is the shell to fill. URL addressability, and whether one route with two tabs or two routes, are decided here.
 
-## Phase 14 — Store loop
+## Phase 15 — Store loop
 Capability gap → marketplace index → install → resume (M11).
 
-## Phase 15 — Ecosystem run
+## Phase 16 — Ecosystem run
 Publish a new app → discover → install → compose with an existing one → act inside it. One sitting, no code changes; the deliverable is the recording (M12).
 
 ## Backlog
 - The Planner reads its plan's `direction` as the slots' axis, but the runtime lays groups along it and the slots of one group across it: "side by side" over one group of two came out stacked (5.7, the control prompt). Phase 6's framing revisit
 - The Planner's `archetype` (`card|panel|row|full`) is planned, validated and journaled but affects nothing: `Frame` sizes a row's slots equally regardless. Decide what each value should mean — whether `full` breaks out of its row, whether weights are proportional — or drop it from the plan schema
 - Revisit Gmail/Calendar product styling depth once compositions and functionality land at later milestones
-- Capability-gap terminal state when the marketplace has nothing either — what the capability tile says, whether the reserved slot collapses or stands (Phase 14's grill)
+- Capability-gap terminal state when the marketplace has nothing either — what the capability tile says, whether the reserved slot collapses or stands (Phase 15's grill)
 - Stream the synthesis fragment into its reserved slot (§16 dead-air mitigation). Measured in 4.8 over the mock roster (last source settled → synthesis outcome, journal `synthesis.deadAirMs`, Planner and Synthesizer on `gemini-2.5-flash` at low effort): deterministic mocks — comparison utterance 3.7 s · 4.2 s · 9.2 s across three runs, re-synthesis after an in-place reorder 3.8 s, decline 1.2–1.5 s; live mocks — comparison 8.0 s, re-synthesis after reorder 3.7 s, decline 1.4 s. The interval is the Synthesizer's own call; the mocks' mode barely moves it. Measured again in 5.7 under the text loop (Synthesizer authoring the synthesize data model as text, one attempt every time): deterministic mocks — comparison 6.1 s · 8.5 s, re-synthesis after a drill-down 6.0 s and after the return 8.3 s, decline 1.6 s; deterministic real roster, "What needs my attention today?" — 15.2 s before the run's validator rules, 8.7 s after, re-synthesis after a Gmail drill-down 8.0 s; live real roster — 11.8 s on the canvas, 12.6 s on the recorder's turn, 15.4 s authoring the table form, the live decline probe 1.8 s. Measured in 7.13 on the deterministic real roster, Synthesizer on `gemini-3.7-flash` at low effort, one attempt every time: "what's the status of what I'm working on?" 12.8 s · 14.0 s · 12.5 s, "What needs my attention today?" 19.1 s Measured in 7.9, Synthesizer on `gemini-3.7-flash` at low effort, one attempt every time: deterministic mocks — comparison 11.3 s · 14.6 s, decline 2.3 s; deterministic real roster — "what's the status of what I'm working on?" over Linear, GitHub and CircleCI 10.4 s · 7.0 s · 8.6 s, re-synthesis after opening a CircleCI run 10.2 s · 9.8 s and after opening a Linear issue 12.8 s, "What needs my attention today?" over four sources 18.9 s; live real roster — the same utterance 11.2 s · 10.1 s on the canvas and 11.0 s on the recorder's turn, the three dispatches settling at 27–30 s (Linear), 33–36 s (CircleCI) and 51–65 s (GitHub) after a 6–7 s plan, re-synthesis after opening a CircleCI run 11.1 s, after its rerun proposal 8.2 s, after opening a pull request 13.8 s, after opening a Linear issue 10.7 s.
 - A re-synthesis may re-author the merged view, not only re-point its refs: in the live pass the reorder's re-synthesis swapped the per-shop price columns for per-shop availability columns. The Synthesizer is called with the Planner's request alone; whether it should be handed the previous wiring's fields so a bump preserves the view's shape is undecided
 - S5 multi-account exercised

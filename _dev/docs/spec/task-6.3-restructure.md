@@ -69,7 +69,7 @@ Made in this grill; 6.4 (the Planner rewrite) builds on them.
 - **The Planner's output schema** is `{dispatch, tree, dataModel}`. A dispatch entry is `{source, request}` — `source: "shell"` for the merged view's brief — or `{gap}`, naming a capability. `tree` is `{components}`. `dataModel` holds literal values only. No `note`.
 - **A `Slot` carries exactly one of `source` or `gap`**, matching its dispatch entry by that field, plus an optional `weight`. The painter owns `state`, `label` and `content`.
 - **All Planner validation lives in orchestrator/planner:** its output schema, the tree through the sdk's A2UI validator against the Planner's pruned catalog, slot accounting, a merged view only with two or more sources, literal-only data, and app ids on this turn's shortlist.
-- **Phase 11's multi-account** adds an account field beside `source` on the dispatch entry, the `Slot` and the stamp.
+- **Phase 12's multi-account** adds an account field beside `source` on the dispatch entry, the `Slot` and the stamp.
 
 ## Invariants
 

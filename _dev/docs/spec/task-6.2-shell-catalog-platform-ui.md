@@ -21,7 +21,7 @@ The shell catalog is constructed by a factory the host calls with its shell-acti
 
 ### 3. The shell functions carry no presentation
 
-A shell function only calls the host's handler. What opening the Store or the App Library looks like belongs to the host: until Phase 13 a notice and a journal report (task 6.5), then the trusted pages Phase 13 builds.
+A shell function only calls the host's handler. What opening the Store or the App Library looks like belongs to the host: until Phase 14 a notice and a journal report (task 6.5), then the trusted pages Phase 14 builds.
 
 ### 4. Two guidance docs, named by subject
 
@@ -57,4 +57,4 @@ Component prohibitions are not in the doc: the prompt builders show each author 
 
 ## Open items
 
-- The capability tile's wording beyond a minimal line — Phase 14.
+- The capability tile's wording beyond a minimal line — Phase 15.

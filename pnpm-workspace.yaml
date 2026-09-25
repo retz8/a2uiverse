@@ -18,7 +18,7 @@ allowBuilds:
   # linear-catalog, pinned the same way.
   "linear-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/9d9c7d04a30d0cbd6127d749f37b88d0f563884f#path:linear/linear-catalog": true
   # The two mock-tier catalogs (task 4.7). Always bundled: the client's catalog table is
-  # compile-time until Phase 10 loads catalogs dynamically, when all five git deps leave together.
+  # compile-time until Phase 11 loads catalogs dynamically, when all five git deps leave together.
   "shop-a-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/380526ddfe0b326b57d02f76fa45c7e80dc7bc1d#path:mocks/shop-a/shop-a-catalog": true
   "shop-b-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/380526ddfe0b326b57d02f76fa45c7e80dc7bc1d#path:mocks/shop-b/shop-b-catalog": true
   onnxruntime-node: true

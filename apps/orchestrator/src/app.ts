@@ -58,7 +58,7 @@ export function buildOrchestrator({
   overrides?: OrchestratorOverrides;
 }): Orchestrator {
   // The roster: the manifests one level below the agents dir when one is set (the mock tier is
-  // opted in this way — task 4.7), the hardcoded entries otherwise, until Phase 10's install root.
+  // opted in this way — task 4.7), the hardcoded entries otherwise, until Phase 11's install root.
   const entries = config.agentsDir ? readRoster(config.agentsDir) : defaultEntries();
   const card = buildAgentCard(config.baseUrl);
   // One card, two readers (phase-6 decision 1): the client fetches it; the Registry indexes it.
