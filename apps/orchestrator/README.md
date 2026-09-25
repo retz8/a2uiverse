@@ -4,35 +4,15 @@ The hub: an A2A agent server, and the only thing the canvas talks to. It finds t
 
 ## How a question is answered
 
-```mermaid
-sequenceDiagram
-    participant C as Client
-    participant O as Orchestrator
-    participant P as Planner (model)
-    participant G as GitHub
-    participant M as Gmail
-    participant S as Synthesizer (model)
-
-    C->>O: a question
-    O->>O: Router ranks the apps that could answer
-    O->>P: the question and the shortlisted apps' agent cards
-    P-->>O: which apps to ask and what, the layout, the canvas's title
-    O-->>C: the layout, every slot waiting
-    par every app at once
-        O->>G: the Planner's request for GitHub
-        O->>M: the Planner's request for Gmail
-    end
-    G-->>O: GitHub's UI
-    O-->>C: GitHub's UI, into its slot
-    M-->>O: Gmail's UI
-    O-->>C: Gmail's UI, into its slot
-    O->>S: both apps' data and the Planner's brief
-    S-->>O: the merged view's wiring
-    O-->>C: the merged view, into its slot
-    O-->>C: done
 ```
-
-The Router ranks A2UIVerse itself among the apps, so a question about the platform is answered by the Planner in the layout, with no app asked. The Synthesizer runs only when the plan has a merged view and at least two apps answered.
+question → Router       ranks the apps that could answer, A2UIVerse itself among them
+         → Planner      one model call: which apps to ask and what, the layout, the canvas's title
+         → first paint  the layout with every slot waiting, before any app is asked
+         → apps         one request per app, in parallel; each answer relayed as it arrives
+         → Synthesizer  a second model call, when the plan has a merged view and two apps answered
+         → merged view  painted into its slot
+         → done         once every app has answered, failed or timed out
+```
 
 - **The first paint doesn't wait on any app.** The layout reaches the canvas before any app is asked, so it appears as soon as the Planner answers.
 - **One app failing never fails the rest.** Its slot says why (the app's own words, unreachable, timed out, or a paint the canvas couldn't draw), and its data leaves the merge.
