@@ -100,7 +100,7 @@ describe('a press', () => {
     expect(sent[0]!.message.parts).toEqual([
       {kind: 'data', data: {version: 'v0.9', operation: include}},
     ]);
-    // Not a turn: nothing in flight, nothing in the status strip.
+    // Not a turn: nothing in flight, nothing on the progress line.
     expect(canvas.store.getState().inFlight).toBeNull();
     release();
     await pressing;

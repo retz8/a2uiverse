@@ -119,7 +119,7 @@ describe('prepareOutgoing', () => {
     parts: [{kind: 'text', text: 'hi'}],
     contextId: 'o-ctx',
     taskId: 'o-task',
-    metadata: {a2uiClientDataModel: {v: 1}, a2uiForkContext: {paintId: 3}},
+    metadata: {a2uiClientDataModel: {v: 1}, unrelatedKey: {paintId: 3}},
   };
 
   test('strips the orchestrator ids and sets the vendor contextId', () => {

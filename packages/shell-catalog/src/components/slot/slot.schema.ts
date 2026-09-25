@@ -16,8 +16,8 @@ import {z} from 'zod';
  *   `filled` is not a wire state: content arriving via the host resolver is what fills a slot.
  * - `label` names the awaited content while pending or failed.
  * - `noun` (fragment content) is what the source was asked for, as the plan's join calls it —
- *   "CircleCI runs" — written by the painter at plan time; the failure tile's line is composed
- *   from it and the label (task-8.2 decision 3).
+ *   "CircleCI runs" — written by the painter at plan time (task-8.2 decision 3). It stays a
+ *   painted prop; the failure tile no longer draws it.
  * - `failure` (fragment content) is why the source failed, painted by the runtime with `state:
  *   "failed"` (task-8.2 decision 2): one of four causes, and the vendor's own message only when
  *   the vendor ended its task itself.

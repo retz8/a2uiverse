@@ -352,8 +352,8 @@ export function createCanvasRuntime({
    * A fragment the canvas could not render, reported to the hub — which owns slot lifecycle and
    * answers by repainting its own shell surface with that slot failed.
    *
-   * Deliberately not a turn: beginning one would cancel whatever the user has in flight and light
-   * the status strip for something they never asked for. So it sends on the side and routes the
+   * Deliberately not a turn: beginning one would cancel whatever the user has in flight and set
+   * the progress line working for something they never asked for. So it sends on the side and routes the
    * answer as a stream beside the turn (task-8.5 decision 3).
    */
   const reportFragmentFailure = async (failure: FragmentFailure) => {
@@ -394,8 +394,8 @@ export function createCanvasRuntime({
   /**
    * A shell action (SPEC §7; task-6.5 decisions 2–4, 6): reported to the hub for the journal,
    * which is the only thing the hub does with it. The report is a standard A2UI action on the
-   * shell surface that raised it, sent the way a fragment failure is: on the side, no turn, no
-   * status strip. The page never waits on the hub, and a failed report is logged and nothing
+   * shell surface that raised it, sent the way a fragment failure is: on the side, no turn,
+   * nothing on the progress line. The page never waits on the hub, and a failed report is logged and nothing
    * more. Every raise is reported, an open page included — a second click is a second intent.
    */
   const reportShellAction = (action: ShellAction) => {

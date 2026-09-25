@@ -1,5 +1,5 @@
 /**
- * The canvas page: the canvas on screen + overlay + palette + status strip + ambient notice
+ * The canvas page: the canvas on screen + overlay + palette + progress line + ambient notice
  * assembled over the A2A transport and the turn runner, with the ?beat= fixture-replay
  * affordance, the interaction policy (blocked actions with a cue, always-live overlay answers),
  * and the trail — every question a canvas of its own, a past canvas a tab (task 9.6).

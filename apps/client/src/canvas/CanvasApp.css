@@ -1,9 +1,9 @@
-/* The canvas shell: the stage fills the screen like an application; the status strip is the
-   one thin persistent region; palette and notice float above the stage. */
+/* The canvas shell: the stage fills the screen like an application; palette and notice float
+   above the stage. */
 
 /* An application shell owns the whole viewport: the document itself never scrolls (the
    default body margin otherwise adds an outer scrollbar that reveals a blank strip below
-   the status strip) — only the stage scrolls, internally. */
+   the page) — only the stage scrolls, internally. */
 html,
 body {
   height: 100%;

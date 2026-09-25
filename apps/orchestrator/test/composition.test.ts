@@ -108,7 +108,7 @@ describe('partition filter', () => {
         'un-namespaced': {c: 3},
       },
     },
-    a2uiForkContext: {anything: true},
+    unrelatedKey: {anything: true},
   };
 
   test('keeps only the owner surfaces, keys un-namespaced', () => {
@@ -132,7 +132,7 @@ describe('partition filter', () => {
   });
 
   test('vendorMetadata is undefined when nothing survives', () => {
-    expect(vendorMetadata({a2uiForkContext: {x: 1}}, 'github')).toBeUndefined();
+    expect(vendorMetadata({unrelatedKey: {x: 1}}, 'github')).toBeUndefined();
     expect(vendorMetadata(undefined, 'github')).toBeUndefined();
   });
 });

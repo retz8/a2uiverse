@@ -1,10 +1,12 @@
 /**
  * The catalog's React-free face (task-5.4 decision 5): the component APIs — upstream's basic
  * catalog from `@a2ui/web_core`, the shell primitives' own zod schemas — and the declared
- * functions, as one `Catalog` of APIs. What a headless `MessageProcessor` validates a
- * model-authored tree against, in a process that renders nothing; the same schemas the
- * rendering catalog `createCatalog` builds binds its React implementations to, so the two faces cannot disagree
- * about a prop. Imports no React and no stylesheet.
+ * functions, as one `Catalog` of APIs a headless `MessageProcessor` can validate against, in a
+ * process that renders nothing; `schema.test.ts` holds it to `catalog.json`. The orchestrator
+ * imports its names, types, keep-sets and relation functions from here, and validates a
+ * model-authored tree with the sdk's validator against the pruned `catalog.json`. The rendering
+ * catalog `createCatalog` binds its React implementations to the same schemas, so the two faces
+ * cannot disagree about a prop. Imports no React and no stylesheet.
  */
 import {
   BASIC_COMPONENTS,

@@ -19,7 +19,7 @@ const utterance: Message = {
   messageId: 'u1',
   role: 'user',
   parts: [{kind: 'text', text: 'what needs my review?'}],
-  metadata: {a2uiClientDataModel: {version: 'v0.9', surfaces: {}}, a2uiForkContext: {paintId: 1}},
+  metadata: {a2uiClientDataModel: {version: 'v0.9', surfaces: {}}, unrelatedKey: {paintId: 1}},
 };
 
 const record: DispatchRecord = {
@@ -119,7 +119,7 @@ describe('IntentJournal', () => {
     await turn.close('completed');
     const [entry] = await lines(file);
     expect(entry.clientMetadata).toEqual({
-      keys: ['a2uiClientDataModel', 'a2uiForkContext'],
+      keys: ['a2uiClientDataModel', 'unrelatedKey'],
       dataModelBytes: Buffer.byteLength(JSON.stringify({version: 'v0.9', surfaces: {}})),
     });
     expect(JSON.stringify(entry)).not.toContain('"surfaces":{}');
