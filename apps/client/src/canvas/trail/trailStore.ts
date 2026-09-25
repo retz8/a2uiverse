@@ -71,7 +71,8 @@ export interface TrailStore {
   returnToLive(): void;
   /**
    * The canvas closes (task-9.6 decision 8): viewed, the view goes to live; live, the newest
-   * remaining canvas becomes live; the last one leaves an empty trail.
+   * remaining canvas becomes live; the last one leaves an empty trail. The canvases asked from
+   * it take its parent, so Back still follows the branch (task-9.9 decision 22).
    */
   close(id: string): void;
   /** A shell action landed: open its page over the canvas, or retarget the one already open. */
@@ -96,13 +97,14 @@ export const entryOf = (state: TrailState, id: string | null): TrailEntry | unde
 export const entryLabel = (entry: TrailEntry): string =>
   entry.title ?? truncateUtterance(entry.question);
 
-/** Back's target: the canvas asked just before the one on screen; none on the oldest. */
+/**
+ * Back's target: the canvas the one on screen was asked from — Back follows the branch, not the
+ * timeline (task-9.9 decision 22); none on the session's first question.
+ */
 export function backTarget(state: TrailState): TrailEntry | undefined {
-  const viewed = viewedCanvasId(state);
-  if (viewed === null) return undefined;
-  const ordered = newestFirst(state.entries);
-  const index = ordered.findIndex(entry => entry.id === viewed);
-  return index < 0 ? undefined : ordered[index + 1];
+  const viewed = state.entries.find(entry => entry.id === viewedCanvasId(state));
+  if (viewed?.parent === undefined) return undefined;
+  return state.entries.find(entry => entry.id === viewed.parent);
 }
 
 /**
@@ -156,8 +158,16 @@ export function createTrailStore(): TrailStore {
       if (state.viewing !== null) set({viewing: null});
     },
     close: id => {
-      if (!state.entries.some(entry => entry.id === id)) return;
-      const entries = state.entries.filter(entry => entry.id !== id);
+      const closed = state.entries.find(entry => entry.id === id);
+      if (!closed) return;
+      // Its children take its parent: the branch runs on through it (task-9.9 decision 22).
+      const entries = state.entries
+        .filter(entry => entry.id !== id)
+        .map(entry => {
+          if (entry.parent !== id) return entry;
+          const {parent: _closed, ...rest} = entry;
+          return closed.parent === undefined ? rest : {...rest, parent: closed.parent};
+        });
       const live = state.live === id ? (newestFirst(entries)[0]?.id ?? null) : state.live;
       const viewing = state.viewing === id || state.viewing === live ? null : state.viewing;
       set({entries, live, viewing});

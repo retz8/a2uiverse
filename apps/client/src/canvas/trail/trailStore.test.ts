@@ -100,17 +100,35 @@ describe('createTrailStore', () => {
     expect(entryLabel(store.getState().entries[0])).toBe('Wide question');
   });
 
-  it('Back goes to the canvas asked just before the one on screen, none on the oldest', () => {
+  it('Back follows the branch: the canvas the one on screen was asked from, not the one asked just before; none on the first (task-9.9 decision 22)', () => {
     const store = createTrailStore();
     open(store, 'a', 1000);
     open(store, 'b', 2000, 'a');
     open(store, 'c', 3000, 'b');
+    // Asked from a, after c: Back goes up its branch to a, past b and c.
+    open(store, 'd', 4000, 'a');
+    expect(backTarget(store.getState())?.id).toBe('a');
+    store.view('c');
     expect(backTarget(store.getState())?.id).toBe('b');
     store.view('b');
     expect(backTarget(store.getState())?.id).toBe('a');
     store.view('a');
     expect(backTarget(store.getState())).toBeUndefined();
     expect(backTarget(createTrailStore().getState())).toBeUndefined();
+  });
+
+  it('closing a canvas hands its parent to the canvases asked from it, so Back runs on through it (task-9.9 decision 22)', () => {
+    const store = createTrailStore();
+    open(store, 'a', 1000);
+    open(store, 'b', 2000, 'a');
+    open(store, 'c', 3000, 'b');
+    store.close('b');
+    expect(store.getState().entries.find(e => e.id === 'c')?.parent).toBe('a');
+    expect(backTarget(store.getState())?.id).toBe('a');
+    // The first canvas closed: what was asked from it has no parent left.
+    store.close('a');
+    expect(store.getState().entries.find(e => e.id === 'c')).not.toHaveProperty('parent');
+    expect(backTarget(store.getState())).toBeUndefined();
   });
 
   it('a branch is a canvas asked from one that is not its predecessor (decision 5)', () => {

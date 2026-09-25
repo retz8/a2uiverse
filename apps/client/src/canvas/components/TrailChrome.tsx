@@ -308,6 +308,19 @@ export function TrailChrome({
     previewing && previewing.id !== viewedId ? runtimeOf(previewing.id) : undefined;
   const previewEntry = previewing ? entryOf(trail, previewing.id) : undefined;
 
+  // A closed rail previews nothing: an entry picked closes it under the pointer, which never
+  // leaves the row, so the next opening would show that entry's preview unasked. Reset as the
+  // rail closes, during render.
+  const [previewsOpen, setPreviewsOpen] = useState(open);
+  if (open !== previewsOpen) {
+    setPreviewsOpen(open);
+    if (!open) {
+      setPreviewing(null);
+      setLitParent(null);
+      setHoveredId(null);
+    }
+  }
+
   // Escape closes the rail wherever focus is, as it dismisses the palette.
   useEffect(() => {
     if (!open) return;

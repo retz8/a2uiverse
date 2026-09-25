@@ -5,7 +5,7 @@
  * and the trail — every question a canvas of its own, a past canvas a tab (task 9.6).
  */
 import {describe, it, expect, afterEach} from 'vitest';
-import {render, screen, cleanup, waitFor, within} from '@testing-library/react';
+import {render, screen, cleanup, fireEvent, waitFor, within} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type {MessageSendParams, Part, TaskStatusUpdateEvent} from '@a2a-js/sdk';
 import {CATALOG_ID} from 'github-catalog';
@@ -598,6 +598,22 @@ describe('CanvasApp trail (task 9.6)', () => {
     expect(preview.querySelectorAll('input[type="checkbox"]')).toHaveLength(1);
 
     await userEvent.unhover(pick('show my filters'));
+    expect(screen.queryByTestId('canvas-trail-preview')).toBeNull();
+  });
+
+  it('an entry picked under the pointer leaves no preview behind: the rail opens again showing none', async () => {
+    await askTwo();
+    // Clicks with no pointer moving between them, as a real pick: the rail closes under the
+    // pointer and the row never sees it leave.
+    fireEvent.click(screen.getByRole('button', {name: 'Trail'}));
+    await screen.findByRole('navigation', {name: 'Trail of past canvases'});
+    fireEvent.mouseEnter(pick('show my filters'));
+    await screen.findByTestId('canvas-trail-preview');
+    fireEvent.click(pick('show my filters'));
+    // Elsewhere again, so the entry picked is one the rail would preview.
+    fireEvent.click(await screen.findByRole('button', {name: /Return to live/}));
+    fireEvent.click(await screen.findByRole('button', {name: 'Trail'}));
+    await screen.findByRole('navigation', {name: 'Trail of past canvases'});
     expect(screen.queryByTestId('canvas-trail-preview')).toBeNull();
   });
 });
