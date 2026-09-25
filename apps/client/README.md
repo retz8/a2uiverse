@@ -1,10 +1,10 @@
 # @a2uiverse/client
 
-The canvas: you ask in words, and the answer is a full screen of UI composed from several apps — each app drawn in its own design system and labelled with who painted it. It talks only to the orchestrator, never to an app.
+The canvas: you ask in words, and the answer is a full screen of UI composed from several apps, each drawn in its own design system and labelled with who painted it. It talks only to the orchestrator, never to an app.
 
-The shell draws everything around the apps — the question, the progress line, the palette, Back and Trail, the layout, the attribution — in Radix Themes. Each app owns the inside of its fragment completely: no shell style reaches in, and an app's stylesheet loads only when one of its surfaces mounts.
+The shell draws everything around the apps in Radix Themes: the question, the progress line, the palette, Back and Trail, the layout and the attribution. Each app owns the inside of its fragment completely: no shell style reaches in, and an app's stylesheet loads only when one of its surfaces mounts.
 
-How the canvas works — turns, composition, canvases and the trail, the way back inside a fragment — is in [`src/canvas/README.md`](src/canvas/README.md).
+How the canvas works, from turns and composition to canvases, the trail and the way back inside a fragment, is in [`src/canvas/README.md`](src/canvas/README.md).
 
 ## Running it
 
@@ -18,29 +18,29 @@ It needs the orchestrator and the apps running too; `pnpm dev:all` from the root
 
 ## Working without a model
 
-`?beat=<name>[,<name>…]` replays a turn through the whole canvas — the same turn runner, store and rendering — with no model call and no network. Add `&instant` to skip the recorded pacing.
+`?beat=<name>[,<name>…]` replays a turn through the whole canvas, with the same turn runner, store and rendering, but no model call and no network. Add `&instant` to skip the recorded pacing.
 
 **Recorded beats** are real output, captured through the orchestrator and kept as the stream it arrived as, in `recordings/beats/`:
 
-| `?beat=`  | What it shows                                                                                                                                                                                                 |
-| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `1`–`3`   | GitHub alone: a PR list, a PR, and a review composed and confirmed (replay `3` as `2,3`)                                                                                                                      |
-| `4`       | Side by side: inbox and calendar in two slots, no merged view                                                                                                                                                 |
-| `5`       | The temporal merge: GitHub, Gmail and Calendar with the merged view                                                                                                                                           |
-| `6`       | A question about A2UIVerse itself, answered by the shell                                                                                                                                                      |
-| `7`       | A capability gap: nothing installed can answer                                                                                                                                                                |
-| `8`       | One app's slot and the shell's own words in one layout                                                                                                                                                        |
-| `9`       | The entity join: Linear, GitHub and CircleCI merged, one row per issue                                                                                                                                        |
-| `10`–`18` | Late answers and failures: Retry, Include, the home source straggling or failing, a broken stream, a paint the canvas can't draw, too few answers                                                             |
-| `19`–`25` | Several canvases: a tab finishing in the background, acting in a past canvas, "Ask this again now", adding and dropping a source, stepping back with and without a remembered merge, closing a loading canvas |
+| `?beat=`     | What it shows                                                                                                                                                                                                 |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `1` to `3`   | GitHub alone: a PR list, a PR, and a review composed and confirmed (replay `3` as `2,3`)                                                                                                                      |
+| `4`          | Side by side: inbox and calendar in two slots, no merged view                                                                                                                                                 |
+| `5`          | The temporal merge: GitHub, Gmail and Calendar with the merged view                                                                                                                                           |
+| `6`          | A question about A2UIVerse itself, answered by the shell                                                                                                                                                      |
+| `7`          | A capability gap: nothing installed can answer                                                                                                                                                                |
+| `8`          | One app's slot and the shell's own words in one layout                                                                                                                                                        |
+| `9`          | The entity join: Linear, GitHub and CircleCI merged, one row per issue                                                                                                                                        |
+| `10` to `18` | Late answers and failures: Retry, Include, the home source straggling or failing, a broken stream, a paint the canvas can't draw, too few answers                                                             |
+| `19` to `25` | Several canvases: a tab finishing in the background, acting in a past canvas, "Ask this again now", adding and dropping a source, stepping back with and without a remembered merge, closing a loading canvas |
 
-**Synthetic beats** are built by hand, for states that are hard to catch live — a failure mid-turn, a question inside a fragment. They live in `src/beats/`: `syntheticBeats.ts` (start with `composed`, `synthesis` and `trail`), `lateFailureBeats.ts` for late answers and failures, and `durableBeats.ts` for canvases and the way back.
+**Synthetic beats** are built by hand, for states that are hard to catch live, like a failure mid-turn or a question inside a fragment. They live in `src/beats/`: `syntheticBeats.ts` (start with `composed`, `synthesis` and `trail`), `lateFailureBeats.ts` for late answers and failures, and `durableBeats.ts` for canvases and the way back.
 
 A beat's presses fire at their recorded time through the same handler the buttons call, and are answered from the beat itself; nothing reaches the orchestrator.
 
 ## Shell actions
 
-A shell surface's two actions, open the Store and open the App Library, open a page over the canvas — a placeholder until those pages are built — with the canvas still mounted beneath. The action is also reported to the orchestrator, so the journal records it.
+A shell surface's two actions, open the Store and open the App Library, open a page over the canvas, with the canvas still mounted beneath. The pages are placeholders until they're built. The action is also reported to the orchestrator, so the journal records it.
 
 ## Installed catalogs
 
@@ -52,7 +52,7 @@ Vendor catalogs are git dependencies on the `a2uiverse-apps` repo, built on inst
 - **Work on one locally:** `pnpm link ../../../a2uiverse-apps/<vendor>/<vendor>-catalog`.
 - **Add a new app's catalog:** add it as a dependency, to `src/catalogs/resolver.ts`, and to `STATIC_CATALOGS` in `src/orchestratorApi.ts`. Installing app bundles will replace these lists.
 
-The client supplies only the shared runtime — React, `@a2ui/react` / `@a2ui/web_core`, zod. An app's design system, such as Primer for GitHub, comes inside its catalog.
+The client supplies only the shared runtime: React, `@a2ui/react` / `@a2ui/web_core` and zod. An app's design system, such as Primer for GitHub, comes inside its catalog.
 
 ## Renderer patch
 
@@ -74,7 +74,7 @@ pnpm --filter @a2uiverse/client record:beats --model <model> --beats 1-9
 pnpm --filter @a2uiverse/client record:beats --model <model> --beats 10-25 [--fault-port 10091]
 ```
 
-Beats 1–9 run against live apps. Beats 10–25 need the apps in `deterministic` mode (`pnpm dev:agents`) and port 10091 free: the recorder starts its own orchestrator there for each, with the case's faults and time limits and the Gemini key in the orchestrator's `.env`, and retakes a take that doesn't show its case, up to three times.
+Beats 1 to 9 run against live apps. Beats 10 to 25 need the apps in `deterministic` mode (`pnpm dev:agents`) and port 10091 free: the recorder starts its own orchestrator there for each, with the case's faults and time limits and the Gemini key in the orchestrator's `.env`, and retakes a take that doesn't show its case, up to three times.
 
 > [!IMPORTANT]
 > Start the Gmail agent with `A2UI_RECORD_DIR` set when recording. That's what makes it swap real mail for stand-ins, and the recorder can't tell whether that happened.
@@ -110,7 +110,7 @@ src/
   canvas.tsx         the entry: resolves the catalogs, mounts the canvas
   orchestratorApi.ts the client's non-A2A channel to the orchestrator
   catalogs/          catalog id → catalog and Provider
-  canvas/            the canvas — see its README
+  canvas/            the canvas, with its own README
   a2a/               the A2A side: the agent card, each canvas's session, sending, paintMeta
   a2ui/              applying streamed A2UI batches to a processor
   beats/             the beat format, replay, the synthetic beats

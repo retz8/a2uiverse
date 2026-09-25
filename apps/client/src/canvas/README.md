@@ -14,7 +14,7 @@ Where A2UIVerse answers. You ask in words at the palette, and the answer is pain
 
 ## Words used here
 
-- **Canvas**: one question's answer, with a runtime of its own — store, processor, turn runner, merged-view session — kept for the session. The **trail** is the list of them.
+- **Canvas**: one question's answer, with a runtime of its own (store, processor, turn runner, merged-view session) kept for the session. The **trail** is the list of them.
 - **Turn**: how every response enters, recorded or live: begin, apply batches, end. The turn runner is `turn/canvasTurn.ts`.
 - **Paint**: a turn's surface landing, with its cause: the question, an action inside a fragment, or an answer to a question.
 - **Composition**: the layout surface plus the fragments in its slots. The orchestrator owns it; the client keeps which fragment sits in which slot.
@@ -29,7 +29,7 @@ When the stage already shows something, a new paint is built off screen and chec
 - **The layout lands first.** A composed turn doesn't wait to swap: the layout streams in, and each slot fills in place as its app answers. A failing app changes its slot, not the screen.
 - **A slot mounts** the fragment boundary, then the app catalog's Provider, then the surface. The attribution marker isn't in there: the orchestrator paints it beside the slot, out of the fragment's reach.
 - **A fragment that can't be drawn** is reported to the orchestrator on the side, never as a turn. The orchestrator fails its slot, and its data leaves the merge.
-- **Presses** — Retry, Include, Try again — go to the orchestrator on streams beside the turn and never cancel it. A press shows the moment it's made; one that never arrives is said in place.
+- **Presses**, meaning Retry, Include and Try again, go to the orchestrator on streams beside the turn and never cancel it. A press shows the moment it's made; one that never arrives is said in place.
 - **An app that answers in words** without painting has its slot collapse to its sentence.
 - **A fragment asking a question** is raised in its slot with the rest dimmed. It never moves to the overlay, so an app can't block a canvas it shares.
 
@@ -61,7 +61,7 @@ When the stage already shows something, a new paint is built off screen and chec
 Two additions ride the A2A messages, both handled in `src/a2a/messages.ts`:
 
 - **`paintMeta`** (app → client): a data part ahead of the `createSurface` it names, carrying the paint's `title` and `kind`. The title names the step on the back and forward arrows and, on `shell:main`, the canvas's trail entry. `kind: "question"` is the only thing that sends a paint to the overlay; the canvas never guesses from a surface's shape.
-- **The `a2uiverse` stamp** (orchestrator → client), on event metadata: `{source, role?, settled?}` — which app painted it, whether it's the layout or a fragment, and where the app's stream ends. The same key carries `{parent}` the other way, on the question that opens a child canvas.
+- **The `a2uiverse` stamp** (orchestrator → client), on event metadata: `{source, role?, settled?}`, saying which app painted it, whether it's the layout or a fragment, and where the app's stream ends. The same key carries `{parent}` the other way, on the question that opens a child canvas.
 
 ## Replaying beats
 

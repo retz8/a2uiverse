@@ -23,7 +23,7 @@ const catalog = createCatalog({onShellAction, onPress, onNavigate, appDisplayNam
 ```
 
 - **`onShellAction`** opens the Store or the App Library.
-- **`onPress`** receives the reader's presses — Retry, Include, Try again, a step back or forward — as a composition operation. Without it, no press button is drawn.
+- **`onPress`** receives the reader's presses (Retry, Include, Try again, a step back or forward) as a composition operation. Without it, no press button is drawn.
 - **`onNavigate`** takes a merged cell's click to the value it came from. Without it, cells aren't clickable.
 - **`appDisplayName`** gives an app's name. Without it, the app's id is shown.
 
@@ -42,7 +42,7 @@ The host also fills four React contexts the components read:
 
 The orchestrator writes shell surfaces without rendering them, so the package also ships:
 
-- **`@a2uiverse/shell-catalog/schema`**: the catalog without React — `SCHEMA_CATALOG`, `CATALOG_ID`, the operators and relations — and one keep-set per model: `LAYOUT_SURFACE_KEEP_SET` for the Planner and `SYNTHESIS_SURFACE_KEEP_SET` for the Synthesizer. Each model is shown `catalog.json` narrowed to its keep-set, and what it writes is validated against the same.
+- **`@a2uiverse/shell-catalog/schema`**: the catalog without React (`SCHEMA_CATALOG`, `CATALOG_ID`, the operators and relations) and one keep-set per model: `LAYOUT_SURFACE_KEEP_SET` for the Planner and `SYNTHESIS_SURFACE_KEEP_SET` for the Synthesizer. Each model is shown `catalog.json` narrowed to its keep-set, and what it writes is validated against the same.
 - **`@a2uiverse/shell-catalog/platform-ui-guidance.md`**: how to answer a question about A2UIVerse itself. Read into the Planner's prompt.
 - **`@a2uiverse/shell-catalog/synthesis-guidance.md`**: how to build a merged view from this catalog. Read into the Synthesizer's prompt.
 

@@ -6,7 +6,7 @@ The contract between A2UIVerse's orchestrator and its canvas client, and generic
 
 - **Composition**: what the orchestrator adds around the A2UI it relays. A stamp on every event says which app painted it, and marks where an app's stream ends. Surface ids are namespaced by app (`gmail:inbox`). A paint can carry a short title, and the Planner's title names the canvas. The client sends back the reader's presses: Retry, Include, Try again, a step back or forward in a fragment, and closing a canvas.
 - **Canvases**: a canvas is an A2A context. The orchestrator gives it its id when its question is asked, every later message carries that id, and a question asked from a canvas names it as its parent.
-- **Synthesis**: the merged view's wiring — formulas over refs into each app's data, match claims that say which entries are one thing, and sorts — with its schema and validator.
+- **Synthesis**: the merged view's wiring, with its schema and validator. The wiring is formulas over refs into each app's data, match claims that say which entries are one thing, and sorts.
 - **Resolution**: pointers with key predicates, like `/threads[id="1a06f2"]/time`, resolved against a data model.
 - **A2UI tools**: an A2UI v0.9.1 validator that follows upstream's, and catalog pruning.
 
