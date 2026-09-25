@@ -1,12 +1,12 @@
 # @a2uiverse/orchestrator
 
-The hub: an A2A agent server, and the only thing the canvas talks to. It finds the apps that can answer a question, plans where their answers will sit, asks them in parallel, and relays what comes back as one composed screen. When the answers can be merged, a second model call writes the merged view.
+The hub: an A2A agent server, and the only server the client talks to. It finds the apps that can answer a question, plans where their answers will sit, asks them in parallel, and relays what comes back as one composed screen. When the answers can be merged, a second model call writes the merged view.
 
 ## How a question is answered
 
 ```
 question → Router       ranks the apps that could answer, A2UIVerse itself among them
-         → Planner      one model call: which apps to ask and what, the layout, the canvas's title
+         → Planner      one model call: which apps to ask and what, the layout, a title for the answer
          → first paint  the layout with every slot waiting, before any app is asked
          → apps         one request per app, in parallel; each answer relayed as it arrives
          → Synthesizer  a second model call, when the plan has a merged view and two apps answered
@@ -14,8 +14,8 @@ question → Router       ranks the apps that could answer, A2UIVerse itself amo
          → done         once every app has answered, failed or timed out
 ```
 
-- **The first paint doesn't wait on any app.** The layout reaches the canvas before any app is asked, so it appears as soon as the Planner answers.
-- **One app failing never fails the rest.** Its slot says why (the app's own words, unreachable, timed out, or a paint the canvas couldn't draw), and its data leaves the merge.
+- **The first paint doesn't wait on any app.** The layout reaches the client before any app is asked, so it appears as soon as the Planner answers.
+- **One app failing never fails the rest.** Its slot says why (the app's own words, unreachable, timed out, or a paint the client couldn't draw), and its data leaves the merge.
 - **The merge doesn't wait forever.** Once two apps have answered, 10 seconds with no further answer releases the merge over what arrived. A late app still mounts in its own slot, and Include folds it in. After 300 seconds an app's slot fails; an answer arriving later is kept until Retry. When the merge is joined on one app's items, that app is always waited for.
 - **Only the first merge is automatic.** Every later model call has a press behind it: Retry, Include or Try again.
 
@@ -40,36 +40,37 @@ flowchart LR
 - **Only the orchestrator ends a turn.** Several apps answer one question, so each app's own "done" is held back, and the orchestrator sends one when all of them have answered.
 - **Each app sees only its own data.** When the client sends back the screen's data with an action, the orchestrator passes on only that app's part.
 
-## Canvases
+## One composition per context
 
-A canvas is the screen that answers one question. Asking again opens a new canvas; the old one stays, reachable from the trail.
+Every question the client sends opens an A2A context, and the orchestrator holds a composition for it: the layout, each app's slot and data, the merged view, and each app's screen history. Every later message (an action, a press, a close) carries its context, so it lands on the right composition.
 
 ```mermaid
 flowchart LR
     subgraph client [Client]
-        T1["Canvas 1<br/>What needs my attention today?"]
-        T2["Canvas 2<br/>Add Linear to this"]
+        Q1["Question 1<br/>What needs my attention today?"]
+        Q2["Question 2<br/>Add Linear to this"]
     end
     subgraph orch [Orchestrator]
-        K1["Canvas 1's composition"]
-        K2["Canvas 2's composition"]
+        K1["context 1<br/>its composition"]
+        K2["context 2<br/>its composition"]
     end
     subgraph gmail [Gmail]
-        G1["conversation for canvas 1"]
-        G2["conversation for canvas 2"]
+        G1["a conversation for context 1"]
+        G2["a conversation for context 2"]
     end
-    T1 <--> K1 <--> G1
-    T2 <--> K2 <--> G2
-    T1 -. asked from .-> T2
+    Q1 <--> K1 <--> G1
+    Q2 <--> K2 <--> G2
+    K2 -. parent .-> K1
 ```
 
-- **Each canvas is its own A2A context.** Every message says which canvas it belongs to, the orchestrator keeps a separate composition for each, and each app has a separate conversation per canvas.
-- **Asking from an older canvas** makes the new one its child. The Planner sees the canvas you asked from and the questions that led to it, so "add Linear to this" means that screen.
-- **A canvas keeps running after you move on.** Apps still answering it finish, and its merged view still lands. Only closing it stops it, cancelling whatever it still has in flight.
+- **A question arrives with no context**, and the orchestrator creates one for it. A question sent inside a context it already holds is refused.
+- **A question can name a parent**, the context it was asked from. The Planner then reads that composition and the questions before it, so "add Linear to this" means that answer.
+- **Each app gets its own conversation per context**, so answers to different questions never mix.
+- **A composition keeps running** after the client sends another question: apps still answering finish, and its merged view still lands. Only a close ends it, cancelling whatever it still has in flight.
 
 ## Going back inside an app's answer
 
-Clicking into something inside an app's answer, like a CI run or an issue, makes the app paint a new screen in its slot. Each app's screens in a canvas are a history with a back arrow.
+Clicking into something inside an app's answer, like a CI run or an issue, makes the app paint a new screen in its slot. Each app's screens in a composition are a history with a back arrow.
 
 ```mermaid
 flowchart LR
@@ -89,17 +90,17 @@ On Back, the orchestrator also makes its copy of that app's data match the scree
 
 ## Modules
 
-| Module        | Where              | What it does                                                                                                                                             |
-| ------------- | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Registry      | `src/registry/`    | The installed apps and their agent cards, fetched at startup, with A2UIVerse's own card beside them                                                      |
-| Embedder      | `src/embedder/`    | One small embedding model, in-process, no API key                                                                                                        |
-| Router        | `src/router/`      | Ranks the apps against the question and returns a shortlist                                                                                              |
-| Planner       | `src/planner/`     | The first model call: the layout, which apps to ask, the canvas's title. It reads installed apps, this canvas and recent turns on demand, never app data |
-| Synthesizer   | `src/synthesizer/` | The second model call: the merged view's wiring, validated, with one retry                                                                               |
-| Composition   | `src/composition/` | The canvases, the shell's own paints, the relay, each app's data, when to merge, the presses, the fragment histories, and which refs still hold          |
-| AgentsPool    | `src/agentsPool/`  | The connections to the apps: requests, time limits, cancel                                                                                               |
-| IntentJournal | `src/journal/`     | One line per turn, appended to `STATE_DIR/intent-journal.jsonl`                                                                                          |
-| Executor      | `src/executor.ts`  | The A2A entry point that runs it all                                                                                                                     |
+| Module        | Where              | What it does                                                                                                                                                                                                |
+| ------------- | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Registry      | `src/registry/`    | The installed apps and their agent cards, fetched at startup, with A2UIVerse's own card beside them                                                                                                         |
+| Embedder      | `src/embedder/`    | One small embedding model, in-process, no API key                                                                                                                                                           |
+| Router        | `src/router/`      | Ranks the apps against the question and returns a shortlist                                                                                                                                                 |
+| Planner       | `src/planner/`     | The first model call: the layout, which apps to ask, a title for the answer. On demand it reads the installed apps, the composition the question was asked from and the questions before it, never app data |
+| Synthesizer   | `src/synthesizer/` | The second model call: the merged view's wiring, validated, with one retry                                                                                                                                  |
+| Composition   | `src/composition/` | One composition per context, the shell's own paints, the relay, each app's data, when to merge, the presses, the fragment histories, and which refs still hold                                              |
+| AgentsPool    | `src/agentsPool/`  | The connections to the apps: requests, time limits, cancel                                                                                                                                                  |
+| IntentJournal | `src/journal/`     | One line per turn, appended to `STATE_DIR/intent-journal.jsonl`                                                                                                                                             |
+| Executor      | `src/executor.ts`  | The A2A entry point that runs it all                                                                                                                                                                        |
 
 The Planner and the Synthesizer run on Gemini through the Vercel AI SDK.
 
