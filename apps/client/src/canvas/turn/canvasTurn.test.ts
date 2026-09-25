@@ -1143,21 +1143,6 @@ describe('streams beside the turn (task 8.5)', () => {
     expect(stream.signal.aborted).toBe(false);
   });
 
-  it('a fragment’s paint title is kept per source, from the meta that led it, on any stream (task-9.3 decision 6)', () => {
-    const {store, runner} = composed();
-    expect(store.getState().paintTitles.get('gmail')).toBeUndefined();
-    const retry = runner.beginSideStream();
-    retry.acceptPaintMeta({surfaceId: 'gmail:inbox', title: 'Unread — needs reply'});
-    retry.apply([create('gmail:inbox'), textRoot('gmail:inbox', 'again')], fragment('gmail'));
-    retry.end();
-    expect(store.getState().paintTitles.get('gmail')).toBe('Unread — needs reply');
-    // A later paint that names nothing drops the title with the paint it named.
-    const drill = runner.begin(surfaceAction('open'));
-    drill.apply([create('gmail:thread'), textRoot('gmail:thread', 'thread')], fragment('gmail'));
-    drill.end();
-    expect(store.getState().paintTitles.has('gmail')).toBe(false);
-  });
-
   it('a retried fragment that will not render is reported once, at the stream’s end', () => {
     const failures: FragmentFailure[] = [];
     const {runner} = composed(failures);
@@ -1387,7 +1372,6 @@ describe("the fragment's history (task 9.7)", () => {
     expect(rootText(processor, 'github:pr-list')).toBe('four PRs');
     expect(processor.model.getSurface('github:pr-detail')).toBeUndefined();
     expect(store.getState().placement.get('github')?.surfaceId).toBe('github:pr-list');
-    expect(store.getState().paintTitles.get('github')).toBe('Pull requests');
     expect(history.neighbours('github')).toEqual({forward: {step: 1, title: 'PR #42'}});
     // A later repaint of the restored id replaces it and drops the forward step.
     repaint(runner, 'github:pr-list', 'Another', 'another');

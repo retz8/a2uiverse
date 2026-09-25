@@ -1,8 +1,9 @@
 /**
  * The trail chrome (task-9.6 decisions 5–12), drawn to board F5 of the task 7.14 design canvas:
  *
- * - In the gutter, Back — to the canvas asked just before the one on screen — and Trail beside it,
- *   which opens the rail.
+ * - In the gutter, a sidebar down the left edge (task-9.9 decision 18), Back — to the canvas the one
+ *   on screen was asked from, up its branch (task-9.9 decision 22) — and Trail beside it, which opens
+ *   the rail.
  * - The rail: the trail of the session's canvases, newest first under a day header, each entry
  *   its label — the Planner's title, the question until it arrives — its time, "Live" on the
  *   newest, "Viewing" on the one on screen, a quiet mark on one still loading, a branch glyph on

@@ -135,12 +135,6 @@ export interface CanvasState {
    */
   mergeHeld: boolean;
   /**
-   * Each source's current paint title, from the vendor's `paintMeta` on the surface filling its
-   * slot (task-9.3 decision 6): what the trail's preview says of where each fragment stands.
-   * Absent for a source whose paint named nothing.
-   */
-  paintTitles: ReadonlyMap<string, string>;
-  /**
    * The notice stack: one entry per source that has spoken this turn, plus at most one for the
    * shell. Plural because a fan-out has several voices, and buffered per source because their
    * chunks interleave on the wire.
@@ -195,9 +189,7 @@ export interface CanvasStore {
   removePress(key: number): void;
   setMergeFollowingStep(following: boolean): void;
   setMergeHeld(held: boolean): void;
-  /** A source's fragment claimed its slot: the title its paint carried, if any. */
-  setPaintTitle(source: string, title: string | undefined): void;
-  /** The composition retired: its roster, slot states, merge facts, presses and titles go with it. */
+  /** The composition retired: its roster, slot states, merge facts and presses go with it. */
   resetComposition(): void;
   reportError(text: string): void;
   setStage(stageId: string | null): void;
@@ -263,7 +255,6 @@ export function createCanvasStore(): CanvasStore {
     presses: [],
     mergeFollowingStep: false,
     mergeHeld: false,
-    paintTitles: new Map(),
     notices: [],
     roster: [],
     prose: new Map(),
@@ -335,13 +326,6 @@ export function createCanvasStore(): CanvasStore {
     setMergeHeld: held => {
       if (state.mergeHeld !== held) set({mergeHeld: held});
     },
-    setPaintTitle: (source, title) => {
-      if (state.paintTitles.get(source) === title) return;
-      const next = new Map(state.paintTitles);
-      if (title === undefined) next.delete(source);
-      else next.set(source, title);
-      set({paintTitles: next});
-    },
     resetComposition: () =>
       set({
         roster: [],
@@ -350,7 +334,6 @@ export function createCanvasStore(): CanvasStore {
         presses: [],
         mergeFollowingStep: false,
         mergeHeld: false,
-        paintTitles: new Map(),
       }),
     reportError: text => set({error: text}),
     setStage: stageId => set({stageId}),

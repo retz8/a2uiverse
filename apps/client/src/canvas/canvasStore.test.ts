@@ -19,7 +19,6 @@ describe('createCanvasStore', () => {
       presses: [],
       mergeFollowingStep: false,
       mergeHeld: false,
-      paintTitles: new Map(),
       notices: [],
       roster: [],
       prose: new Map(),
@@ -103,22 +102,6 @@ describe('createCanvasStore', () => {
     });
     store.setOverlay(null);
     expect(store.getState().overlay).toBeNull();
-  });
-
-  it('a paint title is kept per source, dropped when the next paint names nothing, gone with the composition', () => {
-    const store = createCanvasStore();
-    const listener = vi.fn();
-    store.subscribe(listener);
-    store.setPaintTitle('github', undefined);
-    expect(listener).not.toHaveBeenCalled();
-
-    store.setPaintTitle('github', 'Pull requests waiting on you');
-    store.setPaintTitle('gmail', 'Unread — needs reply');
-    expect(store.getState().paintTitles.get('github')).toBe('Pull requests waiting on you');
-    store.setPaintTitle('github', undefined);
-    expect(store.getState().paintTitles.has('github')).toBe(false);
-    store.resetComposition();
-    expect(store.getState().paintTitles.size).toBe(0);
   });
 
   it("each of the shell's cues gets a fresh key so repeats restart the fade", () => {

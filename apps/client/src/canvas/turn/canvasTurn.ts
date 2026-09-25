@@ -9,7 +9,7 @@
  *   targeting a live surface not created this turn apply directly, progressively.
  * - **Progressive mode** (empty canvas): the paint streams straight onto the stage.
  * - **Question paints**: a validated surface recognised as a question routes to the overlay
- *   slot, never the stage or the timeline.
+ *   slot, never the stage.
  * - **A source swaps in when it settles** (task-9.9 decision 23): in staged mode a fragment's
  *   paint is held per source, not per turn — the source's settled marker swaps in what survives
  *   of it (net effect judged per source, a create cleaned up again discarded), so a drill-down
@@ -18,8 +18,7 @@
  *   turn ends with the re-synthesis it waits on.
  * - **Composed turns**: the hub stamps every event it relays. A `fragment` stamp names its source,
  *   and its surface fills the `Slot` carrying that `source` — those surfaces are registered in the
- *   placement map and never contend for
- *   the stage or the timeline. A `shell` stamp is an ordinary stage paint. An unstamped stream is
+ *   placement map and never contend for the stage. A `shell` stamp is an ordinary stage paint. An unstamped stream is
  *   a shell paint by default, which is what keeps every pre-composition fixture valid. Because a
  *   composition's whole point is that the layout lands before its agents answer, a shell paint
  *   that opens a composition abandons hold-and-swap for the turn and streams progressively; the
@@ -83,9 +82,9 @@ export interface TurnHandle {
    */
   apply(messages: A2uiMessage[], stamp?: CompositionStamp, synthesis?: SynthesisPayload): void;
   /**
-   * Accept one paintMeta shell object: the agent-authored title upgrades the in-flight label of
-   * an action turn and is kept per source when its fragment claims a slot; `kind: "question"` is
-   * the routing contract, and the only thing that sends a paint to the overlay or promotes a slot.
+   * Accept one paintMeta shell object: the agent-authored title names the step in its source's
+   * history when its fragment claims a slot; `kind: "question"` is the routing contract, and the
+   * only thing that sends a paint to the overlay or promotes a slot.
    */
   acceptPaintMeta(meta: PaintMeta): void;
   /** The stream is exhausted: run the gate — swap in, or discard. No-op if canceled. */
@@ -133,7 +132,7 @@ export interface TurnRunnerOptions {
 
 /** A stream beside the turn: a press's, or a side report's answer (module header). */
 export interface SideStream {
-  /** Aborts the stream's transport when a new utterance ends it. */
+  /** Aborts the stream's transport when the composition retires or the canvas closes. */
   readonly signal: AbortSignal;
   apply(messages: A2uiMessage[], stamp?: CompositionStamp, synthesis?: SynthesisPayload): void;
   acceptPaintMeta(meta: PaintMeta): void;
@@ -157,7 +156,7 @@ export interface TurnRunner {
   removeOverlay(): void;
   /**
    * A step back or forward (task-9.7): the copy the history handed back becomes the source's live
-   * surface in its slot, the one there now retired, its title kept per source as a claim's is.
+   * surface in its slot, the one there now retired.
    */
   restore(source: string, step: RestorableStep): void;
 }
@@ -233,8 +232,7 @@ export function createTurnRunner({
   /**
    * A fragment claims its source's slot. One surface per slot: a later claim retires the earlier —
    * captured first, as last seen, for the way back. The paint's title, from the meta that led it,
-   * is what the trail's preview says of the source and what names the step in its history; a
-   * question paint lands as a step no arrow returns to.
+   * names the step in its history; a question paint lands as a step no arrow returns to.
    */
   const claimSlot = (
     source: string,
@@ -247,7 +245,6 @@ export function createTurnRunner({
     if (previous && previous.surfaceId !== surfaceId)
       processor.model.deleteSurface(previous.surfaceId);
     store.placeFragment(source, {surfaceId, source});
-    store.setPaintTitle(source, title);
     history?.landed(source, {title, question});
   };
 
@@ -626,11 +623,11 @@ export function createTurnRunner({
             // An update to an already-visible surface applies live, progressively.
             applyA2uiMessages(processor, [message], {onMessageError});
           } else if (state.overlay?.surfaceId === surfaceId) {
-            // The agent withdrew its question; questions never enter the timeline.
+            // The agent withdrew its question.
             processor.model.deleteSurface(surfaceId);
             store.setOverlay(null);
           } else if (state.stageId === surfaceId) {
-            // A deliberate delete of the live stage — snapshot, remove, go empty.
+            // A deliberate delete of the live stage — retire it, go empty.
             retireStage();
             store.showNotice(CANVAS_CLEARED_TEXT);
           } else {
@@ -854,7 +851,7 @@ export function createTurnRunner({
   /**
    * A stream beside the turn (module header): what it carries lands in the live composition as a
    * progressive turn's batches would — slot claims, the shell's facts, a synthesis payload — with no
-   * stage, no timeline, no mode, and nothing of the turn in flight touched.
+   * stage, no mode, and nothing of the turn in flight touched.
    */
   const beginSideStream = (): SideStream => {
     const controller = new AbortController();
@@ -952,7 +949,7 @@ export function createTurnRunner({
     cancelSideStreams();
   };
 
-  const restore: TurnRunner['restore'] = (source, {paint, title}) => {
+  const restore: TurnRunner['restore'] = (source, {paint}) => {
     const previous = store.getState().placement.get(source);
     if (previous && previous.surfaceId !== paint.surfaceId) {
       // The surface stepped away from leaves as a failed slot's does: a late message for it is
@@ -964,7 +961,6 @@ export function createTurnRunner({
     dropped.delete(paint.surfaceId);
     applyA2uiMessages(processor, rebuildMessages(paint), {onMessageError: reportMessageError});
     store.placeFragment(source, {surfaceId: paint.surfaceId, source});
-    store.setPaintTitle(source, title);
     store.demoteSlot(source);
     store.bumpApplied();
   };

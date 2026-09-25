@@ -18,7 +18,8 @@ SPEC.md §4 and §10–11.
 - **Overlay slot** — where **question paints** land: a surface the agent _declares_ a question
   renders above the stage instead of replacing it. Only a shell-role paint takes it; a fragment
   that asks is promoted in its slot instead.
-- **Status strip** — the thin in-flight/status readout.
+- **Progress line** — under the question: where the turn stands, in the client's words, and the
+  canvas's error at its end. There is no status strip.
 - **Ambient notices** — the sources' prose, one attributed line each, transient
   (for example, declining an action it cannot perform).
 - **Trail chrome** — Back and Trail in the gutter; the rail of the session's canvases; the band
@@ -35,8 +36,8 @@ SPEC.md §4 and §10–11.
   the list of them, one entry per question.
 - A **paint** is one turn's surface landing on a canvas's stage. Each paint records a typed
   **cause** — the utterance that opened the canvas, a surface action inside one of its fragments,
-  or the answer to an overlay question. The in-flight label is derived from the cause at render
-  time; an agent-authored title, when present, sits on top.
+  or the answer to an overlay question. The cause's kind sets what the progress line says while the
+  turn runs: an utterance plans, an action inside a fragment is that source's tick.
 - A **turn** is the unit every agent response (or replayed fixture) enters
   through: begin → apply batches → end. The turn runner (`turn/canvasTurn.ts`)
   owns the lifecycle.
@@ -84,7 +85,7 @@ dispatched agent, then relays each agent's fragment stamped with the slot it bel
   fragment off the canvas: a failed source's data shows nowhere.
 - **Presses** — Retry, Include and Try again go to the hub as the composition contract's
   operation, each answered on a stream beside the turn that routes by the stamp as a turn's
-  batches do and never cancels it; a new utterance ends them all. A press is drawn at the click
+  batches do and never cancels it; the canvas's close ends them all. A press is drawn at the click
   and held until the paint catches up; one that never arrived, or lost its stream, is said in place.
 - **Prose is attributed too.** The stamp routes text as well as surfaces, so each source's
   chunks accumulate into their own notice line rather than interleaving into one string. Lines
@@ -119,7 +120,8 @@ Phase 9's durable composition (task 9.6), drawn to board F5 of the task 7.14 des
   are that canvas's own life. The entry is labelled by the truncated question until the Planner's
   title arrives as the `paintMeta` on `shell:main`, then by the title, with a short crossfade; the
   question stays the canvas's header verbatim.
-- **A past canvas is a tab.** Back goes to the canvas asked just before the one on screen;
+- **A past canvas is a tab.** Back goes to the canvas the one on screen was asked from, up its
+  branch;
   "Return to live" to the newest question's. A past canvas draws as the live one does and is
   actable — actions, presses, sort — its answers landing in it, on its own context. The band over
   it reads "Parked · asked at HH:MM" with "Ask this again now" (its question sent again as a
@@ -136,8 +138,8 @@ Phase 9's durable composition (task 9.6), drawn to board F5 of the task 7.14 des
   screen, the loading mark, "from HH:MM" on a branch — a canvas asked from one that is not its
   chronological predecessor — with the parent's title on hover and a way to it while it stands,
   and a close on hover. Picking an entry views it and closes the drawer, which covers what the pick brought on screen; Escape, Trail, the rail's own icon and a click on the faint scrim over the page close it. Hover or focus on an entry shows its preview: the canvas's shell
-  surface mounted a second time, inert and scaled, with one line per source naming its current
-  paint's title.
+  surface mounted a second time, inert and scaled, with the canvas's progress line beneath it — its
+  sources' ticks.
 - **The close** sends `{kind: "close"}` on the canvas's context, ends its turn and every stream
   beside it, drops its runtime and its entry: the viewed canvas closed returns to live, live
   closed makes the newest remaining canvas live, the last closed leaves the empty canvas. A canvas
@@ -194,8 +196,9 @@ binding (both defined in `src/a2a/messages.ts`; the standard
 
 - **`paintMeta`** (agent → client): a dedicated DataPart,
   `{paintMeta: {surfaceId, title?, kind?}}`, emitted ahead of the
-  `createSurface` it names. `title` is the agent-authored paint title the
-  history shows (absent, the cause-derived fallback is used); `kind: "question"` is the marker
+  `createSurface` it names. `title` is the agent-authored paint title that names the step in the
+  fragment's history — its arrow's name, "Back" or "Forward" alone when absent — and, on
+  `shell:main`, the Planner's title naming the canvas's trail entry; `kind: "question"` is the marker
   that routes a paint to the overlay slot instead of the stage, and the **only** thing that does
   — the canvas infers nothing from a surface's shape. It used to fall back to recognising a
   `ConfirmationDialog` root, which put a vendor catalog's component name inside shell logic and
@@ -261,11 +264,11 @@ synthesis/
   bindingEvaluator.ts   pure: payload + partitions + choices → the derived model
                         with a cell at every formula path, sorted arrays, /sorts/N
   intake.ts             the sdk's payload validator + the client's operator check
-components/             the canvas view, stage, palette, overlay, status strip, ambient notice,
-                        the trail chrome and the preview
+components/             the canvas view, stage, palette, overlay, ambient notice, the trail
+                        chrome and the preview
 turn/
   canvasTurn.ts         the turn runner — hold-and-swap lives here
-  cause.ts              the cause vocabulary + the in-flight label's derivation
+  cause.ts              the cause vocabulary + the trail label's truncation
   turnMessages.ts       pure message-shape inspection for the runner
 composition/
   slotContent.tsx       what a Slot renders: boundary → vendor Provider → surface

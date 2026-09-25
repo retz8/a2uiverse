@@ -280,7 +280,6 @@ describe('a step (task 9.7)', () => {
     const pressing = wiring.press(stepBack);
     // Before anything is awaited: the list is back on screen, the press drawn.
     expect(rootText(canvas, 'github:pr-list')).toBe('four PRs');
-    expect(canvas.store.getState().paintTitles.get('github')).toBe('Pull requests');
     expect(canvas.history.neighbours('github')).toEqual({forward: {step: 1, title: 'PR #42'}});
     expect(canvas.store.getState().presses).toEqual([
       expect.objectContaining({operation: stepBack, status: 'sent'}),
