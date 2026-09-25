@@ -1,243 +1,393 @@
-# Shell catalog — system design
+# Shell catalog: the shell's own vocabulary
 
-`packages/shell-catalog`. The shell's paint vocabulary (SPEC §4.2): the A2UI basic catalog mapped
-onto Radix Themes, plus the shell's own primitives — composition (`Slot`, `Attribution`),
-synthesis (`DerivedValue`, `SortControl`) and the merged view's shapes (`Table`,
-`TableRow`, `DataList`, `DataListItem`; task 5.7) — the shell's two actions (`openStore`,
-`openAppLibrary`; task 6.2), and the relations a match claim is written in (`equal`, `contains`,
-`judged`; task 7.5), as one catalog schema (`catalogs/v0.9.1/catalog.json`) and one React
-implementation, versioned together. Radix Themes is its design system, brought by its Provider
-under the one-provider-one-CSS-setup rule (SPEC §9.2). `Attribution` also carries a fragment's way
-back — its back and forward arrows (SPEC §4.3, §6.5; task 9.5). State as of task 9.9.
+This guide explains `packages/shell-catalog`, the A2UI catalog A2UIVerse paints its own UI with: the layout that holds each app's answer, the name above every app, the merged view, and the lines that say what went wrong. It's written for a frontend engineer meeting A2UIVerse for the first time. It starts with the ideas, follows the shell's paints through one question, then opens up the machinery, and ends with the design decisions and where the code lives.
 
-## Two faces of one catalog
+One example runs through the whole guide, the same recorded session as [`synthesis.md`](synthesis.md): the question _"what's the status of what I'm working on?"_, answered by Linear, GitHub and CircleCI. Everything on these two screens that isn't an app's own UI is drawn by this catalog.
 
+<p align="center">
+  <img src="../images/layout-pending.png" width="720" alt="The layout's first paint: a reserved merged view with its planned columns over skeleton rows, and three app slots loading">
+  <br>
+  <em>First paint. A reserved merged view with its planned columns, and a slot per app, each named above and still loading.</em>
+</p>
+
+<p align="center">
+  <img src="../images/composed-answer.png" width="720" alt="The same layout filled: the merged view and each app's answer">
+  <br>
+  <em>The same layout filled. The table, the sort control and the app names are this catalog's; inside each slot is the app's own.</em>
+</p>
+
+## The problem it solves
+
+In A2UIVerse, the shell's own screen is painted the same way an app paints its answer: as A2UI, written by a model. The **Planner**, the orchestrator's first model call, writes the layout surface `shell:main`. The **Synthesizer**, the second, writes the merged view `shell:synthesis`. A model can only write components that exist in a **catalog**, so the shell needs a catalog of its own. That's this package.
+
+It has three jobs:
+
+1. **Say everything the basic catalog says.** A2UI ships a standard **basic catalog** (`Text`, `Row`, `Column`, `Button`, `TextField` and so on). The shell catalog keeps its props exactly, so a model that knows A2UI already knows how to write most of the shell.
+2. **Add the words composition needs.** The basic catalog has no way to say "an app's answer goes here", "this is who painted it", or "this value came from two apps and one is missing". The shell catalog adds eight components for that: `Slot`, `Attribution`, `DerivedValue`, `SortControl`, `Table`, `TableRow`, `DataList` and `DataListItem`.
+3. **Give the shell one design system, and keep it in its box.** Every component is drawn with [Radix Themes](https://www.radix-ui.com/themes). Several apps' design systems share the page with it (Primer for GitHub, Material-style themes for Gmail and Calendar), so the shell's styles must never leak into an app's slot, and theirs must never leak into the shell.
+
+> "The vocabulary is the boundary." (the first of A2UIVerse's axioms, in `SPEC.md`: a model writes, a closed vocabulary bounds what it can say, a validator checks it, the runtime executes it)
+
+## Six ideas to hold on to
+
+### 1. One catalog, three files that must agree
+
+An A2UI catalog has two sides: the **schema**, which says what components exist and what props they take, and the **implementation**, which draws them. The shell catalog keeps three artifacts, because its two readers live in different places:
+
+| File | What it is | Who reads it |
+| --- | --- | --- |
+| `catalogs/v0.9.1/catalog.json` | The catalog as JSON Schema: every component, every prop, every function | The models, in their prompts; the orchestrator's validator, which checks what the models wrote |
+| `src/schema.ts` | The same components as zod schemas, with no React | Node code that needs the catalog's names and types without rendering anything (the orchestrator imports it as `@a2uiverse/shell-catalog/schema`) |
+| `src/catalog.ts` | The React implementation, on Radix Themes | The client, which renders every shell surface with it |
+
+```mermaid
+flowchart LR
+    API["Component APIs<br/>upstream's basic ones, and the shell's own zod schemas"] --> SCH["schema.ts<br/>no React"]
+    API --> CAT["catalog.ts<br/>createCatalog: React on Radix"]
+    JSON["catalog.json<br/>JSON Schema"]
+    JSON -. "parity tests" .- SCH
+    JSON -. "parity tests" .- CAT
+    JSON --> M["Models' prompts,<br/>the orchestrator's validator"]
+    CAT --> C["The client renders"]
 ```
-catalog.json ──────────────────────────────┐
-                                           ├─ catalog.parity.test · catalog.render-parity.test · keep-sets.test
-@a2ui/web_core BASIC_COMPONENTS  ─┐        │
-shell primitives' zod schemas    ─┼─ schema.ts   SCHEMA_CATALOG                   (React-free; a headless processor over the component APIs; shell actions bound to a handler that does nothing)
-                                  └─ catalog.ts  createCatalog({onShellAction, onPress?, onNavigate?, appDisplayName?})   (React; the client renders with it; shell actions and the capability tile bound to the host's handler, the Slot's presses and Attribution's arrows to its press, DerivedValue and the press lines to its navigation and app names)
-```
 
-Both faces are built from the same component APIs — upstream's `TextApi` … `DateTimeInputApi`
-from `@a2ui/web_core`, the primitives' own `*.schema.ts` — so they cannot disagree about a prop.
-`catalog.ts` binds each API to its Radix implementation with `createComponentImplementation`;
-`schema.ts` lists the APIs alone. Both carry the same functions — upstream's `BASIC_FUNCTIONS`,
-the formula operators (`OPERATORS`), the relations (`RELATIONS`) and the shell actions
-(`SHELL_ACTIONS`) — and both export the join's types and its mark rule, `cellJoin`. The package root also exports `cellState`, `relationFunctions` and the instant helpers (`parseInstant`, `formatInstant`, `INSTANT_LOCALE`, `INSTANT_TIME_ZONE`) the client's evaluator shares. The rendering
-face is built per host: `createCatalog({onShellAction})` (task 6.2) closes the shell actions and
-`Slot`'s capability tile over the host's `ShellActionHandler`; its optional `onNavigate` and
-`appDisplayName` (task 7.5) close `DerivedValue` over the host's `NavigationHandler` and its
-`AppDisplayName` lookup. Its optional `onPress` (task 8.5) closes `Slot` and `Attribution` (task
-9.5) over the host's `PressHandler`, which receives the composition operation `{kind, sources,
-step?}` with the surface and component that raised it — Retry, Include and Try again from a
-`Slot`, a step from an arrow. `SCHEMA_CATALOG` closes the shell actions over `() => {}`.
+`schema.ts` and `catalog.ts` are built from **the same component APIs**: upstream's `TextApi`, `ButtonApi` and the rest from `@a2ui/web_core`, and the shell components' own `*.schema.ts` files. So those two can't disagree about a prop. `catalog.json` is a separate file, kept in step by tests: every component it declares has an implementation and the other way round, and every function it declares is implemented (see [Keeping the files in step](#keeping-the-files-in-step)).
 
-The host seams, by kind. Handlers and stable lookups are `createCatalog`'s options. State that
-changes over time is a context the host fills: `SlotContentContext` (a source's content),
-`SlotStateContext` (a source's slot state — pending, filled, failed, collapsed, or late while it
-waits for Include — which `Table` and the reserved merged view read; task 8.2, 8.5),
-`PressStateContext` (the presses the host holds until the paint catches up, each `sent`,
-`unreached` or `lost`, and whether a press can be made at all; task 8.5), and
-`FragmentHistoryContext` (`fragment-history.ts`, task 9.5): a `FragmentHistoryResolver` from a
-source to where its fragment stands in its history — `FragmentHistory {back?, forward?, busy?}`,
-each neighbour a `HistoryStep {step, title?}`, the index the arrow reports and the paint's title
-when the agent named one, `busy` while the source's repaint is in flight (task-9.7 decision 6);
-`undefined`, the default, draws no arrow. The host computes the neighbours from its stacks; the
-catalog computes nothing.
-The prop surface is the basic catalog's exactly: what the Synthesizer authors against, what the
-orchestrator validates, and what the client renders are one vocabulary, and only the rendering
-changed in 5.9.
+### 2. The basic catalog, drawn on Radix Themes
 
-Subpaths: `.` (React), `./schema`, `./id` (`CATALOG_ID`), `./operators`, `./catalog.json`,
-`./synthesis-guidance.md`, `./platform-ui-guidance.md`.
+The basic catalog's eighteen components are all here, **with upstream's props exactly**. Only the drawing changed: each one is mapped onto its nearest Radix Themes component.
 
-### Keep-sets and guidance
+| Basic component | Drawn with Radix | Worth knowing |
+| --- | --- | --- |
+| `Text` | `Heading` for `h1` to `h4`, `Text` for `body` and `caption` | `h5` is the merged view's small label, one line ending in an ellipsis |
+| `Row`, `Column`, `List` | `Flex` | Radix names four of the seven `justify` values as props; the other three are set as CSS on the same element |
+| `Card`, `Divider`, `Tabs`, `Slider` | `Card`, `Separator`, `Tabs`, `Slider` | only the selected tab's panel mounts |
+| `Modal` | `Dialog` | its content mounts inside the catalog's own portal root |
+| `Button` | `Button` | `default` is `surface` gray, `primary` is `solid`, `borderless` is `ghost` |
+| `TextField`, `CheckBox`, `DateTimeInput` | `TextField` or `TextArea`, `Checkbox`, a native date input | the first failing check shows under the field in red |
+| `ChoicePicker` | `RadioGroup`, `CheckboxGroup`, `SegmentedControl`, or toggle `Button`s | one control per combination of one-or-many and checkbox-or-chips |
+| `Icon` | Radix Icons | an unknown icon name draws a question mark carrying the name |
+| `Image`, `Video`, `AudioPlayer` | plain elements under the Theme's tokens | |
 
-`keep-sets.ts` (task 6.3) exports one `KeepSet` (sdk) per author, named by the surface it paints,
-from both faces:
+Keeping upstream's props means the Planner, the Synthesizer, the orchestrator's validator and the client's renderer all speak one vocabulary. Nothing about the shell asks a model to learn a new word for something the basic catalog already says.
+
+### 3. The shell's own components
+
+Eight components exist only in the shell catalog. In the example:
+
+| Component | What it is | In the example |
+| --- | --- | --- |
+| **`Slot`** | A region of the layout reserved for one source's answer. It draws the answer when there is one, and otherwise its state: loading, failed, or collapsed | One per app, plus one for the merged view (`source: "shell"`) |
+| **`Attribution`** | The quiet app name above a slot, and that app's back and forward arrows | "Linear", "GitHub", "CircleCI" above the three slots |
+| **`DerivedValue`** | The only way a merged view shows a value: the value plus how sure it is | Every cell of the table |
+| **`SortControl`** | "Sort by" with the options and the direction | "Sort by Updated ↓" |
+| **`Table`**, **`TableRow`** | A list of like things whose columns line up | The "Active work items" table |
+| **`DataList`**, **`DataListItem`** | Labelled facts about one thing | A summary of one item, or an answer about A2UIVerse itself |
+
+`Table` exists because the basic catalog can only draw a list as a heading `Row` over a `Column` of `Row`s, and a `Row` sizes its children by their content, so the columns never line up. A table is the one shape whose columns align by construction.
+
+`Attribution` is written by the orchestrator, never by a model: the Planner writes the `Slot`s, and the orchestrator wraps every app's `Slot` in an `Attribution` it fills from its registry. Its props are plain literals and never data-bound, so a fragment can't rebind who it claims to be.
+
+### 4. Keep-sets: each author sees only its part
+
+Two models write shell surfaces, and each is allowed a different part of the catalog. A **keep-set** names the components and functions one author may use (`src/keep-sets.ts`):
 
 | Keep-set | Components | Functions | Author |
 | --- | --- | --- | --- |
-| `SYNTHESIS_SURFACE_KEEP_SET` | `DerivedValue`, `SortControl`, `Table`, `TableRow`, `DataList`, `DataListItem`, `Text`, `Column`, `Row`, `Card`, `Divider` | `OPERATORS`, `RELATIONS` | the Synthesizer (`shell:synthesis`) |
-| `LAYOUT_SURFACE_KEEP_SET` | `Slot`, `Row`, `Column`, `Card`, `Text`, `Divider`, `DataList`, `DataListItem`, `Table`, `TableRow`, `Button` | `SHELL_ACTIONS` | the Planner (`shell:main`) |
+| `SYNTHESIS_SURFACE_KEEP_SET` | `DerivedValue`, `SortControl`, `Table`, `TableRow`, `DataList`, `DataListItem`, `Text`, `Column`, `Row`, `Card`, `Divider` | the formula operators and the relations | the Synthesizer, `shell:synthesis` |
+| `LAYOUT_SURFACE_KEEP_SET` | `Slot`, `Row`, `Column`, `Card`, `Text`, `Divider`, `DataList`, `DataListItem`, `Table`, `TableRow`, `Button` | `openStore`, `openAppLibrary` | the Planner, `shell:main` |
 
-An author is shown `catalog.json` pruned to its keep-set (the sdk's `pruneCatalog`) and its output
-is validated against the same pruned catalog. Beside the pruned catalog each author reads one
-guidance doc from `docs/`: `synthesis-guidance.md` — how a merged view is built out of this
-catalog: the derived-value rule, the components a merged view is made of, the join — when to
-write `match`, fact or judgment, how the relations compare, naming, the join shown on the values —
-and what never to paint — into the Synthesizer's prompt; `platform-ui-guidance.md` — how the shell draws UI about
-A2UIVerse itself: what a platform answer is, the components that serve it, the literal data
-model, the two shell actions as `Button`s, what never to paint — into the Planner's prompt.
+The orchestrator shows each model `catalog.json` **pruned** to its keep-set, and validates that model's output against **the same pruned catalog**. So the Synthesizer has never heard of `Slot` or `Button`, and a `Slot` in its tree is a validation error, not a judgment call. Neither model gets `Attribution`: it's the orchestrator's alone. [Pruning a catalog](#pruning-a-catalog-graph-reachability) shows how the pruning works.
 
-## Components
+Beside its pruned catalog, each model reads one guidance doc from `docs/`: `synthesis-guidance.md` (how a merged view is built from these components) for the Synthesizer, and `platform-ui-guidance.md` (how the shell answers a question about A2UIVerse itself) for the Planner.
 
-One folder per component under `src/components/`, each a view (`*View`, pure React over resolved
-props) and a catalog entry (`*Component`, the binder's wrapper over the API; `Slot`'s is the
-factory `createSlotComponent(onShellAction, {onPress, appDisplayName})`, `Attribution`'s
-`createAttributionComponent({onPress})`, `DerivedValue`'s
-`createDerivedValueComponent({onNavigate, appDisplayName})`). The basic components
-carry no schema file of their own — their API is upstream's. Shared helpers live in
-`components/shared/`; `weight` on `Slot` and `Attribution` goes through `shared/layout`'s
-`weightStyle` — `flex: N; min-width: 0; min-height: 0` — as the basic layout components apply it.
+### 5. The host fills in what changes
 
-| Basic component | Radix Themes | Translation |
+The catalog is a library; the **host** is the app that renders with it, here the client. The catalog never reaches into the host. Instead the host gives it two kinds of input:
+
+- **Handlers**, which don't change, go into `createCatalog(options)`:
+
+  | Option | Called when |
+  | --- | --- |
+  | `onShellAction` | a shell button raises `openStore` or `openAppLibrary` |
+  | `onPress` | the reader presses Retry, Include or Try again on a `Slot`, or a back or forward arrow on an `Attribution` |
+  | `onNavigate` | the reader clicks a `DerivedValue`, to land on the element it came from |
+  | `appDisplayName` | a component needs an app's name for its id |
+
+- **State that changes as the question runs** goes into four React contexts the host provides:
+
+  | Context | What it answers | Read by |
+  | --- | --- | --- |
+  | `SlotContentContext` | "what's the content for this source?" | `Slot` |
+  | `SlotStateContext` | "where does this source's slot stand?" (`pending`, `filled`, `failed`, `collapsed`, or `late` while it waits for Include) | `Table`, the reserved merged view |
+  | `PressStateContext` | "which presses are on their way, and can a press be made here at all?" | `Slot`, `Attribution` |
+  | `FragmentHistoryContext` | "where does this app stand in its back and forward history?" | `Attribution` |
+
+Every context has a default that says nothing (no content, no state, presses enabled, no history), and every handler is optional: without `onPress` no press button or arrow is drawn, and without `onNavigate` cells aren't clickable. So the catalog renders correctly in a unit test or a replay with no host at all. And the catalog computes nothing on the host's behalf: the host works out, for example, which step is "back" for an app, and the catalog only draws it.
+
+### 6. One Provider, in its own box
+
+Every catalog bundle in A2UIVerse ships **exactly one Provider and one CSS setup, both scoped to its own box** (a review rule in `SPEC.md`). The shell catalog's `Provider` is:
+
+- A Radix `Theme` folded onto a single wrapper element, `.a2uiverse-shell-catalog`, with `display: contents` so the wrapper takes no space in the layout while CSS custom properties still flow through it.
+- Radix Themes' stylesheet, **rewritten** so every rule that Radix would put on `:root` lands on that wrapper instead (see [Scoping Radix Themes](#scoping-radix-themes)).
+- A **portal root** after its content. Floating things, like the `SortControl`'s dropdown, a `Modal`'s dialog or a `DerivedValue`'s tooltip, mount there, inside the box, instead of at the end of `<body>`.
+
+Under a host Radix `Theme` (the client has one), the Provider inherits the host's accent, gray, radius and scaling, and reads its light or dark appearance. With no host Theme, it fixes `indigo` and `slate`. It paints no background of its own.
+
+The client checks the rule for every catalog on the page: its collision tests fail if any catalog's styles escape its wrapper (see [`client.md`](client.md)).
+
+## One question's paints, end to end
+
+```mermaid
+flowchart TD
+    P["1. The Planner writes shell:main<br/>Slots, in the layout keep-set"] --> W["2. The orchestrator wraps each app's Slot<br/>in an Attribution"]
+    W --> F["3. First paint: every Slot pending,<br/>the merged view reserved"]
+    F --> A["4. Apps answer: each Slot draws<br/>the content the host resolves for it"]
+    A --> S["5. The Synthesizer writes shell:synthesis<br/>Table, DerivedValue, SortControl"]
+    S --> R["6. The reader acts: sort, click a cell,<br/>step back, press Retry or Include"]
+```
+
+**1. The Planner writes the layout.** Here's the layout from the example, trimmed. It's ordinary A2UI in the shell catalog:
+
+```jsonc
+[
+  {"id": "root", "component": "Column", "children": ["work-status", "sources"]},
+  {"id": "work-status", "component": "Slot", "source": "shell", "content": "shell", "state": "pending", "label": "Synthesis",
+   "columns": ["Issue", "Status", "Priority", "Pull request", "CI status", "Updated"],
+   "join": {"home": "linear", "nouns": {"linear": "issues", "github": "PRs", "circleci": "runs"}}},
+  {"id": "sources", "component": "Row", "children": ["attribution-linear", "attribution-github", "attribution-circleci"]},
+  {"id": "attribution-linear", "component": "Attribution", "displayName": "Linear", "appId": "linear", "child": "linear", "weight": 1},
+  {"id": "linear", "component": "Slot", "source": "linear", "weight": 1, "state": "pending", "label": "Linear"}
+  // …the same for GitHub and CircleCI
+]
+```
+
+A `Slot` holds **exactly one** of `source` (whose answer fills it) or `gap` (a capability no installed app has; more on that below). `weight` is the basic catalog's flex share: three slots of weight 1 split their row equally. `content: "shell"` marks the merged view's slot as the shell's own content, and `columns` are the view's planned headers.
+
+**2. The orchestrator wraps each app's slot.** The `Attribution` entries above aren't the Planner's: the orchestrator adds one around every app's `Slot`, copying the slot's `weight` onto it so wrapped and bare slots size by one rule. The merged view's slot stays bare, because the merged view is the shell's own page, not something an app painted.
+
+**3. First paint.** The layout reaches the client before any app has answered, so every `Slot` is `pending`:
+
+- An **app's slot** keeps a minimum height of 4rem and draws a small spinner and "Loading…" at its top-left. It names nobody: the `Attribution` above says whose it is. No border and no background: the boundary between apps is never drawn (see [Design decisions](#design-decisions)).
+- The **merged view's slot** draws the view to come in the table's own geometry: a bar where the label will be, the planned column headers, and four rows of skeleton bars. The first image above is exactly this.
+
+**4. The apps answer.** The client, as host, fills `SlotContentContext`. Each `Slot` asks it for its source's content, and draws that content the moment it's there. The slot keeps the 4rem floor it reserved, so the layout doesn't jump.
+
+**5. The merged view lands.** The Synthesizer's tree for `shell:synthesis` fills the shell slot. In the example it's a `Column` holding a `Row` (an `h5` label "Active work items" and a `SortControl`) over a `Table` of `TableRow`s whose cells are all `DerivedValue`s. How the values get into those cells is [`synthesis.md`](synthesis.md)'s subject; this catalog only draws them.
+
+**6. The reader acts.** Each interaction goes out through one of the host's handlers:
+
+| The reader | The component | What it raises |
 | --- | --- | --- |
-| `Text` | `Heading` for `h1`–`h4` (sizes 7→4); `h5` the merged view's label (task 7.16): a `Heading` as `h5` at 13px/20px, weight 600, in `--a2v-ink-2`, one line ending in an ellipsis with the whole title as its `title`; `Text` size 1 gray for `caption`, `Text` size 2 block for `body` | body goes through upstream's `MarkdownContext` when the host installs a renderer, plain otherwise (`shared/markdown`) |
-| `Image` | — (plain `img` under the Theme's radius token) | `variant` sizes as upstream fixes them; `fit` is `object-fit` |
-| `Icon` | — (Radix Icons via `icon/glyphs.ts`) | one glyph per schema name; a stated-nearest glyph where Radix has none; `{svgPath}` inline; an unknown bound name is a question mark carrying the name |
-| `Video` · `AudioPlayer` | — (native players; `AudioPlayer` captions with `Text`) | |
-| `Row` · `Column` | `Flex`, gap `var(--a2v-layout-gap, var(--space-3))` — space-3 unless the host spaces its own layout's regions (task 7.14) | `justify`/`align` per `shared/layout`: four values are Radix props, three are the CSS property on the same element |
-| `List` | `Flex`, gap 2, overflow along the axis | |
-| `Card` | `Card` size 2 `surface` | |
-| `Tabs` | `Tabs` | tabs addressed by index; the first selected; only the selected panel mounts |
-| `Modal` | `Dialog` | trigger wrapped for Radix's slot; content mounts into the bundle's portal root; hidden title; close button |
-| `Divider` | `Separator` size 4 | vertical stretches to its row |
-| `Button` | `Button` size 2 | `default`→`surface` gray · `primary`→`solid` · `borderless`→`ghost`; disabled while `isValid` is false |
-| `TextField` | `TextField` / `TextArea` for `longText` | `shared/field`: label above, first check error below in red, the control red when a check fails |
-| `CheckBox` | `Checkbox` inside a `Text` label | |
-| `ChoicePicker` | `RadioGroup` · `CheckboxGroup` · `SegmentedControl` · toggle `Button`s | one-of × checkbox · many-of × checkbox · one-of × chips · many-of × chips; `filterable` adds a `TextField` |
-| `Slider` | `Slider` | one thumb; label and value in a header row |
-| `DateTimeInput` | — (native input through `TextField`) | `date` / `time` / `datetime-local` by `enableDate`/`enableTime`; nothing when neither |
+| changes the sort | `SortControl` | writes the sort declaration back to its own data model path; the client re-sorts (no request) |
+| clicks a cell | `DerivedValue` | `onNavigate(target)`: the client scrolls to that element in the app's slot |
+| presses the back arrow | `Attribution` | `onPress({kind: "step", sources: ["circleci"], step: 0})` |
+| presses Retry | `Slot` | `onPress({kind: "retry", sources: ["github"]})` |
+| presses "Search the Store" | `Slot` with a `gap` | `onShellAction({name: "openStore", query: …})` |
 
-| Shell primitive | Rendering | Contract |
+Every press carries the surface and component that raised it, so the client knows which canvas and which slot it came from.
+
+When something goes wrong, the same `Slot` draws it. A failed app's slot becomes the **failure tile**: one sentence, then Retry. A merged view that can't be made collapses to **one line** where its label would be, with the press that can bring it back. [Composing the lines](#composing-the-lines-pure-functions) shows how those sentences are chosen.
+
+## Inside the machinery
+
+### Pruning a catalog: graph reachability
+
+`pruneCatalog` lives in the sdk (`packages/sdk/js/src/a2ui/prune.ts`). It takes `catalog.json` and a keep-set and returns a smaller catalog that is still a valid catalog on its own. Removing components from the top-level lists is the easy part. The subtle part is that a JSON Schema catalog is full of **references**: `"$ref": "#/$defs/anyComponent"` points at a shared definition, and shared definitions point at components and at each other. The pruned catalog must drop every definition that only the dropped components used, and keep every definition something kept still reaches.
+
+That's **graph reachability**. Definitions are nodes, `$ref`s are edges:
+
+1. **Cut the edges to dropped things.** Every union (`oneOf`, `anyOf`) that lists a dropped component or function loses that branch. A union left empty becomes `[false]`, which matches nothing.
+2. **Pick the roots.** The kept components and functions, plus any definition nothing in the catalog references at all. Those are the spec's own entry points, like `anyComponent`, `anyFunction` and `theme`.
+3. **Walk.** Keep a work list, starting from the roots. Pop a schema, find every local `$ref` (one starting with `#/`) inside it with a recursive scan, and push each definition not seen yet. A `Set` of reached names stops the walk from visiting anything twice.
+4. **Keep what was reached**, and drop every other definition.
+
+```mermaid
+flowchart LR
+    AC["$defs/anyComponent<br/>entry point"] -->|"kept branch"| T["components/Table"]
+    AC -->|"kept branch"| TX["components/Text"]
+    AC -.-|"branch cut"| SL["components/Slot<br/>dropped"]
+    TX --> CC["$defs/CatalogComponentCommon<br/>reached, so kept"]
+    AF["$defs/anyFunction<br/>entry point"] -->|"kept branch"| MIN["functions/min"]
+    AF -.-|"branch cut"| OS["functions/openStore<br/>dropped"]
+```
+
+The picture is the Synthesizer's pruning, in miniature. `anyComponent` and `anyFunction` are unions listing every component and function; they lose the branches to dropped entries. `CatalogComponentCommon`, the props every basic component shares, stays because a kept component still points at it. Refs into A2UI's shared `common_types.json` point outside the catalog, so the walk leaves them as they are.
+
+Each node is visited once, so the walk is linear in the size of the catalog. Pruning also checks its input: a keep-set naming a component or function the catalog doesn't have is an error, not a silent no-op.
+
+### Scoping Radix Themes
+
+Radix Themes' stylesheet is written for a page that uses only Radix: it declares its design tokens (colors, spacing, radius) on `:root`. On A2UIVerse's page that would leak into every app's slot. `scripts/scope-radix.mjs` runs before every build, test and dev run and writes a scoped copy, `src/radix-themes.scoped.css`:
+
+1. **Rewrite `:root`.** Every `:root` selector becomes `.a2uiverse-shell-catalog`, the Provider's wrapper. The script then **checks its own work** and fails the build if any `:root`, or any `html` or `body` selector, survived.
+2. **Reset what Radix sets at runtime.** Some custom properties are read by the sheet but never declared in it, because Radix sets them on elements while it runs (`--width` from a layout prop, `--radix-select-trigger-width` from a popover's measurement). Left alone, reading one inside the wrapper would pick up whatever a neighbouring app happened to set. The script computes a **set difference** (the properties the sheet reads, minus the ones it declares) and declares each of those as `initial` on the wrapper. `initial` behaves exactly like "not set", so the fallback applies, while an element's own inline value still wins.
+3. **Add one token.** Radix leaves a button's cursor at `default`; the shell's buttons should show the pointer like everything else pressable on the canvas. The script appends `--cursor-button: pointer` under the wrapper's two classes, so it outranks Radix's own rule on the same element.
+
+The client's collision detector finds a package's stylesheets by scanning its JavaScript for `.css` strings. So the script builds the stock sheet's name out of pieces, `['@radix-ui/themes/styles', 'css'].join('.')`, and only the scoped copy is ever found.
+
+### Composing the lines: pure functions
+
+The failure tile and the merged view's lines say different things depending on what happened, what the reader has pressed, and whether that press has reached the orchestrator yet. All of that wording is written by **pure functions** in `src/components/slot/slot.tsx` and `press-lines.ts`: facts in, sentences out, no React. They're tested as plain functions.
+
+- **`failureStatement(failure)`** picks the failure tile's one sentence. The orchestrator paints a cause on the failed `Slot`, one of four:
+
+  | Cause | The tile says |
+  | --- | --- |
+  | `vendor` | the app's own words when it gave some, else "Couldn't answer." |
+  | `unreachable` | "Couldn't be reached." |
+  | `timeout` | "No answer within the time allowed." |
+  | `invalid` | "Answered, but its screen couldn't be shown." |
+
+  The sentence never names the app: the `Attribution` above already does.
+
+- **`collapseLine(collapse)`** words a collapsed merged view: "The merged view needs Linear issues, which didn't load.", "The merged view needs at least two sources, and only GitHub answered.", or "The merged view couldn't be made."
+
+- **`collapsedLines(facts, presses, …)`** and **`landedLines(…)`** decide which lines a collapsed or a landed merged view shows. For a collapsed view they try, **in priority order**: a merge being made ("Making the merged view…"), a Retry that could bring it back running ("Waiting for Linear, then merging…"), the same Retry pressed but not yet painted, a view that couldn't be made (with Try again), a collapse with its Retry on the line ("Retry Linear", or "Retry all"), and finally the plain collapse line or the Synthesizer's decline. The first rule that matches wins. Under a decline, a late app is then offered with Include.
+
+The facts come from props the orchestrator paints on the merged view's `Slot` (`late`, `working`, `callFailed`, `retrying`, `declined`, `collapse`), and the presses from `PressStateContext`. So a press shows **the moment it's clicked**, before the orchestrator's repaint arrives: Retry turns the tile back into "Loading…" at once. A press that never reached the orchestrator adds "That didn't reach A2UIVerse." beside its button; a stream that broke after it answered says "Lost the connection to A2UIVerse. Ask again to see where this stands."
+
+Two accessibility details ride along. When the button that was pressed disappears, **focus moves to the line that replaced it** (a ref flag records that the button held focus, and the new line takes focus once). And the outcomes the progress line doesn't say are announced through a visually hidden `role="status"` region beside the slot.
+
+One more detail explains why `Slot` reads its props from the component's own model instead of from the props the binder hands it. Upstream's binder merges each repaint over the last one, so a prop the orchestrator stops painting, like `working` once a press finishes, would otherwise keep its old value. Every `Slot` prop is a literal the orchestrator repaints, so the model is the whole truth.
+
+### Drawing a value: `DerivedValue`
+
+`DerivedValue` binds one prop, `cell`, to the cell object the client's evaluator writes (`{value, contributed, of, absent, join?, target?, names?}`; see [`synthesis.md`](synthesis.md#6-a-cell-is-a-value-that-says-how-sure-it-is)). From it the component draws:
+
+- **One mark, carried by contrast.** `cellState(cell)` gives `complete`, `partial`, `absent` or `empty`; the join gives `none`, `guessed` or `broken`. A value that's complete and held by facts is drawn at full strength. Every other reading steps back to gray, except `broken`, which turns amber and keeps a small ⚠. The reading is also written to `data-marked`, so tests and styles can see it.
+- **A danger tone, on its own channel.** When the value matches one of the cell's `danger` words (compared the way the `equal` relation compares, word by word), a ✕ in a circle is drawn before it, and it turns red at weight 600 only when it's unmarked. Certainty wins the color: the shell never shouts about a failure that may belong to another row.
+- **A tooltip, only where the shell admitted something.** A partial, absent, guessed or broken value explains itself on hover or focus; a complete value held by facts says nothing, because clicking it is the better answer. The tooltip mounts in the Provider's portal root, so showing it moves nothing on the page.
+- **A button, when it can go somewhere.** With a `target` and a host `onNavigate`, the value gets `role="button"`, takes focus, and navigates on click, Enter or Space.
+- **The full story, always, for assistive technology.** The accessible name carries the value, "needs attention" for a danger value, the contributor detail, the mark and the evidence, whatever the pointer is doing.
+
+A value that names an app (`names: "app"`) is drawn by the host's name for it. The `format` prop renders numbers, currency, and date-times in one fixed form (`en-US`, `America/New_York`, through the same `instant.ts` the client's sort uses), and `prefix` writes a `#` before a pull request number but never before the empty dash.
+
+The join marks themselves come from `cellJoin` in `src/components/derived-value/join.ts`, a **union-find** over the apps linked by facts. `synthesis.md` walks through it in [Marking a join](synthesis.md#marking-a-join-union-find), and the relations it relies on are in [Checking a relation](synthesis.md#checking-a-relation).
+
+### Reserving a column
+
+A `Table` may mark each column to the app whose values it shows (`columnSources`). When that app hasn't answered yet, the column is **reserved**: `Table` asks `SlotStateContext` where that app's slot stands, and `reservedColumnState` turns the answer into one of three states:
+
+| The app's slot | The heading | The cells |
 | --- | --- | --- |
-| `Slot` | pending/failed fragment slots hold the space they reserved and draw nothing around it, their content flush at the leading edge (task 7.9); a pending fragment slot — before its source's first answer, or again from Retry — is a size-1 spinner and "Loading…" in the quiet register, naming nobody, the attribution marker above saying whose it is (task-8.7 decision 19); shell content pending is the merged view reserved (task 7.15) — `aria-busy`, a 24px row with a 136×10 skeleton bar, then a `ghost` `Table.Root` with the planned `columns` as headings (none when the plan wrote none), each heading marked to its source through `columnSources` saying "· loading" or "· unavailable" from the slot-state context, over four `data-skeleton-row` rows of 8px bars at the design canvas's F2 widths, in `--a2v-skel`, in `Table`'s own cell geometry; a failed fragment slot is the failure tile, board F6 (task 8.2) as one statement (task-8.7 decision 17) — `failureStatement(failure)` at body size in ink: the vendor's message when it spoke, else "Couldn't be reached.", "No answer within the time allowed.", "Answered, but its screen couldn't be shown.", and "Couldn't answer." when the vendor ended without a word or no cause was painted, with no name and no heading — then, 16px below, a size-2 outlined gray Retry with a refresh glyph under a host that takes presses; no box, the reserved floor; failed shell content a quiet `Text` line; a collapsed shell slot is 24px rows at the label row's geometry (task 8.2–8.5): the decline's reason at body size in ink with no press (task-8.7 decision 27), or `collapseLine(collapse)` — "The merged view needs Linear issues, which didn't load." carrying "Retry Linear", the home source's own Retry (task-8.7 decision 23); "The merged view needs at least two sources, and only GitHub answered." ("… and none answered.") carrying "Retry all" over the sources that did not arrive, "Retry Gmail" when there is one (task-8.7 decision 24); "The merged view couldn't be made." with Try again — replaced by "Making the merged view…" while a press makes it and "Waiting for CircleCI, then merging…" while a Retry that could bring it back is pressed or runs, and under a decline's line only "CircleCI has answered since." with Include; a filled shell slot carries, above the view, a 24px row of its own when a press has something to say (task 8.5) — "Including CircleCI…" or "Updating the merged view…" while a press's call runs, "The merged view couldn't be updated." with Try again, the late sources' line ("CircleCI answered after this view was made.", "Couldn't include CircleCI." with Include again); a row that asks for a press is the view's action, at body size in ink with a size-1 soft accent button at its end named for its object — "Include CircleCI", "Include all" for several, "Retry Linear", "Retry all", "Try again", "Include again" (task-8.7 decision 21) — and a row that only tells stays at caption size in the quiet register, a spinner before it while something runs; a press is drawn at the click from `PressStateContext` (Retry gives the tile way to the pending line), a press that never reached the orchestrator adds "That didn't reach A2UIVerse." beside its button, a stream that broke after it answered replaces the in-progress line with "Lost the connection to A2UIVerse. Ask again to see where this stands.", and every press button draws disabled where the context says no press can be made; focus moves from a pressed button to the line that replaced it (`tabindex="-1"`, `data-press-line`), and a visually hidden `role="status"` beside the slot speaks "couldn't be updated", "didn't reach" and "lost the connection"; for a `gap`, the capability tile keeps its Radix panel, border and radius — SPEC §8 calls it a tile and it is shell UI with an action in it, not a placeholder for vendor pixels — one `Text` line, "No installed app can do this.", over a soft `Button` "Search the Store" (`data-slot-state="gap"`); `weight ?? 1` as the flex share, written before a filled fragment slot's reserved floor (`min-height: 4rem`) so the share's `min-height: 0` does not erase it; shell content keeps no floor | exactly one of `source` or `gap` (schema refine); a source's content from `SlotContentContext`, resolved by source, which the host fills; a gap resolves no content; the tile's button raises `openStore` with the gap as `query` and the slot's own id as `componentId`, through the handler `createSlotComponent` closes over; the painted props — `state`, `failure` (`vendor` · `unreachable` · `timeout` · `invalid`, the message only with `vendor`), `declined`, `collapse` (`home` with the home source's noun · `few` with the display names that answered and, as `failed`, the ids that did not · `unmade`), `join` `{home, entity?, nouns}` — `home` null and `entity` the thing the rows are for a union join (task-8.7 decision 30) — and the merge's facts `merged`, `late`, `working`, `callFailed`, `retrying` — are the runtime's, never an author's; the entry reads every prop from its component model, not the binder's resolved props, since upstream's binder keeps a prop a repaint dropped (`_dev/a2ui-findings.md` §9); the line words are pure functions (`failureStatement`, `collapseLine`, `landedLines`, `collapsedLines`); a line's Retry over several sources is one press naming them all, the host's to send |
-| `Attribution` | `Text` size 1 gray, 16px line, with Radix's 12px info glyph 4px from the name; with a `child`, a `Flex` column (`data-attribution`) of the marker's row over child, gap 2 (8px) carrying `weight ?? 1` as its flex share; without one, the bare row. The fragment's way back (task 9.5, task-9.9 decision 15): with somewhere to go, the row is a `Flex` justified between, the marker at its start and at its right edge a back arrow, and a forward arrow beside it after a back — each a size-1 `soft` `IconButton` in the accent, Radix's `ArrowLeftIcon` or `ArrowRightIcon` alone, `data-way` `back` or `forward` so the host can hold the fragment's place while the step runs; no border, the boundary still undrawn | display name at rest; hover and focus brighten it and append the account when one is in play, never "Painted by" (task-8.7 decision 18); the accessible name always the name, or "name · account"; the wrapper of a vendor fragment's `Slot` (task 6.4): `child` the slot's id, `weight` the slot's, copied by the painter. The arrows read `FragmentHistoryContext` by the painted `appId` — the view takes a `history` in its place — and draw one per neighbour present, named "Back to" or "Forward to" that paint's title, "Back" or "Forward" alone when the agent named nothing, the name on hover, focus and for assistive technology (task-9.5 decision 3); a press raises the step operation `{kind: 'step', sources: [appId], step}` through the host's press handler with the surface and component that raised it, and without a handler no arrow is drawn; disabled where `PressStateContext` says no press can be made, and while the history says the source is `busy`; when the arrow pressed from the keyboard leaves the row, focus moves to the other arrow, else the marker |
-| `DerivedValue` | `Text` size 2; the detail in a Radix `Tooltip` mounted in the portal root, so showing it moves nothing on the page; contributor state and the join ride **one mark, the value's own contrast** (`data-marked`, one of `partial` · `absent` · `empty` · `guessed` · `broken`) — full strength when complete and held by facts, Radix `color="gray"` for partial, absent, empty and guessed, `color="amber"` plus a size-1 amber ⚠ when broken; a value matching one of the cell's `danger` words (task 7.16, compared as `equal` compares) carries `data-tone="danger"` and a 14px `CrossCircledIcon` before it whatever its mark, and is drawn in `--a2v-danger` (fallback `--red-11`) at weight 600 only when unmarked — certainty wins the color; a value that names an app (`names: 'app'`) drawn by the host's name for it; `data-state` and `data-join` beside `data-marked`; with a target under a host that navigates, `role="button"`, focusable, pointer cursor and a `--gray-a3` background while hovered or focused, raising the handler on click, Enter or Space; a cell that speaks without navigating is focusable with the `help` cursor; nothing in the tooltip navigates | the cell object the BindingEvaluator writes: value + contributor state, `names?: 'app'`, `join` `{mark, apps, evidence}` for a claimed object, and `target` `{app, surface, pointer}` whenever a ref resolves — none on an absent cell, the evaluator's rule (task-7.9 decision 2), so the view navigates whatever target it is handed; four states from `contributed`/`of` — `empty` (0 of 0), `absent` (0 of N), `partial`, `complete`; the tooltip appears only where the shell admitted something — a mark, or a contributor set short of complete — and carries the contributor detail when partial or absent, then "From {apps} · {relation names}", each relation with its two values when the mark is guessed or broken; a confirmed complete cell is silent and the tap is its audit; the accessible name always carries value, "needs attention" for a danger value, contributor detail, mark ("guessed match" · "broken match") and join detail, independent of pointer state; apps named through the host's lookup, the app id when it has none; `format` `number` · `currency` · `datetime` (any year-and-clock spelling rendered in one fixed form — `en-US`, `America/New_York` — through `shared/instant`, which the client's sort shares), and a `prefix` written before a present value, never before the dash (task 7.16); `danger`, a non-empty list of words fixed at authoring time, never bound |
-| `SortControl` | `Select` + `IconButton` with Radix arrow icons, never shrinking, its "Sort by" on one line | the declaration at `/sorts/N`, written back whole |
-| `Table` · `TableRow` | `Table.Root` size 1 `ghost`, drawn to the design canvas's F3 (task 7.15): no box; heading cells 32px, 12px medium in `--a2v-muted` over `--a2v-line`; body cells 40px over `--a2v-line-2`, 8px above and below; 12px side padding, none on the first column's leading edge (`headingCellStyle` · `bodyCellStyle`, shared with the reserved `Slot`); the first column, naming the row's own thing, never wraps, every other column wraps, capped at 56 characters, and a table that still cannot fit scrolls sideways inside its slot (task-8.7 decision 29); `Table.Row` of `Table.Cell`s; a column marked to a source through `columnSources` is reserved by that source's slot state (task 8.2, 8.5) — pending: a skeleton bar per cell and "· loading"; failed: the dash and "· unavailable"; late: the authored cells and "· not included" — the words in the heading's own register and accessible name, the cells `data-column-reserved` | headings from `columns`, one row per child, `columnSources` a source or null per column; a row outside a table draws as a flex row (context) |
-| `DataList` · `DataListItem` | `DataList.Root` size 2; `DataList.Item` with `Label` and `Value` | `label` a `DynamicString`, `child` the value; an item outside a list draws as a labelled row (context) |
+| `pending` | "CI status · loading" | a skeleton bar in each cell |
+| `failed` | "CI status · unavailable" | the empty dash |
+| `late` (arrived after the view was made) | "CI status · not included" | the cells the Synthesizer wrote, until Include adds the real ones |
 
-## Shell actions
+The table passes the column states down to its rows through a small React context, so each `TableRow` knows which of its cells to hold back. The reserved merged view in the first image uses the same heading and cell geometry, so when the real table lands, nothing moves.
 
-`functions/shell-actions.ts` (task 6.2). `SHELL_ACTIONS` is `['openStore', 'openAppLibrary']`;
-`ShellActionName` is its union. Each is a catalog function (`createFunctionImplementation`,
-`returnType: 'void'`) a button invokes through `functionCall`, run on the client like the basic
-catalog's `openUrl`: `openStore` takes an optional `query` (`z.object({query: z.string().optional()})`),
-`openAppLibrary` nothing (`z.object({})`). A function does nothing itself — it hands the host one
-`ShellAction`:
+### The way-back arrows
 
-- `{name: 'openStore', surfaceId, componentId?, query?}`
-- `{name: 'openAppLibrary', surfaceId, componentId?}`
+`Attribution` draws the back and forward arrows for its app. It asks `FragmentHistoryContext` where the app stands, by the painted `appId`, and gets `{back?, forward?, busy?}`, each neighbour a `{step, title?}`:
 
-through the `ShellActionHandler` (`(action: ShellAction) => void`) that
-`shellActionFunctions(onShellAction)` closes over. `surfaceId` is the surface the function ran in
-(`context.surface.id`). `componentId` is present only when a component raises the action itself:
-the capability tile names its own `Slot` (`context.componentModel.id`); a button's `functionCall`
-runs with no component in scope and carries none. `query` is present only when given — a
-button's `args.query`, the tile's `gap`. What opening the Store or the App Library looks like is
-the host's.
+- An arrow is drawn **only when there's somewhere to go**, and only when the host passed `onPress`.
+- Each arrow is **named for where it goes**: "Back to" and the paint's title when the app gave that paint one (the `paintMeta` title, see [`a2uiverse-apps`](https://github.com/retz8/a2uiverse-apps#connecting-to-a2uiverse)), just "Back" when it didn't. The name is its tooltip and its accessible name.
+- Pressing one raises `{kind: "step", sources: [appId], step}` through the host's press handler.
+- The arrows draw **disabled** while `busy` (that app's repaint is on its way) and wherever `PressStateContext` says no press can be made.
+- When a pressed arrow disappears, because there's no more history that way, **focus moves to the other arrow, or back to the app's name**.
 
-## Relations and the join
+<p align="center">
+  <img src="../images/way-back-circleci.gif" width="280" alt="CircleCI's slot going Back from a run to its runs list, then Forward">
+  <br>
+  <em>CircleCI's arrows at the right of its name: Back from a run to its runs list, then Forward.</em>
+</p>
 
-`functions/relations.ts` (task 7.5). `RELATIONS` is `['equal', 'contains', 'judged']`, exported
-apart from `OPERATORS`; `relationKind` makes `equal` and `contains` facts and `judged` the
-judgment. Each is a catalog function (`returnType: 'boolean'`) over `values` of exactly two, pure
-like the operators — the evaluator resolves both refs and calls a relation absent when either does
-not resolve. `judged` returns true. `equal` and `contains` compare:
+The arrows are soft accent icon buttons at the right edge of the name's row, with no border around the row: the boundary is still just the name, the app's own pixels and the whitespace.
 
-| Values | `equal(a, b)` | `contains(a, b)` |
+### Shell actions
+
+The shell has exactly two actions of its own: **`openStore`**, with an optional `query`, and **`openAppLibrary`**. Each is a catalog function, like the basic catalog's `openUrl`, that a `Button` runs through a `functionCall`. The function does nothing itself: it hands the host one plain object, `{name, surfaceId, query?}`, through `onShellAction`, and the host decides what opening the Store looks like.
+
+The capability tile is the one component that raises an action itself. A `Slot` with a `gap` (a capability no installed app has) draws "No installed app can do this." over a "Search the Store" button, which raises `openStore` with the gap as the query and the slot's own id as `componentId`. The tile keeps a box, unlike every other slot, because it's the shell's own UI with an action in it, not a place held for an app's pixels.
+
+### Keeping the files in step
+
+Two kinds of test keep the three files of [idea 1](#1-one-catalog-three-files-that-must-agree) honest:
+
+- **Name-level parity** (`catalog.parity.test.ts`): the catalog id matches everywhere; every component in `catalog.json` has an implementation and the other way round; the declared functions are exactly upstream's, plus the operators, the relations and the two shell actions.
+- **Render-level parity** (`catalog.render-parity.test.tsx`), which is **generated from `catalog.json`**. `fixture/matrix.ts` walks every component and every enum prop, and for each value builds a minimal valid tree: required props sampled from their declared types, a small seed per component so the sample is readable, and the one prop being varied. Every case renders through the real renderer under the Provider and must produce an element, with no validation error and no console error or warning. Add an enum value to `catalog.json` and it's tested automatically.
+
+`keep-sets.test.ts` checks the pruning: a merged view validates against the Synthesizer's pruned catalog while `Slot`, `Attribution` and `Button` don't, and a layout validates against the Planner's while `Attribution`, `DerivedValue` and `SortControl` don't. `scoped-css.test.ts` checks that no `:root` survived in the stylesheet.
+
+## Design decisions
+
+| Decision | What it buys | What it costs |
 | --- | --- | --- |
-| two instants (`shared/instant`'s reading) | the same moment, to the coarser of the two spellings' precision (`instantPrecision`: minute, second, or the fraction written) | by tokens |
-| two numbers (`readNumber`: a JSON number, or text that is only a number — sign, one currency symbol, `,` `.` `'` `’` or space grouping; a spelling with more than one reading is not a number) | the same value | by tokens |
-| other plain values | the same token sequence | b's tokens unbroken inside a's |
-| two lists of plain values | every member of each among the other's | every member of b among a's |
-| a list and a plain value | does not hold | b among a's members |
-| an object, a list holding one, an empty list, a side with no token | does not hold | does not hold |
+| **The basic catalog's props, exactly** | The models, the validator and the renderer share one vocabulary; a model that knows A2UI knows most of the shell | The shell can't add props of its own to a basic component |
+| **Radix Themes as the whole design system** | One design system for everything the shell draws; no token vocabulary of the shell's own to maintain | The shell looks like Radix, and follows Radix's releases |
+| **Two faces from the same component APIs** | The schema face and the React face can't disagree about a prop; the orchestrator gets the catalog's names with no React | `catalog.json` is a third copy, kept in step by tests |
+| **A keep-set per author, shown and validated alike** | A model can't use what it wasn't shown; "not allowed here" is a validation error, not a judgment | Two lists to keep current as components are added |
+| **Handlers as options, changing state as contexts** | The catalog never reaches into the host; defaults make it render in a test or a replay with no host | The host has four contexts to fill |
+| **The host computes, the catalog draws** | History, press state and slot state live in one place, the client | The catalog can't be smarter than what it's told |
+| **Every line's wording as a pure function** | The words are tested without rendering; one place to change them | The functions take many facts, and their priority order matters |
+| **`Slot` reads its own model, not the binder's props** | A prop the orchestrator stops painting really goes away | It works around upstream's binder instead of through it |
+| **No boundary drawn around an app's slot** | The layout reads as one page, not tiles; an app's own cards aren't boxed twice | The separation rests on the names and the whitespace |
+| **`Attribution` never data-bound, never a model's** | An app can't hide or rename who painted it | The orchestrator has to add it to every layout |
+| **One mark, the value's contrast; danger on its own channel** | Partial and guessed read as one statement; a failed build stands out only when it's certain | Guessed is carried visually by color alone; the tooltip and accessible name carry the rest |
+| **Floating content in the Provider's portal root** | Popovers stay inside the box and under the scoped styles; a tooltip moves nothing | Every floating component has to be pointed at the portal root |
+| **A rewritten, scoped Radix stylesheet** | Nothing the shell brings lands outside its wrapper; runtime variables never borrow from a neighbour | A generated file, rebuilt before every build, test and dev run |
 
-`tokens` normalizes NFKC, lowercases, and splits on anything not a letter, mark or digit; a
-character of Han, Hiragana, Katakana, Thai, Lao, Khmer or Myanmar is a token of its own. Members
-compare as `equal` compares plain values.
+## Trying it without a model
 
-`components/derived-value/join.ts` holds the join's shapes — `EvaluatedRelation` `{name, kind, op,
-state, sides}` (state `holds` · `fails` · `absent`; each side `{app, ref, value?}`), `CellJoin`,
-`CellTarget`, `NavigationHandler`, `AppDisplayName` — and the mark rule `cellJoin(claim, apps,
-absentApps)` the evaluator calls per cell. A relation that is absent keeps the link it made: facts
-that hold or are absent tie apps (union–find); the unique largest group is the row's core, marked
-`none`, and a tie for largest leaves no core. Outside the core, an app whose every relation is a
-failing fact is `broken`, any other `guessed`; an app of the cell the claim does not mention is
-`guessed`. The cell takes the worst mark among its apps not in `absentApps`; its evidence is every
-relation touching any of its apps. An empty claim gives no join.
+**The design-check page.** From the repo root, `pnpm --filter @a2uiverse/shell-catalog dev` opens the catalog's own fixture on port 5174. It shows:
 
-## Provider
+- every component in every value of every enum prop, under Radix light, Radix dark, and no host Theme;
+- the merged view built from a worked timeline example, evaluated, with a live sort;
+- every `DerivedValue` reading, from hand-built cells: complete, partial, absent, empty, guessed, broken;
+- every `Slot` and `Attribution` state, the capability tile, the presses and their lines, and the way-back arrows;
+- the scoping proof: two Providers under two different host Themes in one document.
 
-`Provider` is the bundle's one Provider and one CSS setup: a Radix `Theme` folded onto a single
-`display: contents` wrapper (`.a2uiverse-shell-catalog`), the appearance read from the host
-Theme and set explicitly, no background of its own, and a portal-root anchor after the content
-(`PortalRootContext`) so floating content — `SortControl`'s options, `Modal`'s dialog — stays
-inside the fragment boundary. Under a host Theme it inherits accent, gray, radius and scaling;
-with none it fixes `indigo`/`slate`. It carries no token bindings: Radix Themes is the whole
-design system — one Radix token set here: `--cursor-button: pointer` on the scoped Theme, so every
-button the shell draws shows the pointer where Radix leaves it at `default` (task-9.9 decision 24).
+**Replays in the client.** Start the client (`pnpm dev:client`) and open a replay; see the [client README](../../apps/client/README.md#working-without-a-model).
 
-The stylesheet is Radix Themes' own, rewritten by `scripts/scope-radix.mjs` before every build,
-test and dev run so every `:root` declaration lands on the wrapper instead, and every custom
-property Radix sets at runtime is reset there rather than borrowed from a neighbour; the script
-appends the button cursor under the wrapper's two classes, so it outranks Radix's own block on the
-same element.
+| Replay | What it shows from this catalog |
+| --- | --- |
+| `?beat=9` | This guide's example: the layout, the names, the merged view's table and sort |
+| `?beat=10` to `?beat=18` | The failure tile, Retry, Include, and every way the merged view collapses |
+| `?beat=23` | The way-back arrows, stepping CircleCI back and forward |
+| `?beat=7` | A capability gap: the tile and its "Search the Store" button |
 
-## Verification
+## Where the code is
 
-Tree-level tests render through `testing/render.tsx`: `MessageProcessor` → `A2uiSurface` under
-the Provider over `createCatalog`, the test's `onShellAction` and `onAction` receiving what the
-tree raises, the surface returned for reading its data model.
+| Concern | Where (`packages/shell-catalog/`) |
+| --- | --- |
+| The catalog as JSON Schema | `catalogs/v0.9.1/catalog.json` |
+| The React-free face | `src/schema.ts` |
+| The React face, `createCatalog` | `src/catalog.ts` |
+| Keep-sets | `src/keep-sets.ts` (pruning itself: `packages/sdk/js/src/a2ui/prune.ts`) |
+| The guidance docs | `docs/synthesis-guidance.md`, `docs/platform-ui-guidance.md` |
+| The Provider and its scoped stylesheet | `src/provider.tsx`, `scripts/scope-radix.mjs` |
+| The host's contexts | `src/slot-content.ts`, `src/slot-state.ts`, `src/press-state.ts`, `src/fragment-history.ts` |
+| `Slot`, the failure tile and the lines | `src/components/slot/slot.tsx`, `src/components/slot/press-lines.ts` |
+| `Attribution` and the arrows | `src/components/attribution/attribution.tsx` |
+| `DerivedValue` and the join marks | `src/components/derived-value/derived-value.tsx`, `src/components/derived-value/join.ts` |
+| `SortControl`, `Table`, `DataList` | `src/components/sort-control/`, `src/components/table/`, `src/components/data-list/` |
+| Operators, relations, shell actions | `src/functions/operators.ts`, `src/functions/relations.ts`, `src/functions/shell-actions.ts` |
+| Reading time | `src/components/shared/instant.ts` |
+| The basic components on Radix | `src/components/<name>/`, helpers in `src/components/shared/` |
+| Tests and the design-check page | `src/**/*.test.ts(x)`, `src/testing/render.tsx`, `fixture/` |
 
-- `catalog.parity.test` — name-level: every schema component and function has an implementation;
-  the declared functions are exactly upstream's set plus `OPERATORS`, `RELATIONS` and
-  `SHELL_ACTIONS`; every operator, relation and shell action is declared, implemented, and in the
-  schema's `anyFunction` union.
-- `functions/relations.test` — the relations apart from the operators and their kinds; text as
-  token sequences across normalization, case, punctuation and spaceless scripts; numbers and
-  instants by value, a two-way spelling staying text, instants to the coarser precision; lists as
-  lists; objects never; `judged` always.
-- `components/derived-value/join.test` — the mark rule over the pull-request roster: the core
-  unmarked, judgment guessed, an unmentioned app guessed, a lone failing fact broken, two facts
-  outlasting one failure, the two-app cases, no core on a tie, absent relations keeping their
-  links, an absent app adding no mark, the worst of a cell's apps, the evidence.
-- `catalog.render-parity.test` — render-level, generated from `catalog.json` through
-  `fixture/matrix.ts`: every component in every value of every enum prop renders through the real
-  renderer under the Provider with no validation error, no console error or warning, and an
-  element on the page. The icon table is checked against the schema's enum.
-- `schema.test` — the React-free face runs where there is no DOM, declares exactly the schema's
-  components and every schema function, accepts a merged-view tree and rejects a bad prop; the two
-  guidance docs ship beside the schema.
-- `keep-sets.test` — the synthesis keep-set's functions are `OPERATORS` and `RELATIONS`, the layout
-  keep-set carries no relation; each keep-set prunes `catalog.json` to exactly its components and functions;
-  a merged view validates against the synthesis pruning while `Slot`, `Attribution`, `TextField`
-  and `Button` do not; a layout of weighted slots, a `gap` and an `openStore` button validates
-  against the layout pruning while `Attribution`, `DerivedValue`, `SortControl` and `openUrl` do
-  not, and a `Slot` with both `source` and `gap` is refused.
-- `functions/shell-actions.test` — through the real renderer: a button's `openStore` hands the
-  host `{name, surfaceId, query}` and nothing reaches the server-action path; without `query` the
-  action carries none; `openAppLibrary` hands `{name, surfaceId}`; the capability tile shows the
-  fixed line and not the gap's words, and its button raises `openStore` with `componentId` and the
-  gap as `query`.
-- Per-component tests where behaviour is non-trivial: two-way binding on every input, `ChoicePicker`
-  in all four shapes and across two pickers, `Modal` into the portal root, `Icon` over the whole
-  table, `Text` through a host markdown renderer; `DerivedValue` — the join marks, the detail with
-  both values when in doubt, the detail in a tooltip and never inside the cell, partial and guessed at once as one
-  statement, an absent value from a claimed object with no join mark, a value that names an app, app names with the id as fallback, the cell as the
-  navigation button (click, Enter, nothing in the tooltip navigating, an absent cell), not interactive without a handler or a target, and `createCatalog`'s two options
-  through the real renderer; `Slot` — exactly one of `source` or `gap` and a
-  numeric `weight` in the schema, `weight` as the flex share, a gap tile resolving no content,
-  shell content pending, failed and filled with no floor; `Attribution` — the wrapper's `weight`
-  as its flex share, one share when unweighted, the marker before the child, the bare marker
-  without a child; the way back — no arrow without somewhere to go, "Back to" and "Forward to"
-  the paint's title or the direction alone, the arrows at the row's right edge as soft accent
-  buttons, the step operation raised, none without a press handler, disabled under the press state
-  and while the source is busy, the history read from the host's context through the catalog, and
-  focus handed on when a pressed arrow leaves the row.
-- `scoped-css.test` — the scoped stylesheet: no declaration left at `:root`, and the button cursor
-  outranking Radix's default.
-- `fixture/` — the design-check page (`pnpm dev`, port 5174): the same matrix under Radix light,
-  Radix dark and no host Theme; the task 5.11 timeline example (the fixture's own copy) evaluated
-  and rendered as one merged view with a live sort; the `DerivedValue` join states — no claim,
-  partial, confirmed, guessed, broken, partial and guessed, absent, the empty cell (0 of 0) — from hand-built cells; the
-  Slot/Attribution states, the capability
-  tile among them, and the way back's — a back arrow alone, back and forward, a neighbour the agent
-  did not name, disabled; and the scoping proof — two Providers under two host Themes in one document.
-  Its catalog is `createCatalog` over handlers that log the shell action and the navigation, with
-  display names for the pull-request roster.
+In the client, the catalog is built in `apps/client/src/catalogs/resolver.ts` and its contexts are filled in `apps/client/src/canvas/components/CanvasView.tsx`. In the orchestrator, the keep-sets and pruned catalogs are used in `planner/prompt.ts` and `synthesizer/prompt.ts`.
+
+## Words used in this guide
+
+| Word | Meaning |
+| --- | --- |
+| **Shell** | A2UIVerse's own UI: the layout, the names, the merged view, everything that isn't an app's |
+| **Catalog** | The set of components and functions a surface may use: a schema plus an implementation |
+| **Basic catalog** | A2UI's standard catalog, whose props the shell catalog keeps exactly |
+| **Surface** | One A2UI screen: a component tree and its data model. The shell paints `shell:main` and `shell:synthesis` |
+| **Slot** | A region of the layout reserved for one source's answer, or for a missing capability |
+| **Attribution** | The app's name above its slot, with its back and forward arrows |
+| **Fragment** | One app's surface, drawn inside its slot |
+| **Keep-set** | The components and functions one author may use |
+| **Pruned catalog** | `catalog.json` narrowed to a keep-set: what that author is shown and validated against |
+| **Host** | The app that renders with the catalog: the client |
+| **Provider** | The catalog's one wrapper component: its Theme, its scoped styles, its portal root |
+| **Portal root** | The element inside the Provider where floating content mounts |
+| **Failure tile** | What a failed app's slot shows: one sentence, then Retry |
+| **Capability tile** | What a `gap` slot shows: "No installed app can do this." and "Search the Store" |
+| **Press** | A reader's Retry, Include, Try again, or back or forward step |
+| **Reserved column** | A column whose app hasn't answered, drawn from that app's slot state |
+| **Shell action** | `openStore` or `openAppLibrary`: handed to the host, which opens the page |
