@@ -44,6 +44,8 @@ Leaving a canvas changes nothing in it: dispatches still out arrive, the soft de
 
 "Ask this again now" is the canvas's own question asked from this view: a new child entry, planned fresh, today's answer; the past answer stays untouched. Refresh on the live canvas is the same press. There is no reload in place; SPEC §6.4's frozen past and its refresh sentence are rewritten to this.
 
+*Amended during the run (task 9.9 decision 21).* "Ask this again now" is a past canvas's alone; the live canvas has no refresh press, its question asked again from its header's "Edit and ask again".
+
 ### 8. A canvas is stamped with its question's time
 
 The canvas carries when its question was asked; the parked banner says so. Freshness is per fragment — each agent's paint has its own time, shown at the fragment. "As it was at" is dropped.
@@ -83,6 +85,8 @@ A close on each trail entry. Closing a canvas still loading cancels its turn —
 ### 16. The trail opens on demand
 
 A Trail button beside Back opens the panel over the canvas, as board F5 draws it. Closed, the canvas shows only Back — to the chronological neighbour — and, on a past canvas, the parked banner with "Ask this again now" and "Return to live". The question stays the one header.
+
+*Amended during the run (task 9.9 decision 22).* Back follows the branch: it goes to the canvas the one on screen was asked from, disabled on the session's first question; a canvas closed hands its parent to the canvases asked from it.
 
 ### 17. Every message names its canvas
 

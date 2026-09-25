@@ -98,8 +98,17 @@ From a press on a fragment's back or forward arrow until the step ends, every ch
 
 The status strip at the foot of the canvas is gone, and with it the app's name there. The canvas's sticky error — a message of its own that failed or never arrived, cleared by its next dispatch — closes the progress line under the question in the danger tone, an alert on the full line, the condensed bar carrying it too; with no canvas, a replay that could not start says so under the empty page's hint. The Ask pill and the notices sit 24px and 80px above the page's foot. Replaced: the strip naming the app, carrying the error in its place (task-8.7 decision 16). Raised on case 2.
 
+### 21. The live canvas has no refresh press
+
+"Ask this again now" stays on a past canvas's band alone; the live canvas's question is asked again from its header's "Edit and ask again". Replaced: "Ask this again now" drawn at the end of the live canvas's question row under decision 2. Phase decision 7 and SPEC §6.4 amended. Raised on case 3.
+
+### 22. Back follows the branch
+
+The gutter's Back goes to the canvas the one on screen was asked from — up its branch, as the trail's spine draws it — and is disabled on the session's first question. A canvas closed hands its parent to the canvases asked from it, so Back runs on through it. Replaced: Back to the chronological neighbour, the canvas asked just before (phase decision 16). Phase decision 16 and SPEC §6.4 amended. Raised on case 3: from "Only the calendar part", asked from "Needs attention today", Back went to "Attention for today", asked just before it on another branch.
+
 ## Found and fixed during the run
 
+- **A trail entry picked under the pointer left its preview behind.** The pick closes the rail with the pointer still on the row, so the row never saw it leave, and the next opening of the rail showed that entry's preview unasked. A closed rail clears its preview. Case 3; the canvas app suite's test of an entry picked under the pointer.
 - **The journal read a step's combination after its wait.** A step waiting behind a merge in the making was journaled with the combination a later step had left, so a Forward read `calendar 0`. The combination is read as the step makes it. Case 2; the orchestrator's abandoned-walk test asserts both steps' combinations.
 
 ## Invariants
