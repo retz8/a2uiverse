@@ -104,7 +104,7 @@ The status strip at the foot of the canvas is gone, and with it the app's name t
 
 ### 22. Back follows the branch
 
-The gutter's Back goes to the canvas the one on screen was asked from — up its branch, as the trail's spine draws it — and is disabled on the session's first question. A canvas closed hands its parent to the canvases asked from it, so Back runs on through it. Replaced: Back to the chronological neighbour, the canvas asked just before (phase decision 16). Phase decision 16 and SPEC §6.4 amended. Raised on case 3: from "Only the calendar part", asked from "Needs attention today", Back went to "Attention for today", asked just before it on another branch.
+The gutter's Back goes to the canvas the one on screen was asked from — up its branch, as the trail's spine draws it — and is disabled on the session's first question. A canvas closed hands its parent to the canvases asked from it, so Back runs on through it. Back has no Forward: a canvas may have several children, and going down a branch is the trail's. Replaced: Back to the chronological neighbour, the canvas asked just before (phase decision 16). Phase decision 16 and SPEC §6.4 amended. Raised on case 3: from "Only the calendar part", asked from "Needs attention today", Back went to "Attention for today", asked just before it on another branch.
 
 ## Found and fixed during the run
 
