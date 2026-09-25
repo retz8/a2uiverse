@@ -1,30 +1,60 @@
 # @a2uiverse/shell-catalog
 
-The shell's paint vocabulary (SPEC §4.2): the A2UI basic catalog plus the composition primitives — as schema (`catalogs/v0.9.1/catalog.json`) + React implementation, versioned together. Radix Themes is its design system: every component renders on it, brought by the package's own Provider under the one-provider-one-CSS-setup rule (SPEC §9.2).
+The shell's own A2UI catalog: what the orchestrator paints with. It's the A2UI basic catalog drawn on Radix Themes, plus the components A2UIVerse needs to compose one screen from several apps and to show a merged view.
 
-- **Basic catalog** — each of the eighteen components implemented on its Radix Themes counterpart, the way `primer-a2ui-adapter` maps the basic catalog onto Primer: `Text`→`Heading`/`Text`, `Row`/`Column`/`List`→`Flex`, `Card`, `Tabs`, `Modal`→`Dialog`, `Divider`→`Separator`, `Button`, `TextField`/`TextArea`, `CheckBox`→`Checkbox`, `ChoicePicker`→`RadioGroup`/`CheckboxGroup`/`SegmentedControl`, `Slider`. The five with no Radix counterpart (`Image`, `Video`, `AudioPlayer`, `DateTimeInput`, and `Icon`, which renders Radix Icons) are plain elements under the Theme's tokens. The prop surface is the basic catalog's exactly — the schema, its descriptions and the guidance docs are untouched by the mapping.
-- **`Slot`** — a region holding exactly one of a `source` or a `gap`. A source's content is mounted by the host through `SlotContentContext`, resolved by that source; the slot renders its own `pending` state, and `collapsed` asks the host for content first and renders nothing only if there is none, so a source that answered without painting is not left with an attribution marker naming an empty region. A failed source is the failure tile: the failure said in the shell's words from the slot's `label` and `noun`, Retry under a host that takes presses, and beneath it the vendor's own words under a heading naming it or the shell's reason under "What happened", per the painted `failure` cause. The shell slot, the merged view, is reserved while pending as its label, its planned `columns` and skeleton rows, a column whose source is still loading, has failed or waits for Include saying so in its heading through `columnSources`; collapsed, it is one line where its label would have sat — the Synthesizer's words when it declined (`declined`), the shell's own otherwise, from the painted `collapse` cause: the home source failed, fewer than two sources answered, or the view couldn't be made. The runtime also paints on the shell slot what the presses' lines are drawn from — the merge's own source set (`merged`), the sources arrived after it (`late`), a call a press caused in progress (`working`), the last one failed with the view kept (`callFailed`), and the retried sources a collapsed merge waits on (`retrying`). The slot draws the reader's presses from them: over a landed view a row of its own above the view's label row — the working sentence, "couldn't be updated" with Try again, the late sources with Include — and on a collapsed merge the working or waiting sentence, "couldn't be made" with Try again, and under a decline's line the late sources with Include. A `gap` is the capability tile: a fixed line and a button searching the Store for the missing capability. `weight` is its flex share inside a `Row` or `Column`.
-- **`Attribution`** — the quiet provenance marker (SPEC §4.3): display name + info glyph, full detail on hover/focus, accessible name always. With a `child` it is the wrapper of that region — marker over content, one box of the layout — carrying the `weight` the painter copies from the wrapped `Slot`. The fragment's way back rides the marker's row (SPEC §6.5, task 9.5): a back arrow when the host says there is a step to go back to, a forward arrow beside it when there is one to go forward to, read from `FragmentHistoryContext` by the painted `appId` — each named "Back to" or "Forward to" that paint's title, "Back" or "Forward" alone when the agent named nothing, raising the step operation `{kind: 'step', sources: [appId], step}` through the host's press handler; without one no arrow is drawn, and the arrows draw disabled where no press can be made, as Retry does. The layout itself is the basic catalog's `Row` and `Column`.
-- **`DerivedValue`** and **`SortControl`** — the synthesis primitives: a formula-bound cell with its contributor state, and the sort criterion over a declaration at `/sorts/N`. How sure a value is shows as its contrast: full strength when complete and held by facts, gray when partial, absent, empty or guessed, amber with one ⚠ when a match broke. Where it came from and what matched shows on hover or focus. A cell with a target is the button that navigates to the element it names.
-- **Relations** — `equal`, `contains` and `judged` (`RELATIONS`, apart from `OPERATORS`): the functions a match claim is written in, pure over two values. Text compares as token sequences, numbers and date-and-times by value, lists of plain values as lists; `judged` holds whenever both values resolve. `cellJoin` is the rule that turns an object's evaluated relations into a cell's mark: guessed, broken, or none.
-- **Shell actions** — `openStore` (optional `query`) and `openAppLibrary`, catalog functions a button calls through `functionCall`, run on the client like the basic catalog's `openUrl`. Each hands the host a `ShellAction` naming the surface that raised it; what opening a page looks like is the host's.
-- **`Provider`** — a Radix `Theme` scoped to its own wrapper (never `:root`), carrying Radix Themes' stylesheet as a scoped copy and anchoring a portal root for floating content. It follows the host Theme's appearance and accent; with no host it is light, indigo on slate.
+## What's in it
 
-The rendering catalog is built per host: `createCatalog({onShellAction, onPress?, onNavigate?, appDisplayName?})` binds the shell actions and `Slot`'s capability tile to the host's handler, the reader's presses — Retry, Include, Try again — to the host's press as the composition operation `{kind, sources}` with the surface and component that raised it, and `DerivedValue` and the press lines to the host's navigation and its display names for apps — without a press handler no press button is drawn, without a navigation handler cells are not interactive, without a name the app id is shown. Beside `SlotContentContext` the host fills three contexts: `FragmentHistoryContext`, where each source's fragment stands in its history — the step it can go back to and the one it can go forward to, each with its title — which `Attribution` reads to draw its arrows; `SlotStateContext`, each source's slot state, which `Table` reads to draw a column reserved for its source — a bar per cell while loading, the empty dash once failed, the authored cells while it waits for Include, the heading saying which — through the `columnSources` the Synthesizer writes beside `columns`; and `PressStateContext`, the presses the host holds until the paint catches up and whether a press can be made at all, which `Slot` reads to draw a press the moment it is made, to say in place when one never reached A2UIVerse or lost its connection, and to draw its buttons disabled where no press can be made.
+- **The basic catalog**: all eighteen components, each drawn with its Radix Themes counterpart (`Row` and `Column` as `Flex`, `Modal` as `Dialog`, `ChoicePicker` as a radio group, checkboxes or a segmented control, …). The props are exactly the basic catalog's.
+- **Composition**:
+  - **`Slot`**: a region of the layout, filled by one app's fragment. It draws the waiting state, the failure tile with Retry, and the capability tile for an app you don't have, with a button that searches the Store. The merged view's slot draws its placeholder while the view is made, one line when it isn't, and the Include and Try again presses.
+  - **`Attribution`**: the marker naming the app that painted a fragment, with the fragment's back and forward arrows at the right of its row.
+- **The merged view**:
+  - **`DerivedValue`**: a cell computed from a formula. It shows how sure it is by its contrast, says where it came from on hover, and takes you to the value in its app's fragment when clicked.
+  - **`SortControl`**: the sort in force, which the reader can change.
+  - **`Table`** / **`TableRow`** and **`DataList`** / **`DataListItem`**: the shapes a merged view is laid out in.
+- **Functions**: the formula operators (`value`, `min`, `max`, `sum`, `avg`, `count`, `argmin`, `argmax`, `source`), the relations a match claim is written in (`equal`, `contains`, `judged`), and two shell actions, `openStore` and `openAppLibrary`.
 
-Beside it the package ships three things for the processes that author shell surfaces without rendering them:
+## Using it
 
-- **`@a2uiverse/shell-catalog/schema`** — the catalog's React-free face: `SCHEMA_CATALOG`, the same component APIs (upstream's from `@a2ui/web_core`, the primitives' own zod schemas) as a `Catalog` of APIs, plus `OPERATORS`, `RELATIONS`, `SHELL_ACTIONS`, `CATALOG_ID` and `cellJoin`; its shell actions are bound to a handler that does nothing. It also exports the two keep-sets, one per author, named by the surface each paints: `SYNTHESIS_SURFACE_KEEP_SET` (the merged view's components, the formula operators and the relations) and `LAYOUT_SURFACE_KEEP_SET` (`Slot`, the layout and content components, `Button`, and the shell actions). An author is shown `catalog.json` pruned to its keep-set and validated against the same pruned catalog.
-- **`@a2uiverse/shell-catalog/synthesis-guidance.md`** — `docs/synthesis-guidance.md`, how to build a merged view out of this catalog: the derived-value rule, which components a merged view is made of, the join, what never to paint. Read into the Synthesizer's prompt beside its pruned catalog.
-- **`@a2uiverse/shell-catalog/platform-ui-guidance.md`** — `docs/platform-ui-guidance.md`, how the shell draws UI about A2UIVerse itself: what a platform answer is, the components that serve it, the literal data model, the two shell actions, what never to paint.
+```ts
+import {createCatalog, Provider} from '@a2uiverse/shell-catalog';
 
-The schema is generated from the upstream basic `catalog.json` (`v0_9_1`, `upstream/main` of the sibling `A2UI` fork) plus the primitive defs. The design record is `_dev/docs/design/shell-catalog.md`.
+const catalog = createCatalog({onShellAction, onPress, onNavigate, appDisplayName});
+```
+
+- **`onShellAction`** opens the Store or the App Library.
+- **`onPress`** receives the reader's presses — Retry, Include, Try again, a step back or forward — as a composition operation. Without it, no press button is drawn.
+- **`onNavigate`** takes a merged cell's click to the value it came from. Without it, cells aren't clickable.
+- **`appDisplayName`** gives an app's name. Without it, the app's id is shown.
+
+Wrap the rendered surfaces in **`Provider`**: a Radix Theme scoped to its own wrapper, never the page, that follows the host's light or dark and accent colour.
+
+The host also fills four React contexts the components read:
+
+| Context                  | What it tells the components                                           |
+| ------------------------ | ---------------------------------------------------------------------- |
+| `SlotContentContext`     | which fragment to mount in a source's slot                             |
+| `SlotStateContext`       | each source's state, for a merged-view column reserved for that source |
+| `FragmentHistoryContext` | where each fragment stands in its history, for `Attribution`'s arrows  |
+| `PressStateContext`      | presses on their way, and whether a press can be made at all           |
+
+## For the orchestrator
+
+The orchestrator writes shell surfaces without rendering them, so the package also ships:
+
+- **`@a2uiverse/shell-catalog/schema`**: the catalog without React — `SCHEMA_CATALOG`, `CATALOG_ID`, the operators and relations — and one keep-set per model: `LAYOUT_SURFACE_KEEP_SET` for the Planner and `SYNTHESIS_SURFACE_KEEP_SET` for the Synthesizer. Each model is shown `catalog.json` narrowed to its keep-set, and what it writes is validated against the same.
+- **`@a2uiverse/shell-catalog/platform-ui-guidance.md`**: how to answer a question about A2UIVerse itself. Read into the Planner's prompt.
+- **`@a2uiverse/shell-catalog/synthesis-guidance.md`**: how to build a merged view from this catalog. Read into the Synthesizer's prompt.
 
 ## Commands
 
-```
+```bash
 pnpm --filter @a2uiverse/shell-catalog build | typecheck | test | lint
-pnpm --filter @a2uiverse/shell-catalog dev    # design-check fixture on :5174
+pnpm --filter @a2uiverse/shell-catalog dev    # the design-check page, on port 5174
 ```
 
-`test` includes the render-parity sweep: every component in every value of every enum prop, generated from `catalog.json`, rendered through the real renderer under the Provider. The fixture shows the same sweep under Radix light · dark · no host Theme, the task 5.11 timeline example as one merged view (the fixture's own copy), the `DerivedValue` join states (cells built by hand, navigation logged to the console), the Slot/Attribution states, and the scoping proof. In the tunnel environment open it at `https://vnw20xbg-5174.asse.devtunnels.ms`.
+`test` renders every component in every value of each of its enum props, under the Provider, beside a parity test that keeps `catalog.json` and the implementation in step.
+
+The design-check page shows that same sweep in light, dark and with no host theme, a merged view, the states of `DerivedValue`, `Slot` and `Attribution`, and that the theme stays inside its wrapper.
+
+The design record is [`_dev/docs/design/shell-catalog.md`](../../_dev/docs/design/shell-catalog.md).
