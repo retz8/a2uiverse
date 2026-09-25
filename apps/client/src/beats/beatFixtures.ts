@@ -24,13 +24,17 @@ export interface BeatBatch {
  * What one prompt produced. `outcome` is `completed` for a paint, `apology`/`unavailable` otherwise.
  *
  * A `press` or a `failure-report` is a stream beside the turn (task-8.6 decision 1): the reader's
- * Retry, Include or Try again, or the hub's answer to the client's report of a fragment it could
- * not draw. It belongs to the utterance or action before it, and `atMs` says when it was sent,
- * measured from the start of that turn; its batches' offsets are measured from its own send.
+ * Retry, Include, Try again or step, or the hub's answer to the client's report of a fragment it
+ * could not draw. It belongs to the utterance or action before it, and `atMs` says when it was
+ * sent, measured from the start of that turn; its batches' offsets are measured from its own send.
+ *
+ * A beat spans several canvases (task-9.8 decision 2). A `view` or a `close` is the user viewing or
+ * closing a canvas, beside the turn at `atMs`, nothing streamed; an utterance with an `atMs` was
+ * asked while the turn before it was still streaming, and runs beside it on that turn's clock.
  */
 export interface BeatTurn {
   taskId: string | null;
-  kind: 'utterance' | 'surface-action' | 'press' | 'failure-report';
+  kind: 'utterance' | 'surface-action' | 'press' | 'failure-report' | 'view' | 'close';
   prompt: string;
   action: Record<string, unknown> | null;
   /** A press's composition operation. */
@@ -42,14 +46,27 @@ export interface BeatTurn {
    * utterance turns, of the canvas on screen when it was asked. Absent, it was asked from live.
    */
   askedFrom?: number;
+  /**
+   * The canvas an action, a press, a view or a close acts on (task-9.8 decision 2): the ordinal,
+   * among the beat's utterance turns, of the canvas it opened. Absent, a stream beside a turn acts
+   * on that turn's canvas, and an action on the canvas last opened.
+   */
+  canvas?: number;
   batches: BeatBatch[];
   outcome: string;
   durationMs: number;
 }
 
-/** A press or a failure report's answer: a stream beside the turn before it. */
+/**
+ * What runs beside the turn before it: a press, a failure report's answer, a view, a close, and an
+ * utterance asked while that turn was still streaming.
+ */
 export const isBesideTurn = (turn: BeatTurn) =>
-  turn.kind === 'press' || turn.kind === 'failure-report';
+  turn.kind === 'press' ||
+  turn.kind === 'failure-report' ||
+  turn.kind === 'view' ||
+  turn.kind === 'close' ||
+  (turn.kind === 'utterance' && turn.atMs !== undefined);
 
 /**
  * The orchestrator's deadlines a beat was recorded under (task-8.6 decision 4), from its

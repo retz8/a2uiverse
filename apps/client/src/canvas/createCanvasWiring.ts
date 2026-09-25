@@ -43,8 +43,8 @@ export interface CanvasWiring {
   closeCanvas(id: string): void;
   /** A shell action raised from a shell surface: its page opens here, the canvas reports it. */
   onShellAction(action: ShellAction): void;
-  /** The reader's press on the canvas on screen. */
-  press(operation: CompositionOperation): Promise<void>;
+  /** The reader's press on the canvas on screen, or on the canvas `id` names (a beat's, task-9.8 decision 2). */
+  press(operation: CompositionOperation, id?: string): Promise<void>;
   /**
    * A beat replay (task-8.6 decision 2): every stream beside the turn — a press, a failure report,
    * a shell action's report, a close — is sent to `sender` instead of the orchestrator until detached.
@@ -137,8 +137,8 @@ export function createCanvasWiring({
     viewed()?.reportShellAction(action);
   };
 
-  const press = (operation: CompositionOperation) =>
-    viewed()?.press(operation) ?? Promise.resolve();
+  const press = (operation: CompositionOperation, id?: string) =>
+    (id !== undefined ? runtimes.get(id) : viewed())?.press(operation) ?? Promise.resolve();
 
   // Retry is a one-slot operation (phase decision 10); a line's Retry all names several sources,
   // and is sent as one Retry per source, each on its own stream (task-8.7 decision 24).

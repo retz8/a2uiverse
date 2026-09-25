@@ -29,6 +29,8 @@ export interface OrchestratorEnv {
 export interface StartedOrchestrator {
   url: string;
   log: string;
+  /** Its intent journal: the orchestrator's own state directory, shared with the one in daily use. */
+  journal: string;
   stop(): Promise<void>;
 }
 
@@ -88,7 +90,11 @@ export async function startOrchestrator(
     }
     await sleep(500);
   }
-  return {url, log, stop};
+  const journal = resolve(
+    process.env.STATE_DIR ?? resolve(ORCHESTRATOR_DIR, '.state'),
+    'intent-journal.jsonl',
+  );
+  return {url, log, journal, stop};
 }
 
 async function answers(url: string): Promise<boolean> {

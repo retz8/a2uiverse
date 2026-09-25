@@ -7,8 +7,14 @@
  *
  * On the page (task-9.6 decision 14) every utterance turn opens a canvas of its own through the
  * wiring — a turn's `askedFrom` views that earlier canvas first, so the new one is its child — and
- * an action or press runs on the canvas last opened. A test over one runtime passes its runner
- * and store instead, and every turn runs there.
+ * an action runs on the canvas last opened. A test over one runtime passes its runner and store
+ * instead, and every turn runs there.
+ *
+ * A beat spans several canvases (task-9.8 decision 2): an action, a press, a view or a close names
+ * its canvas by the ordinal of the utterance that opened it; a stream beside a turn that names none
+ * acts on that turn's canvas. An utterance asked while the turn before it still streams runs beside
+ * that turn, on its clock, on a canvas of its own; the user viewing a canvas and closing one are
+ * steps on the same clock.
  *
  * Unlike `beats/replay.ts` (the bare apply-loop), this rehearses the full shell:
  * turn lifecycle around each turn, and the recorded agent prose routed into the ambient-notice
@@ -32,8 +38,8 @@ import type {PaintCause} from './turn/cause';
 
 /** What a beat's streams beside the turn replay through: the wiring's own. */
 export interface ReplaySides {
-  /** The press handler the button calls. */
-  press(operation: CompositionOperation): Promise<void>;
+  /** The press handler the button calls, on the canvas `canvas` names — the one on screen without it. */
+  press(operation: CompositionOperation, canvas?: string): Promise<void>;
   /** Answer every stream beside the turn from `sender` until the returned detach is called. */
   attachReplay(sender: A2AMessageSender): () => void;
 }
@@ -49,7 +55,11 @@ export interface ReplayRuntime {
 export interface ReplayCanvases {
   openReplayCanvas(prompt: string): ReplayRuntime & {id: string};
   view(id: string): void;
+  closeCanvas(id: string): void;
 }
+
+/** A canvas the beat opened: where its turns run. */
+type OpenedCanvas = ReplayRuntime & {id?: string};
 
 export interface ReplayBeatOptions extends Partial<ReplayRuntime> {
   /** The page's canvases; without them every turn runs on `runner` and `store`. */
@@ -80,7 +90,7 @@ function groupsOf(fixture: BeatFixture): Array<{turn: BeatTurn; beside: BeatTurn
   return groups;
 }
 
-/** One step on a group's clock. At one instant the turn goes first, then the presses in order. */
+/** One step on a group's clock. At one instant the turn goes first, then the streams beside it in order. */
 interface Step {
   at: number;
   rank: number;
@@ -92,44 +102,115 @@ export async function replayBeatOnCanvas(
   {runner, store, canvases, paced = true, sides}: ReplayBeatOptions,
 ): Promise<void> {
   const groups = groupsOf(fixture);
-  const needsSides = groups.some(g => g.beside.length > 0);
+  const needsSides = fixture.turns.some(t => t.kind === 'press' || t.kind === 'failure-report');
   if (needsSides && !sides) {
     throw new Error(`${fixture.name} carries streams beside its turns; replay it with the wiring`);
   }
   if (!canvases && !(runner && store)) {
     throw new Error(`${fixture.name}: replay it with the page's canvases or one runtime`);
   }
+  if (!canvases && fixture.turns.some(spansCanvases)) {
+    throw new Error(`${fixture.name} spans several canvases; replay it with the page's canvases`);
+  }
   const transport = needsSides ? createReplayTransport(fixture.contextId) : undefined;
   const detach = transport && sides ? sides.attachReplay(transport.sender) : undefined;
-  /** The canvases the beat's utterances opened, in order — what `askedFrom` indexes. */
-  const opened: string[] = [];
-  let current: ReplayRuntime | undefined = runner && store ? {runner, store} : undefined;
+  /** The canvases the beat's utterances opened, in order — what `askedFrom` and `canvas` index. */
+  const opened: OpenedCanvas[] = [];
+  const page: Page = {canvases, opened, fixture: fixture.name};
+  let current: OpenedCanvas | undefined = runner && store ? {runner, store} : undefined;
   try {
     for (const group of groups) {
-      if (canvases && group.turn.kind === 'utterance') {
-        const from = group.turn.askedFrom;
-        if (from !== undefined && opened[from] !== undefined) canvases.view(opened[from]);
-        const runtime = canvases.openReplayCanvas(group.turn.prompt);
-        opened.push(runtime.id);
-        current = runtime;
-      }
+      if (canvases && group.turn.kind === 'utterance') current = openCanvas(page, group.turn);
+      else if (group.turn.canvas !== undefined) current = canvasAt(page, group.turn.canvas);
+      else if (opened.length > 0) current = opened.at(-1);
       if (!current) throw new Error(`${fixture.name}: a ${group.turn.kind} before any question`);
-      await replayGroup(group, {...current, paced, sides, transport});
+      await replayGroup(group, current, {page, paced, sides, transport});
     }
   } finally {
     detach?.();
   }
 }
 
+/** A turn that only a beat over the page's canvases can play. */
+const spansCanvases = (turn: BeatTurn) =>
+  turn.kind === 'view' ||
+  turn.kind === 'close' ||
+  turn.canvas !== undefined ||
+  (turn.kind === 'utterance' && turn.atMs !== undefined);
+
+/** The page a beat replays on, and the canvases it has opened there. */
+interface Page {
+  canvases?: ReplayCanvases;
+  opened: OpenedCanvas[];
+  fixture: string;
+}
+
+/** An utterance opens a canvas of its own, a child of the one `askedFrom` names when it names one. */
+function openCanvas({canvases, opened}: Page, turn: BeatTurn): OpenedCanvas {
+  const from = turn.askedFrom;
+  const parent = from !== undefined ? opened[from]?.id : undefined;
+  if (parent !== undefined) canvases!.view(parent);
+  const runtime = canvases!.openReplayCanvas(turn.prompt);
+  opened.push(runtime);
+  return runtime;
+}
+
+function canvasAt({opened, fixture}: Page, ordinal: number): OpenedCanvas {
+  const canvas = opened[ordinal];
+  if (!canvas) throw new Error(`${fixture}: no canvas ${ordinal} opened yet`);
+  return canvas;
+}
+
+/**
+ * One turn's stream as steps from `at` on the group's clock: each batch applied through the turn
+ * handle at its place, the turn ended at its last. `rank` orders it among the group's streams.
+ */
+function turnSteps(
+  turn: BeatTurn,
+  runtime: ReplayRuntime,
+  at: number,
+  rank: number,
+  steps: Step[],
+): {lastAt: number; end(): void} {
+  let handle: TurnHandle | undefined;
+  let ended = false;
+  const end = () => {
+    if (ended || !handle) return;
+    ended = true;
+    handle.end();
+  };
+  steps.push({at, rank, run: () => void (handle = runtime.runner.begin(causeOf(turn)))});
+  turn.batches.forEach(batch => {
+    steps.push({
+      at: at + batch.offsetMs,
+      rank,
+      run: () => {
+        // Fresh objects per batch, as a real stream delivers them: the processor stores a
+        // data-model value by reference, so replaying a fixture's own objects would let a
+        // two-way edit or a later evaluation write back into the module-level fixture.
+        if (batch.messages.length)
+          handle!.apply(structuredClone(batch.messages), batch.stamp, batch.synthesis);
+        // Same buffering as the live path: the batch's stamp says whose line the chunk joins.
+        const source = batch.stamp?.role === 'fragment' ? batch.stamp.source : null;
+        for (const text of batch.texts) runtime.store.appendProse(source, text);
+      },
+    });
+  });
+  const lastAt = at + (turn.batches.at(-1)?.offsetMs ?? 0);
+  steps.push({at: lastAt, rank, run: end});
+  return {lastAt, end};
+}
+
 async function replayGroup(
   {turn, beside}: {turn: BeatTurn; beside: BeatTurn[]},
+  runtime: OpenedCanvas,
   {
-    runner,
-    store,
+    page,
     paced,
     sides,
     transport,
-  }: ReplayRuntime & {
+  }: {
+    page: Page;
     paced: boolean;
     sides?: ReplaySides;
     transport?: ReturnType<typeof createReplayTransport>;
@@ -139,34 +220,33 @@ async function replayGroup(
     beside.filter(t => t.kind === 'failure-report'),
     paced,
   );
-  const handle = runner.begin(causeOf(turn));
   const steps: Step[] = [];
   const pressing: Promise<void>[] = [];
-  let ended = false;
-  const end = () => {
-    if (ended) return;
-    ended = true;
-    handle.end();
-  };
+  const own = turnSteps(turn, runtime, 0, 0, steps);
+  const ends = [own.end];
+  const lastAt = own.lastAt;
+  /** The canvas a stream beside the turn acts on: the one it names, else the turn's. */
+  const canvasOf = (t: BeatTurn) => (t.canvas !== undefined ? canvasAt(page, t.canvas) : runtime);
 
-  turn.batches.forEach(batch => {
-    steps.push({
-      at: batch.offsetMs,
-      rank: 0,
-      run: () => {
-        // Fresh objects per batch, as a real stream delivers them: the processor stores a
-        // data-model value by reference, so replaying a fixture's own objects would let a
-        // two-way edit or a later evaluation write back into the module-level fixture.
-        if (batch.messages.length)
-          handle.apply(structuredClone(batch.messages), batch.stamp, batch.synthesis);
-        // Same buffering as the live path: the batch's stamp says whose line the chunk joins.
-        const source = batch.stamp?.role === 'fragment' ? batch.stamp.source : null;
-        for (const text of batch.texts) store.appendProse(source, text);
-      },
-    });
+  beside.forEach((t, i) => {
+    const at = t.atMs ?? lastAt;
+    const rank = 1 + i;
+    if (t.kind === 'utterance') {
+      // Asked while the turn still streams: a canvas of its own, opened when it is asked.
+      let asked: OpenedCanvas | undefined;
+      const lazy: ReplayRuntime = {
+        runner: {begin: cause => (asked = openCanvas(page, t)).runner.begin(cause)},
+        get store() {
+          return asked!.store;
+        },
+      };
+      ends.push(turnSteps(t, lazy, at, rank, steps).end);
+    } else if (t.kind === 'view') {
+      steps.push({at, rank, run: () => page.canvases!.view(canvasOf(t).id!)});
+    } else if (t.kind === 'close') {
+      steps.push({at, rank, run: () => page.canvases!.closeCanvas(canvasOf(t).id!)});
+    }
   });
-  const lastAt = turn.batches.at(-1)?.offsetMs ?? 0;
-  steps.push({at: lastAt, rank: 1, run: end});
 
   beside.forEach((press, i) => {
     if (press.kind !== 'press' || !press.operation || !sides || !transport) return;
@@ -175,23 +255,23 @@ async function replayGroup(
     let channel: ReturnType<typeof transport.armPress> | undefined;
     steps.push({
       at,
-      rank: 2 + i,
+      rank: 1 + i,
       run: () => {
         channel = transport.armPress();
-        const pressed = sides.press(operation);
+        const pressed = sides.press(operation, canvasOf(press).id);
         pressing.push(pressed);
         // A press the handler refused to send is read by nothing.
         void pressed.finally(() => channel?.abandon());
       },
     });
     for (const batch of press.batches) {
-      steps.push({at: at + batch.offsetMs, rank: 2 + i, run: () => channel?.push(batch)});
+      steps.push({at: at + batch.offsetMs, rank: 1 + i, run: () => channel?.push(batch)});
     }
     const closeAt = at + (press.batches.at(-1)?.offsetMs ?? 0);
-    steps.push({at: closeAt, rank: 2 + i, run: () => channel?.close()});
+    steps.push({at: closeAt, rank: 1 + i, run: () => channel?.close()});
   });
 
-  // Stable: equal times keep the turn's own order, then each press's.
+  // Stable: equal times keep the turn's own order, then each stream's beside it.
   steps.sort((a, b) => a.at - b.at || a.rank - b.rank);
   try {
     let elapsed = 0;
@@ -203,7 +283,7 @@ async function replayGroup(
       await step.run();
     }
   } finally {
-    end();
+    for (const end of ends) end();
   }
   if (!transport) return;
   await Promise.allSettled(pressing);

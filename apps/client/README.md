@@ -46,9 +46,23 @@ Beats 10–18 are Phase 8's late-arrival and failure cases, recorded over the de
 | `17`     | **The home source failing, then Retry** — the merge collapses on Linear; Retry brings it back                              |
 | `18`     | **Fewer than two sources** — only GitHub answers; the merge collapses to its line                                          |
 
+Beats 19–25 are Phase 9's durable-composition cases, recorded over the deterministic roster as sessions of several canvases: each question opens a canvas of its own, and the actions, presses, steps, views and closes act on the canvas they name. Each carries the deadlines it was recorded under, and the fault map where it needs one:
+
+| `?beat=` | What it is                                                                                                                                                                                 |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `19`     | **A tab finishing in the background** — the entity join with CircleCI held back, "what needs my attention today?" asked while it loads, the entity join viewed again with its merge landed |
+| `20`     | **An action and a press in a past canvas** — the temporal merge with Gmail failing, then the entity join; back on the first canvas, an event opened in Calendar and Retry pressed on Gmail |
+| `21`     | **"Ask this again now", and a question asked from a view** — both children of the first canvas, which stands                                                                               |
+| `22`     | **Add a source, drop one, and compare these** — "Add GitHub to this", "without Gmail" and "compare these", each asked from side by side                                                    |
+| `23`     | **A step back with the wiring restored** — a CircleCI run opened, then Back: the merged view remembered over the list, no call                                                             |
+| `24`     | **An unseen combination falling to the walk** — a CircleCI run and a Linear issue opened, then Back on CircleCI: the merge line working until the walk's view lands                        |
+| `25`     | **Closing a loading canvas** — the temporal merge with GitHub held back, closed from the trail while it loads                                                                              |
+
 **Synthetic beats** are hand-built to construct states that are unreliable to catch live: `plain`, `plain-2`, `validation` (a fragment that fails to mount), `question` (the overlay), `composed` (two slots, one filling and one whose source speaks but never paints), `composed-solo` (the degenerate one-slot case), `composed-question` (a fragment the shell promotes in place), `synthesis` (two storefronts of unrelated shapes merged into the synthesis slot by the Synthesizer's camera comparison example (the client's own copy), then an in-place reorder its keyed refs survive), `navigation` (the two storefronts in their own catalogs under a merged view whose cells name a rendered field, a field neither renders, and a join held by judgment alone), `join` (a list of offers inside every row under one sort declaration, one row's held by a fact and the other's by judgment, then a storefront repaint that changes a matched title, so the values it cut off are drawn broken), `platform-answer` (the shell's own answer bound to its data model, with a button into the App Library), `gap` (the capability tile), `long-question` (beat 9 under a paragraph past the header's four lines, so it clips behind "Show all"), `merging` and `long-merging` (beat 9 and `long-question` with the merged view held back, resting on the reserved slot), and `trail` (four questions, each a canvas of its own — a root, a child, a branch asked from the first, and the newest still loading with its merge held back — so the rail shows every mark at once and the band stands on any past one; task 9.6 — the root's GitHub fragment repainted by an action inside it, so its marker shows Back to the list; task 9.7).
 
 Phase 8's cases are synthetic beats too, over three storefronts joined on the camera — Aperture & Co the home source, Northlight and Fieldstone attached: `fast-failure`, `late-include`, `home-straggling`, `held-retry`, `retry-race`, `half-drawn`, `invalid-paint` (a paint the canvas reports, answered from the beat), `failed-fold-in`, `include-after-decline`, `try-again` (the merged view couldn't be made) and `home-retry` (the home source failing, then Retry bringing the merge back), and `too-few`. Each case with a press also replays up to it — `fast-failure-offered` rests on the failure tile with Retry — and `home-straggling-waiting` rests while the merge waits for its home source.
+
+Phase 9's cases are synthetic beats too, over the same three storefronts, a camera opened inside a store being a new paint of it with a way back: `background-tab`, `past-action`, `ask-again`, `add-drop`, `step-seen`, `step-unseen` and `close-loading`. Paced, `background-tab-running` rests with the first canvas still loading behind the live one, and `step-unseen-working` with the merge line working after the step.
 
 **Presses in a beat.** A beat's Retry, Include and Try again fire at their recorded time through the same handler the buttons call — the pressed state, the focus, the announcements — and are answered from the beat itself, as is the orchestrator's answer to a failure report the canvas sends; nothing reaches the orchestrator.
 
@@ -93,6 +107,12 @@ Beats 10–18 need the agents up in their deterministic mode (`pnpm dev:agents`)
 
 ```bash
 pnpm --filter @a2uiverse/client record:beats --model <model> --beats 10-18 [--fault-port 10091]
+```
+
+Beats 19–25 run the same way, each through an orchestrator of the recorder's own on `--fault-port`: the session is driven as the canvas drives it, and a take is checked against the journal lines it wrote as well as its streams — beat 23's step answered with no synthesis call, beat 24's with one, beat 25's close cancelling its turn.
+
+```bash
+pnpm --filter @a2uiverse/client record:beats --model <model> --beats 19-25 [--fault-port 10091]
 ```
 
 > **Start the Gmail agent with `A2UI_RECORD_DIR` set.** That flag is what arms its pseudonymizer, and this recorder captures whatever the hub relays — it cannot tell whether anything was scrubbed. GitHub reads public repos and Calendar reads a seeded demo calendar, so neither needs it for privacy.

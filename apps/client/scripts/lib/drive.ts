@@ -111,7 +111,8 @@ export function driveReport(
   return driveMessage(sender, params, contextId, onEvent);
 }
 
-async function driveMessage(
+/** Send one message and collect every streamed event with its arrival offset. */
+export async function driveMessage(
   sender: A2AMessageSender,
   params: MessageSendParams,
   contextId: string | undefined,

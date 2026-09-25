@@ -214,8 +214,11 @@ binding (both defined in `src/a2a/messages.ts`; the standard
 full turn lifecycle — the same hold-and-swap gate, paced by the recorded stream
 offsets. `&instant` collapses the waits. This is how the shell is verified with
 no LLM in the loop. Every utterance of a beat opens a canvas of its own in the trail, as a real
-question does; an action or press runs on the canvas last opened; a turn's `askedFrom` views that
-earlier canvas first, so the new one is its child (task 9.6). The synthetic beats ship with the client
+question does; a turn's `askedFrom` views that earlier canvas first, so the new one is its child
+(task 9.6). An action, a press, a view or a close names the canvas it acts on by the ordinal of the
+question that opened it — without one, an action runs on the canvas last opened and a stream beside
+a turn on that turn's canvas — and a question asked while a turn still streams runs beside it on its
+clock (task 9.8). The synthetic beats ship with the client
 (`src/beats/syntheticBeats.ts`: `plain`, `plain-2`, `validation`, `question`, the composed
 trio `composed`, `composed-solo`, `composed-question`, `synthesis` — two storefronts merged
 by the sdk's example, then an in-place reorder its keyed refs survive — and `trail`, four
@@ -228,7 +231,8 @@ recorded time through the wiring's press handler — the one the buttons call �
 the beat by `replayTransport.ts`, attached through `attachReplay`, as is the hub's answer to a failure
 report the canvas sends (task 8.6). Phase 8's late-arrival and failure cases are synthetic beats in
 `src/beats/lateFailureBeats.ts`, and recorded beats `10`–`18` over the deterministic roster through
-the AgentsPool's fault map.
+the AgentsPool's fault map. Phase 9's durable-composition cases are synthetic beats in
+`src/beats/durableBeats.ts`, and recorded beats `19`–`25`, sessions of several canvases.
 
 The two families do different jobs. A recording is evidence of what real agents produce; a
 synthetic beat constructs a state — a mid-turn failure, a promoted question — that is unreliable

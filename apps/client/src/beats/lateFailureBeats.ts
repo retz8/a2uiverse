@@ -39,11 +39,11 @@ const base = {
 export const SHOP_C = 'shop-c:list';
 export const SHOP_C_NAME = 'Fieldstone';
 
-type Store = 'shop-a' | 'shop-b' | 'shop-c';
+export type Store = 'shop-a' | 'shop-b' | 'shop-c';
 /** The sources attached to the home source's rows. */
-type Attached = 'shop-b' | 'shop-c';
+export type Attached = 'shop-b' | 'shop-c';
 
-const NAMES: Record<Store, string> = {
+export const NAMES: Record<Store, string> = {
   'shop-a': SHOP_A_NAME,
   'shop-b': SHOP_B_NAME,
   'shop-c': SHOP_C_NAME,
@@ -89,13 +89,25 @@ const PRICE: Record<Store, (id: string) => ReturnType<typeof ref>> = {
 
 export const MERGED_COLUMNS = ['Camera', SHOP_A_NAME, SHOP_B_NAME, SHOP_C_NAME, 'Best price'];
 const COLUMN_SOURCES: Array<Store | null> = ['shop-a', 'shop-a', 'shop-b', 'shop-c', null];
+const STORES: Store[] = ['shop-a', 'shop-b', 'shop-c'];
+
+/** The merged view's planned columns over the stores on the screen, and each one's source. */
+const columnsOver = (stores: readonly Store[]) => ({
+  columns: ['Camera', ...stores.map(store => NAMES[store]), 'Best price'],
+  columnSources: ['shop-a', ...stores, null] as Array<Store | null>,
+});
 
 /**
  * The merged view over the home source and the attached sources in `over`: a row per camera, each
  * store's price, the best of them. A column marked to a source the merge landed without keeps its
  * place — its cell the Synthesizer's dash, drawn reserved by the client from the slot's state.
+ * `shown` is the stores the screen holds, `cameras` the rows.
  */
-export function mergedView(over: readonly Attached[]): SynthesisDocument {
+export function mergedView(
+  over: readonly Attached[],
+  shown: readonly Store[] = STORES,
+  cameras: readonly string[] = ['lumen-x100', 'verity-a7'],
+): SynthesisDocument {
   const joined: Store[] = ['shop-a', ...over];
   const row = (id: string) => ({
     name: value(SHOP_A, `/items[id="${id}"]/name`),
@@ -124,28 +136,30 @@ export function mergedView(over: readonly Attached[]): SynthesisDocument {
           align: 'center',
           children: ['heading', 'sort'],
         },
-        {id: 'heading', component: 'Text', variant: 'h5', text: 'Cameras across three stores'},
+        {
+          id: 'heading',
+          component: 'Text',
+          variant: 'h5',
+          text: shown.length === 3 ? 'Cameras across three stores' : 'Cameras across two stores',
+        },
         {id: 'sort', component: 'SortControl', sort: {path: '/sorts/0'}},
         {
           id: 'rows',
           component: 'Table',
-          columns: MERGED_COLUMNS,
-          columnSources: COLUMN_SOURCES,
+          ...columnsOver(shown),
           children: {path: '/rows', componentId: 'row'},
         },
         {
           id: 'row',
           component: 'TableRow',
-          children: ['c-name', 'c-shop-a', 'c-shop-b', 'c-shop-c', 'c-best'],
+          children: ['c-name', ...shown.map(store => `c-${store}`), 'c-best'],
         },
         {id: 'c-name', component: 'DerivedValue', cell: {path: 'name'}},
-        cell('shop-a'),
-        cell('shop-b'),
-        cell('shop-c'),
+        ...shown.map(cell),
         {id: 'c-best', component: 'DerivedValue', cell: {path: 'best'}, format: {kind: 'number'}},
       ],
     },
-    dataModel: {rows: [row('lumen-x100'), row('verity-a7')]},
+    dataModel: {rows: cameras.map(row)},
     sorts: [
       {
         path: '/rows',
@@ -183,15 +197,26 @@ interface MergeSlot {
   retrying?: Store[];
 }
 
-type Layout = {merge?: MergeSlot} & Partial<Record<Store, VendorSlot>>;
-
-const STORES: Store[] = ['shop-a', 'shop-b', 'shop-c'];
+/**
+ * A layout's facts: the merged view's slot — none on a screen the Planner reserved no merge for —
+ * the stores laid out, all three unless named, and each store's slot.
+ */
+export type Layout = {merge?: MergeSlot | false; stores?: readonly Store[]} & Partial<
+  Record<Store, VendorSlot>
+>;
 
 /**
  * The layout surface as the shell painter emits it (task-6.4; tasks 8.3, 8.4): the merged view's
  * slot over a row of the three stores, each wrapped in its attribution.
  */
 function layoutComponents(layout: Layout): Array<Record<string, unknown>> {
+  const stores = layout.stores ?? STORES;
+  if (layout.merge === false) {
+    return [
+      {id: 'root', component: 'Column', children: ['stores']},
+      ...storeComponents(layout, stores),
+    ];
+  }
   const merge = layout.merge ?? {};
   return [
     {id: 'root', component: 'Column', children: ['merged', 'stores']},
@@ -202,8 +227,9 @@ function layoutComponents(layout: Layout): Array<Record<string, unknown>> {
       state: merge.state ?? 'pending',
       label: 'Synthesis',
       content: 'shell',
-      columns: MERGED_COLUMNS,
-      columnSources: COLUMN_SOURCES,
+      ...(layout.stores
+        ? columnsOver(stores)
+        : {columns: MERGED_COLUMNS, columnSources: COLUMN_SOURCES}),
       join: {home: 'shop-a', nouns: NOUNS},
       ...(merge.declined ? {declined: merge.declined} : {}),
       ...(merge.collapse ? {collapse: merge.collapse} : {}),
@@ -213,8 +239,15 @@ function layoutComponents(layout: Layout): Array<Record<string, unknown>> {
       ...(merge.callFailed ? {callFailed: merge.callFailed} : {}),
       ...(merge.retrying?.length ? {retrying: merge.retrying} : {}),
     },
-    {id: 'stores', component: 'Row', children: STORES.map(s => `attribution-${s}`)},
-    ...STORES.flatMap(store => {
+    ...storeComponents(layout, stores),
+  ];
+}
+
+/** The row of stores, each wrapped in its attribution. */
+function storeComponents(layout: Layout, stores: readonly Store[]): Array<Record<string, unknown>> {
+  return [
+    {id: 'stores', component: 'Row', children: stores.map(s => `attribution-${s}`)},
+    ...stores.flatMap(store => {
       const slot = layout[store] ?? {};
       return [
         {
@@ -244,18 +277,18 @@ function layoutComponents(layout: Layout): Array<Record<string, unknown>> {
 const SHELL = {source: 'shell', role: 'shell'} as const;
 
 /** The hub's first paint: the whole layout, every slot pending, the merged view reserved. */
-const firstPaint = (): BeatBatch => ({
+export const firstPaint = (layout: Layout = {}): BeatBatch => ({
   offsetMs: 0,
   stamp: SHELL,
   messages: [
     msg({createSurface: {surfaceId: 'shell:main', catalogId: SHELL_CATALOG_ID}}),
-    msg({updateComponents: {surfaceId: 'shell:main', components: layoutComponents({})}}),
+    msg({updateComponents: {surfaceId: 'shell:main', components: layoutComponents(layout)}}),
   ],
   texts: [],
 });
 
 /** A shell repaint: the whole tree again, the states and facts as they now stand. */
-const repaint = (offsetMs: number, layout: Layout): BeatBatch => ({
+export const repaint = (offsetMs: number, layout: Layout): BeatBatch => ({
   offsetMs,
   stamp: SHELL,
   messages: [
@@ -264,14 +297,18 @@ const repaint = (offsetMs: number, layout: Layout): BeatBatch => ({
   texts: [],
 });
 
-const PAINTS: Record<Store, () => A2uiMessage[]> = {
+export const PAINTS: Record<Store, () => A2uiMessage[]> = {
   'shop-a': () => shopAMessages(SHELL_CATALOG_ID),
   'shop-b': () => shopBMessages(SHELL_CATALOG_ID),
   'shop-c': shopCMessages,
 };
 
 /** A store's fragment filling its slot. */
-const fragment = (offsetMs: number, store: Store, messages = PAINTS[store]()): BeatBatch => ({
+export const fragment = (
+  offsetMs: number,
+  store: Store,
+  messages = PAINTS[store](),
+): BeatBatch => ({
   offsetMs,
   stamp: {source: store, role: 'fragment'},
   messages,
@@ -279,8 +316,13 @@ const fragment = (offsetMs: number, store: Store, messages = PAINTS[store]()): B
 });
 
 /** The merged view claiming its slot, its payload beside the stamp. */
-const merge = (offsetMs: number, over: readonly Attached[]): BeatBatch => {
-  const document = mergedView(over);
+export const merge = (
+  offsetMs: number,
+  over: readonly Attached[],
+  shown?: readonly Store[],
+  cameras?: readonly string[],
+): BeatBatch => {
+  const document = mergedView(over, shown, cameras);
   return {
     offsetMs,
     stamp: {source: 'shell', role: 'fragment'},
@@ -290,19 +332,19 @@ const merge = (offsetMs: number, over: readonly Attached[]): BeatBatch => {
   };
 };
 
-const QUESTION = 'which of my cameras is cheapest across the three stores?';
+export const QUESTION = 'which of my cameras is cheapest across the three stores?';
 
-const utterance = (name: string, batches: BeatBatch[]): BeatTurn => ({
+export const utterance = (name: string, batches: BeatBatch[], prompt = QUESTION): BeatTurn => ({
   taskId: name,
   kind: 'utterance',
-  prompt: QUESTION,
+  prompt,
   action: null,
   batches,
   outcome: 'completed',
   durationMs: batches.at(-1)?.offsetMs ?? 0,
 });
 
-const press = (
+export const press = (
   name: string,
   operation: CompositionOperation,
   atMs: number,
@@ -328,8 +370,8 @@ const beat = (name: string, number: number, title: string, turns: BeatTurn[]): B
   turns,
 });
 
-const FIELDSTONE_WORDS = 'Fieldstone’s catalogue is being updated. Try again in a minute.';
-const retry = (source: Store): CompositionOperation => ({kind: 'retry', sources: [source]});
+export const FIELDSTONE_WORDS = 'Fieldstone’s catalogue is being updated. Try again in a minute.';
+export const retry = (source: Store): CompositionOperation => ({kind: 'retry', sources: [source]});
 const include = (...sources: Store[]): CompositionOperation => ({kind: 'include', sources});
 const TRY_AGAIN: CompositionOperation = {kind: 'tryAgain', sources: []};
 

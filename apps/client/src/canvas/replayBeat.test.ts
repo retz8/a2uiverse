@@ -174,20 +174,51 @@ describe('replayBeatOnCanvas', () => {
     function canvases() {
       const opened: Array<{id: string; prompt: string; runner: ReturnType<typeof mockRunner>}> = [];
       const viewed: string[] = [];
+      const closed: string[] = [];
+      /** Everything the page saw, in order: each canvas opened, viewed or closed, each batch applied. */
+      const log: string[] = [];
       const page = {
         openReplayCanvas(prompt: string) {
           const store = createCanvasStore();
           const runner = mockRunner(store);
           const id = `c${opened.length + 1}`;
           opened.push({id, prompt, runner});
-          return {id, runner, store};
+          log.push(`open ${id}`);
+          const begin = (cause: PaintCause): TurnHandle => {
+            const handle = runner.begin(cause);
+            return {
+              ...handle,
+              apply: (messages, ...rest) => {
+                log.push(`${id} ${(messages[0] as unknown as {marker: number}).marker}`);
+                handle.apply(messages, ...rest);
+              },
+            };
+          };
+          return {id, runner: {begin}, store};
         },
         view(id: string) {
           viewed.push(id);
+          log.push(`view ${id}`);
+        },
+        closeCanvas(id: string) {
+          closed.push(id);
+          log.push(`close ${id}`);
         },
       };
-      return {page, opened, viewed};
+      return {page, opened, viewed, closed, log};
     }
+
+    const event = (kind: 'view' | 'close', canvas: number, atMs: number): BeatTurn => ({
+      taskId: null,
+      kind,
+      prompt: '',
+      action: null,
+      canvas,
+      atMs,
+      batches: [],
+      outcome: 'completed',
+      durationMs: 0,
+    });
 
     it('every utterance opens a canvas of its own; an action runs on the one last opened', async () => {
       const {page, opened} = canvases();
@@ -232,6 +263,101 @@ describe('replayBeatOnCanvas', () => {
       await replayBeatOnCanvas(multi, {canvases: page, paced: false});
       expect(viewed).toEqual([opened[0].id]);
       expect(opened[2].runner.applied).toEqual([[msg(3)]]);
+    });
+
+    it('an utterance asked while the turn streams opens its canvas at its time, on that turn’s clock (task-9.8 decision 2)', async () => {
+      const {page, log} = canvases();
+      const beat = fixture();
+      beat.turns = [
+        {
+          ...beat.turns[0],
+          batches: [
+            {offsetMs: 0, messages: [msg(1)], texts: []},
+            {offsetMs: 300, messages: [msg(2)], texts: []},
+          ],
+        },
+        {
+          ...beat.turns[0],
+          prompt: 'meanwhile',
+          atMs: 100,
+          batches: [
+            {offsetMs: 0, messages: [msg(10)], texts: []},
+            {offsetMs: 100, messages: [msg(11)], texts: []},
+          ],
+        },
+        event('view', 0, 400),
+      ];
+      await replayBeatOnCanvas(beat, {canvases: page, paced: false});
+      expect(log).toEqual(['open c1', 'c1 1', 'open c2', 'c2 10', 'c2 11', 'c1 2', 'view c1']);
+    });
+
+    it('a close lands at its time; what the closed canvas’s stream carries after is its own to drop', async () => {
+      const {page, closed, log} = canvases();
+      const beat = fixture();
+      beat.turns = [
+        {
+          ...beat.turns[0],
+          batches: [
+            {offsetMs: 0, messages: [msg(1)], texts: []},
+            {offsetMs: 200, messages: [msg(2)], texts: []},
+          ],
+        },
+        event('close', 0, 100),
+      ];
+      await replayBeatOnCanvas(beat, {canvases: page, paced: false});
+      expect(closed).toEqual(['c1']);
+      expect(log).toEqual(['open c1', 'c1 1', 'close c1', 'c1 2']);
+    });
+
+    it('an action names its canvas; a press beside it acts there', async () => {
+      const {page, opened} = canvases();
+      const pressedOn: Array<string | undefined> = [];
+      const sidesOnPage: ReplaySides = {
+        attachReplay: () => () => {},
+        press: async (_operation, canvas) => {
+          pressedOn.push(canvas);
+        },
+      };
+      const beat = fixture();
+      beat.turns = [
+        {...beat.turns[0], batches: [{offsetMs: 0, messages: [msg(1)], texts: []}]},
+        {
+          ...beat.turns[0],
+          prompt: 'second',
+          batches: [{offsetMs: 0, messages: [msg(2)], texts: []}],
+        },
+        {
+          ...beat.turns[0],
+          kind: 'surface-action',
+          action: {name: 'open', context: {}},
+          canvas: 0,
+          batches: [{offsetMs: 0, messages: [msg(3)], texts: []}],
+        },
+        {
+          taskId: 'p',
+          kind: 'press',
+          prompt: '',
+          action: null,
+          operation: {kind: 'retry', sources: ['gmail']},
+          atMs: 10,
+          batches: [],
+          outcome: 'completed',
+          durationMs: 0,
+        },
+      ];
+      await replayBeatOnCanvas(beat, {canvases: page, paced: false, sides: sidesOnPage});
+      expect(opened[0].runner.applied).toEqual([[msg(1)], [msg(3)]]);
+      expect(opened[1].runner.applied).toEqual([[msg(2)]]);
+      expect(pressedOn).toEqual(['c1']);
+    });
+
+    it('refuses a beat spanning canvases over one runtime', async () => {
+      const store = createCanvasStore();
+      const beat = fixture();
+      beat.turns = [...beat.turns, event('view', 0, 0)];
+      await expect(
+        replayBeatOnCanvas(beat, {runner: mockRunner(store), store, paced: false}),
+      ).rejects.toThrow(/several canvases/);
     });
 
     it('refuses a beat with neither the page nor a runtime', async () => {

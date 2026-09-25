@@ -15,15 +15,20 @@
  * running — the deterministic roster. The reader's presses and the client's failure report are
  * sent on streams of their own, as the canvas sends them, and recorded beside the turn. A take
  * that does not show its case is taken again.
+ *
+ * Beats 19–25 are Phase 9's cases (task 9.8): sessions of several canvases, each through an
+ * orchestrator of the recorder's own like Phase 8's, driven as the canvas drives them — questions
+ * naming their parent, actions and presses on the canvas they name, a step carrying the paint it
+ * restores, a close — and checked against the journal lines the take wrote as well as its streams.
  */
-import {mkdir, writeFile} from 'node:fs/promises';
+import {mkdir, readFile, stat, writeFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {parseArgs} from 'node:util';
 import type {A2AMessageSender} from '../src/a2a/client';
 import {VALIDATION_FAILED} from '../src/a2a/messages';
 import type {BeatBatch, BeatFixture, BeatTurn} from '../src/beats/beatFixtures';
 import {batchOf} from './lib/batch';
-import type {BeatSpec, FaultCase, RecordedCase} from './lib/beats';
+import type {BeatSpec, FaultCase, JournalLine, RecordedCase, SessionCase} from './lib/beats';
 import {BEATS} from './lib/beats';
 import {
   createSender,
@@ -36,6 +41,7 @@ import {
   type TimedEvent,
 } from './lib/drive';
 import {startOrchestrator} from './lib/orchestrator';
+import {Session} from './lib/session';
 
 /** The orchestrator's own defaults (`apps/orchestrator/src/config.ts`), unless a case shortens one. */
 const SOFT_DEADLINE_SECONDS = 10;
@@ -198,7 +204,10 @@ async function main() {
   const recordedAt = () => new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
   let flagged = 0;
 
-  const plain = wanted.filter(beat => !BEATS.find(spec => spec.beat === beat)?.fault);
+  const plain = wanted.filter(beat => {
+    const spec = BEATS.find(s => s.beat === beat);
+    return !spec?.fault && !spec?.session;
+  });
   if (plain.length > 0) {
     const sender = await createSender(values.url);
     for (const group of groupsOf(plain)) {
@@ -301,7 +310,85 @@ async function main() {
       await orchestrator.stop();
     }
   }
+  for (const spec of BEATS.filter(s => s.session && wanted.includes(s.beat))) {
+    const session = spec.session!;
+    const name = nameOf(spec);
+    const deadlines = {
+      softDeadlineSeconds: session.softDeadlineSeconds ?? SOFT_DEADLINE_SECONDS,
+      hardCapSeconds: HARD_CAP_SECONDS,
+    };
+    const faults = session.faults ?? {};
+    console.log(`▶ ${name} · faults ${JSON.stringify(faults)}`);
+    const orchestrator = await startOrchestrator(
+      {port: Number(values['fault-port']), faults, model: values.model, ...deadlines},
+      name,
+    );
+    console.log(`  orchestrator on ${orchestrator.url} · log ${orchestrator.log}`);
+    try {
+      const sender = await createSender(orchestrator.url);
+      let take!: Awaited<ReturnType<typeof takeSession>>;
+      let problem: string | undefined;
+      for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
+        try {
+          take = await takeSession(sender, session, catalogIds, orchestrator.journal);
+          problem = session.shows(take);
+        } catch (err) {
+          problem = err instanceof Error ? err.message : String(err);
+        }
+        if (!problem || attempt === MAX_ATTEMPTS) break;
+        console.log(`  attempt ${attempt}: ${problem} — retrying`);
+      }
+      if (!take) throw new Error(`${name}: no take (${problem})`);
+      const fixture: BeatFixture = {
+        name,
+        beat: spec.beat,
+        title: spec.title,
+        prompt: spec.prompt,
+        model: values.model,
+        recordedAt: recordedAt(),
+        contextId: take.canvases[0]?.context() ?? '',
+        chainedFrom: null,
+        deadlines,
+        ...(Object.keys(faults).length ? {faults} : {}),
+        turns: take.turns,
+      };
+      const path = await write(outDir, fixture);
+      const turns = take.turns.map(t => `${t.kind}${t.atMs !== undefined ? `@${t.atMs}` : ''}`);
+      console.log(`  ${problem ? `FLAGGED (${problem})` : 'ok'} · ${turns.join(' · ')} → ${path}`);
+      if (problem) flagged += 1;
+    } finally {
+      await orchestrator.stop();
+    }
+  }
   process.exit(flagged ? 1 : 0);
+}
+
+/** How long the journal takes to write a take's last lines: each is embedded before it lands. */
+const JOURNAL_SETTLE_MS = 3_000;
+
+/** One take of a Phase 9 session, and the journal lines it wrote. */
+async function takeSession(
+  sender: A2AMessageSender,
+  session: SessionCase,
+  catalogIds: string[],
+  journal: string,
+) {
+  const from = await stat(journal).then(
+    s => s.size,
+    () => 0,
+  );
+  const driven = new Session(sender, catalogIds);
+  await session.run(driven);
+  await new Promise(r => setTimeout(r, JOURNAL_SETTLE_MS));
+  const text = await readFile(journal).then(
+    b => b.subarray(from).toString('utf8'),
+    () => '',
+  );
+  const lines = text
+    .split('\n')
+    .filter(Boolean)
+    .map(line => JSON.parse(line) as JournalLine);
+  return {turns: driven.turns, canvases: driven.canvases, journal: lines};
 }
 
 async function write(outDir: string, fixture: BeatFixture): Promise<string> {

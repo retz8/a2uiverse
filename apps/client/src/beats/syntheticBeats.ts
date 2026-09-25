@@ -17,6 +17,7 @@ import {CATALOG_ID as SHOP_A_CATALOG_ID} from 'shop-a-catalog';
 import {CATALOG_ID as SHOP_B_CATALOG_ID} from 'shop-b-catalog';
 import {getBeatFixture, type BeatFixture, type BeatTurn} from './beatFixtures';
 import {JOIN_DOCUMENT, JOIN_ITEMS, JOIN_PRODUCTS, JOIN_PRODUCTS_RETITLED} from './joinFixture';
+import {DURABLE_BEATS, DURABLE_RESTING} from './durableBeats';
 import {LATE_FAILURE_BEATS, LATE_FAILURE_RESTING} from './lateFailureBeats';
 import {
   DOCUMENT,
@@ -812,11 +813,14 @@ export function syntheticBeat(name: string): BeatFixture | undefined {
     case 'trail':
       return trailBeat();
     default:
-      // Phase 8's cases by the name less its prefix — `?beat=fast-failure` — and each resting
-      // where its press is offered: `?beat=fast-failure-offered`.
-      return [...LATE_FAILURE_BEATS, ...LATE_FAILURE_RESTING].find(
-        fixture => fixture.name === `synthetic-${name}`,
-      );
+      // Phase 8's and Phase 9's cases by the name less its prefix — `?beat=fast-failure` — and
+      // each resting mid-way: `?beat=fast-failure-offered`, `?beat=step-unseen-working`.
+      return [
+        ...LATE_FAILURE_BEATS,
+        ...LATE_FAILURE_RESTING,
+        ...DURABLE_BEATS,
+        ...DURABLE_RESTING,
+      ].find(fixture => fixture.name === `synthetic-${name}`);
   }
 }
 
