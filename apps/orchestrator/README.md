@@ -100,11 +100,16 @@ flowchart LR
 
 Clicking into something inside an app's answer, like a CI run or an issue, makes the app paint a new screen in its slot, and a back arrow appears at the right of the app's row.
 
-<p align="center">
-  <img src="../../docs/images/way-back.gif" width="720" alt="CircleCI going Back from a run to its runs list, the merged table's CI run column filling in again">
-  <br>
-  <em>With a CircleCI run open, the merged table's CI run column is empty. Back to the runs list, and the column fills in again from the wiring the orchestrator remembered, with no model call. Forward returns to the run.</em>
-</p>
+<table>
+  <tr>
+    <td align="center" valign="top"><img src="../../docs/images/way-back-circleci.gif" width="280" alt="CircleCI's slot going Back from a run to its runs list, then Forward"></td>
+    <td align="center" valign="top"><img src="../../docs/images/way-back-merged.gif" width="500" alt="The merged table's CI run column, empty on the run and filled again on the runs list"></td>
+  </tr>
+  <tr>
+    <td align="center"><em>CircleCI's slot: Back from a run to its runs list, then Forward again.</em></td>
+    <td align="center"><em>The merged view at the same moments: its CI run column is empty while the run is open, and fills in again on Back from the wiring the orchestrator remembered, with no model call.</em></td>
+  </tr>
+</table>
 
 The orchestrator remembers the merged view's wiring for every combination of screens it has shown:
 
