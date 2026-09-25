@@ -95,11 +95,11 @@ flowchart LR
 
 The client talks only to the orchestrator, and the orchestrator to the apps. One question goes like this:
 
-1. **The Router** ranks the installed apps' agent cards against the question, with a small embedding model, and hands a shortlist on.
-2. **The Planner**, the first model call, picks the apps, writes each one's request, and designs the layout. The layout reaches the client before any app is asked.
-3. **The apps** are asked in parallel, and each answer is relayed into its slot as it arrives. The client draws it with that app's own catalog.
-4. **The Synthesizer**, the second model call, runs once the apps have answered, when the plan reserved a merged view. It writes the view as formulas over the apps' data.
-5. **The client** evaluates the formulas, and again on every change, with no model call.
+1. **Router** ranks the installed apps' agent cards against the question, with a small embedding model, and hands a shortlist on.
+2. **Planner**, the first model call, picks the apps, writes each one's request, and designs the layout. The layout reaches the client before any app is asked.
+3. **Apps** are asked in parallel, and each answer is relayed into its slot as it arrives. The client draws it with that app's own catalog.
+4. **Synthesizer**, the second model call, runs once the apps have answered, when the plan reserved a merged view. It writes the view as formulas over the apps' data.
+5. **Client** evaluates the formulas, and again on every change, with no model call.
 
 | Part                                                        | What it is                                                                                                  |
 | ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
