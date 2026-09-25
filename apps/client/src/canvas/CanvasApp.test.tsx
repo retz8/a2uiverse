@@ -275,13 +275,13 @@ describe('CanvasApp', () => {
     const button = await screen.findByRole('button', {name: 'Open issue'});
 
     await userEvent.click(button);
-    expect(await screen.findByTestId('canvas-pending')).toBeInTheDocument();
+    await waitFor(() => expect(sent).toHaveLength(2));
     await userEvent.click(button);
 
     expect(sent).toHaveLength(2);
     expect(screen.getByTestId('canvas-notice')).toHaveTextContent(/paint is in flight/i);
     release();
-    await waitFor(() => expect(screen.queryByTestId('canvas-pending')).toBeNull());
+    expect(await screen.findByText('hello from the agent')).toBeInTheDocument();
   });
 
   it('?beat= accepts a comma-separated list and replays the beats in sequence', async () => {

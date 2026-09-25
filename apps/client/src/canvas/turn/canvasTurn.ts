@@ -63,7 +63,6 @@ import {mergeFactsOf, SHELL_SOURCE, shellPaintSlots, slotStatesOf} from '../comp
 import {describeError} from '../../shared/describeError';
 import type {CanvasStore} from '../canvasStore';
 import type {PaintCause} from './cause';
-import {describeCause} from './cause';
 import type {SynthesisIntake} from '../synthesis/synthesisSession';
 import type {FragmentHistory, RestorableStep} from '../history/fragmentHistory';
 import {rebuildMessages} from '../history/paintCopy';
@@ -520,15 +519,6 @@ export function createTurnRunner({
       if (canceled) return;
       metas.set(meta.surfaceId, meta);
       onPaintMeta?.(meta);
-      // The title leads the paint: it upgrades the in-flight label the moment it arrives.
-      // Whose words the status line carries. On an utterance the user asked the question, and
-      // their own phrasing is the only stable answer to "is this still working" — under fan-out
-      // three agents' titles would otherwise overwrite each other and land on whichever painted
-      // last. Inside a fragment the user acted on that agent's surface, the action routes to its
-      // owner alone, so its title is both unambiguous and the more useful thing to show.
-      if (meta.title && cause.kind === 'surface-action') {
-        store.updateInFlightLabel(`${meta.title} — generating…`);
-      }
     };
 
     /** A non-final stage surface of a turn: the last one created keeps the stage. */
@@ -691,6 +681,13 @@ export function createTurnRunner({
       store.bumpApplied();
     };
 
+    /** A source's settled marker: its paint swapped in, its fragments judged, its tick done. */
+    const sourceSettled = (source: string) => {
+      if (stagedMode) swapSource(source);
+      ledger.settleSource(source);
+      if (current === handle) store.settleInFlight(source);
+    };
+
     const endProgressive = () => {
       const stageId = store.getState().stageId;
       if (!stageId) {
@@ -773,10 +770,7 @@ export function createTurnRunner({
         // A source's settled marker: nothing to apply, its fragments judged now.
         const ended = stamp?.settled ? slotOf(stamp) : undefined;
         if (rest.length === 0) {
-          if (ended !== undefined) {
-            if (stagedMode) swapSource(ended);
-            ledger.settleSource(ended);
-          }
+          if (ended !== undefined) sourceSettled(ended);
           return;
         }
         // A composition opening retires the one on stage — what the client held of it included —
@@ -800,10 +794,7 @@ export function createTurnRunner({
         if (admitted.length === 0) return;
         if (stagedMode) applyStaged(admitted, stamp, payload);
         else applyProgressive(admitted, stamp, payload);
-        if (ended !== undefined) {
-          if (stagedMode) swapSource(ended);
-          ledger.settleSource(ended);
-        }
+        if (ended !== undefined) sourceSettled(ended);
       },
       acceptPaintMeta,
       end: () => {
@@ -856,7 +847,7 @@ export function createTurnRunner({
     // the same question, so it leaves the header standing.
     if (cause.kind === 'utterance')
       store.setQuestion({text: cause.payload.text, askedAt: Date.now()});
-    store.beginPaint(describeCause(cause), cause.kind, sourceOfCause(cause));
+    store.beginPaint(cause.kind, sourceOfCause(cause));
     return handle;
   };
 

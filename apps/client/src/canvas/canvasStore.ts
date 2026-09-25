@@ -101,11 +101,12 @@ export interface CanvasState {
   /** The one transient question paint above the stage; null when no question is pending. */
   overlay: OverlayState | null;
   /**
-   * Set while a paint is streaming: its activity label, the kind of cause that opened it — an
-   * utterance plans, an action or an answer works inside what is already there — and, for an
-   * action inside a fragment, the source whose repaint is in flight (task-9.7 decision 6).
+   * Set while a paint is streaming: the kind of cause that opened it — an utterance plans, an
+   * action or an answer works inside what is already there — and, for an action inside a
+   * fragment, the source whose repaint is in flight (task-9.7 decision 6), `settled` once that
+   * source's stream has ended while the turn runs on (task-9.9 decision 25).
    */
-  inFlight: {label: string; cause?: PaintCause['kind']; source?: string} | null;
+  inFlight: {cause?: PaintCause['kind']; source?: string; settled?: true} | null;
   /** Sticky failure text; cleared by the next dispatch (beginPaint). */
   error: string | null;
   /**
@@ -176,9 +177,9 @@ export interface CanvasState {
 export interface CanvasStore {
   getState(): CanvasState;
   subscribe(listener: () => void): () => void;
-  beginPaint(label: string, cause?: PaintCause['kind'], source?: string): void;
-  /** Upgrade the in-flight label (the agent-authored title); no-op when idle. */
-  updateInFlightLabel(label: string): void;
+  beginPaint(cause?: PaintCause['kind'], source?: string): void;
+  /** The in-flight action's source has settled; no-op for any other source or when idle. */
+  settleInFlight(source: string): void;
   endPaint(): void;
   setQuestion(question: Question): void;
   /** Merge the slot states a shell paint carried; `null` clears a source's. */
@@ -285,10 +286,11 @@ export function createCanvasStore(): CanvasStore {
       listeners.add(listener);
       return () => listeners.delete(listener);
     },
-    beginPaint: (label, cause, source) =>
-      set({inFlight: {label, cause, ...(source !== undefined ? {source} : {})}, error: null}),
-    updateInFlightLabel: label => {
-      if (state.inFlight) set({inFlight: {...state.inFlight, label}});
+    beginPaint: (cause, source) =>
+      set({inFlight: {cause, ...(source !== undefined ? {source} : {})}, error: null}),
+    settleInFlight: source => {
+      if (state.inFlight?.source === source && !state.inFlight.settled)
+        set({inFlight: {...state.inFlight, settled: true}});
     },
     endPaint: () => set({inFlight: null}),
     setQuestion: question => set({question}),

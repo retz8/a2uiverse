@@ -34,7 +34,7 @@ const question = {text: "what's the status of what I'm working on?", askedAt: Da
 
 function setup(inFlight: boolean) {
   const store = createCanvasStore();
-  if (inFlight) store.beginPaint('“status” — generating…', 'utterance');
+  if (inFlight) store.beginPaint('utterance');
   else {
     // A landed turn: one vendor answered, so the progress line has a step to keep.
     store.setRoster([{appId: 'github', displayName: 'GitHub'}]);

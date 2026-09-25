@@ -19,8 +19,8 @@ export interface SourceStep {
 }
 
 export interface TurnProgress {
-  /** In flight with nothing planned yet — the Planner's wait — or an action running inside the composition. */
-  working: {kind: 'planning' | 'other'; label: string} | null;
+  /** In flight with nothing planned yet: the Planner's wait. */
+  working: {kind: 'planning'; label: string} | null;
   /** One step per vendor source the shell reserved a slot for, in slot order. */
   sources: SourceStep[];
   /** The merge, when the plan reserved one: where it stands, in the client's words (task-8.5 decision 11). */
@@ -40,6 +40,9 @@ const sourceStatus = (state: CanvasState, appId: string, busy: boolean): StepSta
   const retried = retrying(state, appId);
   const painted = state.slotStates.get(appId);
   if (painted === 'failed' && !retried) return 'failed';
+  // An action inside its fragment is that source working again, until its stream ends (task-9.9
+  // decision 25): the line names no action, only the source it went to.
+  if (state.inFlight?.source === appId && !state.inFlight.settled) return 'working';
   // A source that answered in prose without painting still answered.
   if (state.placement.has(appId) || state.prose.has(appId)) return 'done';
   if (painted === 'collapsed') return 'done';
@@ -51,19 +54,15 @@ export function turnProgress(state: CanvasState): TurnProgress {
   const roster = state.roster;
   const vendors = roster.filter(entry => entry.appId !== SHELL_SOURCE);
   const merged = roster.find(entry => entry.appId === SHELL_SOURCE);
-  // An utterance plans until its roster lands; an action runs inside the composition, its label
-  // beside the composition's ticks (task-8.5 decision 13).
+  // An utterance plans until its roster lands; an action runs inside the composition as its
+  // source's tick (task-9.9 decision 25).
   const planning =
     state.inFlight !== null &&
     (state.inFlight.cause === 'utterance' || state.inFlight.cause === undefined);
   const working =
-    state.inFlight === null
-      ? null
-      : planning
-        ? roster.length === 0
-          ? {kind: 'planning' as const, label: 'Planning which apps can answer'}
-          : null
-        : {kind: 'other' as const, label: state.inFlight.label};
+    planning && roster.length === 0
+      ? {kind: 'planning' as const, label: 'Planning which apps can answer'}
+      : null;
   return {
     working,
     sources: vendors.map(entry => ({

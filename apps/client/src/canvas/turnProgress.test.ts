@@ -38,7 +38,7 @@ function landed() {
 describe('turnProgress', () => {
   it('an utterance in flight with nothing planned is the Planner at work', () => {
     const store = createCanvasStore();
-    store.beginPaint('“status” — generating…', 'utterance');
+    store.beginPaint('utterance');
     expect(turnProgress(store.getState())).toEqual({
       working: {kind: 'planning', label: 'Planning which apps can answer'},
       sources: [],
@@ -46,27 +46,33 @@ describe('turnProgress', () => {
     });
   });
 
-  it('an action in flight says what it is doing, not that it plans', () => {
+  it('an action in flight names no action and does not plan', () => {
     const store = createCanvasStore();
-    store.beginPaint('Approve — generating…', 'surface-action');
-    expect(turnProgress(store.getState()).working).toEqual({
-      kind: 'other',
-      label: 'Approve — generating…',
-    });
+    store.beginPaint('surface-action');
+    expect(turnProgress(store.getState()).working).toBeNull();
   });
 
-  it('an action inside the composition runs beside its ticks and merge step', () => {
+  it('an action inside the composition is its source working, until its stream ends', () => {
     const store = landed();
-    store.beginPaint('Open #8 — generating…', 'surface-action');
-    const progress = turnProgress(store.getState());
-    expect(progress.working).toEqual({kind: 'other', label: 'Open #8 — generating…'});
-    expect(progress.sources.map(s => s.appId)).toEqual(['linear', 'github', 'circleci']);
-    expect(progress.merge).not.toBeNull();
+    store.beginPaint('surface-action', 'github');
+    const running = turnProgress(store.getState());
+    expect(running.working).toBeNull();
+    expect(running.sources.map(s => [s.appId, s.status])).toEqual([
+      ['linear', 'done'],
+      ['github', 'working'],
+      ['circleci', 'working'],
+    ]);
+    expect(running.merge).not.toBeNull();
+    store.settleInFlight('github');
+    expect(turnProgress(store.getState()).sources[1]).toMatchObject({
+      appId: 'github',
+      status: 'done',
+    });
   });
 
   it('a step per vendor source in slot order: done once placed, failed as painted, working until then', () => {
     const store = createCanvasStore();
-    store.beginPaint('“status” — generating…', 'utterance');
+    store.beginPaint('utterance');
     store.setRoster(ROSTER);
     store.placeFragment('linear', {surfaceId: 'linear:issues', source: 'linear'});
     store.mergeSlotStates(new Map([['circleci', 'failed' as const]]));
@@ -91,7 +97,7 @@ describe('turnProgress', () => {
 
   it('a source that answered in words without painting has answered', () => {
     const store = createCanvasStore();
-    store.beginPaint('“status” — generating…', 'utterance');
+    store.beginPaint('utterance');
     store.setRoster(ROSTER);
     store.appendProse('github', 'You have no open pull requests.');
     expect(turnProgress(store.getState()).sources[1]?.status).toBe('done');
@@ -112,7 +118,7 @@ describe('turnProgress', () => {
 
   it('the merge is joined once its slot is placed, and stays after the turn ends', () => {
     const store = createCanvasStore();
-    store.beginPaint('“status” — generating…', 'utterance');
+    store.beginPaint('utterance');
     store.setRoster(ROSTER);
     for (const app of ['linear', 'github', 'circleci', 'shell'])
       store.placeFragment(app, {surfaceId: `${app}:s`, source: app});
@@ -134,7 +140,7 @@ describe('turnProgress', () => {
 
   it('a merge over an entity names the rows’ app first, each app with its noun', () => {
     const store = createCanvasStore();
-    store.beginPaint('“status” — generating…', 'utterance');
+    store.beginPaint('utterance');
     store.setRoster([JOINED[0]!, JOINED[2]!, JOINED[1]!, JOINED[3]!]);
     // Nothing arrived: the plan in one sentence (task-8.7 decision 20, shortened on case 9).
     expect(turnProgress(store.getState()).merge?.text).toBe(
@@ -154,7 +160,7 @@ describe('turnProgress', () => {
 
   it('a union join names the thing across the sources (task-8.7 decision 30)', () => {
     const store = createCanvasStore();
-    store.beginPaint('“cameras” — generating…', 'utterance');
+    store.beginPaint('utterance');
     store.setRoster([
       {
         appId: 'shell',
@@ -177,7 +183,7 @@ describe('turnProgress', () => {
 
   it('under a join, the home source alone still loading: waiting for it, then joining', () => {
     const store = createCanvasStore();
-    store.beginPaint('“status” — generating…', 'utterance');
+    store.beginPaint('utterance');
     store.setRoster(JOINED);
     store.placeFragment('github', {surfaceId: 'github:s', source: 'github'});
     expect(turnProgress(store.getState()).merge?.text).toBe(

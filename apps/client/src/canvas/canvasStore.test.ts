@@ -69,10 +69,10 @@ describe('createCanvasStore', () => {
     expect(store.getState().promoted.size).toBe(0);
   });
 
-  it('beginPaint marks in-flight with its label; endPaint settles back to idle', () => {
+  it('beginPaint marks in-flight with its cause; endPaint settles back to idle', () => {
     const store = createCanvasStore();
-    store.beginPaint('Generating…');
-    expect(store.getState().inFlight).toEqual({label: 'Generating…'});
+    store.beginPaint('utterance');
+    expect(store.getState().inFlight).toEqual({cause: 'utterance'});
     store.endPaint();
     expect(store.getState().inFlight).toBeNull();
   });
@@ -82,7 +82,7 @@ describe('createCanvasStore', () => {
     store.reportError('the agent request failed');
     store.endPaint();
     expect(store.getState().error).toBe('the agent request failed');
-    store.beginPaint('Generating…');
+    store.beginPaint('utterance');
     expect(store.getState().error).toBeNull();
   });
 
@@ -237,7 +237,7 @@ describe('createCanvasStore', () => {
     const store = createCanvasStore();
     const listener = vi.fn();
     const unsubscribe = store.subscribe(listener);
-    store.beginPaint('Generating…');
+    store.beginPaint('utterance');
     expect(listener).toHaveBeenCalledTimes(1);
     unsubscribe();
     store.endPaint();
@@ -247,23 +247,31 @@ describe('createCanvasStore', () => {
   it('getState returns a new immutable snapshot per mutation (useSyncExternalStore contract)', () => {
     const store = createCanvasStore();
     const before = store.getState();
-    store.beginPaint('Generating…');
+    store.beginPaint('utterance');
     expect(store.getState()).not.toBe(before);
     expect(before.inFlight).toBeNull();
   });
 });
 
-describe('updateInFlightLabel', () => {
-  it('upgrades the label while a paint is in flight', () => {
+describe('settleInFlight', () => {
+  it('marks the in-flight action’s source settled, the turn still in flight', () => {
     const store = createCanvasStore();
-    store.beginPaint('“show my PRs” — generating…');
-    store.updateInFlightLabel('Open PRs — a2ui — generating…');
-    expect(store.getState().inFlight).toEqual({label: 'Open PRs — a2ui — generating…'});
+    store.beginPaint('surface-action', 'circleci');
+    store.settleInFlight('circleci');
+    expect(store.getState().inFlight).toEqual({
+      cause: 'surface-action',
+      source: 'circleci',
+      settled: true,
+    });
   });
 
-  it('is a no-op while idle — a late title never resurrects a settled turn', () => {
+  it('ignores another source, and is a no-op while idle', () => {
     const store = createCanvasStore();
-    store.updateInFlightLabel('too late');
+    store.beginPaint('surface-action', 'circleci');
+    store.settleInFlight('linear');
+    expect(store.getState().inFlight?.settled).toBeUndefined();
+    store.endPaint();
+    store.settleInFlight('circleci');
     expect(store.getState().inFlight).toBeNull();
   });
 });

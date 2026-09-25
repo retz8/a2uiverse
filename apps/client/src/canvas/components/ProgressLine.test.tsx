@@ -18,7 +18,7 @@ const ROSTER = [
 describe('ProgressLine', () => {
   it('planning: the Planner at work, marked in flight', () => {
     const store = createCanvasStore();
-    store.beginPaint('“status” — generating…', 'utterance');
+    store.beginPaint('utterance');
     renderWithShell(<ProgressLine state={store.getState()} since={Date.now()} />);
     expect(screen.getByTestId('canvas-pending')).toHaveTextContent(
       'Planning which apps can answer',
@@ -27,7 +27,7 @@ describe('ProgressLine', () => {
 
   it('merging: every source ticked, the join in flight', () => {
     const store = createCanvasStore();
-    store.beginPaint('“status” — generating…', 'utterance');
+    store.beginPaint('utterance');
     store.setRoster(ROSTER);
     for (const source of ['linear', 'github', 'circleci']) {
       store.placeFragment(source, {surfaceId: `${source}:x`, source});
@@ -55,7 +55,7 @@ describe('ProgressLine', () => {
 
   it('a merge over an entity: the join in the nouns the plan painted (task-7.15)', () => {
     const store = createCanvasStore();
-    store.beginPaint('“status” — generating…', 'utterance');
+    store.beginPaint('utterance');
     store.setRoster([
       {
         appId: 'shell',

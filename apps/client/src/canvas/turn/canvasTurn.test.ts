@@ -124,7 +124,7 @@ describe('progressive mode (empty canvas)', () => {
   it('streams the paint straight onto the stage', () => {
     const {processor, store, runner} = setup();
     const turn = runner.begin(utterance('show my PRs'));
-    expect(store.getState().inFlight?.label).toBe('“show my PRs” — generating…');
+    expect(store.getState().inFlight?.cause).toBe('utterance');
 
     turn.apply([create('pull-request-list')]);
     // Progressive: visible mid-turn, before the stream ends.
@@ -395,7 +395,7 @@ describe('cancel: last-intent-wins', () => {
     expect(first.canceled).toBe(true);
     expect(first.signal.aborted).toBe(true);
     expect(runner.current).toBe(second);
-    expect(store.getState().inFlight?.label).toBe('“second ask” — generating…');
+    expect(store.getState().inFlight?.cause).toBe('utterance');
 
     second.apply([create('b'), textRoot('b', 'B')]);
     second.end();
@@ -405,31 +405,6 @@ describe('cancel: last-intent-wins', () => {
 });
 
 describe('paint meta', () => {
-  it('an utterance keeps the user’s own words in the status line', () => {
-    // The user asked the question, so their phrasing is the stable answer to "is this still
-    // working". Under fan-out several agents paint, and letting each title overwrite the label
-    // would leave whichever painted last — the same collision the prose channel had.
-    const {store, runner} = setup();
-    const turn = runner.begin(utterance('show my PRs'));
-    expect(store.getState().inFlight?.label).toBe('“show my PRs” — generating…');
-    turn.acceptPaintMeta({surfaceId: 'pull-request-list', title: 'Open PRs — a2ui'});
-    expect(store.getState().inFlight?.label).toBe('“show my PRs” — generating…');
-
-    turn.apply([create('pull-request-list'), textRoot('pull-request-list', 'PRs')]);
-    turn.end();
-  });
-
-  it('an action inside a fragment shows that agent’s title', () => {
-    // The user acted on one agent's surface and the action routes to its owner alone, so the
-    // title is unambiguous — and more useful than echoing a button name back at them.
-    const {store, runner} = setup();
-    const turn = runner.begin(surfaceAction('open-pr'));
-    turn.acceptPaintMeta({surfaceId: 'pull-request-list', title: 'PR #2449 — a2ui'});
-    expect(store.getState().inFlight?.label).toBe('PR #2449 — a2ui — generating…');
-    turn.apply([create('pull-request-list'), textRoot('pull-request-list', 'PRs')]);
-    turn.end();
-  });
-
   it('kind="question" routes a non-dialog paint to the overlay — the marker is the contract', () => {
     const {store, runner} = setup();
     const turn = runner.begin(utterance('which repo?'));
@@ -1276,11 +1251,13 @@ describe("the fragment's history (task 9.7)", () => {
       ],
       fragment('github'),
     );
-    // Staged: the list still fills the slot.
+    // Staged: the list still fills the slot, GitHub working (task-9.9 decision 25).
     expect(store.getState().placement.get('github')?.surfaceId).toBe('github:pr-list');
+    expect(store.getState().inFlight).toEqual({cause: 'surface-action', source: 'github'});
     action.apply([], {source: 'github', role: 'fragment', settled: true});
     // GitHub's stream ended: its paint is in its slot, the turn still open for the re-synthesis.
     expect(store.getState().placement.get('github')?.surfaceId).toBe('github:pr-detail');
+    expect(store.getState().inFlight?.settled).toBe(true);
     expect(rootText(processor, 'github:pr-detail')).toBe('the detail');
     expect(synthesis.hold).toHaveBeenCalledTimes(1);
     expect(store.getState().mergeHeld).toBe(true);

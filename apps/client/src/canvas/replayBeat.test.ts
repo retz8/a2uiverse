@@ -50,7 +50,7 @@ function mockRunner(store: ReturnType<typeof createCanvasStore>) {
   const applied: A2uiMessage[][] = [];
   const begin = (cause: PaintCause): TurnHandle => {
     causes.push(cause);
-    store.beginPaint('Generating…');
+    store.beginPaint();
     return {
       signal: new AbortController().signal,
       canceled: false,
@@ -108,7 +108,7 @@ describe('replayBeatOnCanvas', () => {
     const runner = {
       begin: (cause: PaintCause): TurnHandle => {
         causes.push(cause);
-        store.beginPaint('Generating…');
+        store.beginPaint();
         return {
           signal: new AbortController().signal,
           canceled: false,
