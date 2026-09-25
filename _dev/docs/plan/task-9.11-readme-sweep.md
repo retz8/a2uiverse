@@ -2,7 +2,7 @@
 
 Every README in `a2uiverse` and `a2uiverse-apps`, drafted from what Phase 9 left, pushed to `main` on its repo and reviewed on GitHub. READMEs are for human developers: easy to read, easy to understand, concise; details are for documents. GIFs or images may be added to demonstrate the features.
 
-An app's, agent's or catalog's README does not open on A2UIVerse; it ends in a small section on how to connect it to A2UIVerse.
+An app's, agent's or catalog's README does not open on A2UIVerse; it ends in a small section on how to connect it to A2UIVerse. No em dashes in any README.
 
 ## Order
 
