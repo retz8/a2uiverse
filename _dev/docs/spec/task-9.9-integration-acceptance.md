@@ -110,6 +110,10 @@ The gutter's Back goes to the canvas the one on screen was asked from — up its
 
 An action's paint is held per source, not per turn: the source's settled marker swaps in what survives of its paint, a surface it created and cleaned up again discarded. A vendor paint swapped in inside a live composition holds the merged view at its last values, its line working ("Joining …"), until the turn ends with the re-synthesis; a payload accepted meanwhile lands at once. Replaced: the fragment's paint held until the turn ended, after the re-synthesis — a CircleCI run answered in 7ms shown after 27s. Raised on case 5.
 
+### 24. A button of the shell's shows the pointer
+
+Every button the shell draws on Radix Themes — a fragment's back and forward arrows, the sort control and its direction, Retry, Include, Try again, the capability tile's press, a painted `Button`, the Ask pill — shows the pointer on hover, as the gutter's Trail, a trail entry and a merged cell do. Replaced: Radix's default arrow cursor on its buttons. Raised on case 6.
+
 ## Found and fixed during the run
 
 - **A trail entry picked under the pointer left its preview behind.** The pick closes the rail with the pointer still on the row, so the row never saw it leave, and the next opening of the rail showed that entry's preview unasked. A closed rail clears its preview. Case 3; the canvas app suite's test of an entry picked under the pointer.
