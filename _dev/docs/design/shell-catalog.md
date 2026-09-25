@@ -7,7 +7,8 @@ synthesis (`DerivedValue`, `SortControl`) and the merged view's shapes (`Table`,
 `openAppLibrary`; task 6.2), and the relations a match claim is written in (`equal`, `contains`,
 `judged`; task 7.5), as one catalog schema (`catalogs/v0.9.1/catalog.json`) and one React
 implementation, versioned together. Radix Themes is its design system, brought by its Provider
-under the one-provider-one-CSS-setup rule (SPEC §9.2). State as of task 8.7.
+under the one-provider-one-CSS-setup rule (SPEC §9.2). `Attribution` also carries a fragment's way
+back — its back and forward arrows (SPEC §4.3, §6.5; task 9.5). State as of task 9.9.
 
 ## Two faces of one catalog
 
@@ -16,7 +17,7 @@ catalog.json ──────────────────────�
                                            ├─ catalog.parity.test · catalog.render-parity.test · keep-sets.test
 @a2ui/web_core BASIC_COMPONENTS  ─┐        │
 shell primitives' zod schemas    ─┼─ schema.ts   SCHEMA_CATALOG                   (React-free; a headless processor over the component APIs; shell actions bound to a handler that does nothing)
-                                  └─ catalog.ts  createCatalog({onShellAction, onPress?, onNavigate?, appDisplayName?})   (React; the client renders with it; shell actions and the capability tile bound to the host's handler, the Slot's presses to its press, DerivedValue and the press lines to its navigation and app names)
+                                  └─ catalog.ts  createCatalog({onShellAction, onPress?, onNavigate?, appDisplayName?})   (React; the client renders with it; shell actions and the capability tile bound to the host's handler, the Slot's presses and Attribution's arrows to its press, DerivedValue and the press lines to its navigation and app names)
 ```
 
 Both faces are built from the same component APIs — upstream's `TextApi` … `DateTimeInputApi`
@@ -28,16 +29,23 @@ the formula operators (`OPERATORS`), the relations (`RELATIONS`) and the shell a
 face is built per host: `createCatalog({onShellAction})` (task 6.2) closes the shell actions and
 `Slot`'s capability tile over the host's `ShellActionHandler`; its optional `onNavigate` and
 `appDisplayName` (task 7.5) close `DerivedValue` over the host's `NavigationHandler` and its
-`AppDisplayName` lookup. Its optional `onPress` (task 8.5) closes `Slot` over the host's
-`PressHandler`, which receives the composition operation `{kind, sources}` with the surface and
-component that raised it. `SCHEMA_CATALOG` closes the shell actions over `() => {}`.
+`AppDisplayName` lookup. Its optional `onPress` (task 8.5) closes `Slot` and `Attribution` (task
+9.5) over the host's `PressHandler`, which receives the composition operation `{kind, sources,
+step?}` with the surface and component that raised it — Retry, Include and Try again from a
+`Slot`, a step from an arrow. `SCHEMA_CATALOG` closes the shell actions over `() => {}`.
 
-Three host seams, by kind. Handlers and stable lookups are `createCatalog`'s options. State that
+The host seams, by kind. Handlers and stable lookups are `createCatalog`'s options. State that
 changes over time is a context the host fills: `SlotContentContext` (a source's content),
 `SlotStateContext` (a source's slot state — pending, filled, failed, collapsed, or late while it
-waits for Include — which `Table` and the reserved merged view read; task 8.2, 8.5), and
+waits for Include — which `Table` and the reserved merged view read; task 8.2, 8.5),
 `PressStateContext` (the presses the host holds until the paint catches up, each `sent`,
-`unreached` or `lost`, and whether a press can be made at all; task 8.5).
+`unreached` or `lost`, and whether a press can be made at all; task 8.5), and
+`FragmentHistoryContext` (`fragment-history.ts`, task 9.5): a `FragmentHistoryResolver` from a
+source to where its fragment stands in its history — `FragmentHistory {back?, forward?, busy?}`,
+each neighbour a `HistoryStep {step, title?}`, the index the arrow reports and the paint's title
+when the agent named one, `busy` while the source's repaint is in flight (task-9.7 decision 6);
+`undefined`, the default, draws no arrow. The host computes the neighbours from its stacks; the
+catalog computes nothing.
 The prop surface is the basic catalog's exactly: what the Synthesizer authors against, what the
 orchestrator validates, and what the client renders are one vocabulary, and only the rendering
 changed in 5.9.
@@ -68,7 +76,8 @@ model, the two shell actions as `Button`s, what never to paint — into the Plan
 
 One folder per component under `src/components/`, each a view (`*View`, pure React over resolved
 props) and a catalog entry (`*Component`, the binder's wrapper over the API; `Slot`'s is the
-factory `createSlotComponent(onShellAction)`, `DerivedValue`'s
+factory `createSlotComponent(onShellAction, {onPress, appDisplayName})`, `Attribution`'s
+`createAttributionComponent({onPress})`, `DerivedValue`'s
 `createDerivedValueComponent({onNavigate, appDisplayName})`). The basic components
 carry no schema file of their own — their API is upstream's. Shared helpers live in
 `components/shared/`; `weight` on `Slot` and `Attribution` goes through `shared/layout`'s
@@ -96,7 +105,7 @@ carry no schema file of their own — their API is upstream's. Shared helpers li
 | Shell primitive | Rendering | Contract |
 | --- | --- | --- |
 | `Slot` | pending/failed fragment slots hold the space they reserved and draw nothing around it, their content flush at the leading edge (task 7.9); a pending fragment slot — before its source's first answer, or again from Retry — is a size-1 spinner and "Loading…" in the quiet register, naming nobody, the attribution marker above saying whose it is (task-8.7 decision 19); shell content pending is the merged view reserved (task 7.15) — `aria-busy`, a 24px row with a 136×10 skeleton bar, then a `ghost` `Table.Root` with the planned `columns` as headings (none when the plan wrote none), each heading marked to its source through `columnSources` saying "· loading" or "· unavailable" from the slot-state context, over four `data-skeleton-row` rows of 8px bars at the design canvas's F2 widths, in `--a2v-skel`, in `Table`'s own cell geometry; a failed fragment slot is the failure tile, board F6 (task 8.2) as one statement (task-8.7 decision 17) — `failureStatement(failure)` at body size in ink: the vendor's message when it spoke, else "Couldn't be reached.", "No answer within the time allowed.", "Answered, but its screen couldn't be shown.", and "Couldn't answer." when the vendor ended without a word or no cause was painted, with no name and no heading — then, 16px below, a size-2 outlined gray Retry with a refresh glyph under a host that takes presses; no box, the reserved floor; failed shell content a quiet `Text` line; a collapsed shell slot is 24px rows at the label row's geometry (task 8.2–8.5): the decline's reason at body size in ink with no press (task-8.7 decision 27), or `collapseLine(collapse)` — "The merged view needs Linear issues, which didn't load." carrying "Retry Linear", the home source's own Retry (task-8.7 decision 23); "The merged view needs at least two sources, and only GitHub answered." ("… and none answered.") carrying "Retry all" over the sources that did not arrive, "Retry Gmail" when there is one (task-8.7 decision 24); "The merged view couldn't be made." with Try again — replaced by "Making the merged view…" while a press makes it and "Waiting for CircleCI, then merging…" while a Retry that could bring it back is pressed or runs, and under a decline's line only "CircleCI has answered since." with Include; a filled shell slot carries, above the view, a 24px row of its own when a press has something to say (task 8.5) — "Including CircleCI…" or "Updating the merged view…" while a press's call runs, "The merged view couldn't be updated." with Try again, the late sources' line ("CircleCI answered after this view was made.", "Couldn't include CircleCI." with Include again); a row that asks for a press is the view's action, at body size in ink with a size-1 soft accent button at its end named for its object — "Include CircleCI", "Include all" for several, "Retry Linear", "Retry all", "Try again", "Include again" (task-8.7 decision 21) — and a row that only tells stays at caption size in the quiet register, a spinner before it while something runs; a press is drawn at the click from `PressStateContext` (Retry gives the tile way to the pending line), a press that never reached the orchestrator adds "That didn't reach A2UIVerse." beside its button, a stream that broke after it answered replaces the in-progress line with "Lost the connection to A2UIVerse. Ask again to see where this stands.", and every press button draws disabled where the context says no press can be made; focus moves from a pressed button to the line that replaced it (`tabindex="-1"`, `data-press-line`), and a visually hidden `role="status"` beside the slot speaks "couldn't be updated", "didn't reach" and "lost the connection"; for a `gap`, the capability tile keeps its Radix panel, border and radius — SPEC §8 calls it a tile and it is shell UI with an action in it, not a placeholder for vendor pixels — one `Text` line, "No installed app can do this.", over a soft `Button` "Search the Store" (`data-slot-state="gap"`); `weight ?? 1` as the flex share, written before a filled fragment slot's reserved floor (`min-height: 4rem`) so the share's `min-height: 0` does not erase it; shell content keeps no floor | exactly one of `source` or `gap` (schema refine); a source's content from `SlotContentContext`, resolved by source, which the host fills; a gap resolves no content; the tile's button raises `openStore` with the gap as `query` and the slot's own id as `componentId`, through the handler `createSlotComponent` closes over; the painted props — `state`, `failure` (`vendor` · `unreachable` · `timeout` · `invalid`, the message only with `vendor`), `declined`, `collapse` (`home` with the home source's noun · `few` with the display names that answered and, as `failed`, the ids that did not · `unmade`), `join` `{home, entity?, nouns}` — `home` null and `entity` the thing the rows are for a union join (task-8.7 decision 30) — and the merge's facts `merged`, `late`, `working`, `callFailed`, `retrying` — are the runtime's, never an author's; the entry reads every prop from its component model, not the binder's resolved props, since upstream's binder keeps a prop a repaint dropped (`_dev/a2ui-findings.md` §9); the line words are pure functions (`failureStatement`, `collapseLine`, `landedLines`, `collapsedLines`); a line's Retry over several sources is one press naming them all, the host's to send |
-| `Attribution` | `Text` size 1 gray, 16px line, with Radix's 12px info glyph 4px from the name; with a `child`, a `Flex` column (`data-attribution`) of marker over child, gap 2 (8px) carrying `weight ?? 1` as its flex share; without one, the bare marker | display name at rest; hover and focus brighten it and append the account when one is in play, never "Painted by" (task-8.7 decision 18); the accessible name always the name, or "name · account"; the wrapper of a vendor fragment's `Slot` (task 6.4): `child` the slot's id, `weight` the slot's, copied by the painter |
+| `Attribution` | `Text` size 1 gray, 16px line, with Radix's 12px info glyph 4px from the name; with a `child`, a `Flex` column (`data-attribution`) of the marker's row over child, gap 2 (8px) carrying `weight ?? 1` as its flex share; without one, the bare row. The fragment's way back (task 9.5, task-9.9 decision 15): with somewhere to go, the row is a `Flex` justified between, the marker at its start and at its right edge a back arrow, and a forward arrow beside it after a back — each a size-1 `soft` `IconButton` in the accent, Radix's `ArrowLeftIcon` or `ArrowRightIcon` alone, `data-way` `back` or `forward` so the host can hold the fragment's place while the step runs; no border, the boundary still undrawn | display name at rest; hover and focus brighten it and append the account when one is in play, never "Painted by" (task-8.7 decision 18); the accessible name always the name, or "name · account"; the wrapper of a vendor fragment's `Slot` (task 6.4): `child` the slot's id, `weight` the slot's, copied by the painter. The arrows read `FragmentHistoryContext` by the painted `appId` — the view takes a `history` in its place — and draw one per neighbour present, named "Back to" or "Forward to" that paint's title, "Back" or "Forward" alone when the agent named nothing, the name on hover, focus and for assistive technology (task-9.5 decision 3); a press raises the step operation `{kind: 'step', sources: [appId], step}` through the host's press handler with the surface and component that raised it, and without a handler no arrow is drawn; disabled where `PressStateContext` says no press can be made, and while the history says the source is `busy`; when the arrow pressed from the keyboard leaves the row, focus moves to the other arrow, else the marker |
 | `DerivedValue` | `Text` size 2; the detail in a Radix `Tooltip` mounted in the portal root, so showing it moves nothing on the page; contributor state and the join ride **one mark, the value's own contrast** (`data-marked`, one of `partial` · `absent` · `empty` · `guessed` · `broken`) — full strength when complete and held by facts, Radix `color="gray"` for partial, absent, empty and guessed, `color="amber"` plus a size-1 amber ⚠ when broken; a value matching one of the cell's `danger` words (task 7.16, compared as `equal` compares) carries `data-tone="danger"` and a 14px `CrossCircledIcon` before it whatever its mark, and is drawn in `--a2v-danger` (fallback `--red-11`) at weight 600 only when unmarked — certainty wins the color; a value that names an app (`names: 'app'`) drawn by the host's name for it; `data-state` and `data-join` beside `data-marked`; with a target under a host that navigates, `role="button"`, focusable, pointer cursor and a `--gray-a3` background while hovered or focused, raising the handler on click, Enter or Space; a cell that speaks without navigating is focusable with the `help` cursor; nothing in the tooltip navigates | the cell object the BindingEvaluator writes: value + contributor state, `names?: 'app'`, `join` `{mark, apps, evidence}` for a claimed object, and `target` `{app, surface, pointer}` whenever a ref resolves — none on an absent cell, the evaluator's rule (task-7.9 decision 2), so the view navigates whatever target it is handed; four states from `contributed`/`of` — `empty` (0 of 0), `absent` (0 of N), `partial`, `complete`; the tooltip appears only where the shell admitted something — a mark, or a contributor set short of complete — and carries the contributor detail when partial or absent, then "From {apps} · {relation names}", each relation with its two values when the mark is guessed or broken; a confirmed complete cell is silent and the tap is its audit; the accessible name always carries value, "needs attention" for a danger value, contributor detail, mark ("guessed match" · "broken match") and join detail, independent of pointer state; apps named through the host's lookup, the app id when it has none; `format` `number` · `currency` · `datetime` (any year-and-clock spelling rendered in one fixed form — `en-US`, `America/New_York` — through `shared/instant`, which the client's sort shares), and a `prefix` written before a present value, never before the dash (task 7.16); `danger`, a non-empty list of words fixed at authoring time, never bound |
 | `SortControl` | `Select` + `IconButton` with Radix arrow icons, never shrinking, its "Sort by" on one line | the declaration at `/sorts/N`, written back whole |
 | `Table` · `TableRow` | `Table.Root` size 1 `ghost`, drawn to the design canvas's F3 (task 7.15): no box; heading cells 32px, 12px medium in `--a2v-muted` over `--a2v-line`; body cells 40px over `--a2v-line-2`, 8px above and below; 12px side padding, none on the first column's leading edge (`headingCellStyle` · `bodyCellStyle`, shared with the reserved `Slot`); the first column, naming the row's own thing, never wraps, every other column wraps, capped at 56 characters, and a table that still cannot fit scrolls sideways inside its slot (task-8.7 decision 29); `Table.Row` of `Table.Cell`s; a column marked to a source through `columnSources` is reserved by that source's slot state (task 8.2, 8.5) — pending: a skeleton bar per cell and "· loading"; failed: the dash and "· unavailable"; late: the authored cells and "· not included" — the words in the heading's own register and accessible name, the cells `data-column-reserved` | headings from `columns`, one row per child, `columnSources` a source or null per column; a row outside a table draws as a flex row (context) |
@@ -161,11 +170,14 @@ Theme and set explicitly, no background of its own, and a portal-root anchor aft
 (`PortalRootContext`) so floating content — `SortControl`'s options, `Modal`'s dialog — stays
 inside the fragment boundary. Under a host Theme it inherits accent, gray, radius and scaling;
 with none it fixes `indigo`/`slate`. It carries no token bindings: Radix Themes is the whole
-design system.
+design system — one Radix token set here: `--cursor-button: pointer` on the scoped Theme, so every
+button the shell draws shows the pointer where Radix leaves it at `default` (task-9.9 decision 24).
 
 The stylesheet is Radix Themes' own, rewritten by `scripts/scope-radix.mjs` before every build,
 test and dev run so every `:root` declaration lands on the wrapper instead, and every custom
-property Radix sets at runtime is reset there rather than borrowed from a neighbour.
+property Radix sets at runtime is reset there rather than borrowed from a neighbour; the script
+appends the button cursor under the wrapper's two classes, so it outranks Radix's own block on the
+same element.
 
 ## Verification
 
@@ -213,12 +225,19 @@ tree raises, the surface returned for reading its data model.
   numeric `weight` in the schema, `weight` as the flex share, a gap tile resolving no content,
   shell content pending, failed and filled with no floor; `Attribution` — the wrapper's `weight`
   as its flex share, one share when unweighted, the marker before the child, the bare marker
-  without a child.
+  without a child; the way back — no arrow without somewhere to go, "Back to" and "Forward to"
+  the paint's title or the direction alone, the arrows at the row's right edge as soft accent
+  buttons, the step operation raised, none without a press handler, disabled under the press state
+  and while the source is busy, the history read from the host's context through the catalog, and
+  focus handed on when a pressed arrow leaves the row.
+- `scoped-css.test` — the scoped stylesheet: no declaration left at `:root`, and the button cursor
+  outranking Radix's default.
 - `fixture/` — the design-check page (`pnpm dev`, port 5174): the same matrix under Radix light,
   Radix dark and no host Theme; the task 5.11 timeline example (the fixture's own copy) evaluated
   and rendered as one merged view with a live sort; the `DerivedValue` join states — no claim,
   partial, confirmed, guessed, broken, partial and guessed, absent, the empty cell (0 of 0) — from hand-built cells; the
   Slot/Attribution states, the capability
-  tile among them; and the scoping proof — two Providers under two host Themes in one document.
+  tile among them, and the way back's — a back arrow alone, back and forward, a neighbour the agent
+  did not name, disabled; and the scoping proof — two Providers under two host Themes in one document.
   Its catalog is `createCatalog` over handlers that log the shell action and the navigation, with
   display names for the pull-request roster.

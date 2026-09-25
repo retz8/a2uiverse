@@ -7,7 +7,7 @@ the **orchestrator** asks a model to *author* the view and checks what comes bac
 *evaluates* it and keeps it live. This doc is the narrative end to end. The per-class records stay
 in [`orchestrator.md`](orchestrator.md), [`client.md`](client.md) and
 [`shell-catalog.md`](shell-catalog.md); the sdk's front page is `packages/sdk/README.md`. State
-as of task 8.7.
+as of task 9.9.
 
 ## The idea in one paragraph
 
@@ -24,6 +24,9 @@ merged view is a live query over partitions that stay isolated: the moment a par
 the client re-evaluates, and only when a ref stops resolving, an entry appears in a list the view
 reads, or a source the view reads nothing from paints again does the orchestrator ask the model
 again — that, or the reader pressing to fold a late source in, retry a failed one, or try again.
+Each agent's paints inside a canvas are a stack the reader can step back and forward through, and
+the wiring the view accepted is remembered per combination of those steps, so a step back to a
+screen already seen restores the view with no call.
 
 ```
                           orchestrator                                        client
@@ -44,13 +47,15 @@ The words to hold on to:
 
 - The **shell** is the platform's own canvas. On the wire it is also a source: the orchestrator
   (the **hub**) stamps its own paints with the reserved source id `shell`.
-- A **composition** is one screen: the Planner's plan, its **slots** — the regions of the layout
+- A **canvas** is one question's answer, and a **composition** is its screen — one per canvas,
+  held for the session (SPEC §6.4): the Planner's plan, its **slots** — the regions of the layout
   the shell paints first, one per agent, each a `Slot` component of the shell catalog whose state
   (pending · failed · collapsed) the hub repaints; a collapsed vendor slot folds away, a collapsed
   merge slot leaves one line — and the partitions behind them. An **utterance turn** is the user
   asking; an **action turn** is the user acting inside a fragment, dispatched to that fragment's
   owner alone; a **press** is the reader's Retry, Include or Try again, an operation on the
-  composition sent beside the turn.
+  composition sent beside the turn. A **step** is the reader's back or forward arrow on a
+  fragment, moving that agent to another of its paints in the canvas.
 - A **ref** is a surface id plus a pointer into that surface's data model. Elements of an array
   are selected by key (`/threads[id="…"]`), never by position.
 - A **formula** is `{op, args}`: one operator the shell catalog declares over zero or more refs.
@@ -64,10 +69,10 @@ The words to hold on to:
   state.
 
 Client words used below without ceremony, all from `client.md` and the client README: the
-**stage** is the live surface on the canvas; a paint may be **staged** and **swapped** in when
-complete; the canvas **timeline** is its history of paints, a **parked** entry one the user has
-navigated back to, rendered in a **sandbox**. A **two-way edit** is an input inside a fragment
-writing to its own data model. A **beat** is a recorded stream the canvas can replay; the
+**stage** is the live surface on a canvas; a paint may be **staged** and **swapped** in when
+complete; the **trail** is the session's canvases, one entry per question, and a **past canvas** one
+the user has gone back to — still live, its answers landing in it. A **two-way edit** is an input
+inside a fragment writing to its own data model. A **beat** is a recorded stream the canvas can replay; the
 **roster** is the set of installed agents; **S1** is SPEC §3's first scenario.
 
 ## The cast
@@ -87,6 +92,7 @@ writing to its own data model. A **beat** is a recorded stream the canvas can re
 | BindingEvaluator | client `canvas/synthesis/bindingEvaluator.ts` | pure: payload + partitions → the surface's data model |
 | DerivedValue · SortControl · Table · DataList | shell catalog | what a merged view is made of; the operators live in the same catalog |
 | the press lines | shell catalog `components/slot/press-lines.ts` | the lines on and above the merged view — collapse, late arrival, a press running or failed — from the facts painted on its `Slot` |
+| the history | orchestrator `composition/history.ts` · client `canvas/history/fragmentHistory.ts` | each agent's steps in a canvas, counted alike on both sides, and the wiring remembered per combination of them |
 
 ## A turn, step by step
 
@@ -234,7 +240,8 @@ The **trigger** (`composition/trigger.ts`) is weighed after every settle (SPEC �
 Both lengths come from the orchestrator's environment. That release is the turn's **one automatic
 synthesis**; every later Synthesizer call has a press behind it (phase-8 decision 11). The turn's
 final waits for every dispatch to arrive, fail or reach the cap, so a straggler lands inside its
-turn's stream; a new utterance ends the turn — its dispatches cancelled, each vendor sent A2A's
+turn's stream. A new question opens a canvas of its own and ends nothing: the canvas runs on after
+the user leaves it. Its close ends the turn — its dispatches cancelled, each vendor sent A2A's
 cancel, its model calls aborted.
 
 **The merge in the making.** One merge is made at a time per composition. It starts only once no
@@ -242,7 +249,8 @@ source it reads has a press in flight, and lands only once none does (task 8.10)
 reads changing while the call runs throws the call away, and so does a source it reads being
 reported undrawable meanwhile — the settled marker brings that report one round trip after the
 source's stream ends, which can fall while the merge is made (task-8.7 decision 25). Either way it
-is made again, over the set as it now stands, journaled `thrownAway`.
+is made again, over the set as it now stands, journaled `thrownAway`. A step writes the partition
+it moves (below), so a step while a merge is made throws it away the same way.
 
 **The merge's own set.** The merge keeps the sources it was built over; the walk and any
 re-synthesis run over that set. Only Include, Retry and Try again add to it; a failure removes
@@ -252,7 +260,7 @@ from it (phase-8 decision 6).
 its slot with no model call. The view stays as it landed, its column for that source reading "not
 included", and a row above the view's label says "Gmail answered after this view was made." beside
 "Include Gmail" (task-8.7 decision 21). Each press is an operation on the composition, sent on a
-stream beside the turn (contract v0.7):
+stream beside the turn (contract v0.8):
 
 - **Include** folds the late sources in: the inline re-synthesis, handed the previous document
   beside the fresh partitions and told which sources joined. While it runs the row says "Including
@@ -539,14 +547,57 @@ action turn
 ```
 
 On the client the repaint is a repeat `createSurface`, which the apply path expands to delete +
-create. In an action turn the stage is occupied, so the repaint streams into staging and lands at
-the swap; the session accepts the new payload the moment the surface is live again and
-re-subscribes. The **user's sort survives** a re-synthesis while its key is still one of the
-options; a new utterance turn starts from the declaration's own choice, because the composition —
-and the session's state with it — is replaced.
+create. In an action turn the stage is occupied, so what the action paints streams into staging.
+A fragment's paint swaps into its slot at its source's settled marker — a drill-down shows as the
+vendor answers — and from then until the turn ends the merged view holds its last values, its line
+working ("Joining …"), rather than re-evaluating over a paint it was not made for; the synthesis
+repaint lands at the turn's swap, and the session accepts the new payload the moment the surface
+is live again and re-subscribes (task-9.9 decision 23). The **user's sort survives** a
+re-synthesis while its key is still one of the options; a new question opens a canvas with a
+session of its own, starting from the declaration's own choice.
 
 The residual hazard is a vendor that reuses an identifier for a different entity across a
 repaint: the key resolves, to the wrong thing. It is accepted, not solved (SPEC §6.2).
+
+## A step back, and the wiring remembered
+
+Each agent's paints inside a canvas are a linear back/forward stack (SPEC §6.5, phase-9 decisions
+2 and 3). A step is a surface replacement: every `createSurface` from a source, counted in stream
+order from 0 — by the orchestrator as it relays the event, by the client the moment the create
+arrives, before any apply or staging decision — so the index a step names is the same paint on both
+sides; an `updateDataModel` changes the current step, so an agent that drills down by data update
+alone has no way back. A create after a step back drops the forward steps. The client holds every
+step's paint, captured as last seen when the stack moves off it; the orchestrator holds only each
+source's index (task-9.2 decision 7).
+
+The wiring is remembered per **combination** — every painted source's current index, whether or
+not the merge reads it — on both sides alike: the orchestrator files the accepted synthesize data
+model with the merge's source set on every accept and on every walk that finds nothing and calls
+nothing; the client files each payload it accepts. An entry filed with a source at a dropped index
+is purged. A decline or a collapse files nothing.
+
+A step restores the paint at once on the client and goes to the orchestrator carrying the canvas's
+data model, which becomes the source's partition — the merge and the vendor's next answer see what
+the user sees. Then the merged view, one of three ways:
+
+- **Seen.** The combination has an entry. The client re-accepts the remembered payload over the
+  restored paint; the orchestrator restores the document and the merge's set, less a source failed
+  since, and walks. The walk over data the wiring was accepted over finds nothing: no call, nothing
+  painted.
+- **Covered.** No entry at the combination, but one filed over fewer sources with every source it
+  names where it stands now — the one naming the most, the later filed on a tie. Restored the same
+  way with no call; the sources that painted since are late for Include, the orchestrator
+  repainting the merge slot to say so (task-9.9 decision 16).
+- **Unseen.** Nothing covers it. The merged view stands, its line working, while the orchestrator's
+  walk runs and calls the Synthesizer only if it fires — released by `step`, its outcome filed under
+  the combination — and a synthesis paint on the step's stream lands as any does. A silent end
+  leaves the current wiring evaluated over the restored paint and the client files it there, so the
+  two memories converge (task-9.7 decision 4).
+
+A walk only steps owe is for the combination on screen: the next step abandons it — its call
+aborted, journaled `abandoned` — and is answered at once; the merge line follows the latest step
+alone (task-9.9 decision 17). The step's journal line carries the combination as the step made it,
+whether it was seen, the sources it left late, and what the walk did.
 
 ## Sort is free
 
@@ -597,15 +648,15 @@ drilled into, and answers with a state, not an error.
 
 ## Lifetimes
 
-- **The composition.** The session's payload, subscriptions and sort choices belong to the
-  composition. `retireStage` — the one place a composition leaves the canvas — retires the session
-  with it. A vendor surface re-created by a repaint is watched again; a deleted one simply goes
-  absent.
-- **The canvas timeline** (the canvas's history, not the `/timeline` array above). A parked
-  composition carries the synthesis surface frozen with its last evaluated data model, and
-  beside it the payload and surface id it was projecting. A parked
-  visit re-sorts over its own frozen partitions: sort crosses no wire, so the controls keep
-  working in the sandbox; nothing live is subscribed.
+- **The composition.** One per canvas, for the session. The session's payload, subscriptions and
+  sort choices belong to it; `retireStage` — the one place a composition leaves its canvas —
+  retires the session with it, and the canvas's close ends the runtime that holds it. A vendor
+  surface re-created by a repaint is watched again; a deleted one simply goes absent.
+- **The trail.** A past canvas is not frozen: its session stays subscribed to its own partitions,
+  evaluating in the background, and an action, a press, a sort or a step on it runs on its own
+  composition, the orchestrator answering against that canvas's.
+- **The remembered wiring.** The composition's, on both sides: each entry kept until a paint after
+  a step back drops the steps it was filed with, and gone with the canvas.
 - **The round trip.** `shell:synthesis` rides back to the orchestrator in the client data model
   like every surface; the orchestrator ignores a derived surface harmlessly.
 
@@ -628,6 +679,10 @@ drilled into, and answers with a state, not an error.
   offered unpressed — and recorded beats 10–18, each through an orchestrator started with its case's
   fault map (`A2UIVERSE_FAULTS`, the AgentsPool's dev-only faults) and deadlines; `client.md` lists
   them.
+- Phase 9's cases: the synthetic beats in `apps/client/src/beats/durableBeats.ts` over the same
+  three storefronts — among them `step-seen`, a step back restoring the view with no call, and
+  `step-unseen`, a combination never merged falling to the walk — and recorded beats 23 and 24,
+  the same two over the entity join on the deterministic roster; `client.md` lists them.
 - The orchestrator's integration tests run the loop with a `FakeSynthesizer` in place of the
   **text seam** — the one-method interface the model call sits behind, text in, text out; the
   live smoke behind `A2UIVERSE_SYNTHESIZER_LIVE=1` runs the real model once.
@@ -650,9 +705,10 @@ drilled into, and answers with a state, not an error.
 | The model call | — | `synthesizer/synthesizer.ts` | — | — |
 | Trigger, presses | — | `composition/trigger.ts` · `composition/presses.ts` · `executor.ts` · `agentsPool/faults.ts` | `canvas/createCanvasWiring.ts` (the press) · `canvas/composition/columnState.ts` · `canvas/turnProgress.ts` | `src/components/slot` · `slot/press-lines.ts` · `table` |
 | Integrity, re-synthesis | — | `composition/integrity.ts` · `composition/relations.ts` · `executor.ts` | — | — |
+| History, the remembered wiring | `js/src/composition.ts` (the step operation) | `composition/history.ts` · `composition/partitions.ts` (`replace`) · `executor.ts` (`#step`) | `canvas/history/fragmentHistory.ts` · `canvas/history/paintCopy.ts` · `canvas/canvasRuntime.ts` (the step) · `canvas/turn/canvasTurn.ts` | `src/fragment-history.ts` · `components/attribution` |
 | The paint | — | `composition/synthesisPainter.ts` · `composition/state.ts` | `canvas/turn/canvasTurn.ts` · `a2a/messages.ts` | — |
 | Evaluation, session | — | — | `canvas/synthesis/synthesisSession.ts` · `canvas/synthesis/bindingEvaluator.ts` | `src/functions/operators.ts` · `src/functions/relations.ts` · `derived-value/join.ts` |
 | Navigation | `js/src/pointer.ts` (`locatePointer`) | — | `canvas/navigation/` | `src/components/derived-value` |
 | Rendering | — | — | `canvas/composition/slotContent.tsx` | `src/components/derived-value` · `sort-control` · `table` · `data-list` · `shared/instant.ts` |
 | Journal, logs | — | `journal/types.ts` · `log.ts` | — | — |
-| Proof without a model | `js/src/*.test.ts` | `test/orchestrator.test.ts` | `src/beats/synthesisFixture.ts` · `src/beats/joinFixture.ts` · `tests/canvas-synthesis.test.tsx` · `e2e/synthesis.spec.ts` · `e2e/join.spec.ts` · `e2e/navigation.spec.ts` · beats 5 and 9 · `src/beats/lateFailureBeats.ts` · `tests/canvas-late-failure.test.tsx` · `e2e/late-failure.spec.ts` · beats 10–18 | — |
+| Proof without a model | `js/src/*.test.ts` | `test/orchestrator.test.ts` · `test/history.test.ts` | `src/beats/synthesisFixture.ts` · `src/beats/joinFixture.ts` · `tests/canvas-synthesis.test.tsx` · `e2e/synthesis.spec.ts` · `e2e/join.spec.ts` · `e2e/navigation.spec.ts` · beats 5 and 9 · `src/beats/lateFailureBeats.ts` · `tests/canvas-late-failure.test.tsx` · `e2e/late-failure.spec.ts` · beats 10–18 · `src/beats/durableBeats.ts` · `src/canvas/history/fragmentHistory.test.ts` · `tests/canvas-durable.test.tsx` · `e2e/durable.spec.ts` · beats 19–25 | — |

@@ -32,6 +32,8 @@ The step operation of the composition contract: the one source and the neighbour
 
 Drawn disabled when the host says no press can be made, as Retry is.
 
+*Amended by task 9.7 decision 6.* Drawn disabled, too, while the host says the source is busy — its repaint in flight — in the same state; the context carries the flag per source beside the two neighbours.
+
 ### 6. Consequences
 
 - A step has no held state: the client restores at once, so the arrows move when the context changes, not from a press held until a paint catches up.

@@ -72,6 +72,8 @@ A scaled render of the canvas on hover or focus of a trail entry, rendered lazil
 
 A back arrow beside the attribution marker, present only when there is somewhere to go back to, a forward arrow beside it after a back. The previous paint's `paintMeta` title is its name on hover, focus and for assistive technology; "Back" when the agent named nothing.
 
+*Amended by task 9.5 decision 3.* The name leads with the direction: "Back to <title>" and "Forward to <title>", naming the paint the arrow returns to; "Back" and "Forward" alone when the agent named nothing.
+
 *Amended during the run (task 9.9 decision 15).* The arrows sit at the right edge of the attribution row, the marker at its start, each a soft accent icon button.
 
 ### 14. In memory for the session
