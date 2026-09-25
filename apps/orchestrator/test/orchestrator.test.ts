@@ -2542,6 +2542,121 @@ describe("the fragment's history (task 9.4)", () => {
     });
   });
 
+  test('a combination never seen is covered by a wiring remembered over fewer sources: restored with no call, the source that painted since late for Include (task-9.9 decision 16)', async () => {
+    const synthesizer = new FakeSynthesizer();
+    const {client} = await boot({
+      planner: new FakePlanner(() => planWithSynthesis(['github', 'gmail', 'calendar'])),
+      synthesizer,
+      scripts: {
+        github: drillScript(camerasA),
+        gmail: shopScript(camerasB),
+        calendar: sequence(
+          failing('Calendar is not responding right now.'),
+          repaint(shopScript(camerasA)),
+        ),
+      },
+    });
+    const first = await collect(client, utterance('compare camera prices'));
+    const contextId = first[0]!.contextId!;
+    // The merge over GitHub's list and Gmail, Calendar failed: remembered at {github 0, gmail 0}.
+    expect(synthesizer.calls).toHaveLength(1);
+    // GitHub drills down, then Calendar's Retry is folded in over the detail.
+    await collect(client, actionOn('github:s1', contextId));
+    await collect(client, press('retry', ['calendar'], contextId));
+    expect(synthesizer.calls).toHaveLength(3);
+
+    // Back on GitHub: its list with Calendar was never merged; the list without it was.
+    const back = await collect(
+      client,
+      step('github', 0, contextId, {'github:s1': {items: camerasA}}),
+    );
+    expect(finalOf(back).status.state).toBe('completed');
+    expect(synthesizer.calls).toHaveLength(3);
+    expect(synthesisEvents(back)).toHaveLength(0);
+    expect(shellSlotOf(back)).toMatchObject({merged: ['github', 'gmail'], late: ['calendar']});
+
+    // Include folds Calendar in: the one call, on request.
+    await collect(client, press('include', ['calendar'], contextId));
+    expect(synthesizer.calls).toHaveLength(4);
+
+    // Forward to the detail, merged with Calendar: seen, nothing late.
+    const forward = await collect(
+      client,
+      step('github', 1, contextId, {'github:s2': {items: camerasA}}),
+    );
+    expect(synthesizer.calls).toHaveLength(4);
+    expect(synthesisEvents(forward)).toHaveLength(0);
+
+    const lines = await journalLines(6);
+    expect(lines.find(l => l.descriptor === 'step github to 0')).toMatchObject({
+      step: {
+        combination: {github: 0, gmail: 0, calendar: 0},
+        seen: false,
+        late: ['calendar'],
+        walk: 'silent',
+      },
+    });
+    expect(lines.find(l => l.descriptor === 'step github to 1')).toMatchObject({
+      step: {combination: {github: 1, gmail: 0, calendar: 0}, seen: true, walk: 'silent'},
+    });
+  });
+
+  test("a later step abandons the walk an earlier step's unseen combination started, its call aborted; the combination is journaled as the step made it (task-9.9 decision 17)", async () => {
+    let release: () => void = () => {};
+    const gate = new Promise<void>(resolve => (release = resolve));
+    const synthesizer = new FakeSynthesizer();
+    const generate = synthesizer.generate.bind(synthesizer);
+    const signals: (AbortSignal | undefined)[] = [];
+    synthesizer.generate = async call => {
+      signals.push(call.signal);
+      // The fourth call is the unseen step's walk: held until the next step has come, and
+      // ended by its signal as the model's call is.
+      if (synthesizer.calls.length === 3)
+        await Promise.race([
+          gate,
+          new Promise((_, reject) =>
+            call.signal?.addEventListener('abort', () => reject(new Error('aborted'))),
+          ),
+        ]);
+      return generate(call);
+    };
+    const {client} = await boot({
+      planner: planner(),
+      synthesizer,
+      scripts: {github: drillScript(camerasA), gmail: drillScript(camerasB)},
+    });
+    const first = await collect(client, utterance('compare camera prices'));
+    const contextId = first[0]!.contextId!;
+    await collect(client, actionOn('github:s1', contextId));
+    await collect(client, actionOn('gmail:s1', contextId));
+    expect(synthesizer.calls).toHaveLength(3);
+
+    // GitHub back to its list, Gmail on its detail: never seen, the walk calls — and waits.
+    const unseen = collect(client, step('github', 0, contextId, {'github:s1': {items: camerasA}}));
+    await until(() => signals.length === 4, "the unseen step's walk");
+    // Forward again before it lands: {github 1, gmail 1} was seen.
+    const forward = await collect(
+      client,
+      step('github', 1, contextId, {'github:s2': {items: camerasA}}),
+    );
+    expect(signals[3]!.aborted).toBe(true);
+    release();
+    const abandoned = await unseen;
+    expect(synthesisEvents(abandoned)).toHaveLength(0);
+    expect(synthesisEvents(forward)).toHaveLength(0);
+    // The abandoned call was made and ended; no other was.
+    expect(signals).toHaveLength(4);
+    expect(synthesizer.calls).toHaveLength(3);
+
+    const lines = await journalLines(5);
+    expect(lines.find(l => l.descriptor === 'step github to 0')).toMatchObject({
+      step: {combination: {github: 0, gmail: 1}, seen: false, walk: 'abandoned'},
+    });
+    expect(lines.find(l => l.descriptor === 'step github to 1')).toMatchObject({
+      step: {combination: {github: 1, gmail: 1}, seen: true, walk: 'silent'},
+    });
+  });
+
   test('a paint after a step back drops the steps past it; a step the stack does not hold, a source that never painted, or a step carrying no paint is refused', async () => {
     const synthesizer = new FakeSynthesizer();
     const {client} = await boot({

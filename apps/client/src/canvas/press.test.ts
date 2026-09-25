@@ -417,6 +417,30 @@ describe('the merged view on a step back (task 9.7 decisions 3, 4)', () => {
     });
   });
 
+  it('the merge line follows the latest step: a step to a seen combination ends the working an earlier unseen step left, whose stream ends later (task-9.9 decision 17)', async () => {
+    let release: () => void = () => {};
+    const held = new Promise<void>(resolve => (release = resolve));
+    let streams = 0;
+    const {wiring, canvas, repaintShopA} = await withMergedView(async function* () {
+      // The first step's walk is abandoned by the orchestrator when the second comes: its
+      // stream ends only then.
+      if (++streams === 1) await held;
+      yield completed;
+    });
+    repaintShopA();
+    repaintShopA(REWIRED);
+    const unseen = wiring.press(stepShopA(1));
+    expect(canvas.store.getState().mergeFollowingStep).toBe(true);
+    const seen = wiring.press(stepShopA(2));
+    expect(canvas.store.getState().mergeFollowingStep).toBe(false);
+    expect(canvas.synthesis.payload).toEqual(REWIRED);
+    await seen;
+    release();
+    await unseen;
+    expect(canvas.store.getState().mergeFollowingStep).toBe(false);
+    expect(canvas.synthesis.payload).toEqual(REWIRED);
+  });
+
   it('unseen, the walk called: the wiring painted on the step’s stream lands and is filed', async () => {
     const CALLED: SynthesisPayload = {
       ...PAYLOAD,

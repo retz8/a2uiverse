@@ -113,6 +113,45 @@ describe('the remembered wiring', () => {
     expect(history.recall()).toBeUndefined();
   });
 
+  test('a combination never seen is covered by the entry naming the most sources, each where it stands now; the rest painted since (task-9.9 decision 16)', () => {
+    const history = new History();
+    history.observe(paint(create('github:s1')));
+    history.remember(wiring('github-alone'));
+    history.observe(paint(create('gmail:s1')));
+    history.remember(wiring('list-list'));
+    history.observe(paint(create('github:s2')));
+    history.remember(wiring('detail-list'));
+    history.observe(paint(create('calendar:s1')));
+    expect(history.combination()).toEqual({github: 1, gmail: 0, calendar: 0});
+    history.remember(wiring('detail-list-calendar'));
+
+    // GitHub back to its list: {github 0, gmail 0, calendar 0} was never filed.
+    history.stepTo('github', 0);
+    expect(history.recall()).toBeUndefined();
+    expect(history.recallCovering()).toEqual({
+      remembered: wiring('list-list'),
+      since: ['calendar'],
+    });
+    // Seen: the step recalls it; an entry over fewer sources still covers it, and is not asked for.
+    history.stepTo('github', 1);
+    expect(history.recall()).toEqual(wiring('detail-list-calendar'));
+    expect(history.recallCovering()).toEqual({
+      remembered: wiring('detail-list'),
+      since: ['calendar'],
+    });
+  });
+
+  test('no entry covers a combination where a source it names stands elsewhere', () => {
+    const history = new History();
+    history.observe(paint(create('github:s1')));
+    history.observe(paint(create('gmail:s1')));
+    history.remember(wiring('list-list'));
+    history.observe(paint(create('github:s2')));
+    history.observe(paint(create('calendar:s1')));
+    // GitHub on its detail: the only entry names GitHub on its list.
+    expect(history.recallCovering()).toBeUndefined();
+  });
+
   test('dropping steps purges every entry filed with the source at a dropped index', () => {
     const history = new History();
     history.observe(paint(create('github:s1')));

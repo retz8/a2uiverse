@@ -87,13 +87,16 @@ export type SynthesisRelease =
 
 /**
  * A fragment stepped in its history (task-9.4 decision 7): the combination of steps it landed
- * on — every painted source's index — whether the wiring accepted over it was remembered, and
- * what the walk did: nothing, or the call whose record is the turn's synthesis.
+ * on — every painted source's index, as the step made it — whether the wiring accepted over it
+ * was remembered, the sources left late when a wiring remembered over fewer covered it
+ * (task-9.9 decision 16), and what the walk did: nothing, the call whose record is the turn's
+ * synthesis, or abandoned for a later step (task-9.9 decision 17).
  */
 export interface StepRecord {
   combination: Record<string, number>;
   seen: boolean;
-  walk: 'silent' | 'landed' | 'kept' | 'collapsed';
+  late?: string[];
+  walk: 'silent' | 'landed' | 'kept' | 'collapsed' | 'abandoned';
 }
 
 /** One line of the intent journal (SPEC §10): per turn, free-form descriptor + embedding. */

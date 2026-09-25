@@ -19,7 +19,9 @@
  *   again, so leaving it later captures it afresh.
  * - **The wiring memory** (decision 3): the accepted synthesis payload is filed under the current
  *   combination — every source with a stack, mapped to its current index, keyed as the
- *   orchestrator keys it — and recalled on a step back to a combination already seen.
+ *   orchestrator keys it — and recalled on a step back to a combination already seen. A
+ *   combination never seen is covered, as the orchestrator covers it, by the entry filed over
+ *   fewer sources with every source it names where it stands now (task-9.9 decision 16).
  *
  * Nothing here touches the processor or the store: the runtime supplies `capture`, and the turn
  * runner restores a copy the step hands back. In memory for the session; retired with the
@@ -60,8 +62,6 @@ export interface RestorableStep {
 export interface FragmentHistoryOptions {
   /** The source's paint as it stands on the stage now — undefined when nothing of it is live. */
   capture(source: string): PaintCopy | undefined;
-  /** The clock a landing is stamped with. */
-  now?: () => number;
 }
 
 export interface FragmentHistory {
@@ -84,8 +84,6 @@ export interface FragmentHistory {
   stepTo(source: string, index: number): RestorableStep | undefined;
   /** The two neighbours of the paint on screen with a paint to return to; undefined for a source with no stack. */
   neighbours(source: string): {back?: HistoryStep; forward?: HistoryStep} | undefined;
-  /** When the paint on screen landed (phase-9 decision 8); undefined before its first landing. */
-  landedAt(source: string): number | undefined;
   stackOf(source: string): HistoryStack | undefined;
   /** Every painted source's current index — the key the wiring is remembered under. */
   combination(): Record<string, number>;
@@ -93,6 +91,12 @@ export interface FragmentHistory {
   remember(entry: RememberedWiring): void;
   /** The wiring accepted over the current combination, when it was seen. */
   recall(): RememberedWiring | undefined;
+  /**
+   * The wiring filed over fewer sources than paint now, every source it names at the step it
+   * stands on now: the one naming the most, the later filed on a tie. Undefined when none covers
+   * the current combination.
+   */
+  recallCovering(): RememberedWiring | undefined;
   /** The composition left the canvas: the stacks and the memory go with it. */
   retire(): void;
   /** Bumped on every change; what a view subscribes to. */
@@ -102,8 +106,6 @@ export interface FragmentHistory {
 
 interface Step {
   title?: string;
-  /** When the paint landed on its slot: its own time, kept when the reader steps back to it. */
-  at?: number;
   /** The paint reached its slot and is not a question: there is something here to return to. */
   returnable: boolean;
   /** The copy taken when the stack moved off this step; absent while it is the live surface. */
@@ -120,10 +122,7 @@ interface Stack {
   shown: number;
 }
 
-export function createFragmentHistory({
-  capture,
-  now = Date.now,
-}: FragmentHistoryOptions): FragmentHistory {
+export function createFragmentHistory({capture}: FragmentHistoryOptions): FragmentHistory {
   const stacks = new Map<string, Stack>();
   const remembered = new Map<string, RememberedWiring>();
   const listeners = new Set<() => void>();
@@ -174,7 +173,6 @@ export function createFragmentHistory({
     if (!stack) return;
     const step = stack.steps[stack.at]!;
     step.title = meta.title;
-    step.at = now();
     step.returnable = !meta.question;
     step.left = false;
     delete step.paint;
@@ -255,10 +253,6 @@ export function createFragmentHistory({
     dropped,
     stepTo,
     neighbours,
-    landedAt: source => {
-      const stack = stacks.get(source);
-      return stack?.steps[stack.shown]?.at;
-    },
     stackOf: source => {
       const stack = stacks.get(source);
       return stack ? {length: stack.steps.length, at: stack.at} : undefined;
@@ -268,6 +262,18 @@ export function createFragmentHistory({
       remembered.set(key(), entry);
     },
     recall: () => remembered.get(key()),
+    recallCovering: () => {
+      const now = Object.fromEntries([...stacks].map(([id, stack]) => [id, stack.at]));
+      let best: {entry: RememberedWiring; named: number} | undefined;
+      for (const [k, entry] of remembered) {
+        const named = Object.entries(keyOf(k));
+        if (named.length >= stacks.size) continue;
+        if (!named.every(([id, at]) => now[id] === at)) continue;
+        if (best && named.length < best.named) continue;
+        best = {entry, named: named.length};
+      }
+      return best?.entry;
+    },
     retire: () => {
       if (stacks.size === 0 && remembered.size === 0) return;
       stacks.clear();

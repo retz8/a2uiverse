@@ -95,7 +95,7 @@ export interface OwedPress {
 }
 
 /** What became of a synthesis: landed, failed with the view kept, collapsed, or nothing to make. */
-export type SynthesisEnd = 'landed' | 'kept' | 'collapsed' | 'none';
+export type SynthesisEnd = 'landed' | 'kept' | 'collapsed' | 'none' | 'abandoned';
 
 /** Everything owed while the merge is in the making: made as one call once it lands. */
 export interface Owed {
@@ -181,6 +181,11 @@ export interface CompositionState {
   presses: Presses;
   /** The merge in the making, the first or a re-synthesis — one at a time (task-8.10 decision 3). */
   making?: Promise<void>;
+  /**
+   * While a walk only steps owed runs: aborted by the next step, the combination it walks no
+   * longer on screen (task-9.9 decision 17).
+   */
+  stepWalk?: AbortController;
   /** While the utterance turn runs: re-weighs the synthesis trigger after a slot changed outside it. */
   reevaluate?: () => void;
   /**

@@ -16,6 +16,12 @@ export interface Remembered {
   merged: ReadonlySet<string>;
 }
 
+/** A wiring remembered over fewer sources than paint now: the sources that painted since. */
+export interface Covering {
+  remembered: Remembered;
+  since: string[];
+}
+
 /**
  * The fragment's history on the composition (SPEC §6.5, task 9.4). Each agent's paints in the
  * canvas are a linear back/forward stack, one step per `createSurface` from that source in
@@ -26,6 +32,8 @@ export interface Remembered {
  * merged view accepted is remembered per combination of every painted source's current index,
  * so a step back to a combination already seen restores it with no call; an entry filed with a
  * source at a dropped index is purged, its index reused by a paint it was never accepted over.
+ * A combination never seen is covered by one remembered over fewer sources — every source it
+ * names where it stands now, the rest having painted since (task-9.9 decision 16).
  * The shell's own surfaces never count. Nothing here is a paint: the client holds each step's
  * tree and data model (task-9.2 decision 7).
  */
@@ -75,6 +83,29 @@ export class History {
   /** The wiring accepted over the current combination, when it was seen. */
   recall(): Remembered | undefined {
     return this.#remembered.get(this.#key());
+  }
+
+  /**
+   * The wiring remembered over fewer sources than paint now, every source it names at the step
+   * it stands on now: the one naming the most sources, the later filed on a tie. Undefined when
+   * none covers the current combination.
+   */
+  recallCovering(): Covering | undefined {
+    const now = this.combination();
+    let best: {remembered: Remembered; named: string[]} | undefined;
+    for (const [key, remembered] of this.#remembered) {
+      const named = Object.entries(keyOf(key));
+      if (named.length >= Object.keys(now).length) continue;
+      if (!named.every(([appId, at]) => now[appId] === at)) continue;
+      if (best && named.length < best.named.length) continue;
+      best = {remembered, named: named.map(([appId]) => appId)};
+    }
+    if (!best) return undefined;
+    const named = new Set(best.named);
+    return {
+      remembered: best.remembered,
+      since: Object.keys(now).filter(appId => !named.has(appId)),
+    };
   }
 
   #paint(appId: string): void {

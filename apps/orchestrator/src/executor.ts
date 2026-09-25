@@ -758,11 +758,14 @@ export class OrchestratorExecutor implements AgentExecutor {
    * A fragment stepped back or forward in its history (SPEC §6.5, task-9.4 decisions 2–5): the
    * source's partition becomes the paint the client now shows; when the combination of steps
    * it landed on was seen, the wiring accepted over it is restored — the live synthesis and the
-   * merge's set, less a source failed since — with no call; then the IntegrityChecker's walk
-   * runs over the restored state, free, and the Synthesizer is called only if it fires, the
-   * outcome filed under the combination. Nothing is painted on a silent walk: the client
-   * restored its own paint and wiring. The index the fragment already shows is a no-op past
-   * the partition write.
+   * merge's set, less a source failed since — with no call; a combination never seen is covered
+   * by a wiring remembered over fewer sources, restored the same way, the sources that painted
+   * since left late for Include (task-9.9 decision 16), the merge slot repainted when what waits
+   * changed; then the IntegrityChecker's walk runs over the restored state, free, and the
+   * Synthesizer is called only if it fires, the outcome filed under the combination. A walk an
+   * earlier step released is abandoned first: the combination it walks is no longer on screen
+   * (task-9.9 decision 17). Nothing is painted on a silent walk: the client restored its own
+   * paint and wiring. The index the fragment already shows is a no-op past the partition write.
    */
   async #step(
     sink: Sink,
@@ -771,28 +774,34 @@ export class OrchestratorExecutor implements AgentExecutor {
     index: number,
     surfaces: Record<string, unknown>,
   ): Promise<void> {
+    state.stepWalk?.abort();
     state.history.stepTo(appId, index);
     state.partitions.replace(appId, surfaces);
-    const remembered = state.history.recall();
+    // Read as the step made it: a later step may move the combination while this one waits.
+    const combination = state.history.combination();
+    const seen = state.history.recall();
+    const covering = seen ? undefined : state.history.recallCovering();
+    const remembered = seen ?? covering?.remembered;
+    const lateBefore = lateSources(state).join();
     if (remembered) {
       state.synthesis = remembered.synthesis;
       state.merged = new Set(
         [...remembered.merged].filter(id => state.slots.get(id)?.state !== 'failed'),
       );
       // The failure said beside the view was the last call's; the restored view is not it.
-      if (state.callFailed) {
-        delete state.callFailed;
-        this.#repaint([sink], state);
-      }
+      const failed = state.callFailed !== undefined;
+      delete state.callFailed;
+      if (failed || lateSources(state).join() !== lateBefore) this.#repaint([sink], state);
     }
+    const late = covering ? lateSources(state).filter(id => covering.since.includes(id)) : [];
     const end = await this.#owe(state, {}, 'step', sink);
     const walk = end === 'none' ? 'silent' : end;
-    logLine(
-      `↶ ${appId} task=${sink.ctx.taskId} step ${index} (${remembered ? 'seen' : 'unseen'}, walk ${walk})`,
-    );
+    const how = seen ? 'seen' : covering ? `covered, ${late.join(', ') || 'none'} late` : 'unseen';
+    logLine(`↶ ${appId} task=${sink.ctx.taskId} step ${index} (${how}, walk ${walk})`);
     sink.turn.step({
-      combination: state.history.combination(),
-      seen: remembered !== undefined,
+      combination,
+      seen: seen !== undefined,
+      ...(late.length > 0 ? {late} : {}),
       walk,
     });
   }
@@ -1000,7 +1009,15 @@ export class OrchestratorExecutor implements AgentExecutor {
     const named = owed.presses.filter(({kind}) => kind !== 'walk');
     const pressed = named.filter(({kind}) => kind !== 'step');
     const by: SynthesisRelease = named[0]?.kind ?? 'walk';
-    const {signal} = state.retired;
+    // A walk only steps owe is for the combination on screen: the next step abandons it.
+    const stepped =
+      named.length > 0 && named.every(({kind}) => kind === 'step') && !owed.walk
+        ? new AbortController()
+        : undefined;
+    if (stepped) state.stepWalk = stepped;
+    const signal = stepped
+      ? AbortSignal.any([state.retired.signal, stepped.signal])
+      : state.retired.signal;
     let end: SynthesisEnd = 'none';
     try {
       const slot = synthesisSlot(state);
@@ -1024,11 +1041,12 @@ export class OrchestratorExecutor implements AgentExecutor {
     } finally {
       for (const appId of owed.joining) state.folding.delete(appId);
       state.pressWork -= pressed.length;
+      if (state.stepWalk === stepped) delete state.stepWalk;
       if (!signal.aborted && (pressed.length > 0 || end === 'kept' || owed.walk)) {
         this.#repaint(sinks, state);
       }
     }
-    return end;
+    return stepped?.signal.aborted && !state.retired.signal.aborted ? 'abandoned' : end;
   }
 
   /**

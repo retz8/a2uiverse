@@ -279,24 +279,30 @@ export function createCanvasRuntime({
    * A step back or forward inside a fragment (phase-9 decisions 2, 3; task 9.7): the paint the
    * history holds for that index becomes the source's live surface at once, and the merged view
    * follows — the wiring remembered over the new combination re-accepted with no call when the
-   * client has seen it; otherwise the merge line works until the step's stream ends, a paint on
-   * that stream landing as any does, a silent end keeping the current wiring and filing it under
-   * the combination so the two memories converge (decision 4). Then the step goes to the
+   * client has seen it, or one filed over fewer sources that covers it, the sources painted since
+   * said late by the orchestrator's repaint (task-9.9 decision 16); otherwise the merge line works
+   * until the step's stream ends, a paint on that stream landing as any does, a silent end keeping
+   * the current wiring and filing it under the combination so the two memories converge
+   * (decision 4). The line follows the latest step alone: a later step ends the working an
+   * earlier one left, whose walk the orchestrator abandons (task-9.9 decision 17). Then the step goes to the
    * orchestrator as a press, carrying the whole canvas's data model so its partition is written
    * from what is on screen. A step to the paint on screen, or to a placeholder, does nothing. A
    * step that fails — refused, unreached, lost — is quiet: the restored screen stands, the
    * reason goes to the console, the next action heals the orchestrator's partition (decision 5).
    */
+  /** How many steps the canvas has taken: the latest one owns the merge line. */
+  let steps = 0;
   const step = async (operation: CompositionOperation) => {
     const source = operation.sources[0];
     if (source === undefined || operation.step === undefined) return;
     const restorable = history.stepTo(source, operation.step);
     if (!restorable) return;
     runner.restore(source, restorable);
-    const remembered = history.recall();
+    const mine = ++steps;
+    const remembered = history.recall() ?? history.recallCovering();
     const following = !remembered;
     if (remembered) synthesis.accept(remembered.target, remembered.payload);
-    else store.setMergeFollowingStep(true);
+    store.setMergeFollowingStep(following);
     const key = store.addPress(operation);
     const stream = runner.beginSideStream();
     let wired = false;
@@ -327,7 +333,7 @@ export function createCanvasRuntime({
         },
       );
       // A silent end: what is on screen is the wiring over this combination from now on.
-      if (following && !wired) {
+      if (following && !wired && steps === mine) {
         const current = synthesis.payload;
         const surfaceId = store.getState().placement.get(SHELL_SOURCE)?.surfaceId;
         if (current && surfaceId)
@@ -337,7 +343,7 @@ export function createCanvasRuntime({
       if (!stream.signal.aborted) console.error('[A2UI:a2a] step failed', err);
     } finally {
       store.removePress(key);
-      if (following) store.setMergeFollowingStep(false);
+      if (following && steps === mine) store.setMergeFollowingStep(false);
       stream.end();
     }
   };
