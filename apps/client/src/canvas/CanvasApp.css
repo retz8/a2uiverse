@@ -1097,11 +1097,6 @@ body {
   text-overflow: ellipsis;
 }
 
-/* A past canvas's page reads as the past: the design canvas greys it. */
-.canvas-app--parked .canvas-stage {
-  filter: grayscale(1);
-}
-
 @media (prefers-reduced-motion: reduce) {
   .canvas-trail-label,
   .canvas-trail,
