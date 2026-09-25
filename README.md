@@ -25,14 +25,14 @@ It explores what an application ecosystem looks like when AI agents can be packa
 
 **A2UIVerse is to A2UI agents what a browser is to websites.** A browser draws pages from any site, in markup it didn't write; A2UIVerse draws UI from any A2UI agent. But where a browser needs an address and shows one site at a time, A2UIVerse takes a question and puts every app that holds part of the answer on one screen.
 
-| On the web                                | In A2UIVerse                                                        |
-| ----------------------------------------- | ------------------------------------------------------------------- |
-| A website                                 | An app: an A2A agent that answers with UI in A2UI                   |
-| HTML and CSS                              | A2UI, drawn with the app's own catalog                              |
-| Typing an address                         | Asking a question; A2UIVerse picks the apps                         |
-| One site per tab                          | Several apps on one screen, each in its own look, and a merged view |
-| Tabs and a history stack                  | A canvas per question, each still working, on a trail that branches |
-| Permission prompts only the browser draws | Sign-in and consent only the shell draws, never an app (to come)    |
+| On the web                                | In A2UIVerse                                                         |
+| ----------------------------------------- | -------------------------------------------------------------------- |
+| A website                                 | An app: an A2A agent that answers with UI in A2UI                    |
+| HTML and CSS                              | A2UI, drawn with the app's own catalog                               |
+| Typing an address                         | Asking a question; A2UIVerse picks the apps                          |
+| One site per tab                          | Several apps on one screen, each in its own look, and a merged view  |
+| Tabs and a history stack                  | An answer per question, each still working, on a trail that branches |
+| Permission prompts only the browser draws | Sign-in and consent only the shell draws, never an app (to come)     |
 
 ## What it does
 
@@ -53,7 +53,7 @@ One app failing never fails the rest: its slot says why and offers Retry, and it
 <table>
   <tr>
     <td align="center" valign="top"><img src="docs/images/trail-drawer.png" width="220" alt="The trail drawer: four questions on two branches"></td>
-    <td align="center" valign="top"><img src="docs/images/past-canvas.png" width="560" alt="A past question's canvas under its Parked band"></td>
+    <td align="center" valign="top"><img src="docs/images/past-canvas.png" width="560" alt="A past answer under its Parked band"></td>
   </tr>
   <tr>
     <td align="center"><em>The trail: four questions on two branches.</em></td>
@@ -61,7 +61,7 @@ One app failing never fails the rest: its slot says why and offers Retry, and it
   </tr>
 </table>
 
-Every question opens its own canvas, and none is thrown away when the next one is asked. A past answer still works like a browser tab: clicks and sorts land in it, and anything it was still loading keeps arriving. "Ask this again now" gets today's answer as a new canvas and leaves the past one as it was. Asking from a past answer starts a branch, and the trail draws every question on the branch it grew from.
+Every question gets its own answer, and none is thrown away when the next one is asked. A past answer still works like a browser tab: clicks and sorts land in it, and anything it was still loading keeps arriving. "Ask this again now" gets today's answer as a new one and leaves the past one as it was. Asking from a past answer starts a branch, and the trail draws every question on the branch it grew from.
 
 ### Back and forward inside each app
 

@@ -6,7 +6,7 @@ One example runs through the whole guide: the **Linear agent** (`linear/agent/` 
 
 The kit speaks **A2UI and A2A and nothing else**. It knows nothing about A2UIVerse; any A2A client can talk to an agent built on it. The one place A2UIVerse shows up is optional, and it's covered in [Paint titles and question marks](#5-paint-titles-and-question-marks-are-tags-in-the-prose).
 
-## The problem it solves
+## Problem it solves
 
 Every app in the apps repo has the same shape: **App = MCP server + Agentic BFF + A2UI catalog**. The agent is the Agentic BFF: an A2A server that takes a question, calls its vendor's MCP server, and answers with UI it generates in A2UI, drawn from its own catalog. There are five vendor apps (GitHub, Gmail, Google Calendar, CircleCI, Linear) and two mock stores.
 
@@ -96,7 +96,7 @@ That includes the **agent card**. One card describes the agent in every mode, be
 
 The model defaults to `gemini-3.7-flash`. The `MODEL_NAME` environment variable wins over the config's `model`, which wins over that default.
 
-### 3. The model writes A2UI as text, streamed, then checked
+### 3. Model writes A2UI as text, streamed, then checked
 
 In the model modes, the model answers in text: some prose, and A2UI messages inside `<a2ui-json>` blocks. The kit does three things with that text:
 
@@ -205,7 +205,7 @@ The kit also tells failures apart, because each needs a different retry:
 
 `MAX_ATTEMPTS` is 2: one try and one retry.
 
-### The streaming tag filter
+### Streaming tag filter
 
 `paint_meta.py`'s `PaintTitleTagFilter` pulls `<paint-title …>…</paint-title>` and `<no-surface/>` out of prose that arrives in arbitrary chunks. A chunk can end anywhere, including in the middle of a tag:
 
@@ -292,7 +292,7 @@ A2A says a task that reached a terminal state (`completed`, `canceled`, `rejecte
 
 The config is a frozen dataclass declared with `eq=False`. That keeps **identity** hashing: two configs are the same only if they're the same object. It means the config can be a cache key directly, and `catalog_context(config)` is wrapped in `functools.lru_cache`, so each app loads and parses its catalog once, however many places ask for it.
 
-## The scaffolder: create-a2ui-agent
+## Scaffolder: create-a2ui-agent
 
 `create-a2ui-agent` (a TypeScript CLI in the apps repo) writes a whole new app that runs before you edit anything:
 

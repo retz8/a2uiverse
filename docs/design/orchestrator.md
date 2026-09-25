@@ -10,7 +10,7 @@ One example runs through the whole guide: the question _"what's the status of wh
   <em>The recorded question as the client drew it, waits shortened. Planning took about 7 s; the layout landed at 8.4 s, the three apps' answers between 8.6 and 8.7 s, and the merged view at 24.6 s.</em>
 </p>
 
-## The problem it solves
+## Problem it solves
 
 The client wants one screen answering one question, built from several apps. The apps don't know about each other, and each speaks for itself. Something has to sit between them and do five jobs:
 
@@ -47,7 +47,7 @@ A2UIVerse's processes talk **A2A** (the Agent-to-Agent protocol, version 0.3 her
 
 A2UI rides inside A2A: an agent's UI arrives as JSON data parts like `{"version": "v0.9", "createSurface": {…}}`.
 
-### 2. The hub speaks A2A on both sides
+### 2. Hub speaks A2A on both sides
 
 The orchestrator is an A2A **server** toward the client and an A2A **client** toward every app. That means every event an app sends travels app → orchestrator → client, and the orchestrator can do its work on the way: stamp where the event came from, keep a copy of the app's data, decide when to merge. The client never learns an app's address.
 
@@ -68,11 +68,11 @@ An action names its surface as `circleci:circleci-1`, and the part before the co
 
 Each question the client asks opens a **new A2A context**. The client sends the question with no context id, and the orchestrator mints one. For that context the orchestrator holds a **composition**: everything about that one answer. That's the plan, each app's slot and its state, a copy of each app's data, the merged view, and each app's back-and-forward history.
 
-Compositions stay in memory for the whole session, until the client closes one. A later message names its context, so a click on an older answer lands on that answer's composition. The client calls each of these a **canvas**; the orchestrator speaks of a context and its composition.
+Compositions stay in memory for the whole session, until the client closes one. A later message names its context, so a click on an older answer lands on that answer's composition.
 
 A question asked while looking at an older answer names that answer's context as its **parent**. The compositions form a tree, the same tree the client draws as its trail.
 
-### 5. The shell is a source too
+### 5. Shell is a source too
 
 The orchestrator paints its own UI, the **shell**, through the same path as any app. The layout is the surface `shell:main`, and the merged view is `shell:synthesis`. Every event carries a **stamp** in its metadata saying where it came from:
 
@@ -112,7 +112,7 @@ flowchart TD
 - **Refuses a repeat.** If this message id was seen recently, the turn fails at once with "This request was already received." (see [Refusing a repeat](#refusing-a-repeat)).
 - **Classifies it** (idea 3). This one is text, so it's an `utterance`.
 - **Checks the context.** A question must open a context of its own. One arriving in a context the session already holds is refused: "A question opens a context of its own."
-- **Starts the heartbeat**, an empty event every 30 seconds of silence (see [The heartbeat](#the-heartbeat)).
+- **Starts the heartbeat**, an empty event every 30 seconds of silence (see [The heartbeat](#heartbeat)).
 
 **2. The Router ranks the apps.** The question is turned into a vector by a small embedding model and compared with a vector of every app's agent card, plus A2UIVerse's own card, which answers questions about the platform. The top five go on the **shortlist**. There's no cut-off score: ranking only narrows the field, and the Planner makes the real choice. When a question is asked from an older answer, that answer's apps stay on the shortlist regardless of rank, so "add GitHub to this" can still plan the apps already on screen.
 
@@ -197,7 +197,7 @@ In the recording, GitHub's answer reached the client at 8.59 s, Linear's at 8.60
 
 ## Inside the machinery
 
-### The server and its boot
+### Server and its boot
 
 `src/index.ts` loads the configuration and calls `buildOrchestrator` in `src/app.ts`, which wires everything together once:
 
@@ -227,7 +227,7 @@ Through a dev tunnel a request sometimes gets lost, so the client sends a reques
 
 So the executor keeps the ids it has taken in: a `Set` of at most 256. A JavaScript `Set` iterates in insertion order, so it works as a small **FIFO**: after each add, when the set is over 256, the oldest id (`set.values().next().value`) is deleted. A repeat within the last 256 messages fails at once, and nothing is dispatched. The bound is safe because a resend follows its original within seconds.
 
-### The heartbeat
+### Heartbeat
 
 A dev tunnel's proxy closes a connection that's been idle for 100 seconds, and a turn can easily be idle that long, waiting for a slow app. So every request's stream has a heartbeat (`#heartbeat` in `src/executor.ts`):
 
@@ -249,7 +249,7 @@ The Router (`src/router/router.ts`) answers one question: which apps are most li
 
 The app vectors are computed once at boot; each question costs one embedding and one pass over the apps, O(apps × 384). A2UIVerse's own card is ranked the same way, so "what apps do I have?" routes to the platform like any other question to any other app.
 
-### The Planner: a model with tools
+### Planner: a model with tools
 
 `src/planner/planner.ts` makes the Planner's model call with the Vercel AI SDK's `generateText`, in a **tool-calling loop**:
 
@@ -281,7 +281,7 @@ The title the Planner writes is clipped to 48 characters before it's sent, and a
 
 A **repaint** sends the whole `updateComponents` again from the current state. Slots are found by their `source` and every id stays put, so the client updates in place. The first paint has two more parts, ahead of the tree: the Planner's title as the shell's own `paintMeta`, and the plan's data model when it isn't empty.
 
-### The relay: three changes and no more
+### Relay: three changes and no more
 
 A2UIVerse promises that **an unmodified A2UI agent composes**. So the relay changes as little as it can, and in only two pure functions, `relayEvent` (`src/agentsPool/relay.ts`) and `composeFragment` (`src/composition/fragmentRelay.ts`). Both copy with object spread; the app's original event is never mutated.
 
@@ -298,7 +298,7 @@ Those are the only changes to content. Two more touch only the **envelope**:
 
 One small extra: when an app fails with words ("rate limit exceeded"), those words are taken off the relayed event and put on the app's `Slot` as its `failure`, so the shell's failure tile is the one place they're shown.
 
-### The AgentsPool: one handle per dispatch
+### AgentsPool: one handle per dispatch
 
 `src/agentsPool/agentsPool.ts` is pure transport: it knows nothing about plans or slots. `dispatch(appId, turn)` returns a **handle** right away:
 
@@ -324,7 +324,7 @@ The structures behind it:
 
 **The hard cap** is a `setTimeout` for 300 seconds. When it fires first, `capped` resolves, but the stream is **not** ended: the slot fails as `timeout` right away, and whatever arrives after that is **held**, undrawn, until you press Retry. If the app is still running when you retry, the old dispatch and the new one **race**: the first to answer is drawn and the other is cancelled.
 
-### The pump: two promises per dispatch
+### Pump: two promises per dispatch
 
 `#pump` in `src/executor.ts` drains one handle onto the client's stream. It returns **two** promises, because two different parts of the code are waiting for two different moments:
 
@@ -378,7 +378,7 @@ So however many requests pile up while the model is writing, they're answered by
 
 A merge also waits for **quiet**. `Presses` (`src/composition/presses.ts`) counts the clicks in flight per app in a `Map<appId, count>`. `quiet()` loops until none of the apps the merge reads has a click in flight, waking each time one ends. A merge whose apps' data changes while the model is writing is thrown away and made again.
 
-### The journal
+### Journal
 
 `src/journal/intentJournal.ts` writes **one JSON line per turn** to `STATE_DIR/intent-journal.jsonl`, appended when the turn closes:
 

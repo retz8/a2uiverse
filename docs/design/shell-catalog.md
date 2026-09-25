@@ -16,7 +16,7 @@ One example runs through the whole guide, the same recorded session as [`synthes
   <em>The same layout filled. The table, the sort control and the app names are this catalog's; inside each slot is the app's own.</em>
 </p>
 
-## The problem it solves
+## Problem it solves
 
 In A2UIVerse, the shell's own screen is painted the same way an app paints its answer: as A2UI, written by a model. The **Planner**, the orchestrator's first model call, writes the layout surface `shell:main`. The **Synthesizer**, the second, writes the merged view `shell:synthesis`. A model can only write components that exist in a **catalog**, so the shell needs a catalog of its own. That's this package.
 
@@ -53,7 +53,7 @@ flowchart LR
 
 `schema.ts` and `catalog.ts` are built from **the same component APIs**: upstream's `TextApi`, `ButtonApi` and the rest from `@a2ui/web_core`, and the shell components' own `*.schema.ts` files. So those two can't disagree about a prop. `catalog.json` is a separate file, kept in step by tests: every component it declares has an implementation and the other way round, and every function it declares is implemented (see [Keeping the files in step](#keeping-the-files-in-step)).
 
-### 2. The basic catalog, drawn on Radix Themes
+### 2. Basic catalog, drawn on Radix Themes
 
 The basic catalog's eighteen components are all here, **with upstream's props exactly**. Only the drawing changed: each one is mapped onto its nearest Radix Themes component.
 
@@ -71,7 +71,7 @@ The basic catalog's eighteen components are all here, **with upstream's props ex
 
 Keeping upstream's props means the Planner, the Synthesizer, the orchestrator's validator and the client's renderer all speak one vocabulary. Nothing about the shell asks a model to learn a new word for something the basic catalog already says.
 
-### 3. The shell's own components
+### 3. Shell's own components
 
 Eight components exist only in the shell catalog. In the example:
 
@@ -101,7 +101,7 @@ The orchestrator shows each model `catalog.json` **pruned** to its keep-set, and
 
 Beside its pruned catalog, each model reads one guidance doc from `docs/`: `synthesis-guidance.md` (how a merged view is built from these components) for the Synthesizer, and `platform-ui-guidance.md` (how the shell answers a question about A2UIVerse itself) for the Planner.
 
-### 5. The host fills in what changes
+### 5. Host fills in what changes
 
 The catalog is a library; the **host** is the app that renders with it, here the client. The catalog never reaches into the host. Instead the host gives it two kinds of input:
 
@@ -186,7 +186,7 @@ A `Slot` holds **exactly one** of `source` (whose answer fills it) or `gap` (a c
 | presses Retry | `Slot` | `onPress({kind: "retry", sources: ["github"]})` |
 | presses "Search the Store" | `Slot` with a `gap` | `onShellAction({name: "openStore", query: …})` |
 
-Every press carries the surface and component that raised it, so the client knows which canvas and which slot it came from.
+Every press carries the surface and component that raised it, so the client knows which answer and which slot it came from.
 
 When something goes wrong, the same `Slot` draws it. A failed app's slot becomes the **failure tile**: one sentence, then Retry. A merged view that can't be made collapses to **one line** where its label would be, with the press that can bring it back. [Composing the lines](#composing-the-lines-pure-functions) shows how those sentences are chosen.
 
@@ -278,7 +278,7 @@ A `Table` may mark each column to the app whose values it shows (`columnSources`
 
 The table passes the column states down to its rows through a small React context, so each `TableRow` knows which of its cells to hold back. The reserved merged view in the first image uses the same heading and cell geometry, so when the real table lands, nothing moves.
 
-### The way-back arrows
+### Way-back arrows
 
 `Attribution` draws the back and forward arrows for its app. It asks `FragmentHistoryContext` where the app stands, by the painted `appId`, and gets `{back?, forward?, busy?}`, each neighbour a `{step, title?}`:
 

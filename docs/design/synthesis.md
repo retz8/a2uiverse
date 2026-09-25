@@ -10,7 +10,7 @@ One example runs through the whole guide: the question _"what's the status of wh
   <em>The merged view is the "Active work items" table. Below it, each app's own answer in its own look.</em>
 </p>
 
-## The problem it solves
+## Problem it solves
 
 Three apps answer the question, each with its own UI: Linear lists your issues, GitHub your pull requests, CircleCI your pipeline runs. Each is useful on its own, but the question is about your **work items**, and one work item is spread across all three apps: an issue in Linear, its pull request in GitHub, and that pull request's CI run in CircleCI.
 
@@ -120,7 +120,7 @@ Two rules keep formulas simple:
 - **Formulas don't nest.** There's no `min(max(…))`, so there's one evaluation path and a short validator.
 - **A formula may have no refs.** `{"op": "value", "args": []}` is the honest cell for "this row has nothing here". In the example, issue A2U-7 has no pull request yet, and its "Pull request" cell is exactly that.
 
-### 4. The synthesize data model: what the Synthesizer writes
+### 4. Synthesize data model: what the Synthesizer writes
 
 The Synthesizer answers with one JSON document, the **synthesize data model**. It has four parts:
 
@@ -585,7 +585,7 @@ If the client can't accept a payload at all (in practice, the two sides disagree
 | **One mark: the value's contrast** | Partial and guessed read as one statement; only broken escalates | Guessed is carried visually by color alone; the hover detail and the accessible name carry the rest |
 | **Only the first merge is automatic** | Every later model call has a press behind it; the view never changes without a visible reason | A late app waits for Include |
 | **The runtime reads time, in a fixed zone** | Apps paint time however they like; sorting and display agree | Everyone sees times in `America/New_York` |
-| **Wiring remembered per combination** | Stepping back to a screen already seen restores the view with no model call | The memory grows with each combination seen, for the life of the canvas |
+| **Wiring remembered per combination** | Stepping back to a screen already seen restores the view with no model call | The memory grows with each combination seen, for the life of the answer |
 
 Two things are deliberately left as they are. The wait between the last app's answer and the merged view appearing (**dead air**) is measured in the journal, not yet reduced; streaming the merged view in as the model writes it is on the backlog. And the Synthesizer's judgment of which entries match is taught by rules and an example but can't be enforced, so it varies from run to run.
 
@@ -626,8 +626,7 @@ In the orchestrator's tests, the model sits behind a one-method **text seam** (t
 | Word | Meaning |
 | --- | --- |
 | **Shell** | A2UIVerse's own UI: the layout, the merged view, everything that isn't an app's |
-| **Canvas** | One question's answer on screen. Every question opens a new one |
-| **Composition** | The orchestrator's state for one canvas: its layout, apps, partitions and merged view |
+| **Composition** | The orchestrator's state for one question's answer: its layout, apps, partitions and merged view |
 | **Slot** | A region of the layout reserved for one app, or for the merged view |
 | **Surface** | One A2UI screen: a component tree and its data model |
 | **Partition** | One app's surface data model, kept apart from every other |
