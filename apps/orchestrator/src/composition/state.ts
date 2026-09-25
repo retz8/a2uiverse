@@ -108,7 +108,7 @@ export interface Owed {
   presses: OwedPress[];
 }
 
-/** A press running on the composition: what closing the canvas ends (task-9.3 decision 5). */
+/** A press running on the composition: what closing the composition ends (task-9.3 decision 5). */
 export interface Operation {
   taskId: string;
   controller: AbortController;
@@ -126,21 +126,21 @@ export interface LiveSynthesis {
 
 /**
  * Composition state is canonical in the orchestrator; the shell surface is
- * its rendered projection (phase decision 12). One per canvas — per A2A context — from the
+ * its rendered projection (phase decision 12). One per A2A context, from the
  * utterance that opened it until the user closes it (task 9.3).
  */
 export interface CompositionState {
   /** The Planner's accepted document: the tree the painter paints, the data model, the dispatch. */
   layout: LayoutSurface;
-  /** The utterance the composition came from — the this-canvas reader's first line. */
+  /** The utterance the composition came from — the `this_canvas` reader's first line. */
   utterance: string;
-  /** The Planner's title for the canvas, clipped to the contract's cap — the trail entry's name. */
+  /** The Planner's title for the composition, clipped to the contract's cap — the trail entry's name. */
   title?: string;
-  /** The canvas this one was asked from (task-9.3 decision 2): the trail's edge. */
+  /** The composition this one was asked from (task-9.3 decision 2): the trail's edge. */
   parent?: string;
-  /** When the utterance arrived — the canvas's stamp (phase-9 decision 8). */
+  /** When the utterance arrived — the composition's stamp (phase-9 decision 8). */
   openedAt: number;
-  /** When the utterance turn's final went out; unset while the canvas is still loading. */
+  /** When the utterance turn's final went out; unset while the composition is still loading. */
   answeredAt?: number;
   /** The turn that planned it: what a press's journal line links to. */
   turnId: string;
@@ -152,7 +152,7 @@ export interface CompositionState {
   gaps: string[];
   /** Every surface's data model. */
   partitions: Partitions;
-  /** Each agent's steps in this canvas and the wiring accepted per combination of them (task 9.4). */
+  /** Each agent's steps in this composition and the wiring accepted per combination of them (task 9.4). */
   history: History;
   /** Sources whose dispatch completed holding a surface, and not failed since — what the first synthesis runs over. */
   arrived: Set<string>;
@@ -198,13 +198,13 @@ export interface CompositionState {
    * settles again (task-8.4 decision 6).
    */
   trigger?: {unsettle(appId: string): void; settle(appId: string): void};
-  /** The presses running on it: what closing the canvas ends. */
+  /** The presses running on it: what closing the composition ends. */
   operations: Set<Operation>;
-  /** Aborted once the canvas is closed: every call a press caused ends. */
+  /** Aborted once the composition is closed: every call a press caused ends. */
   retired: AbortController;
   /** The live synthesis, once painted: the document as accepted and the payload the client holds; what the IntegrityChecker guards. */
   synthesis?: LiveSynthesis;
-  /** What became of the merged view, once decided — what the this-canvas reader reports. */
+  /** What became of the merged view, once decided — what the `this_canvas` reader reports. */
   mergedView?: {outcome: SynthesisRecord['outcome']; reason?: string};
   /** When the last source settled — the start of the dead-air interval. */
   lastSettledAt?: number;

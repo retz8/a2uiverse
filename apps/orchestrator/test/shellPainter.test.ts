@@ -246,7 +246,7 @@ describe('paintLayout', () => {
 });
 
 describe('shellCreateParts', () => {
-  test('a titled canvas leads with the shell’s own paintMeta, clipped to the cap (task-9.3 decision 4)', () => {
+  test('a titled composition leads with the shell’s own paintMeta, clipped to the cap (task-9.3 decision 4)', () => {
     const long = 'Pull requests, issues and runs waiting on you across every tool';
     const parts = shellCreateParts(compositionFrom({...layout, title: long}, registry, 'x'));
     expect(parts).toHaveLength(3);

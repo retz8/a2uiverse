@@ -24,7 +24,7 @@ export interface Covering {
 
 /**
  * The fragment's history on the composition (SPEC §6.5, task 9.4). Each agent's paints in the
- * canvas are a linear back/forward stack, one step per `createSurface` from that source in
+ * composition are a linear back/forward stack, one step per `createSurface` from that source in
  * stream order — a repeat of the same id, a new id, a question surface alike — counted from 0
  * and the same way the client counts, so the index a step reports names the same paint on both
  * sides; an `updateDataModel` changes the current step and a `deleteSurface` counts nothing. A

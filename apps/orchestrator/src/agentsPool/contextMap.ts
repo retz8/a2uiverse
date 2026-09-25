@@ -1,12 +1,12 @@
 /**
- * clientContextId → (appId → vendorContextId). Which vendor conversations a canvas — an A2A
- * context, task 9.3 — is attached to: a vendor's conversation is per canvas, dropped with it.
+ * clientContextId → (appId → vendorContextId). Which vendor conversations a composition — an A2A
+ * context, task 9.3 — is attached to: a vendor's conversation is per context, dropped with it.
  * In-memory; the interface is what the pool sees.
  */
 export interface VendorContextMap {
   get(clientContextId: string, appId: string): string | undefined;
   set(clientContextId: string, appId: string, vendorContextId: string): void;
-  /** The canvas closed (task-9.3 decision 5): its vendor conversations let go. */
+  /** The composition closed (task-9.3 decision 5): its vendor conversations let go. */
   drop(clientContextId: string): void;
 }
 

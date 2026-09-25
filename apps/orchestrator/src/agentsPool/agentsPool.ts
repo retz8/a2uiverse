@@ -51,7 +51,7 @@ export class AgentsPool {
     this.#contexts = options.contexts ?? new InMemoryVendorContextMap();
   }
 
-  /** A canvas closed (task-9.3 decision 5): its vendor conversations are let go. */
+  /** A composition closed (task-9.3 decision 5): its vendor conversations are let go. */
   forget(clientContextId: string): void {
     this.#contexts.drop(clientContextId);
   }

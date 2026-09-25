@@ -5,9 +5,9 @@
  */
 import type {AgentCard} from '@a2a-js/sdk';
 import {describe, expect, test} from 'vitest';
-import {Canvases} from '../src/composition/canvases.js';
+import {Compositions} from '../src/composition/compositions.js';
 import {compositionFrom, type CompositionState} from '../src/composition/state.js';
-import {canvasLine, canvasView, platformReaders} from '../src/planner/platformReaders.js';
+import {compositionLine, compositionView, platformReaders} from '../src/planner/platformReaders.js';
 import {READER_NAMES, readerTools, type PlatformReaders} from '../src/planner/readers.js';
 import {Registry} from '../src/registry/registry.js';
 import type {AppRecord} from '../src/registry/types.js';
@@ -84,7 +84,7 @@ describe('installed apps', () => {
       ]),
       gmail: undefined,
     });
-    const readers = platformReaders({registry, canvas: () => undefined, ancestry: () => []});
+    const readers = platformReaders({registry, composition: () => undefined, ancestry: () => []});
     expect(readers.installedApps()).toEqual([
       {
         id: 'github',
@@ -99,14 +99,14 @@ describe('installed apps', () => {
   });
 });
 
-describe('this canvas', () => {
+describe('this composition', () => {
   const registry = new Registry([record('github', 'GitHub'), record('gmail', 'Gmail')]);
 
   test('is the composition’s structure: the utterance, each slot and its state, the merged view, the gaps', () => {
     const state = compositionFrom(layout, registry, 'what needs my attention today?');
     state.arrived.add('github');
     state.slots.get('gmail')!.state = 'failed';
-    expect(canvasView(state)).toEqual({
+    expect(compositionView(state)).toEqual({
       utterance: 'what needs my attention today?',
       slots: [
         {source: 'github', displayName: 'GitHub', state: 'arrived'},
@@ -120,16 +120,19 @@ describe('this canvas', () => {
   test('says whether the merged view is live, collapsed or declined, and why', () => {
     const state = compositionFrom(layout, registry, 'x');
     state.mergedView = {outcome: 'declined', reason: 'nothing joinable'};
-    expect(canvasView(state).mergedView).toEqual({state: 'declined', reason: 'nothing joinable'});
+    expect(compositionView(state).mergedView).toEqual({
+      state: 'declined',
+      reason: 'nothing joinable',
+    });
     state.mergedView = {outcome: 'skipped', reason: '1 source(s) arrived'};
-    expect(canvasView(state).mergedView).toEqual({
+    expect(compositionView(state).mergedView).toEqual({
       state: 'collapsed',
       reason: '1 source(s) arrived',
     });
     state.mergedView = {outcome: 'synthesized'};
-    expect(canvasView(state).mergedView).toEqual({state: 'live'});
+    expect(compositionView(state).mergedView).toEqual({state: 'live'});
     const plain = compositionFrom({...layout, dispatch: [layout.dispatch[0]!]}, registry, 'x');
-    expect(canvasView(plain).mergedView).toBeUndefined();
+    expect(compositionView(plain).mergedView).toBeUndefined();
   });
 
   test('never carries a partition’s contents or the synthesis document', () => {
@@ -144,15 +147,15 @@ describe('this canvas', () => {
     state.partitions.apply(
       paint({updateDataModel: {surfaceId: 'github:s1', value: {secret: 'PR #2531 title'}}}),
     );
-    const view = JSON.stringify(canvasView(state));
+    const view = JSON.stringify(compositionView(state));
     expect(view).not.toContain('secret');
     expect(view).not.toContain('2531');
   });
 
-  test('the reader answers with nothing on a root canvas, or when the canvas asked from is gone', () => {
-    const readers = platformReaders({registry, canvas: () => undefined, ancestry: () => []});
-    expect(readers.thisCanvas(undefined)).toBeUndefined();
-    expect(readers.thisCanvas('c1')).toBeUndefined();
+  test('the reader answers with nothing on a root composition, or when the composition asked from is gone', () => {
+    const readers = platformReaders({registry, composition: () => undefined, ancestry: () => []});
+    expect(readers.thisComposition(undefined)).toBeUndefined();
+    expect(readers.thisComposition('c1')).toBeUndefined();
   });
 });
 
@@ -160,28 +163,28 @@ describe('recent turns — the ancestry (task-9.3 decision 2)', () => {
   const registry = new Registry([record('github', 'GitHub'), record('gmail', 'Gmail')]);
   const opened = Date.parse('2026-09-13T06:00:00.000Z');
 
-  test('one line per canvas: when it was opened, what was asked, which sources answered, the merged view, whether it still loads', () => {
+  test('one line per context: when it was opened, what was asked, which sources answered, the merged view, whether it still loads', () => {
     const state = compositionFrom(layout, registry, 'what needs my review?', {
       turnId: 't',
       openedAt: opened,
     });
     state.arrived.add('github');
     state.slots.get('gmail')!.state = 'failed';
-    expect(canvasLine({kind: 'open', state})).toBe(
+    expect(compositionLine({kind: 'open', state})).toBe(
       '2026-09-13T06:00:00.000Z · "what needs my review?" → github (answered), gmail (failed) · still loading',
     );
     state.answeredAt = opened + 5_000;
     state.mergedView = {outcome: 'declined', reason: 'nothing joinable'};
-    expect(canvasLine({kind: 'open', state})).toBe(
+    expect(compositionLine({kind: 'open', state})).toBe(
       '2026-09-13T06:00:00.000Z · "what needs my review?" → github (answered), gmail (failed) · merged view declined: nothing joinable · answered',
     );
     state.mergedView = {outcome: 'synthesized'};
-    expect(canvasLine({kind: 'open', state})).toContain('· merged view live · answered');
+    expect(compositionLine({kind: 'open', state})).toContain('· merged view live · answered');
   });
 
-  test('a closed canvas keeps its line; the chain runs oldest first through it, at most five deep', () => {
+  test('a closed composition keeps its line; the chain runs oldest first through it, at most five deep', () => {
     const askedIn = (line: string) => /"[^"]*"/.exec(line)?.[0];
-    const canvases = new Canvases();
+    const compositions = new Compositions();
     const open = (id: string, utterance: string, parent?: string) => {
       const state = compositionFrom(layout, registry, utterance, {
         turnId: id,
@@ -189,7 +192,7 @@ describe('recent turns — the ancestry (task-9.3 decision 2)', () => {
         ...(parent ? {parent} : {}),
       });
       state.answeredAt = opened + 1;
-      canvases.open(id, state);
+      compositions.open(id, state);
       return state;
     };
     open('c1', 'one');
@@ -199,19 +202,19 @@ describe('recent turns — the ancestry (task-9.3 decision 2)', () => {
     open('c5', 'five', 'c4');
     open('c6', 'six', 'c5');
     open('c7', 'seven', 'c6');
-    expect(canvases.close('c2')).toMatchObject({
+    expect(compositions.close('c2')).toMatchObject({
       utterance: 'two',
       parent: 'c1',
       answered: ['gmail'],
     });
-    expect(canvases.get('c2')).toBeUndefined();
-    expect(canvases.isClosed('c2')).toBe(true);
-    expect(canvases.has('c2')).toBe(true);
+    expect(compositions.get('c2')).toBeUndefined();
+    expect(compositions.isClosed('c2')).toBe(true);
+    expect(compositions.has('c2')).toBe(true);
 
     const readers = platformReaders({
       registry,
-      canvas: id => canvases.get(id),
-      ancestry: id => canvases.ancestry(id),
+      composition: id => compositions.get(id),
+      ancestry: id => compositions.ancestry(id),
     });
     const lines = readers.recentTurns('c7');
     expect(lines).toHaveLength(5);
@@ -229,7 +232,7 @@ describe('recent turns — the ancestry (task-9.3 decision 2)', () => {
 describe('readerTools — the AI SDK adapter', () => {
   const readers: PlatformReaders = {
     installedApps: () => [{id: 'gmail', displayName: 'Gmail', skills: [], reachable: true}],
-    thisCanvas: id => (id === 'c1' ? {utterance: 'x', slots: [], gaps: []} : undefined),
+    thisComposition: id => (id === 'c1' ? {utterance: 'x', slots: [], gaps: []} : undefined),
     recentTurns: id => (id === 'c1' ? ['line one'] : []),
   };
 
@@ -248,7 +251,7 @@ describe('readerTools — the AI SDK adapter', () => {
     expect(await run('recent_turns')).toEqual(['line one']);
   });
 
-  test('an empty canvas and no turns answer as such, not as errors', async () => {
+  test('an empty composition and no turns answer as such, not as errors', async () => {
     const tools = readerTools(readers, 'other');
     const run = async (name: string) =>
       (tools[name] as {execute: (input: unknown, options: unknown) => Promise<unknown>}).execute(

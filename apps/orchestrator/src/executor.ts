@@ -11,7 +11,7 @@ import {SHELL_ACTIONS, type SlotCollapse} from '@a2uiverse/shell-catalog/schema'
 import type {AgentsPool} from './agentsPool/agentsPool.js';
 import {STAMP_KEY, type VendorEvent} from './agentsPool/relay.js';
 import type {DispatchHandle, DispatchOutcome, DispatchRecord} from './agentsPool/types.js';
-import type {Canvases} from './composition/canvases.js';
+import type {Compositions} from './composition/compositions.js';
 import {classifyTurn, unnamespaceAction, type Turn} from './composition/classify.js';
 import {composeFragment, retask, withoutFailureWords} from './composition/fragmentRelay.js';
 import {changeAccount, firesResynthesis, seenOf, watchOf} from './composition/integrity.js';
@@ -55,8 +55,8 @@ export interface OrchestratorDeps {
   router: Router;
   planner: Planner;
   synthesizer: Synthesizer;
-  /** The session's canvases — one composition per context — shared with the Planner's readers. */
-  canvases: Canvases;
+  /** The session's compositions — one composition per context — shared with the Planner's readers. */
+  compositions: Compositions;
   /**
    * The soft deadline and the hard cap (task-8.3 decisions 1–3). The executor runs the soft
    * deadline; the AgentsPool enforces the cap; the journal records both per turn.
@@ -70,12 +70,12 @@ export interface OrchestratorDeps {
   heartbeatMs: number;
 }
 
-/** An utterance turn from its arrival until its last dispatch ends: what closing the canvas ends. */
+/** An utterance turn from its arrival until its last dispatch ends: what closing the composition ends. */
 interface LiveTurn {
   taskId: string;
   controller: AbortController;
   journal: JournalTurn;
-  /** What a close keeps of a canvas closed before it was planned (task-9.3 decision 5). */
+  /** What a close keeps of a composition closed before it was planned (task-9.3 decision 5). */
   utterance: string;
   parent?: string;
   openedAt: number;
@@ -113,10 +113,10 @@ interface PumpOptions {
  * source settled releases it, and while some are still out the soft deadline — quiet after the
  * last settle — releases it without them; a failed home source, or too few arrivals, collapses
  * the merge with no call. A dispatch past its hard cap fails its slot and runs on, what it answers
- * held until Retry; the turn's journal line closes when the last dispatch ends. A canvas is an
- * A2A context (task 9.3): an utterance opens one — refused when it arrives inside a context the
- * session already holds — names the canvas it was asked from, and runs on after the user leaves
- * it; nothing ends it but the close, which aborts its dispatches and their vendors told to cancel,
+ * held until Retry; the turn's journal line closes when the last dispatch ends. A composition is
+ * held per A2A context (task 9.3): an utterance opens one — refused when it arrives inside a
+ * context the session already holds — names the context it was asked from, and runs on after
+ * the user leaves it; nothing ends it but the close, which aborts its dispatches and their vendors told to cancel,
  * its model calls, what it held, and every press still running on it, and lets the composition
  * go, a light record kept. A turn that dispatches nothing — a platform answer, a gap — closes
  * right after first paint. Action: owner-only dispatch, no Router/Planner; then, if the partition
@@ -136,19 +136,19 @@ interface PumpOptions {
  */
 export class OrchestratorExecutor implements AgentExecutor {
   readonly #deps: OrchestratorDeps;
-  readonly #canvases: Canvases;
+  readonly #compositions: Compositions;
   /**
    * The message ids already taken in, newest last (task-7.9). The client re-sends a request that
    * got no answer through the tunnel under the same id; were the first only slow to answer, a
    * second run would repeat a vendor's write. Bounded: a retry follows its original by seconds.
    */
   readonly #received = new Set<string>();
-  /** Per canvas, the utterance turn still running, if any. */
+  /** Per context, the utterance turn still running, if any. */
   readonly #live = new Map<string, LiveTurn>();
 
   constructor(deps: OrchestratorDeps) {
     this.#deps = deps;
-    this.#canvases = deps.canvases;
+    this.#compositions = deps.compositions;
   }
 
   async execute(ctx: RequestContext, bus: ExecutionEventBus): Promise<void> {
@@ -174,15 +174,15 @@ export class OrchestratorExecutor implements AgentExecutor {
     let turn: JournalTurn | undefined;
     let outcome = 'completed';
     try {
-      // A question opens a canvas of its own (task-9.3 decision 1): one arriving inside a
+      // A question opens a context of its own (task-9.3 decision 1): one arriving inside a
       // context the session holds — open, closed, or still planning — is refused. A closed
-      // canvas takes nothing else either (decision 5).
+      // composition takes nothing else either (decision 5).
       const refused =
         turnKind.kind === 'utterance' &&
-        (this.#canvases.has(ctx.contextId) || this.#live.has(ctx.contextId))
-          ? 'A question opens a canvas of its own.'
-          : turnKind.kind !== 'utterance' && this.#canvases.isClosed(ctx.contextId)
-            ? 'This canvas is closed.'
+        (this.#compositions.has(ctx.contextId) || this.#live.has(ctx.contextId))
+          ? 'A question opens a context of its own.'
+          : turnKind.kind !== 'utterance' && this.#compositions.isClosed(ctx.contextId)
+            ? 'This context is closed.'
             : undefined;
       if (refused) {
         turn = this.#deps.journal.open({
@@ -305,7 +305,7 @@ export class OrchestratorExecutor implements AgentExecutor {
       this.#live.delete(contextId);
       live.controller.abort();
     }
-    for (const state of this.#canvases.openStates()) {
+    for (const state of this.#compositions.openStates()) {
       for (const operation of state.operations) {
         if (operation.taskId === taskId) operation.controller.abort();
       }
@@ -314,38 +314,38 @@ export class OrchestratorExecutor implements AgentExecutor {
   }
 
   /**
-   * The user closed the canvas (task-9.3 decision 5): its running utterance turn ends — model
+   * The user closed the composition (task-9.3 decision 5): its running utterance turn ends — model
    * calls aborted, dispatches aborted and their vendors told to cancel, past the hard cap too, so
    * what it would have held is dropped — every press running on it ends the same way and what
    * they owed settles, the composition is let go with a light record kept, and the vendors'
-   * conversations for it are forgotten. False when the context holds no canvas.
+   * conversations for it are forgotten. False when the context holds no composition.
    */
-  #closeCanvas(contextId: string): boolean {
+  #closeComposition(contextId: string): boolean {
     const live = this.#live.get(contextId);
-    const state = this.#canvases.get(contextId);
+    const state = this.#compositions.get(contextId);
     if (!live && !state) return false;
     if (live) {
       this.#live.delete(contextId);
-      logLine(`⤫ task=${live.taskId} canvas closed`);
-      live.journal.canvasClosed();
+      logLine(`⤫ task=${live.taskId} composition closed`);
+      live.journal.compositionClosed();
       live.controller.abort();
       this.#deps.pool.cancel(live.taskId);
     }
     if (state) {
       state.retired.abort();
       for (const operation of state.operations) {
-        logLine(`⤫ task=${operation.taskId} canvas closed`);
-        operation.journal.canvasClosed();
+        logLine(`⤫ task=${operation.taskId} composition closed`);
+        operation.journal.compositionClosed();
         operation.controller.abort();
         this.#deps.pool.cancel(operation.taskId);
       }
       const owed = state.owed;
       state.owed = undefined;
       for (const press of owed?.presses ?? []) press.resolve('none');
-      this.#canvases.close(contextId);
+      this.#compositions.close(contextId);
     } else if (live) {
       // Closed before it was planned: the record is what the utterance turn knew.
-      this.#canvases.closeUnplanned(contextId, {
+      this.#compositions.closeUnplanned(contextId, {
         utterance: live.utterance,
         ...(live.parent !== undefined ? {parent: live.parent} : {}),
         openedAt: live.openedAt,
@@ -364,11 +364,11 @@ export class OrchestratorExecutor implements AgentExecutor {
     text: string,
   ): Promise<void> {
     const openedAt = Date.now();
-    // The canvas this question was asked from (task-9.3 decisions 2, 3): the readers describe
-    // it; one the session does not hold is logged and the canvas planned as a root.
+    // The composition this question was asked from (task-9.3 decisions 2, 3): the readers describe
+    // it; one the session does not hold is logged and the composition planned as a root.
     const named = readCanvasParent(ctx.userMessage.metadata)?.parent;
     let parent = named;
-    if (named !== undefined && !this.#canvases.has(named)) {
+    if (named !== undefined && !this.#compositions.has(named)) {
       logLine(`← parent ctx=${named} not held — task=${ctx.taskId} planned as a root`);
       parent = undefined;
     }
@@ -397,7 +397,7 @@ export class OrchestratorExecutor implements AgentExecutor {
     let outcome;
     try {
       // Asked from a view: what is on screen there stays plannable (phase-9 decision 12).
-      const viewed = parent !== undefined ? this.#canvases.get(parent) : undefined;
+      const viewed = parent !== undefined ? this.#compositions.get(parent) : undefined;
       const onScreen = [...(viewed?.slots.keys() ?? [])].filter(id => id !== SHELL_SOURCE_ID);
       const shortlist = await this.#deps.router.shortlist(text, onScreen);
       signal.throwIfAborted();
@@ -450,7 +450,7 @@ export class OrchestratorExecutor implements AgentExecutor {
       toolCalls: outcome.toolCalls,
       planMs,
     });
-    this.#canvases.open(ctx.contextId, state);
+    this.#compositions.open(ctx.contextId, state);
     const sink: Sink = {ctx, bus, turn};
 
     // First paint precedes every dispatch, structurally (SPEC §4.5).
@@ -618,7 +618,7 @@ export class OrchestratorExecutor implements AgentExecutor {
     const parsed = parseSurfaceId(action.surfaceId);
     if (!parsed) throw new Error(`action on un-namespaced surface: ${action.surfaceId}`);
     const owner = this.#deps.registry.get(parsed.appId);
-    const composition = this.#canvases.get(ctx.contextId);
+    const composition = this.#compositions.get(ctx.contextId);
     // Two-way edits reach the partitions through the returning client data model.
     composition?.partitions.applyClientDataModel(clientSurfaces(ctx.userMessage.metadata));
     const sink: Sink = {ctx, bus, turn};
@@ -655,11 +655,11 @@ export class OrchestratorExecutor implements AgentExecutor {
   /**
    * The reader's press on the composition (task 8.4), a task of its own beside the turn: Retry
    * re-dispatches one failed source, Include folds the late sources into the merge, Try again
-   * makes a merge whose call failed; the close ends the canvas (task 9.3); a step puts a
+   * makes a merge whose call failed; the close ends the composition (task 9.3); a step puts a
    * fragment's paint back on its partition and restores or walks the merged view's wiring
    * (task 9.4). Its stream carries
    * what the press causes and ends when that is done; the final is `completed` whenever the press
-   * was handled, the outcome on the canvas. A press the composition cannot take — no canvas here,
+   * was handled, the outcome on the composition. A press the composition cannot take — no composition here,
    * a source not failed, nothing late, nothing to try again — is refused.
    */
   async #operationTurn(
@@ -673,16 +673,16 @@ export class OrchestratorExecutor implements AgentExecutor {
       throw new Error(reason);
     };
     if (operation.kind === 'close') {
-      const planned = this.#canvases.get(ctx.contextId);
+      const planned = this.#compositions.get(ctx.contextId);
       if (planned) turn.composition(planned.turnId);
-      if (!this.#closeCanvas(ctx.contextId)) return refuse('No such canvas.');
+      if (!this.#closeComposition(ctx.contextId)) return refuse('No such context.');
       bus.publish(finalStatus(ctx, 'completed'));
       await turn.close('completed');
       return;
     }
-    const state = this.#canvases.get(ctx.contextId);
-    if (!state) return refuse('No such canvas.');
-    if (state.retired.signal.aborted) return refuse('This canvas is closed.');
+    const state = this.#compositions.get(ctx.contextId);
+    if (!state) return refuse('No such context.');
+    if (state.retired.signal.aborted) return refuse('This context is closed.');
     turn.composition(state.turnId);
     const sink: Sink = {ctx, bus, turn, drains: []};
     const merge = synthesisSlot(state);
@@ -1063,7 +1063,7 @@ export class OrchestratorExecutor implements AgentExecutor {
    * is made; the journal records the whole conversation (task-5.4 decision 7). Quiescence
    * (task-8.10 decisions 1–2): it is made only once no source it would read has a press in
    * flight, and lands only once none it read has; a press whose answer changed what a source it
-   * read holds throws it away — the call aborted — and it is made again. A canvas closed
+   * read holds throws it away — the call aborted — and it is made again. A composition closed
    * meanwhile, or a merge collapsed under it, paints nothing.
    */
   async #synthesize(
@@ -1406,7 +1406,7 @@ export class OrchestratorExecutor implements AgentExecutor {
    */
   #clientErrorTurn(sink: Sink, error: Turn & {kind: 'clientError'}): void {
     const parsed = parseSurfaceId(error.surfaceId);
-    const state = this.#canvases.get(sink.ctx.contextId);
+    const state = this.#compositions.get(sink.ctx.contextId);
     const slot = parsed && state?.slots.get(parsed.appId);
     if (!state || !slot || slot.state === 'failed') return;
     if (parsed.appId === SHELL_SOURCE_ID) {
@@ -1495,7 +1495,7 @@ export class OrchestratorExecutor implements AgentExecutor {
     appId: string,
     options: PumpOptions,
   ): {settled: Promise<DispatchOutcome>; drained: Promise<void>} {
-    const composition = state ?? this.#canvases.get(sink.ctx.contextId);
+    const composition = state ?? this.#compositions.get(sink.ctx.contextId);
     const record = handle.record;
     let capped = false;
     let isSettled = false;

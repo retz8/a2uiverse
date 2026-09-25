@@ -7,7 +7,7 @@ import {DefaultRequestHandler, InMemoryTaskStore} from '@a2a-js/sdk/server';
 import {agentCardHandler, jsonRpcHandler, UserBuilder} from '@a2a-js/sdk/server/express';
 import {buildAgentCard} from './agentCard.js';
 import {AgentsPool} from './agentsPool/agentsPool.js';
-import {Canvases} from './composition/canvases.js';
+import {Compositions} from './composition/compositions.js';
 import type {Config} from './config.js';
 import {TransformersEmbedder} from './embedder/transformersEmbedder.js';
 import type {Embedder} from './embedder/types.js';
@@ -66,11 +66,11 @@ export function buildOrchestrator({
   const embedder =
     overrides?.embedder ?? new TransformersEmbedder({cacheDir: join(config.stateDir, 'models')});
   const journal = new IntentJournal(join(config.stateDir, JOURNAL_FILE), embedder);
-  const canvases = new Canvases();
+  const compositions = new Compositions();
   const readers = platformReaders({
     registry,
-    canvas: contextId => canvases.get(contextId),
-    ancestry: contextId => canvases.ancestry(contextId),
+    composition: contextId => compositions.get(contextId),
+    ancestry: contextId => compositions.ancestry(contextId),
   });
   const planner = overrides?.planner ?? plannerFrom(config, readers);
   const synthesizer = synthesizerFrom(config, overrides?.synthesisModel);
@@ -87,7 +87,7 @@ export function buildOrchestrator({
     router,
     planner,
     synthesizer,
-    canvases,
+    compositions,
     deadlines: {softMs: config.softDeadlineMs, capMs: config.hardCapMs},
     heartbeatMs: config.heartbeatMs,
   });

@@ -15,7 +15,7 @@ export interface ShortlistEntry {
  * rank routable agents by cosine, cap the list. No similarity threshold —
  * ranking only; the Planner makes the semantic selection from the shortlist.
  *
- * A question asked from a view keeps the viewed canvas's sources past the cap
+ * A question asked from a view keeps the viewed composition's sources past the cap
  * (phase-9 decision 12): "add GitHub to this", "compare these" name nothing of
  * what is on screen, and the Planner plans the child from those sources.
  */

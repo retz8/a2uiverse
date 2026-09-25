@@ -13,11 +13,11 @@ export interface PlanInput {
   utterance: string;
   shortlist: readonly ShortlistEntry[];
   /**
-   * The canvas the question was asked from (task-9.3 decision 2) — what the this-canvas and
-   * recent-turns readers are bound to; none on a root canvas.
+   * The composition the question was asked from (task-9.3 decision 2) — what the `this_canvas` and
+   * recent-turns readers are bound to; none on a root composition.
    */
   askedFrom?: string;
-  /** Aborts the call when the canvas is closed while it plans (task-9.3 decision 5). */
+  /** Aborts the call when the composition is closed while it plans (task-9.3 decision 5). */
   signal?: AbortSignal;
 }
 

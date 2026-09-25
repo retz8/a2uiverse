@@ -13,7 +13,7 @@ export const A2UI_VERSION = 'v0.9';
 type ShellComponent = A2uiComponent;
 
 /**
- * First paint of a turn: the canvas's `paintMeta` when the Planner titled it (task-9.3 decision
+ * First paint of a turn: the composition's `paintMeta` when the Planner titled it (task-9.3 decision
  * 4) — the contract's part, ahead of the `createSurface` it names — then createSurface, the
  * literal data model when the tree binds one, and the full component tree with every slot pending.
  */

@@ -130,7 +130,7 @@ export class Partitions {
       const surface = create.surfaceId as string;
       // One surface per slot (SPEC §4.1: repaint is surface replacement): a source's later
       // surface retires its earlier one, as the client's slot does — a vendor that paints a
-      // detail as a new surface never deletes its list, and refs into a surface the canvas no
+      // detail as a new surface never deletes its list, and refs into a surface the composition no
       // longer holds must stop resolving here too, or absence is seen on one side only.
       const appId = parseSurfaceId(surface)?.appId;
       if (appId !== undefined) {

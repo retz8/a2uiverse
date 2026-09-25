@@ -24,10 +24,10 @@ export interface PlanRecord {
   outcome: 'planned' | 'malformed';
   /** The accepted document, on `planned`. */
   layoutSurface?: LayoutSurface;
-  /** The canvas's title as emitted (task-9.3 decision 4), and whether the Planner's was clipped to the cap. */
+  /** The composition's title as emitted (task-9.3 decision 4), and whether the Planner's was clipped to the cap. */
   title?: string;
   titleClipped?: true;
-  /** The canvas this one was asked from, when the utterance named one the session holds. */
+  /** The composition this one was asked from, when the utterance named one the session holds. */
   parent?: string;
   attempts: {text: string; errors: string[]}[];
   toolCalls: ToolCallRecord[];
@@ -119,7 +119,7 @@ export interface JournalEntry {
   outcome: DispatchOutcome;
   /** The soft deadline and the hard cap in force for the turn's dispatches (task-8.3 decision 15). */
   deadlines?: {softMs: number; capMs: number};
-  /** The user closed the canvas while this turn ran (task-9.3 decision 5). */
+  /** The user closed the composition while this turn ran (task-9.3 decision 5). */
   closed?: true;
   /** A press: the turn whose composition it acts on (task-8.4 decision 16). */
   composition?: string;

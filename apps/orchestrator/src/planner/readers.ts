@@ -18,16 +18,16 @@ export interface InstalledApp {
   reachable: boolean;
 }
 
-export interface CanvasSlot {
+export interface CompositionSlot {
   source: string;
   displayName: string;
   /** The orchestrator's view: pending, arrived (painted), failed, collapsed. */
   state: 'pending' | 'arrived' | 'failed' | 'collapsed';
 }
 
-export interface CanvasView {
+export interface CompositionView {
   utterance: string;
-  slots: CanvasSlot[];
+  slots: CompositionSlot[];
   /** Present when the plan reserved a merged view; its state and, when it did not stand, why. */
   mergedView?: {state: 'pending' | 'live' | 'collapsed' | 'declined'; reason?: string};
   gaps: string[];
@@ -37,11 +37,11 @@ export interface PlatformReaders {
   /** Installed apps — from the Registry: id, display name, the card's name, description and skills, reachability. */
   installedApps(): InstalledApp[];
   /**
-   * This canvas — the structure of the canvas the question was asked from (task-9.3 decision 2);
-   * undefined on a root canvas or when that canvas is gone.
+   * This composition — the structure of the composition the question was asked from (task-9.3 decision 2);
+   * undefined on a root composition or when that composition is gone.
    */
-  thisCanvas(askedFrom: string | undefined): CanvasView | undefined;
-  /** Recent turns — the canvas the question was asked from and its ancestry, one line each, oldest first. */
+  thisComposition(askedFrom: string | undefined): CompositionView | undefined;
+  /** Recent turns — the composition the question was asked from and its ancestry, one line each, oldest first. */
   recentTurns(askedFrom: string | undefined): string[];
 }
 
@@ -55,7 +55,7 @@ const NO_INPUT = jsonSchema<Record<string, never>>({
 });
 
 /**
- * The readers as the AI SDK's tools, bound to the canvas the question was asked from; results as
+ * The readers as the AI SDK's tools, bound to the composition the question was asked from; results as
  * JSON, recent turns as lines.
  */
 export function readerTools(readers: PlatformReaders, askedFrom: string | undefined): ToolSet {
@@ -71,7 +71,7 @@ export function readerTools(readers: PlatformReaders, askedFrom: string | undefi
         'The canvas the user is looking at — the one this question was asked from — as structure: the utterance it came from, which sources hold a slot and each slot’s state, whether a merged view is live, collapsed or declined and why, and any capability gaps. Never an app’s data. Call it to answer what the user is looking at.',
       inputSchema: NO_INPUT,
       execute: async () =>
-        readers.thisCanvas(askedFrom) ?? {empty: true, note: 'Nothing is on the canvas yet.'},
+        readers.thisComposition(askedFrom) ?? {empty: true, note: 'Nothing is on the canvas yet.'},
     }),
     recent_turns: tool({
       description:

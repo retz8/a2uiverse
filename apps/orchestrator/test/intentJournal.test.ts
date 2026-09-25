@@ -196,7 +196,7 @@ describe('IntentJournal — deadlines and the close (tasks 8.3, 9.3)', () => {
     const journal = new IntentJournal(file);
     const turn = journal.open({turnId: 't1', clientContextId: 'c1', message: utterance});
     turn.deadlines({softMs: 10_000, capMs: 300_000});
-    turn.canvasClosed();
+    turn.compositionClosed();
     await turn.close('cancelled');
     await turn.close('completed');
     const written = await lines(file);

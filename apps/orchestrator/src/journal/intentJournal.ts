@@ -21,8 +21,8 @@ export interface JournalTurn {
   dispatched(record: DispatchRecord): void;
   surfaces(touches: SurfaceTouches): void;
   deadlines(deadlines: {softMs: number; capMs: number}): void;
-  /** The user closed the canvas while the turn ran. */
-  canvasClosed(): void;
+  /** The user closed the composition while the turn ran. */
+  compositionClosed(): void;
   /** A press: the turn whose composition it acts on. */
   composition(turnId: string): void;
   /** A press refused, and why. */
@@ -37,14 +37,14 @@ export interface JournalTurn {
   close(outcome: DispatchOutcome): Promise<void>;
 }
 
-/** How many closed turns a canvas's ring keeps. */
+/** How many closed turns a composition's ring keeps. */
 export const RECENT_TURNS = 5;
 
 /**
  * Append-only JSON lines in the orchestrator's state directory, plus an in-memory ring of the
- * last few entries per canvas — per context — the same entry the file gets. The Planner's
+ * last few entries per context, the same entry the file gets. The Planner's
  * recent-turns reader no longer reads it (task-9.3 decision 2: the ancestry is read from the
- * canvases); it stays for the journal's own callers. Nothing is seeded from the file — a restart
+ * compositions); it stays for the journal's own callers. Nothing is seeded from the file — a restart
  * starts empty, as the composition state does.
  */
 export class IntentJournal {
@@ -94,7 +94,7 @@ export class IntentJournal {
       deadlines: deadlines => {
         entry.deadlines = deadlines;
       },
-      canvasClosed: () => {
+      compositionClosed: () => {
         entry.closed = true;
       },
       composition: turnId => {
@@ -117,7 +117,7 @@ export class IntentJournal {
     };
   }
 
-  /** The last closed turns of a canvas, oldest first; at most `RECENT_TURNS`. */
+  /** The last closed turns of a composition, oldest first; at most `RECENT_TURNS`. */
   recent(clientContextId: string): readonly JournalEntry[] {
     return this.#recent.get(clientContextId) ?? [];
   }

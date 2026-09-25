@@ -119,7 +119,7 @@ function scripted(results: LanguageModelV3GenerateResult[]) {
 
 const readers: PlatformReaders = {
   installedApps: () => [{id: 'gmail', displayName: 'Gmail', skills: [], reachable: true}],
-  thisCanvas: () => undefined,
+  thisComposition: () => undefined,
   recentTurns: () => ['2026-09-13T06:00:00.000Z · utterance "x" → gmail (completed) · completed'],
 };
 

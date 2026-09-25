@@ -122,8 +122,8 @@ async function boot(
 }
 
 /**
- * A question at the palette. It opens a canvas of its own (task-9.3 decision 1): no contextId
- * unless a test sets one, and, asked from a canvas, that canvas as its parent (decision 2).
+ * A question at the palette. It opens a composition of its own (task-9.3 decision 1): no contextId
+ * unless a test sets one, and, asked from a composition, that composition as its parent (decision 2).
  */
 function utterance(text: string, contextId?: string, parent?: string): Message {
   return {
@@ -263,12 +263,12 @@ describe('orchestrator', () => {
     ]);
   });
 
-  test('the Planner is handed the canvas the question was asked from and a shortlist carrying the platform’s card (phase-6 decision 1, task-9.3 decision 2)', async () => {
+  test('the Planner is handed the composition the question was asked from and a shortlist carrying the platform’s card (phase-6 decision 1, task-9.3 decision 2)', async () => {
     const planner = new FakePlanner();
     const {client} = await boot({planner});
     const [first] = await collect(client, utterance('what apps do I have?'));
     expect(planner.calls).toHaveLength(1);
-    // A root canvas: nothing to read from.
+    // A root composition: nothing to read from.
     expect(planner.calls[0]!.askedFrom).toBeUndefined();
     const ids = planner.calls[0]!.shortlist.map(e => e.record.id).sort();
     expect(ids).toEqual(['calendar', 'github', 'gmail', 'shell']);
@@ -276,7 +276,7 @@ describe('orchestrator', () => {
     expect(shell.card.skills.map(s => s.id)).toContain('installed-apps');
     expect(shell.record.catalogPackage).toBe('@a2uiverse/shell-catalog');
 
-    // A question asked from that canvas names it: the readers describe it.
+    // A question asked from that composition names it: the readers describe it.
     const [child] = await collect(
       client,
       utterance('and the calendar?', undefined, first.contextId),
@@ -441,7 +441,7 @@ describe('orchestrator', () => {
     }
   });
 
-  test('degenerate single-agent turn routes and paints; a question asked from it opens its own canvas with a fresh vendor conversation (task-9.3)', async () => {
+  test('degenerate single-agent turn routes and paints; a question asked from it opens its own composition with a fresh vendor conversation (task-9.3)', async () => {
     const {client} = await boot({planner: new FakePlanner(() => planFor(['github']))});
     const [first] = await collect(client, utterance('what needs my review?'));
     const events = await collect(client, utterance('and now?', undefined, first.contextId));
@@ -1418,30 +1418,30 @@ describe('late arrival and failure (task 8.3)', () => {
     expect(first['gmail']).toMatchObject({noun: 'Gmail threads'});
   });
 
-  test('a question inside an existing context is refused: a question opens a canvas of its own (task-9.3 decision 1)', async () => {
+  test('a question inside an existing context is refused: a question opens a composition of its own (task-9.3 decision 1)', async () => {
     const planner = new FakePlanner(() => layoutFor(['github']));
     const {client} = await boot({planner});
     const [first] = await collect(client, utterance('first'));
     const events = await collect(client, utterance('second', first.contextId));
     expect(finalOf(events).status.state).toBe('failed');
     expect(textsOf(finalOf(events).status.message!)).toEqual([
-      'A question opens a canvas of its own.',
+      'A question opens a context of its own.',
     ]);
     expect(planner.calls).toHaveLength(1);
     const lines = await journalLines(2);
     expect(lines.find(l => l.refused)).toMatchObject({
-      refused: 'A question opens a canvas of its own.',
+      refused: 'A question opens a context of its own.',
       outcome: 'failed',
     });
   });
 
-  test('a second question opens its own canvas: the first runs on to its answer (task-9.3, phase-9 decision 6)', async () => {
+  test('a second question opens its own composition: the first runs on to its answer (task-9.3, phase-9 decision 6)', async () => {
     const {client} = await boot({
       planner: new FakePlanner(() => layoutFor(['github', 'gmail'])),
       scripts: {gmail: after(1_500, shopScript(camerasB))},
     });
     const firstTurn = streamOf(client, utterance('first'));
-    await until(() => firstTurn.events.length > 0, 'the first canvas opened');
+    await until(() => firstTurn.events.length > 0, 'the first composition opened');
     const contextId = firstTurn.events[0]!.contextId!;
     await wait(200);
     const second = await collect(client, utterance('second', undefined, contextId));
@@ -1453,7 +1453,7 @@ describe('late arrival and failure (task 8.3)', () => {
     expect(vendors.gmail!.methods).not.toContain('tasks/cancel');
   });
 
-  test('closing a canvas still loading cancels its turn: its vendor told, journaled closed; nothing reaches it after (task-9.3 decision 5)', async () => {
+  test('closing a composition still loading cancels its turn: its vendor told, journaled closed; nothing reaches it after (task-9.3 decision 5)', async () => {
     const {client} = await boot({
       planner: new FakePlanner(() => layoutFor(['github', 'gmail'])),
       scripts: {gmail: after(1_500, shopScript(camerasB))},
@@ -1471,7 +1471,7 @@ describe('late arrival and failure (task 8.3)', () => {
     await until(() => vendors.gmail!.methods.includes('tasks/cancel'), 'Gmail cancelled');
     const later = await collect(client, actionOn('github:s1', contextId));
     expect(finalOf(later).status.state).toBe('failed');
-    expect(textsOf(finalOf(later).status.message!)).toEqual(['This canvas is closed.']);
+    expect(textsOf(finalOf(later).status.message!)).toEqual(['This context is closed.']);
     const again = await collect(client, press('close', [], contextId));
     expect(finalOf(again).status.state).toBe('failed');
     const lines = await journalLines(4);
@@ -1485,7 +1485,7 @@ describe('late arrival and failure (task 8.3)', () => {
     });
   });
 
-  test('closing a canvas before it is planned: the Planner’s call aborted, the turn cancelled', async () => {
+  test('closing a composition before it is planned: the Planner’s call aborted, the turn cancelled', async () => {
     const held = gate();
     const planner: Planner = {
       plan: async input => {
@@ -1502,7 +1502,7 @@ describe('late arrival and failure (task 8.3)', () => {
     };
     const {client} = await boot({planner});
     const turn = streamOf(client, utterance('first'));
-    await until(() => turn.events.length > 0, 'the canvas opened');
+    await until(() => turn.events.length > 0, 'the composition opened');
     const contextId = turn.events[0]!.contextId!;
     const closed = await collect(client, press('close', [], contextId));
     expect(finalOf(closed).status.state).toBe('completed');
@@ -1851,7 +1851,7 @@ describe('quiescence (task 8.10)', () => {
     const events = await turn.done;
     expect(synthesisEvents(events)).toHaveLength(1);
     // The call over Gmail's data was aborted the moment the report took Gmail out; the one that
-    // landed read the set without it, and no Gmail row can reach the canvas.
+    // landed read the set without it, and no Gmail row can reach the client.
     expect(synthesizer.calls).toHaveLength(2);
     expect(synthesizer.calls[0]!.signal?.aborted).toBe(true);
     expect(synthesizer.calls[1]!.input.sources.map(s => s.appId).sort()).toEqual([
@@ -2334,7 +2334,7 @@ describe('Include, Retry and Try again (task 8.4)', () => {
     const contextId = crypto.randomUUID();
     const none = await collect(client, press('retry', ['gmail'], crypto.randomUUID()));
     expect(finalOf(none).status.state).toBe('failed');
-    expect(textsIn(none)).toContain('No such canvas.');
+    expect(textsIn(none)).toContain('No such context.');
 
     await collect(client, utterance('compare', contextId));
     const notFailed = await collect(client, press('retry', ['gmail'], contextId));
@@ -2353,7 +2353,7 @@ describe('Include, Retry and Try again (task 8.4)', () => {
     ]);
   });
 
-  test('closing the canvas ends a Retry in flight: cancelled, its vendor told, journaled closed (task-9.3 decision 5)', async () => {
+  test('closing the composition ends a Retry in flight: cancelled, its vendor told, journaled closed (task-9.3 decision 5)', async () => {
     const {client} = await boot({
       planner: new FakePlanner(() => layoutFor(['github', 'gmail'])),
       scripts: {gmail: sequence(failing(), after(5_000, shopScript(camerasB)))},

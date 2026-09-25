@@ -76,7 +76,7 @@ const readers: PlatformReaders = {
         skills: e.card.skills.map(s => ({name: s.name, description: s.description})),
         reachable: true,
       })),
-  thisCanvas: () => undefined,
+  thisComposition: () => undefined,
   recentTurns: () => [],
 };
 
