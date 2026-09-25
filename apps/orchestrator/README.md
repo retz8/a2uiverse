@@ -4,9 +4,11 @@ The hub: an A2A agent server, and the only server the client talks to. It finds 
 
 ## Where it sits
 
-![One question answered by Linear, GitHub and CircleCI on one screen](../../docs/images/composed-answer.png)
-
-One question, one screen. Linear, GitHub and CircleCI each answer in their own slot, in their own look, with their name above it. The table on top is the merged view, written over their data.
+<p align="center">
+  <img src="../../docs/images/composed-answer.png" width="640" alt="One question answered by Linear, GitHub and CircleCI on one screen">
+  <br>
+  <em>One question, answered by Linear, GitHub and CircleCI, each in its own slot and look. The table on top is the merged view.</em>
+</p>
 
 None of it reaches the client from an app directly. The client and the apps never talk to each other; each talks A2A to the orchestrator in the middle.
 
@@ -62,7 +64,11 @@ flowchart LR
 
 ## One composition per context
 
-![The client's trail: four questions, the newest still loading](../../docs/images/trail.png)
+<p align="center">
+  <img src="../../docs/images/trail.png" width="640" alt="The client's trail of four questions">
+  <br>
+  <em>The client's trail: four questions asked, each one a context on the orchestrator. The newest is still loading.</em>
+</p>
 
 The client keeps every question the user asked in its trail, and the user can go back to any of them. On the orchestrator, each one is an A2A context, and the orchestrator holds a composition for it: the layout, each app's slot and data, the merged view, and each app's screen history. Every later message (a click, a press, a close) carries its context, so it lands on the right composition.
 
@@ -92,9 +98,13 @@ flowchart LR
 
 ## Going back inside an app's answer
 
-![CircleCI's runs list after Back, a Forward arrow at the right of its row](../../docs/images/way-back.png)
+<p align="center">
+  <img src="../../docs/images/way-back.png" width="640" alt="CircleCI's runs list after Back">
+  <br>
+  <em>CircleCI stepped back from one run to its runs list. The arrow at the right of its row leads forward again.</em>
+</p>
 
-Clicking into something inside an app's answer, like a CI run or an issue, makes the app paint a new screen in its slot, and a back arrow appears at the right of the app's row. Above, CircleCI has been stepped back from one run to its runs list: the Forward arrow leads to the run again, and the merged table is the one from before the run was opened.
+Clicking into something inside an app's answer, like a CI run or an issue, makes the app paint a new screen in its slot, and a back arrow appears at the right of the app's row. In the screenshot, the merged table is the one from before the run was opened.
 
 The orchestrator remembers the merged view's wiring for every combination of screens it has shown:
 
