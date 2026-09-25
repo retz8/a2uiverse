@@ -183,7 +183,9 @@ packages/
   sdk/             @a2uiverse/sdk: the orchestrator and client's contract
   shell-catalog/   the shell's own A2UI catalog: schema and React implementation
 scripts/           the dev:agents launcher
-docs/images/       the screenshots in the READMEs
+docs/
+  design/          the design records: each part as built, its classes and flows
+  images/          the screenshots in the READMEs
 ```
 
 A pnpm workspace with Turborepo over it. Each package's README has its own commands and configuration.

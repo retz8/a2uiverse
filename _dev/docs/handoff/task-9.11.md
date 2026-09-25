@@ -15,7 +15,7 @@ Done along the way, outside READMEs: the orchestrator's `Canvases` renamed to `C
 
 ## Stance for drafting a README
 
-- **For human developers, not AI.** Easy to read, easy to understand, concise. Details belong in the design records (`_dev/docs/design/*.md`), not the README.
+- **For human developers, not AI.** Easy to read, easy to understand, concise. Details belong in the design records (`docs/design/*.md`), not the README.
 - **Features first, mechanisms after.** Lead with what the thing does and what's cool about it, in the user's-eye terms; the machinery of the latest phase is a smaller section after. Ask "what are this component's main features?" before writing.
 - **Context before mechanism.** Give the broad picture (where it sits, what the reader is looking at) before any detail that would read as absurd on its own.
 - **Show it.** Screenshots and GIFs where they explain, captioned, displayed smaller than full size; drop any that don't earn their place.

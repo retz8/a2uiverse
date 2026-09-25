@@ -8,7 +8,7 @@ The vendor-agent kit's side of the turn's end under Phase 8 (`_dev/docs/spec/pha
 - What a cancel stops: the model, ADK's run, the MCP work.
 - What a cancelled turn leaves: the answer, the stored task, the vendor's conversation, the recorder, the debug dumps.
 - Tests, and a live check.
-- The agent-kit design record (`_dev/docs/design/agent-kit.md`): the cancel path and the task-store guard.
+- The agent-kit design record (`docs/design/agent-kit.md`): the cancel path and the task-store guard.
 - No SPEC or protocol delta register change.
 
 The orchestrator sending no cancel when it aborts before the vendor's task id is known, and Retry's two dispatches running on one vendor conversation, are not this task's.

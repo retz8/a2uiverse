@@ -173,4 +173,4 @@ The Planner and the Synthesizer run on Gemini through the Vercel AI SDK.
 
 </details>
 
-The design record, with every step of a turn, is [`_dev/docs/design/orchestrator.md`](../../_dev/docs/design/orchestrator.md).
+The design record, with every step of a turn, is [`docs/design/orchestrator.md`](../../docs/design/orchestrator.md).

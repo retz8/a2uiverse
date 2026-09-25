@@ -1,6 +1,6 @@
 # Task 4.4 — Orchestrator synthesis core
 
-Spec for sub-task 4.4 of Phase 4 (`_dev/docs/spec/phase-4-synthesis.md`): the turn's second model call and everything around it on the orchestrator — partition materialization, the Synthesizer, the IntegrityChecker and generation stamps, the Planner's synthesis slot, the synthesis surface, decline. Consumes the wiring contract (`task-4.2-synthesis-wiring-contract.md`) and the shell catalog's operators and primitives (`task-4.3-shell-catalog-synthesis.md`). Extends the design recorded in `_dev/docs/design/orchestrator.md`.
+Spec for sub-task 4.4 of Phase 4 (`_dev/docs/spec/phase-4-synthesis.md`): the turn's second model call and everything around it on the orchestrator — partition materialization, the Synthesizer, the IntegrityChecker and generation stamps, the Planner's synthesis slot, the synthesis surface, decline. Consumes the wiring contract (`task-4.2-synthesis-wiring-contract.md`) and the shell catalog's operators and primitives (`task-4.3-shell-catalog-synthesis.md`). Extends the design recorded in `docs/design/orchestrator.md`.
 
 ## Scope
 

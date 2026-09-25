@@ -1,6 +1,6 @@
 # Task 4.5 — Client synthesis
 
-Spec for sub-task 4.5 of Phase 4 (`_dev/docs/spec/phase-4-synthesis.md`): the client half of synthesis — wiring intake, the BindingEvaluator, the derived data model written into the synthesis surface, sort, and partial-value integration. Consumes the wiring contract (`task-4.2-synthesis-wiring-contract.md`), the shell catalog's operators and primitives (`task-4.3-shell-catalog-synthesis.md`), and what the orchestrator paints (`task-4.4-orchestrator-synthesis.md`). Extends the design recorded in `_dev/docs/design/client.md`.
+Spec for sub-task 4.5 of Phase 4 (`_dev/docs/spec/phase-4-synthesis.md`): the client half of synthesis — wiring intake, the BindingEvaluator, the derived data model written into the synthesis surface, sort, and partial-value integration. Consumes the wiring contract (`task-4.2-synthesis-wiring-contract.md`), the shell catalog's operators and primitives (`task-4.3-shell-catalog-synthesis.md`), and what the orchestrator paints (`task-4.4-orchestrator-synthesis.md`). Extends the design recorded in `docs/design/client.md`.
 
 ## Scope
 
@@ -73,7 +73,7 @@ The evaluator is tested as a table with the live-produced wiring from the 4.4 ha
 
 ### 15. A mechanism doc for synthesis
 
-`_dev/docs/design/synthesis.md` is the narrative of synthesis end to end across both processes — utterance to painted cell, generations and stale, absent versus invalid, sort, decline, re-synthesis — with the concrete shapes on the wire. It sits beside the per-area records: `orchestrator.md` and `client.md` keep their class-level entries and link to it, and `client.md` gains the evaluator side in this task. Synthesis is a new mechanism the platform introduces, and it gets a doc of its own.
+`docs/design/synthesis.md` is the narrative of synthesis end to end across both processes — utterance to painted cell, generations and stale, absent versus invalid, sort, decline, re-synthesis — with the concrete shapes on the wire. It sits beside the per-area records: `orchestrator.md` and `client.md` keep their class-level entries and link to it, and `client.md` gains the evaluator side in this task. Synthesis is a new mechanism the platform introduces, and it gets a doc of its own.
 
 ## Conventions
 

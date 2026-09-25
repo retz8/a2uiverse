@@ -4,11 +4,11 @@ The closing sub-task of Phase 5 (`_dev/docs/spec/phase-5-heterogeneous-shapes.md
 
 ## Scope
 
-- `_dev/docs/design/synthesis.md` rewritten in full.
-- `_dev/docs/design/orchestrator.md` and `_dev/docs/design/client.md` corrected wherever Phase 5 changed the design.
+- `docs/design/synthesis.md` rewritten in full.
+- `docs/design/orchestrator.md` and `docs/design/client.md` corrected wherever Phase 5 changed the design.
 - `packages/sdk/README.md` rewritten.
 - `packages/sdk/docs/composition.md` amended where the README work finds a vocabulary gap.
-- `_dev/docs/design/shell-catalog.md` checked, not rewritten.
+- `docs/design/shell-catalog.md` checked, not rewritten.
 - Written directly on `main`, no worktree.
 
 ## Locked decisions

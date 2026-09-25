@@ -117,5 +117,5 @@ ESM, runs in Node and the browser.
 
 ## Further reading
 
-- [`_dev/docs/design/synthesis.md`](../../_dev/docs/design/synthesis.md): the merged view end to end.
-- [`_dev/docs/design/orchestrator.md`](../../_dev/docs/design/orchestrator.md) and [`_dev/docs/design/client.md`](../../_dev/docs/design/client.md): how each side uses the contract.
+- [`docs/design/synthesis.md`](../../docs/design/synthesis.md): the merged view end to end.
+- [`docs/design/orchestrator.md`](../../docs/design/orchestrator.md) and [`docs/design/client.md`](../../docs/design/client.md): how each side uses the contract.

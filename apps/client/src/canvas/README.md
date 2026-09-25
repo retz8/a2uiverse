@@ -1,6 +1,6 @@
 # src/canvas
 
-The canvas's code. What the canvas does for the user is in the [client README](../../README.md); how it's built, in detail, is in the design record [`_dev/docs/design/client.md`](../../../../_dev/docs/design/client.md).
+The canvas's code. What the canvas does for the user is in the [client README](../../README.md); how it's built, in detail, is in the design record [`docs/design/client.md`](../../../../docs/design/client.md).
 
 ## Rules worth knowing before you change it
 

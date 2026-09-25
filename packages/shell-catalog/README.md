@@ -57,4 +57,4 @@ pnpm --filter @a2uiverse/shell-catalog dev    # the design-check page, on port 5
 
 The design-check page shows that same sweep in light, dark and with no host theme, a merged view, the states of `DerivedValue`, `Slot` and `Attribution`, and that the theme stays inside its wrapper.
 
-The design record is [`_dev/docs/design/shell-catalog.md`](../../_dev/docs/design/shell-catalog.md).
+The design record is [`docs/design/shell-catalog.md`](../../docs/design/shell-catalog.md).

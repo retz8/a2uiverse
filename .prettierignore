@@ -7,6 +7,7 @@ pnpm-lock.yaml
 
 # Hand-authored docs and harness/skill content — not owned by Prettier
 _dev
+docs/design
 .claude
 SPEC.md
 CLAUDE.md

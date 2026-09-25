@@ -44,7 +44,7 @@ Generated from `catalog.json`: for every component and every enum value of every
 
 ### 8. Five documents
 
-SPEC §4.2 inverted to state the shell catalog maps each basic component onto Radix Themes, its own design system, brought by its Provider; a SPEC §15 row under New for the shell catalog as a Radix Themes mapping; a new `_dev/docs/design/shell-catalog.md` design record; the package README rewritten past "until 5.9"; a Backlog line for revisiting the catalog's surface the Primer way once the milestones are complete.
+SPEC §4.2 inverted to state the shell catalog maps each basic component onto Radix Themes, its own design system, brought by its Provider; a SPEC §15 row under New for the shell catalog as a Radix Themes mapping; a new `docs/design/shell-catalog.md` design record; the package README rewritten past "until 5.9"; a Backlog line for revisiting the catalog's surface the Primer way once the milestones are complete.
 
 ## Invariants
 

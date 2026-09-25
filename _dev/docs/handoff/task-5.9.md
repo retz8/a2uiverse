@@ -9,7 +9,7 @@ Spec: `_dev/docs/spec/task-5.9-radix-mapping.md`. Grilled and spec'd; **no code 
 
 ## What to do
 
-Implementation begins in a worktree, `phase-5/9-radix-mapping` off `main`, via `daily-work-harness:rebase-with-main`. Code only in the worktree; the five documents (SPEC §4.2 + §15, `_dev/docs/design/shell-catalog.md`, the package README, the Backlog line) are `main` edits at wrap-up.
+Implementation begins in a worktree, `phase-5/9-radix-mapping` off `main`, via `daily-work-harness:rebase-with-main`. Code only in the worktree; the five documents (SPEC §4.2 + §15, `docs/design/shell-catalog.md`, the package README, the Backlog line) are `main` edits at wrap-up.
 
 Read the `a2ui-sdk-design` skill in full first — the repo rule for shell-catalog work.
 

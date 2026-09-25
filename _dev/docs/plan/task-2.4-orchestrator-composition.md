@@ -73,7 +73,7 @@ At execution start: copy this plan to `_dev/docs/plan/task-2.4-orchestrator-comp
 - Integration tests (rewritten `boot()` with fake vendors + injected fakes): fan-out ordering (shell paint before any vendor event, stamps, namespacing, exactly one final, vendors got prose not utterance, no a2uiverse metadata outbound), degenerate single-agent parity, failed path, collapsed path (zero-surface + cancel), action round-trip, partition filter, VALIDATION_FAILED repaint, broken turn, journal (plan present, embedding non-null, dispatch list complete).
 
 ### 8. Design doc
-Rewrite `_dev/docs/design/orchestrator.md`: new components (Embedder/Router/Planner, init card-fetch), three turn sequences, three-rewrites table + final-demotion envelope note, Registry second shape, Planner section, journal embedding, config rows, test seams. sdk README already updated in Stage 1. (TODO tick = wrap-up, not this plan.)
+Rewrite `docs/design/orchestrator.md`: new components (Embedder/Router/Planner, init card-fetch), three turn sequences, three-rewrites table + final-demotion envelope note, Registry second shape, Planner section, journal embedding, config rows, test seams. sdk README already updated in Stage 1. (TODO tick = wrap-up, not this plan.)
 
 ## Dependency changes
 `apps/orchestrator`: + `ai` ^7, `@ai-sdk/google`, `@huggingface/transformers` ^3 · `packages/sdk/python` deleted · shell-catalog `"./id"` export · lockfile regenerated.

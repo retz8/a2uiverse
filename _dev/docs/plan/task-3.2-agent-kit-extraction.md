@@ -85,7 +85,7 @@ Record baseline SHA; confirm `git status` clean in both repos.
 ## Wrap-up (platform repo, on main)
 
 - Save this plan as `_dev/docs/plan/task-3.2-agent-kit-extraction.md` (per project convention).
-- Add design record `_dev/docs/design/agent-kit.md` (new area: kit components, config surface, mode flow).
+- Add design record `docs/design/agent-kit.md` (new area: kit components, config surface, mode flow).
 - TODO tick and handoff via `daily-work-harness:wrap-up` when done.
 
 ## Critical reference files

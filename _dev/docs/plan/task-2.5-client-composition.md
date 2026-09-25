@@ -178,7 +178,7 @@ chrome must agree on a palette, and `SHELL_TOKENS`' fallbacks are only exercised
 
 ### 10 — Docs
 
-- `_dev/docs/design/client.md` — the client's system-design record, which does not exist yet even though
+- `docs/design/client.md` — the client's system-design record, which does not exist yet even though
   `orchestrator.md` does.
 - `apps/client/README.md` source map, and `apps/client/src/canvas/README.md` (the canvas shell's own design
   doc) for composition: the stage holds a composition, fragments mount through slots, and the

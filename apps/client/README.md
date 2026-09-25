@@ -177,4 +177,4 @@ e2e/                 Playwright screenshot tests
 
 </details>
 
-The design record is [`_dev/docs/design/client.md`](../../_dev/docs/design/client.md).
+The design record is [`docs/design/client.md`](../../docs/design/client.md).
