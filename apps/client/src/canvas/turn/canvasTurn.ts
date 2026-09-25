@@ -689,6 +689,8 @@ export function createTurnRunner({
       const stageId = store.getState().stageId;
       if (!stageId) {
         // The net-effect rule on the empty canvas: created, then cleaned up again.
+        // A turn that created nothing reports nothing here, so a failed utterance leaves the
+        // canvas idle with no word (A2U-5).
         if (createdIds.size > 0) store.reportError(EMPTY_FAILURE_TEXT);
         return;
       }
