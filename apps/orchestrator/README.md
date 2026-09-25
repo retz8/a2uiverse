@@ -2,6 +2,26 @@
 
 The hub: an A2A agent server, and the only server the client talks to. It finds the apps that can answer a question, plans where their answers will sit, asks them in parallel, and relays what comes back as one composed screen. When the answers can be merged, a second model call writes the merged view.
 
+## Where it sits
+
+![One question answered by Linear, GitHub and CircleCI on one screen](../../docs/images/composed-answer.png)
+
+One question, one screen. Linear, GitHub and CircleCI each answer in their own slot, in their own look, with their name above it. The table on top is the merged view, written over their data.
+
+None of it reaches the client from an app directly. The client and the apps never talk to each other; each talks A2A to the orchestrator in the middle.
+
+```mermaid
+flowchart LR
+    C["Client"] <-->|A2A| O["Orchestrator"]
+    O <-->|A2A| L["Linear agent"]
+    O <-->|A2A| G["GitHub agent"]
+    O <-->|A2A| CI["CircleCI agent"]
+    O -.->|model calls| M["Gemini<br/>Planner and Synthesizer"]
+```
+
+- **To the client**, the orchestrator is one A2A agent that answers every question and every click.
+- **To each app**, it's an A2A client with a request. The app answers in its own UI, and the orchestrator decides where that UI goes on the screen.
+
 ## How a question is answered
 
 ```
@@ -21,7 +41,7 @@ question → Router       ranks the apps that could answer, A2UIVerse itself amo
 
 ## What it changes on the way through
 
-The orchestrator sits between the client and every app, and changes as little as it can.
+Every app's UI passes through the orchestrator on its way to that one screen, and every click on it passes back the same way. The orchestrator changes as little as it can.
 
 ```mermaid
 flowchart LR
@@ -38,11 +58,13 @@ flowchart LR
 - **Surface ids are namespaced by app**, `inbox` becoming `gmail:inbox`, so two apps can't collide on one screen. It's the only change made inside an app's A2UI.
 - **Every event is stamped** with the app that painted it, so the client knows which slot it fills. After an app's last event, one more marks where its stream ended.
 - **Only the orchestrator ends a turn.** Several apps answer one question, so each app's own "done" is held back, and the orchestrator sends one when all of them have answered.
-- **Each app sees only its own data.** When the client sends back the screen's data with an action, the orchestrator passes on only that app's part.
+- **Each app sees only its own data.** When the client sends back the screen's data with a click, the orchestrator passes on only that app's part.
 
 ## One composition per context
 
-Every question the client sends opens an A2A context, and the orchestrator holds a composition for it: the layout, each app's slot and data, the merged view, and each app's screen history. Every later message (an action, a press, a close) carries its context, so it lands on the right composition.
+![The client's trail: four questions, the newest still loading](../../docs/images/trail.png)
+
+The client keeps every question the user asked in its trail, and the user can go back to any of them. On the orchestrator, each one is an A2A context, and the orchestrator holds a composition for it: the layout, each app's slot and data, the merged view, and each app's screen history. Every later message (a click, a press, a close) carries its context, so it lands on the right composition.
 
 ```mermaid
 flowchart LR
@@ -70,13 +92,9 @@ flowchart LR
 
 ## Going back inside an app's answer
 
-Clicking into something inside an app's answer, like a CI run or an issue, makes the app paint a new screen in its slot. Each app's screens in a composition are a history with a back arrow.
+![CircleCI's runs list after Back, a Forward arrow at the right of its row](../../docs/images/way-back.png)
 
-```mermaid
-flowchart LR
-    R0["CircleCI screen 0<br/>recent runs"] -- open a run --> R1["CircleCI screen 1<br/>one run"]
-    R1 -- Back --> R0
-```
+Clicking into something inside an app's answer, like a CI run or an issue, makes the app paint a new screen in its slot, and a back arrow appears at the right of the app's row. Above, CircleCI has been stepped back from one run to its runs list: the Forward arrow leads to the run again, and the merged table is the one from before the run was opened.
 
 The orchestrator remembers the merged view's wiring for every combination of screens it has shown:
 
