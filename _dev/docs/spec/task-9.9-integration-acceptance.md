@@ -116,12 +116,78 @@ Every button the shell draws on Radix Themes — a fragment's back and forward a
 
 ### 25. An action is its source's tick
 
-An action inside a fragment names no action on the progress line: that source's tick is working from the press until the source's settled marker, then done, and the merge step says the rest. Replaced: a working step before the ticks, "<the action's name and its first context value> — generating…", upgraded to the vendor's `paintMeta` title when one came, standing until the turn ended (task-8.5 decision 13). Raised on case 2, decided on case 7.
+An action inside a fragment names no action on the progress line: that source's tick is working from the press until the source's settled marker, then done, and the merge step says the rest. Replaced: a working step before the ticks, "<the action's name and its first context value> — generating…", upgraded to the vendor's `paintMeta` title when one came, standing until the turn ended (task-8.5 decision 13). SPEC §4.3 amended. Raised on case 2, decided on case 7.
 
 ## Found and fixed during the run
 
 - **A trail entry picked under the pointer left its preview behind.** The pick closes the rail with the pointer still on the row, so the row never saw it leave, and the next opening of the rail showed that entry's preview unasked. A closed rail clears its preview. Case 3; the canvas app suite's test of an entry picked under the pointer.
 - **The journal read a step's combination after its wait.** A step waiting behind a merge in the making was journaled with the combination a later step had left, so a Forward read `calendar 0`. The combination is read as the step makes it. Case 2; the orchestrator's abandoned-walk test asserts both steps' combinations.
+
+## Evidence
+
+The deterministic roster through the tunnel unless named. Times UTC on 2026-09-25; a canvas by the first eight characters of its id.
+
+- **Case 1 — a tab finishing in the background** (CircleCI delayed 20 s, soft deadline 60 s). The entity join (`dc4d8017`) released its merge `settled` at 01:17:36, after the second question at 01:17:28; the second canvas (`e647c063`) was planned with the first as its parent.
+- **Case 2 — an action and a press in a past canvas** (Gmail failing). The Calendar event and Gmail's Retry landed in the parked canvas (`9730be24`), journaled on it as `walk` and `retry`; no trail entry was added.
+- **Case 3 — "Ask this again now" and a question asked from a view.** Both children of `faf8a503`: the question asked again at 03:11:14 (`39d7a125`); "Only the calendar part" at 03:11:51 (`7aea3bdf`), Calendar alone, no merge.
+- **Case 4 — add/drop and "compare these".** Planned from the side-by-side canvas (`117945e3`), which made no call: "Add GitHub to this" painted Gmail, Calendar and GitHub (`551f6eef`); "without Gmail" Calendar alone (`7c88ed5f`); "compare these" a merge over Gmail and Calendar, `settled`, one call (`8e442447`).
+- **Case 5 — a step back with the wiring restored.** CircleCI's Back at 03:32:34 (`f2af7904`): `seen: true`, `walk: silent`, no attempt. After decision 23 (`eaba3065`) the run showed at 2.3 s and the re-synthesis landed at 12.1 s; both had landed at 27 s.
+- **Case 6 — an unseen combination falling to the walk.** On `416a1331` a CircleCI run opened, then Linear's A2U-5, then CircleCI's Back at 03:53:06: `step circleci to 0`, combination `{github: 0, linear: 1, circleci: 0}`, `seen: false`, `walk: landed`, one attempt released `by: step`. The run list returned at once; the merge line worked until the walk landed 8 s later.
+- **Case 7 — closing a loading canvas** (GitHub delayed 30 s). `330ab41b` was closed from the trail at 04:11:09 with GitHub still loading: the orchestrator logged the canvas closed and GitHub's dispatch cancelled at 3.5 s, before the delayed dispatch went out; the utterance line reads `closed: true`, with no release. The entry left the trail; its parent `8fd09643` stood as live. An earlier close (`a25f069c`) came after GitHub had answered at 30.0 s and is not counted.
+- **The regression pass** (decision 6). With no faults: the entity join, `settled`, one call (`9a482350`); the temporal merge over Calendar, Gmail, GitHub and Linear, `settled`, one call (`620e5f1c`); "Show me the open pull requests on a2ui-project/a2ui that need review." to GitHub alone, no call (`36e74ccb`); "What apps do I have?" answered in the layout, no dispatch, no call (`b9b3fbc1`); on the mock roster, "Which cameras are cheapest across the shops?" a union across Shop A and Shop B, `settled`, one call (`29a5a651`). With Gmail failing fast: the merge `settled` without Gmail beside its tile in the vendor's words, then Retry folding Gmail in, `retry`, one call (`b49f0e63`).
+- **Live — a step back over a live drill-down.** On `0f3cc76b` the live CircleCI answered the run in 27.8 s, its tick working throughout. CircleCI's Back at 04:22:51: combination `{circleci: 0, linear: 0, github: 0}`, `seen: true`, `walk: silent`, no attempt, answered in 2 ms.
+- **Live — closing a loading canvas.** `c491cdfd` was closed at 04:23:54 with Calendar, Gmail and GitHub out and Linear painted but not settled. Each of the four vendors logged the cancel at 04:23:56 — ADK's "Root node … was cancelled" and the kit's "task … canceled"; the utterance line reads `closed: true`, with no release.
+- **Baselines** (decision 8). 42 of the 71 comparisons changed, each diff named. Decision 20 in 41: the strip's name gone, the Ask pill and the notices lowered, the page's foot uncovered, the empty page's hint recentred. Decision 15 in four — the way back's shot, the unseen step, beats 23 and 24: the arrows at the row's right edge, the taller row moving the fragment beneath it. Decision 18 in the condensed bar's edge starting past the sidebar, under the comparison's threshold. Decisions 14, 23, 24 and 25 show nothing in the shots. No rendering drift; no tolerance added. Retaken, all 71 pass on two runs.
+
+### Synthesis releases per canvas
+
+Automatic: `settled`, `soft-deadline`. Pressed: `walk` behind an action, `retry`, `step`. No canvas shows a second automatic release.
+
+| Case | Time | Canvas | Question | Asked from | Released by (attempts) |
+|---|---|---|---|---|---|
+| 1 | 01:17 | `dc4d8017` | what's the status of what I'm working on? | — | settled (1) |
+| 1 | 01:17 | `e647c063` | What needs my attention today? | `dc4d8017` | settled (1) |
+| 1 | 01:21 | `1fb960a3` | what's the status of what I'm working on? | — | settled (1) |
+| 1 | 01:21 | `7596b0a0` | What needs my attention today? | `1fb960a3` | settled (1) |
+| 2 | 02:08 | `9730be24` | What needs my attention today? | — | settled (1), walk (1), retry (1) |
+| 2 | 02:08 | `73081447` | what's the status of what I'm working on? | `9730be24` | settled (1) |
+| 2 | 02:18 | `a8a02160` | What needs my attention today? | — | settled (1), walk (1), retry (1), step (2) |
+| 2 | 02:18 | `14dbf31a` | what's the status of what I'm working on? | `a8a02160` | settled (1) |
+| 2 | 02:23 | `acd10a84` | What needs my attention today? | — | settled (1) |
+| 2 | 02:39 | `81f1da39` | What needs my attention today? | — | settled (1), walk (1), retry (1) |
+| 2 | 02:39 | `333780d8` | what's the status of what I'm working on? | `81f1da39` | settled (1) |
+| 2 | 02:58 | `94448f00` | What needs my attention today? | — | settled (1), walk (1) |
+| 3 | 03:09 | `faf8a503` | What needs my attention today? | — | settled (1) |
+| 3 | 03:10 | `8c67f16e` | what's the status of what I'm working on? | `faf8a503` | settled (1) |
+| 3 | 03:11 | `39d7a125` | What needs my attention today? | `faf8a503` | settled (1) |
+| 3 | 03:11 | `7aea3bdf` | Only the calendar part | `faf8a503` | — |
+| 4 | 03:25 | `117945e3` | Put my inbox and my calendar side by side. | — | — |
+| 4 | 03:26 | `551f6eef` | Add GitHub to this | `117945e3` | — |
+| 4 | 03:26 | `7c88ed5f` | without Gmail | `117945e3` | — |
+| 4 | 03:27 | `8e442447` | compare these | `117945e3` | settled (1) |
+| 5 | 03:31 | `f2af7904` | what's the status of what I'm working on? | — | settled (1), walk (1) |
+| 5 | 03:40 | `eaba3065` | what's the status of what I'm working on? | — | settled (1), walk (1) |
+| 6 | 03:50 | `416a1331` | what's the status of what I'm working on? | — | settled (1), walk (1), walk (1), step (1) |
+| decision 25 | 04:07 | `8fd09643` | what's the status of what I'm working on? | — | soft-deadline (1), walk (1) |
+| 7 | 04:09 | `a25f069c` | What needs my attention today? | `8fd09643` | soft-deadline (1) |
+| 7 | 04:11 | `330ab41b` | What needs my attention today? | `8fd09643` | — · closed loading |
+| regression | 04:13 | `9a482350` | what's the status of what I'm working on? | — | settled (1) |
+| regression | 04:13 | `620e5f1c` | What needs my attention today? | `9a482350` | settled (1) |
+| regression | 04:14 | `36e74ccb` | Show me the open pull requests on a2ui-project/a2ui that need review. | `620e5f1c` | — |
+| regression | 04:14 | `b9b3fbc1` | What apps do I have? | `36e74ccb` | — |
+| regression | 04:15 | `b49f0e63` | What needs my attention today? | — | settled (1), retry (1) |
+| regression | 04:18 | `29a5a651` | Which cameras are cheapest across the shops? | — | settled (1) |
+| live | 04:20 | `0f3cc76b` | what's the status of what I'm working on? | — | soft-deadline (1), walk (1) |
+| live | 04:23 | `c491cdfd` | What needs my attention today? | `0f3cc76b` | — · closed loading |
+
+## Findings not fixed
+
+- **The tunnel loses a request now and then** (task 8.7's finding). An action on case 2 and Linear's first open on case 6 never reached the orchestrator ("That action failed. The orchestrator did not answer."). Actions have no resend; questions do.
+- **The browser automation loses the first question typed after a fresh page load** (task 7.9's note on its input delivery); asking again works.
+- **The deterministic Calendar agent opens the same event whichever card is clicked** — its fixture set; the agents stay unmodified.
+- **"compare these" over an inbox and a calendar made two stacked tables** — left as it is.
+- **The live GitHub agent painted a pull-request card with no title** in "My Open Pull Requests"; the agents stay unmodified.
+- **The live merge's line once read "Joined Linear issues to CircleCI runs" with GitHub ticked and no clause for it**, before "GitHub PRs not in this view yet" and Include appeared; seen once, not investigated.
 
 ## Invariants
 
