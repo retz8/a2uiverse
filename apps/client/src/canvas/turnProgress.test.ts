@@ -335,3 +335,16 @@ describe('listed', () => {
     expect(listed(['Linear', 'GitHub', 'CircleCI'])).toBe('Linear, GitHub and CircleCI');
   });
 });
+
+describe('the merge step on a step back (task-9.7 decision 4)', () => {
+  it('works while the merged view follows a step to a combination the client has not seen', () => {
+    const store = landed();
+    store.setMergeFollowingStep(true);
+    expect(turnProgress(store.getState()).merge).toEqual({
+      text: 'Joining Linear issues to GitHub PRs',
+      status: 'working',
+    });
+    store.setMergeFollowingStep(false);
+    expect(turnProgress(store.getState()).merge?.status).toBe('done');
+  });
+});

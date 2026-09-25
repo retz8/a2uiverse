@@ -133,6 +133,25 @@ describe('buildOperationMessageParams', () => {
       a2uiClientCapabilities: {'v0.9': {supportedCatalogIds: ['cat']}},
     });
   });
+
+  it('a step carries the paint’s data model beside the operation, as an action does (task-9.7 decision 5)', () => {
+    const params = buildOperationMessageParams(
+      {kind: 'step', sources: ['github'], step: 0},
+      'ctx',
+      ['cat'],
+      CLIENT_DM,
+    );
+    expect(params.message.parts).toEqual([
+      {
+        kind: 'data',
+        data: {version: 'v0.9', operation: {kind: 'step', sources: ['github'], step: 0}},
+      },
+    ]);
+    expect(params.message.metadata).toEqual({
+      a2uiClientCapabilities: {'v0.9': {supportedCatalogIds: ['cat']}},
+      a2uiClientDataModel: CLIENT_DM,
+    });
+  });
 });
 
 describe('extractA2uiMessagesFromEvent', () => {

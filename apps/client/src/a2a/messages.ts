@@ -116,14 +116,17 @@ export function buildErrorMessageParams(
 }
 
 /**
- * Wrap the reader's press — Retry, Include or Try again — as A2A send params carrying the
- * composition contract's operation as a data part of its own (task-8.4 decision 14). The press acts
- * on the composition in its context; it carries no data model.
+ * Wrap the reader's press — Retry, Include, Try again, or a step in a fragment's history — as A2A
+ * send params carrying the composition contract's operation as a data part of its own (task-8.4
+ * decision 14). The press acts on the composition in its context; a step alone carries the data
+ * model, the restored paint's among it, so the orchestrator writes its partition from what is on
+ * screen (task-9.2 decision 5).
  */
 export function buildOperationMessageParams(
   operation: CompositionOperation,
   contextId?: string,
   supportedCatalogIds?: string[],
+  clientDataModel?: A2uiClientDataModel,
 ): MessageSendParams {
   return {
     message: {
@@ -132,7 +135,7 @@ export function buildOperationMessageParams(
       messageId: crypto.randomUUID(),
       contextId,
       parts: [{kind: 'data', data: operationData(operation, A2UI_VERSION)}],
-      metadata: messageMetadata(undefined, supportedCatalogIds),
+      metadata: messageMetadata(clientDataModel, supportedCatalogIds),
     },
   };
 }

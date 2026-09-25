@@ -21,6 +21,20 @@ export function retrying({presses}: Pick<CanvasState, 'presses'>, source: string
   );
 }
 
+/**
+ * Whether the source's repaint is in flight (task-9.7 decision 6): the canvas's opening turn,
+ * an action inside this source's fragment, or its Retry sent or running — the arrows on its
+ * attribution row draw disabled until the paint lands.
+ */
+export function sourceBusy(
+  state: Pick<CanvasState, 'inFlight' | 'presses'>,
+  source: string,
+): boolean {
+  const {inFlight} = state;
+  if (inFlight && (inFlight.cause === 'utterance' || inFlight.source === source)) return true;
+  return retrying(state, source);
+}
+
 export function columnState(state: ColumnInputs, source: string): SourceSlotState {
   const {merge, slotStates, placement, presses} = state;
   if (merge?.merged?.includes(source)) return 'filled';

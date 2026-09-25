@@ -13,6 +13,8 @@ import type {PaintCause} from './cause';
 import {createCanvasStore} from '../canvasStore';
 import type {FragmentFailure} from './canvasTurn';
 import {createTurnRunner} from './canvasTurn';
+import {createFragmentHistory} from '../history/fragmentHistory';
+import {capturePaint} from '../history/paintCopy';
 
 const SHELL_CATALOG = createCatalog({onShellAction: () => {}});
 
@@ -1192,5 +1194,239 @@ describe('streams beside the turn (task 8.5)', () => {
     ]);
     stream.end();
     expect(failures).toHaveLength(1);
+  });
+});
+
+describe("the fragment's history (task 9.7)", () => {
+  const SHELL: CompositionStamp = {source: 'shell', role: 'shell'};
+  const fragment = (source: string): CompositionStamp => ({source, role: 'fragment'});
+  const titled = (surfaceId: string, title: string) => msg({paintMeta: {surfaceId, title}});
+  const slotRepaint = (props: Record<string, unknown>[]) =>
+    msg({
+      updateComponents: {
+        surfaceId: 'shell:main',
+        components: props.map(p => ({id: p.source, component: 'Slot', ...p})),
+      },
+    });
+
+  /** A composition over GitHub and Gmail with GitHub's list on the canvas, titled and updated. */
+  function historied(accepted = true) {
+    const catalogs = [CATALOG, SHELL_CATALOG];
+    const processor = new MessageProcessor(catalogs);
+    const store = createCanvasStore();
+    const history = createFragmentHistory({
+      capture: source => {
+        const placed = store.getState().placement.get(source);
+        return placed ? capturePaint(processor, placed.surfaceId) : undefined;
+      },
+    });
+    const synthesis = {accept: vi.fn(() => accepted), retire: vi.fn()};
+    const runner = createTurnRunner({
+      processor,
+      store,
+      createStaging: () => new MessageProcessor(catalogs),
+      synthesis: synthesis as never,
+      history,
+    });
+    const turn = runner.begin(utterance('what needs my attention'));
+    turn.apply(paintedLayout(['github', 'gmail']), SHELL);
+    turn.apply(
+      [
+        titled('github:pr-list', 'Pull requests'),
+        create('github:pr-list'),
+        textRoot('github:pr-list', 'four PRs'),
+      ],
+      fragment('github'),
+    );
+    turn.apply([dataUpdate('github:pr-list', {count: 5})], fragment('github'));
+    turn.end();
+    return {processor, store, runner, history, synthesis};
+  }
+
+  /** An action inside GitHub's fragment, answered with a repaint of `surfaceId`, titled. */
+  function repaint(
+    runner: ReturnType<typeof historied>['runner'],
+    surfaceId: string,
+    title: string,
+    text: string,
+  ) {
+    const action = runner.begin(surfaceAction('open'));
+    action.apply(
+      [titled(surfaceId, title), create(surfaceId), textRoot(surfaceId, text)],
+      fragment('github'),
+    );
+    action.end();
+  }
+
+  it('every vendor create counts at the wire — a refused batch and a discarded staged paint included — the shell’s never (decision 2)', () => {
+    const {runner, history} = historied();
+    expect(history.stackOf('github')).toEqual({length: 1, at: 0});
+    expect(history.stackOf('shell')).toBeUndefined();
+    // The shell draws Gmail's slot bare: its paint is refused at arrival, and still counted.
+    const bare = runner.beginSideStream();
+    bare.apply(
+      [
+        msg({
+          updateComponents: {
+            surfaceId: 'shell:main',
+            components: [
+              {id: 'root', component: 'Column', children: ['attribution-github', 'gmail']},
+              {id: 'gmail', component: 'Slot', source: 'gmail', state: 'pending'},
+            ],
+          },
+        }),
+      ],
+      SHELL,
+    );
+    bare.apply([create('gmail:inbox'), textRoot('gmail:inbox', 'inbox')], fragment('gmail'));
+    bare.end();
+    expect(history.stackOf('gmail')).toEqual({length: 1, at: 0});
+    expect(history.neighbours('gmail')).toEqual({});
+    // A staged repaint the vendor cleaned up again: discarded at the swap, still a step.
+    const action = runner.begin(surfaceAction('open'));
+    action.apply([create('github:pr-detail'), del('github:pr-detail')], fragment('github'));
+    action.end();
+    expect(history.stackOf('github')).toEqual({length: 2, at: 1});
+    // The list is still what is on screen, with nowhere to go: the placeholder is skipped.
+    expect(history.neighbours('github')).toEqual({});
+  });
+
+  it('a same-id repaint captures the paint as last seen before the swap destroys it — the vendor’s later update included (decision 1)', () => {
+    const {processor, runner, history} = historied();
+    repaint(runner, 'github:pr-list', 'PR #42', 'the detail');
+    expect(rootText(processor, 'github:pr-list')).toBe('the detail');
+    expect(history.neighbours('github')).toEqual({back: {step: 0, title: 'Pull requests'}});
+    const step = history.stepTo('github', 0)!;
+    expect(step.title).toBe('Pull requests');
+    expect(step.paint.surfaceId).toBe('github:pr-list');
+    expect(step.paint.catalogId).toBe(CATALOG_ID);
+    expect((step.paint.tree.root as {text: string}).text).toBe('four PRs');
+    expect(step.paint.dataModel).toEqual({count: 5});
+  });
+
+  it('a repaint under a new id captures the displaced paint the same way; a Retry’s answer beside the turn too', () => {
+    const {runner, history} = historied();
+    repaint(runner, 'github:pr-detail', 'PR #42', 'the detail');
+    expect(history.neighbours('github')).toEqual({back: {step: 0, title: 'Pull requests'}});
+    const retry = runner.beginSideStream();
+    retry.apply(
+      [
+        titled('github:pr-list', 'Pull requests, again'),
+        create('github:pr-list'),
+        textRoot('github:pr-list', 'list again'),
+      ],
+      fragment('github'),
+    );
+    retry.end();
+    expect(history.stackOf('github')).toEqual({length: 3, at: 2});
+    expect(history.neighbours('github')).toEqual({back: {step: 1, title: 'PR #42'}});
+    expect((history.stepTo('github', 1)!.paint.tree.root as {text: string}).text).toBe(
+      'the detail',
+    );
+  });
+
+  it('a question-kind fragment is a placeholder: Back from the answer lands on the paint before it (decision 2)', () => {
+    const {runner, history} = historied();
+    const ask = runner.begin(surfaceAction('merge'));
+    ask.apply(
+      [
+        msg({paintMeta: {surfaceId: 'github:ask', kind: 'question', title: 'Merge?'}}),
+        ...questionPaint('github:ask', 'Merge?').slice(1),
+        create('github:ask'),
+      ].reverse(),
+      fragment('github'),
+    );
+    ask.end();
+    repaint(runner, 'github:pr-list', 'Merged', 'merged');
+    expect(history.stackOf('github')).toEqual({length: 3, at: 2});
+    expect(history.neighbours('github')).toEqual({back: {step: 0, title: 'Pull requests'}});
+  });
+
+  it('a slot painted failed drops the step on screen: nothing to return to there', () => {
+    const {runner, history} = historied();
+    repaint(runner, 'github:pr-detail', 'PR #42', 'the detail');
+    runner.beginSideStream().apply([slotRepaint([{source: 'github', state: 'failed'}])], SHELL);
+    const retry = runner.beginSideStream();
+    retry.apply(
+      [
+        titled('github:pr-list', 'Pull requests'),
+        create('github:pr-list'),
+        textRoot('github:pr-list', 'list'),
+      ],
+      fragment('github'),
+    );
+    retry.end();
+    expect(history.neighbours('github')).toEqual({back: {step: 0, title: 'Pull requests'}});
+  });
+
+  it('restore puts the copy back in the slot as the live surface, titled, and a fresh create after it lands as the next step', () => {
+    const {processor, store, runner, history} = historied();
+    repaint(runner, 'github:pr-detail', 'PR #42', 'the detail');
+    const step = history.stepTo('github', 0)!;
+    runner.restore('github', step);
+    expect(rootText(processor, 'github:pr-list')).toBe('four PRs');
+    expect(processor.model.getSurface('github:pr-detail')).toBeUndefined();
+    expect(store.getState().placement.get('github')?.surfaceId).toBe('github:pr-list');
+    expect(store.getState().paintTitles.get('github')).toBe('Pull requests');
+    expect(history.neighbours('github')).toEqual({forward: {step: 1, title: 'PR #42'}});
+    // A later repaint of the restored id replaces it and drops the forward step.
+    repaint(runner, 'github:pr-list', 'Another', 'another');
+    expect(history.stackOf('github')).toEqual({length: 2, at: 1});
+    expect(history.neighbours('github')).toEqual({back: {step: 0, title: 'Pull requests'}});
+    expect((history.stepTo('github', 0)!.paint.tree.root as {text: string}).text).toBe('four PRs');
+  });
+
+  it('a late message for the surface a restore retired is dropped, not reported; a fresh create for it lands', () => {
+    const {processor, store, runner, history} = historied();
+    repaint(runner, 'github:pr-detail', 'PR #42', 'the detail');
+    runner.restore('github', history.stepTo('github', 0)!);
+    const late = runner.beginSideStream();
+    late.apply([dataUpdate('github:pr-detail', {stale: true})], fragment('github'));
+    expect(store.getState().error).toBeNull();
+    expect(processor.model.getSurface('github:pr-detail')).toBeUndefined();
+    late.apply(
+      [create('github:pr-detail'), textRoot('github:pr-detail', 'again')],
+      fragment('github'),
+    );
+    late.end();
+    expect(rootText(processor, 'github:pr-detail')).toBe('again');
+    expect(store.getState().placement.get('github')?.surfaceId).toBe('github:pr-detail');
+  });
+
+  it('the accepted wiring is filed under the combination it was accepted over; a payload the session refused is not (decision 3)', () => {
+    for (const accepted of [true, false]) {
+      const {runner, history} = historied(accepted);
+      const stream = runner.beginSideStream();
+      const payload = {dataModel: {}, sorts: []};
+      stream.apply(
+        [
+          msg({createSurface: {surfaceId: 'shell:synthesis', catalogId: SHELL_CATALOG_ID}}),
+          msg({
+            updateComponents: {
+              surfaceId: 'shell:synthesis',
+              components: [{id: 'root', component: 'Text', text: 'merged'}],
+            },
+          }),
+        ],
+        fragment('shell'),
+        payload as never,
+      );
+      expect(history.recall()).toEqual(
+        accepted ? {target: {surfaceId: 'shell:synthesis', source: 'shell'}, payload} : undefined,
+      );
+    }
+  });
+
+  it('an action inside a fragment names the source it runs in while in flight; the composition’s retirement takes the history with it', () => {
+    const {store, runner, history} = historied();
+    const action = runner.begin(surfaceAction('open'));
+    expect(store.getState().inFlight?.source).toBe('github');
+    action.end();
+    expect(store.getState().inFlight).toBeNull();
+    const turn = runner.begin(utterance('again'));
+    expect(store.getState().inFlight?.source).toBeUndefined();
+    turn.apply(paintedLayout(['github']), SHELL);
+    expect(history.stackOf('github')).toBeUndefined();
+    turn.end();
   });
 });

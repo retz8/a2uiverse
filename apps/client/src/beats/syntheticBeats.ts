@@ -821,11 +821,55 @@ export function syntheticBeat(name: string): BeatFixture | undefined {
 }
 
 /**
+ * An action inside the root canvas's GitHub fragment (task-9.7 decision 7): the list repainted
+ * under its own id as one pull request, titled — so that fragment's marker shows Back, named by
+ * the list's title, on a real canvas from real stacks.
+ */
+const OPEN_PULL_REQUEST: BeatTurn = {
+  taskId: 'synthetic-trail-open-pr',
+  kind: 'surface-action',
+  prompt: '',
+  action: {
+    name: 'open',
+    context: {},
+    surfaceId: 'github:pr-list',
+    sourceComponentId: 'h',
+    timestamp: '2026-09-25T00:00:00Z',
+  },
+  outcome: 'completed',
+  durationMs: 120,
+  batches: [
+    {
+      offsetMs: 0,
+      stamp: {source: 'github', role: 'fragment'},
+      messages: [
+        msg({paintMeta: {surfaceId: 'github:pr-list', title: 'PR #42'}}),
+        msg({createSurface: {surfaceId: 'github:pr-list', catalogId: CATALOG_ID}}),
+        msg({
+          updateComponents: {
+            surfaceId: 'github:pr-list',
+            components: [
+              {id: 'root', component: 'Stack', direction: 'vertical', children: ['h', 'p']},
+              {id: 'h', component: 'Heading', text: 'PR #42 — Resend a request the tunnel lost'},
+              {id: 'p', component: 'Text', text: 'Open · 2 approvals · checks passing'},
+            ],
+          },
+        }),
+        msg({beginRendering: {surfaceId: 'github:pr-list', root: 'root'}}),
+      ],
+      texts: [],
+    },
+  ],
+};
+
+/**
  * The trail (task-9.6 decision 14): four questions, each a canvas of its own — a root, a child
  * asked from live, a branch asked from the first canvas, and the newest still loading with its
  * merge held back — so the rail shows every mark at once: Live, Viewing, from, the loading mark;
  * and the band stands on any past one. The first and third carry the Planner's title on the
- * layout surface; the second keeps the question as its label.
+ * layout surface; the second keeps the question as its label. The root's GitHub fragment is
+ * titled and then repainted by an action inside it (task-9.7 decision 7), so its marker shows
+ * Back to the list.
  */
 function trailBeat(): BeatFixture | undefined {
   const held = mergeHeldBack(getBeatFixture(9), 'synthetic-trail', 119);
@@ -841,12 +885,30 @@ function trailBeat(): BeatFixture | undefined {
         : batch,
     ),
   });
+  /** The vendor's own title on the batch that creates `surfaceId`: what names the step. */
+  const fragmentTitled = (turn: BeatTurn, surfaceId: string, title: string): BeatTurn => ({
+    ...turn,
+    batches: turn.batches.map(batch =>
+      batch.messages.some(
+        message =>
+          (message as {createSurface?: {surfaceId?: string}}).createSurface?.surfaceId ===
+          surfaceId,
+      )
+        ? {...batch, messages: [msg({paintMeta: {surfaceId, title}}), ...batch.messages]}
+        : batch,
+    ),
+  });
   return {
     ...held,
     title: 'The trail',
     prompt: COMPOSED_BEAT.prompt,
     turns: [
-      titled(COMPOSED_BEAT.turns[0], 'Needs attention today'),
+      fragmentTitled(
+        titled(COMPOSED_BEAT.turns[0], 'Needs attention today'),
+        'github:pr-list',
+        'Pull requests',
+      ),
+      OPEN_PULL_REQUEST,
       PLATFORM_ANSWER_BEAT.turns[0],
       {...titled(SYNTHESIS_BEAT.turns[0], 'Camera prices, both stores'), askedFrom: 0},
       ...held.turns,

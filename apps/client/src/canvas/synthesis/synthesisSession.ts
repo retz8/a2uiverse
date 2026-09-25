@@ -40,8 +40,11 @@ export interface SynthesisFailure {
 
 /** What the turn runner feeds the session. */
 export interface SynthesisIntake {
-  /** The synthesis surface reached the live processor, with the payload that rode its paint. */
-  accept(target: {surfaceId: string; source: string}, payload: unknown): void;
+  /**
+   * The synthesis surface reached the live processor, with the payload that rode its paint.
+   * True when the payload was accepted; false when it was refused and reported.
+   */
+  accept(target: {surfaceId: string; source: string}, payload: unknown): boolean;
   /** The composition left the canvas. */
   retire(): void;
 }
@@ -171,7 +174,7 @@ export function createSynthesisSession({
       outputJson = undefined;
       const {path, message} = result;
       onInvalid?.({surfaceId: target.surfaceId, source: target.source, path, message});
-      return;
+      return false;
     }
     payload = result.payload;
     surfaceId = target.surfaceId;
@@ -180,6 +183,7 @@ export function createSynthesisSession({
     for (const surface of refSurfaces()) watch(surface);
     watch(surfaceId);
     evaluate();
+    return true;
   };
 
   const retire: SynthesisIntake['retire'] = () => {

@@ -144,6 +144,36 @@ Phase 9's durable composition (task 9.6), drawn to board F5 of the task 7.14 des
   whose question never reached the orchestrator closes with nothing sent.
 - **In memory for the session.** A reload starts fresh.
 
+## The way back inside a fragment
+
+Phase 9's per-agent history (task 9.7; SPEC §6.5), the client's half of what the orchestrator
+holds per composition.
+
+- **Each source's paints in a canvas are a stack**, counted at the wire: every vendor
+  `createSurface` the canvas receives is a step the moment it arrives, before any apply or
+  staging decision, so the index the client reports names the paint the orchestrator counted. A
+  create that never reached the stage, one the client could not draw, and a question paint each
+  occupy their index as a placeholder the arrows skip. A create after a step back drops the
+  forward steps.
+- **A step holds the paint as last seen.** The current step is the live surface; a copy — tree,
+  data model with every update the vendor pushed, title — is taken only when the stack moves off
+  it, just before a claim or a swap destroys the surface. A step back rebuilds the copy through
+  the processor as a live paint would, in the slot, and leaving it again captures it afresh.
+- **The arrows** on the attribution row read the canvas's history through the shell catalog's
+  `FragmentHistoryContext`: Back to the nearest earlier paint, Forward to the nearest later one,
+  each named by that paint's title; drawn disabled while the source is busy — the opening turn,
+  an action inside that fragment, or its Retry in flight.
+- **The merged view follows.** The accepted wiring is filed under the combination of every
+  painted source's current index, as the orchestrator files it. A step back to a combination
+  the client has seen re-accepts the remembered wiring at once, no call. One it has not seen
+  restores the paint and holds the merge line working until the step's stream ends: a synthesis
+  paint on that stream lands as any does; a silent end keeps the current wiring and files it, so
+  the two memories converge.
+- **The step press** goes to the orchestrator as `{kind: "step"}` with the whole canvas's data
+  model, so its partition is written from what is on screen. A step that fails — refused,
+  unreached, lost — is quiet: the restored screen stands, the reason goes to the console, the
+  next action heals the partition. A step in a past canvas works as on live.
+
 ## Interaction policy (while a paint is in flight)
 
 - A palette utterance opens a new canvas; nothing in flight is cancelled by it.

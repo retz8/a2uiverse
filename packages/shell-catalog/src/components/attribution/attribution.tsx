@@ -37,7 +37,8 @@ import {AttributionApi, type AttributionProps} from './attribution.schema.js';
  * that paint's title, "Back" or "Forward" alone when the agent named nothing, the name on hover,
  * focus and for assistive technology. An arrow raises the step operation — the one source and
  * the neighbour's index — through the host's press handler; without one no arrow is drawn, and
- * the arrows draw disabled where the press state says no press can be made, as Retry does. The
+ * the arrows draw disabled where the press state says no press can be made, as Retry does, and
+ * while the host says the source is busy — its repaint in flight (task-9.7 decision 6). The
  * row draws no border: the boundary stays the marker, the vendor's pixels and the whitespace.
  * When the pressed arrow leaves the row, focus moves to the other arrow or the marker, so a
  * keyboard reader's place is not dropped to the page.
@@ -73,6 +74,8 @@ export function AttributionView({
   const arrows = onPress && appId !== undefined ? stands : undefined;
   const back = arrows?.back;
   const forward = arrows?.forward;
+  // Disabled where no press can be made, and while this source's own repaint is in flight.
+  const pressable = enabled && !arrows?.busy;
   // The arrow pressed while it held focus: once it leaves the row, the other arrow or the marker
   // takes the focus, so a keyboard reader's place is not dropped to the page.
   const pressed = useRef<'back' | 'forward' | undefined>(undefined);
@@ -129,7 +132,7 @@ export function AttributionView({
             direction="Back"
             step={back}
             buttonRef={backRef}
-            enabled={enabled}
+            enabled={pressable}
             onClick={event => stepTo('back', back, event.currentTarget)}
           />
         )}
@@ -138,7 +141,7 @@ export function AttributionView({
             direction="Forward"
             step={forward}
             buttonRef={forwardRef}
-            enabled={enabled}
+            enabled={pressable}
             onClick={event => stepTo('forward', forward, event.currentTarget)}
           />
         )}

@@ -9,6 +9,10 @@
  * Interaction policy while a paint is in flight: agent-bound surface actions are blocked with a
  * status cue; answering an overlay question is always live.
  *
+ * The fragment's way back (task 9.7) lives here too: the canvas's history — each source's stack
+ * and the wiring remembered per combination — fed by the turn runner, and the step press that
+ * restores a paint at once and tells the orchestrator.
+ *
  * The live processor is the live registry of this canvas — exactly what the agent may see of it.
  */
 import type {CompositionOperation, CompositionStamp, PaintMeta} from '@a2uiverse/sdk';
@@ -38,6 +42,9 @@ import {createBindingIndex, type BindingIndex} from './navigation/bindingIndex';
 import {createNavigator, type Navigator} from './navigation/landing';
 import type {SynthesisSession} from './synthesis/synthesisSession';
 import {createSynthesisSession} from './synthesis/synthesisSession';
+import type {FragmentHistory} from './history/fragmentHistory';
+import {createFragmentHistory} from './history/fragmentHistory';
+import {capturePaint} from './history/paintCopy';
 import type {TrustedPageState} from './trail/trailStore';
 
 const BLOCKED_CUE = 'Hold on — a paint is in flight. Try again when it lands.';
@@ -57,6 +64,8 @@ export interface CanvasRuntime {
   runner: TurnRunner;
   /** The composition's synthesis: the evaluator's driver over this canvas's processor. */
   synthesis: SynthesisSession;
+  /** Each source's paints in this canvas, and the wiring remembered per combination (task 9.7). */
+  history: FragmentHistory;
   /** What this canvas's vendor components register in: the reverse index navigation lands by. */
   bindingIndex: BindingIndex;
   navigator: Navigator;
@@ -127,12 +136,20 @@ export function createCanvasRuntime({
     // render: the synthesis surface lives in a slot, and the hub answers by failing that slot.
     onInvalid: failure => void reportFragmentFailure(failure),
   });
+  // The paint on screen for a source, as the stack captures it when it moves off (decision 1).
+  const history = createFragmentHistory({
+    capture: source => {
+      const placed = store.getState().placement.get(source);
+      return placed ? capturePaint(processor, placed.surfaceId) : undefined;
+    },
+  });
   const runner = createTurnRunner({
     processor,
     store,
     createStaging: () => new MessageProcessor(catalogs),
     onFragmentFailure: failure => void reportFragmentFailure(failure),
     synthesis,
+    history,
     // The Planner's title leads the layout surface (task-9.3 decision 4): the trail's label.
     onPaintMeta: (meta: PaintMeta) => {
       if (meta.surfaceId === SHELL_MAIN_SURFACE && meta.title) onTitle?.(meta.title);
@@ -217,6 +234,7 @@ export function createCanvasRuntime({
    * canvas takes a press as the live one does (phase-9 decision 4).
    */
   const press = async (operation: CompositionOperation) => {
+    if (operation.kind === 'step') return step(operation);
     const key = store.addPress(operation);
     const stream = runner.beginSideStream();
     let answered = false;
@@ -253,6 +271,73 @@ export function createCanvasRuntime({
         store.updatePress(key, answered ? 'lost' : 'unreached');
       }
     } finally {
+      stream.end();
+    }
+  };
+
+  /**
+   * A step back or forward inside a fragment (phase-9 decisions 2, 3; task 9.7): the paint the
+   * history holds for that index becomes the source's live surface at once, and the merged view
+   * follows — the wiring remembered over the new combination re-accepted with no call when the
+   * client has seen it; otherwise the merge line works until the step's stream ends, a paint on
+   * that stream landing as any does, a silent end keeping the current wiring and filing it under
+   * the combination so the two memories converge (decision 4). Then the step goes to the
+   * orchestrator as a press, carrying the whole canvas's data model so its partition is written
+   * from what is on screen. A step to the paint on screen, or to a placeholder, does nothing. A
+   * step that fails — refused, unreached, lost — is quiet: the restored screen stands, the
+   * reason goes to the console, the next action heals the orchestrator's partition (decision 5).
+   */
+  const step = async (operation: CompositionOperation) => {
+    const source = operation.sources[0];
+    if (source === undefined || operation.step === undefined) return;
+    const restorable = history.stepTo(source, operation.step);
+    if (!restorable) return;
+    runner.restore(source, restorable);
+    const remembered = history.recall();
+    const following = !remembered;
+    if (remembered) synthesis.accept(remembered.target, remembered.payload);
+    else store.setMergeFollowingStep(true);
+    const key = store.addPress(operation);
+    const stream = runner.beginSideStream();
+    let wired = false;
+    try {
+      const sender = await getSideSender();
+      await sendAndApply(
+        sender,
+        buildOperationMessageParams(
+          operation,
+          session.get(),
+          supportedCatalogIds,
+          getClientDataModel(),
+        ),
+        {
+          apply: (messages, stamp, payload) => {
+            if (payload) wired = true;
+            stream.apply(messages, stamp, payload);
+            if (stamp?.role === 'shell') store.updatePress(key, 'running');
+          },
+          session,
+          signal: stream.signal,
+          onAgentText: (text, stamp) => {
+            if (stamp?.role === 'fragment' && stamp.source !== SHELL_SOURCE)
+              reportAgentText(text, stamp);
+            else if (text.trim()) console.info('[A2UI:a2a] step:', text);
+          },
+          onPaintMeta: stream.acceptPaintMeta,
+        },
+      );
+      // A silent end: what is on screen is the wiring over this combination from now on.
+      if (following && !wired) {
+        const current = synthesis.payload;
+        const surfaceId = store.getState().placement.get(SHELL_SOURCE)?.surfaceId;
+        if (current && surfaceId)
+          history.remember({target: {surfaceId, source: SHELL_SOURCE}, payload: current});
+      }
+    } catch (err) {
+      if (!stream.signal.aborted) console.error('[A2UI:a2a] step failed', err);
+    } finally {
+      store.removePress(key);
+      if (following) store.setMergeFollowingStep(false);
       stream.end();
     }
   };
@@ -407,6 +492,7 @@ export function createCanvasRuntime({
     processor,
     runner,
     synthesis,
+    history,
     bindingIndex,
     navigator,
     contextId: () => session.get(),

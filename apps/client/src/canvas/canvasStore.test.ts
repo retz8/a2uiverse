@@ -17,6 +17,7 @@ describe('createCanvasStore', () => {
       slotStates: new Map(),
       merge: null,
       presses: [],
+      mergeFollowingStep: false,
       paintTitles: new Map(),
       notices: [],
       roster: [],

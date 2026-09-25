@@ -156,7 +156,11 @@ function mergeStep(
 
   if (state.placement.has(SHELL_SOURCE) && shell !== 'failed') {
     const inMerge = facts.merged ? by(facts.merged) : vendors;
-    if ((facts.working && facts.working.sources.length === 0) || pressed('tryAgain'))
+    if (
+      (facts.working && facts.working.sources.length === 0) ||
+      pressed('tryAgain') ||
+      state.mergeFollowingStep
+    )
       return {text: `Joining ${joined(inMerge)}`, status: 'working'};
     const including = [
       ...(facts.working?.sources ?? []),

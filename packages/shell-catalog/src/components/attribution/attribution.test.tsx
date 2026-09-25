@@ -188,6 +188,19 @@ test('the arrows follow the press state: disabled where no press can be made (ta
   expect(screen.getByRole('button', {name: 'Back to List'})).toBeDisabled();
 });
 
+test('the arrows draw disabled while the source is busy — its repaint in flight — as the host says through the history (task-9.7 decision 6)', () => {
+  render(
+    <AttributionView
+      displayName="GitHub"
+      appId="github"
+      history={{back: {step: 0, title: 'List'}, forward: {step: 2}, busy: true}}
+      onPress={() => {}}
+    />,
+  );
+  expect(screen.getByRole('button', {name: 'Back to List'})).toBeDisabled();
+  expect(screen.getByRole('button', {name: 'Forward'})).toBeDisabled();
+});
+
 test("through the catalog: the history read from the host's context by the painted appId, the press carrying the surface and component that raised it", async () => {
   const user = userEvent.setup();
   const presses: Parameters<NonNullable<Parameters<typeof renderTree>[1]['onPress']>>[0][] = [];

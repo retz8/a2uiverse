@@ -170,3 +170,35 @@ test('beat 7: a capability gap is the tile, and the tile opens the Store with th
   await expect(overlay).toHaveAttribute('data-page', 'store');
   await expect(overlay).toHaveAttribute('data-query', gap!);
 });
+
+/**
+ * The fragment's way back (task 9.7, phase-9 decision 13): on the trail beat's root canvas GitHub
+ * painted its list, then an action inside it repainted the fragment as one pull request, so the
+ * attribution row carries Back, named by the list's title. Pressing it puts the list back at
+ * once — the step goes out to no orchestrator here and ends quietly — and Forward then offers
+ * the pull request. The baseline is the row with its arrow on a real fragment.
+ */
+test('the way back: Back on a fragment that painted twice, named by the previous paint; a press restores it at once', async ({
+  page,
+}) => {
+  await settle(page, 'trail');
+  // The root canvas is the oldest entry in the trail.
+  await page.getByRole('button', {name: 'Trail'}).click();
+  const entries = page.getByTestId('canvas-trail-entry');
+  await expect(entries).toHaveCount(4);
+  await entries.nth(3).getByTestId('canvas-trail-pick').click();
+  const fragment = page.locator('[data-a2ui-fragment="github"]');
+  await expect(fragment).toContainText('PR #42');
+  const back = page.getByRole('button', {name: 'Back to Pull requests'});
+  await expect(back).toBeEnabled();
+  await expect(page.getByRole('button', {name: /^Forward/})).toHaveCount(0);
+  await expect(page.getByTestId('canvas-stage-content')).toHaveScreenshot(
+    'canvas-surface-way-back.png',
+  );
+
+  await back.click();
+  await expect(fragment).toContainText('Pull requests');
+  await expect(fragment).not.toContainText('PR #42');
+  await expect(page.getByRole('button', {name: 'Forward to PR #42'})).toBeVisible();
+  await expect(page.getByRole('button', {name: /^Back to/})).toHaveCount(0);
+});

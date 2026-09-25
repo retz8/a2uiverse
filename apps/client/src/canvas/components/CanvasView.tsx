@@ -3,10 +3,14 @@
  * heading the page, its progress line, its stage with the slots resolved against its own processor,
  * its overlay question, its notices and its sticky error. Keyed by the canvas by the page, so
  * switching canvases remounts cleanly. A past canvas draws exactly as the live one — actable, its
- * presses made — the band above it is the page's chrome, not this view's.
+ * presses made — the band above it is the page's chrome, not this view's. The arrows on each
+ * attribution row read the canvas's history through the host's context (task 9.7): the two
+ * neighbours of the paint on screen, and whether the source is busy.
  */
 import {useCallback, useMemo, useRef, useSyncExternalStore} from 'react';
 import {
+  FragmentHistoryContext,
+  type FragmentHistoryResolver,
   type PressState,
   PressStateContext,
   SlotContentContext,
@@ -14,7 +18,7 @@ import {
 } from '@a2uiverse/shell-catalog';
 import type {CanvasRuntime} from '../canvasRuntime';
 import {orderedNotices} from '../canvasStore';
-import {columnState} from '../composition/columnState';
+import {columnState, sourceBusy} from '../composition/columnState';
 import {useSlotContent} from '../composition/slotContent';
 import {BindingIndexContext} from '../navigation/decorateCatalog';
 import {AmbientNotice} from './AmbientNotice';
@@ -65,6 +69,21 @@ export function CanvasView({runtime, onEdit, past = false}: CanvasViewProps) {
     [presses],
   );
 
+  // Where each source's fragment stands in its history (task-9.7 decision 6): the neighbours the
+  // canvas's stacks give, busy while the source's repaint is in flight.
+  const historyVersion = useSyncExternalStore(runtime.history.subscribe, runtime.history.version);
+  const {inFlight} = state;
+  const historyOf = useMemo<FragmentHistoryResolver>(
+    () => source => {
+      const neighbours = runtime.history.neighbours(source);
+      if (!neighbours) return undefined;
+      return sourceBusy({inFlight, presses}, source) ? {...neighbours, busy: true} : neighbours;
+    },
+    // The version is what changes when the stacks do; the resolver reads them fresh.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [runtime, historyVersion, inFlight, presses],
+  );
+
   // Promotion is plural, so it is emphasis rather than a modal: no focus trap, and the count
   // is announced instead of the focus being seized.
   const promotedCount = state.promoted.size;
@@ -106,7 +125,9 @@ export function CanvasView({runtime, onEdit, past = false}: CanvasViewProps) {
           )}
           <SlotStateContext.Provider value={slotStateOf}>
             <PressStateContext.Provider value={pressState}>
-              <CanvasStage processor={runtime.processor} state={state} />
+              <FragmentHistoryContext.Provider value={historyOf}>
+                <CanvasStage processor={runtime.processor} state={state} />
+              </FragmentHistoryContext.Provider>
             </PressStateContext.Provider>
           </SlotStateContext.Provider>
         </div>

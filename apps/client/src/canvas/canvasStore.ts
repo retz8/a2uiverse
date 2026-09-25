@@ -101,10 +101,11 @@ export interface CanvasState {
   /** The one transient question paint above the stage; null when no question is pending. */
   overlay: OverlayState | null;
   /**
-   * Set while a paint is streaming: its activity label, and the kind of cause that opened it —
-   * an utterance plans, an action or an answer works inside what is already there.
+   * Set while a paint is streaming: its activity label, the kind of cause that opened it — an
+   * utterance plans, an action or an answer works inside what is already there — and, for an
+   * action inside a fragment, the source whose repaint is in flight (task-9.7 decision 6).
    */
-  inFlight: {label: string; cause?: PaintCause['kind']} | null;
+  inFlight: {label: string; cause?: PaintCause['kind']; source?: string} | null;
   /** Sticky failure text; cleared by the next dispatch (beginPaint). */
   error: string | null;
   /**
@@ -122,6 +123,11 @@ export interface CanvasState {
   merge: PaintedMerge | null;
   /** The presses made on the composition on stage, until the paint catches up or they end. */
   presses: readonly Press[];
+  /**
+   * The merged view is following a step back to a combination the client has not seen (task-9.7
+   * decision 4): its line works until the step's stream ends, with the walk's paint or without.
+   */
+  mergeFollowingStep: boolean;
   /**
    * Each source's current paint title, from the vendor's `paintMeta` on the surface filling its
    * slot (task-9.3 decision 6): what the trail's preview says of where each fragment stands.
@@ -165,7 +171,7 @@ export interface CanvasState {
 export interface CanvasStore {
   getState(): CanvasState;
   subscribe(listener: () => void): () => void;
-  beginPaint(label: string, cause?: PaintCause['kind']): void;
+  beginPaint(label: string, cause?: PaintCause['kind'], source?: string): void;
   /** Upgrade the in-flight label (the agent-authored title); no-op when idle. */
   updateInFlightLabel(label: string): void;
   endPaint(): void;
@@ -181,6 +187,7 @@ export interface CanvasStore {
   addPress(operation: CompositionOperation): number;
   updatePress(key: number, status: Press['status']): void;
   removePress(key: number): void;
+  setMergeFollowingStep(following: boolean): void;
   /** A source's fragment claimed its slot: the title its paint carried, if any. */
   setPaintTitle(source: string, title: string | undefined): void;
   /** The composition retired: its roster, slot states, merge facts, presses and titles go with it. */
@@ -247,6 +254,7 @@ export function createCanvasStore(): CanvasStore {
     slotStates: new Map(),
     merge: null,
     presses: [],
+    mergeFollowingStep: false,
     paintTitles: new Map(),
     notices: [],
     roster: [],
@@ -270,7 +278,8 @@ export function createCanvasStore(): CanvasStore {
       listeners.add(listener);
       return () => listeners.delete(listener);
     },
-    beginPaint: (label, cause) => set({inFlight: {label, cause}, error: null}),
+    beginPaint: (label, cause, source) =>
+      set({inFlight: {label, cause, ...(source !== undefined ? {source} : {})}, error: null}),
     updateInFlightLabel: label => {
       if (state.inFlight) set({inFlight: {...state.inFlight, label}});
     },
@@ -311,6 +320,9 @@ export function createCanvasStore(): CanvasStore {
       if (state.presses.some(press => press.key === key))
         set({presses: state.presses.filter(press => press.key !== key)});
     },
+    setMergeFollowingStep: following => {
+      if (state.mergeFollowingStep !== following) set({mergeFollowingStep: following});
+    },
     setPaintTitle: (source, title) => {
       if (state.paintTitles.get(source) === title) return;
       const next = new Map(state.paintTitles);
@@ -324,6 +336,7 @@ export function createCanvasStore(): CanvasStore {
         slotStates: new Map(),
         merge: null,
         presses: [],
+        mergeFollowingStep: false,
         paintTitles: new Map(),
       }),
     reportError: text => set({error: text}),

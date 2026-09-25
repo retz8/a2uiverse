@@ -15,10 +15,15 @@ export interface HistoryStep {
   title?: string;
 }
 
-/** The two neighbours of the paint on screen; absent, there is nowhere to go that way. */
+/**
+ * The two neighbours of the paint on screen; absent, there is nowhere to go that way. `busy`
+ * says the source's repaint is in flight (task-9.7 decision 6): the arrows stay on the row and
+ * draw disabled, as they do where no press can be made, until the paint lands.
+ */
 export interface FragmentHistory {
   back?: HistoryStep;
   forward?: HistoryStep;
+  busy?: boolean;
 }
 
 /** What the host knows about a source's history; `undefined` when it knows nothing, which draws no arrow. */

@@ -22,6 +22,12 @@
  *   live — at apply in progressive mode, at the swap in staged mode. Retiring a composition
  *   retires its
  *   synthesis.
+ * - **The fragment's history** (task 9.7): every vendor create is counted at the wire as a step of
+ *   its source, before any apply or staging decision, so the index the client reports names the
+ *   paint the orchestrator counted; the paint on screen is captured as last seen just before a
+ *   claim or a swap destroys it; a claim marks the step landed, a failed slot drops it; the
+ *   accepted wiring is filed under the combination it was accepted over; and a step back hands
+ *   the runner a copy to restore into the slot as the live surface.
  * - **One canvas** (task-9.6 decision 1): a runner serves one canvas for the session. The canvas
  *   opens with its utterance turn; every later turn is an action inside it. A stage paint that
  *   replaces another leaves no record here — the per-agent history is 9.7's — and nothing ends the
@@ -53,6 +59,8 @@ import type {CanvasStore} from '../canvasStore';
 import type {PaintCause} from './cause';
 import {describeCause} from './cause';
 import type {SynthesisIntake} from '../synthesis/synthesisSession';
+import type {FragmentHistory, RestorableStep} from '../history/fragmentHistory';
+import {rebuildMessages} from '../history/paintCopy';
 import type {TurnProcessor} from './turnMessages';
 import {ROOT_COMPONENT_ID, invalidComponentsOf, questionTitleOf, targetOf} from './turnMessages';
 
@@ -114,6 +122,8 @@ export interface TurnRunnerOptions {
    * batch or ahead of a live one — the Planner's title for the layout reaches the trail this way.
    */
   onPaintMeta?: (meta: PaintMeta) => void;
+  /** The fragment's history (task 9.7): counted, captured and filed by the runner. */
+  history?: FragmentHistory;
 }
 
 /** A stream beside the turn: a press's, or a side report's answer (module header). */
@@ -140,6 +150,11 @@ export interface TurnRunner {
    * speaking past it (no trace).
    */
   removeOverlay(): void;
+  /**
+   * A step back or forward (task-9.7): the copy the history handed back becomes the source's live
+   * surface in its slot, the one there now retired, its title kept per source as a claim's is.
+   */
+  restore(source: string, step: RestorableStep): void;
 }
 
 const HELD_FAILURE_TEXT = 'The paint failed and was discarded — keeping the current view.';
@@ -153,6 +168,7 @@ export function createTurnRunner({
   onFragmentFailure,
   synthesis,
   onPaintMeta,
+  history,
 }: TurnRunnerOptions): TurnRunner {
   let current: TurnHandle | null = null;
 
@@ -187,6 +203,7 @@ export function createTurnRunner({
     dropped.add(placed.surfaceId);
     store.unplace(source);
     store.demoteSlot(source);
+    history?.dropped(source);
   };
 
   /**
@@ -209,15 +226,46 @@ export function createTurnRunner({
   };
 
   /**
-   * A fragment claims its source's slot. One surface per slot: a later claim retires the earlier.
-   * The paint's title, from the meta that led it, is what the trail's preview says of the source.
+   * A fragment claims its source's slot. One surface per slot: a later claim retires the earlier —
+   * captured first, as last seen, for the way back. The paint's title, from the meta that led it,
+   * is what the trail's preview says of the source and what names the step in its history; a
+   * question paint lands as a step no arrow returns to.
    */
-  const claimSlot = (source: string, surfaceId: string, title: string | undefined) => {
+  const claimSlot = (
+    source: string,
+    surfaceId: string,
+    title: string | undefined,
+    question = false,
+  ) => {
+    history?.leaving(source);
     const previous = store.getState().placement.get(source);
     if (previous && previous.surfaceId !== surfaceId)
       processor.model.deleteSurface(previous.surfaceId);
     store.placeFragment(source, {surfaceId, source});
     store.setPaintTitle(source, title);
+    history?.landed(source, {title, question});
+  };
+
+  /**
+   * Every vendor create in a batch is a step of its source (task-9.7 decision 2): counted here,
+   * at the wire, before refusal, admission or staging decide what becomes of it — the
+   * orchestrator counted it when it relayed it. The shell's own surfaces never count.
+   */
+  const countPaints = (messages: A2uiMessage[], stamp?: CompositionStamp) => {
+    const source = slotOf(stamp);
+    if (!history || source === undefined || source === SHELL_SOURCE) return;
+    for (const message of messages) {
+      const {kind, surfaceId} = targetOf(message);
+      if (kind === 'create' && surfaceId) history.paint(source);
+    }
+  };
+
+  /** The synthesis payload handed over, and filed under the combination it was accepted over. */
+  const acceptSynthesis = (
+    target: {surfaceId: string; source: string},
+    payload: SynthesisPayload,
+  ) => {
+    if (synthesis?.accept(target, payload)) history?.remember({target, payload});
   };
 
   /** The source whose slot a batch's stamp claims, when it is a fragment's. */
@@ -327,6 +375,7 @@ export function createTurnRunner({
     cancelSideStreams();
     dropped.clear();
     store.resetComposition();
+    history?.retire();
   }
 
   /** A newer question replaces any pending one — an unanswered question leaves no trace. */
@@ -343,6 +392,16 @@ export function createTurnRunner({
     processor.model.deleteSurface(overlay.surfaceId);
     store.setOverlay(null);
     store.bumpApplied();
+  };
+
+  /** The source whose repaint an action inside a fragment sets in flight (task-9.7 decision 6). */
+  const sourceOfCause = (cause: PaintCause): string | undefined => {
+    if (cause.kind !== 'surface-action') return undefined;
+    const surfaceId = cause.payload.action.surfaceId;
+    for (const [source, placed] of store.getState().placement) {
+      if (placed.surfaceId === surfaceId) return source;
+    }
+    return undefined;
   };
 
   const begin = (cause: PaintCause): TurnHandle => {
@@ -496,7 +555,7 @@ export function createTurnRunner({
           createdIds.add(surfaceId);
           if (source) {
             fragmentSlots.set(surfaceId, source);
-            claimSlot(source, surfaceId, titleOf(surfaceId));
+            claimSlot(source, surfaceId, titleOf(surfaceId), isQuestion(surfaceId));
           }
         }
       }
@@ -506,7 +565,7 @@ export function createTurnRunner({
         // The surface is live: evaluate now, so the first render already carries values.
         const target = synthesisTarget(messages, stamp);
         if (target && processor.model.getSurface(target.surfaceId))
-          synthesis?.accept(target, payload);
+          acceptSynthesis(target, payload);
       }
       // Single occupancy: the most recently created *stage* surface keeps the stage. Fragments
       // live in the processor only to be mounted through their slots; they never contend for it.
@@ -606,20 +665,24 @@ export function createTurnRunner({
       const questions = contenders.filter(id => isQuestion(id));
 
       // The swap: retire the outgoing stage (serialize-on-swap), then replay the validated
-      // paint into the live processor.
+      // paint into the live processor. A fragment the replay repaints under its own id is
+      // captured first, as last seen — the replay would otherwise destroy it before its claim.
       if (stagePaints.length > 0) retireStage();
+      for (const {surfaceId, source} of claims) {
+        if (survivorSet.has(surfaceId)) history?.leaving(source);
+      }
       applyA2uiMessages(processor, replayable, {onMessageError});
       // Claims land only now: retireStage cleared the outgoing composition's placement, and the
       // replay above is what put these surfaces in the live processor.
       for (const {surfaceId, source, title} of claims) {
         if (!survivorSet.has(surfaceId)) continue;
-        claimSlot(source, surfaceId, title);
+        claimSlot(source, surfaceId, title, isQuestion(surfaceId));
         settlePromotion(source);
       }
       // The synthesis surface reached live with the replay: its payload lands with it.
       if (pendingSynthesis && processor.model.getSurface(pendingSynthesis.surfaceId)) {
         const {payload, ...target} = pendingSynthesis;
-        synthesis?.accept(target, payload);
+        acceptSynthesis(target, payload);
       }
       pendingSynthesis = undefined;
       for (const id of stagePaints.slice(0, -1)) retireIntermediate(id);
@@ -657,6 +720,7 @@ export function createTurnRunner({
           if (stagedMode) goProgressive();
           else retireComposition();
         }
+        countPaints(rest, stamp);
         // The shell's paint is the only place the plan's slot order and the Registry's display
         // names reach the client; the roster is that read, re-derived on every shell repaint.
         if (stamp?.role === 'shell') {
@@ -722,7 +786,7 @@ export function createTurnRunner({
     // the same question, so it leaves the header standing.
     if (cause.kind === 'utterance')
       store.setQuestion({text: cause.payload.text, askedAt: Date.now()});
-    store.beginPaint(describeCause(cause), cause.kind);
+    store.beginPaint(describeCause(cause), cause.kind, sourceOfCause(cause));
     return handle;
   };
 
@@ -777,6 +841,7 @@ export function createTurnRunner({
         if (stamp?.role === 'shell') {
           for (const source of applyShellPaint(rest)) refused.add(source);
         }
+        countPaints(rest, stamp);
         const source = slotOf(stamp);
         if (source !== undefined && refused.has(source)) {
           ledger.refuse(rest, source);
@@ -793,7 +858,8 @@ export function createTurnRunner({
             const {kind, surfaceId} = targetOf(message);
             if (kind !== 'create' || !surfaceId) continue;
             ledger.fragmentSlots.set(surfaceId, source);
-            claimSlot(source, surfaceId, metas.get(surfaceId)?.title);
+            const meta = metas.get(surfaceId);
+            claimSlot(source, surfaceId, meta?.title, meta?.kind === QUESTION_PAINT_KIND);
           }
         }
         applyA2uiMessages(processor, admitted, {onMessageError});
@@ -805,7 +871,7 @@ export function createTurnRunner({
         if (payload) {
           const target = synthesisTarget(admitted, stamp);
           if (target && processor.model.getSurface(target.surfaceId))
-            synthesis?.accept(target, payload);
+            acceptSynthesis(target, payload);
         }
         store.bumpApplied();
       },
@@ -825,6 +891,23 @@ export function createTurnRunner({
     cancelSideStreams();
   };
 
+  const restore: TurnRunner['restore'] = (source, {paint, title}) => {
+    const previous = store.getState().placement.get(source);
+    if (previous && previous.surfaceId !== paint.surfaceId) {
+      // The surface stepped away from leaves as a failed slot's does: a late message for it is
+      // dropped rather than failing against a surface that is gone; a fresh create for it lands.
+      processor.model.deleteSurface(previous.surfaceId);
+      dropped.add(previous.surfaceId);
+    }
+    // The copy takes the identical path a live paint takes.
+    dropped.delete(paint.surfaceId);
+    applyA2uiMessages(processor, rebuildMessages(paint), {onMessageError: reportMessageError});
+    store.placeFragment(source, {surfaceId: paint.surfaceId, source});
+    store.setPaintTitle(source, title);
+    store.demoteSlot(source);
+    store.bumpApplied();
+  };
+
   return {
     get current() {
       return current;
@@ -833,5 +916,6 @@ export function createTurnRunner({
     beginSideStream,
     cancelAll,
     removeOverlay,
+    restore,
   };
 }
