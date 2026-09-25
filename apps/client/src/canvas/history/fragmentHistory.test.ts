@@ -2,7 +2,7 @@
  * The fragment's history on the client (task 9.7): each source's stack counted at the wire as
  * the orchestrator counts it, the paint captured as last seen when the stack moves off it, the
  * placeholders the arrows skip, the wiring remembered per combination, the forward steps and
- * their entries dropped by a new paint.
+ * their entries dropped by a new paint, each paint's own time.
  */
 import {describe, expect, it, vi} from 'vitest';
 import type {SynthesisPayload} from '@a2uiverse/sdk';
@@ -107,6 +107,32 @@ describe('the paint as last seen (task-9.7 decision 1)', () => {
     live.set('github', copy('github:list', 'list, edited'));
     expect(history.stepTo('github', 1)?.paint).toEqual(copy('github:detail', 'detail'));
     expect(history.stepTo('github', 0)?.paint).toEqual(copy('github:list', 'list, edited'));
+  });
+});
+
+describe("the paint's time (phase-9 decision 8, task-9.9 decision 13)", () => {
+  it('each paint is stamped when it lands; a step back shows the older paint its own time', () => {
+    const live = new Map<string, PaintCopy>();
+    let now = 1_000;
+    const history = createFragmentHistory({capture: source => live.get(source), now: () => now});
+    expect(history.landedAt('github')).toBeUndefined();
+    live.set('github', copy('github:list', 'list'));
+    history.paint('github');
+    // Arrived, not yet landed: nothing on screen to stamp.
+    expect(history.landedAt('github')).toBeUndefined();
+    history.landed('github', {title: 'List'});
+    expect(history.landedAt('github')).toBe(1_000);
+    now = 5_000;
+    history.leaving('github');
+    live.set('github', copy('github:detail', 'detail'));
+    history.paint('github');
+    history.landed('github', {title: 'Detail'});
+    expect(history.landedAt('github')).toBe(5_000);
+    now = 9_000;
+    history.stepTo('github', 0);
+    expect(history.landedAt('github')).toBe(1_000);
+    history.stepTo('github', 1);
+    expect(history.landedAt('github')).toBe(5_000);
   });
 });
 

@@ -23,12 +23,13 @@ import {AttributionApi, type AttributionProps} from './attribution.schema.js';
 
 /**
  * The quiet marker (SPEC §4.3): a small gray caption with an info glyph, always present,
- * expanding to full attribution on hover or keyboard focus. Full attribution is the name and
- * the account label when one is in play; with none, hover and focus only brighten the marker —
- * it never says "Painted by", since the name already says whose the region is (task-8.7
- * decision 18). The accessible name always carries the full detail, independent of pointer
- * state. Rendered on Radix `Text` in the caption register with Radix's own info glyph (task-5.9
- * decision 5).
+ * expanding to full attribution on hover or keyboard focus. Full attribution is the name, the
+ * account label when one is in play, and the time the paint on screen landed when the host gives
+ * one — each fragment's freshness its own (phase-9 decision 8), at rest out of sight (task-9.9
+ * decision 13); with neither, hover and focus only brighten the marker — it never says
+ * "Painted by", since the name already says whose the region is (task-8.7 decision 18). The
+ * accessible name always carries the full detail, independent of pointer state. Rendered on
+ * Radix `Text` in the caption register with Radix's own info glyph (task-5.9 decision 5).
  *
  * The fragment's way back rides the marker's row (SPEC §6.5, task 9.5): a back arrow after the
  * marker when the host says there is a step to go back to, a forward arrow beside it when there
@@ -71,6 +72,8 @@ export function AttributionView({
   const {enabled} = useContext(PressStateContext);
   const detail = account ? `${displayName} · ${account}` : displayName;
   const stands = history ?? (appId === undefined ? undefined : resolveHistory(appId));
+  const time = stands?.time;
+  const full = time ? `${detail} · ${time}` : detail;
   const arrows = onPress && appId !== undefined ? stands : undefined;
   const back = arrows?.back;
   const forward = arrows?.forward;
@@ -95,7 +98,7 @@ export function AttributionView({
       size="1"
       color="gray"
       tabIndex={0}
-      aria-label={detail}
+      aria-label={full}
       onMouseEnter={() => setOpen(true)}
       onMouseLeave={() => setOpen(false)}
       onFocus={() => setOpen(true)}
@@ -115,7 +118,7 @@ export function AttributionView({
       }}
     >
       <InfoCircledIcon width={12} height={12} aria-hidden="true" />
-      {open ? detail : displayName}
+      {open ? full : displayName}
     </Text>
   );
 

@@ -21,6 +21,7 @@ import {orderedNotices} from '../canvasStore';
 import {columnState, sourceBusy} from '../composition/columnState';
 import {useSlotContent} from '../composition/slotContent';
 import {BindingIndexContext} from '../navigation/decorateCatalog';
+import {timeOf} from '../trail/time';
 import {AmbientNotice} from './AmbientNotice';
 import {CanvasOverlay} from './CanvasOverlay';
 import {CanvasStage} from './CanvasStage';
@@ -70,14 +71,17 @@ export function CanvasView({runtime, onEdit, past = false}: CanvasViewProps) {
   );
 
   // Where each source's fragment stands in its history (task-9.7 decision 6): the neighbours the
-  // canvas's stacks give, busy while the source's repaint is in flight.
+  // canvas's stacks give, the paint's own time (phase-9 decision 8), busy while the source's
+  // repaint is in flight.
   const historyVersion = useSyncExternalStore(runtime.history.subscribe, runtime.history.version);
   const {inFlight} = state;
   const historyOf = useMemo<FragmentHistoryResolver>(
     () => source => {
       const neighbours = runtime.history.neighbours(source);
       if (!neighbours) return undefined;
-      return sourceBusy({inFlight, presses}, source) ? {...neighbours, busy: true} : neighbours;
+      const at = runtime.history.landedAt(source);
+      const stands = at === undefined ? neighbours : {...neighbours, time: timeOf(at)};
+      return sourceBusy({inFlight, presses}, source) ? {...stands, busy: true} : stands;
     },
     // The version is what changes when the stacks do; the resolver reads them fresh.
     // eslint-disable-next-line react-hooks/exhaustive-deps

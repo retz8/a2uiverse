@@ -222,6 +222,11 @@ function SlotMatrix() {
         <SlotView source="gmail" label="Gmail" />
       </div>
       <div>
+        the paint's time (task-9.9 decision 13), out of sight until hover or focus:
+        <AttributionView displayName="Gmail" account="work" history={{time: '10:17'}} />
+        <AttributionView displayName="GitHub" account={null} history={{time: '10:17'}} />
+      </div>
+      <div>
         <AttributionView displayName="Calendar" account={null} />
         <SlotContentContext.Provider value={() => <Fragment label="filled fragment" />}>
           <SlotView source="calendar" />

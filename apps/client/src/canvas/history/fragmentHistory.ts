@@ -60,6 +60,8 @@ export interface RestorableStep {
 export interface FragmentHistoryOptions {
   /** The source's paint as it stands on the stage now — undefined when nothing of it is live. */
   capture(source: string): PaintCopy | undefined;
+  /** The clock a landing is stamped with. */
+  now?: () => number;
 }
 
 export interface FragmentHistory {
@@ -82,6 +84,8 @@ export interface FragmentHistory {
   stepTo(source: string, index: number): RestorableStep | undefined;
   /** The two neighbours of the paint on screen with a paint to return to; undefined for a source with no stack. */
   neighbours(source: string): {back?: HistoryStep; forward?: HistoryStep} | undefined;
+  /** When the paint on screen landed (phase-9 decision 8); undefined before its first landing. */
+  landedAt(source: string): number | undefined;
   stackOf(source: string): HistoryStack | undefined;
   /** Every painted source's current index — the key the wiring is remembered under. */
   combination(): Record<string, number>;
@@ -98,6 +102,8 @@ export interface FragmentHistory {
 
 interface Step {
   title?: string;
+  /** When the paint landed on its slot: its own time, kept when the reader steps back to it. */
+  at?: number;
   /** The paint reached its slot and is not a question: there is something here to return to. */
   returnable: boolean;
   /** The copy taken when the stack moved off this step; absent while it is the live surface. */
@@ -114,7 +120,10 @@ interface Stack {
   shown: number;
 }
 
-export function createFragmentHistory({capture}: FragmentHistoryOptions): FragmentHistory {
+export function createFragmentHistory({
+  capture,
+  now = Date.now,
+}: FragmentHistoryOptions): FragmentHistory {
   const stacks = new Map<string, Stack>();
   const remembered = new Map<string, RememberedWiring>();
   const listeners = new Set<() => void>();
@@ -165,6 +174,7 @@ export function createFragmentHistory({capture}: FragmentHistoryOptions): Fragme
     if (!stack) return;
     const step = stack.steps[stack.at]!;
     step.title = meta.title;
+    step.at = now();
     step.returnable = !meta.question;
     step.left = false;
     delete step.paint;
@@ -245,6 +255,10 @@ export function createFragmentHistory({capture}: FragmentHistoryOptions): Fragme
     dropped,
     stepTo,
     neighbours,
+    landedAt: source => {
+      const stack = stacks.get(source);
+      return stack?.steps[stack.shown]?.at;
+    },
     stackOf: source => {
       const stack = stacks.get(source);
       return stack ? {length: stack.steps.length, at: stack.at} : undefined;

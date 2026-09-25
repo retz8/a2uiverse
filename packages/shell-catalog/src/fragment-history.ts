@@ -24,9 +24,11 @@ export interface FragmentHistory {
   back?: HistoryStep;
   forward?: HistoryStep;
   busy?: boolean;
+  /** When the paint on screen landed, in the host's words (phase-9 decision 8); part of the full attribution. */
+  time?: string;
 }
 
-/** What the host knows about a source's history; `undefined` when it knows nothing, which draws no arrow. */
+/** What the host knows about a source's history; `undefined` when it knows nothing, which draws no arrow and no time. */
 export type FragmentHistoryResolver = (source: string) => FragmentHistory | undefined;
 
 /** Default resolver: the host says nothing — no arrow is drawn. */

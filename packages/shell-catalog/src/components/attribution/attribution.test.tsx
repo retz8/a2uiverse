@@ -23,6 +23,15 @@ test('single-account apps omit the account clause', () => {
   expect(screen.getByLabelText('GitHub')).toBeInTheDocument();
 });
 
+test("the paint's time is part of the full attribution: out of sight at rest, shown on focus, always in the accessible name (phase-9 decision 8, task-9.9 decision 13)", async () => {
+  const user = userEvent.setup();
+  render(<AttributionView displayName="Gmail" account="work" history={{time: '10:17'}} />);
+  const marker = screen.getByLabelText('Gmail · work · 10:17');
+  expect(marker).toHaveTextContent(/^Gmail$/);
+  await user.tab();
+  expect(marker).toHaveTextContent('Gmail · work · 10:17');
+});
+
 test('schema accepts the painted shape and rejects extras', () => {
   expect(
     AttributionApi.schema.safeParse({displayName: 'Gmail', appId: 'gmail', account: null}).success,
