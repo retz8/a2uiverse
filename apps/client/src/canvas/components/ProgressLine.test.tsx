@@ -73,6 +73,30 @@ describe('ProgressLine', () => {
     );
   });
 
+  it("the canvas's error closes the line as an alert, after what the turn did; alone when nothing else is said (task-9.9 decision 20)", () => {
+    const store = createCanvasStore();
+    store.setRoster(ROSTER);
+    for (const source of ['linear', 'github', 'circleci', 'shell']) {
+      store.placeFragment(source, {surfaceId: `${source}:x`, source});
+    }
+    store.reportError('That action failed. The orchestrator did not answer.');
+    const {rerender} = renderWithShell(<ProgressLine state={store.getState()} since={null} />);
+    expect(screen.getByTestId('canvas-progress')).toHaveTextContent(
+      'Joined Linear, GitHub and CircleCIThat action failed. The orchestrator did not answer.',
+    );
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'That action failed. The orchestrator did not answer.',
+    );
+    // The condensed bar's copy says it too, but is not a second alert.
+    rerender(<ProgressLine state={store.getState()} since={null} compact />);
+    expect(screen.queryByRole('alert')).toBeNull();
+
+    const alone = createCanvasStore();
+    alone.reportError('The agent request failed.');
+    rerender(<ProgressLine state={alone.getState()} since={null} />);
+    expect(screen.getByRole('alert')).toHaveTextContent('The agent request failed.');
+  });
+
   it('a platform answer, no vendor dispatched: no line, no room taken (task-8.7 decision 28)', () => {
     const store = createCanvasStore();
     renderWithShell(<ProgressLine state={store.getState()} since={null} />);

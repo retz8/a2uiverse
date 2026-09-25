@@ -23,8 +23,6 @@ test('while the plan is made the question heads an otherwise empty canvas', asyn
   await expect(question).toHaveText(UTTERANCE);
   await expect(page.getByTestId('canvas-pending')).toContainText('Planning which apps can answer');
   await expect(page.getByTestId('canvas-empty-ghost')).toHaveCount(0);
-  // The strip names the app; the turn's activity is the head's.
-  await expect(page.getByTestId('canvas-status')).toHaveText('A2UIVerse');
 });
 
 test('landed: the question stands, a tick per source, the join in the past tense', async ({

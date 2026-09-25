@@ -399,6 +399,11 @@ body {
   color: var(--a2v-danger);
 }
 
+/* The canvas's sticky error closing the line (task-9.9 decision 20). */
+.canvas-progress-error {
+  color: var(--a2v-danger);
+}
+
 .canvas-progress-step--working {
   color: var(--a2v-ink);
 }
@@ -454,32 +459,11 @@ body {
   opacity: 0.5;
 }
 
-.canvas-status-strip {
-  flex: none;
-  display: flex;
-  align-items: center;
-  height: 32px;
-  /* Chrome, not content: its text starts on Back's left edge, 12px in, not on the content
-     column (task-8.7 decision 16). */
-  padding: 0 var(--a2v-inset) 0 12px;
-  border-top: 1px solid var(--a2v-line);
-  background: var(--a2v-surface);
-  font-size: 12px;
-  color: var(--a2v-muted);
-}
-
-.canvas-status-message {
-  display: flex;
-  align-items: center;
-  min-width: 0;
-}
-
-.canvas-status-error {
-  color: var(--red-11);
-}
-
-.canvas-status-identity {
-  user-select: none;
+/* A replay that could not start, under the empty page's hint. */
+.canvas-empty-error {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--a2v-danger);
 }
 
 .canvas-palette {
@@ -511,7 +495,7 @@ body {
 /* Centred on the page column — the gutter is the trail's, not the page's. */
 .canvas-app .canvas-ask-pill {
   position: fixed;
-  bottom: 48px;
+  bottom: 24px;
   left: calc(50% + var(--a2v-gutter) / 2);
   width: max-content;
   height: 40px;
@@ -551,7 +535,7 @@ body {
    being capped — a source does not lose its voice for having answered late. */
 .canvas-notice-stack {
   position: fixed;
-  bottom: 104px;
+  bottom: 80px;
   left: calc(50% + var(--a2v-gutter) / 2);
   transform: translateX(-50%);
   display: flex;
@@ -650,15 +634,13 @@ body {
 }
 
 /* The gutter, the rail closed: a sidebar of its own down the left edge, no divider (task-9.9
-   decision 18),
-   Back at the top — its centre 30px down, on the question's first line — and Trail beneath it.
-   Every bar across the top starts past it; it stops on the status strip, which runs the full
-   width beneath. */
+   decision 18). Back at the top — its centre 30px down, on the question's first line — and Trail
+   beneath it. Every bar across the top starts past it. */
 .canvas-gutter {
   position: fixed;
   top: 0;
   left: 0;
-  bottom: 32px;
+  bottom: 0;
   width: var(--a2v-gutter);
   box-sizing: border-box;
   padding-top: 14px;

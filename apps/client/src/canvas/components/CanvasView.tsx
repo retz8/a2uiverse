@@ -27,7 +27,6 @@ import {CanvasStage} from './CanvasStage';
 import {CompactHead} from './CompactHead';
 import {ProgressLine} from './ProgressLine';
 import {QuestionHeader} from './QuestionHeader';
-import {StatusStrip} from './StatusStrip';
 import {useStepHold} from './useStepHold';
 
 export interface CanvasViewProps {
@@ -100,7 +99,7 @@ export function CanvasView({runtime, onEdit, past = false}: CanvasViewProps) {
   const headRef = useRef<HTMLElement>(null);
 
   const question = state.question;
-  const showProgress = question !== null || state.inFlight !== null;
+  const showProgress = question !== null || state.inFlight !== null || state.error !== null;
 
   return (
     <BindingIndexContext.Provider value={runtime.bindingIndex}>
@@ -148,7 +147,6 @@ export function CanvasView({runtime, onEdit, past = false}: CanvasViewProps) {
         </div>
         <CanvasOverlay processor={runtime.processor} state={state} />
         <AmbientNotice notices={orderedNotices(state)} onDismiss={runtime.store.dismissNotice} />
-        <StatusStrip error={state.error} />
       </SlotContentContext.Provider>
     </BindingIndexContext.Provider>
   );

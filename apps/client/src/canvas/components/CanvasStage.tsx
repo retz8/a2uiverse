@@ -41,20 +41,32 @@ export function CanvasStage({processor, state}: CanvasStageProps) {
  * The mark belonging to a canvas nobody has asked anything of yet; once a question stands, the
  * header is what the canvas shows while the plan is made.
  */
-function EmptyGhost() {
+function EmptyGhost({error = null}: {error?: string | null}) {
   return (
-    <div className="canvas-empty-ghost" data-testid="canvas-empty-ghost" aria-hidden="true">
-      <div className="canvas-empty-mark">A2UIVerse</div>
-      <div className="canvas-empty-hint">⌘K to ask</div>
+    <div className="canvas-empty-ghost" data-testid="canvas-empty-ghost">
+      <div className="canvas-empty-mark" aria-hidden="true">
+        A2UIVerse
+      </div>
+      <div className="canvas-empty-hint" aria-hidden="true">
+        ⌘K to ask
+      </div>
+      {error && (
+        <div className="canvas-empty-error" role="alert" data-testid="canvas-error">
+          {error}
+        </div>
+      )}
     </div>
   );
 }
 
-/** The page with no canvas at all: before the first question, or after the last was closed. */
-export function EmptyCanvas() {
+/**
+ * The page with no canvas at all: before the first question, or after the last was closed. A
+ * replay that could not start says so under the hint (task-9.9 decision 20).
+ */
+export function EmptyCanvas({error = null}: {error?: string | null}) {
   return (
     <div className="canvas-stage" data-testid="canvas-stage">
-      <EmptyGhost />
+      <EmptyGhost error={error} />
     </div>
   );
 }

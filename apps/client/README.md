@@ -2,7 +2,7 @@
 
 The canvas shell (SPEC §4, §10–11): language in, full-screen generative UI out. It talks only to the orchestrator, and never to a vendor agent.
 
-The shell owns the container — the question heading the canvas with the turn's progress under it, palette, status strip, history chrome, slot layout, attribution — all in Radix Themes, the head, strip and Ask pill drawn to the task 7.14 design canvas. Each vendor owns the inside of its own fragment completely: font, spacing, colour, components, design system. No shell style reaches a fragment, and no vendor stylesheet loads until one of its surfaces mounts.
+The shell owns the container — the question heading the canvas with the turn's progress under it and the canvas's error closing that line, palette, the sidebar with Back and Trail, history chrome, slot layout, attribution — all in Radix Themes, the head and Ask pill drawn to the task 7.14 design canvas. Each vendor owns the inside of its own fragment completely: font, spacing, colour, components, design system. No shell style reaches a fragment, and no vendor stylesheet loads until one of its surfaces mounts.
 
 ## Running it
 

@@ -22,7 +22,6 @@ import {replayBeatOnCanvas} from './replayBeat';
 import {CanvasView} from './components/CanvasView';
 import {EmptyCanvas} from './components/CanvasStage';
 import {Palette} from './components/Palette';
-import {StatusStrip} from './components/StatusStrip';
 import {TrailChrome} from './components/TrailChrome';
 import {TrustedPageOverlay} from './components/TrustedPageOverlay';
 import type {HostRelay} from './hostRelay';
@@ -134,9 +133,8 @@ export function CanvasApp({serverUrl, client, catalogs, hostRelay}: CanvasAppPro
         ) : (
           <>
             <div className="canvas-scroll" data-testid="canvas-scroll">
-              <EmptyCanvas />
+              <EmptyCanvas error={replayError} />
             </div>
-            <StatusStrip error={replayError} />
           </>
         )}
         <TrustedPageOverlay page={trail.trustedPage} onClose={wiring.trail.closeTrustedPage} />

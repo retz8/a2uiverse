@@ -2,7 +2,9 @@
  * The progress line under the question: planning, then a tick per source as its fragment fills,
  * then the merge in computed words. It stays after the turn lands, the ticks and the merge in the
  * past tense, and follows the reader's presses on the composition (task 8.5). The step that is
- * working carries the in-flight marker (`canvas-pending`).
+ * working carries the in-flight marker (`canvas-pending`). The canvas's sticky error — a message
+ * of its own that failed or never arrived, cleared by its next dispatch — closes the line in the
+ * danger tone, an alert on the full line (task-9.9 decision 20).
  */
 import {Fragment, useEffect, useState} from 'react';
 import type {CanvasState} from '../canvasStore';
@@ -100,9 +102,11 @@ export function ProgressLine({state, since, compact, sourcesOnly}: ProgressLineP
   const progress = turnProgress(state);
   const planning = progress.working?.kind === 'planning';
   const elapsed = useElapsed(since, planning);
+  const {error} = state;
   // Nothing to say — a platform answer, no vendor dispatched — takes no room under the question
   // (task-8.7 decision 28).
-  if (!progress.working && progress.sources.length === 0 && !progress.merge) return null;
+  if (!progress.working && progress.sources.length === 0 && !progress.merge && !error) return null;
+  const said = progress.working || progress.sources.length > 0 || progress.merge;
   return (
     <div
       className={compact ? 'canvas-progress canvas-progress--compact' : 'canvas-progress'}
@@ -133,6 +137,19 @@ export function ProgressLine({state, since, compact, sourcesOnly}: ProgressLineP
           >
             {progress.merge.text}
           </Step>
+        </Fragment>
+      )}
+      {error && !sourcesOnly && (
+        <Fragment>
+          {said && <Dot />}
+          <span
+            className="canvas-progress-step canvas-progress-error"
+            role={compact ? undefined : 'alert'}
+            data-testid={compact ? undefined : 'canvas-error'}
+          >
+            <FailedIcon />
+            <span>{error}</span>
+          </span>
         </Fragment>
       )}
     </div>
