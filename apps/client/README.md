@@ -1,10 +1,59 @@
 # @a2uiverse/client
 
-The canvas: you ask in words, and the answer is a full screen of UI composed from several apps, each drawn in its own design system and labelled with who painted it. It talks only to the orchestrator, never to an app.
+The canvas: you ask in words, and the answer is a full screen of UI composed from several apps, each in its own design system and labelled with who painted it. It talks only to the orchestrator, never to an app.
 
-The shell draws everything around the apps in Radix Themes: the question, the progress line, the palette, Back and Trail, the layout and the attribution. Each app owns the inside of its fragment completely: no shell style reaches in, and an app's stylesheet loads only when one of its surfaces mounts.
+<p align="center">
+  <img src="../../docs/images/composed-answer.png" width="640" alt="One question answered by Linear, GitHub and CircleCI on one screen">
+  <br>
+  <em>One question, answered by Linear, GitHub and CircleCI, each in its own slot and look. The table on top is the merged view.</em>
+</p>
 
-How the canvas works, from turns and composition to canvases, the trail and the way back inside a fragment, is in [`src/canvas/README.md`](src/canvas/README.md).
+## What it does
+
+### One screen, many design systems
+
+Each app's UI renders with its own catalog: GitHub in Primer, Gmail and Calendar in Material 3, CircleCI and Linear in their own themes, side by side on one page. Every catalog keeps its styles inside its own slot, and the client's collision tests fail if any leak onto the page or into another app.
+
+The shell draws everything around the apps in Radix Themes: the question, the progress line, the palette, Back and Trail, the layout, and each app's name above its slot. It never reaches inside a slot.
+
+### A merged view that stays live
+
+The merged table isn't something a model drew. The orchestrator sends formulas pointing into each app's data, and the client evaluates them itself, again on every change to that data, with no model call. Sorting it is local and free.
+
+Each value shows how sure it is by how strongly it's drawn, and says where it came from on hover. Clicking it scrolls to the element it came from in that app's slot and highlights it.
+
+### Paints as answers arrive, never half-drawn
+
+The layout lands first, with every slot waiting, and each app's UI fills its slot as it arrives. The line under the question says where things stand in the client's own words: a tick per app, then the merge, like "Joining Linear issues to GitHub PRs and CircleCI runs".
+
+A new paint over one already on screen is built and checked off screen, then swapped in whole, so the screen never shows half of something. An app that fails shows a failure tile with Retry in its own slot, and nothing else moves.
+
+### Keeps every question
+
+<p align="center">
+  <img src="../../docs/images/trail.png" width="640" alt="The trail of four questions">
+  <br>
+  <em>The trail: four questions asked this session, the newest still loading.</em>
+</p>
+
+Every question opens its own canvas, and the trail keeps them all. A past canvas works like a browser tab: clicks, presses and sorts on it land in it, and it keeps loading in the background after you move on.
+
+"Ask this again now" asks a past canvas's question again as a new canvas, leaving the old answer as it was. A question asked while viewing a past canvas is a follow-up to it, and Back follows that branch. It all lives in memory; a reload starts fresh.
+
+### Back and forward inside an app's answer
+
+Each app's screens in a canvas form a history, with arrows at the right of the app's name. Going back restores the app's earlier screen from the client's own copy, and the merged view that went with it, with no model call.
+
+<table>
+  <tr>
+    <td align="center" valign="top"><img src="../../docs/images/way-back-circleci.gif" width="280" alt="CircleCI's slot going Back from a run to its runs list, then Forward"></td>
+    <td align="center" valign="top"><img src="../../docs/images/way-back-merged.gif" width="500" alt="The merged table's CI run column, empty on the run and filled again on the runs list"></td>
+  </tr>
+  <tr>
+    <td align="center"><em>CircleCI's slot: Back from a run to its runs list, then Forward again.</em></td>
+    <td align="center"><em>The merged view at the same moments: its CI run column is empty while the run is open, and fills in again on Back.</em></td>
+  </tr>
+</table>
 
 ## Running it
 
@@ -12,15 +61,18 @@ How the canvas works, from turns and composition to canvases, the trail and the 
 pnpm dev:client     # from the repo root: Vite on port 5173
 ```
 
-It sends to `VITE_ORCHESTRATOR_URL`, `http://localhost:10001` by default (see `.env.example`). When the orchestrator is somewhere else, set it in an uncommitted `.env.local`.
-
-It needs the orchestrator and the apps running too; `pnpm dev:all` from the root starts everything in order.
+It sends to `VITE_ORCHESTRATOR_URL`, `http://localhost:10001` by default (see `.env.example`). When the orchestrator is somewhere else, set it in an uncommitted `.env.local`. It needs the orchestrator and the apps running too; `pnpm dev:all` from the root starts everything in order.
 
 ## Working without a model
 
-`?beat=<name>[,<name>…]` replays a turn through the whole canvas, with the same turn runner, store and rendering, but no model call and no network. Add `&instant` to skip the recorded pacing.
+`?beat=<name>` replays a recorded or hand-built session through the whole canvas, with no model call and no network, and `&instant` skips the recorded pacing. `?beat=9&instant` is the entity join above, `?beat=trail` the trail, and `?beat=23&instant` the way back.
 
-**Recorded beats** are real output, captured through the orchestrator and kept as the stream it arrived as, in `recordings/beats/`:
+A beat's presses fire through the same handler the buttons call, answered from the beat itself. The tests and the screenshots in this README come from beats.
+
+<details>
+<summary><b>Recorded beats</b></summary>
+
+Real output, captured through the orchestrator and kept as the stream it arrived as, in `recordings/beats/`:
 
 | `?beat=`     | What it shows                                                                                                                                                                                                 |
 | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -34,13 +86,9 @@ It needs the orchestrator and the apps running too; `pnpm dev:all` from the root
 | `10` to `18` | Late answers and failures: Retry, Include, the home source straggling or failing, a broken stream, a paint the canvas can't draw, too few answers                                                             |
 | `19` to `25` | Several canvases: a tab finishing in the background, acting in a past canvas, "Ask this again now", adding and dropping a source, stepping back with and without a remembered merge, closing a loading canvas |
 
-**Synthetic beats** are built by hand, for states that are hard to catch live, like a failure mid-turn or a question inside a fragment. They live in `src/beats/`: `syntheticBeats.ts` (start with `composed`, `synthesis` and `trail`), `lateFailureBeats.ts` for late answers and failures, and `durableBeats.ts` for canvases and the way back.
+Hand-built beats live in `src/beats/`: `syntheticBeats.ts`, `lateFailureBeats.ts` for late answers and failures, and `durableBeats.ts` for canvases and the way back.
 
-A beat's presses fire at their recorded time through the same handler the buttons call, and are answered from the beat itself; nothing reaches the orchestrator.
-
-## Shell actions
-
-A shell surface's two actions, open the Store and open the App Library, open a page over the canvas, with the canvas still mounted beneath. The pages are placeholders until they're built. The action is also reported to the orchestrator, so the journal records it.
+</details>
 
 ## Installed catalogs
 
@@ -63,7 +111,8 @@ The client supplies only the shared runtime: React, `@a2ui/react` / `@a2ui/web_c
 
 `src/canvas/composition/rendererPatch.test.tsx` fails if a version bump drops either. Regenerate the patch with `pnpm patch @a2ui/react@<version>`.
 
-## On-demand scripts
+<details>
+<summary><b>On-demand scripts</b></summary>
 
 None of these are part of `pnpm verify`; each needs live processes.
 
@@ -91,7 +140,10 @@ A2UI_FIXTURE_FORBIDDEN="<real address>,<real name>" pnpm --filter @a2uiverse/cli
 pnpm --filter @a2uiverse/client check:transparency
 ```
 
-## Commands
+</details>
+
+<details>
+<summary><b>Commands</b></summary>
 
 ```bash
 pnpm --filter @a2uiverse/client build      # typecheck, then vite build
@@ -103,14 +155,17 @@ pnpm --filter @a2uiverse/client lint
 
 Playwright's browser installs separately (`pnpm exec playwright install chromium`). Screenshots are taken at 1024×768 in UTC and aren't committed: on a fresh clone, run `test:e2e --update-snapshots` once to take them.
 
-## Source map
+</details>
+
+<details>
+<summary><b>Source map</b></summary>
 
 ```
 src/
   canvas.tsx         the entry: resolves the catalogs, mounts the canvas
   orchestratorApi.ts the client's non-A2A channel to the orchestrator
   catalogs/          catalog id → catalog and Provider
-  canvas/            the canvas, with its own README
+  canvas/            the canvas, with a short code guide
   a2a/               the A2A side: the agent card, each canvas's session, sending, paintMeta
   a2ui/              applying streamed A2UI batches to a processor
   beats/             the beat format, replay, the synthetic beats
@@ -118,3 +173,7 @@ src/
 tests/               integration tests over the canvas and the transport
 e2e/                 Playwright screenshot tests
 ```
+
+</details>
+
+The design record is [`_dev/docs/design/client.md`](../../_dev/docs/design/client.md).
