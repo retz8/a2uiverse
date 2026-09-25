@@ -64,6 +64,12 @@ The shell catalog's design-check fixture is updated in the same session as any c
 
 This spec gains: the design decisions made during the tour, numbered, each with what it replaced; found and fixed during the run, each with its case and its test; evidence per case, including the journal table of decision 5; findings not fixed. The TODO's 9.9 line is rewritten to this scope; 9.10's line accumulates what it is to record. The phase spec is amended only where a decision made during the run changes one of its locked decisions, marked as amended during the run; SPEC and its §14 delta register likewise where a design decision adds or changes a convention. The design records stay with 9.10, which reads this write-up.
 
+## The look, decided during the run
+
+### 13. The paint's time is part of the marker's full attribution
+
+Each fragment's paint carries the time it landed on its slot; a step back shows the older paint's own time. The attribution marker shows it after the name and the account on hover and focus, and its accessible name always carries it; at rest the marker is the name alone. Replaced: the time after the name at rest, drawn at the start of case 1 under decision 2, the same stamp on every fragment. Raised on case 1.
+
 ## Invariants
 
 - Live verification drives tunnel URLs, never localhost.
