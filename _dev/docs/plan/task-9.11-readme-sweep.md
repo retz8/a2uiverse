@@ -37,3 +37,10 @@ Specific first, the roots last.
 
 13. `a2uiverse-apps/README.md` — carries `paintMeta`, the one thing an agent needs to be rendered on the canvas.
 14. `a2uiverse/README.md`
+
+### Design records
+
+The five in `docs/design/`, rewritten as a really friendly guide for a junior frontend engineer: the new concepts explained clearly, diagrams where they help, and the engineering decisions, algorithms, data structures and engineering structures behind them.
+
+15. `docs/design/synthesis.md` first; its review settles how a design record is written.
+16. `client.md`, `orchestrator.md`, `shell-catalog.md`, `agent-kit.md`, the same way.

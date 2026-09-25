@@ -1,714 +1,652 @@
-# Synthesis — how the merged view works
+# Synthesis: how the merged view works
 
-Synthesis is the mechanism that turns several vendors' fragments into one merged view without
-any vendor knowing it happened (SPEC §5, §6, §10). It is the platform's own, and it spans three
-packages and two processes: the **sdk** holds the contract and the tools both sides compute with,
-the **orchestrator** asks a model to *author* the view and checks what comes back, the **client**
-*evaluates* it and keeps it live. This doc is the narrative end to end. The per-class records stay
-in [`orchestrator.md`](orchestrator.md), [`client.md`](client.md) and
-[`shell-catalog.md`](shell-catalog.md); the sdk's front page is `packages/sdk/README.md`. State
-as of task 9.9.
+This guide explains the **merged view**: the table A2UIVerse draws on top of several apps' answers, joining what they said into one place. It's written for a frontend engineer meeting A2UIVerse for the first time. It starts with the ideas, walks one question from start to finish, then opens up the algorithms and data structures, and ends with the design decisions and where the code lives.
 
-## The idea in one paragraph
+One example runs through the whole guide: the question _"what's the status of what I'm working on?"_, answered by Linear, GitHub and CircleCI. It's a real recorded session, and you can replay it yourself (see [Trying it without a model](#trying-it-without-a-model)).
 
-Every vendor paints its own surface with its own data model — its **partition**. Nothing ever
-copies data out of a partition. Instead, once the vendors have answered — or the soft deadline
-stops waiting for the stragglers — a second model call (the **Synthesizer**) writes the **synthesize data model**: a component tree in the shell's own
-catalog, a free-form JSON model whose every leaf is a **formula** — one operator over **refs**
-into the partitions — a sort declaration for each list the tree shows, and a note for the log.
-The orchestrator validates it, paints the tree into the slot the Planner reserved, and sends the
-model and sorts to the client beside the paint. The client's **BindingEvaluator** resolves every
-ref against the partitions it already holds, runs the operators, and writes the result into that
-surface's data model as ordinary values. The renderer sees plain values on plain paths. The
-merged view is a live query over partitions that stay isolated: the moment a partition changes,
-the client re-evaluates, and only when a ref stops resolving, an entry appears in a list the view
-reads, or a source the view reads nothing from paints again does the orchestrator ask the model
-again — that, or the reader pressing to fold a late source in, retry a failed one, or try again.
-Each agent's paints inside a canvas are a stack the reader can step back and forward through, and
-the wiring the view accepted is remembered per combination of those steps, so a step back to a
-screen already seen restores the view with no call.
+<p align="center">
+  <img src="../images/composed-answer.png" width="720" alt="The merged view over Linear, GitHub and CircleCI">
+  <br>
+  <em>The merged view is the "Active work items" table. Below it, each app's own answer in its own look.</em>
+</p>
 
-```
-                          orchestrator                                        client
-                          ────────────                                        ──────
-vendor A ─paints─▶ partition A ─┐
-vendor B ─paints─▶ partition B ─┼─▶ Synthesizer ──text──▶ validate ─▶ paint shell:synthesis ──▶ tree rendered
-vendor C ─paints─▶ partition C ─┘   (model call)          + check     + payload on metadata          │
-                                                                                                    ▼
-                                                                    BindingEvaluator: refs → partitions → operators
-                                                                                                    │
-                                                                            writes cells · sorted arrays · /sorts/N
-                                                                                                    │
-                                                                                                    ▼
-                                                                    DerivedValue · SortControl · Table (shell catalog)
+## The problem it solves
+
+Three apps answer the question, each with its own UI: Linear lists your issues, GitHub your pull requests, CircleCI your pipeline runs. Each is useful on its own, but the question is about your **work items**, and one work item is spread across all three apps: an issue in Linear, its pull request in GitHub, and that pull request's CI run in CircleCI.
+
+The merged view puts each work item on one row. Building it raises three problems:
+
+1. **Something has to understand the data.** Nothing on the wire says that Linear's issue A2U-5, GitHub's pull request #6 and a CircleCI run on the branch `ekkicb71/a2u-5-say-on-the-canvas-…` are one piece of work. Only reading the data tells you: the issue links "PR #6", the branch name contains "a2u-5", the run is on that branch. That takes a language model, the **Synthesizer**.
+2. **A model shouldn't be trusted with values.** If the model copied "In Review" or "Success" into the table, it could copy one wrong, and the copy would go stale the moment an app's data changed.
+3. **The table has to stay live.** You keep clicking around inside the apps after the table appears. Calling the model again on every click would be slow and expensive.
+
+A2UIVerse's answer is one rule: **the model writes wiring, never values.** It writes the table the way you'd write a spreadsheet whose cells point at other sheets: each cell is a small formula pointing into one app's data. A plain deterministic program in the client, the **BindingEvaluator**, computes every value from those formulas, and computes them again whenever the data changes.
+
+> "Understanding is expensive so it runs once; arithmetic is cheap so it runs always." (one of A2UIVerse's axioms, in `SPEC.md`)
+
+```mermaid
+flowchart LR
+    L["Linear's data"] --> SY
+    G["GitHub's data"] --> SY
+    C["CircleCI's data"] --> SY
+    SY["Synthesizer<br/>(model, once)"] -->|"formulas"| EV["BindingEvaluator<br/>(client, every change)"]
+    L -.->|"values"| EV
+    G -.->|"values"| EV
+    C -.->|"values"| EV
+    EV --> T["The merged view"]
 ```
 
-The words to hold on to:
+## Six ideas to hold on to
 
-- The **shell** is the platform's own canvas. On the wire it is also a source: the orchestrator
-  (the **hub**) stamps its own paints with the reserved source id `shell`.
-- A **canvas** is one question's answer, and a **composition** is its screen — one per canvas,
-  held for the session (SPEC §6.4): the Planner's plan, its **slots** — the regions of the layout
-  the shell paints first, one per agent, each a `Slot` component of the shell catalog whose state
-  (pending · failed · collapsed) the hub repaints; a collapsed vendor slot folds away, a collapsed
-  merge slot leaves one line — and the partitions behind them. An **utterance turn** is the user
-  asking; an **action turn** is the user acting inside a fragment, dispatched to that fragment's
-  owner alone; a **press** is the reader's Retry, Include or Try again, an operation on the
-  composition sent beside the turn. A **step** is the reader's back or forward arrow on a
-  fragment, moving that agent to another of its paints in the canvas.
-- A **ref** is a surface id plus a pointer into that surface's data model. Elements of an array
-  are selected by key (`/threads[id="…"]`), never by position.
-- A **formula** is `{op, args}`: one operator the shell catalog declares over zero or more refs.
-- The **derived data model** is a JSON shape of the Synthesizer's choosing whose every leaf is a
-  formula. "Wiring, never values" holds at the leaves.
-- The **synthesis tree** is an ordinary A2UI components list in the shell catalog, bound to
-  paths in that model.
-- A **sort declaration** names an array of the model, the keys it may be ordered by, and the
-  initial choice. The runtime sorts; the user changes it.
-- A **cell** is what the evaluator writes at a formula path: the value plus its contributor
-  state.
+### 1. Every app's answer has its own data: a partition
 
-Client words used below without ceremony, all from `client.md` and the client README: the
-**stage** is the live surface on a canvas; a paint may be **staged** and **swapped** in when
-complete; the **trail** is the session's canvases, one entry per question, and a **past canvas** one
-the user has gone back to — still live, its answers landing in it. A **two-way edit** is an input
-inside a fragment writing to its own data model. A **beat** is a recorded stream the canvas can replay; the
-**roster** is the set of installed agents; **S1** is SPEC §3's first scenario.
+In A2UI, an agent answers by painting a **surface**: a tree of components from its catalog, plus a JSON **data model** those components bind to. It works like a React component reading from a store: the component says _which path_ to show, and the data model holds the value.
 
-## The cast
+Here's part of Linear's data model from the example:
 
-| Who | Where | Does |
-| --- | --- | --- |
-| Planner | orchestrator `planner/` | reserves the synthesis slot with a prose brief, and asks each vendor in prose for the data a merge needs |
-| the trigger | orchestrator `composition/trigger.ts` | after every settle, whether the merge waits, arms the soft deadline, is released, or collapses |
-| Partitions | orchestrator `composition/partitions.ts` | the server-side copy of every surface's data model; resolves refs through the sdk kit |
-| Synthesizer | orchestrator `synthesizer/` | prompts the model, extracts and validates its text, retries once |
-| the payload validator | sdk `validate.ts` | the contract's own checks over the derived model and sorts, run by both processes |
-| the A2UI validator | sdk `a2ui/` | a tree against a catalog, following upstream's `A2uiValidator`; beside it, catalog pruning by keep-set |
-| the Synthesizer's validator | orchestrator `synthesizer/validate.ts` | the one validator over the model's document: output schema, the payload validator, the tree through the A2UI validator against the Synthesizer's pruned catalog, derived-value rule, operators and relations, no binding under `match`, refs resolve now, match-claim facts hold now |
-| the painter | orchestrator `composition/synthesisPainter.ts` | paints the tree verbatim, the payload beside the stamp |
-| IntegrityChecker | orchestrator `composition/integrity.ts` | after an action, asks whether every ref still resolves, whether a key appeared in a watched array, whether a fact under `match` stopped holding, and whether a source the view reads nothing from painted again; accounts for what changed |
-| intake + session | client `canvas/synthesis/` | validates the payload, subscribes to the partitions, re-runs the evaluator |
-| BindingEvaluator | client `canvas/synthesis/bindingEvaluator.ts` | pure: payload + partitions → the surface's data model |
-| DerivedValue · SortControl · Table · DataList | shell catalog | what a merged view is made of; the operators live in the same catalog |
-| the press lines | shell catalog `components/slot/press-lines.ts` | the lines on and above the merged view — collapse, late arrival, a press running or failed — from the facts painted on its `Slot` |
-| the history | orchestrator `composition/history.ts` · client `canvas/history/fragmentHistory.ts` | each agent's steps in a canvas, counted alike on both sides, and the wiring remembered per combination of them |
-
-## A turn, step by step
-
-Take the utterance *"What needs my attention today?"* over Calendar, Gmail and GitHub — the S1
-scenario, recorded as beat 5.
-
-1. **The Planner reserves the slot and asks for the merge's data.** The plan gains a dispatch
-   entry whose `source` is the reserved `shell`; its `request` is the Planner's prose brief to the
-   Synthesizer — what the merged view shows, what it orders by, what matters to the user. Whether
-   the screen gets one, and where it sits, is the Planner's judgment. When it does, each vendor's
-   request also asks, in plain words, for the fields a merge depends on: identifiers, and the full
-   date and time of each entry. It asks for data, never a format, and says nothing about the
-   merge, the shell or the other agents (phase decision 9). When the view is over one kind of
-   thing, the brief states the join hypothesis — the entity, its kind, each source's cue — and each
-   vendor is asked, in its own app's words, for the fields its cue needs (task 7.6). The hypothesis
-   is **anchored** when the question owns the entities through one source ("issues assigned to
-   me"): that source is the **home source**, one agent never two, whose instances are the rows,
-   every other agent's entries attaching to its rows or to nothing. It is a **union** when the
-   question ranges over all of the things wherever they are ("all cameras across the stores"): no
-   home source, the rows every instance any source lists (task-8.7 decision 30). Beside the brief
-   the entry carries the view's planned `columns`, each marked to the source whose values it shows
-   (`columnSources`, task 8.3), and, under a join hypothesis, the entity's noun in each source —
-   a union's noun for the thing itself beside them (task 7.15). The plan reaches the client as the
-   shell's layout paint: a surface of `Slot`s, every one pending — the synthesis slot as bare shell
-   content, reserved as the merged view under its planned headers with four skeleton rows, each
-   marked heading saying whether its source is loading or has failed, the join's nouns on it for
-   the progress line, no attribution — before any vendor has answered.
-
-2. **Vendors fill their slots.** Each vendor's events are relayed as fragments; the stamp on
-   names its source, and the layout's `Slot` holding that source is where the surface belongs. As
-   each event passes through, the orchestrator **materializes the partition**: it applies the
-   vendor's A2UI messages to a server-side copy of that surface's data model, keyed by the
-   namespaced surface id, so it always knows what the client holds (the client also sends its
-   data models back on every request, so two-way edits reach the copy). One surface per source: a
-   source's new surface retires its earlier one, as the client's slot does. A source that completes
-   having painted counts as **arrived**, and its stream's end is marked for the client: one event
-   with no parts, its stamp `settled`, where the client judges that source's fragments — a paint it
-   cannot draw is reported then, before the merge reads it (task-8.7 decision 25). A source that
-   fails — the vendor failing, unreachable, cut off mid-paint, at the hard cap, or its paint
-   reported undrawable — flips its slot to the failure tile, its data out of every merge and its
-   fragment off the canvas. The moment the last dispatch settles is `lastSettledAt`.
-
-3. **The trigger releases the merge → the Synthesizer is prompted.** The next section says when;
-   fewer than two arrived means no call at all. Otherwise the model receives a system prompt assembled once at boot in the orchestrator:
-   the role, the **rules doc** (`apps/orchestrator/src/synthesizer/synthesis.md` — partitions,
-   refs and predicates, formula leaves, the join from the hypothesis — an anchored join's home rows or a
-   union's rows of every instance, attaching by evidence, `judged` only when nothing but
-   understanding links two entries, one entry or a list with its count, declining without home
-   rows, or under a union without any instance, the note saying where the view departed from the
-   hypothesis — sorts, the tree,
-   the note, decline, re-synthesis, in a2uiverse words), the shell catalog's **guidance doc** (which components a merged view is made
-   of, and the derived-value rule), the shell catalog pruned to the synthesis surface's keep-set,
-   the output schema, and one worked example, the S1 timeline. The turn carries the utterance, the brief, the columns the user was shown, each with its source —
-   the view starts from them, departures said in the note (task 7.15) — the sources missing from
-   this synthesis, each with its state, every column marked to one of them kept (task 8.3), and the
-   live data model of every partition the merge is over, with its app's display name. Never a vendor's component tree: Planner and
-   Synthesizer know only the shell catalog (phase decision 7). The only tree the Synthesizer ever
-   sees is its own previous one, on a retry or a re-synthesis.
-
-4. **The model writes the synthesize data model, as text.** One JSON document inside a
-   `<synthesize-data-model>` block (phase decision 16). For the S1 shapes the Synthesizer's own worked
-   example shows the form: a `Column` holding a `Row` of the view's `h5` label and its
-   `SortControl`, a `Table` templated over `/timeline`, and, under its own `h5` label, a second
-   `Table` for Calendar, whose times of day carry no date and cannot
-   join the axis; a `dataModel` with `timeline` (Gmail threads and GitHub PRs, selected by id or
-   by repository-and-number) and `calendar` arrays; one sort over `/timeline` by `/when`; and a
-   note explaining why Calendar stands apart.
-
-5. **The orchestrator accepts, or hands it back once.** The block is extracted by the
-   orchestrator's shared tagged-block extractor, parsed, and run through the Synthesizer's one
-   validator: the output schema; the derived model and sorts through the sdk's payload validator
-   (every leaf a formula, every pointer parses, one sort per array, every option key a formula with
-   at least one ref in every element, the initial key an option); the tree through the sdk's A2UI
-   validator against the Synthesizer's pruned catalog (known components and props, one `root`,
-   unique ids, no dangling child, no cycle, no orphan — `Slot`, `Attribution` and `Button` are not in
-   that catalog); then, over a structurally sound model — a faulty sort declaration withholds none
-   of them — the derived-value rule, every operator one the pruned catalog declares and in its place — relations only inside `match`, only
-   relations there — no binding under `match`, a list inside each row checked against its first
-   non-empty one, every ref into a held partition and resolving *now*, and every `equal` and
-   `contains` of a match claim holding *now* on the shell catalog's own relation functions — a
-   failing one named with both values and "write a fact that holds, or do not attach the entry",
-   never offering `judged` (task 7.6); and the Table's column marks, one per column, each a source
-   of the composition or null, every column marked to a missing source kept — a mark written as a
-   source's surface id taken as that source (task 8.7). Any finding goes back to the model as one line
-   per error with the failed document; a second failure is `malformed`. Within one synthesis the
-   retry is the only second call; a re-synthesis later in the composition's life is a new
-   synthesis with its own retry.
-
-6. **The synthesis surface is painted.** `shell:synthesis`, against the shell catalog, into the
-   `Slot` holding the `shell` source: a `createSurface` plus an `updateComponents` carrying the
-   model's components exactly as written. The event's metadata carries the stamp `{source: shell,
-   role: fragment}` and, beside it under `a2uiverseSynthesis`, the **payload**: the derived model
-   and the sorts. The tree rides as A2UI; the note stays in the journal. The orchestrator keeps
-   the accepted document and the payload as the composition's live synthesis, which the
-   IntegrityChecker guards from now on.
-
-7. **The client evaluates before it renders.** The turn runner hands the payload to the
-   **synthesis session** the moment the surface is live. Intake validates it with the same sdk
-   validator and checks every operator against the shell catalog, in its place; the session subscribes to the
-   root of every partition the payload refs and to `/sorts` on the synthesis surface; the
-   evaluator resolves every ref, runs every formula, sorts every declared array, and writes the
-   whole model to the synthesis surface in one root write. Only then does React render, so the
-   first paint of the merged view already carries values.
-
-8. **The screen.** The merged view is the shell writing on its own page (phase decision 22): no
-   fragment boundary, no attribution tile, no source badge. Provenance is in the cells — each
-   `DerivedValue` shows its value and, when not every source contributed, draws it in the quiet
-   register with the detail on hover. The Gmail and GitHub entries sit on one axis ordered by instant, each row's
-   `Source` cell naming its app through the `source` operator; the `SortControl`, on one row with
-   the view's small label at its leading edge, shows the criterion and lets the user change it —
-   the user's question heads the canvas, so the model's title is only the merged view's label
-   (task 7.16). Calendar's entries stand in their own table
-   with their times shown as labels. (A view of one thing's labelled fields — a summary, a detail
-   — is a `DataList` of `DataListItem`s instead of a `Table`; the guidance doc says which shape
-   serves which view.) A column marked to a source the merge landed without stays **reserved**:
-   the client draws its cells from that source's slot state — a skeleton bar while it loads, the
-   dash and "unavailable" once it failed, "not included" while it waits for Include — and they fill
-   in place once it is included; nothing moves (task 8.2, 8.5).
-
-9. **The turn closes.** The journal records the whole conversation — every attempt's text and
-   errors (the holds-now findings among them), the accepted document, its note, the change account
-   on a re-synthesis, what released it — settled, the soft deadline or the home source landing, or
-   the press behind a later call — the sources it ran over and those missing — and the **dead air**:
-   the interval from the release to the synthesis outcome (`deadAirMs`). Dead air is measured, not mitigated
-   (phase decision 15).
-
-## When the merge runs
-
-The **trigger** (`composition/trigger.ts`) is weighed after every settle (SPEC §5.3, phase-8 decisions
-1–4):
-
-- **Every source settled** — arrived, failed or at its hard cap — releases the merge (`settled`), or
-  collapses it when fewer than two arrived (`few`).
-- **The soft deadline** is patience after the pack. It arms once the sources that arrived could
-  make a merge on their own — two, the home source among them under an anchored join — and fires
-  after 10 s in which no source has settled, each settle restarting it. Firing releases the merge
-  over what arrived (`soft-deadline`); the stragglers' dispatches are not aborted and run on.
-- **The home source is exempt** under an anchored join: the reserved slot waits for it and the
-  merge is released when it lands (`home`); a home source that fails collapses the merge at once,
-  with no call. A union's sources are all peers.
-- **The hard cap** fails a dispatch 300 s after it went out: its slot takes the failure tile
-  (`timeout`). The dispatch runs on, and an answer arriving past the cap is held — not drawn, not
-  in the partitions — until the reader presses Retry.
-
-Both lengths come from the orchestrator's environment. That release is the turn's **one automatic
-synthesis**; every later Synthesizer call has a press behind it (phase-8 decision 11). The turn's
-final waits for every dispatch to arrive, fail or reach the cap, so a straggler lands inside its
-turn's stream. A new question opens a canvas of its own and ends nothing: the canvas runs on after
-the user leaves it. Its close ends the turn — its dispatches cancelled, each vendor sent A2A's
-cancel, its model calls aborted.
-
-**The merge in the making.** One merge is made at a time per composition. It starts only once no
-source it reads has a press in flight, and lands only once none does (task 8.10). A partition it
-reads changing while the call runs throws the call away, and so does a source it reads being
-reported undrawable meanwhile — the settled marker brings that report one round trip after the
-source's stream ends, which can fall while the merge is made (task-8.7 decision 25). Either way it
-is made again, over the set as it now stands, journaled `thrownAway`. A step writes the partition
-it moves (below), so a step while a merge is made throws it away the same way.
-
-**The merge's own set.** The merge keeps the sources it was built over; the walk and any
-re-synthesis run over that set. Only Include, Retry and Try again add to it; a failure removes
-from it (phase-8 decision 6).
-
-**Late arrivals and the presses.** A source arriving after the view landed mounts its fragment in
-its slot with no model call. The view stays as it landed, its column for that source reading "not
-included", and a row above the view's label says "Gmail answered after this view was made." beside
-"Include Gmail" (task-8.7 decision 21). Each press is an operation on the composition, sent on a
-stream beside the turn (contract v0.8):
-
-- **Include** folds the late sources in: the inline re-synthesis, handed the previous document
-  beside the fresh partitions and told which sources joined. While it runs the row says "Including
-  Gmail…" and the reserved cells load; they fill in place when the document lands.
-- **Retry** re-dispatches one failed slot with the plan's request, no re-plan. An answer held past
-  the cap is drawn at once; while the capped dispatch still runs, the re-dispatch races it and the
-  first to arrive fills the slot, the other cancelled. A source retried before the first merge
-  rejoins the pack; after it, its arrival is folded in without a second press.
-- **Try again** makes again a merge whose call failed, over every arrived source.
-
-Whatever is owed while a merge is being made — Includes, retried arrivals, a walk — runs as one
-call once it ends (task 8.4). A re-synthesis whose call fails keeps the landed view, with "The
-merged view couldn't be updated." and Try again, or "Couldn't include Gmail." and Include again.
-
-## What rides the wire
-
-**The stamp** (every relayed event, `metadata.a2uiverse`):
-
-```json
-{"source": "gmail", "role": "fragment"}
-```
-
-and, on the one event with no parts that closes a source's stream, `"settled": true` beside them.
-
-**The synthesis paint** (one event): the A2UI parts carry the tree; the metadata carries the
-stamp and the payload. A trimmed payload for the timeline:
-
-```json
+```jsonc
+// surface "linear:linear-1", Linear's data model (trimmed)
 {
-  "dataModel": {
-    "timeline": [
-      {
-        "source": {"op": "source", "args": [{"surface": "gmail:inbox", "pointer": "/threads[id=\"1a06f2abedf045ce\"]"}]},
-        "when":   {"op": "value",  "args": [{"surface": "gmail:inbox", "pointer": "/threads[id=\"1a06f2abedf045ce\"]/time"}]},
-        "what":   {"op": "value",  "args": [{"surface": "gmail:inbox", "pointer": "/threads[id=\"1a06f2abedf045ce\"]/subject"}]}
-      },
-      {
-        "source": {"op": "source", "args": [{"surface": "github:prs", "pointer": "/prs[repository=\"a2ui-project/a2ui\",number=2531]"}]},
-        "when":   {"op": "value",  "args": [{"surface": "github:prs", "pointer": "/prs[repository=\"a2ui-project/a2ui\",number=2531]/updatedAt"}]},
-        "what":   {"op": "value",  "args": [{"surface": "github:prs", "pointer": "/prs[repository=\"a2ui-project/a2ui\",number=2531]/title"}]}
-      }
-    ],
-    "calendar": ["… one object per event, selected by id …"]
-  },
-  "sorts": [
-    {"path": "/timeline", "options": [{"key": "/when", "label": "Time"}], "key": "/when", "direction": "desc"}
+  "issues": [
+    {"id": "A2U-5", "status": "In Review", "priority": "High", "link": "PR #6", "updatedAt": "Sep 19, 2026, 10:58:36 UTC"},
+    {"id": "A2U-7", "status": "In Progress", "priority": "Low", "link": "ekkicb71/a2u-7-shell-action-report-hangs-through-the-tunnel", "updatedAt": "Sep 19, 2026, 10:53:09 UTC"},
+    {"id": "A2U-6", "status": "In Progress", "priority": "Medium", "link": "PR #7", "updatedAt": "Sep 18, 2026, 11:53:06 UTC"}
   ]
 }
 ```
 
-And the tree that binds to it, as the painter sends it (the components list of an
-`updateComponents`, in the shell catalog):
+A **partition** is one app's surface data model, as A2UIVerse holds it. Two rules keep partitions apart:
+
+- **Surface ids are namespaced** as `<appId>:<surfaceId>`. Linear's `linear-1` becomes `linear:linear-1`, so two apps can never collide on a name.
+- **Nothing copies data out of a partition.** No app ever sees another's data. Only the shell, A2UIVerse's own UI, reads across partitions, and the merged view is the shell's.
+
+```mermaid
+flowchart LR
+    subgraph client["The client holds four data models"]
+        L["linear:linear-1"]
+        G["github:notifications-1"]
+        C["circleci:circleci-1"]
+        S["shell:synthesis<br/>the merged view"]
+    end
+    L -.->|"read by formulas"| S
+    G -.->|"read by formulas"| S
+    C -.->|"read by formulas"| S
+```
+
+### 2. A ref points at one value, by key
+
+A **ref** names one value in one partition: the surface, and a pointer into its data model.
 
 ```json
+{"surface": "linear:linear-1", "pointer": "/issues[id=\"A2U-5\"]/status"}
+```
+
+The pointer is a normal JSON Pointer (`/a/b/c`, RFC 6901) with one addition, the **predicate**. `issues[id="A2U-5"]` means "the element of the `issues` array whose `id` is `"A2U-5"`". When no single field identifies an element, tests are joined with commas: GitHub's pull request is `prs[repository="retz8/a2uiverse",number=6]`, since pull request numbers repeat across repositories.
+
+Why not simply `/issues/0/status`? **Because a position is not a name.** If Linear re-sorts its list, position 0 becomes a different issue, and the table would quietly show the wrong issue's status. A key names the element wherever it moves. So A2UIVerse doesn't allow positions into arrays at all: a pointer that uses one doesn't resolve.
+
+Resolving a ref has one way to succeed and four ways not to:
+
+| Answer       | When                                                                          |
+| ------------ | ----------------------------------------------------------------------------- |
+| `found`      | every step matched, each predicate exactly one element, and the value isn't `null` |
+| `missing`    | a key or an element isn't there                                               |
+| `ambiguous`  | a predicate matched more than one element                                     |
+| `null`       | the value at the end is `null`                                                |
+| `positional` | a step addressed an array by position                                         |
+
+All four "not found" answers mean the same thing to the merged view: the ref is **absent**. Absent is not an error. It's what happens when you open an issue inside Linear's slot: Linear replaces its list with the issue's detail, the refs into the list stop resolving, and the cells that read them show it. Go back, and they resolve again.
+
+### 3. A formula is one operator over some refs
+
+Every cell of the merged view is a **formula**: `{op, args}`, one operator over a list of refs.
+
+```json
+{"op": "value", "args": [{"surface": "linear:linear-1", "pointer": "/issues[id=\"A2U-5\"]/status"}]}
+```
+
+The operators are functions declared in the shell catalog:
+
+| Operator                   | Gives                                                   |
+| -------------------------- | ------------------------------------------------------- |
+| `value`                    | the one value it points at                              |
+| `min`, `max`, `sum`, `avg` | a number over the numbers that resolved                 |
+| `count`                    | how many refs resolved                                  |
+| `argmin`, `argmax`         | which app holds the smallest or largest value           |
+| `source`                   | which app the first resolving ref belongs to            |
+
+Two rules keep formulas simple:
+
+- **Formulas don't nest.** There's no `min(max(…))`, so there's one evaluation path and a short validator.
+- **A formula may have no refs.** `{"op": "value", "args": []}` is the honest cell for "this row has nothing here". In the example, issue A2U-7 has no pull request yet, and its "Pull request" cell is exactly that.
+
+### 4. The synthesize data model: what the Synthesizer writes
+
+The Synthesizer answers with one JSON document, the **synthesize data model**. It has four parts:
+
+| Part        | What it is                                                                                   |
+| ----------- | -------------------------------------------------------------------------------------------- |
+| `dataModel` | The **derived data model**: any JSON shape the model likes, with a formula at every leaf      |
+| `tree`      | The merged view's components, in the shell catalog, bound to paths in `dataModel`             |
+| `sorts`     | For each list, the keys a reader may sort it by, and the one it starts with                   |
+| `note`      | What it delivered and where it departed from what it was asked. Written to the log, never shown |
+
+Here is the first row of the example, as the Synthesizer wrote it (trimmed; `match` is idea 5):
+
+```jsonc
+{
+  "dataModel": {
+    "issues": [
+      {
+        "issue":     {"op": "value", "args": [{"surface": "linear:linear-1", "pointer": "/issues[id=\"A2U-5\"]/id"}]},
+        "status":    {"op": "value", "args": [{"surface": "linear:linear-1", "pointer": "/issues[id=\"A2U-5\"]/status"}]},
+        "pr":        {"op": "value", "args": [{"surface": "github:notifications-1", "pointer": "/prs[repository=\"retz8/a2uiverse\",number=6]/number"}]},
+        "ciStatus":  {"op": "value", "args": [{"surface": "circleci:circleci-1", "pointer": "/runs[id=\"6039cf16-6db3-4974-af2b-517f8ce26c2a\"]/status"}]},
+        "updatedAt": {"op": "value", "args": [{"surface": "linear:linear-1", "pointer": "/issues[id=\"A2U-5\"]/updatedAt"}]},
+        "match": { "…": "the evidence that these are one work item" }
+      }
+      // …one object per issue
+    ]
+  },
+  "sorts": [
+    {"path": "/issues", "options": [{"key": "/updatedAt", "label": "Updated"}], "key": "/updatedAt", "direction": "desc"}
+  ]
+}
+```
+
+And part of the tree that binds to it. It's ordinary A2UI: a `Table` repeats a `TableRow` for every element of `/issues`, and each cell is a `DerivedValue` reading one formula path:
+
+```jsonc
 [
-  {"id": "root", "component": "Column", "children": ["head", "timeline", "calendar-heading", "calendar"]},
-  {"id": "head", "component": "Row", "justify": "spaceBetween", "align": "center", "children": ["heading", "sort"]},
-  {"id": "heading", "component": "Text", "variant": "h5", "text": "Needs attention today"},
-  {"id": "sort", "component": "SortControl", "sort": {"path": "/sorts/0"}},
-  {"id": "timeline", "component": "Table", "columns": ["Source", "When", "What"],
-   "children": {"path": "/timeline", "componentId": "item"}},
-  {"id": "item", "component": "TableRow", "children": ["i-source", "i-when", "i-what"]},
-  {"id": "i-source", "component": "DerivedValue", "cell": {"path": "source"}},
-  {"id": "i-when", "component": "DerivedValue", "cell": {"path": "when"}, "format": {"kind": "datetime"}},
-  {"id": "i-what", "component": "DerivedValue", "cell": {"path": "what"}},
-  "…"
+  {"id": "table", "component": "Table", "columns": ["Issue", "Status", "Priority", "Pull request", "CI status", "Updated"],
+   "children": {"path": "/issues", "componentId": "row"}},
+  {"id": "row", "component": "TableRow", "children": ["c-issue", "c-status", "c-priority", "c-pr", "c-ci", "c-updated"]},
+  {"id": "c-pr", "component": "DerivedValue", "cell": {"path": "pr"}, "format": {"kind": "number", "prefix": "#"}},
+  {"id": "c-ci", "component": "DerivedValue", "cell": {"path": "ciStatus"}, "danger": ["Failed"]},
+  {"id": "c-updated", "component": "DerivedValue", "cell": {"path": "updatedAt"}, "format": {"kind": "datetime"}}
+  // …
 ]
 ```
 
-The contract is one file, `packages/sdk/contracts/composition.v0.8.json`: the stamp and the
-synthesize data model outbound, the composition operation — the reader's press — inbound. The JS projection is `packages/sdk/js/src/synthesis.ts`.
+The props on the tree, like the `#` prefix or the `danger` words, are presentation, and they're the model's to write. A value from an app is never a literal in the tree; it always comes through a formula.
 
-## The synthesize data model, piece by piece
+When the apps' data gives nothing to merge, the Synthesizer can **decline** instead: `{"declined": true, "reason": "…"}`. The reason is the one line on the screen written in a model's words.
 
-**Refs.** `{surface, pointer}`. The surface is the namespaced id exactly as the client keys its
-data models; the pointer is RFC 6901 with one extension: a segment may carry a **predicate**,
-`items[id="x100"]`, selecting the element of `items` whose field equals the JSON literal, and
-several tests may be conjoined, `prs[repository="a/b",number=11]`, for elements no single field
-names. Exactly one element must match. A positional segment into an array is not a ref: the sdk's
-resolver answers `positional`, and the orchestrator's checklist tells the model to use a
-predicate rather than sending it hunting for missing data (task 5.10). Resolution has four
-absent answers — `missing`, `ambiguous`, `null`, `positional` — and every one of them is absent
-to a formula. There is no index ref, no generation baseline and no stale state (phase decision 6
-as amended by task 5.10).
+### 5. A match claim says why entries are one thing
 
-**Formulas.** `{op, args}`, recognised by shape: an object with exactly those two keys. `op` is
-one of the functions the shell catalog declares as operators — `value`, `min`, `max`, `sum`,
-`avg`, `count`, `argmin`, `argmax`, `source` — and the contract does not enumerate them; each
-process reads the list from the catalog. A plain vendor value is the one-argument `value`
-pass-through, so there is one shape and one evaluator path. A formula with no refs is the honest
-cell for a column a source does not carry: it evaluates to absent, 0 of 0. `source` is the
-degenerate selector — index 0 of the surviving inputs — so a merged row can name the app its
-entry came from without copying anything (phase decision 19 as amended by task 5.7). Formulas do
-not nest. The catalog's relations — `equal`, `contains`, `judged` (task 7.5) — are declared
-beside the operators and written only inside `match`.
+Putting refs from Linear, GitHub and CircleCI into one object is a claim: "these are about the same work item". The Synthesizer backs that claim with evidence, under the reserved key `match`. This is the real evidence for row A2U-5:
 
-**The derived data model.** Any JSON shape, object or array at every branch, formula at every
-leaf; a scalar anywhere is a contract violation. A list of like things is an array of like
-objects, one per thing, and the tree templates over it. Putting two sources' refs into one object
-is the Synthesizer's assertion that they are about the same thing — the entity-resolution claim,
-made only when the data supports it. The root key `sorts` is reserved.
-
-**The match claim.** Where the Synthesizer judges entries from different apps to be one thing, the
-object that joins them carries its evidence under the reserved key `match`, the root included:
-named relations, each key the Synthesizer's own words for what matched and each value a relation
-formula over exactly two refs in two different apps — `"branch": {"op": "equal", "args":
-[github…/branch, circleci…/branch]}`. At least one relation, flat. No object is required to carry
-one. A relation is a formula like any other leaf, so its refs are the model's refs. The sdk's
-validator checks the shape and that each relation's refs name two different apps. The consumers —
-the orchestrator's validator and the client's intake — check that each relation's operator is one
-of the shell catalog's relations and that no relation stands outside `match` (task-7.5 decision 5).
-
-**Sorts.** For each ordered array: its `path` in the model, the `options` a user may sort by (each
-a `key` pointer inside an element to a formula leaf, with a `label`), and the initial `key` and
-`direction`. A path's steps are object keys and `*`, at any depth: `/rows/*/runs` is the list
-`runs` inside every element of `rows`, one declaration and one user choice ordering it in every row,
-and every element the path passes through carries the list, `[]` when it has none (task 7.12). The
-sdk's `reachSortPath` is the one expansion of a path into the arrays it reaches. One declaration per
-array, and every option key must be a formula with at least one
-ref in every element — a key with no refs can never take a place on the axis, so such an element
-belongs in its own array (the validator's rules from task 5.7). The rules doc asks for a
-declaration on every array the tree lists, the one exception being the array no key can order.
-
-**The tree.** The components list an agent would put in an `updateComponents`, in the shell
-catalog, one of them `root`. It binds to the model with `{"path": …}`, absolute or relative
-inside a template. **The derived-value rule** (phase decision 18): a path whose leaf is a formula
-renders only through `DerivedValue`, and `DerivedValue` binds nothing else; `SortControl` binds
-`/sorts/N`. Literal props — labels, column labels, a value's `danger` words, a format's `prefix`
-— are presentation and the model's to write; a literal that restates a source's value is a
-copied value and is wrong there too. A column about another entity than the row's shows that
-entity's short handle — its number under a `#` prefix — never its title, which would be the row's
-own words again; a column's `danger` words are the values a reader must act on, which the runtime
-draws in the danger tone (task 7.16). `Slot`,
-`Attribution` is the shell's own and never part of a merged view.
-
-**The note.** What was delivered and why it differs from the brief, when it differs; on a
-re-synthesis, what changed. Journaled, never painted — the user never saw the brief (phase
-decision 8).
-
-**Decline.** `{declined: true, reason}` when the sources give nothing to merge. The reason is
-written for the user; it rides on the collapsed synthesis `Slot` and is drawn where the view was,
-at body size in ink — the one line on the canvas in a model's words (task-8.7 decision 27).
-
-## What the client writes
-
-The evaluator's output is the synthesis surface's whole data model. It mirrors the derived model
-— branches keep their shape, each declared array is reordered in place — with a **cell object** at
-every formula path and the reserved `sorts` array at the root:
-
-```json
-{
-  "timeline": [
-    {
-      "source": {"value": "gmail", "contributed": 1, "of": 1, "absent": []},
-      "when":   {"value": "2026-09-05 01:24 UTC", "contributed": 1, "of": 1, "absent": []},
-      "what":   {"value": "Estimate review: status before Friday", "contributed": 1, "of": 1, "absent": []}
-    },
-    {
-      "source": {"value": "gmail", "contributed": 1, "of": 1, "absent": []},
-      "when":   {"value": "2026-09-05 00:20 UTC", "contributed": 1, "of": 1, "absent": []},
-      "what":   {"value": "Draft agenda for the budget sync", "contributed": 1, "of": 1, "absent": []}
-    },
-    {
-      "source": {"value": "github", "contributed": 1, "of": 1, "absent": []},
-      "when":   {"value": "2026-09-05T00:03:52Z", "contributed": 1, "of": 1, "absent": []},
-      "what":   {"value": "Retry a fragment subtree on validation failure", "contributed": 1, "of": 1, "absent": []}
-    },
-    {"…": "then the PR updated at 22:41 the day before — latest first, across two spellings of time"}
-  ],
-  "calendar": ["…"],
-  "sorts": [
-    {"path": "/timeline", "options": [{"key": "/when", "label": "Time"}], "key": "/when", "direction": "desc"}
-  ]
+```jsonc
+"match": {
+  "same PR reference":        {"op": "contains", "args": [/* Linear's link, "PR #6" */,    /* GitHub's number, 6 */]},
+  "branch matches issue key": {"op": "contains", "args": [/* GitHub's branch */,           /* Linear's id, "A2U-5" */]},
+  "CI run on same branch":    {"op": "equal",    "args": [/* CircleCI's branch */,         /* GitHub's branch */]}
 }
 ```
 
-A cell is `{value, contributed, of, absent}` and never a scalar, plus `join` when its object
-carries a match claim, `target` when a ref resolves, and `names: 'app'` when the value is an app
-id. `DerivedValue` binds to it by one path and owns the interpretation, so a partial value can
-never render like a complete one — by construction rather than by review. `absent` lists the
-namespaced surfaces whose refs did not resolve; the component names them by the host's display
-name, the app id when it has none. `SortControl` binds `/sorts/N` and writes the whole
-declaration back to the same path when the user changes key or direction.
+Each key is the Synthesizer's own words for what matched. Each value is a **relation**: a formula over exactly two refs, in two different apps. There are three relations:
 
-Evaluation of one cell: resolve each ref through the sdk's resolver against its partition's root
-(any not-found answer, and a `null`, is absent), drop the absents, call the catalog function over
-the survivors' values, record `contributed` and `of`. `argmin`, `argmax` and `source` return an
-index over the survivors; the evaluator maps it back to the winning ref's surface, writes the
-**app id** as the value and marks the cell `names: 'app'`, so `DerivedValue` draws the app's
-display name while sorting keeps the id.
+| Relation   | Holds when                                                                   | Kind      |
+| ---------- | ---------------------------------------------------------------------------- | --------- |
+| `equal`    | the two values are the same instant, the same number, or the same words     | fact      |
+| `contains` | the second value's words appear, in order, inside the first's               | fact      |
+| `judged`   | both values are there. The model's judgment, where no fact links the two    | judgment  |
 
-Every cell with a resolving ref navigates: `target` is `{app, surface, pointer}` of its first
-surviving ref, or of the winner for a selector. A cell none of whose refs resolves has no target
-and is not a button, like a cell with no refs (task-7.9 decision 2). A tap lands on that element
-in the vendor's fragment, on the client alone (`client.md`).
+**Facts are checked twice.** Before the orchestrator accepts the document, every fact must hold on the apps' data as it is now; a fact that doesn't is sent back to the model. After that, the client checks every fact again on every change, so a join that stops holding later is shown on screen. A value tied into its row only by a judgment is drawn as **guessed**, and one whose only link stopped holding as **broken**. [Marking a join](#marking-a-join-union-find) shows how.
 
-A cell has four states. Contributor state and a claimed object's join share one channel — the
-value's own contrast, the less solid its basis the softer it reads — so a cell that is both partial
-and guessed reads as one statement (task 7.9):
+### 6. A cell is a value that says how sure it is
 
-| State | Meaning | At rest | Speaks on hover or focus |
-| --- | --- | --- | --- |
-| complete | every declared input resolved | the value at full strength | only if the join is marked |
-| partial | some inputs resolved | the value in the gray register | names the missing sources |
-| absent | inputs were declared, none resolved | a dash, gray | "no source is showing this" |
-| empty | no input was declared — 0 of 0, the attachment a row never had | a bare dash, gray | nothing |
+The evaluator never writes a bare value. At every formula it writes a **cell**:
 
-`empty` and `absent` are not the same fact: the first is the world being empty, the second is the
-shell losing sight of a value it had. Only the second is disclosed.
-
-The join rides the same channel: `guessed` steps back to gray like a partial value, and `broken`
-goes amber and keeps a size-1 amber ⚠ beside the value — the one state that escalates, because it
-means the value may belong to another entity. `data-marked` carries the reading a cell is drawn at.
-A value complete and held by facts draws nothing and says nothing: its audit is the tap into the
-vendor's fragment. The accessible name always carries the full disclosure, whatever the cell draws.
-
-The mark was first drawn as a rule under the value, filled to the contributed fraction. Contrast
-replaced it (task-7.9 decision 24): a stroke borrowed the idiom that means "misspelled", attached
-the mark to the typography when the fact is about provenance, multiplied on a value that wraps in a
-table column, and stopped discriminating once a row's values were all marked together. The accepted
-cost is that `guessed` is carried visually by color alone.
-
-## Reading time
-
-Vendors paint time however their own model chose — `2026-09-05T00:03:52Z`, `2026-09-05 01:24
-UTC`, `Sep 6, 2026 · 00:20 UTC`, `11:30 – 12:15` — and nothing on the wire asks them for a
-format. So the runtime reads it (SPEC §14, task 5.7): `parseInstant` in the shell catalog's
-`components/shared/instant.ts` treats any value carrying a four-digit year and a clock as an
-instant, reads a range as its start, honours a named IANA zone in the value, and reads a
-zone-less wall time in the display zone — `America/New_York`, fixed in code, not the viewer's
-machine and not configurable. Everything else — a time of
-day without a date, a bare date, a label — stays text. The same function serves two places, so
-what sorts together renders together: the evaluator's comparator orders numbers numerically, two
-instants by `parseInstant`, strings by locale, and a mixed pair by string; `DerivedValue`'s
-`format: {kind: "datetime"}` renders any readable spelling through `formatInstant` in one fixed
-form, `en-US` in `America/New_York`. The Synthesizer converts nothing: it puts the ref on the
-axis and gives the cell the `datetime` format. No time-normalising operator exists (task 5.11's
-closure stands).
-
-## Absent, and when the Synthesizer runs again
-
-Because a ref names an element by key, only one thing can happen to it after the document is
-written: it stops resolving. **Absent is not invalid** (SPEC §6.2). A Gmail thread opened into its
-detail view takes the list away; every cell with a ref into it goes partial or absent at once, on
-the client, with no round trip — the session's subscription on that partition fires, the
-evaluator recomputes over what still resolves, and the cells show the narrowed source set. A
-reorder inside a fragment re-points nothing: the same key still names the same element, so the
-cells do not move and no model is called.
-
-What *does* bring the Synthesizer back, short of a press, is absence, appearance, or an unread
-repaint seen from the orchestrator (SPEC §6.3, task 5.10 decision 4, task 7.6, task 7.9), over the
-merge's own set. A user's in-fragment interaction is an action turn:
-owner-only dispatch, then a final. Under synthesis that turn gains a tail. At every accept the
-orchestrator records a **watch**: every array the accepted payload's refs select into by key —
-and every array an earlier accepted document of the composition did — with the keys each holds
-now, one key set per field set, empty when the array is not there — and what every surface holds,
-as JSON. After the vendor's pump
-settles and its partition is updated, the **IntegrityChecker** walks the live payload and the
-watch and builds the **change account**: the refs that no longer resolve, each once; the entries
-whose key was not in their watched array at the last accept, each as a ref selecting it by key;
-the facts under `match` that no longer hold while their refs resolve; and the surfaces the view
-reads nothing from whose data changed since the accept — a **repainted** source, whose new data may
-now belong to a row. Absent, appeared and repainted fire a re-synthesis; a fact that stops holding
-fires nothing — the client marks its values broken — and
-rides along in whatever re-synthesis runs. The Synthesizer is called again with the previous
-document beside the fresh partitions and told the user is looking at it: re-point what broke;
-attach each entry that appeared — to a row, into a row's list, or as a new row when it is the
-home source's — or leave it out; attach what a repainted source now carries where it belongs to a
-row, or leave it out; re-point, re-evidence or detach each fact that no longer holds;
-keep the tree and the shape unless the data no longer supports them; say what changed in the note.
-The repaint of `shell:synthesis` lands before the turn's final, and its accept records a new
-watch. A two-way edit or a scalar change inside a source the view reads, leaving every key
-resolving and adding none, costs no model call; any change to a source the view reads nothing from
-is a repaint and does.
-
-```
-action turn
-  vendor answers ─▶ partitions.apply ─▶ changeAccount(payload, partitions, watch, seen)
-                                              │ nothing absent, appeared or repainted   │ a ref absent, a key appeared,
-                                              │                                         │ or an unread source repainted
-                                              ▼                                         ▼
-                                         nothing moves                       Synthesizer(previous, changes)
-                                                                             → accept → watch, seen → repaint shell:synthesis
+```json
+{"value": "In Review", "contributed": 1, "of": 1, "absent": []}
 ```
 
-On the client the repaint is a repeat `createSurface`, which the apply path expands to delete +
-create. In an action turn the stage is occupied, so what the action paints streams into staging.
-A fragment's paint swaps into its slot at its source's settled marker — a drill-down shows as the
-vendor answers — and from then until the turn ends the merged view holds its last values, its line
-working ("Joining …"), rather than re-evaluating over a paint it was not made for; the synthesis
-repaint lands at the turn's swap, and the session accepts the new payload the moment the surface
-is live again and re-subscribes (task-9.9 decision 23). The **user's sort survives** a
-re-synthesis while its key is still one of the options; a new question opens a canvas with a
-session of its own, starting from the declaration's own choice.
+| Field         | Meaning                                                         |
+| ------------- | --------------------------------------------------------------- |
+| `value`       | the computed value                                              |
+| `contributed` | how many refs resolved                                          |
+| `of`          | how many refs the formula declared                              |
+| `absent`      | the surfaces whose refs didn't resolve                          |
+| `join`        | when the row carries a match claim: how the value's tie stands  |
+| `target`      | where a click on the cell goes: the element in the app's slot   |
+| `names`       | `"app"` when the value is an app id, so it's shown by its name  |
 
-The residual hazard is a vendor that reuses an identifier for a different entity across a
-repaint: the key resolves, to the wrong thing. It is accepted, not solved (SPEC §6.2).
+Only one component reads cells: **`DerivedValue`**. The validator rejects a tree that binds a formula path to anything else, so a value computed from part of its sources can never be drawn like a complete one. That guarantee comes from the structure, not from reviewing each view. A cell is in one of four states:
 
-## A step back, and the wiring remembered
+| State      | Meaning                                                | Drawn                                           |
+| ---------- | ------------------------------------------------------ | ----------------------------------------------- |
+| complete   | every ref resolved                                     | the value at full strength                      |
+| partial    | some refs resolved                                     | softer, in gray; hover names what's missing     |
+| absent     | refs were declared, none resolved                      | a gray dash; hover says no source is showing it |
+| empty      | no refs were declared: 0 of 0                          | a bare dash that says nothing                   |
 
-Each agent's paints inside a canvas are a linear back/forward stack (SPEC §6.5, phase-9 decisions
-2 and 3). A step is a surface replacement: every `createSurface` from a source, counted in stream
-order from 0 — by the orchestrator as it relays the event, by the client the moment the create
-arrives, before any apply or staging decision — so the index a step names is the same paint on both
-sides; an `updateDataModel` changes the current step, so an agent that drills down by data update
-alone has no way back. A create after a step back drops the forward steps. The client holds every
-step's paint, captured as last seen when the stack moves off it; the orchestrator holds only each
-source's index (task-9.2 decision 7).
+**Empty and absent are different facts.** Empty is the world being empty: A2U-7 has no pull request. Absent is the shell losing sight of a value it had: you opened something and the list went away. Only absent is disclosed.
 
-The wiring is remembered per **combination** — every painted source's current index, whether or
-not the merge reads it — on both sides alike: the orchestrator files the accepted synthesize data
-model with the merge's source set on every accept and on every walk that finds nothing and calls
-nothing; the client files each payload it accepts. An entry filed with a source at a dropped index
-is purged. A decline or a collapse files nothing.
+How sure a value is, and how its join stands, share one channel: **the value's own contrast**. The less solid its basis, the softer it's drawn. Partial and guessed values step back to gray; a broken one turns amber and keeps a small ⚠, because it may belong to another work item. A complete value held by facts draws nothing extra, and a click on it lands on the value in its app's slot, which answers "where did this come from?" better than a caption could.
 
-A step restores the paint at once on the client and goes to the orchestrator carrying the canvas's
-data model, which becomes the source's partition — the merge and the vendor's next answer see what
-the user sees. Then the merged view, one of three ways:
+Separately, a value the reader must act on gets a **danger tone**: the Synthesizer lists the column's danger words (`"danger": ["Failed"]` above), and a matching value is drawn with a ✕ in a circle, in red when it's complete.
 
-- **Seen.** The combination has an entry. The client re-accepts the remembered payload over the
-  restored paint; the orchestrator restores the document and the merge's set, less a source failed
-  since, and walks. The walk over data the wiring was accepted over finds nothing: no call, nothing
-  painted.
-- **Covered.** No entry at the combination, but one filed over fewer sources with every source it
-  names where it stands now — the one naming the most, the later filed on a tie. Restored the same
-  way with no call; the sources that painted since are late for Include, the orchestrator
-  repainting the merge slot to say so (task-9.9 decision 16).
-- **Unseen.** Nothing covers it. The merged view stands, its line working, while the orchestrator's
-  walk runs and calls the Synthesizer only if it fires — released by `step`, its outcome filed under
-  the combination — and a synthesis paint on the step's stream lands as any does. A silent end
-  leaves the current wiring evaluated over the restored paint and the client files it there, so the
-  two memories converge (task-9.7 decision 4).
+## One question, end to end
 
-A walk only steps owe is for the combination on screen: the next step abandons it — its call
-aborted, journaled `abandoned` — and is answered at once; the merge line follows the latest step
-alone (task-9.9 decision 17). The step's journal line carries the combination as the step made it,
-whether it was seen, the sources it left late, and what the walk did.
+```mermaid
+flowchart TD
+    Q["You ask a question"] --> P["1. Planner reserves the merged view<br/>and asks each app for the data it needs"]
+    P --> A["2. Apps answer in parallel<br/>the orchestrator keeps a copy of each partition"]
+    A --> T{"3. Trigger: can the merge run?"}
+    T -->|"not enough apps answered"| X["The view collapses to one line"]
+    T -->|"yes"| S["4. Synthesizer writes the synthesize data model"]
+    S --> V{"5. Validator"}
+    V -->|"errors, first try"| S
+    V -->|"errors again"| X
+    V -->|"accepted"| PT["6. Orchestrator paints the tree,<br/>the formulas riding beside it"]
+    PT --> E["7. Client evaluates, then renders"]
+    E --> LIVE["8. Live: evaluated again on every change"]
+```
 
-## Sort is free
+**1. The Planner reserves the merged view.** The Planner is the orchestrator's first model call. It picks the apps and designs the screen's layout, and when the answers could be joined it reserves a slot for the merged view. The slot carries a prose **brief** for the Synthesizer (what the view shows and orders by), the view's planned **columns**, each marked to the app whose values it shows, and, when the view is about one kind of thing, a **join hypothesis**:
 
-`SortControl` writes its declaration back at `/sorts/N`. The session's subscription on `/sorts`
-fires, records the user's choice by array path, and re-evaluates: the array is re-ordered and
-written back in the same root write. That write lands on `/sorts` too, but the session marks its
-own writes and ignores the notification they raise, and an unchanged output is not written at
-all. No round trip, no model call. Absent cells sort last in both directions; ties keep model
-order, so nothing moves when nothing differs.
+```jsonc
+// the reserved slot in the example's layout (trimmed)
+{"component": "Slot", "source": "shell",
+ "columns": ["Issue", "Status", "Priority", "Pull request", "CI status", "Updated"],
+ "join": {"home": "linear", "nouns": {"linear": "issues", "github": "PRs", "circleci": "runs"}}}
+```
 
-## When the merge collapses
+A join hypothesis is one of two kinds:
 
-A collapsed merge leaves one line where the view's label would have sat; the skeleton's height is
-given back and the fragments move up once. The cause, or the decline's reason, rides on the
-synthesis `Slot`, and the shell catalog composes the line from it — in the client's words for every
-cause but the decline (SPEC §4.5, phase-8 decision 12):
+- **Anchored**, when the question owns the things through one app, as "what I'm working on" owns your Linear issues. That app is the **home source**: its entries are the rows, and every other app's entries attach to a row or to nothing.
+- **Union**, when the question ranges over things wherever they are, like "all cameras across the stores". There's no home source: every entry any app lists becomes a row, the same thing across apps merged into one row.
 
-- **Decline.** The Synthesizer answers `declined: true` with a reason when the sources give nothing
-  to merge — always under an anchored join whose home source brought no instances, under a union only
-  when no source brought one. The reason rides
-  only on the slot, drawn at body size in ink with no press (task-8.7 decision 27). A source
-  arriving after the decline is offered beneath it — "Gmail has answered since." with "Include
-  Gmail" — and Include then makes the merge over every arrived source. Journaled `declined`.
-- **The home source failed.** No call. "The merged view needs Linear issues, which didn't load."
-  carries "Retry Linear", the same press as the home source's tile (task-8.7 decision 23).
-  Journaled `home`.
-- **Fewer than two sources arrived.** No call. "The merged view needs at least two sources, and
-  only GitHub answered." carries "Retry all" over the sources that did not arrive, painted by id
-  beside who answered, and the client sends it as one Retry per source (task-8.7 decision 24).
-  Journaled `skipped`.
-- **The merged view couldn't be made.** Both attempts failed the validator — journaled `malformed`
-  with the last attempt's errors — or the model call failed (no key, a provider error) — journaled
-  `failed`. "The merged view couldn't be made." carries Try again. Never a broken turn — the
-  fragments have already painted correctly.
+The client draws the reserved slot right away, as the table to come: the planned column headers over a few skeleton rows. The Planner also asks each app, in plain words, for the fields a merge will need, like identifiers and full dates. It never mentions the merge or the other apps: an app is always written to its own product, never to A2UIVerse.
 
-A press that could bring the merge back changes only the line's words — "Waiting for Linear, then
-merging…", "Making the merged view…" — and nothing moves until the view lands.
+**2. The apps answer, and the orchestrator keeps a copy.** Each app's answer is relayed to the client into its slot. On the way through, the orchestrator also applies the app's A2UI messages to **its own copy of the partition**. It needs that copy for two jobs later: checking the Synthesizer's refs against real data, and noticing what changed after you click inside an app. The client sends its data models back with every request, so edits you make inside an app reach the copy too. When an app's stream ends, the orchestrator marks it **settled**.
 
-**The client rejects the payload.** Contract drift, in practice: the sdk validator or the
-operator check fails at intake. The client reports `VALIDATION_FAILED` for `shell:synthesis` on
-the **side channel** — the request it sends outside any turn to say a fragment cannot render —
-and the orchestrator flips the slot keyed `shell` to failed and repaints the layout. A ref into a
-surface the client does not hold is *not* a rejection — that is absent at evaluation time. The
-two judgments differ on purpose: the orchestrator's checklist asks whether every ref resolves in
-*its* partitions at the moment of authoring, so the model is never allowed to point at nothing;
-the client asks again at every evaluation, when a surface may since have been torn down or
-drilled into, and answers with a state, not an error.
+**3. The trigger releases the merge.** A small decision function weighs every settle: wait, start a timer, release the merge, or give up. [Deciding when to merge](#deciding-when-to-merge) has the rules.
 
-## Lifetimes
+**4. The Synthesizer writes the document.** The orchestrator's second model call gets:
 
-- **The composition.** One per canvas, for the session. The session's payload, subscriptions and
-  sort choices belong to it; `retireStage` — the one place a composition leaves its canvas —
-  retires the session with it, and the canvas's close ends the runtime that holds it. A vendor
-  surface re-created by a repaint is watched again; a deleted one simply goes absent.
-- **The trail.** A past canvas is not frozen: its session stays subscribed to its own partitions,
-  evaluating in the background, and an action, a press, a sort or a step on it runs on its own
-  composition, the orchestrator answering against that canvas's.
-- **The remembered wiring.** The composition's, on both sides: each entry kept until a paint after
-  a step back drops the steps it was filed with, and gone with the canvas.
-- **The round trip.** `shell:synthesis` rides back to the orchestrator in the client data model
-  like every surface; the orchestrator ignores a derived surface harmlessly.
+- **A system prompt**, assembled once at boot: the Synthesizer's role, the rules for writing refs, formulas, joins and sorts, the shell catalog's guidance on which components make a merged view, the shell catalog pruned to exactly those components, the output schema, and one worked example.
+- **The turn**: your question, the Planner's brief, the planned columns with their apps, any app that isn't in this merge and why, and the live data model of every partition, each with its app's name.
 
-## Seeing it without a model
+It never sees an app's component tree, only data. It answers with the JSON document inside a `<synthesize-data-model>` tag.
 
-- The Synthesizer's worked example, the S1 timeline, passes its whole validator in the
-  orchestrator's tests. The storefront comparison left its prompt in task 7.6.
-- The client's synthesis fixture is its own copy of the storefront example; `?beat=synthesis` replays
-  it, and the canvas tests drive the dropped-key case end to end. `?beat=navigation` puts cells
-  over a rendered field, a field no fragment renders, and a join held by judgment alone;
-  `?beat=join` holds a list of offers inside every row under one sort, then repaints a storefront
-  so a matched title changes and the values it cut off draw broken.
-- Beat 5 (`apps/client/recordings/beats/beat-5-temporal-merge.json`) is the temporal merge
-  recorded through the hub over the live roster. The recorder keeps the synthesis payload beside
-  the stamp on the one event that paints the merged view, so a replay evaluates the real
-  document over the real partitions. Beat 9 (`beat-9-entity-join.json`) is the entity join —
-  Linear, GitHub and CircleCI on this repository, the merged view with its match claims.
-- Phase 8's cases: the synthetic beats in `apps/client/src/beats/lateFailureBeats.ts` — three
-  storefronts joined on the camera, each late-arrival, failure and collapse case, each press also
-  offered unpressed — and recorded beats 10–18, each through an orchestrator started with its case's
-  fault map (`A2UIVERSE_FAULTS`, the AgentsPool's dev-only faults) and deadlines; `client.md` lists
-  them.
-- Phase 9's cases: the synthetic beats in `apps/client/src/beats/durableBeats.ts` over the same
-  three storefronts — among them `step-seen`, a step back restoring the view with no call, and
-  `step-unseen`, a combination never merged falling to the walk — and recorded beats 23 and 24,
-  the same two over the entity join on the deterministic roster; `client.md` lists them.
-- The orchestrator's integration tests run the loop with a `FakeSynthesizer` in place of the
-  **text seam** — the one-method interface the model call sits behind, text in, text out; the
-  live smoke behind `A2UIVERSE_SYNTHESIZER_LIVE=1` runs the real model once.
+**5. The orchestrator checks it, and hands it back once if needed.** The document goes through one validator. Anything wrong goes back to the model once, as a list of errors beside its own document. A second failure means the view couldn't be made. [Checking the model's work](#checking-the-models-work) lists the checks.
 
-## What is deliberately not here
+**6. The merged view is painted.** The orchestrator creates the surface `shell:synthesis` in the shell catalog and sends the tree, exactly as written, as ordinary A2UI. On the same event it attaches the **payload**, the `dataModel` and `sorts`, under the metadata key `a2uiverseSynthesis`. The tree travels as A2UI that any renderer understands; the formulas travel beside it, for the client alone. The note goes only to the journal.
 
-- **Dead air** between the last fragment and the synthesis paint is measured in the journal and
-  not mitigated; streaming the synthesis fragment is a backlog item decided on that evidence.
-- **The Synthesizer's judgment** of which sources share a key is stated as a rule and taught by
-  example; it is not enforceable, and it varies run to run (task 5.7's findings).
+**7. The client evaluates before it renders.** The client checks the payload with the same sdk validator the orchestrator used, subscribes to every partition it reads, evaluates every formula, sorts every list, and writes the whole result into the `shell:synthesis` data model in one write. Only then does React render, so the first frame of the merged view already has its values. Here are two cells of the result:
+
+```jsonc
+// row A2U-5, "pr": a value from GitHub, tied in by facts
+{"value": 6, "contributed": 1, "of": 1, "absent": [],
+ "join": {"mark": "none", "apps": ["github"], "evidence": ["…the two relations touching GitHub…"]},
+ "target": {"app": "github", "surface": "github:notifications-1", "pointer": "/prs[repository=\"retz8/a2uiverse\",number=6]/number"}}
+
+// row A2U-7, "pr": a formula with no refs, 0 of 0
+{"value": undefined, "contributed": 0, "of": 0, "absent": []}
+```
+
+`DerivedValue` draws the first as "#6" and the second as a bare dash.
+
+**8. It stays live.** From now on, any change to a partition the view reads makes the client evaluate again, with no model call. [Keeping it live](#keeping-it-live) shows how.
+
+## Inside the machinery
+
+### Resolving a ref
+
+`packages/sdk/js/src/pointer.ts` has the one parser and resolver both processes use, so the orchestrator's check and the client's evaluation can never disagree about what a ref points at.
+
+**Parsing** turns `/prs[repository="retz8/a2uiverse",number=6]/number` into steps:
+
+```
+key "prs"  →  predicate [repository = "retz8/a2uiverse", number = 6]  →  key "number"
+```
+
+Two details make that harder than `split('/')`:
+
+1. **A slash inside brackets isn't a separator.** `retz8/a2uiverse` contains one. The splitter walks the string keeping a **bracket depth counter**, and splits on `/` only at depth 0.
+2. **A comma inside a string isn't a separator either.** The tests are split on commas by a small scanner that tracks whether it's inside a JSON string (and whether the last character was a backslash escape).
+
+Each test's value is parsed with `JSON.parse`, so `number=6` is the number 6 and `id="A2U-5"` is a string. The predicate compares by type: `number="6"` would not match.
+
+**Resolving** walks the steps from the data model's root:
+
+```
+for each step:
+  key into an object     → that property, or missing
+  key into an array      → positional if it looks like an index, else missing
+  predicate on an array  → keep the elements where every test's field equals its value
+                           exactly one → step into it; none → missing; several → ambiguous
+at the end: null → null; anything else → found
+```
+
+A predicate is a **linear scan** of the array, O(n) in the array's length times the number of tests. There's no index to build or keep in sync; each resolve reads the data as it is right now.
+
+The same file also has `locatePointer`, which returns the concrete positional path a ref resolves to, like `/prs/2/number`. Navigation uses it when you click a cell, to find the element on screen. A position is read at the moment it's needed and never stored, because it's only true right now.
+
+### Evaluating the model
+
+`apps/client/src/canvas/synthesis/bindingEvaluator.ts` turns the payload plus the partitions into the merged view's data model. It's a **pure function**: `evaluate(payload, partitions, sortChoices)` returns the whole output and changes nothing else. Every change recomputes everything from scratch; there's no dependency graph and no partial update. Because the output depends only on the inputs, it can't drift out of sync, and its tests are just inputs and expected outputs.
+
+It's a **recursive walk that mirrors the derived model's shape**:
+
+```
+evaluateNode(node, claim):
+  formula → a cell
+  array   → the same array, each element evaluated
+  object  → if it has "match": evaluate that claim, and use it for everything below
+            each other key evaluated, "match" itself left out of the output
+```
+
+A match claim applies to every cell below the object that carries it, down to the next object with its own claim. It works like variable scope in code: the nearest enclosing claim wins.
+
+**One formula** becomes a cell like this:
+
+1. Resolve every ref. Split them into **survivors** (found) and **absent** (anything else, or a surface the client doesn't hold).
+2. No survivors: the cell has no value, `contributed: 0`.
+3. Otherwise call the operator on the survivors' values. Operators are plain catalog functions over a list of values; none of them ever sees a surface id or a ref.
+4. `argmin`, `argmax` and `source` return an **index** into the survivors. The evaluator maps it back to the winning ref's app and writes the app id as the value, with `names: "app"`. `DerivedValue` draws the app's display name, while sorting keeps using the stable id.
+5. Record `contributed`, `of`, `absent`, the `target` (the first survivor, or the winner for a selector), and the `join` when a claim applies.
+
+Then every sort declaration reorders its list in place (see [Sorting](#sorting)) and the declarations are written at `/sorts`, where the `SortControl` reads them.
+
+### Keeping it live
+
+`apps/client/src/canvas/synthesis/synthesisSession.ts` decides _when_ to run the evaluator. Three kinds of change can alter the merged view, and they all arrive the same way, as a data model subscription:
+
+```mermaid
+flowchart LR
+    W1["An app updates its data"] --> SUB["A subscription fires"]
+    W2["You edit a field inside an app"] --> SUB
+    W3["You change the sort"] --> SUB
+    SUB --> G{"Is it the session's<br/>own write?"}
+    G -->|"yes"| IGN["Ignore it"]
+    G -->|"no"| SCH["Schedule one run<br/>in a microtask"]
+    SCH --> EV["Evaluate everything"]
+    EV --> CMP{"Same output<br/>as last time?"}
+    CMP -->|"yes"| SKIP["Write nothing"]
+    CMP -->|"no"| WR["One write at the root"]
+```
+
+Each box is a small technique worth knowing:
+
+- **Subscriptions.** The session subscribes to the root of every partition the payload reads, which fires on any nested write, and to `/sorts` on its own surface, where `SortControl` writes back. One mechanism covers all three kinds of change.
+- **Coalescing.** An app often sends several data model messages in one batch. The first change sets a `scheduled` flag and queues one `queueMicrotask`; later changes in the same task see the flag and do nothing. Many writes, one evaluation, the same idea as React batching state updates.
+- **A reentrancy guard.** The session's own output is a write to the synthesis surface, which includes `/sorts`, which it subscribes to. Without a guard, each write would set off an evaluation of its own. A `writing` flag is set around its own write, and notifications during it are ignored.
+- **Skipping unchanged output.** The new output is compared with the last as a JSON string. If nothing changed, nothing is written, so nothing re-renders.
+- **One write at the root.** The whole model, rows and sort declarations together, is written in one `set('/')`. No render can ever see new rows beside old sort choices.
+
+Two more cases keep the subscriptions right. When an app repaints a surface the view reads, the new surface gets a fresh data model, so the session watches it again. When one is deleted, its refs simply go absent. And while an action's repaint is on its way, the session can **hold**: the view keeps its last values instead of evaluating over a screen the formulas weren't written for, and is released when the new answer lands.
+
+### Sorting
+
+A sort declaration names a list and the keys it may be sorted by. The evaluator sorts each list in place after computing its cells.
+
+- **The comparator** looks at the two cells' values: two numbers compare as numbers; two values that read as times compare as instants (see [Reading time](#reading-time)); anything else compares as strings with `localeCompare`.
+- **Absent cells sort last in both directions.** The comparator checks "is either one absent?" before it applies the direction, so flipping ascending to descending never brings empty rows to the top.
+- **The sort is stable on purpose.** Each element is paired with its original index before sorting, and ties are broken by that index: nothing moves when nothing differs.
+- **A list inside every row.** A sort path steps through arrays with `*`: `/rows/*/offers` means "the `offers` list inside every element of `rows`". The sdk's `reachSortPath` expands the path with a depth-first walk into every array it reaches, and one declaration, with one reader's choice, sorts them all alike.
+- **Your choice sticks.** When you change the sort, `SortControl` writes the declaration back at `/sorts/N`; the session records the choice by the list's path. It survives a re-synthesis as long as its key is still one of the options.
+
+Sorting never leaves the client: no request, no model call.
+
+### Reading time
+
+The apps paint time however they like. In the example alone: Linear writes `Sep 19, 2026, 10:58:36 UTC`, GitHub `2026-09-19T07:07:33Z`, CircleCI `2026-09-18 11:52:36 UTC`. Nothing on the wire asks an app for a format, and the Synthesizer converts nothing. Instead the runtime reads time itself, in `packages/shell-catalog/src/components/shared/instant.ts`:
+
+- A value is a time only if it has a **four-digit year and a clock** (`10:58`). Anything else, like a bare date or `11:30 – 12:15`, stays text.
+- The common shapes (ISO 8601, `2026-09-18 11:52:36 UTC`) are read directly.
+- Otherwise the value is tidied: a zone named in brackets like `(America/New_York)` is honoured, a range is cut to its start, and separators like `·` and `at` are dropped. Then the JavaScript engine reads what's left.
+- A time with no zone at all is read as wall time in **`America/New_York`**, a zone fixed in code. It's never the viewer's machine zone, because that isn't where the day happened.
+
+The same function feeds the sort comparator and `DerivedValue`'s `datetime` format, which shows every readable time in one form, US English in `America/New_York`. So what sorts together shows together: Linear's `Sep 19, 2026, 10:58:36 UTC` appears in the table as "Sep 19, 2026, 6:58 AM".
+
+### Checking a relation
+
+`packages/shell-catalog/src/functions/relations.ts` decides whether `equal` and `contains` hold. Both work on **tokens**: the text normalized (Unicode NFKC), lowercased, and split into runs of letters and digits. In scripts written without spaces, like Chinese or Thai, each character is a token of its own.
+
+```
+"ekkicb71/a2u-5-say-on-the-canvas-when-an-utterance-fails"
+  → ekkicb71 · a2u · 5 · say · on · the · canvas · when · an · utterance · fails
+"A2U-5"
+  → a2u · 5
+```
+
+**`contains(a, b)`** asks whether b's tokens appear **as a contiguous run** inside a's. It slides a window of b's length along a's tokens and compares at each position, O(n × m) for token lists that are a few dozen long at most. Above, `a2u · 5` appears at position 1, so "branch matches issue key" holds. The same way, `PR #6` becomes `pr · 6`, which contains `6`, and "same PR reference" holds.
+
+**`equal(a, b)`** tries three readings, in order:
+
+1. **As instants**, when both read as times. They're compared at the coarser of the two precisions, so `10:58` equals `10:58:36`.
+2. **As numbers**, when both read as one. `readNumber` accepts a currency symbol and grouping separators (`$1,299.00`), but rejects a spelling that could mean two numbers: `1,234` is 1234 in one convention and 1.234 in another, so it isn't a number at all.
+3. **As token sequences**: the same words in the same order.
+
+When both sides are lists of plain values, `equal` compares them as sets and `contains` asks whether every member of b is among a's.
+
+### Marking a join: union-find
+
+`packages/shell-catalog/src/components/derived-value/join.ts` decides each value's mark from its row's evaluated relations. The question it answers: which apps are tied into the row by facts, and which aren't?
+
+That's a **connected components** problem. Apps are nodes, and every fact that holds is an edge. The code uses a **union-find** (disjoint set) structure, with path compression in `find`:
+
+1. Start with each app in its own group.
+2. For every fact that holds, or whose refs are momentarily absent (absence doesn't cut a link), **union** its two apps' groups. A fact that fails adds no edge. A `judged` relation adds no edge either, since it isn't evidence.
+3. The **largest group is the row's core**, and its apps are unmarked. If two groups tie for largest, there's no core.
+4. An app outside the core whose every link has failed is **broken**. Any other app outside the core is **guessed**.
+
+A cell's mark is the worst mark among the apps it reads that resolved. Here's row A2U-5, and what would change if CircleCI's run moved to another branch:
+
+```mermaid
+flowchart LR
+    subgraph now["Now: one group, no marks"]
+        L1["Linear"] ---|"same PR reference"| G1["GitHub"]
+        G1 ---|"branch matches issue key"| L1
+        C1["CircleCI"] ---|"CI run on same branch"| G1
+    end
+    subgraph later["If the branch fact failed: CircleCI broken"]
+        L2["Linear"] ---|"holds"| G2["GitHub"]
+        C2["CircleCI"] -.-|"fails"| G2
+    end
+```
+
+In the second case the core is {Linear, GitHub}, CircleCI's only link fails, and the CI status cell turns amber with ⚠. If the CircleCI link had been `judged` instead, CircleCI would be outside the core with a link that hasn't failed, so its values would be drawn as guessed.
+
+### Deciding when to merge
+
+`apps/orchestrator/src/composition/trigger.ts` is a **pure decision function**. Each time an app settles, it looks at which apps were dispatched, which have settled, and which arrived with a surface, and returns one of four decisions:
+
+```mermaid
+flowchart TD
+    S["An app settled"] --> H{"Under an anchored join,<br/>did the home source fail?"}
+    H -->|"yes"| C1["collapse: home"]
+    H -->|"no"| O{"Are any apps<br/>still out?"}
+    O -->|"no"| P1{"At least two arrived,<br/>the home source among them?"}
+    P1 -->|"yes"| R["release"]
+    P1 -->|"no"| C2["collapse: too few"]
+    O -->|"yes"| P2{"Could the arrived apps<br/>make a merge already?"}
+    P2 -->|"yes"| ARM["arm: restart the soft deadline"]
+    P2 -->|"no"| W["wait"]
+```
+
+The timers around it:
+
+- **The soft deadline** is patience after the pack. Once the apps that arrived could make a merge on their own, it starts a 10 second timer, and every further settle restarts it, like a debounce. When it fires, the merge is released over what arrived. The apps still out aren't cancelled: they fill their own slots when they answer.
+- **The home source never waits on the soft deadline.** Without it there's nothing to merge, so the view waits for it, and collapses at once if it fails.
+- **The hard cap** fails an app 300 seconds after it was asked. An answer arriving after that is kept, not drawn, until you press Retry.
+
+Both lengths come from the orchestrator's environment (`A2UIVERSE_SOFT_DEADLINE_SECONDS`, `A2UIVERSE_HARD_CAP_SECONDS`).
+
+The release is the question's **one automatic merge**. Every later Synthesizer call has a reader's press behind it, so the merged view never changes without a visible reason. And a composition makes **one merge at a time**: a merge whose input partitions change while the model is writing is thrown away and made again over the data as it now stands.
+
+### Noticing what changed after a click
+
+When you click inside an app's slot, only that app is asked (an **action turn**). After it answers, the orchestrator has to decide: does the merged view still fit, or does the Synthesizer need to run again? `apps/orchestrator/src/composition/integrity.ts` builds a **change account** with four lists:
+
+| List        | What it holds                                                                 | Calls the Synthesizer? |
+| ----------- | ----------------------------------------------------------------------------- | ---------------------- |
+| `absent`    | refs that no longer resolve, each once                                       | yes                    |
+| `appeared`  | entries whose key wasn't in their list when the view was accepted             | yes                    |
+| `repainted` | apps the view reads nothing from, whose data changed                          | yes                    |
+| `unheld`    | facts under `match` that now fail, while both refs still resolve              | no                     |
+
+The data structures behind each list:
+
+- **`absent`**: every ref is resolved against the orchestrator's partition copies; a `Set` of `surface + pointer` strings makes sure each ref is counted once.
+- **`appeared`** needs to know what a list held before. At every accept, the orchestrator records a **watch**: for every array any ref selects into with a predicate, the **set of keys** it holds. An array is identified by its surface, its pointer, and the (sorted) field names its predicates use; a key is the JSON of those fields' values, like `[6,"retz8/a2uiverse"]` for the fields `number` and `repository`. After the action, the keys held now minus the keys in the watch are the appeared entries: a **set difference**. The watch also keeps arrays from earlier accepted documents, and records an empty set when an array isn't there, so a list that comes back later shows its keys as appeared.
+- **`repainted`** catches an app the view reads nothing from, which has no ref to go absent and no watched array. At every accept the orchestrator snapshots every surface's data as JSON; a different snapshot now means it painted again, and its new data might belong in a row.
+- **`unheld`** runs every `equal` and `contains` under `match` again.
+
+```mermaid
+flowchart LR
+    A["The app answers the click"] --> P["Partition copy updated"]
+    P --> CA["Change account"]
+    CA -->|"absent, appeared<br/>or repainted"| RS["Synthesizer runs again, given<br/>the previous document and what changed"]
+    CA -->|"none of those"| N["Nothing moves, no model call"]
+    RS --> AC["Accepted: a new watch<br/>and snapshot are recorded"]
+```
+
+A re-synthesis is told the user is looking at the view: re-point what broke, attach each new entry or leave it out, keep the tree and its shape unless the data no longer supports them, and say what changed in the note. Facts that stopped holding don't call the model by themselves, because the client already marks those values broken; they ride along in whatever re-synthesis runs next.
+
+Several common changes cost nothing: an app re-sorting its list (keys don't move), an edit that leaves every key resolving, and a value changing inside an app the view reads.
+
+### Going back: the remembered wiring
+
+Each app's slot has its own back and forward arrows. The history behind them is kept on both sides: `apps/orchestrator/src/composition/history.ts` and `apps/client/src/canvas/history/fragmentHistory.ts`.
+
+**A stack per app.** Every `createSurface` an app sends is one **step** in its stack, stored as `{length, at}`. Both sides count creates the same way, in stream order, so step 2 means the same paint on both. The client keeps each step's paint (its tree and data model, as last seen); the orchestrator keeps only the numbers. A new paint after a step back drops the forward steps, the way a browser drops its forward history when you follow a new link.
+
+**A combination is where every app stands.** For example `{circleci: 1, github: 0, linear: 0}` means CircleCI is on its second paint (a run's detail) and the others on their first. Its key is the JSON of the `[app, index]` pairs **sorted by app**, so the same combination always produces the same string.
+
+**The wiring memory is a map** from combination key to the merged view's accepted document (and the set of apps it merged). A document is filed under the current combination every time one is accepted. When a stack drops forward steps, every entry that named one of the dropped indices is purged, since its index now belongs to a different paint.
+
+When you step, the client restores the paint at once and tells the orchestrator. Then the merged view goes one of three ways:
+
+| Case        | What's found                                                                                     | What happens                                                           |
+| ----------- | ------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------- |
+| **Seen**    | an entry at exactly this combination                                                             | its wiring is restored and evaluated at once, no model call           |
+| **Covered** | an entry over fewer apps, each of them at the step it's on now (the one naming most apps wins, then the latest) | restored the same way; apps that painted since are offered for Include |
+| **Unseen**  | nothing                                                                                          | the change account above decides whether the Synthesizer runs          |
+
+Finding a covering entry is a **linear scan** over the map, checking each entry's apps against the current combination. A walk started by one step is abandoned if you step again before it finishes, since the combination it was for is no longer on screen.
+
+<p align="center">
+  <img src="../images/way-back-merged.gif" width="560" alt="The merged table's CI status column, empty while a run is open and filled again on Back">
+  <br>
+  <em>A seen combination. Opening a CircleCI run empties the CI column (its refs into the runs list go absent); Back restores the remembered wiring with no model call.</em>
+</p>
+
+### Checking the model's work
+
+A2UIVerse lets models write UI and wiring, but never unchecked. Its first axiom: **the vocabulary is the boundary**. The model writes, a closed vocabulary bounds what it can say, a validator checks it, and only then does the runtime execute it. `apps/orchestrator/src/synthesizer/validate.ts` runs these checks, in order:
+
+1. **Shape.** The output schema; every leaf of `dataModel` is a formula; every pointer parses; one sort declaration per list; every sort option is a formula with at least one ref in every element.
+2. **The tree**, checked by the sdk's A2UI validator against the shell catalog pruned to a merged view's components: known components and props, exactly one `root`, unique ids, no child that doesn't exist, no cycles, no orphans.
+3. **The rules.** A formula path renders only through `DerivedValue`; every operator is one the catalog declares; relations appear only inside `match`, and only relations appear there; nothing in the tree binds a path under `match`.
+4. **The data, now.** Every ref resolves in the orchestrator's partition copies, and every `equal` and `contains` holds. A failing fact is reported with both values and one instruction: write a fact that holds, or don't attach the entry. It never suggests `judged`, which the checker can't check.
+5. **The columns.** One source mark per planned column, and every column planned for an app that isn't in this merge is kept.
+
+If anything fails, the model gets **one retry**: its own document, plus one line per error. A second failure is `malformed`, and the view shows "The merged view couldn't be made." with Try again.
+
+The client checks the payload again when it arrives, with the same sdk validator. The two processes ask different questions on purpose. The orchestrator asks "does every ref resolve **now**, in my copy?", so the model is never allowed to point at nothing. The client asks at every evaluation, when a surface may since have been drilled into or torn down, and answers with a cell state, never an error.
+
+## When things go wrong
+
+A merged view that can't be shown collapses to **one line** where its label would be, and gives its space back. Every line comes with the press that can bring the view back, except the decline:
+
+| Cause                               | The line                                                                      | The press   |
+| ----------------------------------- | ----------------------------------------------------------------------------- | ----------- |
+| The Synthesizer declined            | its reason, in the model's words                                              | none        |
+| The home source failed              | "The merged view needs Linear issues, which didn't load."                     | Retry Linear |
+| Fewer than two apps answered        | "The merged view needs at least two sources, and only GitHub answered."       | Retry all   |
+| The model's document failed twice, or the call failed | "The merged view couldn't be made."                         | Try again   |
+
+Around a view that did land:
+
+- **A late app** fills its own slot for free. The view stays as it is, the late app's column reads "not included", and a line above the view offers **Include**, which runs a re-synthesis folding it in.
+- **Retry** asks one failed app again with its original request.
+- **Try again** makes a merge whose model call failed, over every app that arrived.
+- A re-synthesis that fails **keeps the landed view** and says so beside the press that tries again.
+
+If the client can't accept a payload at all (in practice, the two sides disagreeing about the contract), it reports the failure to the orchestrator, which marks the merged view's slot as failed.
+
+## Design decisions
+
+| Decision | What it buys | What it costs |
+| --- | --- | --- |
+| **Wiring, never values** | Every value on screen traces back to an app's data; the view stays live; the model runs once | An app that paints no stable key for its entries can't have them merged |
+| **Keys, never positions** | An app re-sorting its list moves nothing and costs nothing; "valid" just means "resolves" | An app that reuses an id for a different thing resolves to the wrong entry, undetected. Accepted, not solved |
+| **Absent is a state, not an error** | Opening something inside an app narrows the view locally, and going back restores it, both free | Every cell has to say what it's missing |
+| **One resolver in the sdk for both processes** | The orchestrator's check and the client's evaluation can't disagree | A change to the pointer grammar changes both processes at once |
+| **A pure, whole recompute** | Output depends only on inputs; tests are inputs and outputs; nothing drifts | Every cell is recomputed on every change |
+| **Formulas don't nest** | One evaluation path, a short validator | Fewer kinds of view can be expressed |
+| **Formula cells only through `DerivedValue`** | A partial value can't look complete, enforced by the validator rather than by review | The model has fewer choices for drawing a cell |
+| **One root write, skipped when unchanged** | No render sees half an update; no needless re-render | A JSON comparison per evaluation |
+| **Facts checked at accept and live** | A wrong join is refused before it's shown; a join that breaks later is marked | A `judged` link can't be checked, only marked as guessed |
+| **One mark: the value's contrast** | Partial and guessed read as one statement; only broken escalates | Guessed is carried visually by color alone; the hover detail and the accessible name carry the rest |
+| **Only the first merge is automatic** | Every later model call has a press behind it; the view never changes without a visible reason | A late app waits for Include |
+| **The runtime reads time, in a fixed zone** | Apps paint time however they like; sorting and display agree | Everyone sees times in `America/New_York` |
+| **Wiring remembered per combination** | Stepping back to a screen already seen restores the view with no model call | The memory grows with each combination seen, for the life of the canvas |
+
+Two things are deliberately left as they are. The wait between the last app's answer and the merged view appearing (**dead air**) is measured in the journal, not yet reduced; streaming the merged view in as the model writes it is on the backlog. And the Synthesizer's judgment of which entries match is taught by rules and an example but can't be enforced, so it varies from run to run.
+
+## Trying it without a model
+
+Start the client (`pnpm dev:client`) and open a replay; see the [client README](../../apps/client/README.md#working-without-a-model).
+
+| Replay                 | What it shows                                                                                     |
+| ---------------------- | ------------------------------------------------------------------------------------------------- |
+| `?beat=9`              | This guide's example, recorded: Linear, GitHub and CircleCI joined, with real match claims       |
+| `?beat=synthesis`      | Two camera stores merged                                                                          |
+| `?beat=join`           | A list of offers inside every row under one sort, then a repaint that breaks a join              |
+| `?beat=navigation`     | Clicking cells: a rendered field, a field no app shows, a join held by judgment alone             |
+| `?beat=23`, `?beat=24` | Stepping back to a combination seen (restored, no call) and one never seen (the change account)   |
+
+In the orchestrator's tests, the model sits behind a one-method **text seam** (text in, text out), and a `FakeSynthesizer` plays it. `A2UIVERSE_SYNTHESIZER_LIVE=1` runs the real model once.
 
 ## Where the code is
 
-| Concern | sdk | Orchestrator | Client | Shell catalog |
+| Concern | sdk (`packages/sdk/js/src`) | Orchestrator (`apps/orchestrator/src`) | Client (`apps/client/src`) | Shell catalog (`packages/shell-catalog`) |
 | --- | --- | --- | --- | --- |
-| Contract, types | `contracts/composition.v0.8.json` · `js/src/synthesis.ts` | `synthesizer/document.ts` | — | — |
-| Pointers, predicates, the walk | `js/src/pointer.ts` · `js/src/walk.ts` | `composition/partitions.ts` (`resolve`) | `canvas/synthesis/bindingEvaluator.ts` | — |
-| Validation | `js/src/validate.ts` · `js/src/a2ui/` | `synthesizer/validate.ts` | `canvas/synthesis/intake.ts` | `src/keep-sets.ts` |
-| The prompt | — | `synthesizer/prompt.ts` · `synthesizer/synthesis.md` · `synthesizer/examples.ts` · `authoring/taggedBlock.ts` · `planner/prompt.ts` | — | `docs/synthesis-guidance.md` · `catalogs/v0.9.1/catalog.json` |
-| The model call | — | `synthesizer/synthesizer.ts` | — | — |
-| Trigger, presses | — | `composition/trigger.ts` · `composition/presses.ts` · `executor.ts` · `agentsPool/faults.ts` | `canvas/createCanvasWiring.ts` (the press) · `canvas/composition/columnState.ts` · `canvas/turnProgress.ts` | `src/components/slot` · `slot/press-lines.ts` · `table` |
-| Integrity, re-synthesis | — | `composition/integrity.ts` · `composition/relations.ts` · `executor.ts` | — | — |
-| History, the remembered wiring | `js/src/composition.ts` (the step operation) | `composition/history.ts` · `composition/partitions.ts` (`replace`) · `executor.ts` (`#step`) | `canvas/history/fragmentHistory.ts` · `canvas/history/paintCopy.ts` · `canvas/canvasRuntime.ts` (the step) · `canvas/turn/canvasTurn.ts` | `src/fragment-history.ts` · `components/attribution` |
-| The paint | — | `composition/synthesisPainter.ts` · `composition/state.ts` | `canvas/turn/canvasTurn.ts` · `a2a/messages.ts` | — |
-| Evaluation, session | — | — | `canvas/synthesis/synthesisSession.ts` · `canvas/synthesis/bindingEvaluator.ts` | `src/functions/operators.ts` · `src/functions/relations.ts` · `derived-value/join.ts` |
-| Navigation | `js/src/pointer.ts` (`locatePointer`) | — | `canvas/navigation/` | `src/components/derived-value` |
-| Rendering | — | — | `canvas/composition/slotContent.tsx` | `src/components/derived-value` · `sort-control` · `table` · `data-list` · `shared/instant.ts` |
-| Journal, logs | — | `journal/types.ts` · `log.ts` | — | — |
-| Proof without a model | `js/src/*.test.ts` | `test/orchestrator.test.ts` · `test/history.test.ts` | `src/beats/synthesisFixture.ts` · `src/beats/joinFixture.ts` · `tests/canvas-synthesis.test.tsx` · `e2e/synthesis.spec.ts` · `e2e/join.spec.ts` · `e2e/navigation.spec.ts` · beats 5 and 9 · `src/beats/lateFailureBeats.ts` · `tests/canvas-late-failure.test.tsx` · `e2e/late-failure.spec.ts` · beats 10–18 · `src/beats/durableBeats.ts` · `src/canvas/history/fragmentHistory.test.ts` · `tests/canvas-durable.test.tsx` · `e2e/durable.spec.ts` · beats 19–25 | — |
+| The contract | `synthesis.ts`, `../../contracts/composition.v0.8.json` | `synthesizer/document.ts` | | |
+| Refs and pointers | `pointer.ts`, `walk.ts` | `composition/partitions.ts` | `canvas/synthesis/bindingEvaluator.ts` | |
+| Checking the model's work | `validate.ts`, `a2ui/` | `synthesizer/validate.ts` | `canvas/synthesis/intake.ts` | `src/keep-sets.ts` |
+| The prompt | | `synthesizer/prompt.ts`, `synthesizer/synthesis.md`, `synthesizer/examples.ts` | | `docs/synthesis-guidance.md` |
+| The model call | | `synthesizer/synthesizer.ts` | | |
+| When to merge, the presses | | `composition/trigger.ts`, `composition/presses.ts` | `canvas/composition/columnState.ts` | `src/components/slot/press-lines.ts` |
+| What changed after a click | | `composition/integrity.ts`, `composition/relations.ts` | | |
+| Going back | `composition.ts` | `composition/history.ts` | `canvas/history/fragmentHistory.ts` | |
+| Painting the view | | `composition/synthesisPainter.ts` | | |
+| Evaluating and staying live | | | `canvas/synthesis/bindingEvaluator.ts`, `canvas/synthesis/synthesisSession.ts` | `src/functions/operators.ts`, `src/functions/relations.ts`, `src/components/derived-value/join.ts` |
+| Reading time | | | | `src/components/shared/instant.ts` |
+| Clicking a cell | `pointer.ts` (`locatePointer`) | | `canvas/navigation/` | `src/components/derived-value` |
+| Tests and fixtures | `*.test.ts` | `../test/orchestrator.test.ts`, `../test/fakeSynthesizer.ts` | `beats/synthesisFixture.ts`, `beats/joinFixture.ts`, `beats/durableBeats.ts` | |
+
+## Words used in this guide
+
+| Word | Meaning |
+| --- | --- |
+| **Shell** | A2UIVerse's own UI: the layout, the merged view, everything that isn't an app's |
+| **Canvas** | One question's answer on screen. Every question opens a new one |
+| **Composition** | The orchestrator's state for one canvas: its layout, apps, partitions and merged view |
+| **Slot** | A region of the layout reserved for one app, or for the merged view |
+| **Surface** | One A2UI screen: a component tree and its data model |
+| **Partition** | One app's surface data model, kept apart from every other |
+| **Ref** | A surface id plus a pointer to one value in it |
+| **Predicate** | The `[field="value"]` part of a pointer, selecting an array element by key |
+| **Formula** | `{op, args}`: one operator over some refs |
+| **Relation** | `equal`, `contains` or `judged`: the evidence under `match` |
+| **Match claim** | An object's `match`: why its refs are about one thing |
+| **Cell** | What the evaluator writes at a formula: the value and how sure it is |
+| **Synthesize data model** | The Synthesizer's document: `dataModel`, `tree`, `sorts`, `note` |
+| **Payload** | The `dataModel` and `sorts`, sent to the client beside the painted tree |
+| **Planner** | The orchestrator's first model call: picks the apps, designs the layout |
+| **Synthesizer** | The orchestrator's second model call: writes the merged view |
+| **BindingEvaluator** | The client's pure function from payload and partitions to the view's data |
+| **Join hypothesis** | The Planner's guess at what one row is: anchored on a home source, or a union |
+| **Home source** | Under an anchored join, the app whose entries are the rows |
+| **Settled** | An app's answer ended: arrived, failed, or out of time |
+| **Press** | A reader's Retry, Include or Try again |
+| **Step** | A back or forward move in one app's slot |
+| **Combination** | Every app's current step, the key the wiring is remembered under |
+| **Change account** | What changed under the merged view after a click: absent, appeared, repainted, unheld |
+| **Watch** | The keys each list held when the view was accepted |
