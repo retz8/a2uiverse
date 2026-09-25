@@ -278,6 +278,12 @@ Each lane's busy rows are a `Set<number>`, so "is this lane free between rows a 
 
 **The rail** is the drawer the trail opens in: entries under day headers, "Live" and "Viewing" marks, a quiet mark on an answer still loading, and on a branch a glyph naming the answer it was asked from. Hovering an entry shows a **preview**: that answer's layout surface mounted a second time from its own runtime, laid out at 1120px and scaled to 25%, marked `inert` with pointer events off, and registered under a binding index of its own so a navigation never lands in the copy.
 
+<p align="center">
+  <img src="../images/trail-preview.png" width="560" alt="The trail drawer with its live entry hovered, previewing that answer's layout">
+  <br>
+  <em>Hovering the live entry in <code>?beat=trail</code>: that answer's layout, mounted again from its own runtime and scaled down, with its progress line under it.</em>
+</p>
+
 ### A past answer is a tab
 
 Because each answer is its own runtime, a past answer needs no special code to keep working. Its streams arrive, its synthesis session evaluates, its presses finish. When you view it, `CanvasView` mounts it; when you leave, it unmounts and keeps running.

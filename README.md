@@ -50,16 +50,17 @@ One app failing never fails the rest: its slot says why and offers Retry, and it
 
 ### Every question kept
 
-<table>
-  <tr>
-    <td align="center" valign="top"><img src="docs/images/trail-drawer.png" width="220" alt="The trail drawer: four questions on two branches"></td>
-    <td align="center" valign="top"><img src="docs/images/past-canvas.png" width="560" alt="A past answer under its Parked band"></td>
-  </tr>
-  <tr>
-    <td align="center"><em>The trail: four questions on two branches.</em></td>
-    <td align="center"><em>A past answer, stamped with when it was asked.</em></td>
-  </tr>
-</table>
+<p align="center">
+  <img src="docs/images/trail-preview.png" width="560" alt="The trail drawer, four questions on two branches, its live entry hovered and previewed">
+  <br>
+  <em>The trail: four questions on two branches. Hovering an entry previews its answer.</em>
+</p>
+
+<p align="center">
+  <img src="docs/images/past-canvas.png" width="560" alt="A past answer under its Parked band">
+  <br>
+  <em>A past answer, stamped with when it was asked.</em>
+</p>
 
 Every question gets its own answer, and none is thrown away when the next one is asked. A past answer still works like a browser tab: clicks and sorts land in it, and anything it was still loading keeps arriving. "Ask this again now" gets today's answer as a new one and leaves the past one as it was. Asking from a past answer starts a branch, and the trail draws every question on the branch it grew from.
 
