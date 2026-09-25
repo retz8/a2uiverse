@@ -47,6 +47,14 @@ export interface SynthesisIntake {
   accept(target: {surfaceId: string; source: string}, payload: unknown): boolean;
   /** The composition left the canvas. */
   retire(): void;
+  /**
+   * A fragment the merge reads repainted and its re-synthesis is on the way (task-9.9 decision
+   * 23): the view keeps its last values rather than re-evaluating over a paint it was not made
+   * for. A payload accepted meanwhile still lands.
+   */
+  hold?(): void;
+  /** The hold ends: evaluate over what is on screen now. */
+  release?(): void;
 }
 
 interface ObservableDataModel {
@@ -83,6 +91,8 @@ export interface SynthesisSession extends SynthesisIntake {
   readonly output: EvaluatedModel | undefined;
   /** Recompute and write; a no-op without a live payload and surface. */
   evaluate(): void;
+  hold(): void;
+  release(): void;
   dispose(): void;
 }
 
@@ -102,6 +112,8 @@ export function createSynthesisSession({
   const subscriptions = new Map<string, {unsubscribe(): void}>();
   let writing = false;
   let scheduled = false;
+  /** While held, a change waits; the last output stands. */
+  let held = false;
 
   /** Every surface the payload refs — what the session watches. */
   const refSurfaces = (): Set<string> =>
@@ -142,7 +154,7 @@ export function createSynthesisSession({
 
   /** Data-model changes coalesce: however many writes land in one task, one evaluation. */
   const schedule = () => {
-    if (scheduled) return;
+    if (held || scheduled) return;
     scheduled = true;
     queueMicrotask(() => {
       scheduled = false;
@@ -220,6 +232,14 @@ export function createSynthesisSession({
     accept,
     retire,
     evaluate,
+    hold: () => {
+      held = true;
+    },
+    release: () => {
+      if (!held) return;
+      held = false;
+      evaluate();
+    },
     dispose: () => {
       retire();
       created.unsubscribe();

@@ -144,6 +144,29 @@ describe('re-evaluation', () => {
     expect(best()[0]).toMatchObject({value: 1299, contributed: 2, of: 2, absent: []});
   });
 
+  test('held, a drill-down leaves the last values standing; released, the view follows what is on screen (task-9.9 decision 23)', async () => {
+    paintStorefronts();
+    paintSynthesis();
+    const before = best()[0];
+    session.hold();
+    processor.model.getSurface(SHOP_B)!.dataModel.set('/', {detail: {sku: 'lumen-x100'}});
+    await settled();
+    expect(best()[0]).toEqual(before);
+    session.release();
+    expect(best()[0]).toMatchObject({contributed: 1, of: 2, absent: [SHOP_B]});
+  });
+
+  test('a payload accepted while held lands at once', async () => {
+    paintStorefronts();
+    paintSynthesis();
+    session.hold();
+    processor.model.getSurface(SHOP_B)!.dataModel.set('/', {detail: {sku: 'lumen-x100'}});
+    // The re-synthesis over the drill-down arrives before the hold ends.
+    expect(session.accept(target, PAYLOAD)).toBe(true);
+    expect(best()[0]).toMatchObject({absent: [SHOP_B]});
+    session.release();
+  });
+
   test('an unchanged output is not rewritten', async () => {
     paintStorefronts();
     paintSynthesis();

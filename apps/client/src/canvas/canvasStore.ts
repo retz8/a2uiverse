@@ -129,6 +129,11 @@ export interface CanvasState {
    */
   mergeFollowingStep: boolean;
   /**
+   * The merged view holds its last values while a fragment it reads repainted and the
+   * re-synthesis is on the way (task-9.9 decision 23): its line works until the turn ends.
+   */
+  mergeHeld: boolean;
+  /**
    * Each source's current paint title, from the vendor's `paintMeta` on the surface filling its
    * slot (task-9.3 decision 6): what the trail's preview says of where each fragment stands.
    * Absent for a source whose paint named nothing.
@@ -188,6 +193,7 @@ export interface CanvasStore {
   updatePress(key: number, status: Press['status']): void;
   removePress(key: number): void;
   setMergeFollowingStep(following: boolean): void;
+  setMergeHeld(held: boolean): void;
   /** A source's fragment claimed its slot: the title its paint carried, if any. */
   setPaintTitle(source: string, title: string | undefined): void;
   /** The composition retired: its roster, slot states, merge facts, presses and titles go with it. */
@@ -255,6 +261,7 @@ export function createCanvasStore(): CanvasStore {
     merge: null,
     presses: [],
     mergeFollowingStep: false,
+    mergeHeld: false,
     paintTitles: new Map(),
     notices: [],
     roster: [],
@@ -323,6 +330,9 @@ export function createCanvasStore(): CanvasStore {
     setMergeFollowingStep: following => {
       if (state.mergeFollowingStep !== following) set({mergeFollowingStep: following});
     },
+    setMergeHeld: held => {
+      if (state.mergeHeld !== held) set({mergeHeld: held});
+    },
     setPaintTitle: (source, title) => {
       if (state.paintTitles.get(source) === title) return;
       const next = new Map(state.paintTitles);
@@ -337,6 +347,7 @@ export function createCanvasStore(): CanvasStore {
         merge: null,
         presses: [],
         mergeFollowingStep: false,
+        mergeHeld: false,
         paintTitles: new Map(),
       }),
     reportError: text => set({error: text}),

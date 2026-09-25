@@ -1220,7 +1220,12 @@ describe("the fragment's history (task 9.7)", () => {
         return placed ? capturePaint(processor, placed.surfaceId) : undefined;
       },
     });
-    const synthesis = {accept: vi.fn(() => accepted), retire: vi.fn()};
+    const synthesis = {
+      accept: vi.fn(() => accepted),
+      retire: vi.fn(),
+      hold: vi.fn(),
+      release: vi.fn(),
+    };
     const runner = createTurnRunner({
       processor,
       store,
@@ -1257,6 +1262,44 @@ describe("the fragment's history (task 9.7)", () => {
     );
     action.end();
   }
+
+  it('a drill-down swaps into its slot when its source settles, not when the turn ends; the merged view held until then (task-9.9 decision 23)', () => {
+    const {processor, store, runner, synthesis} = historied();
+    // A merged view stands over the fragments.
+    store.placeFragment('shell', {surfaceId: 'shell:synthesis', source: 'shell'});
+    const action = runner.begin(surfaceAction('open'));
+    action.apply(
+      [
+        titled('github:pr-detail', 'PR #42'),
+        create('github:pr-detail'),
+        textRoot('github:pr-detail', 'the detail'),
+      ],
+      fragment('github'),
+    );
+    // Staged: the list still fills the slot.
+    expect(store.getState().placement.get('github')?.surfaceId).toBe('github:pr-list');
+    action.apply([], {source: 'github', role: 'fragment', settled: true});
+    // GitHub's stream ended: its paint is in its slot, the turn still open for the re-synthesis.
+    expect(store.getState().placement.get('github')?.surfaceId).toBe('github:pr-detail');
+    expect(rootText(processor, 'github:pr-detail')).toBe('the detail');
+    expect(synthesis.hold).toHaveBeenCalledTimes(1);
+    expect(store.getState().mergeHeld).toBe(true);
+    expect(synthesis.release).not.toHaveBeenCalled();
+    action.end();
+    expect(synthesis.release).toHaveBeenCalledTimes(1);
+    expect(store.getState().mergeHeld).toBe(false);
+    expect(store.getState().error).toBeNull();
+  });
+
+  it('a source that settles having cleaned up what it created swaps nothing in: the paint on screen stands', () => {
+    const {store, runner, synthesis} = historied();
+    const action = runner.begin(surfaceAction('open'));
+    action.apply([create('github:pr-detail'), del('github:pr-detail')], fragment('github'));
+    action.apply([], {source: 'github', role: 'fragment', settled: true});
+    expect(store.getState().placement.get('github')?.surfaceId).toBe('github:pr-list');
+    expect(synthesis.hold).not.toHaveBeenCalled();
+    action.end();
+  });
 
   it('every vendor create counts at the wire — a refused batch and a discarded staged paint included — the shell’s never (decision 2)', () => {
     const {runner, history} = historied();

@@ -10,6 +10,12 @@
  * - **Progressive mode** (empty canvas): the paint streams straight onto the stage.
  * - **Question paints**: a validated surface recognised as a question routes to the overlay
  *   slot, never the stage or the timeline.
+ * - **A source swaps in when it settles** (task-9.9 decision 23): in staged mode a fragment's
+ *   paint is held per source, not per turn — the source's settled marker swaps in what survives
+ *   of it (net effect judged per source, a create cleaned up again discarded), so a drill-down
+ *   shows as the vendor answers rather than when the turn ends. A vendor paint swapped in inside
+ *   a live composition holds the merged view at its last values, its line working, until the
+ *   turn ends with the re-synthesis it waits on.
  * - **Composed turns**: the hub stamps every event it relays. A `fragment` stamp names its source,
  *   and its surface fills the `Slot` carrying that `source` — those surfaces are registered in the
  *   placement map and never contend for
@@ -426,6 +432,27 @@ export function createTurnRunner({
     let pendingSynthesis:
       {surfaceId: string; source: string; payload: SynthesisPayload} | undefined;
     let canceled = false;
+    /** Surfaces this staged turn swapped in as their source settled: no longer the held paint. */
+    const inPlace = new Set<string>();
+    /** The merged view is held for this turn's repaint of a fragment it reads. */
+    let holding = false;
+    const letGo = () => {
+      if (!holding) return;
+      holding = false;
+      synthesis?.release?.();
+      store.setMergeHeld(false);
+    };
+    /**
+     * A vendor fragment repainted on a new surface inside a live composition: the merged view
+     * keeps its last values until its re-synthesis lands (task-9.9 decision 23).
+     */
+    const holdFor = (source: string) => {
+      if (holding || source === SHELL_SOURCE || !store.getState().placement.has(SHELL_SOURCE))
+        return;
+      holding = true;
+      synthesis?.hold?.();
+      store.setMergeHeld(true);
+    };
 
     /** Validation failures held until the settled state can be judged (module header). */
     const deferredValidation: unknown[] = [];
@@ -630,6 +657,40 @@ export function createTurnRunner({
       if (touchedLive) store.bumpApplied();
     };
 
+    /**
+     * A source's stream has ended in staged mode: what survives of its paint swaps into its slot
+     * now (task-9.9 decision 23). A surface it created and cleaned up again nets out; a vendor
+     * paint swapped in holds the merged view until the turn ends.
+     */
+    const swapSource = (source: string) => {
+      const mine = claims.filter(claim => claim.source === source);
+      if (mine.length === 0) return;
+      for (const claim of mine) claims.splice(claims.indexOf(claim), 1);
+      const stagingModel = (staging as TurnProcessor).model;
+      const survivors = new Set(
+        mine.map(claim => claim.surfaceId).filter(id => stagingModel.getSurface(id)),
+      );
+      if (survivors.size === 0) return;
+      const replay = buffered.filter(message => survivors.has(targetOf(message).surfaceId ?? ''));
+      for (let i = buffered.length - 1; i >= 0; i--) {
+        if (survivors.has(targetOf(buffered[i]!).surfaceId ?? '')) buffered.splice(i, 1);
+      }
+      for (const id of survivors) {
+        inPlace.add(id);
+        stagingModel.deleteSurface(id);
+      }
+      holdFor(source);
+      // A repaint under the fragment's own id would destroy it before its claim: captured first.
+      history?.leaving(source);
+      applyA2uiMessages(processor, replay, {onMessageError});
+      for (const {surfaceId, title} of mine) {
+        if (!survivors.has(surfaceId)) continue;
+        claimSlot(source, surfaceId, title, isQuestion(surfaceId));
+      }
+      settlePromotion(source);
+      store.bumpApplied();
+    };
+
     const endProgressive = () => {
       const stageId = store.getState().stageId;
       if (!stageId) {
@@ -649,8 +710,9 @@ export function createTurnRunner({
       const survivors = Array.from((staging as TurnProcessor).model.surfacesMap.keys());
       if (survivors.length === 0) {
         // The net-effect rule: the turn's paint no longer exists — discard, hold the stage.
-        // A turn that painted nothing at all (updates only) is simply not a paint.
-        if (createdIds.size > 0) store.reportError(HELD_FAILURE_TEXT);
+        // A turn that painted nothing at all (updates only) is simply not a paint, and a
+        // fragment that filled its slot in place was never held.
+        if ([...createdIds].some(id => !inPlace.has(id))) store.reportError(HELD_FAILURE_TEXT);
         return;
       }
       const survivorSet = new Set(survivors);
@@ -711,7 +773,10 @@ export function createTurnRunner({
         // A source's settled marker: nothing to apply, its fragments judged now.
         const ended = stamp?.settled ? slotOf(stamp) : undefined;
         if (rest.length === 0) {
-          if (ended !== undefined) ledger.settleSource(ended);
+          if (ended !== undefined) {
+            if (stagedMode) swapSource(ended);
+            ledger.settleSource(ended);
+          }
           return;
         }
         // A composition opening retires the one on stage — what the client held of it included —
@@ -735,7 +800,10 @@ export function createTurnRunner({
         if (admitted.length === 0) return;
         if (stagedMode) applyStaged(admitted, stamp, payload);
         else applyProgressive(admitted, stamp, payload);
-        if (ended !== undefined) ledger.settleSource(ended);
+        if (ended !== undefined) {
+          if (stagedMode) swapSource(ended);
+          ledger.settleSource(ended);
+        }
       },
       acceptPaintMeta,
       end: () => {
@@ -746,6 +814,7 @@ export function createTurnRunner({
           settleDeferred();
           settleFragments();
         } finally {
+          letGo();
           if (current === handle) {
             current = null;
             store.endPaint();
@@ -756,6 +825,7 @@ export function createTurnRunner({
         if (canceled) return;
         canceled = true;
         controller.abort();
+        letGo();
         if (!stagedMode && createdIds.size > 0) {
           // Progressive paints stream straight onto the stage; a canceled one must not
           // linger there — it never happened.

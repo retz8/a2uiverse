@@ -159,7 +159,8 @@ function mergeStep(
     if (
       (facts.working && facts.working.sources.length === 0) ||
       pressed('tryAgain') ||
-      state.mergeFollowingStep
+      state.mergeFollowingStep ||
+      state.mergeHeld
     )
       return {text: `Joining ${joined(inMerge)}`, status: 'working'};
     const including = [
