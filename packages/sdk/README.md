@@ -1,17 +1,20 @@
 # @a2uiverse/sdk
 
-The composition contract shared by the orchestrator and the canvas client, plus generic A2UI
-tools: an A2UI v0.9.1 validator and catalog pruning. Used by the orchestrator, the client, the
-shell catalog and the marketplace. Vendor agents never import it — nothing a2uiverse-specific
-goes over the vendor wire.
+The contract between A2UIVerse's orchestrator and its canvas client, and generic A2UI tools. The orchestrator, the client and the shell catalog use it.
+
+## What's in it
+
+- **Composition**: what the orchestrator adds around the A2UI it relays. A stamp on every event says which app painted it, and marks where an app's stream ends. Surface ids are namespaced by app (`gmail:inbox`). A paint can carry a short title, and the Planner's title names the canvas. The client sends back the reader's presses: Retry, Include, Try again, a step back or forward in a fragment, and closing a canvas.
+- **Canvases**: a canvas is an A2A context. The orchestrator gives it its id when its question is asked, every later message carries that id, and a question asked from a canvas names it as its parent.
+- **Synthesis**: the merged view's wiring — formulas over refs into each app's data, match claims that say which entries are one thing, and sorts — with its schema and validator.
+- **Resolution**: pointers with key predicates, like `/threads[id="1a06f2"]/time`, resolved against a data model.
+- **A2UI tools**: an A2UI v0.9.1 validator that follows upstream's, and catalog pruning.
 
 ```
-contracts/composition.v0.8.json   the normative contract; the package is tested against it
-a2ui-spec/                        pinned copy of the A2UI v0.9.1 schemas, basic catalog and validator cases
+contracts/composition.v0.8.json   the contract; the package is tested against it
+a2ui-spec/                        a pinned copy of the A2UI v0.9.1 schemas, basic catalog and validator cases
 js/                               the TypeScript package
 ```
-
-How the pieces fit into a turn is in [`_dev/docs/design/synthesis.md`](../../_dev/docs/design/synthesis.md).
 
 ## Quick start
 
@@ -75,98 +78,26 @@ locatePointer(model, '/threads[id="1a06f2"]/time');
 
 One entry point, `@a2uiverse/sdk`.
 
-**Composition stamp** — `js/src/composition.ts`
+| Area          | Main exports                                                                                                                                                      | In                                   |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| Stamp         | `CompositionStamp` (`{source, role?, settled?}`), `STAMP_KEY`, `COMPOSITION_EXTENSION_URI`, `namespaceSurfaceId`, `parseSurfaceId`, `readStamp`                   | `js/src/composition.ts`              |
+| Canvas parent | `CanvasParent` (`{parent}`), `canvasParentMetadata`, `readCanvasParent`                                                                                           | `js/src/composition.ts`              |
+| Paint meta    | `PaintMeta` (`{surfaceId, title?, kind?}`), `PAINT_META_MIME_TYPE`, `QUESTION_PAINT_KIND`, `clipPaintMetaTitle` (48 characters), `paintMetaData`, `readPaintMeta` | `js/src/composition.ts`              |
+| Presses       | `CompositionOperation` (`{kind, sources, step?}`), `OPERATION_KINDS` (`retry`, `include`, `tryAgain`, `step`, `close`), `operationData`, `readOperation`          | `js/src/composition.ts`              |
+| Synthesis     | `SynthesisPayload`, `Ref`, `Formula`, `MatchClaim`, `SortDeclaration`, `SYNTHESIS_SCHEMA`, `SYNTHESIS_KEY`, `readSynthesis`, `validateSynthesisPayload`           | `js/src/synthesis.ts`, `validate.ts` |
+| Resolution    | `parsePointer`, `resolvePointer`, `locatePointer`, `isFormula`, `walkModel`, `refsOf`, `reachSortPath`                                                            | `js/src/pointer.ts`, `walk.ts`       |
+| A2UI tools    | `createA2uiValidator`, `formatA2uiFinding`, `pruneCatalog`, `A2UI_SPEC_COMMIT`, and their types                                                                   | `js/src/a2ui/`                       |
 
-| Export                                  | What it is                      |
-| --------------------------------------- | ------------------------------- |
-| `CompositionStamp`                      | `{source, role?}`               |
-| `STAMP_KEY`                             | `"a2uiverse"`, the metadata key |
-| `COMPOSITION_EXTENSION_URI`             | the A2A extension URI           |
-| `namespaceSurfaceId` · `parseSurfaceId` | `<appId>:<surfaceId>` and back  |
-| `readStamp(metadata)`                   | the stamp, or `undefined`       |
-
-A canvas is an A2A context: the utterance that opens one carries no `contextId`, the orchestrator mints it, and every later message in the canvas carries it. The contract names no canvas id of its own.
-
-**Canvas parent** — `js/src/composition.ts`: on the utterance that opens a child canvas, client → orchestrator, under the stamp key
-
-| Export                         | What it is                                            |
-| ------------------------------ | ----------------------------------------------------- |
-| `CanvasParent`                 | `{parent}` — the `contextId` it was asked from        |
-| `canvasParentMetadata(parent)` | the message metadata, `{a2uiverse: {parent}}`         |
-| `readCanvasParent(metadata)`   | the parent an opening utterance names, or `undefined` |
-
-**Paint meta** — `js/src/composition.ts`: a per-paint shell object ahead of the `createSurface` it names, orchestrator → client; the orchestrator's own for `shell:main` carries the Planner's title for the canvas, a vendor's is the agent kit's in the same shape
-
-| Export                                                      | What it is                                                                     |
-| ----------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| `PaintMeta`                                                 | `{surfaceId, title?, kind?}`                                                   |
-| `PAINT_META_MIME_TYPE`                                      | `"application/json+a2ui-shell"`, the data part's `metadata.mimeType`           |
-| `PAINT_META_KINDS` · `QUESTION_PAINT_KIND`                  | `question`                                                                     |
-| `PAINT_META_TITLE_MAX_LENGTH` · `clipPaintMetaTitle(title)` | 48, and a title cut to it with an ellipsis                                     |
-| `paintMetaData(meta)`                                       | the data part's body, `{paintMeta}`                                            |
-| `readPaintMeta(data)`                                       | the paintMeta a data part carries, or `undefined` when it is none or malformed |
-
-**Composition operation** — `js/src/composition.ts`: the reader's press on the composition, client → orchestrator
-
-| Export                              | What it is                                                                 |
-| ----------------------------------- | -------------------------------------------------------------------------- |
-| `CompositionOperation`              | `{kind, sources, step?}`                                                   |
-| `OPERATION_KINDS`                   | `retry` · `include` · `tryAgain` · `step` · `close`                        |
-| `operationData(operation, version)` | the data part's body, `{version, operation}`                               |
-| `readOperation(data)`               | the press a data part carries, or `undefined` when it is none or malformed |
-
-**Synthesis payload** — `js/src/synthesis.ts` · `js/src/validate.ts`
-
-| Export                                                               | What it is                                        |
-| -------------------------------------------------------------------- | ------------------------------------------------- |
-| `SynthesisPayload`                                                   | `{dataModel, sorts}`                              |
-| `Ref` · `Formula` · `ModelNode` · `DerivedModel` · `SortDeclaration` | its pieces                                        |
-| `Relation` · `MatchClaim` · `MATCH_KEY`                              | a match claim's pieces, and its key `"match"`     |
-| `SYNTHESIS_SCHEMA` · `SYNTHESIS_DEFS`                                | the payload's JSON Schema                         |
-| `SYNTHESIS_KEY` · `readSynthesis(metadata)`                          | `"a2uiverseSynthesis"`, and read the payload back |
-| `validateSynthesisPayload(input)`                                    | `{ok: true, value}` or `{ok: false, errors}`      |
-| `schemaErrors(validate, input)`                                      | an ajv validator's errors as finding lines        |
-
-`validateSynthesisPayload` checks:
-
-- every leaf is a formula and every pointer parses;
-- every match claim is non-empty and flat, each relation over two refs in two different apps;
-- one sort per array, every sort key a formula with a ref in every element, the initial key an option;
-- sort paths are object keys and `*` (`/rows/*/runs` is the `runs` list inside every row).
-
-Whether a relation's operator is a real relation, and whether it holds, is left to the consumer.
-
-**Resolution** — `js/src/pointer.ts` · `js/src/walk.ts`
-
-| Export                           | What it is                                              |
-| -------------------------------- | ------------------------------------------------------- |
-| `parsePointer(pointer)`          | pointer → steps; throws `PointerSyntaxError`            |
-| `resolvePointer(root, pointer)`  | a value, or why not                                     |
-| `locatePointer(root, pointer)`   | the resolution plus the concrete path it reached        |
-| `isFormula` · `walkModel(model)` | recognise a leaf; list every leaf and every match claim |
-| `refsOf(model)`                  | every ref, in leaf order                                |
-| `reachSortPath(model, path)`     | every array a sort path reaches                         |
-
-**A2UI tools** — `js/src/a2ui/`
-
-| Export                                                            | What it is                                                 |
-| ----------------------------------------------------------------- | ---------------------------------------------------------- |
-| `createA2uiValidator({catalog})`                                  | an A2UI v0.9.1 validator over a catalog, after upstream's  |
-| `formatA2uiFinding(finding)`                                      | a finding as one line                                      |
-| `pruneCatalog(catalog, keepSet)`                                  | a `catalog.json` narrowed to some components and functions |
-| `A2uiCatalogSchema` · `A2uiFinding` · `A2uiComponent` · `KeepSet` | the shapes                                                 |
-| `A2UI_SPEC_COMMIT`                                                | the upstream commit the pinned spec came from              |
+`validateSynthesisPayload` checks the payload's shape: every leaf is a formula, every match claim relates two refs in two different apps, and every sort is well formed. Whether a relation actually holds is left to the caller.
 
 ## Commands
 
-```
+```bash
 pnpm --filter @a2uiverse/sdk build | typecheck | test | lint
-pnpm --filter @a2uiverse/sdk sync-a2ui-spec    # refresh a2ui-spec/ from the A2UI fork's upstream/main
+pnpm --filter @a2uiverse/sdk sync-a2ui-spec    # refresh a2ui-spec/ from the A2UI fork's upstream
 ```
 
-`a2ui-spec/` is never edited by hand; `a2ui-spec/UPSTREAM.json` records the commit it was copied
-from. `build`, `typecheck` and `test` first embed the pinned schemas into
-`js/src/a2ui/spec.generated.ts` (generated, gitignored).
+`a2ui-spec/` is never edited by hand; `a2ui-spec/UPSTREAM.json` records the commit it was copied from.
 
 ## Installing
 
@@ -176,16 +107,15 @@ Inside this monorepo:
 "@a2uiverse/sdk": "workspace:*"
 ```
 
-Outside it, as a git dependency pinned in the lockfile:
+Outside it, as a git dependency:
 
 ```json
 "@a2uiverse/sdk": "github:retz8/a2uiverse#path:packages/sdk/js"
 ```
 
-ESM, runs in Node and the browser, depends on `ajv` only.
+ESM, runs in Node and the browser.
 
 ## Further reading
 
-- `contracts/composition.v0.8.json` — the normative contract; SPEC §14 is its register entry.
-- `_dev/docs/design/synthesis.md` — the merged view end to end.
-- `_dev/docs/design/orchestrator.md` · `_dev/docs/design/client.md` — each consumer's side.
+- [`_dev/docs/design/synthesis.md`](../../_dev/docs/design/synthesis.md): the merged view end to end.
+- [`_dev/docs/design/orchestrator.md`](../../_dev/docs/design/orchestrator.md) and [`_dev/docs/design/client.md`](../../_dev/docs/design/client.md): how each side uses the contract.
