@@ -145,7 +145,7 @@ Spec: `_dev/docs/spec/phase-9-durable-composition.md`.
 ## Phase 10 — Community proposal
 Propose A2UIVerse to the A2UI community on the runtime as it stands, with no marketplace or app bundles. An A2UI agent built outside A2UIVerse composing as it is; the demo's apps drawn in catalogs that feel like the real products rather than the basic catalog themed; one short live demo of independent agents composed into one application; a guide to bringing your own agent; the proposal itself, from the upstream candidates in SPEC's protocol delta register.
 
-## Phase 11 — App bundle + registry [WIP]
+## Phase 11 — App bundle + registry []
 Bundle format, local install, registry no longer hardcoded, the GitHub app installed as a bundle (M7).
 
 ## Phase 12 — Authority surfaces
