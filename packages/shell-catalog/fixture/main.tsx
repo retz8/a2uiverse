@@ -222,11 +222,6 @@ function SlotMatrix() {
         <SlotView source="gmail" label="Gmail" />
       </div>
       <div>
-        the paint's time (task-9.9 decision 13), out of sight until hover or focus:
-        <AttributionView displayName="Gmail" account="work" history={{time: '10:17'}} />
-        <AttributionView displayName="GitHub" account={null} history={{time: '10:17'}} />
-      </div>
-      <div>
         <AttributionView displayName="Calendar" account={null} />
         <SlotContentContext.Provider value={() => <Fragment label="filled fragment" />}>
           <SlotView source="calendar" />
@@ -237,8 +232,9 @@ function SlotMatrix() {
         <SlotView source="github" state="failed" label="GitHub" />
       </div>
       <div>
-        the way back (task 9.5): a back arrow with somewhere to go, back and forward after a back, a
-        neighbour the agent did not name, and disabled where no press can be made:
+        the way back (task 9.5, task-9.9 decision 15), at the row&apos;s right edge: a back arrow
+        with somewhere to go, back and forward after a back, a neighbour the agent did not name, and
+        disabled where no press can be made:
         <AttributionView
           displayName="GitHub"
           appId="github"

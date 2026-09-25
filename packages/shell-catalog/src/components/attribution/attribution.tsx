@@ -23,20 +23,19 @@ import {AttributionApi, type AttributionProps} from './attribution.schema.js';
 
 /**
  * The quiet marker (SPEC §4.3): a small gray caption with an info glyph, always present,
- * expanding to full attribution on hover or keyboard focus. Full attribution is the name, the
- * account label when one is in play, and the time the paint on screen landed when the host gives
- * one — each fragment's freshness its own (phase-9 decision 8), at rest out of sight (task-9.9
- * decision 13); with neither, hover and focus only brighten the marker — it never says
- * "Painted by", since the name already says whose the region is (task-8.7 decision 18). The
- * accessible name always carries the full detail, independent of pointer state. Rendered on
- * Radix `Text` in the caption register with Radix's own info glyph (task-5.9 decision 5).
+ * expanding to full attribution on hover or keyboard focus. Full attribution is the name and
+ * the account label when one is in play; with none, hover and focus only brighten the marker —
+ * it never says "Painted by", since the name already says whose the region is (task-8.7
+ * decision 18). The accessible name always carries the full detail, independent of pointer
+ * state. Rendered on Radix `Text` in the caption register with Radix's own info glyph (task-5.9
+ * decision 5).
  *
- * The fragment's way back rides the marker's row (SPEC §6.5, task 9.5): a back arrow after the
- * marker when the host says there is a step to go back to, a forward arrow beside it when there
- * is one to go forward to — read from `FragmentHistoryContext` by the painted `appId`, or handed
- * in as `history` — each an icon button in the marker's register named "Back to" or "Forward to"
- * that paint's title, "Back" or "Forward" alone when the agent named nothing, the name on hover,
- * focus and for assistive technology. An arrow raises the step operation — the one source and
+ * The fragment's way back rides the marker's row (SPEC §6.5, task 9.5), at its right edge
+ * (task-9.9 decision 15): a back arrow when the host says there is a step to go back to, a
+ * forward arrow beside it when there is one to go forward to — read from `FragmentHistoryContext`
+ * by the painted `appId`, or handed in as `history` — each a soft accent icon button named
+ * "Back to" or "Forward to" that paint's title, "Back" or "Forward" alone when the agent named
+ * nothing, the name on hover, focus and for assistive technology. An arrow raises the step operation — the one source and
  * the neighbour's index — through the host's press handler; without one no arrow is drawn, and
  * the arrows draw disabled where the press state says no press can be made, as Retry does, and
  * while the host says the source is busy — its repaint in flight (task-9.7 decision 6). The
@@ -72,8 +71,6 @@ export function AttributionView({
   const {enabled} = useContext(PressStateContext);
   const detail = account ? `${displayName} · ${account}` : displayName;
   const stands = history ?? (appId === undefined ? undefined : resolveHistory(appId));
-  const time = stands?.time;
-  const full = time ? `${detail} · ${time}` : detail;
   const arrows = onPress && appId !== undefined ? stands : undefined;
   const back = arrows?.back;
   const forward = arrows?.forward;
@@ -98,7 +95,7 @@ export function AttributionView({
       size="1"
       color="gray"
       tabIndex={0}
-      aria-label={full}
+      aria-label={detail}
       onMouseEnter={() => setOpen(true)}
       onMouseLeave={() => setOpen(false)}
       onFocus={() => setOpen(true)}
@@ -118,7 +115,7 @@ export function AttributionView({
       }}
     >
       <InfoCircledIcon width={12} height={12} aria-hidden="true" />
-      {open ? full : displayName}
+      {open ? detail : displayName}
     </Text>
   );
 
@@ -128,26 +125,28 @@ export function AttributionView({
   };
   const row =
     back || forward ? (
-      <Flex align="center" gap="1" style={{alignSelf: 'flex-start', maxWidth: '100%'}}>
+      <Flex align="center" justify="between" gap="2" style={{width: '100%'}}>
         {marker}
-        {back && (
-          <Arrow
-            direction="Back"
-            step={back}
-            buttonRef={backRef}
-            enabled={pressable}
-            onClick={event => stepTo('back', back, event.currentTarget)}
-          />
-        )}
-        {forward && (
-          <Arrow
-            direction="Forward"
-            step={forward}
-            buttonRef={forwardRef}
-            enabled={pressable}
-            onClick={event => stepTo('forward', forward, event.currentTarget)}
-          />
-        )}
+        <Flex align="center" gap="1" flexShrink="0">
+          {back && (
+            <Arrow
+              direction="Back"
+              step={back}
+              buttonRef={backRef}
+              enabled={pressable}
+              onClick={event => stepTo('back', back, event.currentTarget)}
+            />
+          )}
+          {forward && (
+            <Arrow
+              direction="Forward"
+              step={forward}
+              buttonRef={forwardRef}
+              enabled={pressable}
+              onClick={event => stepTo('forward', forward, event.currentTarget)}
+            />
+          )}
+        </Flex>
       </Flex>
     ) : (
       marker
@@ -172,7 +171,7 @@ function arrowName(direction: 'Back' | 'Forward', step: HistoryStep): string {
   return step.title ? `${direction} to ${step.title}` : direction;
 }
 
-/** One arrow: an icon button in the marker's register, named for where it goes. */
+/** One arrow: a soft accent icon button, named for where it goes (task-9.9 decision 15). */
 function Arrow({
   direction,
   step,
@@ -191,8 +190,7 @@ function Arrow({
     <IconButton
       ref={buttonRef}
       size="1"
-      variant="ghost"
-      color="gray"
+      variant="soft"
       aria-label={name}
       title={name}
       disabled={!enabled}

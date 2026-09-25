@@ -23,15 +23,6 @@ test('single-account apps omit the account clause', () => {
   expect(screen.getByLabelText('GitHub')).toBeInTheDocument();
 });
 
-test("the paint's time is part of the full attribution: out of sight at rest, shown on focus, always in the accessible name (phase-9 decision 8, task-9.9 decision 13)", async () => {
-  const user = userEvent.setup();
-  render(<AttributionView displayName="Gmail" account="work" history={{time: '10:17'}} />);
-  const marker = screen.getByLabelText('Gmail · work · 10:17');
-  expect(marker).toHaveTextContent(/^Gmail$/);
-  await user.tab();
-  expect(marker).toHaveTextContent('Gmail · work · 10:17');
-});
-
 test('schema accepts the painted shape and rejects extras', () => {
   expect(
     AttributionApi.schema.safeParse({displayName: 'Gmail', appId: 'gmail', account: null}).success,
@@ -137,6 +128,30 @@ test('a back arrow when there is a step back, named "Back to" the previous paint
   expect(
     marker.compareDocumentPosition(buttons[0]!) & Node.DOCUMENT_POSITION_FOLLOWING,
   ).toBeTruthy();
+});
+
+test("the arrows sit at the right edge of the marker's row, icons alone, soft accent buttons (task-9.9 decision 15)", () => {
+  render(
+    <AttributionView
+      displayName="GitHub"
+      appId="github"
+      history={{back: {step: 0, title: 'Open pull requests'}, forward: {step: 2, title: 'PR #42'}}}
+      onPress={() => {}}
+    />,
+  );
+  const back = screen.getByRole('button', {name: 'Back to Open pull requests'});
+  const forward = screen.getByRole('button', {name: 'Forward to PR #42'});
+  for (const arrow of [back, forward]) {
+    expect(arrow).toHaveTextContent('');
+    expect(arrow).toHaveClass('rt-variant-soft');
+    expect(arrow).not.toHaveAttribute('data-accent-color', 'gray');
+  }
+  // The row spans its region, the marker at its start and the arrows grouped at its end.
+  const row = screen.getByLabelText('GitHub').parentElement!;
+  expect(row).toHaveStyle({width: '100%'});
+  expect(row).toHaveClass('rt-r-jc-space-between');
+  expect(back.parentElement).toBe(forward.parentElement);
+  expect(back.parentElement).not.toBe(row);
 });
 
 test('"Back" and "Forward" alone when the agent named nothing', () => {
