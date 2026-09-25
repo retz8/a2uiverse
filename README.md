@@ -4,7 +4,7 @@
 
 A2UIVerse is a semantic application runtime that composes independently-owned agent UIs into one persistent, interactive surface. It's built on **[A2UI](https://a2ui.org)** and **[A2A](https://github.com/a2aproject/A2A)**.
 
-A2UI asks: _how does an agent express UI?_
+A2UI asks: _how does an agent express UI?_\
 **A2UIVerse asks: how do the UI and data that many agents express become one application?**
 
 Ask one question. Several agents answer at once, each painting its own interface, and you get **one screen**, not three chat replies.
