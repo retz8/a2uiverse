@@ -54,18 +54,6 @@ When the merge is over one thing seen by several apps, like a Linear issue, its 
 
 A question about A2UIVerse itself, like which apps you have or what the screen can do, is answered by the Planner in the layout, with no app asked. It reads the platform's state through a small fixed set of readers, never an app's data. A need that no installed app can meet gets a slot of its own: a tile that searches the Store for it.
 
-## One question, step by step
-
-```
-question → Router       ranks the apps that could answer, A2UIVerse itself among them
-         → Planner      one model call: which apps to ask and what, the layout, a title for the answer
-         → first paint  the layout with every slot waiting, before any app is asked
-         → apps         one request per app, in parallel; each answer relayed as it arrives
-         → Synthesizer  a second model call, when the plan has a merged view and two apps answered
-         → merged view  painted into its slot
-         → done         once every app has answered, failed or timed out
-```
-
 ## Keeps every answer
 
 An answer isn't thrown away when the next question comes. Each one is kept, keeps working, and remembers its merged views.
@@ -78,35 +66,15 @@ An answer isn't thrown away when the next question comes. Each one is kept, keep
   <em>The client's trail: four questions asked, each one a context on the orchestrator. The newest is still loading.</em>
 </p>
 
-The client keeps every question the user asked in its trail, and the user can go back to any of them. On the orchestrator, each one is an A2A context, and the orchestrator holds a composition for it: the layout, each app's slot and data, the merged view, and each app's screen history. Every later message (a click, a press, a close) carries its context, so it lands on the right composition.
+Every question the client sends is an A2A context, and the orchestrator holds a composition for each: the layout, each app's slot and data, the merged view, and each app's screen history. Every later message carries its context, so a click, a press or a close lands on the right one.
 
-```mermaid
-flowchart LR
-    subgraph client [Client]
-        Q1["Question 1<br/>What needs my attention today?"]
-        Q2["Question 2<br/>Add Linear to this"]
-    end
-    subgraph orch [Orchestrator]
-        K1["context 1<br/>its composition"]
-        K2["context 2<br/>its composition"]
-    end
-    subgraph gmail [Gmail]
-        G1["a conversation for context 1"]
-        G2["a conversation for context 2"]
-    end
-    Q1 <--> K1 <--> G1
-    Q2 <--> K2 <--> G2
-    K2 -. parent .-> K1
-```
-
-- **A question arrives with no context**, and the orchestrator creates one for it. A question sent inside a context it already holds is refused.
-- **A question can name a parent**, the context it was asked from. The Planner then reads that composition and the questions before it, so "add Linear to this" means that answer.
+- **A question can name a parent**, the context it was asked from. The Planner then reads that composition, so "add Linear to this" means that answer.
 - **Each app gets its own conversation per context**, so answers to different questions never mix.
-- **A composition keeps running** after the client sends another question: apps still answering finish, and its merged view still lands. Only a close ends it, cancelling whatever it still has in flight.
+- **A composition keeps running** after the next question: its apps still answer and its merge still lands, until the client closes it.
 
 ### Going back inside an app's answer
 
-Clicking into something inside an app's answer, like a CI run or an issue, makes the app paint a new screen in its slot, and a back arrow appears at the right of the app's row.
+Clicking into something inside an app's answer, like a CI run, makes the app paint a new screen in its slot, with a back arrow at the right of its row. The orchestrator remembers the merged view for every combination of screens it has shown, so going back restores it with no model call.
 
 <table>
   <tr>
@@ -119,38 +87,28 @@ Clicking into something inside an app's answer, like a CI run or an issue, makes
   </tr>
 </table>
 
-The orchestrator remembers the merged view's wiring for every combination of screens it has shown:
-
-| When             | GitHub | CircleCI | Merged view                               |
-| ---------------- | ------ | -------- | ----------------------------------------- |
-| The answer lands | 0      | 0        | made, then remembered                     |
-| A run is opened  | 0      | 1        | worked out for the new screen, remembered |
-| Back             | 0      | 0        | the remembered one, with no model call    |
-
-On Back, the orchestrator also makes its copy of that app's data match the screen again, so the next merge and the app's next answer start from what you see.
-
 ## Leaves apps' UI alone
 
 Every app's UI passes through the orchestrator on its way to the screen, and every click passes back the same way. It changes as little as it can, so any A2UI agent can take part as it is.
 
-```mermaid
-flowchart LR
-    subgraph toClient [App to client]
-        direction LR
-        A1["Gmail paints<br/>surfaceId: inbox"] --> R1["Orchestrator<br/>renames the surface<br/>stamps its source<br/>holds back Gmail's 'done'"] --> C1["Client gets<br/>surfaceId: gmail:inbox<br/>stamp: source gmail"]
-    end
-    subgraph toApp [Client to app]
-        direction LR
-        C2["Client acts on<br/>gmail:inbox"] --> R2["Orchestrator<br/>routes by the prefix<br/>renames it back<br/>keeps only Gmail's data"] --> A2["Gmail gets<br/>an action on inbox"]
-    end
+- **Surface ids are namespaced by app**, `inbox` becoming `gmail:inbox`, so two apps can't collide on one screen, and changed back on the way in. It's the only change made inside an app's A2UI.
+- **Every event is stamped** with the app that painted it, so the client knows which slot it fills.
+- **Only the orchestrator ends a turn.** Each app's own "done" is held back, and the orchestrator sends one when all of them have answered.
+- **Each app sees only its own data** when the client sends the screen's data back with a click.
+
+## Running it
+
+```bash
+pnpm dev:orch                                   # from the repo root
+pnpm --filter @a2uiverse/orchestrator build | typecheck | test | lint
 ```
 
-- **Surface ids are namespaced by app**, `inbox` becoming `gmail:inbox`, so two apps can't collide on one screen. It's the only change made inside an app's A2UI.
-- **Every event is stamped** with the app that painted it, so the client knows which slot it fills. After an app's last event, one more marks where its stream ended.
-- **Only the orchestrator ends a turn.** Several apps answer one question, so each app's own "done" is held back, and the orchestrator sends one when all of them have answered.
-- **Each app sees only its own data.** When the client sends back the screen's data with a click, the orchestrator passes on only that app's part.
+It listens on port **10001**. Start the apps first with `pnpm dev:agents`, or use `pnpm dev:all` to start both in order. **Agent cards are fetched once, at startup**: an app that comes up later can't be asked anything until the orchestrator restarts. It names any app it couldn't reach at startup, so if nothing gets routed, read that line first.
 
-## Modules
+Started by the launcher, it reads its apps from the `manifest.json` in each folder of the agents dir, so `pnpm dev:all --agents-dir ../a2uiverse-apps/mocks` runs on the two mock stores alone. Started on its own, it falls back to the five apps in `src/registry/entries.ts`.
+
+<details>
+<summary><b>Modules</b></summary>
 
 | Module        | Where              | What it does                                                                                                                                                                                                |
 | ------------- | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -166,20 +124,10 @@ flowchart LR
 
 The Planner and the Synthesizer run on Gemini through the Vercel AI SDK.
 
-## Running it
+</details>
 
-```bash
-pnpm dev:orch                                   # from the repo root
-pnpm --filter @a2uiverse/orchestrator build | typecheck | test | lint
-```
-
-It listens on port **10001**. Start the apps first with `pnpm dev:agents`, or use `pnpm dev:all` to start both in order. **Agent cards are fetched once, at startup**: an app that comes up later can't be asked anything until the orchestrator restarts. It names any app it couldn't reach at startup, so if nothing gets routed, read that line first.
-
-## Apps
-
-Started by the launcher (`pnpm dev:all`), it reads its apps from the `manifest.json` in each folder of the launcher's agents dir, so `pnpm dev:all --agents-dir ../a2uiverse-apps/mocks` runs on the two mock stores alone. Started on its own, it falls back to the five apps in `src/registry/entries.ts`: GitHub on `11001`, Gmail `11002`, Google Calendar `11003`, CircleCI `11004` and Linear `11005`.
-
-## Configuration
+<details>
+<summary><b>Configuration</b></summary>
 
 | Variable                          | Default                                       | Meaning                                                                                                |
 | --------------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
@@ -199,5 +147,7 @@ Started by the launcher (`pnpm dev:all`), it reads its apps from the `manifest.j
 | `A2UIVERSE_AGENT_URLS`            | none                                          | JSON `{"<appId>": "<url>"}` overriding apps' addresses                                                 |
 | `A2UIVERSE_DEBUG_IDS`             | off                                           | `1` adds each app's own task and context ids to what it relays                                         |
 | `A2UIVERSE_FAULTS`                | none                                          | Dev only: JSON making an app's answers slow, hang, break, refused, failed or invalid, to test failures |
+
+</details>
 
 The design record, with every step of a turn, is [`_dev/docs/design/orchestrator.md`](../../_dev/docs/design/orchestrator.md).
