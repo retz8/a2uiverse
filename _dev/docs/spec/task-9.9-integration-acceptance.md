@@ -66,13 +66,29 @@ This spec gains: the design decisions made during the tour, numbered, each with 
 
 ## The look, decided during the run
 
-### 13. The paint's time is part of the marker's full attribution
+### 13. A fragment carries no time of its own
 
-Each fragment's paint carries the time it landed on its slot; a step back shows the older paint's own time. The attribution marker shows it after the name and the account on hover and focus, and its accessible name always carries it; at rest the marker is the name alone. Replaced: the time after the name at rest, drawn at the start of case 1 under decision 2, the same stamp on every fragment. Raised on case 1.
+The question's time on the parked banner is the canvas's one time; the attribution marker carries no paint time. Replaced: the paint's landing time after the name at rest, drawn at the start of case 1 under decision 2, then moved into the marker's hover and focus on case 1, then dropped on case 2 — a clock time the reader compares against now, differing between fragments only where the reader acted. Phase decision 8, SPEC §5.4 and §6.4 amended. Raised on cases 1 and 2.
 
 ### 14. A past canvas keeps its colors
 
 A past canvas's page is drawn as the live one is; the parked band, the trail's Viewing mark and Return to live say it is past. Replaced: the page drawn in grayscale after board F5 (task 9.6). Raised on case 2.
+
+### 15. The way back sits at the right edge of the attribution row
+
+The back and forward arrows sit at the right edge of the attribution row, the marker at its start, each a soft accent icon button named for where it goes on hover and for assistive technology. Replaced: a gray ghost icon beside the marker, 23px in the marker's caption register, then a soft accent "← Back" button beside the marker on case 2. Phase decision 13 and SPEC §4.3 amended. Raised on case 2.
+
+### 16. A combination never seen is covered by one remembered over fewer sources
+
+A step to a combination never merged restores the wiring remembered over fewer sources — every source it names where it stands now, the rest having painted since — with no call, on the orchestrator and the client alike; the sources painted since wait as late, the merge slot repainted with them, and Include folds them in. Only a combination nothing covers falls to the walk and its call. The journal's step records the sources it left late. Phase decision 3 and SPEC §6.5 amended. Raised on case 2: Calendar's back after Gmail's Retry had been folded in over Calendar's event made a call, the view without Gmail already made.
+
+### 17. A step's walk is for the combination on screen
+
+A walk only steps released is abandoned by the next step — its call aborted, the step's journal line `abandoned` — and the next step is answered at once. The merge line follows the latest step: a step restoring a seen or covered combination ends the working an earlier unseen step left. Replaced: every later step waiting behind the walk, and the merge line working until that step's stream ended (task-9.7 decision 6). Phase decision 3 and SPEC §6.5 amended. Raised on case 2.
+
+## Found and fixed during the run
+
+- **The journal read a step's combination after its wait.** A step waiting behind a merge in the making was journaled with the combination a later step had left, so a Forward read `calendar 0`. The combination is read as the step makes it. Case 2; the orchestrator's abandoned-walk test asserts both steps' combinations.
 
 ## Invariants
 

@@ -26,6 +26,8 @@ The composition keeps, per agent, the sequence of that agent's paints in this ca
 
 The composition remembers, per combination of agent paints, the wiring it accepted over them — the synthesize data model, never evaluated values. Stepping a fragment back restores its paint and re-evaluates the remembered wiring over it, with no call, as long as every other agent is where it was then. A combination never seen falls to the walk and its call. The step puts that paint's data model back on the orchestrator's partition too, so the merge and the vendor's next answer see what the user sees.
 
+*Amended during the run (task 9.9 decisions 16, 17).* A combination never seen is first covered by a wiring remembered over fewer sources — every source it names where it stands now, the rest having painted since — restored with no call, the sources painted since late for Include. Only a combination nothing covers falls to the walk and its call, and a later step abandons that walk.
+
 ### 4. Acting inside a past canvas is the tab's own life
 
 An action inside a fragment of a past canvas runs on that canvas: the answer lands in its slot, its per-agent history grows, the merged view follows as in decision 3. No new entry; the trail entry stays labelled by its question. Presses — Retry, Include, Try again — work in a past canvas the same way. "Live" keeps meaning the newest question's canvas; "Return to live" goes there. The orchestrator answers against that canvas's composition, not the newest one. Phase 1's fork path — holding the parked view while a forked paint is in flight, then returning to live — is retired.
@@ -46,6 +48,8 @@ Leaving a canvas changes nothing in it: dispatches still out arrive, the soft de
 
 The canvas carries when its question was asked; the parked banner says so. Freshness is per fragment — each agent's paint has its own time, shown at the fragment. "As it was at" is dropped.
 
+*Amended during the run (task 9.9 decision 13).* A fragment carries no time of its own; the question's time on the parked banner is the canvas's one time.
+
 ### 9. The trail is drawn flat by time
 
 Entries newest first, each its title and time, a branch annotated with the canvas it was asked from, "Live" on the newest, "Viewing" on the one on screen, a quiet mark on a canvas still loading in the background, a close on each entry.
@@ -65,6 +69,8 @@ A scaled render of the canvas on hover or focus of a trail entry, rendered lazil
 ### 13. A fragment's way back is beside the attribution marker
 
 A back arrow beside the attribution marker, present only when there is somewhere to go back to, a forward arrow beside it after a back. The previous paint's `paintMeta` title is its name on hover, focus and for assistive technology; "Back" when the agent named nothing.
+
+*Amended during the run (task 9.9 decision 15).* The arrows sit at the right edge of the attribution row, the marker at its start, each a soft accent icon button.
 
 ### 14. In memory for the session
 
