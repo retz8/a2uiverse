@@ -86,6 +86,14 @@ A step to a combination never merged restores the wiring remembered over fewer s
 
 A walk only steps released is abandoned by the next step — its call aborted, the step's journal line `abandoned` — and the next step is answered at once. The merge line follows the latest step: a step restoring a seen or covered combination ends the working an earlier unseen step left. Replaced: every later step waiting behind the walk, and the merge line working until that step's stream ended (task-9.7 decision 6). Phase decision 3 and SPEC §6.5 amended. Raised on case 2.
 
+### 18. Back and Trail are a sidebar of their own
+
+The gutter holding Back and Trail is a sidebar down the left edge on the page's background, with no divider. The live canvas's condensed bar and the parked band start past it. Replaced: Back and Trail floating over the page, the condensed bar spanning the full width beneath them with its bottom edge through the Trail icon, the band's edge likewise. Raised on case 2.
+
+### 19. The pressed fragment holds its place while its step runs
+
+From a press on a fragment's back or forward arrow until the step ends, every change above that fragment — the merged view restored over another combination, the late row the orchestrator's repaint adds or takes away — is absorbed by scrolling, so the fragment's row and the arrow under the pointer stay where they were. The reader's own scrolling ends the hold. Replaced: the fragment row moving by the merged view's change in height on every step, the arrow leaving the pointer, and moving again a round trip later with the late row. Raised on case 2.
+
 ## Found and fixed during the run
 
 - **The journal read a step's combination after its wait.** A step waiting behind a merge in the making was journaled with the combination a later step had left, so a Forward read `calendar 0`. The combination is read as the step makes it. Case 2; the orchestrator's abandoned-walk test asserts both steps' combinations.
