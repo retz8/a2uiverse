@@ -69,11 +69,15 @@ test('the rail: every mark at once, over the page', async ({page}) => {
   // The viewed canvas's lineage in ink: its parent's node, and the line between them.
   await expect(page.locator('.canvas-trail-spine-line--lit')).toHaveCount(1);
   await expect(page.locator('.canvas-trail-spine-node--lit')).toHaveCount(1);
-  // The newest is recorded beat 9's question, which carries no Planner title.
-  await expect(entries.nth(0).getByTestId('canvas-trail-label')).toHaveText(/status of what/i);
+  // The newest is recorded beat 9's question, titled by the Planner in its recording; the
+  // platform answer carries no title, so its question is its label.
+  await expect(entries.nth(0).getByTestId('canvas-trail-label')).toHaveText(
+    'Status of current work',
+  );
   await expect(entries.nth(1).getByTestId('canvas-trail-label')).toHaveText(
     'Camera prices, both stores',
   );
+  await expect(entries.nth(2).getByTestId('canvas-trail-label')).toHaveText('what apps do I have?');
   await expect(entries.nth(3).getByTestId('canvas-trail-label')).toHaveText(
     'Needs attention today',
   );

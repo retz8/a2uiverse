@@ -14,7 +14,7 @@ allowBuilds:
   # calendar-catalog, pinned the same way.
   "calendar-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/da30bbc3bb699e1da3398b01129c5983ce975cbc#path:calendar/calendar-catalog": true
   # circleci-catalog, pinned the same way.
-  "circleci-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/da30bbc3bb699e1da3398b01129c5983ce975cbc#path:circleci/circleci-catalog": true
+  "circleci-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/081bc54065a07083cd076479f295f6c666d7e916#path:circleci/circleci-catalog": true
   # linear-catalog, pinned the same way.
   "linear-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/f77517b802d297e65c94c5d51e74eca4f138e58f#path:linear/linear-catalog": true
   # The two mock-tier catalogs (task 4.7). Always bundled: the client's catalog table is

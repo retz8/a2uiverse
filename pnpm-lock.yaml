@@ -64,7 +64,7 @@ importers:
         version: https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/da30bbc3bb699e1da3398b01129c5983ce975cbc#path:calendar/calendar-catalog(@a2ui/react@0.10.2(patch_hash=99b6533eb4bc6f8f8c7de140fcffef2c7572a6a6b30a2b86b5020fa368d845ea)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76))(@a2ui/web_core@0.10.6)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76)
       circleci-catalog:
         specifier: github:retz8/a2uiverse-apps#path:circleci/circleci-catalog
-        version: https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/da30bbc3bb699e1da3398b01129c5983ce975cbc#path:circleci/circleci-catalog(@a2ui/react@0.10.2(patch_hash=99b6533eb4bc6f8f8c7de140fcffef2c7572a6a6b30a2b86b5020fa368d845ea)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76))(@a2ui/web_core@0.10.6)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76)
+        version: https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/081bc54065a07083cd076479f295f6c666d7e916#path:circleci/circleci-catalog(@a2ui/react@0.10.2(patch_hash=99b6533eb4bc6f8f8c7de140fcffef2c7572a6a6b30a2b86b5020fa368d845ea)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76))(@a2ui/web_core@0.10.6)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76)
       github-catalog:
         specifier: github:retz8/a2uiverse-apps#path:github/github-catalog
         version: https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/d14fa5b2ffdb1a0e38b21367ed5f5c7d2b0e4e70#path:github/github-catalog(@a2ui/react@0.10.2(patch_hash=99b6533eb4bc6f8f8c7de140fcffef2c7572a6a6b30a2b86b5020fa368d845ea)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76))(@a2ui/web_core@0.10.6)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react-is@19.2.0)(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react-is@19.2.8)(react@19.2.8)(zod@3.25.76)
@@ -2175,8 +2175,8 @@ packages:
     resolution: {integrity: sha512-oKnbhFyRIXpUuez8iBMmyEa4nbj4IOQyuhc/wy9kY7/WVPcwIO9VA668Pu8RkO7+0G76SLROeyw9CpQ061i4mA==}
     engines: {node: '>=10'}
 
-  circleci-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/da30bbc3bb699e1da3398b01129c5983ce975cbc#path:circleci/circleci-catalog:
-    resolution: {gitHosted: true, integrity: sha512-oBrLYIEZ+QCrTVZH0j+8guYK8quoh0ceSPaD1AX7dHRR5IR0L35nbYMVcW75jVEz/tquSbKdzDaVizizIVHdqg==, path: circleci/circleci-catalog, tarball: https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/da30bbc3bb699e1da3398b01129c5983ce975cbc}
+  circleci-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/081bc54065a07083cd076479f295f6c666d7e916#path:circleci/circleci-catalog:
+    resolution: {gitHosted: true, integrity: sha512-PgEPWDQoBCA4ywRawjBtNGxQuuzmCy8xKppnoaynehKdVLGS5BJoy/i8N2wZ+Gooox0w/+9oF9zep6lrGBlyeA==, path: circleci/circleci-catalog, tarball: https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/081bc54065a07083cd076479f295f6c666d7e916}
     version: 0.1.0
     peerDependencies:
       '@a2ui/react': ^0.10.1
@@ -5329,7 +5329,7 @@ snapshots:
       ansi-styles: 4.3.0
       supports-color: 7.2.0
 
-  circleci-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/da30bbc3bb699e1da3398b01129c5983ce975cbc#path:circleci/circleci-catalog(@a2ui/react@0.10.2(patch_hash=99b6533eb4bc6f8f8c7de140fcffef2c7572a6a6b30a2b86b5020fa368d845ea)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76))(@a2ui/web_core@0.10.6)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76):
+  circleci-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/081bc54065a07083cd076479f295f6c666d7e916#path:circleci/circleci-catalog(@a2ui/react@0.10.2(patch_hash=99b6533eb4bc6f8f8c7de140fcffef2c7572a6a6b30a2b86b5020fa368d845ea)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76))(@a2ui/web_core@0.10.6)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76):
     dependencies:
       '@a2ui/react': 0.10.2(patch_hash=99b6533eb4bc6f8f8c7de140fcffef2c7572a6a6b30a2b86b5020fa368d845ea)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76)
       '@a2ui/web_core': 0.10.6

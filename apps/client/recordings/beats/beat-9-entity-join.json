@@ -4,19 +4,25 @@
   "title": "Entity join",
   "prompt": "what's the status of what I'm working on?",
   "model": "gemini-3.7-flash",
-  "recordedAt": "2026-09-27T06:46:57Z",
-  "contextId": "0a32dc1f-d0c3-4072-a407-5d56df721b2a",
+  "recordedAt": "2026-09-27T08:41:41Z",
+  "contextId": "fc54e5d9-ec43-4456-9b53-ba6fd6a7d086",
   "chainedFrom": null,
   "turns": [
     {
-      "taskId": "68f924a2-757e-4222-a60e-24f2c64f7a6c",
+      "taskId": "4922aa90-f685-4b23-b836-a1e2819bb594",
       "kind": "utterance",
       "prompt": "what's the status of what I'm working on?",
       "action": null,
       "batches": [
         {
-          "offsetMs": 10725,
+          "offsetMs": 6052,
           "messages": [
+            {
+              "paintMeta": {
+                "surfaceId": "shell:main",
+                "title": "Status of current work"
+              }
+            },
             {
               "version": "v0.9",
               "createSurface": {
@@ -33,12 +39,12 @@
                     "id": "root",
                     "component": "Column",
                     "children": [
-                      "status-table",
+                      "status",
                       "sources"
                     ]
                   },
                   {
-                    "id": "status-table",
+                    "id": "status",
                     "component": "Slot",
                     "source": "shell",
                     "state": "pending",
@@ -46,12 +52,14 @@
                     "content": "shell",
                     "columns": [
                       "Issue",
+                      "Priority",
                       "Status",
                       "Pull request",
                       "CI",
                       "Updated"
                     ],
                     "columnSources": [
+                      "linear",
                       "linear",
                       "linear",
                       "github",
@@ -138,8 +146,14 @@
           }
         },
         {
-          "offsetMs": 10824,
+          "offsetMs": 6074,
           "messages": [
+            {
+              "paintMeta": {
+                "surfaceId": "github:notifications-1",
+                "title": "My Open Pull Requests"
+              }
+            },
             {
               "version": "v0.9",
               "createSurface": {
@@ -1568,8 +1582,14 @@
           }
         },
         {
-          "offsetMs": 10865,
+          "offsetMs": 6078,
           "messages": [
+            {
+              "paintMeta": {
+                "surfaceId": "linear:linear-1",
+                "title": "My issues"
+              }
+            },
             {
               "version": "v0.9",
               "createSurface": {
@@ -2078,8 +2098,14 @@
           }
         },
         {
-          "offsetMs": 10978,
+          "offsetMs": 6087,
           "messages": [
+            {
+              "paintMeta": {
+                "surfaceId": "circleci:circleci-1",
+                "title": "Recent pipeline runs"
+              }
+            },
             {
               "version": "v0.9",
               "createSurface": {
@@ -5629,7 +5655,7 @@
           }
         },
         {
-          "offsetMs": 20197,
+          "offsetMs": 17470,
           "messages": [
             {
               "version": "v0.9",
@@ -5657,18 +5683,18 @@
                     "justify": "spaceBetween",
                     "align": "center",
                     "children": [
-                      "title",
-                      "sort-control"
+                      "heading",
+                      "sort"
                     ]
                   },
                   {
-                    "id": "title",
+                    "id": "heading",
                     "component": "Text",
                     "variant": "h5",
-                    "text": "Work status"
+                    "text": "Work items"
                   },
                   {
-                    "id": "sort-control",
+                    "id": "sort",
                     "component": "SortControl",
                     "sort": {
                       "path": "/sorts/0"
@@ -5679,12 +5705,14 @@
                     "component": "Table",
                     "columns": [
                       "Issue",
+                      "Priority",
                       "Status",
                       "Pull request",
                       "CI",
                       "Updated"
                     ],
                     "columnSources": [
+                      "linear",
                       "linear",
                       "linear",
                       "github",
@@ -5701,6 +5729,7 @@
                     "component": "TableRow",
                     "children": [
                       "cell-issue",
+                      "cell-priority",
                       "cell-status",
                       "cell-pr",
                       "cell-ci",
@@ -5712,6 +5741,13 @@
                     "component": "DerivedValue",
                     "cell": {
                       "path": "issue"
+                    }
+                  },
+                  {
+                    "id": "cell-priority",
+                    "component": "DerivedValue",
+                    "cell": {
+                      "path": "priority"
                     }
                   },
                   {
@@ -5766,7 +5802,7 @@
               "issues": [
                 {
                   "match": {
-                    "title in pr title": {
+                    "same title": {
                       "op": "equal",
                       "args": [
                         {
@@ -5775,16 +5811,16 @@
                         },
                         {
                           "surface": "github:notifications-1",
-                          "pointer": "/prs[number=6]/title"
+                          "pointer": "/prs[repository=\"retz8/a2uiverse\",number=6]/title"
                         }
                       ]
                     },
-                    "pr branch matches run branch": {
+                    "same branch": {
                       "op": "equal",
                       "args": [
                         {
                           "surface": "github:notifications-1",
-                          "pointer": "/prs[number=6]/branch"
+                          "pointer": "/prs[repository=\"retz8/a2uiverse\",number=6]/branch"
                         },
                         {
                           "surface": "circleci:circleci-1",
@@ -5802,6 +5838,15 @@
                       }
                     ]
                   },
+                  "priority": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "linear:linear-1",
+                        "pointer": "/issues[id=\"A2U-5\"]/priority"
+                      }
+                    ]
+                  },
                   "status": {
                     "op": "value",
                     "args": [
@@ -5816,7 +5861,7 @@
                     "args": [
                       {
                         "surface": "github:notifications-1",
-                        "pointer": "/prs[number=6]/number"
+                        "pointer": "/prs[repository=\"retz8/a2uiverse\",number=6]/number"
                       }
                     ]
                   },
@@ -5849,6 +5894,15 @@
                       }
                     ]
                   },
+                  "priority": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "linear:linear-1",
+                        "pointer": "/issues[id=\"A2U-7\"]/priority"
+                      }
+                    ]
+                  },
                   "status": {
                     "op": "value",
                     "args": [
@@ -5878,7 +5932,7 @@
                 },
                 {
                   "match": {
-                    "title in pr title": {
+                    "same title": {
                       "op": "equal",
                       "args": [
                         {
@@ -5887,16 +5941,16 @@
                         },
                         {
                           "surface": "github:notifications-1",
-                          "pointer": "/prs[number=7]/title"
+                          "pointer": "/prs[repository=\"retz8/a2uiverse\",number=7]/title"
                         }
                       ]
                     },
-                    "pr branch matches run branch": {
+                    "same branch": {
                       "op": "equal",
                       "args": [
                         {
                           "surface": "github:notifications-1",
-                          "pointer": "/prs[number=7]/branch"
+                          "pointer": "/prs[repository=\"retz8/a2uiverse\",number=7]/branch"
                         },
                         {
                           "surface": "circleci:circleci-1",
@@ -5914,6 +5968,15 @@
                       }
                     ]
                   },
+                  "priority": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "linear:linear-1",
+                        "pointer": "/issues[id=\"A2U-6\"]/priority"
+                      }
+                    ]
+                  },
                   "status": {
                     "op": "value",
                     "args": [
@@ -5928,7 +5991,7 @@
                     "args": [
                       {
                         "surface": "github:notifications-1",
-                        "pointer": "/prs[number=7]/number"
+                        "pointer": "/prs[repository=\"retz8/a2uiverse\",number=7]/number"
                       }
                     ]
                   },
@@ -5969,7 +6032,7 @@
           }
         },
         {
-          "offsetMs": 20197,
+          "offsetMs": 17470,
           "messages": [
             {
               "version": "v0.9",
@@ -5980,12 +6043,12 @@
                     "id": "root",
                     "component": "Column",
                     "children": [
-                      "status-table",
+                      "status",
                       "sources"
                     ]
                   },
                   {
-                    "id": "status-table",
+                    "id": "status",
                     "component": "Slot",
                     "source": "shell",
                     "state": "pending",
@@ -5993,12 +6056,14 @@
                     "content": "shell",
                     "columns": [
                       "Issue",
+                      "Priority",
                       "Status",
                       "Pull request",
                       "CI",
                       "Updated"
                     ],
                     "columnSources": [
+                      "linear",
                       "linear",
                       "linear",
                       "github",
@@ -6091,7 +6156,7 @@
         }
       ],
       "outcome": "completed",
-      "durationMs": 20199
+      "durationMs": 17471
     }
   ]
 }

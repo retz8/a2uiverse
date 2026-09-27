@@ -871,7 +871,8 @@ const OPEN_PULL_REQUEST: BeatTurn = {
  * asked from live, a branch asked from the first canvas, and the newest still loading with its
  * merge held back — so the rail shows every mark at once: Live, Viewing, from, the loading mark;
  * and the band stands on any past one. The first and third carry the Planner's title on the
- * layout surface; the second keeps the question as its label. The root's GitHub fragment is
+ * layout surface; the second keeps the question as its label; the fourth, beat 9, carries the
+ * title its recording holds. The root's GitHub fragment is
  * titled and then repainted by an action inside it (task-9.7 decision 7), so its marker shows
  * Back to the list.
  */
