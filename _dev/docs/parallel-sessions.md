@@ -41,4 +41,6 @@ One stack serves every session, on the fixed ports in `tunnel-environment.md` an
 
 - Before starting a process, `lsof -nP -iTCP:<port> -sTCP:LISTEN`. A port already listening is in use: use what runs there.
 - Start, restart or stop your own app's agent freely. Announce before restarting or stopping the client, the orchestrator, or a process another session started.
+- Stop a process by its port or PID, never by a name pattern: every agent runs as `python -m app`.
+- A process outside the fixed ports is announced with its port when it starts.
 - `pnpm dev:agents` and `pnpm dev:all` start every agent. Run them only when none is running.
