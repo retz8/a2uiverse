@@ -568,3 +568,44 @@ Take the placeholder from the surface's catalog rather than assuming the basic o
 be constructed with the catalog's placeholder component (a declared empty container), or, when the
 catalog declares none, hold the parent back until its children arrive instead of emitting a
 component the catalog lacks.
+
+---
+
+## 11. `componentTree` lets a component's own `type` prop replace its type (web_core)
+
+**Component:** `@a2ui/web_core` 0.10.6, `src/v0_9/state/component-model.ts`, `ComponentModel`
+`get componentTree()`; the same lines stand on `upstream/main`
+(`renderers/web_core/src/v0_9/state/component-model.ts`, lines 68–74).
+
+**Severity:** functional bug for any catalog with a component whose props include `type` — a
+consumer that reads the tree back gets the prop's value where the component's name belongs, and
+loses the prop.
+
+### Issue
+
+```ts
+get componentTree(): any {
+  return {
+    id: this.id,
+    type: this.type,
+    ...this._properties,
+  };
+}
+```
+
+The properties are spread after the type, so a property named `type` overwrites it. `type` is an
+ordinary prop name for a catalog — a status icon's state type, an input's kind — and nothing in the
+spec reserves it. The wire shape names the component `component`, not `type`, so the collision is
+the tree's own.
+
+### Reproduction
+
+`new ComponentModel('s', 'StatusIcon', {status: {path: 'status'}, type: {path: 'statusType'}})
+.componentTree` is `{id: 's', type: {path: 'statusType'}, status: {path: 'status'}}`: the
+component's name is gone and the `type` prop reads as the name.
+
+### Fix
+
+Spread the properties first and write `id` and `type` after them, or name the type `component` as
+the wire does and keep properties from overwriting it — either way a component's own props cannot
+replace its identity.
