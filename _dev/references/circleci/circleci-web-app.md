@@ -55,8 +55,11 @@ No CircleCI colour is published in a form that can be read (the brand book needs
 | Row hover, quiet fill | slate 3 `#f0f0f3` | slateDark 3 `#212225` |
 | Text | slate 12 `#1c2024` | slateDark 12 `#edeef0` |
 | Muted text | slate 11 `#60646c` | slateDark 11 `#b0b4ba` |
-| Link, primary button | blue 11 `#0d74ce` / blue 9 `#0090ff` | blueDark 11 `#70b8ff` / blueDark 9 `#0090ff` |
-| Secondary button | slate 4 `#e8e8ec` | slateDark 4 `#272a2d` |
+| Link | blue 11 `#0d74ce` | blueDark 11 `#70b8ff` |
+| Primary button, hover | blue 9 `#0090ff`, blue 10 `#0588f0` | blueDark 9 `#0090ff`, blueDark 10 `#3b9eff` |
+| Secondary button, hover | slate 4 `#e8e8ec`, slate 5 `#e0e1e6` | slateDark 4 `#272a2d`, slateDark 5 `#2e3135` |
+| Focus ring | blue 8 `#5eb1ef` | blueDark 8 `#2870bd` |
+| Danger text | red 11 `#ce2c31` | redDark 11 `#ff9592` |
 | Success | green 4 `#d6f1df` on green 11 `#218358` | greenDark 4 `#113b29` on greenDark 11 `#3dd68c` |
 | Failed | red 9 `#e5484d`, white | red 9 `#e5484d`, white |
 | Running | blue 9 `#0090ff`, white | blue 9 `#0090ff`, white |
@@ -64,4 +67,4 @@ No CircleCI colour is published in a form that can be read (the brand book needs
 | Queued, blocked | slate 12 `#1c2024`, white | slateDark 8 `#5a6169`, white |
 | Canceled, not run | slate 4 `#e8e8ec` on slate 11 `#60646c` | slateDark 4 `#272a2d` on slateDark 11 `#b0b4ba` |
 | Failed step header | red 3 `#feebec`, border red 7 `#f4a9aa` | redDark 3 `#3b1219`, border redDark 7 `#8c333a` |
-| Log panel | slateDark 2 `#18191b`, text slateDark 12 `#edeef0`, gutter slateDark 9 `#696e77` | the same |
+| Log panel | slateDark 1 `#111113`, border slateDark 6 `#363a3f`, text slateDark 12 `#edeef0`, gutter slateDark 9 `#696e77` | the same |
