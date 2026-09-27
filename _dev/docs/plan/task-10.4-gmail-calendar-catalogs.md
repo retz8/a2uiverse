@@ -58,9 +58,8 @@ The client's `gmail-catalog`, `calendar-catalog`, `circleci-catalog` and `linear
 
 - `collisionMount.test.tsx`: the Gmail and Calendar block asserts each Material 3 catalog's wrapper sits inside its fragment's boundary.
 - `rendererPatch.test.tsx`: the `ChoicePicker` patch test renders through `shop-a-catalog`, a themed basic catalog.
-- Client beats 12, 15 and 19 re-recorded, the ones the client's tests replay.
+- Every recorded client beat that held old Gmail, Calendar, CircleCI or Linear paints re-recorded in the new vocabularies: 4, 5, 9, 10, 11, 12, 13, 14, 15, 16, 17, 19, 20, 21, 22, 23, 24 and 25.
 
 ## Handed to 10.7
 
-- The client's other recorded beats that hold old Gmail or Calendar paints, replayed by `?beat=` only: 4, 5, 10, 11, 13, 14, 16, 20, 21, 22 and 25.
 - The collision detector over a catalog `@font-face`.
