@@ -16,7 +16,7 @@ allowBuilds:
   # circleci-catalog, pinned the same way.
   "circleci-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/da30bbc3bb699e1da3398b01129c5983ce975cbc#path:circleci/circleci-catalog": true
   # linear-catalog, pinned the same way.
-  "linear-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/da30bbc3bb699e1da3398b01129c5983ce975cbc#path:linear/linear-catalog": true
+  "linear-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/f77517b802d297e65c94c5d51e74eca4f138e58f#path:linear/linear-catalog": true
   # The two mock-tier catalogs (task 4.7). Always bundled: the client's catalog table is
   # compile-time until Phase 11 loads catalogs dynamically, when all five git deps leave together.
   "shop-a-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/380526ddfe0b326b57d02f76fa45c7e80dc7bc1d#path:mocks/shop-a/shop-a-catalog": true
@@ -24,6 +24,7 @@ allowBuilds:
   onnxruntime-node: true
   protobufjs: false
   sharp: false
+  linear-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/da30bbc3bb699e1da3398b01129c5983ce975cbc#path:linear/linear-catalog: set this to true or false
 
 patchedDependencies:
   "@a2ui/react@0.10.2": patches/@a2ui__react@0.10.2.patch
