@@ -13,7 +13,9 @@ export interface CopiableSurface {
   readonly catalog: {readonly id: string};
   readonly sendDataModel: boolean;
   componentsModel: {
-    readonly entries: IterableIterator<[string, {readonly componentTree: unknown}]>;
+    readonly entries: IterableIterator<
+      [string, {readonly type: string; readonly properties: Record<string, unknown>}]
+    >;
   };
   dataModel: {get(path: string): unknown};
 }
@@ -24,7 +26,7 @@ export interface CopySource {
 }
 
 /**
- * JSON round-trip copy: the models hand out their state by reference (`componentTree` nodes,
+ * JSON round-trip copy: the models hand out their state by reference (component properties,
  * the data-model root), and both are JSON-shaped by construction — they came off the wire.
  */
 function jsonCopy(value: unknown): unknown {
@@ -37,8 +39,11 @@ export function capturePaint(processor: CopySource, surfaceId: string): PaintCop
   const surface = processor.model.getSurface(surfaceId);
   if (!surface) return undefined;
   const tree: Record<string, unknown> = {};
+  // Read from the model's type and properties, not its `componentTree`: that spreads the
+  // properties over the type, so a component with a prop of its own named `type` (Linear's
+  // StatusIcon) would come back under that prop's value.
   for (const [id, component] of surface.componentsModel.entries) {
-    tree[id] = jsonCopy(component.componentTree);
+    tree[id] = jsonCopy({...component.properties, id, component: component.type});
   }
   return {
     surfaceId,
@@ -47,12 +52,6 @@ export function capturePaint(processor: CopySource, surfaceId: string): PaintCop
     tree,
     dataModel: jsonCopy(surface.dataModel.get('/')) ?? {},
   };
-}
-
-/** A stored `componentTree` node (`{id, type, ...properties}`) back to its wire shape. */
-function wireComponent(node: unknown): Record<string, unknown> {
-  const {type, ...rest} = node as {id: string; type: string} & Record<string, unknown>;
-  return {...rest, component: type};
 }
 
 /** The copy's three wire messages: create, the whole tree, the whole data model. */
@@ -70,7 +69,7 @@ export function rebuildMessages(copy: PaintCopy): A2uiMessage[] {
       version: 'v0.9',
       updateComponents: {
         surfaceId: copy.surfaceId,
-        components: Object.values(copy.tree).map(wireComponent),
+        components: Object.values(copy.tree).map(jsonCopy),
       },
     },
     {
