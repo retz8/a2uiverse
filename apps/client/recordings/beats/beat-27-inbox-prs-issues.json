@@ -1,0 +1,3275 @@
+{
+  "name": "beat-27-inbox-prs-issues",
+  "beat": 27,
+  "title": "Inbox, pull requests and issues on one timeline",
+  "prompt": "What needs my attention today in my inbox, GitHub and Linear?",
+  "model": "gemini-3.7-flash",
+  "recordedAt": "2026-09-27T10:33:49Z",
+  "contextId": "53f0fa7b-c371-4f4c-924a-e7a4debcbeb2",
+  "chainedFrom": null,
+  "turns": [
+    {
+      "taskId": "5f3a3b10-93fd-4e4b-b5e8-b8444274bf60",
+      "kind": "utterance",
+      "prompt": "What needs my attention today in my inbox, GitHub and Linear?",
+      "action": null,
+      "batches": [
+        {
+          "offsetMs": 4568,
+          "messages": [
+            {
+              "paintMeta": {
+                "surfaceId": "shell:main",
+                "title": "Attention today"
+              }
+            },
+            {
+              "version": "v0.9",
+              "createSurface": {
+                "surfaceId": "shell:main",
+                "catalogId": "https://github.com/retz8/a2uiverse/blob/main/packages/shell-catalog/catalogs/v0.9.1/catalog.json"
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "surfaceId": "shell:main",
+                "components": [
+                  {
+                    "id": "root",
+                    "component": "Column",
+                    "children": [
+                      "timeline",
+                      "sources"
+                    ]
+                  },
+                  {
+                    "id": "timeline",
+                    "component": "Slot",
+                    "source": "shell",
+                    "state": "pending",
+                    "label": "Synthesis",
+                    "content": "shell"
+                  },
+                  {
+                    "id": "sources",
+                    "component": "Row",
+                    "children": [
+                      "attribution-gmail",
+                      "attribution-github",
+                      "attribution-linear"
+                    ]
+                  },
+                  {
+                    "id": "attribution-gmail",
+                    "component": "Attribution",
+                    "displayName": "Gmail",
+                    "appId": "gmail",
+                    "child": "gmail",
+                    "weight": 1
+                  },
+                  {
+                    "id": "gmail",
+                    "component": "Slot",
+                    "source": "gmail",
+                    "weight": 1,
+                    "state": "pending",
+                    "label": "Gmail"
+                  },
+                  {
+                    "id": "attribution-github",
+                    "component": "Attribution",
+                    "displayName": "GitHub",
+                    "appId": "github",
+                    "child": "github",
+                    "weight": 1
+                  },
+                  {
+                    "id": "github",
+                    "component": "Slot",
+                    "source": "github",
+                    "weight": 1,
+                    "state": "pending",
+                    "label": "GitHub"
+                  },
+                  {
+                    "id": "attribution-linear",
+                    "component": "Attribution",
+                    "displayName": "Linear",
+                    "appId": "linear",
+                    "child": "linear",
+                    "weight": 1
+                  },
+                  {
+                    "id": "linear",
+                    "component": "Slot",
+                    "source": "linear",
+                    "weight": 1,
+                    "state": "pending",
+                    "label": "Linear"
+                  }
+                ]
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "shell",
+            "role": "shell"
+          }
+        },
+        {
+          "offsetMs": 4588,
+          "messages": [
+            {
+              "paintMeta": {
+                "surfaceId": "gmail:gmail-1",
+                "title": "Needs attention"
+              }
+            },
+            {
+              "version": "v0.9",
+              "createSurface": {
+                "surfaceId": "gmail:gmail-1",
+                "catalogId": "https://github.com/retz8/a2uiverse-apps/blob/main/gmail/gmail-catalog/catalogs/v0.9.1/catalog.json",
+                "sendDataModel": true
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail:gmail-1",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "19829cbece7facf1",
+                      "sender": "Mei Silva",
+                      "subject": "Re: Notes ahead of the design review: agenda surface"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail:gmail-1",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "19829cbece7facf1",
+                      "sender": "Mei Silva",
+                      "subject": "Re: Notes ahead of the design review: agenda surface",
+                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail:gmail-1",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "19829cbece7facf1",
+                      "sender": "Mei Silva",
+                      "subject": "Re: Notes ahead of the design review: agenda surface",
+                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
+                      "when": "2026-09-19 12:41 UTC"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail:gmail-1",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "19829cbece7facf1",
+                      "sender": "Mei Silva",
+                      "subject": "Re: Notes ahead of the design review: agenda surface",
+                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
+                      "when": "2026-09-19 12:41 UTC"
+                    },
+                    {
+                      "id": "1956e7633ba626aa",
+                      "sender": "Alex Bergman"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail:gmail-1",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "19829cbece7facf1",
+                      "sender": "Mei Silva",
+                      "subject": "Re: Notes ahead of the design review: agenda surface",
+                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
+                      "when": "2026-09-19 12:41 UTC"
+                    },
+                    {
+                      "id": "1956e7633ba626aa",
+                      "sender": "Alex Bergman",
+                      "subject": "Could you review #8 before quarter planning?"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail:gmail-1",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "19829cbece7facf1",
+                      "sender": "Mei Silva",
+                      "subject": "Re: Notes ahead of the design review: agenda surface",
+                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
+                      "when": "2026-09-19 12:41 UTC"
+                    },
+                    {
+                      "id": "1956e7633ba626aa",
+                      "sender": "Alex Bergman",
+                      "subject": "Could you review #8 before quarter planning?",
+                      "snippet": "Hey, Could you take a look at #8 today? I'd like to show the effort split at quarter planning tomorrow at 10, and it would be good to have your review on it first. Mostly the part where the"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail:gmail-1",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "19829cbece7facf1",
+                      "sender": "Mei Silva",
+                      "subject": "Re: Notes ahead of the design review: agenda surface",
+                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
+                      "when": "2026-09-19 12:41 UTC"
+                    },
+                    {
+                      "id": "1956e7633ba626aa",
+                      "sender": "Alex Bergman",
+                      "subject": "Could you review #8 before quarter planning?",
+                      "snippet": "Hey, Could you take a look at #8 today? I'd like to show the effort split at quarter planning tomorrow at 10, and it would be good to have your review on it first. Mostly the part where the",
+                      "when": "2026-09-19 11:30 UTC"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail:gmail-1",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "19829cbece7facf1",
+                      "sender": "Mei Silva",
+                      "subject": "Re: Notes ahead of the design review: agenda surface",
+                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
+                      "when": "2026-09-19 12:41 UTC"
+                    },
+                    {
+                      "id": "1956e7633ba626aa",
+                      "sender": "Alex Bergman",
+                      "subject": "Could you review #8 before quarter planning?",
+                      "snippet": "Hey, Could you take a look at #8 today? I'd like to show the effort split at quarter planning tomorrow at 10, and it would be good to have your review on it first. Mostly the part where the",
+                      "when": "2026-09-19 11:30 UTC"
+                    },
+                    {
+                      "id": "19fd40c07b154538"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail:gmail-1",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "19829cbece7facf1",
+                      "sender": "Mei Silva",
+                      "subject": "Re: Notes ahead of the design review: agenda surface",
+                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
+                      "when": "2026-09-19 12:41 UTC"
+                    },
+                    {
+                      "id": "1956e7633ba626aa",
+                      "sender": "Alex Bergman",
+                      "subject": "Could you review #8 before quarter planning?",
+                      "snippet": "Hey, Could you take a look at #8 today? I'd like to show the effort split at quarter planning tomorrow at 10, and it would be good to have your review on it first. Mostly the part where the",
+                      "when": "2026-09-19 11:30 UTC"
+                    },
+                    {
+                      "id": "19fd40c07b154538",
+                      "sender": "Mei Silva",
+                      "subject": "CI failing on synthesizer-effort-apart-from-planner"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail:gmail-1",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "19829cbece7facf1",
+                      "sender": "Mei Silva",
+                      "subject": "Re: Notes ahead of the design review: agenda surface",
+                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
+                      "when": "2026-09-19 12:41 UTC"
+                    },
+                    {
+                      "id": "1956e7633ba626aa",
+                      "sender": "Alex Bergman",
+                      "subject": "Could you review #8 before quarter planning?",
+                      "snippet": "Hey, Could you take a look at #8 today? I'd like to show the effort split at quarter planning tomorrow at 10, and it would be good to have your review on it first. Mostly the part where the",
+                      "when": "2026-09-19 11:30 UTC"
+                    },
+                    {
+                      "id": "19fd40c07b154538",
+                      "sender": "Mei Silva",
+                      "subject": "CI failing on synthesizer-effort-apart-from-planner",
+                      "snippet": "Morning! The latest run on synthesizer-effort-apart-from-planner failed in lint-format. Prettier flagged apps/orchestrator/src/config.ts, so it looks like formatting, not the tests. Want me to push"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail:gmail-1",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "19829cbece7facf1",
+                      "sender": "Mei Silva",
+                      "subject": "Re: Notes ahead of the design review: agenda surface",
+                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
+                      "when": "2026-09-19 12:41 UTC"
+                    },
+                    {
+                      "id": "1956e7633ba626aa",
+                      "sender": "Alex Bergman",
+                      "subject": "Could you review #8 before quarter planning?",
+                      "snippet": "Hey, Could you take a look at #8 today? I'd like to show the effort split at quarter planning tomorrow at 10, and it would be good to have your review on it first. Mostly the part where the",
+                      "when": "2026-09-19 11:30 UTC"
+                    },
+                    {
+                      "id": "19fd40c07b154538",
+                      "sender": "Mei Silva",
+                      "subject": "CI failing on synthesizer-effort-apart-from-planner",
+                      "snippet": "Morning! The latest run on synthesizer-effort-apart-from-planner failed in lint-format. Prettier flagged apps/orchestrator/src/config.ts, so it looks like formatting, not the tests. Want me to push",
+                      "when": "2026-09-19 11:05 UTC"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail:gmail-1",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "19829cbece7facf1",
+                      "sender": "Mei Silva",
+                      "subject": "Re: Notes ahead of the design review: agenda surface",
+                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
+                      "when": "2026-09-19 12:41 UTC"
+                    },
+                    {
+                      "id": "1956e7633ba626aa",
+                      "sender": "Alex Bergman",
+                      "subject": "Could you review #8 before quarter planning?",
+                      "snippet": "Hey, Could you take a look at #8 today? I'd like to show the effort split at quarter planning tomorrow at 10, and it would be good to have your review on it first. Mostly the part where the",
+                      "when": "2026-09-19 11:30 UTC"
+                    },
+                    {
+                      "id": "19fd40c07b154538",
+                      "sender": "Mei Silva",
+                      "subject": "CI failing on synthesizer-effort-apart-from-planner",
+                      "snippet": "Morning! The latest run on synthesizer-effort-apart-from-planner failed in lint-format. Prettier flagged apps/orchestrator/src/config.ts, so it looks like formatting, not the tests. Want me to push",
+                      "when": "2026-09-19 11:05 UTC"
+                    },
+                    {
+                      "id": "19b6cefab66744cf",
+                      "sender": "Clara Moreau"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail:gmail-1",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "19829cbece7facf1",
+                      "sender": "Mei Silva",
+                      "subject": "Re: Notes ahead of the design review: agenda surface",
+                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
+                      "when": "2026-09-19 12:41 UTC"
+                    },
+                    {
+                      "id": "1956e7633ba626aa",
+                      "sender": "Alex Bergman",
+                      "subject": "Could you review #8 before quarter planning?",
+                      "snippet": "Hey, Could you take a look at #8 today? I'd like to show the effort split at quarter planning tomorrow at 10, and it would be good to have your review on it first. Mostly the part where the",
+                      "when": "2026-09-19 11:30 UTC"
+                    },
+                    {
+                      "id": "19fd40c07b154538",
+                      "sender": "Mei Silva",
+                      "subject": "CI failing on synthesizer-effort-apart-from-planner",
+                      "snippet": "Morning! The latest run on synthesizer-effort-apart-from-planner failed in lint-format. Prettier flagged apps/orchestrator/src/config.ts, so it looks like formatting, not the tests. Want me to push",
+                      "when": "2026-09-19 11:05 UTC"
+                    },
+                    {
+                      "id": "19b6cefab66744cf",
+                      "sender": "Clara Moreau",
+                      "subject": "Numbers for the 11:30 budget sync"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail:gmail-1",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "19829cbece7facf1",
+                      "sender": "Mei Silva",
+                      "subject": "Re: Notes ahead of the design review: agenda surface",
+                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
+                      "when": "2026-09-19 12:41 UTC"
+                    },
+                    {
+                      "id": "1956e7633ba626aa",
+                      "sender": "Alex Bergman",
+                      "subject": "Could you review #8 before quarter planning?",
+                      "snippet": "Hey, Could you take a look at #8 today? I'd like to show the effort split at quarter planning tomorrow at 10, and it would be good to have your review on it first. Mostly the part where the",
+                      "when": "2026-09-19 11:30 UTC"
+                    },
+                    {
+                      "id": "19fd40c07b154538",
+                      "sender": "Mei Silva",
+                      "subject": "CI failing on synthesizer-effort-apart-from-planner",
+                      "snippet": "Morning! The latest run on synthesizer-effort-apart-from-planner failed in lint-format. Prettier flagged apps/orchestrator/src/config.ts, so it looks like formatting, not the tests. Want me to push",
+                      "when": "2026-09-19 11:05 UTC"
+                    },
+                    {
+                      "id": "19b6cefab66744cf",
+                      "sender": "Clara Moreau",
+                      "subject": "Numbers for the 11:30 budget sync",
+                      "snippet": "Hi, Ahead of our 11:30, I've put the Q4 numbers in the budget sheet. Everything is in except the model spend. Could you bring an estimate for October, even a rough one? Thanks, Clara"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail:gmail-1",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "19829cbece7facf1",
+                      "sender": "Mei Silva",
+                      "subject": "Re: Notes ahead of the design review: agenda surface",
+                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
+                      "when": "2026-09-19 12:41 UTC"
+                    },
+                    {
+                      "id": "1956e7633ba626aa",
+                      "sender": "Alex Bergman",
+                      "subject": "Could you review #8 before quarter planning?",
+                      "snippet": "Hey, Could you take a look at #8 today? I'd like to show the effort split at quarter planning tomorrow at 10, and it would be good to have your review on it first. Mostly the part where the",
+                      "when": "2026-09-19 11:30 UTC"
+                    },
+                    {
+                      "id": "19fd40c07b154538",
+                      "sender": "Mei Silva",
+                      "subject": "CI failing on synthesizer-effort-apart-from-planner",
+                      "snippet": "Morning! The latest run on synthesizer-effort-apart-from-planner failed in lint-format. Prettier flagged apps/orchestrator/src/config.ts, so it looks like formatting, not the tests. Want me to push",
+                      "when": "2026-09-19 11:05 UTC"
+                    },
+                    {
+                      "id": "19b6cefab66744cf",
+                      "sender": "Clara Moreau",
+                      "subject": "Numbers for the 11:30 budget sync",
+                      "snippet": "Hi, Ahead of our 11:30, I've put the Q4 numbers in the budget sheet. Everything is in except the model spend. Could you bring an estimate for October, even a rough one? Thanks, Clara",
+                      "when": "2026-09-19 10:48 UTC"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail:gmail-1",
+                "path": "/",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "19829cbece7facf1",
+                      "sender": "Mei Silva",
+                      "subject": "Re: Notes ahead of the design review: agenda surface",
+                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
+                      "when": "2026-09-19 12:41 UTC"
+                    },
+                    {
+                      "id": "1956e7633ba626aa",
+                      "sender": "Alex Bergman",
+                      "subject": "Could you review #8 before quarter planning?",
+                      "snippet": "Hey, Could you take a look at #8 today? I'd like to show the effort split at quarter planning tomorrow at 10, and it would be good to have your review on it first. Mostly the part where the",
+                      "when": "2026-09-19 11:30 UTC"
+                    },
+                    {
+                      "id": "19fd40c07b154538",
+                      "sender": "Mei Silva",
+                      "subject": "CI failing on synthesizer-effort-apart-from-planner",
+                      "snippet": "Morning! The latest run on synthesizer-effort-apart-from-planner failed in lint-format. Prettier flagged apps/orchestrator/src/config.ts, so it looks like formatting, not the tests. Want me to push",
+                      "when": "2026-09-19 11:05 UTC"
+                    },
+                    {
+                      "id": "19b6cefab66744cf",
+                      "sender": "Clara Moreau",
+                      "subject": "Numbers for the 11:30 budget sync",
+                      "snippet": "Hi, Ahead of our 11:30, I've put the Q4 numbers in the budget sheet. Everything is in except the model spend. Could you bring an estimate for October, even a rough one? Thanks, Clara",
+                      "when": "2026-09-19 10:48 UTC"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "root",
+                    "component": "Surface",
+                    "child": "body",
+                    "container": "low",
+                    "shape": "large",
+                    "padding": "small"
+                  },
+                  {
+                    "id": "body",
+                    "component": "Stack",
+                    "children": [
+                      "header",
+                      "sheet"
+                    ],
+                    "gap": "xs"
+                  },
+                  {
+                    "id": "header",
+                    "component": "Stack",
+                    "children": [
+                      "heading",
+                      "sub"
+                    ],
+                    "gap": "xs",
+                    "padding": "sm"
+                  },
+                  {
+                    "id": "heading",
+                    "component": "Text",
+                    "text": "Needs attention today",
+                    "variant": "titleLarge"
+                  },
+                  {
+                    "id": "sub",
+                    "component": "Text",
+                    "text": "4 unread threads waiting on your review or reply",
+                    "variant": "bodySmall",
+                    "color": "onSurfaceVariant"
+                  },
+                  {
+                    "id": "sheet",
+                    "component": "Surface",
+                    "child": "thread-list",
+                    "container": "lowest",
+                    "shape": "large",
+                    "padding": "none"
+                  },
+                  {
+                    "id": "thread-list",
+                    "component": "List",
+                    "children": {
+                      "path": "/threads",
+                      "componentId": "thread-row"
+                    },
+                    "dividers": true,
+                    "layout": "inline"
+                  },
+                  {
+                    "id": "thread-row",
+                    "component": "ListItem",
+                    "headline": "thread-sender",
+                    "supporting": "thread-preview",
+                    "meta": "thread-when",
+                    "leading": [
+                      "thread-avatar"
+                    ],
+                    "action": {
+                      "event": {
+                        "name": "open-thread",
+                        "context": {
+                          "threadId": {
+                            "path": "id"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "thread-avatar",
+                    "component": "Avatar",
+                    "name": {
+                      "path": "sender"
+                    },
+                    "size": "medium"
+                  },
+                  {
+                    "id": "thread-sender",
+                    "component": "Text",
+                    "text": {
+                      "path": "sender"
+                    },
+                    "weight": "bold",
+                    "maxLines": 1
+                  },
+                  {
+                    "id": "thread-when",
+                    "component": "Text",
+                    "text": {
+                      "path": "when"
+                    },
+                    "variant": "labelMedium",
+                    "color": "onSurfaceVariant"
+                  },
+                  {
+                    "id": "thread-preview",
+                    "component": "Stack",
+                    "children": [
+                      "thread-subject",
+                      "thread-snippet"
+                    ],
+                    "gap": "none"
+                  },
+                  {
+                    "id": "thread-subject",
+                    "component": "Text",
+                    "text": {
+                      "path": "subject"
+                    },
+                    "weight": "medium",
+                    "maxLines": 1
+                  },
+                  {
+                    "id": "thread-snippet",
+                    "component": "Text",
+                    "text": {
+                      "path": "snippet"
+                    },
+                    "color": "onSurfaceVariant",
+                    "maxLines": 1
+                  }
+                ],
+                "surfaceId": "gmail:gmail-1"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 4591,
+          "messages": [
+            {
+              "paintMeta": {
+                "surfaceId": "github:notifications-1",
+                "title": "My Open Pull Requests"
+              }
+            },
+            {
+              "version": "v0.9",
+              "createSurface": {
+                "surfaceId": "github:notifications-1",
+                "catalogId": "https://github.com/retz8/a2uiverse-apps/blob/main/github/github-catalog/catalogs/v0.9.1/catalog.json",
+                "sendDataModel": true
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "github:notifications-1",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 8,
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#8"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "github:notifications-1",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 8,
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#8",
+                      "branch": "synthesizer-effort-apart-from-planner",
+                      "reviewStatus": "No reviews"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "github:notifications-1",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 8,
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#8",
+                      "branch": "synthesizer-effort-apart-from-planner",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:26Z"
+                    },
+                    {}
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "github:notifications-1",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 8,
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#8",
+                      "branch": "synthesizer-effort-apart-from-planner",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:26Z"
+                    },
+                    {
+                      "number": 7
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "github:notifications-1",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 8,
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#8",
+                      "branch": "synthesizer-effort-apart-from-planner",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:26Z"
+                    },
+                    {
+                      "number": 7,
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "repository": "retz8/a2uiverse"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "github:notifications-1",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 8,
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#8",
+                      "branch": "synthesizer-effort-apart-from-planner",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:26Z"
+                    },
+                    {
+                      "number": 7,
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#7"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "github:notifications-1",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 8,
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#8",
+                      "branch": "synthesizer-effort-apart-from-planner",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:26Z"
+                    },
+                    {
+                      "number": 7,
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#7",
+                      "branch": "status-line-names-the-workflow",
+                      "reviewStatus": "No reviews"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "github:notifications-1",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 8,
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#8",
+                      "branch": "synthesizer-effort-apart-from-planner",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:26Z"
+                    },
+                    {
+                      "number": 7,
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#7",
+                      "branch": "status-line-names-the-workflow",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:34Z"
+                    },
+                    {}
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "github:notifications-1",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 8,
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#8",
+                      "branch": "synthesizer-effort-apart-from-planner",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:26Z"
+                    },
+                    {
+                      "number": 7,
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#7",
+                      "branch": "status-line-names-the-workflow",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:34Z"
+                    },
+                    {
+                      "number": 6,
+                      "title": "Say on the canvas when an utterance fails"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "github:notifications-1",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 8,
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#8",
+                      "branch": "synthesizer-effort-apart-from-planner",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:26Z"
+                    },
+                    {
+                      "number": 7,
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#7",
+                      "branch": "status-line-names-the-workflow",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:34Z"
+                    },
+                    {
+                      "number": 6,
+                      "title": "Say on the canvas when an utterance fails",
+                      "repository": "retz8/a2uiverse"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "github:notifications-1",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 8,
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#8",
+                      "branch": "synthesizer-effort-apart-from-planner",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:26Z"
+                    },
+                    {
+                      "number": 7,
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#7",
+                      "branch": "status-line-names-the-workflow",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:34Z"
+                    },
+                    {
+                      "number": 6,
+                      "title": "Say on the canvas when an utterance fails",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#6"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "github:notifications-1",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 8,
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#8",
+                      "branch": "synthesizer-effort-apart-from-planner",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:26Z"
+                    },
+                    {
+                      "number": 7,
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#7",
+                      "branch": "status-line-names-the-workflow",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:34Z"
+                    },
+                    {
+                      "number": 6,
+                      "title": "Say on the canvas when an utterance fails",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#6",
+                      "branch": "ekkicb71/a2u-5-say-on-the-canvas-when-an-utterance-fails",
+                      "reviewStatus": "No reviews"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "github:notifications-1",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 8,
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#8",
+                      "branch": "synthesizer-effort-apart-from-planner",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:26Z"
+                    },
+                    {
+                      "number": 7,
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#7",
+                      "branch": "status-line-names-the-workflow",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:34Z"
+                    },
+                    {
+                      "number": 6,
+                      "title": "Say on the canvas when an utterance fails",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#6",
+                      "branch": "ekkicb71/a2u-5-say-on-the-canvas-when-an-utterance-fails",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:33Z"
+                    },
+                    {
+                      "number": 2639
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "github:notifications-1",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 8,
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#8",
+                      "branch": "synthesizer-effort-apart-from-planner",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:26Z"
+                    },
+                    {
+                      "number": 7,
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#7",
+                      "branch": "status-line-names-the-workflow",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:34Z"
+                    },
+                    {
+                      "number": 6,
+                      "title": "Say on the canvas when an utterance fails",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#6",
+                      "branch": "ekkicb71/a2u-5-say-on-the-canvas-when-an-utterance-fails",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:33Z"
+                    },
+                    {
+                      "number": 2639,
+                      "title": "fix(react): ship working basic catalog styles from the published package"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "github:notifications-1",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 8,
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#8",
+                      "branch": "synthesizer-effort-apart-from-planner",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:26Z"
+                    },
+                    {
+                      "number": 7,
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#7",
+                      "branch": "status-line-names-the-workflow",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:34Z"
+                    },
+                    {
+                      "number": 6,
+                      "title": "Say on the canvas when an utterance fails",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#6",
+                      "branch": "ekkicb71/a2u-5-say-on-the-canvas-when-an-utterance-fails",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:33Z"
+                    },
+                    {
+                      "number": 2639,
+                      "title": "fix(react): ship working basic catalog styles from the published package",
+                      "repository": "a2ui-project/a2ui"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "github:notifications-1",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 8,
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#8",
+                      "branch": "synthesizer-effort-apart-from-planner",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:26Z"
+                    },
+                    {
+                      "number": 7,
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#7",
+                      "branch": "status-line-names-the-workflow",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:34Z"
+                    },
+                    {
+                      "number": 6,
+                      "title": "Say on the canvas when an utterance fails",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#6",
+                      "branch": "ekkicb71/a2u-5-say-on-the-canvas-when-an-utterance-fails",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:33Z"
+                    },
+                    {
+                      "number": 2639,
+                      "title": "fix(react): ship working basic catalog styles from the published package",
+                      "repository": "a2ui-project/a2ui",
+                      "prRef": "a2ui-project/a2ui#2639",
+                      "branch": "fix/react-basic-catalog-styles"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "github:notifications-1",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 8,
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#8",
+                      "branch": "synthesizer-effort-apart-from-planner",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:26Z"
+                    },
+                    {
+                      "number": 7,
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#7",
+                      "branch": "status-line-names-the-workflow",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:34Z"
+                    },
+                    {
+                      "number": 6,
+                      "title": "Say on the canvas when an utterance fails",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#6",
+                      "branch": "ekkicb71/a2u-5-say-on-the-canvas-when-an-utterance-fails",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:33Z"
+                    },
+                    {
+                      "number": 2639,
+                      "title": "fix(react): ship working basic catalog styles from the published package",
+                      "repository": "a2ui-project/a2ui",
+                      "prRef": "a2ui-project/a2ui#2639",
+                      "branch": "fix/react-basic-catalog-styles",
+                      "reviewStatus": "Commented"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "github:notifications-1",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 8,
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#8",
+                      "branch": "synthesizer-effort-apart-from-planner",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:26Z"
+                    },
+                    {
+                      "number": 7,
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#7",
+                      "branch": "status-line-names-the-workflow",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:34Z"
+                    },
+                    {
+                      "number": 6,
+                      "title": "Say on the canvas when an utterance fails",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#6",
+                      "branch": "ekkicb71/a2u-5-say-on-the-canvas-when-an-utterance-fails",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:33Z"
+                    },
+                    {
+                      "number": 2639,
+                      "title": "fix(react): ship working basic catalog styles from the published package",
+                      "repository": "a2ui-project/a2ui",
+                      "prRef": "a2ui-project/a2ui#2639",
+                      "branch": "fix/react-basic-catalog-styles",
+                      "reviewStatus": "Commented",
+                      "updatedAt": "2026-09-12T15:15:21Z"
+                    },
+                    {
+                      "number": 2531
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "github:notifications-1",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 8,
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#8",
+                      "branch": "synthesizer-effort-apart-from-planner",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:26Z"
+                    },
+                    {
+                      "number": 7,
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#7",
+                      "branch": "status-line-names-the-workflow",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:34Z"
+                    },
+                    {
+                      "number": 6,
+                      "title": "Say on the canvas when an utterance fails",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#6",
+                      "branch": "ekkicb71/a2u-5-say-on-the-canvas-when-an-utterance-fails",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:33Z"
+                    },
+                    {
+                      "number": 2639,
+                      "title": "fix(react): ship working basic catalog styles from the published package",
+                      "repository": "a2ui-project/a2ui",
+                      "prRef": "a2ui-project/a2ui#2639",
+                      "branch": "fix/react-basic-catalog-styles",
+                      "reviewStatus": "Commented",
+                      "updatedAt": "2026-09-12T15:15:21Z"
+                    },
+                    {
+                      "number": 2531,
+                      "title": "fix(web_core): classify dynamic unions nested inside wider unions as DYNAMIC"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "github:notifications-1",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 8,
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#8",
+                      "branch": "synthesizer-effort-apart-from-planner",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:26Z"
+                    },
+                    {
+                      "number": 7,
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#7",
+                      "branch": "status-line-names-the-workflow",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:34Z"
+                    },
+                    {
+                      "number": 6,
+                      "title": "Say on the canvas when an utterance fails",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#6",
+                      "branch": "ekkicb71/a2u-5-say-on-the-canvas-when-an-utterance-fails",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:33Z"
+                    },
+                    {
+                      "number": 2639,
+                      "title": "fix(react): ship working basic catalog styles from the published package",
+                      "repository": "a2ui-project/a2ui",
+                      "prRef": "a2ui-project/a2ui#2639",
+                      "branch": "fix/react-basic-catalog-styles",
+                      "reviewStatus": "Commented",
+                      "updatedAt": "2026-09-12T15:15:21Z"
+                    },
+                    {
+                      "number": 2531,
+                      "title": "fix(web_core): classify dynamic unions nested inside wider unions as DYNAMIC",
+                      "repository": "a2ui-project/a2ui"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "github:notifications-1",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 8,
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#8",
+                      "branch": "synthesizer-effort-apart-from-planner",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:26Z"
+                    },
+                    {
+                      "number": 7,
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#7",
+                      "branch": "status-line-names-the-workflow",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:34Z"
+                    },
+                    {
+                      "number": 6,
+                      "title": "Say on the canvas when an utterance fails",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#6",
+                      "branch": "ekkicb71/a2u-5-say-on-the-canvas-when-an-utterance-fails",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:33Z"
+                    },
+                    {
+                      "number": 2639,
+                      "title": "fix(react): ship working basic catalog styles from the published package",
+                      "repository": "a2ui-project/a2ui",
+                      "prRef": "a2ui-project/a2ui#2639",
+                      "branch": "fix/react-basic-catalog-styles",
+                      "reviewStatus": "Commented",
+                      "updatedAt": "2026-09-12T15:15:21Z"
+                    },
+                    {
+                      "number": 2531,
+                      "title": "fix(web_core): classify dynamic unions nested inside wider unions as DYNAMIC",
+                      "repository": "a2ui-project/a2ui",
+                      "prRef": "a2ui-project/a2ui#2531"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "github:notifications-1",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 8,
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#8",
+                      "branch": "synthesizer-effort-apart-from-planner",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:26Z"
+                    },
+                    {
+                      "number": 7,
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#7",
+                      "branch": "status-line-names-the-workflow",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:34Z"
+                    },
+                    {
+                      "number": 6,
+                      "title": "Say on the canvas when an utterance fails",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#6",
+                      "branch": "ekkicb71/a2u-5-say-on-the-canvas-when-an-utterance-fails",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:33Z"
+                    },
+                    {
+                      "number": 2639,
+                      "title": "fix(react): ship working basic catalog styles from the published package",
+                      "repository": "a2ui-project/a2ui",
+                      "prRef": "a2ui-project/a2ui#2639",
+                      "branch": "fix/react-basic-catalog-styles",
+                      "reviewStatus": "Commented",
+                      "updatedAt": "2026-09-12T15:15:21Z"
+                    },
+                    {
+                      "number": 2531,
+                      "title": "fix(web_core): classify dynamic unions nested inside wider unions as DYNAMIC",
+                      "repository": "a2ui-project/a2ui",
+                      "prRef": "a2ui-project/a2ui#2531",
+                      "branch": "fix/web_core-nested-dynamic-union-scrape",
+                      "reviewStatus": "Changes requested"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "github:notifications-1",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 8,
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#8",
+                      "branch": "synthesizer-effort-apart-from-planner",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:26Z"
+                    },
+                    {
+                      "number": 7,
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#7",
+                      "branch": "status-line-names-the-workflow",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:34Z"
+                    },
+                    {
+                      "number": 6,
+                      "title": "Say on the canvas when an utterance fails",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#6",
+                      "branch": "ekkicb71/a2u-5-say-on-the-canvas-when-an-utterance-fails",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:33Z"
+                    },
+                    {
+                      "number": 2639,
+                      "title": "fix(react): ship working basic catalog styles from the published package",
+                      "repository": "a2ui-project/a2ui",
+                      "prRef": "a2ui-project/a2ui#2639",
+                      "branch": "fix/react-basic-catalog-styles",
+                      "reviewStatus": "Commented",
+                      "updatedAt": "2026-09-12T15:15:21Z"
+                    },
+                    {
+                      "number": 2531,
+                      "title": "fix(web_core): classify dynamic unions nested inside wider unions as DYNAMIC",
+                      "repository": "a2ui-project/a2ui",
+                      "prRef": "a2ui-project/a2ui#2531",
+                      "branch": "fix/web_core-nested-dynamic-union-scrape",
+                      "reviewStatus": "Changes requested",
+                      "updatedAt": "2026-09-14T01:08:02Z"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "github:notifications-1",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 8,
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#8",
+                      "branch": "synthesizer-effort-apart-from-planner",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:26Z"
+                    },
+                    {
+                      "number": 7,
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#7",
+                      "branch": "status-line-names-the-workflow",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:34Z"
+                    },
+                    {
+                      "number": 6,
+                      "title": "Say on the canvas when an utterance fails",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#6",
+                      "branch": "ekkicb71/a2u-5-say-on-the-canvas-when-an-utterance-fails",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:33Z"
+                    },
+                    {
+                      "number": 2639,
+                      "title": "fix(react): ship working basic catalog styles from the published package",
+                      "repository": "a2ui-project/a2ui",
+                      "prRef": "a2ui-project/a2ui#2639",
+                      "branch": "fix/react-basic-catalog-styles",
+                      "reviewStatus": "Commented",
+                      "updatedAt": "2026-09-12T15:15:21Z"
+                    },
+                    {
+                      "number": 2531,
+                      "title": "fix(web_core): classify dynamic unions nested inside wider unions as DYNAMIC",
+                      "repository": "a2ui-project/a2ui",
+                      "prRef": "a2ui-project/a2ui#2531",
+                      "branch": "fix/web_core-nested-dynamic-union-scrape",
+                      "reviewStatus": "Changes requested",
+                      "updatedAt": "2026-09-14T01:08:02Z"
+                    },
+                    {
+                      "number": 2529
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "github:notifications-1",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 8,
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#8",
+                      "branch": "synthesizer-effort-apart-from-planner",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:26Z"
+                    },
+                    {
+                      "number": 7,
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#7",
+                      "branch": "status-line-names-the-workflow",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:34Z"
+                    },
+                    {
+                      "number": 6,
+                      "title": "Say on the canvas when an utterance fails",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#6",
+                      "branch": "ekkicb71/a2u-5-say-on-the-canvas-when-an-utterance-fails",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:33Z"
+                    },
+                    {
+                      "number": 2639,
+                      "title": "fix(react): ship working basic catalog styles from the published package",
+                      "repository": "a2ui-project/a2ui",
+                      "prRef": "a2ui-project/a2ui#2639",
+                      "branch": "fix/react-basic-catalog-styles",
+                      "reviewStatus": "Commented",
+                      "updatedAt": "2026-09-12T15:15:21Z"
+                    },
+                    {
+                      "number": 2531,
+                      "title": "fix(web_core): classify dynamic unions nested inside wider unions as DYNAMIC",
+                      "repository": "a2ui-project/a2ui",
+                      "prRef": "a2ui-project/a2ui#2531",
+                      "branch": "fix/web_core-nested-dynamic-union-scrape",
+                      "reviewStatus": "Changes requested",
+                      "updatedAt": "2026-09-14T01:08:02Z"
+                    },
+                    {
+                      "number": 2529,
+                      "title": "fix(web_core): make the setter for a binding-only prop callable",
+                      "repository": "a2ui-project/a2ui"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "github:notifications-1",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 8,
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#8",
+                      "branch": "synthesizer-effort-apart-from-planner",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:26Z"
+                    },
+                    {
+                      "number": 7,
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#7",
+                      "branch": "status-line-names-the-workflow",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:34Z"
+                    },
+                    {
+                      "number": 6,
+                      "title": "Say on the canvas when an utterance fails",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#6",
+                      "branch": "ekkicb71/a2u-5-say-on-the-canvas-when-an-utterance-fails",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:33Z"
+                    },
+                    {
+                      "number": 2639,
+                      "title": "fix(react): ship working basic catalog styles from the published package",
+                      "repository": "a2ui-project/a2ui",
+                      "prRef": "a2ui-project/a2ui#2639",
+                      "branch": "fix/react-basic-catalog-styles",
+                      "reviewStatus": "Commented",
+                      "updatedAt": "2026-09-12T15:15:21Z"
+                    },
+                    {
+                      "number": 2531,
+                      "title": "fix(web_core): classify dynamic unions nested inside wider unions as DYNAMIC",
+                      "repository": "a2ui-project/a2ui",
+                      "prRef": "a2ui-project/a2ui#2531",
+                      "branch": "fix/web_core-nested-dynamic-union-scrape",
+                      "reviewStatus": "Changes requested",
+                      "updatedAt": "2026-09-14T01:08:02Z"
+                    },
+                    {
+                      "number": 2529,
+                      "title": "fix(web_core): make the setter for a binding-only prop callable",
+                      "repository": "a2ui-project/a2ui",
+                      "prRef": "a2ui-project/a2ui#2529"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "github:notifications-1",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 8,
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#8",
+                      "branch": "synthesizer-effort-apart-from-planner",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:26Z"
+                    },
+                    {
+                      "number": 7,
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#7",
+                      "branch": "status-line-names-the-workflow",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:34Z"
+                    },
+                    {
+                      "number": 6,
+                      "title": "Say on the canvas when an utterance fails",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#6",
+                      "branch": "ekkicb71/a2u-5-say-on-the-canvas-when-an-utterance-fails",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:33Z"
+                    },
+                    {
+                      "number": 2639,
+                      "title": "fix(react): ship working basic catalog styles from the published package",
+                      "repository": "a2ui-project/a2ui",
+                      "prRef": "a2ui-project/a2ui#2639",
+                      "branch": "fix/react-basic-catalog-styles",
+                      "reviewStatus": "Commented",
+                      "updatedAt": "2026-09-12T15:15:21Z"
+                    },
+                    {
+                      "number": 2531,
+                      "title": "fix(web_core): classify dynamic unions nested inside wider unions as DYNAMIC",
+                      "repository": "a2ui-project/a2ui",
+                      "prRef": "a2ui-project/a2ui#2531",
+                      "branch": "fix/web_core-nested-dynamic-union-scrape",
+                      "reviewStatus": "Changes requested",
+                      "updatedAt": "2026-09-14T01:08:02Z"
+                    },
+                    {
+                      "number": 2529,
+                      "title": "fix(web_core): make the setter for a binding-only prop callable",
+                      "repository": "a2ui-project/a2ui",
+                      "prRef": "a2ui-project/a2ui#2529",
+                      "branch": "fix/web_core-binding-only-prop-setter",
+                      "reviewStatus": "Changes requested"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "github:notifications-1",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 8,
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#8",
+                      "branch": "synthesizer-effort-apart-from-planner",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:26Z"
+                    },
+                    {
+                      "number": 7,
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#7",
+                      "branch": "status-line-names-the-workflow",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:34Z"
+                    },
+                    {
+                      "number": 6,
+                      "title": "Say on the canvas when an utterance fails",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#6",
+                      "branch": "ekkicb71/a2u-5-say-on-the-canvas-when-an-utterance-fails",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:33Z"
+                    },
+                    {
+                      "number": 2639,
+                      "title": "fix(react): ship working basic catalog styles from the published package",
+                      "repository": "a2ui-project/a2ui",
+                      "prRef": "a2ui-project/a2ui#2639",
+                      "branch": "fix/react-basic-catalog-styles",
+                      "reviewStatus": "Commented",
+                      "updatedAt": "2026-09-12T15:15:21Z"
+                    },
+                    {
+                      "number": 2531,
+                      "title": "fix(web_core): classify dynamic unions nested inside wider unions as DYNAMIC",
+                      "repository": "a2ui-project/a2ui",
+                      "prRef": "a2ui-project/a2ui#2531",
+                      "branch": "fix/web_core-nested-dynamic-union-scrape",
+                      "reviewStatus": "Changes requested",
+                      "updatedAt": "2026-09-14T01:08:02Z"
+                    },
+                    {
+                      "number": 2529,
+                      "title": "fix(web_core): make the setter for a binding-only prop callable",
+                      "repository": "a2ui-project/a2ui",
+                      "prRef": "a2ui-project/a2ui#2529",
+                      "branch": "fix/web_core-binding-only-prop-setter",
+                      "reviewStatus": "Changes requested",
+                      "updatedAt": "2026-09-14T01:08:00Z"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "github:notifications-1",
+                "path": "/",
+                "value": {
+                  "prs": [
+                    {
+                      "number": 8,
+                      "title": "Give the Synthesizer more thinking effort than the Planner",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#8",
+                      "branch": "synthesizer-effort-apart-from-planner",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:26Z"
+                    },
+                    {
+                      "number": 7,
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#7",
+                      "branch": "status-line-names-the-workflow",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:34Z"
+                    },
+                    {
+                      "number": 6,
+                      "title": "Say on the canvas when an utterance fails",
+                      "repository": "retz8/a2uiverse",
+                      "prRef": "retz8/a2uiverse#6",
+                      "branch": "ekkicb71/a2u-5-say-on-the-canvas-when-an-utterance-fails",
+                      "reviewStatus": "No reviews",
+                      "updatedAt": "2026-09-19T07:07:33Z"
+                    },
+                    {
+                      "number": 2639,
+                      "title": "fix(react): ship working basic catalog styles from the published package",
+                      "repository": "a2ui-project/a2ui",
+                      "prRef": "a2ui-project/a2ui#2639",
+                      "branch": "fix/react-basic-catalog-styles",
+                      "reviewStatus": "Commented",
+                      "updatedAt": "2026-09-12T15:15:21Z"
+                    },
+                    {
+                      "number": 2531,
+                      "title": "fix(web_core): classify dynamic unions nested inside wider unions as DYNAMIC",
+                      "repository": "a2ui-project/a2ui",
+                      "prRef": "a2ui-project/a2ui#2531",
+                      "branch": "fix/web_core-nested-dynamic-union-scrape",
+                      "reviewStatus": "Changes requested",
+                      "updatedAt": "2026-09-14T01:08:02Z"
+                    },
+                    {
+                      "number": 2529,
+                      "title": "fix(web_core): make the setter for a binding-only prop callable",
+                      "repository": "a2ui-project/a2ui",
+                      "prRef": "a2ui-project/a2ui#2529",
+                      "branch": "fix/web_core-binding-only-prop-setter",
+                      "reviewStatus": "Changes requested",
+                      "updatedAt": "2026-09-14T01:08:00Z"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "root",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "normal",
+                    "padding": "normal",
+                    "children": [
+                      "ph",
+                      "list"
+                    ]
+                  },
+                  {
+                    "id": "ph",
+                    "component": "PageHeader",
+                    "aria-label": "Open Pull Requests Header",
+                    "children": [
+                      "ph-ta"
+                    ]
+                  },
+                  {
+                    "id": "ph-ta",
+                    "component": "PageHeader.TitleArea",
+                    "variant": "medium",
+                    "children": [
+                      "ph-lv",
+                      "ph-title",
+                      "ph-tv"
+                    ]
+                  },
+                  {
+                    "id": "ph-lv",
+                    "component": "PageHeader.LeadingVisual",
+                    "children": [
+                      "ph-icon"
+                    ]
+                  },
+                  {
+                    "id": "ph-icon",
+                    "component": "Icon",
+                    "name": "git-pull-request",
+                    "fill": "open",
+                    "accessibility": {
+                      "label": "Open Pull Requests"
+                    }
+                  },
+                  {
+                    "id": "ph-title",
+                    "component": "PageHeader.Title",
+                    "text": "My Open Pull Requests",
+                    "as": "h1"
+                  },
+                  {
+                    "id": "ph-tv",
+                    "component": "PageHeader.TrailingVisual",
+                    "children": [
+                      "ph-count"
+                    ]
+                  },
+                  {
+                    "id": "ph-count",
+                    "component": "CounterLabel",
+                    "count": 6,
+                    "variant": "primary"
+                  },
+                  {
+                    "id": "list",
+                    "component": "ActionList",
+                    "role": "listbox",
+                    "showDividers": true,
+                    "children": {
+                      "componentId": "pr-item",
+                      "path": "/prs"
+                    }
+                  },
+                  {
+                    "id": "pr-item",
+                    "component": "ActionList.Item",
+                    "children": [
+                      "item-lv",
+                      "item-content"
+                    ],
+                    "action": {
+                      "event": {
+                        "name": "open-pull-request",
+                        "context": {
+                          "repository": {
+                            "path": "repository"
+                          },
+                          "number": {
+                            "path": "number"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "item-lv",
+                    "component": "ActionList.LeadingVisual",
+                    "children": [
+                      "item-icon"
+                    ]
+                  },
+                  {
+                    "id": "item-icon",
+                    "component": "Icon",
+                    "name": "git-pull-request",
+                    "fill": "open"
+                  },
+                  {
+                    "id": "item-content",
+                    "component": "Stack",
+                    "direction": "vertical",
+                    "gap": "condensed",
+                    "children": [
+                      "item-title",
+                      "item-meta"
+                    ]
+                  },
+                  {
+                    "id": "item-title",
+                    "component": "Text",
+                    "text": {
+                      "path": "title"
+                    },
+                    "weight": "semibold"
+                  },
+                  {
+                    "id": "item-meta",
+                    "component": "Stack",
+                    "direction": "horizontal",
+                    "gap": "condensed",
+                    "align": "center",
+                    "wrap": "wrap",
+                    "children": [
+                      "meta-ref",
+                      "meta-branch",
+                      "meta-review",
+                      "meta-sep",
+                      "meta-updated-label",
+                      "meta-time"
+                    ]
+                  },
+                  {
+                    "id": "meta-ref",
+                    "component": "Text",
+                    "text": {
+                      "path": "prRef"
+                    },
+                    "size": "small",
+                    "weight": "medium"
+                  },
+                  {
+                    "id": "meta-branch",
+                    "component": "BranchName",
+                    "text": {
+                      "path": "branch"
+                    },
+                    "as": "span"
+                  },
+                  {
+                    "id": "meta-review",
+                    "component": "Label",
+                    "text": {
+                      "path": "reviewStatus"
+                    },
+                    "size": "small",
+                    "variant": "secondary"
+                  },
+                  {
+                    "id": "meta-sep",
+                    "component": "Text",
+                    "text": "•",
+                    "size": "small"
+                  },
+                  {
+                    "id": "meta-updated-label",
+                    "component": "Text",
+                    "text": "Updated:",
+                    "size": "small"
+                  },
+                  {
+                    "id": "meta-time",
+                    "component": "RelativeTime",
+                    "datetime": {
+                      "path": "updatedAt"
+                    },
+                    "format": "datetime",
+                    "month": "short",
+                    "day": "numeric",
+                    "year": "numeric",
+                    "hour": "numeric",
+                    "minute": "2-digit",
+                    "second": "2-digit"
+                  }
+                ],
+                "surfaceId": "github:notifications-1"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "github",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 4593,
+          "messages": [
+            {
+              "paintMeta": {
+                "surfaceId": "linear:linear-1",
+                "title": "My issues"
+              }
+            },
+            {
+              "version": "v0.9",
+              "createSurface": {
+                "surfaceId": "linear:linear-1",
+                "catalogId": "https://github.com/retz8/a2uiverse-apps/blob/main/linear/linear-catalog/catalogs/v0.9.1/catalog.json",
+                "sendDataModel": true
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "linear:linear-1",
+                "value": {
+                  "team": "A2uiverse"
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "linear:linear-1",
+                "value": {
+                  "issues": [
+                    {
+                      "id": "A2U-5",
+                      "title": "Say on the canvas when an utterance fails",
+                      "status": "In Review",
+                      "statusType": "started",
+                      "priority": "High",
+                      "labels": "Bug"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "linear:linear-1",
+                "value": {
+                  "issues": [
+                    {
+                      "id": "A2U-5",
+                      "title": "Say on the canvas when an utterance fails",
+                      "status": "In Review",
+                      "statusType": "started",
+                      "priority": "High",
+                      "labels": "Bug",
+                      "link": "#6"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "linear:linear-1",
+                "value": {
+                  "issues": [
+                    {
+                      "id": "A2U-5",
+                      "title": "Say on the canvas when an utterance fails",
+                      "status": "In Review",
+                      "statusType": "started",
+                      "priority": "High",
+                      "labels": "Bug",
+                      "link": "#6",
+                      "updated": "Sep 19, 2026, 11:00 AM UTC"
+                    },
+                    {
+                      "id": "A2U-7"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "linear:linear-1",
+                "value": {
+                  "issues": [
+                    {
+                      "id": "A2U-5",
+                      "title": "Say on the canvas when an utterance fails",
+                      "status": "In Review",
+                      "statusType": "started",
+                      "priority": "High",
+                      "labels": "Bug",
+                      "link": "#6",
+                      "updated": "Sep 19, 2026, 11:00 AM UTC"
+                    },
+                    {
+                      "id": "A2U-7",
+                      "title": "Shell-action report hangs through the tunnel",
+                      "status": "In Progress"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "linear:linear-1",
+                "value": {
+                  "issues": [
+                    {
+                      "id": "A2U-5",
+                      "title": "Say on the canvas when an utterance fails",
+                      "status": "In Review",
+                      "statusType": "started",
+                      "priority": "High",
+                      "labels": "Bug",
+                      "link": "#6",
+                      "updated": "Sep 19, 2026, 11:00 AM UTC"
+                    },
+                    {
+                      "id": "A2U-7",
+                      "title": "Shell-action report hangs through the tunnel",
+                      "status": "In Progress",
+                      "statusType": "started",
+                      "priority": "Low",
+                      "labels": "Bug"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "linear:linear-1",
+                "value": {
+                  "issues": [
+                    {
+                      "id": "A2U-5",
+                      "title": "Say on the canvas when an utterance fails",
+                      "status": "In Review",
+                      "statusType": "started",
+                      "priority": "High",
+                      "labels": "Bug",
+                      "link": "#6",
+                      "updated": "Sep 19, 2026, 11:00 AM UTC"
+                    },
+                    {
+                      "id": "A2U-7",
+                      "title": "Shell-action report hangs through the tunnel",
+                      "status": "In Progress",
+                      "statusType": "started",
+                      "priority": "Low",
+                      "labels": "Bug",
+                      "link": "ekkicb71/a2u-7-shell-action-report-hangs-through-the-tunnel"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "linear:linear-1",
+                "value": {
+                  "issues": [
+                    {
+                      "id": "A2U-5",
+                      "title": "Say on the canvas when an utterance fails",
+                      "status": "In Review",
+                      "statusType": "started",
+                      "priority": "High",
+                      "labels": "Bug",
+                      "link": "#6",
+                      "updated": "Sep 19, 2026, 11:00 AM UTC"
+                    },
+                    {
+                      "id": "A2U-7",
+                      "title": "Shell-action report hangs through the tunnel",
+                      "status": "In Progress",
+                      "statusType": "started",
+                      "priority": "Low",
+                      "labels": "Bug",
+                      "link": "ekkicb71/a2u-7-shell-action-report-hangs-through-the-tunnel",
+                      "updated": "Sep 19, 2026, 10:53 AM UTC"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "linear:linear-1",
+                "value": {
+                  "issues": [
+                    {
+                      "id": "A2U-5",
+                      "title": "Say on the canvas when an utterance fails",
+                      "status": "In Review",
+                      "statusType": "started",
+                      "priority": "High",
+                      "labels": "Bug",
+                      "link": "#6",
+                      "updated": "Sep 19, 2026, 11:00 AM UTC"
+                    },
+                    {
+                      "id": "A2U-7",
+                      "title": "Shell-action report hangs through the tunnel",
+                      "status": "In Progress",
+                      "statusType": "started",
+                      "priority": "Low",
+                      "labels": "Bug",
+                      "link": "ekkicb71/a2u-7-shell-action-report-hangs-through-the-tunnel",
+                      "updated": "Sep 19, 2026, 10:53 AM UTC"
+                    },
+                    {
+                      "id": "A2U-6"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "linear:linear-1",
+                "value": {
+                  "issues": [
+                    {
+                      "id": "A2U-5",
+                      "title": "Say on the canvas when an utterance fails",
+                      "status": "In Review",
+                      "statusType": "started",
+                      "priority": "High",
+                      "labels": "Bug",
+                      "link": "#6",
+                      "updated": "Sep 19, 2026, 11:00 AM UTC"
+                    },
+                    {
+                      "id": "A2U-7",
+                      "title": "Shell-action report hangs through the tunnel",
+                      "status": "In Progress",
+                      "statusType": "started",
+                      "priority": "Low",
+                      "labels": "Bug",
+                      "link": "ekkicb71/a2u-7-shell-action-report-hangs-through-the-tunnel",
+                      "updated": "Sep 19, 2026, 10:53 AM UTC"
+                    },
+                    {
+                      "id": "A2U-6",
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "status": "In Progress",
+                      "statusType": "started",
+                      "priority": "Medium"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "linear:linear-1",
+                "value": {
+                  "issues": [
+                    {
+                      "id": "A2U-5",
+                      "title": "Say on the canvas when an utterance fails",
+                      "status": "In Review",
+                      "statusType": "started",
+                      "priority": "High",
+                      "labels": "Bug",
+                      "link": "#6",
+                      "updated": "Sep 19, 2026, 11:00 AM UTC"
+                    },
+                    {
+                      "id": "A2U-7",
+                      "title": "Shell-action report hangs through the tunnel",
+                      "status": "In Progress",
+                      "statusType": "started",
+                      "priority": "Low",
+                      "labels": "Bug",
+                      "link": "ekkicb71/a2u-7-shell-action-report-hangs-through-the-tunnel",
+                      "updated": "Sep 19, 2026, 10:53 AM UTC"
+                    },
+                    {
+                      "id": "A2U-6",
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "status": "In Progress",
+                      "statusType": "started",
+                      "priority": "Medium",
+                      "labels": "Improvement",
+                      "link": "#7"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "linear:linear-1",
+                "value": {
+                  "issues": [
+                    {
+                      "id": "A2U-5",
+                      "title": "Say on the canvas when an utterance fails",
+                      "status": "In Review",
+                      "statusType": "started",
+                      "priority": "High",
+                      "labels": "Bug",
+                      "link": "#6",
+                      "updated": "Sep 19, 2026, 11:00 AM UTC"
+                    },
+                    {
+                      "id": "A2U-7",
+                      "title": "Shell-action report hangs through the tunnel",
+                      "status": "In Progress",
+                      "statusType": "started",
+                      "priority": "Low",
+                      "labels": "Bug",
+                      "link": "ekkicb71/a2u-7-shell-action-report-hangs-through-the-tunnel",
+                      "updated": "Sep 19, 2026, 10:53 AM UTC"
+                    },
+                    {
+                      "id": "A2U-6",
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "status": "In Progress",
+                      "statusType": "started",
+                      "priority": "Medium",
+                      "labels": "Improvement",
+                      "link": "#7",
+                      "updated": "Sep 18, 2026, 11:53 AM UTC"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "linear:linear-1",
+                "path": "/",
+                "value": {
+                  "team": "A2uiverse",
+                  "issues": [
+                    {
+                      "id": "A2U-5",
+                      "title": "Say on the canvas when an utterance fails",
+                      "status": "In Review",
+                      "statusType": "started",
+                      "priority": "High",
+                      "labels": "Bug",
+                      "link": "#6",
+                      "updated": "Sep 19, 2026, 11:00 AM UTC"
+                    },
+                    {
+                      "id": "A2U-7",
+                      "title": "Shell-action report hangs through the tunnel",
+                      "status": "In Progress",
+                      "statusType": "started",
+                      "priority": "Low",
+                      "labels": "Bug",
+                      "link": "ekkicb71/a2u-7-shell-action-report-hangs-through-the-tunnel",
+                      "updated": "Sep 19, 2026, 10:53 AM UTC"
+                    },
+                    {
+                      "id": "A2U-6",
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "status": "In Progress",
+                      "statusType": "started",
+                      "priority": "Medium",
+                      "labels": "Improvement",
+                      "link": "#7",
+                      "updated": "Sep 18, 2026, 11:53 AM UTC"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "body",
+                    "component": "Stack",
+                    "gap": "none",
+                    "children": [
+                      "header",
+                      "list"
+                    ]
+                  },
+                  {
+                    "id": "root",
+                    "component": "Panel",
+                    "padding": "none",
+                    "child": "body"
+                  },
+                  {
+                    "id": "header",
+                    "component": "ViewHeader",
+                    "context": {
+                      "path": "/team"
+                    },
+                    "title": "My issues"
+                  },
+                  {
+                    "id": "list",
+                    "component": "List",
+                    "children": {
+                      "path": "/issues",
+                      "componentId": "issue-row"
+                    }
+                  },
+                  {
+                    "id": "issue-row",
+                    "component": "ListItem",
+                    "child": "row-title",
+                    "leading": [
+                      "row-priority",
+                      "row-id",
+                      "row-status"
+                    ],
+                    "trailing": [
+                      "row-labels",
+                      "row-link",
+                      "row-when"
+                    ],
+                    "action": {
+                      "event": {
+                        "name": "open-issue",
+                        "context": {
+                          "issueId": {
+                            "path": "id"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "row-priority",
+                    "component": "PriorityIcon",
+                    "priority": {
+                      "path": "priority"
+                    }
+                  },
+                  {
+                    "id": "row-id",
+                    "component": "Text",
+                    "text": {
+                      "path": "id"
+                    },
+                    "variant": "secondary"
+                  },
+                  {
+                    "id": "row-status",
+                    "component": "StatusIcon",
+                    "status": {
+                      "path": "status"
+                    },
+                    "type": {
+                      "path": "statusType"
+                    }
+                  },
+                  {
+                    "id": "row-title",
+                    "component": "Text",
+                    "text": {
+                      "path": "title"
+                    },
+                    "weight": "medium"
+                  },
+                  {
+                    "id": "row-labels",
+                    "component": "Chip",
+                    "label": {
+                      "path": "labels"
+                    }
+                  },
+                  {
+                    "id": "row-link",
+                    "component": "Text",
+                    "text": {
+                      "path": "link"
+                    },
+                    "variant": "caption"
+                  },
+                  {
+                    "id": "row-when",
+                    "component": "Text",
+                    "text": {
+                      "path": "updated"
+                    },
+                    "variant": "caption"
+                  }
+                ],
+                "surfaceId": "linear:linear-1"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "linear",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 16313,
+          "messages": [
+            {
+              "version": "v0.9",
+              "createSurface": {
+                "surfaceId": "shell:synthesis",
+                "catalogId": "https://github.com/retz8/a2uiverse/blob/main/packages/shell-catalog/catalogs/v0.9.1/catalog.json"
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "surfaceId": "shell:synthesis",
+                "components": [
+                  {
+                    "id": "root",
+                    "component": "Column",
+                    "children": [
+                      "head",
+                      "timeline"
+                    ]
+                  },
+                  {
+                    "id": "head",
+                    "component": "Row",
+                    "justify": "spaceBetween",
+                    "align": "center",
+                    "children": [
+                      "heading",
+                      "sort"
+                    ]
+                  },
+                  {
+                    "id": "heading",
+                    "component": "Text",
+                    "variant": "h5",
+                    "text": "Needs attention today"
+                  },
+                  {
+                    "id": "sort",
+                    "component": "SortControl",
+                    "sort": {
+                      "path": "/sorts/0"
+                    }
+                  },
+                  {
+                    "id": "timeline",
+                    "component": "Table",
+                    "columns": [
+                      "Source",
+                      "When",
+                      "What"
+                    ],
+                    "children": {
+                      "path": "/timeline",
+                      "componentId": "item"
+                    }
+                  },
+                  {
+                    "id": "item",
+                    "component": "TableRow",
+                    "children": [
+                      "i-source",
+                      "i-when",
+                      "i-what"
+                    ]
+                  },
+                  {
+                    "id": "i-source",
+                    "component": "DerivedValue",
+                    "cell": {
+                      "path": "source"
+                    }
+                  },
+                  {
+                    "id": "i-when",
+                    "component": "DerivedValue",
+                    "cell": {
+                      "path": "when"
+                    },
+                    "format": {
+                      "kind": "datetime"
+                    }
+                  },
+                  {
+                    "id": "i-what",
+                    "component": "DerivedValue",
+                    "cell": {
+                      "path": "what"
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "shell",
+            "role": "fragment"
+          },
+          "synthesis": {
+            "dataModel": {
+              "timeline": [
+                {
+                  "source": {
+                    "op": "source",
+                    "args": [
+                      {
+                        "surface": "gmail:gmail-1",
+                        "pointer": "/threads[id=\"19829cbece7facf1\"]/when"
+                      }
+                    ]
+                  },
+                  "when": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "gmail:gmail-1",
+                        "pointer": "/threads[id=\"19829cbece7facf1\"]/when"
+                      }
+                    ]
+                  },
+                  "what": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "gmail:gmail-1",
+                        "pointer": "/threads[id=\"19829cbece7facf1\"]/subject"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "source": {
+                    "op": "source",
+                    "args": [
+                      {
+                        "surface": "gmail:gmail-1",
+                        "pointer": "/threads[id=\"1956e7633ba626aa\"]/when"
+                      }
+                    ]
+                  },
+                  "when": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "gmail:gmail-1",
+                        "pointer": "/threads[id=\"1956e7633ba626aa\"]/when"
+                      }
+                    ]
+                  },
+                  "what": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "gmail:gmail-1",
+                        "pointer": "/threads[id=\"1956e7633ba626aa\"]/subject"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "source": {
+                    "op": "source",
+                    "args": [
+                      {
+                        "surface": "gmail:gmail-1",
+                        "pointer": "/threads[id=\"19fd40c07b154538\"]/when"
+                      }
+                    ]
+                  },
+                  "when": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "gmail:gmail-1",
+                        "pointer": "/threads[id=\"19fd40c07b154538\"]/when"
+                      }
+                    ]
+                  },
+                  "what": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "gmail:gmail-1",
+                        "pointer": "/threads[id=\"19fd40c07b154538\"]/subject"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "source": {
+                    "op": "source",
+                    "args": [
+                      {
+                        "surface": "gmail:gmail-1",
+                        "pointer": "/threads[id=\"19b6cefab66744cf\"]/when"
+                      }
+                    ]
+                  },
+                  "when": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "gmail:gmail-1",
+                        "pointer": "/threads[id=\"19b6cefab66744cf\"]/when"
+                      }
+                    ]
+                  },
+                  "what": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "gmail:gmail-1",
+                        "pointer": "/threads[id=\"19b6cefab66744cf\"]/subject"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "source": {
+                    "op": "source",
+                    "args": [
+                      {
+                        "surface": "github:notifications-1",
+                        "pointer": "/prs[repository=\"retz8/a2uiverse\",number=8]/updatedAt"
+                      }
+                    ]
+                  },
+                  "when": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "github:notifications-1",
+                        "pointer": "/prs[repository=\"retz8/a2uiverse\",number=8]/updatedAt"
+                      }
+                    ]
+                  },
+                  "what": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "github:notifications-1",
+                        "pointer": "/prs[repository=\"retz8/a2uiverse\",number=8]/title"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "source": {
+                    "op": "source",
+                    "args": [
+                      {
+                        "surface": "github:notifications-1",
+                        "pointer": "/prs[repository=\"retz8/a2uiverse\",number=7]/updatedAt"
+                      }
+                    ]
+                  },
+                  "when": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "github:notifications-1",
+                        "pointer": "/prs[repository=\"retz8/a2uiverse\",number=7]/updatedAt"
+                      }
+                    ]
+                  },
+                  "what": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "github:notifications-1",
+                        "pointer": "/prs[repository=\"retz8/a2uiverse\",number=7]/title"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "source": {
+                    "op": "source",
+                    "args": [
+                      {
+                        "surface": "github:notifications-1",
+                        "pointer": "/prs[repository=\"retz8/a2uiverse\",number=6]/updatedAt"
+                      }
+                    ]
+                  },
+                  "when": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "github:notifications-1",
+                        "pointer": "/prs[repository=\"retz8/a2uiverse\",number=6]/updatedAt"
+                      }
+                    ]
+                  },
+                  "what": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "github:notifications-1",
+                        "pointer": "/prs[repository=\"retz8/a2uiverse\",number=6]/title"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "source": {
+                    "op": "source",
+                    "args": [
+                      {
+                        "surface": "github:notifications-1",
+                        "pointer": "/prs[repository=\"a2ui-project/a2ui\",number=2639]/updatedAt"
+                      }
+                    ]
+                  },
+                  "when": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "github:notifications-1",
+                        "pointer": "/prs[repository=\"a2ui-project/a2ui\",number=2639]/updatedAt"
+                      }
+                    ]
+                  },
+                  "what": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "github:notifications-1",
+                        "pointer": "/prs[repository=\"a2ui-project/a2ui\",number=2639]/title"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "source": {
+                    "op": "source",
+                    "args": [
+                      {
+                        "surface": "github:notifications-1",
+                        "pointer": "/prs[repository=\"a2ui-project/a2ui\",number=2531]/updatedAt"
+                      }
+                    ]
+                  },
+                  "when": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "github:notifications-1",
+                        "pointer": "/prs[repository=\"a2ui-project/a2ui\",number=2531]/updatedAt"
+                      }
+                    ]
+                  },
+                  "what": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "github:notifications-1",
+                        "pointer": "/prs[repository=\"a2ui-project/a2ui\",number=2531]/title"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "source": {
+                    "op": "source",
+                    "args": [
+                      {
+                        "surface": "github:notifications-1",
+                        "pointer": "/prs[repository=\"a2ui-project/a2ui\",number=2529]/updatedAt"
+                      }
+                    ]
+                  },
+                  "when": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "github:notifications-1",
+                        "pointer": "/prs[repository=\"a2ui-project/a2ui\",number=2529]/updatedAt"
+                      }
+                    ]
+                  },
+                  "what": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "github:notifications-1",
+                        "pointer": "/prs[repository=\"a2ui-project/a2ui\",number=2529]/title"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "source": {
+                    "op": "source",
+                    "args": [
+                      {
+                        "surface": "linear:linear-1",
+                        "pointer": "/issues[id=\"A2U-5\"]/updated"
+                      }
+                    ]
+                  },
+                  "when": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "linear:linear-1",
+                        "pointer": "/issues[id=\"A2U-5\"]/updated"
+                      }
+                    ]
+                  },
+                  "what": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "linear:linear-1",
+                        "pointer": "/issues[id=\"A2U-5\"]/title"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "source": {
+                    "op": "source",
+                    "args": [
+                      {
+                        "surface": "linear:linear-1",
+                        "pointer": "/issues[id=\"A2U-7\"]/updated"
+                      }
+                    ]
+                  },
+                  "when": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "linear:linear-1",
+                        "pointer": "/issues[id=\"A2U-7\"]/updated"
+                      }
+                    ]
+                  },
+                  "what": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "linear:linear-1",
+                        "pointer": "/issues[id=\"A2U-7\"]/title"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "source": {
+                    "op": "source",
+                    "args": [
+                      {
+                        "surface": "linear:linear-1",
+                        "pointer": "/issues[id=\"A2U-6\"]/updated"
+                      }
+                    ]
+                  },
+                  "when": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "linear:linear-1",
+                        "pointer": "/issues[id=\"A2U-6\"]/updated"
+                      }
+                    ]
+                  },
+                  "what": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "linear:linear-1",
+                        "pointer": "/issues[id=\"A2U-6\"]/title"
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            "sorts": [
+              {
+                "path": "/timeline",
+                "options": [
+                  {
+                    "key": "/when",
+                    "label": "Time"
+                  }
+                ],
+                "key": "/when",
+                "direction": "desc"
+              }
+            ]
+          }
+        },
+        {
+          "offsetMs": 16313,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "surfaceId": "shell:main",
+                "components": [
+                  {
+                    "id": "root",
+                    "component": "Column",
+                    "children": [
+                      "timeline",
+                      "sources"
+                    ]
+                  },
+                  {
+                    "id": "timeline",
+                    "component": "Slot",
+                    "source": "shell",
+                    "state": "pending",
+                    "label": "Synthesis",
+                    "content": "shell",
+                    "merged": [
+                      "gmail",
+                      "github",
+                      "linear"
+                    ]
+                  },
+                  {
+                    "id": "sources",
+                    "component": "Row",
+                    "children": [
+                      "attribution-gmail",
+                      "attribution-github",
+                      "attribution-linear"
+                    ]
+                  },
+                  {
+                    "id": "attribution-gmail",
+                    "component": "Attribution",
+                    "displayName": "Gmail",
+                    "appId": "gmail",
+                    "child": "gmail",
+                    "weight": 1
+                  },
+                  {
+                    "id": "gmail",
+                    "component": "Slot",
+                    "source": "gmail",
+                    "weight": 1,
+                    "state": "pending",
+                    "label": "Gmail"
+                  },
+                  {
+                    "id": "attribution-github",
+                    "component": "Attribution",
+                    "displayName": "GitHub",
+                    "appId": "github",
+                    "child": "github",
+                    "weight": 1
+                  },
+                  {
+                    "id": "github",
+                    "component": "Slot",
+                    "source": "github",
+                    "weight": 1,
+                    "state": "pending",
+                    "label": "GitHub"
+                  },
+                  {
+                    "id": "attribution-linear",
+                    "component": "Attribution",
+                    "displayName": "Linear",
+                    "appId": "linear",
+                    "child": "linear",
+                    "weight": 1
+                  },
+                  {
+                    "id": "linear",
+                    "component": "Slot",
+                    "source": "linear",
+                    "weight": 1,
+                    "state": "pending",
+                    "label": "Linear"
+                  }
+                ]
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "shell",
+            "role": "shell"
+          }
+        }
+      ],
+      "outcome": "completed",
+      "durationMs": 16315
+    }
+  ]
+}

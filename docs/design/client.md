@@ -442,6 +442,7 @@ Start the client (`pnpm dev:client`) and open `http://localhost:5173/?beat=<name
 | `?beat=trail` | Four answers on two branches: every mark of the rail, and the band on a past answer |
 | `?beat=23`, `?beat=24` | A step back to a screen seen before (restored, no call), and to one never seen |
 | `?beat=26` | Back past a new run: the runs list visited again, then the failing job left behind, every arrow named |
+| `?beat=27` | Gmail, GitHub and Linear on one timeline: the root README's GIF |
 | `?beat=19` to `?beat=25` | The trail's cases: a tab finishing in the background, an action in a past answer, Ask this again now, add and drop, closing a loading answer |
 | `?beat=10` to `?beat=18` | Slow and failing apps: Retry, Include, a home source straggling or failing, too few answers |
 | `?beat=4`, `?beat=6`, `?beat=7` | Two apps side by side with no merge, a question about A2UIVerse itself, a capability gap |

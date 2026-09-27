@@ -3,9 +3,9 @@
 The canvas: you ask in words, and the answer is a full screen of UI composed from several apps, each in its own design system and labelled with who painted it. It talks only to the orchestrator, never to an app.
 
 <p align="center">
-  <img src="../../docs/images/composed-attention.png" width="640" alt="One question answered by Google Calendar, Gmail, GitHub and Linear on one screen">
+  <img src="../../docs/images/composed-inbox.png" width="640" alt="One question answered by Gmail, GitHub and Linear on one screen">
   <br>
-  <em>One question, answered by Google Calendar, Gmail, GitHub and Linear, each in its own slot and look. The table on top is the merged view.</em>
+  <em>One question, answered by Gmail, GitHub and Linear, each in its own slot and look. The table on top is the merged view.</em>
 </p>
 
 ## What it does
@@ -81,7 +81,7 @@ Playwright's browser installs separately (`pnpm exec playwright install chromium
 
 ## Working without a model
 
-`?beat=<name>` replays a recorded or hand-built session through the whole canvas, with no model call and no network, and `&instant` skips the recorded pacing. `?beat=5&instant` is the answer above, `?beat=9&instant` the entity join, `?beat=trail` the trail, and `?beat=26&instant` the way back.
+`?beat=<name>` replays a recorded or hand-built session through the whole canvas, with no model call and no network, and `&instant` skips the recorded pacing. `?beat=27&instant` is the answer above, `?beat=9&instant` the entity join, `?beat=trail` the trail, and `?beat=26&instant` the way back.
 
 A beat's presses fire through the same handler the buttons call, answered from the beat itself. The tests and the screenshots in this README come from beats.
 
@@ -94,7 +94,7 @@ Real output, captured through the orchestrator and kept as the stream it arrived
 | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `1` to `3`   | GitHub alone: a PR list, a PR, and a review composed and confirmed (replay `3` as `2,3`)                                                                                                                     |
 | `4`          | Side by side: inbox and calendar in two slots, no merged view                                                                                                                                                |
-| `5`          | The temporal merge: Google Calendar, Gmail, GitHub and Linear with the merged view, the README's GIF                                                                                                         |
+| `5`          | The temporal merge: Google Calendar, Gmail, GitHub and Linear with the merged view                                                                                                                           |
 | `6`          | A question about A2UIVerse itself, answered by the shell                                                                                                                                                     |
 | `7`          | A capability gap: nothing installed can answer                                                                                                                                                               |
 | `8`          | One app's slot and the shell's own words in one layout                                                                                                                                                       |
@@ -102,6 +102,7 @@ Real output, captured through the orchestrator and kept as the stream it arrived
 | `10` to `18` | Late answers and failures: Retry, Include, the home source straggling or failing, a broken stream, a paint the canvas can't draw, too few answers                                                            |
 | `19` to `25` | Several answers: a tab finishing in the background, acting in a past answer, "Ask this again now", adding and dropping a source, stepping back with and without a remembered merge, closing a loading answer |
 | `26`         | Back past a new run: the runs list visited again, then the failing job left behind, every arrow named                                                                                                        |
+| `27`         | Gmail, GitHub and Linear on one timeline: the README's GIF                                                                                                                                                   |
 
 Hand-built beats live in `src/beats/`: `syntheticBeats.ts`, `lateFailureBeats.ts` for late answers and failures, and `durableBeats.ts` for kept answers and the way back.
 

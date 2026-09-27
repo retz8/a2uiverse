@@ -638,4 +638,12 @@ export const BEATS: BeatSpec[] = [
       },
     },
   },
+  {
+    // The README's hero (task 10.8): Gmail, GitHub and Linear, named in the question so the
+    // Planner asks those three, their answers merged on one timeline.
+    beat: 27,
+    slug: 'inbox-prs-issues',
+    title: 'Inbox, pull requests and issues on one timeline',
+    prompt: 'What needs my attention today in my inbox, GitHub and Linear?',
+  },
 ];

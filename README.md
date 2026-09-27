@@ -10,9 +10,9 @@ A2UI asks: _how does an agent express UI?_\
 Ask one question. Several agents answer at once, each painting its own interface, and you get **one screen**, not three chat replies.
 
 <p align="center">
-  <img src="docs/images/composing-attention.gif" width="800" alt="One question answered on one screen: the layout lands, Google Calendar, Gmail, GitHub and Linear fill their slots, and a merged table puts them on one timeline">
+  <img src="docs/images/composing-inbox.gif" width="800" alt="One question answered on one screen: the layout lands, Gmail, GitHub and Linear fill their slots, and a merged table puts them on one timeline">
   <br>
-  <em>"What needs my attention today?" The layout lands first, Google Calendar, Gmail, GitHub and Linear each fill their slot in their own look, and the merged table on top puts them on one timeline. Replayed from a recording, with the waits shortened.</em>
+  <em>"What needs my attention today in my inbox, GitHub and Linear?" The layout lands first, Gmail, GitHub and Linear each fill their slot in their own look, and the merged table on top puts them on one timeline. Replayed from a recording, with the waits shortened.</em>
 </p>
 
 ## Why A2UIVerse?
@@ -124,7 +124,7 @@ pnpm install
 pnpm dev:client
 ```
 
-Open **http://localhost:5173/?beat=5** for the session in the GIF above, replayed from a recording with no orchestrator, no apps and no model. `?beat=trail` replays four questions on two branches, and `?beat=26` the way back inside an app.
+Open **http://localhost:5173/?beat=27** for the session in the GIF above, replayed from a recording with no orchestrator, no apps and no model. `?beat=trail` replays four questions on two branches, and `?beat=26` the way back inside an app.
 
 ### Run it for real
 

@@ -80,6 +80,22 @@ test('beat 5: the temporal merge replays with its merged view as shell content',
 });
 
 /**
+ * The README's hero (task 10.8): Gmail, GitHub and Linear, named in the question, and the merged
+ * view putting them on one timeline. A replay smoke, as beat 5 is.
+ */
+test('beat 27: three named apps replay with their merged view as shell content', async ({page}) => {
+  await settle(page, '27');
+  await expect(page.getByTestId('canvas-stage-content')).toHaveAttribute('data-slots', '4');
+  for (const source of ['gmail', 'github', 'linear']) {
+    await expect(page.locator(`[data-a2ui-fragment="${source}"]`)).toHaveCount(1);
+  }
+  const view = page.locator('[data-shell-content][data-surface^="shell:"]');
+  await expect(view).toHaveCount(1);
+  await expect(view.locator('[data-state="complete"]').first()).toBeVisible();
+  await expect(view.getByLabel('Sort by')).toBeVisible();
+});
+
+/**
  * The entity join (task 7.9 decision 7): Linear, GitHub and CircleCI and the merged view with its
  * match claims, recorded through the hub. A replay smoke, as beat 5 is. What holds across
  * recordings: a row's values are joined and unmarked where a fact holds, the issue with no pull
