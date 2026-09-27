@@ -67,8 +67,12 @@ body {
   --a2v-scrim: rgba(0, 0, 0, 0.4);
 }
 
-/* The page: the question heads it and scrolls away with it; the stage below is its body. */
+/* The page: the question heads it and scrolls away with it; the stage below is its body. It is
+   the containing block of what is positioned inside it, so an absolutely positioned element —
+   a slot's hidden announcement — scrolls and clips with the page instead of stretching the body
+   past the viewport, where a landing's scrollIntoView would scroll the whole app. */
 .canvas-scroll {
+  position: relative;
   flex: 1;
   min-height: 0;
   overflow: auto;
@@ -955,7 +959,7 @@ body {
 .canvas-trail-preview-scale {
   transform-origin: top left;
   padding: 16px;
-  --a2v-layout-gap: 32px;
+  --a2v-layout-gap: 24px;
 }
 
 .canvas-trail-preview-caption {
@@ -1106,10 +1110,10 @@ body {
   padding-top: 56px;
 }
 
-/* The shell's own layout spaces its regions: 32px between the merged view and the fragments,
+/* The shell's own layout spaces its regions: 24px between the merged view and the fragments,
    and between fragments. Content painted inside a region keeps its catalog's own spacing. */
 [data-testid='canvas-stage-content'] {
-  --a2v-layout-gap: 32px;
+  --a2v-layout-gap: 24px;
 }
 
 [data-shell-content],
