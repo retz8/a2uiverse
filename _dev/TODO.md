@@ -148,10 +148,10 @@ Spec: `_dev/docs/spec/phase-10-vendor-catalogs-professional-project.md`.
 
 - [x] **10.1** Doc edits — SPEC §9.2's catalog rule (each vendor catalog its own vocabulary, as GitHub's is Primer; the mock stores and the scaffolder's `basic` template on the themed basic catalog), §15's reused row
 - [x] **10.2** Professional-project baseline, platform — CONTRIBUTING, CODE_OF_CONDUCT, SECURITY, issue templates; Discussions on; `license` and `repository` in the `package.json` files; the tunnel ID, the UMich email and the `/Users/jiohin` path scrubbed; the README's line that A2UIVerse is not affiliated with the vendors (parallel with all)
-- [WIP] **10.3** `[apps]` Professional-project baseline, `a2uiverse-apps` — the same files, pointing to the platform's Discussions; CI; the tunnel ID scrubbed (parallel with all)
-- [ ] **10.4** `[apps]` Gmail and Calendar catalogs — Material 3's design language; both agents repainted; one catalog or two decided here (after 10.1)
-- [ ] **10.5** `[apps]` Linear catalog — the agent repainted (after 10.1; parallel with 10.4 and 10.6)
-- [ ] **10.6** `[apps]` CircleCI catalog — the agent repainted (after 10.1; parallel with 10.4 and 10.5)
+- [x] **10.3** `[apps]` Professional-project baseline, `a2uiverse-apps` — the same files, pointing to the platform's Discussions; CI; the tunnel ID scrubbed (parallel with all)
+- [WIP] **10.4** `[apps]` Gmail and Calendar catalogs — Material 3's design language; both agents repainted; one catalog or two decided here (after 10.1)
+- [WIP] **10.5** `[apps]` Linear catalog — the agent repainted (after 10.1; parallel with 10.4 and 10.6)
+- [WIP] **10.6** `[apps]` CircleCI catalog — the agent repainted (after 10.1; parallel with 10.4 and 10.5)
 - [ ] **10.7** Integration + acceptance — the new catalogs composed on the deterministic roster through the tunnel; merges still land and a merged value still navigates to its element in the vendor's fragment (after 10.4, 10.5 and 10.6)
 - [ ] **10.8** README demos + design records — every README image or GIF showing a vendor app re-recorded from deterministic mode, its `?beat=` replay with it; the design records the new catalogs touch (after 10.7)
 
