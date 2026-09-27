@@ -113,6 +113,26 @@ describe('the detector itself', () => {
       pkgs: ['a-catalog', 'b-catalog'],
     });
   });
+
+  it('fails a font family two catalogs both declare, as the page matches it', () => {
+    const face = (family: string, file: string) =>
+      `@font-face { font-family: ${family}; src: url(./${file}.woff2) format('woff2'); }`;
+    const findings = findCollisions([
+      synthetic('a-catalog', face("'Brand Sans'", 'a') + face("'Brand Sans'", 'a-bold')),
+      synthetic('b-catalog', face('"brand sans"', 'b')),
+    ]);
+    expect(findings).toEqual([
+      {rule: 'duplicate-font-face', name: 'brand sans', pkgs: ['a-catalog', 'b-catalog']},
+    ]);
+  });
+
+  it('permits two catalogs each declaring a family of its own', () => {
+    const findings = findCollisions([
+      synthetic('a-catalog', "@font-face { font-family: 'a-catalog-sans'; src: url(./a.woff2); }"),
+      synthetic('b-catalog', "@font-face { font-family: 'b-catalog-sans'; src: url(./b.woff2); }"),
+    ]);
+    expect(findings).toEqual([]);
+  });
 });
 
 /**
@@ -146,5 +166,10 @@ describe('the installed catalogs', () => {
     // Guards the detector against silently scanning nothing: github-catalog's Provider imports
     // three @primer/primitives sheets, and those are the ones that land on the page.
     expect(INSTALLED.flatMap(c => c.files).some(f => f.endsWith('.css'))).toBe(true);
+  });
+
+  it('actually reads the typefaces the catalogs vendor', () => {
+    // Gmail's, Calendar's, Linear's and CircleCI's catalogs each declare their own family.
+    expect(INSTALLED.filter(c => c.facts.fontFaces.size > 0).length).toBeGreaterThan(1);
   });
 });

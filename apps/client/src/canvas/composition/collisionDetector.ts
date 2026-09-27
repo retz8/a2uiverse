@@ -3,8 +3,8 @@
  *
  * Phase 2 puts several catalogs — several design systems — on one page at once. CSS is global by
  * nature, so three things can go wrong silently: two catalogs defining the same custom property
- * at a scope that escapes their own subtree; two catalogs shipping the same class or keyframe
- * name; and a catalog reading a variable it never defines, so its appearance depends on whichever
+ * at a scope that escapes their own subtree; two catalogs shipping the same class, keyframe or
+ * `@font-face` family name; and a catalog reading a variable it never defines, so its appearance depends on whichever
  * neighbour happens to be installed. None of these throw. None are visible to a vendor testing
  * its catalog alone — they exist only in composition.
  *
@@ -28,6 +28,8 @@ export interface StyleFacts {
   reads: Map<string, {withFallback: number; bare: number}>;
   classes: Set<string>;
   keyframes: Set<string>;
+  /** Font families the catalog declares with `@font-face`, as the page matches them: lowercased. */
+  fontFaces: Set<string>;
 }
 
 const emptyFacts = (): StyleFacts => ({
@@ -35,6 +37,7 @@ const emptyFacts = (): StyleFacts => ({
   reads: new Map(),
   classes: new Set(),
   keyframes: new Set(),
+  fontFaces: new Set(),
 });
 
 /**
@@ -64,6 +67,16 @@ export function analyzeCss(css: string, into: StyleFacts = emptyFacts()): StyleF
   }
 
   for (const match of text.matchAll(/@keyframes\s+([\w-]+)/g)) into.keyframes.add(match[1]);
+  for (const block of text.matchAll(/@font-face\s*\{([^}]*)\}/g)) {
+    const family = /font-family\s*:\s*([^;]+)/.exec(block[1])?.[1];
+    if (family)
+      into.fontFaces.add(
+        family
+          .trim()
+          .replace(/^(['"])(.*)\1$/, '$2')
+          .toLowerCase(),
+      );
+  }
   return into;
 }
 
@@ -108,7 +121,8 @@ export type Finding =
   | {rule: 'global-write'; pkg: string; name: string; selector: string}
   | {rule: 'unsatisfied-read'; pkg: string; name: string}
   | {rule: 'duplicate-class'; name: string; pkgs: string[]}
-  | {rule: 'duplicate-keyframes'; name: string; pkgs: string[]};
+  | {rule: 'duplicate-keyframes'; name: string; pkgs: string[]}
+  | {rule: 'duplicate-font-face'; name: string; pkgs: string[]};
 
 /**
  * Every stylesheet a catalog pulls onto the page. A catalog's own directory is not enough: a
@@ -193,13 +207,16 @@ export function findCollisions(catalogs: CatalogStyles[]): Finding[] {
 
   findings.push(...duplicates(catalogs, 'classes', 'duplicate-class'));
   findings.push(...duplicates(catalogs, 'keyframes', 'duplicate-keyframes'));
+  // An `@font-face` rule has no selector to scope it: every family it declares is the page's, so
+  // a family two catalogs both declare escapes by nature, and the last to load draws the other's text.
+  findings.push(...duplicates(catalogs, 'fontFaces', 'duplicate-font-face'));
   return findings;
 }
 
 function duplicates(
   catalogs: CatalogStyles[],
-  key: 'classes' | 'keyframes',
-  rule: 'duplicate-class' | 'duplicate-keyframes',
+  key: 'classes' | 'keyframes' | 'fontFaces',
+  rule: 'duplicate-class' | 'duplicate-keyframes' | 'duplicate-font-face',
 ): Finding[] {
   const owners = new Map<string, string[]>();
   for (const catalog of catalogs) {

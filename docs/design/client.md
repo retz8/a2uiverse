@@ -366,7 +366,7 @@ Only the latest step owns the merge line: a later step ends the "working" an ear
 
 **Each catalog brings one Provider and one CSS setup**, both scoped to the boundary. The client imports each catalog package for its catalog, its id and its Provider, and wraps that catalog's surfaces only (`catalogs/resolver.ts`). It registers nothing at the app root and does no per-vendor CSS setup of its own, so installing an app is a table entry, not a shell change.
 
-**The collision detector** (`canvas/composition/collisionDetector.ts`) catches the ways CSS can collide silently. It checks four rules across every installed catalog:
+**The collision detector** (`canvas/composition/collisionDetector.ts`) catches the ways CSS can collide silently. It checks five rules across every installed catalog:
 
 | Rule                | The problem                                                                              |
 | ------------------- | ---------------------------------------------------------------------------------------- |
@@ -374,6 +374,7 @@ Only the latest step owns the merge line: a later step ends the "working" an ear
 | unsatisfied read    | a catalog reads a variable it never defines, without a fallback, so it looks right only by accident of what else is installed |
 | duplicate class     | two catalogs ship the same class name                                                    |
 | duplicate keyframes | two catalogs ship the same `@keyframes` name                                             |
+| duplicate font face | two catalogs declare the same `@font-face` family; a `@font-face` rule has no selector to scope it, so the last catalog loaded draws the other's text |
 
 The rules are prefix-agnostic: two design systems can both ship `--text-primary` meaning different colors. Sharing a name is fine, since scoping is exactly for that; writing one where it escapes is the failure. It runs in three layers, split by what each can see: a static scan of every catalog's stylesheets, a jsdom mount of all catalogs together, and a Playwright spec for the real cascade.
 
