@@ -525,3 +525,46 @@ again with `{id: 'x', component: 'Button', child: 'l'}`: the model's properties 
 Rebuild from an empty object — `this.currentProps = {}` before resolving in
 `rebuildAllBindings` — so the resolution's own writes (`isValid`, `validationErrors` from
 checkable rules) land in the fresh props and nothing the new properties dropped survives.
+
+---
+
+## 10. The v0.9 streaming parser's placeholder is the basic catalog's `Row` (Python agent SDK)
+
+**Component:** `agent_sdks/python/a2ui_agent/src/a2ui/inference_formats/direct_json/streaming_v09.py`,
+`_placeholder_component` (`upstream/main` `52c641a3`); `a2ui-agent-sdk` 0.2.x ships the same in
+`a2ui/parser/streaming_v09.py`.
+
+**Severity:** functional bug for any catalog that is not the basic catalog — every placeholder the
+parser streams names a component the surface's catalog does not have.
+
+### Issue
+
+While a surface streams, the parser stands a placeholder in for each child a parent names before
+the child itself has arrived — `loading_<child id>`, and `loading_children_<parent id>` for a list
+still opening. The placeholder's component is fixed:
+
+```python
+return {
+    'component': 'Row',
+    'children': [],
+}
+```
+
+`Row` is a basic-catalog component. A surface whose `catalogId` is any other catalog — a design
+system's, a product's own vocabulary — receives, in every streamed update until its children land,
+components its catalog does not declare. The React renderer draws its unknown-component notice for
+each one. The settled surface carries none of them, so the defect shows only while a surface
+streams in.
+
+### Reproduction
+
+Stream any v0.9 surface whose catalog has no `Row` — a parent naming three children that arrive one
+by one. Each intermediate update carries `{"id": "loading_<child>", "component": "Row", "children": []}`
+for the children not yet seen.
+
+### Fix
+
+Take the placeholder from the surface's catalog rather than assuming the basic one: let the parser
+be constructed with the catalog's placeholder component (a declared empty container), or, when the
+catalog declares none, hold the parent back until its children arrive instead of emitting a
+component the catalog lacks.
