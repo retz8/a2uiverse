@@ -6,8 +6,10 @@
  * turn before it still streams is kept beside that turn, on its clock.
  *
  * Each canvas keeps what the client would hold of it — every surface's tree and data model, and
- * each source's paints as a stack counted at the wire (task-9.7 decision 2) — so an action carries
- * the canvas's data model and a step carries the paint it steps to, as the canvas sends them.
+ * each source's paints counted at the wire (task-9.7 decision 2) with the visits its arrows walk
+ * (task-10.9 decisions 2–4) — so an action carries the canvas's data model and a step carries the
+ * paint it steps to, as the canvas sends them. A step is recorded as the arrow raises it, naming
+ * the visit, and sent as the canvas sends it, naming the paint the visit holds.
  */
 import type {A2uiClientAction, A2uiClientDataModel, A2uiMessage} from '@a2ui/web_core/v0_9';
 import {DataModel} from '@a2ui/web_core/v0_9';
@@ -42,10 +44,17 @@ type Paint = Map<string, {sendDataModel: boolean; components: Component[]; data:
 
 const sourceOf = (surfaceId: string) => surfaceId.split(':')[0]!;
 
-/** What the canvas holds: its surfaces, and each vendor source's paints as a stack. */
+/** A vendor source's paints by paint id, the paint ids it visited, and the visit on screen. */
+interface Visits {
+  paints: Array<Paint | undefined>;
+  visits: number[];
+  at: number;
+}
+
+/** What the canvas holds: its surfaces, and each vendor source's paints and visits. */
 export class CanvasModel {
   readonly #surfaces = new Map<string, Surface>();
-  readonly #stacks = new Map<string, {steps: Array<Paint | undefined>; index: number}>();
+  readonly #sources = new Map<string, Visits>();
 
   apply(batch: BeatBatch): void {
     const vendor =
@@ -101,30 +110,56 @@ export class CanvasModel {
   }
 
   #push(source: string) {
-    const stack = this.#stacks.get(source) ?? {steps: [], index: -1};
-    this.#stacks.set(source, stack);
-    if (stack.index >= 0) stack.steps[stack.index] = this.#capture(source);
-    stack.steps.length = stack.index + 1;
-    stack.steps.push(undefined);
-    stack.index += 1;
+    const known = this.#sources.get(source);
+    if (!known) {
+      this.#sources.set(source, {paints: [undefined], visits: [0], at: 0});
+      this.#clear(source);
+      return;
+    }
+    const {paints, visits} = known;
+    paints[visits[known.at]!] = this.#capture(source);
+    // Off the last visit: where the reader landed is visited again first (task-10.9 decision 4).
+    if (known.at < visits.length - 1) visits.push(visits[known.at]!);
+    paints.push(undefined);
+    visits.push(paints.length - 1);
+    known.at = visits.length - 1;
     this.#clear(source);
   }
 
-  /** The source's paint at `index` becomes the one on screen, as a step back restores it. */
-  stepTo(source: string, index: number): void {
-    const stack = this.#stacks.get(source);
-    const paint = stack?.steps[index];
-    if (!stack || !paint) throw new Error(`${source} has no paint at step ${index}`);
-    stack.steps[stack.index] = this.#capture(source);
+  /** The nearest visit `way` of the one on screen holding another paint to return to. */
+  neighbour(source: string, way: 'back' | 'forward'): number {
+    const known = this.#sources.get(source);
+    if (known) {
+      const shown = known.visits[known.at];
+      const by = way === 'back' ? -1 : 1;
+      for (let i = known.at + by; i >= 0 && i < known.visits.length; i += by) {
+        const id = known.visits[i]!;
+        if (id !== shown && known.paints[id]) return i;
+      }
+    }
+    throw new Error(`${source} has nowhere to go ${way}`);
+  }
+
+  /**
+   * The paint in the visit at `position` becomes the one on screen, as a step restores it: its
+   * paint id, what the step names on the wire.
+   */
+  stepTo(source: string, position: number): number {
+    const known = this.#sources.get(source);
+    const id = known?.visits[position];
+    const paint = id === undefined ? undefined : known!.paints[id];
+    if (!known || !paint) throw new Error(`${source} has no paint at visit ${position}`);
+    known.paints[known.visits[known.at]!] = this.#capture(source);
     this.#clear(source);
-    for (const [id, surface] of paint) {
-      this.#surfaces.set(id, {
+    for (const [surfaceId, surface] of paint) {
+      this.#surfaces.set(surfaceId, {
         sendDataModel: surface.sendDataModel,
         components: new Map(surface.components.map(c => [c.id, c])),
         data: new DataModel(structuredClone(surface.data) as Record<string, unknown>),
       });
     }
-    stack.index = index;
+    known.at = position;
+    return id!;
   }
 
   /** The canvas's data model, as the processor reports it on every message. */
@@ -373,8 +408,15 @@ export class Session {
     );
   }
 
-  /** The reader's press on `canvas`, beside the turn before it. */
-  press(canvas: SessionCanvas, operation: CompositionOperation): Promise<DrivenTurn> {
+  /**
+   * The reader's press on `canvas`, beside the turn before it; a step's `paint` is the paint id
+   * sent in place of the visit the press names.
+   */
+  press(
+    canvas: SessionCanvas,
+    operation: CompositionOperation,
+    paint?: number,
+  ): Promise<DrivenTurn> {
     const turn: BeatTurn = {
       taskId: null,
       kind: 'press',
@@ -393,17 +435,30 @@ export class Session {
       recorded,
       driveMessage(
         this.#sender,
-        buildOperationMessageParams(operation, canvas.context(), this.#catalogIds, dataModel),
+        buildOperationMessageParams(
+          paint === undefined ? operation : {...operation, step: paint},
+          canvas.context(),
+          this.#catalogIds,
+          dataModel,
+        ),
         canvas.context(),
         this.#collect(recorded, canvas.model),
       ),
     );
   }
 
-  /** A step inside `source`'s fragment: the paint restored at once, then sent as the canvas sends it. */
+  /**
+   * A step inside `source`'s fragment to the visit at `to`: the paint restored at once, the
+   * press recorded as the arrow raises it and sent as the canvas sends it, naming the paint.
+   */
   step(canvas: SessionCanvas, source: string, to: number): Promise<DrivenTurn> {
-    canvas.model.stepTo(source, to);
-    return this.press(canvas, {kind: 'step', sources: [source], step: to});
+    const id = canvas.model.stepTo(source, to);
+    return this.press(canvas, {kind: 'step', sources: [source], step: to}, id);
+  }
+
+  /** The arrow `way` beside `source`'s attribution, pressed. */
+  arrow(canvas: SessionCanvas, source: string, way: 'back' | 'forward'): Promise<DrivenTurn> {
+    return this.step(canvas, source, canvas.model.neighbour(source, way));
   }
 }
 

@@ -73,13 +73,28 @@ describe('composeFragment', () => {
 
   test('leaves non-A2UI parts untouched by reference and never mutates the original', () => {
     const text = {kind: 'text' as const, text: 'hello'};
-    const paintMeta = {kind: 'data' as const, data: {paintMeta: {surfaceId: 's1'}}};
-    const original = statusUpdate([text, paintMeta, a2uiPart({deleteSurface: {surfaceId: 's1'}})]);
+    const other = {kind: 'data' as const, data: {note: {surfaceId: 's1'}}};
+    const original = statusUpdate([text, other, a2uiPart({deleteSurface: {surfaceId: 's1'}})]);
     const snapshot = structuredClone(original);
     const out = composeFragment(original, ctx) as TaskStatusUpdateEvent;
     expect(out.status.message!.parts[0]).toBe(text);
-    expect(out.status.message!.parts[1]).toBe(paintMeta);
+    expect(out.status.message!.parts[1]).toBe(other);
     expect(original).toEqual(snapshot);
+  });
+
+  test('namespaces the surface a paintMeta titles, as the client sees it; its title and kind kept (task 10.9)', () => {
+    const paintMeta = {
+      kind: 'data' as const,
+      data: {paintMeta: {surfaceId: 'run-detail', title: 'Run 812', kind: 'question'}},
+      metadata: {mimeType: 'application/json+a2ui-shell'},
+    };
+    const original = statusUpdate([paintMeta]);
+    const out = composeFragment(original, ctx) as TaskStatusUpdateEvent;
+    expect(out.status.message!.parts[0]).toEqual({
+      ...paintMeta,
+      data: {paintMeta: {surfaceId: 'github:run-detail', title: 'Run 812', kind: 'question'}},
+    });
+    expect(paintMeta.data.paintMeta.surfaceId).toBe('run-detail');
   });
 
   test('demotes a vendor final to a non-final working update, parts intact', () => {

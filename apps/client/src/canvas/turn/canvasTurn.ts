@@ -249,7 +249,7 @@ export function createTurnRunner({
   };
 
   /**
-   * Every vendor create in a batch is a step of its source (task-9.7 decision 2): counted here,
+   * Every vendor create in a batch is a paint of its source (task-9.7 decision 2): counted here,
    * at the wire, before refusal, admission or staging decide what becomes of it — the
    * orchestrator counted it when it relayed it. The shell's own surfaces never count.
    */

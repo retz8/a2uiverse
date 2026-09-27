@@ -62,6 +62,7 @@ async function boot(
     softDeadlineMs?: number;
     hardCapMs?: number;
     heartbeatMs?: number;
+    stepQuietMs?: number;
     faults?: FaultMap;
   } = {},
 ) {
@@ -109,6 +110,8 @@ async function boot(
       embedder: new FakeEmbedder(),
       planner: options.planner ?? new FakePlanner(() => planFor(APPS)),
       ...(options.synthesizer ? {synthesisModel: options.synthesizer} : {}),
+      // The step quiet is its own test's to lengthen; elsewhere a step walks as soon as it can.
+      stepQuietMs: options.stepQuietMs ?? 0,
     },
   });
   await orchestrator.init();
@@ -2436,7 +2439,7 @@ function step(
   };
 }
 
-describe("the fragment's history (task 9.4)", () => {
+describe("the fragment's history (tasks 9.4, 10.9)", () => {
   const planner = () => new FakePlanner(() => planWithSynthesis(['github', 'gmail']));
 
   test('a step back to a combination already seen restores its wiring with no call, the partition put back; the current index is a no-op', async () => {
@@ -2657,7 +2660,45 @@ describe("the fragment's history (task 9.4)", () => {
     });
   });
 
-  test('a paint after a step back drops the steps past it; a step the stack does not hold, a source that never painted, or a step carrying no paint is refused', async () => {
+  test('a step inside the quiet abandons the walk the step before it would have started: no call is made (task-10.9 decision 7)', async () => {
+    const synthesizer = new FakeSynthesizer();
+    const {client} = await boot({
+      planner: planner(),
+      synthesizer,
+      stepQuietMs: 300,
+      scripts: {github: drillScript(camerasA), gmail: drillScript(camerasB)},
+    });
+    const first = await collect(client, utterance('compare camera prices'));
+    const contextId = first[0]!.contextId!;
+    await collect(client, actionOn('github:s1', contextId));
+    await collect(client, actionOn('gmail:s1', contextId));
+    expect(synthesizer.calls).toHaveLength(3);
+
+    // GitHub back to its list, Gmail on its detail: never seen — but forward again at once.
+    const unseen = collect(client, step('github', 0, contextId, {'github:s1': {items: camerasA}}));
+    await new Promise(resolve => setTimeout(resolve, 50));
+    const forward = await collect(
+      client,
+      step('github', 1, contextId, {'github:s2': {items: camerasA}}),
+    );
+    const abandoned = await unseen;
+    expect(finalOf(abandoned).status.state).toBe('completed');
+    expect(synthesisEvents(abandoned)).toHaveLength(0);
+    expect(synthesisEvents(forward)).toHaveLength(0);
+    expect(synthesizer.calls).toHaveLength(3);
+
+    const lines = await journalLines(5);
+    const passed = lines.find(l => l.descriptor === 'step github to 0');
+    expect(passed).toMatchObject({
+      step: {combination: {github: 0, gmail: 1}, seen: false, walk: 'abandoned'},
+    });
+    expect(passed).not.toHaveProperty('synthesis');
+    expect(lines.find(l => l.descriptor === 'step github to 1')).toMatchObject({
+      step: {combination: {github: 1, gmail: 1}, seen: true, walk: 'silent'},
+    });
+  });
+
+  test('a paint after a step back drops nothing; a paint the source never made, a source that never painted, or a step carrying no paint is refused', async () => {
     const synthesizer = new FakeSynthesizer();
     const {client} = await boot({
       planner: new FakePlanner(() => planWithSynthesis(['github', 'gmail', 'calendar'])),
@@ -2669,19 +2710,19 @@ describe("the fragment's history (task 9.4)", () => {
     await collect(client, actionOn('github:s1', contextId));
     await collect(client, actionOn('github:s2', contextId));
     await collect(client, step('github', 0, contextId, {'github:s1': {items: camerasA}}));
-    // The vendor answers the next press with a new paint: it lands at step 1, steps 2 gone.
+    // The vendor answers the next press with a new paint: paint 3, paint 2 still there.
     await collect(client, actionOn('github:s1', contextId));
-    const gone = await collect(
+    const kept = await collect(
       client,
-      step('github', 2, contextId, {'github:s4': {items: camerasA}}),
+      step('github', 2, contextId, {'github:s3': {items: camerasA}}),
     );
-    expect(finalOf(gone).status.state).toBe('failed');
-    expect(textsIn(gone)).toContain('GitHub has no step 2.');
-    const okay = await collect(
+    expect(finalOf(kept).status.state).toBe('completed');
+    const never4 = await collect(
       client,
-      step('github', 1, contextId, {'github:s4': {items: camerasA}}),
+      step('github', 4, contextId, {'github:s5': {items: camerasA}}),
     );
-    expect(finalOf(okay).status.state).toBe('completed');
+    expect(finalOf(never4).status.state).toBe('failed');
+    expect(textsIn(never4)).toContain('GitHub has no paint 4.');
 
     const never = await collect(client, step('calendar', 0, contextId, {'calendar:s1': {}}));
     expect(finalOf(never).status.state).toBe('failed');
@@ -2695,7 +2736,7 @@ describe("the fragment's history (task 9.4)", () => {
 
     const lines = await journalLines(9);
     expect(lines.filter(l => l.refused).map(l => l.refused)).toEqual([
-      'GitHub has no step 2.',
+      'GitHub has no paint 4.',
       'Google Calendar has not painted.',
       'The step carries no paint.',
     ]);

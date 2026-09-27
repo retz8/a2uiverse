@@ -259,9 +259,10 @@ build_response, build_text_response = fixture_responder(
 )
 ```
 
-- **Any question** answers with the same fixture, `my-issues.json`: 16 A2UI messages (one `createSurface`, 14 data model updates, one component update). The text path doesn't try to understand the question. Guessing intent from words is the model modes' job, and a second, worse router here would only hide that.
+- **Any question** answers with the same fixture, `my-issues.json`: 15 A2UI messages (one `createSurface`, 13 data model updates, one component update) and the paint's `paintMeta`. The text path doesn't try to understand the question. Guessing intent from words is the model modes' job, and a second, worse router here would only hide that.
 - **An action** looks up its fixture by name. An unknown action gets a visible `Unhandled event: <name>` text, never a silent no-op.
 - **Surface ids.** A client can't be asked to create a surface id that already exists, and the executor keeps no state between requests. So every answer that creates a surface gets a **fresh id** from a counter: `linear-1`, `linear-2`, and so on. That includes an action whose fixture carries a `createSurface`, like opening an issue: it's a new screen, as the live agent paints it. An action without one updates the surface the click came from.
+- **Titles and question marks.** A fixture keeps the `paintMeta` its recording carried, after the A2UI messages: the paint's title (`"A2U-5"` on Linear's issue) and, on a question, its kind. It's stamped with the same surface id as the rest, and the executor sends it as the shell part ahead of them, so a deterministic screen is named on its back arrow and a question is marked, as in the model modes. `corpus.py`'s `settled_messages` keeps one per surface when a fixture is derived; the derive scripts leave it out of an answer that replays a question's own paint, like Gmail's `confirm-draft`.
 
 ### Tool hooks at the lowest boundary
 

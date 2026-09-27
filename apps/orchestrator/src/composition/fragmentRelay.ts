@@ -9,9 +9,10 @@ const A2UI_OPS = ['createSurface', 'updateComponents', 'updateDataModel', 'delet
 /**
  * The composition half of the relay, applied after {@link relayEvent}'s id
  * rewrites: the stamp gains `role: 'fragment'` beside its `source`, surfaceIds
- * are namespaced on the four A2UI ops, and vendor finals are demoted — under
- * fan-out several vendors end on one orchestrator task, so the executor owns
- * the single turn-final. The original event is never mutated.
+ * are namespaced on the four A2UI ops and on the vendor's `paintMeta` — the
+ * surface it titles, as the client will see it (SPEC §14) — and vendor finals
+ * are demoted — under fan-out several vendors end on one orchestrator task, so
+ * the executor owns the single turn-final. The original event is never mutated.
  */
 export interface ComposeContext {
   appId: string;
@@ -88,9 +89,19 @@ function namespaceParts(parts: Part[], appId: string): Part[] {
 
 type Data = Record<string, unknown>;
 
-/** Handles both wire forms: one message object per part, and the spec's `messages[]` list. */
+/**
+ * Handles both wire forms: one message object per part, and the spec's `messages[]` list; and the
+ * vendor's `paintMeta` part, whose title and question kind the client files under the surface id
+ * it sees (task 10.9).
+ */
 function namespaceData(data: Data, appId: string): Data {
   if (typeof data.version === 'string') return namespaceMessage(data, appId);
+  const meta = data.paintMeta;
+  if (typeof meta === 'object' && meta !== null) {
+    const surfaceId = (meta as {surfaceId?: unknown}).surfaceId;
+    if (typeof surfaceId !== 'string') return data;
+    return {...data, paintMeta: {...meta, surfaceId: namespaceSurfaceId(appId, surfaceId)}};
+  }
   if (Array.isArray(data.messages)) {
     return {
       ...data,

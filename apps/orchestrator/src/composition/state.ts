@@ -152,7 +152,7 @@ export interface CompositionState {
   gaps: string[];
   /** Every surface's data model. */
   partitions: Partitions;
-  /** Each agent's steps in this composition and the wiring accepted per combination of them (task 9.4). */
+  /** Each agent's paints in this composition and the wiring accepted per combination of them (tasks 9.4, 10.9). */
   history: History;
   /** Sources whose dispatch completed holding a surface, and not failed since — what the first synthesis runs over. */
   arrived: Set<string>;
@@ -181,6 +181,11 @@ export interface CompositionState {
   presses: Presses;
   /** The merge in the making, the first or a re-synthesis — one at a time (task-8.10 decision 3). */
   making?: Promise<void>;
+  /**
+   * While a step waits out its quiet before its walk (task-10.9 decision 7): aborted by the next
+   * step, the combination it would walk no longer on screen.
+   */
+  stepQuiet?: AbortController;
   /**
    * While a walk only steps owed runs: aborted by the next step, the combination it walks no
    * longer on screen (task-9.9 decision 17).

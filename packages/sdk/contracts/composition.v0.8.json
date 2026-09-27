@@ -44,7 +44,7 @@
       "fields": {
         "kind": "The press: 'retry' re-dispatches one failed source's request; 'include' folds the sources that arrived after the merge into it; 'tryAgain' makes again a merge whose call failed; 'step' reports a fragment stepped back or forward in its own history — the paint's data model rides a2uiClientDataModel as on an action; 'close' ends the canvas: everything running in it cancelled, its composition dropped.",
         "sources": "The source ids the press names: exactly one with 'retry' and 'step', at least one with 'include', none with 'tryAgain' and 'close'.",
-        "step": "With 'step' only, required there: the index in that agent's stack — one step per surface replacement, counted the same way on both sides, from 0 — the fragment now shows. A non-negative integer."
+        "step": "With 'step' only, required there: the paint id the fragment now shows — one paint per createSurface from that agent, counted the same way on both sides, from 0, never reused. A non-negative integer."
       }
     },
     "paintMeta": {
@@ -55,7 +55,7 @@
       "kinds": ["question"],
       "fields": {
         "surfaceId": "The surface the paint creates, as the client will see it — namespaced for a fragment, shell:main for the layout surface.",
-        "title": "A short title for the paint, at most paintMetaTitleMaxLength characters. On the layout surface it is the Planner's title for the canvas, naming its entry in the trail; a longer one is clipped with an ellipsis by the orchestrator and journaled, never a plan finding; absent, the client falls back to the question. On a fragment it is the agent's own title for the paint, naming the step in the fragment's history.",
+        "title": "A short title for the paint, at most paintMetaTitleMaxLength characters. On the layout surface it is the Planner's title for the canvas, naming its entry in the trail; a longer one is clipped with an ellipsis by the orchestrator and journaled, never a plan finding; absent, the client falls back to the question. On a fragment it is the agent's own title for the paint, naming it in the fragment's history.",
         "kind": "The paint's declared kind: 'question' marks a surface the canvas routes to its overlay slot."
       },
       "authors": "The orchestrator emits the part for its own layout surface. A vendor agent's part is the agent kit's, in this same shape, relayed untouched; the contract describes the part, it does not own the kit's emission — an agent that never emits one composes, its paints titled from their cause."

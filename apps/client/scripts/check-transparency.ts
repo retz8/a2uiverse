@@ -37,6 +37,8 @@ const STRIPPED_METADATA = 'a2uiverse';
 const SURFACE_ID_KEY = 'surfaceId';
 /** The A2UI ops whose surfaceId the hub namespaces. */
 const A2UI_OPS = ['createSurface', 'updateComponents', 'updateDataModel', 'deleteSurface'];
+/** Besides them, the surface a vendor's `paintMeta` titles (task 10.9). */
+const NAMESPACED = [...A2UI_OPS, 'paintMeta'];
 const TERMINAL = new Set(['completed', 'failed', 'canceled', 'rejected']);
 
 const DEFAULT_AGENTS =
@@ -58,14 +60,15 @@ function isOrchestratorEnvelope(event: A2AStreamEventData): boolean {
 
 /**
  * Un-namespace `<appId>:<surfaceId>` back to the vendor's own id — the inverse of the hub's one
- * A2UI rewrite, applied so the comparison sees the vendor's stream as the vendor sent it.
+ * A2UI rewrite and of the same rewrite on a `paintMeta`, applied so the comparison sees the
+ * vendor's stream as the vendor sent it.
  */
 function unnamespace(value: unknown, appId: string): unknown {
   if (Array.isArray(value)) return value.map(v => unnamespace(v, appId));
   if (!value || typeof value !== 'object') return value;
   const out: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
-    if (A2UI_OPS.includes(k) && v && typeof v === 'object') {
+    if (NAMESPACED.includes(k) && v && typeof v === 'object') {
       const body = v as Record<string, unknown>;
       const id = body[SURFACE_ID_KEY];
       out[k] =
@@ -121,7 +124,7 @@ function normalize(value: unknown, key?: string): unknown {
   return value;
 }
 
-/** Every surfaceId mentioned by an event's A2UI payload. */
+/** Every surfaceId mentioned by an event's A2UI payload and its `paintMeta`. */
 function surfaceIdsOf(value: unknown, found: string[] = []): string[] {
   if (Array.isArray(value)) {
     for (const v of value) surfaceIdsOf(v, found);
@@ -129,7 +132,7 @@ function surfaceIdsOf(value: unknown, found: string[] = []): string[] {
   }
   if (!value || typeof value !== 'object') return found;
   for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
-    if (A2UI_OPS.includes(k) && v && typeof v === 'object') {
+    if (NAMESPACED.includes(k) && v && typeof v === 'object') {
       const id = (v as Record<string, unknown>)[SURFACE_ID_KEY];
       if (typeof id === 'string') found.push(id);
     }

@@ -20,6 +20,9 @@
  * orchestrator of the recorder's own like Phase 8's, driven as the canvas drives them — questions
  * naming their parent, actions and presses on the canvas they name, a step carrying the paint it
  * restores, a close — and checked against the journal lines the take wrote as well as its streams.
+ *
+ * Beat 26 is task 10.9's, a session of the same kind: CircleCI's history branching after a Back,
+ * every step landing on a combination seen and every drill-down titled.
  */
 import {mkdir, readFile, stat, writeFile} from 'node:fs/promises';
 import {resolve} from 'node:path';

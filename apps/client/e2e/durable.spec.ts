@@ -89,6 +89,20 @@ for (const [beat, name] of [
   });
 }
 
+test('beat 26: Back past a new run lands on the job left behind, both arrows titled (task 10.9)', async ({
+  page,
+}) => {
+  await landed(page, '26');
+  await expect(
+    stage(page).getByRole('button', {name: 'Back to Run: synthesizer-effort-apart-from-planner'}),
+  ).toHaveCount(1);
+  await expect(
+    stage(page).getByRole('button', {name: 'Forward to Recent pipeline runs'}),
+  ).toHaveCount(1);
+  await expect(page.locator('[data-slot="shell"]')).toHaveAttribute('data-slot-state', 'filled');
+  await expect(page).toHaveScreenshot('durable-step-branch.png', shot(page));
+});
+
 test('beat 25: the loading canvas closed, the canvas empty', async ({page}) => {
   await landed(page, '25');
   await expect(page.getByRole('button', {name: 'Trail'})).toBeDisabled();

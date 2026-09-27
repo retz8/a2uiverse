@@ -296,6 +296,46 @@ describe('a step (task 9.7)', () => {
     expect(canvas.store.getState().inFlight).toBeNull();
   });
 
+  it('the arrow names a visit; the step sent names the paint that visit holds (task-10.9 decision 6)', async () => {
+    const {wiring, canvas, sent} = withTwoPaints(async function* () {
+      yield completed;
+    });
+    await wiring.press(stepBack);
+    // A new paint after the Back: visits 0 · 1 · 0 · 2.
+    const action = canvas.runner.begin({
+      kind: 'surface-action',
+      payload: {
+        action: {
+          name: 'open',
+          context: {},
+          surfaceId: 'github:pr-list',
+          sourceComponentId: 'row',
+          timestamp: '2026-09-25T00:00:00Z',
+        },
+      },
+    });
+    action.apply(githubPaint('github:pr-list', 'PR #7', 'another detail'), fragment('github'));
+    action.end();
+    expect(canvas.history.visitsOf('github')).toEqual({visits: [0, 1, 0, 2], at: 3});
+    expect(canvas.history.neighbours('github')).toEqual({
+      back: {step: 2, title: 'Pull requests'},
+    });
+    const back = {kind: 'step' as const, sources: ['github'], step: 2};
+    await wiring.press(back);
+    expect(rootText(canvas, 'github:pr-list')).toBe('four PRs');
+    expect(sent.at(-1)!.message.parts).toEqual([
+      {kind: 'data', data: {version: 'v0.9', operation: {...back, step: 0}}},
+    ]);
+    await wiring.press({kind: 'step', sources: ['github'], step: 1});
+    expect(rootText(canvas, 'github:pr-list')).toBe('the detail');
+    expect(sent.at(-1)!.message.parts).toEqual([
+      {
+        kind: 'data',
+        data: {version: 'v0.9', operation: {kind: 'step', sources: ['github'], step: 1}},
+      },
+    ]);
+  });
+
   it('a step to the paint on screen, or to a placeholder, restores nothing and sends nothing', async () => {
     const {wiring, canvas, sent} = withTwoPaints(async function* () {
       yield completed;
@@ -403,7 +443,7 @@ describe('the merged view on a step back (task 9.7 decisions 3, 4)', () => {
     // nothing was filed under.
     repaintShopA();
     repaintShopA(REWIRED);
-    expect(canvas.history.stackOf('shop-a')).toEqual({length: 3, at: 2});
+    expect(canvas.history.visitsOf('shop-a')).toEqual({visits: [0, 1, 2], at: 2});
     const pressing = wiring.press(stepShopA(1));
     expect(canvas.synthesis.payload).toEqual(REWIRED);
     expect(canvas.store.getState().mergeFollowingStep).toBe(true);

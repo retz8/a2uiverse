@@ -597,4 +597,45 @@ export const BEATS: BeatSpec[] = [
       },
     },
   },
+  {
+    beat: 26,
+    slug: 'step-branch',
+    title: 'Back, then another run: every visit kept',
+    prompt: WORKING_ON,
+    session: {
+      run: async s => {
+        const join = s.ask(WORKING_ON);
+        await join.done;
+        await s.act(join, 'circleci', 'open-run');
+        await s.act(join, 'circleci', 'open-job');
+        await s.arrow(join, 'circleci', 'back');
+        await s.arrow(join, 'circleci', 'back');
+        await s.act(join, 'circleci', 'open-run', 1);
+        await s.arrow(join, 'circleci', 'back');
+        await s.arrow(join, 'circleci', 'back');
+      },
+      shows: recorded => {
+        const steps = linesOf(recorded, 0).filter(l => l.step);
+        const drills = recorded.turns.filter(t => t.kind === 'surface-action');
+        const titled = drills.every(t =>
+          t.batches.some(b =>
+            b.messages.some(m => (m as {paintMeta?: {title?: string}}).paintMeta?.title),
+          ),
+        );
+        return need(
+          [
+            drills.length === 3 && drills.every(t => paints(t.batches, 'circleci')),
+            'a drill-down did not paint',
+          ],
+          [titled, 'a drill-down came without its title'],
+          [steps.length === 4, 'the four steps were not journaled'],
+          [steps.every(l => l.step?.seen === true), 'a step landed on a combination never seen'],
+          [
+            steps.every(l => l.step?.walk === 'silent' && !l.synthesis?.attempts?.length),
+            'a step made a synthesis call',
+          ],
+        );
+      },
+    },
+  },
 ];

@@ -1265,8 +1265,8 @@ describe("the fragment's history (task 9.7)", () => {
 
   it('every vendor create counts at the wire — a refused batch and a discarded staged paint included — the shell’s never (decision 2)', () => {
     const {runner, history} = historied();
-    expect(history.stackOf('github')).toEqual({length: 1, at: 0});
-    expect(history.stackOf('shell')).toBeUndefined();
+    expect(history.visitsOf('github')).toEqual({visits: [0], at: 0});
+    expect(history.visitsOf('shell')).toBeUndefined();
     // The shell draws Gmail's slot bare: its paint is refused at arrival, and still counted.
     const bare = runner.beginSideStream();
     bare.apply(
@@ -1285,13 +1285,13 @@ describe("the fragment's history (task 9.7)", () => {
     );
     bare.apply([create('gmail:inbox'), textRoot('gmail:inbox', 'inbox')], fragment('gmail'));
     bare.end();
-    expect(history.stackOf('gmail')).toEqual({length: 1, at: 0});
+    expect(history.visitsOf('gmail')).toEqual({visits: [0], at: 0});
     expect(history.neighbours('gmail')).toEqual({});
-    // A staged repaint the vendor cleaned up again: discarded at the swap, still a step.
+    // A staged repaint the vendor cleaned up again: discarded at the swap, still a paint.
     const action = runner.begin(surfaceAction('open'));
     action.apply([create('github:pr-detail'), del('github:pr-detail')], fragment('github'));
     action.end();
-    expect(history.stackOf('github')).toEqual({length: 2, at: 1});
+    expect(history.visitsOf('github')).toEqual({visits: [0, 1], at: 1});
     // The list is still what is on screen, with nowhere to go: the placeholder is skipped.
     expect(history.neighbours('github')).toEqual({});
   });
@@ -1323,7 +1323,7 @@ describe("the fragment's history (task 9.7)", () => {
       fragment('github'),
     );
     retry.end();
-    expect(history.stackOf('github')).toEqual({length: 3, at: 2});
+    expect(history.visitsOf('github')).toEqual({visits: [0, 1, 2], at: 2});
     expect(history.neighbours('github')).toEqual({back: {step: 1, title: 'PR #42'}});
     expect((history.stepTo('github', 1)!.paint.tree.root as {text: string}).text).toBe(
       'the detail',
@@ -1343,7 +1343,7 @@ describe("the fragment's history (task 9.7)", () => {
     );
     ask.end();
     repaint(runner, 'github:pr-list', 'Merged', 'merged');
-    expect(history.stackOf('github')).toEqual({length: 3, at: 2});
+    expect(history.visitsOf('github')).toEqual({visits: [0, 1, 2], at: 2});
     expect(history.neighbours('github')).toEqual({back: {step: 0, title: 'Pull requests'}});
   });
 
@@ -1364,7 +1364,7 @@ describe("the fragment's history (task 9.7)", () => {
     expect(history.neighbours('github')).toEqual({back: {step: 0, title: 'Pull requests'}});
   });
 
-  it('restore puts the copy back in the slot as the live surface, titled, and a fresh create after it lands as the next step', () => {
+  it('restore puts the copy back in the slot as the live surface, titled, and a fresh create after it lands as the next visit', () => {
     const {processor, store, runner, history} = historied();
     repaint(runner, 'github:pr-detail', 'PR #42', 'the detail');
     const step = history.stepTo('github', 0)!;
@@ -1373,11 +1373,15 @@ describe("the fragment's history (task 9.7)", () => {
     expect(processor.model.getSurface('github:pr-detail')).toBeUndefined();
     expect(store.getState().placement.get('github')?.surfaceId).toBe('github:pr-list');
     expect(history.neighbours('github')).toEqual({forward: {step: 1, title: 'PR #42'}});
-    // A later repaint of the restored id replaces it and drops the forward step.
+    // A later repaint of the restored id replaces it: the list is visited again, the detail kept.
     repaint(runner, 'github:pr-list', 'Another', 'another');
-    expect(history.stackOf('github')).toEqual({length: 2, at: 1});
-    expect(history.neighbours('github')).toEqual({back: {step: 0, title: 'Pull requests'}});
-    expect((history.stepTo('github', 0)!.paint.tree.root as {text: string}).text).toBe('four PRs');
+    expect(history.visitsOf('github')).toEqual({visits: [0, 1, 0, 2], at: 3});
+    expect(history.neighbours('github')).toEqual({back: {step: 2, title: 'Pull requests'}});
+    expect((history.stepTo('github', 2)!.paint.tree.root as {text: string}).text).toBe('four PRs');
+    expect(history.neighbours('github')).toEqual({
+      back: {step: 1, title: 'PR #42'},
+      forward: {step: 3, title: 'Another'},
+    });
   });
 
   it('a late message for the surface a restore retired is dropped, not reported; a fresh create for it lands', () => {
@@ -1430,7 +1434,7 @@ describe("the fragment's history (task 9.7)", () => {
     const turn = runner.begin(utterance('again'));
     expect(store.getState().inFlight?.source).toBeUndefined();
     turn.apply(paintedLayout(['github']), SHELL);
-    expect(history.stackOf('github')).toBeUndefined();
+    expect(history.visitsOf('github')).toBeUndefined();
     turn.end();
   });
 });

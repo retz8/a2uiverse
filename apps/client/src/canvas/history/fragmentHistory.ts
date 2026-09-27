@@ -1,27 +1,30 @@
 /**
- * The fragment's history on the client (SPEC §6.5; phase-9 decisions 2, 3; task 9.7): each
- * source's paints inside this canvas as a linear back/forward stack, and the wiring the merged
- * view accepted remembered per combination of the sources' steps — the client's half of what the
- * orchestrator holds in its `History` (task 9.4), counted the same way so the index a step
- * reports names the same paint on both sides.
+ * The fragment's history on the client (SPEC §6.5; phase-9 decisions 2, 3; tasks 9.7, 10.9): each
+ * source's paints inside this canvas, kept once by paint id and never dropped, and the list of
+ * visits its two arrows walk; and the wiring the merged view accepted, remembered per combination
+ * of the paints on screen — the client's half of what the orchestrator holds in its `History`
+ * (task 9.4), counted the same way so the paint id a step reports names the same paint on both
+ * sides. The list of visits is the client's alone (task-10.9 decision 6).
  *
  * - **The count runs at the wire** (task-9.7 decision 2): every vendor `createSurface` the canvas
- *   receives is a step the moment it arrives, before any apply or staging decision, whatever the
- *   surface id or the paint's kind. A create that never reached the stage, one the client could
- *   not draw, and a question-kind create each occupy their index as a placeholder that holds
- *   nothing to return to; the neighbour computation skips placeholders. A create landing after a
- *   step back takes the next index and drops the steps past it, with every wiring entry filed
- *   with the source at a dropped index.
- * - **A step holds the paint as last seen** (decision 1): the current step is the live surface
- *   itself; a copy — the surface's tree, its data model with every update the vendor pushed into
- *   it, its title — is taken only when the stack moves off it, by `leaving`, which the turn
- *   runner calls before it destroys the surface. A step back makes that copy the live surface
+ *   receives is a paint the moment it arrives, before any apply or staging decision, whatever the
+ *   surface id or the paint's kind, and is visited at once. A create that never reached the
+ *   stage, one the client could not draw, and a question-kind create each take their paint id as
+ *   a placeholder that holds nothing to return to; the neighbour computation skips placeholders.
+ * - **A new paint after a Back records where the reader landed** (task-10.9 decision 4): a create
+ *   arriving while the reader is not on the last visit first appends the paint they landed on,
+ *   then the new one; the paints passed through on the way back are not visited again.
+ * - **A paint is kept as last seen** (task-9.7 decision 1): the paint on screen is the live
+ *   surface itself; a copy — the surface's tree, its data model with every update the vendor
+ *   pushed into it, its title — is taken only when the reader moves off it, by `leaving`, which
+ *   the turn runner calls before it destroys the surface. A step makes that copy the live surface
  *   again, so leaving it later captures it afresh.
- * - **The wiring memory** (decision 3): the accepted synthesis payload is filed under the current
- *   combination — every source with a stack, mapped to its current index, keyed as the
- *   orchestrator keys it — and recalled on a step back to a combination already seen. A
- *   combination never seen is covered, as the orchestrator covers it, by the entry filed over
- *   fewer sources with every source it names where it stands now (task-9.9 decision 16).
+ * - **The wiring memory** (task-9.7 decision 3, task-10.9 decision 5): the accepted synthesis
+ *   payload is filed under the current combination — every painted source mapped to the paint it
+ *   has on screen, keyed as the orchestrator keys it — and recalled on a step to a combination
+ *   already seen, whatever route reached it. A combination never seen is covered, as the
+ *   orchestrator covers it, by the entry filed over fewer sources with every source it names on
+ *   the paint it shows now (task-9.9 decision 16).
  *
  * Nothing here touches the processor or the store: the runtime supplies `capture`, and the turn
  * runner restores a copy the step hands back. In memory for the session; retired with the
@@ -41,9 +44,9 @@ export interface PaintCopy {
   dataModel: unknown;
 }
 
-/** Where a source stands in its history, as the orchestrator counts it. */
-export interface HistoryStack {
-  length: number;
+/** Where a source stands in its history: the paint ids it visited, and the position reported. */
+export interface HistoryVisits {
+  visits: number[];
   at: number;
 }
 
@@ -53,10 +56,14 @@ export interface RememberedWiring {
   payload: SynthesisPayload;
 }
 
-/** What a step back hands the runner: the copy to make live again, and the title its meta led with. */
+/**
+ * What a step hands the runner: the copy to make live again, the title its meta led with, and
+ * the paint id the step reports to the orchestrator.
+ */
 export interface RestorableStep {
   paint: PaintCopy;
   title?: string;
+  id: number;
 }
 
 export interface FragmentHistoryOptions {
@@ -65,65 +72,71 @@ export interface FragmentHistoryOptions {
 }
 
 export interface FragmentHistory {
-  /** A vendor create arrived: one step of its source, the newest current. */
+  /** A vendor create arrived: one paint of its source, visited at once. */
   paint(source: string): void;
   /**
-   * The current step's paint claimed its slot: its title, and whether it is a question — a
-   * question is never returned to.
+   * The newest paint claimed its slot: its title, and whether it is a question — a question is
+   * never returned to.
    */
   landed(source: string, meta: {title?: string; question?: boolean}): void;
-  /** The stack is moving off the paint on screen: capture it before the surface is destroyed. */
+  /** The reader is moving off the paint on screen: capture it before the surface is destroyed. */
   leaving(source: string): void;
   /** The paint on screen left with its failed slot: nothing to return to there. */
   dropped(source: string): void;
   /**
-   * The reader steps the source to `index`: the paint to restore with its title, the stack moved
-   * there; undefined when the index is the current one, past the stack, or a placeholder —
-   * nothing to restore.
+   * The reader steps the source to the visit at `position`: the paint to restore with its title
+   * and paint id, the reader moved there; undefined when that visit is past the list, holds the
+   * paint on screen, or holds a placeholder — nothing to restore.
    */
-  stepTo(source: string, index: number): RestorableStep | undefined;
-  /** The two neighbours of the paint on screen with a paint to return to; undefined for a source with no stack. */
+  stepTo(source: string, position: number): RestorableStep | undefined;
+  /**
+   * The nearest visit each way holding a paint to return to other than the one on screen, each
+   * named by its position; undefined for a source that has not painted.
+   */
   neighbours(source: string): {back?: HistoryStep; forward?: HistoryStep} | undefined;
-  stackOf(source: string): HistoryStack | undefined;
-  /** Every painted source's current index — the key the wiring is remembered under. */
+  visitsOf(source: string): HistoryVisits | undefined;
+  /** Every painted source's paint on screen — the key the wiring is remembered under. */
   combination(): Record<string, number>;
   /** File the accepted wiring under the current combination, over an earlier entry there. */
   remember(entry: RememberedWiring): void;
   /** The wiring accepted over the current combination, when it was seen. */
   recall(): RememberedWiring | undefined;
   /**
-   * The wiring filed over fewer sources than paint now, every source it names at the step it
-   * stands on now: the one naming the most, the later filed on a tie. Undefined when none covers
-   * the current combination.
+   * The wiring filed over fewer sources than paint now, every source it names on the paint it
+   * shows now: the one naming the most, the later filed on a tie. Undefined when none covers the
+   * current combination.
    */
   recallCovering(): RememberedWiring | undefined;
-  /** The composition left the canvas: the stacks and the memory go with it. */
+  /** The composition left the canvas: the paints, the visits and the memory go with it. */
   retire(): void;
   /** Bumped on every change; what a view subscribes to. */
   version(): number;
   subscribe(listener: () => void): () => void;
 }
 
-interface Step {
+interface Paint {
   title?: string;
   /** The paint reached its slot and is not a question: there is something here to return to. */
   returnable: boolean;
-  /** The copy taken when the stack moved off this step; absent while it is the live surface. */
-  paint?: PaintCopy;
-  /** The copy is taken: the step is no longer what is on screen. */
+  /** The copy taken when the reader moved off this paint; absent while it is the live surface. */
+  copy?: PaintCopy;
+  /** The copy is taken: the paint is no longer what is on screen. */
   left: boolean;
 }
 
-interface Stack {
-  steps: Step[];
-  /** The index reported to the orchestrator: the newest create, or the step the reader went to. */
+interface Source {
+  /** Every paint the source made, by paint id. */
+  paints: Paint[];
+  /** The paint ids the reader visited, in order: what the arrows walk. */
+  visits: number[];
+  /** The visit reported to the orchestrator: the newest create's, or the one the reader went to. */
   at: number;
-  /** The step whose paint fills the slot — behind `at` between a create's arrival and its landing. */
+  /** The visit whose paint fills the slot — behind `at` between a create's arrival and its landing. */
   shown: number;
 }
 
 export function createFragmentHistory({capture}: FragmentHistoryOptions): FragmentHistory {
-  const stacks = new Map<string, Stack>();
+  const sources = new Map<string, Source>();
   const remembered = new Map<string, RememberedWiring>();
   const listeners = new Set<() => void>();
   let version = 0;
@@ -133,116 +146,121 @@ export function createFragmentHistory({capture}: FragmentHistoryOptions): Fragme
     for (const listener of listeners) listener();
   };
 
+  const onScreen = (): Record<string, number> =>
+    Object.fromEntries([...sources].map(([id, source]) => [id, source.visits[source.at]!]));
+
   const key = () =>
-    JSON.stringify(
-      [...stacks]
-        .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
-        .map(([id, stack]) => [id, stack.at]),
-    );
+    JSON.stringify(Object.entries(onScreen()).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)));
 
   const keyOf = (k: string): Record<string, number> =>
     Object.fromEntries(JSON.parse(k) as [string, number][]);
 
-  /** The steps of `source` from `index` on are gone: so is every entry filed with one of them. */
-  const drop = (source: string, index: number) => {
-    for (const k of [...remembered.keys()]) {
-      const at = keyOf(k)[source];
-      if (at !== undefined && at >= index) remembered.delete(k);
-    }
-  };
+  /** The paint in the visit at `position`. */
+  const paintAt = (source: Source, position: number) => source.paints[source.visits[position]!]!;
 
-  const paint = (source: string) => {
-    const stack = stacks.get(source);
-    const step: Step = {returnable: false, left: false};
-    if (!stack) {
-      stacks.set(source, {steps: [step], at: 0, shown: 0});
+  const paint = (id: string) => {
+    const source = sources.get(id);
+    const made: Paint = {returnable: false, left: false};
+    if (!source) {
+      sources.set(id, {paints: [made], visits: [0], at: 0, shown: 0});
       changed();
       return;
     }
-    if (stack.at < stack.steps.length - 1) {
-      drop(source, stack.at + 1);
-      stack.steps.length = stack.at + 1;
+    const {visits} = source;
+    // Off the last visit: where the reader landed is visited again first (task-10.9 decision 4).
+    if (source.at < visits.length - 1) {
+      visits.push(visits[source.at]!);
+      source.shown = visits.length - 1;
     }
-    stack.steps.push(step);
-    stack.at = stack.steps.length - 1;
+    source.paints.push(made);
+    visits.push(source.paints.length - 1);
+    source.at = visits.length - 1;
     changed();
   };
 
-  const landed: FragmentHistory['landed'] = (source, meta) => {
-    const stack = stacks.get(source);
-    if (!stack) return;
-    const step = stack.steps[stack.at]!;
-    step.title = meta.title;
-    step.returnable = !meta.question;
-    step.left = false;
-    delete step.paint;
-    stack.shown = stack.at;
+  const landed: FragmentHistory['landed'] = (id, meta) => {
+    const source = sources.get(id);
+    if (!source) return;
+    const made = paintAt(source, source.at);
+    made.title = meta.title;
+    made.returnable = !meta.question;
+    made.left = false;
+    delete made.copy;
+    source.shown = source.at;
     changed();
   };
 
-  const leaving = (source: string) => {
-    const stack = stacks.get(source);
-    if (!stack) return;
-    const step = stack.steps[stack.shown]!;
-    if (step.left) return;
-    step.left = true;
-    if (!step.returnable) return;
-    const copy = capture(source);
-    if (copy) step.paint = copy;
-    else delete step.paint;
+  const leaving = (id: string) => {
+    const source = sources.get(id);
+    if (!source) return;
+    const shown = paintAt(source, source.shown);
+    if (shown.left) return;
+    shown.left = true;
+    if (!shown.returnable) return;
+    const copy = capture(id);
+    if (copy) shown.copy = copy;
+    else delete shown.copy;
     changed();
   };
 
-  const dropped = (source: string) => {
-    const stack = stacks.get(source);
-    if (!stack) return;
-    const step = stack.steps[stack.shown]!;
-    step.returnable = false;
-    delete step.paint;
+  const dropped = (id: string) => {
+    const source = sources.get(id);
+    if (!source) return;
+    const shown = paintAt(source, source.shown);
+    shown.returnable = false;
+    delete shown.copy;
     changed();
   };
 
-  const stepTo: FragmentHistory['stepTo'] = (source, index) => {
-    const stack = stacks.get(source);
-    if (!stack || index < 0 || index >= stack.steps.length || index === stack.shown)
-      return undefined;
-    const step = stack.steps[index]!;
-    if (!step.paint) return undefined;
-    leaving(source);
-    stack.at = index;
-    stack.shown = index;
-    step.left = false;
+  const stepTo: FragmentHistory['stepTo'] = (id, position) => {
+    const source = sources.get(id);
+    if (!source || position < 0 || position >= source.visits.length) return undefined;
+    const paintId = source.visits[position]!;
+    if (paintId === source.visits[source.shown]) return undefined;
+    const target = source.paints[paintId]!;
+    if (!target.copy) return undefined;
+    leaving(id);
+    source.at = position;
+    source.shown = position;
+    target.left = false;
     changed();
-    return {paint: step.paint, ...(step.title !== undefined ? {title: step.title} : {})};
+    return {
+      paint: target.copy,
+      ...(target.title !== undefined ? {title: target.title} : {}),
+      id: paintId,
+    };
   };
 
-  const neighbourOf = (stack: Stack, index: number): HistoryStep | undefined => {
-    const step = stack.steps[index];
-    return step
-      ? {step: index, ...(step.title !== undefined ? {title: step.title} : {})}
-      : undefined;
+  /** A visit the arrows can land on: a copy to restore, and not the paint on screen. */
+  const reachable = (source: Source, position: number) =>
+    source.visits[position] !== source.visits[source.shown] &&
+    paintAt(source, position).copy !== undefined;
+
+  const neighbourOf = (source: Source, position: number): HistoryStep => {
+    const {title} = paintAt(source, position);
+    return {step: position, ...(title !== undefined ? {title} : {})};
   };
 
-  const neighbours: FragmentHistory['neighbours'] = source => {
-    const stack = stacks.get(source);
-    if (!stack) return undefined;
+  const neighbours: FragmentHistory['neighbours'] = id => {
+    const source = sources.get(id);
+    if (!source) return undefined;
     let back: number | undefined;
-    for (let i = stack.shown - 1; i >= 0; i--) {
-      if (stack.steps[i]!.paint) {
+    for (let i = source.shown - 1; i >= 0; i--) {
+      if (reachable(source, i)) {
         back = i;
         break;
       }
     }
     let forward: number | undefined;
-    for (let i = stack.shown + 1; i < stack.steps.length; i++) {
-      if (stack.steps[i]!.paint) {
+    for (let i = source.shown + 1; i < source.visits.length; i++) {
+      if (reachable(source, i)) {
         forward = i;
         break;
       }
     }
     return {
-      ...(back !== undefined ? {back: neighbourOf(stack, back)} : {}),
-      ...(forward !== undefined ? {forward: neighbourOf(stack, forward)} : {}),
+      ...(back !== undefined ? {back: neighbourOf(source, back)} : {}),
+      ...(forward !== undefined ? {forward: neighbourOf(source, forward)} : {}),
     };
   };
 
@@ -253,21 +271,21 @@ export function createFragmentHistory({capture}: FragmentHistoryOptions): Fragme
     dropped,
     stepTo,
     neighbours,
-    stackOf: source => {
-      const stack = stacks.get(source);
-      return stack ? {length: stack.steps.length, at: stack.at} : undefined;
+    visitsOf: id => {
+      const source = sources.get(id);
+      return source ? {visits: [...source.visits], at: source.at} : undefined;
     },
-    combination: () => Object.fromEntries([...stacks].map(([id, stack]) => [id, stack.at])),
+    combination: onScreen,
     remember: entry => {
       remembered.set(key(), entry);
     },
     recall: () => remembered.get(key()),
     recallCovering: () => {
-      const now = Object.fromEntries([...stacks].map(([id, stack]) => [id, stack.at]));
+      const now = onScreen();
       let best: {entry: RememberedWiring; named: number} | undefined;
       for (const [k, entry] of remembered) {
         const named = Object.entries(keyOf(k));
-        if (named.length >= stacks.size) continue;
+        if (named.length >= sources.size) continue;
         if (!named.every(([id, at]) => now[id] === at)) continue;
         if (best && named.length < best.named) continue;
         best = {entry, named: named.length};
@@ -275,8 +293,8 @@ export function createFragmentHistory({capture}: FragmentHistoryOptions): Fragme
       return best?.entry;
     },
     retire: () => {
-      if (stacks.size === 0 && remembered.size === 0) return;
-      stacks.clear();
+      if (sources.size === 0 && remembered.size === 0) return;
+      sources.clear();
       remembered.clear();
       changed();
     },

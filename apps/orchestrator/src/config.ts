@@ -55,6 +55,13 @@ export const DEFAULT_SOFT_DEADLINE_SECONDS = 10;
 export const DEFAULT_HARD_CAP_SECONDS = 300;
 /** The heartbeat on an open stream (task-8.7 decision 31): an empty working event after this much silence. */
 export const DEFAULT_HEARTBEAT_SECONDS = 30;
+/**
+ * The quiet after a step before its walk starts (task-10.9 decision 7): presses of the way back
+ * closer together than this are one gesture, so the walk runs only where they stop. Windows'
+ * default double-click time — "the system uses the default double-click time of 500
+ * milliseconds" (Microsoft Learn, `SetDoubleClickTime`).
+ */
+export const STEP_QUIET_MS = 500;
 
 export function loadConfig(env: Env = process.env): Config {
   const port = parsePort(env.PORT);

@@ -1,6 +1,6 @@
 /**
- * The fragment's history on the composition (task 9.4): each agent's steps counted from the
- * stream, the accepted wiring remembered per combination of the agents' steps.
+ * The fragment's history on the composition (tasks 9.4, 10.9): each agent's paints numbered from
+ * the stream, never dropped, the accepted wiring remembered per combination of the paints on screen.
  */
 import type {TaskStatusUpdateEvent} from '@a2a-js/sdk';
 import {describe, expect, test} from 'vitest';
@@ -34,44 +34,45 @@ function wiring(tag: string): Remembered {
   };
 }
 
-describe('steps', () => {
-  test('every createSurface from a source is a step, from 0; an update or a delete is not', () => {
+describe('paints', () => {
+  test('every createSurface from a source is a paint, from 0, the newest on screen; an update or a delete is not', () => {
     const history = new History();
-    expect(history.stackOf('github')).toBeUndefined();
+    expect(history.paintsOf('github')).toBeUndefined();
     history.observe(paint(create('github:s1'), update('github:s1')));
-    expect(history.stackOf('github')).toEqual({length: 1, at: 0});
+    expect(history.paintsOf('github')).toEqual({count: 1, at: 0});
     history.observe(paint(update('github:s1')));
     history.observe(paint({deleteSurface: {surfaceId: 'github:s1'}}));
-    expect(history.stackOf('github')).toEqual({length: 1, at: 0});
-    // A repeat create of the same id, and a create of a new id, each a step.
+    expect(history.paintsOf('github')).toEqual({count: 1, at: 0});
+    // A repeat create of the same id, and a create of a new id, each a paint.
     history.observe(paint(create('github:s1')));
     history.observe(paint(create('github:s2')));
-    expect(history.stackOf('github')).toEqual({length: 3, at: 2});
+    expect(history.paintsOf('github')).toEqual({count: 3, at: 2});
     // Another source counts on its own; the shell's surfaces never count.
     history.observe(paint(create('gmail:s1')));
     history.observe(paint(create('shell:synthesis')));
-    expect(history.stackOf('gmail')).toEqual({length: 1, at: 0});
-    expect(history.stackOf('shell')).toBeUndefined();
+    expect(history.paintsOf('gmail')).toEqual({count: 1, at: 0});
+    expect(history.paintsOf('shell')).toBeUndefined();
   });
 
-  test('a step moves the cursor within the stack; past the end, or on a source with no stack, it is refused', () => {
+  test('a step puts any paint the source made on screen; one it never made, or a source with none, is refused', () => {
     const history = new History();
     history.observe(paint(create('github:s1')));
     history.observe(paint(create('github:s2')));
     expect(history.stepTo('github', 0)).toBe(true);
-    expect(history.stackOf('github')).toEqual({length: 2, at: 0});
+    expect(history.paintsOf('github')).toEqual({count: 2, at: 0});
     expect(history.stepTo('github', 1)).toBe(true);
     expect(history.stepTo('github', 2)).toBe(false);
     expect(history.stepTo('gmail', 0)).toBe(false);
-    expect(history.stackOf('github')).toEqual({length: 2, at: 1});
+    expect(history.paintsOf('github')).toEqual({count: 2, at: 1});
   });
 
-  test('a create after a step back takes the next index and drops the steps past it', () => {
+  test('a create after a step back takes the next paint id and drops nothing (task-10.9 decision 2)', () => {
     const history = new History();
     for (const id of ['s1', 's2', 's3']) history.observe(paint(create(`github:${id}`)));
     history.stepTo('github', 0);
     history.observe(paint(create('github:s4')));
-    expect(history.stackOf('github')).toEqual({length: 2, at: 1});
+    expect(history.paintsOf('github')).toEqual({count: 4, at: 3});
+    expect(history.stepTo('github', 2)).toBe(true);
   });
 });
 
@@ -152,22 +153,25 @@ describe('the remembered wiring', () => {
     expect(history.recallCovering()).toBeUndefined();
   });
 
-  test('dropping steps purges every entry filed with the source at a dropped index', () => {
+  test('a paint left by a Back and opened past keeps its wiring: reached again, it is seen (task-10.9 decision 5)', () => {
     const history = new History();
     history.observe(paint(create('github:s1')));
     history.observe(paint(create('gmail:s1')));
     history.remember(wiring('0-0'));
     history.observe(paint(create('github:s2')));
     history.remember(wiring('1-0'));
-    history.observe(paint(create('github:s3')));
-    history.remember(wiring('2-0'));
 
+    // Back to the list, then a new paint: the detail's entry stays.
     history.stepTo('github', 0);
-    history.observe(paint(create('github:s4')));
-    // GitHub is at 1 again, on a paint the '1-0' entry was never accepted over.
-    expect(history.combination()).toEqual({github: 1, gmail: 0});
+    history.observe(paint(create('github:s3')));
+    expect(history.combination()).toEqual({github: 2, gmail: 0});
     expect(history.recall()).toBeUndefined();
+    history.remember(wiring('2-0'));
+    history.stepTo('github', 1);
+    expect(history.recall()).toEqual(wiring('1-0'));
     history.stepTo('github', 0);
     expect(history.recall()).toEqual(wiring('0-0'));
+    history.stepTo('github', 2);
+    expect(history.recall()).toEqual(wiring('2-0'));
   });
 });

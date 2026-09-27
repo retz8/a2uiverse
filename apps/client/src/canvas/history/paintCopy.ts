@@ -1,7 +1,7 @@
 /**
  * A paint's copy (task 9.7): a live surface materialised as plain JSON — its component tree and
  * data model as they stand — and the wire messages that make it a live surface again. The copy
- * is taken once, when the stack moves off the paint, and a restore takes the identical path a
+ * is taken once, when the reader moves off the paint, and a restore takes the identical path a
  * live paint takes through the processor: catalog resolution, data binding, local functions,
  * action dispatch — never a second surface constructor.
  */

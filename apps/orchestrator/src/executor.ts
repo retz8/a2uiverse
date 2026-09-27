@@ -68,6 +68,8 @@ export interface OrchestratorDeps {
    * 100 s — never ends a turn waiting on a slow source or the hard cap.
    */
   heartbeatMs: number;
+  /** The quiet after a step before its walk starts (task-10.9 decision 7). */
+  stepQuietMs: number;
 }
 
 /** An utterance turn from its arrival until its last dispatch ends: what closing the composition ends. */
@@ -715,16 +717,17 @@ export class OrchestratorExecutor implements AgentExecutor {
         break;
       }
       case 'step': {
-        // The fragment stepped in its history (task-9.4 decision 6): refused when the source
-        // has no stack here, when the stack has no such step, or when the message carries no
-        // surface of the source — the partition would be left stale.
+        // The fragment stepped in its history (task-9.4 decision 6, task-10.9 decision 6):
+        // refused when the source has not painted here, when it made no such paint, or when the
+        // message carries no surface of the source — the partition would be left stale.
         const appId = operation.sources[0]!;
         const slot = state.slots.get(appId);
         const name = slot?.plan.displayName ?? appId;
-        const stack = state.history.stackOf(appId);
-        if (!slot || appId === SHELL_SOURCE_ID || !stack) return refuse(`${name} has not painted.`);
+        const paints = state.history.paintsOf(appId);
+        if (!slot || appId === SHELL_SOURCE_ID || !paints)
+          return refuse(`${name} has not painted.`);
         const index = operation.step ?? 0;
-        if (index >= stack.length) return refuse(`${name} has no step ${index}.`);
+        if (index >= paints.count) return refuse(`${name} has no paint ${index}.`);
         const surfaces = Object.fromEntries(
           Object.entries(clientSurfaces(ctx.userMessage.metadata)).filter(
             ([surface]) => parseSurfaceId(surface)?.appId === appId,
@@ -756,16 +759,18 @@ export class OrchestratorExecutor implements AgentExecutor {
 
   /**
    * A fragment stepped back or forward in its history (SPEC §6.5, task-9.4 decisions 2–5): the
-   * source's partition becomes the paint the client now shows; when the combination of steps
+   * source's partition becomes the paint the client now shows; when the combination of paints
    * it landed on was seen, the wiring accepted over it is restored — the live synthesis and the
    * merge's set, less a source failed since — with no call; a combination never seen is covered
    * by a wiring remembered over fewer sources, restored the same way, the sources that painted
    * since left late for Include (task-9.9 decision 16), the merge slot repainted when what waits
-   * changed; then the IntegrityChecker's walk runs over the restored state, free, and the
-   * Synthesizer is called only if it fires, the outcome filed under the combination. A walk an
-   * earlier step released is abandoned first: the combination it walks is no longer on screen
-   * (task-9.9 decision 17). Nothing is painted on a silent walk: the client restored its own
-   * paint and wiring. The index the fragment already shows is a no-op past the partition write.
+   * changed; then, once no further step has come for the quiet (task-10.9 decision 7), the
+   * IntegrityChecker's walk runs over the restored state, free, and the Synthesizer is called
+   * only if it fires, the outcome filed under the combination. A step inside the quiet abandons
+   * the walk before it starts, as one arriving while it runs abandons it there: the combination
+   * it would walk is no longer on screen (task-9.9 decision 17). Nothing is painted on a silent
+   * walk: the client restored its own paint and wiring. The paint the fragment already shows is
+   * a no-op past the partition write.
    */
   async #step(
     sink: Sink,
@@ -774,6 +779,7 @@ export class OrchestratorExecutor implements AgentExecutor {
     index: number,
     surfaces: Record<string, unknown>,
   ): Promise<void> {
+    state.stepQuiet?.abort();
     state.stepWalk?.abort();
     state.history.stepTo(appId, index);
     state.partitions.replace(appId, surfaces);
@@ -794,15 +800,35 @@ export class OrchestratorExecutor implements AgentExecutor {
       if (failed || lateSources(state).join() !== lateBefore) this.#repaint([sink], state);
     }
     const late = covering ? lateSources(state).filter(id => covering.since.includes(id)) : [];
-    const end = await this.#owe(state, {}, 'step', sink);
+    const quiet = new AbortController();
+    state.stepQuiet = quiet;
+    const quietEnded = await this.#quiet(AbortSignal.any([quiet.signal, state.retired.signal]));
+    if (state.stepQuiet === quiet) delete state.stepQuiet;
+    const end = quietEnded ? await this.#owe(state, {}, 'step', sink) : 'abandoned';
     const walk = end === 'none' ? 'silent' : end;
     const how = seen ? 'seen' : covering ? `covered, ${late.join(', ') || 'none'} late` : 'unseen';
-    logLine(`↶ ${appId} task=${sink.ctx.taskId} step ${index} (${how}, walk ${walk})`);
+    logLine(`↶ ${appId} task=${sink.ctx.taskId} paint ${index} (${how}, walk ${walk})`);
     sink.turn.step({
       combination,
       seen: seen !== undefined,
       ...(late.length > 0 ? {late} : {}),
       walk,
+    });
+  }
+
+  /** Waits out the step quiet: true when it ran its length, false when `signal` cut it short. */
+  #quiet(signal: AbortSignal): Promise<boolean> {
+    if (signal.aborted) return Promise.resolve(false);
+    return new Promise(resolve => {
+      const timer = setTimeout(() => {
+        signal.removeEventListener('abort', cut);
+        resolve(true);
+      }, this.#deps.stepQuietMs);
+      const cut = () => {
+        clearTimeout(timer);
+        resolve(false);
+      };
+      signal.addEventListener('abort', cut, {once: true});
     });
   }
 

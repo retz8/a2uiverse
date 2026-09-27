@@ -161,10 +161,10 @@ The client can now draw the whole frame, the merged view's column headers over s
 
 1. rewrites the envelope's task and context ids to the client's,
 2. stamps it `{source: "linear", role: "fragment"}`,
-3. **namespaces** every surface id, so Linear's `linear-1` becomes `linear:linear-1`,
+3. **namespaces** every surface id, so Linear's `linear-1` becomes `linear:linear-1`, the one its `paintMeta` titles included,
 4. **demotes** the app's final event to a plain `working` one, because the hub owns the turn's single final,
 5. applies the app's data model changes to **its own copy of the partition** (needed later by the merge),
-6. counts every `createSurface` as a step in that app's history (for its back arrow),
+6. counts every `createSurface` as a paint in that app's history, the newest on screen (for its back arrow),
 7. publishes the event to the client.
 
 In the recording, GitHub's answer reached the client at 8.59 s, Linear's at 8.60 s and CircleCI's at 8.74 s. These apps ran in `deterministic` mode, answering from recordings in 60 to 75 milliseconds each.
@@ -288,7 +288,7 @@ A2UIVerse promises that **an unmodified A2UI agent composes**. So the relay chan
 | Change | What | Why |
 | --- | --- | --- |
 | **Stamp** | `metadata.a2uiverse = {source, role: "fragment"}` | the client places the surface by `source` |
-| **Namespace** | `surfaceId` becomes `<appId>:<surfaceId>` on the four A2UI operations | two apps can't collide on one screen |
+| **Namespace** | `surfaceId` becomes `<appId>:<surfaceId>` on the four A2UI operations and on the app's `paintMeta` | two apps can't collide on one screen, and a paint's title and question mark land on the surface the client sees |
 | **Partition filter** | outbound: each app gets only its own surfaces' data, keys un-namespaced | an app never sees another app's data |
 
 Those are the only changes to content. Two more touch only the **envelope**:

@@ -513,11 +513,11 @@ Several common changes cost nothing: an app re-sorting its list (keys don't move
 
 Each app's slot has its own back and forward arrows. The history behind them is kept on both sides: `apps/orchestrator/src/composition/history.ts` and `apps/client/src/canvas/history/fragmentHistory.ts`.
 
-**A stack per app.** Every `createSurface` an app sends is one **step** in its stack, stored as `{length, at}`. Both sides count creates the same way, in stream order, so step 2 means the same paint on both. The client keeps each step's paint (its tree and data model, as last seen); the orchestrator keeps only the numbers. A new paint after a step back drops the forward steps, the way a browser drops its forward history when you follow a new link.
+**Paints and visits per app.** Every `createSurface` an app sends is one **paint**, numbered by its **paint id**, stored on the orchestrator as `{count, at}`: how many the app has made, and the one on screen. Both sides count creates the same way, in stream order, so paint 2 means the same paint on both. The client keeps each paint (its tree and data model, as last seen) and the list of paints you visited, which the arrows walk; the orchestrator keeps only the numbers. Nothing is dropped: after a Back, a new paint first visits where you landed, then itself, so everything you opened stays reachable ([`client.md`](client.md#way-back-screens-and-visits-per-app) walks an example).
 
-**A combination is where every app stands.** For example `{circleci: 1, github: 0, linear: 0}` means CircleCI is on its second paint (a run's detail) and the others on their first. Its key is the JSON of the `[app, index]` pairs **sorted by app**, so the same combination always produces the same string.
+**A combination is where every app stands.** For example `{circleci: 1, github: 0, linear: 0}` means CircleCI shows its paint 1 (a run's detail) and the others their paint 0, however you got there. Its key is the JSON of the `[app, index]` pairs **sorted by app**, so the same combination always produces the same string.
 
-**The wiring memory is a map** from combination key to the merged view's accepted document (and the set of apps it merged). A document is filed under the current combination every time one is accepted. When a stack drops forward steps, every entry that named one of the dropped indices is purged, since its index now belongs to a different paint.
+**The wiring memory is a map** from combination key to the merged view's accepted document (and the set of apps it merged). A document is filed under the current combination every time one is accepted. A paint id is never reused, so an entry never goes stale: the runs list visited a second time is the same key as the first, and its wiring comes back with no call.
 
 When you step, the client restores the paint at once and tells the orchestrator. Then the merged view goes one of three ways:
 
@@ -527,7 +527,9 @@ When you step, the client restores the paint at once and tells the orchestrator.
 | **Covered** | an entry over fewer apps, each of them at the step it's on now (the one naming most apps wins, then the latest) | restored the same way; apps that painted since are offered for Include |
 | **Unseen**  | nothing                                                                                          | the change account above decides whether the Synthesizer runs          |
 
-Finding a covering entry is a **linear scan** over the map, checking each entry's apps against the current combination. A walk started by one step is abandoned if you step again before it finishes, since the combination it was for is no longer on screen.
+Finding a covering entry is a **linear scan** over the map, checking each entry's apps against the current combination.
+
+**The walk waits for the pressing to stop.** The orchestrator writes the app's data and journals every step at once, but starts the walk only after half a second with no further step on that answer (`STEP_QUIET_MS` in `apps/orchestrator/src/config.ts`, Windows' default double-click time). Pressing Back three times to reach an old screen walks only the last combination, so a screen you pass through never starts a call. A walk already running is abandoned if you step again before it finishes, since the combination it was for is no longer on screen.
 
 <p align="center">
   <img src="../images/way-back-merged.gif" width="560" alt="The merged table's CI status column, empty while a run is open and filled again on Back">

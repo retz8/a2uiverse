@@ -203,14 +203,14 @@ export type OperationKind = (typeof OPERATION_KINDS)[number];
  * Outbound, client → orchestrator: a press on the composition, as a data part of its own —
  * `{version, operation}` — on a new A2A message in the canvas's context. `retry` names the one
  * failed source it re-dispatches, `include` the late sources it folds in, `tryAgain` none; `step`
- * names the one agent whose fragment stepped and, in `step`, the index in that agent's stack it
- * now shows — one step per surface replacement, from 0 — the paint's data model riding
+ * names the one agent whose fragment stepped and, in `step`, the paint id it now shows — one paint
+ * per `createSurface`, from 0, never reused (task-10.9 decision 6) — the paint's data model riding
  * `a2uiClientDataModel` as on an action; `close` names nothing.
  */
 export interface CompositionOperation {
   kind: OperationKind;
   sources: string[];
-  /** With `step` only: the index in the agent's stack the fragment now shows. */
+  /** With `step` only: the paint id the fragment now shows. */
   step?: number;
 }
 

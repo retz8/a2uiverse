@@ -8,7 +8,7 @@ import {agentCardHandler, jsonRpcHandler, UserBuilder} from '@a2a-js/sdk/server/
 import {buildAgentCard} from './agentCard.js';
 import {AgentsPool} from './agentsPool/agentsPool.js';
 import {Compositions} from './composition/compositions.js';
-import type {Config} from './config.js';
+import {STEP_QUIET_MS, type Config} from './config.js';
 import {TransformersEmbedder} from './embedder/transformersEmbedder.js';
 import type {Embedder} from './embedder/types.js';
 import {OrchestratorExecutor} from './executor.js';
@@ -47,6 +47,8 @@ export interface OrchestratorOverrides {
   /** The Synthesizer's text seam: the model behind it, not the loop. */
   synthesisModel?: SynthesisModel;
   resolveCard?: ResolveCard;
+  /** The quiet after a step before its walk starts; `STEP_QUIET_MS` unless a test shortens it. */
+  stepQuietMs?: number;
 }
 
 /** Wires the orchestrator: Registry · Embedder · Router · Planner · Synthesizer · AgentsPool · IntentJournal behind one A2A executor. */
@@ -90,6 +92,7 @@ export function buildOrchestrator({
     compositions,
     deadlines: {softMs: config.softDeadlineMs, capMs: config.hardCapMs},
     heartbeatMs: config.heartbeatMs,
+    stepQuietMs: overrides?.stepQuietMs ?? STEP_QUIET_MS,
   });
   const requestHandler = new DefaultRequestHandler(card, new InMemoryTaskStore(), executor);
 

@@ -23,7 +23,7 @@ A normal web app renders UI its own team wrote, from its own components, with it
 3. **Answers you can go back to.** Asking a new question shouldn't throw the last answer away. Every answer should stay open and working, like a browser tab, and each app's own screens should have a back button.
 4. **Honesty about what's happening.** Apps are slow, fail, or answer late. The screen has to say where things stand, in words the client can stand behind.
 
-The client solves these with a small set of ideas: an **answer** kept for every question, **surfaces** routed by a **stamp**, a **boundary** around every app's UI, **turns** and **streams beside the turn**, a **trail** of answers, and a **stack** of screens per app. The next section takes them one at a time.
+The client solves these with a small set of ideas: an **answer** kept for every question, **surfaces** routed by a **stamp**, a **boundary** around every app's UI, **turns** and **streams beside the turn**, a **trail** of answers, and a **history** of screens per app. The next section takes them one at a time.
 
 ## Six ideas to hold on to
 
@@ -76,9 +76,9 @@ The answers form a tree. A question you ask while viewing an older answer become
   <em>The trail from <code>?beat=trail</code>: four questions on two branches. The newest is live; "Camera prices" is the one on screen.</em>
 </p>
 
-### 6. A stack of screens per app
+### 6. A history of screens per app
 
-Inside an answer, clicking into something inside an app (a CircleCI run, say) makes that app paint a new screen in its slot. Each app keeps its own **stack** of screens, with back and forward arrows beside its name. Each stack is separate from the other apps' and from the trail. When a stack moves, the merged view follows: the orchestrator and the client both remember the merged view's wiring for every combination of screens they've seen, so going back to a screen already seen restores the merged view with no model call. [`synthesis.md`](synthesis.md#going-back-the-remembered-wiring) explains that memory.
+Inside an answer, clicking into something inside an app (a CircleCI run, say) makes that app paint a new screen in its slot. Each app keeps every screen it painted in this answer and the list of screens you **visited**, with back and forward arrows beside its name, each named after the screen it goes to. Nothing you opened is dropped: open a run, then its failing job, go Back twice to the runs list and open another run, and Back takes you to the list, then on to the job you left behind. Each app's history is separate from the other apps' and from the trail. When an app moves, the merged view follows: the orchestrator and the client both remember the merged view's wiring for every combination of screens they've seen, so going back to a screen already seen restores the merged view with no model call. [`synthesis.md`](synthesis.md#going-back-the-remembered-wiring) explains that memory.
 
 ## One question, end to end
 
@@ -201,7 +201,7 @@ A press is an operation on the answer's composition, `{kind, sources}`:
 ```jsonc
 {"kind": "retry",   "sources": ["circleci"]}
 {"kind": "include", "sources": ["gmail"]}
-{"kind": "step",    "sources": ["circleci"], "step": 0}
+{"kind": "step",    "sources": ["circleci"], "step": 0}   // the paint CircleCI now shows
 ```
 
 The runtime sends it on the answer's context and answers it on a **side stream** (`runner.beginSideStream()`). What arrives on a side stream is routed by the stamp exactly as a turn's batches are, straight into the live composition. It never touches the stage or the turn in flight. A line's "Retry all" is sent as one Retry per app, each on its own stream.
@@ -328,21 +328,30 @@ The answer is a **reverse index** from data paths to the components that render 
 
 **Landing.** The element is scrolled to the middle of the view (instantly under reduced motion). Focus has to wait for the scroll, because focusing during a smooth scroll cancels it where it stands, so the navigator listens for `scrollend`, with a 700 ms timer as the other way out. The element gets `tabindex="-1"` only while it holds focus. A ring drawn in the shell's own layer follows the element's box with `requestAnimationFrame` for 1.5 s. Nothing is sent to the orchestrator: navigation is client-local.
 
-### Way back: a stack per app
+### Way back: screens and visits per app
 
-`canvas/history/fragmentHistory.ts` keeps each app's stack of screens on the client. Both sides count screens the same way, so step 2 means the same paint to the client and the orchestrator:
+`canvas/history/fragmentHistory.ts` keeps two things per app on the client: every screen the app painted, numbered by **paint id**, and the **visits**, the paint ids you went through in order. Both sides count paints the same way, so paint 2 means the same screen to the client and the orchestrator; the visits are the client's alone. Here is CircleCI after you open a run, then its failing job, go Back twice to the runs list, and open another run:
 
-- **The count runs at the wire.** Every `createSurface` an app sends is a step of that app the moment it arrives, before the runner decides anything about it. A create that never reached the screen, one the client couldn't draw, or a question each still take their index, as **placeholders** with nothing to return to. The arrows skip placeholders when they look for the nearest earlier or later screen.
-- **A screen is copied only when the stack moves off it.** The current step is the live surface itself. Just before a new paint or a swap destroys it, the runner calls `leaving`, and only then is it copied: its component tree and its data model, with every update the app pushed into it, as plain JSON (`canvas/history/paintCopy.ts`). A copy costs nothing until you actually leave a screen.
+```
+paints   0 Recent runs    1 Run    2 Failed step    3 Another run
+
+visits   0 · 1 · 2 · 0 · 3
+                         └── on screen
+Back:    3 → 0 (the list, visited again) → 2 (the job left behind) → 1 → 0
+```
+
+- **The count runs at the wire.** Every `createSurface` an app sends is a paint of that app the moment it arrives, before the runner decides anything about it, and is visited at once. A create that never reached the screen, one the client couldn't draw, or a question each still take their paint id, as **placeholders** with nothing to return to. The arrows skip placeholders when they look for the nearest earlier or later visit.
+- **A new paint after a Back visits where you landed, then the new paint.** You were on the runs list when the other run arrived, so the list is visited again before it; the run you passed through on the way back to the list isn't. Nothing is dropped, so the job is still two Backs away.
+- **A screen is copied only when you move off it.** The screen on screen is the live surface itself. Just before a new paint or a swap destroys it, the runner calls `leaving`, and only then is it copied: its component tree and its data model, with every update the app pushed into it, as plain JSON (`canvas/history/paintCopy.ts`). A copy costs nothing until you actually leave a screen, and a screen visited twice has one copy, taken when you last left it.
 - **A restore takes the same path as a live paint.** `rebuildMessages` turns a copy back into three A2UI messages (create, the whole tree, the whole data model) and applies them through the processor, so a restored screen gets catalog resolution, data binding and action handling exactly like a fresh one. There's no second way to construct a surface.
-- **A new paint after a step back drops the forward steps**, like a browser's forward history.
+- **An arrow names a visit; the orchestrator hears a paint.** Back and Forward go to the nearest visit either way that holds a copy and isn't the screen already showing. Both can lead to the same screen: in Gmail, after `0 · 1 · 0 · 2`, standing on thread 1, Back and Forward both lead to the list, one to the visit before and one to the visit after. So the arrow reports its visit, and the runtime sends the paint id that visit holds.
 
 **A step, click to finish:**
 
-1. The arrow raises `{kind: "step", sources: ["circleci"], step: 0}`.
-2. The runtime moves the stack and restores the copy into the slot **at once**.
+1. The arrow raises `{kind: "step", sources: ["circleci"], step: 3}`, the visit it goes to.
+2. The runtime moves to that visit and restores its paint's copy into the slot **at once**.
 3. The merged view follows: the wiring remembered for the new combination, or one that covers it, is re-accepted by the synthesis session with no model call. If there's neither, the merge line works until the orchestrator answers.
-4. The step goes to the orchestrator on a side stream, carrying the answer's data models, so the orchestrator's copy of the app's data matches what you see.
+4. The step goes to the orchestrator on a side stream as `step: 0`, the paint visit 3 holds, carrying the answer's data models, so the orchestrator's copy of the app's data matches what you see.
 5. If the orchestrator's answer carries no new merged view, the client files the current wiring under this combination, so both sides' memories agree.
 
 Only the latest step owns the merge line: a later step ends the "working" an earlier one left.
@@ -432,6 +441,7 @@ Start the client (`pnpm dev:client`) and open `http://localhost:5173/?beat=<name
 | `?beat=9` | This guide's session: Linear, GitHub and CircleCI with the merged view |
 | `?beat=trail` | Four answers on two branches: every mark of the rail, and the band on a past answer |
 | `?beat=23`, `?beat=24` | A step back to a screen seen before (restored, no call), and to one never seen |
+| `?beat=26` | Back past a new run: the runs list visited again, then the failing job left behind, every arrow named |
 | `?beat=19` to `?beat=25` | The trail's cases: a tab finishing in the background, an action in a past answer, Ask this again now, add and drop, closing a loading answer |
 | `?beat=10` to `?beat=18` | Slow and failing apps: Retry, Include, a home source straggling or failing, too few answers |
 | `?beat=4`, `?beat=6`, `?beat=7` | Two apps side by side with no merge, a question about A2UIVerse itself, a capability gap |
@@ -480,6 +490,8 @@ Recorded beats live in `apps/client/recordings/beats/`, taken through the orches
 | **Side stream** | A stream beside the turn, for a press or a report |
 | **Press** | The reader's Retry, Include or Try again |
 | **Step** | A back or forward move in one app's slot |
+| **Paint id** | An app's screens numbered in the order they arrived, the same on both sides |
+| **Visit** | One entry in an app's history: the paint id you were on, in the order you went |
 | **Hold-and-swap** | Build a paint off screen, then swap it in whole |
 | **Staging processor** | The throwaway processor a staged turn builds its paint in |
 | **Promotion** | A slot raised because its app asked you something |

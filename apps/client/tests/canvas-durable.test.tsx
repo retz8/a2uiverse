@@ -246,4 +246,19 @@ describe('Phase 9’s recorded beats over the deterministic roster', () => {
     expect(r.entries).toEqual([]);
     expect(r.canvas(0)).toBeUndefined();
   });
+  recorded(26)(
+    'beat 26 (task 10.9): runs, a run, its job, Back, Back, another run, Back, Back — the job left behind on screen, every visit kept, each arrow titled',
+    async () => {
+      const r = await replay(getBeatFixture(26)!);
+      const first = r.canvas(0)!;
+      expect(first.history.visitsOf('circleci')).toEqual({visits: [0, 1, 2, 0, 3], at: 2});
+      expect(first.history.combination().circleci).toBe(2);
+      expect(first.history.neighbours('circleci')).toEqual({
+        back: {step: 1, title: 'Run: synthesizer-effort-apart-from-planner'},
+        forward: {step: 3, title: 'Recent pipeline runs'},
+      });
+      expect(first.store.getState().mergeFollowingStep).toBe(false);
+      expect(first.synthesis.payload).toBeDefined();
+    },
+  );
 });

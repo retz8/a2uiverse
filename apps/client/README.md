@@ -101,6 +101,7 @@ Real output, captured through the orchestrator and kept as the stream it arrived
 | `9`          | The entity join: Linear, GitHub and CircleCI merged, one row per issue                                                                                                                                       |
 | `10` to `18` | Late answers and failures: Retry, Include, the home source straggling or failing, a broken stream, a paint the canvas can't draw, too few answers                                                            |
 | `19` to `25` | Several answers: a tab finishing in the background, acting in a past answer, "Ask this again now", adding and dropping a source, stepping back with and without a remembered merge, closing a loading answer |
+| `26`         | Back past a new run: the runs list visited again, then the failing job left behind, every arrow named                                                                                                        |
 
 Hand-built beats live in `src/beats/`: `syntheticBeats.ts`, `lateFailureBeats.ts` for late answers and failures, and `durableBeats.ts` for kept answers and the way back.
 
@@ -136,10 +137,10 @@ None of these are part of `pnpm verify`; each needs live processes.
 
 ```bash
 pnpm --filter @a2uiverse/client record:beats --model <model> --beats 1-9
-pnpm --filter @a2uiverse/client record:beats --model <model> --beats 10-25 [--fault-port 10091]
+pnpm --filter @a2uiverse/client record:beats --model <model> --beats 10-26 [--fault-port 10091]
 ```
 
-Beats 1 to 9 run against live apps. Beats 10 to 25 need the apps in `deterministic` mode (`pnpm dev:agents`) and port 10091 free: the recorder starts its own orchestrator there for each, with the case's faults and time limits and the Gemini key in the orchestrator's `.env`, and retakes a take that doesn't show its case, up to three times.
+Beats 1 to 9 run against live apps. Beats 10 to 26 need the apps in `deterministic` mode (`pnpm dev:agents`) and port 10091 free: the recorder starts its own orchestrator there for each, with the case's faults and time limits and the Gemini key in the orchestrator's `.env`, and retakes a take that doesn't show its case, up to three times.
 
 > [!IMPORTANT]
 > Start the Gmail agent with `A2UI_RECORD_DIR` set when recording. That's what makes it swap real mail for stand-ins, and the recorder can't tell whether that happened.

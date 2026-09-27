@@ -1,8 +1,8 @@
 /**
- * The fragment's history on the client (task 9.7): each source's stack counted at the wire as
- * the orchestrator counts it, the paint captured as last seen when the stack moves off it, the
- * placeholders the arrows skip, the wiring remembered per combination, the forward steps and
- * their entries dropped by a new paint.
+ * The fragment's history on the client (tasks 9.7, 10.9): each source's paints counted at the wire
+ * as the orchestrator counts them and never dropped, the visits the arrows walk, the paint
+ * captured as last seen when the reader moves off it, the placeholders the arrows skip, the wiring
+ * remembered per combination of the paints on screen.
  */
 import {describe, expect, it, vi} from 'vitest';
 import type {SynthesisPayload} from '@a2uiverse/sdk';
@@ -33,42 +33,110 @@ function setup() {
   return {history, live, capture};
 }
 
+/** A history whose `land` paints a source and lands it under `title`, capturing what it leaves. */
+function walker() {
+  const {history, live} = setup();
+  const land = (source: string, title: string, question = false) => {
+    history.leaving(source);
+    live.set(source, copy(`${source}:${title}`, title));
+    history.paint(source);
+    history.landed(source, {title, ...(question ? {question} : {})});
+  };
+  return {history, live, land};
+}
+
 describe('the count', () => {
-  it('every create counts a step of its source, from 0, the newest current — as the orchestrator counts (task-9.4 decision 1)', () => {
+  it('every create counts a paint of its source, from 0, visited at once — as the orchestrator counts (task-9.4 decision 1)', () => {
     const {history} = setup();
-    expect(history.stackOf('github')).toBeUndefined();
+    expect(history.visitsOf('github')).toBeUndefined();
     history.paint('github');
-    expect(history.stackOf('github')).toEqual({length: 1, at: 0});
+    expect(history.visitsOf('github')).toEqual({visits: [0], at: 0});
     history.paint('github');
     history.paint('gmail');
-    expect(history.stackOf('github')).toEqual({length: 2, at: 1});
-    expect(history.stackOf('gmail')).toEqual({length: 1, at: 0});
+    expect(history.visitsOf('github')).toEqual({visits: [0, 1], at: 1});
+    expect(history.visitsOf('gmail')).toEqual({visits: [0], at: 0});
     expect(history.combination()).toEqual({github: 1, gmail: 0});
   });
+});
 
-  it('a create after a step back takes the next index and drops the steps past it', () => {
-    const {history, live} = setup();
-    live.set('github', copy('github:list', 'list'));
-    history.paint('github');
-    history.landed('github', {title: 'List'});
-    history.leaving('github');
-    live.set('github', copy('github:detail', 'detail'));
-    history.paint('github');
-    history.landed('github', {title: 'Detail'});
-    history.leaving('github');
-    history.paint('github');
-    history.landed('github', {title: 'Review'});
-    expect(history.stackOf('github')).toEqual({length: 3, at: 2});
+describe('the visits (task-10.9 decisions 2–4)', () => {
+  it('a create after a Back visits where the reader landed, then the new paint; nothing is dropped', () => {
+    const {history, land} = walker();
+    land('github', 'List');
+    land('github', 'Detail');
+    land('github', 'Review');
+    expect(history.visitsOf('github')).toEqual({visits: [0, 1, 2], at: 2});
 
     history.stepTo('github', 0);
-    expect(history.stackOf('github')).toEqual({length: 3, at: 0});
     history.paint('github');
-    expect(history.stackOf('github')).toEqual({length: 2, at: 1});
-    // Until the create lands the list is still on screen, with nowhere to go either way.
-    expect(history.neighbours('github')).toEqual({});
+    expect(history.visitsOf('github')).toEqual({visits: [0, 1, 2, 0, 3], at: 4});
+    expect(history.combination()).toEqual({github: 3});
+    // Until the create lands the list is on screen, its Back the paint the reader came from.
+    expect(history.neighbours('github')).toEqual({back: {step: 2, title: 'Review'}});
     history.leaving('github');
     history.landed('github', {title: 'Other'});
-    expect(history.neighbours('github')).toEqual({back: {step: 0, title: 'List'}});
+    expect(history.neighbours('github')).toEqual({back: {step: 3, title: 'List'}});
+
+    // Back walks the visits: the list, then the review left behind.
+    expect(history.stepTo('github', 3)).toMatchObject({title: 'List', id: 0});
+    expect(history.neighbours('github')).toEqual({
+      back: {step: 2, title: 'Review'},
+      forward: {step: 4, title: 'Other'},
+    });
+    expect(history.stepTo('github', 2)).toMatchObject({title: 'Review', id: 2});
+    expect(history.combination()).toEqual({github: 2});
+  });
+
+  it('the paints passed through on the way back are not visited again: runs, a run, its job, Back, Back, another run', () => {
+    const {history, land} = walker();
+    land('circleci', 'Recent runs');
+    land('circleci', 'Run 812');
+    land('circleci', 'build-and-test');
+    history.stepTo('circleci', 1);
+    history.stepTo('circleci', 0);
+    land('circleci', 'Run 813');
+    expect(history.visitsOf('circleci')).toEqual({visits: [0, 1, 2, 0, 3], at: 4});
+    expect(history.stepTo('circleci', 3)).toMatchObject({title: 'Recent runs', id: 0});
+    expect(history.stepTo('circleci', 2)).toMatchObject({title: 'build-and-test', id: 2});
+    expect(history.neighbours('circleci')).toEqual({
+      back: {step: 1, title: 'Run 812'},
+      forward: {step: 3, title: 'Recent runs'},
+    });
+  });
+
+  it('Back and Forward may name the same paint: each lands on its own visit', () => {
+    const {history, land} = walker();
+    land('gmail', 'Unread');
+    land('gmail', 'Thread A');
+    history.stepTo('gmail', 0);
+    land('gmail', 'Thread B');
+    expect(history.visitsOf('gmail')).toEqual({visits: [0, 1, 0, 2], at: 3});
+    history.stepTo('gmail', 2);
+    history.stepTo('gmail', 1);
+    expect(history.neighbours('gmail')).toEqual({
+      back: {step: 0, title: 'Unread'},
+      forward: {step: 2, title: 'Unread'},
+    });
+    expect(history.stepTo('gmail', 2)).toMatchObject({title: 'Unread', id: 0});
+    expect(history.neighbours('gmail')).toEqual({
+      back: {step: 1, title: 'Thread A'},
+      forward: {step: 3, title: 'Thread B'},
+    });
+    history.stepTo('gmail', 1);
+    expect(history.stepTo('gmail', 0)).toMatchObject({title: 'Unread', id: 0});
+    expect(history.neighbours('gmail')).toEqual({forward: {step: 1, title: 'Thread A'}});
+  });
+
+  it('a visit holding the paint on screen is neither a neighbour nor a step', () => {
+    const {history, land} = walker();
+    land('gmail', 'Unread');
+    land('gmail', 'Thread A');
+    history.stepTo('gmail', 0);
+    land('gmail', 'Question', true);
+    history.stepTo('gmail', 2);
+    // Visits 0 · 1 · 0 · 2, on the list at 2: the question is a placeholder, the list at 0 is on screen.
+    expect(history.neighbours('gmail')).toEqual({back: {step: 1, title: 'Thread A'}});
+    expect(history.stepTo('gmail', 0)).toBeUndefined();
   });
 });
 
@@ -89,6 +157,7 @@ describe('the paint as last seen (task-9.7 decision 1)', () => {
     expect(history.stepTo('github', 0)).toEqual({
       paint: copy('github:list', 'five PRs'),
       title: 'List',
+      id: 0,
     });
   });
 
@@ -121,7 +190,7 @@ describe('placeholders the arrows skip (task-9.7 decision 2)', () => {
     history.paint('github');
     history.paint('github');
     history.landed('github', {title: 'Detail'});
-    expect(history.stackOf('github')).toEqual({length: 3, at: 2});
+    expect(history.visitsOf('github')).toEqual({visits: [0, 1, 2], at: 2});
     expect(history.neighbours('github')).toEqual({back: {step: 0, title: 'List'}});
     expect(history.stepTo('github', 1)).toBeUndefined();
   });
@@ -173,7 +242,7 @@ describe('placeholders the arrows skip (task-9.7 decision 2)', () => {
 });
 
 describe('the wiring remembered per combination (task-9.7 decision 3)', () => {
-  it('filed under every painted source’s current index, recalled there, absent elsewhere', () => {
+  it('filed under every painted source’s paint on screen, recalled there, absent elsewhere', () => {
     const {history, live} = setup();
     live.set('github', copy('github:list', 'list'));
     live.set('gmail', copy('gmail:inbox', 'inbox'));
@@ -226,22 +295,23 @@ describe('the wiring remembered per combination (task-9.7 decision 3)', () => {
     expect(history.recall()).toEqual(wiring('second'));
   });
 
-  it('a create that drops steps purges every entry filed with the source at a dropped index (task-9.4 decision 3)', () => {
-    const {history, live} = setup();
-    live.set('github', copy('github:list', 'list'));
-    history.paint('github');
-    history.landed('github', {title: 'List'});
-    history.remember(wiring('at 0'));
-    history.leaving('github');
-    history.paint('github');
-    history.landed('github', {title: 'Detail'});
-    history.remember(wiring('at 1'));
+  it('a paint left by a Back and opened past keeps its wiring: reached again by any route, it is seen (task-10.9 decision 5)', () => {
+    const {history, land} = walker();
+    land('github', 'List');
+    history.remember(wiring('on the list'));
+    land('github', 'Detail');
+    history.remember(wiring('on the detail'));
     history.stepTo('github', 0);
-    history.paint('github');
-    history.landed('github', {title: 'Other'});
+    land('github', 'Other');
     expect(history.recall()).toBeUndefined();
-    history.stepTo('github', 0);
-    expect(history.recall()).toEqual(wiring('at 0'));
+    history.remember(wiring('on the other'));
+    // Visits 0 · 1 · 0 · 2: Back to the list visited again, then to the detail.
+    history.stepTo('github', 2);
+    expect(history.recall()).toEqual(wiring('on the list'));
+    history.stepTo('github', 1);
+    expect(history.recall()).toEqual(wiring('on the detail'));
+    history.stepTo('github', 3);
+    expect(history.recall()).toEqual(wiring('on the other'));
   });
 });
 
@@ -263,12 +333,12 @@ describe('listeners and retirement', () => {
     expect(listener.mock.calls.length).toBeGreaterThan(1);
   });
 
-  it('retiring the composition forgets the stacks and the wiring', () => {
+  it('retiring the composition forgets the paints, the visits and the wiring', () => {
     const {history} = setup();
     history.paint('github');
     history.remember(wiring('x'));
     history.retire();
-    expect(history.stackOf('github')).toBeUndefined();
+    expect(history.visitsOf('github')).toBeUndefined();
     expect(history.combination()).toEqual({});
     expect(history.recall()).toBeUndefined();
   });
