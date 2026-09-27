@@ -10,7 +10,7 @@ A2UI asks: _how does an agent express UI?_\
 Ask one question. Several agents answer at once, each painting its own interface, and you get **one screen**, not three chat replies.
 
 <p align="center">
-  <img src="docs/images/composing.gif" width="800" alt="One question answered on one screen: the layout lands, Linear, GitHub and CircleCI fill their slots, and a merged table joins them">
+  <img src="docs/images/composing-join.gif" width="800" alt="One question answered on one screen: the layout lands, Linear, GitHub and CircleCI fill their slots, and a merged table joins them">
   <br>
   <em>"What's the status of what I'm working on?" The layout lands first, Linear, GitHub and CircleCI each fill their slot in their own look, and the merged table on top joins them. Replayed from a recording, with the waits shortened.</em>
 </p>
@@ -40,7 +40,7 @@ The full design, from its axioms to its milestones, is in **[SPEC.md](SPEC.md)**
 
 ### One question, one screen
 
-Ask in words, from the palette (`⌘K`). A2UIVerse picks the apps that hold the answer, including ones you didn't name, lays out a screen, and asks them all at once. Each app fills its slot with UI it generates, in its own design system: GitHub in Primer, Gmail and Calendar in Material 3, CircleCI and Linear in their own looks. The shell names each app above its slot and never reaches inside it. [More in the client README](apps/client/README.md).
+Ask in words, from the palette (`⌘K`). A2UIVerse picks the apps that hold the answer, including ones you didn't name, lays out a screen, and asks them all at once. Each app fills its slot with UI it generates, in its own design system: GitHub in Primer, Gmail and Calendar in Material 3, CircleCI and Linear each in a catalog of its own. The shell names each app above its slot and never reaches inside it. [More in the client README](apps/client/README.md).
 
 ### A merged view across apps
 
@@ -53,7 +53,7 @@ One app failing never fails the rest: its slot says why and offers Retry, and it
 ### Every question kept
 
 <p align="center">
-  <img src="docs/images/trail-preview.png" width="560" alt="The trail drawer, four questions on two branches, its live entry hovered and previewed">
+  <img src="docs/images/trail-hover-preview.png" width="560" alt="The trail drawer, four questions on two branches, its live entry hovered and previewed">
   <br>
   <em>The trail: four questions on two branches. Hovering an entry previews its answer.</em>
 </p>
@@ -70,16 +70,16 @@ Every question gets its own answer, and none is thrown away when the next one is
 
 <table>
   <tr>
-    <td align="center" valign="top"><img src="docs/images/way-back-circleci.gif" width="260" alt="CircleCI's slot going Back from a run to its runs list, then Forward"></td>
-    <td align="center" valign="top"><img src="docs/images/way-back-merged.gif" width="520" alt="The merged table's CI run column, empty on the run and filled again on the runs list"></td>
+    <td align="center" valign="top"><img src="docs/images/way-back-branch-circleci.gif" width="260" alt="CircleCI's slot: a run, its failing job, Back twice to the runs list, the run opened again, then Back twice to the list and on to the job"></td>
+    <td align="center" valign="top"><img src="docs/images/way-back-branch-merged.gif" width="520" alt="The merged table's CI column, empty while a run or a job is open and filled again on the runs list"></td>
   </tr>
   <tr>
-    <td align="center"><em>CircleCI's slot: Back from a run to its runs list, then Forward.</em></td>
+    <td align="center"><em>CircleCI's slot: a run, its failing job, Back twice, the run opened again, then Back twice: the runs list, and the job left behind.</em></td>
     <td align="center"><em>The merged view at the same moments.</em></td>
   </tr>
 </table>
 
-Clicking into something inside an app, like a CI run, paints a new screen in its slot, with a back arrow beside the app's name. Each app keeps its own history, apart from the others. Going back restores the merged view too, from the wiring remembered for that combination of screens, with no model call.
+Clicking into something inside an app, like a CI run, paints a new screen in its slot, with a back arrow beside the app's name. Each app keeps its own history, apart from the others, and drops nothing: go back and open something else, and Back still reaches the screen you left. Going back restores the merged view too, from the wiring remembered for that combination of screens, with no model call.
 
 ### Any A2UI agent can join
 
@@ -124,7 +124,7 @@ pnpm install
 pnpm dev:client
 ```
 
-Open **http://localhost:5173/?beat=9** for the session in the GIF above, replayed from a recording with no orchestrator, no apps and no model. `?beat=trail` replays four questions on two branches, and `?beat=23` the way back inside an app.
+Open **http://localhost:5173/?beat=9** for the session in the GIF above, replayed from a recording with no orchestrator, no apps and no model. `?beat=trail` replays four questions on two branches, and `?beat=26` the way back inside an app.
 
 ### Run it for real
 

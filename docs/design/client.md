@@ -6,10 +6,10 @@ Three recorded sessions run through the guide, and you can replay each one yours
 
 - `?beat=9`: _"what's the status of what I'm working on?"_, answered by Linear, GitHub and CircleCI, with a merged table on top.
 - `?beat=trail`: four questions on two branches, for the trail.
-- `?beat=23`: stepping CircleCI's slot back from a run to its runs list.
+- `?beat=26`: CircleCI's slot through a run and its failing job, back to the runs list, the run again, and back past it to the job left behind.
 
 <p align="center">
-  <img src="../images/composing.gif" width="720" alt="One question composed: the layout lands, Linear, GitHub and CircleCI fill their slots, and the merged table joins them">
+  <img src="../images/composing-join.gif" width="720" alt="One question composed: the layout lands, Linear, GitHub and CircleCI fill their slots, and the merged table joins them">
   <br>
   <em>The first session, replayed with its waits shortened. The layout lands first, each app fills its slot as it answers, and the merged table lands last.</em>
 </p>
@@ -18,7 +18,7 @@ Three recorded sessions run through the guide, and you can replay each one yours
 
 A normal web app renders UI its own team wrote, from its own components, with its own CSS. The canvas renders UI it has never seen before: written on the fly by several agents, each in a different design system, arriving over a stream, piece by piece, while you keep clicking. That raises four problems:
 
-1. **Many design systems on one page.** GitHub's answer is built on Primer, Gmail's on Material 3, CircleCI's and Linear's on their own themes. CSS is global by nature: one catalog's `:root` variables or class names can quietly restyle another's. Nothing throws; the page just looks wrong.
+1. **Many design systems on one page.** GitHub's answer is built on Primer, Gmail's and Calendar's on Material 3, CircleCI's and Linear's on catalogs of their own in each product's design language. CSS is global by nature: one catalog's `:root` variables or class names can quietly restyle another's. Nothing throws; the page just looks wrong.
 2. **UI that arrives in pieces, from many places.** The layout comes first, then each app's answer as it's ready, then the merged view. The screen must show progress as it happens, but never a half-built or broken paint.
 3. **Answers you can go back to.** Asking a new question shouldn't throw the last answer away. Every answer should stay open and working, like a browser tab, and each app's own screens should have a back button.
 4. **Honesty about what's happening.** Apps are slow, fail, or answer late. The screen has to say where things stand, in words the client can stand behind.
@@ -71,7 +71,7 @@ Everything else the canvas sends travels on a **stream beside the turn**: not a 
 The answers form a tree. A question you ask while viewing an older answer becomes a **child** of that answer. The **trail** draws the tree flat, newest first, with the branches marked. The newest question's answer is **live**; any other answer you go back to is a **past answer**, and it's still a working tab: clicks, presses and sorts land in it, and its apps' replies still arrive.
 
 <p align="center">
-  <img src="../images/trail-drawer.png" width="276" alt="The trail drawer: four questions on two branches">
+  <img src="../images/trail-branches.png" width="276" alt="The trail drawer: four questions on two branches">
   <br>
   <em>The trail from <code>?beat=trail</code>: four questions on two branches. The newest is live; "Camera prices" is the one on screen.</em>
 </p>
@@ -99,7 +99,7 @@ flowchart TD
 
 **2. The question goes out.** The runtime's `open` sends the question as an A2A message with **no context id**. If the answer has a parent, the parent's context id rides along under the stamp key, so the orchestrator's Planner can read the answer the question was asked from.
 
-**3. The first event names the answer.** The orchestrator answers at once with the context it minted. The runtime records it, the trail entry takes it, and every later message in this answer carries it. With the layout, a `paintMeta` part names `shell:main` with the Planner's short title for the answer (like "Needs attention today" in the trail above), which replaces the truncated question as the trail entry's label. The question itself stays the answer's heading.
+**3. The first event names the answer.** The orchestrator answers at once with the context it minted. The runtime records it, the trail entry takes it, and every later message in this answer carries it. With the layout, a `paintMeta` part names `shell:main` with the Planner's short title for the answer ("Status of current work" here, the live entry in the trail above), which replaces the truncated question as the trail entry's label. The question itself stays the answer's heading.
 
 **4. The layout lands.** An event stamped `role: "shell"` creates `shell:main`: a `Column` with a `Slot` for the merged view and, under a `Row`, an `Attribution` around each app's `Slot`. The slots are all `pending`, so the screen shows three waiting regions and, for the merged view, the planned column headers over skeleton rows. The progress line shows a spinner beside each app's name, then "Joining Linear issues to GitHub PRs and CircleCI runs".
 
@@ -279,7 +279,7 @@ Each lane's busy rows are a `Set<number>`, so "is this lane free between rows a 
 **The rail** is the drawer the trail opens in: entries under day headers, "Live" and "Viewing" marks, a quiet mark on an answer still loading, and on a branch a glyph naming the answer it was asked from. Hovering an entry shows a **preview**: that answer's layout surface mounted a second time from its own runtime, laid out at 1120px and scaled to 25%, marked `inert` with pointer events off, and registered under a binding index of its own so a navigation never lands in the copy.
 
 <p align="center">
-  <img src="../images/trail-preview.png" width="560" alt="The trail drawer with its live entry hovered, previewing that answer's layout">
+  <img src="../images/trail-hover-preview.png" width="560" alt="The trail drawer with its live entry hovered, previewing that answer's layout">
   <br>
   <em>Hovering the live entry in <code>?beat=trail</code>: that answer's layout, mounted again from its own runtime and scaled down, with its progress line under it.</em>
 </p>
@@ -358,11 +358,11 @@ Only the latest step owns the merge line: a later step ends the "working" an ear
 
 <table>
   <tr>
-    <td align="center" valign="top"><img src="../images/way-back-circleci.gif" width="260" alt="CircleCI's slot going Back from a run to its runs list, then Forward"></td>
-    <td align="center" valign="top"><img src="../images/way-back-merged.gif" width="500" alt="The merged table's CI column, empty on the run and filled again on the runs list"></td>
+    <td align="center" valign="top"><img src="../images/way-back-branch-circleci.gif" width="260" alt="CircleCI's slot: a run, its failing job, Back twice to the runs list, the run opened again, then Back twice to the list and on to the job"></td>
+    <td align="center" valign="top"><img src="../images/way-back-branch-merged.gif" width="500" alt="The merged table's CI column, empty while a run or a job is open and filled again on the runs list"></td>
   </tr>
   <tr>
-    <td align="center"><em>CircleCI's slot in <code>?beat=23</code>: Back from a run to its runs list, then Forward.</em></td>
+    <td align="center"><em>CircleCI's slot in <code>?beat=26</code>: a run, its failing job, Back twice, the run opened again, then Back twice: the runs list visited again, and the job left behind.</em></td>
     <td align="center"><em>The merged view at the same moments, restored with no model call.</em></td>
   </tr>
 </table>

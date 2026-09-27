@@ -5,9 +5,9 @@ This guide explains the **merged view**: the table A2UIVerse draws on top of sev
 One example runs through the whole guide: the question _"what's the status of what I'm working on?"_, answered by Linear, GitHub and CircleCI. It's a real recorded session, and you can replay it yourself (see [Trying it without a model](#trying-it-without-a-model)).
 
 <p align="center">
-  <img src="../images/composed-answer.png" width="720" alt="The merged view over Linear, GitHub and CircleCI">
+  <img src="../images/composed-join.png" width="720" alt="The merged view over Linear, GitHub and CircleCI">
   <br>
-  <em>The merged view is the "Active work items" table. Below it, each app's own answer in its own look.</em>
+  <em>The merged view is the "Work items" table. Below it, each app's own answer in its own look.</em>
 </p>
 
 ## Problem it solves
@@ -16,7 +16,7 @@ Three apps answer the question, each with its own UI: Linear lists your issues, 
 
 The merged view puts each work item on one row. Building it raises three problems:
 
-1. **Something has to understand the data.** Nothing on the wire says that Linear's issue A2U-5, GitHub's pull request #6 and a CircleCI run on the branch `ekkicb71/a2u-5-say-on-the-canvas-…` are one piece of work. Only reading the data tells you: the issue links "PR #6", the branch name contains "a2u-5", the run is on that branch. That takes a language model, the **Synthesizer**.
+1. **Something has to understand the data.** Nothing on the wire says that Linear's issue A2U-5, GitHub's pull request #6 and a CircleCI run on the branch `ekkicb71/a2u-5-say-on-the-canvas-…` are one piece of work. Only reading the data tells you: the issue and the pull request share a title, and the run is on the pull request's branch. That takes a language model, the **Synthesizer**.
 2. **A model shouldn't be trusted with values.** If the model copied "In Review" or "Success" into the table, it could copy one wrong, and the copy would go stale the moment an app's data changed.
 3. **The table has to stay live.** You keep clicking around inside the apps after the table appears. Calling the model again on every click would be slow and expensive.
 
@@ -48,9 +48,9 @@ Here's part of Linear's data model from the example:
 // surface "linear:linear-1", Linear's data model (trimmed)
 {
   "issues": [
-    {"id": "A2U-5", "status": "In Review", "priority": "High", "link": "PR #6", "updatedAt": "Sep 19, 2026, 10:58:36 UTC"},
-    {"id": "A2U-7", "status": "In Progress", "priority": "Low", "link": "ekkicb71/a2u-7-shell-action-report-hangs-through-the-tunnel", "updatedAt": "Sep 19, 2026, 10:53:09 UTC"},
-    {"id": "A2U-6", "status": "In Progress", "priority": "Medium", "link": "PR #7", "updatedAt": "Sep 18, 2026, 11:53:06 UTC"}
+    {"id": "A2U-5", "title": "Say on the canvas when an utterance fails", "status": "In Review", "priority": "High", "link": "#6", "updated": "Sep 19, 2026, 11:00 AM UTC"},
+    {"id": "A2U-7", "title": "Shell-action report hangs through the tunnel", "status": "In Progress", "priority": "Low", "link": "ekkicb71/a2u-7-shell-action-report-hangs-through-the-tunnel", "updated": "Sep 19, 2026, 10:53 AM UTC"},
+    {"id": "A2U-6", "title": "Name the workflow, not its id, in the confirm status line", "status": "In Progress", "priority": "Medium", "link": "#7", "updated": "Sep 18, 2026, 11:53 AM UTC"}
   ]
 }
 ```
@@ -138,18 +138,19 @@ Here is the first row of the example, as the Synthesizer wrote it (trimmed; `mat
   "dataModel": {
     "issues": [
       {
-        "issue":     {"op": "value", "args": [{"surface": "linear:linear-1", "pointer": "/issues[id=\"A2U-5\"]/id"}]},
-        "status":    {"op": "value", "args": [{"surface": "linear:linear-1", "pointer": "/issues[id=\"A2U-5\"]/status"}]},
-        "pr":        {"op": "value", "args": [{"surface": "github:notifications-1", "pointer": "/prs[repository=\"retz8/a2uiverse\",number=6]/number"}]},
-        "ciStatus":  {"op": "value", "args": [{"surface": "circleci:circleci-1", "pointer": "/runs[id=\"6039cf16-6db3-4974-af2b-517f8ce26c2a\"]/status"}]},
-        "updatedAt": {"op": "value", "args": [{"surface": "linear:linear-1", "pointer": "/issues[id=\"A2U-5\"]/updatedAt"}]},
+        "issue":    {"op": "value", "args": [{"surface": "linear:linear-1", "pointer": "/issues[id=\"A2U-5\"]/title"}]},
+        "priority": {"op": "value", "args": [{"surface": "linear:linear-1", "pointer": "/issues[id=\"A2U-5\"]/priority"}]},
+        "status":   {"op": "value", "args": [{"surface": "linear:linear-1", "pointer": "/issues[id=\"A2U-5\"]/status"}]},
+        "pr":       {"op": "value", "args": [{"surface": "github:notifications-1", "pointer": "/prs[repository=\"retz8/a2uiverse\",number=6]/number"}]},
+        "ci":       {"op": "value", "args": [{"surface": "circleci:circleci-1", "pointer": "/runs[id=\"6039cf16-6db3-4974-af2b-517f8ce26c2a\"]/status"}]},
+        "updated":  {"op": "value", "args": [{"surface": "linear:linear-1", "pointer": "/issues[id=\"A2U-5\"]/updated"}]},
         "match": { "…": "the evidence that these are one work item" }
       }
       // …one object per issue
     ]
   },
   "sorts": [
-    {"path": "/issues", "options": [{"key": "/updatedAt", "label": "Updated"}], "key": "/updatedAt", "direction": "desc"}
+    {"path": "/issues", "options": [{"key": "/updated", "label": "Updated"}], "key": "/updated", "direction": "desc"}
   ]
 }
 ```
@@ -158,12 +159,12 @@ And part of the tree that binds to it. It's ordinary A2UI: a `Table` repeats a `
 
 ```jsonc
 [
-  {"id": "table", "component": "Table", "columns": ["Issue", "Status", "Priority", "Pull request", "CI status", "Updated"],
-   "children": {"path": "/issues", "componentId": "row"}},
-  {"id": "row", "component": "TableRow", "children": ["c-issue", "c-status", "c-priority", "c-pr", "c-ci", "c-updated"]},
-  {"id": "c-pr", "component": "DerivedValue", "cell": {"path": "pr"}, "format": {"kind": "number", "prefix": "#"}},
-  {"id": "c-ci", "component": "DerivedValue", "cell": {"path": "ciStatus"}, "danger": ["Failed"]},
-  {"id": "c-updated", "component": "DerivedValue", "cell": {"path": "updatedAt"}, "format": {"kind": "datetime"}}
+  {"id": "issues-table", "component": "Table", "columns": ["Issue", "Priority", "Status", "Pull request", "CI", "Updated"],
+   "children": {"path": "/issues", "componentId": "issue-row"}},
+  {"id": "issue-row", "component": "TableRow", "children": ["cell-issue", "cell-priority", "cell-status", "cell-pr", "cell-ci", "cell-updated"]},
+  {"id": "cell-pr", "component": "DerivedValue", "cell": {"path": "pr"}, "format": {"kind": "number", "prefix": "#"}},
+  {"id": "cell-ci", "component": "DerivedValue", "cell": {"path": "ci"}, "danger": ["Failed"]},
+  {"id": "cell-updated", "component": "DerivedValue", "cell": {"path": "updated"}, "format": {"kind": "datetime"}}
   // …
 ]
 ```
@@ -178,9 +179,8 @@ Putting refs from Linear, GitHub and CircleCI into one object is a claim: "these
 
 ```jsonc
 "match": {
-  "same PR reference":        {"op": "contains", "args": [/* Linear's link, "PR #6" */,    /* GitHub's number, 6 */]},
-  "branch matches issue key": {"op": "contains", "args": [/* GitHub's branch */,           /* Linear's id, "A2U-5" */]},
-  "CI run on same branch":    {"op": "equal",    "args": [/* CircleCI's branch */,         /* GitHub's branch */]}
+  "same title":  {"op": "equal", "args": [/* Linear's title */,  /* GitHub's title */]},
+  "same branch": {"op": "equal", "args": [/* GitHub's branch */, /* CircleCI's branch */]}
 }
 ```
 
@@ -249,7 +249,8 @@ flowchart TD
 ```jsonc
 // the reserved slot in the example's layout (trimmed)
 {"component": "Slot", "source": "shell",
- "columns": ["Issue", "Status", "Priority", "Pull request", "CI status", "Updated"],
+ "columns": ["Issue", "Priority", "Status", "Pull request", "CI", "Updated"],
+ "columnSources": ["linear", "linear", "linear", "github", "circleci", "linear"],
  "join": {"home": "linear", "nouns": {"linear": "issues", "github": "PRs", "circleci": "runs"}}}
 ```
 
@@ -393,33 +394,33 @@ Sorting never leaves the client: no request, no model call.
 
 ### Reading time
 
-The apps paint time however they like. In the example alone: Linear writes `Sep 19, 2026, 10:58:36 UTC`, GitHub `2026-09-19T07:07:33Z`, CircleCI `2026-09-18 11:52:36 UTC`. Nothing on the wire asks an app for a format, and the Synthesizer converts nothing. Instead the runtime reads time itself, in `packages/shell-catalog/src/components/shared/instant.ts`:
+The apps paint time however they like. In the example alone: Linear writes `Sep 19, 2026, 11:00 AM UTC`, GitHub `2026-09-19T07:07:33Z`, CircleCI `2026-09-18 11:52:36 UTC`. Nothing on the wire asks an app for a format, and the Synthesizer converts nothing. Instead the runtime reads time itself, in `packages/shell-catalog/src/components/shared/instant.ts`:
 
 - A value is a time only if it has a **four-digit year and a clock** (`10:58`). Anything else, like a bare date or `11:30 – 12:15`, stays text.
 - The common shapes (ISO 8601, `2026-09-18 11:52:36 UTC`) are read directly.
 - Otherwise the value is tidied: a zone named in brackets like `(America/New_York)` is honoured, a range is cut to its start, and separators like `·` and `at` are dropped. Then the JavaScript engine reads what's left.
 - A time with no zone at all is read as wall time in **`America/New_York`**, a zone fixed in code. It's never the viewer's machine zone, because that isn't where the day happened.
 
-The same function feeds the sort comparator and `DerivedValue`'s `datetime` format, which shows every readable time in one form, US English in `America/New_York`. So what sorts together shows together: Linear's `Sep 19, 2026, 10:58:36 UTC` appears in the table as "Sep 19, 2026, 6:58 AM".
+The same function feeds the sort comparator and `DerivedValue`'s `datetime` format, which shows every readable time in one form, US English in `America/New_York`. So what sorts together shows together: Linear's `Sep 19, 2026, 11:00 AM UTC` appears in the table as "Sep 19, 2026, 7:00 AM".
 
 ### Checking a relation
 
 `packages/shell-catalog/src/functions/relations.ts` decides whether `equal` and `contains` hold. Both work on **tokens**: the text normalized (Unicode NFKC), lowercased, and split into runs of letters and digits. In scripts written without spaces, like Chinese or Thai, each character is a token of its own.
 
 ```
+"Say on the canvas when an utterance fails"
+  → say · on · the · canvas · when · an · utterance · fails
 "ekkicb71/a2u-5-say-on-the-canvas-when-an-utterance-fails"
   → ekkicb71 · a2u · 5 · say · on · the · canvas · when · an · utterance · fails
-"A2U-5"
-  → a2u · 5
 ```
 
-**`contains(a, b)`** asks whether b's tokens appear **as a contiguous run** inside a's. It slides a window of b's length along a's tokens and compares at each position, O(n × m) for token lists that are a few dozen long at most. Above, `a2u · 5` appears at position 1, so "branch matches issue key" holds. The same way, `PR #6` becomes `pr · 6`, which contains `6`, and "same PR reference" holds.
+**`contains(a, b)`** asks whether b's tokens appear **as a contiguous run** inside a's. It slides a window of b's length along a's tokens and compares at each position, O(n × m) for token lists that are a few dozen long at most. Above, the title's eight tokens appear at position 3 of the branch's, so `contains(branch, title)` holds.
 
 **`equal(a, b)`** tries three readings, in order:
 
 1. **As instants**, when both read as times. They're compared at the coarser of the two precisions, so `10:58` equals `10:58:36`.
 2. **As numbers**, when both read as one. `readNumber` accepts a currency symbol and grouping separators (`$1,299.00`), but rejects a spelling that could mean two numbers: `1,234` is 1234 in one convention and 1.234 in another, so it isn't a number at all.
-3. **As token sequences**: the same words in the same order.
+3. **As token sequences**: the same words in the same order. Row A2U-5's "same title" holds this way, and so does its "same branch".
 
 When both sides are lists of plain values, `equal` compares them as sets and `contains` asks whether every member of b is among a's.
 
@@ -439,9 +440,8 @@ A cell's mark is the worst mark among the apps it reads that resolved. Here's ro
 ```mermaid
 flowchart LR
     subgraph now["Now: one group, no marks"]
-        L1["Linear"] ---|"same PR reference"| G1["GitHub"]
-        G1 ---|"branch matches issue key"| L1
-        C1["CircleCI"] ---|"CI run on same branch"| G1
+        L1["Linear"] ---|"same title"| G1["GitHub"]
+        G1 ---|"same branch"| C1["CircleCI"]
     end
     subgraph later["If the branch fact failed: CircleCI broken"]
         L2["Linear"] ---|"holds"| G2["GitHub"]
@@ -449,7 +449,7 @@ flowchart LR
     end
 ```
 
-In the second case the core is {Linear, GitHub}, CircleCI's only link fails, and the CI status cell turns amber with ⚠. If the CircleCI link had been `judged` instead, CircleCI would be outside the core with a link that hasn't failed, so its values would be drawn as guessed.
+In the second case the core is {Linear, GitHub}, CircleCI's only link fails, and the CI cell turns amber with ⚠. If the CircleCI link had been `judged` instead, CircleCI would be outside the core with a link that hasn't failed, so its values would be drawn as guessed.
 
 ### Deciding when to merge
 
@@ -524,7 +524,7 @@ When you step, the client restores the paint at once and tells the orchestrator.
 | Case        | What's found                                                                                     | What happens                                                           |
 | ----------- | ------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------- |
 | **Seen**    | an entry at exactly this combination                                                             | its wiring is restored and evaluated at once, no model call           |
-| **Covered** | an entry over fewer apps, each of them at the step it's on now (the one naming most apps wins, then the latest) | restored the same way; apps that painted since are offered for Include |
+| **Covered** | an entry over fewer apps, each of them on the paint it shows now (the one naming most apps wins, then the latest) | restored the same way; apps that painted since are offered for Include |
 | **Unseen**  | nothing                                                                                          | the change account above decides whether the Synthesizer runs          |
 
 Finding a covering entry is a **linear scan** over the map, checking each entry's apps against the current combination.
@@ -532,9 +532,9 @@ Finding a covering entry is a **linear scan** over the map, checking each entry'
 **The walk waits for the pressing to stop.** The orchestrator writes the app's data and journals every step at once, but starts the walk only after half a second with no further step on that answer (`STEP_QUIET_MS` in `apps/orchestrator/src/config.ts`, Windows' default double-click time). Pressing Back three times to reach an old screen walks only the last combination, so a screen you pass through never starts a call. A walk already running is abandoned if you step again before it finishes, since the combination it was for is no longer on screen.
 
 <p align="center">
-  <img src="../images/way-back-merged.gif" width="560" alt="The merged table's CI status column, empty while a run is open and filled again on Back">
+  <img src="../images/way-back-branch-merged.gif" width="560" alt="The merged table's CI column, empty while a run or a job is open and filled again on the runs list">
   <br>
-  <em>A seen combination. Opening a CircleCI run empties the CI column (its refs into the runs list go absent); Back restores the remembered wiring with no model call.</em>
+  <em>Seen combinations. Opening a CircleCI run or its job empties the CI column (its refs into the runs list go absent); every Back lands on a combination seen, restored with no model call, the job left behind among them.</em>
 </p>
 
 ### Checking the model's work
@@ -602,6 +602,7 @@ Start the client (`pnpm dev:client`) and open a replay; see the [client README](
 | `?beat=join`           | A list of offers inside every row under one sort, then a repaint that breaks a join              |
 | `?beat=navigation`     | Clicking cells: a rendered field, a field no app shows, a join held by judgment alone             |
 | `?beat=23`, `?beat=24` | Stepping back to a combination seen (restored, no call) and one never seen (the change account)   |
+| `?beat=26`             | Back past a new run: every step lands on a combination seen, the job left behind still reachable  |
 
 In the orchestrator's tests, the model sits behind a one-method **text seam** (text in, text out), and a `FakeSynthesizer` plays it. `A2UIVERSE_SYNTHESIZER_LIVE=1` runs the real model once.
 
@@ -648,6 +649,6 @@ In the orchestrator's tests, the model sits behind a one-method **text seam** (t
 | **Settled** | An app's answer ended: arrived, failed, or out of time |
 | **Press** | A reader's Retry, Include or Try again |
 | **Step** | A back or forward move in one app's slot |
-| **Combination** | Every app's current step, the key the wiring is remembered under |
+| **Combination** | The paint each app has on screen, the key the wiring is remembered under |
 | **Change account** | What changed under the merged view after a click: absent, appeared, repainted, unheld |
 | **Watch** | The keys each list held when the view was accepted |

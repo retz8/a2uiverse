@@ -5,9 +5,9 @@ This guide explains the **orchestrator**, the server in the middle of A2UIVerse.
 One example runs through the whole guide: the question _"what's the status of what I'm working on?"_, answered by Linear, GitHub and CircleCI. It's a real recorded session (you can replay it, see [Trying it without a model](#trying-it-without-a-model)), and the numbers below come from its recording and its line in the orchestrator's journal.
 
 <p align="center">
-  <img src="../images/composing.gif" width="720" alt="One question composed: the layout lands, three apps fill their slots, the merged view lands on top">
+  <img src="../images/composing-join.gif" width="720" alt="One question composed: the layout lands, three apps fill their slots, the merged view lands on top">
   <br>
-  <em>The recorded question as the client drew it, waits shortened. Planning took about 7 s; the layout landed at 8.4 s, the three apps' answers between 8.6 and 8.7 s, and the merged view at 24.6 s.</em>
+  <em>The recorded question as the client drew it, waits shortened. Planning took about 6 s; the layout landed at 6.05 s, the three apps' answers between 6.07 and 6.09 s, and the merged view at 17.47 s.</em>
 </p>
 
 ## Problem it solves
@@ -122,38 +122,40 @@ flowchart TD
 {
   "dispatch": [
     {"source": "linear",   "request": "Show the issues assigned to me or currently in progress as a compact list. For each issue, include its identifier, title, status, priority, linked branch or pull request, and the full date and time it was last updated."},
-    {"source": "github",   "request": "Show my open and recently updated pull requests as a compact list. For each pull request, include its title, repository, number, branch name, review status, and the full date and time it was last updated."},
-    {"source": "circleci", "request": "Show recent pipeline runs for my branches and commits as a compact list. For each run, include the project, branch name, commit, status, and the full date and time it ran."},
-    {"source": "shell",    "request": "Where each active work item stands: one row per Linear issue … with its status, priority, linked pull request, and CI pipeline status; most recently updated first. …",
-     "columns": ["Issue", "Status", "Priority", "Pull request", "CI status", "Updated"],
+    {"source": "github",   "request": "Show my open pull requests and recent branches as a compact list. For each, include its title, number, branch name, review status, any linked issue identifier, and the full date and time it was last updated."},
+    {"source": "circleci", "request": "Show recent pipeline runs for my active branches as a compact list. For each run, include the branch name, commit, workflow status (passed, failed, or running), and the full date and time."},
+    {"source": "shell",    "request": "Where each work item stands: one row per Linear issue … with its priority, status, linked GitHub pull request, and CircleCI build status; most recently updated first. …",
+     "columns": ["Issue", "Priority", "Status", "Pull request", "CI", "Updated"],
+     "columnSources": ["linear", "linear", "linear", "github", "circleci", "linear"],
      "join": {"home": "linear", "nouns": {"linear": "issues", "github": "PRs", "circleci": "runs"}}}
   ],
   "tree": {"components": [
-    {"id": "root",        "component": "Column", "children": ["work-status", "sources"]},
-    {"id": "work-status", "component": "Slot", "source": "shell"},
-    {"id": "sources",     "component": "Row", "children": ["linear", "github", "circleci"]},
-    {"id": "linear",      "component": "Slot", "source": "linear", "weight": 1},
-    {"id": "github",      "component": "Slot", "source": "github", "weight": 1},
-    {"id": "circleci",    "component": "Slot", "source": "circleci", "weight": 1}
+    {"id": "root",     "component": "Column", "children": ["status", "sources"]},
+    {"id": "status",   "component": "Slot", "source": "shell"},
+    {"id": "sources",  "component": "Row", "children": ["linear", "github", "circleci"]},
+    {"id": "linear",   "component": "Slot", "source": "linear", "weight": 1},
+    {"id": "github",   "component": "Slot", "source": "github", "weight": 1},
+    {"id": "circleci", "component": "Slot", "source": "circleci", "weight": 1}
   ]},
-  "dataModel": {}
+  "dataModel": {},
+  "title": "Status of current work"
 }
 ```
 
 Notice three things. Each app gets its **own request in its own words**, never your question as typed; each asks for exactly the fields a merge will need, like "the full date and time", without ever mentioning the merge. The `shell` entry is the merged view: its request is the brief for the Synthesizer. And the tree is just `Slot`s, one per entry: the Planner designs the frame, never the apps' contents.
 
-The plan is checked by a validator; if it fails, the model gets one retry. The Planner can also write a short **title**, which names this answer in the client's trail. In the recorded run, planning took 7.2 seconds from the question arriving to the plan accepted.
+The plan is checked by a validator; if it fails, the model gets one retry. The Planner can also write a short **title**, which names this answer in the client's trail; here it's "Status of current work". In the recorded run, planning took 6.0 seconds from the question arriving to the plan accepted.
 
 **4. First paint, before any app is asked.** The orchestrator turns the plan into the `shell:main` surface and sends it to the client at once. On the way, the **shell painter** writes in what only the shell owns: every app's `Slot` is wrapped in an `Attribution` (the app's name above its slot, which the app can't hide), and every slot gets its state:
 
 ```jsonc
-{"id": "work-status", "component": "Slot", "source": "shell", "state": "pending", "label": "Synthesis", "content": "shell",
- "columns": ["Issue", "Status", "Priority", "Pull request", "CI status", "Updated"], "join": {"home": "linear", "…": "…"}},
+{"id": "status", "component": "Slot", "source": "shell", "state": "pending", "label": "Synthesis", "content": "shell",
+ "columns": ["Issue", "Priority", "Status", "Pull request", "CI", "Updated"], "columnSources": ["…"], "join": {"home": "linear", "…": "…"}},
 {"id": "attribution-linear", "component": "Attribution", "displayName": "Linear", "appId": "linear", "child": "linear", "weight": 1},
-{"id": "linear", "component": "Slot", "source": "linear", "weight": 1, "state": "pending", "label": "Linear"}
+{"id": "linear", "component": "Slot", "source": "linear", "weight": 1, "state": "pending", "label": "Linear", "noun": "Linear issues"}
 ```
 
-The client can now draw the whole frame, the merged view's column headers over skeleton rows, and a waiting slot per app. **First paint never waits on any app.** In the recording it reached the client 8.4 seconds after the question was sent.
+The client can now draw the whole frame, the merged view's column headers over skeleton rows, and a waiting slot per app. **First paint never waits on any app.** In the recording it reached the client 6.05 seconds after the question was sent.
 
 **5. Each app is asked, in parallel.** For every app in the plan, the orchestrator builds an A2A message whose text is the Planner's request for that app, and hands it to the **AgentsPool**. The pool connects to the app, sends the message in that app's own conversation for this context, and streams back its events. The three requests went out within a millisecond of each other.
 
@@ -167,28 +169,28 @@ The client can now draw the whole frame, the merged view's column headers over s
 6. counts every `createSurface` as a paint in that app's history, the newest on screen (for its back arrow),
 7. publishes the event to the client.
 
-In the recording, GitHub's answer reached the client at 8.59 s, Linear's at 8.60 s and CircleCI's at 8.74 s. These apps ran in `deterministic` mode, answering from recordings in 60 to 75 milliseconds each.
+In the recording, GitHub's answer reached the client at 6.07 s, Linear's at 6.08 s and CircleCI's at 6.09 s. These apps ran in `deterministic` mode, answering from recordings in 24 to 36 milliseconds each.
 
 **7. Each app settles.** When an app's stream ends, the orchestrator sends the client one more event for that app with no parts and the stamp `settled: true`, which tells the client that app's answer is complete. The app's slot state is decided: it **arrived** if it painted a surface, it **failed** if it ended in error, couldn't be reached, or hit the hard cap. Then the **trigger** is asked whether the merge can run: here, all three arrived, so it's released at once.
 
-**8. The merge.** The Synthesizer, the second model call, writes the merged view as formulas over the apps' data, and the orchestrator checks it before painting it into the reserved slot. In the recorded run its first attempt was refused: it had typed one CircleCI run id wrong, and the check found that the ref "does not resolve in the data shown". The retry fixed it, and the view landed 16.1 seconds after the merge was released. How the merged view is written, checked and kept live is the whole of [`synthesis.md`](synthesis.md).
+**8. The merge.** The Synthesizer, the second model call, writes the merged view as formulas over the apps' data, and the orchestrator checks it before painting it into the reserved slot. In the recorded run its first attempt was accepted, and the view landed 11.4 seconds after the merge was released. How the merged view is written, checked and kept live is the whole of [`synthesis.md`](synthesis.md).
 
-**9. One final, then the journal line.** Once every app has arrived, failed or hit the hard cap, and the merge released during the turn is done, the orchestrator sends the turn's one `final: true` event, `completed`. The client saw it 24.6 seconds after asking. The turn's line in the **intent journal** is written when the last app's stream has fully drained, so an answer arriving late still makes it onto the line. Here is the recorded line, trimmed:
+**9. One final, then the journal line.** Once every app has arrived, failed or hit the hard cap, and the merge released during the turn is done, the orchestrator sends the turn's one `final: true` event, `completed`. The client saw it 17.5 seconds after asking. The turn's line in the **intent journal** is written when the last app's stream has fully drained, so an answer arriving late still makes it onto the line. Here is the recorded line, trimmed:
 
 ```jsonc
 {
-  "turnId": "381ceb10-f93a-4442-adef-f33317d8a8ab",          // the client's task id
-  "clientContextId": "2c0e5abc-357a-49a5-a5ea-d6fc544993fd", // the context: this answer's composition
-  "at": "2026-09-22T09:50:54.566Z",
+  "turnId": "4922aa90-f685-4b23-b836-a1e2819bb594",          // the client's task id
+  "clientContextId": "fc54e5d9-ec43-4456-9b53-ba6fd6a7d086", // the context: this answer's composition
+  "at": "2026-09-27T08:41:23.612Z",
   "kind": "utterance",
   "descriptor": "what's the status of what I'm working on?",
-  "plan": {"outcome": "planned", "planMs": 7157, "layoutSurface": {"…": "the plan above"}, "attempts": ["…one"], "toolCalls": []},
+  "plan": {"outcome": "planned", "planMs": 6038, "layoutSurface": {"…": "the plan above"}, "title": "Status of current work", "attempts": ["…one"], "toolCalls": []},
   "dispatch": [
-    {"appId": "github", "vendorContextId": "604f24da-…", "vendorTaskId": "dde42ba0-…", "startedAt": "2026-09-22T09:51:01.724Z", "endedAt": "2026-09-22T09:51:01.784Z", "outcome": "completed"},
+    {"appId": "github", "vendorContextId": "7a3c3416-…", "vendorTaskId": "3ab4822a-…", "startedAt": "2026-09-27T08:41:29.652Z", "endedAt": "2026-09-27T08:41:29.676Z", "outcome": "completed"},
     {"appId": "linear",   "…": "…", "outcome": "completed"},
     {"appId": "circleci", "…": "…", "outcome": "completed"}
   ],
-  "synthesis": {"outcome": "synthesized", "attempts": ["…the refused one", "…the accepted one"], "deadAirMs": 16126},
+  "synthesis": {"outcome": "synthesized", "attempts": ["…the accepted one"], "deadAirMs": 11382},
   "surfaces": {"created": ["shell:main", "github:notifications-1", "linear:linear-1", "circleci:circleci-1", "shell:synthesis"], "…": "…"},
   "outcome": "completed",
   "embedding": ["…384 numbers: the descriptor, embedded with the Router's model"]
@@ -389,15 +391,15 @@ A merge also waits for **quiet**. `Presses` (`src/composition/presses.ts`) count
 Separately, every request leaves short lines on stdout (`src/log.ts`) as it runs, the trace of a turn that hasn't closed yet:
 
 ```
-← utterance task=381ceb10-… ctx=2c0e5abc-… … bytes
-plan task=381ceb10-… planned 7157 ms
-→ linear task=381ceb10-…
-← linear task=381ceb10-… completed 61 ms
-merge task=381ceb10-… released (settled)
-✓ utterance task=381ceb10-… completed … ms
+← utterance task=4922aa90-… ctx=fc54e5d9-… 952 bytes
+plan task=4922aa90-… planned 6038 ms
+→ linear task=4922aa90-…
+← linear task=4922aa90-… completed 28 ms
+merge task=4922aa90-… released (settled)
+✓ utterance task=4922aa90-… completed 17458 ms
 ```
 
-(The line shapes are the code's; the numbers shown are the recorded run's, from its journal line.)
+(The recorded run's lines, Linear's alone of the three apps.)
 
 ### Id spaces
 

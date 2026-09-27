@@ -56,7 +56,7 @@ CONFIG = AgentAppConfig(
     skills=SKILLS,
     default_port=11005,
     catalog_path=_AGENT_DIR.parent / "linear-catalog" / "catalogs" / "v0.9.1" / "catalog.json",
-    catalog_kind="basic",                # the basic A2UI catalog, themed as Linear
+    catalog_kind="custom",               # Linear's own catalog, in its design language
     role_description=prose.ROLE_DESCRIPTION,
     workflow_descriptions=(prose.WORKFLOW_DESCRIPTION, prose.SHELL_DESCRIPTION, prose.SCOPE_DESCRIPTION),
     domain_knowledge_path=_APP_PKG / "knowledge" / "linear-domain.md",
@@ -231,7 +231,7 @@ A `<` that turns out not to start a tag is released as soon as the next characte
 2. **Completeness and topology.** There's a `createSurface`, a component with id `root`, and every component is reachable from the root, with no dangling children, no cycles and no orphans.
 3. **Bindings resolve.** The kit rebuilds the data model from the answer's own `updateDataModel` messages, then walks the tree from `root` and checks that every binding points at a value. Inside a list template it resolves against each list item, and when a model wrote an absolute path where a relative one was meant, the message says exactly that: use `'title'`, not `'/title'`.
 
-The catalog's **kind** changes two details. A **custom** catalog (GitHub's, built on Primer) doesn't model the `id` every component carries, so pass 1 runs on a copy with ids stripped. A **basic** catalog (the themed A2UI basic catalog, like Linear's) requires `id` on every component and composes each component's props from `allOf` branches, so ids stay and the props are flattened before pass 0 can read them.
+The catalog's **kind** changes two details. A **custom** catalog (GitHub's, built on Primer) doesn't model the `id` every component carries, so pass 1 runs on a copy with ids stripped. A **basic** catalog (the themed A2UI basic catalog, like the mock stores') requires `id` on every component and composes each component's props from `allOf` branches, so ids stay and the props are flattened before pass 0 can read them.
 
 An update-only turn goes through `validate_update` instead: passes 0, 1 and 3, but not pass 2. The `createSurface`, the `root` and reachability live on the client, so the agent can't check them for an update.
 
@@ -394,7 +394,7 @@ The scaffolder is `a2uiverse-apps/create-a2ui-agent/`: `src/cli.ts` (flags and t
 | **A2UI** | The protocol for agents to generate UI: surfaces, components, data models |
 | **Surface** | One A2UI screen: a component tree and its data model |
 | **Catalog** | The components an app's UI is built from: a schema the model writes against, and a React implementation |
-| **Basic / custom catalog** | The themed A2UI basic catalog, or a catalog of its own (GitHub's, on Primer) |
+| **Basic / custom catalog** | The themed A2UI basic catalog (the mock stores'), or a catalog of its own (every vendor app's, like GitHub's on Primer) |
 | **MCP server** | The vendor's server the agent calls for data and actions |
 | **ADK** | Google's Agent Development Kit, which runs the model and its tool calls |
 | **Mode** | `deterministic`, `stub` or `live`: who answers |

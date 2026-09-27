@@ -5,7 +5,7 @@ The hub: an A2A agent server, and the only server the client talks to. It finds 
 ## Where it sits
 
 <p align="center">
-  <img src="../../docs/images/composed-answer.png" width="640" alt="One question answered by Linear, GitHub and CircleCI on one screen">
+  <img src="../../docs/images/composed-join.png" width="640" alt="One question answered by Linear, GitHub and CircleCI on one screen">
   <br>
   <em>One question, answered by Linear, GitHub and CircleCI, each in its own slot and look. The table on top is the merged view.</em>
 </p>
@@ -47,22 +47,21 @@ When the merge is over one thing seen by several apps, like a Linear issue, its 
 Take the first row of the table at the top, issue A2U-5. The three apps answered it in their own data:
 
 ```text
-Linear    issue A2U-5    status "In Review"   link "PR #6"
-GitHub    PR #6          branch "ekkicb71/a2u-5-say-on-the-canvas-…"
-CircleCI  run 6039cf16   status "Success"     branch "ekkicb71/a2u-5-say-on-the-canvas-…"
+Linear    issue A2U-5    title "Say on the canvas when an utterance fails"   status "In Review"
+GitHub    PR #6          title "Say on the canvas when an utterance fails"   branch "ekkicb71/a2u-5-say-on-the-canvas-…"
+CircleCI  run 6039cf16   status "Success"                                    branch "ekkicb71/a2u-5-say-on-the-canvas-…"
 ```
 
 The Synthesizer writes the row as formulas pointing at those entries, with a match claim: the facts that make them one work item, named in its own words. Shortened, it reads:
 
 ```text
-status     value(linear   /issues[id="A2U-5"]/status)
-pr         value(github   /prs[repository="retz8/a2uiverse",number=6]/number)
-ciStatus   value(circleci /runs[id="6039cf16-…"]/status)
+status   value(linear   /issues[id="A2U-5"]/status)
+pr       value(github   /prs[repository="retz8/a2uiverse",number=6]/number)
+ci       value(circleci /runs[id="6039cf16-…"]/status)
 
 match
-  same PR reference          contains(linear …/link,    github …/number)
-  branch matches issue key   contains(github …/branch,  linear …/id)
-  CI run on same branch      equal(circleci …/branch,   github …/branch)
+  same title    equal(linear …/title,   github …/title)
+  same branch   equal(github …/branch,  circleci …/branch)
 ```
 
 The orchestrator runs each fact against the apps' data before accepting the row; a fact that doesn't hold goes back to the Synthesizer with the values it found. The client then evaluates the formulas into In Review, #6 and Success, and again whenever the data they point at changes.
@@ -84,7 +83,7 @@ An answer isn't thrown away when the next question comes. Each one is kept, keep
 ### One composition per context
 
 <p align="center">
-  <img src="../../docs/images/trail.png" width="640" alt="The client's trail of four questions">
+  <img src="../../docs/images/trail-open.png" width="640" alt="The client's trail of four questions">
   <br>
   <em>The client's trail: four questions asked, each one a context on the orchestrator. The newest is still loading.</em>
 </p>
@@ -97,16 +96,16 @@ Every question the client sends is an A2A context, and the orchestrator holds a 
 
 ### Going back inside an app's answer
 
-Clicking into something inside an app's answer, like a CI run, makes the app paint a new screen in its slot, with a back arrow at the right of its row. The orchestrator remembers the merged view for every combination of screens it has shown, so going back restores it with no model call.
+Clicking into something inside an app's answer, like a CI run, makes the app paint a new screen in its slot, with a back arrow at the right of its row. The orchestrator remembers the merged view for every combination of screens it has shown, so going back restores it with no model call. Every screen keeps its number and none is dropped, so a screen reached again by any route finds the merged view remembered for it. A quick run of presses costs nothing for the screens it passes through: the check that may call the model waits until the pressing stops.
 
 <table>
   <tr>
-    <td align="center" valign="top"><img src="../../docs/images/way-back-circleci.gif" width="280" alt="CircleCI's slot going Back from a run to its runs list, then Forward"></td>
-    <td align="center" valign="top"><img src="../../docs/images/way-back-merged.gif" width="500" alt="The merged table's CI run column, empty on the run and filled again on the runs list"></td>
+    <td align="center" valign="top"><img src="../../docs/images/way-back-branch-circleci.gif" width="280" alt="CircleCI's slot: a run, its failing job, Back twice to the runs list, the run opened again, then Back twice to the list and on to the job"></td>
+    <td align="center" valign="top"><img src="../../docs/images/way-back-branch-merged.gif" width="500" alt="The merged table's CI column, empty while a run or a job is open and filled again on the runs list"></td>
   </tr>
   <tr>
-    <td align="center"><em>CircleCI's slot: Back from a run to its runs list, then Forward again.</em></td>
-    <td align="center"><em>The merged view at the same moments: its CI run column is empty while the run is open, and fills in again on Back from the wiring the orchestrator remembered, with no model call.</em></td>
+    <td align="center"><em>CircleCI's slot: a run, its failing job, Back twice, the run opened again, then Back twice: the runs list, and the job left behind.</em></td>
+    <td align="center"><em>The merged view at the same moments: its CI column is empty while a run or its job is open, and fills in again on the runs list from the wiring the orchestrator remembered, with no model call.</em></td>
   </tr>
 </table>
 

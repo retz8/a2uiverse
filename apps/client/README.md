@@ -3,7 +3,7 @@
 The canvas: you ask in words, and the answer is a full screen of UI composed from several apps, each in its own design system and labelled with who painted it. It talks only to the orchestrator, never to an app.
 
 <p align="center">
-  <img src="../../docs/images/composed-answer.png" width="640" alt="One question answered by Linear, GitHub and CircleCI on one screen">
+  <img src="../../docs/images/composed-join.png" width="640" alt="One question answered by Linear, GitHub and CircleCI on one screen">
   <br>
   <em>One question, answered by Linear, GitHub and CircleCI, each in its own slot and look. The table on top is the merged view.</em>
 </p>
@@ -12,7 +12,7 @@ The canvas: you ask in words, and the answer is a full screen of UI composed fro
 
 ### One screen, many design systems
 
-Each app's UI renders with its own catalog: GitHub in Primer, Gmail and Calendar in Material 3, CircleCI and Linear in their own themes, side by side on one page. Every catalog keeps its styles inside its own slot, and the client's collision tests fail if any leak onto the page or into another app.
+Each app's UI renders with its own catalog: GitHub in Primer, Gmail and Calendar in Material 3, CircleCI and Linear each in a catalog of its own in its product's design language, side by side on one page. Every catalog keeps its styles inside its own slot, and the client's collision tests fail if any leak onto the page or into another app.
 
 The shell draws everything around the apps in Radix Themes: the question, the progress line, the palette, Back and Trail, the layout, and each app's name above its slot. It never reaches inside a slot.
 
@@ -43,7 +43,7 @@ Every question gets its own answer, and none is thrown away when the next one is
 ### History that branches
 
 <p align="center">
-  <img src="../../docs/images/trail-drawer.png" width="276" alt="The trail drawer: four questions on two branches">
+  <img src="../../docs/images/trail-branches.png" width="276" alt="The trail drawer: four questions on two branches">
   <br>
   <em>The trail: four questions on two branches, the newest live.</em>
 </p>
@@ -54,16 +54,16 @@ Back goes up the branch, not to the page before. Above, "Camera prices" was aske
 
 #### Inside each app's answer
 
-Each app's slot has its own Back and Forward, at the right of its name, apart from the trail and from the other apps: stepping CircleCI back to its runs list leaves GitHub and Linear where they are. The merged view follows the step, restored with no model call from the wiring remembered for that combination of screens.
+Each app's slot has its own Back and Forward, at the right of its name, apart from the trail and from the other apps: stepping CircleCI back to its runs list leaves GitHub and Linear where they are. Like the trail, it drops nothing: open a run and its failing job, go back to the list and open the run again, and Back still reaches the job. The merged view follows the step, restored with no model call from the wiring remembered for that combination of screens.
 
 <table>
   <tr>
-    <td align="center" valign="top"><img src="../../docs/images/way-back-circleci.gif" width="280" alt="CircleCI's slot going Back from a run to its runs list, then Forward"></td>
-    <td align="center" valign="top"><img src="../../docs/images/way-back-merged.gif" width="500" alt="The merged table's CI run column, empty on the run and filled again on the runs list"></td>
+    <td align="center" valign="top"><img src="../../docs/images/way-back-branch-circleci.gif" width="280" alt="CircleCI's slot: a run, its failing job, Back twice to the runs list, the run opened again, then Back twice to the list and on to the job"></td>
+    <td align="center" valign="top"><img src="../../docs/images/way-back-branch-merged.gif" width="500" alt="The merged table's CI column, empty while a run or a job is open and filled again on the runs list"></td>
   </tr>
   <tr>
-    <td align="center"><em>CircleCI's slot: Back from a run to its runs list, then Forward again.</em></td>
-    <td align="center"><em>The merged view at the same moments: its CI run column is empty while the run is open, and fills in again on Back.</em></td>
+    <td align="center"><em>CircleCI's slot: a run, its failing job, Back twice, the run opened again, then Back twice: the runs list, and the job left behind.</em></td>
+    <td align="center"><em>The merged view at the same moments: its CI column is empty while a run or its job is open, and fills in again on the runs list.</em></td>
   </tr>
 </table>
 
@@ -81,7 +81,7 @@ Playwright's browser installs separately (`pnpm exec playwright install chromium
 
 ## Working without a model
 
-`?beat=<name>` replays a recorded or hand-built session through the whole canvas, with no model call and no network, and `&instant` skips the recorded pacing. `?beat=9&instant` is the entity join above, `?beat=trail` the trail, and `?beat=23&instant` the way back.
+`?beat=<name>` replays a recorded or hand-built session through the whole canvas, with no model call and no network, and `&instant` skips the recorded pacing. `?beat=9&instant` is the entity join above, `?beat=trail` the trail, and `?beat=26&instant` the way back.
 
 A beat's presses fire through the same handler the buttons call, answered from the beat itself. The tests and the screenshots in this README come from beats.
 

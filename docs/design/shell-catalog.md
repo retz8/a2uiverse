@@ -5,13 +5,13 @@ This guide explains `packages/shell-catalog`, the A2UI catalog A2UIVerse paints 
 One example runs through the whole guide, the same recorded session as [`synthesis.md`](synthesis.md): the question _"what's the status of what I'm working on?"_, answered by Linear, GitHub and CircleCI. Everything on these two screens that isn't an app's own UI is drawn by this catalog.
 
 <p align="center">
-  <img src="../images/layout-pending.png" width="720" alt="The layout's first paint: a reserved merged view with its planned columns over skeleton rows, and three app slots loading">
+  <img src="../images/layout-reserved.png" width="720" alt="The layout's first paint: a reserved merged view with its planned columns over skeleton rows, and three app slots loading">
   <br>
   <em>First paint. A reserved merged view with its planned columns, and a slot per app, each named above and still loading.</em>
 </p>
 
 <p align="center">
-  <img src="../images/composed-answer.png" width="720" alt="The same layout filled: the merged view and each app's answer">
+  <img src="../images/composed-join.png" width="720" alt="The same layout filled: the merged view and each app's answer">
   <br>
   <em>The same layout filled. The table, the sort control and the app names are this catalog's; inside each slot is the app's own.</em>
 </p>
@@ -81,7 +81,7 @@ Eight components exist only in the shell catalog. In the example:
 | **`Attribution`** | The quiet app name above a slot, and that app's back and forward arrows | "Linear", "GitHub", "CircleCI" above the three slots |
 | **`DerivedValue`** | The only way a merged view shows a value: the value plus how sure it is | Every cell of the table |
 | **`SortControl`** | "Sort by" with the options and the direction | "Sort by Updated ↓" |
-| **`Table`**, **`TableRow`** | A list of like things whose columns line up | The "Active work items" table |
+| **`Table`**, **`TableRow`** | A list of like things whose columns line up | The "Work items" table |
 | **`DataList`**, **`DataListItem`** | Labelled facts about one thing | A summary of one item, or an answer about A2UIVerse itself |
 
 `Table` exists because the basic catalog can only draw a list as a heading `Row` over a `Column` of `Row`s, and a `Row` sizes its children by their content, so the columns never line up. A table is the one shape whose columns align by construction.
@@ -152,18 +152,19 @@ flowchart TD
 
 ```jsonc
 [
-  {"id": "root", "component": "Column", "children": ["work-status", "sources"]},
-  {"id": "work-status", "component": "Slot", "source": "shell", "content": "shell", "state": "pending", "label": "Synthesis",
-   "columns": ["Issue", "Status", "Priority", "Pull request", "CI status", "Updated"],
+  {"id": "root", "component": "Column", "children": ["status", "sources"]},
+  {"id": "status", "component": "Slot", "source": "shell", "content": "shell", "state": "pending", "label": "Synthesis",
+   "columns": ["Issue", "Priority", "Status", "Pull request", "CI", "Updated"],
+   "columnSources": ["linear", "linear", "linear", "github", "circleci", "linear"],
    "join": {"home": "linear", "nouns": {"linear": "issues", "github": "PRs", "circleci": "runs"}}},
   {"id": "sources", "component": "Row", "children": ["attribution-linear", "attribution-github", "attribution-circleci"]},
   {"id": "attribution-linear", "component": "Attribution", "displayName": "Linear", "appId": "linear", "child": "linear", "weight": 1},
-  {"id": "linear", "component": "Slot", "source": "linear", "weight": 1, "state": "pending", "label": "Linear"}
+  {"id": "linear", "component": "Slot", "source": "linear", "weight": 1, "state": "pending", "label": "Linear", "noun": "Linear issues"}
   // …the same for GitHub and CircleCI
 ]
 ```
 
-A `Slot` holds **exactly one** of `source` (whose answer fills it) or `gap` (a capability no installed app has; more on that below). `weight` is the basic catalog's flex share: three slots of weight 1 split their row equally. `content: "shell"` marks the merged view's slot as the shell's own content, and `columns` are the view's planned headers.
+A `Slot` holds **exactly one** of `source` (whose answer fills it) or `gap` (a capability no installed app has; more on that below). `weight` is the basic catalog's flex share: three slots of weight 1 split their row equally. `content: "shell"` marks the merged view's slot as the shell's own content, `columns` are the view's planned headers, and `columnSources` the app each one shows.
 
 **2. The orchestrator wraps each app's slot.** The `Attribution` entries above aren't the Planner's: the orchestrator adds one around every app's `Slot`, copying the slot's `weight` onto it so wrapped and bare slots size by one rule. The merged view's slot stays bare, because the merged view is the shell's own page, not something an app painted.
 
@@ -174,7 +175,7 @@ A `Slot` holds **exactly one** of `source` (whose answer fills it) or `gap` (a c
 
 **4. The apps answer.** The client, as host, fills `SlotContentContext`. Each `Slot` asks it for its source's content, and draws that content the moment it's there. The slot keeps the 4rem floor it reserved, so the layout doesn't jump.
 
-**5. The merged view lands.** The Synthesizer's tree for `shell:synthesis` fills the shell slot. In the example it's a `Column` holding a `Row` (an `h5` label "Active work items" and a `SortControl`) over a `Table` of `TableRow`s whose cells are all `DerivedValue`s. How the values get into those cells is [`synthesis.md`](synthesis.md)'s subject; this catalog only draws them.
+**5. The merged view lands.** The Synthesizer's tree for `shell:synthesis` fills the shell slot. In the example it's a `Column` holding a `Row` (an `h5` label "Work items" and a `SortControl`) over a `Table` of `TableRow`s whose cells are all `DerivedValue`s. How the values get into those cells is [`synthesis.md`](synthesis.md)'s subject; this catalog only draws them.
 
 **6. The reader acts.** Each interaction goes out through one of the host's handlers:
 
@@ -272,9 +273,9 @@ A `Table` may mark each column to the app whose values it shows (`columnSources`
 
 | The app's slot | The heading | The cells |
 | --- | --- | --- |
-| `pending` | "CI status · loading" | a skeleton bar in each cell |
-| `failed` | "CI status · unavailable" | the empty dash |
-| `late` (arrived after the view was made) | "CI status · not included" | the cells the Synthesizer wrote, until Include adds the real ones |
+| `pending` | "CI · loading" | a skeleton bar in each cell |
+| `failed` | "CI · unavailable" | the empty dash |
+| `late` (arrived after the view was made) | "CI · not included" | the cells the Synthesizer wrote, until Include adds the real ones |
 
 The table passes the column states down to its rows through a small React context, so each `TableRow` knows which of its cells to hold back. The reserved merged view in the first image uses the same heading and cell geometry, so when the real table lands, nothing moves.
 
@@ -289,9 +290,9 @@ The table passes the column states down to its rows through a small React contex
 - When a pressed arrow disappears, because there's no more history that way, **focus moves to the other arrow, or back to the app's name**.
 
 <p align="center">
-  <img src="../images/way-back-circleci.gif" width="280" alt="CircleCI's slot going Back from a run to its runs list, then Forward">
+  <img src="../images/way-back-branch-circleci.gif" width="280" alt="CircleCI's slot: a run, its failing job, Back twice to the runs list, the run opened again, then Back twice to the list and on to the job">
   <br>
-  <em>CircleCI's arrows at the right of its name: Back from a run to its runs list, then Forward.</em>
+  <em>CircleCI's arrows at the right of its name: a run, its failing job, Back twice, the run opened again, then Back twice, to the runs list and on to the job left behind.</em>
 </p>
 
 The arrows are soft accent icon buttons at the right edge of the name's row, with no border around the row: the boundary is still just the name, the app's own pixels and the whitespace.
@@ -345,7 +346,7 @@ Two kinds of test keep the three files of [idea 1](#1-one-catalog-three-files-th
 | --- | --- |
 | `?beat=9` | This guide's example: the layout, the names, the merged view's table and sort |
 | `?beat=10` to `?beat=18` | The failure tile, Retry, Include, and every way the merged view collapses |
-| `?beat=23` | The way-back arrows, stepping CircleCI back and forward |
+| `?beat=26` | The way-back arrows, stepping CircleCI back and forward, each named for where it goes |
 | `?beat=7` | A capability gap: the tile and its "Search the Store" button |
 
 ## Where the code is
