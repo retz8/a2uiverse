@@ -53,7 +53,7 @@ About ten threads over Sep 17 to 19, each from Calendar's cast and tied to the s
 | Nora | An out-of-office auto-reply | Sep 18, read |
 | Priya Nakamura | A standup follow-up on A2U-5, "Say on the canvas when an utterance fails" | Sep 18, read, three messages |
 | Tomas Lindqvist | The doc for tomorrow's quarter planning | Sep 18, read |
-| Omar Ferreira | A recap of the vendor sync | Sep 17, read |
+| Omar Ferreira | A recap of the vendor sync | Sep 18, read |
 | A fictional service | A receipt or a newsletter | Sep 17, read |
 
 ### 9. Every thread has its body
