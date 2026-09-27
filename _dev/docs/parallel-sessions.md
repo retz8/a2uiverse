@@ -26,7 +26,8 @@ In `a2uiverse-apps`: `agent-kit/` and `create-a2ui-agent/`.
 ### Commands that write shared files
 
 - `pnpm install`, `pnpm add`, `pnpm update`, `pnpm remove` and `pnpm link` rewrite `pnpm-lock.yaml`, a `package.json` or `pnpm-workspace.yaml`, and `node_modules` under every session. Announce before running one, and release after, like an edit.
-- `pnpm format` and `pnpm lint --fix` run over the whole repo. Run the formatter and fixer on your own paths only: `pnpm exec prettier --write <paths>`, `pnpm exec eslint --fix <paths>`.
+- `pnpm exec` and `pnpm run` install implicitly when another session's commit changed the dependencies. Run a tool as `node_modules/.bin/<tool>`.
+- `pnpm format` and `pnpm lint --fix` run over the whole repo. Run the formatter and fixer on your own paths only: `node_modules/.bin/prettier --write <paths>`, `node_modules/.bin/eslint --fix <paths>`.
 
 ## Commits
 
