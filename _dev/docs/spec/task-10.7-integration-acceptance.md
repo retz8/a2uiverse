@@ -56,6 +56,14 @@ The platform's code is worked directly on `main`: no worktree, no plan.
 
 This spec is the record. Each on-the-spot fix is added as a numbered decision as it lands. The write-up at the end carries each case's evidence with the landing step of each clicked value, the Playwright diffs against the Phase 9 baselines named, what the retaken baselines changed, the collision detector's `@font-face` rule, and the placeholder backlog entry.
 
+### 10. Beat 9 re-recorded over the deterministic roster; beat 5's test to four vendors
+
+The Playwright run against the Phase 9 baselines failed three behavioural assertions, all from two beats re-recorded over the stub agents in 10.4 and 10.5. Beat 9, the entity join, carried the stub GitHub's `a2ui-project/a2ui` pull requests, so no pull request joined a Linear issue, one row tied to its CircleCI run by a judged relation drew its five cells guessed, and the page too short for the condensed bar's 400 px scroll. Beat 9 is re-recorded over the deterministic roster, its bed before 10.5, so its entity join carries GitHub's join again; 10.8 records it once more with the README's GIF. Beat 5, the temporal merge, dispatched Linear beside Gmail, Calendar and GitHub; its test takes the four vendors the recording holds.
+
+### 11. Gmail's and Linear's times carry their zone, fixed before the live run
+
+The Playwright run showed Gmail's and Linear's times four hours late in the merged view. Their payloads carry UTC; since 10.4 and 10.5 their agents write the time zoneless — Gmail `2026-09-05 01:24`, Linear `Sep 19, 2026, 11:00 AM` — and the runtime reads a zoneless time as wall time in US Eastern. Each agent keeps its own spelling and appends `UTC` — Gmail `2026-09-12 09:41 UTC`, Linear `Sep 19, 2026, 11:00 AM UTC` — the model writing it as its brand guidance and knowledge examples show. Both agents' beats are re-recorded, their deterministic corpora derived again, and the client's beats holding a Gmail or Linear paint re-recorded, before the live run.
+
 ## Invariants
 
 - Composition keeps working over the new catalogs: merges still land, and a merged value still navigates to its element in the vendor's fragment.
