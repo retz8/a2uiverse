@@ -153,7 +153,9 @@ Spec: `_dev/docs/spec/phase-10-vendor-catalogs-professional-project.md`.
 - [x] **10.5** `[apps]` Linear catalog — the agent repainted (after 10.1; parallel with 10.4 and 10.6)
 - [x] **10.6** `[apps]` CircleCI catalog — the agent repainted (after 10.1; parallel with 10.4 and 10.5)
 - [WIP] **10.7** Integration + acceptance — the new catalogs composed on the deterministic roster through the tunnel; merges still land and a merged value still navigates to its element in the vendor's fragment (after 10.4, 10.5 and 10.6)
-- [ ] **10.8** README demos + design records — every README image or GIF showing a vendor app re-recorded from deterministic mode, its `?beat=` replay with it; the design records the new catalogs touch (after 10.7)
+- [ ] **10.8** README demos + design records — every README image or GIF showing a vendor app re-recorded from deterministic mode, its `?beat=` replay with it; the design records the new catalogs touch (after 10.10)
+- [ ] **10.9** Branch-like history per vendor — each vendor's history is stack-based today, back and forth only: at Gmail's list, open an item, come back to the list, open another item — what happens to the history (after 10.7)
+- [ ] **10.10** Doc edits — according to 10.9's code change (after 10.9)
 
 ## Phase 11 — App bundle + registry []
 Bundle format, local install, registry no longer hardcoded, the GitHub app installed as a bundle (M7).

@@ -6,6 +6,7 @@ Custom catalogs for Gmail, Google Calendar, Linear and CircleCI, as GitHub's is 
 
 - A custom catalog each for Gmail, Google Calendar, Linear and CircleCI, and each agent repainted in it.
 - The README's demos that show a vendor app, re-recorded.
+- Branch-like history per vendor, and the doc edits that follow it.
 - The professional-project baseline in `a2uiverse` and `a2uiverse-apps`.
 - The ladder after Phase 10: the upstream sample agent in the ecosystem run, the v1.0 soft migration, the community proposal, and the gated v1.0 migration.
 - SPEC amendments named below.
