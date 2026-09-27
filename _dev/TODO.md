@@ -156,7 +156,7 @@ Spec: `_dev/docs/spec/phase-10-vendor-catalogs-professional-project.md`.
 - [WIP] **10.8** README demos + design records — every README image or GIF showing a vendor app re-recorded from deterministic mode, its `?beat=` replay with it; the design records the new catalogs touch; the README's hero re-shot over Gmail and Calendar (after 10.10; the hero after 10.11)
 - [x] **10.9** Branch-like history per vendor — each vendor's history is stack-based today, back and forth only: at Gmail's list, open an item, come back to the list, open another item — what happens to the history (after 10.7)
 - [x] **10.10** Doc edits — according to 10.9's code change (after 10.9)
-- [ ] **10.11** `[apps]` Gmail's deterministic data reads like real mail — the pseudonymizer writes word salad today ("draft section summary reply agenda meeting pending notes"); Gmail re-recorded and its corpus derived again (after 10.10)
+- [WIP] **10.11** `[apps]` Gmail's deterministic data reads like real mail — the pseudonymizer writes word salad today ("draft section summary reply agenda meeting pending notes"); Gmail re-recorded and its corpus derived again (after 10.10)
 
 ## Phase 11 — App bundle + registry []
 Bundle format, local install, registry no longer hardcoded, the GitHub app installed as a bundle (M7).
