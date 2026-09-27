@@ -11,7 +11,7 @@ import {MessageProcessor} from '@a2ui/web_core/v0_9';
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
 import type {ReactComponentImplementation} from '@a2ui/react/v0_9';
 import {CATALOG_ID as SHELL_CATALOG_ID, createCatalog} from '@a2uiverse/shell-catalog';
-import {CATALOG as GMAIL_CATALOG, CATALOG_ID as GMAIL_CATALOG_ID} from 'gmail-catalog';
+import {CATALOG as SHOP_A_CATALOG, CATALOG_ID as SHOP_A_CATALOG_ID} from 'shop-a-catalog';
 import {CatalogProvider, SurfaceFrame} from '../../catalogs/CatalogContext';
 import {resolveCatalogs} from '../../catalogs/resolver';
 import {listCatalogs} from '../../orchestratorApi';
@@ -26,8 +26,8 @@ const msg = (m: Record<string, unknown>): A2uiMessage =>
 /**
  * Two surfaces whose pickers share a component id — the spec guarantees ids are surface-scoped.
  * Rendered from the given catalog: the patch lives in upstream's basic implementation, which the
- * vendor catalogs still render (the shell catalog maps `ChoicePicker` onto Radix since 5.9, where
- * a group is a React context rather than a document-wide `name`).
+ * mock stores' themed basic catalogs still render (the shell catalog maps `ChoicePicker` onto
+ * Radix since 5.9, where a group is a React context rather than a document-wide `name`).
  */
 function twoPickers(catalog: typeof SHELL_CATALOG, catalogId: string, app: string) {
   const processor = new MessageProcessor<ReactComponentImplementation>([catalog]);
@@ -65,14 +65,14 @@ function twoPickers(catalog: typeof SHELL_CATALOG, catalogId: string, app: strin
 
 describe('ChoicePicker radio groups (upstream #2447)', () => {
   it('two surfaces sharing a component id do not join one document-wide radio group', () => {
-    const processor = twoPickers(GMAIL_CATALOG, GMAIL_CATALOG_ID, 'gmail');
+    const processor = twoPickers(SHOP_A_CATALOG, SHOP_A_CATALOG_ID, 'shop-a');
     const {container} = render(
       <CatalogProvider catalogs={CATALOGS}>
         <div data-testid="a">
-          <SurfaceFrame surface={processor.model.surfacesMap.get('gmail:a')!} />
+          <SurfaceFrame surface={processor.model.surfacesMap.get('shop-a:a')!} />
         </div>
         <div data-testid="b">
-          <SurfaceFrame surface={processor.model.surfacesMap.get('gmail:b')!} />
+          <SurfaceFrame surface={processor.model.surfacesMap.get('shop-a:b')!} />
         </div>
       </CatalogProvider>,
     );
