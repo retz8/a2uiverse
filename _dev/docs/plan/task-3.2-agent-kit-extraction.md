@@ -2,7 +2,7 @@
 
 ## Context
 
-Phase 3 sub-task 3.2 (`[apps]`): extract the stratum-1 shared Python logic of the three vendor agents (github, gmail, calendar) in `/Users/jiohin/Desktop/future-of-sw/a2uiverse-apps` into a new `agent-kit/` package, and refactor all three agents onto it with observable behavior unchanged. Every design decision is locked in `_dev/docs/spec/task-3.2-agent-kit-extraction.md` (platform repo); this plan only sequences the work. Work lands directly on the apps repo's `main` — no worktree, no branch. Conventional commits.
+Phase 3 sub-task 3.2 (`[apps]`): extract the stratum-1 shared Python logic of the three vendor agents (github, gmail, calendar) in `../a2uiverse-apps` into a new `agent-kit/` package, and refactor all three agents onto it with observable behavior unchanged. Every design decision is locked in `_dev/docs/spec/task-3.2-agent-kit-extraction.md` (platform repo); this plan only sequences the work. Work lands directly on the apps repo's `main` — no worktree, no branch. Conventional commits.
 
 **Out of scope, enforced:** README edits, `dev:agents`/launcher work (3.6); `tool_shaping`/`mcp` skeletons (3.3 — their files move directories only); schema-manager version flip (follow-up task); kit never reads `manifest.json`, never contains vendor content.
 

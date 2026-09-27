@@ -1,6 +1,12 @@
 {
   "name": "@a2uiverse/orchestrator",
   "version": "0.0.0",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/retz8/a2uiverse.git",
+    "directory": "apps/orchestrator"
+  },
   "private": true,
   "description": "The A2UIVerse orchestrator: an A2A agent server \u2014 Router, Planner, Synthesizer, AgentsPool, Registry.",
   "type": "module",

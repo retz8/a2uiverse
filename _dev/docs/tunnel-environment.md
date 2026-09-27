@@ -1,9 +1,10 @@
 # Tunnel environment
 
 Instead of `localhost:<port>`, use the tunnel URL:
-`https://vnw20xbg-<port>.asse.devtunnels.ms`. This applies to every URL the
+`https://<tunnel-id>-<port>.asse.devtunnels.ms`. This applies to every URL the
 browser touches — the page address and any server URL the app calls
-(orchestrator, marketplace, agents).
+(orchestrator, marketplace, agents). `<tunnel-id>` is kept in the git-ignored
+`CLAUDE.local.md`.
 
 This setup is only for Jioh In (@retz8); it does not apply to anyone else
 working with this repo.
@@ -53,9 +54,9 @@ cd ../a2uiverse-apps/github/agent && uv run python -m app --mode stub
 cd ../a2uiverse-apps/github/agent && uv run python -m app --mode live
 
 # orchestrator — the card must advertise the tunnel URL
-BASE_URL=https://vnw20xbg-10001.asse.devtunnels.ms pnpm --filter @a2uiverse/orchestrator dev
+BASE_URL=https://<tunnel-id>-10001.asse.devtunnels.ms pnpm --filter @a2uiverse/orchestrator dev
 
-# client — .env.local: VITE_ORCHESTRATOR_URL=https://vnw20xbg-10001.asse.devtunnels.ms
+# client — .env.local: VITE_ORCHESTRATOR_URL=https://<tunnel-id>-10001.asse.devtunnels.ms
 pnpm --filter @a2uiverse/client dev
 ```
 
@@ -75,5 +76,5 @@ A2UI_RECORD_DIR=<scratch dir> pnpm dev:all --agents-dir ../a2uiverse-apps --mode
 
 The launcher inherits the shell's environment for the agents and hands `A2UIVERSE_AGENTS_DIR` to the platform; `turbo.json` passes `A2UIVERSE_*` through to the `dev` task.
 
-Browser: `https://vnw20xbg-5173.asse.devtunnels.ms`. Card check:
-`https://vnw20xbg-10001.asse.devtunnels.ms/.well-known/agent-card.json`.
+Browser: `https://<tunnel-id>-5173.asse.devtunnels.ms`. Card check:
+`https://<tunnel-id>-10001.asse.devtunnels.ms/.well-known/agent-card.json`.

@@ -206,6 +206,12 @@ What's built so far is the composed screen. Next comes the ecosystem around it:
 - **Installing mid-question**: a question no installed app can answer finds one in the marketplace, installs it, and carries on.
 - **One sitting, end to end**: publish a new app, discover it, install it, compose it with an existing one, and act inside it, with no code changes.
 
+## Feedback
+
+A2UIVerse is in active development and isn't done. Feedback from anyone interested is welcome: ideas and questions in [Discussions](https://github.com/retz8/a2uiverse/discussions), bugs in [issues](https://github.com/retz8/a2uiverse/issues). [CONTRIBUTING](CONTRIBUTING.md) says more.
+
 ## License
 
 MIT. See [LICENSE](LICENSE).
+
+A2UIVerse is an independent project, not affiliated with or endorsed by GitHub, Google, Linear or CircleCI. Their product names identify the services the apps connect to and are trademarks of their owners.

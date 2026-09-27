@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Ideas, questions and feedback
+    url: https://github.com/retz8/a2uiverse/discussions
+    about: Start a thread in Discussions.
+  - name: Security vulnerability
+    url: https://github.com/retz8/a2uiverse/security/advisories/new
+    about: Report it privately, never in an issue.

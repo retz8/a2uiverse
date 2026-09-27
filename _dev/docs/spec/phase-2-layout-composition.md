@@ -17,7 +17,7 @@
 
 ### 1. Full three-mode agents, real Google MCP now
 
-Gmail and Calendar are built like the GitHub agent — `deterministic` / `llm`+MCP / `llm`+stub — with real Google MCP exercised in this phase. Mock data is derived from real MCP payloads, not invented. Targets are Google's official per-product Workspace MCP servers (Gmail `gmailmcp.googleapis.com/mcp/v1`, Calendar `calendarmcp.googleapis.com/mcp/v1`, remote streamable-HTTP). GCP project `a2uiverse-506907` (owner `jiohin@umich.edu`) is enrolled in the Workspace Developer Preview and carries the four required APIs; every call sends `X-Goog-User-Project: a2uiverse-506907`. The credential is an ADC-style OAuth token issued by a Desktop client inside that same project, obtained by a one-time developer setup outside the agent; agents read it from the environment, parallel to `GITHUB_MCP_PAT`. No auth code in agents; nothing front-runs AuthVault (M8).
+Gmail and Calendar are built like the GitHub agent — `deterministic` / `llm`+MCP / `llm`+stub — with real Google MCP exercised in this phase. Mock data is derived from real MCP payloads, not invented. Targets are Google's official per-product Workspace MCP servers (Gmail `gmailmcp.googleapis.com/mcp/v1`, Calendar `calendarmcp.googleapis.com/mcp/v1`, remote streamable-HTTP). GCP project `a2uiverse-506907` is enrolled in the Workspace Developer Preview and carries the four required APIs; every call sends `X-Goog-User-Project: a2uiverse-506907`. The credential is an ADC-style OAuth token issued by a Desktop client inside that same project, obtained by a one-time developer setup outside the agent; agents read it from the environment, parallel to `GITHUB_MCP_PAT`. No auth code in agents; nothing front-runs AuthVault (M8).
 
 ### 2. No template in Phase 2
 
