@@ -3,6 +3,9 @@ import {configDefaults, defineConfig} from 'vitest/config';
 
 export default defineConfig({
   plugins: [react()],
+  // A catalog linked from a2uiverse-apps to work on it locally resolves its peers from its own
+  // `node_modules`; dedupe so one copy of React and the A2UI runtime serves the page.
+  resolve: {dedupe: ['react', 'react-dom', '@a2ui/react', '@a2ui/web_core']},
   // `@primer/react`'s AnchoredOverlay CSS uses `@position-try` (CSS anchor positioning), which
   // the lightningcss version Vite bundles does not recognise — it throws "Unknown at rule"
   // rather than warning, failing the production build outright. Error recovery keeps the build
