@@ -3,9 +3,9 @@
 The canvas: you ask in words, and the answer is a full screen of UI composed from several apps, each in its own design system and labelled with who painted it. It talks only to the orchestrator, never to an app.
 
 <p align="center">
-  <img src="../../docs/images/composed-join.png" width="640" alt="One question answered by Linear, GitHub and CircleCI on one screen">
+  <img src="../../docs/images/composed-attention.png" width="640" alt="One question answered by Google Calendar, Gmail, GitHub and Linear on one screen">
   <br>
-  <em>One question, answered by Linear, GitHub and CircleCI, each in its own slot and look. The table on top is the merged view.</em>
+  <em>One question, answered by Google Calendar, Gmail, GitHub and Linear, each in its own slot and look. The table on top is the merged view.</em>
 </p>
 
 ## What it does
@@ -81,7 +81,7 @@ Playwright's browser installs separately (`pnpm exec playwright install chromium
 
 ## Working without a model
 
-`?beat=<name>` replays a recorded or hand-built session through the whole canvas, with no model call and no network, and `&instant` skips the recorded pacing. `?beat=9&instant` is the entity join above, `?beat=trail` the trail, and `?beat=26&instant` the way back.
+`?beat=<name>` replays a recorded or hand-built session through the whole canvas, with no model call and no network, and `&instant` skips the recorded pacing. `?beat=5&instant` is the answer above, `?beat=9&instant` the entity join, `?beat=trail` the trail, and `?beat=26&instant` the way back.
 
 A beat's presses fire through the same handler the buttons call, answered from the beat itself. The tests and the screenshots in this README come from beats.
 
@@ -94,7 +94,7 @@ Real output, captured through the orchestrator and kept as the stream it arrived
 | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `1` to `3`   | GitHub alone: a PR list, a PR, and a review composed and confirmed (replay `3` as `2,3`)                                                                                                                     |
 | `4`          | Side by side: inbox and calendar in two slots, no merged view                                                                                                                                                |
-| `5`          | The temporal merge: GitHub, Gmail and Calendar with the merged view                                                                                                                                          |
+| `5`          | The temporal merge: Google Calendar, Gmail, GitHub and Linear with the merged view, the README's GIF                                                                                                         |
 | `6`          | A question about A2UIVerse itself, answered by the shell                                                                                                                                                     |
 | `7`          | A capability gap: nothing installed can answer                                                                                                                                                               |
 | `8`          | One app's slot and the shell's own words in one layout                                                                                                                                                       |

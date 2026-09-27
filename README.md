@@ -10,9 +10,9 @@ A2UI asks: _how does an agent express UI?_\
 Ask one question. Several agents answer at once, each painting its own interface, and you get **one screen**, not three chat replies.
 
 <p align="center">
-  <img src="docs/images/composing-join.gif" width="800" alt="One question answered on one screen: the layout lands, Linear, GitHub and CircleCI fill their slots, and a merged table joins them">
+  <img src="docs/images/composing-attention.gif" width="800" alt="One question answered on one screen: the layout lands, Google Calendar, Gmail, GitHub and Linear fill their slots, and a merged table puts them on one timeline">
   <br>
-  <em>"What's the status of what I'm working on?" The layout lands first, Linear, GitHub and CircleCI each fill their slot in their own look, and the merged table on top joins them. Replayed from a recording, with the waits shortened.</em>
+  <em>"What needs my attention today?" The layout lands first, Google Calendar, Gmail, GitHub and Linear each fill their slot in their own look, and the merged table on top puts them on one timeline. Replayed from a recording, with the waits shortened.</em>
 </p>
 
 ## Why A2UIVerse?
@@ -44,7 +44,7 @@ Ask in words, from the palette (`⌘K`). A2UIVerse picks the apps that hold the 
 
 ### A merged view across apps
 
-When the answers can be joined, a table on top brings them together: above, each Linear issue with its pull request in GitHub and its CI run in CircleCI. A model writes the table as formulas pointing into each app's data, never as copied values, and every claim that two entries are the same thing is checked against the data before it's accepted. The client computes the table itself and keeps it live as the apps' data changes, with no further model call. Each value shows how sure it is, and clicking it jumps to where it came from. [See one row merged, step by step](apps/orchestrator/README.md#merges-across-apps).
+When the answers can be joined, a table on top brings them together: above, the morning's mail, issues and pull requests on one timeline. Asked for the status of your work, it puts each Linear issue on one row with its pull request in GitHub and its CI run in CircleCI. A model writes the table as formulas pointing into each app's data, never as copied values, and every claim that two entries are the same thing is checked against the data before it's accepted. The client computes the table itself and keeps it live as the apps' data changes, with no further model call. Each value shows how sure it is, and clicking it jumps to where it came from. [See one row merged, step by step](apps/orchestrator/README.md#merges-across-apps).
 
 ### Honest when apps are slow or fail
 
@@ -124,7 +124,7 @@ pnpm install
 pnpm dev:client
 ```
 
-Open **http://localhost:5173/?beat=9** for the session in the GIF above, replayed from a recording with no orchestrator, no apps and no model. `?beat=trail` replays four questions on two branches, and `?beat=26` the way back inside an app.
+Open **http://localhost:5173/?beat=5** for the session in the GIF above, replayed from a recording with no orchestrator, no apps and no model. `?beat=trail` replays four questions on two branches, and `?beat=26` the way back inside an app.
 
 ### Run it for real
 
