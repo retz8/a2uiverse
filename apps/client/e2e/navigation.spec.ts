@@ -75,6 +75,26 @@ test('a tap lands on the value in the storefront: focus, the ring over its box, 
   expect(requests).toEqual([]);
 });
 
+test('a landing scrolls the page, never the app around it', async ({page}) => {
+  // The temporal merge: its merged view is taller than the viewport, so the slots below it start
+  // under the fold, and with them each slot's hidden announcement.
+  await settle(page, '5');
+  // Nothing positioned inside the page stretches the body: a hidden overflow there is what a
+  // landing's scrollIntoView would scroll, carrying the whole app — and the question bar — away.
+  const overflow = () =>
+    page.evaluate(() => ({
+      body: document.body.scrollHeight - document.body.clientHeight,
+      scrolled: document.body.scrollTop,
+      appTop: document.querySelector('.canvas-app')!.getBoundingClientRect().top,
+    }));
+  expect((await overflow()).body).toBe(0);
+
+  await page.locator('[data-shell-content][data-surface^="shell:"] [role="button"]').last().click();
+  await focused(page, '[data-a2ui-fragment]');
+
+  expect(await overflow()).toEqual({body: 0, scrolled: 0, appTop: 0});
+});
+
 test('a field the storefront does not render lands on its row', async ({page}) => {
   await settle(page);
   await cell(page, 'Verity A7', 4).click();
