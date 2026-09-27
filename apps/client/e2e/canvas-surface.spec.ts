@@ -63,14 +63,14 @@ test('beat 4: two vendors side by side, no merged view', async ({browser}) => {
 });
 
 /**
- * The temporal merge (task 5.7 decision 11): three real vendors and the Synthesizer's merged
+ * The temporal merge (task 5.7 decision 11): four real vendors and the Synthesizer's merged
  * view, recorded through the hub. A replay smoke, not a baseline — the merged view is one
  * model's authoring on one day, and its picture would move with every re-recording.
  */
 test('beat 5: the temporal merge replays with its merged view as shell content', async ({page}) => {
   await settle(page, '5');
-  await expect(page.getByTestId('canvas-stage-content')).toHaveAttribute('data-slots', '4');
-  for (const source of ['gmail', 'calendar', 'github']) {
+  await expect(page.getByTestId('canvas-stage-content')).toHaveAttribute('data-slots', '5');
+  for (const source of ['gmail', 'calendar', 'github', 'linear']) {
     await expect(page.locator(`[data-a2ui-fragment="${source}"]`)).toHaveCount(1);
   }
   const view = page.locator('[data-shell-content][data-surface^="shell:"]');

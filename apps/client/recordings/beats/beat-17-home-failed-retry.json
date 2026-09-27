@@ -4,8 +4,8 @@
   "title": "The home source failing, then Retry bringing the merge back",
   "prompt": "what's the status of what I'm working on?",
   "model": "gemini-3.7-flash",
-  "recordedAt": "2026-09-27T03:30:47Z",
-  "contextId": "16ba9a99-72d6-43af-87b2-50d8aef561b2",
+  "recordedAt": "2026-09-27T04:26:10Z",
+  "contextId": "37edabe3-1fdb-4982-8814-fc924e28c08d",
   "chainedFrom": null,
   "deadlines": {
     "softDeadlineSeconds": 10,
@@ -19,13 +19,13 @@
   },
   "turns": [
     {
-      "taskId": "6c715569-0455-40b4-889e-a37be2cf3d80",
+      "taskId": "f0e0d6c1-3d26-45e0-8e87-fee546603d5d",
       "kind": "utterance",
       "prompt": "what's the status of what I'm working on?",
       "action": null,
       "batches": [
         {
-          "offsetMs": 7627,
+          "offsetMs": 6072,
           "messages": [
             {
               "version": "v0.9",
@@ -43,12 +43,12 @@
                     "id": "root",
                     "component": "Column",
                     "children": [
-                      "work-status",
+                      "overview",
                       "sources"
                     ]
                   },
                   {
-                    "id": "work-status",
+                    "id": "overview",
                     "component": "Slot",
                     "source": "shell",
                     "state": "pending",
@@ -59,7 +59,7 @@
                       "Status",
                       "Priority",
                       "Pull request",
-                      "CI run",
+                      "CI status",
                       "Updated"
                     ],
                     "columnSources": [
@@ -150,7 +150,7 @@
           }
         },
         {
-          "offsetMs": 7628,
+          "offsetMs": 6072,
           "messages": [
             {
               "version": "v0.9",
@@ -161,12 +161,12 @@
                     "id": "root",
                     "component": "Column",
                     "children": [
-                      "work-status",
+                      "overview",
                       "sources"
                     ]
                   },
                   {
-                    "id": "work-status",
+                    "id": "overview",
                     "component": "Slot",
                     "source": "shell",
                     "state": "pending",
@@ -177,7 +177,7 @@
                       "Status",
                       "Priority",
                       "Pull request",
-                      "CI run",
+                      "CI status",
                       "Updated"
                     ],
                     "columnSources": [
@@ -272,7 +272,7 @@
           }
         },
         {
-          "offsetMs": 7628,
+          "offsetMs": 6072,
           "messages": [
             {
               "version": "v0.9",
@@ -283,12 +283,12 @@
                     "id": "root",
                     "component": "Column",
                     "children": [
-                      "work-status",
+                      "overview",
                       "sources"
                     ]
                   },
                   {
-                    "id": "work-status",
+                    "id": "overview",
                     "component": "Slot",
                     "source": "shell",
                     "state": "collapsed",
@@ -299,7 +299,7 @@
                       "Status",
                       "Priority",
                       "Pull request",
-                      "CI run",
+                      "CI status",
                       "Updated"
                     ],
                     "columnSources": [
@@ -398,12 +398,12 @@
           }
         },
         {
-          "offsetMs": 7638,
+          "offsetMs": 6086,
           "messages": [
             {
               "version": "v0.9",
               "createSurface": {
-                "surfaceId": "github:notifications-21",
+                "surfaceId": "github:notifications-9",
                 "catalogId": "https://github.com/retz8/a2uiverse-apps/blob/main/github/github-catalog/catalogs/v0.9.1/catalog.json",
                 "sendDataModel": true
               }
@@ -411,7 +411,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-21",
+                "surfaceId": "github:notifications-9",
                 "value": {
                   "prs": [
                     {
@@ -427,7 +427,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-21",
+                "surfaceId": "github:notifications-9",
                 "value": {
                   "prs": [
                     {
@@ -445,7 +445,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-21",
+                "surfaceId": "github:notifications-9",
                 "value": {
                   "prs": [
                     {
@@ -465,7 +465,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-21",
+                "surfaceId": "github:notifications-9",
                 "value": {
                   "prs": [
                     {
@@ -487,7 +487,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-21",
+                "surfaceId": "github:notifications-9",
                 "value": {
                   "prs": [
                     {
@@ -511,7 +511,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-21",
+                "surfaceId": "github:notifications-9",
                 "value": {
                   "prs": [
                     {
@@ -536,7 +536,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-21",
+                "surfaceId": "github:notifications-9",
                 "value": {
                   "prs": [
                     {
@@ -563,7 +563,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-21",
+                "surfaceId": "github:notifications-9",
                 "value": {
                   "prs": [
                     {
@@ -592,7 +592,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-21",
+                "surfaceId": "github:notifications-9",
                 "value": {
                   "prs": [
                     {
@@ -624,7 +624,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-21",
+                "surfaceId": "github:notifications-9",
                 "value": {
                   "prs": [
                     {
@@ -657,7 +657,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-21",
+                "surfaceId": "github:notifications-9",
                 "value": {
                   "prs": [
                     {
@@ -691,7 +691,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-21",
+                "surfaceId": "github:notifications-9",
                 "value": {
                   "prs": [
                     {
@@ -727,7 +727,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-21",
+                "surfaceId": "github:notifications-9",
                 "value": {
                   "prs": [
                     {
@@ -767,7 +767,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-21",
+                "surfaceId": "github:notifications-9",
                 "value": {
                   "prs": [
                     {
@@ -808,7 +808,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-21",
+                "surfaceId": "github:notifications-9",
                 "value": {
                   "prs": [
                     {
@@ -850,7 +850,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-21",
+                "surfaceId": "github:notifications-9",
                 "value": {
                   "prs": [
                     {
@@ -894,7 +894,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-21",
+                "surfaceId": "github:notifications-9",
                 "value": {
                   "prs": [
                     {
@@ -939,7 +939,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-21",
+                "surfaceId": "github:notifications-9",
                 "value": {
                   "prs": [
                     {
@@ -988,7 +988,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-21",
+                "surfaceId": "github:notifications-9",
                 "value": {
                   "prs": [
                     {
@@ -1038,7 +1038,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-21",
+                "surfaceId": "github:notifications-9",
                 "value": {
                   "prs": [
                     {
@@ -1089,7 +1089,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-21",
+                "surfaceId": "github:notifications-9",
                 "value": {
                   "prs": [
                     {
@@ -1141,7 +1141,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-21",
+                "surfaceId": "github:notifications-9",
                 "value": {
                   "prs": [
                     {
@@ -1195,7 +1195,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-21",
+                "surfaceId": "github:notifications-9",
                 "value": {
                   "prs": [
                     {
@@ -1250,7 +1250,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-21",
+                "surfaceId": "github:notifications-9",
                 "value": {
                   "prs": [
                     {
@@ -1308,7 +1308,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-21",
+                "surfaceId": "github:notifications-9",
                 "value": {
                   "prs": [
                     {
@@ -1368,7 +1368,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-21",
+                "surfaceId": "github:notifications-9",
                 "value": {
                   "prs": [
                     {
@@ -1429,7 +1429,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-21",
+                "surfaceId": "github:notifications-9",
                 "value": {
                   "prs": [
                     {
@@ -1492,7 +1492,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-21",
+                "surfaceId": "github:notifications-9",
                 "value": {
                   "prs": [
                     {
@@ -1556,7 +1556,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-21",
+                "surfaceId": "github:notifications-9",
                 "path": "/",
                 "value": {
                   "prs": [
@@ -1817,7 +1817,7 @@
                     "second": "2-digit"
                   }
                 ],
-                "surfaceId": "github:notifications-21"
+                "surfaceId": "github:notifications-9"
               }
             }
           ],
@@ -1828,12 +1828,12 @@
           }
         },
         {
-          "offsetMs": 7642,
+          "offsetMs": 6089,
           "messages": [
             {
               "version": "v0.9",
               "createSurface": {
-                "surfaceId": "circleci:circleci-8",
+                "surfaceId": "circleci:circleci-3",
                 "catalogId": "https://github.com/retz8/a2uiverse-apps/blob/main/circleci/circleci-catalog/catalogs/v0.9.1/catalog.json",
                 "sendDataModel": true
               }
@@ -1841,7 +1841,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-8",
+                "surfaceId": "circleci:circleci-3",
                 "value": {
                   "runs": [
                     {
@@ -1858,7 +1858,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-8",
+                "surfaceId": "circleci:circleci-3",
                 "value": {
                   "runs": [
                     {
@@ -1876,7 +1876,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-8",
+                "surfaceId": "circleci:circleci-3",
                 "value": {
                   "runs": [
                     {
@@ -1895,7 +1895,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-8",
+                "surfaceId": "circleci:circleci-3",
                 "value": {
                   "runs": [
                     {
@@ -1915,7 +1915,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-8",
+                "surfaceId": "circleci:circleci-3",
                 "value": {
                   "runs": [
                     {
@@ -1940,7 +1940,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-8",
+                "surfaceId": "circleci:circleci-3",
                 "value": {
                   "runs": [
                     {
@@ -1967,7 +1967,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-8",
+                "surfaceId": "circleci:circleci-3",
                 "value": {
                   "runs": [
                     {
@@ -1996,7 +1996,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-8",
+                "surfaceId": "circleci:circleci-3",
                 "value": {
                   "runs": [
                     {
@@ -2027,7 +2027,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-8",
+                "surfaceId": "circleci:circleci-3",
                 "value": {
                   "runs": [
                     {
@@ -2057,7 +2057,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-8",
+                "surfaceId": "circleci:circleci-3",
                 "value": {
                   "runs": [
                     {
@@ -2091,7 +2091,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-8",
+                "surfaceId": "circleci:circleci-3",
                 "value": {
                   "runs": [
                     {
@@ -2128,7 +2128,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-8",
+                "surfaceId": "circleci:circleci-3",
                 "value": {
                   "runs": [
                     {
@@ -2166,7 +2166,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-8",
+                "surfaceId": "circleci:circleci-3",
                 "value": {
                   "runs": [
                     {
@@ -2205,7 +2205,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-8",
+                "surfaceId": "circleci:circleci-3",
                 "value": {
                   "runs": [
                     {
@@ -2245,7 +2245,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-8",
+                "surfaceId": "circleci:circleci-3",
                 "value": {
                   "runs": [
                     {
@@ -2288,7 +2288,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-8",
+                "surfaceId": "circleci:circleci-3",
                 "value": {
                   "runs": [
                     {
@@ -2332,7 +2332,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-8",
+                "surfaceId": "circleci:circleci-3",
                 "value": {
                   "runs": [
                     {
@@ -2379,7 +2379,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-8",
+                "surfaceId": "circleci:circleci-3",
                 "value": {
                   "runs": [
                     {
@@ -2428,7 +2428,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-8",
+                "surfaceId": "circleci:circleci-3",
                 "value": {
                   "runs": [
                     {
@@ -2478,7 +2478,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-8",
+                "surfaceId": "circleci:circleci-3",
                 "value": {
                   "runs": [
                     {
@@ -2532,7 +2532,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-8",
+                "surfaceId": "circleci:circleci-3",
                 "value": {
                   "runs": [
                     {
@@ -2588,7 +2588,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-8",
+                "surfaceId": "circleci:circleci-3",
                 "value": {
                   "runs": [
                     {
@@ -2645,7 +2645,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-8",
+                "surfaceId": "circleci:circleci-3",
                 "value": {
                   "runs": [
                     {
@@ -2704,7 +2704,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-8",
+                "surfaceId": "circleci:circleci-3",
                 "value": {
                   "runs": [
                     {
@@ -2764,7 +2764,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-8",
+                "surfaceId": "circleci:circleci-3",
                 "value": {
                   "runs": [
                     {
@@ -2827,7 +2827,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-8",
+                "surfaceId": "circleci:circleci-3",
                 "value": {
                   "runs": [
                     {
@@ -2892,7 +2892,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-8",
+                "surfaceId": "circleci:circleci-3",
                 "value": {
                   "runs": [
                     {
@@ -2959,7 +2959,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-8",
+                "surfaceId": "circleci:circleci-3",
                 "value": {
                   "runs": [
                     {
@@ -3028,7 +3028,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-8",
+                "surfaceId": "circleci:circleci-3",
                 "value": {
                   "runs": [
                     {
@@ -3098,7 +3098,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-8",
+                "surfaceId": "circleci:circleci-3",
                 "value": {
                   "runs": [
                     {
@@ -3171,7 +3171,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-8",
+                "surfaceId": "circleci:circleci-3",
                 "value": {
                   "runs": [
                     {
@@ -3247,7 +3247,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-8",
+                "surfaceId": "circleci:circleci-3",
                 "value": {
                   "runs": [
                     {
@@ -3324,7 +3324,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-8",
+                "surfaceId": "circleci:circleci-3",
                 "value": {
                   "runs": [
                     {
@@ -3403,7 +3403,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-8",
+                "surfaceId": "circleci:circleci-3",
                 "value": {
                   "runs": [
                     {
@@ -3483,7 +3483,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-8",
+                "surfaceId": "circleci:circleci-3",
                 "value": {
                   "runs": [
                     {
@@ -3566,7 +3566,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-8",
+                "surfaceId": "circleci:circleci-3",
                 "value": {
                   "runs": [
                     {
@@ -3652,7 +3652,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-8",
+                "surfaceId": "circleci:circleci-3",
                 "value": {
                   "runs": [
                     {
@@ -3739,7 +3739,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-8",
+                "surfaceId": "circleci:circleci-3",
                 "value": {
                   "runs": [
                     {
@@ -3828,7 +3828,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-8",
+                "surfaceId": "circleci:circleci-3",
                 "value": {
                   "runs": [
                     {
@@ -3918,7 +3918,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-8",
+                "surfaceId": "circleci:circleci-3",
                 "value": {
                   "runs": [
                     {
@@ -4012,7 +4012,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-8",
+                "surfaceId": "circleci:circleci-3",
                 "value": {
                   "runs": [
                     {
@@ -4108,7 +4108,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-8",
+                "surfaceId": "circleci:circleci-3",
                 "value": {
                   "runs": [
                     {
@@ -4205,7 +4205,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-8",
+                "surfaceId": "circleci:circleci-3",
                 "value": {
                   "runs": [
                     {
@@ -4303,7 +4303,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-8",
+                "surfaceId": "circleci:circleci-3",
                 "value": {
                   "runs": [
                     {
@@ -4402,7 +4402,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-8",
+                "surfaceId": "circleci:circleci-3",
                 "value": {
                   "runs": [
                     {
@@ -4502,7 +4502,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-8",
+                "surfaceId": "circleci:circleci-3",
                 "value": {
                   "runs": [
                     {
@@ -4607,7 +4607,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-8",
+                "surfaceId": "circleci:circleci-3",
                 "value": {
                   "runs": [
                     {
@@ -4714,7 +4714,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-8",
+                "surfaceId": "circleci:circleci-3",
                 "value": {
                   "runs": [
                     {
@@ -4822,7 +4822,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-8",
+                "surfaceId": "circleci:circleci-3",
                 "value": {
                   "runs": [
                     {
@@ -4931,7 +4931,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-8",
+                "surfaceId": "circleci:circleci-3",
                 "path": "/",
                 "value": {
                   "runs": [
@@ -5191,7 +5191,7 @@
                     "size": "small"
                   }
                 ],
-                "surfaceId": "circleci:circleci-8"
+                "surfaceId": "circleci:circleci-3"
               }
             }
           ],
@@ -5203,10 +5203,10 @@
         }
       ],
       "outcome": "completed",
-      "durationMs": 7644
+      "durationMs": 6089
     },
     {
-      "taskId": "71b87940-ace4-45fe-8f2a-2b8f16e18578",
+      "taskId": "d2b18bfb-991a-43a0-89a6-60ec2e80fdcd",
       "kind": "press",
       "prompt": "",
       "action": null,
@@ -5216,10 +5216,10 @@
           "linear"
         ]
       },
-      "atMs": 7644,
+      "atMs": 6089,
       "batches": [
         {
-          "offsetMs": 5,
+          "offsetMs": 3,
           "messages": [
             {
               "version": "v0.9",
@@ -5230,12 +5230,12 @@
                     "id": "root",
                     "component": "Column",
                     "children": [
-                      "work-status",
+                      "overview",
                       "sources"
                     ]
                   },
                   {
-                    "id": "work-status",
+                    "id": "overview",
                     "component": "Slot",
                     "source": "shell",
                     "state": "collapsed",
@@ -5246,7 +5246,7 @@
                       "Status",
                       "Priority",
                       "Pull request",
-                      "CI run",
+                      "CI status",
                       "Updated"
                     ],
                     "columnSources": [
@@ -5344,12 +5344,12 @@
           }
         },
         {
-          "offsetMs": 10,
+          "offsetMs": 8,
           "messages": [
             {
               "version": "v0.9",
               "createSurface": {
-                "surfaceId": "linear:linear-21",
+                "surfaceId": "linear:linear-9",
                 "catalogId": "https://github.com/retz8/a2uiverse-apps/blob/main/linear/linear-catalog/catalogs/v0.9.1/catalog.json",
                 "sendDataModel": true
               }
@@ -5357,7 +5357,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-21",
+                "surfaceId": "linear:linear-9",
                 "value": {
                   "team": "A2uiverse"
                 }
@@ -5366,7 +5366,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-21",
+                "surfaceId": "linear:linear-9",
                 "value": {
                   "issues": [
                     {
@@ -5375,7 +5375,7 @@
                       "status": "In Review",
                       "statusType": "started",
                       "priority": "High",
-                      "link": "PR #6"
+                      "labels": "Bug"
                     }
                   ]
                 }
@@ -5384,7 +5384,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-21",
+                "surfaceId": "linear:linear-9",
                 "value": {
                   "issues": [
                     {
@@ -5393,31 +5393,8 @@
                       "status": "In Review",
                       "statusType": "started",
                       "priority": "High",
-                      "link": "PR #6",
-                      "updatedAt": "Sep 19, 2026, 11:00 AM"
-                    },
-                    {}
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "linear:linear-21",
-                "value": {
-                  "issues": [
-                    {
-                      "id": "A2U-5",
-                      "title": "Say on the canvas when an utterance fails",
-                      "status": "In Review",
-                      "statusType": "started",
-                      "priority": "High",
-                      "link": "PR #6",
-                      "updatedAt": "Sep 19, 2026, 11:00 AM"
-                    },
-                    {
-                      "id": "A2U-6"
+                      "labels": "Bug",
+                      "link": "#6"
                     }
                   ]
                 }
@@ -5426,7 +5403,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-21",
+                "surfaceId": "linear:linear-9",
                 "value": {
                   "issues": [
                     {
@@ -5435,96 +5412,9 @@
                       "status": "In Review",
                       "statusType": "started",
                       "priority": "High",
-                      "link": "PR #6",
-                      "updatedAt": "Sep 19, 2026, 11:00 AM"
-                    },
-                    {
-                      "id": "A2U-6",
-                      "title": "Name the workflow, not its id, in the confirm status line",
-                      "status": "In Progress"
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "linear:linear-21",
-                "value": {
-                  "issues": [
-                    {
-                      "id": "A2U-5",
-                      "title": "Say on the canvas when an utterance fails",
-                      "status": "In Review",
-                      "statusType": "started",
-                      "priority": "High",
-                      "link": "PR #6",
-                      "updatedAt": "Sep 19, 2026, 11:00 AM"
-                    },
-                    {
-                      "id": "A2U-6",
-                      "title": "Name the workflow, not its id, in the confirm status line",
-                      "status": "In Progress",
-                      "statusType": "started",
-                      "priority": "Medium",
-                      "link": "PR #7"
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "linear:linear-21",
-                "value": {
-                  "issues": [
-                    {
-                      "id": "A2U-5",
-                      "title": "Say on the canvas when an utterance fails",
-                      "status": "In Review",
-                      "statusType": "started",
-                      "priority": "High",
-                      "link": "PR #6",
-                      "updatedAt": "Sep 19, 2026, 11:00 AM"
-                    },
-                    {
-                      "id": "A2U-6",
-                      "title": "Name the workflow, not its id, in the confirm status line",
-                      "status": "In Progress",
-                      "statusType": "started",
-                      "priority": "Medium",
-                      "link": "PR #7",
-                      "updatedAt": "Sep 18, 2026, 11:53 AM"
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "linear:linear-21",
-                "value": {
-                  "issues": [
-                    {
-                      "id": "A2U-5",
-                      "title": "Say on the canvas when an utterance fails",
-                      "status": "In Review",
-                      "statusType": "started",
-                      "priority": "High",
-                      "link": "PR #6",
-                      "updatedAt": "Sep 19, 2026, 11:00 AM"
-                    },
-                    {
-                      "id": "A2U-6",
-                      "title": "Name the workflow, not its id, in the confirm status line",
-                      "status": "In Progress",
-                      "statusType": "started",
-                      "priority": "Medium",
-                      "link": "PR #7",
-                      "updatedAt": "Sep 18, 2026, 11:53 AM"
+                      "labels": "Bug",
+                      "link": "#6",
+                      "updated": "Sep 19, 2026, 11:00 AM UTC"
                     },
                     {
                       "id": "A2U-7"
@@ -5536,7 +5426,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-21",
+                "surfaceId": "linear:linear-9",
                 "value": {
                   "issues": [
                     {
@@ -5545,17 +5435,9 @@
                       "status": "In Review",
                       "statusType": "started",
                       "priority": "High",
-                      "link": "PR #6",
-                      "updatedAt": "Sep 19, 2026, 11:00 AM"
-                    },
-                    {
-                      "id": "A2U-6",
-                      "title": "Name the workflow, not its id, in the confirm status line",
-                      "status": "In Progress",
-                      "statusType": "started",
-                      "priority": "Medium",
-                      "link": "PR #7",
-                      "updatedAt": "Sep 18, 2026, 11:53 AM"
+                      "labels": "Bug",
+                      "link": "#6",
+                      "updated": "Sep 19, 2026, 11:00 AM UTC"
                     },
                     {
                       "id": "A2U-7",
@@ -5569,7 +5451,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-21",
+                "surfaceId": "linear:linear-9",
                 "value": {
                   "issues": [
                     {
@@ -5578,24 +5460,17 @@
                       "status": "In Review",
                       "statusType": "started",
                       "priority": "High",
-                      "link": "PR #6",
-                      "updatedAt": "Sep 19, 2026, 11:00 AM"
-                    },
-                    {
-                      "id": "A2U-6",
-                      "title": "Name the workflow, not its id, in the confirm status line",
-                      "status": "In Progress",
-                      "statusType": "started",
-                      "priority": "Medium",
-                      "link": "PR #7",
-                      "updatedAt": "Sep 18, 2026, 11:53 AM"
+                      "labels": "Bug",
+                      "link": "#6",
+                      "updated": "Sep 19, 2026, 11:00 AM UTC"
                     },
                     {
                       "id": "A2U-7",
                       "title": "Shell-action report hangs through the tunnel",
                       "status": "In Progress",
                       "statusType": "started",
-                      "priority": "Low"
+                      "priority": "Low",
+                      "labels": "Bug"
                     }
                   ]
                 }
@@ -5604,7 +5479,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-21",
+                "surfaceId": "linear:linear-9",
                 "value": {
                   "issues": [
                     {
@@ -5613,17 +5488,9 @@
                       "status": "In Review",
                       "statusType": "started",
                       "priority": "High",
-                      "link": "PR #6",
-                      "updatedAt": "Sep 19, 2026, 11:00 AM"
-                    },
-                    {
-                      "id": "A2U-6",
-                      "title": "Name the workflow, not its id, in the confirm status line",
-                      "status": "In Progress",
-                      "statusType": "started",
-                      "priority": "Medium",
-                      "link": "PR #7",
-                      "updatedAt": "Sep 18, 2026, 11:53 AM"
+                      "labels": "Bug",
+                      "link": "#6",
+                      "updated": "Sep 19, 2026, 11:00 AM UTC"
                     },
                     {
                       "id": "A2U-7",
@@ -5631,6 +5498,7 @@
                       "status": "In Progress",
                       "statusType": "started",
                       "priority": "Low",
+                      "labels": "Bug",
                       "link": "ekkicb71/a2u-7-shell-action-report-hangs-through-the-tunnel"
                     }
                   ]
@@ -5640,7 +5508,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-21",
+                "surfaceId": "linear:linear-9",
                 "value": {
                   "issues": [
                     {
@@ -5649,17 +5517,9 @@
                       "status": "In Review",
                       "statusType": "started",
                       "priority": "High",
-                      "link": "PR #6",
-                      "updatedAt": "Sep 19, 2026, 11:00 AM"
-                    },
-                    {
-                      "id": "A2U-6",
-                      "title": "Name the workflow, not its id, in the confirm status line",
-                      "status": "In Progress",
-                      "statusType": "started",
-                      "priority": "Medium",
-                      "link": "PR #7",
-                      "updatedAt": "Sep 18, 2026, 11:53 AM"
+                      "labels": "Bug",
+                      "link": "#6",
+                      "updated": "Sep 19, 2026, 11:00 AM UTC"
                     },
                     {
                       "id": "A2U-7",
@@ -5667,8 +5527,9 @@
                       "status": "In Progress",
                       "statusType": "started",
                       "priority": "Low",
+                      "labels": "Bug",
                       "link": "ekkicb71/a2u-7-shell-action-report-hangs-through-the-tunnel",
-                      "updatedAt": "Sep 19, 2026, 10:53 AM"
+                      "updated": "Sep 19, 2026, 10:53 AM UTC"
                     }
                   ]
                 }
@@ -5677,7 +5538,156 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-21",
+                "surfaceId": "linear:linear-9",
+                "value": {
+                  "issues": [
+                    {
+                      "id": "A2U-5",
+                      "title": "Say on the canvas when an utterance fails",
+                      "status": "In Review",
+                      "statusType": "started",
+                      "priority": "High",
+                      "labels": "Bug",
+                      "link": "#6",
+                      "updated": "Sep 19, 2026, 11:00 AM UTC"
+                    },
+                    {
+                      "id": "A2U-7",
+                      "title": "Shell-action report hangs through the tunnel",
+                      "status": "In Progress",
+                      "statusType": "started",
+                      "priority": "Low",
+                      "labels": "Bug",
+                      "link": "ekkicb71/a2u-7-shell-action-report-hangs-through-the-tunnel",
+                      "updated": "Sep 19, 2026, 10:53 AM UTC"
+                    },
+                    {
+                      "id": "A2U-6"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "linear:linear-9",
+                "value": {
+                  "issues": [
+                    {
+                      "id": "A2U-5",
+                      "title": "Say on the canvas when an utterance fails",
+                      "status": "In Review",
+                      "statusType": "started",
+                      "priority": "High",
+                      "labels": "Bug",
+                      "link": "#6",
+                      "updated": "Sep 19, 2026, 11:00 AM UTC"
+                    },
+                    {
+                      "id": "A2U-7",
+                      "title": "Shell-action report hangs through the tunnel",
+                      "status": "In Progress",
+                      "statusType": "started",
+                      "priority": "Low",
+                      "labels": "Bug",
+                      "link": "ekkicb71/a2u-7-shell-action-report-hangs-through-the-tunnel",
+                      "updated": "Sep 19, 2026, 10:53 AM UTC"
+                    },
+                    {
+                      "id": "A2U-6",
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "status": "In Progress",
+                      "statusType": "started",
+                      "priority": "Medium"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "linear:linear-9",
+                "value": {
+                  "issues": [
+                    {
+                      "id": "A2U-5",
+                      "title": "Say on the canvas when an utterance fails",
+                      "status": "In Review",
+                      "statusType": "started",
+                      "priority": "High",
+                      "labels": "Bug",
+                      "link": "#6",
+                      "updated": "Sep 19, 2026, 11:00 AM UTC"
+                    },
+                    {
+                      "id": "A2U-7",
+                      "title": "Shell-action report hangs through the tunnel",
+                      "status": "In Progress",
+                      "statusType": "started",
+                      "priority": "Low",
+                      "labels": "Bug",
+                      "link": "ekkicb71/a2u-7-shell-action-report-hangs-through-the-tunnel",
+                      "updated": "Sep 19, 2026, 10:53 AM UTC"
+                    },
+                    {
+                      "id": "A2U-6",
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "status": "In Progress",
+                      "statusType": "started",
+                      "priority": "Medium",
+                      "labels": "Improvement",
+                      "link": "#7"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "linear:linear-9",
+                "value": {
+                  "issues": [
+                    {
+                      "id": "A2U-5",
+                      "title": "Say on the canvas when an utterance fails",
+                      "status": "In Review",
+                      "statusType": "started",
+                      "priority": "High",
+                      "labels": "Bug",
+                      "link": "#6",
+                      "updated": "Sep 19, 2026, 11:00 AM UTC"
+                    },
+                    {
+                      "id": "A2U-7",
+                      "title": "Shell-action report hangs through the tunnel",
+                      "status": "In Progress",
+                      "statusType": "started",
+                      "priority": "Low",
+                      "labels": "Bug",
+                      "link": "ekkicb71/a2u-7-shell-action-report-hangs-through-the-tunnel",
+                      "updated": "Sep 19, 2026, 10:53 AM UTC"
+                    },
+                    {
+                      "id": "A2U-6",
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "status": "In Progress",
+                      "statusType": "started",
+                      "priority": "Medium",
+                      "labels": "Improvement",
+                      "link": "#7",
+                      "updated": "Sep 18, 2026, 11:53 AM UTC"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "linear:linear-9",
                 "path": "/",
                 "value": {
                   "team": "A2uiverse",
@@ -5688,17 +5698,9 @@
                       "status": "In Review",
                       "statusType": "started",
                       "priority": "High",
-                      "link": "PR #6",
-                      "updatedAt": "Sep 19, 2026, 11:00 AM"
-                    },
-                    {
-                      "id": "A2U-6",
-                      "title": "Name the workflow, not its id, in the confirm status line",
-                      "status": "In Progress",
-                      "statusType": "started",
-                      "priority": "Medium",
-                      "link": "PR #7",
-                      "updatedAt": "Sep 18, 2026, 11:53 AM"
+                      "labels": "Bug",
+                      "link": "#6",
+                      "updated": "Sep 19, 2026, 11:00 AM UTC"
                     },
                     {
                       "id": "A2U-7",
@@ -5706,8 +5708,19 @@
                       "status": "In Progress",
                       "statusType": "started",
                       "priority": "Low",
+                      "labels": "Bug",
                       "link": "ekkicb71/a2u-7-shell-action-report-hangs-through-the-tunnel",
-                      "updatedAt": "Sep 19, 2026, 10:53 AM"
+                      "updated": "Sep 19, 2026, 10:53 AM UTC"
+                    },
+                    {
+                      "id": "A2U-6",
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "status": "In Progress",
+                      "statusType": "started",
+                      "priority": "Medium",
+                      "labels": "Improvement",
+                      "link": "#7",
+                      "updated": "Sep 18, 2026, 11:53 AM UTC"
                     }
                   ]
                 }
@@ -5718,12 +5731,6 @@
               "updateComponents": {
                 "components": [
                   {
-                    "id": "root",
-                    "component": "Panel",
-                    "padding": "none",
-                    "child": "body"
-                  },
-                  {
                     "id": "body",
                     "component": "Stack",
                     "gap": "none",
@@ -5731,6 +5738,12 @@
                       "header",
                       "list"
                     ]
+                  },
+                  {
+                    "id": "root",
+                    "component": "Panel",
+                    "padding": "none",
+                    "child": "body"
                   },
                   {
                     "id": "header",
@@ -5758,8 +5771,9 @@
                       "row-status"
                     ],
                     "trailing": [
+                      "row-labels",
                       "row-link",
-                      "row-updated"
+                      "row-when"
                     ],
                     "action": {
                       "event": {
@@ -5806,6 +5820,13 @@
                     "weight": "medium"
                   },
                   {
+                    "id": "row-labels",
+                    "component": "Chip",
+                    "label": {
+                      "path": "labels"
+                    }
+                  },
+                  {
                     "id": "row-link",
                     "component": "Text",
                     "text": {
@@ -5814,15 +5835,15 @@
                     "variant": "caption"
                   },
                   {
-                    "id": "row-updated",
+                    "id": "row-when",
                     "component": "Text",
                     "text": {
-                      "path": "updatedAt"
+                      "path": "updated"
                     },
                     "variant": "caption"
                   }
                 ],
-                "surfaceId": "linear:linear-21"
+                "surfaceId": "linear:linear-9"
               }
             }
           ],
@@ -5833,7 +5854,7 @@
           }
         },
         {
-          "offsetMs": 14,
+          "offsetMs": 11,
           "messages": [
             {
               "version": "v0.9",
@@ -5844,12 +5865,12 @@
                     "id": "root",
                     "component": "Column",
                     "children": [
-                      "work-status",
+                      "overview",
                       "sources"
                     ]
                   },
                   {
-                    "id": "work-status",
+                    "id": "overview",
                     "component": "Slot",
                     "source": "shell",
                     "state": "collapsed",
@@ -5860,7 +5881,7 @@
                       "Status",
                       "Priority",
                       "Pull request",
-                      "CI run",
+                      "CI status",
                       "Updated"
                     ],
                     "columnSources": [
@@ -5960,7 +5981,7 @@
           }
         },
         {
-          "offsetMs": 10918,
+          "offsetMs": 10889,
           "messages": [
             {
               "version": "v0.9",
@@ -5978,25 +5999,25 @@
                     "id": "root",
                     "component": "Column",
                     "children": [
-                      "header",
+                      "head",
                       "table"
                     ]
                   },
                   {
-                    "id": "header",
+                    "id": "head",
                     "component": "Row",
                     "justify": "spaceBetween",
                     "align": "center",
                     "children": [
-                      "title",
+                      "heading",
                       "sort"
                     ]
                   },
                   {
-                    "id": "title",
+                    "id": "heading",
                     "component": "Text",
                     "variant": "h5",
-                    "text": "Active work"
+                    "text": "Active work items"
                   },
                   {
                     "id": "sort",
@@ -6013,7 +6034,7 @@
                       "Status",
                       "Priority",
                       "Pull request",
-                      "CI run",
+                      "CI status",
                       "Updated"
                     ],
                     "columnSources": [
@@ -6026,11 +6047,11 @@
                     ],
                     "children": {
                       "path": "/issues",
-                      "componentId": "issue-row"
+                      "componentId": "row"
                     }
                   },
                   {
-                    "id": "issue-row",
+                    "id": "row",
                     "component": "TableRow",
                     "children": [
                       "c-issue",
@@ -6077,7 +6098,7 @@
                     "id": "c-ci",
                     "component": "DerivedValue",
                     "cell": {
-                      "path": "ciStatus"
+                      "path": "ci"
                     },
                     "danger": [
                       "Failed"
@@ -6087,7 +6108,7 @@
                     "id": "c-updated",
                     "component": "DerivedValue",
                     "cell": {
-                      "path": "updatedAt"
+                      "path": "updated"
                     },
                     "format": {
                       "kind": "datetime"
@@ -6107,28 +6128,28 @@
               "issues": [
                 {
                   "match": {
-                    "same title": {
+                    "pr number in issue link": {
                       "op": "equal",
                       "args": [
                         {
-                          "surface": "linear:linear-21",
-                          "pointer": "/issues[id=\"A2U-5\"]/title"
+                          "surface": "linear:linear-9",
+                          "pointer": "/issues[id=\"A2U-5\"]/link"
                         },
                         {
-                          "surface": "github:notifications-21",
-                          "pointer": "/prs[number=6]/title"
+                          "surface": "github:notifications-9",
+                          "pointer": "/prs[repository=\"retz8/a2uiverse\",number=6]/number"
                         }
                       ]
                     },
-                    "same branch": {
+                    "same branch name": {
                       "op": "equal",
                       "args": [
                         {
-                          "surface": "github:notifications-21",
-                          "pointer": "/prs[number=6]/branch"
+                          "surface": "github:notifications-9",
+                          "pointer": "/prs[repository=\"retz8/a2uiverse\",number=6]/branch"
                         },
                         {
-                          "surface": "circleci:circleci-8",
+                          "surface": "circleci:circleci-3",
                           "pointer": "/runs[id=\"6039cf16-6db3-4974-af2b-517f8ce26c2a\"]/branch"
                         }
                       ]
@@ -6138,8 +6159,8 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "linear:linear-21",
-                        "pointer": "/issues[id=\"A2U-5\"]/title"
+                        "surface": "linear:linear-9",
+                        "pointer": "/issues[id=\"A2U-5\"]/id"
                       }
                     ]
                   },
@@ -6147,7 +6168,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "linear:linear-21",
+                        "surface": "linear:linear-9",
                         "pointer": "/issues[id=\"A2U-5\"]/status"
                       }
                     ]
@@ -6156,7 +6177,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "linear:linear-21",
+                        "surface": "linear:linear-9",
                         "pointer": "/issues[id=\"A2U-5\"]/priority"
                       }
                     ]
@@ -6165,54 +6186,100 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "github:notifications-21",
-                        "pointer": "/prs[number=6]/number"
+                        "surface": "github:notifications-9",
+                        "pointer": "/prs[repository=\"retz8/a2uiverse\",number=6]/number"
                       }
                     ]
                   },
-                  "ciStatus": {
+                  "ci": {
                     "op": "value",
                     "args": [
                       {
-                        "surface": "circleci:circleci-8",
+                        "surface": "circleci:circleci-3",
                         "pointer": "/runs[id=\"6039cf16-6db3-4974-af2b-517f8ce26c2a\"]/status"
                       }
                     ]
                   },
-                  "updatedAt": {
+                  "updated": {
                     "op": "value",
                     "args": [
                       {
-                        "surface": "linear:linear-21",
-                        "pointer": "/issues[id=\"A2U-5\"]/updatedAt"
+                        "surface": "linear:linear-9",
+                        "pointer": "/issues[id=\"A2U-5\"]/updated"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "issue": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "linear:linear-9",
+                        "pointer": "/issues[id=\"A2U-7\"]/id"
+                      }
+                    ]
+                  },
+                  "status": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "linear:linear-9",
+                        "pointer": "/issues[id=\"A2U-7\"]/status"
+                      }
+                    ]
+                  },
+                  "priority": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "linear:linear-9",
+                        "pointer": "/issues[id=\"A2U-7\"]/priority"
+                      }
+                    ]
+                  },
+                  "pr": {
+                    "op": "value",
+                    "args": []
+                  },
+                  "ci": {
+                    "op": "value",
+                    "args": []
+                  },
+                  "updated": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "linear:linear-9",
+                        "pointer": "/issues[id=\"A2U-7\"]/updated"
                       }
                     ]
                   }
                 },
                 {
                   "match": {
-                    "same title": {
+                    "pr number in issue link": {
                       "op": "equal",
                       "args": [
                         {
-                          "surface": "linear:linear-21",
-                          "pointer": "/issues[id=\"A2U-6\"]/title"
+                          "surface": "linear:linear-9",
+                          "pointer": "/issues[id=\"A2U-6\"]/link"
                         },
                         {
-                          "surface": "github:notifications-21",
-                          "pointer": "/prs[number=7]/title"
+                          "surface": "github:notifications-9",
+                          "pointer": "/prs[repository=\"retz8/a2uiverse\",number=7]/number"
                         }
                       ]
                     },
-                    "same branch": {
+                    "same branch name": {
                       "op": "equal",
                       "args": [
                         {
-                          "surface": "github:notifications-21",
-                          "pointer": "/prs[number=7]/branch"
+                          "surface": "github:notifications-9",
+                          "pointer": "/prs[repository=\"retz8/a2uiverse\",number=7]/branch"
                         },
                         {
-                          "surface": "circleci:circleci-8",
+                          "surface": "circleci:circleci-3",
                           "pointer": "/runs[id=\"8ccc8586-fb31-49f8-96aa-daa8642abdb0\"]/branch"
                         }
                       ]
@@ -6222,8 +6289,8 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "linear:linear-21",
-                        "pointer": "/issues[id=\"A2U-6\"]/title"
+                        "surface": "linear:linear-9",
+                        "pointer": "/issues[id=\"A2U-6\"]/id"
                       }
                     ]
                   },
@@ -6231,7 +6298,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "linear:linear-21",
+                        "surface": "linear:linear-9",
                         "pointer": "/issues[id=\"A2U-6\"]/status"
                       }
                     ]
@@ -6240,7 +6307,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "linear:linear-21",
+                        "surface": "linear:linear-9",
                         "pointer": "/issues[id=\"A2U-6\"]/priority"
                       }
                     ]
@@ -6249,72 +6316,26 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "github:notifications-21",
-                        "pointer": "/prs[number=7]/number"
+                        "surface": "github:notifications-9",
+                        "pointer": "/prs[repository=\"retz8/a2uiverse\",number=7]/number"
                       }
                     ]
                   },
-                  "ciStatus": {
+                  "ci": {
                     "op": "value",
                     "args": [
                       {
-                        "surface": "circleci:circleci-8",
+                        "surface": "circleci:circleci-3",
                         "pointer": "/runs[id=\"8ccc8586-fb31-49f8-96aa-daa8642abdb0\"]/status"
                       }
                     ]
                   },
-                  "updatedAt": {
+                  "updated": {
                     "op": "value",
                     "args": [
                       {
-                        "surface": "linear:linear-21",
-                        "pointer": "/issues[id=\"A2U-6\"]/updatedAt"
-                      }
-                    ]
-                  }
-                },
-                {
-                  "issue": {
-                    "op": "value",
-                    "args": [
-                      {
-                        "surface": "linear:linear-21",
-                        "pointer": "/issues[id=\"A2U-7\"]/title"
-                      }
-                    ]
-                  },
-                  "status": {
-                    "op": "value",
-                    "args": [
-                      {
-                        "surface": "linear:linear-21",
-                        "pointer": "/issues[id=\"A2U-7\"]/status"
-                      }
-                    ]
-                  },
-                  "priority": {
-                    "op": "value",
-                    "args": [
-                      {
-                        "surface": "linear:linear-21",
-                        "pointer": "/issues[id=\"A2U-7\"]/priority"
-                      }
-                    ]
-                  },
-                  "pr": {
-                    "op": "value",
-                    "args": []
-                  },
-                  "ciStatus": {
-                    "op": "value",
-                    "args": []
-                  },
-                  "updatedAt": {
-                    "op": "value",
-                    "args": [
-                      {
-                        "surface": "linear:linear-21",
-                        "pointer": "/issues[id=\"A2U-7\"]/updatedAt"
+                        "surface": "linear:linear-9",
+                        "pointer": "/issues[id=\"A2U-6\"]/updated"
                       }
                     ]
                   }
@@ -6326,18 +6347,18 @@
                 "path": "/issues",
                 "options": [
                   {
-                    "key": "/updatedAt",
+                    "key": "/updated",
                     "label": "Updated"
                   }
                 ],
-                "key": "/updatedAt",
+                "key": "/updated",
                 "direction": "desc"
               }
             ]
           }
         },
         {
-          "offsetMs": 10918,
+          "offsetMs": 10889,
           "messages": [
             {
               "version": "v0.9",
@@ -6348,12 +6369,12 @@
                     "id": "root",
                     "component": "Column",
                     "children": [
-                      "work-status",
+                      "overview",
                       "sources"
                     ]
                   },
                   {
-                    "id": "work-status",
+                    "id": "overview",
                     "component": "Slot",
                     "source": "shell",
                     "state": "pending",
@@ -6364,7 +6385,7 @@
                       "Status",
                       "Priority",
                       "Pull request",
-                      "CI run",
+                      "CI status",
                       "Updated"
                     ],
                     "columnSources": [
@@ -6461,7 +6482,7 @@
         }
       ],
       "outcome": "completed",
-      "durationMs": 10919
+      "durationMs": 10890
     }
   ]
 }

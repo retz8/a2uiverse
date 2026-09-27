@@ -4,8 +4,8 @@
   "title": "A half-drawn fragment failing",
   "prompt": "What needs my attention today?",
   "model": "gemini-3.7-flash",
-  "recordedAt": "2026-09-27T03:16:47Z",
-  "contextId": "aabc3871-0c1a-4c7c-b737-0e09523905df",
+  "recordedAt": "2026-09-27T04:25:27Z",
+  "contextId": "7f1e3261-633a-4b8c-8521-b129d2258449",
   "chainedFrom": null,
   "deadlines": {
     "softDeadlineSeconds": 10,
@@ -18,13 +18,13 @@
   },
   "turns": [
     {
-      "taskId": "4f2ce75a-0b7b-413d-aeda-7125692c8952",
+      "taskId": "87d3cd21-9042-448e-b6bd-07272f086f7d",
       "kind": "utterance",
       "prompt": "What needs my attention today?",
       "action": null,
       "batches": [
         {
-          "offsetMs": 5033,
+          "offsetMs": 7638,
           "messages": [
             {
               "version": "v0.9",
@@ -42,12 +42,12 @@
                     "id": "root",
                     "component": "Column",
                     "children": [
-                      "merged-view",
+                      "overview",
                       "sources"
                     ]
                   },
                   {
-                    "id": "merged-view",
+                    "id": "overview",
                     "component": "Slot",
                     "source": "shell",
                     "state": "pending",
@@ -58,22 +58,22 @@
                     "id": "sources",
                     "component": "Row",
                     "children": [
-                      "attribution-calendar-slot",
-                      "attribution-gmail-slot",
-                      "attribution-github-slot",
-                      "attribution-linear-slot"
+                      "attribution-calendar",
+                      "attribution-gmail",
+                      "attribution-github",
+                      "attribution-linear"
                     ]
                   },
                   {
-                    "id": "attribution-calendar-slot",
+                    "id": "attribution-calendar",
                     "component": "Attribution",
                     "displayName": "Google Calendar",
                     "appId": "calendar",
-                    "child": "calendar-slot",
+                    "child": "calendar",
                     "weight": 1
                   },
                   {
-                    "id": "calendar-slot",
+                    "id": "calendar",
                     "component": "Slot",
                     "source": "calendar",
                     "weight": 1,
@@ -81,15 +81,15 @@
                     "label": "Google Calendar"
                   },
                   {
-                    "id": "attribution-gmail-slot",
+                    "id": "attribution-gmail",
                     "component": "Attribution",
                     "displayName": "Gmail",
                     "appId": "gmail",
-                    "child": "gmail-slot",
+                    "child": "gmail",
                     "weight": 1
                   },
                   {
-                    "id": "gmail-slot",
+                    "id": "gmail",
                     "component": "Slot",
                     "source": "gmail",
                     "weight": 1,
@@ -97,15 +97,15 @@
                     "label": "Gmail"
                   },
                   {
-                    "id": "attribution-github-slot",
+                    "id": "attribution-github",
                     "component": "Attribution",
                     "displayName": "GitHub",
                     "appId": "github",
-                    "child": "github-slot",
+                    "child": "github",
                     "weight": 1
                   },
                   {
-                    "id": "github-slot",
+                    "id": "github",
                     "component": "Slot",
                     "source": "github",
                     "weight": 1,
@@ -113,15 +113,15 @@
                     "label": "GitHub"
                   },
                   {
-                    "id": "attribution-linear-slot",
+                    "id": "attribution-linear",
                     "component": "Attribution",
                     "displayName": "Linear",
                     "appId": "linear",
-                    "child": "linear-slot",
+                    "child": "linear",
                     "weight": 1
                   },
                   {
-                    "id": "linear-slot",
+                    "id": "linear",
                     "component": "Slot",
                     "source": "linear",
                     "weight": 1,
@@ -139,12 +139,12 @@
           }
         },
         {
-          "offsetMs": 5047,
+          "offsetMs": 7654,
           "messages": [
             {
               "version": "v0.9",
               "createSurface": {
-                "surfaceId": "github:notifications-5",
+                "surfaceId": "github:notifications-7",
                 "catalogId": "https://github.com/retz8/a2uiverse-apps/blob/main/github/github-catalog/catalogs/v0.9.1/catalog.json",
                 "sendDataModel": true
               }
@@ -152,7 +152,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-5",
+                "surfaceId": "github:notifications-7",
                 "value": {
                   "prs": [
                     {
@@ -168,7 +168,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-5",
+                "surfaceId": "github:notifications-7",
                 "value": {
                   "prs": [
                     {
@@ -186,7 +186,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-5",
+                "surfaceId": "github:notifications-7",
                 "value": {
                   "prs": [
                     {
@@ -206,7 +206,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-5",
+                "surfaceId": "github:notifications-7",
                 "value": {
                   "prs": [
                     {
@@ -228,7 +228,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-5",
+                "surfaceId": "github:notifications-7",
                 "value": {
                   "prs": [
                     {
@@ -252,7 +252,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-5",
+                "surfaceId": "github:notifications-7",
                 "value": {
                   "prs": [
                     {
@@ -277,7 +277,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-5",
+                "surfaceId": "github:notifications-7",
                 "value": {
                   "prs": [
                     {
@@ -304,7 +304,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-5",
+                "surfaceId": "github:notifications-7",
                 "value": {
                   "prs": [
                     {
@@ -333,7 +333,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-5",
+                "surfaceId": "github:notifications-7",
                 "value": {
                   "prs": [
                     {
@@ -365,7 +365,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-5",
+                "surfaceId": "github:notifications-7",
                 "value": {
                   "prs": [
                     {
@@ -398,7 +398,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-5",
+                "surfaceId": "github:notifications-7",
                 "value": {
                   "prs": [
                     {
@@ -432,7 +432,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-5",
+                "surfaceId": "github:notifications-7",
                 "value": {
                   "prs": [
                     {
@@ -468,7 +468,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-5",
+                "surfaceId": "github:notifications-7",
                 "value": {
                   "prs": [
                     {
@@ -508,7 +508,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-5",
+                "surfaceId": "github:notifications-7",
                 "value": {
                   "prs": [
                     {
@@ -549,7 +549,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-5",
+                "surfaceId": "github:notifications-7",
                 "value": {
                   "prs": [
                     {
@@ -591,7 +591,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-5",
+                "surfaceId": "github:notifications-7",
                 "value": {
                   "prs": [
                     {
@@ -635,7 +635,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-5",
+                "surfaceId": "github:notifications-7",
                 "value": {
                   "prs": [
                     {
@@ -680,7 +680,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-5",
+                "surfaceId": "github:notifications-7",
                 "value": {
                   "prs": [
                     {
@@ -729,7 +729,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-5",
+                "surfaceId": "github:notifications-7",
                 "value": {
                   "prs": [
                     {
@@ -779,7 +779,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-5",
+                "surfaceId": "github:notifications-7",
                 "value": {
                   "prs": [
                     {
@@ -830,7 +830,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-5",
+                "surfaceId": "github:notifications-7",
                 "value": {
                   "prs": [
                     {
@@ -882,7 +882,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-5",
+                "surfaceId": "github:notifications-7",
                 "value": {
                   "prs": [
                     {
@@ -936,7 +936,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-5",
+                "surfaceId": "github:notifications-7",
                 "value": {
                   "prs": [
                     {
@@ -991,7 +991,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-5",
+                "surfaceId": "github:notifications-7",
                 "value": {
                   "prs": [
                     {
@@ -1049,7 +1049,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-5",
+                "surfaceId": "github:notifications-7",
                 "value": {
                   "prs": [
                     {
@@ -1109,7 +1109,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-5",
+                "surfaceId": "github:notifications-7",
                 "value": {
                   "prs": [
                     {
@@ -1170,7 +1170,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-5",
+                "surfaceId": "github:notifications-7",
                 "value": {
                   "prs": [
                     {
@@ -1233,7 +1233,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-5",
+                "surfaceId": "github:notifications-7",
                 "value": {
                   "prs": [
                     {
@@ -1297,7 +1297,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-5",
+                "surfaceId": "github:notifications-7",
                 "path": "/",
                 "value": {
                   "prs": [
@@ -1558,7 +1558,7 @@
                     "second": "2-digit"
                   }
                 ],
-                "surfaceId": "github:notifications-5"
+                "surfaceId": "github:notifications-7"
               }
             }
           ],
@@ -1569,7 +1569,7 @@
           }
         },
         {
-          "offsetMs": 5047,
+          "offsetMs": 7654,
           "messages": [
             {
               "version": "v0.9",
@@ -1580,12 +1580,12 @@
                     "id": "root",
                     "component": "Column",
                     "children": [
-                      "merged-view",
+                      "overview",
                       "sources"
                     ]
                   },
                   {
-                    "id": "merged-view",
+                    "id": "overview",
                     "component": "Slot",
                     "source": "shell",
                     "state": "pending",
@@ -1596,22 +1596,22 @@
                     "id": "sources",
                     "component": "Row",
                     "children": [
-                      "attribution-calendar-slot",
-                      "attribution-gmail-slot",
-                      "attribution-github-slot",
-                      "attribution-linear-slot"
+                      "attribution-calendar",
+                      "attribution-gmail",
+                      "attribution-github",
+                      "attribution-linear"
                     ]
                   },
                   {
-                    "id": "attribution-calendar-slot",
+                    "id": "attribution-calendar",
                     "component": "Attribution",
                     "displayName": "Google Calendar",
                     "appId": "calendar",
-                    "child": "calendar-slot",
+                    "child": "calendar",
                     "weight": 1
                   },
                   {
-                    "id": "calendar-slot",
+                    "id": "calendar",
                     "component": "Slot",
                     "source": "calendar",
                     "weight": 1,
@@ -1619,15 +1619,15 @@
                     "label": "Google Calendar"
                   },
                   {
-                    "id": "attribution-gmail-slot",
+                    "id": "attribution-gmail",
                     "component": "Attribution",
                     "displayName": "Gmail",
                     "appId": "gmail",
-                    "child": "gmail-slot",
+                    "child": "gmail",
                     "weight": 1
                   },
                   {
-                    "id": "gmail-slot",
+                    "id": "gmail",
                     "component": "Slot",
                     "source": "gmail",
                     "weight": 1,
@@ -1635,15 +1635,15 @@
                     "label": "Gmail"
                   },
                   {
-                    "id": "attribution-github-slot",
+                    "id": "attribution-github",
                     "component": "Attribution",
                     "displayName": "GitHub",
                     "appId": "github",
-                    "child": "github-slot",
+                    "child": "github",
                     "weight": 1
                   },
                   {
-                    "id": "github-slot",
+                    "id": "github",
                     "component": "Slot",
                     "source": "github",
                     "weight": 1,
@@ -1654,15 +1654,15 @@
                     }
                   },
                   {
-                    "id": "attribution-linear-slot",
+                    "id": "attribution-linear",
                     "component": "Attribution",
                     "displayName": "Linear",
                     "appId": "linear",
-                    "child": "linear-slot",
+                    "child": "linear",
                     "weight": 1
                   },
                   {
-                    "id": "linear-slot",
+                    "id": "linear",
                     "component": "Slot",
                     "source": "linear",
                     "weight": 1,
@@ -1680,12 +1680,12 @@
           }
         },
         {
-          "offsetMs": 5048,
+          "offsetMs": 7654,
           "messages": [
             {
               "version": "v0.9",
               "createSurface": {
-                "surfaceId": "linear:linear-5",
+                "surfaceId": "linear:linear-7",
                 "catalogId": "https://github.com/retz8/a2uiverse-apps/blob/main/linear/linear-catalog/catalogs/v0.9.1/catalog.json",
                 "sendDataModel": true
               }
@@ -1693,7 +1693,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-5",
+                "surfaceId": "linear:linear-7",
                 "value": {
                   "team": "A2uiverse"
                 }
@@ -1702,7 +1702,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-5",
+                "surfaceId": "linear:linear-7",
                 "value": {
                   "issues": [
                     {
@@ -1711,7 +1711,7 @@
                       "status": "In Review",
                       "statusType": "started",
                       "priority": "High",
-                      "link": "PR #6"
+                      "labels": "Bug"
                     }
                   ]
                 }
@@ -1720,7 +1720,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-5",
+                "surfaceId": "linear:linear-7",
                 "value": {
                   "issues": [
                     {
@@ -1729,31 +1729,8 @@
                       "status": "In Review",
                       "statusType": "started",
                       "priority": "High",
-                      "link": "PR #6",
-                      "updatedAt": "Sep 19, 2026, 11:00 AM"
-                    },
-                    {}
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "linear:linear-5",
-                "value": {
-                  "issues": [
-                    {
-                      "id": "A2U-5",
-                      "title": "Say on the canvas when an utterance fails",
-                      "status": "In Review",
-                      "statusType": "started",
-                      "priority": "High",
-                      "link": "PR #6",
-                      "updatedAt": "Sep 19, 2026, 11:00 AM"
-                    },
-                    {
-                      "id": "A2U-6"
+                      "labels": "Bug",
+                      "link": "#6"
                     }
                   ]
                 }
@@ -1762,7 +1739,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-5",
+                "surfaceId": "linear:linear-7",
                 "value": {
                   "issues": [
                     {
@@ -1771,96 +1748,9 @@
                       "status": "In Review",
                       "statusType": "started",
                       "priority": "High",
-                      "link": "PR #6",
-                      "updatedAt": "Sep 19, 2026, 11:00 AM"
-                    },
-                    {
-                      "id": "A2U-6",
-                      "title": "Name the workflow, not its id, in the confirm status line",
-                      "status": "In Progress"
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "linear:linear-5",
-                "value": {
-                  "issues": [
-                    {
-                      "id": "A2U-5",
-                      "title": "Say on the canvas when an utterance fails",
-                      "status": "In Review",
-                      "statusType": "started",
-                      "priority": "High",
-                      "link": "PR #6",
-                      "updatedAt": "Sep 19, 2026, 11:00 AM"
-                    },
-                    {
-                      "id": "A2U-6",
-                      "title": "Name the workflow, not its id, in the confirm status line",
-                      "status": "In Progress",
-                      "statusType": "started",
-                      "priority": "Medium",
-                      "link": "PR #7"
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "linear:linear-5",
-                "value": {
-                  "issues": [
-                    {
-                      "id": "A2U-5",
-                      "title": "Say on the canvas when an utterance fails",
-                      "status": "In Review",
-                      "statusType": "started",
-                      "priority": "High",
-                      "link": "PR #6",
-                      "updatedAt": "Sep 19, 2026, 11:00 AM"
-                    },
-                    {
-                      "id": "A2U-6",
-                      "title": "Name the workflow, not its id, in the confirm status line",
-                      "status": "In Progress",
-                      "statusType": "started",
-                      "priority": "Medium",
-                      "link": "PR #7",
-                      "updatedAt": "Sep 18, 2026, 11:53 AM"
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "linear:linear-5",
-                "value": {
-                  "issues": [
-                    {
-                      "id": "A2U-5",
-                      "title": "Say on the canvas when an utterance fails",
-                      "status": "In Review",
-                      "statusType": "started",
-                      "priority": "High",
-                      "link": "PR #6",
-                      "updatedAt": "Sep 19, 2026, 11:00 AM"
-                    },
-                    {
-                      "id": "A2U-6",
-                      "title": "Name the workflow, not its id, in the confirm status line",
-                      "status": "In Progress",
-                      "statusType": "started",
-                      "priority": "Medium",
-                      "link": "PR #7",
-                      "updatedAt": "Sep 18, 2026, 11:53 AM"
+                      "labels": "Bug",
+                      "link": "#6",
+                      "updated": "Sep 19, 2026, 11:00 AM UTC"
                     },
                     {
                       "id": "A2U-7"
@@ -1872,7 +1762,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-5",
+                "surfaceId": "linear:linear-7",
                 "value": {
                   "issues": [
                     {
@@ -1881,17 +1771,9 @@
                       "status": "In Review",
                       "statusType": "started",
                       "priority": "High",
-                      "link": "PR #6",
-                      "updatedAt": "Sep 19, 2026, 11:00 AM"
-                    },
-                    {
-                      "id": "A2U-6",
-                      "title": "Name the workflow, not its id, in the confirm status line",
-                      "status": "In Progress",
-                      "statusType": "started",
-                      "priority": "Medium",
-                      "link": "PR #7",
-                      "updatedAt": "Sep 18, 2026, 11:53 AM"
+                      "labels": "Bug",
+                      "link": "#6",
+                      "updated": "Sep 19, 2026, 11:00 AM UTC"
                     },
                     {
                       "id": "A2U-7",
@@ -1905,7 +1787,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-5",
+                "surfaceId": "linear:linear-7",
                 "value": {
                   "issues": [
                     {
@@ -1914,24 +1796,17 @@
                       "status": "In Review",
                       "statusType": "started",
                       "priority": "High",
-                      "link": "PR #6",
-                      "updatedAt": "Sep 19, 2026, 11:00 AM"
-                    },
-                    {
-                      "id": "A2U-6",
-                      "title": "Name the workflow, not its id, in the confirm status line",
-                      "status": "In Progress",
-                      "statusType": "started",
-                      "priority": "Medium",
-                      "link": "PR #7",
-                      "updatedAt": "Sep 18, 2026, 11:53 AM"
+                      "labels": "Bug",
+                      "link": "#6",
+                      "updated": "Sep 19, 2026, 11:00 AM UTC"
                     },
                     {
                       "id": "A2U-7",
                       "title": "Shell-action report hangs through the tunnel",
                       "status": "In Progress",
                       "statusType": "started",
-                      "priority": "Low"
+                      "priority": "Low",
+                      "labels": "Bug"
                     }
                   ]
                 }
@@ -1940,7 +1815,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-5",
+                "surfaceId": "linear:linear-7",
                 "value": {
                   "issues": [
                     {
@@ -1949,17 +1824,9 @@
                       "status": "In Review",
                       "statusType": "started",
                       "priority": "High",
-                      "link": "PR #6",
-                      "updatedAt": "Sep 19, 2026, 11:00 AM"
-                    },
-                    {
-                      "id": "A2U-6",
-                      "title": "Name the workflow, not its id, in the confirm status line",
-                      "status": "In Progress",
-                      "statusType": "started",
-                      "priority": "Medium",
-                      "link": "PR #7",
-                      "updatedAt": "Sep 18, 2026, 11:53 AM"
+                      "labels": "Bug",
+                      "link": "#6",
+                      "updated": "Sep 19, 2026, 11:00 AM UTC"
                     },
                     {
                       "id": "A2U-7",
@@ -1967,6 +1834,7 @@
                       "status": "In Progress",
                       "statusType": "started",
                       "priority": "Low",
+                      "labels": "Bug",
                       "link": "ekkicb71/a2u-7-shell-action-report-hangs-through-the-tunnel"
                     }
                   ]
@@ -1976,7 +1844,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-5",
+                "surfaceId": "linear:linear-7",
                 "value": {
                   "issues": [
                     {
@@ -1985,17 +1853,9 @@
                       "status": "In Review",
                       "statusType": "started",
                       "priority": "High",
-                      "link": "PR #6",
-                      "updatedAt": "Sep 19, 2026, 11:00 AM"
-                    },
-                    {
-                      "id": "A2U-6",
-                      "title": "Name the workflow, not its id, in the confirm status line",
-                      "status": "In Progress",
-                      "statusType": "started",
-                      "priority": "Medium",
-                      "link": "PR #7",
-                      "updatedAt": "Sep 18, 2026, 11:53 AM"
+                      "labels": "Bug",
+                      "link": "#6",
+                      "updated": "Sep 19, 2026, 11:00 AM UTC"
                     },
                     {
                       "id": "A2U-7",
@@ -2003,8 +1863,9 @@
                       "status": "In Progress",
                       "statusType": "started",
                       "priority": "Low",
+                      "labels": "Bug",
                       "link": "ekkicb71/a2u-7-shell-action-report-hangs-through-the-tunnel",
-                      "updatedAt": "Sep 19, 2026, 10:53 AM"
+                      "updated": "Sep 19, 2026, 10:53 AM UTC"
                     }
                   ]
                 }
@@ -2013,7 +1874,156 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-5",
+                "surfaceId": "linear:linear-7",
+                "value": {
+                  "issues": [
+                    {
+                      "id": "A2U-5",
+                      "title": "Say on the canvas when an utterance fails",
+                      "status": "In Review",
+                      "statusType": "started",
+                      "priority": "High",
+                      "labels": "Bug",
+                      "link": "#6",
+                      "updated": "Sep 19, 2026, 11:00 AM UTC"
+                    },
+                    {
+                      "id": "A2U-7",
+                      "title": "Shell-action report hangs through the tunnel",
+                      "status": "In Progress",
+                      "statusType": "started",
+                      "priority": "Low",
+                      "labels": "Bug",
+                      "link": "ekkicb71/a2u-7-shell-action-report-hangs-through-the-tunnel",
+                      "updated": "Sep 19, 2026, 10:53 AM UTC"
+                    },
+                    {
+                      "id": "A2U-6"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "linear:linear-7",
+                "value": {
+                  "issues": [
+                    {
+                      "id": "A2U-5",
+                      "title": "Say on the canvas when an utterance fails",
+                      "status": "In Review",
+                      "statusType": "started",
+                      "priority": "High",
+                      "labels": "Bug",
+                      "link": "#6",
+                      "updated": "Sep 19, 2026, 11:00 AM UTC"
+                    },
+                    {
+                      "id": "A2U-7",
+                      "title": "Shell-action report hangs through the tunnel",
+                      "status": "In Progress",
+                      "statusType": "started",
+                      "priority": "Low",
+                      "labels": "Bug",
+                      "link": "ekkicb71/a2u-7-shell-action-report-hangs-through-the-tunnel",
+                      "updated": "Sep 19, 2026, 10:53 AM UTC"
+                    },
+                    {
+                      "id": "A2U-6",
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "status": "In Progress",
+                      "statusType": "started",
+                      "priority": "Medium"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "linear:linear-7",
+                "value": {
+                  "issues": [
+                    {
+                      "id": "A2U-5",
+                      "title": "Say on the canvas when an utterance fails",
+                      "status": "In Review",
+                      "statusType": "started",
+                      "priority": "High",
+                      "labels": "Bug",
+                      "link": "#6",
+                      "updated": "Sep 19, 2026, 11:00 AM UTC"
+                    },
+                    {
+                      "id": "A2U-7",
+                      "title": "Shell-action report hangs through the tunnel",
+                      "status": "In Progress",
+                      "statusType": "started",
+                      "priority": "Low",
+                      "labels": "Bug",
+                      "link": "ekkicb71/a2u-7-shell-action-report-hangs-through-the-tunnel",
+                      "updated": "Sep 19, 2026, 10:53 AM UTC"
+                    },
+                    {
+                      "id": "A2U-6",
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "status": "In Progress",
+                      "statusType": "started",
+                      "priority": "Medium",
+                      "labels": "Improvement",
+                      "link": "#7"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "linear:linear-7",
+                "value": {
+                  "issues": [
+                    {
+                      "id": "A2U-5",
+                      "title": "Say on the canvas when an utterance fails",
+                      "status": "In Review",
+                      "statusType": "started",
+                      "priority": "High",
+                      "labels": "Bug",
+                      "link": "#6",
+                      "updated": "Sep 19, 2026, 11:00 AM UTC"
+                    },
+                    {
+                      "id": "A2U-7",
+                      "title": "Shell-action report hangs through the tunnel",
+                      "status": "In Progress",
+                      "statusType": "started",
+                      "priority": "Low",
+                      "labels": "Bug",
+                      "link": "ekkicb71/a2u-7-shell-action-report-hangs-through-the-tunnel",
+                      "updated": "Sep 19, 2026, 10:53 AM UTC"
+                    },
+                    {
+                      "id": "A2U-6",
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "status": "In Progress",
+                      "statusType": "started",
+                      "priority": "Medium",
+                      "labels": "Improvement",
+                      "link": "#7",
+                      "updated": "Sep 18, 2026, 11:53 AM UTC"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "linear:linear-7",
                 "path": "/",
                 "value": {
                   "team": "A2uiverse",
@@ -2024,17 +2034,9 @@
                       "status": "In Review",
                       "statusType": "started",
                       "priority": "High",
-                      "link": "PR #6",
-                      "updatedAt": "Sep 19, 2026, 11:00 AM"
-                    },
-                    {
-                      "id": "A2U-6",
-                      "title": "Name the workflow, not its id, in the confirm status line",
-                      "status": "In Progress",
-                      "statusType": "started",
-                      "priority": "Medium",
-                      "link": "PR #7",
-                      "updatedAt": "Sep 18, 2026, 11:53 AM"
+                      "labels": "Bug",
+                      "link": "#6",
+                      "updated": "Sep 19, 2026, 11:00 AM UTC"
                     },
                     {
                       "id": "A2U-7",
@@ -2042,8 +2044,19 @@
                       "status": "In Progress",
                       "statusType": "started",
                       "priority": "Low",
+                      "labels": "Bug",
                       "link": "ekkicb71/a2u-7-shell-action-report-hangs-through-the-tunnel",
-                      "updatedAt": "Sep 19, 2026, 10:53 AM"
+                      "updated": "Sep 19, 2026, 10:53 AM UTC"
+                    },
+                    {
+                      "id": "A2U-6",
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "status": "In Progress",
+                      "statusType": "started",
+                      "priority": "Medium",
+                      "labels": "Improvement",
+                      "link": "#7",
+                      "updated": "Sep 18, 2026, 11:53 AM UTC"
                     }
                   ]
                 }
@@ -2054,12 +2067,6 @@
               "updateComponents": {
                 "components": [
                   {
-                    "id": "root",
-                    "component": "Panel",
-                    "padding": "none",
-                    "child": "body"
-                  },
-                  {
                     "id": "body",
                     "component": "Stack",
                     "gap": "none",
@@ -2067,6 +2074,12 @@
                       "header",
                       "list"
                     ]
+                  },
+                  {
+                    "id": "root",
+                    "component": "Panel",
+                    "padding": "none",
+                    "child": "body"
                   },
                   {
                     "id": "header",
@@ -2094,8 +2107,9 @@
                       "row-status"
                     ],
                     "trailing": [
+                      "row-labels",
                       "row-link",
-                      "row-updated"
+                      "row-when"
                     ],
                     "action": {
                       "event": {
@@ -2142,6 +2156,13 @@
                     "weight": "medium"
                   },
                   {
+                    "id": "row-labels",
+                    "component": "Chip",
+                    "label": {
+                      "path": "labels"
+                    }
+                  },
+                  {
                     "id": "row-link",
                     "component": "Text",
                     "text": {
@@ -2150,15 +2171,15 @@
                     "variant": "caption"
                   },
                   {
-                    "id": "row-updated",
+                    "id": "row-when",
                     "component": "Text",
                     "text": {
-                      "path": "updatedAt"
+                      "path": "updated"
                     },
                     "variant": "caption"
                   }
                 ],
-                "surfaceId": "linear:linear-5"
+                "surfaceId": "linear:linear-7"
               }
             }
           ],
@@ -2169,12 +2190,12 @@
           }
         },
         {
-          "offsetMs": 5049,
+          "offsetMs": 7656,
           "messages": [
             {
               "version": "v0.9",
               "createSurface": {
-                "surfaceId": "calendar:calendar-4",
+                "surfaceId": "calendar:calendar-5",
                 "catalogId": "https://github.com/retz8/a2uiverse-apps/blob/main/calendar/calendar-catalog/catalogs/v0.9.1/catalog.json",
                 "sendDataModel": true
               }
@@ -2182,7 +2203,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "calendar:calendar-4",
+                "surfaceId": "calendar:calendar-5",
                 "value": {
                   "waiting": [
                     {
@@ -2197,7 +2218,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "calendar:calendar-4",
+                "surfaceId": "calendar:calendar-5",
                 "value": {
                   "waiting": [
                     {
@@ -2213,7 +2234,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "calendar:calendar-4",
+                "surfaceId": "calendar:calendar-5",
                 "value": {
                   "clashes": [
                     {
@@ -2228,7 +2249,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "calendar:calendar-4",
+                "surfaceId": "calendar:calendar-5",
                 "value": {
                   "clashes": [
                     {
@@ -2244,7 +2265,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "calendar:calendar-4",
+                "surfaceId": "calendar:calendar-5",
                 "value": {
                   "clashes": [
                     {
@@ -2263,7 +2284,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "calendar:calendar-4",
+                "surfaceId": "calendar:calendar-5",
                 "value": {
                   "clashes": [
                     {
@@ -2283,7 +2304,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "calendar:calendar-4",
+                "surfaceId": "calendar:calendar-5",
                 "value": {
                   "clashes": [
                     {
@@ -2304,7 +2325,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "calendar:calendar-4",
+                "surfaceId": "calendar:calendar-5",
                 "value": {
                   "clashes": [
                     {
@@ -2326,7 +2347,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "calendar:calendar-4",
+                "surfaceId": "calendar:calendar-5",
                 "path": "/",
                 "value": {
                   "waiting": [
@@ -2582,7 +2603,7 @@
                     "maxLines": 1
                   }
                 ],
-                "surfaceId": "calendar:calendar-4"
+                "surfaceId": "calendar:calendar-5"
               }
             }
           ],
@@ -2593,12 +2614,12 @@
           }
         },
         {
-          "offsetMs": 5050,
+          "offsetMs": 7657,
           "messages": [
             {
               "version": "v0.9",
               "createSurface": {
-                "surfaceId": "gmail:gmail-4",
+                "surfaceId": "gmail:gmail-5",
                 "catalogId": "https://github.com/retz8/a2uiverse-apps/blob/main/gmail/gmail-catalog/catalogs/v0.9.1/catalog.json",
                 "sendDataModel": true
               }
@@ -2606,7 +2627,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "gmail:gmail-4",
+                "surfaceId": "gmail:gmail-5",
                 "value": {
                   "threads": [
                     {
@@ -2621,7 +2642,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "gmail:gmail-4",
+                "surfaceId": "gmail:gmail-5",
                 "value": {
                   "threads": [
                     {
@@ -2637,7 +2658,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "gmail:gmail-4",
+                "surfaceId": "gmail:gmail-5",
                 "value": {
                   "threads": [
                     {
@@ -2645,7 +2666,7 @@
                       "sender": "sara.moreau@example.com",
                       "subject": "draft section summary reply agenda meeting pending notes pending estimat",
                       "snippet": "confirm timeline schedule follow thread revision section update feedback confirm agenda question estimate agenda update pending confirm notes estimate thread follow section section question notes statu",
-                      "when": "2026-09-05 00:20"
+                      "when": "2026-09-05 00:20 UTC"
                     }
                   ]
                 }
@@ -2654,7 +2675,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "gmail:gmail-4",
+                "surfaceId": "gmail:gmail-5",
                 "value": {
                   "threads": [
                     {
@@ -2662,11 +2683,10 @@
                       "sender": "sara.moreau@example.com",
                       "subject": "draft section summary reply agenda meeting pending notes pending estimat",
                       "snippet": "confirm timeline schedule follow thread revision section update feedback confirm agenda question estimate agenda update pending confirm notes estimate thread follow section section question notes statu",
-                      "when": "2026-09-05 00:20"
+                      "when": "2026-09-05 00:20 UTC"
                     },
                     {
-                      "id": "1a06dec28a4d6853",
-                      "sender": "nora.haddad@example.com"
+                      "id": "1a06dec28a4d6853"
                     }
                   ]
                 }
@@ -2675,7 +2695,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "gmail:gmail-4",
+                "surfaceId": "gmail:gmail-5",
                 "value": {
                   "threads": [
                     {
@@ -2683,7 +2703,7 @@
                       "sender": "sara.moreau@example.com",
                       "subject": "draft section summary reply agenda meeting pending notes pending estimat",
                       "snippet": "confirm timeline schedule follow thread revision section update feedback confirm agenda question estimate agenda update pending confirm notes estimate thread follow section section question notes statu",
-                      "when": "2026-09-05 00:20"
+                      "when": "2026-09-05 00:20 UTC"
                     },
                     {
                       "id": "1a06dec28a4d6853",
@@ -2697,7 +2717,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "gmail:gmail-4",
+                "surfaceId": "gmail:gmail-5",
                 "value": {
                   "threads": [
                     {
@@ -2705,7 +2725,7 @@
                       "sender": "sara.moreau@example.com",
                       "subject": "draft section summary reply agenda meeting pending notes pending estimat",
                       "snippet": "confirm timeline schedule follow thread revision section update feedback confirm agenda question estimate agenda update pending confirm notes estimate thread follow section section question notes statu",
-                      "when": "2026-09-05 00:20"
+                      "when": "2026-09-05 00:20 UTC"
                     },
                     {
                       "id": "1a06dec28a4d6853",
@@ -2720,7 +2740,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "gmail:gmail-4",
+                "surfaceId": "gmail:gmail-5",
                 "value": {
                   "threads": [
                     {
@@ -2728,42 +2748,14 @@
                       "sender": "sara.moreau@example.com",
                       "subject": "draft section summary reply agenda meeting pending notes pending estimat",
                       "snippet": "confirm timeline schedule follow thread revision section update feedback confirm agenda question estimate agenda update pending confirm notes estimate thread follow section section question notes statu",
-                      "when": "2026-09-05 00:20"
+                      "when": "2026-09-05 00:20 UTC"
                     },
                     {
                       "id": "1a06dec28a4d6853",
                       "sender": "nora.haddad@example.com",
                       "subject": "revision schedule draft question review",
                       "snippet": "thread question review review follow summary attached pending thread schedule attached summary attached summary question confirm agenda thread draft status timeline update confirm section notes meeting",
-                      "when": "2026-09-04 19:36"
-                    },
-                    {}
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "gmail:gmail-4",
-                "value": {
-                  "threads": [
-                    {
-                      "id": "1a06ef027e683325",
-                      "sender": "sara.moreau@example.com",
-                      "subject": "draft section summary reply agenda meeting pending notes pending estimat",
-                      "snippet": "confirm timeline schedule follow thread revision section update feedback confirm agenda question estimate agenda update pending confirm notes estimate thread follow section section question notes statu",
-                      "when": "2026-09-05 00:20"
-                    },
-                    {
-                      "id": "1a06dec28a4d6853",
-                      "sender": "nora.haddad@example.com",
-                      "subject": "revision schedule draft question review",
-                      "snippet": "thread question review review follow summary attached pending thread schedule attached summary attached summary question confirm agenda thread draft status timeline update confirm section notes meeting",
-                      "when": "2026-09-04 19:36"
-                    },
-                    {
-                      "id": "1a06d38b96f68239"
+                      "when": "2026-09-04 19:36 UTC"
                     }
                   ]
                 }
@@ -2772,7 +2764,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "gmail:gmail-4",
+                "surfaceId": "gmail:gmail-5",
                 "value": {
                   "threads": [
                     {
@@ -2780,14 +2772,42 @@
                       "sender": "sara.moreau@example.com",
                       "subject": "draft section summary reply agenda meeting pending notes pending estimat",
                       "snippet": "confirm timeline schedule follow thread revision section update feedback confirm agenda question estimate agenda update pending confirm notes estimate thread follow section section question notes statu",
-                      "when": "2026-09-05 00:20"
+                      "when": "2026-09-05 00:20 UTC"
                     },
                     {
                       "id": "1a06dec28a4d6853",
                       "sender": "nora.haddad@example.com",
                       "subject": "revision schedule draft question review",
                       "snippet": "thread question review review follow summary attached pending thread schedule attached summary attached summary question confirm agenda thread draft status timeline update confirm section notes meeting",
-                      "when": "2026-09-04 19:36"
+                      "when": "2026-09-04 19:36 UTC"
+                    },
+                    {
+                      "id": "1a06d38b96f68239",
+                      "sender": "yuki.nakamura@example.com"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail:gmail-5",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "1a06ef027e683325",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "draft section summary reply agenda meeting pending notes pending estimat",
+                      "snippet": "confirm timeline schedule follow thread revision section update feedback confirm agenda question estimate agenda update pending confirm notes estimate thread follow section section question notes statu",
+                      "when": "2026-09-05 00:20 UTC"
+                    },
+                    {
+                      "id": "1a06dec28a4d6853",
+                      "sender": "nora.haddad@example.com",
+                      "subject": "revision schedule draft question review",
+                      "snippet": "thread question review review follow summary attached pending thread schedule attached summary attached summary question confirm agenda thread draft status timeline update confirm section notes meeting",
+                      "when": "2026-09-04 19:36 UTC"
                     },
                     {
                       "id": "1a06d38b96f68239",
@@ -2801,7 +2821,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "gmail:gmail-4",
+                "surfaceId": "gmail:gmail-5",
                 "value": {
                   "threads": [
                     {
@@ -2809,14 +2829,14 @@
                       "sender": "sara.moreau@example.com",
                       "subject": "draft section summary reply agenda meeting pending notes pending estimat",
                       "snippet": "confirm timeline schedule follow thread revision section update feedback confirm agenda question estimate agenda update pending confirm notes estimate thread follow section section question notes statu",
-                      "when": "2026-09-05 00:20"
+                      "when": "2026-09-05 00:20 UTC"
                     },
                     {
                       "id": "1a06dec28a4d6853",
                       "sender": "nora.haddad@example.com",
                       "subject": "revision schedule draft question review",
                       "snippet": "thread question review review follow summary attached pending thread schedule attached summary attached summary question confirm agenda thread draft status timeline update confirm section notes meeting",
-                      "when": "2026-09-04 19:36"
+                      "when": "2026-09-04 19:36 UTC"
                     },
                     {
                       "id": "1a06d38b96f68239",
@@ -2831,7 +2851,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "gmail:gmail-4",
+                "surfaceId": "gmail:gmail-5",
                 "value": {
                   "threads": [
                     {
@@ -2839,22 +2859,23 @@
                       "sender": "sara.moreau@example.com",
                       "subject": "draft section summary reply agenda meeting pending notes pending estimat",
                       "snippet": "confirm timeline schedule follow thread revision section update feedback confirm agenda question estimate agenda update pending confirm notes estimate thread follow section section question notes statu",
-                      "when": "2026-09-05 00:20"
+                      "when": "2026-09-05 00:20 UTC"
                     },
                     {
                       "id": "1a06dec28a4d6853",
                       "sender": "nora.haddad@example.com",
                       "subject": "revision schedule draft question review",
                       "snippet": "thread question review review follow summary attached pending thread schedule attached summary attached summary question confirm agenda thread draft status timeline update confirm section notes meeting",
-                      "when": "2026-09-04 19:36"
+                      "when": "2026-09-04 19:36 UTC"
                     },
                     {
                       "id": "1a06d38b96f68239",
                       "sender": "yuki.nakamura@example.com",
                       "subject": "agenda reply estimate",
                       "snippet": "confirm update feedback review meeting schedule status reply revision pending feedback follow notes section notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
-                      "when": "2026-09-04 16:20"
-                    }
+                      "when": "2026-09-04 16:20 UTC"
+                    },
+                    {}
                   ]
                 }
               }
@@ -2862,7 +2883,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "gmail:gmail-4",
+                "surfaceId": "gmail:gmail-5",
                 "value": {
                   "threads": [
                     {
@@ -2870,21 +2891,21 @@
                       "sender": "sara.moreau@example.com",
                       "subject": "draft section summary reply agenda meeting pending notes pending estimat",
                       "snippet": "confirm timeline schedule follow thread revision section update feedback confirm agenda question estimate agenda update pending confirm notes estimate thread follow section section question notes statu",
-                      "when": "2026-09-05 00:20"
+                      "when": "2026-09-05 00:20 UTC"
                     },
                     {
                       "id": "1a06dec28a4d6853",
                       "sender": "nora.haddad@example.com",
                       "subject": "revision schedule draft question review",
                       "snippet": "thread question review review follow summary attached pending thread schedule attached summary attached summary question confirm agenda thread draft status timeline update confirm section notes meeting",
-                      "when": "2026-09-04 19:36"
+                      "when": "2026-09-04 19:36 UTC"
                     },
                     {
                       "id": "1a06d38b96f68239",
                       "sender": "yuki.nakamura@example.com",
                       "subject": "agenda reply estimate",
                       "snippet": "confirm update feedback review meeting schedule status reply revision pending feedback follow notes section notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
-                      "when": "2026-09-04 16:20"
+                      "when": "2026-09-04 16:20 UTC"
                     },
                     {
                       "id": "1a06d1e51d11c891"
@@ -2896,7 +2917,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "gmail:gmail-4",
+                "surfaceId": "gmail:gmail-5",
                 "value": {
                   "threads": [
                     {
@@ -2904,21 +2925,56 @@
                       "sender": "sara.moreau@example.com",
                       "subject": "draft section summary reply agenda meeting pending notes pending estimat",
                       "snippet": "confirm timeline schedule follow thread revision section update feedback confirm agenda question estimate agenda update pending confirm notes estimate thread follow section section question notes statu",
-                      "when": "2026-09-05 00:20"
+                      "when": "2026-09-05 00:20 UTC"
                     },
                     {
                       "id": "1a06dec28a4d6853",
                       "sender": "nora.haddad@example.com",
                       "subject": "revision schedule draft question review",
                       "snippet": "thread question review review follow summary attached pending thread schedule attached summary attached summary question confirm agenda thread draft status timeline update confirm section notes meeting",
-                      "when": "2026-09-04 19:36"
+                      "when": "2026-09-04 19:36 UTC"
                     },
                     {
                       "id": "1a06d38b96f68239",
                       "sender": "yuki.nakamura@example.com",
                       "subject": "agenda reply estimate",
                       "snippet": "confirm update feedback review meeting schedule status reply revision pending feedback follow notes section notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
-                      "when": "2026-09-04 16:20"
+                      "when": "2026-09-04 16:20 UTC"
+                    },
+                    {
+                      "id": "1a06d1e51d11c891",
+                      "sender": "clara.vasquez@example.com"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail:gmail-5",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "1a06ef027e683325",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "draft section summary reply agenda meeting pending notes pending estimat",
+                      "snippet": "confirm timeline schedule follow thread revision section update feedback confirm agenda question estimate agenda update pending confirm notes estimate thread follow section section question notes statu",
+                      "when": "2026-09-05 00:20 UTC"
+                    },
+                    {
+                      "id": "1a06dec28a4d6853",
+                      "sender": "nora.haddad@example.com",
+                      "subject": "revision schedule draft question review",
+                      "snippet": "thread question review review follow summary attached pending thread schedule attached summary attached summary question confirm agenda thread draft status timeline update confirm section notes meeting",
+                      "when": "2026-09-04 19:36 UTC"
+                    },
+                    {
+                      "id": "1a06d38b96f68239",
+                      "sender": "yuki.nakamura@example.com",
+                      "subject": "agenda reply estimate",
+                      "snippet": "confirm update feedback review meeting schedule status reply revision pending feedback follow notes section notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
+                      "when": "2026-09-04 16:20 UTC"
                     },
                     {
                       "id": "1a06d1e51d11c891",
@@ -2932,7 +2988,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "gmail:gmail-4",
+                "surfaceId": "gmail:gmail-5",
                 "value": {
                   "threads": [
                     {
@@ -2940,21 +2996,21 @@
                       "sender": "sara.moreau@example.com",
                       "subject": "draft section summary reply agenda meeting pending notes pending estimat",
                       "snippet": "confirm timeline schedule follow thread revision section update feedback confirm agenda question estimate agenda update pending confirm notes estimate thread follow section section question notes statu",
-                      "when": "2026-09-05 00:20"
+                      "when": "2026-09-05 00:20 UTC"
                     },
                     {
                       "id": "1a06dec28a4d6853",
                       "sender": "nora.haddad@example.com",
                       "subject": "revision schedule draft question review",
                       "snippet": "thread question review review follow summary attached pending thread schedule attached summary attached summary question confirm agenda thread draft status timeline update confirm section notes meeting",
-                      "when": "2026-09-04 19:36"
+                      "when": "2026-09-04 19:36 UTC"
                     },
                     {
                       "id": "1a06d38b96f68239",
                       "sender": "yuki.nakamura@example.com",
                       "subject": "agenda reply estimate",
                       "snippet": "confirm update feedback review meeting schedule status reply revision pending feedback follow notes section notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
-                      "when": "2026-09-04 16:20"
+                      "when": "2026-09-04 16:20 UTC"
                     },
                     {
                       "id": "1a06d1e51d11c891",
@@ -2969,7 +3025,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "gmail:gmail-4",
+                "surfaceId": "gmail:gmail-5",
                 "value": {
                   "threads": [
                     {
@@ -2977,28 +3033,28 @@
                       "sender": "sara.moreau@example.com",
                       "subject": "draft section summary reply agenda meeting pending notes pending estimat",
                       "snippet": "confirm timeline schedule follow thread revision section update feedback confirm agenda question estimate agenda update pending confirm notes estimate thread follow section section question notes statu",
-                      "when": "2026-09-05 00:20"
+                      "when": "2026-09-05 00:20 UTC"
                     },
                     {
                       "id": "1a06dec28a4d6853",
                       "sender": "nora.haddad@example.com",
                       "subject": "revision schedule draft question review",
                       "snippet": "thread question review review follow summary attached pending thread schedule attached summary attached summary question confirm agenda thread draft status timeline update confirm section notes meeting",
-                      "when": "2026-09-04 19:36"
+                      "when": "2026-09-04 19:36 UTC"
                     },
                     {
                       "id": "1a06d38b96f68239",
                       "sender": "yuki.nakamura@example.com",
                       "subject": "agenda reply estimate",
                       "snippet": "confirm update feedback review meeting schedule status reply revision pending feedback follow notes section notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
-                      "when": "2026-09-04 16:20"
+                      "when": "2026-09-04 16:20 UTC"
                     },
                     {
                       "id": "1a06d1e51d11c891",
                       "sender": "clara.vasquez@example.com",
                       "subject": "timeline meeting meeting revie",
                       "snippet": "agenda follow question follow pending pending pending meeting timeline follow meeting pending update follow notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
-                      "when": "2026-09-04 15:51"
+                      "when": "2026-09-04 15:51 UTC"
                     }
                   ]
                 }
@@ -3007,7 +3063,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "gmail:gmail-4",
+                "surfaceId": "gmail:gmail-5",
                 "value": {
                   "threads": [
                     {
@@ -3015,28 +3071,69 @@
                       "sender": "sara.moreau@example.com",
                       "subject": "draft section summary reply agenda meeting pending notes pending estimat",
                       "snippet": "confirm timeline schedule follow thread revision section update feedback confirm agenda question estimate agenda update pending confirm notes estimate thread follow section section question notes statu",
-                      "when": "2026-09-05 00:20"
+                      "when": "2026-09-05 00:20 UTC"
                     },
                     {
                       "id": "1a06dec28a4d6853",
                       "sender": "nora.haddad@example.com",
                       "subject": "revision schedule draft question review",
                       "snippet": "thread question review review follow summary attached pending thread schedule attached summary attached summary question confirm agenda thread draft status timeline update confirm section notes meeting",
-                      "when": "2026-09-04 19:36"
+                      "when": "2026-09-04 19:36 UTC"
                     },
                     {
                       "id": "1a06d38b96f68239",
                       "sender": "yuki.nakamura@example.com",
                       "subject": "agenda reply estimate",
                       "snippet": "confirm update feedback review meeting schedule status reply revision pending feedback follow notes section notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
-                      "when": "2026-09-04 16:20"
+                      "when": "2026-09-04 16:20 UTC"
                     },
                     {
                       "id": "1a06d1e51d11c891",
                       "sender": "clara.vasquez@example.com",
                       "subject": "timeline meeting meeting revie",
                       "snippet": "agenda follow question follow pending pending pending meeting timeline follow meeting pending update follow notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
-                      "when": "2026-09-04 15:51"
+                      "when": "2026-09-04 15:51 UTC"
+                    },
+                    {
+                      "id": "1a06cee261fd278a"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail:gmail-5",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "1a06ef027e683325",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "draft section summary reply agenda meeting pending notes pending estimat",
+                      "snippet": "confirm timeline schedule follow thread revision section update feedback confirm agenda question estimate agenda update pending confirm notes estimate thread follow section section question notes statu",
+                      "when": "2026-09-05 00:20 UTC"
+                    },
+                    {
+                      "id": "1a06dec28a4d6853",
+                      "sender": "nora.haddad@example.com",
+                      "subject": "revision schedule draft question review",
+                      "snippet": "thread question review review follow summary attached pending thread schedule attached summary attached summary question confirm agenda thread draft status timeline update confirm section notes meeting",
+                      "when": "2026-09-04 19:36 UTC"
+                    },
+                    {
+                      "id": "1a06d38b96f68239",
+                      "sender": "yuki.nakamura@example.com",
+                      "subject": "agenda reply estimate",
+                      "snippet": "confirm update feedback review meeting schedule status reply revision pending feedback follow notes section notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
+                      "when": "2026-09-04 16:20 UTC"
+                    },
+                    {
+                      "id": "1a06d1e51d11c891",
+                      "sender": "clara.vasquez@example.com",
+                      "subject": "timeline meeting meeting revie",
+                      "snippet": "agenda follow question follow pending pending pending meeting timeline follow meeting pending update follow notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
+                      "when": "2026-09-04 15:51 UTC"
                     },
                     {
                       "id": "1a06cee261fd278a",
@@ -3049,7 +3146,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "gmail:gmail-4",
+                "surfaceId": "gmail:gmail-5",
                 "value": {
                   "threads": [
                     {
@@ -3057,28 +3154,28 @@
                       "sender": "sara.moreau@example.com",
                       "subject": "draft section summary reply agenda meeting pending notes pending estimat",
                       "snippet": "confirm timeline schedule follow thread revision section update feedback confirm agenda question estimate agenda update pending confirm notes estimate thread follow section section question notes statu",
-                      "when": "2026-09-05 00:20"
+                      "when": "2026-09-05 00:20 UTC"
                     },
                     {
                       "id": "1a06dec28a4d6853",
                       "sender": "nora.haddad@example.com",
                       "subject": "revision schedule draft question review",
                       "snippet": "thread question review review follow summary attached pending thread schedule attached summary attached summary question confirm agenda thread draft status timeline update confirm section notes meeting",
-                      "when": "2026-09-04 19:36"
+                      "when": "2026-09-04 19:36 UTC"
                     },
                     {
                       "id": "1a06d38b96f68239",
                       "sender": "yuki.nakamura@example.com",
                       "subject": "agenda reply estimate",
                       "snippet": "confirm update feedback review meeting schedule status reply revision pending feedback follow notes section notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
-                      "when": "2026-09-04 16:20"
+                      "when": "2026-09-04 16:20 UTC"
                     },
                     {
                       "id": "1a06d1e51d11c891",
                       "sender": "clara.vasquez@example.com",
                       "subject": "timeline meeting meeting revie",
                       "snippet": "agenda follow question follow pending pending pending meeting timeline follow meeting pending update follow notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
-                      "when": "2026-09-04 15:51"
+                      "when": "2026-09-04 15:51 UTC"
                     },
                     {
                       "id": "1a06cee261fd278a",
@@ -3092,7 +3189,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "gmail:gmail-4",
+                "surfaceId": "gmail:gmail-5",
                 "value": {
                   "threads": [
                     {
@@ -3100,28 +3197,28 @@
                       "sender": "sara.moreau@example.com",
                       "subject": "draft section summary reply agenda meeting pending notes pending estimat",
                       "snippet": "confirm timeline schedule follow thread revision section update feedback confirm agenda question estimate agenda update pending confirm notes estimate thread follow section section question notes statu",
-                      "when": "2026-09-05 00:20"
+                      "when": "2026-09-05 00:20 UTC"
                     },
                     {
                       "id": "1a06dec28a4d6853",
                       "sender": "nora.haddad@example.com",
                       "subject": "revision schedule draft question review",
                       "snippet": "thread question review review follow summary attached pending thread schedule attached summary attached summary question confirm agenda thread draft status timeline update confirm section notes meeting",
-                      "when": "2026-09-04 19:36"
+                      "when": "2026-09-04 19:36 UTC"
                     },
                     {
                       "id": "1a06d38b96f68239",
                       "sender": "yuki.nakamura@example.com",
                       "subject": "agenda reply estimate",
                       "snippet": "confirm update feedback review meeting schedule status reply revision pending feedback follow notes section notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
-                      "when": "2026-09-04 16:20"
+                      "when": "2026-09-04 16:20 UTC"
                     },
                     {
                       "id": "1a06d1e51d11c891",
                       "sender": "clara.vasquez@example.com",
                       "subject": "timeline meeting meeting revie",
                       "snippet": "agenda follow question follow pending pending pending meeting timeline follow meeting pending update follow notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
-                      "when": "2026-09-04 15:51"
+                      "when": "2026-09-04 15:51 UTC"
                     },
                     {
                       "id": "1a06cee261fd278a",
@@ -3136,7 +3233,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "gmail:gmail-4",
+                "surfaceId": "gmail:gmail-5",
                 "value": {
                   "threads": [
                     {
@@ -3144,35 +3241,35 @@
                       "sender": "sara.moreau@example.com",
                       "subject": "draft section summary reply agenda meeting pending notes pending estimat",
                       "snippet": "confirm timeline schedule follow thread revision section update feedback confirm agenda question estimate agenda update pending confirm notes estimate thread follow section section question notes statu",
-                      "when": "2026-09-05 00:20"
+                      "when": "2026-09-05 00:20 UTC"
                     },
                     {
                       "id": "1a06dec28a4d6853",
                       "sender": "nora.haddad@example.com",
                       "subject": "revision schedule draft question review",
                       "snippet": "thread question review review follow summary attached pending thread schedule attached summary attached summary question confirm agenda thread draft status timeline update confirm section notes meeting",
-                      "when": "2026-09-04 19:36"
+                      "when": "2026-09-04 19:36 UTC"
                     },
                     {
                       "id": "1a06d38b96f68239",
                       "sender": "yuki.nakamura@example.com",
                       "subject": "agenda reply estimate",
                       "snippet": "confirm update feedback review meeting schedule status reply revision pending feedback follow notes section notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
-                      "when": "2026-09-04 16:20"
+                      "when": "2026-09-04 16:20 UTC"
                     },
                     {
                       "id": "1a06d1e51d11c891",
                       "sender": "clara.vasquez@example.com",
                       "subject": "timeline meeting meeting revie",
                       "snippet": "agenda follow question follow pending pending pending meeting timeline follow meeting pending update follow notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
-                      "when": "2026-09-04 15:51"
+                      "when": "2026-09-04 15:51 UTC"
                     },
                     {
                       "id": "1a06cee261fd278a",
                       "sender": "nora.haddad@example.com",
                       "subject": "thread follow timeline attached schedule timeline update section confirm question attached schedu",
                       "snippet": "summary reply timeline update reply feedback draft thread thread summary schedule meeting section reply confirm question agenda follow status meeting status proposal timeline reply thread question sect",
-                      "when": "2026-09-04 14:57"
+                      "when": "2026-09-04 14:57 UTC"
                     }
                   ]
                 }
@@ -3181,7 +3278,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "gmail:gmail-4",
+                "surfaceId": "gmail:gmail-5",
                 "value": {
                   "threads": [
                     {
@@ -3189,39 +3286,38 @@
                       "sender": "sara.moreau@example.com",
                       "subject": "draft section summary reply agenda meeting pending notes pending estimat",
                       "snippet": "confirm timeline schedule follow thread revision section update feedback confirm agenda question estimate agenda update pending confirm notes estimate thread follow section section question notes statu",
-                      "when": "2026-09-05 00:20"
+                      "when": "2026-09-05 00:20 UTC"
                     },
                     {
                       "id": "1a06dec28a4d6853",
                       "sender": "nora.haddad@example.com",
                       "subject": "revision schedule draft question review",
                       "snippet": "thread question review review follow summary attached pending thread schedule attached summary attached summary question confirm agenda thread draft status timeline update confirm section notes meeting",
-                      "when": "2026-09-04 19:36"
+                      "when": "2026-09-04 19:36 UTC"
                     },
                     {
                       "id": "1a06d38b96f68239",
                       "sender": "yuki.nakamura@example.com",
                       "subject": "agenda reply estimate",
                       "snippet": "confirm update feedback review meeting schedule status reply revision pending feedback follow notes section notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
-                      "when": "2026-09-04 16:20"
+                      "when": "2026-09-04 16:20 UTC"
                     },
                     {
                       "id": "1a06d1e51d11c891",
                       "sender": "clara.vasquez@example.com",
                       "subject": "timeline meeting meeting revie",
                       "snippet": "agenda follow question follow pending pending pending meeting timeline follow meeting pending update follow notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
-                      "when": "2026-09-04 15:51"
+                      "when": "2026-09-04 15:51 UTC"
                     },
                     {
                       "id": "1a06cee261fd278a",
                       "sender": "nora.haddad@example.com",
                       "subject": "thread follow timeline attached schedule timeline update section confirm question attached schedu",
                       "snippet": "summary reply timeline update reply feedback draft thread thread summary schedule meeting section reply confirm question agenda follow status meeting status proposal timeline reply thread question sect",
-                      "when": "2026-09-04 14:57"
+                      "when": "2026-09-04 14:57 UTC"
                     },
                     {
-                      "id": "1a06c8d16ea71568",
-                      "sender": "clara.ferreira@example.com"
+                      "id": "1a06c8d16ea71568"
                     }
                   ]
                 }
@@ -3230,7 +3326,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "gmail:gmail-4",
+                "surfaceId": "gmail:gmail-5",
                 "value": {
                   "threads": [
                     {
@@ -3238,35 +3334,35 @@
                       "sender": "sara.moreau@example.com",
                       "subject": "draft section summary reply agenda meeting pending notes pending estimat",
                       "snippet": "confirm timeline schedule follow thread revision section update feedback confirm agenda question estimate agenda update pending confirm notes estimate thread follow section section question notes statu",
-                      "when": "2026-09-05 00:20"
+                      "when": "2026-09-05 00:20 UTC"
                     },
                     {
                       "id": "1a06dec28a4d6853",
                       "sender": "nora.haddad@example.com",
                       "subject": "revision schedule draft question review",
                       "snippet": "thread question review review follow summary attached pending thread schedule attached summary attached summary question confirm agenda thread draft status timeline update confirm section notes meeting",
-                      "when": "2026-09-04 19:36"
+                      "when": "2026-09-04 19:36 UTC"
                     },
                     {
                       "id": "1a06d38b96f68239",
                       "sender": "yuki.nakamura@example.com",
                       "subject": "agenda reply estimate",
                       "snippet": "confirm update feedback review meeting schedule status reply revision pending feedback follow notes section notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
-                      "when": "2026-09-04 16:20"
+                      "when": "2026-09-04 16:20 UTC"
                     },
                     {
                       "id": "1a06d1e51d11c891",
                       "sender": "clara.vasquez@example.com",
                       "subject": "timeline meeting meeting revie",
                       "snippet": "agenda follow question follow pending pending pending meeting timeline follow meeting pending update follow notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
-                      "when": "2026-09-04 15:51"
+                      "when": "2026-09-04 15:51 UTC"
                     },
                     {
                       "id": "1a06cee261fd278a",
                       "sender": "nora.haddad@example.com",
                       "subject": "thread follow timeline attached schedule timeline update section confirm question attached schedu",
                       "snippet": "summary reply timeline update reply feedback draft thread thread summary schedule meeting section reply confirm question agenda follow status meeting status proposal timeline reply thread question sect",
-                      "when": "2026-09-04 14:57"
+                      "when": "2026-09-04 14:57 UTC"
                     },
                     {
                       "id": "1a06c8d16ea71568",
@@ -3280,7 +3376,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "gmail:gmail-4",
+                "surfaceId": "gmail:gmail-5",
                 "value": {
                   "threads": [
                     {
@@ -3288,41 +3384,42 @@
                       "sender": "sara.moreau@example.com",
                       "subject": "draft section summary reply agenda meeting pending notes pending estimat",
                       "snippet": "confirm timeline schedule follow thread revision section update feedback confirm agenda question estimate agenda update pending confirm notes estimate thread follow section section question notes statu",
-                      "when": "2026-09-05 00:20"
+                      "when": "2026-09-05 00:20 UTC"
                     },
                     {
                       "id": "1a06dec28a4d6853",
                       "sender": "nora.haddad@example.com",
                       "subject": "revision schedule draft question review",
                       "snippet": "thread question review review follow summary attached pending thread schedule attached summary attached summary question confirm agenda thread draft status timeline update confirm section notes meeting",
-                      "when": "2026-09-04 19:36"
+                      "when": "2026-09-04 19:36 UTC"
                     },
                     {
                       "id": "1a06d38b96f68239",
                       "sender": "yuki.nakamura@example.com",
                       "subject": "agenda reply estimate",
                       "snippet": "confirm update feedback review meeting schedule status reply revision pending feedback follow notes section notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
-                      "when": "2026-09-04 16:20"
+                      "when": "2026-09-04 16:20 UTC"
                     },
                     {
                       "id": "1a06d1e51d11c891",
                       "sender": "clara.vasquez@example.com",
                       "subject": "timeline meeting meeting revie",
                       "snippet": "agenda follow question follow pending pending pending meeting timeline follow meeting pending update follow notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
-                      "when": "2026-09-04 15:51"
+                      "when": "2026-09-04 15:51 UTC"
                     },
                     {
                       "id": "1a06cee261fd278a",
                       "sender": "nora.haddad@example.com",
                       "subject": "thread follow timeline attached schedule timeline update section confirm question attached schedu",
                       "snippet": "summary reply timeline update reply feedback draft thread thread summary schedule meeting section reply confirm question agenda follow status meeting status proposal timeline reply thread question sect",
-                      "when": "2026-09-04 14:57"
+                      "when": "2026-09-04 14:57 UTC"
                     },
                     {
                       "id": "1a06c8d16ea71568",
                       "sender": "clara.ferreira@example.com",
                       "subject": "follow reply attached update confirm confirm sche",
-                      "snippet": "update notes draft attached summary revision summary attached agenda thread follow summary agenda section update estimate timeline timeline status feedback agenda confirm summary notes follow section"
+                      "snippet": "update notes draft attached summary revision summary attached agenda thread follow summary agenda section update estimate timeline timeline status feedback agenda confirm summary notes follow section",
+                      "when": "2026-09-04 13:11 UTC"
                     }
                   ]
                 }
@@ -3331,7 +3428,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "gmail:gmail-4",
+                "surfaceId": "gmail:gmail-5",
                 "value": {
                   "threads": [
                     {
@@ -3339,42 +3436,46 @@
                       "sender": "sara.moreau@example.com",
                       "subject": "draft section summary reply agenda meeting pending notes pending estimat",
                       "snippet": "confirm timeline schedule follow thread revision section update feedback confirm agenda question estimate agenda update pending confirm notes estimate thread follow section section question notes statu",
-                      "when": "2026-09-05 00:20"
+                      "when": "2026-09-05 00:20 UTC"
                     },
                     {
                       "id": "1a06dec28a4d6853",
                       "sender": "nora.haddad@example.com",
                       "subject": "revision schedule draft question review",
                       "snippet": "thread question review review follow summary attached pending thread schedule attached summary attached summary question confirm agenda thread draft status timeline update confirm section notes meeting",
-                      "when": "2026-09-04 19:36"
+                      "when": "2026-09-04 19:36 UTC"
                     },
                     {
                       "id": "1a06d38b96f68239",
                       "sender": "yuki.nakamura@example.com",
                       "subject": "agenda reply estimate",
                       "snippet": "confirm update feedback review meeting schedule status reply revision pending feedback follow notes section notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
-                      "when": "2026-09-04 16:20"
+                      "when": "2026-09-04 16:20 UTC"
                     },
                     {
                       "id": "1a06d1e51d11c891",
                       "sender": "clara.vasquez@example.com",
                       "subject": "timeline meeting meeting revie",
                       "snippet": "agenda follow question follow pending pending pending meeting timeline follow meeting pending update follow notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
-                      "when": "2026-09-04 15:51"
+                      "when": "2026-09-04 15:51 UTC"
                     },
                     {
                       "id": "1a06cee261fd278a",
                       "sender": "nora.haddad@example.com",
                       "subject": "thread follow timeline attached schedule timeline update section confirm question attached schedu",
                       "snippet": "summary reply timeline update reply feedback draft thread thread summary schedule meeting section reply confirm question agenda follow status meeting status proposal timeline reply thread question sect",
-                      "when": "2026-09-04 14:57"
+                      "when": "2026-09-04 14:57 UTC"
                     },
                     {
                       "id": "1a06c8d16ea71568",
                       "sender": "clara.ferreira@example.com",
                       "subject": "follow reply attached update confirm confirm sche",
                       "snippet": "update notes draft attached summary revision summary attached agenda thread follow summary agenda section update estimate timeline timeline status feedback agenda confirm summary notes follow section",
-                      "when": "2026-09-04 13:11"
+                      "when": "2026-09-04 13:11 UTC"
+                    },
+                    {
+                      "id": "1a06a9c1934e9e83",
+                      "sender": "priya.nakamura@example.com"
                     }
                   ]
                 }
@@ -3383,7 +3484,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "gmail:gmail-4",
+                "surfaceId": "gmail:gmail-5",
                 "value": {
                   "threads": [
                     {
@@ -3391,97 +3492,42 @@
                       "sender": "sara.moreau@example.com",
                       "subject": "draft section summary reply agenda meeting pending notes pending estimat",
                       "snippet": "confirm timeline schedule follow thread revision section update feedback confirm agenda question estimate agenda update pending confirm notes estimate thread follow section section question notes statu",
-                      "when": "2026-09-05 00:20"
+                      "when": "2026-09-05 00:20 UTC"
                     },
                     {
                       "id": "1a06dec28a4d6853",
                       "sender": "nora.haddad@example.com",
                       "subject": "revision schedule draft question review",
                       "snippet": "thread question review review follow summary attached pending thread schedule attached summary attached summary question confirm agenda thread draft status timeline update confirm section notes meeting",
-                      "when": "2026-09-04 19:36"
+                      "when": "2026-09-04 19:36 UTC"
                     },
                     {
                       "id": "1a06d38b96f68239",
                       "sender": "yuki.nakamura@example.com",
                       "subject": "agenda reply estimate",
                       "snippet": "confirm update feedback review meeting schedule status reply revision pending feedback follow notes section notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
-                      "when": "2026-09-04 16:20"
+                      "when": "2026-09-04 16:20 UTC"
                     },
                     {
                       "id": "1a06d1e51d11c891",
                       "sender": "clara.vasquez@example.com",
                       "subject": "timeline meeting meeting revie",
                       "snippet": "agenda follow question follow pending pending pending meeting timeline follow meeting pending update follow notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
-                      "when": "2026-09-04 15:51"
+                      "when": "2026-09-04 15:51 UTC"
                     },
                     {
                       "id": "1a06cee261fd278a",
                       "sender": "nora.haddad@example.com",
                       "subject": "thread follow timeline attached schedule timeline update section confirm question attached schedu",
                       "snippet": "summary reply timeline update reply feedback draft thread thread summary schedule meeting section reply confirm question agenda follow status meeting status proposal timeline reply thread question sect",
-                      "when": "2026-09-04 14:57"
+                      "when": "2026-09-04 14:57 UTC"
                     },
                     {
                       "id": "1a06c8d16ea71568",
                       "sender": "clara.ferreira@example.com",
                       "subject": "follow reply attached update confirm confirm sche",
                       "snippet": "update notes draft attached summary revision summary attached agenda thread follow summary agenda section update estimate timeline timeline status feedback agenda confirm summary notes follow section",
-                      "when": "2026-09-04 13:11"
-                    },
-                    {
-                      "id": "1a06a9c1934e9e83"
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "gmail:gmail-4",
-                "value": {
-                  "threads": [
-                    {
-                      "id": "1a06ef027e683325",
-                      "sender": "sara.moreau@example.com",
-                      "subject": "draft section summary reply agenda meeting pending notes pending estimat",
-                      "snippet": "confirm timeline schedule follow thread revision section update feedback confirm agenda question estimate agenda update pending confirm notes estimate thread follow section section question notes statu",
-                      "when": "2026-09-05 00:20"
-                    },
-                    {
-                      "id": "1a06dec28a4d6853",
-                      "sender": "nora.haddad@example.com",
-                      "subject": "revision schedule draft question review",
-                      "snippet": "thread question review review follow summary attached pending thread schedule attached summary attached summary question confirm agenda thread draft status timeline update confirm section notes meeting",
-                      "when": "2026-09-04 19:36"
-                    },
-                    {
-                      "id": "1a06d38b96f68239",
-                      "sender": "yuki.nakamura@example.com",
-                      "subject": "agenda reply estimate",
-                      "snippet": "confirm update feedback review meeting schedule status reply revision pending feedback follow notes section notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
-                      "when": "2026-09-04 16:20"
-                    },
-                    {
-                      "id": "1a06d1e51d11c891",
-                      "sender": "clara.vasquez@example.com",
-                      "subject": "timeline meeting meeting revie",
-                      "snippet": "agenda follow question follow pending pending pending meeting timeline follow meeting pending update follow notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
-                      "when": "2026-09-04 15:51"
-                    },
-                    {
-                      "id": "1a06cee261fd278a",
-                      "sender": "nora.haddad@example.com",
-                      "subject": "thread follow timeline attached schedule timeline update section confirm question attached schedu",
-                      "snippet": "summary reply timeline update reply feedback draft thread thread summary schedule meeting section reply confirm question agenda follow status meeting status proposal timeline reply thread question sect",
-                      "when": "2026-09-04 14:57"
-                    },
-                    {
-                      "id": "1a06c8d16ea71568",
-                      "sender": "clara.ferreira@example.com",
-                      "subject": "follow reply attached update confirm confirm sche",
-                      "snippet": "update notes draft attached summary revision summary attached agenda thread follow summary agenda section update estimate timeline timeline status feedback agenda confirm summary notes follow section",
-                      "when": "2026-09-04 13:11"
+                      "when": "2026-09-04 13:11 UTC"
                     },
                     {
                       "id": "1a06a9c1934e9e83",
@@ -3495,7 +3541,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "gmail:gmail-4",
+                "surfaceId": "gmail:gmail-5",
                 "value": {
                   "threads": [
                     {
@@ -3503,42 +3549,42 @@
                       "sender": "sara.moreau@example.com",
                       "subject": "draft section summary reply agenda meeting pending notes pending estimat",
                       "snippet": "confirm timeline schedule follow thread revision section update feedback confirm agenda question estimate agenda update pending confirm notes estimate thread follow section section question notes statu",
-                      "when": "2026-09-05 00:20"
+                      "when": "2026-09-05 00:20 UTC"
                     },
                     {
                       "id": "1a06dec28a4d6853",
                       "sender": "nora.haddad@example.com",
                       "subject": "revision schedule draft question review",
                       "snippet": "thread question review review follow summary attached pending thread schedule attached summary attached summary question confirm agenda thread draft status timeline update confirm section notes meeting",
-                      "when": "2026-09-04 19:36"
+                      "when": "2026-09-04 19:36 UTC"
                     },
                     {
                       "id": "1a06d38b96f68239",
                       "sender": "yuki.nakamura@example.com",
                       "subject": "agenda reply estimate",
                       "snippet": "confirm update feedback review meeting schedule status reply revision pending feedback follow notes section notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
-                      "when": "2026-09-04 16:20"
+                      "when": "2026-09-04 16:20 UTC"
                     },
                     {
                       "id": "1a06d1e51d11c891",
                       "sender": "clara.vasquez@example.com",
                       "subject": "timeline meeting meeting revie",
                       "snippet": "agenda follow question follow pending pending pending meeting timeline follow meeting pending update follow notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
-                      "when": "2026-09-04 15:51"
+                      "when": "2026-09-04 15:51 UTC"
                     },
                     {
                       "id": "1a06cee261fd278a",
                       "sender": "nora.haddad@example.com",
                       "subject": "thread follow timeline attached schedule timeline update section confirm question attached schedu",
                       "snippet": "summary reply timeline update reply feedback draft thread thread summary schedule meeting section reply confirm question agenda follow status meeting status proposal timeline reply thread question sect",
-                      "when": "2026-09-04 14:57"
+                      "when": "2026-09-04 14:57 UTC"
                     },
                     {
                       "id": "1a06c8d16ea71568",
                       "sender": "clara.ferreira@example.com",
                       "subject": "follow reply attached update confirm confirm sche",
                       "snippet": "update notes draft attached summary revision summary attached agenda thread follow summary agenda section update estimate timeline timeline status feedback agenda confirm summary notes follow section",
-                      "when": "2026-09-04 13:11"
+                      "when": "2026-09-04 13:11 UTC"
                     },
                     {
                       "id": "1a06a9c1934e9e83",
@@ -3553,7 +3599,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "gmail:gmail-4",
+                "surfaceId": "gmail:gmail-5",
                 "value": {
                   "threads": [
                     {
@@ -3561,49 +3607,49 @@
                       "sender": "sara.moreau@example.com",
                       "subject": "draft section summary reply agenda meeting pending notes pending estimat",
                       "snippet": "confirm timeline schedule follow thread revision section update feedback confirm agenda question estimate agenda update pending confirm notes estimate thread follow section section question notes statu",
-                      "when": "2026-09-05 00:20"
+                      "when": "2026-09-05 00:20 UTC"
                     },
                     {
                       "id": "1a06dec28a4d6853",
                       "sender": "nora.haddad@example.com",
                       "subject": "revision schedule draft question review",
                       "snippet": "thread question review review follow summary attached pending thread schedule attached summary attached summary question confirm agenda thread draft status timeline update confirm section notes meeting",
-                      "when": "2026-09-04 19:36"
+                      "when": "2026-09-04 19:36 UTC"
                     },
                     {
                       "id": "1a06d38b96f68239",
                       "sender": "yuki.nakamura@example.com",
                       "subject": "agenda reply estimate",
                       "snippet": "confirm update feedback review meeting schedule status reply revision pending feedback follow notes section notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
-                      "when": "2026-09-04 16:20"
+                      "when": "2026-09-04 16:20 UTC"
                     },
                     {
                       "id": "1a06d1e51d11c891",
                       "sender": "clara.vasquez@example.com",
                       "subject": "timeline meeting meeting revie",
                       "snippet": "agenda follow question follow pending pending pending meeting timeline follow meeting pending update follow notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
-                      "when": "2026-09-04 15:51"
+                      "when": "2026-09-04 15:51 UTC"
                     },
                     {
                       "id": "1a06cee261fd278a",
                       "sender": "nora.haddad@example.com",
                       "subject": "thread follow timeline attached schedule timeline update section confirm question attached schedu",
                       "snippet": "summary reply timeline update reply feedback draft thread thread summary schedule meeting section reply confirm question agenda follow status meeting status proposal timeline reply thread question sect",
-                      "when": "2026-09-04 14:57"
+                      "when": "2026-09-04 14:57 UTC"
                     },
                     {
                       "id": "1a06c8d16ea71568",
                       "sender": "clara.ferreira@example.com",
                       "subject": "follow reply attached update confirm confirm sche",
                       "snippet": "update notes draft attached summary revision summary attached agenda thread follow summary agenda section update estimate timeline timeline status feedback agenda confirm summary notes follow section",
-                      "when": "2026-09-04 13:11"
+                      "when": "2026-09-04 13:11 UTC"
                     },
                     {
                       "id": "1a06a9c1934e9e83",
                       "sender": "priya.nakamura@example.com",
                       "subject": "feedback reply summary notes threa",
                       "snippet": "notes thread timeline summary status update confirm review schedule notes meeting estimate attached update update update status estimate status reply estimate notes schedule section confirm notes propo",
-                      "when": "2026-09-04 04:09"
+                      "when": "2026-09-04 04:09 UTC"
                     }
                   ]
                 }
@@ -3612,7 +3658,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "gmail:gmail-4",
+                "surfaceId": "gmail:gmail-5",
                 "value": {
                   "threads": [
                     {
@@ -3620,49 +3666,111 @@
                       "sender": "sara.moreau@example.com",
                       "subject": "draft section summary reply agenda meeting pending notes pending estimat",
                       "snippet": "confirm timeline schedule follow thread revision section update feedback confirm agenda question estimate agenda update pending confirm notes estimate thread follow section section question notes statu",
-                      "when": "2026-09-05 00:20"
+                      "when": "2026-09-05 00:20 UTC"
                     },
                     {
                       "id": "1a06dec28a4d6853",
                       "sender": "nora.haddad@example.com",
                       "subject": "revision schedule draft question review",
                       "snippet": "thread question review review follow summary attached pending thread schedule attached summary attached summary question confirm agenda thread draft status timeline update confirm section notes meeting",
-                      "when": "2026-09-04 19:36"
+                      "when": "2026-09-04 19:36 UTC"
                     },
                     {
                       "id": "1a06d38b96f68239",
                       "sender": "yuki.nakamura@example.com",
                       "subject": "agenda reply estimate",
                       "snippet": "confirm update feedback review meeting schedule status reply revision pending feedback follow notes section notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
-                      "when": "2026-09-04 16:20"
+                      "when": "2026-09-04 16:20 UTC"
                     },
                     {
                       "id": "1a06d1e51d11c891",
                       "sender": "clara.vasquez@example.com",
                       "subject": "timeline meeting meeting revie",
                       "snippet": "agenda follow question follow pending pending pending meeting timeline follow meeting pending update follow notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
-                      "when": "2026-09-04 15:51"
+                      "when": "2026-09-04 15:51 UTC"
                     },
                     {
                       "id": "1a06cee261fd278a",
                       "sender": "nora.haddad@example.com",
                       "subject": "thread follow timeline attached schedule timeline update section confirm question attached schedu",
                       "snippet": "summary reply timeline update reply feedback draft thread thread summary schedule meeting section reply confirm question agenda follow status meeting status proposal timeline reply thread question sect",
-                      "when": "2026-09-04 14:57"
+                      "when": "2026-09-04 14:57 UTC"
                     },
                     {
                       "id": "1a06c8d16ea71568",
                       "sender": "clara.ferreira@example.com",
                       "subject": "follow reply attached update confirm confirm sche",
                       "snippet": "update notes draft attached summary revision summary attached agenda thread follow summary agenda section update estimate timeline timeline status feedback agenda confirm summary notes follow section",
-                      "when": "2026-09-04 13:11"
+                      "when": "2026-09-04 13:11 UTC"
                     },
                     {
                       "id": "1a06a9c1934e9e83",
                       "sender": "priya.nakamura@example.com",
                       "subject": "feedback reply summary notes threa",
                       "snippet": "notes thread timeline summary status update confirm review schedule notes meeting estimate attached update update update status estimate status reply estimate notes schedule section confirm notes propo",
-                      "when": "2026-09-04 04:09"
+                      "when": "2026-09-04 04:09 UTC"
+                    },
+                    {
+                      "id": "1a069c9cdbdf646b"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail:gmail-5",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "1a06ef027e683325",
+                      "sender": "sara.moreau@example.com",
+                      "subject": "draft section summary reply agenda meeting pending notes pending estimat",
+                      "snippet": "confirm timeline schedule follow thread revision section update feedback confirm agenda question estimate agenda update pending confirm notes estimate thread follow section section question notes statu",
+                      "when": "2026-09-05 00:20 UTC"
+                    },
+                    {
+                      "id": "1a06dec28a4d6853",
+                      "sender": "nora.haddad@example.com",
+                      "subject": "revision schedule draft question review",
+                      "snippet": "thread question review review follow summary attached pending thread schedule attached summary attached summary question confirm agenda thread draft status timeline update confirm section notes meeting",
+                      "when": "2026-09-04 19:36 UTC"
+                    },
+                    {
+                      "id": "1a06d38b96f68239",
+                      "sender": "yuki.nakamura@example.com",
+                      "subject": "agenda reply estimate",
+                      "snippet": "confirm update feedback review meeting schedule status reply revision pending feedback follow notes section notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
+                      "when": "2026-09-04 16:20 UTC"
+                    },
+                    {
+                      "id": "1a06d1e51d11c891",
+                      "sender": "clara.vasquez@example.com",
+                      "subject": "timeline meeting meeting revie",
+                      "snippet": "agenda follow question follow pending pending pending meeting timeline follow meeting pending update follow notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
+                      "when": "2026-09-04 15:51 UTC"
+                    },
+                    {
+                      "id": "1a06cee261fd278a",
+                      "sender": "nora.haddad@example.com",
+                      "subject": "thread follow timeline attached schedule timeline update section confirm question attached schedu",
+                      "snippet": "summary reply timeline update reply feedback draft thread thread summary schedule meeting section reply confirm question agenda follow status meeting status proposal timeline reply thread question sect",
+                      "when": "2026-09-04 14:57 UTC"
+                    },
+                    {
+                      "id": "1a06c8d16ea71568",
+                      "sender": "clara.ferreira@example.com",
+                      "subject": "follow reply attached update confirm confirm sche",
+                      "snippet": "update notes draft attached summary revision summary attached agenda thread follow summary agenda section update estimate timeline timeline status feedback agenda confirm summary notes follow section",
+                      "when": "2026-09-04 13:11 UTC"
+                    },
+                    {
+                      "id": "1a06a9c1934e9e83",
+                      "sender": "priya.nakamura@example.com",
+                      "subject": "feedback reply summary notes threa",
+                      "snippet": "notes thread timeline summary status update confirm review schedule notes meeting estimate attached update update update status estimate status reply estimate notes schedule section confirm notes propo",
+                      "when": "2026-09-04 04:09 UTC"
                     },
                     {
                       "id": "1a069c9cdbdf646b",
@@ -3675,7 +3783,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "gmail:gmail-4",
+                "surfaceId": "gmail:gmail-5",
                 "value": {
                   "threads": [
                     {
@@ -3683,49 +3791,49 @@
                       "sender": "sara.moreau@example.com",
                       "subject": "draft section summary reply agenda meeting pending notes pending estimat",
                       "snippet": "confirm timeline schedule follow thread revision section update feedback confirm agenda question estimate agenda update pending confirm notes estimate thread follow section section question notes statu",
-                      "when": "2026-09-05 00:20"
+                      "when": "2026-09-05 00:20 UTC"
                     },
                     {
                       "id": "1a06dec28a4d6853",
                       "sender": "nora.haddad@example.com",
                       "subject": "revision schedule draft question review",
                       "snippet": "thread question review review follow summary attached pending thread schedule attached summary attached summary question confirm agenda thread draft status timeline update confirm section notes meeting",
-                      "when": "2026-09-04 19:36"
+                      "when": "2026-09-04 19:36 UTC"
                     },
                     {
                       "id": "1a06d38b96f68239",
                       "sender": "yuki.nakamura@example.com",
                       "subject": "agenda reply estimate",
                       "snippet": "confirm update feedback review meeting schedule status reply revision pending feedback follow notes section notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
-                      "when": "2026-09-04 16:20"
+                      "when": "2026-09-04 16:20 UTC"
                     },
                     {
                       "id": "1a06d1e51d11c891",
                       "sender": "clara.vasquez@example.com",
                       "subject": "timeline meeting meeting revie",
                       "snippet": "agenda follow question follow pending pending pending meeting timeline follow meeting pending update follow notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
-                      "when": "2026-09-04 15:51"
+                      "when": "2026-09-04 15:51 UTC"
                     },
                     {
                       "id": "1a06cee261fd278a",
                       "sender": "nora.haddad@example.com",
                       "subject": "thread follow timeline attached schedule timeline update section confirm question attached schedu",
                       "snippet": "summary reply timeline update reply feedback draft thread thread summary schedule meeting section reply confirm question agenda follow status meeting status proposal timeline reply thread question sect",
-                      "when": "2026-09-04 14:57"
+                      "when": "2026-09-04 14:57 UTC"
                     },
                     {
                       "id": "1a06c8d16ea71568",
                       "sender": "clara.ferreira@example.com",
                       "subject": "follow reply attached update confirm confirm sche",
                       "snippet": "update notes draft attached summary revision summary attached agenda thread follow summary agenda section update estimate timeline timeline status feedback agenda confirm summary notes follow section",
-                      "when": "2026-09-04 13:11"
+                      "when": "2026-09-04 13:11 UTC"
                     },
                     {
                       "id": "1a06a9c1934e9e83",
                       "sender": "priya.nakamura@example.com",
                       "subject": "feedback reply summary notes threa",
                       "snippet": "notes thread timeline summary status update confirm review schedule notes meeting estimate attached update update update status estimate status reply estimate notes schedule section confirm notes propo",
-                      "when": "2026-09-04 04:09"
+                      "when": "2026-09-04 04:09 UTC"
                     },
                     {
                       "id": "1a069c9cdbdf646b",
@@ -3739,7 +3847,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "gmail:gmail-4",
+                "surfaceId": "gmail:gmail-5",
                 "value": {
                   "threads": [
                     {
@@ -3747,49 +3855,49 @@
                       "sender": "sara.moreau@example.com",
                       "subject": "draft section summary reply agenda meeting pending notes pending estimat",
                       "snippet": "confirm timeline schedule follow thread revision section update feedback confirm agenda question estimate agenda update pending confirm notes estimate thread follow section section question notes statu",
-                      "when": "2026-09-05 00:20"
+                      "when": "2026-09-05 00:20 UTC"
                     },
                     {
                       "id": "1a06dec28a4d6853",
                       "sender": "nora.haddad@example.com",
                       "subject": "revision schedule draft question review",
                       "snippet": "thread question review review follow summary attached pending thread schedule attached summary attached summary question confirm agenda thread draft status timeline update confirm section notes meeting",
-                      "when": "2026-09-04 19:36"
+                      "when": "2026-09-04 19:36 UTC"
                     },
                     {
                       "id": "1a06d38b96f68239",
                       "sender": "yuki.nakamura@example.com",
                       "subject": "agenda reply estimate",
                       "snippet": "confirm update feedback review meeting schedule status reply revision pending feedback follow notes section notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
-                      "when": "2026-09-04 16:20"
+                      "when": "2026-09-04 16:20 UTC"
                     },
                     {
                       "id": "1a06d1e51d11c891",
                       "sender": "clara.vasquez@example.com",
                       "subject": "timeline meeting meeting revie",
                       "snippet": "agenda follow question follow pending pending pending meeting timeline follow meeting pending update follow notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
-                      "when": "2026-09-04 15:51"
+                      "when": "2026-09-04 15:51 UTC"
                     },
                     {
                       "id": "1a06cee261fd278a",
                       "sender": "nora.haddad@example.com",
                       "subject": "thread follow timeline attached schedule timeline update section confirm question attached schedu",
                       "snippet": "summary reply timeline update reply feedback draft thread thread summary schedule meeting section reply confirm question agenda follow status meeting status proposal timeline reply thread question sect",
-                      "when": "2026-09-04 14:57"
+                      "when": "2026-09-04 14:57 UTC"
                     },
                     {
                       "id": "1a06c8d16ea71568",
                       "sender": "clara.ferreira@example.com",
                       "subject": "follow reply attached update confirm confirm sche",
                       "snippet": "update notes draft attached summary revision summary attached agenda thread follow summary agenda section update estimate timeline timeline status feedback agenda confirm summary notes follow section",
-                      "when": "2026-09-04 13:11"
+                      "when": "2026-09-04 13:11 UTC"
                     },
                     {
                       "id": "1a06a9c1934e9e83",
                       "sender": "priya.nakamura@example.com",
                       "subject": "feedback reply summary notes threa",
                       "snippet": "notes thread timeline summary status update confirm review schedule notes meeting estimate attached update update update status estimate status reply estimate notes schedule section confirm notes propo",
-                      "when": "2026-09-04 04:09"
+                      "when": "2026-09-04 04:09 UTC"
                     },
                     {
                       "id": "1a069c9cdbdf646b",
@@ -3804,7 +3912,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "gmail:gmail-4",
+                "surfaceId": "gmail:gmail-5",
                 "value": {
                   "threads": [
                     {
@@ -3812,126 +3920,56 @@
                       "sender": "sara.moreau@example.com",
                       "subject": "draft section summary reply agenda meeting pending notes pending estimat",
                       "snippet": "confirm timeline schedule follow thread revision section update feedback confirm agenda question estimate agenda update pending confirm notes estimate thread follow section section question notes statu",
-                      "when": "2026-09-05 00:20"
+                      "when": "2026-09-05 00:20 UTC"
                     },
                     {
                       "id": "1a06dec28a4d6853",
                       "sender": "nora.haddad@example.com",
                       "subject": "revision schedule draft question review",
                       "snippet": "thread question review review follow summary attached pending thread schedule attached summary attached summary question confirm agenda thread draft status timeline update confirm section notes meeting",
-                      "when": "2026-09-04 19:36"
+                      "when": "2026-09-04 19:36 UTC"
                     },
                     {
                       "id": "1a06d38b96f68239",
                       "sender": "yuki.nakamura@example.com",
                       "subject": "agenda reply estimate",
                       "snippet": "confirm update feedback review meeting schedule status reply revision pending feedback follow notes section notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
-                      "when": "2026-09-04 16:20"
+                      "when": "2026-09-04 16:20 UTC"
                     },
                     {
                       "id": "1a06d1e51d11c891",
                       "sender": "clara.vasquez@example.com",
                       "subject": "timeline meeting meeting revie",
                       "snippet": "agenda follow question follow pending pending pending meeting timeline follow meeting pending update follow notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
-                      "when": "2026-09-04 15:51"
+                      "when": "2026-09-04 15:51 UTC"
                     },
                     {
                       "id": "1a06cee261fd278a",
                       "sender": "nora.haddad@example.com",
                       "subject": "thread follow timeline attached schedule timeline update section confirm question attached schedu",
                       "snippet": "summary reply timeline update reply feedback draft thread thread summary schedule meeting section reply confirm question agenda follow status meeting status proposal timeline reply thread question sect",
-                      "when": "2026-09-04 14:57"
+                      "when": "2026-09-04 14:57 UTC"
                     },
                     {
                       "id": "1a06c8d16ea71568",
                       "sender": "clara.ferreira@example.com",
                       "subject": "follow reply attached update confirm confirm sche",
                       "snippet": "update notes draft attached summary revision summary attached agenda thread follow summary agenda section update estimate timeline timeline status feedback agenda confirm summary notes follow section",
-                      "when": "2026-09-04 13:11"
+                      "when": "2026-09-04 13:11 UTC"
                     },
                     {
                       "id": "1a06a9c1934e9e83",
                       "sender": "priya.nakamura@example.com",
                       "subject": "feedback reply summary notes threa",
                       "snippet": "notes thread timeline summary status update confirm review schedule notes meeting estimate attached update update update status estimate status reply estimate notes schedule section confirm notes propo",
-                      "when": "2026-09-04 04:09"
+                      "when": "2026-09-04 04:09 UTC"
                     },
                     {
                       "id": "1a069c9cdbdf646b",
                       "sender": "sara.moreau@example.com",
                       "subject": "agenda feedback status meeting prop",
                       "snippet": "feedback draft confirm section estimate reply review agenda feedback section notes proposal feedback update update schedule question follow estimate feedback revision feedback summary notes section fo",
-                      "when": "2026-09-04 00:20"
-                    },
-                    {}
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "gmail:gmail-4",
-                "value": {
-                  "threads": [
-                    {
-                      "id": "1a06ef027e683325",
-                      "sender": "sara.moreau@example.com",
-                      "subject": "draft section summary reply agenda meeting pending notes pending estimat",
-                      "snippet": "confirm timeline schedule follow thread revision section update feedback confirm agenda question estimate agenda update pending confirm notes estimate thread follow section section question notes statu",
-                      "when": "2026-09-05 00:20"
-                    },
-                    {
-                      "id": "1a06dec28a4d6853",
-                      "sender": "nora.haddad@example.com",
-                      "subject": "revision schedule draft question review",
-                      "snippet": "thread question review review follow summary attached pending thread schedule attached summary attached summary question confirm agenda thread draft status timeline update confirm section notes meeting",
-                      "when": "2026-09-04 19:36"
-                    },
-                    {
-                      "id": "1a06d38b96f68239",
-                      "sender": "yuki.nakamura@example.com",
-                      "subject": "agenda reply estimate",
-                      "snippet": "confirm update feedback review meeting schedule status reply revision pending feedback follow notes section notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
-                      "when": "2026-09-04 16:20"
-                    },
-                    {
-                      "id": "1a06d1e51d11c891",
-                      "sender": "clara.vasquez@example.com",
-                      "subject": "timeline meeting meeting revie",
-                      "snippet": "agenda follow question follow pending pending pending meeting timeline follow meeting pending update follow notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
-                      "when": "2026-09-04 15:51"
-                    },
-                    {
-                      "id": "1a06cee261fd278a",
-                      "sender": "nora.haddad@example.com",
-                      "subject": "thread follow timeline attached schedule timeline update section confirm question attached schedu",
-                      "snippet": "summary reply timeline update reply feedback draft thread thread summary schedule meeting section reply confirm question agenda follow status meeting status proposal timeline reply thread question sect",
-                      "when": "2026-09-04 14:57"
-                    },
-                    {
-                      "id": "1a06c8d16ea71568",
-                      "sender": "clara.ferreira@example.com",
-                      "subject": "follow reply attached update confirm confirm sche",
-                      "snippet": "update notes draft attached summary revision summary attached agenda thread follow summary agenda section update estimate timeline timeline status feedback agenda confirm summary notes follow section",
-                      "when": "2026-09-04 13:11"
-                    },
-                    {
-                      "id": "1a06a9c1934e9e83",
-                      "sender": "priya.nakamura@example.com",
-                      "subject": "feedback reply summary notes threa",
-                      "snippet": "notes thread timeline summary status update confirm review schedule notes meeting estimate attached update update update status estimate status reply estimate notes schedule section confirm notes propo",
-                      "when": "2026-09-04 04:09"
-                    },
-                    {
-                      "id": "1a069c9cdbdf646b",
-                      "sender": "sara.moreau@example.com",
-                      "subject": "agenda feedback status meeting prop",
-                      "snippet": "feedback draft confirm section estimate reply review agenda feedback section notes proposal feedback update update schedule question follow estimate feedback revision feedback summary notes section fo",
-                      "when": "2026-09-04 00:20"
-                    },
-                    {
-                      "id": "1a068c701f82889e"
+                      "when": "2026-09-04 00:20 UTC"
                     }
                   ]
                 }
@@ -3940,150 +3978,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "gmail:gmail-4",
-                "value": {
-                  "threads": [
-                    {
-                      "id": "1a06ef027e683325",
-                      "sender": "sara.moreau@example.com",
-                      "subject": "draft section summary reply agenda meeting pending notes pending estimat",
-                      "snippet": "confirm timeline schedule follow thread revision section update feedback confirm agenda question estimate agenda update pending confirm notes estimate thread follow section section question notes statu",
-                      "when": "2026-09-05 00:20"
-                    },
-                    {
-                      "id": "1a06dec28a4d6853",
-                      "sender": "nora.haddad@example.com",
-                      "subject": "revision schedule draft question review",
-                      "snippet": "thread question review review follow summary attached pending thread schedule attached summary attached summary question confirm agenda thread draft status timeline update confirm section notes meeting",
-                      "when": "2026-09-04 19:36"
-                    },
-                    {
-                      "id": "1a06d38b96f68239",
-                      "sender": "yuki.nakamura@example.com",
-                      "subject": "agenda reply estimate",
-                      "snippet": "confirm update feedback review meeting schedule status reply revision pending feedback follow notes section notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
-                      "when": "2026-09-04 16:20"
-                    },
-                    {
-                      "id": "1a06d1e51d11c891",
-                      "sender": "clara.vasquez@example.com",
-                      "subject": "timeline meeting meeting revie",
-                      "snippet": "agenda follow question follow pending pending pending meeting timeline follow meeting pending update follow notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
-                      "when": "2026-09-04 15:51"
-                    },
-                    {
-                      "id": "1a06cee261fd278a",
-                      "sender": "nora.haddad@example.com",
-                      "subject": "thread follow timeline attached schedule timeline update section confirm question attached schedu",
-                      "snippet": "summary reply timeline update reply feedback draft thread thread summary schedule meeting section reply confirm question agenda follow status meeting status proposal timeline reply thread question sect",
-                      "when": "2026-09-04 14:57"
-                    },
-                    {
-                      "id": "1a06c8d16ea71568",
-                      "sender": "clara.ferreira@example.com",
-                      "subject": "follow reply attached update confirm confirm sche",
-                      "snippet": "update notes draft attached summary revision summary attached agenda thread follow summary agenda section update estimate timeline timeline status feedback agenda confirm summary notes follow section",
-                      "when": "2026-09-04 13:11"
-                    },
-                    {
-                      "id": "1a06a9c1934e9e83",
-                      "sender": "priya.nakamura@example.com",
-                      "subject": "feedback reply summary notes threa",
-                      "snippet": "notes thread timeline summary status update confirm review schedule notes meeting estimate attached update update update status estimate status reply estimate notes schedule section confirm notes propo",
-                      "when": "2026-09-04 04:09"
-                    },
-                    {
-                      "id": "1a069c9cdbdf646b",
-                      "sender": "sara.moreau@example.com",
-                      "subject": "agenda feedback status meeting prop",
-                      "snippet": "feedback draft confirm section estimate reply review agenda feedback section notes proposal feedback update update schedule question follow estimate feedback revision feedback summary notes section fo",
-                      "when": "2026-09-04 00:20"
-                    },
-                    {
-                      "id": "1a068c701f82889e",
-                      "sender": "priya.bergman@example.com",
-                      "subject": "meeting notes question summa"
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "gmail:gmail-4",
-                "value": {
-                  "threads": [
-                    {
-                      "id": "1a06ef027e683325",
-                      "sender": "sara.moreau@example.com",
-                      "subject": "draft section summary reply agenda meeting pending notes pending estimat",
-                      "snippet": "confirm timeline schedule follow thread revision section update feedback confirm agenda question estimate agenda update pending confirm notes estimate thread follow section section question notes statu",
-                      "when": "2026-09-05 00:20"
-                    },
-                    {
-                      "id": "1a06dec28a4d6853",
-                      "sender": "nora.haddad@example.com",
-                      "subject": "revision schedule draft question review",
-                      "snippet": "thread question review review follow summary attached pending thread schedule attached summary attached summary question confirm agenda thread draft status timeline update confirm section notes meeting",
-                      "when": "2026-09-04 19:36"
-                    },
-                    {
-                      "id": "1a06d38b96f68239",
-                      "sender": "yuki.nakamura@example.com",
-                      "subject": "agenda reply estimate",
-                      "snippet": "confirm update feedback review meeting schedule status reply revision pending feedback follow notes section notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
-                      "when": "2026-09-04 16:20"
-                    },
-                    {
-                      "id": "1a06d1e51d11c891",
-                      "sender": "clara.vasquez@example.com",
-                      "subject": "timeline meeting meeting revie",
-                      "snippet": "agenda follow question follow pending pending pending meeting timeline follow meeting pending update follow notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
-                      "when": "2026-09-04 15:51"
-                    },
-                    {
-                      "id": "1a06cee261fd278a",
-                      "sender": "nora.haddad@example.com",
-                      "subject": "thread follow timeline attached schedule timeline update section confirm question attached schedu",
-                      "snippet": "summary reply timeline update reply feedback draft thread thread summary schedule meeting section reply confirm question agenda follow status meeting status proposal timeline reply thread question sect",
-                      "when": "2026-09-04 14:57"
-                    },
-                    {
-                      "id": "1a06c8d16ea71568",
-                      "sender": "clara.ferreira@example.com",
-                      "subject": "follow reply attached update confirm confirm sche",
-                      "snippet": "update notes draft attached summary revision summary attached agenda thread follow summary agenda section update estimate timeline timeline status feedback agenda confirm summary notes follow section",
-                      "when": "2026-09-04 13:11"
-                    },
-                    {
-                      "id": "1a06a9c1934e9e83",
-                      "sender": "priya.nakamura@example.com",
-                      "subject": "feedback reply summary notes threa",
-                      "snippet": "notes thread timeline summary status update confirm review schedule notes meeting estimate attached update update update status estimate status reply estimate notes schedule section confirm notes propo",
-                      "when": "2026-09-04 04:09"
-                    },
-                    {
-                      "id": "1a069c9cdbdf646b",
-                      "sender": "sara.moreau@example.com",
-                      "subject": "agenda feedback status meeting prop",
-                      "snippet": "feedback draft confirm section estimate reply review agenda feedback section notes proposal feedback update update schedule question follow estimate feedback revision feedback summary notes section fo",
-                      "when": "2026-09-04 00:20"
-                    },
-                    {
-                      "id": "1a068c701f82889e",
-                      "sender": "priya.bergman@example.com",
-                      "subject": "meeting notes question summa",
-                      "snippet": "thread follow agenda timeline thread update proposal timeline question confirm estimate revision estimate status update pending confirm notes esti"
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "gmail:gmail-4",
+                "surfaceId": "gmail:gmail-5",
                 "path": "/",
                 "value": {
                   "threads": [
@@ -4092,63 +3987,56 @@
                       "sender": "sara.moreau@example.com",
                       "subject": "draft section summary reply agenda meeting pending notes pending estimat",
                       "snippet": "confirm timeline schedule follow thread revision section update feedback confirm agenda question estimate agenda update pending confirm notes estimate thread follow section section question notes statu",
-                      "when": "2026-09-05 00:20"
+                      "when": "2026-09-05 00:20 UTC"
                     },
                     {
                       "id": "1a06dec28a4d6853",
                       "sender": "nora.haddad@example.com",
                       "subject": "revision schedule draft question review",
                       "snippet": "thread question review review follow summary attached pending thread schedule attached summary attached summary question confirm agenda thread draft status timeline update confirm section notes meeting",
-                      "when": "2026-09-04 19:36"
+                      "when": "2026-09-04 19:36 UTC"
                     },
                     {
                       "id": "1a06d38b96f68239",
                       "sender": "yuki.nakamura@example.com",
                       "subject": "agenda reply estimate",
                       "snippet": "confirm update feedback review meeting schedule status reply revision pending feedback follow notes section notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
-                      "when": "2026-09-04 16:20"
+                      "when": "2026-09-04 16:20 UTC"
                     },
                     {
                       "id": "1a06d1e51d11c891",
                       "sender": "clara.vasquez@example.com",
                       "subject": "timeline meeting meeting revie",
                       "snippet": "agenda follow question follow pending pending pending meeting timeline follow meeting pending update follow notes reply status proposal confirm agenda meeting notes summary summary status schedule atta",
-                      "when": "2026-09-04 15:51"
+                      "when": "2026-09-04 15:51 UTC"
                     },
                     {
                       "id": "1a06cee261fd278a",
                       "sender": "nora.haddad@example.com",
                       "subject": "thread follow timeline attached schedule timeline update section confirm question attached schedu",
                       "snippet": "summary reply timeline update reply feedback draft thread thread summary schedule meeting section reply confirm question agenda follow status meeting status proposal timeline reply thread question sect",
-                      "when": "2026-09-04 14:57"
+                      "when": "2026-09-04 14:57 UTC"
                     },
                     {
                       "id": "1a06c8d16ea71568",
                       "sender": "clara.ferreira@example.com",
                       "subject": "follow reply attached update confirm confirm sche",
                       "snippet": "update notes draft attached summary revision summary attached agenda thread follow summary agenda section update estimate timeline timeline status feedback agenda confirm summary notes follow section",
-                      "when": "2026-09-04 13:11"
+                      "when": "2026-09-04 13:11 UTC"
                     },
                     {
                       "id": "1a06a9c1934e9e83",
                       "sender": "priya.nakamura@example.com",
                       "subject": "feedback reply summary notes threa",
                       "snippet": "notes thread timeline summary status update confirm review schedule notes meeting estimate attached update update update status estimate status reply estimate notes schedule section confirm notes propo",
-                      "when": "2026-09-04 04:09"
+                      "when": "2026-09-04 04:09 UTC"
                     },
                     {
                       "id": "1a069c9cdbdf646b",
                       "sender": "sara.moreau@example.com",
                       "subject": "agenda feedback status meeting prop",
                       "snippet": "feedback draft confirm section estimate reply review agenda feedback section notes proposal feedback update update schedule question follow estimate feedback revision feedback summary notes section fo",
-                      "when": "2026-09-04 00:20"
-                    },
-                    {
-                      "id": "1a068c701f82889e",
-                      "sender": "priya.bergman@example.com",
-                      "subject": "meeting notes question summa",
-                      "snippet": "thread follow agenda timeline thread update proposal timeline question confirm estimate revision estimate status update pending confirm notes esti",
-                      "when": "2026-09-03 20:16"
+                      "when": "2026-09-04 00:20 UTC"
                     }
                   ]
                 }
@@ -4159,6 +4047,14 @@
               "updateComponents": {
                 "components": [
                   {
+                    "id": "root",
+                    "component": "Surface",
+                    "child": "body",
+                    "container": "low",
+                    "shape": "large",
+                    "padding": "small"
+                  },
+                  {
                     "id": "body",
                     "component": "Stack",
                     "children": [
@@ -4166,14 +4062,6 @@
                       "sheet"
                     ],
                     "gap": "xs"
-                  },
-                  {
-                    "id": "root",
-                    "component": "Surface",
-                    "child": "body",
-                    "container": "low",
-                    "shape": "large",
-                    "padding": "small"
                   },
                   {
                     "id": "header",
@@ -4186,6 +4074,14 @@
                     "padding": "sm"
                   },
                   {
+                    "id": "sheet",
+                    "component": "Surface",
+                    "child": "thread-list",
+                    "container": "lowest",
+                    "shape": "large",
+                    "padding": "none"
+                  },
+                  {
                     "id": "heading",
                     "component": "Text",
                     "text": "Needs attention",
@@ -4194,17 +4090,9 @@
                   {
                     "id": "sub",
                     "component": "Text",
-                    "text": "Unread messages in Primary addressed to you",
+                    "text": "Unread threads in your inbox",
                     "variant": "bodySmall",
                     "color": "onSurfaceVariant"
-                  },
-                  {
-                    "id": "sheet",
-                    "component": "Surface",
-                    "child": "thread-list",
-                    "container": "lowest",
-                    "shape": "large",
-                    "padding": "none"
                   },
                   {
                     "id": "thread-list",
@@ -4290,7 +4178,7 @@
                     "maxLines": 1
                   }
                 ],
-                "surfaceId": "gmail:gmail-4"
+                "surfaceId": "gmail:gmail-5"
               }
             }
           ],
@@ -4301,7 +4189,7 @@
           }
         },
         {
-          "offsetMs": 18131,
+          "offsetMs": 23921,
           "messages": [
             {
               "version": "v0.9",
@@ -4451,8 +4339,8 @@
                     "op": "source",
                     "args": [
                       {
-                        "surface": "linear:linear-5",
-                        "pointer": "/issues[id=\"A2U-5\"]/updatedAt"
+                        "surface": "linear:linear-7",
+                        "pointer": "/issues[id=\"A2U-5\"]/updated"
                       }
                     ]
                   },
@@ -4460,8 +4348,8 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "linear:linear-5",
-                        "pointer": "/issues[id=\"A2U-5\"]/updatedAt"
+                        "surface": "linear:linear-7",
+                        "pointer": "/issues[id=\"A2U-5\"]/updated"
                       }
                     ]
                   },
@@ -4469,7 +4357,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "linear:linear-5",
+                        "surface": "linear:linear-7",
                         "pointer": "/issues[id=\"A2U-5\"]/title"
                       }
                     ]
@@ -4480,8 +4368,8 @@
                     "op": "source",
                     "args": [
                       {
-                        "surface": "linear:linear-5",
-                        "pointer": "/issues[id=\"A2U-6\"]/updatedAt"
+                        "surface": "linear:linear-7",
+                        "pointer": "/issues[id=\"A2U-7\"]/updated"
                       }
                     ]
                   },
@@ -4489,8 +4377,8 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "linear:linear-5",
-                        "pointer": "/issues[id=\"A2U-6\"]/updatedAt"
+                        "surface": "linear:linear-7",
+                        "pointer": "/issues[id=\"A2U-7\"]/updated"
                       }
                     ]
                   },
@@ -4498,36 +4386,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "linear:linear-5",
-                        "pointer": "/issues[id=\"A2U-6\"]/title"
-                      }
-                    ]
-                  }
-                },
-                {
-                  "source": {
-                    "op": "source",
-                    "args": [
-                      {
-                        "surface": "linear:linear-5",
-                        "pointer": "/issues[id=\"A2U-7\"]/updatedAt"
-                      }
-                    ]
-                  },
-                  "when": {
-                    "op": "value",
-                    "args": [
-                      {
-                        "surface": "linear:linear-5",
-                        "pointer": "/issues[id=\"A2U-7\"]/updatedAt"
-                      }
-                    ]
-                  },
-                  "what": {
-                    "op": "value",
-                    "args": [
-                      {
-                        "surface": "linear:linear-5",
+                        "surface": "linear:linear-7",
                         "pointer": "/issues[id=\"A2U-7\"]/title"
                       }
                     ]
@@ -4538,7 +4397,36 @@
                     "op": "source",
                     "args": [
                       {
-                        "surface": "gmail:gmail-4",
+                        "surface": "linear:linear-7",
+                        "pointer": "/issues[id=\"A2U-6\"]/updated"
+                      }
+                    ]
+                  },
+                  "when": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "linear:linear-7",
+                        "pointer": "/issues[id=\"A2U-6\"]/updated"
+                      }
+                    ]
+                  },
+                  "what": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "linear:linear-7",
+                        "pointer": "/issues[id=\"A2U-6\"]/title"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "source": {
+                    "op": "source",
+                    "args": [
+                      {
+                        "surface": "gmail:gmail-5",
                         "pointer": "/threads[id=\"1a06ef027e683325\"]/when"
                       }
                     ]
@@ -4547,7 +4435,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "gmail:gmail-4",
+                        "surface": "gmail:gmail-5",
                         "pointer": "/threads[id=\"1a06ef027e683325\"]/when"
                       }
                     ]
@@ -4556,7 +4444,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "gmail:gmail-4",
+                        "surface": "gmail:gmail-5",
                         "pointer": "/threads[id=\"1a06ef027e683325\"]/subject"
                       }
                     ]
@@ -4567,7 +4455,7 @@
                     "op": "source",
                     "args": [
                       {
-                        "surface": "gmail:gmail-4",
+                        "surface": "gmail:gmail-5",
                         "pointer": "/threads[id=\"1a06dec28a4d6853\"]/when"
                       }
                     ]
@@ -4576,7 +4464,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "gmail:gmail-4",
+                        "surface": "gmail:gmail-5",
                         "pointer": "/threads[id=\"1a06dec28a4d6853\"]/when"
                       }
                     ]
@@ -4585,7 +4473,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "gmail:gmail-4",
+                        "surface": "gmail:gmail-5",
                         "pointer": "/threads[id=\"1a06dec28a4d6853\"]/subject"
                       }
                     ]
@@ -4596,7 +4484,7 @@
                     "op": "source",
                     "args": [
                       {
-                        "surface": "gmail:gmail-4",
+                        "surface": "gmail:gmail-5",
                         "pointer": "/threads[id=\"1a06d38b96f68239\"]/when"
                       }
                     ]
@@ -4605,7 +4493,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "gmail:gmail-4",
+                        "surface": "gmail:gmail-5",
                         "pointer": "/threads[id=\"1a06d38b96f68239\"]/when"
                       }
                     ]
@@ -4614,7 +4502,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "gmail:gmail-4",
+                        "surface": "gmail:gmail-5",
                         "pointer": "/threads[id=\"1a06d38b96f68239\"]/subject"
                       }
                     ]
@@ -4625,7 +4513,7 @@
                     "op": "source",
                     "args": [
                       {
-                        "surface": "gmail:gmail-4",
+                        "surface": "gmail:gmail-5",
                         "pointer": "/threads[id=\"1a06d1e51d11c891\"]/when"
                       }
                     ]
@@ -4634,7 +4522,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "gmail:gmail-4",
+                        "surface": "gmail:gmail-5",
                         "pointer": "/threads[id=\"1a06d1e51d11c891\"]/when"
                       }
                     ]
@@ -4643,7 +4531,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "gmail:gmail-4",
+                        "surface": "gmail:gmail-5",
                         "pointer": "/threads[id=\"1a06d1e51d11c891\"]/subject"
                       }
                     ]
@@ -4654,7 +4542,7 @@
                     "op": "source",
                     "args": [
                       {
-                        "surface": "gmail:gmail-4",
+                        "surface": "gmail:gmail-5",
                         "pointer": "/threads[id=\"1a06cee261fd278a\"]/when"
                       }
                     ]
@@ -4663,7 +4551,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "gmail:gmail-4",
+                        "surface": "gmail:gmail-5",
                         "pointer": "/threads[id=\"1a06cee261fd278a\"]/when"
                       }
                     ]
@@ -4672,7 +4560,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "gmail:gmail-4",
+                        "surface": "gmail:gmail-5",
                         "pointer": "/threads[id=\"1a06cee261fd278a\"]/subject"
                       }
                     ]
@@ -4683,7 +4571,7 @@
                     "op": "source",
                     "args": [
                       {
-                        "surface": "gmail:gmail-4",
+                        "surface": "gmail:gmail-5",
                         "pointer": "/threads[id=\"1a06c8d16ea71568\"]/when"
                       }
                     ]
@@ -4692,7 +4580,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "gmail:gmail-4",
+                        "surface": "gmail:gmail-5",
                         "pointer": "/threads[id=\"1a06c8d16ea71568\"]/when"
                       }
                     ]
@@ -4701,7 +4589,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "gmail:gmail-4",
+                        "surface": "gmail:gmail-5",
                         "pointer": "/threads[id=\"1a06c8d16ea71568\"]/subject"
                       }
                     ]
@@ -4712,7 +4600,7 @@
                     "op": "source",
                     "args": [
                       {
-                        "surface": "gmail:gmail-4",
+                        "surface": "gmail:gmail-5",
                         "pointer": "/threads[id=\"1a06a9c1934e9e83\"]/when"
                       }
                     ]
@@ -4721,7 +4609,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "gmail:gmail-4",
+                        "surface": "gmail:gmail-5",
                         "pointer": "/threads[id=\"1a06a9c1934e9e83\"]/when"
                       }
                     ]
@@ -4730,7 +4618,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "gmail:gmail-4",
+                        "surface": "gmail:gmail-5",
                         "pointer": "/threads[id=\"1a06a9c1934e9e83\"]/subject"
                       }
                     ]
@@ -4741,7 +4629,7 @@
                     "op": "source",
                     "args": [
                       {
-                        "surface": "gmail:gmail-4",
+                        "surface": "gmail:gmail-5",
                         "pointer": "/threads[id=\"1a069c9cdbdf646b\"]/when"
                       }
                     ]
@@ -4750,7 +4638,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "gmail:gmail-4",
+                        "surface": "gmail:gmail-5",
                         "pointer": "/threads[id=\"1a069c9cdbdf646b\"]/when"
                       }
                     ]
@@ -4759,8 +4647,39 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "gmail:gmail-4",
+                        "surface": "gmail:gmail-5",
                         "pointer": "/threads[id=\"1a069c9cdbdf646b\"]/subject"
+                      }
+                    ]
+                  }
+                }
+              ],
+              "calendar": [
+                {
+                  "source": {
+                    "op": "source",
+                    "args": [
+                      {
+                        "surface": "calendar:calendar-5",
+                        "pointer": "/waiting[id=\"7nuujj9h9ru89blofii3m5otlo\"]/when"
+                      }
+                    ]
+                  },
+                  "when": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "calendar:calendar-5",
+                        "pointer": "/waiting[id=\"7nuujj9h9ru89blofii3m5otlo\"]/when"
+                      }
+                    ]
+                  },
+                  "what": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "calendar:calendar-5",
+                        "pointer": "/waiting[id=\"7nuujj9h9ru89blofii3m5otlo\"]/summary"
                       }
                     ]
                   }
@@ -4770,8 +4689,8 @@
                     "op": "source",
                     "args": [
                       {
-                        "surface": "gmail:gmail-4",
-                        "pointer": "/threads[id=\"1a068c701f82889e\"]/when"
+                        "surface": "calendar:calendar-5",
+                        "pointer": "/clashes[id=\"7nuujj9h9ru89blofii3m5otlo\"]/when"
                       }
                     ]
                   },
@@ -4779,49 +4698,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "gmail:gmail-4",
-                        "pointer": "/threads[id=\"1a068c701f82889e\"]/when"
-                      }
-                    ]
-                  },
-                  "what": {
-                    "op": "value",
-                    "args": [
-                      {
-                        "surface": "gmail:gmail-4",
-                        "pointer": "/threads[id=\"1a068c701f82889e\"]/subject"
-                      }
-                    ]
-                  }
-                }
-              ],
-              "calendar": [
-                {
-                  "when": {
-                    "op": "value",
-                    "args": [
-                      {
-                        "surface": "calendar:calendar-4",
-                        "pointer": "/waiting[id=\"7nuujj9h9ru89blofii3m5otlo\"]/when"
-                      }
-                    ]
-                  },
-                  "what": {
-                    "op": "value",
-                    "args": [
-                      {
-                        "surface": "calendar:calendar-4",
-                        "pointer": "/waiting[id=\"7nuujj9h9ru89blofii3m5otlo\"]/summary"
-                      }
-                    ]
-                  }
-                },
-                {
-                  "when": {
-                    "op": "value",
-                    "args": [
-                      {
-                        "surface": "calendar:calendar-4",
+                        "surface": "calendar:calendar-5",
                         "pointer": "/clashes[id=\"7nuujj9h9ru89blofii3m5otlo\"]/when"
                       }
                     ]
@@ -4830,18 +4707,27 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "calendar:calendar-4",
+                        "surface": "calendar:calendar-5",
                         "pointer": "/clashes[id=\"7nuujj9h9ru89blofii3m5otlo\"]/summary"
                       }
                     ]
                   }
                 },
                 {
+                  "source": {
+                    "op": "source",
+                    "args": [
+                      {
+                        "surface": "calendar:calendar-5",
+                        "pointer": "/clashes[id=\"ev1fmp1rmvhhb260fbebvd7o9o\"]/when"
+                      }
+                    ]
+                  },
                   "when": {
                     "op": "value",
                     "args": [
                       {
-                        "surface": "calendar:calendar-4",
+                        "surface": "calendar:calendar-5",
                         "pointer": "/clashes[id=\"ev1fmp1rmvhhb260fbebvd7o9o\"]/when"
                       }
                     ]
@@ -4850,7 +4736,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "calendar:calendar-4",
+                        "surface": "calendar:calendar-5",
                         "pointer": "/clashes[id=\"ev1fmp1rmvhhb260fbebvd7o9o\"]/summary"
                       }
                     ]
@@ -4874,7 +4760,7 @@
           }
         },
         {
-          "offsetMs": 18131,
+          "offsetMs": 23921,
           "messages": [
             {
               "version": "v0.9",
@@ -4885,12 +4771,12 @@
                     "id": "root",
                     "component": "Column",
                     "children": [
-                      "merged-view",
+                      "overview",
                       "sources"
                     ]
                   },
                   {
-                    "id": "merged-view",
+                    "id": "overview",
                     "component": "Slot",
                     "source": "shell",
                     "state": "pending",
@@ -4906,22 +4792,22 @@
                     "id": "sources",
                     "component": "Row",
                     "children": [
-                      "attribution-calendar-slot",
-                      "attribution-gmail-slot",
-                      "attribution-github-slot",
-                      "attribution-linear-slot"
+                      "attribution-calendar",
+                      "attribution-gmail",
+                      "attribution-github",
+                      "attribution-linear"
                     ]
                   },
                   {
-                    "id": "attribution-calendar-slot",
+                    "id": "attribution-calendar",
                     "component": "Attribution",
                     "displayName": "Google Calendar",
                     "appId": "calendar",
-                    "child": "calendar-slot",
+                    "child": "calendar",
                     "weight": 1
                   },
                   {
-                    "id": "calendar-slot",
+                    "id": "calendar",
                     "component": "Slot",
                     "source": "calendar",
                     "weight": 1,
@@ -4929,15 +4815,15 @@
                     "label": "Google Calendar"
                   },
                   {
-                    "id": "attribution-gmail-slot",
+                    "id": "attribution-gmail",
                     "component": "Attribution",
                     "displayName": "Gmail",
                     "appId": "gmail",
-                    "child": "gmail-slot",
+                    "child": "gmail",
                     "weight": 1
                   },
                   {
-                    "id": "gmail-slot",
+                    "id": "gmail",
                     "component": "Slot",
                     "source": "gmail",
                     "weight": 1,
@@ -4945,15 +4831,15 @@
                     "label": "Gmail"
                   },
                   {
-                    "id": "attribution-github-slot",
+                    "id": "attribution-github",
                     "component": "Attribution",
                     "displayName": "GitHub",
                     "appId": "github",
-                    "child": "github-slot",
+                    "child": "github",
                     "weight": 1
                   },
                   {
-                    "id": "github-slot",
+                    "id": "github",
                     "component": "Slot",
                     "source": "github",
                     "weight": 1,
@@ -4964,15 +4850,15 @@
                     }
                   },
                   {
-                    "id": "attribution-linear-slot",
+                    "id": "attribution-linear",
                     "component": "Attribution",
                     "displayName": "Linear",
                     "appId": "linear",
-                    "child": "linear-slot",
+                    "child": "linear",
                     "weight": 1
                   },
                   {
-                    "id": "linear-slot",
+                    "id": "linear",
                     "component": "Slot",
                     "source": "linear",
                     "weight": 1,
@@ -4991,7 +4877,7 @@
         }
       ],
       "outcome": "completed",
-      "durationMs": 18132
+      "durationMs": 23921
     }
   ]
 }

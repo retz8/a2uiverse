@@ -4,8 +4,8 @@
   "title": "An unseen combination falling to the walk",
   "prompt": "what's the status of what I'm working on?",
   "model": "gemini-3.7-flash",
-  "recordedAt": "2026-09-27T03:32:09Z",
-  "contextId": "cf7b6e30-7e65-4679-b877-7aa302cb2d1b",
+  "recordedAt": "2026-09-27T04:39:21Z",
+  "contextId": "7a8f3be4-9016-4dcd-9039-aa3a980b6c41",
   "chainedFrom": null,
   "deadlines": {
     "softDeadlineSeconds": 10,
@@ -13,13 +13,13 @@
   },
   "turns": [
     {
-      "taskId": "c9aebd89-e5da-4370-9140-8ceb69a65dc1",
+      "taskId": "c1da9764-7440-4a12-a8fc-518d50df69d8",
       "kind": "utterance",
       "prompt": "what's the status of what I'm working on?",
       "action": null,
       "batches": [
         {
-          "offsetMs": 10646,
+          "offsetMs": 6801,
           "messages": [
             {
               "version": "v0.9",
@@ -37,12 +37,12 @@
                     "id": "root",
                     "component": "Column",
                     "children": [
-                      "merged-view",
-                      "source-row"
+                      "overview",
+                      "sources"
                     ]
                   },
                   {
-                    "id": "merged-view",
+                    "id": "overview",
                     "component": "Slot",
                     "source": "shell",
                     "state": "pending",
@@ -52,7 +52,7 @@
                       "Issue",
                       "Status",
                       "Pull request",
-                      "CI",
+                      "CI status",
                       "Updated"
                     ],
                     "columnSources": [
@@ -72,24 +72,24 @@
                     }
                   },
                   {
-                    "id": "source-row",
+                    "id": "sources",
                     "component": "Row",
                     "children": [
-                      "attribution-linear-slot",
-                      "attribution-github-slot",
-                      "attribution-circleci-slot"
+                      "attribution-linear",
+                      "attribution-github",
+                      "attribution-circleci"
                     ]
                   },
                   {
-                    "id": "attribution-linear-slot",
+                    "id": "attribution-linear",
                     "component": "Attribution",
                     "displayName": "Linear",
                     "appId": "linear",
-                    "child": "linear-slot",
+                    "child": "linear",
                     "weight": 1
                   },
                   {
-                    "id": "linear-slot",
+                    "id": "linear",
                     "component": "Slot",
                     "source": "linear",
                     "weight": 1,
@@ -98,15 +98,15 @@
                     "noun": "Linear issues"
                   },
                   {
-                    "id": "attribution-github-slot",
+                    "id": "attribution-github",
                     "component": "Attribution",
                     "displayName": "GitHub",
                     "appId": "github",
-                    "child": "github-slot",
+                    "child": "github",
                     "weight": 1
                   },
                   {
-                    "id": "github-slot",
+                    "id": "github",
                     "component": "Slot",
                     "source": "github",
                     "weight": 1,
@@ -115,15 +115,15 @@
                     "noun": "GitHub PRs"
                   },
                   {
-                    "id": "attribution-circleci-slot",
+                    "id": "attribution-circleci",
                     "component": "Attribution",
                     "displayName": "CircleCI",
                     "appId": "circleci",
-                    "child": "circleci-slot",
+                    "child": "circleci",
                     "weight": 1
                   },
                   {
-                    "id": "circleci-slot",
+                    "id": "circleci",
                     "component": "Slot",
                     "source": "circleci",
                     "weight": 1,
@@ -142,12 +142,12 @@
           }
         },
         {
-          "offsetMs": 10657,
+          "offsetMs": 6815,
           "messages": [
             {
               "version": "v0.9",
               "createSurface": {
-                "surfaceId": "linear:linear-23",
+                "surfaceId": "linear:linear-19",
                 "catalogId": "https://github.com/retz8/a2uiverse-apps/blob/main/linear/linear-catalog/catalogs/v0.9.1/catalog.json",
                 "sendDataModel": true
               }
@@ -155,7 +155,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-23",
+                "surfaceId": "linear:linear-19",
                 "value": {
                   "team": "A2uiverse"
                 }
@@ -164,7 +164,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-23",
+                "surfaceId": "linear:linear-19",
                 "value": {
                   "issues": [
                     {
@@ -173,7 +173,7 @@
                       "status": "In Review",
                       "statusType": "started",
                       "priority": "High",
-                      "link": "PR #6"
+                      "labels": "Bug"
                     }
                   ]
                 }
@@ -182,7 +182,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-23",
+                "surfaceId": "linear:linear-19",
                 "value": {
                   "issues": [
                     {
@@ -191,31 +191,8 @@
                       "status": "In Review",
                       "statusType": "started",
                       "priority": "High",
-                      "link": "PR #6",
-                      "updatedAt": "Sep 19, 2026, 11:00 AM"
-                    },
-                    {}
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "linear:linear-23",
-                "value": {
-                  "issues": [
-                    {
-                      "id": "A2U-5",
-                      "title": "Say on the canvas when an utterance fails",
-                      "status": "In Review",
-                      "statusType": "started",
-                      "priority": "High",
-                      "link": "PR #6",
-                      "updatedAt": "Sep 19, 2026, 11:00 AM"
-                    },
-                    {
-                      "id": "A2U-6"
+                      "labels": "Bug",
+                      "link": "#6"
                     }
                   ]
                 }
@@ -224,7 +201,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-23",
+                "surfaceId": "linear:linear-19",
                 "value": {
                   "issues": [
                     {
@@ -233,96 +210,9 @@
                       "status": "In Review",
                       "statusType": "started",
                       "priority": "High",
-                      "link": "PR #6",
-                      "updatedAt": "Sep 19, 2026, 11:00 AM"
-                    },
-                    {
-                      "id": "A2U-6",
-                      "title": "Name the workflow, not its id, in the confirm status line",
-                      "status": "In Progress"
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "linear:linear-23",
-                "value": {
-                  "issues": [
-                    {
-                      "id": "A2U-5",
-                      "title": "Say on the canvas when an utterance fails",
-                      "status": "In Review",
-                      "statusType": "started",
-                      "priority": "High",
-                      "link": "PR #6",
-                      "updatedAt": "Sep 19, 2026, 11:00 AM"
-                    },
-                    {
-                      "id": "A2U-6",
-                      "title": "Name the workflow, not its id, in the confirm status line",
-                      "status": "In Progress",
-                      "statusType": "started",
-                      "priority": "Medium",
-                      "link": "PR #7"
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "linear:linear-23",
-                "value": {
-                  "issues": [
-                    {
-                      "id": "A2U-5",
-                      "title": "Say on the canvas when an utterance fails",
-                      "status": "In Review",
-                      "statusType": "started",
-                      "priority": "High",
-                      "link": "PR #6",
-                      "updatedAt": "Sep 19, 2026, 11:00 AM"
-                    },
-                    {
-                      "id": "A2U-6",
-                      "title": "Name the workflow, not its id, in the confirm status line",
-                      "status": "In Progress",
-                      "statusType": "started",
-                      "priority": "Medium",
-                      "link": "PR #7",
-                      "updatedAt": "Sep 18, 2026, 11:53 AM"
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "linear:linear-23",
-                "value": {
-                  "issues": [
-                    {
-                      "id": "A2U-5",
-                      "title": "Say on the canvas when an utterance fails",
-                      "status": "In Review",
-                      "statusType": "started",
-                      "priority": "High",
-                      "link": "PR #6",
-                      "updatedAt": "Sep 19, 2026, 11:00 AM"
-                    },
-                    {
-                      "id": "A2U-6",
-                      "title": "Name the workflow, not its id, in the confirm status line",
-                      "status": "In Progress",
-                      "statusType": "started",
-                      "priority": "Medium",
-                      "link": "PR #7",
-                      "updatedAt": "Sep 18, 2026, 11:53 AM"
+                      "labels": "Bug",
+                      "link": "#6",
+                      "updated": "Sep 19, 2026, 11:00 AM UTC"
                     },
                     {
                       "id": "A2U-7"
@@ -334,7 +224,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-23",
+                "surfaceId": "linear:linear-19",
                 "value": {
                   "issues": [
                     {
@@ -343,17 +233,9 @@
                       "status": "In Review",
                       "statusType": "started",
                       "priority": "High",
-                      "link": "PR #6",
-                      "updatedAt": "Sep 19, 2026, 11:00 AM"
-                    },
-                    {
-                      "id": "A2U-6",
-                      "title": "Name the workflow, not its id, in the confirm status line",
-                      "status": "In Progress",
-                      "statusType": "started",
-                      "priority": "Medium",
-                      "link": "PR #7",
-                      "updatedAt": "Sep 18, 2026, 11:53 AM"
+                      "labels": "Bug",
+                      "link": "#6",
+                      "updated": "Sep 19, 2026, 11:00 AM UTC"
                     },
                     {
                       "id": "A2U-7",
@@ -367,7 +249,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-23",
+                "surfaceId": "linear:linear-19",
                 "value": {
                   "issues": [
                     {
@@ -376,24 +258,17 @@
                       "status": "In Review",
                       "statusType": "started",
                       "priority": "High",
-                      "link": "PR #6",
-                      "updatedAt": "Sep 19, 2026, 11:00 AM"
-                    },
-                    {
-                      "id": "A2U-6",
-                      "title": "Name the workflow, not its id, in the confirm status line",
-                      "status": "In Progress",
-                      "statusType": "started",
-                      "priority": "Medium",
-                      "link": "PR #7",
-                      "updatedAt": "Sep 18, 2026, 11:53 AM"
+                      "labels": "Bug",
+                      "link": "#6",
+                      "updated": "Sep 19, 2026, 11:00 AM UTC"
                     },
                     {
                       "id": "A2U-7",
                       "title": "Shell-action report hangs through the tunnel",
                       "status": "In Progress",
                       "statusType": "started",
-                      "priority": "Low"
+                      "priority": "Low",
+                      "labels": "Bug"
                     }
                   ]
                 }
@@ -402,7 +277,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-23",
+                "surfaceId": "linear:linear-19",
                 "value": {
                   "issues": [
                     {
@@ -411,17 +286,9 @@
                       "status": "In Review",
                       "statusType": "started",
                       "priority": "High",
-                      "link": "PR #6",
-                      "updatedAt": "Sep 19, 2026, 11:00 AM"
-                    },
-                    {
-                      "id": "A2U-6",
-                      "title": "Name the workflow, not its id, in the confirm status line",
-                      "status": "In Progress",
-                      "statusType": "started",
-                      "priority": "Medium",
-                      "link": "PR #7",
-                      "updatedAt": "Sep 18, 2026, 11:53 AM"
+                      "labels": "Bug",
+                      "link": "#6",
+                      "updated": "Sep 19, 2026, 11:00 AM UTC"
                     },
                     {
                       "id": "A2U-7",
@@ -429,6 +296,7 @@
                       "status": "In Progress",
                       "statusType": "started",
                       "priority": "Low",
+                      "labels": "Bug",
                       "link": "ekkicb71/a2u-7-shell-action-report-hangs-through-the-tunnel"
                     }
                   ]
@@ -438,7 +306,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-23",
+                "surfaceId": "linear:linear-19",
                 "value": {
                   "issues": [
                     {
@@ -447,17 +315,9 @@
                       "status": "In Review",
                       "statusType": "started",
                       "priority": "High",
-                      "link": "PR #6",
-                      "updatedAt": "Sep 19, 2026, 11:00 AM"
-                    },
-                    {
-                      "id": "A2U-6",
-                      "title": "Name the workflow, not its id, in the confirm status line",
-                      "status": "In Progress",
-                      "statusType": "started",
-                      "priority": "Medium",
-                      "link": "PR #7",
-                      "updatedAt": "Sep 18, 2026, 11:53 AM"
+                      "labels": "Bug",
+                      "link": "#6",
+                      "updated": "Sep 19, 2026, 11:00 AM UTC"
                     },
                     {
                       "id": "A2U-7",
@@ -465,8 +325,9 @@
                       "status": "In Progress",
                       "statusType": "started",
                       "priority": "Low",
+                      "labels": "Bug",
                       "link": "ekkicb71/a2u-7-shell-action-report-hangs-through-the-tunnel",
-                      "updatedAt": "Sep 19, 2026, 10:53 AM"
+                      "updated": "Sep 19, 2026, 10:53 AM UTC"
                     }
                   ]
                 }
@@ -475,7 +336,156 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-23",
+                "surfaceId": "linear:linear-19",
+                "value": {
+                  "issues": [
+                    {
+                      "id": "A2U-5",
+                      "title": "Say on the canvas when an utterance fails",
+                      "status": "In Review",
+                      "statusType": "started",
+                      "priority": "High",
+                      "labels": "Bug",
+                      "link": "#6",
+                      "updated": "Sep 19, 2026, 11:00 AM UTC"
+                    },
+                    {
+                      "id": "A2U-7",
+                      "title": "Shell-action report hangs through the tunnel",
+                      "status": "In Progress",
+                      "statusType": "started",
+                      "priority": "Low",
+                      "labels": "Bug",
+                      "link": "ekkicb71/a2u-7-shell-action-report-hangs-through-the-tunnel",
+                      "updated": "Sep 19, 2026, 10:53 AM UTC"
+                    },
+                    {
+                      "id": "A2U-6"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "linear:linear-19",
+                "value": {
+                  "issues": [
+                    {
+                      "id": "A2U-5",
+                      "title": "Say on the canvas when an utterance fails",
+                      "status": "In Review",
+                      "statusType": "started",
+                      "priority": "High",
+                      "labels": "Bug",
+                      "link": "#6",
+                      "updated": "Sep 19, 2026, 11:00 AM UTC"
+                    },
+                    {
+                      "id": "A2U-7",
+                      "title": "Shell-action report hangs through the tunnel",
+                      "status": "In Progress",
+                      "statusType": "started",
+                      "priority": "Low",
+                      "labels": "Bug",
+                      "link": "ekkicb71/a2u-7-shell-action-report-hangs-through-the-tunnel",
+                      "updated": "Sep 19, 2026, 10:53 AM UTC"
+                    },
+                    {
+                      "id": "A2U-6",
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "status": "In Progress",
+                      "statusType": "started",
+                      "priority": "Medium"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "linear:linear-19",
+                "value": {
+                  "issues": [
+                    {
+                      "id": "A2U-5",
+                      "title": "Say on the canvas when an utterance fails",
+                      "status": "In Review",
+                      "statusType": "started",
+                      "priority": "High",
+                      "labels": "Bug",
+                      "link": "#6",
+                      "updated": "Sep 19, 2026, 11:00 AM UTC"
+                    },
+                    {
+                      "id": "A2U-7",
+                      "title": "Shell-action report hangs through the tunnel",
+                      "status": "In Progress",
+                      "statusType": "started",
+                      "priority": "Low",
+                      "labels": "Bug",
+                      "link": "ekkicb71/a2u-7-shell-action-report-hangs-through-the-tunnel",
+                      "updated": "Sep 19, 2026, 10:53 AM UTC"
+                    },
+                    {
+                      "id": "A2U-6",
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "status": "In Progress",
+                      "statusType": "started",
+                      "priority": "Medium",
+                      "labels": "Improvement",
+                      "link": "#7"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "linear:linear-19",
+                "value": {
+                  "issues": [
+                    {
+                      "id": "A2U-5",
+                      "title": "Say on the canvas when an utterance fails",
+                      "status": "In Review",
+                      "statusType": "started",
+                      "priority": "High",
+                      "labels": "Bug",
+                      "link": "#6",
+                      "updated": "Sep 19, 2026, 11:00 AM UTC"
+                    },
+                    {
+                      "id": "A2U-7",
+                      "title": "Shell-action report hangs through the tunnel",
+                      "status": "In Progress",
+                      "statusType": "started",
+                      "priority": "Low",
+                      "labels": "Bug",
+                      "link": "ekkicb71/a2u-7-shell-action-report-hangs-through-the-tunnel",
+                      "updated": "Sep 19, 2026, 10:53 AM UTC"
+                    },
+                    {
+                      "id": "A2U-6",
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "status": "In Progress",
+                      "statusType": "started",
+                      "priority": "Medium",
+                      "labels": "Improvement",
+                      "link": "#7",
+                      "updated": "Sep 18, 2026, 11:53 AM UTC"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "linear:linear-19",
                 "path": "/",
                 "value": {
                   "team": "A2uiverse",
@@ -486,17 +496,9 @@
                       "status": "In Review",
                       "statusType": "started",
                       "priority": "High",
-                      "link": "PR #6",
-                      "updatedAt": "Sep 19, 2026, 11:00 AM"
-                    },
-                    {
-                      "id": "A2U-6",
-                      "title": "Name the workflow, not its id, in the confirm status line",
-                      "status": "In Progress",
-                      "statusType": "started",
-                      "priority": "Medium",
-                      "link": "PR #7",
-                      "updatedAt": "Sep 18, 2026, 11:53 AM"
+                      "labels": "Bug",
+                      "link": "#6",
+                      "updated": "Sep 19, 2026, 11:00 AM UTC"
                     },
                     {
                       "id": "A2U-7",
@@ -504,8 +506,19 @@
                       "status": "In Progress",
                       "statusType": "started",
                       "priority": "Low",
+                      "labels": "Bug",
                       "link": "ekkicb71/a2u-7-shell-action-report-hangs-through-the-tunnel",
-                      "updatedAt": "Sep 19, 2026, 10:53 AM"
+                      "updated": "Sep 19, 2026, 10:53 AM UTC"
+                    },
+                    {
+                      "id": "A2U-6",
+                      "title": "Name the workflow, not its id, in the confirm status line",
+                      "status": "In Progress",
+                      "statusType": "started",
+                      "priority": "Medium",
+                      "labels": "Improvement",
+                      "link": "#7",
+                      "updated": "Sep 18, 2026, 11:53 AM UTC"
                     }
                   ]
                 }
@@ -516,12 +529,6 @@
               "updateComponents": {
                 "components": [
                   {
-                    "id": "root",
-                    "component": "Panel",
-                    "padding": "none",
-                    "child": "body"
-                  },
-                  {
                     "id": "body",
                     "component": "Stack",
                     "gap": "none",
@@ -529,6 +536,12 @@
                       "header",
                       "list"
                     ]
+                  },
+                  {
+                    "id": "root",
+                    "component": "Panel",
+                    "padding": "none",
+                    "child": "body"
                   },
                   {
                     "id": "header",
@@ -556,8 +569,9 @@
                       "row-status"
                     ],
                     "trailing": [
+                      "row-labels",
                       "row-link",
-                      "row-updated"
+                      "row-when"
                     ],
                     "action": {
                       "event": {
@@ -604,6 +618,13 @@
                     "weight": "medium"
                   },
                   {
+                    "id": "row-labels",
+                    "component": "Chip",
+                    "label": {
+                      "path": "labels"
+                    }
+                  },
+                  {
                     "id": "row-link",
                     "component": "Text",
                     "text": {
@@ -612,15 +633,15 @@
                     "variant": "caption"
                   },
                   {
-                    "id": "row-updated",
+                    "id": "row-when",
                     "component": "Text",
                     "text": {
-                      "path": "updatedAt"
+                      "path": "updated"
                     },
                     "variant": "caption"
                   }
                 ],
-                "surfaceId": "linear:linear-23"
+                "surfaceId": "linear:linear-19"
               }
             }
           ],
@@ -631,12 +652,12 @@
           }
         },
         {
-          "offsetMs": 10660,
+          "offsetMs": 6818,
           "messages": [
             {
               "version": "v0.9",
               "createSurface": {
-                "surfaceId": "github:notifications-23",
+                "surfaceId": "github:notifications-20",
                 "catalogId": "https://github.com/retz8/a2uiverse-apps/blob/main/github/github-catalog/catalogs/v0.9.1/catalog.json",
                 "sendDataModel": true
               }
@@ -644,7 +665,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-23",
+                "surfaceId": "github:notifications-20",
                 "value": {
                   "prs": [
                     {
@@ -660,7 +681,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-23",
+                "surfaceId": "github:notifications-20",
                 "value": {
                   "prs": [
                     {
@@ -678,7 +699,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-23",
+                "surfaceId": "github:notifications-20",
                 "value": {
                   "prs": [
                     {
@@ -698,7 +719,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-23",
+                "surfaceId": "github:notifications-20",
                 "value": {
                   "prs": [
                     {
@@ -720,7 +741,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-23",
+                "surfaceId": "github:notifications-20",
                 "value": {
                   "prs": [
                     {
@@ -744,7 +765,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-23",
+                "surfaceId": "github:notifications-20",
                 "value": {
                   "prs": [
                     {
@@ -769,7 +790,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-23",
+                "surfaceId": "github:notifications-20",
                 "value": {
                   "prs": [
                     {
@@ -796,7 +817,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-23",
+                "surfaceId": "github:notifications-20",
                 "value": {
                   "prs": [
                     {
@@ -825,7 +846,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-23",
+                "surfaceId": "github:notifications-20",
                 "value": {
                   "prs": [
                     {
@@ -857,7 +878,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-23",
+                "surfaceId": "github:notifications-20",
                 "value": {
                   "prs": [
                     {
@@ -890,7 +911,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-23",
+                "surfaceId": "github:notifications-20",
                 "value": {
                   "prs": [
                     {
@@ -924,7 +945,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-23",
+                "surfaceId": "github:notifications-20",
                 "value": {
                   "prs": [
                     {
@@ -960,7 +981,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-23",
+                "surfaceId": "github:notifications-20",
                 "value": {
                   "prs": [
                     {
@@ -1000,7 +1021,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-23",
+                "surfaceId": "github:notifications-20",
                 "value": {
                   "prs": [
                     {
@@ -1041,7 +1062,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-23",
+                "surfaceId": "github:notifications-20",
                 "value": {
                   "prs": [
                     {
@@ -1083,7 +1104,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-23",
+                "surfaceId": "github:notifications-20",
                 "value": {
                   "prs": [
                     {
@@ -1127,7 +1148,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-23",
+                "surfaceId": "github:notifications-20",
                 "value": {
                   "prs": [
                     {
@@ -1172,7 +1193,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-23",
+                "surfaceId": "github:notifications-20",
                 "value": {
                   "prs": [
                     {
@@ -1221,7 +1242,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-23",
+                "surfaceId": "github:notifications-20",
                 "value": {
                   "prs": [
                     {
@@ -1271,7 +1292,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-23",
+                "surfaceId": "github:notifications-20",
                 "value": {
                   "prs": [
                     {
@@ -1322,7 +1343,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-23",
+                "surfaceId": "github:notifications-20",
                 "value": {
                   "prs": [
                     {
@@ -1374,7 +1395,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-23",
+                "surfaceId": "github:notifications-20",
                 "value": {
                   "prs": [
                     {
@@ -1428,7 +1449,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-23",
+                "surfaceId": "github:notifications-20",
                 "value": {
                   "prs": [
                     {
@@ -1483,7 +1504,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-23",
+                "surfaceId": "github:notifications-20",
                 "value": {
                   "prs": [
                     {
@@ -1541,7 +1562,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-23",
+                "surfaceId": "github:notifications-20",
                 "value": {
                   "prs": [
                     {
@@ -1601,7 +1622,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-23",
+                "surfaceId": "github:notifications-20",
                 "value": {
                   "prs": [
                     {
@@ -1662,7 +1683,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-23",
+                "surfaceId": "github:notifications-20",
                 "value": {
                   "prs": [
                     {
@@ -1725,7 +1746,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-23",
+                "surfaceId": "github:notifications-20",
                 "value": {
                   "prs": [
                     {
@@ -1789,7 +1810,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-23",
+                "surfaceId": "github:notifications-20",
                 "path": "/",
                 "value": {
                   "prs": [
@@ -2050,7 +2071,7 @@
                     "second": "2-digit"
                   }
                 ],
-                "surfaceId": "github:notifications-23"
+                "surfaceId": "github:notifications-20"
               }
             }
           ],
@@ -2061,7 +2082,7 @@
           }
         },
         {
-          "offsetMs": 10662,
+          "offsetMs": 6821,
           "messages": [
             {
               "version": "v0.9",
@@ -5435,7 +5456,7 @@
           }
         },
         {
-          "offsetMs": 18285,
+          "offsetMs": 17641,
           "messages": [
             {
               "version": "v0.9",
@@ -5463,15 +5484,15 @@
                     "justify": "spaceBetween",
                     "align": "center",
                     "children": [
-                      "title",
+                      "heading",
                       "sort"
                     ]
                   },
                   {
-                    "id": "title",
+                    "id": "heading",
                     "component": "Text",
                     "variant": "h5",
-                    "text": "Work status"
+                    "text": "Active work items"
                   },
                   {
                     "id": "sort",
@@ -5487,7 +5508,7 @@
                       "Issue",
                       "Status",
                       "Pull request",
-                      "CI",
+                      "CI status",
                       "Updated"
                     ],
                     "columnSources": [
@@ -5517,7 +5538,7 @@
                     "id": "c-issue",
                     "component": "DerivedValue",
                     "cell": {
-                      "path": "title"
+                      "path": "issue"
                     }
                   },
                   {
@@ -5552,7 +5573,7 @@
                     "id": "c-updated",
                     "component": "DerivedValue",
                     "cell": {
-                      "path": "updatedAt"
+                      "path": "updated"
                     },
                     "format": {
                       "kind": "datetime"
@@ -5572,39 +5593,39 @@
               "issues": [
                 {
                   "match": {
-                    "title in PR": {
-                      "op": "equal",
+                    "issue identifier in PR branch": {
+                      "op": "contains",
                       "args": [
                         {
-                          "surface": "linear:linear-23",
-                          "pointer": "/issues[id=\"A2U-5\"]/title"
+                          "surface": "github:notifications-20",
+                          "pointer": "/prs[repository=\"retz8/a2uiverse\",number=6]/branch"
                         },
                         {
-                          "surface": "github:notifications-23",
-                          "pointer": "/prs[number=6,repository=\"retz8/a2uiverse\"]/title"
+                          "surface": "linear:linear-19",
+                          "pointer": "/issues[id=\"A2U-5\"]/id"
                         }
                       ]
                     },
-                    "branch in CircleCI run": {
+                    "same branch in CI run": {
                       "op": "equal",
                       "args": [
                         {
-                          "surface": "github:notifications-23",
-                          "pointer": "/prs[number=6,repository=\"retz8/a2uiverse\"]/branch"
-                        },
-                        {
                           "surface": "circleci:circleci-11",
                           "pointer": "/runs[id=\"6039cf16-6db3-4974-af2b-517f8ce26c2a\"]/branch"
+                        },
+                        {
+                          "surface": "github:notifications-20",
+                          "pointer": "/prs[repository=\"retz8/a2uiverse\",number=6]/branch"
                         }
                       ]
                     }
                   },
-                  "title": {
+                  "issue": {
                     "op": "value",
                     "args": [
                       {
-                        "surface": "linear:linear-23",
-                        "pointer": "/issues[id=\"A2U-5\"]/title"
+                        "surface": "linear:linear-19",
+                        "pointer": "/issues[id=\"A2U-5\"]/id"
                       }
                     ]
                   },
@@ -5612,7 +5633,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "linear:linear-23",
+                        "surface": "linear:linear-19",
                         "pointer": "/issues[id=\"A2U-5\"]/status"
                       }
                     ]
@@ -5621,8 +5642,8 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "github:notifications-23",
-                        "pointer": "/prs[number=6,repository=\"retz8/a2uiverse\"]/number"
+                        "surface": "github:notifications-20",
+                        "pointer": "/prs[repository=\"retz8/a2uiverse\",number=6]/number"
                       }
                     ]
                   },
@@ -5635,51 +5656,23 @@
                       }
                     ]
                   },
-                  "updatedAt": {
+                  "updated": {
                     "op": "value",
                     "args": [
                       {
-                        "surface": "linear:linear-23",
-                        "pointer": "/issues[id=\"A2U-5\"]/updatedAt"
+                        "surface": "linear:linear-19",
+                        "pointer": "/issues[id=\"A2U-5\"]/updated"
                       }
                     ]
                   }
                 },
                 {
-                  "match": {
-                    "title in PR": {
-                      "op": "equal",
-                      "args": [
-                        {
-                          "surface": "linear:linear-23",
-                          "pointer": "/issues[id=\"A2U-6\"]/title"
-                        },
-                        {
-                          "surface": "github:notifications-23",
-                          "pointer": "/prs[number=7,repository=\"retz8/a2uiverse\"]/title"
-                        }
-                      ]
-                    },
-                    "branch in CircleCI run": {
-                      "op": "equal",
-                      "args": [
-                        {
-                          "surface": "github:notifications-23",
-                          "pointer": "/prs[number=7,repository=\"retz8/a2uiverse\"]/branch"
-                        },
-                        {
-                          "surface": "circleci:circleci-11",
-                          "pointer": "/runs[id=\"8ccc8586-fb31-49f8-96aa-daa8642abdb0\"]/branch"
-                        }
-                      ]
-                    }
-                  },
-                  "title": {
+                  "issue": {
                     "op": "value",
                     "args": [
                       {
-                        "surface": "linear:linear-23",
-                        "pointer": "/issues[id=\"A2U-6\"]/title"
+                        "surface": "linear:linear-19",
+                        "pointer": "/issues[id=\"A2U-7\"]/id"
                       }
                     ]
                   },
@@ -5687,54 +5680,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "linear:linear-23",
-                        "pointer": "/issues[id=\"A2U-6\"]/status"
-                      }
-                    ]
-                  },
-                  "pr": {
-                    "op": "value",
-                    "args": [
-                      {
-                        "surface": "github:notifications-23",
-                        "pointer": "/prs[number=7,repository=\"retz8/a2uiverse\"]/number"
-                      }
-                    ]
-                  },
-                  "ci": {
-                    "op": "value",
-                    "args": [
-                      {
-                        "surface": "circleci:circleci-11",
-                        "pointer": "/runs[id=\"8ccc8586-fb31-49f8-96aa-daa8642abdb0\"]/status"
-                      }
-                    ]
-                  },
-                  "updatedAt": {
-                    "op": "value",
-                    "args": [
-                      {
-                        "surface": "linear:linear-23",
-                        "pointer": "/issues[id=\"A2U-6\"]/updatedAt"
-                      }
-                    ]
-                  }
-                },
-                {
-                  "title": {
-                    "op": "value",
-                    "args": [
-                      {
-                        "surface": "linear:linear-23",
-                        "pointer": "/issues[id=\"A2U-7\"]/title"
-                      }
-                    ]
-                  },
-                  "status": {
-                    "op": "value",
-                    "args": [
-                      {
-                        "surface": "linear:linear-23",
+                        "surface": "linear:linear-19",
                         "pointer": "/issues[id=\"A2U-7\"]/status"
                       }
                     ]
@@ -5747,12 +5693,87 @@
                     "op": "value",
                     "args": []
                   },
-                  "updatedAt": {
+                  "updated": {
                     "op": "value",
                     "args": [
                       {
-                        "surface": "linear:linear-23",
-                        "pointer": "/issues[id=\"A2U-7\"]/updatedAt"
+                        "surface": "linear:linear-19",
+                        "pointer": "/issues[id=\"A2U-7\"]/updated"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "match": {
+                    "same title": {
+                      "op": "equal",
+                      "args": [
+                        {
+                          "surface": "linear:linear-19",
+                          "pointer": "/issues[id=\"A2U-6\"]/title"
+                        },
+                        {
+                          "surface": "github:notifications-20",
+                          "pointer": "/prs[repository=\"retz8/a2uiverse\",number=7]/title"
+                        }
+                      ]
+                    },
+                    "same branch in CI run": {
+                      "op": "equal",
+                      "args": [
+                        {
+                          "surface": "circleci:circleci-11",
+                          "pointer": "/runs[id=\"8ccc8586-fb31-49f8-96aa-daa8642abdb0\"]/branch"
+                        },
+                        {
+                          "surface": "github:notifications-20",
+                          "pointer": "/prs[repository=\"retz8/a2uiverse\",number=7]/branch"
+                        }
+                      ]
+                    }
+                  },
+                  "issue": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "linear:linear-19",
+                        "pointer": "/issues[id=\"A2U-6\"]/id"
+                      }
+                    ]
+                  },
+                  "status": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "linear:linear-19",
+                        "pointer": "/issues[id=\"A2U-6\"]/status"
+                      }
+                    ]
+                  },
+                  "pr": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "github:notifications-20",
+                        "pointer": "/prs[repository=\"retz8/a2uiverse\",number=7]/number"
+                      }
+                    ]
+                  },
+                  "ci": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "circleci:circleci-11",
+                        "pointer": "/runs[id=\"8ccc8586-fb31-49f8-96aa-daa8642abdb0\"]/status"
+                      }
+                    ]
+                  },
+                  "updated": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "linear:linear-19",
+                        "pointer": "/issues[id=\"A2U-6\"]/updated"
                       }
                     ]
                   }
@@ -5764,18 +5785,18 @@
                 "path": "/issues",
                 "options": [
                   {
-                    "key": "/updatedAt",
+                    "key": "/updated",
                     "label": "Updated"
                   }
                 ],
-                "key": "/updatedAt",
+                "key": "/updated",
                 "direction": "desc"
               }
             ]
           }
         },
         {
-          "offsetMs": 18285,
+          "offsetMs": 17641,
           "messages": [
             {
               "version": "v0.9",
@@ -5786,12 +5807,12 @@
                     "id": "root",
                     "component": "Column",
                     "children": [
-                      "merged-view",
-                      "source-row"
+                      "overview",
+                      "sources"
                     ]
                   },
                   {
-                    "id": "merged-view",
+                    "id": "overview",
                     "component": "Slot",
                     "source": "shell",
                     "state": "pending",
@@ -5801,7 +5822,7 @@
                       "Issue",
                       "Status",
                       "Pull request",
-                      "CI",
+                      "CI status",
                       "Updated"
                     ],
                     "columnSources": [
@@ -5826,24 +5847,24 @@
                     ]
                   },
                   {
-                    "id": "source-row",
+                    "id": "sources",
                     "component": "Row",
                     "children": [
-                      "attribution-linear-slot",
-                      "attribution-github-slot",
-                      "attribution-circleci-slot"
+                      "attribution-linear",
+                      "attribution-github",
+                      "attribution-circleci"
                     ]
                   },
                   {
-                    "id": "attribution-linear-slot",
+                    "id": "attribution-linear",
                     "component": "Attribution",
                     "displayName": "Linear",
                     "appId": "linear",
-                    "child": "linear-slot",
+                    "child": "linear",
                     "weight": 1
                   },
                   {
-                    "id": "linear-slot",
+                    "id": "linear",
                     "component": "Slot",
                     "source": "linear",
                     "weight": 1,
@@ -5852,15 +5873,15 @@
                     "noun": "Linear issues"
                   },
                   {
-                    "id": "attribution-github-slot",
+                    "id": "attribution-github",
                     "component": "Attribution",
                     "displayName": "GitHub",
                     "appId": "github",
-                    "child": "github-slot",
+                    "child": "github",
                     "weight": 1
                   },
                   {
-                    "id": "github-slot",
+                    "id": "github",
                     "component": "Slot",
                     "source": "github",
                     "weight": 1,
@@ -5869,15 +5890,15 @@
                     "noun": "GitHub PRs"
                   },
                   {
-                    "id": "attribution-circleci-slot",
+                    "id": "attribution-circleci",
                     "component": "Attribution",
                     "displayName": "CircleCI",
                     "appId": "circleci",
-                    "child": "circleci-slot",
+                    "child": "circleci",
                     "weight": 1
                   },
                   {
-                    "id": "circleci-slot",
+                    "id": "circleci",
                     "component": "Slot",
                     "source": "circleci",
                     "weight": 1,
@@ -5897,17 +5918,17 @@
         }
       ],
       "outcome": "completed",
-      "durationMs": 18285
+      "durationMs": 17642
     },
     {
-      "taskId": "76517bd1-b57d-445c-9d33-5c07ba0efec7",
+      "taskId": "857078d3-ae3a-4f74-902e-485d65f7d07e",
       "kind": "surface-action",
       "prompt": "",
       "action": {
         "name": "open-run",
         "surfaceId": "circleci:circleci-11",
         "sourceComponentId": "run-row",
-        "timestamp": "2026-09-27T03:31:41.666Z",
+        "timestamp": "2026-09-27T04:38:53.068Z",
         "context": {
           "runId": "8a6c87c2-978c-4f4b-a304-dc17e50b726c"
         }
@@ -5915,7 +5936,7 @@
       "canvas": 0,
       "batches": [
         {
-          "offsetMs": 8,
+          "offsetMs": 7,
           "messages": [
             {
               "version": "v0.9",
@@ -6628,7 +6649,7 @@
           }
         },
         {
-          "offsetMs": 7983,
+          "offsetMs": 8103,
           "messages": [
             {
               "version": "v0.9",
@@ -6656,15 +6677,15 @@
                     "justify": "spaceBetween",
                     "align": "center",
                     "children": [
-                      "title",
+                      "heading",
                       "sort"
                     ]
                   },
                   {
-                    "id": "title",
+                    "id": "heading",
                     "component": "Text",
                     "variant": "h5",
-                    "text": "Work status"
+                    "text": "Active work items"
                   },
                   {
                     "id": "sort",
@@ -6680,7 +6701,7 @@
                       "Issue",
                       "Status",
                       "Pull request",
-                      "CI",
+                      "CI status",
                       "Updated"
                     ],
                     "columnSources": [
@@ -6710,7 +6731,7 @@
                     "id": "c-issue",
                     "component": "DerivedValue",
                     "cell": {
-                      "path": "title"
+                      "path": "issue"
                     }
                   },
                   {
@@ -6745,7 +6766,7 @@
                     "id": "c-updated",
                     "component": "DerivedValue",
                     "cell": {
-                      "path": "updatedAt"
+                      "path": "updated"
                     },
                     "format": {
                       "kind": "datetime"
@@ -6765,26 +6786,26 @@
               "issues": [
                 {
                   "match": {
-                    "title in PR": {
-                      "op": "equal",
+                    "issue identifier in PR branch": {
+                      "op": "contains",
                       "args": [
                         {
-                          "surface": "linear:linear-23",
-                          "pointer": "/issues[id=\"A2U-5\"]/title"
+                          "surface": "github:notifications-20",
+                          "pointer": "/prs[repository=\"retz8/a2uiverse\",number=6]/branch"
                         },
                         {
-                          "surface": "github:notifications-23",
-                          "pointer": "/prs[number=6,repository=\"retz8/a2uiverse\"]/title"
+                          "surface": "linear:linear-19",
+                          "pointer": "/issues[id=\"A2U-5\"]/id"
                         }
                       ]
                     }
                   },
-                  "title": {
+                  "issue": {
                     "op": "value",
                     "args": [
                       {
-                        "surface": "linear:linear-23",
-                        "pointer": "/issues[id=\"A2U-5\"]/title"
+                        "surface": "linear:linear-19",
+                        "pointer": "/issues[id=\"A2U-5\"]/id"
                       }
                     ]
                   },
@@ -6792,7 +6813,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "linear:linear-23",
+                        "surface": "linear:linear-19",
                         "pointer": "/issues[id=\"A2U-5\"]/status"
                       }
                     ]
@@ -6801,8 +6822,8 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "github:notifications-23",
-                        "pointer": "/prs[number=6,repository=\"retz8/a2uiverse\"]/number"
+                        "surface": "github:notifications-20",
+                        "pointer": "/prs[repository=\"retz8/a2uiverse\",number=6]/number"
                       }
                     ]
                   },
@@ -6810,38 +6831,23 @@
                     "op": "value",
                     "args": []
                   },
-                  "updatedAt": {
+                  "updated": {
                     "op": "value",
                     "args": [
                       {
-                        "surface": "linear:linear-23",
-                        "pointer": "/issues[id=\"A2U-5\"]/updatedAt"
+                        "surface": "linear:linear-19",
+                        "pointer": "/issues[id=\"A2U-5\"]/updated"
                       }
                     ]
                   }
                 },
                 {
-                  "match": {
-                    "title in PR": {
-                      "op": "equal",
-                      "args": [
-                        {
-                          "surface": "linear:linear-23",
-                          "pointer": "/issues[id=\"A2U-6\"]/title"
-                        },
-                        {
-                          "surface": "github:notifications-23",
-                          "pointer": "/prs[number=7,repository=\"retz8/a2uiverse\"]/title"
-                        }
-                      ]
-                    }
-                  },
-                  "title": {
+                  "issue": {
                     "op": "value",
                     "args": [
                       {
-                        "surface": "linear:linear-23",
-                        "pointer": "/issues[id=\"A2U-6\"]/title"
+                        "surface": "linear:linear-19",
+                        "pointer": "/issues[id=\"A2U-7\"]/id"
                       }
                     ]
                   },
@@ -6849,49 +6855,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "linear:linear-23",
-                        "pointer": "/issues[id=\"A2U-6\"]/status"
-                      }
-                    ]
-                  },
-                  "pr": {
-                    "op": "value",
-                    "args": [
-                      {
-                        "surface": "github:notifications-23",
-                        "pointer": "/prs[number=7,repository=\"retz8/a2uiverse\"]/number"
-                      }
-                    ]
-                  },
-                  "ci": {
-                    "op": "value",
-                    "args": []
-                  },
-                  "updatedAt": {
-                    "op": "value",
-                    "args": [
-                      {
-                        "surface": "linear:linear-23",
-                        "pointer": "/issues[id=\"A2U-6\"]/updatedAt"
-                      }
-                    ]
-                  }
-                },
-                {
-                  "title": {
-                    "op": "value",
-                    "args": [
-                      {
-                        "surface": "linear:linear-23",
-                        "pointer": "/issues[id=\"A2U-7\"]/title"
-                      }
-                    ]
-                  },
-                  "status": {
-                    "op": "value",
-                    "args": [
-                      {
-                        "surface": "linear:linear-23",
+                        "surface": "linear:linear-19",
                         "pointer": "/issues[id=\"A2U-7\"]/status"
                       }
                     ]
@@ -6904,12 +6868,69 @@
                     "op": "value",
                     "args": []
                   },
-                  "updatedAt": {
+                  "updated": {
                     "op": "value",
                     "args": [
                       {
-                        "surface": "linear:linear-23",
-                        "pointer": "/issues[id=\"A2U-7\"]/updatedAt"
+                        "surface": "linear:linear-19",
+                        "pointer": "/issues[id=\"A2U-7\"]/updated"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "match": {
+                    "same title": {
+                      "op": "equal",
+                      "args": [
+                        {
+                          "surface": "linear:linear-19",
+                          "pointer": "/issues[id=\"A2U-6\"]/title"
+                        },
+                        {
+                          "surface": "github:notifications-20",
+                          "pointer": "/prs[repository=\"retz8/a2uiverse\",number=7]/title"
+                        }
+                      ]
+                    }
+                  },
+                  "issue": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "linear:linear-19",
+                        "pointer": "/issues[id=\"A2U-6\"]/id"
+                      }
+                    ]
+                  },
+                  "status": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "linear:linear-19",
+                        "pointer": "/issues[id=\"A2U-6\"]/status"
+                      }
+                    ]
+                  },
+                  "pr": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "github:notifications-20",
+                        "pointer": "/prs[repository=\"retz8/a2uiverse\",number=7]/number"
+                      }
+                    ]
+                  },
+                  "ci": {
+                    "op": "value",
+                    "args": []
+                  },
+                  "updated": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "linear:linear-19",
+                        "pointer": "/issues[id=\"A2U-6\"]/updated"
                       }
                     ]
                   }
@@ -6921,11 +6942,11 @@
                 "path": "/issues",
                 "options": [
                   {
-                    "key": "/updatedAt",
+                    "key": "/updated",
                     "label": "Updated"
                   }
                 ],
-                "key": "/updatedAt",
+                "key": "/updated",
                 "direction": "desc"
               }
             ]
@@ -6933,17 +6954,17 @@
         }
       ],
       "outcome": "completed",
-      "durationMs": 7983
+      "durationMs": 8103
     },
     {
-      "taskId": "5378e9a2-8688-415e-a744-de08c32c909f",
+      "taskId": "6fdda9b7-486d-49ae-8153-a467f101810a",
       "kind": "surface-action",
       "prompt": "",
       "action": {
         "name": "open-issue",
-        "surfaceId": "linear:linear-23",
+        "surfaceId": "linear:linear-19",
         "sourceComponentId": "issue-row",
-        "timestamp": "2026-09-27T03:31:49.650Z",
+        "timestamp": "2026-09-27T04:39:01.173Z",
         "context": {
           "issueId": "A2U-5"
         }
@@ -6951,12 +6972,12 @@
       "canvas": 0,
       "batches": [
         {
-          "offsetMs": 10,
+          "offsetMs": 8,
           "messages": [
             {
               "version": "v0.9",
               "createSurface": {
-                "surfaceId": "linear:linear-24",
+                "surfaceId": "linear:linear-20",
                 "catalogId": "https://github.com/retz8/a2uiverse-apps/blob/main/linear/linear-catalog/catalogs/v0.9.1/catalog.json",
                 "sendDataModel": true
               }
@@ -6964,9 +6985,17 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-24",
+                "surfaceId": "linear:linear-20",
                 "value": {
-                  "team": "A2uiverse",
+                  "team": "A2uiverse"
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "linear:linear-20",
+                "value": {
                   "id": "A2U-5"
                 }
               }
@@ -6974,29 +7003,29 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-24",
+                "surfaceId": "linear:linear-20",
                 "value": {
                   "title": "Say on the canvas when an utterance fails",
-                  "status": "In Review"
+                  "status": "In Review",
+                  "statusType": "started"
                 }
               }
             },
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-24",
+                "surfaceId": "linear:linear-20",
                 "value": {
-                  "statusType": "started",
-                  "priority": "High"
+                  "priority": "High",
+                  "assignee": "Jioh In"
                 }
               }
             },
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-24",
+                "surfaceId": "linear:linear-20",
                 "value": {
-                  "assignee": "Jioh In",
                   "labels": "Bug"
                 }
               }
@@ -7004,7 +7033,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-24",
+                "surfaceId": "linear:linear-20",
                 "value": {
                   "description": "A failed utterance leaves the canvas idle with no word: the palette closes and nothing paints, and the failure shows up only in the orchestrator's log. Found in the CircleCI app's canvas pass (7.2).\n\nThe canvas should say the turn failed, in words, where the answer would have painted."
                 }
@@ -7013,7 +7042,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-24",
+                "surfaceId": "linear:linear-20",
                 "value": {
                   "pullRequests": [
                     {
@@ -7027,7 +7056,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-24",
+                "surfaceId": "linear:linear-20",
                 "value": {
                   "branch": "ekkicb71/a2u-5-say-on-the-canvas-when-an-utterance-fails"
                 }
@@ -7036,12 +7065,12 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-24",
+                "surfaceId": "linear:linear-20",
                 "value": {
                   "comments": [
                     {
                       "author": "GitHub",
-                      "when": "Sep 18"
+                      "when": "Sep 18, 2026, 11:50 AM UTC"
                     }
                   ]
                 }
@@ -7050,12 +7079,12 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-24",
+                "surfaceId": "linear:linear-20",
                 "value": {
                   "comments": [
                     {
                       "author": "GitHub",
-                      "when": "Sep 18",
+                      "when": "Sep 18, 2026, 11:50 AM UTC",
                       "body": "This comment thread is synced to a corresponding [GitHub issue](https://github.com/retz8/a2uiverse/issues/3). All replies are displayed in both locations."
                     }
                   ]
@@ -7065,7 +7094,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-24",
+                "surfaceId": "linear:linear-20",
                 "path": "/",
                 "value": {
                   "team": "A2uiverse",
@@ -7087,7 +7116,7 @@
                   "comments": [
                     {
                       "author": "GitHub",
-                      "when": "Sep 18",
+                      "when": "Sep 18, 2026, 11:50 AM UTC",
                       "body": "This comment thread is synced to a corresponding [GitHub issue](https://github.com/retz8/a2uiverse/issues/3). All replies are displayed in both locations."
                     }
                   ]
@@ -7099,12 +7128,6 @@
               "updateComponents": {
                 "components": [
                   {
-                    "id": "root",
-                    "component": "Panel",
-                    "padding": "none",
-                    "child": "body"
-                  },
-                  {
                     "id": "body",
                     "component": "Stack",
                     "gap": "none",
@@ -7112,6 +7135,12 @@
                       "header",
                       "content"
                     ]
+                  },
+                  {
+                    "id": "root",
+                    "component": "Panel",
+                    "padding": "none",
+                    "child": "body"
                   },
                   {
                     "id": "header",
@@ -7138,14 +7167,6 @@
                     ]
                   },
                   {
-                    "id": "title",
-                    "component": "Text",
-                    "text": {
-                      "path": "/title"
-                    },
-                    "variant": "title"
-                  },
-                  {
                     "id": "props",
                     "component": "Stack",
                     "gap": "xs",
@@ -7155,6 +7176,14 @@
                       "assignee-prop",
                       "labels-prop"
                     ]
+                  },
+                  {
+                    "id": "title",
+                    "component": "Text",
+                    "text": {
+                      "path": "/title"
+                    },
+                    "variant": "title"
                   },
                   {
                     "id": "status-prop",
@@ -7258,7 +7287,6 @@
                     "id": "links",
                     "component": "Section",
                     "title": "Links",
-                    "count": "2",
                     "children": [
                       "pr-list",
                       "branch"
@@ -7299,6 +7327,14 @@
                     "weight": "medium"
                   },
                   {
+                    "id": "pr-number",
+                    "component": "Text",
+                    "text": {
+                      "path": "number"
+                    },
+                    "variant": "caption"
+                  },
+                  {
                     "id": "branch",
                     "component": "Stack",
                     "direction": "horizontal",
@@ -7308,14 +7344,6 @@
                       "branch-icon",
                       "branch-name"
                     ]
-                  },
-                  {
-                    "id": "pr-number",
-                    "component": "Text",
-                    "text": {
-                      "path": "number"
-                    },
-                    "variant": "caption"
                   },
                   {
                     "id": "branch-icon",
@@ -7334,7 +7362,6 @@
                     "id": "activity",
                     "component": "Section",
                     "title": "Activity",
-                    "count": "1",
                     "children": {
                       "path": "/comments",
                       "componentId": "comment"
@@ -7392,7 +7419,7 @@
                     }
                   }
                 ],
-                "surfaceId": "linear:linear-24"
+                "surfaceId": "linear:linear-20"
               }
             }
           ],
@@ -7403,7 +7430,7 @@
           }
         },
         {
-          "offsetMs": 10107,
+          "offsetMs": 11318,
           "messages": [
             {
               "version": "v0.9",
@@ -7431,15 +7458,15 @@
                     "justify": "spaceBetween",
                     "align": "center",
                     "children": [
-                      "title",
+                      "heading",
                       "sort"
                     ]
                   },
                   {
-                    "id": "title",
+                    "id": "heading",
                     "component": "Text",
                     "variant": "h5",
-                    "text": "Work status"
+                    "text": "Active work items"
                   },
                   {
                     "id": "sort",
@@ -7455,7 +7482,7 @@
                       "Issue",
                       "Status",
                       "Pull request",
-                      "CI",
+                      "CI status",
                       "Updated"
                     ],
                     "columnSources": [
@@ -7485,7 +7512,7 @@
                     "id": "c-issue",
                     "component": "DerivedValue",
                     "cell": {
-                      "path": "title"
+                      "path": "issue"
                     }
                   },
                   {
@@ -7520,7 +7547,7 @@
                     "id": "c-updated",
                     "component": "DerivedValue",
                     "cell": {
-                      "path": "updatedAt"
+                      "path": "updated"
                     },
                     "format": {
                       "kind": "datetime"
@@ -7544,12 +7571,12 @@
                       "op": "equal",
                       "args": [
                         {
-                          "surface": "linear:linear-24",
+                          "surface": "linear:linear-20",
                           "pointer": "/branch"
                         },
                         {
-                          "surface": "github:notifications-23",
-                          "pointer": "/prs[number=6,repository=\"retz8/a2uiverse\"]/branch"
+                          "surface": "github:notifications-20",
+                          "pointer": "/prs[repository=\"retz8/a2uiverse\",number=6]/branch"
                         }
                       ]
                     },
@@ -7557,22 +7584,22 @@
                       "op": "equal",
                       "args": [
                         {
-                          "surface": "linear:linear-24",
+                          "surface": "linear:linear-20",
                           "pointer": "/title"
                         },
                         {
-                          "surface": "github:notifications-23",
-                          "pointer": "/prs[number=6,repository=\"retz8/a2uiverse\"]/title"
+                          "surface": "github:notifications-20",
+                          "pointer": "/prs[repository=\"retz8/a2uiverse\",number=6]/title"
                         }
                       ]
                     }
                   },
-                  "title": {
+                  "issue": {
                     "op": "value",
                     "args": [
                       {
-                        "surface": "linear:linear-24",
-                        "pointer": "/title"
+                        "surface": "linear:linear-20",
+                        "pointer": "/id"
                       }
                     ]
                   },
@@ -7580,7 +7607,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "linear:linear-24",
+                        "surface": "linear:linear-20",
                         "pointer": "/status"
                       }
                     ]
@@ -7589,8 +7616,8 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "github:notifications-23",
-                        "pointer": "/prs[number=6,repository=\"retz8/a2uiverse\"]/number"
+                        "surface": "github:notifications-20",
+                        "pointer": "/prs[repository=\"retz8/a2uiverse\",number=6]/number"
                       }
                     ]
                   },
@@ -7598,14 +7625,9 @@
                     "op": "value",
                     "args": []
                   },
-                  "updatedAt": {
+                  "updated": {
                     "op": "value",
-                    "args": [
-                      {
-                        "surface": "github:notifications-23",
-                        "pointer": "/prs[number=6,repository=\"retz8/a2uiverse\"]/updatedAt"
-                      }
-                    ]
+                    "args": []
                   }
                 }
               ]
@@ -7615,22 +7637,22 @@
                 "path": "/issues",
                 "options": [
                   {
-                    "key": "/updatedAt",
-                    "label": "Updated"
+                    "key": "/issue",
+                    "label": "Issue"
                   }
                 ],
-                "key": "/updatedAt",
-                "direction": "desc"
+                "key": "/issue",
+                "direction": "asc"
               }
             ]
           }
         }
       ],
       "outcome": "completed",
-      "durationMs": 10108
+      "durationMs": 11319
     },
     {
-      "taskId": "10e67229-774b-4ec0-afde-fdfe38382804",
+      "taskId": "cf482d00-2dce-434e-8818-b87d8446a61c",
       "kind": "press",
       "prompt": "",
       "action": null,
@@ -7644,7 +7666,7 @@
       "canvas": 0,
       "batches": [
         {
-          "offsetMs": 7211,
+          "offsetMs": 6153,
           "messages": [
             {
               "version": "v0.9",
@@ -7672,15 +7694,15 @@
                     "justify": "spaceBetween",
                     "align": "center",
                     "children": [
-                      "title",
+                      "heading",
                       "sort"
                     ]
                   },
                   {
-                    "id": "title",
+                    "id": "heading",
                     "component": "Text",
                     "variant": "h5",
-                    "text": "Work status"
+                    "text": "Active work items"
                   },
                   {
                     "id": "sort",
@@ -7696,7 +7718,7 @@
                       "Issue",
                       "Status",
                       "Pull request",
-                      "CI",
+                      "CI status",
                       "Updated"
                     ],
                     "columnSources": [
@@ -7726,7 +7748,7 @@
                     "id": "c-issue",
                     "component": "DerivedValue",
                     "cell": {
-                      "path": "title"
+                      "path": "issue"
                     }
                   },
                   {
@@ -7761,7 +7783,7 @@
                     "id": "c-updated",
                     "component": "DerivedValue",
                     "cell": {
-                      "path": "updatedAt"
+                      "path": "updated"
                     },
                     "format": {
                       "kind": "datetime"
@@ -7785,12 +7807,12 @@
                       "op": "equal",
                       "args": [
                         {
-                          "surface": "linear:linear-24",
+                          "surface": "linear:linear-20",
                           "pointer": "/branch"
                         },
                         {
-                          "surface": "github:notifications-23",
-                          "pointer": "/prs[number=6,repository=\"retz8/a2uiverse\"]/branch"
+                          "surface": "github:notifications-20",
+                          "pointer": "/prs[repository=\"retz8/a2uiverse\",number=6]/branch"
                         }
                       ]
                     },
@@ -7798,20 +7820,20 @@
                       "op": "equal",
                       "args": [
                         {
-                          "surface": "linear:linear-24",
+                          "surface": "linear:linear-20",
                           "pointer": "/title"
                         },
                         {
-                          "surface": "github:notifications-23",
-                          "pointer": "/prs[number=6,repository=\"retz8/a2uiverse\"]/title"
+                          "surface": "github:notifications-20",
+                          "pointer": "/prs[repository=\"retz8/a2uiverse\",number=6]/title"
                         }
                       ]
                     },
-                    "same branch in CI": {
+                    "same branch (CI)": {
                       "op": "equal",
                       "args": [
                         {
-                          "surface": "linear:linear-24",
+                          "surface": "linear:linear-20",
                           "pointer": "/branch"
                         },
                         {
@@ -7821,12 +7843,12 @@
                       ]
                     }
                   },
-                  "title": {
+                  "issue": {
                     "op": "value",
                     "args": [
                       {
-                        "surface": "linear:linear-24",
-                        "pointer": "/title"
+                        "surface": "linear:linear-20",
+                        "pointer": "/id"
                       }
                     ]
                   },
@@ -7834,7 +7856,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "linear:linear-24",
+                        "surface": "linear:linear-20",
                         "pointer": "/status"
                       }
                     ]
@@ -7843,8 +7865,8 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "github:notifications-23",
-                        "pointer": "/prs[number=6,repository=\"retz8/a2uiverse\"]/number"
+                        "surface": "github:notifications-20",
+                        "pointer": "/prs[repository=\"retz8/a2uiverse\",number=6]/number"
                       }
                     ]
                   },
@@ -7857,14 +7879,9 @@
                       }
                     ]
                   },
-                  "updatedAt": {
+                  "updated": {
                     "op": "value",
-                    "args": [
-                      {
-                        "surface": "github:notifications-23",
-                        "pointer": "/prs[number=6,repository=\"retz8/a2uiverse\"]/updatedAt"
-                      }
-                    ]
+                    "args": []
                   }
                 }
               ]
@@ -7874,20 +7891,20 @@
                 "path": "/issues",
                 "options": [
                   {
-                    "key": "/updatedAt",
-                    "label": "Updated"
+                    "key": "/issue",
+                    "label": "Issue"
                   }
                 ],
-                "key": "/updatedAt",
-                "direction": "desc"
+                "key": "/issue",
+                "direction": "asc"
               }
             ]
           }
         }
       ],
       "outcome": "completed",
-      "durationMs": 7211,
-      "atMs": 10108
+      "durationMs": 6153,
+      "atMs": 11319
     }
   ]
 }
