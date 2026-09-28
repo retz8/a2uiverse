@@ -5,6 +5,8 @@
   "files": [
     "specification/v0_9_1/json/server_to_client.json",
     "specification/v0_9_1/json/common_types.json",
+    "specification/v0_9_1/json/server_capabilities.json",
+    "specification/v0_9_1/json/client_capabilities.json",
     "specification/v0_9_1/catalogs/basic/catalog.json",
     "conformance/core/validator.yaml",
     "conformance/test_data/simplified_catalog_v09.json",

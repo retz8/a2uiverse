@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://a2uiverse.dev/contracts/catalog-artifact/v1",
+  "title": "A2UIVerse catalog artifact descriptor",
+  "description": "artifact.json at the root of a catalog artifact (catalog.v1.json, artifact). Written by the pack tool; validated by the marketplace at publish, the registry at install and the client at load, with one compiled schema.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract",
+    "catalogId",
+    "entry",
+    "schema",
+    "hostInterface",
+    "files",
+    "package",
+    "packedBy"
+  ],
+  "properties": {
+    "contract": {
+      "type": "string",
+      "pattern": "^1\\.[0-9]+\\.[0-9]+$",
+      "description": "The version of this descriptor contract the artifact was written to; its own line, apart from hostInterface."
+    },
+    "catalogId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The catalog's id — CATALOG.id, equal to the catalogId inside the schema file. Not necessarily a resolvable URI (A2UI)."
+    },
+    "entry": {
+      "$ref": "#/$defs/relativePath",
+      "description": "The one ESM, relative to the artifact's root; a key of files."
+    },
+    "schema": {
+      "$ref": "#/$defs/relativePath",
+      "description": "The catalog's catalog.json, relative to the artifact's root; a key of files."
+    },
+    "hostInterface": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "description": "The version of the host-module interface the entry was built against — the A2UI version the host lends."
+    },
+    "files": {
+      "type": "object",
+      "minProperties": 2,
+      "propertyNames": {"$ref": "#/$defs/relativePath"},
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^sha256-[A-Za-z0-9+/]{43}=$",
+        "description": "The file's SHA-256 digest, base64, in the sha256-<base64> form."
+      },
+      "description": "Every file of the artifact but this descriptor, by path relative to the artifact's root, with its hash."
+    },
+    "package": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "version": {"type": "string", "minLength": 1}
+      },
+      "description": "The catalog package the artifact was packed from, as its package.json names it."
+    },
+    "packedBy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tool", "version"],
+      "properties": {
+        "tool": {"type": "string", "minLength": 1},
+        "version": {"type": "string", "minLength": 1}
+      },
+      "description": "The pack tool build that wrote the artifact."
+    }
+  },
+  "$defs": {
+    "relativePath": {
+      "type": "string",
+      "pattern": "^(?!/)(?!.*(^|/)\\.\\.(/|$))[^\\\\]+$",
+      "description": "A path relative to the artifact's root: no leading slash, no .. segment, no backslash."
+    }
+  }
+}

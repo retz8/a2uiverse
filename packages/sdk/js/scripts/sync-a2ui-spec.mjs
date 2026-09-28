@@ -20,6 +20,10 @@ const REF = 'upstream/main';
 const SPEC_FILES = [
   'specification/v0_9_1/json/server_to_client.json',
   'specification/v0_9_1/json/common_types.json',
+  // The two sides of catalog negotiation (task-11.2 decision 10): what an agent's card declares
+  // and what the hub tells each agent it may paint in.
+  'specification/v0_9_1/json/server_capabilities.json',
+  'specification/v0_9_1/json/client_capabilities.json',
   'specification/v0_9_1/catalogs/basic/catalog.json',
 ];
 const CONFORMANCE = 'conformance/core/validator.yaml';

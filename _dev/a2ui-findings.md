@@ -609,3 +609,48 @@ component's name is gone and the `type` prop reads as the name.
 Spread the properties first and write `id` and `type` after them, or name the type `component` as
 the wire does and keep properties from overwriting it — either way a component's own props cannot
 replace its identity.
+
+---
+
+## 12. The A2UI extension's card `params` are keyed by version in the schema and written flat by the guide and the Python SDK
+
+**Component:** `specification/v0_9_1/json/server_capabilities.json`,
+`specification/v0_9_1/docs/a2ui_extension_specification.md` ("Agent Card"), and
+`agent_sdks/python/a2ui_agent/src/a2ui/a2a/extension.py` (`upstream/main` `52c641a3`).
+
+**Severity:** interoperability — a client that validates a card's declaration against the schema
+refuses every card the SDK writes, and one that reads the guide's shape misses every card written to
+the schema.
+
+### Issue
+
+The guide says the extension entry's `params` object "corresponds directly to the Server
+Capabilities Schema". That schema's root has one required key, `v0.9`, with `supportedCatalogIds`
+and `acceptsInlineCatalogs` under it:
+
+```json
+{"v0.9": {"supportedCatalogIds": ["…"], "acceptsInlineCatalogs": true}}
+```
+
+The same guide's example card, and the Python SDK's `extension.py`, write the two fields at the top
+of `params`, with no version key:
+
+```json
+{"supportedCatalogIds": ["…"], "acceptsInlineCatalogs": true}
+```
+
+The client side has no such split: `client_capabilities.json` requires `v0.9` and every client
+writes it. So the two directions of the same negotiation are keyed differently in practice.
+
+### Reproduction
+
+Validate the guide's own example `params` against `server_capabilities.json`: it fails on the
+missing required `v0.9`. Build a card with the Python SDK's helper and validate its
+`capabilities.extensions[].params` the same way: the same failure.
+
+### Fix
+
+Pick one. Either the guide's example and the SDK write `params` under `v0.9` as the schema requires,
+or the schema drops the version key on the server side — the extension URI already carries the
+version. A2UIVerse reads both shapes, each against the schema's matching part (`readSupportedCatalogIds`
+in `@a2uiverse/sdk`).
