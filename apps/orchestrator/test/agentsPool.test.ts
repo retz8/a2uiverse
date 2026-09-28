@@ -3,32 +3,41 @@ import type {Message, Task, TaskStatusUpdateEvent} from '@a2a-js/sdk';
 import {AgentsPool, type AgentsPoolOptions, REJECTED_VALUE} from '../src/agentsPool/agentsPool.js';
 import type {Fault} from '../src/agentsPool/faults.js';
 import type {DispatchTurn} from '../src/agentsPool/types.js';
-import {Registry} from '../src/registry/registry.js';
-import {A2UI_PART, startFakeVendor, type FakeVendor, type Script} from './fakeVendor.js';
+import {BASIC_CATALOG_ID} from '@a2uiverse/sdk';
+import {
+  A2UI_PART,
+  FAKE_CATALOG_ID,
+  startFakeVendor,
+  type FakeVendor,
+  type Script,
+} from './fakeVendor.js';
+import {cardFor, fixtureArtifact, testRegistry} from './registryFixture.js';
 
 const vendors: FakeVendor[] = [];
 afterEach(async () => {
   await Promise.all(vendors.splice(0).map(v => v.close()));
 });
 
+/** A pool over a registry with the fake vendor installed as `github`, handing its catalog. */
 async function poolFor(
   options: Parameters<typeof startFakeVendor>[0] = {},
   extra: Partial<AgentsPoolOptions> = {},
 ) {
   const vendor = await startFakeVendor(options);
   vendors.push(vendor);
-  const registry = new Registry([
+  const {registry} = await testRegistry([
     {
       id: 'github',
-      displayName: 'GitHub',
-      agentUrl: vendor.url,
-      authScheme: 'none',
-      catalogId: 'cat',
-      catalogPackage: 'pkg',
+      card: cardFor(vendor.url, {
+        name: 'GitHub',
+        catalogs: [FAKE_CATALOG_ID],
+        streaming: options.streaming ?? true,
+      }),
+      catalogs: [await fixtureArtifact(FAKE_CATALOG_ID)],
     },
   ]);
   const pool = new AgentsPool(registry, {hardCapMs: 30000, debugIds: false, ...extra});
-  return {vendor, pool};
+  return {vendor, pool, registry};
 }
 
 function turn(overrides: Partial<DispatchTurn> = {}): DispatchTurn {
@@ -83,14 +92,14 @@ describe('AgentsPool.dispatch', () => {
     expect(record.vendorContextId).not.toBe('o-ctx');
   });
 
-  test('forwards parts and metadata unchanged, strips orchestrator ids, sends both A2UI extension URIs', async () => {
+  test('forwards parts and metadata, strips orchestrator ids, sends both A2UI extension URIs', async () => {
     const {pool, vendor} = await poolFor();
     const t = turn();
     await drain(pool.dispatch('github', t));
 
     const [received] = vendor.requests;
     expect(received.message.parts).toEqual(t.message.parts);
-    expect(received.message.metadata).toEqual(t.message.metadata);
+    expect(received.message.metadata).toMatchObject(t.message.metadata!);
     expect(received.message.taskId).toBeUndefined();
     expect(received.message.contextId).toBeUndefined();
     expect(received.extensionsHeader).toContain('https://a2ui.org/a2a-extension/a2ui/v0.9.1');
@@ -482,3 +491,92 @@ function deterministicTail(taskId: string, contextId: string) {
     },
   ];
 }
+
+describe('AgentsPool — catalog entitlement and the installed set (task-11.4 decisions 6, 12)', () => {
+  test('advertises to the agent its own entitlement, never the client’s list', async () => {
+    const {pool, vendor} = await poolFor();
+    const t = turn();
+    t.message.metadata = {
+      ...t.message.metadata,
+      a2uiClientCapabilities: {'v0.9': {supportedCatalogIds: ['every', 'catalog', 'held']}},
+    };
+    await drain(pool.dispatch('github', t));
+    expect(vendor.requests[0].message.metadata?.a2uiClientCapabilities).toEqual({
+      'v0.9': {supportedCatalogIds: [BASIC_CATALOG_ID, FAKE_CATALOG_ID]},
+    });
+  });
+
+  test('a paint in a catalog outside the entitlement fails the dispatch with the catalog cause and the id, never relayed', async () => {
+    const outside: Script = ({ctx, vendorContextId}) => [
+      {
+        kind: 'status-update',
+        taskId: ctx.taskId,
+        contextId: vendorContextId,
+        final: true,
+        status: {
+          state: 'completed',
+          message: {
+            kind: 'message',
+            messageId: crypto.randomUUID(),
+            role: 'agent',
+            parts: [
+              {
+                kind: 'data',
+                data: {version: 'v0.9', createSurface: {surfaceId: 's1', catalogId: 'urn:other'}},
+              },
+            ],
+            contextId: vendorContextId,
+            taskId: ctx.taskId,
+          },
+        },
+      },
+    ];
+    const {pool} = await poolFor({script: outside});
+    const {events, record} = await drain(pool.dispatch('github', turn()));
+    expect(JSON.stringify(events)).not.toContain('urn:other');
+    expect(record).toMatchObject({outcome: 'failed', cause: 'catalog', catalogId: 'urn:other'});
+  });
+
+  test('a paint in the basic catalog is inside every entitlement', async () => {
+    const basic: Script = ({ctx, vendorContextId}) => [
+      {
+        kind: 'message',
+        messageId: crypto.randomUUID(),
+        role: 'agent',
+        parts: [
+          {
+            kind: 'data',
+            data: {version: 'v0.9', createSurface: {surfaceId: 's1', catalogId: BASIC_CATALOG_ID}},
+          },
+        ],
+        contextId: vendorContextId,
+        taskId: ctx.taskId,
+      },
+    ];
+    const {pool} = await poolFor({script: basic});
+    const {record} = await drain(pool.dispatch('github', turn()));
+    expect(record.outcome).toBe('completed');
+  });
+
+  test('a dispatch to an app not installed fails with the uninstalled cause, the vendor never asked', async () => {
+    const {pool, vendor, registry} = await poolFor();
+    await registry.uninstall('github');
+    const {events, record} = await drain(pool.dispatch('github', turn()));
+    expect(events).toEqual([]);
+    expect(record).toMatchObject({outcome: 'failed', cause: 'uninstalled'});
+    expect(vendor.requests).toEqual([]);
+  });
+
+  test('a dispatch already running when its app is uninstalled finishes under the entitlement it was sent with', async () => {
+    const {pool, registry} = await poolFor({script: slowScript(200)});
+    const handle = pool.dispatch('github', turn());
+    const events = [];
+    for await (const e of handle.events) {
+      events.push(e);
+      if (events.length === 1) await registry.uninstall('github');
+    }
+    const record = await handle.done;
+    expect(record.outcome).toBe('completed');
+    expect(JSON.stringify(events)).toContain(FAKE_CATALOG_ID);
+  });
+});

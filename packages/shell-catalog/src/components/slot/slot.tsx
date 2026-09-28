@@ -425,6 +425,10 @@ export function failureStatement(failure: SlotFailure | undefined): string {
       return 'No answer within the time allowed.';
     case 'invalid':
       return 'Answered, but its screen couldn’t be shown.';
+    case 'catalog':
+      return 'Painted in a catalog it may not use.';
+    case 'uninstalled':
+      return 'No longer installed.';
     default:
       return 'Couldn’t answer.';
   }

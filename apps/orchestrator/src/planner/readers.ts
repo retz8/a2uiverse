@@ -11,10 +11,13 @@ import {jsonSchema, tool, type ToolSet} from 'ai';
 export interface InstalledApp {
   id: string;
   displayName: string;
-  /** The card's own name and description, when the card was reachable at boot. */
+  /** The card's own name and description: this run's card, the installed one when the agent is down. */
   name?: string;
   description?: string;
   skills: {name: string; description: string}[];
+  /** The catalogs it paints in: the ids handed at its install, or the basic catalog. */
+  catalogs: string[];
+  /** Whether its card was fetched at startup: an unreachable app is unroutable this run. */
   reachable: boolean;
 }
 
@@ -34,7 +37,7 @@ export interface CompositionView {
 }
 
 export interface PlatformReaders {
-  /** Installed apps — from the Registry: id, display name, the card's name, description and skills, reachability. */
+  /** Installed apps — from the Registry: id, display name, the card's name, description and skills, catalogs, reachability. */
   installedApps(): InstalledApp[];
   /**
    * This composition — the structure of the composition the question was asked from (task-9.3 decision 2);
@@ -62,7 +65,7 @@ export function readerTools(readers: PlatformReaders, askedFrom: string | undefi
   return {
     installed_apps: tool({
       description:
-        'The apps installed on this platform: each one’s id, display name, its card’s name, description and skills, and whether it was reachable at boot. Call it to answer which apps there are or what an installed app can do. The platform itself is not an app.',
+        'The apps installed on this platform: each one’s id, display name, its card’s name, description and skills, the catalogs it paints in, and whether it was reachable at boot. Call it to answer which apps there are or what an installed app can do. The platform itself is not an app.',
       inputSchema: NO_INPUT,
       execute: async () => readers.installedApps(),
     }),

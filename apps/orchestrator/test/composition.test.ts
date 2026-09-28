@@ -123,10 +123,9 @@ describe('partition filter', () => {
     expect(filterClientDataModel(undefined, 'github')).toBeUndefined();
   });
 
-  test('vendorMetadata carries only A2UI-standard keys with the filtered model', () => {
+  test('vendorMetadata carries the filtered model alone: the client’s capabilities never reach a vendor (task-11.4 decision 12)', () => {
     const out = vendorMetadata(metadata, 'gmail');
     expect(out).toEqual({
-      a2uiClientCapabilities: {'v0.9': {supportedCatalogIds: ['cat']}},
       a2uiClientDataModel: {version: 'v0.9', surfaces: {s2: {b: 2}}},
     });
   });

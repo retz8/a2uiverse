@@ -4,58 +4,68 @@
  * behind one interface, adapted to the AI SDK's tools.
  */
 import type {AgentCard} from '@a2a-js/sdk';
-import {describe, expect, test} from 'vitest';
+import {beforeAll, describe, expect, test} from 'vitest';
 import {Compositions} from '../src/composition/compositions.js';
 import {compositionFrom, type CompositionState} from '../src/composition/state.js';
 import {compositionLine, compositionView, platformReaders} from '../src/planner/platformReaders.js';
 import {READER_NAMES, readerTools, type PlatformReaders} from '../src/planner/readers.js';
-import {Registry} from '../src/registry/registry.js';
-import type {AppRecord} from '../src/registry/types.js';
+import type {Registry} from '../src/registry/registry.js';
+import {cardUrlOf, fixtureArtifact, testRegistry} from './registryFixture.js';
 import {FakeEmbedder} from './fakeEmbedder.js';
 
-function record(id: string, displayName: string): AppRecord {
-  return {
-    id,
-    displayName,
-    agentUrl: `http://localhost/${id}`,
-    authScheme: 'none',
-    catalogId: `cat-${id}`,
-    catalogPackage: `${id}-catalog`,
-  };
-}
-
-function cardFor(name: string, description: string, skills: [string, string][]): AgentCard {
+function cardFor(
+  id: string,
+  name: string,
+  description: string,
+  skills: [string, string][],
+  catalogs?: string[],
+): AgentCard {
   return {
     name,
     description,
     version: '0.0.0',
     protocolVersion: '0.3.0',
-    url: 'http://127.0.0.1:0',
+    url: `http://127.0.0.1/${id}`,
     preferredTransport: 'JSONRPC',
-    capabilities: {},
+    capabilities: catalogs
+      ? {
+          extensions: [
+            {
+              uri: 'https://a2ui.org/a2a-extension/a2ui/v0.9.1',
+              params: {supportedCatalogIds: catalogs},
+            },
+          ],
+        }
+      : {},
     defaultInputModes: ['text'],
     defaultOutputModes: ['text'],
     skills: skills.map(([n, d], i) => ({id: `s${i}`, name: n, description: d, tags: []})),
   };
 }
 
-const platformCard = cardFor('A2UIVerse', 'the platform', [['Palette', 'routes utterances']]);
+const platformCard = cardFor('shell', 'A2UIVerse', 'the platform', [
+  ['Palette', 'routes utterances'],
+]);
 
-async function registryWith(cards: Record<string, AgentCard | undefined>) {
-  const registry = new Registry(
-    Object.keys(cards).map(id => record(id, id[0]!.toUpperCase() + id.slice(1))),
-    {platformCard},
+/** A registry with each card installed through the operation; `down` ones unreachable at startup. */
+async function registryWith(
+  cards: Record<string, AgentCard>,
+  options: {down?: string[]; handed?: Record<string, string>} = {},
+): Promise<Registry> {
+  const apps = await Promise.all(
+    Object.entries(cards).map(async ([id, card]) => ({
+      id,
+      card,
+      catalogs: options.handed?.[id] ? [await fixtureArtifact(options.handed[id])] : [],
+    })),
   );
-  await registry.refreshCards({
-    resolveCard: async url => {
-      const card = cards[url.split('/').pop()!];
-      if (!card) throw new Error('down');
-      return card;
-    },
-    embedder: new FakeEmbedder(),
-  });
-  return registry;
+  const made = await testRegistry(apps, {platformCard, embedder: new FakeEmbedder()});
+  for (const id of options.down ?? []) made.cards.cards.delete(cardUrlOf(cards[id].url));
+  await made.registry.refreshCards();
+  return made.registry;
 }
+
+const named = (id: string, name: string) => cardFor(id, name, `${name} agent`, []);
 
 const layout = {
   dispatch: [
@@ -77,30 +87,48 @@ const layout = {
 };
 
 describe('installed apps', () => {
-  test('lists every installed app with its card content and reachability; the platform is not an app', async () => {
-    const registry = await registryWith({
-      github: cardFor('GitHub', 'repositories and pull requests', [
-        ['Pull requests', 'lists and reviews pull requests'],
-      ]),
-      gmail: undefined,
-    });
+  test('lists every installed app with its card content, its catalogs and reachability; the platform is not an app', async () => {
+    const registry = await registryWith(
+      {
+        github: cardFor('github', 'GitHub', 'repositories and pull requests', [
+          ['Pull requests', 'lists and reviews pull requests'],
+        ]),
+        gmail: cardFor('gmail', 'Gmail', 'mail', [['Threads', 'reads threads']], ['urn:gmail']),
+      },
+      {down: ['gmail'], handed: {gmail: 'urn:gmail'}},
+    );
     const readers = platformReaders({registry, composition: () => undefined, ancestry: () => []});
     expect(readers.installedApps()).toEqual([
       {
         id: 'github',
-        displayName: 'Github',
+        displayName: 'GitHub',
         name: 'GitHub',
         description: 'repositories and pull requests',
         skills: [{name: 'Pull requests', description: 'lists and reviews pull requests'}],
+        catalogs: ['basic catalog'],
         reachable: true,
       },
-      {id: 'gmail', displayName: 'Gmail', skills: [], reachable: false},
+      {
+        id: 'gmail',
+        displayName: 'Gmail',
+        name: 'Gmail',
+        description: 'mail',
+        skills: [{name: 'Threads', description: 'reads threads'}],
+        catalogs: ['urn:gmail'],
+        reachable: false,
+      },
     ]);
   });
 });
 
 describe('this composition', () => {
-  const registry = new Registry([record('github', 'GitHub'), record('gmail', 'Gmail')]);
+  let registry: Registry;
+  beforeAll(async () => {
+    registry = await registryWith({
+      github: named('github', 'GitHub'),
+      gmail: named('gmail', 'Gmail'),
+    });
+  });
 
   test('is the composition’s structure: the utterance, each slot and its state, the merged view, the gaps', () => {
     const state = compositionFrom(layout, registry, 'what needs my attention today?');
@@ -160,7 +188,13 @@ describe('this composition', () => {
 });
 
 describe('recent turns — the ancestry (task-9.3 decision 2)', () => {
-  const registry = new Registry([record('github', 'GitHub'), record('gmail', 'Gmail')]);
+  let registry: Registry;
+  beforeAll(async () => {
+    registry = await registryWith({
+      github: named('github', 'GitHub'),
+      gmail: named('gmail', 'Gmail'),
+    });
+  });
   const opened = Date.parse('2026-09-13T06:00:00.000Z');
 
   test('one line per context: when it was opened, what was asked, which sources answered, the merged view, whether it still loads', () => {
@@ -270,8 +304,11 @@ describe('readerTools — the AI SDK adapter', () => {
 });
 
 describe('the composition’s slots are keyed by source (task-6.3 decision 6)', () => {
-  test('compositionFrom keys vendor and shell slots by source, in dispatch order, and lists the gaps', () => {
-    const registry = new Registry([record('github', 'GitHub'), record('gmail', 'Gmail')]);
+  test('compositionFrom keys vendor and shell slots by source, in dispatch order, and lists the gaps', async () => {
+    const registry = await registryWith({
+      github: named('github', 'GitHub'),
+      gmail: named('gmail', 'Gmail'),
+    });
     const state: CompositionState = compositionFrom(layout, registry, 'u');
     expect([...state.slots.keys()]).toEqual(['github', 'gmail', 'shell']);
     expect(state.slots.get('shell')!.plan).toEqual({

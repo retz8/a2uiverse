@@ -19,8 +19,9 @@ import {z} from 'zod';
  *   "CircleCI runs" — written by the painter at plan time (task-8.2 decision 3). It stays a
  *   painted prop; the failure tile no longer draws it.
  * - `failure` (fragment content) is why the source failed, painted by the runtime with `state:
- *   "failed"` (task-8.2 decision 2): one of four causes, and the vendor's own message only when
- *   the vendor ended its task itself.
+ *   "failed"` (task-8.2 decision 2): one of six causes, the vendor's own message only when the
+ *   vendor ended its task itself, and the catalog id only with `catalog` — a paint in a catalog
+ *   the app is not entitled to — (task-11.4 decisions 12, 13).
  * - `content` says whose content fills the region (task-5.5 decision 1): an agent's
  *   fragment (default), or the shell's own — the merged view — which keeps its reserved
  *   position but is painted like the shell's own UI, no tile: while pending, reserved as the
@@ -48,17 +49,28 @@ import {z} from 'zod';
  *   brings it back.
  * All five are painted by the runtime, never written by an author.
  */
-export const FAILURE_CAUSES = ['vendor', 'unreachable', 'timeout', 'invalid'] as const;
+export const FAILURE_CAUSES = [
+  'vendor',
+  'unreachable',
+  'timeout',
+  'invalid',
+  'catalog',
+  'uninstalled',
+] as const;
 export type FailureCause = (typeof FAILURE_CAUSES)[number];
 
 const FailureSchema = z
   .object({
     cause: z.enum(FAILURE_CAUSES),
     message: z.string().optional(),
+    catalogId: z.string().optional(),
   })
   .strict()
   .refine(failure => failure.message === undefined || failure.cause === 'vendor', {
     message: 'a failure carries a message only when the vendor said it',
+  })
+  .refine(failure => (failure.catalogId !== undefined) === (failure.cause === 'catalog'), {
+    message: 'a failure carries a catalog id exactly when its cause is `catalog`',
   });
 
 export const COLLAPSE_CAUSES = ['home', 'few', 'unmade'] as const;

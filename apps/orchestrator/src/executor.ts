@@ -619,7 +619,9 @@ export class OrchestratorExecutor implements AgentExecutor {
   ): Promise<void> {
     const parsed = parseSurfaceId(action.surfaceId);
     if (!parsed) throw new Error(`action on un-namespaced surface: ${action.surfaceId}`);
-    const owner = this.#deps.registry.get(parsed.appId);
+    // The fragment's owner, installed or not: a dispatch to an app no longer installed fails in the
+    // pool with its own cause, painted on the slot (task-11.4 decision 6).
+    const owner = {id: parsed.appId};
     const composition = this.#compositions.get(ctx.contextId);
     // Two-way edits reach the partitions through the returning client data model.
     composition?.partitions.applyClientDataModel(clientSurfaces(ctx.userMessage.metadata));
@@ -1193,7 +1195,7 @@ export class OrchestratorExecutor implements AgentExecutor {
       const sources = view.entries().flatMap(([surface, data]) => {
         const appId = parseSurfaceId(surface)?.appId;
         if (!appId) return [];
-        return [{surface, appId, displayName: this.#deps.registry.get(appId).displayName, data}];
+        return [{surface, appId, displayName: this.#deps.registry.displayName(appId), data}];
       });
 
       // What the sources it reads hold as the call starts: a press answered with other data
@@ -1233,7 +1235,7 @@ export class OrchestratorExecutor implements AgentExecutor {
               ? {
                   joined: joined.map(appId => ({
                     appId,
-                    displayName: this.#deps.registry.get(appId).displayName,
+                    displayName: this.#deps.registry.displayName(appId),
                   })),
                 }
               : {}),
@@ -1484,6 +1486,7 @@ export class OrchestratorExecutor implements AgentExecutor {
         ...(record.cause === 'vendor' && record.vendorMessage
           ? {message: record.vendorMessage}
           : {}),
+        ...(record.cause === 'catalog' && record.catalogId ? {catalogId: record.catalogId} : {}),
       });
     }
     // Left to the client means it holds a surface: this source has arrived.

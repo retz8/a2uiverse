@@ -12,6 +12,7 @@ import {
   CREDENTIAL_TERMS,
   HOST_INTERFACE_GLOBAL,
   HOST_INTERFACE_VERSION,
+  SUPPORTED_HOST_INTERFACES,
   HOST_SPECIFIERS,
   HOST_STYLESHEET_LOADER,
   PUBLIC_CATALOG_IDS,
@@ -44,6 +45,7 @@ test('the export contract: CATALOG required, Provider optional', () => {
 
 test('the host-module interfaces keyed by A2UI version: one today, the global, seven specifiers, the loader', () => {
   expect(Object.keys(contract.hostInterfaces)).toEqual([HOST_INTERFACE_VERSION]);
+  expect(Object.keys(contract.hostInterfaces)).toEqual([...SUPPORTED_HOST_INTERFACES]);
   expect(HOST_INTERFACE_VERSION).toBe('0.9.1');
   const lent = contract.hostInterfaces[HOST_INTERFACE_VERSION];
   expect(lent.global).toBe(HOST_INTERFACE_GLOBAL);

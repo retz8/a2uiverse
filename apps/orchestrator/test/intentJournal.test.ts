@@ -208,3 +208,32 @@ describe('IntentJournal — deadlines and the close (tasks 8.3, 9.3)', () => {
     });
   });
 });
+
+describe('registry entries (task-11.4 decision 15)', () => {
+  test('a registry change is one line of its own kind beside the turns, with no embedding', async () => {
+    const file = join(dir, 'intent-journal.jsonl');
+    const embedder = new FakeEmbedder();
+    const journal = new IntentJournal(file, embedder);
+    await journal.registry({
+      operation: 'install',
+      appId: 'gmail',
+      cardUrl: 'http://127.0.0.1:11002/.well-known/agent-card.json',
+      catalogs: [{catalogId: 'urn:gmail', artifact: 'sha256-abc'}],
+      outcome: 'refused',
+      findings: ['app id "Gmail" is not a slug'],
+    });
+    expect(await lines(file)).toEqual([
+      {
+        kind: 'registry',
+        at: expect.any(String),
+        operation: 'install',
+        appId: 'gmail',
+        cardUrl: 'http://127.0.0.1:11002/.well-known/agent-card.json',
+        catalogs: [{catalogId: 'urn:gmail', artifact: 'sha256-abc'}],
+        outcome: 'refused',
+        findings: ['app id "Gmail" is not a slug'],
+      },
+    ]);
+    expect(journal.recent('gmail')).toEqual([]);
+  });
+});

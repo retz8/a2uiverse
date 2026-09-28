@@ -3,6 +3,7 @@ import {dirname} from 'node:path';
 import type {Message} from '@a2a-js/sdk';
 import type {DispatchOutcome, DispatchRecord} from '../agentsPool/types.js';
 import type {Embedder} from '../embedder/types.js';
+import type {RegistryJournal, RegistryJournalEntry} from '../registry/registry.js';
 import {describe} from './descriptor.js';
 import {emptyTouches, mergeTouches, type SurfaceTouches} from './surfaces.js';
 import type {JournalEntry, PlanRecord, StepRecord, SynthesisRecord} from './types.js';
@@ -37,6 +38,9 @@ export interface JournalTurn {
   close(outcome: DispatchOutcome): Promise<void>;
 }
 
+/** A registry change as its journal line carries it. */
+export type RegistryLine = {kind: 'registry'; at: string} & RegistryJournalEntry;
+
 /** How many closed turns a composition's ring keeps. */
 export const RECENT_TURNS = 5;
 
@@ -47,7 +51,7 @@ export const RECENT_TURNS = 5;
  * compositions); it stays for the journal's own callers. Nothing is seeded from the file — a restart
  * starts empty, as the composition state does.
  */
-export class IntentJournal {
+export class IntentJournal implements RegistryJournal {
   readonly #filePath: string;
   readonly #embedder: Embedder | undefined;
   readonly #recent = new Map<string, JournalEntry[]>();
@@ -117,6 +121,15 @@ export class IntentJournal {
     };
   }
 
+  /**
+   * A registry change (task-11.4 decision 15): one line of kind `registry` beside the turns — the
+   * operation, the app, the card URL, the catalogs, the outcome and a refusal's findings. No
+   * utterance is behind it, so no descriptor and no embedding. Never throws.
+   */
+  async registry(entry: RegistryJournalEntry): Promise<void> {
+    await this.#append({kind: 'registry', at: new Date().toISOString(), ...entry});
+  }
+
   /** The last closed turns of a composition, oldest first; at most `RECENT_TURNS`. */
   recent(clientContextId: string): readonly JournalEntry[] {
     return this.#recent.get(clientContextId) ?? [];
@@ -140,7 +153,7 @@ export class IntentJournal {
     }
   }
 
-  async #append(entry: JournalEntry): Promise<void> {
+  async #append(entry: JournalEntry | RegistryLine): Promise<void> {
     try {
       await mkdir(dirname(this.#filePath), {recursive: true});
       await appendFile(this.#filePath, `${JSON.stringify(entry)}\n`);

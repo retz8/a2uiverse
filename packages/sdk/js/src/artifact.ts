@@ -139,6 +139,15 @@ export async function hashArtifactFile(bytes: Uint8Array): Promise<string> {
 }
 
 /**
+ * An artifact's id (task-11.4 decision 10): its descriptor file's hash, which covers every other
+ * file's, spelled URL-safe — `sha256-<base64url>`, unpadded — so it names the artifact in a path.
+ */
+export async function artifactIdOf(descriptorBytes: Uint8Array): Promise<string> {
+  const hash = await hashArtifactFile(descriptorBytes);
+  return hash.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+/**
  * The artifact's files against its descriptor: every listed file present with its hash, no file
  * present that is not listed. `files` is every file of the artifact but the descriptor, by path
  * relative to the root. Empty when they agree.

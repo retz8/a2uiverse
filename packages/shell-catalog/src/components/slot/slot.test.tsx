@@ -194,6 +194,17 @@ test('schema accepts a failure with one of four causes, a message only with vend
   ).toBe(true);
 });
 
+test('schema accepts the catalog cause carrying its id and the uninstalled cause, the id only on the catalog cause (task-11.4 decision 13)', () => {
+  const failed = (failure: unknown) =>
+    SlotApi.schema.safeParse({source: 'gmail', state: 'failed', failure}).success;
+  expect(failed({cause: 'catalog', catalogId: 'urn:catalog:other'})).toBe(true);
+  expect(failed({cause: 'catalog'})).toBe(false);
+  expect(failed({cause: 'uninstalled'})).toBe(true);
+  expect(failed({cause: 'uninstalled', catalogId: 'urn:catalog:other'})).toBe(false);
+  expect(failed({cause: 'vendor', catalogId: 'urn:catalog:other'})).toBe(false);
+  expect(failed({cause: 'catalog', catalogId: 'urn:catalog:other', message: 'said'})).toBe(false);
+});
+
 test('the tile’s one statement is the vendor’s own words when it spoke, naming nobody (task-8.7 decision 17)', () => {
   const {container} = render(
     <SlotView
@@ -215,6 +226,7 @@ test.each([
   ['unreachable', 'Couldn’t be reached.'],
   ['timeout', 'No answer within the time allowed.'],
   ['invalid', 'Answered, but its screen couldn’t be shown.'],
+  ['uninstalled', 'No longer installed.'],
 ] as const)(
   'with no vendor words the statement is the shell’s reason for %s, with no name in it',
   (cause, reason) => {
@@ -224,6 +236,20 @@ test.each([
     expect(screen.queryByText(/CircleCI/)).not.toBeInTheDocument();
   },
 );
+
+test('the catalog cause’s interim statement names no catalog and no source (task-11.4 decision 13)', () => {
+  render(
+    <SlotView
+      source="gmail"
+      state="failed"
+      label="Gmail"
+      failure={{cause: 'catalog', catalogId: 'urn:catalog:other'}}
+    />,
+  );
+  expect(screen.getByText('Painted in a catalog it may not use.')).toBeInTheDocument();
+  expect(screen.queryByText(/urn:catalog:other/)).not.toBeInTheDocument();
+  expect(screen.queryByText(/Gmail/)).not.toBeInTheDocument();
+});
 
 test('a vendor failure with no message, and a failed slot with no failure prop, say the source couldn’t answer', () => {
   const {unmount} = render(

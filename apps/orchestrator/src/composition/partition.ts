@@ -31,14 +31,13 @@ export function filterClientDataModel(
 }
 
 /**
- * The vendor-bound metadata for one dispatch: the A2UI-standard keys with the
- * data model partition-filtered; every a2uiverse-specific key dropped —
- * nothing a2uiverse-specific rides the vendor wire.
+ * The vendor-bound metadata for one dispatch: the data model partition-filtered; the client's
+ * capabilities dropped — the pool writes the app's own entitlement in their place (task-11.4
+ * decision 12) — and every a2uiverse-specific key dropped: nothing a2uiverse-specific rides the
+ * vendor wire.
  */
 export function vendorMetadata(metadata: Metadata, appId: string): Metadata {
   const out: NonNullable<Metadata> = {};
-  const capabilities = metadata?.a2uiClientCapabilities;
-  if (capabilities !== undefined) out.a2uiClientCapabilities = capabilities;
   const model = filterClientDataModel(metadata, appId);
   if (model !== undefined) out[A2UI_CLIENT_DATA_MODEL_KEY] = model;
   return Object.keys(out).length > 0 ? out : undefined;

@@ -1,5 +1,6 @@
 import {describe, expect, test} from 'vitest';
 import {
+  artifactIdOf,
   checkArtifactSchema,
   checkCatalogSchemaCompiles,
   hashArtifactFile,
@@ -147,5 +148,21 @@ describe('checkCatalogSchemaCompiles', () => {
   test('not a catalog at all', () => {
     expect(checkCatalogSchemaCompiles([])).toEqual(['not a JSON object']);
     expect(checkCatalogSchemaCompiles({catalogId: 'c'})).toEqual(['components is not an object']);
+  });
+});
+
+describe('the artifact id (task-11.4 decision 10)', () => {
+  test('is the descriptor file’s hash, spelled URL-safe', async () => {
+    const descriptor = bytes('{"catalogId":"c"}');
+    const hash = await hashArtifactFile(descriptor);
+    const id = await artifactIdOf(descriptor);
+    expect(id).toMatch(/^sha256-[A-Za-z0-9_-]+$/);
+    expect(id).toBe(hash.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''));
+  });
+
+  test('differs when a byte of the descriptor does', async () => {
+    expect(await artifactIdOf(bytes('{"catalogId":"c"}'))).not.toBe(
+      await artifactIdOf(bytes('{"catalogId":"d"}')),
+    );
   });
 });

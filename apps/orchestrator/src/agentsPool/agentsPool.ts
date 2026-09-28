@@ -1,6 +1,6 @@
 import {randomUUID} from 'node:crypto';
 import {elapsedMs, logLine} from '../log.js';
-import type {Part, TaskState, TaskStatusUpdateEvent} from '@a2a-js/sdk';
+import type {Message, Part, TaskState, TaskStatusUpdateEvent} from '@a2a-js/sdk';
 import {
   ClientFactory,
   DefaultAgentCardResolver,
@@ -10,8 +10,10 @@ import {
   type Client,
 } from '@a2a-js/sdk/client';
 import type {FailureCause} from '@a2uiverse/shell-catalog/schema';
+import {A2UI_CLIENT_CAPABILITIES_KEY, clientCapabilities} from '@a2uiverse/sdk';
 import {A2UI_EXTENSION_URI_V09, A2UI_EXTENSION_URI_V091} from '../agentCard.js';
 import type {Registry} from '../registry/registry.js';
+import type {AppRecord} from '../registry/types.js';
 import {InMemoryVendorContextMap, type VendorContextMap} from './contextMap.js';
 import type {Fault, FaultMap} from './faults.js';
 import {prepareOutgoing, relayEvent, type VendorEvent} from './relay.js';
@@ -42,6 +44,8 @@ export class AgentsPool {
   readonly #options: AgentsPoolOptions;
   readonly #contexts: VendorContextMap;
   readonly #clients = new Map<string, Promise<Client>>();
+  /** The app each dispatch was sent to, as the registry held it then: what its cancel reaches. */
+  readonly #sentTo = new WeakMap<DispatchRecord, AppRecord>();
   // Keyed by client task id; a fan-out turn holds several handles under one key.
   readonly #inflight = new Map<string, Set<DispatchHandle>>();
 
@@ -149,6 +153,16 @@ export class AgentsPool {
     // A non-streaming vendor answers with one Task in a terminal state and no final update.
     let terminalTaskState: TaskState | undefined;
     let broke = false;
+    // The app as the registry holds it now: the entitlement this dispatch is sent under and
+    // checked against to its end, whatever the registry does meanwhile (task-11.4 decision 6).
+    const app = this.#registry.find(appId);
+    if (!app) {
+      finish('failed', {error: `app ${appId} is not installed`, cause: 'uninstalled'});
+      return;
+    }
+    this.#sentTo.set(record, app);
+    const entitlement = new Set(app.entitlement);
+    let outside: string | undefined;
     try {
       if (fault?.seconds) await sleep(fault.seconds * 1000, controller.signal);
       if (fault?.fault === 'hang') await sleep(Infinity, controller.signal);
@@ -160,10 +174,9 @@ export class AgentsPool {
         finalMessage = fault.message;
         yield relayEvent(event, relayCtx);
       } else {
-        const app = this.#registry.get(appId);
-        const client = await this.#connect(app.agentUrl);
+        const client = await this.#connect(app);
         const vendorContextId = this.#contexts.get(turn.clientContextId, appId);
-        const params = prepareOutgoing(turn.message, vendorContextId);
+        const params = prepareOutgoing(withEntitlement(turn.message, app), vendorContextId);
         const options = {
           signal: controller.signal,
           serviceParameters: ServiceParameters.create(
@@ -173,6 +186,10 @@ export class AgentsPool {
         let injected = false;
         for await (const event of client.sendMessageStream(params, options)) {
           this.#learnIds(event, appId, turn, record);
+          // A paint outside the app's entitlement is refused at the hub, never relayed
+          // (task-11.4 decision 12): the dispatch ends failed on the catalog's id.
+          outside = catalogOutside(event, entitlement);
+          if (outside !== undefined) break;
           if (event.kind === 'message') {
             record.sawFinal = true;
           } else if (event.kind === 'status-update' && event.final) {
@@ -200,7 +217,14 @@ export class AgentsPool {
         }
       }
       const endState = record.sawFinal ? finalState : terminalTaskState;
-      if (broke || (!record.sawFinal && !terminalTaskState)) {
+      if (outside !== undefined) {
+        record.catalogId = outside;
+        this.#cancelVendor(appId, record);
+        finish('failed', {
+          error: `painted in catalog ${JSON.stringify(outside)}, outside its entitlement`,
+          cause: 'catalog',
+        });
+      } else if (broke || (!record.sawFinal && !terminalTaskState)) {
         finish('failed', {
           error: `stream ended without a final event${broke ? ' (fault map)' : ''}`,
           cause: 'unreachable',
@@ -233,10 +257,16 @@ export class AgentsPool {
    */
   #cancelVendor(appId: string, record: DispatchRecord): void {
     const id = record.vendorTaskId;
-    if (!id || record.fault === 'fail' || record.fault === 'hang' || record.fault === 'refuse')
+    const app = this.#sentTo.get(record);
+    if (
+      !id ||
+      !app ||
+      record.fault === 'fail' ||
+      record.fault === 'hang' ||
+      record.fault === 'refuse'
+    )
       return;
-    const app = this.#registry.get(appId);
-    void this.#connect(app.agentUrl)
+    void this.#connect(app)
       .then(client => client.cancelTask({id}))
       .then(
         () => logLine(`✗ ${appId} task=${record.clientTaskId} cancel sent`),
@@ -257,7 +287,12 @@ export class AgentsPool {
     if (taskId && !record.vendorTaskId) record.vendorTaskId = taskId;
   }
 
-  #connect(agentUrl: string): Promise<Client> {
+  /**
+   * A client for the app's agent, from this run's card — the stored one when the agent was down at
+   * startup — so a dispatch fetches no card of its own (task-11.4 decision 8).
+   */
+  #connect(app: AppRecord): Promise<Client> {
+    const {agentUrl} = app;
     let pending = this.#clients.get(agentUrl);
     if (!pending) {
       const fetchImpl = this.#options.fetchImpl;
@@ -265,7 +300,9 @@ export class AgentsPool {
         transports: [new JsonRpcTransportFactory(fetchImpl ? {fetchImpl} : undefined)],
         cardResolver: new DefaultAgentCardResolver(fetchImpl ? {fetchImpl} : undefined),
       });
-      pending = factory.createFromUrl(agentUrl).catch(err => {
+      const card = this.#registry.card(app.id) ?? this.#registry.storedCard(app.id);
+      const created = card ? factory.createFromAgentCard(card) : factory.createFromUrl(agentUrl);
+      pending = created.catch(err => {
         this.#clients.delete(agentUrl);
         throw err;
       });
@@ -273,6 +310,36 @@ export class AgentsPool {
     }
     return pending;
   }
+}
+
+/**
+ * The vendor-bound message with the app's own entitlement as its A2UI client capabilities
+ * (task-11.4 decision 12): what the agent may paint in, never the table, never the client's list.
+ */
+function withEntitlement(message: Message, app: AppRecord): Message {
+  return {
+    ...message,
+    metadata: {
+      ...message.metadata,
+      [A2UI_CLIENT_CAPABILITIES_KEY]: clientCapabilities(app.entitlement),
+    },
+  };
+}
+
+/** The first catalog a surface in the event is created in that the entitlement lacks. */
+function catalogOutside(event: VendorEvent, entitlement: ReadonlySet<string>): string | undefined {
+  for (const part of partsOfEvent(event)) {
+    if (part.kind !== 'data') continue;
+    const messages = Array.isArray(part.data.messages) ? part.data.messages : [part.data];
+    for (const message of messages) {
+      if (typeof message !== 'object' || message === null) continue;
+      const create = (message as Record<string, unknown>).createSurface;
+      if (typeof create !== 'object' || create === null) continue;
+      const catalogId = (create as {catalogId?: unknown}).catalogId;
+      if (typeof catalogId === 'string' && !entitlement.has(catalogId)) return catalogId;
+    }
+  }
+  return undefined;
 }
 
 /** The text parts of a status message, joined: the vendor's own words. */

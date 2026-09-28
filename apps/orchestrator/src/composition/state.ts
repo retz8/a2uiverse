@@ -43,6 +43,8 @@ export interface SlotFailure {
   cause: FailureCause;
   /** The vendor's own words, only with `vendor`. */
   message?: string;
+  /** The catalog the paint was refused in, only with `catalog` (task-11.4 decision 12). */
+  catalogId?: string;
 }
 
 /** An answer that arrived past the hard cap: held, undrawn, until the reader presses Retry. */
@@ -238,7 +240,7 @@ export function compositionFrom(
     const displayName =
       entry.source === SHELL_SOURCE_ID
         ? SYNTHESIS_DISPLAY_NAME
-        : registry.get(entry.source).displayName;
+        : registry.displayName(entry.source);
     const noun = join?.nouns[entry.source];
     slots.set(entry.source, {
       plan: {

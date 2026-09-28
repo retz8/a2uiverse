@@ -23,27 +23,30 @@ if (config.faults.size > 0) {
   console.warn(`${APP_NAME}: FAULT MAP ACTIVE — ${describeFaults(config.faults)}`);
 }
 
-// Cards are fetched at startup only (SPEC decision 11): an agent unreachable
-// now has a null card and is unroutable this session.
+// The registry is read from the state directory — a damaged one stops the boot here (task-11.4
+// decision 9) — and every installed app's card fetched: an agent unreachable now is unroutable
+// this run, and stays installed.
 await init();
 
 const unroutable = registry.list().filter(r => !registry.card(r.id));
 if (unroutable.length > 0) {
-  // A null card is unroutable for the whole session, and the failure is otherwise silent — the
+  // An unreachable app is unroutable for the whole run, and the failure is otherwise silent — the
   // turn simply finds nothing to route to. Say so once, loudly, at the only moment it is fixable.
   console.warn(
-    `${APP_NAME}: no card from ${unroutable.map(r => r.id).join(', ')} — unroutable this session. ` +
-      `Start the agents before the orchestrator (\`pnpm dev:all\`) and restart to pick them up.`,
+    `${APP_NAME}: no card from ${unroutable.map(r => r.id).join(', ')} — unroutable this run. ` +
+      `Start the agents before the orchestrator and restart to pick them up.`,
   );
 }
 
 app.listen(config.port, () => {
-  const apps = registry
-    .list()
-    .map(r => `${r.id} → ${r.agentUrl} (${registry.card(r.id) ? 'routable' : 'no card'})`)
-    .join(', ');
-  const roster = config.agentsDir ? `roster from ${config.agentsDir}` : 'hardcoded roster';
+  const installed = registry.list();
+  const apps =
+    installed.length === 0
+      ? 'none installed — install with `pnpm --filter @a2uiverse/orchestrator registry install`'
+      : installed
+          .map(r => `${r.id} → ${r.agentUrl} (${registry.card(r.id) ? 'routable' : 'no card'})`)
+          .join(', ');
   console.log(
-    `${APP_NAME} listening on http://localhost:${config.port} · card url ${config.baseUrl} · state ${config.stateDir} · ${roster} · apps: ${apps}`,
+    `${APP_NAME} listening on http://localhost:${config.port} · card url ${config.baseUrl} · state ${config.stateDir} · apps: ${apps}`,
   );
 });

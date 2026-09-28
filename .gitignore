@@ -33,7 +33,7 @@ CLAUDE.local.md
 # Per-machine Claude Code settings
 .claude/settings.local.json
 
-# Orchestrator local state (intent journal; registry from M7)
+# Orchestrator local state (the registry, the intent journal, the model cache)
 .state/
 
 # Google OAuth client secrets — developer-local, never committed (Workspace MCP setup)

@@ -15,6 +15,8 @@ export default tseslint.config(
       '.turbo/**',
       // Working copies of Stellify's fixture catalogs, written by its tests
       'packages/stellify/test/.tmp/**',
+      // The orchestrator's state: the registry's installed artifacts are vendors' packed code
+      '**/.state/**',
     ],
   },
   eslint.configs.recommended,

@@ -845,12 +845,16 @@
           "properties": {
             "cause": {
               "type": "string",
-              "enum": ["vendor", "unreachable", "timeout", "invalid"],
-              "description": "`vendor`: the vendor ended its task failed; `unreachable`: the connection or stream broke, nothing said; `timeout`: no answer within the time allowed; `invalid`: the paint arrived and could not be rendered."
+              "enum": ["vendor", "unreachable", "timeout", "invalid", "catalog", "uninstalled"],
+              "description": "`vendor`: the vendor ended its task failed; `unreachable`: the connection or stream broke, nothing said; `timeout`: no answer within the time allowed; `invalid`: the paint arrived and could not be rendered; `catalog`: the agent painted in a catalog the app is not entitled to; `uninstalled`: the app is no longer installed."
             },
             "message": {
               "type": "string",
               "description": "The vendor's own words, only with `cause: \"vendor\"` and only when the vendor gave any."
+            },
+            "catalogId": {
+              "type": "string",
+              "description": "The catalog the agent painted in, only with `cause: \"catalog\"`."
             }
           },
           "required": ["cause"],

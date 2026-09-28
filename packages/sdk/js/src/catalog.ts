@@ -90,6 +90,24 @@ export function checkCatalogExports(
 /** The A2UI version the one interface lent today is keyed by (task-11.2 decision 2). */
 export const HOST_INTERFACE_VERSION = '0.9.1';
 
+/**
+ * The host interfaces the platform supplies, by the A2UI version each lends: an artifact built
+ * against another is refused at install (task-11.4 decision 4) and at load.
+ */
+export const SUPPORTED_HOST_INTERFACES: readonly string[] = [HOST_INTERFACE_VERSION];
+
+/** Whether an artifact's host interface is one the platform supplies; empty when it is. */
+export function checkHostInterface(
+  version: string,
+  supported: readonly string[] = SUPPORTED_HOST_INTERFACES,
+): string[] {
+  if (supported.includes(version)) return [];
+  const list = supported.map(v => JSON.stringify(v)).join(', ');
+  return [
+    `host interface ${JSON.stringify(version)} is not one the platform supplies (it supplies ${list})`,
+  ];
+}
+
 /** The global the client registers the interface under, before any artifact loads. */
 export const HOST_INTERFACE_GLOBAL = '__a2uiverse_host__';
 

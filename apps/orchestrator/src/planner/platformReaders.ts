@@ -30,16 +30,24 @@ export function platformReaders(deps: PlatformReaderDeps): PlatformReaders {
   };
 }
 
-/** Every installed app with its card's content — the platform is not one. */
+/** What the reader says of an app that hands no catalog: it paints in the basic catalog (task-11.2 decision 8). */
+export const BASIC_CATALOG_WORDS = 'basic catalog';
+
+/**
+ * Every installed app with its card's content — this run's card, the stored one when the agent was
+ * down at startup — its catalogs, and whether it is reachable this run. The platform is not one.
+ */
 export function installedApps(registry: Registry): InstalledApp[] {
   return registry.list().map(record => {
-    const card = registry.card(record.id);
+    const fetched = registry.card(record.id);
+    const card = fetched ?? registry.storedCard(record.id);
     return {
       id: record.id,
       displayName: record.displayName,
       ...(card ? {name: card.name, description: card.description} : {}),
       skills: (card?.skills ?? []).map(({name, description}) => ({name, description})),
-      reachable: Boolean(card),
+      catalogs: record.catalogs.length > 0 ? [...record.catalogs] : [BASIC_CATALOG_WORDS],
+      reachable: Boolean(fetched),
     };
   });
 }

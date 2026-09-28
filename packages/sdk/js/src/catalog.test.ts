@@ -5,12 +5,14 @@ import {
   checkAppId,
   checkCatalogExports,
   checkCoverage,
+  checkHostInterface,
   claimAppId,
   classifySpecifier,
   coverageErrors,
   credentialLint,
   entitlementOf,
   readSupportedCatalogIds,
+  SUPPORTED_HOST_INTERFACES,
   wordsOf,
 } from './catalog';
 
@@ -218,5 +220,18 @@ describe('the credential lint', () => {
       },
     };
     expect(credentialLint(schema)).toEqual([]);
+  });
+});
+
+describe('the host interface an artifact was built against (task-11.4 decision 4)', () => {
+  test('one the platform supplies passes', () => {
+    expect(SUPPORTED_HOST_INTERFACES).toEqual(['0.9.1']);
+    expect(checkHostInterface('0.9.1')).toEqual([]);
+  });
+
+  test('any other is refused, naming what the platform supplies', () => {
+    expect(checkHostInterface('1.0')).toEqual([
+      'host interface "1.0" is not one the platform supplies (it supplies "0.9.1")',
+    ]);
   });
 });

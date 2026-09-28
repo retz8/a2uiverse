@@ -14,24 +14,13 @@ import {
   shellRepaintParts,
 } from '../src/composition/shellPainter.js';
 import type {LayoutSurface} from '../src/planner/document.js';
-import {Registry} from '../src/registry/registry.js';
-import type {AppRecord} from '../src/registry/types.js';
+import {cardFor, testRegistry} from './registryFixture.js';
 
-function record(id: string, displayName: string): AppRecord {
-  return {
-    id,
-    displayName,
-    agentUrl: `http://localhost/${id}`,
-    authScheme: 'none',
-    catalogId: `cat-${id}`,
-    catalogPackage: `${id}-catalog`,
-  };
-}
-
-const registry = new Registry([
-  record('github', 'GitHub'),
-  record('gmail', 'Gmail'),
-  record('calendar', 'Google Calendar'),
+/** The three sources, installed through the registry: their display names are their cards' names. */
+const {registry} = await testRegistry([
+  {id: 'github', card: cardFor('http://127.0.0.1/github', {name: 'GitHub'})},
+  {id: 'gmail', card: cardFor('http://127.0.0.1/gmail', {name: 'Gmail'})},
+  {id: 'calendar', card: cardFor('http://127.0.0.1/calendar', {name: 'Google Calendar'})},
 ]);
 
 /** A merged view over three sources, a gap beside them, a heading, a card holding one slot as its child. */

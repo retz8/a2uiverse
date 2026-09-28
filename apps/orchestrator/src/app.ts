@@ -18,9 +18,9 @@ import {ModelPlanner, type Planner} from './planner/planner.js';
 import {platformReaders} from './planner/platformReaders.js';
 import {plannerSystemPrompt, readPlannerFiles} from './planner/prompt.js';
 import type {PlatformReaders} from './planner/readers.js';
-import {applyUrlOverrides, defaultEntries} from './registry/entries.js';
-import {readRoster} from './registry/manifests.js';
+import {registryRoutes, REGISTRY_ROUTE_PREFIX} from './registry/api.js';
 import {Registry, type ResolveCard} from './registry/registry.js';
+import {issueWriteToken} from './registry/token.js';
 import {Router} from './router/router.js';
 import {readSynthesizerFiles, synthesizerSystemPrompt} from './synthesizer/prompt.js';
 import {AiSdkSynthesisModel, Synthesizer, type SynthesisModel} from './synthesizer/synthesizer.js';
@@ -36,7 +36,11 @@ export interface Orchestrator {
   registry: Registry;
   pool: AgentsPool;
   journal: IntentJournal;
-  /** Boot step: fetch AgentCards and build the Router corpus. Run before listen. */
+  /**
+   * Boot step, run before listen: the persisted registry read and verified — a damaged one throws
+   * (task-11.4 decision 9) — a fresh write token issued, every installed card fetched and the
+   * Router corpus built.
+   */
   init(): Promise<void>;
 }
 
@@ -51,7 +55,7 @@ export interface OrchestratorOverrides {
   stepQuietMs?: number;
 }
 
-/** Wires the orchestrator: Registry · Embedder · Router · Planner · Synthesizer · AgentsPool · IntentJournal behind one A2A executor. */
+/** Wires the orchestrator: Registry · Embedder · Router · Planner · Synthesizer · AgentsPool · IntentJournal behind one A2A executor, the registry's routes beside it. */
 export function buildOrchestrator({
   config,
   overrides,
@@ -59,15 +63,22 @@ export function buildOrchestrator({
   config: Config;
   overrides?: OrchestratorOverrides;
 }): Orchestrator {
-  // The roster: the manifests one level below the agents dir when one is set (the mock tier is
-  // opted in this way — task 4.7), the hardcoded entries otherwise, until Phase 11's install root.
-  const entries = config.agentsDir ? readRoster(config.agentsDir) : defaultEntries();
   const card = buildAgentCard(config.baseUrl);
-  // One card, two readers (phase-6 decision 1): the client fetches it; the Registry indexes it.
-  const registry = new Registry(applyUrlOverrides(entries, config.agentUrls), {platformCard: card});
   const embedder =
     overrides?.embedder ?? new TransformersEmbedder({cacheDir: join(config.stateDir, 'models')});
   const journal = new IntentJournal(join(config.stateDir, JOURNAL_FILE), embedder);
+  // The registry is the orchestrator's persisted state, booted from alone (task-11.4 decision 8).
+  // One platform card, two readers (phase-6 decision 1): the client fetches it; the Registry
+  // indexes it.
+  const resolveCard = overrides?.resolveCard ?? defaultResolveCard();
+  const registry = new Registry({
+    stateDir: config.stateDir,
+    resolveCard,
+    embedder,
+    journal,
+    platformCard: card,
+  });
+  let writeToken: string | undefined;
   const compositions = new Compositions();
   const readers = platformReaders({
     registry,
@@ -103,16 +114,20 @@ export function buildOrchestrator({
       credentials: true,
     }),
   );
+  app.use(REGISTRY_ROUTE_PREFIX, registryRoutes({registry, writeToken: () => writeToken}));
   app.use(`/${AGENT_CARD_PATH}`, agentCardHandler({agentCardProvider: requestHandler}));
   app.use('/', jsonRpcHandler({requestHandler, userBuilder: UserBuilder.noAuthentication}));
 
-  const resolveCard = overrides?.resolveCard ?? defaultResolveCard();
   return {
     app,
     registry,
     pool,
     journal,
-    init: () => registry.refreshCards({resolveCard, embedder}),
+    init: async () => {
+      await registry.load();
+      writeToken = await issueWriteToken(config.stateDir);
+      await registry.refreshCards();
+    },
   };
 }
 
@@ -175,7 +190,8 @@ function synthesisModelFrom(config: Config): SynthesisModel {
   });
 }
 
+/** Fetches a card from its full URL: the path is part of the URL, none appended. */
 function defaultResolveCard(): ResolveCard {
   const resolver = new DefaultAgentCardResolver();
-  return url => resolver.resolve(url);
+  return url => resolver.resolve(url, '');
 }

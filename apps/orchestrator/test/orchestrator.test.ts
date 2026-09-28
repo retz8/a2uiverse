@@ -6,6 +6,7 @@ import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest';
 import type {Message, TaskStatusUpdateEvent} from '@a2a-js/sdk';
 import {ClientFactory, type Client} from '@a2a-js/sdk/client';
 import type {Express} from 'express';
+import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 import {buildOrchestrator} from '../src/app.js';
 import {A2UI_EXTENSION_URI_V091} from '../src/agentCard.js';
 import type {PlanRecord} from '../src/journal/types.js';
@@ -14,9 +15,9 @@ import type {Planner} from '../src/planner/planner.js';
 import {FakeEmbedder} from './fakeEmbedder.js';
 import {FakePlanner, layoutFor, MalformedPlanner, ThrowingPlanner} from './fakePlanner.js';
 import {bestPriceView, decline, FakeSynthesizer, HeldSynthesizer} from './fakeSynthesizer.js';
-import {defaultEntries} from '../src/registry/entries.js';
 import type {SynthesisCall, SynthesisModel} from '../src/synthesizer/synthesizer.js';
 import {
+  BASIC_CATALOG_ID,
   canvasParentMetadata,
   clipPaintMetaTitle,
   operationData,
@@ -25,11 +26,18 @@ import {
   type SynthesisPayload,
 } from '@a2uiverse/sdk';
 import type {Synthesis} from '../src/synthesizer/document.js';
-import {startFakeVendor, type FakeVendor, type Script} from './fakeVendor.js';
+import {FAKE_CATALOG_ID, startFakeVendor, type FakeVendor, type Script} from './fakeVendor.js';
+import {fixtureArtifact} from './registryFixture.js';
 import type {FaultMap} from '../src/agentsPool/faults.js';
 
 const APPS = ['github', 'gmail', 'calendar'] as const;
 type AppId = (typeof APPS)[number];
+/** Each fake vendor's card name: the app's display name, as the card is the app (task-11.4 decision 8). */
+const NAMES: Record<AppId, string> = {
+  github: 'GitHub',
+  gmail: 'Gmail',
+  calendar: 'Google Calendar',
+};
 
 let dir: string;
 let vendors: Partial<Record<AppId, FakeVendor>> = {};
@@ -64,22 +72,17 @@ async function boot(
     heartbeatMs?: number;
     stepQuietMs?: number;
     faults?: FaultMap;
+    /** The apps installed after startup; every one unless a test says otherwise. */
+    installed?: readonly AppId[];
   } = {},
 ) {
-  // Every hardcoded entry the test does not fake is pointed at a port nothing listens on: left
-  // at its default, it answers its card whenever a dev bed is up on this machine, and the
-  // shortlist — and so the test — changes with what else is running (task-7.9).
-  const agentUrls: Record<string, string> = Object.fromEntries(
-    defaultEntries().map(entry => [entry.id, 'http://127.0.0.1:1']),
-  );
   for (const appId of APPS) {
     const vendor = await startFakeVendor({
-      name: appId,
+      name: NAMES[appId],
       description: `${appId} agent`,
       script: options.scripts?.[appId],
     });
     vendors[appId] = vendor;
-    agentUrls[appId] = vendor.url;
   }
   const ready: {app?: Express} = {};
   server = createServer((req, res) => ready.app!(req, res));
@@ -87,13 +90,12 @@ async function boot(
   const address = server.address();
   if (!address || typeof address === 'string') throw new Error('no port');
   const url = `http://127.0.0.1:${address.port}`;
-  const orchestrator = buildOrchestrator({
+  const built: Parameters<typeof buildOrchestrator>[0] = {
     config: {
       port: address.port,
       baseUrl: url,
       stateDir: dir,
       debugIds: false,
-      agentUrls,
       googleApiKey: undefined,
       plannerModelId: 'test-model',
       plannerEffort: 'low',
@@ -104,7 +106,6 @@ async function boot(
       hardCapMs: options.hardCapMs ?? 300_000,
       heartbeatMs: options.heartbeatMs ?? 30_000,
       faults: options.faults ?? new Map(),
-      agentsDir: undefined,
     },
     overrides: {
       embedder: new FakeEmbedder(),
@@ -113,15 +114,27 @@ async function boot(
       // The step quiet is its own test's to lengthen; elsewhere a step walks as soon as it can.
       stepQuietMs: options.stepQuietMs ?? 0,
     },
-  });
+  };
+  const orchestrator = buildOrchestrator(built);
   await orchestrator.init();
   ready.app = orchestrator.app;
+  // A fresh state directory is an empty registry: each fake vendor is installed through the
+  // operation, handing the catalog its script paints in (task-11.4 decision 17).
+  const artifact = await fixtureArtifact(FAKE_CATALOG_ID);
+  for (const appId of options.installed ?? APPS) {
+    const installed = await orchestrator.registry.install({
+      appId,
+      cardUrl: `${vendors[appId]!.url}/.well-known/agent-card.json`,
+      catalogs: [artifact],
+    });
+    if (!installed.ok) throw new Error(`install ${appId}: ${installed.findings.join('; ')}`);
+  }
   for (const appId of options.closeAfterInit ?? []) {
     await vendors[appId]!.close();
     delete vendors[appId];
   }
   const client: Client = await new ClientFactory().createFromUrl(url);
-  return {url, client};
+  return {url, client, orchestrator, rebuild: () => buildOrchestrator(built)};
 }
 
 /**
@@ -192,6 +205,7 @@ function slotStates(paint: Array<Record<string, unknown>>): Record<string, strin
  * timeout says what it is, and the budget is generous enough to survive `turbo run test`
  * building every other package alongside it.
  */
+/** The journal's turn lines — the registry's lines, the boot's installs among them, left out. */
 async function journalLines(expected: number) {
   const deadline = Date.now() + 15_000;
   for (;;) {
@@ -199,7 +213,8 @@ async function journalLines(expected: number) {
     const lines = text
       .split('\n')
       .filter(Boolean)
-      .map(l => JSON.parse(l) as Record<string, unknown>);
+      .map(l => JSON.parse(l) as Record<string, unknown>)
+      .filter(line => line.kind !== 'registry');
     if (lines.length >= expected) return lines;
     if (Date.now() > deadline) {
       throw new Error(`journal never reached ${expected} line(s) — saw ${lines.length}`);
@@ -277,7 +292,7 @@ describe('orchestrator', () => {
     expect(ids).toEqual(['calendar', 'github', 'gmail', 'shell']);
     const shell = planner.calls[0]!.shortlist.find(e => e.record.id === 'shell')!;
     expect(shell.card.skills.map(s => s.id)).toContain('installed-apps');
-    expect(shell.record.catalogPackage).toBe('@a2uiverse/shell-catalog');
+    expect(shell.record.entitlement).toEqual([SHELL_CATALOG_ID]);
 
     // A question asked from that composition names it: the readers describe it.
     const [child] = await collect(
@@ -2740,5 +2755,94 @@ describe("the fragment's history (tasks 9.4, 10.9)", () => {
       'Google Calendar has not painted.',
       'The step carries no paint.',
     ]);
+  });
+});
+
+describe('the registry on the running orchestrator (task 11.4)', () => {
+  const onlyGithub = () => new FakePlanner(() => planFor(['github']));
+
+  test('an empty registry is a valid boot: the platform’s card is the only routable one', async () => {
+    const {orchestrator} = await boot({installed: []});
+    expect(orchestrator.registry.list()).toEqual([]);
+    expect(orchestrator.registry.routable().map(app => app.record.id)).toEqual(['shell']);
+  });
+
+  test('an install over HTTP, with the token from the state directory, is live on the next turn and survives a restart', async () => {
+    const planner = onlyGithub();
+    const {url, client, rebuild} = await boot({installed: [], planner});
+    const token = (await readFile(join(dir, 'registry', 'write-token'), 'utf8')).trim();
+    const artifact = await fixtureArtifact(FAKE_CATALOG_ID);
+    const response = await fetch(`${url}/registry/install`, {
+      method: 'POST',
+      headers: {'content-type': 'application/json', authorization: `Bearer ${token}`},
+      body: JSON.stringify({
+        appId: 'github',
+        cardUrl: `${vendors.github!.url}/.well-known/agent-card.json`,
+        catalogs: [
+          {
+            files: Object.fromEntries(
+              [...artifact].map(([path, bytes]) => [path, Buffer.from(bytes).toString('base64')]),
+            ),
+          },
+        ],
+      }),
+    });
+    expect(response.status).toBe(200);
+
+    await collect(client, utterance('my pull requests'));
+    expect(planner.calls[0]!.shortlist.map(e => e.record.id).sort()).toEqual(['github', 'shell']);
+    expect(vendors.github!.requests).toHaveLength(1);
+
+    const restarted = rebuild();
+    await restarted.init();
+    expect(restarted.registry.list().map(app => app.id)).toEqual(['github']);
+  });
+
+  test('each agent is told its own entitlement; a paint outside it fails the slot with the catalog cause and never reaches the client', async () => {
+    const outside: Script = ({ctx, vendorContextId}) => [
+      {
+        kind: 'message',
+        messageId: crypto.randomUUID(),
+        role: 'agent',
+        parts: [
+          {
+            kind: 'data',
+            data: {version: 'v0.9', createSurface: {surfaceId: 's1', catalogId: 'urn:other'}},
+          },
+        ],
+        contextId: vendorContextId,
+        taskId: ctx.taskId,
+      },
+    ];
+    const {client} = await boot({planner: onlyGithub(), scripts: {github: outside}});
+    const asked = utterance('my pull requests');
+    asked.metadata = {
+      ...asked.metadata,
+      a2uiClientCapabilities: {'v0.9': {supportedCatalogIds: ['every', 'catalog']}},
+    };
+    const events = await collect(client, asked);
+    expect(vendors.github!.requests[0]!.message.metadata?.a2uiClientCapabilities).toEqual({
+      'v0.9': {supportedCatalogIds: [BASIC_CATALOG_ID, FAKE_CATALOG_ID]},
+    });
+    expect(slotsOf(shellPaints(events).at(-1)!)['github']).toMatchObject({
+      state: 'failed',
+      failure: {cause: 'catalog', catalogId: 'urn:other'},
+    });
+    const created = events.flatMap(a2uiDatas).filter(d => d.createSurface);
+    expect(
+      created.every(d => (d.createSurface as {catalogId: string}).catalogId !== 'urn:other'),
+    ).toBe(true);
+  });
+
+  test('an action inside the fragment of an app uninstalled since fails its slot as not installed', async () => {
+    const {client, orchestrator} = await boot({planner: onlyGithub()});
+    const [first] = await collect(client, utterance('my pull requests'));
+    expect(await orchestrator.registry.uninstall('github')).toEqual({ok: true, appId: 'github'});
+    const events = await collect(client, actionOn('github:s1', first.contextId!));
+    expect(slotsOf(shellPaints(events).at(-1)!)['github']).toMatchObject({
+      state: 'failed',
+      failure: {cause: 'uninstalled'},
+    });
+    expect(vendors.github!.requests).toHaveLength(1);
   });
 });

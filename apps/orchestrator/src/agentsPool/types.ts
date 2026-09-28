@@ -18,6 +18,8 @@ export interface DispatchRecord {
   error?: string;
   /** Why it failed, as the slot is painted (task-8.3 decision 5); set with a failed outcome. */
   cause?: FailureCause;
+  /** The catalog a paint was refused in, with the `catalog` cause (task-11.4 decision 12). */
+  catalogId?: string;
   /** The vendor's own words on its failed final, when it gave any. */
   vendorMessage?: string;
   /** Whether the vendor terminated its stream (final status-update or message). */
