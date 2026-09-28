@@ -29,7 +29,7 @@ The registry stores the card it fetched at install, verbatim, and refreshes card
 
 ### 4. The join is `catalogId`
 
-The card's A2UI extension names the catalogs the agent paints in (`supportedCatalogIds`). A **catalog table** maps each catalog id to one artifact: the marketplace's index at M9, the local registry's at M7, seeded with the standard basic catalog (the client's own `@a2ui/react` export) and the shell catalog. The client's `a2uiClientCapabilities.supportedCatalogIds` is that table.
+The card's A2UI extension names the catalogs the agent paints in (`supportedCatalogIds`). A **catalog table** maps each catalog id to one artifact: the marketplace's index at M9, the local registry's at M7, seeded with the standard basic catalog (the client's own `@a2ui/react` export) and the shell catalog. Each app has a **catalog entitlement**: the ids handed at its install plus the public basic catalog, the shell catalog in no app's set; the hub advertises to each agent its own entitlement as `a2uiClientCapabilities.supportedCatalogIds`, never the table, and refuses a paint outside it (task 11.2, decisions 7 to 9).
 
 ### 5. The publisher packs
 
@@ -49,7 +49,7 @@ The artifact leaves React, `react-dom`, `@a2ui/react`, `@a2ui/web_core` and zod 
 
 ### 9. Publish and install
 
-Publish (M9) takes an agent URL and zero or more catalog artifacts; the marketplace fetches the card and checks coverage: every catalog id on the card is served by an artifact uploaded now or one the table holds. Install takes an app: the card plus the artifacts for the ids it names — from the marketplace, or from disk at M7.
+Publish (M9) takes an agent URL and zero or more catalog artifacts; the marketplace fetches the card and checks coverage in both directions: every catalog id on the card is handed now or public, and every artifact handed is an id on the card — no orphan artifacts (task 11.2, decision 6). Install takes an app: the card plus the artifacts for the ids it names — from the marketplace, or from disk at M7 — under the same check. A card declaring no catalogs falls back to the basic catalog, said to the publisher in those words.
 
 ### 10. The app id is the publisher's, unique in the marketplace
 
