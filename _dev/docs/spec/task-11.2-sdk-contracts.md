@@ -1,6 +1,6 @@
 # Task 11.2 — sdk: the catalog export and artifact contracts
 
-Sub-task 11.2 of Phase 11 (`_dev/docs/spec/phase-11-app-bundle-registry.md`, decisions 6, 8, 13): the two contracts the pack tool writes to and the marketplace, the registry and the client verify, the checks written once for the registry and the marketplace, and what the sdk pins from the A2UI spec for them. Amends phase decisions 4 and 7 and SPEC §4.1, §9.1 and §10 with catalog entitlement and two-directional coverage.
+Sub-task 11.2 of Phase 11 (`_dev/docs/spec/phase-11-app-bundle-registry.md`, decisions 6, 8, 13): the two contracts the pack tool (Stellify, task 11.3) writes to and the marketplace, the registry and the client verify, the checks written once for the registry and the marketplace, and what the sdk pins from the A2UI spec for them. Amends phase decisions 4 and 7 and SPEC §4.1, §9.1 and §10 with catalog entitlement and two-directional coverage.
 
 ## Scope
 
@@ -16,15 +16,15 @@ Sub-task 11.2 of Phase 11 (`_dev/docs/spec/phase-11-app-bundle-registry.md`, dec
 
 ### 1. Export contract: `CATALOG` required, `Provider` optional
 
-A catalog package's entry exports `CATALOG`, a `Catalog` from `@a2ui/web_core` built for `@a2ui/react`'s React catalog model. `Provider` is optional: absent, a passthrough wraps the catalog's fragments; present, it is the one Provider of SPEC §9.2, written by a catalog whose CSS or design system needs a scope or a context. No `CATALOG_ID` export: the id is read from `CATALOG.id`; the tool's config may state it, and the two must agree. Extra exports are ignored. A catalog that replaces the renderer is not a catalog and is out.
+A catalog package's entry exports `CATALOG`, a `Catalog` from `@a2ui/web_core` built for `@a2ui/react`'s React catalog model. `Provider` is optional: absent, a passthrough wraps the catalog's fragments; present, it is the one Provider of SPEC §9.2, written by a catalog whose CSS or design system needs a scope or a context. No `CATALOG_ID` export: the id is `CATALOG.id`. Where it is checked (amended by task 11.3): at pack, Stellify evaluates nothing and reads the id from the schema file's `catalogId`, the config's, when set, agreeing with it; at load, the client checks `CATALOG.id` against the registry's. Extra exports are ignored. A catalog that replaces the renderer is not a catalog and is out.
 
 ### 2. Host-module interface: versioned by the A2UI version it lends
 
-The interface's version is the A2UI protocol version, `0.9.1`. Under it the host lends exactly six specifiers — `react`, `react/jsx-runtime`, `react-dom`, `@a2ui/react/v0_9`, `@a2ui/web_core/v0_9`, `zod` — and `loadStylesheet`. The pack tool externalizes exactly those; any other specifier under a host package is refused at pack with the list of what the host lends. Adding a specifier is a change to the interface.
+The interface's version is the A2UI protocol version, `0.9.1`. Under it the host lends exactly seven specifiers — `react`, `react/jsx-runtime`, `react-dom`, `react-dom/client`, `@a2ui/react/v0_9`, `@a2ui/web_core/v0_9`, `zod` — and `loadStylesheet`. `react-dom/client` was added by task 11.3: React 19 keeps `createRoot` there alone and `@primer/react` reaches it statically. Stellify externalizes exactly those; any other specifier under a host package is refused at pack with the list of what the host lends. Adding a specifier is a change to the interface.
 
 ### 3. Contract form: terms as descriptive JSON, the descriptor as a JSON Schema
 
-The terms — the export names, the six specifiers under `0.9.1`, the layout rules — are a descriptive JSON in the composition contract's style. The descriptor is a JSON Schema beside it, compiled with ajv as the synthesis payload's is, so every reader validates a descriptor with one compiled schema and one error format. The contract test asserts the projection against both.
+The terms — the export names, the seven specifiers under `0.9.1`, the layout rules — are a descriptive JSON in the composition contract's style. The descriptor is a JSON Schema beside it, compiled with ajv as the synthesis payload's is, so every reader validates a descriptor with one compiled schema and one error format. The contract test asserts the projection against both.
 
 ### 4. Descriptor
 
@@ -32,7 +32,7 @@ The terms — the export names, the six specifiers under `0.9.1`, the layout rul
 
 ### 4a. The contracts carry no version of their own
 
-The catalog contracts are versioned with the sdk, whose every consumer — the orchestrator, the client, the marketplace, the shell catalog, the pack tool — ships from this monorepo; the files carry no version in their names or contents, and the descriptor has no contract field. The one version inside them is A2UI's: the host interfaces are keyed by the A2UI version each lends, one key today, a second at the v1.0 soft migration. The composition contract keeps its version, which is the A2A extension URI's.
+The catalog contracts are versioned with the sdk, whose every consumer — the orchestrator, the client, the marketplace, the shell catalog, Stellify — ships from this monorepo; the files carry no version in their names or contents, and the descriptor has no contract field. The one version inside them is A2UI's: the host interfaces are keyed by the A2UI version each lends, one key today, a second at the v1.0 soft migration. The composition contract keeps its version, which is the A2A extension URI's.
 
 ### 5. Credential lint at install
 
