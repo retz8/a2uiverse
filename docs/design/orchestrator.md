@@ -206,7 +206,7 @@ In the recording, GitHub's answer reached the client at 6.07 s, Linear's at 6.08
 ```mermaid
 flowchart TD
     CFG["loadConfig()"] --> B["buildOrchestrator()"]
-    B --> REG["Registry<br/>installed apps + A2UIVerse's own card"]
+    B --> REG["Registry<br/>installed apps, the catalog table + A2UIVerse's own card"]
     B --> EMB["Embedder"]
     B --> CMP["Compositions"]
     B --> PL["Planner<br/>with its readers"]
@@ -214,14 +214,65 @@ flowchart TD
     B --> RT["Router"]
     B --> POOL["AgentsPool"]
     REG & EMB & CMP & PL & SY & RT & POOL --> EX["OrchestratorExecutor"]
-    EX --> H["A2A request handler<br/>(express: the card, then JSON-RPC)"]
+    EX --> H["A2A request handler<br/>(express: the registry's routes, the card, then JSON-RPC)"]
 ```
 
 The A2A SDK's `DefaultRequestHandler` serves the card and runs the executor for every message. CORS lets in only `localhost` and dev-tunnel origins. Each dependency is handed in as an interface, so the tests swap in a fake embedder, planner, synthesizer model or card fetcher, with no model download, no model call and no network.
 
-**Agent cards are fetched once, at boot.** `registry.refreshCards` fetches every app's card in parallel and embeds each one. A card that can't be fetched is `null`, and that app can't be routed to for the rest of the session. The boot log names every such app, since restarting the orchestrator after the app is up is the only fix.
+Before it listens, `init()` does three things in order:
 
-The roster comes from `manifest.json` files one folder below `A2UIVERSE_AGENTS_DIR` when that's set (the launcher sets it), or from the five apps hardcoded in `src/registry/entries.ts` otherwise. The id `shell` is reserved: an app that claims it is refused at boot.
+1. **Reads the registry** from the state directory (`registry.load`), hashing every artifact's files again. A record file that won't parse, or an artifact whose files are missing or changed, throws with the path and the problem, and the orchestrator doesn't start.
+2. **Issues a fresh write token** into the state directory (next section).
+3. **Fetches every installed app's card** in parallel, from the URL stored at install, and embeds each one (`registry.refreshCards`). That fetched card is the one this run uses. A card that can't be fetched is `null`, and that app can't be routed to for the rest of the run, though it stays installed. The boot log names every such app.
+
+### Registry: what's installed
+
+`src/registry/` holds the installed apps and the **catalog table**, and it's the only thing that writes them. Say you install Gmail, whose agent runs on port 11002 and paints in its own catalog:
+
+```mermaid
+flowchart LR
+    CMD["registry install gmail<br/>card URL + packed catalog"] -->|POST /registry/install<br/>write token| API["api.ts"]
+    API --> REG["Registry.install"]
+    REG -->|fetch| CARD["Gmail's agent card"]
+    REG --> GATE["gate.ts<br/>each artifact's files"]
+    REG --> DISK[("state directory<br/>registry.json + artifacts/&lt;id&gt;/")]
+    REG --> IDX["the card embedded<br/>routable on the next turn"]
+```
+
+**Install** takes an app id, the card's full URL, and one files map per catalog handed. It collects every finding before answering, and refuses the whole app on any of them:
+
+- **The app id** is a lowercase slug, and `shell` is reserved.
+- **The card** must fetch and have a `url` and a `name`. The catalog ids it declares in its A2UI extension are validated against A2UI's own schema.
+- **Coverage runs both ways.** Every catalog the card declares is handed or is the basic catalog, and every artifact handed is one the card declares.
+- **Each artifact** passes the static gate. Its descriptor conforms, every listed file is there with its hash and nothing else is, and the schema compiles as an A2UI catalog under the descriptor's id. The host interface is one the client supplies, and no component, prop or value carries a credential word.
+- **The client's catalogs can't be handed.** No artifact may be handed for the basic or the shell catalog, since the client provides both.
+- **A catalog id is held at one hash.** A handed artifact whose catalog is already held at another hash is refused while another installed app names that catalog, naming that app.
+
+The checks are the sdk's, so the marketplace will refuse the same artifacts for the same reasons. When everything passes, the artifacts are written, then the record, and the card is embedded so the Router sees the app on the very next turn. A card declaring no catalogs installs on the basic catalog, and install says so in a note. Installing an id that's already installed is **install-over**: its card, catalogs and entitlement are replaced in place. **Uninstall** removes the record. Each artifact goes when no installed card names its catalog any more. Operations run one at a time, through a promise chain.
+
+**On disk**, the registry is one record file and one directory per artifact:
+
+```
+.state/registry/
+  registry.json              every installed app: id, card URL, card as installed, catalogs, entitlement
+  artifacts/sha256-R5yz…/    one artifact: artifact.json, index.js, catalog.json, its stylesheets
+  write-token                this run's token, readable by the owner only
+```
+
+Every write goes through a temporary file or directory and a rename, so a crash leaves either the old state or the new one. An artifact's id is the hash of its `artifact.json`, which lists every other file's hash, spelled URL-safe (`sha256-` then base64url).
+
+**Two cards per app.** The record keeps the card as it was installed, and it changes only through install-over. The run uses the card fetched at startup for the dispatch URL, the skills the Router ranks, and the name the Planner reads and the attribution shows. When the agent was down at startup, the Planner's reader shows the stored card, marked unreachable.
+
+**The routes**, all under `/registry` on the orchestrator's own port, are shaped like static files, so a directory with the same layout can stand in for the orchestrator when there isn't one:
+
+| Route | What it serves |
+| --- | --- |
+| `GET apps.json` | the installed records |
+| `GET catalogs.json` | the catalog table: the basic and the shell catalog marked `provided: "client"`, then each installed artifact's id and entry |
+| `GET artifacts/<id>/<path>` | an artifact's files, `Cache-Control: public, max-age=31536000, immutable` |
+| `POST install`, `POST uninstall` | the write operations, each needing `Authorization: Bearer <write token>` |
+
+**The write token** exists because the orchestrator's port is public through the dev tunnel, and an installed artifact's code runs in your browser. The token is only readable on the machine, from the state directory, which is where the install command and the launcher read it.
 
 ### Refusing a repeat
 
@@ -249,7 +300,7 @@ The Router (`src/router/router.ts`) answers one question: which apps are most li
 - **Similarity is a dot product.** For two unit vectors, cosine similarity (how closely they point the same way) is just the sum of the products of their numbers, which is all `cosine()` computes.
 - **Rank, cap, keep.** Score every routable app, sort highest first, keep the first five (`A2UIVERSE_SHORTLIST_CAP`), plus any app on screen in the answer the question was asked from.
 
-The app vectors are computed once at boot; each question costs one embedding and one pass over the apps, O(apps × 384). A2UIVerse's own card is ranked the same way, so "what apps do I have?" routes to the platform like any other question to any other app.
+The app vectors are computed at startup and at each install; each question costs one embedding and one pass over the apps, O(apps × 384). A2UIVerse's own card is ranked the same way, so "what apps do I have?" routes to the platform like any other question to any other app.
 
 ### Planner: a model with tools
 
@@ -319,10 +370,16 @@ The structures behind it:
 - **An async generator.** `events` is an `async function*` that connects, sends, and `yield`s each event as the A2A client streams it. Nothing happens until someone iterates it.
 - **An `AbortController` per dispatch**, linked to the turn's signal, so aborting the turn aborts every dispatch at once. `cancel()` aborts it and also sends the app A2A's `tasks/cancel` (fire and forget: a refusal is logged, never fatal), since closing the stream alone would leave the app working.
 - **`#inflight: Map<clientTaskId, Set<handle>>`.** One question fans out to several apps under one client task id, so cancelling that task cancels every handle in its set.
-- **`#clients: Map<url, Promise<Client>>`**, a cache of connections. It stores the **promise**, not the client, so two dispatches to the same app at once share one connection attempt; a failed attempt is removed so the next one tries again.
+- **`#clients: Map<url, Promise<Client>>`**, a cache of connections, each built from the app's card as the registry holds it, so a dispatch fetches no card of its own. It stores the **promise**, not the client, so two dispatches to the same app at once share one connection attempt; a failed attempt is removed so the next one tries again.
 - **A vendor context map**, `clientContextId → appId → vendorContextId` (two nested `Map`s). Each answer gets its own conversation with each app, and closing the answer drops them.
 
-**How a dispatch ends.** `completed`; `cancelled` (aborted); or `failed` with a cause: `vendor` when the app ended its task as failed (its words kept), `unreachable` when the connection failed or the stream ended with no final.
+**Catalog entitlement.** A dispatch reads the app from the registry once, as it starts, and keeps that snapshot to its end. The app's **entitlement** is the catalogs handed at its install plus the basic catalog. It goes out as the message's `a2uiClientCapabilities.supportedCatalogIds`, in place of whatever the client sent, so each app is told only what it may paint in. Every event coming back is checked: a `createSurface` in any other catalog is never relayed, the app is sent `tasks/cancel`, and the dispatch fails with the `catalog` cause, carrying the id.
+
+**How a dispatch ends.** `completed`; `cancelled` (aborted); or `failed` with a cause:
+- `vendor` when the app ended its task as failed, its words kept.
+- `unreachable` when the connection failed or the stream ended with no final.
+- `catalog` when the app painted outside its entitlement.
+- `uninstalled` when the app isn't installed at dispatch time, so it isn't asked at all.
 
 **The hard cap** is a `setTimeout` for 300 seconds. When it fires first, `capped` resolves, but the stream is **not** ended: the slot fails as `timeout` right away, and whatever arrives after that is **held**, undrawn, until you press Retry. If the app is still running when you retry, the old dispatch and the new one **race**: the first to answer is drawn and the other is cancelled.
 
@@ -387,6 +444,7 @@ A merge also waits for **quiet**. `Presses` (`src/composition/presses.ts`) count
 - `open()` returns a small recorder object; the executor calls its methods as the turn runs (`plan`, `dispatched`, `synthesis`, `step`, `refused`…), filling in one entry.
 - `close()` writes it **once**: a second call does nothing. It also embeds the turn's **descriptor** (the question verbatim, or "open-run on surface circleci:circleci-1 in circleci" for an action) with the Router's model, for later analysis.
 - **It never throws.** A failed embedding writes `null`; a failed file write is logged. The journal must never break a turn.
+- **Registry changes get lines of their own**, `kind: "registry"`, beside the turns. Each install, install-over, uninstall and refusal gets one, with the app, the card URL, the catalogs and their artifact ids, the outcome, and a refusal's findings. There's no utterance behind one, so it has no embedding.
 
 Separately, every request leaves short lines on stdout (`src/log.ts`) as it runs, the trace of a turn that hasn't closed yet:
 
@@ -423,6 +481,10 @@ Set `A2UIVERSE_DEBUG_IDS=1` to see the app's own ids under the stamp while debug
 | The Planner's answer failed validation twice | A broken turn: a `failed` final naming the findings |
 | No `GOOGLE_API_KEY` | Questions are broken turns; clicks inside apps still work |
 | An app failed, couldn't be reached, or hit the hard cap | That app's slot shows the failure tile with Retry; the others carry on |
+| An app painted in a catalog outside its entitlement | The paint is dropped; that app's slot fails with the `catalog` cause and the id |
+| A dispatch (a Retry, a click inside its answer) to an app uninstalled since | That app's slot fails with the `uninstalled` cause |
+| The registry on disk is damaged | The orchestrator doesn't start; the error names the file and the problem |
+| An install fails a check | Nothing changes; every finding is answered at once, `422` |
 | An app answered after the hard cap | The answer is held until you press Retry, then drawn at once |
 | The client couldn't draw an app's paint | It reports it; that app's slot fails as `invalid` and its data leaves the merge |
 | A message id seen within the last 256 | Refused: "This request was already received." |
@@ -446,7 +508,12 @@ For testing failures on purpose, `A2UIVERSE_FAULTS` makes a chosen app `delay`, 
 | **Apps' finals demoted; the hub sends the one final** | Under fan-out, the turn ends once, after everyone | The client learns an app is done from the `settled` marker instead |
 | **Model output in the orchestrator's own tag, validated, one retry** | The Planner and the Synthesizer share one shape; bad output never reaches the screen; cost is bounded | A second failure is a broken turn |
 | **Readers: a closed set of tools, never app data** | The Planner answers questions about the platform without seeing anyone's data; a new question kind is a new reader | Each reader is written by hand |
-| **Agent cards fetched once, at boot** | Routing is stable and fast for the whole session | An app started later can't be routed to until a restart |
+| **The registry is files in the state directory** | Nothing to run beside the orchestrator; a copy of the directory is a snapshot | No concurrent writers; a damaged file stops the boot |
+| **Install refuses the whole app, every finding at once** | An app is never half installed; the publisher sees everything to fix in one go | A single bad file keeps out every catalog handed with it |
+| **Agent cards fetched once, at startup, the installed one kept on disk** | Routing is stable for the run, and the agent owns its own description | An app started later can't be routed to until a restart or an install-over |
+| **One hash per catalog id while another app names it** | No app can change the code another app renders in | A shared catalog is upgraded only by uninstalling the other apps first |
+| **The hub checks each paint's catalog against the app's entitlement** | No app paints in another app's catalog, whatever the client advertised | One check per relayed event |
+| **A write token read from the state directory** | The public tunnel port can't install code into your browser | A browser can't install until the Store page gets its own way in |
 | **A composition per context, in memory for the session** | Every answer keeps working after the next question; nothing to store or migrate | A reload or restart starts from nothing |
 | **One merge in the making, requests batched** | No two merges race to paint; many presses cost one model call | A press may wait for the merge in the making |
 | **The hard cap fails the slot but keeps listening** | A slow app doesn't hold the screen, and its late answer isn't lost | The held answer waits for a Retry |
@@ -472,7 +539,7 @@ All paths are under `apps/orchestrator/src/`.
 | Boot and wiring | `index.ts`, `app.ts`, `config.ts`, `agentCard.ts` (A2UIVerse's own card) |
 | The turn: every message, the pump, the merge in the making | `executor.ts` |
 | Classifying a message | `composition/classify.ts` |
-| Installed apps and their cards | `registry/` (`registry.ts`, `entries.ts`, `manifests.ts`, `corpus.ts`) |
+| Installed apps, the catalog table, install and uninstall | `registry/` (`registry.ts`, `gate.ts`, `store.ts`, `api.ts`, `token.ts`, `command.ts`, `cli.ts`, `corpus.ts`) |
 | Embeddings | `embedder/` |
 | Routing | `router/router.ts` |
 | The Planner | `planner/` (`planner.ts`, `validate.ts`, `prompt.ts`, `planner.md`, `examples.ts`, `readers.ts`, `platformReaders.ts`, `document.ts`, `getModel.ts`) |
@@ -493,6 +560,11 @@ All paths are under `apps/orchestrator/src/`.
 | --- | --- |
 | **Hub** | The orchestrator: the one process the client and every app talk to |
 | **Agent card** | An A2A agent's public description: name, description, skills with example questions |
+| **Registry** | The installed apps and the catalog table, persisted in the state directory, written only by install, uninstall and install-over |
+| **Catalog artifact** | A catalog's code, schema and styles as files under one id, packed by Stellify |
+| **Catalog table** | Each catalog id and where it comes from: the client itself, or an installed artifact |
+| **Entitlement** | The catalogs an app may paint in: those handed at its install, plus the basic catalog |
+| **Write token** | The secret install and uninstall require, written into the state directory at startup |
 | **Task** | One A2A exchange: a message and the stream of events that answers it, ending in one final |
 | **Context** | An A2A conversation id. Each question opens a new one |
 | **Turn** | One client message and its stream: an utterance, action, operation or client error |

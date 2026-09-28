@@ -26,6 +26,15 @@ flowchart LR
 
 ## What it does
 
+### Knows what's installed
+
+An app is an A2A agent, installed from its agent card. The orchestrator keeps the registry of installed apps in its state directory: each app's card, the URL it came from, and the catalogs it paints in. It's the registry's only writer, through three operations over HTTP: install, uninstall, and install over an app already installed.
+
+- **Install fetches the card** and stores it as written. Any catalog the card names that the client doesn't already have comes with it as a catalog artifact, which is what Stellify packs. Install checks everything the files can prove, and refuses the whole app on any failure, listing every reason at once.
+- **An install is live at once.** The next question can route to the app, with no restart.
+- **A fresh state directory is an empty registry**, and that's a valid platform. Only A2UIVerse's own card is there to answer.
+- **Installs persist.** At every startup the orchestrator reads the registry, checks each artifact's files against their hashes, and fetches each card again. A damaged registry stops the startup with the file and the problem named.
+
 ### Picks the apps
 
 The Router embeds the question and ranks every installed app's agent card against it, A2UIVerse's own card among them, then hands a shortlist to the Planner. There's no list of intents to maintain: the match is on the skills each app's card describes.
@@ -117,6 +126,7 @@ Every app's UI passes through the orchestrator on its way to the screen, and eve
 - **Every event is stamped** with the app that painted it, so the client knows which slot it fills.
 - **Only the orchestrator ends a turn.** Each app's own "done" is held back, and the orchestrator sends one when all of them have answered.
 - **Each app sees only its own data** when the client sends the screen's data back with a click.
+- **Each app is told which catalogs it may paint in**: the ones handed at its install, plus the basic catalog. A paint in any other catalog is refused at the orchestrator and fails that app's slot.
 
 ## Running it
 
@@ -125,16 +135,34 @@ pnpm dev:orch                                   # from the repo root
 pnpm --filter @a2uiverse/orchestrator build | typecheck | test | lint
 ```
 
-It listens on port **10001**. Start the apps first with `pnpm dev:agents`, or use `pnpm dev:all` to start both in order. **Agent cards are fetched once, at startup**: an app that comes up later can't be asked anything until the orchestrator restarts. It names any app it couldn't reach at startup, so if nothing gets routed, read that line first.
+It listens on port **10001** and starts from whatever its registry holds, nothing at first. Install an app while it runs, with the app's agent up and its catalog packed by Stellify:
 
-Started by the launcher, it reads its apps from the `manifest.json` in each folder of the agents dir, so `pnpm dev:all --agents-dir ../a2uiverse-apps/mocks` runs on the two mock stores alone. Started on its own, it falls back to the five apps in `src/registry/entries.ts`.
+```bash
+pnpm --filter @a2uiverse/orchestrator registry install gmail http://localhost:11002/.well-known/agent-card.json ../a2uiverse-apps/gmail/gmail-catalog/dist/artifact
+pnpm --filter @a2uiverse/orchestrator registry uninstall gmail
+pnpm --filter @a2uiverse/orchestrator registry list
+```
+
+Install takes the app's id, its card's full URL, and a directory for each catalog its card names that the client doesn't already have. An app on the basic catalog needs none. Installing an id that's already installed replaces it. The command reads the write token the orchestrator puts in its state directory at startup, so it only works against an orchestrator running on the same state directory.
+
+**Agent cards are fetched at startup**: an app whose agent is down then stays installed but can't be asked anything until the orchestrator restarts or the app is installed again. It names any app it couldn't reach, so if nothing gets routed, read that line first.
+
+The registry's routes, all under `/registry`:
+
+| Route                       | What it is                                                                           |
+| --------------------------- | ------------------------------------------------------------------------------------ |
+| `GET apps.json`             | The installed apps, as the registry stores them                                      |
+| `GET catalogs.json`         | The catalog table: the client's own catalogs, then each installed artifact by its id |
+| `GET artifacts/<id>/<path>` | An artifact's files, served as immutable content                                     |
+| `POST install`              | `{appId, cardUrl, catalogs: [{files: {<path>: <base64>}}]}`, with the write token    |
+| `POST uninstall`            | `{appId}`, with the write token                                                      |
 
 <details>
 <summary><b>Modules</b></summary>
 
 | Module        | Where              | What it does                                                                                                                                                                                                |
 | ------------- | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Registry      | `src/registry/`    | The installed apps and their agent cards, fetched at startup, with A2UIVerse's own card beside them                                                                                                         |
+| Registry      | `src/registry/`    | The installed apps, their cards and the catalog table, persisted in the state directory; install, uninstall and their routes; A2UIVerse's own card beside the apps                                          |
 | Embedder      | `src/embedder/`    | One small embedding model, in-process, no API key                                                                                                                                                           |
 | Router        | `src/router/`      | Ranks the apps against the question and returns a shortlist                                                                                                                                                 |
 | Planner       | `src/planner/`     | The first model call: the layout, which apps to ask, a title for the answer. On demand it reads the installed apps, the composition the question was asked from and the questions before it, never app data |
@@ -155,7 +183,7 @@ The Planner and the Synthesizer run on Gemini through the Vercel AI SDK.
 | --------------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
 | `PORT`                            | `10001`                                       | Listen port                                                                                            |
 | `BASE_URL`                        | `http://localhost:<PORT>`                     | The address its agent card advertises                                                                  |
-| `STATE_DIR`                       | `./.state`                                    | The journal and the cached embedding model                                                             |
+| `STATE_DIR`                       | `./.state`                                    | The registry, the journal and the cached embedding model                                               |
 | `GOOGLE_API_KEY`                  | none                                          | The Gemini key. Without it, questions fail; actions inside fragments still work                        |
 | `A2UIVERSE_PLANNER_MODEL`         | `gemini-3.7-flash`                            | The Planner's model                                                                                    |
 | `A2UIVERSE_PLANNER_EFFORT`        | `low`                                         | `low` (no thinking) or `default`                                                                       |
@@ -165,8 +193,6 @@ The Planner and the Synthesizer run on Gemini through the Vercel AI SDK.
 | `A2UIVERSE_SOFT_DEADLINE_SECONDS` | `10`                                          | How long with no answer releases the merge without the late apps                                       |
 | `A2UIVERSE_HARD_CAP_SECONDS`      | `300`                                         | How long before an app's slot fails                                                                    |
 | `A2UIVERSE_HEARTBEAT_SECONDS`     | `30`                                          | How often a quiet stream sends an empty event, so a proxy's idle timeout never cuts it                 |
-| `A2UIVERSE_AGENTS_DIR`            | none                                          | Read the apps from this directory's manifests. The launcher sets it                                    |
-| `A2UIVERSE_AGENT_URLS`            | none                                          | JSON `{"<appId>": "<url>"}` overriding apps' addresses                                                 |
 | `A2UIVERSE_DEBUG_IDS`             | off                                           | `1` adds each app's own task and context ids to what it relays                                         |
 | `A2UIVERSE_FAULTS`                | none                                          | Dev only: JSON making an app's answers slow, hang, break, refused, failed or invalid, to test failures |
 

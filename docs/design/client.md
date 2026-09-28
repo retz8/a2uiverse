@@ -425,7 +425,7 @@ The merged view is explained end to end in [`synthesis.md`](synthesis.md). The c
 
 - **Visual containment isn't DOM containment.** A vendor component that is `position: fixed` paints over the whole canvas while its DOM stays inside its boundary; Primer's `ConfirmationDialog` does exactly this. The detector checks DOM ownership, not painted bounds.
 - **A vendor component can still declare `aria-modal`.** The shell puts up no modal for a promoted slot, but a vendor's own dialog can hide the rest of the canvas from assistive technology.
-- **Every app learns the full catalog list.** The client's supported catalog ids go to every app unfiltered, so each learns the whole installed roster.
+- **The client still advertises every catalog it compiled in.** The orchestrator drops that list and tells each app only its own entitlement, so no app learns the others' catalogs, but the list still rides every message to the orchestrator.
 - **Test setup is shaped around Primer.** `setupTests.ts` shims and the Vite config's `lightningcss.errorRecovery` exist because `github-catalog` needs them.
 - **Two renderer patches.** `@a2ui/react` is patched locally (`patches/@a2ui__react@0.10.2.patch`); the [client README](../../apps/client/README.md#renderer-patch) says why.
 - **The merged view round-trips.** `shell:synthesis` rides back to the orchestrator in the client's data models, which the orchestrator ignores.
