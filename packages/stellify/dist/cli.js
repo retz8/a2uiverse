@@ -34,7 +34,10 @@ async function runCli(argv, io) {
 ${USAGE}` : USAGE);
     return 2;
   }
-  const result = await stellify(args.dir, args.out === void 0 ? {} : { outDir: resolve(args.out) });
+  const result = await stellify(
+    args.dir,
+    args.out === void 0 ? {} : { outDir: resolve(args.out) }
+  );
   const written = args.verb === "pack" && result.findings.length === 0 ? await writeArtifact(result) : void 0;
   if (args.json) {
     io.out(
