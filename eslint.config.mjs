@@ -13,6 +13,8 @@ export default tseslint.config(
       '**/*.d.ts',
       '**/*.generated.ts',
       '.turbo/**',
+      // Working copies of Stellify's fixture catalogs, written by its tests
+      'packages/stellify/test/.tmp/**',
     ],
   },
   eslint.configs.recommended,

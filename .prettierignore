@@ -15,6 +15,9 @@ CLAUDE.md
 # The pinned A2UI spec copy — written by packages/sdk/js/scripts/sync-a2ui-spec.mjs, never hand-edited
 packages/sdk/a2ui-spec
 
+# Working copies of Stellify's fixture catalogs, written by its tests
+packages/stellify/test/.tmp
+
 # Recorded beat fixtures — written by the recorder, not hand-edited
 apps/client/recordings
 

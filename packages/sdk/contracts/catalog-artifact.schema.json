@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://a2uiverse.dev/contracts/catalog-artifact",
   "title": "A2UIVerse catalog artifact descriptor",
-  "description": "artifact.json at the root of a catalog artifact (catalog.json, artifact). Written by the pack tool; validated by the marketplace at publish, the registry at install and the client at load, with one compiled schema. Versioned with the sdk; a change to its shape is additive.",
+  "description": "artifact.json at the root of a catalog artifact (catalog.json, artifact). Written by Stellify, the pack tool; validated by the marketplace at publish, the registry at install and the client at load, with one compiled schema. Versioned with the sdk; a change to its shape is additive.",
   "type": "object",
   "additionalProperties": false,
   "required": ["catalogId", "entry", "schema", "hostInterface", "files", "package", "packedBy"],

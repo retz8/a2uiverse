@@ -1,0 +1,16 @@
+{
+  "name": "star-dialog",
+  "version": "0.0.1",
+  "description": "The fixture dependency: reaches react-dom/client and imports its stylesheet statically, as @primer/react does.",
+  "type": "module",
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "main": "./lib/index.js",
+  "exports": {
+    ".": "./lib/index.js"
+  },
+  "peerDependencies": {
+    "react-dom": "^19.2.7"
+  }
+}

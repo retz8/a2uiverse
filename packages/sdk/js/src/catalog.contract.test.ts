@@ -42,13 +42,13 @@ test('the export contract: CATALOG required, Provider optional', () => {
   expect(contract.exportContract.optional).toEqual([...CATALOG_EXPORTS.optional]);
 });
 
-test('the host-module interfaces keyed by A2UI version: one today, the global, six specifiers, the loader', () => {
+test('the host-module interfaces keyed by A2UI version: one today, the global, seven specifiers, the loader', () => {
   expect(Object.keys(contract.hostInterfaces)).toEqual([HOST_INTERFACE_VERSION]);
   expect(HOST_INTERFACE_VERSION).toBe('0.9.1');
   const lent = contract.hostInterfaces[HOST_INTERFACE_VERSION];
   expect(lent.global).toBe(HOST_INTERFACE_GLOBAL);
   expect(lent.specifiers).toEqual([...HOST_SPECIFIERS]);
-  expect(HOST_SPECIFIERS).toHaveLength(6);
+  expect(HOST_SPECIFIERS).toHaveLength(7);
   expect(lent.stylesheetLoader).toBe(HOST_STYLESHEET_LOADER);
 });
 

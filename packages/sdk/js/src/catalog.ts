@@ -61,7 +61,8 @@ const isComponentLike = (value: unknown): boolean =>
 /**
  * The export contract over a loaded module's namespace: `CATALOG` present and catalog-shaped,
  * `Provider` a component when present, and the catalog's id the expected one when given. Run by the
- * pack tool at pack and by the client at load; empty when the module conforms.
+ * client at load — Stellify evaluates nothing and reads the entry's export names from its bundle
+ * instead (task 11.3) — and empty when the module conforms.
  */
 export function checkCatalogExports(
   module: Record<string, unknown>,
@@ -92,11 +93,16 @@ export const HOST_INTERFACE_VERSION = '0.9.1';
 /** The global the client registers the interface under, before any artifact loads. */
 export const HOST_INTERFACE_GLOBAL = '__a2uiverse_host__';
 
-/** Exactly what the host lends: the pack tool externalizes these and refuses any other specifier under a host package. */
+/**
+ * Exactly what the host lends: Stellify externalizes these and refuses any other specifier under a
+ * host package. `react-dom/client` is lent beside `react-dom` because React 19 keeps `createRoot`
+ * there alone and design systems reach it (task 11.3).
+ */
 export const HOST_SPECIFIERS = [
   'react',
   'react/jsx-runtime',
   'react-dom',
+  'react-dom/client',
   '@a2ui/react/v0_9',
   '@a2ui/web_core/v0_9',
   'zod',
@@ -131,7 +137,7 @@ const packageOf = (specifier: string): string => {
 };
 
 /**
- * How the pack tool treats one import specifier: `host` for a lent specifier, `refuse` for another
+ * How Stellify treats one import specifier: `host` for a lent specifier, `refuse` for another
  * specifier under a host package, `bundle` for everything else.
  */
 export function classifySpecifier(specifier: string): 'host' | 'refuse' | 'bundle' {

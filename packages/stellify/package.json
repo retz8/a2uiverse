@@ -1,0 +1,54 @@
+{
+  "name": "@a2uiverse/stellify",
+  "version": "0.1.0",
+  "description": "Stellify — turns a catalog package into the A2UIVerse catalog artifact: pack and check, with the host and stylesheet imports rewritten so the vendor's source is untouched.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/retz8/a2uiverse.git",
+    "directory": "packages/stellify"
+  },
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      }
+    }
+  },
+  "bin": {
+    "stellify": "./dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs && tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "lint": "eslint .",
+    "prove": "node scripts/prove.mjs"
+  },
+  "dependencies": {
+    "esbuild": "^0.28.2"
+  },
+  "devDependencies": {
+    "@a2ui/react": "^0.10.2",
+    "@a2ui/web_core": "^0.10.6",
+    "@a2uiverse/sdk": "workspace:*",
+    "@types/node": "^22.19.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.9",
+    "zod": "^3.25.76"
+  }
+}

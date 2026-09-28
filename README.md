@@ -111,6 +111,7 @@ The client talks only to the orchestrator, and the orchestrator to the apps. One
 | [`apps/marketplace`](apps/marketplace/)                     | Where apps will be published and found. Not built yet                                                       |
 | [`packages/sdk`](packages/sdk/)                             | The contract between the orchestrator and the client, and generic A2UI tools                                |
 | [`packages/shell-catalog`](packages/shell-catalog/)         | The shell's own A2UI catalog: the basic catalog on Radix Themes, plus the components that compose a screen  |
+| [`packages/stellify`](packages/stellify/)                   | Stellify, the pack tool: turns a catalog package into the catalog artifact the registry installs            |
 | [`a2uiverse-apps`](https://github.com/retz8/a2uiverse-apps) | The apps, their agent kit and the scaffolder, in their own repo                                             |
 
 Going deeper: **[SPEC.md](SPEC.md)** is the full design, and [`docs/design/`](docs/design/) has a guide to each part: the [synthesis](docs/design/synthesis.md) behind the merged view, the [client](docs/design/client.md), the [orchestrator](docs/design/orchestrator.md), the [shell catalog](docs/design/shell-catalog.md) and the [agent kit](docs/design/agent-kit.md).

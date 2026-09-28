@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/star/catalog.json",
+  "catalogId": "https://example.com/star/catalog.json",
+  "$defs": {
+    "anyComponent": {
+      "oneOf": [{"$ref": "#/components/StarText"}, {"$ref": "#/components/StarButton"}]
+    },
+    "tone": {"type": "string", "enum": ["calm", "bright"]}
+  },
+  "components": {
+    "StarText": {
+      "type": "object",
+      "properties": {
+        "text": {"type": "string"},
+        "tone": {"$ref": "#/$defs/tone"}
+      },
+      "required": ["text"]
+    },
+    "StarButton": {
+      "type": "object",
+      "properties": {
+        "label": {"type": "string"},
+        "action": {"$ref": "#/$defs/tone"}
+      },
+      "required": ["label"]
+    }
+  }
+}

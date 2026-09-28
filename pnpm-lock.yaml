@@ -290,6 +290,40 @@ importers:
         specifier: ^3.25.76
         version: 3.25.76
 
+  packages/stellify:
+    dependencies:
+      esbuild:
+        specifier: ^0.28.2
+        version: 0.28.2
+    devDependencies:
+      '@a2ui/react':
+        specifier: ^0.10.2
+        version: 0.10.2(patch_hash=99b6533eb4bc6f8f8c7de140fcffef2c7572a6a6b30a2b86b5020fa368d845ea)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(zod@3.25.76)
+      '@a2ui/web_core':
+        specifier: ^0.10.6
+        version: 0.10.6
+      '@a2uiverse/sdk':
+        specifier: workspace:*
+        version: link:../sdk/js
+      '@types/node':
+        specifier: ^22.19.0
+        version: 22.20.1
+      react:
+        specifier: ^19.2.7
+        version: 19.2.8
+      react-dom:
+        specifier: ^19.2.7
+        version: 19.2.8(react@19.2.8)
+      typescript:
+        specifier: ~5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.9
+        version: 4.1.11(@types/node@22.20.1)(jsdom@29.1.1)(vite@8.2.2(@types/node@22.20.1)(esbuild@0.28.2)(tsx@4.23.12)(yaml@2.9.1))
+      zod:
+        specifier: ^3.25.76
+        version: 3.25.76
+
 packages:
 
   '@a2a-js/sdk@0.3.14':

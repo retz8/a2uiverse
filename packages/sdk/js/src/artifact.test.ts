@@ -1,6 +1,7 @@
 import {describe, expect, test} from 'vitest';
 import {
   checkArtifactSchema,
+  checkCatalogSchemaCompiles,
   hashArtifactFile,
   validateArtifactDescriptor,
   verifyArtifactFiles,
@@ -118,5 +119,33 @@ describe('checkArtifactSchema', () => {
       'catalog.json: components is not an object',
     ]);
     expect(checkArtifactSchema(descriptor, [])).toEqual(['catalog.json: not a JSON object']);
+  });
+});
+
+describe('checkCatalogSchemaCompiles', () => {
+  test('a catalog whose components compile', () => {
+    expect(
+      checkCatalogSchemaCompiles({
+        catalogId: 'c',
+        components: {
+          Text: {type: 'object', properties: {text: {type: 'string'}}, required: ['text']},
+        },
+      }),
+    ).toEqual([]);
+  });
+  test('a component whose schema cannot compile names the component', () => {
+    const errors = checkCatalogSchemaCompiles({
+      catalogId: 'c',
+      components: {
+        Text: {type: 'object'},
+        Broken: {$ref: '#/$defs/nowhere'},
+      },
+    });
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toMatch(/^components\/Broken: /);
+  });
+  test('not a catalog at all', () => {
+    expect(checkCatalogSchemaCompiles([])).toEqual(['not a JSON object']);
+    expect(checkCatalogSchemaCompiles({catalogId: 'c'})).toEqual(['components is not an object']);
   });
 });

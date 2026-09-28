@@ -33,6 +33,12 @@ export interface A2uiValidatorOptions {
 export interface A2uiValidator {
   /** Every finding over a message, or a list of messages; empty when the payload is valid. */
   validate(payload: unknown): A2uiFinding[];
+  /**
+   * Compiles every declared component's schema now rather than on first use, and returns one
+   * error per component that cannot compile, as `components/<name>: <reason>`. Empty when the
+   * whole catalog compiles.
+   */
+  compileErrors(): string[];
 }
 
 const MESSAGE_TYPES = ['createSurface', 'updateComponents', 'updateDataModel', 'deleteSurface'];
@@ -250,6 +256,17 @@ export function createA2uiValidator(options: A2uiValidatorOptions): A2uiValidato
       }
       findings.push(...recursionAndPathFindings(messages));
       return findings;
+    },
+    compileErrors() {
+      const errors: string[] = [];
+      for (const name of Object.keys(declared)) {
+        try {
+          componentSchemaFor(name);
+        } catch (error) {
+          errors.push(`components/${name}: ${(error as Error).message}`);
+        }
+      }
+      return errors;
     },
   };
 }

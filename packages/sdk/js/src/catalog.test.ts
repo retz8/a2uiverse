@@ -47,11 +47,12 @@ describe('checkCatalogExports', () => {
 });
 
 describe('classifySpecifier', () => {
-  test('the six lent specifiers are host', () => {
+  test('the seven lent specifiers are host', () => {
     for (const s of [
       'react',
       'react/jsx-runtime',
       'react-dom',
+      'react-dom/client',
       '@a2ui/react/v0_9',
       '@a2ui/web_core/v0_9',
       'zod',
@@ -61,7 +62,7 @@ describe('classifySpecifier', () => {
   });
   test('another specifier under a host package is refused', () => {
     expect(classifySpecifier('@a2ui/react/v0_8')).toBe('refuse');
-    expect(classifySpecifier('react-dom/client')).toBe('refuse');
+    expect(classifySpecifier('react-dom/server')).toBe('refuse');
     expect(classifySpecifier('@a2ui/web_core/v0_9/basic_catalog')).toBe('refuse');
     expect(classifySpecifier('zod/v4')).toBe('refuse');
   });

@@ -1,0 +1,5 @@
+@import './tokens.css';
+.star-dialog {
+  position: fixed;
+  inset: var(--star-dialog-inset);
+}

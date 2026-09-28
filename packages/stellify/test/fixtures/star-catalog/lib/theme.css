@@ -1,0 +1,14 @@
+@font-face {
+  font-family: 'Star';
+  src: url('./fonts/star.woff2') format('woff2');
+}
+.star-catalog {
+  font-family: 'Star', sans-serif;
+  color: navy;
+}
+.star-catalog .star-button {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'/>");
+}
+.star-catalog .remote {
+  background-image: url(https://example.com/not-copied.png);
+}

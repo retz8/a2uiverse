@@ -1,0 +1,25 @@
+{
+  "name": "star-catalog",
+  "version": "1.2.3",
+  "description": "The fixture catalog Stellify's tests pack: the seven catalog packages' convention in miniature.",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./lib/index.js",
+  "exports": {
+    ".": {
+      "import": {
+        "default": "./lib/index.js"
+      }
+    }
+  },
+  "dependencies": {
+    "star-dialog": "0.0.1"
+  },
+  "peerDependencies": {
+    "@a2ui/react": "^0.10.2",
+    "@a2ui/web_core": "^0.10.6",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "zod": "^3.25.76"
+  }
+}

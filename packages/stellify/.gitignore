@@ -1,0 +1,4 @@
+# Working copies of the fixture catalogs the tests pack
+test/.tmp/
+# The committed build output (decision 2): dist is tracked, so it is not ignored here
+!dist/

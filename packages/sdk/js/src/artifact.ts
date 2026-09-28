@@ -8,6 +8,8 @@
  * shape is additive.
  */
 import {Ajv2020} from 'ajv/dist/2020.js';
+import {createA2uiValidator} from './a2ui/validator.js';
+import type {A2uiCatalogSchema} from './a2ui/types.js';
 import {schemaErrors, type Validation} from './validate.js';
 
 /** The descriptor's file name at the artifact's root. */
@@ -24,7 +26,7 @@ export const ARTIFACT_DESCRIPTOR_SCHEMA = {
   $id: 'https://a2uiverse.dev/contracts/catalog-artifact',
   title: 'A2UIVerse catalog artifact descriptor',
   description:
-    'artifact.json at the root of a catalog artifact (catalog.json, artifact). Written by the pack tool; validated by the marketplace at publish, the registry at install and the client at load, with one compiled schema. Versioned with the sdk; a change to its shape is additive.',
+    'artifact.json at the root of a catalog artifact (catalog.json, artifact). Written by Stellify, the pack tool; validated by the marketplace at publish, the registry at install and the client at load, with one compiled schema. Versioned with the sdk; a change to its shape is additive.',
   type: 'object',
   additionalProperties: false,
   required: ['catalogId', 'entry', 'schema', 'hostInterface', 'files', 'package', 'packedBy'],
@@ -183,4 +185,25 @@ export function checkArtifactSchema(descriptor: ArtifactDescriptor, schema: unkn
     errors.push(`${descriptor.schema}: components is not an object`);
   }
   return errors;
+}
+
+/**
+ * Whether a catalog schema is a valid A2UI catalog in the one sense the pinned spec gives, which
+ * ships no meta-schema for one: it compiles with the spec's message schemas, every component's
+ * schema included. Run by Stellify at pack and by the registry at install (phase-11 decision 13),
+ * over the parsed schema file; each error names the component that failed. Empty when it compiles.
+ */
+export function checkCatalogSchemaCompiles(schema: unknown): string[] {
+  if (typeof schema !== 'object' || schema === null || Array.isArray(schema)) {
+    return ['not a JSON object'];
+  }
+  const catalog = schema as A2uiCatalogSchema;
+  if (typeof catalog.components !== 'object' || catalog.components === null) {
+    return ['components is not an object'];
+  }
+  try {
+    return createA2uiValidator({catalog}).compileErrors();
+  } catch (error) {
+    return [`the catalog does not compile: ${(error as Error).message}`];
+  }
 }
