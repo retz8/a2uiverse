@@ -28,7 +28,11 @@ The terms — the export names, the six specifiers under `0.9.1`, the layout rul
 
 ### 4. Descriptor
 
-`catalogId`, `entry`, `schema`, `hostInterface`, `files` — every file to its hash, entry and schema among them — `package {name, version}`, `packedBy {tool, version}`. `catalogId` is always written. No display title. The descriptor's contract is versioned on its own line, apart from `hostInterface`.
+`catalogId`, `entry`, `schema`, `hostInterface`, `files` — every file to its hash, entry and schema among them — `package {name, version}`, `packedBy {tool, version}`. `catalogId` is always written. No display title.
+
+### 4a. The contracts carry no version of their own
+
+The catalog contracts are versioned with the sdk, whose every consumer — the orchestrator, the client, the marketplace, the shell catalog, the pack tool — ships from this monorepo; the files carry no version in their names or contents, and the descriptor has no contract field. The one version inside them is A2UI's: the host interfaces are keyed by the A2UI version each lends, one key today, a second at the v1.0 soft migration. The composition contract keeps its version, which is the A2A extension URI's.
 
 ### 5. Credential lint at install
 
