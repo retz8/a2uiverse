@@ -1,19 +1,17 @@
 /**
  * The catalog artifact (SPEC §9.1, task 11.2): the descriptor `artifact.json` at the root of a
  * packed catalog, and the checks over its files. Normative definition:
- * `../contracts/catalog-artifact.v1.schema.json`, mirrored here as the schema the sdk compiles —
+ * `../contracts/catalog-artifact.schema.json`, mirrored here as the schema the sdk compiles —
  * the sdk runs in the browser too — and asserted equal by `catalog.contract.test.ts`. The pack
  * tool writes a descriptor; the marketplace, the registry and the client validate it with this one
- * compiled schema and one error format.
+ * compiled schema and one error format. The schema is versioned with the sdk; a change to its
+ * shape is additive.
  */
 import {Ajv2020} from 'ajv/dist/2020.js';
 import {schemaErrors, type Validation} from './validate.js';
 
 /** The descriptor's file name at the artifact's root. */
 export const ARTIFACT_DESCRIPTOR_FILE = 'artifact.json';
-
-/** The version of the descriptor contract this projection writes and reads. */
-export const ARTIFACT_CONTRACT_VERSION = '1.0.0';
 
 /** A path relative to the artifact's root: no leading slash, no `..` segment, no backslash. */
 const RELATIVE_PATH_PATTERN = '^(?!/)(?!.*(^|/)\\.\\.(/|$))[^\\\\]+$';
@@ -23,29 +21,14 @@ const HASH_PATTERN = '^sha256-[A-Za-z0-9+/]{43}=$';
 
 export const ARTIFACT_DESCRIPTOR_SCHEMA = {
   $schema: 'https://json-schema.org/draft/2020-12/schema',
-  $id: 'https://a2uiverse.dev/contracts/catalog-artifact/v1',
+  $id: 'https://a2uiverse.dev/contracts/catalog-artifact',
   title: 'A2UIVerse catalog artifact descriptor',
   description:
-    'artifact.json at the root of a catalog artifact (catalog.v1.json, artifact). Written by the pack tool; validated by the marketplace at publish, the registry at install and the client at load, with one compiled schema.',
+    'artifact.json at the root of a catalog artifact (catalog.json, artifact). Written by the pack tool; validated by the marketplace at publish, the registry at install and the client at load, with one compiled schema. Versioned with the sdk; a change to its shape is additive.',
   type: 'object',
   additionalProperties: false,
-  required: [
-    'contract',
-    'catalogId',
-    'entry',
-    'schema',
-    'hostInterface',
-    'files',
-    'package',
-    'packedBy',
-  ],
+  required: ['catalogId', 'entry', 'schema', 'hostInterface', 'files', 'package', 'packedBy'],
   properties: {
-    contract: {
-      type: 'string',
-      pattern: '^1\\.[0-9]+\\.[0-9]+$',
-      description:
-        'The version of this descriptor contract the artifact was written to; its own line, apart from hostInterface.',
-    },
     catalogId: {
       type: 'string',
       minLength: 1,
@@ -111,7 +94,6 @@ export const ARTIFACT_DESCRIPTOR_SCHEMA = {
 } as const;
 
 export interface ArtifactDescriptor {
-  contract: string;
   catalogId: string;
   entry: string;
   schema: string;

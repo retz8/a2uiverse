@@ -2,8 +2,10 @@
  * The catalog contracts (SPEC §9.1, task 11.2): what a catalog package exposes, what the client
  * lends a loaded catalog, and the checks the registry and the marketplace share — coverage in both
  * directions, entitlement, the app id, the credential lint, the card's declaration read. The
- * normative definition is `../contracts/catalog.v1.json`; `catalog.contract.test.ts` asserts this
+ * normative definition is `../contracts/catalog.json`; `catalog.contract.test.ts` asserts this
  * projection against it. The artifact half — the descriptor and its files — lives in `artifact.ts`.
+ * The contracts carry no version of their own: they are versioned with the sdk, whose every consumer
+ * ships from this monorepo; the one version inside them is A2UI's, keying the host interfaces.
  *
  * Nothing here describes an agent: the app is its A2A AgentCard, read as written. The one thing the
  * sdk reads off a card is the A2UI extension's `supportedCatalogIds`, validated against the pinned
@@ -15,9 +17,6 @@ import type {A2uiCatalogSchema} from './a2ui/types.js';
 import {schemaErrors, type Validation} from './validate.js';
 
 export {BASIC_CATALOG_ID};
-
-/** The version line of the catalog contract (`catalog.v1.json`). */
-export const CATALOG_CONTRACT_VERSION = '1.0.0';
 
 /** The A2UI A2A extension's URI: the entry of a card's `capabilities.extensions` that carries the catalog declaration. */
 export const A2UI_EXTENSION_URI = 'https://a2ui.org/a2a-extension/a2ui/v0.9.1';
@@ -87,7 +86,7 @@ export function checkCatalogExports(
 
 // --- The host-module interface ----------------------------------------------------------------
 
-/** The A2UI version the host lends under this interface (task-11.2 decision 2). */
+/** The A2UI version the one interface lent today is keyed by (task-11.2 decision 2). */
 export const HOST_INTERFACE_VERSION = '0.9.1';
 
 /** The global the client registers the interface under, before any artifact loads. */

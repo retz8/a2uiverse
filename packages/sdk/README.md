@@ -9,14 +9,14 @@ The contract between A2UIVerse's orchestrator and its canvas client, and generic
 - **Synthesis**: the merged view's wiring, with its schema and validator. The wiring is formulas over refs into each app's data, match claims that say which entries are one thing, and sorts.
 - **Resolution**: pointers with key predicates, like `/threads[id="1a06f2"]/time`, resolved against a data model.
 - **A2UI tools**: an A2UI v0.9.1 validator that follows upstream's, and catalog pruning.
-- **Catalogs**: what a catalog package exposes (`CATALOG`, an optional `Provider`), what the client lends a loaded catalog (the host-module interface, versioned `0.9.1`, six specifiers), the catalog artifact's descriptor with its validator and file checks, and the checks the registry and the marketplace share — two-directional coverage over a card's `supportedCatalogIds`, each app's catalog entitlement, the app id's grammar and claim, the credential lint over a schema. The app itself is its A2A AgentCard; nothing here describes one.
+- **Catalogs**: what a catalog package exposes (`CATALOG`, an optional `Provider`), what the client lends a loaded catalog (the host-module interface keyed by A2UI version — `0.9.1`, six specifiers), the catalog artifact's descriptor with its validator and file checks, and the checks the registry and the marketplace share — two-directional coverage over a card's `supportedCatalogIds`, each app's catalog entitlement, the app id's grammar and claim, the credential lint over a schema. The app itself is its A2A AgentCard; nothing here describes one.
 
 ```
-contracts/composition.v0.8.json            the composition contract; the package is tested against it
-contracts/catalog.v1.json                  the catalog contracts' terms; the package is tested against it
-contracts/catalog-artifact.v1.schema.json  the artifact descriptor's JSON Schema; the package compiles its mirror
-a2ui-spec/                                 a pinned copy of the A2UI v0.9.1 schemas, capabilities, basic catalog and validator cases
-js/                                        the TypeScript package
+contracts/composition.v0.8.json         the composition contract — an A2A extension, versioned in its URI; the package is tested against it
+contracts/catalog.json                  the catalog contracts' terms, versioned with the package; tested against
+contracts/catalog-artifact.schema.json  the artifact descriptor's JSON Schema, versioned with the package; the package compiles its mirror
+a2ui-spec/                              a pinned copy of the A2UI v0.9.1 schemas, capabilities, basic catalog and validator cases
+js/                                     the TypeScript package
 ```
 
 ## Quick start

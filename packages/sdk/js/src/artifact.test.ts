@@ -14,7 +14,6 @@ async function descriptorFor(files: Record<string, string>): Promise<ArtifactDes
   for (const [path, content] of Object.entries(files))
     hashed[path] = await hashArtifactFile(bytes(content));
   return {
-    contract: '1.0.0',
     catalogId: 'https://example.com/gmail/catalog.json',
     entry: 'index.js',
     schema: 'catalog.json',
@@ -51,9 +50,6 @@ describe('validateArtifactDescriptor', () => {
     const {packedBy: _dropped, ...withoutPackedBy} = descriptor;
     expect(validateArtifactDescriptor(withoutPackedBy)).toMatchObject({ok: false});
     expect(validateArtifactDescriptor({...descriptor, title: 'Gmail'})).toMatchObject({ok: false});
-    expect(validateArtifactDescriptor({...descriptor, contract: '2.0.0'})).toMatchObject({
-      ok: false,
-    });
     expect(validateArtifactDescriptor({...descriptor, hostInterface: 'v0_9'})).toMatchObject({
       ok: false,
     });

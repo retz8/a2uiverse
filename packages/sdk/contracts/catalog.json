@@ -1,30 +1,30 @@
 {
   "name": "a2uiverse-catalog",
-  "version": "1.0.0",
-  "description": "The A2UIVerse catalog contracts (SPEC §9.1, task 11.2): what a catalog package exposes (the export contract), what the client lends a loaded catalog (the host-module interface), what the pack tool writes and the marketplace, the registry and the client verify (the catalog artifact, whose descriptor is the JSON Schema beside this file), and the checks the registry and the marketplace share — two-directional coverage, entitlement, the app id, the credential lint. The agent is described by its A2A AgentCard alone and nothing here describes one. Normative for every language projection; each projection's contract test asserts against this file.",
+  "description": "The A2UIVerse catalog contracts (SPEC §9.1, task 11.2), versioned with the sdk that carries them: what a catalog package exposes (the export contract), what the client lends a loaded catalog (the host-module interface), what the pack tool writes and the marketplace, the registry and the client verify (the catalog artifact, whose descriptor is the JSON Schema beside this file), and the checks the registry and the marketplace share — two-directional coverage, entitlement, the app id, the credential lint. The agent is described by its A2A AgentCard alone and nothing here describes one. Normative for every language projection; each projection's contract test asserts against this file.",
   "a2uiExtensionUri": "https://a2ui.org/a2a-extension/a2ui/v0.9.1",
   "exportContract": {
     "required": ["CATALOG"],
     "optional": ["Provider"],
     "rule": "A catalog package's entry exports CATALOG, a Catalog from @a2ui/web_core built for @a2ui/react's React catalog model; its id is the catalog id. Provider, when exported, is a React component taking children — the one Provider of SPEC §9.2, wrapping every fragment of the catalog; absent, a passthrough wraps them. Every other export is ignored."
   },
-  "hostInterface": {
-    "version": "0.9.1",
-    "global": "__a2uiverse_host__",
-    "specifiers": [
-      "react",
-      "react/jsx-runtime",
-      "react-dom",
-      "@a2ui/react/v0_9",
-      "@a2ui/web_core/v0_9",
-      "zod"
-    ],
-    "stylesheetLoader": "loadStylesheet",
-    "rule": "The client registers one object under the global before any artifact loads: its version, the module namespace of each specifier — the client's own instances — and loadStylesheet, which loads a stylesheet by URL once. An artifact reaches the host singletons only through it: the pack tool rewrites each import of a specifier to a read from the interface and each stylesheet import to a load through it, and refuses any other specifier under a host package. The version is the A2UI version the host lends; the client refuses at load an artifact built against one it does not lend."
+  "hostInterfaces": {
+    "0.9.1": {
+      "global": "__a2uiverse_host__",
+      "specifiers": [
+        "react",
+        "react/jsx-runtime",
+        "react-dom",
+        "@a2ui/react/v0_9",
+        "@a2ui/web_core/v0_9",
+        "zod"
+      ],
+      "stylesheetLoader": "loadStylesheet",
+      "rule": "The client registers one object under the global before any artifact loads: its version, the module namespace of each specifier — the client's own instances — and loadStylesheet, which loads a stylesheet by URL once. An artifact reaches the host singletons only through it: the pack tool rewrites each import of a specifier to a read from the interface and each stylesheet import to a load through it, and refuses any other specifier under a host package. Keyed by the A2UI version the host lends; the client refuses at load an artifact built against one it does not lend."
+    }
   },
   "artifact": {
     "descriptorFile": "artifact.json",
-    "descriptorSchema": "catalog-artifact.v1.schema.json",
+    "descriptorSchema": "catalog-artifact.schema.json",
     "hashForm": "sha256-<base64>",
     "rule": "A directory of files served under one base URL: the descriptor, the catalog schema, one ESM entry, its stylesheets, its assets. The descriptor lists every other file with its hash; the entry and the schema are among them; a file not listed does not belong to the artifact. The schema's catalogId equals the descriptor's."
   },

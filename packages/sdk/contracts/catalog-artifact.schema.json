@@ -1,26 +1,12 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://a2uiverse.dev/contracts/catalog-artifact/v1",
+  "$id": "https://a2uiverse.dev/contracts/catalog-artifact",
   "title": "A2UIVerse catalog artifact descriptor",
-  "description": "artifact.json at the root of a catalog artifact (catalog.v1.json, artifact). Written by the pack tool; validated by the marketplace at publish, the registry at install and the client at load, with one compiled schema.",
+  "description": "artifact.json at the root of a catalog artifact (catalog.json, artifact). Written by the pack tool; validated by the marketplace at publish, the registry at install and the client at load, with one compiled schema. Versioned with the sdk; a change to its shape is additive.",
   "type": "object",
   "additionalProperties": false,
-  "required": [
-    "contract",
-    "catalogId",
-    "entry",
-    "schema",
-    "hostInterface",
-    "files",
-    "package",
-    "packedBy"
-  ],
+  "required": ["catalogId", "entry", "schema", "hostInterface", "files", "package", "packedBy"],
   "properties": {
-    "contract": {
-      "type": "string",
-      "pattern": "^1\\.[0-9]+\\.[0-9]+$",
-      "description": "The version of this descriptor contract the artifact was written to; its own line, apart from hostInterface."
-    },
     "catalogId": {
       "type": "string",
       "minLength": 1,
@@ -42,7 +28,9 @@
     "files": {
       "type": "object",
       "minProperties": 2,
-      "propertyNames": {"$ref": "#/$defs/relativePath"},
+      "propertyNames": {
+        "$ref": "#/$defs/relativePath"
+      },
       "additionalProperties": {
         "type": "string",
         "pattern": "^sha256-[A-Za-z0-9+/]{43}=$",
@@ -55,8 +43,14 @@
       "additionalProperties": false,
       "required": ["name", "version"],
       "properties": {
-        "name": {"type": "string", "minLength": 1},
-        "version": {"type": "string", "minLength": 1}
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        }
       },
       "description": "The catalog package the artifact was packed from, as its package.json names it."
     },
@@ -65,8 +59,14 @@
       "additionalProperties": false,
       "required": ["tool", "version"],
       "properties": {
-        "tool": {"type": "string", "minLength": 1},
-        "version": {"type": "string", "minLength": 1}
+        "tool": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        }
       },
       "description": "The pack tool build that wrote the artifact."
     }
