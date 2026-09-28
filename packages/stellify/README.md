@@ -1,78 +1,124 @@
-# Stellify
+# @a2uiverse/stellify
 
-_To turn into a star._ Stellify is A2UIVerse's pack tool: it turns a catalog package into the **catalog artifact** the registry installs and the client loads at runtime — the directory of files SPEC §9.1 describes, under the sdk's catalog artifact contract. It runs in the package's own checkout, writes only its output directory, and leaves the vendor's source untouched: every import of a host package becomes a read from the client's host-module interface, and every stylesheet import becomes a load through it.
+_Stellify: to turn into a star._ Stellify packs a catalog package into the **catalog artifact** A2UIVerse installs, the folder of files the client loads at runtime to draw an app's UI. You run it inside your catalog package. It reads your built code, never edits it, and writes one folder.
 
-## Use
+## What it does for you
 
-Two verbs. `check` runs the whole pipeline in memory — bundling included — then the gate, and writes nothing; `pack` writes the artifact after the same gate and refuses to leave a failing one on disk.
+- **One command to ship a catalog.** `stellify pack` bundles your built entry, your stylesheets, your fonts and icons and your catalog schema into a folder with a descriptor listing every file and its hash. That folder is what the registry installs.
+- **Your source stays yours.** You import React, `@a2ui/react` and your CSS the way you always did. Stellify rewrites those imports in the bundle, not in your files: React and the other host packages become reads from the client's shared copies, and each stylesheet import becomes a load the client performs. No wrapper to write, no build step to change.
+- **A dry run that tells the truth.** `stellify check` runs the exact same pipeline in memory, then the same checks the registry runs at install, and writes nothing. Green here means the install will be green.
+- **Same input, same bytes.** Packing the same package tree with the same Stellify version gives the same artifact, hash for hash. Two apps sharing a catalog share one row in the registry.
+- **Zero configuration** when your package looks like the catalog packages in [`a2uiverse-apps`](https://github.com/retz8/a2uiverse-apps): a built entry named by `exports["."]`, a schema at `catalogs/v0.9.1/catalog.json`. Anything else is a four-field config file.
 
-```sh
-stellify check            # the package in the working directory; exit 1 on any finding
-stellify pack             # writes dist/artifact/
+## Running it
+
+Build your package first. Stellify bundles the built entry, not the source.
+
+```bash
+pnpm build
+stellify check              # the package in the working directory; exit 1 on any finding
+stellify pack               # writes dist/artifact/
 stellify pack --out ../packed --json
 ```
 
-Findings print one per line as `<file>: <reason>`; `--json` prints the descriptor and the findings as one object.
+Findings print one per line as `file: reason`. `--json` prints the descriptor and the findings as one object, for CI.
 
-**Zero configuration** when the package follows the seven catalog packages' convention: the built entry is what `exports["."]` (then `main`) names, the schema sits at `catalogs/v0.9.1/catalog.json`, the artifact goes to `dist/artifact/`. Build the package first — Stellify bundles the built entry, never the source. A package that departs writes a `stellify.config.ts`:
+A package that departs from the convention adds a `stellify.config.ts`:
 
 ```ts
 import {defineConfig} from '@a2uiverse/stellify';
 
 export default defineConfig({
-  entry: 'lib/index.js',
-  schema: 'schema/catalog.json',
+  entry: 'lib/index.js', // default: what exports["."] names
+  schema: 'schema/catalog.json', // default: catalogs/v0.9.1/catalog.json
   catalogId: 'https://example.com/star/catalog.json', // must equal the schema's
-  outDir: 'build/artifact',
+  outDir: 'build/artifact', // default: dist/artifact
 });
 ```
 
-Every field is optional. The file is loaded through esbuild and may not read the environment or the clock: the artifact is byte-for-byte deterministic — same package tree, same dependencies, same Stellify version, same bytes — and a config that varies breaks that.
+Every field is optional. Keep the file a plain object: one that reads the environment or the clock makes your artifact differ from run to run.
 
-## The programmatic API
+## What it checks
+
+Every failure is a finding, and all of them are reported together:
+
+1. The config has only known keys, and its `catalogId` matches the schema's.
+2. The entry exists and bundles. Any import of a host package the client does not lend is refused, with the list of what it does lend: `react`, `react/jsx-runtime`, `react-dom`, `react-dom/client`, `@a2ui/react/v0_9`, `@a2ui/web_core/v0_9`, `zod`.
+3. Every stylesheet reached, and every `url()` or `@import` inside it, resolves to a file inside your package or one of its dependencies.
+4. The entry exports `CATALOG`.
+5. The schema is a valid A2UI catalog: it compiles, and its `catalogId` is the one the descriptor carries.
+6. No component name, prop name or enum value in the schema is a credential word such as `password` or `otp`.
+7. The descriptor is well formed and lists every file with its hash.
+
+Stellify runs none of your code. Exports are read from the bundle, the id from the schema file. Whether `CATALOG.id` agrees is the client's check when it loads the artifact.
+
+## From code
 
 ```ts
 import {stellify, writeArtifact} from '@a2uiverse/stellify';
 
-const result = await stellify('path/to/catalog-package', {outDir: 'elsewhere'});
-// result.findings  — empty when the package packs
-// result.descriptor — artifact.json, null when there are findings
-// result.files      — Map<artifact path, bytes>, sorted, without the descriptor
+const result = await stellify('path/to/catalog-package');
 if (result.findings.length === 0) await writeArtifact(result);
 ```
 
-`stellify()` never throws on a refusal; a refusal is a finding. The launcher's auto-install and the registry snapshot consume the map.
+`stellify()` returns the artifact in memory: `descriptor`, `files` (a sorted `Map` of artifact path to bytes) and `findings`. It never throws on a refusal. `writeArtifact()` is the one thing that touches disk; it empties the output folder first.
 
-## What it does
+<details>
+<summary>What the artifact looks like</summary>
 
-1. Reads `stellify.config.ts` and `package.json`.
-2. Reads the schema; the catalog id is its `catalogId`.
-3. Bundles the built entry with esbuild into one ESM: no splitting, no minification, no source maps. A specifier the host lends (`react`, `react/jsx-runtime`, `react-dom`, `react-dom/client`, `@a2ui/react/v0_9`, `@a2ui/web_core/v0_9`, `zod`) becomes a read of `__a2uiverse_host__.modules[...]`; any other specifier under a host package is refused with that list. A stylesheet import, static or dynamic, in the vendor's code or a dependency's, becomes `await __a2uiverse_host__.loadStylesheet(new URL(path, import.meta.url).href)`, so a dynamic import resolves when the sheet has loaded.
-4. Lays the artifact out as a mirror of the package: `artifact.json`, `index.js` and `catalog.json` at the root; a copied stylesheet or asset at its package-relative path; a dependency's file under `node_modules/<name>/<subpath>`. No CSS is rewritten — relative `url()`s and `@import`s keep resolving because the structure around them is unchanged.
-5. Runs the gate, the same list the registry runs at install: the config well-formed and agreeing with the schema; the bundle building with no refused specifier and no stylesheet asset missing or escaping; `CATALOG` exported, read from the bundle; the schema compiling through the sdk's A2UI validator with its id the descriptor's; the credential lint clean; the descriptor valid with every file present and hashed.
+The artifact mirrors your package, so nothing inside a stylesheet has to be rewritten:
 
-Nothing of the vendor's runs: the exports come from the bundler's metafile, the id from the schema file. `CATALOG.id` agreeing with both is the client's check at load.
-
-## Build, test, prove
-
-```sh
-pnpm build      # dist/: index.js with the sdk inlined, cli.js, the declarations
-pnpm test       # vitest over the fixture catalog in test/fixtures
-pnpm prove      # packs the seven catalog packages in ../a2uiverse-apps (A2UIVERSE_APPS_DIR overrides)
+```
+artifact.json                         the descriptor: every file below with its hash
+index.js                              your whole catalog, one ES module
+catalog.json                          your schema, byte for byte
+dist/theme.css                        your stylesheet, at its path in the package
+dist/fonts/inter.woff2                the font it references, beside it
+node_modules/@primer/primitives/…     a dependency's stylesheet, under the package that owns it
 ```
 
-`dist/` is **committed**: the apps repo installs Stellify as a `github:` dependency with a `path:` subdirectory, and such an install sees no workspace sibling, so the sdk's projection is inlined at build and the result checked in. `pnpm verify` at the root rebuilds it and fails on any difference (`scripts/stellify-dist.test.mjs`); rebuild and commit after any change here or in the sdk.
+In `index.js`, `import {useState} from 'react'` has become a read from `__a2uiverse_host__.modules["react"]`, and `import('./theme.css')` has become `await __a2uiverse_host__.loadStylesheet(new URL("dist/theme.css", import.meta.url).href)`. A dynamic stylesheet import still resolves when the sheet has loaded, so a Provider that waits for its theme keeps working.
 
-## Where things are
+</details>
 
-| Concern                   | File                        |
-| ------------------------- | --------------------------- |
-| The pipeline and the gate | `src/pack.ts`               |
-| The bundler and rewrites  | `src/bundle.ts`             |
-| Artifact paths            | `src/layout.ts`             |
-| Stylesheet assets         | `src/stylesheets.ts`        |
-| The config file           | `src/config.ts`             |
-| The writer                | `src/write.ts`              |
-| The command line          | `src/cli.ts`, `src/main.ts` |
-| The fixture catalog       | `test/fixtures/`            |
-| The proof                 | `scripts/prove.mjs`         |
+<details>
+<summary>Installing it in a catalog package</summary>
+
+The apps repo takes Stellify as a git dependency pinned to a commit, pointing at this folder of the monorepo:
+
+```json
+"devDependencies": {
+  "@a2uiverse/stellify": "github:retz8/a2uiverse#<commit>&path:packages/stellify"
+}
+```
+
+`dist/` is committed for exactly this reason: a git install sees no workspace siblings, so the build ships with the sdk inlined and needs no build step of its own. esbuild is its only runtime dependency.
+
+</details>
+
+## Developing Stellify
+
+```bash
+pnpm --filter @a2uiverse/stellify build       # dist/: index.js with the sdk inlined, cli.js, declarations
+pnpm --filter @a2uiverse/stellify test        # vitest over the fixture catalog in test/fixtures
+pnpm --filter @a2uiverse/stellify prove       # packs the seven catalog packages in ../a2uiverse-apps
+```
+
+`dist/` is checked in and must match the source: `pnpm verify` at the root rebuilds it and fails on any difference. After editing `src/` or the sdk, run `build` and commit the result. `prove` reads `A2UIVERSE_APPS_DIR` when the apps checkout is elsewhere.
+
+<details>
+<summary>Where things are</summary>
+
+| Concern                        | File                        |
+| ------------------------------ | --------------------------- |
+| Pipeline and checks            | `src/pack.ts`               |
+| Bundler and the two rewrites   | `src/bundle.ts`             |
+| Artifact paths                 | `src/layout.ts`             |
+| Stylesheet assets              | `src/stylesheets.ts`        |
+| Config file                    | `src/config.ts`             |
+| Writer                         | `src/write.ts`              |
+| Command line                   | `src/cli.ts`, `src/main.ts` |
+| Fixture catalog and dependency | `test/fixtures/`            |
+| Proof over the seven           | `scripts/prove.mjs`         |
+
+</details>
