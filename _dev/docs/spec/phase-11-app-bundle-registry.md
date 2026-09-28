@@ -57,11 +57,11 @@ The platform app id — the provenance tag, the surface namespace, the vault key
 
 ### 11. One writer: the orchestrator owns the registry
 
-Install, uninstall and install-over are orchestrator operations exposed over `orchestratorApi`, which becomes HTTP and also serves the installed list, the catalog table and the artifacts. A thin command wraps the operations for M7; the Store page at M10 and the store loop at M11 call the same ones. A change is live at once: the Planner's installed-apps reader and the Router see it on the next turn.
+Install, uninstall and install-over are orchestrator operations exposed over `orchestratorApi`, which becomes HTTP and also serves the installed list, the catalog table and the artifacts. A thin command wraps the operations for M7; the Store page at M10 and the store loop at M11 call the same ones. A change is live at once: the Planner's installed-apps reader and the Router see it on the next turn. The write operations take a local token the orchestrator writes into its state directory at startup; the command and the launcher read it from there (task 11.4).
 
 ### 12. Install, uninstall and install-over semantics
 
-Install refuses the whole app on any uncovered catalog id or any failed static check. Installing an id already held replaces its card and artifacts in place. Uninstall removes the app's card and record; a catalog artifact stays in the table while another installed card names it and goes when none does — the basic catalog and the shell catalog never go. Canvases already composed over the app keep what they hold; a live turn's dispatch to an uninstalled app fails into the failure tile.
+Install refuses the whole app on any uncovered catalog id or any failed static check. Installing an id already held replaces its card and artifacts in place. A new hash for a held catalog id is accepted only when no other installed app names that id; otherwise install refuses, naming the apps that hold it (task 11.4). Uninstall removes the app's card and record; a catalog artifact stays in the table while another installed card names it and goes when none does — the basic catalog and the shell catalog never go. Canvases already composed over the app keep what they hold; a dispatch already running when its app is uninstalled finishes, checked against the entitlement it was sent under, and a new dispatch to an uninstalled app fails into the failure tile with a not-installed cause of its own, Retry kept (task 11.4).
 
 ### 13. Three gates
 

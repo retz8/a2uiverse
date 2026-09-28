@@ -60,7 +60,14 @@ BASE_URL=https://<tunnel-id>-10001.asse.devtunnels.ms pnpm --filter @a2uiverse/o
 pnpm --filter @a2uiverse/client dev
 ```
 
-The mock tier (synthesis acceptance) runs through the launcher instead, which hands the agents dir to the orchestrator it starts — `BASE_URL` still comes from the orchestrator's `.env`:
+The orchestrator boots from its registry in `STATE_DIR` alone, empty at first (task 11.4). Install each app while it runs, its catalog packed by Stellify first; an app already installed stays installed across restarts:
+
+```bash
+pnpm --filter @a2uiverse/orchestrator registry install gmail http://localhost:11002/.well-known/agent-card.json <gmail's packed artifact dir>
+pnpm --filter @a2uiverse/orchestrator registry list
+```
+
+The mock tier (synthesis acceptance) runs through the launcher, which starts the agents; until the launcher installs them (task 11.6), install each by hand as above — `BASE_URL` still comes from the orchestrator's `.env`:
 
 ```bash
 pnpm dev:all --agents-dir ../a2uiverse-apps/mocks              # shop-a 12001 · shop-b 12002, deterministic
@@ -74,7 +81,7 @@ pnpm dev:all --agents-dir ../a2uiverse-apps --mode deterministic   # github · g
 A2UI_RECORD_DIR=<scratch dir> pnpm dev:all --agents-dir ../a2uiverse-apps --mode live   # live MCP; the variable arms Gmail's pseudonymizer, needed before any beat is recorded
 ```
 
-The launcher inherits the shell's environment for the agents and hands `A2UIVERSE_AGENTS_DIR` to the platform; `turbo.json` passes `A2UIVERSE_*` through to the `dev` task.
+The launcher inherits the shell's environment for the agents and still hands `A2UIVERSE_AGENTS_DIR` to the platform, which no longer reads it; `turbo.json` passes `A2UIVERSE_*` through to the `dev` task.
 
 Browser: `https://<tunnel-id>-5173.asse.devtunnels.ms`. Card check:
 `https://<tunnel-id>-10001.asse.devtunnels.ms/.well-known/agent-card.json`.
