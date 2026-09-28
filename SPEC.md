@@ -228,7 +228,7 @@ The Planner is the shell's designer and its voice. It authors the **layout surfa
 
 The Planner reads platform state only through a closed set of **platform readers**, called when the utterance needs them, the way a vendor agent calls its MCP:
 
-- **Installed apps** — from the Registry: each app's id and display name, its card's name, description and skills, whether the card was reachable at boot.
+- **Installed apps** — from the Registry: each app's id and its card's name, description and skills, whether the card was reachable at boot.
 - **This canvas** — the structure of the canvas the question was asked from — the one the user is looking at, not the newest (§6.4): the utterance it came from, which sources sit in which slots and each slot's state, whether a synthesis is live, collapsed or declined and the decline's reason.
 - **Recent turns** — that canvas's ancestry in the trail, one line each: what was asked, which sources answered, the outcome, when.
 
@@ -329,11 +329,17 @@ A question about the platform itself is not a gap: the platform's card serves it
 
 ---
 
-## 9. Apps, bundles, store
+## 9. Apps, catalogs, store
 
-### 9.1 The app bundle
+### 9.1 The app and the catalog artifact
 
-**Install = one bundle:** agent URL + auth + catalogId + catalog implementation. One artifact, registered to the store. The bundle format is the project's invention, defined in `sdk`; the exact fields are task-internal.
+Two units, joined by `catalogId`.
+
+An **app** is an A2A agent, described by its AgentCard and nothing else: its name, description and skills, its `url`, its `securitySchemes`, and — under the A2UI extension's `params` — the catalog ids it paints in (`supportedCatalogIds`). The registry stores the card verbatim, refreshes it at boot, and dispatches to its `url`. No platform description of an agent exists, and the card is never extended. The one thing the platform adds is the **app id** — the provenance tag, the surface namespace, the vault key — chosen by the publisher, unique in the marketplace's index like a username, `shell` reserved.
+
+A **catalog implementation** is its own unit, keyed by its `catalogId`, which A2UI already versions. The **catalog table** — the marketplace's index, the local registry's — maps each id to one **catalog artifact**, seeded with the standard basic catalog (the client's own `@a2ui/react` export) and the shell catalog; the client's `a2uiClientCapabilities.supportedCatalogIds` is that table. The artifact is the catalog bundle of §9.2 in its shipped form: a directory of files served under one base URL — a descriptor with every file and its hash, the catalog schema, one ESM, its CSS files, its fonts and icons — reaching the host singletons through a versioned **host-module interface** the client provides at load. A platform **pack tool** writes it from a catalog package in the package's own checkout, one dev dependency, zero configuration by convention, its stylesheet and external imports rewritten so the vendor's source is untouched. The `sdk` holds the two contracts the tool writes to and the marketplace, the registry and the client verify: the **catalog export contract** — a catalog package exposes `CATALOG_ID`, `CATALOG` and one `Provider`, the minimum on any catalog used on A2UIVerse — and the **catalog artifact contract**.
+
+**Publish** (§9.3) takes an agent URL and zero or more catalog artifacts: the card is fetched, and every catalog id on it must be served — by an artifact uploaded now or one the table holds. **Install** takes the card and the artifacts for the ids it names. An agent whose catalogs the platform already holds installs from its URL alone: an unmodified upstream agent on the basic catalog needs nothing packed.
 
 A **catalog** has two faces — the **catalog schema** (`catalog.json`) and the **catalog implementation** (the React components) — shipped as one `<vendor>-catalog` package; they version together. "Adapter" is reserved for upstream's meaning, the framework layer (`@a2ui/react`).
 
@@ -351,7 +357,7 @@ A vendor's catalog implementation is a binding layer between A2UI's flat compone
 
 A catalog bundle ships **exactly one Provider component and one CSS setup, both owned by the bundle**. The Provider is the bundle's whole entry into the page: it wires its design system, brings its own stylesheets and tokens, and anchors any portal root — all of it scoped to the fragment boundary the shell mounts it in, never to `:root`. The bundle carries its design system as its own dependencies at exact versions; the host supplies only the runtime that must be a singleton (React, the A2UI runtime, zod).
 
-The host imports a catalog package for its catalog, its catalog id, and that one Provider, and applies the Provider around that catalog's fragments only. It registers nothing at the app root, lists no vendor design system, and performs no per-vendor CSS setup of its own — so the canvas does not accumulate vendor setup as apps are installed, and installing an app is a table entry rather than a shell change.
+The host loads a catalog artifact from the registry for its catalog, its catalog id, and that one Provider — nothing of a vendor catalog is compiled into the client — and applies the Provider around that catalog's fragments only. It registers nothing at the app root, lists no vendor design system, and performs no per-vendor CSS setup of its own — so the canvas does not accumulate vendor setup as apps are installed, and installing an app is a table entry rather than a shell change.
 
 This is a normative, checkable catalog-bundle review rule, like the credential-component bar (§8): a bundle that needs a second provider or asks the host for a CSS setup fails review. Its scoping half is already machine-checked by the client's collision detector; both agent-kit scaffold templates embody the rule.
 
@@ -359,7 +365,7 @@ This is a normative, checkable catalog-bundle review rule, like the credential-c
 
 Two things with one word today; the spec names them separately:
 
-- **Marketplace** — remote-in-spirit: index of AgentCards (skill embeddings), package hosting, the publish step, hello-fragment smoke test as the live preview. In this project it is a local process.
+- **Marketplace** — remote-in-spirit: index of AgentCards (skill embeddings), the catalog table and its artifacts hosted, the publish step — the card fetched, every catalog id covered, the app id and catalog ids claimed, refused when taken — and the hello-fragment smoke test as the live preview. In this project it is a local process.
 - **Store page** — a trusted shell page the user browses and installs from.
 
 The **App Library** is a trusted shell page over the local registry, where installed apps are uninstalled and their accounts and permissions managed.
@@ -406,11 +412,11 @@ CLIENT (canvas shell)                        ORCHESTRATOR (A2A agent server)
 | **IntegrityChecker** | ▪     | Per-binding validity: does the ref's key still resolve; per referenced array: did a key appear; per unread surface: was it repainted. Gates whether the Synthesizer runs. |
 | **Validator**        | ▪     | Agent trees against their declared catalog; LLM output against its schema.                                                                        |
 | **AuthVault**        | ▪     | Credentials by `(app, account)`. Triggers consent; never paints it.                                                                               |
-| **Registry**         | ▪     | Installed bundles — the orchestrator's local state, written only by the orchestrator. Serves the orchestrator's AgentCard and indexes it under the reserved `shell` id beside the installed apps' cards, so the platform routes like any app.                        |
+| **Registry**         | ▪     | The installed apps' cards, verbatim, and the catalog table — the orchestrator's persisted state, written only by the orchestrator through install, uninstall and install-over; booted from alone, an empty registry a valid platform. Serves the orchestrator's AgentCard and indexes it under the reserved `shell` id beside the installed apps' cards, so the platform routes like any app.                        |
 | **IntentJournal**    | ▪     | Per turn: free-form intent descriptor + embedding. The thin machine-facing projection is left unbuilt.                                            |
 | **Composition**      | state | §6. One per canvas, held for the session; every client message names the canvas it acts on.                                                      |
 
-A registry entry is the bundle record (§9.1). The client holds only its projection — `catalogId → catalog implementation` — reached through **`orchestratorApi`**, the client's non-A2A channel to the orchestrator: a static map until M7, served by the orchestrator once install exists, IPC under a native shell. Install is an orchestrator operation; the Store page is its UI.
+A registry entry is an app's card under its id (§9.1). The client holds no catalog of its own: it reads the catalog table and fetches each artifact through **`orchestratorApi`**, the client's non-A2A channel to the orchestrator — HTTP, IPC under a native shell — preloading the table at boot and loading lazily a catalog a surface arrives in that it does not yet hold, so an install while the client is open needs no reload; an artifact is served as immutable content and cached by hash; a catalog the registry does not hold fails that slot. Install, uninstall and install-over are orchestrator operations on the same channel; the Store page and the store loop are their UI. Install refuses the whole app on an uncovered catalog id or a failed static gate — the descriptor conforms, the schema is a valid A2UI catalog whose id agrees, the host-interface version is one the platform supplies, the credential-component bar (§8) holds over the schema; the client checks the running code at load — the exports, the catalog id, the collision detector; the marketplace checks behaviour at publish. Installing a held id replaces its card and artifacts in place; uninstall removes the card, an artifact living while any installed card names it; canvases already composed keep what they hold.
 
 Open seams, task-internal: where the Composition object is canonical (client or orchestrator); whether Validator is one class or two.
 
@@ -459,7 +465,7 @@ M4   + entity resolution   entity join — a work item across Linear · GitHub �
      navigation from a merged cell · re-synthesis on appearance · two agents written to their vendor
 M6   late-arrival + failure   per-source deadlines · failure tiles · decline · late absorb on request
 M5   durable composition   the trail · a past canvas as a tab · ask this again · add/drop source · "compare these" · the way back inside a fragment
-M7   app bundle + registry   bundle format · local install · registry no longer hardcoded
+M7   app bundle + registry   the card as the app · catalog artifact + pack tool · local install · registry no longer hardcoded
 M8   authority surfaces   auth-required · consent · AuthVault · credential components barred
 M9   marketplace + publish   local index · package hosting · publish step · hello-fragment smoke test
 M10  shell trusted pages   Store page · App Library · accounts
@@ -468,9 +474,9 @@ M12  ecosystem run   publish a new app → discover → install → compose with
      One sitting, no code changes. Deliverable is the recording.
 ```
 
-Until M7, the registry is hardcoded.
+Until M7, the registry is hardcoded; from M7 the orchestrator boots from its persisted registry alone.
 
-M0 to M6 build the composition runtime. M7 onward builds the ecosystem around it: bundles, authority, the marketplace and the Store.
+M0 to M6 build the composition runtime. M7 onward builds the ecosystem around it: app install, authority, the marketplace and the Store.
 
 ---
 
@@ -482,14 +488,14 @@ Three repos, one per trust domain.
 a2uiverse/              platform monorepo
   apps/                 client · orchestrator · marketplace — the local processes
   packages/             sdk · shell-catalog — libraries
-a2uiverse-apps/         vendor apps, one folder per app: agent · <vendor>-catalog · manifest
+a2uiverse-apps/         vendor apps, one folder per app: agent · <vendor>-catalog
 a2ui-github/            origin of the GitHub app; unchanged. Copied into a2uiverse-apps/github/ at the end of Phase 1.
 ```
 
 **Vendor dependency rule.** Per half:
 
 - **Agent half** — the A2UI/A2A protocols and the **agent kit** (the vendor-agent SDK/CLI published from `a2uiverse-apps`, M1k); the kit itself depends on the protocols alone. Nothing a2uiverse-specific reaches the vendor wire: the kit's one shell convention is `paintMeta` (§14), which is optional and degradable — an agent that never emits it composes, with cause-derived titles and question surfaces painted as ordinary surfaces.
-- **Catalog half** — the A2UI protocol, its design-system library, and, available to it, the platform sdk: one contract (`packages/sdk/contracts`, normative JSON) with a single JS projection, **`@a2uiverse/sdk`**, carrying a contract test against the JSON. Available, not required — the projection's realized consumers today are all platform-side (client, orchestrator, `shell-catalog`, marketplace); no vendor catalog builds against it.
+- **Catalog half** — the A2UI protocol, its design-system library, and, available to it, the platform sdk: its contracts (`packages/sdk/contracts`, normative JSON) with a single JS projection, **`@a2uiverse/sdk`**, carrying a contract test against the JSON. Available, not required — the projection's realized consumers today are all platform-side (client, orchestrator, `shell-catalog`, marketplace); no vendor catalog builds against it. The **pack tool** (§9.1) is the catalog half's one build-time dev dependency on the platform, consumed as a `github:` dependency at a pinned ref; nothing of it reaches runtime.
 
 Neither half may depend on anything else in the platform.
 
@@ -544,6 +550,7 @@ Constraint protected throughout: **an existing A2UI agent composes with zero cha
 | The v0.9 streaming parser's `loading_*` placeholder is the basic catalog's `Row` in `a2ui-agent-sdk`, so a surface on any other catalog streams components its catalog does not declare | upstream bug report — `_dev/a2ui-findings.md` |
 | `paintMeta` — a per-paint shell object (`{surfaceId, title?, kind?}`) riding the A2A stream as a dedicated data part marked `application/json+a2ui-shell`, emitted ahead of the `createSurface` it names; carries the agent-authored paint title and the declared question marker. The orchestrator emits one for its own layout surface, carrying the Planner's title for the canvas (§5.6), which names the trail's entry (§6.4); a vendor's names its fragment's paints, the arrows of its way back named by them (§6.5) | local convention — the agent kit's one shell convention (§13). Optional and degradable: absent, titles fall back to cause-derived and question surfaces paint as ordinary surfaces, so an unmodified A2UI agent still composes. Sits beside A2UI, never inside it: the A2UI extractor never takes a `paintMeta` part                                                                                                                                                                                                                  |
 | A **canvas** is an A2A context: the utterance that opens one is sent with no `contextId`, the orchestrator minting it, and every later client message on the canvas — action, press, step, close, error report — carries it; an utterance inside a context the session holds is refused; the opening utterance of a child canvas names the context it was asked from as `parent` under the stamp key, which is two-directional; a vendor's conversation is per canvas. The orchestrator holds a composition per canvas for the session (§6.4) | local convention — one session holds many live canvases, each a context of its own, so the context says which composition a message acts on; replaces the client's fork context, which named a paint the orchestrator never read |
+| Catalog implementation delivery — A2UI negotiates catalogs by id on both sides (`supportedCatalogIds` in the agent's card and in `a2uiClientCapabilities`) and has no way to deliver a catalog implementation or to say where one is; A2UIVerse resolves it with a store-side catalog table keyed by `catalogId` (§9.1), the artifact outside the wire, the card never extended | upstream candidate — a pre-existing gap in the protocol, not a deviation from it: the protocol assumes the client compiled every catalog it renders in |
 | Credential components barred from all catalogs                                                                                                                                                                                                                                    | normative review rule                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | One provider and one CSS setup per catalog bundle, scoped to the fragment boundary (§9.2)                                                                                                                                                                                         | normative review rule                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | `sendDataModel`, multi-catalog `MessageProcessor`, `catalogId` scoping                                                                                                                                                                                                            | already in protocol — no delta                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
@@ -557,10 +564,10 @@ Every future deviation is added here, tagged _local convention_ or _upstream can
 | Reused                                                             | New                                                                                      |
 | ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
 | Canvas shell, timeline, hold-and-swap                              | Orchestrator: Router · Planner · Synthesizer · AgentsPool · IntegrityChecker             |
-| A2A transport, AgentCard, extensions, `securitySchemes`            | UIComposer + one-tree graft runtime                                                      |
+| A2A transport, AgentCard as the app's whole description, extensions, `securitySchemes`; A2UI catalog negotiation by id | UIComposer + one-tree graft runtime                                                      |
 | A2UI validation, `sendDataModel`, multi-catalog, local functions   | Shell catalog + composition primitives                                                   |
 | `a2ui-github` as the GitHub app                                    | Derived-binding table + BindingEvaluator                                                 |
-| Catalog authoring skills, GitHub agent                             | App bundle format (`sdk`) · Marketplace · Store page · AuthVault · IntentJournal         |
+| Catalog authoring skills, GitHub agent                             | Catalog export and artifact contracts (`sdk`) · pack tool · Registry · Marketplace · Store page · AuthVault · IntentJournal |
 | Primer as GitHub's catalog                                         | Vendor catalogs for Gmail, Google Calendar, Linear and CircleCI, each its own vocabulary |
 | Material 3's design language for Gmail and Google Calendar         | Agent building kit (`a2uiverse-apps`)                                                    |
 | A2UI basic catalog + `--a2ui-*` tokens as the mock stores' catalog |                                                                                          |
