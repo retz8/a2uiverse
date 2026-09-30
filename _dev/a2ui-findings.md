@@ -528,14 +528,14 @@ checkable rules) land in the fresh props and nothing the new properties dropped 
 
 ---
 
-## 10. The v0.9 streaming parser's placeholder is the basic catalog's `Row` (Python agent SDK)
+## 10. The v0.9 streaming parser's placeholder is the basic catalog's `Row` (Kotlin agent SDK)
 
-**Component:** `agent_sdks/python/a2ui_agent/src/a2ui/inference_formats/direct_json/streaming_v09.py`,
-`_placeholder_component` (`upstream/main` `52c641a3`); `a2ui-agent-sdk` 0.2.x ships the same in
-`a2ui/parser/streaming_v09.py`.
+**Component:** `kotlin/agent_sdk_legacy/src/main/kotlin/com/google/a2ui/parser/StreamingParserV09.kt`,
+`placeholderComponent`, and `StreamingParser.kt`, `addPlaceholderComponent` and the child-reference
+traversal that calls it (`upstream/main` `cc9526b6`).
 
-**Severity:** functional bug for any catalog that is not the basic catalog — every placeholder the
-parser streams names a component the surface's catalog does not have.
+**Severity:** low — `Row` reaches the renderer only from a parser built without a catalog; with a
+catalog that has no `Row`, every update carrying a placeholder is dropped instead.
 
 ### Issue
 
@@ -543,31 +543,45 @@ While a surface streams, the parser stands a placeholder in for each child a par
 the child itself has arrived — `loading_<child id>`, and `loading_children_<parent id>` for a list
 still opening. The placeholder's component is fixed:
 
-```python
-return {
-    'component': 'Row',
-    'children': [],
-}
+```kotlin
+override val placeholderComponent: JsonObject
+  get() {
+    return JsonObject(
+      mapOf("component" to JsonPrimitive("Row"), "children" to JsonArray(emptyList()))
+    )
+  }
 ```
 
-`Row` is a basic-catalog component. A surface whose `catalogId` is any other catalog — a design
-system's, a product's own vocabulary — receives, in every streamed update until its children land,
-components its catalog does not declare. The React renderer draws its unknown-component notice for
-each one. The settled surface carries none of them, so the defect shows only while a surface
-streams in.
+and `addPlaceholderComponent` adds it without consulting the catalog. What follows depends on
+whether the parser has one:
+
+- **No catalog.** `StreamingParserV09`'s `catalog` parameter is nullable and defaults to `null`.
+  Without a catalog there is no validator, so every intermediate update carries `Row` components,
+  whatever catalog the surface's `createSurface` names. On a surface whose catalog has no `Row`,
+  the React renderer draws `Unknown component type: Row` for each one until the children land.
+- **A catalog without `Row`.** The validator rejects each update that carries a placeholder, and
+  `yieldMessages`'s non-strict fallback drops it because `Row` is not among the catalog's
+  components. Nothing reaches the renderer until the tree is complete.
+
+The Python SDK checks before building a placeholder: `_can_use_placeholders()`
+(`python/a2ui_agent/src/a2ui/inference_formats/direct_json/streaming.py`) emits one only when the
+catalog declares the placeholder's type, and otherwise holds the tree back until it is complete.
 
 ### Reproduction
 
-Stream any v0.9 surface whose catalog has no `Row` — a parent naming three children that arrive one
-by one. Each intermediate update carries `{"id": "loading_<child>", "component": "Row", "children": []}`
-for the children not yet seen.
+Stream a v0.9 surface — a parent naming three `Text` children that arrive one per chunk — through
+`StreamingParserV09(null)`: each intermediate update carries
+`{"id": "loading_<child>", "component": "Row", "children": []}` for the children not yet seen.
+Through `StreamingParserV09(catalog)`, with a catalog that has no `Row` (the basic catalog with
+`Row` renamed to `Stack`), the three intermediate updates are dropped and only the final one is
+emitted.
 
 ### Fix
 
-Take the placeholder from the surface's catalog rather than assuming the basic one: let the parser
-be constructed with the catalog's placeholder component (a declared empty container), or, when the
-catalog declares none, hold the parent back until its children arrive instead of emitting a
-component the catalog lacks.
+Port the Python check: emit placeholders only when the parser has a catalog that declares the
+placeholder's type, and otherwise hold the tree back until it is complete, so no update is built
+only to be dropped. Keeping the references to children that have not arrived, as finding 13
+proposes, removes the placeholder altogether.
 
 ---
 
@@ -654,3 +668,58 @@ Pick one. Either the guide's example and the SDK write `params` under `v0.9` as 
 or the schema drops the version key on the server side — the extension URI already carries the
 version. A2UIVerse reads both shapes, each against the schema's matching part (`readSupportedCatalogIds`
 in `@a2uiverse/sdk`).
+
+---
+
+## 13. Streaming is all-or-nothing on any catalog without `Row` (agent SDK streaming parsers)
+
+**Component:** the Direct JSON streaming parsers — Python
+`python/a2ui_agent/src/a2ui/inference_formats/direct_json/streaming.py` (`_can_use_placeholders`,
+`yield_reachable`) and Kotlin `kotlin/agent_sdk_legacy/src/main/kotlin/com/google/a2ui/parser/StreamingParser.kt`
+(`yieldMessages`) on `upstream/main` `cc9526b6`; TypeScript
+`typescript/a2ui_agent/src/inference_formats/direct_json/streaming.ts` (`canUsePlaceholders`) in the
+open PR #2916, "feat(ts_agent): stream Direct JSON responses".
+
+**Severity:** missing capability. Nothing breaks; a surface on any catalog that does not declare
+`Row` shows nothing until its whole component tree has arrived, then appears at once.
+
+### Issue
+
+The spec gives missing children to the renderer: an `updateComponents` component "may reference
+children or data bindings that do not yet exist; clients should handle this gracefully by rendering
+placeholders (progressive rendering)" (`a2ui_protocol.md`, v0.9 and v0.9.1; v1.0 says the same of
+renderers). The renderers do this: web_core resolves a child whose definition has not arrived to a
+`pending` node, replaced in place when the definition lands, and React draws it as
+`LoadingPlaceholder` (`renderers/react/src/v0_9/A2uiSurface.tsx`).
+
+The streaming parsers never send such a reference. A child not yet seen is swapped for a placeholder
+component of the parser's own — the basic catalog's `Row` — and when the catalog has no `Row`,
+nothing is sent until the tree is complete:
+
+- **Python:** with `_can_use_placeholders()` false, `yield_reachable` yields only once the whole
+  subtree under the root is complete (`_is_complete_subtree(root)`). Children that are already
+  complete wait with the rest.
+- **Kotlin:** the placeholders are built anyway, and each update carrying one fails validation and
+  is dropped (finding 10).
+- **TypeScript** (#2916): `canUsePlaceholders()` and the same whole-subtree hold-back as Python.
+
+Progressive rendering therefore exists only on catalogs that declare a `Row`. On a design system's
+catalog or a product's own without one, a long surface stays blank for the whole generation.
+
+### Reproduction
+
+Stream a v0.9 surface whose catalog has no `Row` (the basic catalog with `Row` renamed to `Stack`)
+— a `Stack` naming three `Text` children that arrive one per chunk — through the Python parser: the
+first three chunks yield no `updateComponents`; the last yields all four components. The same stream
+on the basic catalog, with a `Row` parent, yields an update per chunk. The Kotlin parser, given the
+catalog, behaves the same.
+
+### Fix
+
+Send what is complete and keep the references to children that have not arrived: the parent goes
+out with `children` naming ids the renderer does not have yet, and the renderer draws its own
+placeholder, as the spec assigns. This works on every catalog and needs no placeholder component.
+The Python parser already sends intermediate updates under `RELAXED_VALIDATION` and runs its
+topology check with `allow_dangling_references=True`, both of which permit references to ids not yet
+sent. Where an SDK keeps agent-side placeholders, let the caller supply the placeholder component —
+an empty container the catalog declares — instead of assuming `Row`.
