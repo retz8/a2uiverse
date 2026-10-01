@@ -10,7 +10,7 @@ Sub-task 11.6 of Phase 11 (`_dev/docs/spec/phase-11-app-bundle-registry.md`, dec
 - The listing, and what stops a launch before anything starts.
 - The beat recorder and the transparency check over an installed registry.
 - The tests, the proof, and the documents this task makes wrong in this repo.
-- Out: the registry snapshot (11.5); `manifest.json` removed from every app, Stellify as each catalog package's dev dependency, the scaffolder's port suggestion and the apps repo's README (11.7); the acceptance run (11.8); `docs/design/app-install.md` (11.9).
+- Out: the registry snapshot (11.5); `manifest.json` removed from every app, Stellify as each catalog package's dev dependency and the scaffolder's port suggestion (11.7); the acceptance run (11.8); `docs/design/app-install.md` (11.9).
 
 ## Locked decisions
 
@@ -72,4 +72,4 @@ Offline tests on the launcher's pure parts — the roster and its static rules, 
 
 ### 15. Docs
 
-11.6 corrects what it makes wrong in this repo: the root README's launcher section, the tunnel doc's run steps, the client README's recording and transparency scripts, and the launcher's mentions in `docs/design/orchestrator.md` and `docs/design/agent-kit.md`.
+11.6 corrects what it makes wrong: in this repo, the root README's launcher section, the tunnel doc's run steps, the client README's recording and transparency scripts, and the launcher's mentions in `docs/design/orchestrator.md` and `docs/design/agent-kit.md`; in the apps repo, the README's mock stores and launcher sections and the workspace file's comment on the mock stores.
