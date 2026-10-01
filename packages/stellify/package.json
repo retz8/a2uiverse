@@ -34,8 +34,7 @@
     "build": "node scripts/build.mjs && tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "lint": "eslint .",
-    "prove": "node scripts/prove.mjs"
+    "lint": "eslint ."
   },
   "dependencies": {
     "esbuild": "^0.28.2"

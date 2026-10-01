@@ -306,13 +306,12 @@ acme-mail/
   README.md             the app: its MCP server, agent and catalog
   agent/                the agent on the kit: deterministic, stub or live
   acme-mail-catalog/    the A2UI catalog: schema, React implementation, Provider
-  manifest.json         the app manifest
 ```
 
 ```mermaid
 flowchart LR
     F["Flags, or a guided<br/>walkthrough for what's missing"] --> PIN["Pick the kit commit to pin"]
-    PIN --> SC["Copy templates,<br/>generate four files"]
+    PIN --> SC["Copy templates,<br/>generate three files"]
     SC --> INST["Optionally uv sync<br/>and pnpm install"]
 ```
 
@@ -320,10 +319,11 @@ The techniques inside:
 
 - **Templates with tokens.** Template files are copied as they are, with `__TOKEN__` placeholders (`__DISPLAY_NAME__`, `__PORT__`) filled in, in file contents and file names alike. A token the scaffolder doesn't define is an error, not a silent blank. `_gitignore` becomes `.gitignore` on the way, since npm won't publish a real `.gitignore`.
 - **Overlays.** The agent is built in layers: the common `templates/agent`, then `templates/agent-kind/basic` or `custom` over it, then `templates/agent-google-adc` when the app signs in with a Google login. A later layer overwrites the files beneath it.
-- **Four files generated in code**, where a template would be too rigid: `pyproject.toml` (with the kit pin), `app/config.py` (the `AgentAppConfig`, with or without the paint-title prose and a question policy), `app/mcp.py`, and `manifest.json`.
-- **A port suggestion.** One above the highest port any sibling app's manifest uses, or 11001 when there are none, so a new app beside the five lands on 11006.
+- **Three files generated in code**, where a template would be too rigid: `pyproject.toml` (with the kit pin), `app/config.py` (the `AgentAppConfig`, with or without the paint-title prose and a question policy), and `app/mcp.py`.
+- **A port suggestion.** One above the highest `default_port` any sibling app's agent config declares, or 11001 when there are none, so a new app beside the five lands on 11006.
 - **Pinning the kit.** The new agent takes the kit as a git dependency pinned to one commit, so an app scaffolded today keeps working when the kit changes. The pin is the commit the CLI runs from. If that commit isn't pushed, nobody could fetch it, so the scaffolder pins the newest commit a remote carries instead, and says whether the kit changed in between.
-- **A drift gate.** The scaffolder's tests scaffold both catalog kinds into a temporary folder, point the new agent at the working tree's kit, and run the new agent's and catalog's own tests. A kit change that would break new apps fails there first.
+- **Stellify in the catalog.** The new catalog package takes Stellify as a dev dependency pinned to one commit of the `a2uiverse` repo, the same commit every catalog in the apps repo pins, and carries a `check` script, so it is born passing the gate install runs.
+- **A drift gate.** The scaffolder's tests scaffold both catalog kinds into a temporary folder, point the new agent at the working tree's kit, and run the new agent's and catalog's own tests and the catalog's `check`. A kit change that would break new apps fails there first.
 
 The apps in the repo don't pin: they take the kit as an **editable path dependency** (`path = "../../agent-kit"`), so they always run on the kit as it is.
 

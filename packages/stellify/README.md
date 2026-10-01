@@ -101,10 +101,9 @@ The apps repo takes Stellify as a git dependency pinned to a commit, pointing at
 ```bash
 pnpm --filter @a2uiverse/stellify build       # dist/: index.js with the sdk inlined, cli.js, declarations
 pnpm --filter @a2uiverse/stellify test        # vitest over the fixture catalog in test/fixtures
-pnpm --filter @a2uiverse/stellify prove       # packs the seven catalog packages in ../a2uiverse-apps
 ```
 
-`dist/` is checked in and must match the source: `pnpm verify` at the root rebuilds it and fails on any difference. After editing `src/` or the sdk, run `build` and commit the result. `prove` reads `A2UIVERSE_APPS_DIR` when the apps checkout is elsewhere.
+`dist/` is checked in and must match the source: `pnpm verify` at the root rebuilds it and fails on any difference. After editing `src/` or the sdk, run `build` and commit the result.
 
 <details>
 <summary>Where things are</summary>
@@ -119,6 +118,5 @@ pnpm --filter @a2uiverse/stellify prove       # packs the seven catalog packages
 | Writer                         | `src/write.ts`              |
 | Command line                   | `src/cli.ts`, `src/main.ts` |
 | Fixture catalog and dependency | `test/fixtures/`            |
-| Proof over the seven           | `scripts/prove.mjs`         |
 
 </details>
