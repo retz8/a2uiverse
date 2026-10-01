@@ -8,16 +8,23 @@ allowBuilds:
   # The seven catalogs the registry snapshot packs (task-11.5 decision 10), all pinned to one
   # commit of the apps repo; each builds on install (its `prepare` runs tsc). pnpm keys the allow
   # entry by the resolved tarball, so every line is re-pointed when the pinned commit moves.
-  "calendar-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/b87b1d316d2c19a4f518bc1a540a3bc447b90e91#path:calendar/calendar-catalog": true
-  "circleci-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/b87b1d316d2c19a4f518bc1a540a3bc447b90e91#path:circleci/circleci-catalog": true
-  "github-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/b87b1d316d2c19a4f518bc1a540a3bc447b90e91#path:github/github-catalog": true
-  "gmail-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/b87b1d316d2c19a4f518bc1a540a3bc447b90e91#path:gmail/gmail-catalog": true
-  "linear-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/b87b1d316d2c19a4f518bc1a540a3bc447b90e91#path:linear/linear-catalog": true
-  "shop-a-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/b87b1d316d2c19a4f518bc1a540a3bc447b90e91#path:mocks/shop-a/shop-a-catalog": true
-  "shop-b-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/b87b1d316d2c19a4f518bc1a540a3bc447b90e91#path:mocks/shop-b/shop-b-catalog": true
+  "calendar-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/42cd2c69cba86c9f8ae128908aeb61b688b3e424#path:calendar/calendar-catalog": true
+  "circleci-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/42cd2c69cba86c9f8ae128908aeb61b688b3e424#path:circleci/circleci-catalog": true
+  "github-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/42cd2c69cba86c9f8ae128908aeb61b688b3e424#path:github/github-catalog": true
+  "gmail-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/42cd2c69cba86c9f8ae128908aeb61b688b3e424#path:gmail/gmail-catalog": true
+  "linear-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/42cd2c69cba86c9f8ae128908aeb61b688b3e424#path:linear/linear-catalog": true
+  "shop-a-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/42cd2c69cba86c9f8ae128908aeb61b688b3e424#path:mocks/shop-a/shop-a-catalog": true
+  "shop-b-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/42cd2c69cba86c9f8ae128908aeb61b688b3e424#path:mocks/shop-b/shop-b-catalog": true
   onnxruntime-node: true
   protobufjs: false
   sharp: false
+  calendar-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/b87b1d316d2c19a4f518bc1a540a3bc447b90e91#path:calendar/calendar-catalog: set this to true or false
+  circleci-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/b87b1d316d2c19a4f518bc1a540a3bc447b90e91#path:circleci/circleci-catalog: set this to true or false
+  github-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/b87b1d316d2c19a4f518bc1a540a3bc447b90e91#path:github/github-catalog: set this to true or false
+  gmail-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/b87b1d316d2c19a4f518bc1a540a3bc447b90e91#path:gmail/gmail-catalog: set this to true or false
+  linear-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/b87b1d316d2c19a4f518bc1a540a3bc447b90e91#path:linear/linear-catalog: set this to true or false
+  shop-a-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/b87b1d316d2c19a4f518bc1a540a3bc447b90e91#path:mocks/shop-a/shop-a-catalog: set this to true or false
+  shop-b-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/b87b1d316d2c19a4f518bc1a540a3bc447b90e91#path:mocks/shop-b/shop-b-catalog: set this to true or false
 
 patchedDependencies:
   "@a2ui/react@0.10.2": patches/@a2ui__react@0.10.2.patch
