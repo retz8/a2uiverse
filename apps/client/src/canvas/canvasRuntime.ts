@@ -15,6 +15,7 @@
  *
  * The live processor is the live registry of this canvas — exactly what the agent may see of it.
  */
+import {BASIC_CATALOG_ID, CATALOG_LOAD_FAILED} from '@a2uiverse/sdk';
 import type {CompositionOperation, CompositionStamp, PaintMeta} from '@a2uiverse/sdk';
 import {MessageProcessor} from '@a2ui/web_core/v0_9';
 import type {ActionListener, A2uiClientAction, Catalog} from '@a2ui/web_core/v0_9';
@@ -32,6 +33,8 @@ import {
 import {createA2ASession} from '../a2a/session';
 import {streamUserMessage} from '../a2a/streamUserMessage';
 import {describeError} from '../shared/describeError';
+import {createCatalogGate, gateRunner, type CatalogLoadFailure} from '../catalogs/catalogGate';
+import type {CatalogLoader} from '../catalogs/loader';
 import {createCanvasStore, type CanvasStore} from './canvasStore';
 import type {FragmentFailure, TurnRunner} from './turn/canvasTurn';
 import {createTurnRunner} from './turn/canvasTurn';
@@ -90,10 +93,21 @@ export interface CanvasRuntime {
   close(): void;
 }
 
+/**
+ * What the canvas advertises to the orchestrator it talks to (task-11.5 decision 8): the catalogs
+ * the client holds without the registry. What a vendor may paint in is the hub's to say, per app.
+ */
+export const SUPPORTED_CATALOG_IDS: string[] = [BASIC_CATALOG_ID, SHELL_CATALOG_ID];
+
 export interface CanvasRuntimeOptions {
   id: string;
-  /** The installed catalogs, as resolved by the entry; the processor is built over them. */
+  /**
+   * The catalogs the processor is built over — the loader's own array, which grows as catalogs
+   * load, so a surface in a catalog loaded after the canvas opened still finds it.
+   */
   catalogs: Catalog<ReactComponentImplementation>[];
+  /** Where a catalog the canvas does not hold yet is loaded from; without one, none is. */
+  loader?: Pick<CatalogLoader, 'has' | 'load'>;
   /** The orchestrator, for the turns. */
   getSender: GetSender;
   /** Where the streams beside the turn go: the orchestrator, or a replay's transport while attached. */
@@ -107,6 +121,7 @@ export interface CanvasRuntimeOptions {
 export function createCanvasRuntime({
   id,
   catalogs,
+  loader,
   getSender,
   getSideSender,
   onContext,
@@ -122,7 +137,7 @@ export function createCanvasRuntime({
       if (first) onContext?.(contextId);
     },
   };
-  const supportedCatalogIds = catalogs.map(c => c.id);
+  const supportedCatalogIds = SUPPORTED_CATALOG_IDS;
   const processor = new MessageProcessor(catalogs, action => actionHandler(action));
   // The evaluator dispatches to the shell catalog's operators; the synthesis surface is painted
   // against that catalog, so it is always among the installed ones.
@@ -143,7 +158,14 @@ export function createCanvasRuntime({
       return placed ? capturePaint(processor, placed.surfaceId) : undefined;
     },
   });
-  const runner = createTurnRunner({
+  const gate = createCatalogGate({
+    has: loader?.has ?? (catalogId => catalogs.some(c => c.id === catalogId)),
+    load:
+      loader?.load ??
+      (catalogId => Promise.reject(new Error(`the client holds no catalog ${catalogId}`))),
+    onLoadFailure: failure => void reportLoadFailure(failure),
+  });
+  const ungated = createTurnRunner({
     processor,
     store,
     createStaging: () => new MessageProcessor(catalogs),
@@ -155,6 +177,7 @@ export function createCanvasRuntime({
       if (meta.surfaceId === SHELL_MAIN_SURFACE && meta.title) onTitle?.(meta.title);
     },
   });
+  const runner = gateRunner(ungated, gate);
   const getClientDataModel = () => processor.getClientDataModel();
 
   /**
@@ -389,6 +412,40 @@ export function createCanvasRuntime({
     } catch (err) {
       // A failed failure report must not cascade into the turn that produced it.
       if (!stream.signal.aborted) console.error('[A2UI:a2a] validation report failed', err);
+    } finally {
+      stream.end();
+    }
+  };
+
+  /**
+   * A fragment whose catalog did not load (task-11.5 decision 4), reported to the hub as the
+   * composition contract's catalog load failure: the hub fails its slot under `load`. The create
+   * the gate dropped is still the source's paint — the orchestrator counted it when it relayed it
+   * — so it is counted here too. A surface the shell painted itself has no slot to fail: the
+   * strip says so.
+   */
+  const reportLoadFailure = async ({surfaceId, catalogId, message, stamp}: CatalogLoadFailure) => {
+    const source = stamp?.role === 'fragment' ? stamp.source : undefined;
+    if (source === undefined || source === SHELL_SOURCE) {
+      store.reportError(`Part of this response could not be displayed. ${message}`);
+      return;
+    }
+    history.paint(source);
+    const stream = runner.beginSideStream();
+    try {
+      const sender = await getSideSender();
+      await sendAndApply(
+        sender,
+        buildErrorMessageParams(
+          {code: CATALOG_LOAD_FAILED, surfaceId, message, catalogId},
+          session.get(),
+          getClientDataModel(),
+          supportedCatalogIds,
+        ),
+        {apply: stream.apply, session, signal: stream.signal},
+      );
+    } catch (err) {
+      if (!stream.signal.aborted) console.error('[A2UI:a2a] catalog load report failed', err);
     } finally {
       stream.end();
     }

@@ -90,6 +90,8 @@ export interface A2uiClientError {
   surfaceId: string;
   path?: string;
   message?: string;
+  /** With the composition contract's catalog load failure: the catalog the client could not load. */
+  catalogId?: string;
 }
 
 /**

@@ -36,7 +36,7 @@ test('failed renders the failure panel even when content exists', () => {
     </SlotContentContext.Provider>,
   );
   expect(screen.queryByText('stale')).not.toBeInTheDocument();
-  expect(screen.getByText('Couldn’t answer.')).toBeInTheDocument();
+  expect(screen.getByText('This app couldn’t answer.')).toBeInTheDocument();
 });
 
 test('collapsed renders nothing when the host has nothing to rest it on', () => {
@@ -130,7 +130,7 @@ test('shell content failed is a quiet line in the same register', () => {
     </SlotContentContext.Provider>,
   );
   expect(screen.queryByText('stale')).not.toBeInTheDocument();
-  expect(screen.getByText('Couldn’t paint this.')).toBeInTheDocument();
+  expect(screen.getByText('Something went wrong here.')).toBeInTheDocument();
 });
 
 test('shell content fills with no reserved floor', () => {
@@ -194,11 +194,13 @@ test('schema accepts a failure with one of four causes, a message only with vend
   ).toBe(true);
 });
 
-test('schema accepts the catalog cause carrying its id and the uninstalled cause, the id only on the catalog cause (task-11.4 decision 13)', () => {
+test('schema accepts the catalog and load causes carrying their id and the uninstalled cause, the id only on those two (task-11.4 decision 13, task-11.5 decision 4)', () => {
   const failed = (failure: unknown) =>
     SlotApi.schema.safeParse({source: 'gmail', state: 'failed', failure}).success;
   expect(failed({cause: 'catalog', catalogId: 'urn:catalog:other'})).toBe(true);
   expect(failed({cause: 'catalog'})).toBe(false);
+  expect(failed({cause: 'load', catalogId: 'urn:catalog:gmail'})).toBe(true);
+  expect(failed({cause: 'load'})).toBe(false);
   expect(failed({cause: 'uninstalled'})).toBe(true);
   expect(failed({cause: 'uninstalled', catalogId: 'urn:catalog:other'})).toBe(false);
   expect(failed({cause: 'vendor', catalogId: 'urn:catalog:other'})).toBe(false);
@@ -223,10 +225,10 @@ test('the tile’s one statement is the vendor’s own words when it spoke, nami
 });
 
 test.each([
-  ['unreachable', 'Couldn’t be reached.'],
-  ['timeout', 'No answer within the time allowed.'],
-  ['invalid', 'Answered, but its screen couldn’t be shown.'],
-  ['uninstalled', 'No longer installed.'],
+  ['unreachable', 'This app couldn’t be reached.'],
+  ['timeout', 'This app took too long to answer.'],
+  ['invalid', 'This app sent a screen that couldn’t be shown.'],
+  ['uninstalled', 'This app isn’t installed anymore.'],
 ] as const)(
   'with no vendor words the statement is the shell’s reason for %s, with no name in it',
   (cause, reason) => {
@@ -237,28 +239,45 @@ test.each([
   },
 );
 
-test('the catalog cause’s interim statement names no catalog and no source (task-11.4 decision 13)', () => {
+test('the catalog cause names no catalog and no source, and offers no Retry (task-11.5 decision 9)', () => {
   render(
     <SlotView
       source="gmail"
       state="failed"
       label="Gmail"
       failure={{cause: 'catalog', catalogId: 'urn:catalog:other'}}
+      onPress={() => {}}
     />,
   );
-  expect(screen.getByText('Painted in a catalog it may not use.')).toBeInTheDocument();
+  expect(screen.getByText('This app sent something that can’t be shown here.')).toBeInTheDocument();
   expect(screen.queryByText(/urn:catalog:other/)).not.toBeInTheDocument();
   expect(screen.queryByText(/Gmail/)).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', {name: 'Retry'})).not.toBeInTheDocument();
 });
+
+test.each([
+  [{cause: 'load', catalogId: 'urn:catalog:gmail'}, 'Something went wrong loading this.'],
+  [{cause: 'uninstalled'}, 'This app isn’t installed anymore.'],
+] as const)(
+  'the %o tile keeps Retry, its catalog id unshown (task-11.5 decision 9)',
+  (failure, statement) => {
+    render(
+      <SlotView source="gmail" state="failed" label="Gmail" failure={failure} onPress={() => {}} />,
+    );
+    expect(screen.getByText(statement)).toBeInTheDocument();
+    expect(screen.queryByText(/urn:catalog/)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Retry'})).toBeInTheDocument();
+  },
+);
 
 test('a vendor failure with no message, and a failed slot with no failure prop, say the source couldn’t answer', () => {
   const {unmount} = render(
     <SlotView source="circleci" state="failed" label="CircleCI" failure={{cause: 'vendor'}} />,
   );
-  expect(screen.getByText('Couldn’t answer.')).toBeInTheDocument();
+  expect(screen.getByText('This app couldn’t answer.')).toBeInTheDocument();
   unmount();
   render(<SlotView source="github" state="failed" label="GitHub" />);
-  expect(screen.getByText('Couldn’t answer.')).toBeInTheDocument();
+  expect(screen.getByText('This app couldn’t answer.')).toBeInTheDocument();
 });
 
 test('Retry is drawn only under a host that takes presses, and hands it the retry of the source', () => {
@@ -289,7 +308,7 @@ test('the tile keeps no box and the reserved floor, the line at body size', () =
   expect(slot).toHaveAttribute('data-slot-state', 'failed');
   expect(slot.style.border).toBe('');
   expect(slot.style.minHeight).toBe('4rem');
-  const line = screen.getByText('No answer within the time allowed.');
+  const line = screen.getByText('This app took too long to answer.');
   expect(line.closest('[data-slot-failure-line]')).not.toBeNull();
 });
 

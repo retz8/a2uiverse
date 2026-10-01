@@ -6,11 +6,13 @@ import {describe, it, expect} from 'vitest';
 import {screen} from '@testing-library/react';
 import {MessageProcessor} from '@a2ui/web_core/v0_9';
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
-import {CATALOG, CATALOG_ID} from 'github-catalog';
 import {renderWithShell} from '../../../tests/helpers';
 import {createCanvasStore} from '../canvasStore';
 import {createTurnRunner} from '../turn/canvasTurn';
 import {CanvasStage} from './CanvasStage';
+import {snapshotCatalog} from '../../../tests/snapshot';
+
+const {catalog: CATALOG, id: CATALOG_ID} = await snapshotCatalog('github-catalog');
 
 function paint(surfaceId: string, text: string): A2uiMessage[] {
   return [

@@ -11,14 +11,14 @@ import {MessageProcessor} from '@a2ui/web_core/v0_9';
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
 import type {ReactComponentImplementation} from '@a2ui/react/v0_9';
 import {CATALOG_ID as SHELL_CATALOG_ID, createCatalog} from '@a2uiverse/shell-catalog';
-import {CATALOG as SHOP_A_CATALOG, CATALOG_ID as SHOP_A_CATALOG_ID} from 'shop-a-catalog';
 import {CatalogProvider, SurfaceFrame} from '../../catalogs/CatalogContext';
-import {resolveCatalogs} from '../../catalogs/resolver';
-import {listCatalogs} from '../../orchestratorApi';
+import {snapshotCatalog, snapshotCatalogs} from '../../../tests/snapshot';
+
+const {catalog: SHOP_A_CATALOG, id: SHOP_A_CATALOG_ID} = await snapshotCatalog('shop-a-catalog');
 
 const SHELL_CATALOG = createCatalog({onShellAction: () => {}});
 
-const CATALOGS = resolveCatalogs(await listCatalogs());
+const CATALOGS = await snapshotCatalogs();
 
 const msg = (m: Record<string, unknown>): A2uiMessage =>
   ({version: 'v0.9', ...m}) as unknown as A2uiMessage;

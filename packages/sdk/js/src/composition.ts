@@ -278,3 +278,47 @@ export function readOperation(data: Record<string, unknown>): CompositionOperati
   if (step !== undefined) return undefined;
   return {kind: kind as OperationKind, sources: sources as string[]};
 }
+
+/** The code of a catalog load failure: A2UI's generic client error, a code of the platform's own. */
+export const CATALOG_LOAD_FAILED = 'CATALOG_LOAD_FAILED';
+
+/**
+ * Outbound, client → orchestrator (task-11.5 decision 4): a fragment whose catalog the client could
+ * not load, reported as A2UI's client error — `{version, error}` — under the protocol's generic
+ * error, which admits the catalog id beside the code. The hub fails the slot the surface fills
+ * with cause `load`, carrying the id.
+ */
+export interface CatalogLoadFailure {
+  code: typeof CATALOG_LOAD_FAILED;
+  /** Namespaced, as the hub sent it. */
+  surfaceId: string;
+  /** The client's reason, for the journal. */
+  message: string;
+  catalogId: string;
+}
+
+/** Wire field names, typechecked against the interface; the contract test compares them to the contract. */
+export const CATALOG_LOAD_FAILURE_FIELDS = [
+  'code',
+  'surfaceId',
+  'message',
+  'catalogId',
+] as const satisfies readonly (keyof CatalogLoadFailure)[];
+
+const _catalogLoadFailureComplete: Exclude<
+  keyof CatalogLoadFailure,
+  (typeof CATALOG_LOAD_FAILURE_FIELDS)[number]
+> extends never
+  ? true
+  : never = true;
+void _catalogLoadFailureComplete;
+
+/** The catalog load failure an A2UI client error carries, if it is one and well formed. */
+export function readCatalogLoadFailure(error: unknown): CatalogLoadFailure | undefined {
+  if (typeof error !== 'object' || error === null || Array.isArray(error)) return undefined;
+  const {code, surfaceId, message, catalogId} = error as Record<string, unknown>;
+  if (code !== CATALOG_LOAD_FAILED) return undefined;
+  if (typeof surfaceId !== 'string' || surfaceId === '') return undefined;
+  if (typeof catalogId !== 'string' || catalogId === '') return undefined;
+  return {code, surfaceId, message: typeof message === 'string' ? message : '', catalogId};
+}

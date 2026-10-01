@@ -6,7 +6,6 @@
 import {describe, it, expect, vi} from 'vitest';
 import {MessageProcessor} from '@a2ui/web_core/v0_9';
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
-import {CATALOG, CATALOG_ID} from 'github-catalog';
 import {CATALOG_ID as SHELL_CATALOG_ID, createCatalog} from '@a2uiverse/shell-catalog';
 import type {CompositionStamp} from '@a2uiverse/sdk';
 import type {PaintCause} from './cause';
@@ -15,6 +14,9 @@ import type {FragmentFailure} from './canvasTurn';
 import {createTurnRunner} from './canvasTurn';
 import {createFragmentHistory} from '../history/fragmentHistory';
 import {capturePaint} from '../history/paintCopy';
+import {snapshotCatalog} from '../../../tests/snapshot';
+
+const {catalog: CATALOG, id: CATALOG_ID} = await snapshotCatalog('github-catalog');
 
 const SHELL_CATALOG = createCatalog({onShellAction: () => {}});
 

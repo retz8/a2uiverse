@@ -43,7 +43,10 @@ export interface SlotFailure {
   cause: FailureCause;
   /** The vendor's own words, only with `vendor`. */
   message?: string;
-  /** The catalog the paint was refused in, only with `catalog` (task-11.4 decision 12). */
+  /**
+   * The catalog the paint was refused in, with `catalog` (task-11.4 decision 12), or the one the
+   * client could not load, with `load` (task-11.5 decision 4).
+   */
   catalogId?: string;
 }
 

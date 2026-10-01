@@ -11,10 +11,8 @@
  * `lateFailureBeats.ts`.
  */
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
-import {CATALOG_ID} from 'github-catalog';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
-import {CATALOG_ID as SHOP_A_CATALOG_ID} from 'shop-a-catalog';
-import {CATALOG_ID as SHOP_B_CATALOG_ID} from 'shop-b-catalog';
+import {GITHUB_CATALOG_ID as CATALOG_ID, SHOP_A_CATALOG_ID, SHOP_B_CATALOG_ID} from './catalogIds';
 import {getBeatFixture, type BeatFixture, type BeatTurn} from './beatFixtures';
 import {JOIN_DOCUMENT, JOIN_ITEMS, JOIN_PRODUCTS, JOIN_PRODUCTS_RETITLED} from './joinFixture';
 import {DURABLE_BEATS, DURABLE_RESTING} from './durableBeats';

@@ -1430,7 +1430,9 @@ export class OrchestratorExecutor implements AgentExecutor {
   /**
    * A paint the client could not draw (task-8.3 decision 7): the source's slot fails `invalid`
    * and its data leaves the merge, with no model call — a home source takes the merge down with
-   * it. The merged view's own payload failing leaves the shell slot's quiet line.
+   * it. A paint whose catalog the client could not load fails it `load`, carrying the catalog id
+   * (task-11.5 decision 4). The merged view's own payload failing leaves the shell slot's quiet
+   * line.
    */
   #clientErrorTurn(sink: Sink, error: Turn & {kind: 'clientError'}): void {
     const parsed = parseSurfaceId(error.surfaceId);
@@ -1442,7 +1444,14 @@ export class OrchestratorExecutor implements AgentExecutor {
       this.#repaint([sink], state);
       return;
     }
-    this.#failSlot(sink, state, parsed.appId, {cause: 'invalid'});
+    this.#failSlot(
+      sink,
+      state,
+      parsed.appId,
+      error.catalogId !== undefined
+        ? {cause: 'load', catalogId: error.catalogId}
+        : {cause: 'invalid'},
+    );
     state.left?.(parsed.appId);
     state.reevaluate?.();
   }

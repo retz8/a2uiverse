@@ -845,8 +845,16 @@
           "properties": {
             "cause": {
               "type": "string",
-              "enum": ["vendor", "unreachable", "timeout", "invalid", "catalog", "uninstalled"],
-              "description": "`vendor`: the vendor ended its task failed; `unreachable`: the connection or stream broke, nothing said; `timeout`: no answer within the time allowed; `invalid`: the paint arrived and could not be rendered; `catalog`: the agent painted in a catalog the app is not entitled to; `uninstalled`: the app is no longer installed."
+              "enum": [
+                "vendor",
+                "unreachable",
+                "timeout",
+                "invalid",
+                "catalog",
+                "uninstalled",
+                "load"
+              ],
+              "description": "`vendor`: the vendor ended its task failed; `unreachable`: the connection or stream broke, nothing said; `timeout`: no answer within the time allowed; `invalid`: the paint arrived and could not be rendered; `catalog`: the agent painted in a catalog the app is not entitled to; `uninstalled`: the app is no longer installed; `load`: the client could not load the catalog the paint is in."
             },
             "message": {
               "type": "string",
@@ -854,7 +862,7 @@
             },
             "catalogId": {
               "type": "string",
-              "description": "The catalog the agent painted in, only with `cause: \"catalog\"`."
+              "description": "The catalog the agent painted in, only with `cause: \"catalog\"` or `cause: \"load\"`."
             }
           },
           "required": ["cause"],

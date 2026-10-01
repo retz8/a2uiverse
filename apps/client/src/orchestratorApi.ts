@@ -1,57 +1,33 @@
 /**
- * The client's channel to the orchestrator for everything that is not A2A traffic (SPEC §9.1):
- * the installed-app projection and the orchestrator's own address. A static import in Phase 1;
- * HTTP from M7 and IPC in Electron swap the transport only — the surface stays as it is here.
- * Runtime objects (catalogs, providers) never cross this boundary; see `catalogs/resolver`.
+ * The client's channel to the orchestrator for everything that is not A2A traffic (SPEC §10):
+ * the orchestrator's own address and the registry's read routes — the catalog table and the
+ * artifacts, served as static files under `/registry` (task-11.4 decision 10). HTTP from M7; IPC
+ * in Electron swaps the transport only. Runtime objects (catalogs, providers) never cross this
+ * boundary; `catalogs/loader` turns what it serves into them.
  */
-import {CATALOG_ID} from 'github-catalog';
-import {CATALOG_ID as GMAIL_CATALOG_ID} from 'gmail-catalog';
-import {CATALOG_ID as CALENDAR_CATALOG_ID} from 'calendar-catalog';
-import {CATALOG_ID as CIRCLECI_CATALOG_ID} from 'circleci-catalog';
-import {CATALOG_ID as LINEAR_CATALOG_ID} from 'linear-catalog';
-import {CATALOG_ID as SHOP_A_CATALOG_ID} from 'shop-a-catalog';
-import {CATALOG_ID as SHOP_B_CATALOG_ID} from 'shop-b-catalog';
-import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 
-/**
- * One catalog the client can render, as the orchestrator's Registry projects it. `appId` is an
- * installed app's id, or the reserved `shell` for the platform's own catalog.
- */
-export interface CatalogRecord {
-  appId: string;
-  catalogId: string;
-  /** The catalog package the client resolves locally. */
-  package: string;
-}
-
-/**
- * The shell catalog carries the composition primitives the orchestrator paints into `shell:main`;
- * the rest are installed apps. A new app joins with a record here plus a `TABLE` entry in
- * `catalogs/resolver` — the two lists move together.
- *
- * The two mock storefronts (`a2uiverse-apps/mocks/`) are always here, though they are in the
- * orchestrator's roster only when it is pointed at the tier: the client renders whatever roster the
- * orchestrator serves and knows nothing of the profile. Naming a mock in this list is an accepted
- * leak with a known expiry — the list itself is the placeholder Phase 11's dynamic catalog loading
- * replaces, and all seven app catalogs leave it together then.
- */
-const STATIC_CATALOGS: CatalogRecord[] = [
-  {appId: 'shell', catalogId: SHELL_CATALOG_ID, package: '@a2uiverse/shell-catalog'},
-  {appId: 'github', catalogId: CATALOG_ID, package: 'github-catalog'},
-  {appId: 'gmail', catalogId: GMAIL_CATALOG_ID, package: 'gmail-catalog'},
-  {appId: 'calendar', catalogId: CALENDAR_CATALOG_ID, package: 'calendar-catalog'},
-  {appId: 'circleci', catalogId: CIRCLECI_CATALOG_ID, package: 'circleci-catalog'},
-  {appId: 'linear', catalogId: LINEAR_CATALOG_ID, package: 'linear-catalog'},
-  {appId: 'shop-a', catalogId: SHOP_A_CATALOG_ID, package: 'shop-a-catalog'},
-  {appId: 'shop-b', catalogId: SHOP_B_CATALOG_ID, package: 'shop-b-catalog'},
-];
-
-/** Every catalog the client can render, in registry order. */
-export async function listCatalogs(): Promise<CatalogRecord[]> {
-  return STATIC_CATALOGS;
-}
+/** One row of the catalog table: a catalog the client provides itself, or an installed artifact. */
+export type CatalogRow =
+  {catalogId: string; provided: 'client'} | {catalogId: string; artifact: string; entry: string};
 
 /** The orchestrator's A2A base URL — the only server the client ever talks to. */
 export function agentUrl(): string {
   return import.meta.env.VITE_ORCHESTRATOR_URL ?? 'http://localhost:10001';
+}
+
+/** The registry's read routes: the table at `catalogs.json`, an artifact under `artifacts/<id>/`. */
+export function registryUrl(base: string = agentUrl()): string {
+  return new URL('registry/', base.endsWith('/') ? base : `${base}/`).href;
+}
+
+/** Where an artifact's files are served: its base URL, which its stylesheet loads resolve against. */
+export function artifactUrl(registry: string, artifact: string): string {
+  return new URL(`artifacts/${artifact}/`, registry).href;
+}
+
+/** Reads JSON over HTTP; the table is read with `cache: 'no-store'`, as it changes with every install. */
+export async function fetchJson(url: string, init?: RequestInit): Promise<unknown> {
+  const response = await fetch(url, init);
+  if (!response.ok) throw new Error(`${url} answered ${response.status}`);
+  return response.json();
 }

@@ -1,34 +1,25 @@
 /**
- * The collision detector, static half: what the installed catalogs' stylesheets do to the page.
- * It enumerates whatever is installed rather than naming catalogs, so 2.6 and 2.7 widen it by
- * publishing, and acceptance 6 (Gmail + Calendar mounted together) is exercised in 2.9.
+ * The collision detector, static half: what the catalogs' stylesheets do to the page, read from
+ * the registry snapshot's artifacts (task-11.5 decision 12). It enumerates whatever the snapshot
+ * holds rather than naming catalogs.
  *
  * The rules are asserted against synthetic stylesheets first — a detector nobody has seen fail is
  * not a detector — and then run over the real roster.
  */
 import {describe, it, expect} from 'vitest';
-import {fileURLToPath} from 'node:url';
-import {dirname, resolve} from 'node:path';
 import {
   analyzeCss,
   findCollisions,
-  readCatalogStyles,
+  readArtifactStyles,
   sharedDefinitions,
   type CatalogStyles,
   type Finding,
 } from './collisionDetector';
-import {listCatalogs} from '../../orchestratorApi';
+import {SNAPSHOT_ARTIFACTS} from '../../../tests/snapshot';
 
-/**
- * A catalog bundle's `exports` map hides its package.json, so locate it as a dependency
- * directory — the same way `scripts/lib/drive.ts` reaches a published catalog's JSON.
- */
-const DEPS = resolve(dirname(fileURLToPath(import.meta.url)), '../../../node_modules');
-const packageDir = (pkg: string) => resolve(DEPS, pkg);
-
-const RECORDS = await listCatalogs();
-const INSTALLED = RECORDS.map(record =>
-  readCatalogStyles(record.package, packageDir(record.package), import.meta.url),
+/** Every artifact of the registry snapshot, its stylesheets read from its directory. */
+const INSTALLED = SNAPSHOT_ARTIFACTS.map(artifact =>
+  readArtifactStyles(artifact.package, artifact.dir),
 );
 
 const synthetic = (pkg: string, css: string): CatalogStyles => ({
@@ -136,12 +127,56 @@ describe('the detector itself', () => {
 });
 
 /**
- * Violations that exist today, each with an owner — a record, not an exemption. Empty: every
- * violation the roster ever carried has been fixed at its source.
+ * Variables Primer's own component stylesheets read with no fallback and no stylesheet defines —
+ * some its components set inline through `style`, the rest read as Primer ships them. These
+ * sheets were always on the page; the scan sees them since it reads every stylesheet an artifact
+ * carries, Stellify having packed Primer's beside github-catalog's own (task-11.5 decision 12).
  */
-const ACCEPTED: Array<(finding: Finding) => boolean> = [];
+const PRIMER_UNDEFINED_READS = new Set([
+  '--actionbar-height',
+  '--avatar-stack-size',
+  '--avatarSize-narrow',
+  '--avatarSize-wide',
+  '--banner-icon-fgColor',
+  '--color-accent-fg',
+  '--grid-template-columns',
+  '--inline-message-fgColor',
+  '--inline-message-lineHeight',
+  '--inputValidation-fgColor',
+  '--label-bgColor-dark-active',
+  '--label-bgColor-dark-hover',
+  '--label-bgColor-dark-rest',
+  '--label-bgColor-light-active',
+  '--label-bgColor-light-hover',
+  '--label-bgColor-light-rest',
+  '--label-fgColor-dark',
+  '--label-fgColor-dark-hover',
+  '--label-fgColor-light',
+  '--label-fgColor-light-hover',
+  '--overlap-size-avatar-three-plus',
+  '--position-left',
+  '--spacer-width',
+  '--truncate-max-width',
+]);
 
-describe('the installed catalogs', () => {
+/**
+ * Violations that exist today, each with an owner — a record, not an exemption.
+ *
+ * Owner github-catalog: Primer's component stylesheets — ProgressBar's forced-colours block writes
+ * `--progress-bg` on `:root`, and the reads above.
+ */
+const ACCEPTED: Array<(finding: Finding) => boolean> = [
+  finding =>
+    finding.rule === 'global-write' &&
+    finding.pkg === 'github-catalog' &&
+    finding.name === '--progress-bg',
+  finding =>
+    finding.rule === 'unsatisfied-read' &&
+    finding.pkg === 'github-catalog' &&
+    PRIMER_UNDEFINED_READS.has(finding.name),
+];
+
+describe('the registry snapshot’s catalogs', () => {
   it('brings no unaccounted CSS onto the page', () => {
     // A vendor bundle's own design-system sheets count: they are what actually lands. Primer's
     // arrive from `@primer/primitives` via github-catalog's Provider.
@@ -156,10 +191,17 @@ describe('the installed catalogs', () => {
         true,
       );
     });
+    for (const name of PRIMER_UNDEFINED_READS) {
+      expect(
+        findings.some(f => f.rule === 'unsatisfied-read' && f.name === name),
+        `${name} is read with a definition or a fallback now — delete it`,
+      ).toBe(true);
+    }
   });
 
-  it('enumerates the roster rather than naming it', () => {
-    expect(INSTALLED.map(c => c.pkg)).toEqual(RECORDS.map(r => r.package));
+  it('enumerates the snapshot rather than naming it', () => {
+    expect(INSTALLED.map(c => c.pkg)).toEqual(SNAPSHOT_ARTIFACTS.map(a => a.package));
+    expect(INSTALLED.length).toBeGreaterThan(1);
   });
 
   it('actually reads the stylesheets a bundle brings with it', () => {

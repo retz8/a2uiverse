@@ -15,8 +15,7 @@ import {Button, Kbd} from '@radix-ui/themes';
 import type {A2ASenderOptions} from '../a2a/client';
 import {getBeatFixture} from '../beats/beatFixtures';
 import {syntheticBeat} from '../beats/syntheticBeats';
-import {CatalogProvider} from '../catalogs/CatalogContext';
-import type {ResolvedCatalog} from '../catalogs/resolver';
+import {CatalogProvider, isLoader, type HeldCatalogs} from '../catalogs/CatalogContext';
 import {createCanvasWiring} from './createCanvasWiring';
 import {replayBeatOnCanvas} from './replayBeat';
 import {CanvasView} from './components/CanvasView';
@@ -29,8 +28,8 @@ import {viewedCanvasId} from './trail/trailStore';
 import './CanvasApp.css';
 
 export interface CanvasAppProps extends A2ASenderOptions {
-  /** The installed catalogs, resolved by the entry through `orchestratorApi`. */
-  catalogs: ResolvedCatalog[];
+  /** The loader the entry built over `orchestratorApi`, or a fixed set of catalogs. */
+  catalogs: HeldCatalogs;
   /** The relay the shell catalog was built with; the canvas binds its host while mounted. */
   hostRelay?: HostRelay;
 }
@@ -43,7 +42,13 @@ function beatFixtureFor(token: string) {
 
 export function CanvasApp({serverUrl, client, catalogs, hostRelay}: CanvasAppProps) {
   const [wiring] = useState(() =>
-    createCanvasWiring({serverUrl, client, catalogs: catalogs.map(c => c.catalog)}),
+    createCanvasWiring({
+      serverUrl,
+      client,
+      ...(isLoader(catalogs)
+        ? {catalogs: catalogs.catalogs, loader: catalogs}
+        : {catalogs: catalogs.map(c => c.catalog)}),
+    }),
   );
 
   const trail = useSyncExternalStore(wiring.trail.subscribe, wiring.trail.getState);
@@ -95,6 +100,9 @@ export function CanvasApp({serverUrl, client, catalogs, hostRelay}: CanvasAppPro
     if (!beatParams || replayStarted.current) return;
     replayStarted.current = true;
     void (async () => {
+      // A replay is a verification path: it starts once every catalog the registry lists has
+      // loaded, so its fragments land as they were recorded rather than pending on a load.
+      if (isLoader(catalogs)) await catalogs.preload();
       for (const beat of beatParams.beats) {
         const fixture = beatFixtureFor(beat);
         if (!fixture) {
@@ -109,7 +117,7 @@ export function CanvasApp({serverUrl, client, catalogs, hostRelay}: CanvasAppPro
       }
       setReplayDone(true);
     })();
-  }, [beatParams, wiring]);
+  }, [beatParams, catalogs, wiring]);
 
   // ⌘K (or Ctrl+K) summons the palette from anywhere on the page.
   useEffect(() => {

@@ -5,26 +5,19 @@ packages:
 
 allowBuilds:
   esbuild: true
-  # git-hosted vendor catalogs build on install (their `prepare` runs tsc). pnpm keys the
-  # allow entry by the resolved tarball, so this line is re-pointed when the catalog is bumped.
-  "github-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/d14fa5b2ffdb1a0e38b21367ed5f5c7d2b0e4e70#path:github/github-catalog": true
-  # gmail-catalog, pinned to the tarball pnpm resolved. Re-pointed when the catalog is bumped,
-  # exactly as the github-catalog entries above are.
-  "gmail-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/da30bbc3bb699e1da3398b01129c5983ce975cbc#path:gmail/gmail-catalog": true
-  # calendar-catalog, pinned the same way.
-  "calendar-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/da30bbc3bb699e1da3398b01129c5983ce975cbc#path:calendar/calendar-catalog": true
-  # circleci-catalog, pinned the same way.
-  "circleci-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/081bc54065a07083cd076479f295f6c666d7e916#path:circleci/circleci-catalog": true
-  # linear-catalog, pinned the same way.
-  "linear-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/f77517b802d297e65c94c5d51e74eca4f138e58f#path:linear/linear-catalog": true
-  # The two mock-tier catalogs (task 4.7). Always bundled: the client's catalog table is
-  # compile-time until Phase 11 loads catalogs dynamically, when all five git deps leave together.
-  "shop-a-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/380526ddfe0b326b57d02f76fa45c7e80dc7bc1d#path:mocks/shop-a/shop-a-catalog": true
-  "shop-b-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/380526ddfe0b326b57d02f76fa45c7e80dc7bc1d#path:mocks/shop-b/shop-b-catalog": true
+  # The seven catalogs the registry snapshot packs (task-11.5 decision 10), all pinned to one
+  # commit of the apps repo; each builds on install (its `prepare` runs tsc). pnpm keys the allow
+  # entry by the resolved tarball, so every line is re-pointed when the pinned commit moves.
+  "calendar-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/b87b1d316d2c19a4f518bc1a540a3bc447b90e91#path:calendar/calendar-catalog": true
+  "circleci-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/b87b1d316d2c19a4f518bc1a540a3bc447b90e91#path:circleci/circleci-catalog": true
+  "github-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/b87b1d316d2c19a4f518bc1a540a3bc447b90e91#path:github/github-catalog": true
+  "gmail-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/b87b1d316d2c19a4f518bc1a540a3bc447b90e91#path:gmail/gmail-catalog": true
+  "linear-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/b87b1d316d2c19a4f518bc1a540a3bc447b90e91#path:linear/linear-catalog": true
+  "shop-a-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/b87b1d316d2c19a4f518bc1a540a3bc447b90e91#path:mocks/shop-a/shop-a-catalog": true
+  "shop-b-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/b87b1d316d2c19a4f518bc1a540a3bc447b90e91#path:mocks/shop-b/shop-b-catalog": true
   onnxruntime-node: true
   protobufjs: false
   sharp: false
-  linear-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/da30bbc3bb699e1da3398b01129c5983ce975cbc#path:linear/linear-catalog: set this to true or false
 
 patchedDependencies:
   "@a2ui/react@0.10.2": patches/@a2ui__react@0.10.2.patch

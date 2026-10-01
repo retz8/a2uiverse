@@ -11,14 +11,13 @@ import userEvent from '@testing-library/user-event';
 import type {MessageSendParams} from '@a2a-js/sdk';
 import type {A2AMessageSender} from '../src/a2a/client';
 import {getBeatFixture} from '../src/beats/beatFixtures';
-import {resolveCatalogs} from '../src/catalogs/resolver';
 import {CanvasApp} from '../src/canvas/CanvasApp';
 import {createHostRelay} from '../src/canvas/hostRelay';
-import {listCatalogs} from '../src/orchestratorApi';
+import {snapshotCatalogs} from './snapshot';
 import {Providers} from '../src/providers';
 
 const HOST_RELAY = createHostRelay();
-const CATALOGS = resolveCatalogs(await listCatalogs(), HOST_RELAY.host);
+const CATALOGS = await snapshotCatalogs(HOST_RELAY.host);
 
 afterEach(() => {
   cleanup();
@@ -83,7 +82,7 @@ describe('Phase 8’s synthetic beats, played to their ends', () => {
     const {sent, slot} = await replay('half-drawn');
     expect(sent).toEqual([]);
     expect(stateOf(slot('shop-c'))).toBe('failed');
-    expect(screen.getByText('Couldn’t be reached.')).toBeInTheDocument();
+    expect(screen.getByText('This app couldn’t be reached.')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Retry'})).toBeEnabled();
     expect(screen.queryByText('Lumen X100 kit')).toBeNull();
     expect(slot('shell')!.querySelector('[data-column-reserved="failed"]')).not.toBeNull();
@@ -93,7 +92,7 @@ describe('Phase 8’s synthetic beats, played to their ends', () => {
     const {sent, slot} = await replay('invalid-paint');
     expect(sent).toEqual([]);
     await waitFor(() => expect(stateOf(slot('shop-c'))).toBe('failed'));
-    expect(screen.getByText('Answered, but its screen couldn’t be shown.')).toBeInTheDocument();
+    expect(screen.getByText('This app sent a screen that couldn’t be shown.')).toBeInTheDocument();
   });
 
   it('failed-fold-in: the landed view kept, the late line saying so beside Include again', async () => {
@@ -155,7 +154,7 @@ describe('Phase 8’s synthetic beats, up to their presses', () => {
     async beat => {
       const {slot} = await replay(`${beat}-offered`);
       expect(stateOf(slot('shop-c'))).toBe('failed');
-      expect(screen.getByText('No answer within the time allowed.')).toBeInTheDocument();
+      expect(screen.getByText('This app took too long to answer.')).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Retry'})).toBeEnabled();
     },
   );

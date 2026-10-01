@@ -7,7 +7,6 @@ import {describe, it, expect} from 'vitest';
 import {render, screen} from '@testing-library/react';
 import {MessageProcessor} from '@a2ui/web_core/v0_9';
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
-import {CATALOG, CATALOG_ID} from 'github-catalog';
 import {
   CATALOG_ID as SHELL_CATALOG_ID,
   createCatalog,
@@ -15,15 +14,16 @@ import {
 } from '@a2uiverse/shell-catalog';
 import type {ReactComponentImplementation} from '@a2ui/react/v0_9';
 import {CatalogProvider, SurfaceFrame} from '../../catalogs/CatalogContext';
-import {resolveCatalogs} from '../../catalogs/resolver';
-import {listCatalogs} from '../../orchestratorApi';
 import type {PlacedFragment} from '../canvasStore';
 import {FRAGMENT_BOUNDARY_ATTR} from './FragmentBoundary';
 import {renderSlotContent} from './slotContent';
+import {snapshotCatalog, snapshotCatalogs} from '../../../tests/snapshot';
+
+const {catalog: CATALOG, id: CATALOG_ID} = await snapshotCatalog('github-catalog');
 
 const SHELL_CATALOG = createCatalog({onShellAction: () => {}});
 
-const CATALOGS = resolveCatalogs(await listCatalogs());
+const CATALOGS = await snapshotCatalogs();
 
 const msg = (m: Record<string, unknown>): A2uiMessage =>
   ({version: 'v0.9', ...m}) as unknown as A2uiMessage;

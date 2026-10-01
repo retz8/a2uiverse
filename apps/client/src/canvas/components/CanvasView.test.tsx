@@ -8,22 +8,22 @@ import {cleanup, render, screen, act} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type {MessageSendParams, TaskStatusUpdateEvent} from '@a2a-js/sdk';
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
-import {CATALOG_ID as GITHUB_CATALOG_ID} from 'github-catalog';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 import type {CompositionStamp} from '@a2uiverse/sdk';
 import type {A2AMessageSender} from '../../a2a/client';
 import {CatalogProvider} from '../../catalogs/CatalogContext';
-import {resolveCatalogs} from '../../catalogs/resolver';
-import {listCatalogs} from '../../orchestratorApi';
 import {Providers} from '../../providers';
 import {createCanvasWiring} from '../createCanvasWiring';
 import {createHostRelay} from '../hostRelay';
 import {CanvasView} from './CanvasView';
+import {snapshotCatalogId, snapshotCatalogs} from '../../../tests/snapshot';
+
+const GITHUB_CATALOG_ID = snapshotCatalogId('github-catalog');
 
 afterEach(cleanup);
 
 const HOST_RELAY = createHostRelay();
-const BOUND_CATALOGS = resolveCatalogs(await listCatalogs(), HOST_RELAY.host);
+const BOUND_CATALOGS = await snapshotCatalogs(HOST_RELAY.host);
 
 const msg = (m: Record<string, unknown>): A2uiMessage =>
   ({version: 'v0.9', ...m}) as unknown as A2uiMessage;

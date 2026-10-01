@@ -16,6 +16,7 @@ import type {ReactComponentImplementation} from '@a2ui/react/v0_9';
 import type {PressHandler, ShellAction} from '@a2uiverse/shell-catalog';
 import type {A2AMessageSender, A2ASenderOptions} from '../a2a/client';
 import {createSenderResolver} from '../a2a/client';
+import type {CatalogLoader} from '../catalogs/loader';
 import type {CanvasRuntime} from './canvasRuntime';
 import {createCanvasRuntime, trustedPageOf} from './canvasRuntime';
 import type {ShellHost} from './hostRelay';
@@ -55,8 +56,10 @@ export interface CanvasWiring {
 }
 
 export interface CanvasWiringOptions extends A2ASenderOptions {
-  /** The installed catalogs, as resolved by the entry; every processor is built over them. */
+  /** The held catalogs — the loader's own array, under the loader; every processor is built over them. */
   catalogs: Catalog<ReactComponentImplementation>[];
+  /** Where a catalog a canvas does not hold yet is loaded from (task 11.5). */
+  loader?: Pick<CatalogLoader, 'has' | 'load'>;
   /** Mints a canvas id; the default is a UUID. Tests pass a counter. */
   mintId?: () => string;
 }
@@ -65,6 +68,7 @@ export function createCanvasWiring({
   serverUrl,
   client,
   catalogs,
+  loader,
   mintId = () => crypto.randomUUID(),
 }: CanvasWiringOptions): CanvasWiring {
   const trail = createTrailStore();
@@ -96,6 +100,7 @@ export function createCanvasWiring({
     const runtime = createCanvasRuntime({
       id,
       catalogs,
+      ...(loader ? {loader} : {}),
       getSender,
       getSideSender,
       onContext: contextId => trail.setContext(id, contextId),

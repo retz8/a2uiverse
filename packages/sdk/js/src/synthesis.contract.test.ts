@@ -40,16 +40,18 @@ test('the synthesis key matches the contract and is not the stamp key', () => {
   expect(SYNTHESIS_KEY).not.toBe(STAMP_KEY);
 });
 
-test('the contract carries the stamp, paintMeta and the synthesis payload orchestrator → client, the parent and the operation back', () => {
+test('the contract carries the stamp, paintMeta and the synthesis payload orchestrator → client, the parent, the operation and the catalog load failure back', () => {
   expect(Object.keys(contract.shapes)).toEqual([
     'compositionStamp',
     'canvasParent',
     'compositionOperation',
+    'catalogLoadFailure',
     'paintMeta',
     'synthesizeDataModel',
   ]);
   expect(contract.shapes.compositionStamp.direction).toBe('orchestrator → client');
   expect(contract.shapes.compositionOperation.direction).toBe('client → orchestrator');
+  expect(contract.shapes.catalogLoadFailure.direction).toBe('client → orchestrator');
   expect(contract.shapes.synthesizeDataModel.direction).toBe('orchestrator → client');
 });
 

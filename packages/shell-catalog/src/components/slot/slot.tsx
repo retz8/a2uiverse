@@ -54,7 +54,8 @@ export type PressHandler = (press: {
  * A failed fragment slot is the failure tile (task 8.2, the design canvas's F6, as task-8.7
  * decision 17 pared it): one statement at body size — the vendor's own words when it spoke, else
  * the shell's reason for the painted cause, neither naming the source, since the attribution
- * marker above already does; then Retry, under a host that takes presses. No box, the reserved
+ * marker above already does; then Retry, under a host that takes presses, for every cause but a
+ * paint refused outside the app's catalogs (task-11.5 decision 9). No box, the reserved
  * floor, one face throughout. The plan's noun for the source stays a painted prop; the tile no
  * longer says it.
  *
@@ -205,7 +206,7 @@ export function SlotView({
             data-slot-content="shell"
             style={weighted}
           >
-            {quietLine('Couldn’t paint this.')}
+            {quietLine('Something went wrong here.')}
           </div>
         );
       }
@@ -216,7 +217,7 @@ export function SlotView({
             <Text as="p" size="2" data-slot-failure-line="">
               {failureStatement(failure)}
             </Text>
-            {onPress && source !== undefined && (
+            {onPress && source !== undefined && failureRetries(failure) && (
               <Flex align="center" gap="3">
                 <Button
                   size="2"
@@ -410,28 +411,39 @@ const SKELETON_WIDTHS = [
 ];
 
 /**
- * The failure tile's one statement (task-8.7 decision 17): the vendor's own words when it spoke,
- * else the shell's reason for the painted cause — with no name in it, since the attribution
- * marker above the tile already says whose it is — and "Couldn't answer." when the vendor ended
- * its task without a word or no cause was painted.
+ * The failure tile's one statement (task-8.7 decision 17, worded for the reader by task-11.5
+ * decision 9): the vendor's own words when it spoke, else the shell's reason for the painted
+ * cause — "this app", never its name, since the attribution marker above the tile already says
+ * whose it is — and "This app couldn't answer." when the vendor ended its task without a word or
+ * no cause was painted. The catalog id a cause carries is never shown.
  */
 export function failureStatement(failure: SlotFailure | undefined): string {
   switch (failure?.cause) {
     case 'vendor':
-      return failure.message ?? 'Couldn’t answer.';
+      return failure.message ?? 'This app couldn’t answer.';
     case 'unreachable':
-      return 'Couldn’t be reached.';
+      return 'This app couldn’t be reached.';
     case 'timeout':
-      return 'No answer within the time allowed.';
+      return 'This app took too long to answer.';
     case 'invalid':
-      return 'Answered, but its screen couldn’t be shown.';
+      return 'This app sent a screen that couldn’t be shown.';
     case 'catalog':
-      return 'Painted in a catalog it may not use.';
+      return 'This app sent something that can’t be shown here.';
     case 'uninstalled':
-      return 'No longer installed.';
+      return 'This app isn’t installed anymore.';
+    case 'load':
+      return 'Something went wrong loading this.';
     default:
-      return 'Couldn’t answer.';
+      return 'This app couldn’t answer.';
   }
+}
+
+/**
+ * Whether the tile offers Retry (task-11.5 decision 9): every cause but `catalog` — a paint the
+ * hub refused outside the app's catalogs fails the same way again, so there is nothing to retry.
+ */
+export function failureRetries(failure: SlotFailure | undefined): boolean {
+  return failure?.cause !== 'catalog';
 }
 
 /**

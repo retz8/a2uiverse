@@ -185,7 +185,7 @@ describe('a press', () => {
 /* ── The fragment's way back (task 9.7) ─────────────────────────────────────── */
 
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
-import {CATALOG_ID as GITHUB_CATALOG_ID} from 'github-catalog';
+import {snapshotCatalogId} from '../../tests/snapshot';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 import type {CompositionStamp, SynthesisPayload} from '@a2uiverse/sdk';
 import {STAMP_KEY, SYNTHESIS_KEY} from '@a2uiverse/sdk';
@@ -200,6 +200,7 @@ import {
   synthesisMessages,
 } from '../beats/synthesisFixture';
 
+const GITHUB_CATALOG_ID = snapshotCatalogId('github-catalog');
 const msg = (m: Record<string, unknown>): A2uiMessage =>
   ({version: 'v0.9', ...m}) as unknown as A2uiMessage;
 const SHELL: CompositionStamp = {source: 'shell', role: 'shell'};

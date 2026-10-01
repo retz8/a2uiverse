@@ -1,10 +1,16 @@
 import type {Message} from '@a2a-js/sdk';
-import {readOperation, type CompositionOperation} from '@a2uiverse/sdk';
+import {readCatalogLoadFailure, readOperation, type CompositionOperation} from '@a2uiverse/sdk';
 
 export type Turn =
   | {kind: 'utterance'; text: string}
   | {kind: 'action'; part: Record<string, unknown>; surfaceId: string}
-  | {kind: 'clientError'; code: string; surfaceId: string}
+  | {
+      kind: 'clientError';
+      code: string;
+      surfaceId: string;
+      /** The catalog the client could not load, when the report is a catalog load failure. */
+      catalogId?: string;
+    }
   | {kind: 'operation'; operation: CompositionOperation}
   | {kind: 'unknown'};
 
@@ -35,7 +41,13 @@ export function classifyTurn(message: Message): Turn {
     if (typeof error === 'object' && error !== null) {
       const {code, surfaceId} = error as {code?: unknown; surfaceId?: unknown};
       if (typeof code === 'string' && typeof surfaceId === 'string') {
-        return {kind: 'clientError', code, surfaceId};
+        const loadFailure = readCatalogLoadFailure(error);
+        return {
+          kind: 'clientError',
+          code,
+          surfaceId,
+          ...(loadFailure ? {catalogId: loadFailure.catalogId} : {}),
+        };
       }
     }
   }

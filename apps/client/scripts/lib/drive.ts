@@ -7,7 +7,8 @@ import {ClientFactory} from '@a2a-js/sdk/client';
 import type {MessageSendParams} from '@a2a-js/sdk';
 import type {A2AMessageSender} from '../../src/a2a/client';
 import type {A2AStreamEventData} from '../../src/a2a/messages';
-import type {CompositionOperation} from '@a2uiverse/sdk';
+import {BASIC_CATALOG_ID, type CompositionOperation} from '@a2uiverse/sdk';
+import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 import type {A2uiClientError} from '../../src/a2a/messages';
 import {
   buildErrorMessageParams,
@@ -15,9 +16,6 @@ import {
   buildTextMessageParams,
   extractContextId,
 } from '../../src/a2a/messages';
-import {readFile} from 'node:fs/promises';
-import {fileURLToPath} from 'node:url';
-import {dirname, resolve} from 'node:path';
 
 export interface TimedEvent {
   /** Milliseconds since the turn was sent. */
@@ -41,34 +39,12 @@ export async function createSender(url: string): Promise<A2AMessageSender> {
 }
 
 /**
- * Mirrors `orchestratorApi`'s projection — one entry per catalog package in `catalogs/resolver`,
- * kept in step with it by hand. A short list here is not a small bug: the Planner reads the
- * advertised ids as what the canvas can render, so a missing catalog is an agent it will not
- * dispatch to and a fan-out that quietly comes back with fewer sources than it should.
- */
-const CATALOG_PACKAGES = [
-  '@a2uiverse/shell-catalog',
-  'github-catalog',
-  'gmail-catalog',
-  'calendar-catalog',
-  'circleci-catalog',
-  'linear-catalog',
-];
-
-/**
- * The catalog ids the canvas advertises on every message. The client's projection
- * (`orchestratorApi`) resolves them through each bundle's React entry, which drags CSS into a
- * Node process; the published catalog JSON carries the same id, so read it from there.
+ * The catalog ids the canvas advertises on every message (task-11.5 decision 8): the client's own
+ * two, the basic catalog and the shell catalog. What an app may paint in is the orchestrator's to
+ * tell it, through the app's entitlement.
  */
 export async function supportedCatalogIds(): Promise<string[]> {
-  // The bundles' `exports` maps hide package.json, so locate each as a dependency directory.
-  const deps = resolve(dirname(fileURLToPath(import.meta.url)), '../../node_modules');
-  return Promise.all(
-    CATALOG_PACKAGES.map(async pkg => {
-      const json = await readFile(resolve(deps, pkg, 'catalogs/v0.9.1/catalog.json'), 'utf8');
-      return (JSON.parse(json) as {catalogId: string}).catalogId;
-    }),
-  );
+  return [BASIC_CATALOG_ID, SHELL_CATALOG_ID];
 }
 
 /**

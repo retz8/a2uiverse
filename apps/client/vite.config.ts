@@ -1,36 +1,57 @@
+import {createReadStream, existsSync, statSync} from 'node:fs';
+import {extname, join, normalize, sep} from 'node:path';
 import react from '@vitejs/plugin-react';
+import type {Plugin} from 'vite';
 import {configDefaults, defineConfig} from 'vitest/config';
+import {REGISTRY_SNAPSHOT_DIR} from '@a2uiverse/registry-snapshot';
+
+const CONTENT_TYPES: Record<string, string> = {
+  '.js': 'text/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.json': 'application/json',
+  '.woff2': 'font/woff2',
+  '.woff': 'font/woff',
+  '.ttf': 'font/ttf',
+  '.svg': 'image/svg+xml',
+  '.png': 'image/png',
+};
+
+/**
+ * The registry snapshot over `orchestratorApi` (task-11.5 decision 11): with
+ * `A2UIVERSE_REGISTRY_SNAPSHOT` set, the preview server serves the snapshot under `/registry` as
+ * the orchestrator serves its registry — the table, and each artifact's files as immutable
+ * content — so e2e's build, pointed at the preview's own origin, loads every catalog the way the
+ * page does in life.
+ */
+function registrySnapshot(): Plugin {
+  return {
+    name: 'a2uiverse-registry-snapshot',
+    configurePreviewServer(server) {
+      if (!process.env.A2UIVERSE_REGISTRY_SNAPSHOT) return;
+      server.middlewares.use('/registry', (req, res, next) => {
+        const path = normalize(decodeURIComponent((req.url ?? '/').split('?')[0]!));
+        const file = join(REGISTRY_SNAPSHOT_DIR, path);
+        if (!file.startsWith(REGISTRY_SNAPSHOT_DIR + sep) || !existsSync(file)) return next();
+        if (!statSync(file).isFile()) return next();
+        res.setHeader('Content-Type', CONTENT_TYPES[extname(file)] ?? 'application/octet-stream');
+        res.setHeader(
+          'Cache-Control',
+          path.startsWith(`${sep}artifacts${sep}`)
+            ? 'public, max-age=31536000, immutable'
+            : 'no-cache',
+        );
+        createReadStream(file).pipe(res);
+      });
+    },
+  };
+}
 
 export default defineConfig({
-  plugins: [react()],
-  // A catalog linked from a2uiverse-apps to work on it locally resolves its peers from its own
-  // `node_modules`; dedupe so one copy of React and the A2UI runtime serves the page.
-  resolve: {dedupe: ['react', 'react-dom', '@a2ui/react', '@a2ui/web_core']},
-  // `@primer/react`'s AnchoredOverlay CSS uses `@position-try` (CSS anchor positioning), which
-  // the lightningcss version Vite bundles does not recognise — it throws "Unknown at rule"
-  // rather than warning, failing the production build outright. Error recovery keeps the build
-  // alive; the rules survive into the bundle. Remove once lightningcss understands the at-rule.
-  css: {lightningcss: {errorRecovery: true}},
+  plugins: [react(), registrySnapshot()],
   test: {
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./src/setupTests.ts'],
     exclude: [...configDefaults.exclude, 'e2e/**'],
-    server: {
-      // Inline the catalog bundles and the Primer github's ships so Vite transforms their
-      // internal CSS imports (otherwise externalized .css hits Node's loader and throws).
-      deps: {
-        inline: [
-          'github-catalog',
-          'gmail-catalog',
-          'calendar-catalog',
-          'circleci-catalog',
-          'linear-catalog',
-          'shop-a-catalog',
-          'shop-b-catalog',
-          '@primer/react',
-        ],
-      },
-    },
   },
 });

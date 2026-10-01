@@ -71,6 +71,23 @@ describe('classifyTurn', () => {
       surfaceId: 'gmail:s2',
     });
   });
+  test('a CATALOG_LOAD_FAILED error part classifies as clientError carrying the catalog', () => {
+    const data = {
+      version: 'v0.9',
+      error: {
+        code: 'CATALOG_LOAD_FAILED',
+        surfaceId: 'gmail:s2',
+        message: 'the registry does not hold it',
+        catalogId: 'urn:catalog:gmail',
+      },
+    };
+    expect(classifyTurn({...base, parts: [{kind: 'data', data}]})).toEqual({
+      kind: 'clientError',
+      code: 'CATALOG_LOAD_FAILED',
+      surfaceId: 'gmail:s2',
+      catalogId: 'urn:catalog:gmail',
+    });
+  });
   test('nothing usable is unknown', () => {
     expect(classifyTurn({...base, parts: [{kind: 'text', text: '   '}]})).toEqual({
       kind: 'unknown',

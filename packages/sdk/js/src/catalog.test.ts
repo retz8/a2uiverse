@@ -221,6 +221,23 @@ describe('the credential lint', () => {
     };
     expect(credentialLint(schema)).toEqual([]);
   });
+
+  test('a pin is a pushpin alone, a credential only as a pin code, input, field or number', () => {
+    const schema = {
+      components: {
+        Icon: {properties: {name: {enum: ['pin', 'pin-slash', 'star']}}},
+        Overlay: {properties: {pinPosition: {type: 'boolean'}}},
+        PinInput: {properties: {}},
+        Form: {properties: {pinCode: {type: 'string'}, kind: {enum: ['pin-field', 'pin_number']}}},
+      },
+    };
+    expect(credentialLint(schema)).toEqual([
+      'component "PinInput": name matches "pin input"',
+      'component "Form", prop "pinCode": name matches "pin code"',
+      'component "Form": enum value "pin-field" matches "pin field"',
+      'component "Form": enum value "pin_number" matches "pin number"',
+    ]);
+  });
 });
 
 describe('the host interface an artifact was built against (task-11.4 decision 4)', () => {

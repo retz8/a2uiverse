@@ -3,6 +3,8 @@ import {readFileSync} from 'node:fs';
 import {expect, test} from 'vitest';
 import {
   CANVAS_PARENT_FIELDS,
+  CATALOG_LOAD_FAILED,
+  CATALOG_LOAD_FAILURE_FIELDS,
   COMPOSITION_EXTENSION_URI,
   OPERATION_FIELDS,
   OPERATION_KINDS,
@@ -21,6 +23,7 @@ import {
   paintMetaData,
   parseSurfaceId,
   readCanvasParent,
+  readCatalogLoadFailure,
   readOperation,
   readPaintMeta,
   readStamp,
@@ -35,6 +38,7 @@ const contract = JSON.parse(
   canvasIdentity: {is: string};
   paintMetaMimeType: string;
   paintMetaTitleMaxLength: number;
+  catalogLoadFailedCode: string;
   shapes: Record<
     string,
     {direction: string; required?: string[]; optional?: string[]; kinds?: string[]}
@@ -47,6 +51,7 @@ test('constants match the contract', () => {
   expect(SURFACE_NS_SEPARATOR).toBe(contract.surfaceIdSeparator);
   expect(PAINT_META_MIME_TYPE).toBe(contract.paintMetaMimeType);
   expect(PAINT_META_TITLE_MAX_LENGTH).toBe(contract.paintMetaTitleMaxLength);
+  expect(CATALOG_LOAD_FAILED).toBe(contract.catalogLoadFailedCode);
 });
 
 test('a canvas is an A2A context: the contract names no canvas id of its own', () => {
@@ -82,11 +87,34 @@ test('the operation matches the contract: its fields and its kinds', () => {
   expect([...OPERATION_KINDS]).toEqual(operation.kinds);
 });
 
+test('the catalog load failure matches the contract', () => {
+  const failure = contract.shapes.catalogLoadFailure!;
+  expect(failure.direction).toBe('client → orchestrator');
+  expect([...CATALOG_LOAD_FAILURE_FIELDS].sort()).toEqual(
+    [...failure.required!, ...failure.optional!].sort(),
+  );
+});
+
+test('readCatalogLoadFailure reads the code, the surface and the catalog, and refuses the rest', () => {
+  const error = {
+    code: CATALOG_LOAD_FAILED,
+    surfaceId: 'gmail:inbox',
+    message: 'the registry does not hold it',
+    catalogId: 'https://example.com/gmail/catalog.json',
+  };
+  expect(readCatalogLoadFailure(error)).toEqual(error);
+  expect(readCatalogLoadFailure({...error, code: 'VALIDATION_FAILED'})).toBeUndefined();
+  expect(readCatalogLoadFailure({...error, catalogId: ''})).toBeUndefined();
+  expect(readCatalogLoadFailure({...error, surfaceId: undefined})).toBeUndefined();
+  expect(readCatalogLoadFailure('CATALOG_LOAD_FAILED')).toBeUndefined();
+});
+
 test('the contract carries no vendor-facing shape', () => {
   expect(Object.keys(contract.shapes)).toEqual([
     'compositionStamp',
     'canvasParent',
     'compositionOperation',
+    'catalogLoadFailure',
     'paintMeta',
     'synthesizeDataModel',
   ]);

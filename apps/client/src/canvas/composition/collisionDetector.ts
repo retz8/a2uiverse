@@ -14,9 +14,8 @@
  * Sharing a name is not the failure — that is exactly what scoping is for. Writing one where it
  * escapes is.
  */
-import {createRequire} from 'node:module';
-import {readFileSync, readdirSync, statSync} from 'node:fs';
-import {dirname, join, resolve} from 'node:path';
+import {readFileSync} from 'node:fs';
+import {join} from 'node:path';
 
 /** Selectors that put a declaration outside every fragment boundary on the page. */
 const GLOBAL_SELECTOR = /^\s*(:root|html|body)\s*$/;
@@ -108,9 +107,9 @@ function recordDeclaration(declaration: string, stack: string[], into: StyleFact
   }
 }
 
-/** One installed catalog's styles, as the page will see them. */
+/** One catalog's styles, as the page will see them. */
 export interface CatalogStyles {
-  /** The package name, as the client depends on it. */
+  /** The package the artifact was packed from. */
   pkg: string;
   /** Absolute paths of every stylesheet the catalog brings onto the page. */
   files: string[];
@@ -125,45 +124,18 @@ export type Finding =
   | {rule: 'duplicate-font-face'; name: string; pkgs: string[]};
 
 /**
- * Every stylesheet a catalog pulls onto the page. A catalog's own directory is not enough: a
- * bundle brings its design system's CSS with it (github-catalog imports three
- * `@primer/primitives` sheets from its Provider), and those are the sheets that actually land.
+ * Every stylesheet a catalog artifact brings onto the page (task-11.5 decision 12): each CSS file
+ * its descriptor lists — the catalog's own, and its design system's, which Stellify packed beside
+ * them (github-catalog's Primer sheets among them) — read from the artifact's directory.
  */
-export function stylesheetsFor(pkgDir: string, requireFrom: string): string[] {
-  const req = createRequire(requireFrom);
-  const found = new Set<string>();
-
-  const visit = (dir: string) => {
-    for (const name of readdirSync(dir)) {
-      if (name === 'node_modules') continue;
-      const path = join(dir, name);
-      if (statSync(path).isDirectory()) {
-        visit(path);
-        continue;
-      }
-      if (name.endsWith('.css')) {
-        found.add(path);
-        continue;
-      }
-      if (!/\.(js|mjs|cjs)$/.test(name)) continue;
-      for (const spec of readFileSync(path, 'utf8').matchAll(/['"]([^'"\n]+\.css)['"]/g)) {
-        try {
-          found.add(
-            spec[1].startsWith('.') ? resolve(dirname(path), spec[1]) : req.resolve(spec[1]),
-          );
-        } catch {
-          // A specifier this install cannot resolve brings no CSS onto this page.
-        }
-      }
-    }
+export function readArtifactStyles(pkg: string, artifactDir: string): CatalogStyles {
+  const descriptor = JSON.parse(readFileSync(join(artifactDir, 'artifact.json'), 'utf8')) as {
+    files: Record<string, string>;
   };
-
-  visit(pkgDir);
-  return [...found].sort();
-}
-
-export function readCatalogStyles(pkg: string, pkgDir: string, requireFrom: string): CatalogStyles {
-  const files = stylesheetsFor(pkgDir, requireFrom);
+  const files = Object.keys(descriptor.files)
+    .filter(file => file.endsWith('.css'))
+    .sort()
+    .map(file => join(artifactDir, file));
   const facts = emptyFacts();
   for (const file of files) analyzeCss(readFileSync(file, 'utf8'), facts);
   return {pkg, files, facts};

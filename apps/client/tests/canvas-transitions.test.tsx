@@ -4,7 +4,6 @@
  */
 import {describe, it, expect, vi, afterEach} from 'vitest';
 import {MessageProcessor} from '@a2ui/web_core/v0_9';
-import {CATALOG} from 'github-catalog';
 import {createCanvasStore} from '../src/canvas/canvasStore';
 import {createTurnRunner} from '../src/canvas/turn/canvasTurn';
 import {replayBeatOnCanvas} from '../src/canvas/replayBeat';
@@ -13,6 +12,9 @@ import {
   VALIDATION_FAILURE_BEAT,
   QUESTION_BEAT,
 } from '../src/beats/syntheticBeats';
+import {snapshotCatalog} from './snapshot';
+
+const {catalog: CATALOG} = await snapshotCatalog('github-catalog');
 
 function setup() {
   const processor = new MessageProcessor([CATALOG]);

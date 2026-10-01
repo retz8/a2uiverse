@@ -5,8 +5,10 @@
 import {describe, it, expect, vi, beforeEach, afterEach} from 'vitest';
 import {MessageProcessor} from '@a2ui/web_core/v0_9';
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
-import {CATALOG} from 'github-catalog';
 import {applyA2uiMessages} from './applyMessages';
+import {snapshotCatalog} from '../../tests/snapshot';
+
+const {catalog: CATALOG} = await snapshotCatalog('github-catalog');
 
 const create = (surfaceId: string, catalogId: string = CATALOG.id): A2uiMessage =>
   ({version: 'v0.9', createSurface: {surfaceId, catalogId}}) as unknown as A2uiMessage;

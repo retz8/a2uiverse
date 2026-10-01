@@ -671,6 +671,40 @@ describe('orchestrator', () => {
     });
   });
 
+  test('CATALOG_LOAD_FAILED fails the slot with the load cause, carrying the catalog (task-11.5 decision 4)', async () => {
+    const {client} = await boot();
+    const [first] = await collect(client, utterance('my day'));
+    const error: Message = {
+      kind: 'message',
+      messageId: crypto.randomUUID(),
+      role: 'user',
+      contextId: first.contextId,
+      parts: [
+        {
+          kind: 'data',
+          data: {
+            version: 'v0.9',
+            error: {
+              code: 'CATALOG_LOAD_FAILED',
+              surfaceId: 'gmail:s1',
+              message: 'the entry threw',
+              catalogId: 'urn:catalog:gmail',
+            },
+          },
+        },
+      ],
+    };
+    const events = await collect(client, error);
+    expect(slotsOf(shellPaints(events).at(-1)!)['gmail']).toMatchObject({
+      state: 'failed',
+      failure: {cause: 'load', catalogId: 'urn:catalog:gmail'},
+    });
+    const lines = await journalLines(2);
+    expect(lines.find(l => l.kind === 'error')).toMatchObject({
+      descriptor: 'CATALOG_LOAD_FAILED on surface gmail:s1',
+    });
+  });
+
   test('a broken plan is a broken turn: failed final, journaled failed', async () => {
     const {client} = await boot({planner: new ThrowingPlanner(new Error('no plan today'))});
     const events = await collect(client, utterance('anything'));

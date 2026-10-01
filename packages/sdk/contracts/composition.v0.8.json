@@ -47,6 +47,18 @@
         "step": "With 'step' only, required there: the paint id the fragment now shows — one paint per createSurface from that agent, counted the same way on both sides, from 0, never reused. A non-negative integer."
       }
     },
+    "catalogLoadFailure": {
+      "direction": "client → orchestrator",
+      "carriedOn": "A2UI's client error report — a data part {version, error} on a new A2A message in the canvas's context — under the protocol's generic error, its code catalogLoadFailedCode; the protocol's error admits the extra field",
+      "required": ["code", "surfaceId", "message", "catalogId"],
+      "optional": [],
+      "fields": {
+        "code": "catalogLoadFailedCode.",
+        "surfaceId": "The fragment's surface, namespaced as the hub sent it: the slot it fills fails.",
+        "message": "The client's reason the catalog did not load, for the journal: the registry unreachable, the catalog not in its table, an interface version the client does not provide, the exports, the id, the entry throwing.",
+        "catalogId": "The catalog the client could not load: the slot fails with cause 'load', carrying it."
+      }
+    },
     "paintMeta": {
       "direction": "orchestrator → client",
       "carriedOn": "a data part of its own, {paintMeta: {...}} with no version field, its part metadata mimeType paintMetaMimeType, emitted ahead of the createSurface it names; the A2UI extractor never takes it",
@@ -243,5 +255,6 @@
     "rule": "Each canvas is its own A2A context. The utterance that opens a canvas is sent with no contextId; the orchestrator mints one and the client reads it from the first event. Every later message in the canvas — action, press, error report — carries it. The orchestrator holds one composition per context for the session; a vendor's context is per canvas."
   },
   "paintMetaMimeType": "application/json+a2ui-shell",
-  "paintMetaTitleMaxLength": 48
+  "paintMetaTitleMaxLength": 48,
+  "catalogLoadFailedCode": "CATALOG_LOAD_FAILED"
 }

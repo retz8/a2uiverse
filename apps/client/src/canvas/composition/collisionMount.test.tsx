@@ -1,6 +1,6 @@
 /**
- * The collision detector, mounted half: every installed catalog rendered together, as a composed
- * turn renders them. jsdom inherits custom properties down the tree even though it will not
+ * The collision detector, mounted half: every catalog of the registry snapshot, loaded through the
+ * loader, rendered together with the client's own two, as a composed turn renders them. jsdom inherits custom properties down the tree even though it will not
  * resolve `var()`, which is exactly what the per-subtree question needs — the same variable name
  * must read differently inside two different fragments.
  *
@@ -14,12 +14,21 @@ import {MessageProcessor} from '@a2ui/web_core/v0_9';
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
 import type {ReactComponentImplementation} from '@a2ui/react/v0_9';
 import {CatalogProvider, SurfaceFrame} from '../../catalogs/CatalogContext';
-import {resolveCatalogs} from '../../catalogs/resolver';
-import {listCatalogs} from '../../orchestratorApi';
+import {BASIC_CATALOG_ID} from '@a2uiverse/sdk';
+import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
+import {SNAPSHOT_ARTIFACTS, snapshotCatalogs} from '../../../tests/snapshot';
 import {FRAGMENT_BOUNDARY_ATTR, FragmentBoundary} from './FragmentBoundary';
 
-const RECORDS = await listCatalogs();
-const CATALOGS = resolveCatalogs(RECORDS);
+const CATALOGS = await snapshotCatalogs();
+/** One record per catalog: the client's own two, and each artifact named by its package. */
+const RECORDS = [
+  {appId: 'shell', catalogId: SHELL_CATALOG_ID},
+  {appId: 'basic', catalogId: BASIC_CATALOG_ID},
+  ...SNAPSHOT_ARTIFACTS.map(a => ({
+    appId: a.package.replace(/-catalog$/, ''),
+    catalogId: a.catalogId,
+  })),
+];
 
 const msg = (m: Record<string, unknown>): A2uiMessage =>
   ({version: 'v0.9', ...m}) as unknown as A2uiMessage;

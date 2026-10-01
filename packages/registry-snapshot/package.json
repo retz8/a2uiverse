@@ -1,0 +1,35 @@
+{
+  "name": "@a2uiverse/registry-snapshot",
+  "version": "0.0.0",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/retz8/a2uiverse.git",
+    "directory": "packages/registry-snapshot"
+  },
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.js"
+    }
+  },
+  "scripts": {
+    "build": "node scripts/generate.mjs"
+  },
+  "dependencies": {
+    "calendar-catalog": "github:retz8/a2uiverse-apps#b87b1d316d2c19a4f518bc1a540a3bc447b90e91&path:calendar/calendar-catalog",
+    "circleci-catalog": "github:retz8/a2uiverse-apps#b87b1d316d2c19a4f518bc1a540a3bc447b90e91&path:circleci/circleci-catalog",
+    "github-catalog": "github:retz8/a2uiverse-apps#b87b1d316d2c19a4f518bc1a540a3bc447b90e91&path:github/github-catalog",
+    "gmail-catalog": "github:retz8/a2uiverse-apps#b87b1d316d2c19a4f518bc1a540a3bc447b90e91&path:gmail/gmail-catalog",
+    "linear-catalog": "github:retz8/a2uiverse-apps#b87b1d316d2c19a4f518bc1a540a3bc447b90e91&path:linear/linear-catalog",
+    "shop-a-catalog": "github:retz8/a2uiverse-apps#b87b1d316d2c19a4f518bc1a540a3bc447b90e91&path:mocks/shop-a/shop-a-catalog",
+    "shop-b-catalog": "github:retz8/a2uiverse-apps#b87b1d316d2c19a4f518bc1a540a3bc447b90e91&path:mocks/shop-b/shop-b-catalog"
+  },
+  "devDependencies": {
+    "@a2uiverse/sdk": "workspace:*",
+    "@a2uiverse/shell-catalog": "workspace:*",
+    "@a2uiverse/stellify": "workspace:*"
+  }
+}

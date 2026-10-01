@@ -8,11 +8,13 @@ import {describe, it, expect, afterEach} from 'vitest';
 import {render, screen, cleanup, fireEvent, waitFor, within} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type {MessageSendParams, Part, TaskStatusUpdateEvent} from '@a2a-js/sdk';
-import {CATALOG_ID} from 'github-catalog';
 import type {A2AMessageSender} from '../a2a/client';
 import {CATALOGS} from '../../tests/helpers';
+import {snapshotCatalogId, snapshotCatalogs} from '../../tests/snapshot';
 import {Providers} from '../providers';
 import {CanvasApp} from './CanvasApp';
+
+const CATALOG_ID = snapshotCatalogId('github-catalog');
 
 afterEach(() => {
   cleanup();
@@ -624,11 +626,9 @@ describe('CanvasApp trail (task 9.6)', () => {
  * lands here.
  */
 import {createHostRelay} from './hostRelay';
-import {resolveCatalogs} from '../catalogs/resolver';
-import {listCatalogs} from '../orchestratorApi';
 
 const HOST_RELAY = createHostRelay();
-const BOUND_CATALOGS = resolveCatalogs(await listCatalogs(), HOST_RELAY.host);
+const BOUND_CATALOGS = await snapshotCatalogs(HOST_RELAY.host);
 
 /** The hub's answer to a shell-action report: a completed final carrying nothing. */
 const EMPTY_FINAL: TaskStatusUpdateEvent = {

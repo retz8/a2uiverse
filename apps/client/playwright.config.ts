@@ -9,8 +9,10 @@ export default defineConfig({
   projects: [
     {name: 'chromium', use: {...devices['Desktop Chrome'], viewport: {width: 1024, height: 768}}},
   ],
+  // The page built against the preview's own origin, which serves the registry snapshot under
+  // `/registry` (task-11.5 decision 11): every catalog arrives through the loader.
   webServer: {
-    command: 'pnpm build && pnpm preview --port 4173 --strictPort',
+    command: 'pnpm preview:snapshot',
     url: 'http://localhost:4173',
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

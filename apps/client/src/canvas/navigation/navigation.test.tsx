@@ -10,16 +10,16 @@ import {MessageProcessor} from '@a2ui/web_core/v0_9';
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
 import type {ReactComponentImplementation} from '@a2ui/react/v0_9';
 import type {CellTarget} from '@a2uiverse/shell-catalog';
-import {CATALOG_ID as SHOP_A_CATALOG_ID} from 'shop-a-catalog';
 import {CatalogProvider, SurfaceFrame} from '../../catalogs/CatalogContext';
-import {resolveCatalogs} from '../../catalogs/resolver';
-import {listCatalogs} from '../../orchestratorApi';
 import {FragmentBoundary} from '../composition/FragmentBoundary';
 import {createBindingIndex, NODE_ATTR, NODE_END_ATTR} from './bindingIndex';
 import {BindingIndexContext} from './decorateCatalog';
 import {createNavigator, resolveLanding, RING_CLASS, RING_MS, SCROLL_SETTLE_MS} from './landing';
+import {snapshotCatalogId, snapshotCatalogs} from '../../../tests/snapshot';
 
-const CATALOGS = resolveCatalogs(await listCatalogs());
+const SHOP_A_CATALOG_ID = snapshotCatalogId('shop-a-catalog');
+
+const CATALOGS = await snapshotCatalogs();
 const SURFACE = 'shop-a:list';
 
 const msg = (m: Record<string, unknown>): A2uiMessage =>
