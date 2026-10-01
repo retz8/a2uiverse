@@ -17,7 +17,7 @@ M7 of SPEC §12: how an app gets into A2UIVerse — the units, the artifact, the
 
 ### 1. Catalog implementations load at runtime
 
-The client compiles no vendor catalog in. Catalog implementations arrive through the registry at runtime, fetched from the orchestrator. `a2uiverse` depends on `a2uiverse-apps` for nothing but the generated test fixture of decision 15. Any A2A agent that paints A2UI is installed by describing it, never by building against it.
+The client compiles no vendor catalog in. Catalog implementations arrive through the registry at runtime, fetched from the orchestrator. `a2uiverse` depends on `a2uiverse-apps` for nothing but the generated test fixture of decision 16. Any A2A agent that paints A2UI is installed by describing it, never by building against it.
 
 ### 2. Two units: app and catalog implementation
 
@@ -77,7 +77,7 @@ A fresh state directory is an empty registry, and empty is a valid platform: the
 
 ### 16. The dev harness installs, the orchestrator does not know the checkout
 
-The launcher holds a dev roster naming each app to auto-install from the apps checkout — its id, its folder, its tier, the mocks only when their tier is on. On launch it assigns each a port, starts it, packs its catalog and installs it through the orchestrator's operation. `A2UIVERSE_AGENTS_DIR` is the launcher's input, not the orchestrator's. E2e and replays read the registry table and artifacts over `orchestratorApi` from a **registry snapshot** — the table plus the artifacts — generated from the apps checkout at a pinned ref into a git-ignored directory, never committed; dev replays use the live orchestrator.
+The launcher holds a dev roster naming each app to auto-install from the apps checkout — its id, its folder, its tier, the mocks only when their tier is on. On launch it assigns each a port, starts it, packs its catalog and installs it through the orchestrator's operation. `A2UIVERSE_AGENTS_DIR` is the launcher's input, not the orchestrator's. E2e and replays read the registry table and artifacts over `orchestratorApi` from a **registry snapshot** — the table plus the artifacts — generated from the apps repo at a pinned ref through pnpm into a git-ignored directory, never committed, and the client's tests load it too (task 11.5); dev replays use the live orchestrator.
 
 ### 17. Proof
 

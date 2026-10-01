@@ -232,16 +232,19 @@ The client's collision detector finds a package's stylesheets by scanning its Ja
 
 The failure tile and the merged view's lines say different things depending on what happened, what the reader has pressed, and whether that press has reached the orchestrator yet. All of that wording is written by **pure functions** in `src/components/slot/slot.tsx` and `press-lines.ts`: facts in, sentences out, no React. They're tested as plain functions.
 
-- **`failureStatement(failure)`** picks the failure tile's one sentence. The orchestrator paints a cause on the failed `Slot`, one of four:
+- **`failureStatement(failure)`** picks the failure tile's one sentence, and **`failureRetries(failure)`** whether Retry follows it. The orchestrator paints a cause on the failed `Slot`, one of seven:
 
-  | Cause | The tile says |
-  | --- | --- |
-  | `vendor` | the app's own words when it gave some, else "Couldn't answer." |
-  | `unreachable` | "Couldn't be reached." |
-  | `timeout` | "No answer within the time allowed." |
-  | `invalid` | "Answered, but its screen couldn't be shown." |
+  | Cause | The tile says | Retry |
+  | --- | --- | --- |
+  | `vendor` | the app's own words when it gave some, else "This app couldn't answer." | yes |
+  | `unreachable` | "This app couldn't be reached." | yes |
+  | `timeout` | "This app took too long to answer." | yes |
+  | `invalid` | "This app sent a screen that couldn't be shown." | yes |
+  | `catalog` | "This app sent something that can't be shown here." | no |
+  | `uninstalled` | "This app isn't installed anymore." | yes |
+  | `load` | "Something went wrong loading this." | yes |
 
-  The sentence never names the app: the `Attribution` above already does.
+  `catalog` is a paint the orchestrator refused because the app painted in a catalog it isn't entitled to; retrying would be refused the same way. `load` is a catalog the client couldn't load. Both carry the catalog id, which the tile never shows. The sentence says "this app", never its name: the `Attribution` above already names it. The merged view's own failed slot says "Something went wrong here."
 
 - **`collapseLine(collapse)`** words a collapsed merged view: "The merged view needs Linear issues, which didn't load.", "The merged view needs at least two sources, and only GitHub answered.", or "The merged view couldn't be made."
 
@@ -369,7 +372,7 @@ Two kinds of test keep the three files of [idea 1](#1-one-catalog-three-files-th
 | The basic components on Radix | `src/components/<name>/`, helpers in `src/components/shared/` |
 | Tests and the design-check page | `src/**/*.test.ts(x)`, `src/testing/render.tsx`, `fixture/` |
 
-In the client, the catalog is built in `apps/client/src/catalogs/resolver.ts` and its contexts are filled in `apps/client/src/canvas/components/CanvasView.tsx`. In the orchestrator, the keep-sets and pruned catalogs are used in `planner/prompt.ts` and `synthesizer/prompt.ts`.
+In the client, the catalog is built in `apps/client/src/catalogs/clientCatalogs.ts` and its contexts are filled in `apps/client/src/canvas/components/CanvasView.tsx`. In the orchestrator, the keep-sets and pruned catalogs are used in `planner/prompt.ts` and `synthesizer/prompt.ts`.
 
 ## Words used in this guide
 

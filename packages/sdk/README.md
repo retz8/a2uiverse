@@ -4,12 +4,12 @@ The contract between A2UIVerse's orchestrator and its canvas client, and generic
 
 ## What's in it
 
-- **Composition**: what the orchestrator adds around the A2UI it relays. A stamp on every event says which app painted it, and marks where an app's stream ends. Surface ids are namespaced by app (`gmail:inbox`). A paint can carry a short title, and the Planner's title names the canvas. The client sends back the reader's presses: Retry, Include, Try again, a step back or forward in a fragment, and closing a canvas.
+- **Composition**: what the orchestrator adds around the A2UI it relays. A stamp on every event says which app painted it, and marks where an app's stream ends. Surface ids are namespaced by app (`gmail:inbox`). A paint can carry a short title, and the Planner's title names the canvas. The client sends back the reader's presses: Retry, Include, Try again, a step back or forward in a fragment, and closing a canvas; and a fragment whose catalog it could not load, as a catalog load failure the orchestrator fails the slot with.
 - **Contexts**: each question's answer is an A2A context. The orchestrator gives it its id when the question is asked, every later message carries that id, and a question asked from an earlier answer names that answer's context as its parent.
 - **Synthesis**: the merged view's wiring, with its schema and validator. The wiring is formulas over refs into each app's data, match claims that say which entries are one thing, and sorts.
 - **Resolution**: pointers with key predicates, like `/threads[id="1a06f2"]/time`, resolved against a data model.
 - **A2UI tools**: an A2UI v0.9.1 validator that follows upstream's, and catalog pruning.
-- **Catalogs**: what a catalog package exposes (`CATALOG`, an optional `Provider`), what the client lends a loaded catalog (the host-module interface keyed by A2UI version — `0.9.1`, six specifiers), the catalog artifact's descriptor with its validator and file checks, and the checks the registry and the marketplace share — two-directional coverage over a card's `supportedCatalogIds`, each app's catalog entitlement, the app id's grammar and claim, the credential lint over a schema. The app itself is its A2A AgentCard; nothing here describes one.
+- **Catalogs**: what a catalog package exposes (`CATALOG`, an optional `Provider`), what the client lends a loaded catalog (the host-module interface keyed by A2UI version — `0.9.1`, seven specifiers), the catalog artifact's descriptor with its validator and file checks, and the checks the registry and the marketplace share — two-directional coverage over a card's `supportedCatalogIds`, each app's catalog entitlement, the app id's grammar and claim, the credential lint over a schema. The app itself is its A2A AgentCard; nothing here describes one.
 
 ```
 contracts/composition.v0.8.json         the composition contract — an A2A extension, versioned in its URI; the package is tested against it

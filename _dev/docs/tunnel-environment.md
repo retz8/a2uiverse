@@ -60,6 +60,8 @@ BASE_URL=https://<tunnel-id>-10001.asse.devtunnels.ms pnpm --filter @a2uiverse/o
 pnpm --filter @a2uiverse/client dev
 ```
 
+The client loads every app's catalog from the orchestrator's registry at runtime, through the tunnel (task 11.5). The tunnel adds its own `Cache-Control: no-cache,no-store` to every response, beside the orchestrator's immutable header on artifact files, so the browser keeps no artifact across reloads there: each reload loads every catalog again. Within a page each loads once.
+
 The orchestrator boots from its registry in `STATE_DIR` alone, empty at first (task 11.4). Install each app while it runs, its catalog packed by Stellify first; an app already installed stays installed across restarts:
 
 ```bash

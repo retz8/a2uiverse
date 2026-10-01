@@ -118,7 +118,8 @@ The client is a Vite and React single-page app, and most of its logic lives outs
 ```mermaid
 flowchart TD
     E["canvas.tsx, the entry"] --> R["hostRelay"]
-    E --> CAT["resolveCatalogs:<br/>catalogId to catalog and Provider"]
+    E --> HOST["host-module interface"]
+    E --> CAT["catalog loader:<br/>the registry's catalogs at runtime"]
     E --> APP["CanvasApp"]
     APP --> W["createCanvasWiring, built once per page"]
     W --> TS["trail store"]
@@ -133,11 +134,11 @@ flowchart TD
     ONE --> BI["binding index and navigator"]
 ```
 
-- **The entry** (`canvas.tsx`) fetches the list of installed catalogs, resolves each to its runtime catalog and Provider, and builds the shell catalog with the **host relay** (below). This happens once, before any answer exists.
+- **The entry** (`canvas.tsx`) registers the **host-module interface**, builds the client's own two catalogs (the shell catalog, with the **host relay** below, and the standard basic catalog), and creates the **catalog loader** over the orchestrator's registry. It starts the loader's preload and renders at once, without waiting for it. This happens once, before any answer exists.
 - **The wiring** (`canvas/createCanvasWiring.ts`) is the page's graph: the trail store, the map of runtimes, and the page-level handlers (ask, ask again, view, return to live, close, press). It's plain TypeScript, lifted out of React so the component reads as layout and the wiring reads as wiring.
 - **A runtime** (`canvas/canvasRuntime.ts`) is everything one answer owns: its store, its A2A session (the context id), its live `MessageProcessor`, its turn runner, its synthesis session, its fragment history, its binding index and navigator. It runs whether or not it's on screen, and only its close ends it.
 
-**One `MessageProcessor` per answer, over every installed catalog.** A2UI's processor is the renderer's model: it applies messages and holds surfaces. Each surface carries its own `catalogId`, and the stock library resolves the catalog per surface, so one processor can hold a Primer surface beside a Material 3 surface beside the shell's own. The processor is also the **live registry**: exactly what the agents may see of the answer when the client sends its data models back.
+**One `MessageProcessor` per answer, over the loader's one catalog array.** A2UI's processor is the renderer's model: it applies messages and holds surfaces. Each surface carries its own `catalogId`, and the stock library resolves the catalog per surface, so one processor can hold a Primer surface beside a Material 3 surface beside the shell's own. Every answer's processor is built over the same array the loader owns, and a catalog loaded later is pushed into it, so an answer opened before an install still finds the new catalog. The processor is also the **live registry**: exactly what the agents may see of the answer when the client sends its data models back.
 
 **The stores are hand-rolled external stores.** The answer's store (`canvas/canvasStore.ts`) and the trail store are closures with `getState`, `subscribe` and small setters, read by React through `useSyncExternalStore`. They're written from non-React code (the turn runner, the A2A callbacks, the replay driver), which is why they aren't component state. The answer's store holds one answer's state: which surface is on stage, the placement map, the question, the progress facts, the presses in flight. The trail store holds only which answers exist, which is live, and which is on screen.
 
@@ -174,7 +175,27 @@ Two rules adapt it to composition:
 - **A composed turn goes progressive.** A composition's whole point is that the layout lands before the apps answer. So the moment a turn's stamped shell `createSurface` arrives, the runner retires the old composition and switches to progressive mode; the slots then fill in place. Only a create does this: a shell repaint that merely flips one slot to failed targets the live layout and must not tear the answer down.
 - **An app swaps in when it settles.** In an action turn (staged, since the stage is occupied), each app's new paint is held **per app, not per turn**: the app's `settled` marker swaps in what survives of its paint, so a drill-down shows as soon as that app answers rather than when the whole turn ends. While that happens inside a live composition, the merged view **holds** its last values, its line working, until the re-synthesis it's waiting for lands. Otherwise it would briefly evaluate its formulas over a screen they weren't written for.
 
-**Deferred validation.** An agent streams a component as it's generated, and the processor validates every batch, so an early batch carrying a half-written component fails validation. Those failures are held back and judged when the surface settles: a paint whose final state validates reports nothing; one that doesn't reports its last failure. Failures that can never heal (an unknown `catalogId`) are reported at once.
+**Deferred validation.** An agent streams a component as it's generated, and the processor validates every batch, so an early batch carrying a half-written component fails validation. Those failures are held back and judged when the surface settles: a paint whose final state validates reports nothing; one that doesn't reports its last failure. Failures that can never heal are reported at once. A surface in a catalog the client doesn't hold never reaches the runner unloaded: the catalog gate (below) loads it first.
+
+### Catalogs arrive at runtime
+
+The client compiles no vendor catalog in. Its own two, the shell catalog and the standard basic catalog, are built at startup; every other catalog is a **catalog artifact** the orchestrator serves under `/registry`: a descriptor (`artifact.json`), the catalog schema, one ES module and its stylesheets and fonts, packed from the vendor's catalog package by Stellify.
+
+**The host-module interface.** An artifact leaves React, react-dom, the A2UI runtime and zod out of its bundle and reads them from one global object, `__a2uiverse_host__`, which `catalogs/host.ts` registers before any artifact loads: the client's own module namespaces, so the page has one React and one A2UI runtime, and `loadStylesheet`, which the artifact's rewritten stylesheet imports call. It appends one `<link>` per URL in call order and resolves when the sheet has loaded.
+
+**The loader** (`catalogs/loader.ts`) turns the registry into catalogs:
+
+1. It reads the catalog table, `catalogs.json`, never from the browser's cache: the table changes with every install.
+2. For a catalog it doesn't hold, it reads the artifact's `artifact.json` and checks the interface version the artifact was built against.
+3. It imports the entry from its served URL, never from a blob, because the entry's own URL is the base its stylesheet loads resolve against.
+4. It checks the running code: the module exports `CATALOG` (and at most one `Provider`), and `CATALOG.id` is the id the table listed.
+5. It wraps the catalog for navigation and pushes it into the one array every processor reads, and the render layer's Provider table updates.
+
+The preload loads every artifact the table lists, in the background from boot. A catalog the table doesn't list sends the loader back to the table once, so an install made while the page is open is found without a reload. One load is in flight per catalog; a failed load isn't kept, so the next arrival tries again; and the first load of a catalog wins for the session, so an install-over of a catalog shows after a reload.
+
+**The catalog gate** (`catalogs/catalogGate.ts`) sits in front of each answer's turn runner. A batch whose catalogs are all held passes straight through. A batch that creates a surface in a catalog not held yet is held, with everything the answer receives after it, on the turn or a stream beside it, in order, until the catalog loads. Meanwhile the fragment hasn't claimed its slot, so the slot shows its loading state, and the fragment's tick on the progress line waits too. If the catalog can't be loaded, the gate drops the fragment's messages and the answer reports a **catalog load failure** to the orchestrator, which fails the slot with the `load` cause: "Something went wrong loading this.", with Retry.
+
+**What the client advertises.** The orchestrator is the agent the client talks to, and it paints only the shell's own surfaces, so every message carries the basic catalog and the shell catalog as the client's supported catalogs. What each app may paint in, its entitlement, is the orchestrator's to tell that app.
 
 ### Routing by the stamp
 
@@ -373,7 +394,7 @@ Only the latest step owns the merge line: a later step ends the "working" an ear
 
 **The boundary is a real element.** `FragmentBoundary` is a `<div>`, never a React fragment or `display: contents`, because CSS `@scope`, a portal root and the collision detector all need something to attach to. It carries `data-a2ui-fragment` with the app id, and it's `display: flow-root`, so an app's top margin stays inside it instead of collapsing through; its box is what navigation lands on and what neighbouring slots align by.
 
-**Each catalog brings one Provider and one CSS setup**, both scoped to the boundary. The client imports each catalog package for its catalog, its id and its Provider, and wraps that catalog's surfaces only (`catalogs/resolver.ts`). It registers nothing at the app root and does no per-vendor CSS setup of its own, so installing an app is a table entry, not a shell change.
+**Each catalog brings one Provider and one CSS setup**, both scoped to the boundary. The loader takes each artifact's catalog and its Provider, and the client wraps that catalog's surfaces only (`catalogs/CatalogContext.tsx`). It registers nothing at the app root and does no per-vendor CSS setup of its own, so installing an app is a table entry, not a shell change.
 
 **The collision detector** (`canvas/composition/collisionDetector.ts`) catches the ways CSS can collide silently. It checks five rules across every installed catalog:
 
@@ -385,7 +406,7 @@ Only the latest step owns the merge line: a later step ends the "working" an ear
 | duplicate keyframes | two catalogs ship the same `@keyframes` name                                             |
 | duplicate font face | two catalogs declare the same `@font-face` family; a `@font-face` rule has no selector to scope it, so the last catalog loaded draws the other's text |
 
-The rules are prefix-agnostic: two design systems can both ship `--text-primary` meaning different colors. Sharing a name is fine, since scoping is exactly for that; writing one where it escapes is the failure. It runs in three layers, split by what each can see: a static scan of every catalog's stylesheets, a jsdom mount of all catalogs together, and a Playwright spec for the real cascade.
+The rules are prefix-agnostic: two design systems can both ship `--text-primary` meaning different colors. Sharing a name is fine, since scoping is exactly for that; writing one where it escapes is the failure. It runs in tests, in three layers, split by what each can see: a static scan of every stylesheet each artifact of the **registry snapshot** carries, a jsdom mount of all the snapshot's catalogs together, loaded through the loader, and a Playwright spec for the real cascade, over a preview server serving the snapshot. The registry snapshot is the catalog table plus the packed artifacts of the seven catalog packages at one pinned commit of the apps repo, generated by `packages/registry-snapshot` at build and never committed.
 
 ### Questions and promotion
 
@@ -407,7 +428,11 @@ The merged view is explained end to end in [`synthesis.md`](synthesis.md). The c
 | Decision | What it buys | What it costs |
 | --- | --- | --- |
 | **A runtime per answer, kept for the session** | A past answer is a working tab with no special code; closing one is dropping it | Memory grows with every question until a reload |
-| **One processor per answer, over every catalog** | Per-surface catalog resolution is stock library behavior; no dispatch of our own | Every catalog is loaded up front |
+| **One processor per answer, over every catalog** | Per-surface catalog resolution is stock library behavior; no dispatch of our own | A catalog loaded later joins through the array web_core holds by reference, which web_core doesn't promise; a test pins it |
+| **No vendor catalog compiled in** | Installing an app needs no client build; the client names no app | Every vendor catalog is a network load, and a reload loads them again |
+| **A catalog gate in front of each answer's runner** | The turn runner stays synchronous; ordering across the turn and its side streams is kept whole | While one catalog loads, everything after it in that answer waits |
+| **The first load of a catalog wins for the session** | Every answer renders a catalog the same way; two versions' stylesheets never meet | An install-over of a catalog shows after a reload |
+| **The render waits for nothing** | The shell paints at once, registry up or not | A fragment can show loading while its catalog arrives |
 | **Placement by the stamp's `source`** | No component tree points into another surface; a slot and its fragment meet by name | The orchestrator must stamp every event |
 | **Hold-and-swap, with a staging processor as the validator** | A broken or half-built paint never replaces a good one | A staged paint shows only when it's complete |
 | **A composed turn goes progressive** | The layout lands before any app answers, and each slot fills in place | A failing app shows as a failed slot, not a held screen |
@@ -425,8 +450,10 @@ The merged view is explained end to end in [`synthesis.md`](synthesis.md). The c
 
 - **Visual containment isn't DOM containment.** A vendor component that is `position: fixed` paints over the whole canvas while its DOM stays inside its boundary; Primer's `ConfirmationDialog` does exactly this. The detector checks DOM ownership, not painted bounds.
 - **A vendor component can still declare `aria-modal`.** The shell puts up no modal for a promoted slot, but a vendor's own dialog can hide the rest of the canvas from assistive technology.
-- **The client still advertises every catalog it compiled in.** The orchestrator drops that list and tells each app only its own entitlement, so no app learns the others' catalogs, but the list still rides every message to the orchestrator.
-- **Test setup is shaped around Primer.** `setupTests.ts` shims and the Vite config's `lightningcss.errorRecovery` exist because `github-catalog` needs them.
+- **Test setup is shaped around Primer.** `setupTests.ts` shims exist because `github-catalog`'s Primer components need them under jsdom.
+- **A loading catalog holds its whole answer.** The gate keeps order by holding everything the answer receives after a batch whose catalog is loading, so other apps' fragments wait behind it too.
+- **Through the tunnel, a reload loads every artifact again.** The tunnel adds its own `Cache-Control: no-cache,no-store` beside the orchestrator's immutable header, so the browser keeps no artifact across reloads there; within a page, each is loaded once.
+- **jsdom applies no artifact stylesheet.** The tests' host records each stylesheet an artifact asks for and resolves; the cascade is the Playwright layer's.
 - **Two renderer patches.** `@a2ui/react` is patched locally (`patches/@a2ui__react@0.10.2.patch`); the [client README](../../apps/client/README.md#renderer-patch) says why.
 - **The merged view round-trips.** `shell:synthesis` rides back to the orchestrator in the client's data models, which the orchestrator ignores.
 - **A request can be lost twice.** The resend covers one loss; a request lost on both tries fails with "The orchestrator did not answer."
@@ -434,7 +461,9 @@ The merged view is explained end to end in [`synthesis.md`](synthesis.md). The c
 
 ## Trying it without a model
 
-Start the client (`pnpm dev:client`) and open `http://localhost:5173/?beat=<name>`; add `&instant` to skip the recorded pacing. A beat replays a recorded or hand-built session through the whole canvas, with no orchestrator, no apps and no model. A beat's presses fire through the same handler the buttons call, answered from the beat itself.
+Start the client and open `?beat=<name>`; add `&instant` to skip the recorded pacing. A beat replays a recorded or hand-built session through the whole canvas, with no apps and no model. A beat's presses fire through the same handler the buttons call, answered from the beat itself. A replay starts once the loader's preload has settled, so its fragments land as recorded.
+
+The catalogs still come from a registry. In dev that's the live orchestrator, with the apps' catalogs installed; without one, `pnpm --filter @a2uiverse/client preview:snapshot` builds the page against the preview's own origin and serves the registry snapshot there, as e2e does, on `http://localhost:4173`.
 
 | Replay | What it shows |
 | --- | --- |
@@ -453,7 +482,7 @@ Recorded beats live in `apps/client/recordings/beats/`, taken through the orches
 
 | Concern | Where (`apps/client/src`) |
 | --- | --- |
-| The entry, catalogs | `canvas.tsx`, `catalogs/resolver.ts`, `orchestratorApi.ts` |
+| The entry, catalogs | `canvas.tsx`, `catalogs/clientCatalogs.ts`, `catalogs/host.ts`, `catalogs/loader.ts`, `catalogs/catalogGate.ts`, `catalogs/CatalogContext.tsx`, `orchestratorApi.ts` |
 | The page's wiring | `canvas/createCanvasWiring.ts`, `canvas/hostRelay.ts`, `canvas/CanvasApp.tsx` |
 | One answer | `canvas/canvasRuntime.ts`, `canvas/canvasStore.ts` |
 | Turns, staging, routing | `canvas/turn/canvasTurn.ts`, `canvas/turn/turnMessages.ts`, `a2ui/applyMessages.ts` |
@@ -497,3 +526,8 @@ Recorded beats live in `apps/client/recordings/beats/`, taken through the orches
 | **Staging processor** | The throwaway processor a staged turn builds its paint in |
 | **Promotion** | A slot raised because its app asked you something |
 | **Beat** | A recorded or hand-built session the canvas can replay |
+| **Catalog artifact** | A catalog packed for runtime loading: its descriptor, its schema, one ES module, its stylesheets and fonts, served by the orchestrator |
+| **Host-module interface** | The global object an artifact reads the page's React, A2UI runtime and zod from, and loads its stylesheets through |
+| **Catalog loader** | What reads the registry's table and turns each artifact into a catalog the processors can use |
+| **Catalog gate** | The holder in front of an answer's turn runner: a batch waits there while a catalog it needs loads |
+| **Registry snapshot** | The catalog table and the packed artifacts the tests and e2e load, generated from the apps repo at one pinned commit |

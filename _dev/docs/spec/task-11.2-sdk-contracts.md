@@ -36,7 +36,7 @@ The catalog contracts are versioned with the sdk, whose every consumer — the o
 
 ### 5. Credential lint at install
 
-One word list — password, passcode, otp, pin, cvv, cvc, card number and the like — matched case-insensitively as whole words against component names, prop names and enum values in the catalog schema; a match refuses the install naming the component and the term. Enforcement proper is the marketplace's review over the schema at publish; the design record says so in those words. The list lives in the sdk beside the check, so the marketplace's review and the pack tool's `check` refuse on the same words.
+One word list — password, passcode, otp, pin code, cvv, cvc, card number and the like, a word with an innocent meaning of its own listed only in its credential pairings (pin code, pin input, pin field, pin number; task 11.5) — matched case-insensitively as whole words against component names, prop names and enum values in the catalog schema; a match refuses the install naming the component and the term. Enforcement proper is the marketplace's review over the schema at publish; the design record says so in those words. The list lives in the sdk beside the check, so the marketplace's review and the pack tool's `check` refuse on the same words.
 
 ### 6. Two-directional coverage, no orphan artifacts
 

@@ -776,3 +776,48 @@ The Python parser already sends intermediate updates under `RELAXED_VALIDATION` 
 topology check with `allow_dangling_references=True`, both of which permit references to ids not yet
 sent. Where an SDK keeps agent-side placeholders, let the caller supply the placeholder component —
 an empty container the catalog declares — instead of assuming `Row`.
+
+---
+
+## 14. No way to add a catalog to a processor after it is built (web_core, Python core)
+
+**Component:** web_core `typescript/web_core/src/processing/message-processor.ts` on `upstream/main`
+`102ec1a0` — the constructor (`constructor(private catalogs: Catalog<any>[], …)`, the array handed on
+to `RpcHandler` as `catalogs: this.catalogs`) and `processCreateSurfaceOp`
+(`this.catalogs.find(c => c.id === catalogId)`, else `Catalog not found`); the same in the published
+`@a2ui/web_core` 0.10.6 (`v0_9/processing/message-processor.js`, `this.catalogs = catalogs`). Python
+core `python/a2ui_core/src/a2ui/core/processing/message_processor.py` (`self.catalogs = catalogs`).
+
+**Severity:** missing capability. Nothing breaks for a client that knows every catalog when it
+starts; a client that learns of one later has no supported way to render it.
+
+### Issue
+
+A `MessageProcessor` takes its catalogs once, in its constructor, and exposes nothing to add one: no
+method on the processor, none on `RpcHandler`, and the field is private. A catalog is looked up only
+when a `createSurface` names it, so the processor could take one later; the API gives it no way in.
+
+A client whose catalogs arrive at runtime — one that installs an app, or loads a catalog the first
+time a surface needs it — is left with two options. It can build a new processor, which drops every
+surface the old one holds, or it can push into the array it handed the constructor, which works only
+because web_core keeps that array by reference rather than copying it. The second is what a client
+loading catalogs at runtime does today, and it depends on an implementation detail the type marks
+private.
+
+Found building A2UIVerse's client, which loads every vendor catalog at runtime from its registry:
+each canvas's processor is built before the catalogs it will need are known.
+
+### Reproduction
+
+Build a processor over an empty array, push a catalog into that same array, and send a
+`createSurface` naming it: the surface is created. Build it over a copy instead, or over a fresh array
+each time, and the same message throws `Catalog not found`. Nothing in the public API reaches the
+array the processor holds.
+
+### Fix
+
+Let a processor take a catalog after it is built: an `addCatalog(catalog)` on `MessageProcessor`
+that also reaches `RpcHandler`, or a resolver — `(catalogId) => Catalog | undefined` — accepted in
+place of the array, so a client can resolve catalogs as it loads them. Either keeps the processor's
+surfaces, and `getClientCapabilities`, which reads the catalogs when it is called, then lists the
+added catalogs too. A search of the repository's issues and pull requests found no prior proposal.

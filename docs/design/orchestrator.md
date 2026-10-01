@@ -487,6 +487,7 @@ Set `A2UIVERSE_DEBUG_IDS=1` to see the app's own ids under the stamp while debug
 | An install fails a check | Nothing changes; every finding is answered at once, `422` |
 | An app answered after the hard cap | The answer is held until you press Retry, then drawn at once |
 | The client couldn't draw an app's paint | It reports it; that app's slot fails as `invalid` and its data leaves the merge |
+| The client couldn't load the catalog an app's paint is in | It reports a catalog load failure; that app's slot fails with the `load` cause and the catalog id, and its data leaves the merge |
 | A message id seen within the last 256 | Refused: "This request was already received." |
 | A question inside a context the session holds | Refused: "A question opens a context of its own." |
 | Anything else in a closed context | Refused: "This context is closed." |

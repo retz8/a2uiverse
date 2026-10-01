@@ -13,7 +13,7 @@ A shared file is any file outside your sub-task's own folder or package. In both
 - every file at the repo root — `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, `turbo.json`, `tsconfig.base.json`, `eslint.config.mjs`, `.gitignore`, `.prettierrc`, `.prettierignore`, `README.md`, `CLAUDE.md` —
 - and everything under `.github/`, `.circleci/` and `.claude/`.
 
-In `a2uiverse`: `_dev/TODO.md`, `SPEC.md`, `docs/design/`, `scripts/`, `patches/`, and the client's catalog wiring — `apps/client/package.json`, `apps/client/vite.config.ts`, `apps/client/src/catalogs/resolver.ts`, `apps/client/src/orchestratorApi.ts`.
+In `a2uiverse`: `_dev/TODO.md`, `SPEC.md`, `docs/design/`, `scripts/`, `patches/`, and the client's catalog wiring — `apps/client/package.json`, `apps/client/vite.config.ts`, `apps/client/src/catalogs/`, `apps/client/src/orchestratorApi.ts`, `packages/registry-snapshot/package.json`.
 
 In `a2uiverse-apps`: `agent-kit/` and `create-a2ui-agent/`.
 

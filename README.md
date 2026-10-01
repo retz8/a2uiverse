@@ -112,6 +112,7 @@ The client talks only to the orchestrator, and the orchestrator to the apps. One
 | [`packages/sdk`](packages/sdk/)                             | The contract between the orchestrator and the client, and generic A2UI tools                                |
 | [`packages/shell-catalog`](packages/shell-catalog/)         | The shell's own A2UI catalog: the basic catalog on Radix Themes, plus the components that compose a screen  |
 | [`packages/stellify`](packages/stellify/)                   | Stellify, the pack tool: turns a catalog package into the catalog artifact the registry installs            |
+| [`packages/registry-snapshot`](packages/registry-snapshot/) | The catalog table and the seven catalog packages, packed, at one pinned commit, for the tests and replays   |
 | [`a2uiverse-apps`](https://github.com/retz8/a2uiverse-apps) | The apps, their agent kit and the scaffolder, in their own repo                                             |
 
 Going deeper: **[SPEC.md](SPEC.md)** is the full design, and [`docs/design/`](docs/design/) has a guide to each part: the [synthesis](docs/design/synthesis.md) behind the merged view, the [client](docs/design/client.md), the [orchestrator](docs/design/orchestrator.md), the [shell catalog](docs/design/shell-catalog.md) and the [agent kit](docs/design/agent-kit.md).
@@ -122,10 +123,10 @@ Going deeper: **[SPEC.md](SPEC.md)** is the full design, and [`docs/design/`](do
 
 ```bash
 pnpm install
-pnpm dev:client
+pnpm --filter @a2uiverse/client preview:snapshot
 ```
 
-Open **http://localhost:5173/?beat=27** for the session in the GIF above, replayed from a recording with no orchestrator, no apps and no model. `?beat=trail` replays four questions on two branches, and `?beat=26` the way back inside an app.
+Open **http://localhost:4173/?beat=27** for the session in the GIF above, replayed from a recording with no orchestrator, no apps and no model; the apps' catalogs come from the registry snapshot the command builds. `?beat=trail` replays four questions on two branches, and `?beat=26` the way back inside an app.
 
 ### Run it for real
 
@@ -186,6 +187,8 @@ apps/
 packages/
   sdk/             @a2uiverse/sdk: the orchestrator and client's contract
   shell-catalog/   the shell's own A2UI catalog: schema and React implementation
+  stellify/        the pack tool
+  registry-snapshot/ the registry snapshot the tests and replays load
 scripts/           the dev:agents launcher
 docs/
   design/          the design records: each part as built, its classes and flows
