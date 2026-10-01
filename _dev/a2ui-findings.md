@@ -17,6 +17,8 @@ implementation, ~line 773).
 [#2447](https://github.com/a2ui-project/a2ui/issues/2447), PR
 [#2449](https://github.com/a2ui-project/a2ui/pull/2449) (React and Angular).
 
+**Resolved:** #2449 merged 2026-09-01.
+
 ### Issue
 
 The React renderer names `ChoicePicker`'s radio inputs with a value derived only
@@ -106,6 +108,8 @@ be satisfied.
 [#2445](https://github.com/a2ui-project/a2ui/issues/2445), PR
 [#2446](https://github.com/a2ui-project/a2ui/pull/2446).
 
+**Resolved:** #2446 merged 2026-09-01.
+
 ### Issue
 
 The `description` fields of `UpdateComponentsMessage`, `UpdateDataModelMessage`,
@@ -138,7 +142,9 @@ No schema shape change needed — prose only.
 **Severity:** functional/visual bug — the basic catalog's entire component
 styling layer never reaches the page; no error raised.
 
-**Reported:** not yet.
+**Reported:** comment on `a2ui-project/a2ui` issue
+[#1307](https://github.com/a2ui-project/a2ui/issues/1307) (filed by another user), PR
+[#2639](https://github.com/a2ui-project/a2ui/pull/2639) (in review).
 
 ### Issue
 
@@ -189,6 +195,12 @@ Restore the class maps in the build (or inline literal class names), and export
 `ResolveA2uiProp` (~line 171) and `GenerateSetters` (~line 183).
 
 **Severity:** typing only — no runtime effect. The generated setter cannot be called at all.
+
+**Reported:** `a2ui-project/a2ui` issue
+[#2528](https://github.com/a2ui-project/a2ui/issues/2528), PR
+[#2529](https://github.com/a2ui-project/a2ui/pull/2529).
+
+**Resolved:** #2529 merged 2026-09-29.
 
 ### Issue
 
@@ -327,7 +339,17 @@ open and triaged P2. The unreachable branches above are evidence it does not cur
 **Severity:** functional bug — a `min`/`max` data binding is silently ignored; no error raised.
 
 **Reported:** `a2ui-project/a2ui` issue
-[#2530](https://github.com/a2ui-project/a2ui/issues/2530).
+[#2530](https://github.com/a2ui-project/a2ui/issues/2530), PR
+[#2531](https://github.com/a2ui-project/a2ui/pull/2531).
+
+**Resolved:** #2530 and #2531 closed 2026-09-29 — no longer reproduces on `upstream/main` after
+the `web_core` move to `typescript/web_core`: `DateTimeInput`'s `min`/`max` are plain
+`DynamicStringSchema`, and the rewritten `isDynamicOption` recognizes `Dynamic*` options by their
+`REF:` description. The symptom remains in `Catalog.fromSchema`: the JSON catalogs declare
+`min`/`max` as `allOf: [{$ref: DynamicString}, {if/then format check}]`, which the loader turns into
+a bare `z.unknown()` that scrapes as `STATIC`. Left to
+[#2822](https://github.com/a2ui-project/a2ui/issues/2822), which replaces `Dynamic*` types with
+plain JSON Schema types.
 
 ### Issue
 
@@ -537,6 +559,10 @@ traversal that calls it (`upstream/main` `cc9526b6`).
 **Severity:** low — `Row` reaches the renderer only from a parser built without a catalog; with a
 catalog that has no `Row`, every update carrying a placeholder is dropped instead.
 
+**Reported:** `a2ui-project/a2ui` issue
+[#2924](https://github.com/a2ui-project/a2ui/issues/2924), PR
+[#2925](https://github.com/a2ui-project/a2ui/pull/2925) (in review).
+
 ### Issue
 
 While a surface streams, the parser stands a placeholder in for each child a parent names before
@@ -597,6 +623,10 @@ repeats them in `ComponentModel.component_tree`
 consumer that reads the tree back gets the prop's value where the component's name belongs, and
 loses the prop. In-repo, only the getters' own unit tests read the tree; the renderers read `type`
 and `properties` apart.
+
+**Reported:** `a2ui-project/a2ui` issue
+[#2929](https://github.com/a2ui-project/a2ui/issues/2929), PR
+[#2930](https://github.com/a2ui-project/a2ui/pull/2930) (in review).
 
 ### Issue
 
