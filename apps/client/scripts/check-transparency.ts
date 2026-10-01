@@ -9,6 +9,10 @@
  * Run against **deterministic** agents, so the vendor side is identical between the two sends.
  * On demand only — needs live processes.
  *
+ * The agents compared against are every app the hub has installed, each reached at its card URL
+ * and sent the entitlement the hub advertises to it (task-11.6 decision 13); `--agents` overrides
+ * an app's URL.
+ *
  * Why this shape. "The relay is transparent except its named rewrites" is a *negative* claim:
  * nothing else is touched. A unit test on `composeFragment` proves that function does what it
  * says; only an end-to-end comparison proves no fourth rewrite happens elsewhere in the
@@ -27,6 +31,7 @@ import {isDeepStrictEqual} from 'node:util';
 import type {A2AStreamEventData} from '../src/a2a/messages';
 import {extractStampFromEvent} from '../src/a2a/messages';
 import {createSender, driveTurn, supportedCatalogIds} from './lib/drive';
+import {installedApps} from './lib/registry';
 import {BEATS} from './lib/beats';
 
 /** A2A envelope ids and clocks — minted per run on both sides. */
@@ -40,9 +45,6 @@ const A2UI_OPS = ['createSurface', 'updateComponents', 'updateDataModel', 'delet
 /** Besides them, the surface a vendor's `paintMeta` titles (task 10.9). */
 const NAMESPACED = [...A2UI_OPS, 'paintMeta'];
 const TERMINAL = new Set(['completed', 'failed', 'canceled', 'rejected']);
-
-const DEFAULT_AGENTS =
-  'github=http://localhost:11001,gmail=http://localhost:11002,calendar=http://localhost:11003';
 
 /**
  * The hub's envelope: it publishes its own `task` (state `working`, no history, no message)
@@ -142,7 +144,8 @@ function surfaceIdsOf(value: unknown, found: string[] = []): string[] {
 }
 
 interface JournalEntry {
-  plan?: {groups: Array<{slots: Array<{appId: string; request: string}>}>};
+  /** The Planner's layout surface (task 6.4): each source dispatched with its request, `shell` the merged view, a gap no source. */
+  plan?: {layoutSurface?: {dispatch?: Array<{source?: string; request?: string; gap?: string}>}};
   dispatch?: Array<{appId?: string}>;
   embedding?: number[] | null;
 }
@@ -166,17 +169,23 @@ async function main() {
       hub: {type: 'string', default: 'http://localhost:10001'},
       journal: {type: 'string', default: '../orchestrator/.state/intent-journal.jsonl'},
       prompt: {type: 'string', default: BEATS[0].prompt},
-      agents: {type: 'string', default: DEFAULT_AGENTS},
+      agents: {type: 'string'},
     },
   });
   const journal = resolve(values.journal);
   const catalogIds = await supportedCatalogIds();
-  const agentUrls = new Map(
-    values.agents.split(',').map(pair => {
-      const [id, url] = pair.split('=');
-      return [id.trim(), url?.trim()] as [string, string];
-    }),
+  /** Each agent the direct side reaches: where, and the catalogs the hub advertises to it. */
+  const agents = new Map<string, {url: string; path?: string; catalogIds: string[]}>(
+    (await installedApps(values.hub)).map(app => [
+      app.id,
+      {url: app.cardUrl, path: '', catalogIds: app.entitlement},
+    ]),
   );
+  for (const pair of values.agents?.split(',') ?? []) {
+    const [id, url] = pair.split('=').map(part => part?.trim());
+    if (!id || !url) continue;
+    agents.set(id, {url, catalogIds: agents.get(id)?.catalogIds ?? catalogIds});
+  }
 
   const before = (await journalLines(journal)).length;
   console.log(`hub → ${values.hub}`);
@@ -202,7 +211,9 @@ async function main() {
   }
   console.log(`✓ journal +1 (${journal})`);
   const entry = JSON.parse(lines[lines.length - 1]) as JournalEntry;
-  const planned = (entry.plan?.groups ?? []).flatMap(g => g.slots);
+  const planned = (entry.plan?.layoutSurface?.dispatch ?? []).flatMap(d =>
+    d.source && d.source !== 'shell' && d.request ? [{appId: d.source, request: d.request}] : [],
+  );
   if (planned.length === 0) bad('the journal line carries no plan — nothing was routed');
   if (!entry.embedding || entry.embedding.length === 0)
     bad('the journal line has a null embedding');
@@ -227,19 +238,26 @@ async function main() {
 
   // ── The relay comparison, per planned slot ──
   for (const slot of planned) {
-    const url = agentUrls.get(slot.appId);
-    if (!url) {
-      bad(`no agent url for '${slot.appId}' — pass it in --agents`);
+    const agent = agents.get(slot.appId);
+    if (!agent) {
+      bad(`'${slot.appId}' is not installed on the hub — pass its url in --agents`);
       continue;
     }
-    console.log(`\ndirect → ${slot.appId} @ ${url}`);
+    console.log(`\ndirect → ${slot.appId} @ ${agent.url}`);
     console.log(`  request: ${slot.request}`);
-    const direct = await driveTurn(await createSender(url), slot.request, undefined, catalogIds);
+    const direct = await driveTurn(
+      await createSender(agent.url, agent.path),
+      slot.request,
+      undefined,
+      agent.catalogIds,
+    );
 
     const relayed = hub.events
       .map(e => e.event)
       .filter(e => !isOrchestratorEnvelope(e))
-      .filter(e => extractStampFromEvent(e)?.source === slot.appId);
+      .filter(e => extractStampFromEvent(e)?.source === slot.appId)
+      // The hub's own marker after a source's last event (task 8.7), carrying no parts: not relayed.
+      .filter(e => !extractStampFromEvent(e)?.settled);
 
     // The hub owns the turn-final, so no vendor's stream may still carry one.
     const stillFinal = relayed.filter(e => e.kind === 'status-update' && e.final);

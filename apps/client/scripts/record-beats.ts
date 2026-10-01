@@ -11,8 +11,9 @@
  * naming 2's as its parent (task-9.3 decision 1).
  *
  * Beats 10–18 are Phase 8's cases (task 8.6): each runs through an orchestrator the recorder
- * starts on `--fault-port` with the case's fault map and deadlines, over the agents already
- * running — the deterministic roster. The reader's presses and the client's failure report are
+ * starts on `--fault-port` with the case's fault map and deadlines, on a state directory of its own,
+ * over the agents already running — the deterministic roster: every app the orchestrator at `--url`
+ * has installed is installed into it (task-11.6 decision 12). The reader's presses and the client's failure report are
  * sent on streams of their own, as the canvas sends them, and recorded beside the turn. A take
  * that does not show its case is taken again.
  *
@@ -275,10 +276,18 @@ async function main() {
     };
     console.log(`▶ ${name}: ${spec.prompt} · faults ${JSON.stringify(fault.faults)}`);
     const orchestrator = await startOrchestrator(
-      {port: Number(values['fault-port']), faults: fault.faults, model: values.model, ...deadlines},
+      {
+        port: Number(values['fault-port']),
+        faults: fault.faults,
+        model: values.model,
+        installFrom: values.url,
+        ...deadlines,
+      },
       name,
     );
-    console.log(`  orchestrator on ${orchestrator.url} · log ${orchestrator.log}`);
+    console.log(
+      `  orchestrator on ${orchestrator.url} · ${orchestrator.apps.join(', ')} · log ${orchestrator.log}`,
+    );
     try {
       const sender = await createSender(orchestrator.url);
       let take!: Awaited<ReturnType<typeof takeCase>>;
@@ -323,10 +332,18 @@ async function main() {
     const faults = session.faults ?? {};
     console.log(`▶ ${name} · faults ${JSON.stringify(faults)}`);
     const orchestrator = await startOrchestrator(
-      {port: Number(values['fault-port']), faults, model: values.model, ...deadlines},
+      {
+        port: Number(values['fault-port']),
+        faults,
+        model: values.model,
+        installFrom: values.url,
+        ...deadlines,
+      },
       name,
     );
-    console.log(`  orchestrator on ${orchestrator.url} · log ${orchestrator.log}`);
+    console.log(
+      `  orchestrator on ${orchestrator.url} · ${orchestrator.apps.join(', ')} · log ${orchestrator.log}`,
+    );
     try {
       const sender = await createSender(orchestrator.url);
       let take!: Awaited<ReturnType<typeof takeSession>>;

@@ -1,16 +1,21 @@
 /**
  * An orchestrator of the recorder's own, for a beat recorded under the fault map (task-8.6
  * decisions 3, 4): started on a port apart from the one in daily use, with the beat's fault map and
- * deadlines in its environment, and stopped once the beat is recorded. Everything else — the
- * Gemini key, the roster — comes from the orchestrator's own `.env`; the environment set here wins
+ * deadlines in its environment, and stopped once the beat is recorded. It runs on a fresh state
+ * directory of its own, never the one in daily use, and once it answers the recorder installs into
+ * it every app the orchestrator in daily use has installed (task-11.6 decision 12) — so its journal
+ * holds only its own takes, and the daily one's write token and journal are left alone. Everything
+ * else — the Gemini key — comes from the orchestrator's own `.env`; the environment set here wins
  * over it. The card URL is pinned to the port, or the `.env`'s tunnel URL would send the recorder
  * to the orchestrator in daily use.
  */
 import {spawn, type ChildProcess} from 'node:child_process';
 import {createWriteStream} from 'node:fs';
+import {mkdtemp, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {dirname, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {copyInstalls} from './registry';
 
 const ORCHESTRATOR_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '../../../orchestrator');
 /** Boot embeds every card before it listens. */
@@ -24,13 +29,17 @@ export interface OrchestratorEnv {
   hardCapSeconds: number;
   /** Planner and Synthesizer, so the beat's `model` is what ran. */
   model: string;
+  /** The orchestrator in daily use, whose installed apps this one gets. */
+  installFrom: string;
 }
 
 export interface StartedOrchestrator {
   url: string;
   log: string;
-  /** Its intent journal: the orchestrator's own state directory, shared with the one in daily use. */
+  /** Its intent journal, in its own state directory. */
   journal: string;
+  /** The apps installed into it. */
+  apps: string[];
   stop(): Promise<void>;
 }
 
@@ -44,6 +53,7 @@ export async function startOrchestrator(
   if (await answers(url)) {
     throw new Error(`port ${env.port} is taken — stop what is on it, or pass --fault-port`);
   }
+  const stateDir = await mkdtemp(resolve(tmpdir(), `a2uiverse-record-${name}-state-`));
   const log = resolve(tmpdir(), `a2uiverse-record-${name}.log`);
   const out = createWriteStream(log);
   const child: ChildProcess = spawn('pnpm', ['--dir', ORCHESTRATOR_DIR, 'dev'], {
@@ -51,6 +61,7 @@ export async function startOrchestrator(
       ...process.env,
       PORT: String(env.port),
       BASE_URL: url,
+      STATE_DIR: stateDir,
       A2UIVERSE_FAULTS: JSON.stringify(env.faults),
       A2UIVERSE_SOFT_DEADLINE_SECONDS: String(env.softDeadlineSeconds),
       A2UIVERSE_HARD_CAP_SECONDS: String(env.hardCapSeconds),
@@ -80,6 +91,7 @@ export async function startOrchestrator(
       await Promise.race([exit, sleep(10_000)]);
     }
     out.end();
+    await rm(stateDir, {recursive: true, force: true});
   };
   const deadline = Date.now() + BOOT_TIMEOUT_MS;
   while (!(await answers(url))) {
@@ -90,11 +102,14 @@ export async function startOrchestrator(
     }
     await sleep(500);
   }
-  const journal = resolve(
-    process.env.STATE_DIR ?? resolve(ORCHESTRATOR_DIR, '.state'),
-    'intent-journal.jsonl',
-  );
-  return {url, log, journal, stop};
+  let apps: string[];
+  try {
+    apps = await copyInstalls(env.installFrom, url, stateDir);
+  } catch (err) {
+    await stop();
+    throw new Error(`installing into the recorder's orchestrator: ${(err as Error).message}`);
+  }
+  return {url, log, journal: resolve(stateDir, 'intent-journal.jsonl'), apps, stop};
 }
 
 async function answers(url: string): Promise<boolean> {

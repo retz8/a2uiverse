@@ -30,9 +30,12 @@ export interface DrivenTurn {
   durationMs: number;
 }
 
-/** Resolve the agent card at `url` and return a streaming sender (the non-deprecated SDK client). */
-export async function createSender(url: string): Promise<A2AMessageSender> {
-  const client = await new ClientFactory().createFromUrl(url);
+/**
+ * Resolve the agent card and return a streaming sender (the non-deprecated SDK client): the card at
+ * `url`'s well-known path, or at `url` itself when `path` is `''`.
+ */
+export async function createSender(url: string, path?: string): Promise<A2AMessageSender> {
+  const client = await new ClientFactory().createFromUrl(url, path);
   return {
     sendMessageStream: (params, options) => client.sendMessageStream(params, options),
   };

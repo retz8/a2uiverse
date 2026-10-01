@@ -1,7 +1,7 @@
 /**
  * The thin command over the registry's operations (task-11.4 decision 14): what installs an app by
- * hand until the launcher does (task 11.6), over the same HTTP operations the launcher, the Store
- * page and the store loop call.
+ * hand — one the launcher's roster does not name (task 11.6) — over the same HTTP operations the
+ * launcher, the Store page and the store loop call.
  *
  *   registry install <app-id> <card-url> [<artifact-dir> ...]   install, or install-over a held id
  *   registry uninstall <app-id>

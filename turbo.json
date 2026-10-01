@@ -1,6 +1,6 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalPassThroughEnv": ["A2UIVERSE_*"],
+  "globalPassThroughEnv": ["A2UIVERSE_*", "STATE_DIR"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
