@@ -71,6 +71,24 @@ describe('the detector itself', () => {
     ]);
   });
 
+  it('holds only a catalog’s own sheets to its reads; any sheet it brings may satisfy one', () => {
+    const own = analyzeCss('.scope { color: var(--fgColor-default); }');
+    const all = analyzeCss(`
+      .scope { color: var(--fgColor-default); }
+      .scope { --fgColor-default: #1f2328; }
+      .Avatar { width: var(--avatarSize); }
+    `);
+    // A design system's sheet reads a variable its component sets inline: not the catalog's read.
+    expect(findCollisions([{pkg: 'designed', files: [], facts: all, ownReads: own.reads}])).toEqual(
+      [],
+    );
+    // The catalog's own read with nothing defining it anywhere still fails.
+    const bare = analyzeCss('.scope { color: var(--nowhere); }');
+    expect(
+      findCollisions([{pkg: 'designed', files: [], facts: all, ownReads: bare.reads}]),
+    ).toEqual([{rule: 'unsatisfied-read', pkg: 'designed', name: '--nowhere'}]);
+  });
+
   it('accepts an ambient read that carries an explicit fallback', () => {
     const findings = findCollisions([
       synthetic('polite', '.scope { color: var(--ambient, #1c2024); }'),
@@ -127,53 +145,16 @@ describe('the detector itself', () => {
 });
 
 /**
- * Variables Primer's own component stylesheets read with no fallback and no stylesheet defines —
- * some its components set inline through `style`, the rest read as Primer ships them. These
- * sheets were always on the page; the scan sees them since it reads every stylesheet an artifact
- * carries, Stellify having packed Primer's beside github-catalog's own (task-11.5 decision 12).
- */
-const PRIMER_UNDEFINED_READS = new Set([
-  '--actionbar-height',
-  '--avatar-stack-size',
-  '--avatarSize-narrow',
-  '--avatarSize-wide',
-  '--banner-icon-fgColor',
-  '--color-accent-fg',
-  '--grid-template-columns',
-  '--inline-message-fgColor',
-  '--inline-message-lineHeight',
-  '--inputValidation-fgColor',
-  '--label-bgColor-dark-active',
-  '--label-bgColor-dark-hover',
-  '--label-bgColor-dark-rest',
-  '--label-bgColor-light-active',
-  '--label-bgColor-light-hover',
-  '--label-bgColor-light-rest',
-  '--label-fgColor-dark',
-  '--label-fgColor-dark-hover',
-  '--label-fgColor-light',
-  '--label-fgColor-light-hover',
-  '--overlap-size-avatar-three-plus',
-  '--position-left',
-  '--spacer-width',
-  '--truncate-max-width',
-]);
-
-/**
  * Violations that exist today, each with an owner — a record, not an exemption.
  *
- * Owner github-catalog: Primer's component stylesheets — ProgressBar's forced-colours block writes
- * `--progress-bg` on `:root`, and the reads above.
+ * Owner github-catalog: Primer's ProgressBar sheet writes `--progress-bg` on `:root` inside its
+ * `@media (forced-colors: active)` block — the page's in high-contrast mode.
  */
 const ACCEPTED: Array<(finding: Finding) => boolean> = [
   finding =>
     finding.rule === 'global-write' &&
     finding.pkg === 'github-catalog' &&
     finding.name === '--progress-bg',
-  finding =>
-    finding.rule === 'unsatisfied-read' &&
-    finding.pkg === 'github-catalog' &&
-    PRIMER_UNDEFINED_READS.has(finding.name),
 ];
 
 describe('the registry snapshot’s catalogs', () => {
@@ -191,12 +172,6 @@ describe('the registry snapshot’s catalogs', () => {
         true,
       );
     });
-    for (const name of PRIMER_UNDEFINED_READS) {
-      expect(
-        findings.some(f => f.rule === 'unsatisfied-read' && f.name === name),
-        `${name} is read with a definition or a fallback now — delete it`,
-      ).toBe(true);
-    }
   });
 
   it('enumerates the snapshot rather than naming it', () => {

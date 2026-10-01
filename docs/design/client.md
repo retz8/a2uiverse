@@ -401,7 +401,7 @@ Only the latest step owns the merge line: a later step ends the "working" an ear
 | Rule                | The problem                                                                              |
 | ------------------- | ---------------------------------------------------------------------------------------- |
 | global write        | a custom property defined at `:root`, `html` or `body` lands outside every boundary, and the last catalog loaded wins the page |
-| unsatisfied read    | a catalog reads a variable it never defines, without a fallback, so it looks right only by accident of what else is installed |
+| unsatisfied read    | a catalog's own stylesheets read a variable none of its sheets defines, without a fallback, so it looks right only by accident of what else is installed |
 | duplicate class     | two catalogs ship the same class name                                                    |
 | duplicate keyframes | two catalogs ship the same `@keyframes` name                                             |
 | duplicate font face | two catalogs declare the same `@font-face` family; a `@font-face` rule has no selector to scope it, so the last catalog loaded draws the other's text |
@@ -453,6 +453,7 @@ The merged view is explained end to end in [`synthesis.md`](synthesis.md). The c
 - **Test setup is shaped around Primer.** `setupTests.ts` shims exist because `github-catalog`'s Primer components need them under jsdom.
 - **A loading catalog holds its whole answer.** The gate keeps order by holding everything the answer receives after a batch whose catalog is loading, so other apps' fragments wait behind it too.
 - **Through the tunnel, a reload loads every artifact again.** The tunnel adds its own `Cache-Control: no-cache,no-store` beside the orchestrator's immutable header, so the browser keeps no artifact across reloads there; within a page, each is loaded once.
+- **A design system's own sheets aren't held to the read rule.** They read variables their components set inline through `style`, which a static scan can't see, so the read rule checks only a catalog's own sheets; the write and duplicate rules check every sheet an artifact carries.
 - **jsdom applies no artifact stylesheet.** The tests' host records each stylesheet an artifact asks for and resolves; the cascade is the Playwright layer's.
 - **Two renderer patches.** `@a2ui/react` is patched locally (`patches/@a2ui__react@0.10.2.patch`); the [client README](../../apps/client/README.md#renderer-patch) says why.
 - **The merged view round-trips.** `shell:synthesis` rides back to the orchestrator in the client's data models, which the orchestrator ignores.

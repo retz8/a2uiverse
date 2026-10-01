@@ -114,6 +114,12 @@ export interface CatalogStyles {
   /** Absolute paths of every stylesheet the catalog brings onto the page. */
   files: string[];
   facts: StyleFacts;
+  /**
+   * The reads in the catalog's own stylesheets, when they are fewer than all of them: what the
+   * unsatisfied-read rule checks. A design system's sheets read variables its components set
+   * inline, which no stylesheet shows.
+   */
+  ownReads?: StyleFacts['reads'];
 }
 
 export type Finding =
@@ -126,19 +132,30 @@ export type Finding =
 /**
  * Every stylesheet a catalog artifact brings onto the page (task-11.5 decision 12): each CSS file
  * its descriptor lists — the catalog's own, and its design system's, which Stellify packed beside
- * them (github-catalog's Primer sheets among them) — read from the artifact's directory.
+ * them (github-catalog's Primer sheets among them) — read from the artifact's directory. Its own
+ * are those outside `node_modules/`, or under its own package's name there, where Stellify files
+ * a package packed from an installed copy.
  */
 export function readArtifactStyles(pkg: string, artifactDir: string): CatalogStyles {
   const descriptor = JSON.parse(readFileSync(join(artifactDir, 'artifact.json'), 'utf8')) as {
     files: Record<string, string>;
+    package: {name: string};
   };
-  const files = Object.keys(descriptor.files)
+  const sheets = Object.keys(descriptor.files)
     .filter(file => file.endsWith('.css'))
-    .sort()
-    .map(file => join(artifactDir, file));
+    .sort();
+  const own = (file: string) =>
+    !file.startsWith('node_modules/') ||
+    file.startsWith(`node_modules/${descriptor.package.name}/`);
   const facts = emptyFacts();
-  for (const file of files) analyzeCss(readFileSync(file, 'utf8'), facts);
-  return {pkg, files, facts};
+  const ownFacts = emptyFacts();
+  for (const sheet of sheets) {
+    const css = readFileSync(join(artifactDir, sheet), 'utf8');
+    analyzeCss(css, facts);
+    if (own(sheet)) analyzeCss(css, ownFacts);
+  }
+  const files = sheets.map(sheet => join(artifactDir, sheet));
+  return {pkg, files, facts, ownReads: ownFacts.reads};
 }
 
 /** Custom properties more than one catalog defines — the set worth proving stays scoped. */
@@ -169,8 +186,9 @@ export function findCollisions(catalogs: CatalogStyles[]): Finding[] {
       }
     }
     // A bare read of a variable the catalog never defines inherits whatever a neighbour set:
-    // the catalog renders correctly only by accident of what else is installed.
-    for (const [name, seen] of catalog.facts.reads) {
+    // the catalog renders correctly only by accident of what else is installed. Only the
+    // catalog's own sheets are held to it; any sheet it brings may satisfy the read.
+    for (const [name, seen] of catalog.ownReads ?? catalog.facts.reads) {
       if (seen.bare > 0 && !catalog.facts.definitions.has(name)) {
         findings.push({rule: 'unsatisfied-read', pkg: catalog.pkg, name});
       }
