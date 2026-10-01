@@ -37,7 +37,7 @@ Each catalog package carries a `check` script running Stellify's `check`. The ap
 
 ### 6. A new app is born with Stellify
 
-Both scaffolder catalog templates carry the same dev dependency at the same pin and the same `check` script, and the scaffolder's drift gate runs `check` on a freshly scaffolded catalog.
+Both scaffolder catalog templates carry the same dev dependency at the same pin and the same `check` script, and the scaffolder's drift gate runs `check` on a freshly scaffolded catalog. A catalog scaffolded outside any pnpm workspace is a workspace of its own, approving the install script of Stellify's esbuild, which pnpm refuses unapproved; inside one, the workspace's own approval holds.
 
 ### 7. `prove` is retired
 
