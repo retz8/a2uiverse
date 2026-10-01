@@ -136,7 +136,7 @@ You need **Node 22** or newer (Corepack resolves the pinned pnpm), [uv](https://
 git clone https://github.com/retz8/a2uiverse-apps ../a2uiverse-apps
 pnpm install
 echo "GOOGLE_API_KEY=<your key>" > apps/orchestrator/.env
-pnpm dev:all        # the apps, then the platform
+pnpm dev:all        # the apps and the platform, the apps installed
 ```
 
 Open **http://localhost:5173** and press `⌘K`. The apps start in `deterministic` mode, answering from recordings with no key of their own, while the Planner and the Synthesizer run live. For real data, start the apps in `live` mode with `pnpm dev:all --mode live`; each app's agent README says which credentials it needs.
@@ -145,10 +145,10 @@ Open **http://localhost:5173** and press `⌘K`. The apps start in `deterministi
 <summary><b>Every command</b></summary>
 
 ```bash
-pnpm dev:all          # the apps, then the platform
+pnpm dev:all          # the apps and the platform, the apps installed
 pnpm dev              # the platform only: client, orchestrator, marketplace
-pnpm dev:agents       # the apps only: --only <ids>, --mode deterministic|stub|live, --agents-dir <path>
-pnpm agents:list      # what the launcher finds, and what it would refuse to start
+pnpm dev:agents       # the apps only, installed into the running orchestrator: --tier mocks, --only <ids>, --mode deterministic|stub|live, --agents-dir <path>
+pnpm agents:list      # what a launch would run, and what would stop it: --tier mocks
 pnpm dev:client       # one platform process, in its own terminal
 pnpm dev:orch
 pnpm dev:marketplace
@@ -162,17 +162,17 @@ Ports: client `5173`, orchestrator `10001`, marketplace `10002`. The apps take `
 <details>
 <summary><b>The launcher</b></summary>
 
-The launcher has no list of apps. It reads the `manifest.json` in every folder of the agents dir, the sibling `a2uiverse-apps` by default, so an app scaffolded with `create-a2ui-agent` launches by existing. `--agents-dir <path>` or `A2UIVERSE_AGENTS_DIR` points it elsewhere, and the orchestrator it starts reads its apps from the same place.
+The launcher's roster, `scripts/dev-roster.mjs`, lists every app it starts from the `a2uiverse-apps` checkout: its id, its folder, its tier and its port. `--agents-dir <path>` or `A2UIVERSE_AGENTS_DIR` points it at a checkout other than the sibling one. A new app is added to the roster with the port its agent was scaffolded on.
 
-A folder with a broken manifest or no agent is named with its reason and skipped, and the rest still run. Two apps claiming one port stop the run.
-
-`dev:all` waits for every app's agent card before starting the platform, because the orchestrator reads the cards once, at startup: an app that comes up later can't be asked anything until it restarts.
-
-The two mock stores, for testing the merged view, sit one folder down and run only when asked:
+A launch runs one tier. The default tier is the five apps; the two mock stores, for testing the merged view, are a tier of their own and run in place of the apps:
 
 ```bash
-pnpm dev:all --agents-dir ../a2uiverse-apps/mocks
+pnpm dev:all --tier mocks
 ```
+
+The launcher starts the agents and the platform together, builds each app's catalog package in the checkout, packs it with Stellify and, once the orchestrator answers, installs each app as soon as its agent is up. Then it uninstalls every roster app it did not launch, so the orchestrator holds what runs; an app you installed by hand that the roster does not name is left alone. `dev:agents` does the same against an orchestrator you started yourself.
+
+An app that does not build, does not pack, never comes up, or is refused at install is named with its reason and left out, uninstalled if an earlier launch installed it; the rest still run. A roster app missing from the checkout is skipped. An unknown tier, an unknown `--only` id, or two apps of the tier on one port stop the launch. Stopping the launcher uninstalls nothing: the next launch sets the registry right.
 
 </details>
 
@@ -189,7 +189,7 @@ packages/
   shell-catalog/   the shell's own A2UI catalog: schema and React implementation
   stellify/        the pack tool
   registry-snapshot/ the registry snapshot the tests and replays load
-scripts/           the dev:agents launcher
+scripts/           the dev:agents launcher and its roster
 docs/
   design/          the design records: each part as built, its classes and flows
   images/          the screenshots in the READMEs

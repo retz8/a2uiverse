@@ -39,7 +39,7 @@ Platform processes are `1000x`; vendor agents are `11001+` and mock agents `1200
 | marketplace | 10002 (reserved) | yes | `a2uiverse` |
 | shell-catalog fixture (dev-only) | 5174 | when in use | `a2uiverse` |
 | vendor agents | 11001+ | no | `a2uiverse-apps` (table there) |
-| mock agents | 12001+ | no | `a2uiverse-apps` (`mocks/`, quarantined from the default roster) |
+| mock agents | 12001+ | no | `a2uiverse-apps` (`mocks/`, the launcher's mock tier) |
 
 ## Run commands
 
@@ -48,10 +48,10 @@ advertises a tunnel URL, and the client reads the orchestrator's tunnel URL
 from an uncommitted `apps/client/.env.local`.
 
 ```bash
-# GitHub agent (port 11001 by default) — pick one mode
-cd ../a2uiverse-apps/github/agent && uv run python -m app --mode deterministic
-cd ../a2uiverse-apps/github/agent && uv run python -m app --mode stub
-cd ../a2uiverse-apps/github/agent && uv run python -m app --mode live
+# the apps, installed into the orchestrator once it answers — pick one mode; --only github for one app
+pnpm dev:agents --mode deterministic
+pnpm dev:agents --mode stub
+pnpm dev:agents --mode live
 
 # orchestrator — the card must advertise the tunnel URL
 BASE_URL=https://<tunnel-id>-10001.asse.devtunnels.ms pnpm --filter @a2uiverse/orchestrator dev
@@ -62,28 +62,27 @@ pnpm --filter @a2uiverse/client dev
 
 The client loads every app's catalog from the orchestrator's registry at runtime, through the tunnel (task 11.5). The tunnel adds its own `Cache-Control: no-cache,no-store` to every response, beside the orchestrator's immutable header on artifact files, so the browser keeps no artifact across reloads there: each reload loads every catalog again. Within a page each loads once.
 
-The orchestrator boots from its registry in `STATE_DIR` alone, empty at first (task 11.4). Install each app while it runs, its catalog packed by Stellify first; an app already installed stays installed across restarts:
+The orchestrator boots from its registry in `STATE_DIR` alone, empty at first (task 11.4). The launcher installs what it launches (task 11.6): it builds each app's catalog package, packs it with Stellify and installs it through the orchestrator's operation once both answer, then uninstalls the roster apps it did not launch. With the orchestrator in its own terminal as above, `pnpm dev:agents` starts the apps and installs them into it. An app already installed stays installed across restarts; `registry list` shows them:
 
 ```bash
-pnpm --filter @a2uiverse/orchestrator registry install gmail http://localhost:11002/.well-known/agent-card.json <gmail's packed artifact dir>
 pnpm --filter @a2uiverse/orchestrator registry list
 ```
 
-The mock tier (synthesis acceptance) runs through the launcher, which starts the agents; until the launcher installs them (task 11.6), install each by hand as above — `BASE_URL` still comes from the orchestrator's `.env`:
+Most sessions run everything through the launcher instead — `BASE_URL` still comes from the orchestrator's `.env`. The real roster in both modes is an acceptance bed (task 5.7):
 
 ```bash
-pnpm dev:all --agents-dir ../a2uiverse-apps/mocks              # shop-a 12001 · shop-b 12002, deterministic
-pnpm dev:all --agents-dir ../a2uiverse-apps/mocks --mode live  # the same, live
+pnpm dev:all --mode deterministic   # github · gmail · calendar · circleci · linear from their fixtures
+A2UI_RECORD_DIR=<scratch dir> pnpm dev:all --mode live   # live MCP; the variable arms Gmail's pseudonymizer, needed before any beat is recorded
 ```
 
-The real roster runs the same way, and both modes of it are acceptance beds (task 5.7):
+The mock tier (synthesis acceptance) runs in place of the real roster:
 
 ```bash
-pnpm dev:all --agents-dir ../a2uiverse-apps --mode deterministic   # github · gmail · calendar from their today fixtures
-A2UI_RECORD_DIR=<scratch dir> pnpm dev:all --agents-dir ../a2uiverse-apps --mode live   # live MCP; the variable arms Gmail's pseudonymizer, needed before any beat is recorded
+pnpm dev:all --tier mocks              # shop-a 12001 · shop-b 12002, deterministic
+pnpm dev:all --tier mocks --mode live  # the same, live
 ```
 
-The launcher inherits the shell's environment for the agents and still hands `A2UIVERSE_AGENTS_DIR` to the platform, which no longer reads it; `turbo.json` passes `A2UIVERSE_*` through to the `dev` task.
+The launcher inherits the shell's environment for the agents; `turbo.json` passes `A2UIVERSE_*` and `STATE_DIR` through to the `dev` task, so a `STATE_DIR` set in the shell is the one the orchestrator and the launcher both use.
 
 Browser: `https://<tunnel-id>-5173.asse.devtunnels.ms`. Card check:
 `https://<tunnel-id>-10001.asse.devtunnels.ms/.well-known/agent-card.json`.

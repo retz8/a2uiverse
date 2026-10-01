@@ -143,7 +143,7 @@ pnpm --filter @a2uiverse/client record:beats --model <model> --beats 1-9
 pnpm --filter @a2uiverse/client record:beats --model <model> --beats 10-26 [--fault-port 10091]
 ```
 
-Beats 1 to 9 run against live apps. Beats 10 to 26 need the apps in `deterministic` mode (`pnpm dev:agents`) and port 10091 free: the recorder starts its own orchestrator there for each, with the case's faults and time limits and the Gemini key in the orchestrator's `.env`, and retakes a take that doesn't show its case, up to three times.
+Beats 1 to 9 run against live apps. Beats 10 to 26 need the apps in `deterministic` mode (`pnpm dev:all`) and port 10091 free: the recorder starts its own orchestrator there for each, on a state directory of its own, with the case's faults and time limits and the Gemini key in the orchestrator's `.env`. It installs into it every app the orchestrator at `--url` has installed, reads the take's journal lines from its own journal, and retakes a take that doesn't show its case, up to three times. The orchestrator you run is left as it was.
 
 > [!IMPORTANT]
 > Start the Gmail agent with `A2UI_RECORD_DIR` set when recording. That's what makes it swap real mail for stand-ins, and the recorder can't tell whether that happened.
@@ -154,7 +154,7 @@ Beats 1 to 9 run against live apps. Beats 10 to 26 need the apps in `determinist
 A2UI_FIXTURE_FORBIDDEN="<real address>,<real name>" pnpm --filter @a2uiverse/client check:fixtures
 ```
 
-**Check the relay changes nothing but what it should.** Against `deterministic` apps, it sends one question through the orchestrator and the same requests straight to each app, and checks the two streams match once the orchestrator's own changes are undone.
+**Check the relay changes nothing but what it should.** Against `deterministic` apps, it sends one question through the orchestrator and the same requests straight to each app, and checks the two streams match once the orchestrator's own changes are undone. It reaches every app the orchestrator has installed at its card URL, advertising the catalogs the orchestrator advertises to it; `--agents id=url,…` points one elsewhere.
 
 ```bash
 pnpm --filter @a2uiverse/client check:transparency

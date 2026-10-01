@@ -331,7 +331,7 @@ The apps in the repo don't pin: they take the kit as an **editable path dependen
 
 The kit knows nothing about A2UIVerse. The connection is made from A2UIVerse's side:
 
-- **The launcher** in the `a2uiverse` repo finds each app by its `manifest.json` and starts its agent through the kit's own entrypoint, with the port from the manifest: `uv run python -m app --mode <mode> --host localhost --port <port>`.
+- **The launcher** in the `a2uiverse` repo names each app in its roster — its folder, its tier and its port — and starts its agent through the kit's own entrypoint on that port: `uv run python -m app --mode <mode> --host localhost --port <port>`. It packs the app's catalog package with Stellify and installs the app into the orchestrator from the agent's card URL.
 - **The orchestrator** talks A2A to the agent like any client. It renames the agent's surfaces (`assigned-issues` becomes `linear:assigned-issues`) and places them in the app's slot; see [orchestrator.md](orchestrator.md).
 - **The canvas** reads `paintMeta`, and draws the answer with the app's catalog; see [client.md](client.md). When the answer is joined with other apps' answers, [synthesis.md](synthesis.md) takes over.
 
