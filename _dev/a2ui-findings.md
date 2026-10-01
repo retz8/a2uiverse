@@ -585,15 +585,18 @@ proposes, removes the placeholder altogether.
 
 ---
 
-## 11. `componentTree` lets a component's own `type` prop replace its type (web_core)
+## 11. `componentTree` lets a component's own `type` prop replace its type (web_core, Python core)
 
 **Component:** `@a2ui/web_core` 0.10.6, `src/v0_9/state/component-model.ts`, `ComponentModel`
-`get componentTree()`; the same lines stand on `upstream/main`
-(`renderers/web_core/src/v0_9/state/component-model.ts`, lines 68–74).
+`get componentTree()`; the same lines stand on `upstream/main` `102ec1a0`
+(`typescript/web_core/src/state/component-model.ts`, lines 71–77), and the Python core port
+repeats them in `ComponentModel.component_tree`
+(`python/a2ui_core/src/a2ui/core/state/component_model.py`, lines 154–159).
 
 **Severity:** functional bug for any catalog with a component whose props include `type` — a
 consumer that reads the tree back gets the prop's value where the component's name belongs, and
-loses the prop.
+loses the prop. In-repo, only the getters' own unit tests read the tree; the renderers read `type`
+and `properties` apart.
 
 ### Issue
 
@@ -610,19 +613,39 @@ get componentTree(): any {
 The properties are spread after the type, so a property named `type` overwrites it. `type` is an
 ordinary prop name for a catalog — a status icon's state type, an input's kind — and nothing in the
 spec reserves it. The wire shape names the component `component`, not `type`, so the collision is
-the tree's own.
+the tree's own. Upstream's own sample catalogs declare such a prop: rizzcharts' `Chart` (`type`,
+`doughnut` or `pie`) and gemini_enterprise's `MaterialInput` (`type`, `text`, `number`, `email`,
+`tel` or `date`).
+
+The Python core port builds the same dict the same way:
+
+```python
+tree = {"id": self.id, "type": self.type}
+tree.update(self._properties)
+```
+
+The Dart core port's `ComponentModel.toJson` writes the name under `component`, as the wire does,
+and is not affected.
 
 ### Reproduction
 
 `new ComponentModel('s', 'StatusIcon', {status: {path: 'status'}, type: {path: 'statusType'}})
 .componentTree` is `{id: 's', type: {path: 'statusType'}, status: {path: 'status'}}`: the
-component's name is gone and the `type` prop reads as the name.
+component's name is gone and the `type` prop reads as the name. In the Python port,
+`ComponentModel('s', 'StatusIcon', properties={'status': ..., 'type': ...}).component_tree` is the
+same dict.
 
 ### Fix
 
 Spread the properties first and write `id` and `type` after them, or name the type `component` as
 the wire does and keep properties from overwriting it — either way a component's own props cannot
-replace its identity.
+replace its identity. The Python port's `component_tree` takes the same change.
+
+### Prior art
+
+No issue or PR reports this. Open PR [#2859](https://github.com/a2ui-project/a2ui/pull/2859)
+(v1.0 basic catalog custom elements) adds a `metadata` key to the same getter and keeps the
+properties spread last, so a prop named `metadata` would replace it the same way.
 
 ---
 
