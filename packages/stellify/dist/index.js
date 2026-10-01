@@ -8777,22 +8777,30 @@ async function stellify(packageDir, options = {}) {
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { dirname as dirname3, join as join5 } from "node:path";
 var DESCRIPTOR_FILE = "artifact.json";
+function artifactFiles(result) {
+  if (result.findings.length > 0 || result.descriptor === null) {
+    throw new Error(`the result has ${result.findings.length} findings; no artifact`);
+  }
+  const descriptor = new TextEncoder().encode(`${JSON.stringify(result.descriptor, null, 2)}
+`);
+  return new Map([...result.files, [DESCRIPTOR_FILE, descriptor]]);
+}
 async function writeArtifact(result, outDir = result.outDir) {
   if (result.findings.length > 0 || result.descriptor === null) {
     throw new Error(`the result has ${result.findings.length} findings; nothing written`);
   }
+  const files = artifactFiles(result);
   rmSync(outDir, { recursive: true, force: true });
   mkdirSync(outDir, { recursive: true });
-  for (const [path, bytes] of result.files) {
+  for (const [path, bytes] of files) {
     const target = join5(outDir, path);
     mkdirSync(dirname3(target), { recursive: true });
     writeFileSync(target, bytes);
   }
-  writeFileSync(join5(outDir, DESCRIPTOR_FILE), `${JSON.stringify(result.descriptor, null, 2)}
-`);
   return outDir;
 }
 export {
+  artifactFiles,
   defineConfig,
   stellify,
   writeArtifact

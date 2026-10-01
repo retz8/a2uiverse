@@ -61,7 +61,7 @@ const result = await stellify('path/to/catalog-package');
 if (result.findings.length === 0) await writeArtifact(result);
 ```
 
-`stellify()` returns the artifact in memory: `descriptor`, `files` (a sorted `Map` of artifact path to bytes) and `findings`. It never throws on a refusal. `writeArtifact()` is the one thing that touches disk; it empties the output folder first.
+`stellify()` returns the artifact in memory: `descriptor`, `files` (a sorted `Map` of artifact path to bytes) and `findings`. It never throws on a refusal. `writeArtifact()` is the one thing that touches disk; it empties the output folder first. `artifactFiles()` gives you the same files `writeArtifact()` would write, `artifact.json` among them, without touching disk — what you hand an install request.
 
 <details>
 <summary>What the artifact looks like</summary>

@@ -8,7 +8,7 @@ import {existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync}
 import {join} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {describe, expect, test} from 'vitest';
-import {stellify, writeArtifact, type StellifyResult} from '../src/index.js';
+import {artifactFiles, stellify, writeArtifact, type StellifyResult} from '../src/index.js';
 import {copyFixture, decode, edit, write} from './fixture.js';
 
 const CATALOG_ID = 'https://example.com/star/catalog.json';
@@ -335,6 +335,24 @@ describe('writeArtifact', () => {
     const result = await stellify(dir);
     await expect(writeArtifact(result)).rejects.toThrow(/findings/);
     expect(existsSync(result.outDir)).toBe(false);
+  });
+
+  test('artifactFiles is what writeArtifact writes, the descriptor among it', async () => {
+    const dir = copyFixture();
+    const result = await stellify(dir);
+    const files = artifactFiles(result);
+    expect([...files.keys()]).toEqual([...result.files.keys(), 'artifact.json']);
+    await writeArtifact(result);
+    for (const [path, bytes] of files) {
+      expect(readFileSync(join(result.outDir, path))).toEqual(Buffer.from(bytes));
+    }
+  });
+
+  test('artifactFiles refuses a result with findings', async () => {
+    const dir = copyFixture();
+    edit(dir, 'lib/index.js', s => s.replace("export {CATALOG} from './catalog.js';", ''));
+    const result = await stellify(dir);
+    expect(() => artifactFiles(result)).toThrow(/findings/);
   });
 
   test('stellify itself writes nothing', async () => {
