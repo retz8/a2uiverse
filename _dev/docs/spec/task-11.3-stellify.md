@@ -58,7 +58,7 @@ The host interface under 0.9.1 lends `react-dom/client` beside the six of 11.2's
 
 ### 11. A stylesheet import becomes an awaited load
 
-Every stylesheet specifier, static or dynamic, in the vendor's code or in a bundled dependency's, resolves to a virtual module that awaits the host's `loadStylesheet` on a URL resolved from the module's own URL. A dynamic import then resolves when the sheet has loaded, so the seven Providers' memoized promises keep their meaning; a static import makes the importing module wait the same way, through top-level await. The artifact's base URL is therefore the entry's own URL, which constrains 11.5: the client imports the entry from its served URL, never from a blob, the session cache by hash notwithstanding. A stylesheet or a `url()` that resolves outside the package and its dependencies is refused.
+Every stylesheet specifier, static or dynamic, in the vendor's code or in a bundled dependency's, resolves to a virtual module that awaits the host's `loadStylesheet` on a URL resolved from the module's own URL. A dynamic import then resolves when the sheet has loaded, so the seven Providers' memoized promises keep their meaning. The loads made while the entry evaluates start together, in import order, and the entry waits for all of them before it finishes, through one top-level await at its end; a load after that waits for its own sheet (amended by the 11.5 follow-up). The artifact's base URL is therefore the entry's own URL, which constrains 11.5: the client imports the entry from its served URL, never from a blob, the session cache by hash notwithstanding. A stylesheet or a `url()` that resolves outside the package and its dependencies is refused.
 
 ### 12. The artifact mirrors the package
 

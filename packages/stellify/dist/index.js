@@ -8485,6 +8485,8 @@ function copyStylesheet(layout, file, artifactPath, copied) {
 // src/bundle.ts
 var HOST_NAMESPACE = "a2uiverse-host";
 var STYLESHEET_NAMESPACE = "a2uiverse-stylesheet";
+var LOADS_NAMESPACE = "a2uiverse-stylesheet-loads";
+var LOADS = "a2uiverse:stylesheet-loads";
 var STYLESHEET = /\.css(\?.*)?$/i;
 var lent = () => `the host lends ${HOST_SPECIFIERS.map((s) => JSON.stringify(s)).join(", ")}`;
 function hostPlugin() {
@@ -8540,7 +8542,20 @@ function stylesheetPlugin(layout, copied) {
         return { path: artifactPath, namespace: STYLESHEET_NAMESPACE };
       });
       api.onLoad({ filter: /.*/, namespace: STYLESHEET_NAMESPACE }, (args) => ({
-        contents: `await globalThis.${HOST_INTERFACE_GLOBAL}.${HOST_STYLESHEET_LOADER}(new URL(${JSON.stringify(args.path)}, import.meta.url).href);`,
+        contents: [
+          `import {loads} from ${JSON.stringify(LOADS)};`,
+          `const load = globalThis.${HOST_INTERFACE_GLOBAL}.${HOST_STYLESHEET_LOADER}(new URL(${JSON.stringify(args.path)}, import.meta.url).href);`,
+          "if (loads.done) await load;",
+          "else loads.early.push(load);"
+        ].join("\n"),
+        loader: "js"
+      }));
+      api.onResolve({ filter: /^a2uiverse:stylesheet-loads$/ }, () => ({
+        path: LOADS,
+        namespace: LOADS_NAMESPACE
+      }));
+      api.onLoad({ filter: /.*/, namespace: LOADS_NAMESPACE }, () => ({
+        contents: "export const loads = {early: [], done: false};",
         loader: "js"
       }));
     }
@@ -8560,7 +8575,19 @@ async function bundleEntry(packageDir, entryRel) {
   try {
     const result = await build2({
       absWorkingDir: packageDir,
-      entryPoints: [entryRel],
+      // The entry, then the wait for every stylesheet load it started (the module header). Its
+      // named exports pass through; a default export is no part of the catalog export contract.
+      stdin: {
+        contents: [
+          `export * from ${JSON.stringify(`./${posix3(entryRel)}`)};`,
+          `import {loads} from ${JSON.stringify(LOADS)};`,
+          "await Promise.all(loads.early);",
+          "loads.done = true;"
+        ].join("\n"),
+        resolveDir: packageDir,
+        sourcefile: "stellify-entry.js",
+        loader: "js"
+      },
       outfile: "index.js",
       bundle: true,
       format: "esm",

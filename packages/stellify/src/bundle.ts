@@ -2,9 +2,15 @@
  * The bundler inside (task-11.3 decision 9): esbuild over the built entry, one ESM, no splitting,
  * no minification, no source maps. Two rewrites, both as virtual modules: a host specifier becomes
  * a CommonJS read of the host's module namespace, so every named import is a property read at
- * runtime and no export list is needed; a stylesheet import becomes an awaited load through the
- * host, on a URL resolved from the entry's own URL, and the sheet with everything it reaches joins
- * the artifact's files. Any other specifier under a host package is refused with the list.
+ * runtime and no export list is needed; a stylesheet import becomes a load through the host, on a
+ * URL resolved from the entry's own URL, and the sheet with everything it reaches joins the
+ * artifact's files. Any other specifier under a host package is refused with the list.
+ *
+ * The loads a stylesheet import makes while the entry evaluates start at once, each `<link>`
+ * appended in import order, and the entry waits for all of them before it finishes; a load after
+ * that — a Provider's lazy theme — waits for its own sheet (the 11.5 follow-up to task-11.3
+ * decision 11). The cascade is the import order either way; the wait is the slowest sheet's, not
+ * the sum of every sheet's.
  */
 import {
   classifySpecifier,
@@ -30,6 +36,9 @@ export interface Bundle {
 
 const HOST_NAMESPACE = 'a2uiverse-host';
 const STYLESHEET_NAMESPACE = 'a2uiverse-stylesheet';
+const LOADS_NAMESPACE = 'a2uiverse-stylesheet-loads';
+/** The module the entry's stylesheet loads are kept in until it finishes evaluating. */
+const LOADS = 'a2uiverse:stylesheet-loads';
 const STYLESHEET = /\.css(\?.*)?$/i;
 
 const lent = (): string =>
@@ -89,7 +98,20 @@ function stylesheetPlugin(layout: Layout, copied: CopiedFiles): Plugin {
         return {path: artifactPath, namespace: STYLESHEET_NAMESPACE};
       });
       api.onLoad({filter: /.*/, namespace: STYLESHEET_NAMESPACE}, args => ({
-        contents: `await globalThis.${HOST_INTERFACE_GLOBAL}.${HOST_STYLESHEET_LOADER}(new URL(${JSON.stringify(args.path)}, import.meta.url).href);`,
+        contents: [
+          `import {loads} from ${JSON.stringify(LOADS)};`,
+          `const load = globalThis.${HOST_INTERFACE_GLOBAL}.${HOST_STYLESHEET_LOADER}(new URL(${JSON.stringify(args.path)}, import.meta.url).href);`,
+          'if (loads.done) await load;',
+          'else loads.early.push(load);',
+        ].join('\n'),
+        loader: 'js',
+      }));
+      api.onResolve({filter: /^a2uiverse:stylesheet-loads$/}, () => ({
+        path: LOADS,
+        namespace: LOADS_NAMESPACE,
+      }));
+      api.onLoad({filter: /.*/, namespace: LOADS_NAMESPACE}, () => ({
+        contents: 'export const loads = {early: [], done: false};',
         loader: 'js',
       }));
     },
@@ -112,7 +134,19 @@ export async function bundleEntry(packageDir: string, entryRel: string): Promise
   try {
     const result = await build({
       absWorkingDir: packageDir,
-      entryPoints: [entryRel],
+      // The entry, then the wait for every stylesheet load it started (the module header). Its
+      // named exports pass through; a default export is no part of the catalog export contract.
+      stdin: {
+        contents: [
+          `export * from ${JSON.stringify(`./${posix(entryRel)}`)};`,
+          `import {loads} from ${JSON.stringify(LOADS)};`,
+          'await Promise.all(loads.early);',
+          'loads.done = true;',
+        ].join('\n'),
+        resolveDir: packageDir,
+        sourcefile: 'stellify-entry.js',
+        loader: 'js',
+      },
       outfile: 'index.js',
       bundle: true,
       format: 'esm',

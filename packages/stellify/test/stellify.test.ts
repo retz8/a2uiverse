@@ -113,6 +113,62 @@ describe('packing the fixture catalog', () => {
     expect(loaded[1]).toBe(pathToFileURL(join(out, 'lib/theme.css')).href);
   });
 
+  test('the loads made as the entry evaluates start together, in import order; a later one waits for its own sheet', async () => {
+    const dir = copyFixture();
+    write(dir, 'lib/base.css', '.star-base { color: black; }\n');
+    edit(dir, 'lib/index.js', text => `import './base.css';\n${text}`);
+    const result = await stellify(dir);
+    expect(result.findings).toEqual([]);
+    const out = join(dir, 'evaluated');
+    mkdirSync(out);
+    writeFileSync(join(out, 'index.js'), result.files.get('index.js')!);
+    const modules: Record<string, unknown> = {};
+    for (const specifier of HOST_SPECIFIERS) {
+      modules[specifier] = specifier.startsWith('@a2ui/react')
+        ? {createComponentImplementation: (api: {name: string}) => ({name: api.name})}
+        : await import(specifier);
+    }
+    const asked: string[] = [];
+    const finish = new Map<string, () => void>();
+    (globalThis as Record<string, unknown>).__a2uiverse_host__ = {
+      version: '0.9.1',
+      modules,
+      loadStylesheet: (url: string) =>
+        new Promise<void>(resolve => {
+          asked.push(url);
+          finish.set(url, resolve);
+        }),
+    };
+    const settle = () => new Promise(resolve => setTimeout(resolve, 20));
+    const sheet = (path: string) => pathToFileURL(join(out, path)).href;
+    let evaluated = false;
+    const importing = import(pathToFileURL(join(out, 'index.js')).href).then(module => {
+      evaluated = true;
+      return module as Record<string, unknown>;
+    });
+    await settle();
+    // Both started before either finished, the cascade's order kept.
+    expect(asked).toEqual([
+      sheet('lib/base.css'),
+      sheet('node_modules/star-dialog/lib/dialog.css'),
+    ]);
+    finish.get(sheet('node_modules/star-dialog/lib/dialog.css'))!();
+    await settle();
+    expect(evaluated).toBe(false);
+    finish.get(sheet('lib/base.css'))!();
+    const module = await importing;
+    expect(checkCatalogExports(module, CATALOG_ID)).toEqual([]);
+    // After the entry, a lazy sheet's import resolves only once its sheet has loaded.
+    let themed = false;
+    const theming = (module.loadTheme as () => Promise<unknown>)().then(() => (themed = true));
+    await settle();
+    expect(asked.at(-1)).toBe(sheet('lib/theme.css'));
+    expect(themed).toBe(false);
+    finish.get(sheet('lib/theme.css'))!();
+    await theming;
+    expect(themed).toBe(true);
+  });
+
   test('deterministic: two copies at two paths pack to the same bytes', async () => {
     const a = await stellify(copyFixture());
     const b = await stellify(copyFixture());

@@ -77,7 +77,7 @@ dist/fonts/inter.woff2                the font it references, beside it
 node_modules/@primer/primitives/…     a dependency's stylesheet, under the package that owns it
 ```
 
-In `index.js`, `import {useState} from 'react'` has become a read from `__a2uiverse_host__.modules["react"]`, and `import('./theme.css')` has become `await __a2uiverse_host__.loadStylesheet(new URL("dist/theme.css", import.meta.url).href)`. A dynamic stylesheet import still resolves when the sheet has loaded, so a Provider that waits for its theme keeps working.
+In `index.js`, `import {useState} from 'react'` has become a read from `__a2uiverse_host__.modules["react"]`, and `import('./theme.css')` has become a load through `__a2uiverse_host__.loadStylesheet(new URL("dist/theme.css", import.meta.url).href)`. The stylesheets your entry imports as it evaluates start loading together, in import order, and the entry finishes once they have all loaded, so the wait is the slowest sheet's rather than the sum of every sheet's. A stylesheet imported later still resolves when its sheet has loaded, so a Provider that waits for its theme keeps working.
 
 </details>
 
