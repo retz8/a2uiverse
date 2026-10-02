@@ -84,11 +84,30 @@ The gate of decision 4 and the flag of decision 5; the regression pass before; t
 
 This spec is the record. Each on-the-spot fix is added as a numbered decision as it lands, with what it replaced. The write-up at the end carries each case's evidence, the gate's allow-list justified, the packs' hashes against the snapshot's, the Playwright runs before and after, and the findings not fixed — among them the shared-catalog refusal, the update flow's discovery, consent and mismatch window, and what the shell did with the install and uninstall requests. Every amendment to the phase spec that 11.8's findings call for is made by 11.9.
 
+### 18. Stellify files a package's own files from its root wherever the package sits
+
+Packed installed in a `node_modules`, as the registry snapshot packs each catalog, every file of the package was filed under `node_modules/<name>/` as a dependency's, its stylesheet loads in the entry spelled the same way, so the snapshot's artifact of a catalog and its publisher's differed. A file of the package is told by its path below the package root, not by the whole path. A test packs the fixture catalog in its checkout and installed in a `node_modules` to the same descriptor. Replaced: a file of the package told by its whole path holding no `node_modules`.
+
+## Evidence
+
+### Before the live run
+
+- **The gate of decision 4.** Green in `pnpm verify`. Its allow-list, each entry the only place it found a naming: `apps/client/src/beats/` — the replay's fixture data, the recorded and hand-authored beats carrying the app ids, surfaces and catalog ids they were painted with (183 lines); the Planner's worked examples (10 lines) and the Synthesizer's (8 lines), authored over fixture cards and sources, routing nothing.
+- **The flag of decision 5.** Tested in `scripts/launch-plan.test.mjs`; documented in the root README and `_dev/docs/tunnel-environment.md`.
+- **`pnpm verify`.** Green: 19 of 19 tasks, 26 script tests. One run failed the orchestrator's quiescence heartbeat test (task 8.10), which passed alone three times out of three and in the next run.
+- **The Playwright suite against the 11.5 baselines.** 74 of 74 passed, no diff, before decision 18 and again over the snapshot rebuilt with it.
+- **The packs' hashes against the snapshot's** (decision 6), dry-run before the sitting. Before decision 18 none of the seven agreed. After it, Gmail's, Google Calendar's, CircleCI's, Shop A's and Shop B's agree. GitHub's and Linear's still differ in their entry alone: esbuild names a bundled module by its path from the package — in a comment over each module, and as the key of a CommonJS dependency's wrapper — and a dependency sits at another path in the apps checkout's pnpm store than in this repo's.
+
 ## Invariants
 
 - Nothing a2uiverse-specific rides the vendor wire: the card is read as written, the artifact is outside the protocol.
 - Composition keeps working over runtime-loaded catalogs: merges land, a merged value navigates to its element, the collision detector holds.
 - No line of client or orchestrator runtime code names an installed app.
+
+## Findings not fixed
+
+- **One package packs to one artifact only within one install.** esbuild spells each bundled module's path from the package into the entry, so the same source packed from the publisher's checkout and from a consumer's install differs wherever a dependency sits at another path; and two installs may resolve different versions besides. GitHub's and Linear's catalogs show it against the snapshot.
+- **The orchestrator's quiescence heartbeat test is timing-sensitive** under the full parallel `pnpm verify`.
 
 ## Open items
 
