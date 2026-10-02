@@ -41,7 +41,8 @@ export class Layout {
   /** The artifact path of a file on disk, or undefined when it belongs to neither the package nor a dependency. */
   artifactPathOf(file: string): string | undefined {
     const real = realpathSync(file);
-    if (real.startsWith(this.root + sep) && !real.includes(NODE_MODULES)) {
+    // Below the root, not the whole path: a package installed in a `node_modules` has it above its root.
+    if (real.startsWith(this.root + sep) && !real.slice(this.root.length).includes(NODE_MODULES)) {
       return posix(relative(this.root, real));
     }
     const owner = owningPackage(real);

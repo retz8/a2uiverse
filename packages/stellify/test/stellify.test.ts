@@ -177,6 +177,14 @@ describe('packing the fixture catalog', () => {
     for (const [path, bytes] of a.files) expect(decode(bytes)).toBe(decode(b.files.get(path)!));
   });
 
+  test('deterministic: the package in its checkout and installed in a node_modules pack to the same bytes', async () => {
+    const checkout = await stellify(copyFixture());
+    const installed = await stellify(copyFixture({installed: true}));
+    expect(installed.findings).toEqual([]);
+    expect([...installed.files.keys()]).toEqual([...checkout.files.keys()]);
+    expect(installed.descriptor).toEqual(checkout.descriptor);
+  });
+
   test('the vendor checkout is untouched', async () => {
     const dir = copyFixture();
     const before = readdirSync(dir, {recursive: true}).sort();
