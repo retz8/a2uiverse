@@ -96,7 +96,7 @@ Packed installed in a `node_modules`, as the registry snapshot packs each catalo
 - **The flag of decision 5.** Tested in `scripts/launch-plan.test.mjs`; documented in the root README and `_dev/docs/tunnel-environment.md`.
 - **`pnpm verify`.** Green: 19 of 19 tasks, 26 script tests. One run failed the orchestrator's quiescence heartbeat test (task 8.10), which passed alone three times out of three and in the next run.
 - **The Playwright suite against the 11.5 baselines.** 74 of 74 passed, no diff, before decision 18 and again over the snapshot rebuilt with it.
-- **The packs' hashes against the snapshot's** (decision 6), dry-run before the sitting. Before decision 18 none of the seven agreed. After it, Gmail's, Google Calendar's, CircleCI's, Shop A's and Shop B's agree. GitHub's and Linear's still differ in their entry alone: esbuild names a bundled module by its path from the package — in a comment over each module, and as the key of a CommonJS dependency's wrapper — and a dependency sits at another path in the apps checkout's pnpm store than in this repo's.
+- **The packs' hashes against the snapshot's** (decision 6), dry-run before the sitting. Before decision 18 GitHub's, the one compared, differed by its own files' paths. After it, Gmail's, Google Calendar's, CircleCI's, Shop A's and Shop B's agree. GitHub's and Linear's still differ in their entry alone: esbuild names a bundled module by its path from the package — in a comment over each module, and as the key of a CommonJS dependency's wrapper — and a dependency sits at another path in the apps checkout's pnpm store than in this repo's.
 
 ## Invariants
 
