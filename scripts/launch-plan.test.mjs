@@ -7,6 +7,7 @@ import {
   MODES,
   appsToUninstall,
   cardUrlOf,
+  parseLaunchArgs,
   planLaunch,
   resolveAgentsDir,
   tiersOf,
@@ -161,4 +162,30 @@ test('the reconcile leaves alone an installed app the roster does not name', () 
     }),
     ['gmail'],
   );
+});
+
+const parseArgsOf = args => parseLaunchArgs(args, {defaultTier: DEFAULT_TIER});
+
+test('a launch installs unless --no-install says otherwise', () => {
+  assert.equal(parseArgsOf([]).install, true);
+  assert.equal(parseArgsOf(['--no-install']).install, false);
+  assert.equal(parseArgsOf(['--tier', 'mocks', '--no-install']).install, false);
+});
+
+test('parseLaunchArgs defaults to the default tier in deterministic mode, splitting --only', () => {
+  assert.deepEqual(parseArgsOf(['--only', 'github, gmail,']), {
+    tier: DEFAULT_TIER,
+    mode: 'deterministic',
+    only: ['github', 'gmail'],
+    then: undefined,
+    agentsDir: undefined,
+    list: false,
+    install: true,
+  });
+});
+
+test('parseLaunchArgs names an unknown mode as the error that stops the launch', () => {
+  assert.deepEqual(parseArgsOf(['--mode', 'replay']), {
+    error: "unknown --mode 'replay' (expected deterministic | stub | live)",
+  });
 });

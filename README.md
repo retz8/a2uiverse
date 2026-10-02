@@ -147,7 +147,7 @@ Open **http://localhost:5173** and press `⌘K`. The apps start in `deterministi
 ```bash
 pnpm dev:all          # the apps and the platform, the apps installed
 pnpm dev              # the platform only: client, orchestrator, marketplace
-pnpm dev:agents       # the apps only, installed into the running orchestrator: --tier mocks, --only <ids>, --mode deterministic|stub|live, --agents-dir <path>
+pnpm dev:agents       # the apps only, installed into the running orchestrator: --tier mocks, --only <ids>, --mode deterministic|stub|live, --agents-dir <path>, --no-install
 pnpm agents:list      # what a launch would run, and what would stop it: --tier mocks
 pnpm dev:client       # one platform process, in its own terminal
 pnpm dev:orch
@@ -170,7 +170,7 @@ A launch runs one tier. The default tier is the five apps; the two mock stores, 
 pnpm dev:all --tier mocks
 ```
 
-The launcher starts the agents and the platform together, builds each app's catalog package in the checkout, packs it with Stellify and, once the orchestrator answers, installs each app as soon as its agent is up. Then it uninstalls every roster app it did not launch, so the orchestrator holds what runs; an app you installed by hand that the roster does not name is left alone. `dev:agents` does the same against an orchestrator you started yourself.
+The launcher starts the agents and the platform together, builds each app's catalog package in the checkout, packs it with Stellify and, once the orchestrator answers, installs each app as soon as its agent is up. Then it uninstalls every roster app it did not launch, so the orchestrator holds what runs; an app you installed by hand that the roster does not name is left alone. `dev:agents` does the same against an orchestrator you started yourself. `--no-install` starts the agents only — nothing built, packed, installed or uninstalled — for installing apps by hand with the orchestrator's `registry` command.
 
 An app that does not build, does not pack, never comes up, or is refused at install is named with its reason and left out, uninstalled if an earlier launch installed it; the rest still run. A roster app missing from the checkout is skipped. An unknown tier, an unknown `--only` id, or two apps of the tier on one port stop the launch. Stopping the launcher uninstalls nothing: the next launch sets the registry right.
 

@@ -2,7 +2,7 @@
 /**
  * Launch the apps of the dev roster from the sibling `a2uiverse-apps` checkout, and install them.
  *
- *   pnpm dev:agents [--tier mocks] [--only github,gmail] [--mode deterministic|stub|live] [--agents-dir <path>]
+ *   pnpm dev:agents [--tier mocks] [--only github,gmail] [--mode deterministic|stub|live] [--agents-dir <path>] [--no-install]
  *   pnpm agents:list [--tier mocks]
  *
  * Apps are never built in this repo and never depend on it (SPEC §13), so this is the one place
@@ -16,7 +16,9 @@
  * soon as its own card answers; then the roster apps this launch did not install — another tier's,
  * those `--only` left out, those that failed — are uninstalled, so the registry holds what runs
  * (decisions 5 to 9). With no orchestrator answering, the agents run, not installed. Stopping
- * uninstalls nothing: the next launch reconciles (decision 10).
+ * uninstalls nothing: the next launch reconciles (decision 10). Under `--no-install` the agents run
+ * and nothing is built, packed, installed or uninstalled: the apps are installed by hand through the
+ * registry command (task-11.8 decision 5).
  *
  * `--list` is the same plan halted before anything starts: what it reports is what a launch would
  * run, and it exits non-zero when it reports something that would stop one (decision 11).
@@ -29,12 +31,11 @@ import {spawn} from 'node:child_process';
 import {existsSync} from 'node:fs';
 import {dirname, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {parseArgs} from 'node:util';
 
 import {artifactFiles, stellify} from '@a2uiverse/stellify';
 
 import {DEFAULT_TIER, ROSTER} from './dev-roster.mjs';
-import {appsToUninstall, MODES, planLaunch, resolveAgentsDir} from './launch-plan.mjs';
+import {appsToUninstall, parseLaunchArgs, planLaunch, resolveAgentsDir} from './launch-plan.mjs';
 import {
   cardAnswers,
   installBody,
@@ -64,35 +65,9 @@ function fail(message) {
 }
 
 function parse() {
-  const {values} = parseArgs({
-    options: {
-      tier: {type: 'string', default: DEFAULT_TIER},
-      only: {type: 'string'},
-      mode: {type: 'string', default: 'deterministic'},
-      then: {type: 'string'},
-      'agents-dir': {type: 'string'},
-      list: {type: 'boolean', default: false},
-    },
-    allowPositionals: false,
-  });
-  // The mode→behavior mapping lives in the kit; only the vocabulary is checked here, so a typo
-  // fails now rather than after every agent dies on it.
-  if (!MODES.includes(values.mode)) {
-    fail(`unknown --mode '${values.mode}' (expected ${MODES.join(' | ')})`);
-  }
-  return {
-    tier: values.tier,
-    mode: values.mode,
-    only: values.only
-      ? values.only
-          .split(',')
-          .map(s => s.trim())
-          .filter(Boolean)
-      : null,
-    then: values.then,
-    agentsDir: values['agents-dir'],
-    list: values.list,
-  };
+  const parsed = parseLaunchArgs(process.argv.slice(2), {defaultTier: DEFAULT_TIER});
+  if (parsed.error) fail(parsed.error);
+  return parsed;
 }
 
 /** Prefix every line so interleaved processes stay readable. */
@@ -329,7 +304,7 @@ function printListing({dir, source}, {tier, entries, fatal}) {
 }
 
 async function main() {
-  const {tier, mode, only, then, agentsDir, list} = parse();
+  const {tier, mode, only, then, agentsDir, list, install} = parse();
 
   const resolved = resolveAgentsDir({
     flag: agentsDir,
@@ -390,6 +365,11 @@ async function main() {
       process.exitCode = code ?? 0;
       stop();
     });
+  }
+
+  if (!install) {
+    log('--no-install · the apps run, not installed');
+    await new Promise(() => {});
   }
 
   const registry = new Registry(

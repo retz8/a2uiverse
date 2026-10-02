@@ -68,6 +68,14 @@ The orchestrator boots from its registry in `STATE_DIR` alone, empty at first (t
 pnpm --filter @a2uiverse/orchestrator registry list
 ```
 
+`--no-install` starts the agents and leaves the registry alone, for installing by hand from each app's card URL and an artifact `stellify pack` wrote:
+
+```bash
+pnpm dev:agents --mode deterministic --no-install
+pnpm --filter @a2uiverse/orchestrator registry install <app-id> http://localhost:<port>/.well-known/agent-card.json <artifact-dir>
+pnpm --filter @a2uiverse/orchestrator registry uninstall <app-id>
+```
+
 Most sessions run everything through the launcher instead — `BASE_URL` still comes from the orchestrator's `.env`. The real roster in both modes is an acceptance bed (task 5.7):
 
 ```bash

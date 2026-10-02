@@ -10,9 +10,49 @@
  * that is not what was asked for, or whose ids do not map to distinct processes, is not.
  */
 import {join, resolve} from 'node:path';
+import {parseArgs} from 'node:util';
 
 /** The kit's mode vocabulary (`a2ui_agent_kit.modes`). Fixed-size, so it stays a literal here. */
 export const MODES = ['deterministic', 'stub', 'live'];
+
+/**
+ * The launcher's command line: its options, or the error that stops it. `--no-install` starts the
+ * agents and neither packs nor installs them, the registry left as it is (task-11.8 decision 5).
+ */
+export function parseLaunchArgs(args, {defaultTier}) {
+  const {values} = parseArgs({
+    args,
+    options: {
+      tier: {type: 'string', default: defaultTier},
+      only: {type: 'string'},
+      mode: {type: 'string', default: 'deterministic'},
+      then: {type: 'string'},
+      'agents-dir': {type: 'string'},
+      list: {type: 'boolean', default: false},
+      'no-install': {type: 'boolean', default: false},
+    },
+    allowPositionals: false,
+  });
+  // The mode→behavior mapping lives in the kit; only the vocabulary is checked here, so a typo
+  // fails now rather than after every agent dies on it.
+  if (!MODES.includes(values.mode)) {
+    return {error: `unknown --mode '${values.mode}' (expected ${MODES.join(' | ')})`};
+  }
+  return {
+    tier: values.tier,
+    mode: values.mode,
+    only: values.only
+      ? values.only
+          .split(',')
+          .map(s => s.trim())
+          .filter(Boolean)
+      : null,
+    then: values.then,
+    agentsDir: values['agents-dir'],
+    list: values.list,
+    install: !values['no-install'],
+  };
+}
 
 /** Where the apps checkout is, and which source said so — echoed on every run and every listing. */
 export function resolveAgentsDir({flag, env, repoRoot}) {
