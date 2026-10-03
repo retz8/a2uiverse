@@ -28,7 +28,7 @@ export interface CatalogLoaderOptions {
   registry: string;
   /** The client's own catalogs, held from the start. */
   defaults: readonly ResolvedCatalog[];
-  /** Reads JSON; `fresh` for the table, which changes with every install. */
+  /** Reads JSON; `fresh` past the browser's cache — the table, which changes with every install, and each descriptor. */
   fetchJson?: (url: string, fresh: boolean) => Promise<unknown>;
   /** Imports an artifact's entry from its served URL. */
   importModule?: (url: string) => Promise<Record<string, unknown>>;
@@ -153,7 +153,9 @@ export function createCatalogLoader({
       throw new Error(`the catalog ${catalogId} is the client's own, and the client lacks it`);
     }
     const base = artifactUrl(registry, row.artifact);
-    const descriptor = (await fetchJson(new URL('artifact.json', base).href, false)) as {
+    // Past the browser's cache: it holds a second request for a URL behind one still unanswered,
+    // so a cached read could never be asked again (task-11.8 decision 20).
+    const descriptor = (await fetchJson(new URL('artifact.json', base).href, true)) as {
       catalogId?: unknown;
       entry?: unknown;
       hostInterface?: unknown;

@@ -38,7 +38,7 @@ function fakeRegistry({
   module?: () => Promise<Record<string, unknown>>;
 } = {}) {
   let reads = 0;
-  const fetchJson = vi.fn(async (url: string) => {
+  const fetchJson = vi.fn(async (url: string, _fresh?: boolean) => {
     if (url === `${REGISTRY}catalogs.json`) return tables[Math.min(reads++, tables.length - 1)];
     if (url === `${REGISTRY}artifacts/sha256-demo/artifact.json`) return descriptor;
     throw new Error(`no route ${url}`);
@@ -201,6 +201,17 @@ describe('the preload', () => {
 
 describe('a request that gets no answer (task-11.8 decision 20)', () => {
   const never = () => new Promise<never>(() => {});
+
+  it('reads the table and the descriptor past the browser’s cache, which holds a URL behind its unanswered request', async () => {
+    const {loader, fetchJson} = fakeRegistry();
+    await loader.load(DEMO);
+    expect(fetchJson.mock.calls.map(([url, fresh]) => [url.slice(REGISTRY.length), fresh])).toEqual(
+      [
+        ['catalogs.json', true],
+        ['artifacts/sha256-demo/artifact.json', true],
+      ],
+    );
+  });
 
   it('asks the table once more after the timeout, and loads on that answer', async () => {
     vi.useFakeTimers();
