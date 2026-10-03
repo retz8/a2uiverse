@@ -2,7 +2,7 @@
  * The host-module interface (phase-11 decision 8) and the web_core behaviour a runtime-loaded
  * catalog relies on (task-11.5 decision 3).
  */
-import {describe, expect, it} from 'vitest';
+import {afterEach, describe, expect, it, vi} from 'vitest';
 import * as React from 'react';
 import * as A2uiWebCore from '@a2ui/web_core/v0_9';
 import {Catalog, MessageProcessor} from '@a2ui/web_core/v0_9';
@@ -57,6 +57,40 @@ describe('the page’s stylesheet loader', () => {
       .dispatchEvent(new Event('error'));
     await expect(failed).rejects.toThrow('did not load');
     expect(load('http://hub.test/missing.css')).not.toBe(failed);
+  });
+});
+
+describe('a stylesheet that gets no answer (task-11.8 decision 20)', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  const linksTo = (url: string) => [...document.head.querySelectorAll(`link[href="${url}"]`)];
+
+  it('is asked once more on a fresh link after the timeout, and resolves on that one', async () => {
+    vi.useFakeTimers();
+    const load = linkStylesheetLoader(document, {timeoutMs: 10_000});
+    const url = 'http://hub.test/stalled.css';
+    const loaded = load(url);
+    const [first] = linksTo(url);
+    vi.advanceTimersByTime(10_000);
+    const links = linksTo(url);
+    expect(links).toHaveLength(1);
+    expect(links[0]).not.toBe(first);
+    links[0]!.dispatchEvent(new Event('load'));
+    await expect(loaded).resolves.toBeUndefined();
+  });
+
+  it('rejects when the second link gets no answer either, and the next call tries again', async () => {
+    vi.useFakeTimers();
+    const load = linkStylesheetLoader(document, {timeoutMs: 10_000});
+    const url = 'http://hub.test/lost.css';
+    const failed = load(url);
+    vi.advanceTimersByTime(10_000);
+    vi.advanceTimersByTime(10_000);
+    await expect(failed).rejects.toThrow('no answer in 10 s, twice');
+    expect(linksTo(url)).toHaveLength(0);
+    expect(load(url)).not.toBe(failed);
   });
 });
 

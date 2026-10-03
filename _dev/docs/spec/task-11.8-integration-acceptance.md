@@ -92,6 +92,10 @@ Packed installed in a `node_modules`, as the registry snapshot packs each catalo
 
 The shell's answer to "I want to install the GitHub app." painted its "Search Store for GitHub" button across the whole canvas: the Planner set the heading, the text and the button in a `Column` with no `align`, and the basic catalog's `Column` stretches its children across by default. The shell catalog's `Button` takes its label's width, at most its container's; the `Column` keeps the protocol's default, so text, tables and cards still fill the width. Replaced: a button stretched across a `Column` like any child.
 
+### 20. A stylesheet that gets no answer is asked once more, then fails
+
+GitHub installed with the page open, its fragment held "Loading…" for good: of the 77 stylesheets its entry loads and waits for, one request the tunnel never answered left its link with neither a load nor an error, so the entry's import never settled and the catalog neither loaded nor failed. A stylesheet link that gets no answer in 10 s is replaced by a fresh one for the same URL; no answer to that either rejects the load, so the catalog's load fails and its slots show the load failure with Retry, and the next load tries again — the transport's own "no answer in 10000 ms — sending once more". Replaced: a stylesheet load waiting on its link's load or error, unbounded.
+
 ## Evidence
 
 ### Before the live run
@@ -113,6 +117,7 @@ The shell's answer to "I want to install the GitHub app." painted its "Search St
 - **An install from the canvas, for Phases 14 and 15.** Asked "I want to install the GitHub app.", the shell answers with the Store affordance — "Search Store for GitHub", opening the Store with the query — and the Store is the placeholder. The reader wants the install itself on the canvas: an app-store result with an Install button the user presses there. SPEC §9.3 holds that the model never authors the Store page nor reads the marketplace index and may only paint an affordance into it, and §8 that the capability tile is deterministic, with no model wording, and that install consent follows the authority tile; a model-authored install control could be steered by what the model reads, a vendor's card among it. A shape inside both: the Planner names the query, and the shell — platform code, not the model — draws the Store result from the marketplace index with Install, its consent a trusted step.
 
 - **One package packs to one artifact only within one install.** esbuild spells each bundled module's path from the package into the entry, so the same source packed from the publisher's checkout and from a consumer's install differs wherever a dependency sits at another path; and two installs may resolve different versions besides. GitHub's and Linear's catalogs show it against the snapshot.
+- **GitHub's entry waits for all 77 of Primer's stylesheets**, those of components a paint does not use among them: through the tunnel, about 80 requests before GitHub's first paint.
 - **The orchestrator's quiescence heartbeat test is timing-sensitive** under the full parallel `pnpm verify`.
 
 ## Open items
