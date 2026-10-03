@@ -96,6 +96,10 @@ The shell's answer to "I want to install the GitHub app." painted its "Search St
 
 GitHub installed with the page open, its fragment held "Loading…" for good: of the 77 stylesheets its entry loads and waits for, one request the tunnel never answered left its link with neither a load nor an error, so the entry's import never settled and the catalog neither loaded nor failed. A stylesheet link that gets no answer in 10 s is replaced by a fresh one under a URL of its own — a link for the same URL was handed the request still unanswered; no answer to that either rejects the load, so the catalog's load fails and its slots show the load failure with Retry — the transport's own "no answer in 10000 ms — sending once more". Retry loads again with the entry imported under a URL of its own: the browser keeps a module whose evaluation failed and answers its URL with the same failure, so a Retry on the same URL failed at once with the old reason. Replaced: a stylesheet load waiting on its link's load or error, unbounded; a load after a failed one importing the same entry URL.
 
+### 21. The capability tile hugs its line and its button
+
+On an empty registry the capability tile drew a box across the whole canvas, its one line and its small button centred in it, so it read as an empty placeholder. The tile keeps its box — task 7.9's decision 23 keeps it, SPEC §8 calling it a tile — sized to its content at the slot's leading edge, where the failure tile's line sits, the line and the button side by side. What the tile holds beyond a minimal line stays Phase 15's, as Phase 6's spec defers it. Replaced: a box stretched across the slot, its line above its button, centred.
+
 ## Evidence
 
 ### Before the live run

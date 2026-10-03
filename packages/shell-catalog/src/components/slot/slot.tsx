@@ -143,15 +143,17 @@ export function SlotView({
   const body = (() => {
     if (gap !== undefined) {
       return (
-        <div data-slot-gap={gap} data-slot-state="gap" style={{...weighted, ...panelStyle}}>
-          <Flex direction="column" align="center" gap="2">
-            <Text as="span" size="2">
-              No installed app can do this.
-            </Text>
-            <Button size="1" variant="soft" onClick={() => onSearchStore?.(gap)}>
-              Search the Store
-            </Button>
-          </Flex>
+        <div data-slot-gap={gap} data-slot-state="gap" style={weighted}>
+          <div data-slot-gap-tile="" style={panelStyle}>
+            <Flex align="center" gap="3" wrap="wrap">
+              <Text as="span" size="2">
+                No installed app can do this.
+              </Text>
+              <Button size="1" variant="soft" onClick={() => onSearchStore?.(gap)}>
+                Search the Store
+              </Button>
+            </Flex>
+          </div>
         </div>
       );
     }
@@ -534,17 +536,17 @@ function quietLine(text: string) {
 
 /**
  * The capability tile's look. SPEC §8 calls it a tile and it is the shell's own deterministic UI
- * with an action in it — not a placeholder for a vendor's pixels — so it keeps its box.
+ * with an action in it — not a placeholder for a vendor's pixels — so it keeps its box: one that
+ * hugs its line and its button at the slot's leading edge, as the failure tile's line sits there,
+ * never stretched across the slot (task-11.8 decision 21).
  */
 const panelStyle: CSSProperties = {
   background: 'var(--color-panel-solid)',
   border: '1px solid var(--gray-6)',
   borderRadius: 'var(--radius-3)',
-  padding: 'var(--space-3)',
-  minHeight: '4rem',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
+  padding: 'var(--space-2) var(--space-3)',
+  width: 'fit-content',
+  maxWidth: '100%',
 };
 
 /**

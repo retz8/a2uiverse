@@ -175,6 +175,17 @@ test('a gap slot is the capability tile, resolving no content', () => {
   expect(screen.queryByText('content')).not.toBeInTheDocument();
 });
 
+test('the capability tile’s box hugs its line and its button, side by side, at the slot’s leading edge (task-11.8 decision 21)', () => {
+  const {container} = render(<SlotView gap="pull requests" />);
+  const box = container.querySelector('[data-slot-gap-tile]') as HTMLElement;
+  expect(box.style.width).toBe('fit-content');
+  expect(box.style.maxWidth).toBe('100%');
+  const line = screen.getByText('No installed app can do this.');
+  const button = screen.getByRole('button', {name: 'Search the Store'});
+  expect(line.parentElement).toBe(button.parentElement);
+  expect(line.parentElement!.className).not.toMatch(/rt-r-fd-column/);
+});
+
 /* ── Task 8.2: the failure tile (board F6), the noun, Retry ─────────────────── */
 
 test('schema accepts a failure with one of four causes, a message only with vendor, and a noun', () => {
