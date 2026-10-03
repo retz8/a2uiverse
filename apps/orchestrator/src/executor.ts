@@ -647,6 +647,12 @@ export class OrchestratorExecutor implements AgentExecutor {
     // waits for it (task-8.10 decision 1).
     composition?.presses.begin(owner.id);
     const outcome = await run.settled.finally(() => composition?.presses.end(owner.id));
+    // A press that failed is what its slot's Retry sends again (task-11.8 decision 23).
+    const pressed = composition?.slots.get(owner.id);
+    if (pressed && outcome !== 'cancelled') {
+      if (outcome === 'completed') delete pressed.failedPress;
+      else pressed.failedPress = message;
+    }
     // The re-synthesis its answer calls for, on this turn — unless a merge is in the making,
     // which covers the press (task-8.10 decision 3): the walk runs once it is done.
     if (composition) await this.#owe(composition, {}, 'walk', sink);
@@ -873,8 +879,9 @@ export class OrchestratorExecutor implements AgentExecutor {
   }
 
   /**
-   * The retried source's answer: the one held past the hard cap, drawn at once; else the plan's
-   * request dispatched again under its own cap. While a dispatch past its cap still runs, the
+   * The retried source's answer: the one held past the hard cap, drawn at once; else the press
+   * that failed, sent again (task-11.8 decision 23), or the plan's request, dispatched again
+   * under its own cap. While a dispatch past its cap still runs, the
    * two race (task-8.4 decision 5): the first to arrive holding a surface is drawn whole and the
    * other cancelled; the slot follows the re-dispatch, so its failure brings the tile back while
    * the original runs on, an answer from it held for the next Retry. True when the source arrived.
@@ -888,13 +895,15 @@ export class OrchestratorExecutor implements AgentExecutor {
     const slot = state.slots.get(appId)!;
     if (slot.held) return this.#draw(sink, state, appId, slot.held);
     const original = slot.running;
-    const message: Message = {
-      kind: 'message',
-      messageId: randomUUID(),
-      role: 'user',
-      parts: [{kind: 'text', text: slot.plan.request}],
-      metadata: vendorMetadata(state.requestMetadata, appId),
-    };
+    const message: Message = slot.failedPress
+      ? {...slot.failedPress, messageId: randomUUID()}
+      : {
+          kind: 'message',
+          messageId: randomUUID(),
+          role: 'user',
+          parts: [{kind: 'text', text: slot.plan.request}],
+          metadata: vendorMetadata(state.requestMetadata, appId),
+        };
     const handle = this.#deps.pool.dispatch(appId, {
       clientContextId: sink.ctx.contextId,
       clientTaskId: sink.ctx.taskId,
@@ -933,6 +942,7 @@ export class OrchestratorExecutor implements AgentExecutor {
       return this.#draw(sink, state, appId, winner.original, 'won');
     }
     const arrived = winner.retry === 'completed' && state.arrived.has(appId);
+    if (winner.retry === 'completed') delete slot.failedPress;
     if (arrived && original && slot.running === original) {
       handle.record.race = 'won';
       original.record.race = 'lost';

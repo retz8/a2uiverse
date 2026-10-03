@@ -104,6 +104,10 @@ On an empty registry the capability tile drew a box across the whole canvas, its
 
 The registry command printed "installed github over the one installed" for any install over a held app id, whatever it changed or did not. The install answers with a one-line summary its reader — the command and the launcher's log — prints: installed, updated or reinstalled; the card's version, old → new when it moved; each catalog's artifact, old → new when it moved, a catalog id gone or new named in full; "nothing changed" when the card and the catalogs are as they were — `updated github · card 0.1.0 · catalog sha256-muNbmR5m… → sha256-bYxc_jOA…`. Replaced: "installed <id>", with "over the one installed" on an install over a held id.
 
+### 23. Retry sends again the press that failed
+
+A press on Linear's row in a canvas drawn before Linear was uninstalled failed `uninstalled`; Linear installed again, Retry on its tile painted Linear's list — the slot's request from the turn — not the issue the press had opened. A press inside a fragment that fails is kept on its slot, and the slot's Retry sends that press again; a Retry that fails again keeps it for the next, and a press or a Retry that completes lets it go. A slot whose failure was its turn's dispatch retries the plan's request as before. SPEC §8.3's Retry, "re-dispatches that slot alone", is amended in 11.9. Replaced: Retry sending the plan's request whatever had failed.
+
 ## Evidence
 
 ### Before the live run

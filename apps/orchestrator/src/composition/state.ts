@@ -72,6 +72,8 @@ export interface SlotEntry {
   running?: DispatchHandle;
   /** An open Retry race (task-8.4 decision 5): the running dispatch's answer, handed to it. */
   race?: (held: HeldAnswer) => void;
+  /** The press inside this source's fragment that failed, as sent: what Retry sends again (task-11.8 decision 23). */
+  failedPress?: Message;
 }
 
 /** Where a turn's events go: its task, its stream, its journal line. */

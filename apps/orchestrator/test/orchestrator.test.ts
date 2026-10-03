@@ -26,7 +26,13 @@ import {
   type SynthesisPayload,
 } from '@a2uiverse/sdk';
 import type {Synthesis} from '../src/synthesizer/document.js';
-import {FAKE_CATALOG_ID, startFakeVendor, type FakeVendor, type Script} from './fakeVendor.js';
+import {
+  deterministicScript,
+  FAKE_CATALOG_ID,
+  startFakeVendor,
+  type FakeVendor,
+  type Script,
+} from './fakeVendor.js';
 import {fixtureArtifact} from './registryFixture.js';
 import type {FaultMap} from '../src/agentsPool/faults.js';
 
@@ -2103,6 +2109,52 @@ describe('Include, Retry and Try again (task 8.4)', () => {
     expect(JSON.stringify(a2uiDatas(drawn[0]!))).toContain('949'); // camerasB: the original's
     expect((drawn[0] as TaskStatusUpdateEvent).taskId).toBe(events[0]!.id);
     await until(() => vendors.gmail!.methods.includes('tasks/cancel'), 'the re-dispatch cancelled');
+  });
+
+  test('Retry after a press that failed sends that press again, not the plan’s request (task-11.8 decision 23)', async () => {
+    const {client} = await boot({
+      planner: new FakePlanner(() => planFor(['github'])),
+      scripts: {github: sequence(deterministicScript, failing('Busy.'), deterministicScript)},
+    });
+    const contextId = crypto.randomUUID();
+    await collect(client, utterance('my pull requests', contextId));
+    const pressed = await collect(client, actionOn('github:s1', contextId));
+    expect(slotsOf(shellPaints(pressed).at(-1)!)['github']).toMatchObject({state: 'failed'});
+
+    const events = await collect(client, press('retry', ['github'], contextId));
+    expect(finalOf(events).status.state).toBe('completed');
+    const [, sent, again] = vendors.github!.requests.map(r => r.message);
+    const actionOf = (message: Message) =>
+      message.parts.flatMap(p => (p.kind === 'data' && 'action' in p.data ? [p.data.action] : []));
+    expect(actionOf(again!)).toEqual(actionOf(sent!));
+    expect(actionOf(again!)).toHaveLength(1);
+    expect(textsOf(again!)).toEqual([]);
+    expect(again!.messageId).not.toBe(sent!.messageId);
+    expect(slotsOf(shellPaints(events).at(-1)!)['github']).not.toMatchObject({state: 'failed'});
+  });
+
+  test('a Retry of a press that fails again keeps the press for the next Retry', async () => {
+    const {client} = await boot({
+      planner: new FakePlanner(() => planFor(['github'])),
+      scripts: {
+        github: sequence(
+          deterministicScript,
+          failing('Busy.'),
+          failing('Busy.'),
+          deterministicScript,
+        ),
+      },
+    });
+    const contextId = crypto.randomUUID();
+    await collect(client, utterance('my pull requests', contextId));
+    await collect(client, actionOn('github:s1', contextId));
+    const failedAgain = await collect(client, press('retry', ['github'], contextId));
+    expect(slotsOf(shellPaints(failedAgain).at(-1)!)['github']).toMatchObject({state: 'failed'});
+    await collect(client, press('retry', ['github'], contextId));
+    const actions = vendors.github!.requests.map(
+      r => r.message.parts.filter(p => p.kind === 'data' && 'action' in p.data).length,
+    );
+    expect(actions).toEqual([0, 1, 1, 1]);
   });
 
   test('a retry that fails again brings the tile back with its new cause and words', async () => {
