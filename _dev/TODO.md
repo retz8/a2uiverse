@@ -176,12 +176,14 @@ Auth-required → authority tile, consent dialog, AuthVault, credential componen
 
 ## Phase 13 — Marketplace + publish
 Local index, package hosting, publish step, hello-fragment smoke test (M9).
+From 11.8: the app version contract — what an app's version is (the card's `version`, its catalog ids and their hashes), what a publisher keeps supporting (an agent still painting every catalog version installed), and how the index tells a registry an update exists and whether the user needs it. The publisher's catalog ownership: a new hash for a catalog id two installed apps name is refused (task-11.4 decision 5), so one publisher cannot update a catalog its two apps share — GitHub web and GitHub admin on one Primer catalog.
 
 ## Phase 14 — Shell trusted pages
 Store page, App Library, accounts (M10). Opening a trusted page must not unmount the canvas: the client holds its whole session in memory, created when the canvas mounts, and Phase 15's resume after install needs the canvas that raised the capability gap. The Store and the App Library are an overlay over the canvas (6.5); 6.5's placeholder overlay is the shell to fill. URL addressability, and whether one route with two tabs or two routes, are decided here.
 
 ## Phase 15 — Store loop
 Capability gap → marketplace index → install → resume (M11).
+From 11.8: catalog version skew between the agent, the registry and each canvas — an action in a past canvas drawn with an older catalog; an agent that no longer paints the old version; an agent painting a version not yet installed, today the catalog-cause tile with no Retry, to become a tile naming the version mismatch, the update, and the repaint once it lands. An install-over shows only after a reload, which loses every canvas (task-11.5 decision 6). The install on the canvas itself rather than a link to the Store: a Store result with Install drawn by the shell from the marketplace index, the model naming only the query (SPEC §8, §9.3); what the capability tile holds beyond its line (phase 6).
 
 ## Phase 16 — Ecosystem run
 Publish a new app → discover → install → compose with an existing one → act inside it. One sitting, no code changes; the deliverable is the recording (M12). The new app is an upstream A2UI sample agent, installed unchanged through the Store: an A2UI agent built outside A2UIVerse composing as it is.
