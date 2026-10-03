@@ -25,7 +25,11 @@ export function artifactUrl(registry: string, artifact: string): string {
   return new URL(`artifacts/${artifact}/`, registry).href;
 }
 
-/** Reads JSON over HTTP; the table is read with `cache: 'no-store'`, as it changes with every install. */
+/**
+ * Reads JSON over HTTP. The loader reads the table and each descriptor with `cache: 'no-store'`:
+ * the table changes with every install, and the browser holds a second request for a URL behind one
+ * still unanswered (task-11.8 decision 20).
+ */
 export async function fetchJson(url: string, init?: RequestInit): Promise<unknown> {
   const response = await fetch(url, init);
   if (!response.ok) throw new Error(`${url} answered ${response.status}`);

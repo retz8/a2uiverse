@@ -842,10 +842,10 @@ export class OrchestratorExecutor implements AgentExecutor {
 
   /**
    * Retry (task-8.4 decisions 4–8): the failure tile gives way to the pending slot at once; an
-   * answer held past the hard cap is drawn, otherwise the plan's request goes again — racing a
-   * dispatch still running past its cap. Before the merge is decided the source rejoins the pack
-   * and the first merge takes it; after, its arrival is folded in with no second press, or
-   * brings a collapsed merge back.
+   * answer held past the hard cap is drawn, otherwise the press that failed goes again (task-11.8
+   * decision 23), or else the plan's request — racing a dispatch still running past its cap.
+   * Before the merge is decided the source rejoins the pack and the first merge takes it; after,
+   * its arrival is folded in with no second press, or brings a collapsed merge back.
    */
   async #retry(
     sink: Sink,
