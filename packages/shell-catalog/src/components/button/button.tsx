@@ -20,7 +20,9 @@ const VARIANTS: Record<ButtonVariant, {variant: 'surface' | 'solid' | 'ghost'; c
 
 /**
  * `Button` on Radix `Button` at size 2. Disabled while the component's checks fail (`isValid`
- * false), as upstream disables it; the child is whatever the tree put there.
+ * false), as upstream disables it; the child is whatever the tree put there. It keeps its label's
+ * width: a `Column` stretches its children across by default, and a button is not stretched
+ * (task-11.8 decision 19); `weight` still grows it along a `Row`.
  */
 export function ButtonView({
   variant = 'default',
@@ -45,7 +47,7 @@ export function ButtonView({
       color={radix.color}
       disabled={disabled}
       onClick={onClick}
-      style={style}
+      style={{width: 'fit-content', maxWidth: '100%', ...style}}
       {...ariaProps(accessibility)}
     >
       {children}

@@ -50,3 +50,14 @@ test('a failing check disables the button', () => {
   );
   expect(screen.getByRole('button', {name: 'Save'})).toBeDisabled();
 });
+
+test('in a Column, whose cross axis stretches by default, the button keeps its label’s width', () => {
+  renderTree([
+    {id: 'root', component: 'Column', children: ['go']},
+    {id: 'go', component: 'Button', child: 'label', action: {event: {name: 'go'}}},
+    {id: 'label', component: 'Text', text: 'Search Store for GitHub'},
+  ]);
+  const el = screen.getByRole('button', {name: 'Search Store for GitHub'});
+  expect(el.style.width).toBe('fit-content');
+  expect(el.style.maxWidth).toBe('100%');
+});

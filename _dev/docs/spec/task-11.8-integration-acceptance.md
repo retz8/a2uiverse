@@ -88,6 +88,10 @@ This spec is the record. Each on-the-spot fix is added as a numbered decision as
 
 Packed installed in a `node_modules`, as the registry snapshot packs each catalog, every file of the package was filed under `node_modules/<name>/` as a dependency's, its stylesheet loads in the entry spelled the same way, so the snapshot's artifact of a catalog and its publisher's differed. A file of the package is told by its path below the package root, not by the whole path. A test packs the fixture catalog in its checkout and installed in a `node_modules` to the same descriptor. Replaced: a file of the package told by its whole path holding no `node_modules`.
 
+### 19. A button keeps its label's width
+
+The shell's answer to "I want to install the GitHub app." painted its "Search Store for GitHub" button across the whole canvas: the Planner set the heading, the text and the button in a `Column` with no `align`, and the basic catalog's `Column` stretches its children across by default. The shell catalog's `Button` takes its label's width, at most its container's; the `Column` keeps the protocol's default, so text, tables and cards still fill the width. Replaced: a button stretched across a `Column` like any child.
+
 ## Evidence
 
 ### Before the live run
@@ -105,6 +109,8 @@ Packed installed in a `node_modules`, as the registry snapshot packs each catalo
 - No line of client or orchestrator runtime code names an installed app.
 
 ## Findings not fixed
+
+- **An install from the canvas, for Phases 14 and 15.** Asked "I want to install the GitHub app.", the shell answers with the Store affordance — "Search Store for GitHub", opening the Store with the query — and the Store is the placeholder. The reader wants the install itself on the canvas: an app-store result with an Install button the user presses there. SPEC §9.3 holds that the model never authors the Store page nor reads the marketplace index and may only paint an affordance into it, and §8 that the capability tile is deterministic, with no model wording, and that install consent follows the authority tile; a model-authored install control could be steered by what the model reads, a vendor's card among it. A shape inside both: the Planner names the query, and the shell — platform code, not the model — draws the Store result from the marketplace index with Install, its consent a trusted step.
 
 - **One package packs to one artifact only within one install.** esbuild spells each bundled module's path from the package into the entry, so the same source packed from the publisher's checkout and from a consumer's install differs wherever a dependency sits at another path; and two installs may resolve different versions besides. GitHub's and Linear's catalogs show it against the snapshot.
 - **The orchestrator's quiescence heartbeat test is timing-sensitive** under the full parallel `pnpm verify`.
