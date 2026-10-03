@@ -12,6 +12,6 @@ An artifact packed here can differ from the one its publisher packs in the apps 
 
 `REGISTRY_SNAPSHOT_DIR`, the package's one export, is the snapshot's root.
 
-To move the snapshot to a newer commit of the apps repo, re-point every dependency to that commit, and each catalog's `allowBuilds` line in `pnpm-workspace.yaml` with it: pnpm builds each catalog on install and allows it by the tarball it resolved.
+To move the snapshot to a newer commit of the apps repo, re-point every dependency to that commit, and each catalog's `allowBuilds` line in `pnpm-workspace.yaml` with it: pnpm builds each catalog on install and allows it by the tarball it resolved. Delete any line pnpm appends there with the value `set this to true or false`: it's pnpm asking about a tarball no entry allows yet, and one left behind for the old commit allows nothing.
 
 How the client loads what this holds is in [`docs/design/app-install.md`](../../docs/design/app-install.md).

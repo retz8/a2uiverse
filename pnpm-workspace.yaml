@@ -18,13 +18,6 @@ allowBuilds:
   onnxruntime-node: true
   protobufjs: false
   sharp: false
-  calendar-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/b87b1d316d2c19a4f518bc1a540a3bc447b90e91#path:calendar/calendar-catalog: set this to true or false
-  circleci-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/b87b1d316d2c19a4f518bc1a540a3bc447b90e91#path:circleci/circleci-catalog: set this to true or false
-  github-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/b87b1d316d2c19a4f518bc1a540a3bc447b90e91#path:github/github-catalog: set this to true or false
-  gmail-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/b87b1d316d2c19a4f518bc1a540a3bc447b90e91#path:gmail/gmail-catalog: set this to true or false
-  linear-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/b87b1d316d2c19a4f518bc1a540a3bc447b90e91#path:linear/linear-catalog: set this to true or false
-  shop-a-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/b87b1d316d2c19a4f518bc1a540a3bc447b90e91#path:mocks/shop-a/shop-a-catalog: set this to true or false
-  shop-b-catalog@https://codeload.github.com/retz8/a2uiverse-apps/tar.gz/b87b1d316d2c19a4f518bc1a540a3bc447b90e91#path:mocks/shop-b/shop-b-catalog: set this to true or false
 
 patchedDependencies:
   "@a2ui/react@0.10.2": patches/@a2ui__react@0.10.2.patch
