@@ -39,9 +39,10 @@ export const STYLESHEET_TIMEOUT_MS = 10_000;
 /**
  * The page's loader: one `<link>` per URL, appended in call order — so the cascade follows the
  * order the artifact's modules import their sheets — resolved on its load, rejected on its error.
- * A link that gets neither within the timeout is replaced by a fresh one for the same URL, asked
- * once more; no answer to that either rejects, so a request nothing answers fails the catalog's
- * load rather than holding its entry, and its slots, forever (task-11.8 decision 20).
+ * A link that gets neither within the timeout is replaced by a fresh one, asked once more under a
+ * URL of its own — the browser hands a link for the same URL the request still unanswered; no
+ * answer to that either rejects, so a request nothing answers fails the catalog's load rather than
+ * holding its entry, and its slots, forever (task-11.8 decision 20).
  */
 export function linkStylesheetLoader(
   document: Document = globalThis.document,
@@ -59,7 +60,8 @@ export function linkStylesheetLoader(
       const ask = (attempt: number, before?: HTMLLinkElement) => {
         const link = document.createElement('link');
         link.rel = 'stylesheet';
-        link.href = url;
+        link.href =
+          attempt === 1 ? url : `${url}${url.includes('?') ? '&' : '?'}attempt=${attempt}`;
         const timer = setTimeout(() => {
           if (attempt === 1) return ask(2, link);
           link.remove();

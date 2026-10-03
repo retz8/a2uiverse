@@ -149,6 +149,22 @@ describe('loading a catalog', () => {
     expect(loader.has(DEMO)).toBe(true);
   });
 
+  it('imports the entry again under a URL of its own after one failed, the browser keeping a failed module (task-11.8 decision 20)', async () => {
+    let attempt = 0;
+    const {loader, importModule} = fakeRegistry({
+      module: () =>
+        attempt++ < 2 ? Promise.reject(new Error('blip')) : Promise.resolve(demoModule()),
+    });
+    await expect(loader.load(DEMO)).rejects.toThrow('blip');
+    await expect(loader.load(DEMO)).rejects.toThrow('blip');
+    await loader.load(DEMO);
+    expect(importModule.mock.calls.map(([url]) => url)).toEqual([
+      `${REGISTRY}artifacts/sha256-demo/index.js`,
+      `${REGISTRY}artifacts/sha256-demo/index.js?attempt=2`,
+      `${REGISTRY}artifacts/sha256-demo/index.js?attempt=3`,
+    ]);
+  });
+
   it('keeps the first load of a catalog for the session (task-11.5 decision 6)', async () => {
     const {loader, importModule} = fakeRegistry({
       tables: [

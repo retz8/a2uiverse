@@ -65,7 +65,7 @@ describe('a stylesheet that gets no answer (task-11.8 decision 20)', () => {
     vi.useRealTimers();
   });
 
-  const linksTo = (url: string) => [...document.head.querySelectorAll(`link[href="${url}"]`)];
+  const linksTo = (url: string) => [...document.head.querySelectorAll(`link[href^="${url}"]`)];
 
   it('is asked once more on a fresh link after the timeout, and resolves on that one', async () => {
     vi.useFakeTimers();
@@ -77,6 +77,8 @@ describe('a stylesheet that gets no answer (task-11.8 decision 20)', () => {
     const links = linksTo(url);
     expect(links).toHaveLength(1);
     expect(links[0]).not.toBe(first);
+    // A URL of its own: the browser would otherwise hand the new link the request still unanswered.
+    expect((links[0] as HTMLLinkElement).href).toBe(`${url}?attempt=2`);
     links[0]!.dispatchEvent(new Event('load'));
     await expect(loaded).resolves.toBeUndefined();
   });

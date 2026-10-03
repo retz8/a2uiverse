@@ -9,7 +9,8 @@
  * Nothing waits on it (decision 1): the preload runs in the background from boot, and a surface
  * arriving in a catalog not yet held waits on the same load (one in flight per catalog). The first
  * load of a catalog wins for the session (decision 6); a failed load is not kept (decision 4), so
- * the next arrival tries again. A catalog the table does not list sends the loader back to the
+ * the next arrival tries again — its entry imported under a URL of its own, since the browser keeps
+ * a module whose evaluation failed and answers its URL with the same failure (task-11.8 decision 20). A catalog the table does not list sends the loader back to the
  * table once before it fails.
  */
 import type {Catalog} from '@a2ui/web_core/v0_9';
@@ -72,6 +73,8 @@ export function createCatalogLoader({
   let resolved: ReadonlyMap<string, ResolvedCatalog> = new Map(defaults.map(r => [r.id, r]));
   const listeners = new Set<() => void>();
   const loading = new Map<string, Promise<void>>();
+  /** Each catalog's imports of its entry so far: a later one takes a URL of its own. */
+  const imports = new Map<string, number>();
 
   /** The table as last read; a failed read is not kept, so the next asks again. */
   let table: Promise<CatalogRow[]> | undefined;
@@ -120,9 +123,13 @@ export function createCatalogLoader({
     const interfaceErrors = checkHostInterface(String(descriptor.hostInterface));
     if (interfaceErrors.length > 0) throw new Error(interfaceErrors.join('; '));
     const entry = typeof descriptor.entry === 'string' ? descriptor.entry : row.entry;
+    const attempt = (imports.get(catalogId) ?? 0) + 1;
+    imports.set(catalogId, attempt);
+    const entryUrl = new URL(entry, base);
+    if (attempt > 1) entryUrl.searchParams.set('attempt', String(attempt));
     let module: Record<string, unknown>;
     try {
-      module = await importModule(new URL(entry, base).href);
+      module = await importModule(entryUrl.href);
     } catch (err) {
       throw new Error(`the artifact's entry did not run: ${describe(err)}`);
     }
