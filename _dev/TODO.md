@@ -171,7 +171,8 @@ Spec: `_dev/docs/spec/phase-11-app-bundle-registry.md`.
 - [x] **11.7** `[apps]` — `manifest.json` removed from every app; Stellify as each catalog package's dev dependency at a pinned ref; `check` green on all seven; `create-a2ui-agent`'s port suggestion, which reads the sibling manifests, given another source (found in 11.6) (after 11.3; parallel with 11.4–11.6)
 - [x] **11.8** Integration + acceptance — an empty registry booted; every app installed from its card URL and its packed catalog on the deterministic roster through the tunnel, GitHub first, no code naming any of them; an install while the client is open landing without reload; uninstall and install-over; composition over runtime-loaded catalogs — merges land, a merged value navigates to its element, the collision detector holds; a clean regression pass; attribution showing each card's own `name`, the display name since 11.4; the write-up (after 11.6 and 11.7)
 - [x] **11.9** Design records + READMEs — `docs/design/app-install.md` over one running example, the GitHub app installed from its card and its artifact; `orchestrator.md` and `client.md` pointing to it; the sdk's, the client's and the orchestrator's READMEs; the phase spec's decisions amended by 11.8 (after 11.8)
-## Phase 12 — Authority surfaces
+
+## Phase 12 — Authority surfaces [WIP]
 Auth-required → authority tile, consent dialog, AuthVault, credential components barred from all catalogs (M8). Expand the orchestrator's slot naming policy for multi-account: slot names derived from appId alone stop being collision-free once one app can fan out under two accounts.
 
 ## Phase 13 — Marketplace + publish
