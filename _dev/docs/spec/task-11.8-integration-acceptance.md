@@ -112,7 +112,7 @@ A press on Linear's row in a canvas drawn before Linear was uninstalled failed `
 
 ### Before the live run
 
-- **The gate of decision 4.** Green in `pnpm verify`. Its allow-list, each entry the only place it found a naming: `apps/client/src/beats/` — the replay's fixture data, the recorded and hand-authored beats carrying the app ids, surfaces and catalog ids they were painted with (183 lines); the Planner's worked examples (10 lines) and the Synthesizer's (8 lines), authored over fixture cards and sources, routing nothing.
+- **The gate of decision 4.** Green in `pnpm verify`. Its allow-list, each entry the only place it found a naming: `apps/client/src/beats/` — the replay's fixture data, the recorded and hand-authored beats carrying the app ids, surfaces and catalog ids they were painted with (183 lines); the Planner's worked examples (10 lines) and the Synthesizer's (8 lines), authored over fixture cards and sources, routing nothing. The reader kept the two prompts' entries: on the empty registry of Case 1 the Planner named a gap rather than dispatching to an app its examples name.
 - **The flag of decision 5.** Tested in `scripts/launch-plan.test.mjs`; documented in the root README and `_dev/docs/tunnel-environment.md`.
 - **`pnpm verify`.** Green: 19 of 19 tasks, 26 script tests. One run failed the orchestrator's quiescence heartbeat test (task 8.10), which passed alone three times out of three and in the next run.
 - **The Playwright suite against the 11.5 baselines.** 74 of 74 passed, no diff, before decision 18 and again over the snapshot rebuilt with it.
