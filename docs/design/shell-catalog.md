@@ -63,7 +63,7 @@ The basic catalog's eighteen components are all here, **with upstream's props ex
 | `Row`, `Column`, `List` | `Flex` | Radix names four of the seven `justify` values as props; the other three are set as CSS on the same element |
 | `Card`, `Divider`, `Tabs`, `Slider` | `Card`, `Separator`, `Tabs`, `Slider` | only the selected tab's panel mounts |
 | `Modal` | `Dialog` | its content mounts inside the catalog's own portal root |
-| `Button` | `Button` | `default` is `surface` gray, `primary` is `solid`, `borderless` is `ghost` |
+| `Button` | `Button` | `default` is `surface` gray, `primary` is `solid`, `borderless` is `ghost`; it keeps its label's width, at most its container's, so a `Column`, which stretches its children across by default, never draws a button across the page |
 | `TextField`, `CheckBox`, `DateTimeInput` | `TextField` or `TextArea`, `Checkbox`, a native date input | the first failing check shows under the field in red |
 | `ChoicePicker` | `RadioGroup`, `CheckboxGroup`, `SegmentedControl`, or toggle `Button`s | one control per combination of one-or-many and checkbox-or-chips |
 | `Icon` | Radix Icons | an unknown icon name draws a question mark carrying the name |
@@ -304,7 +304,7 @@ The arrows are soft accent icon buttons at the right edge of the name's row, wit
 
 The shell has exactly two actions of its own: **`openStore`**, with an optional `query`, and **`openAppLibrary`**. Each is a catalog function, like the basic catalog's `openUrl`, that a `Button` runs through a `functionCall`. The function does nothing itself: it hands the host one plain object, `{name, surfaceId, query?}`, through `onShellAction`, and the host decides what opening the Store looks like.
 
-The capability tile is the one component that raises an action itself. A `Slot` with a `gap` (a capability no installed app has) draws "No installed app can do this." over a "Search the Store" button, which raises `openStore` with the gap as the query and the slot's own id as `componentId`. The tile keeps a box, unlike every other slot, because it's the shell's own UI with an action in it, not a place held for an app's pixels.
+The capability tile is the one component that raises an action itself. A `Slot` with a `gap` (a capability no installed app has) draws "No installed app can do this." beside a "Search the Store" button, which raises `openStore` with the gap as the query and the slot's own id as `componentId`. The tile keeps a box, unlike every other slot, because it's the shell's own UI with an action in it, not a place held for an app's pixels. The box hugs its line and its button at the slot's leading edge, where a failure tile's line sits, and wraps the button under the line only when the slot is too narrow for both.
 
 ### Keeping the files in step
 

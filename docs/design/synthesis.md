@@ -565,7 +565,7 @@ A merged view that can't be shown collapses to **one line** where its label woul
 Around a view that did land:
 
 - **A late app** fills its own slot for free. The view stays as it is, the late app's column reads "not included", and a line above the view offers **Include**, which runs a re-synthesis folding it in.
-- **Retry** asks one failed app again with its original request.
+- **Retry** asks one failed app again: the click inside its answer that failed, when one did, otherwise its original request.
 - **Try again** makes a merge whose model call failed, over every app that arrived.
 - A re-synthesis that fails **keeps the landed view** and says so beside the press that tries again.
 

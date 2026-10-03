@@ -103,7 +103,7 @@ flowchart TD
 
 **4. The layout lands.** An event stamped `role: "shell"` creates `shell:main`: a `Column` with a `Slot` for the merged view and, under a `Row`, an `Attribution` around each app's `Slot`. The slots are all `pending`, so the screen shows three waiting regions and, for the merged view, the planned column headers over skeleton rows. The progress line shows a spinner beside each app's name, then "Joining Linear issues to GitHub PRs and CircleCI runs".
 
-**5. The apps fill their slots.** Each app's events arrive stamped `role: "fragment"` with its `source`. The first `createSurface` from Linear claims Linear's slot: the client records `linear → linear:linear-1` in the **placement map**, and the slot renders the boundary, Linear's Provider, and the surface. Its step on the progress line ticks as soon as its surface is placed, and its `settled` marker, when its stream ends, is where the client judges whether its paint could be drawn. The apps arrive in whatever order they finish.
+**5. The apps fill their slots.** Each app's events arrive stamped `role: "fragment"` with its `source`. The first `createSurface` from Linear claims Linear's slot: the client records `linear → linear:linear-1` in the **placement map**, and the slot renders the boundary, Linear's Provider, and the surface. Its step on the progress line ticks as soon as its surface is placed, and its `settled` marker, when its stream ends, is where the client judges whether its paint could be drawn. The apps arrive in whatever order they finish. A surface in a catalog the page hasn't loaded yet waits at the **catalog gate** first, its slot loading, until the catalog has loaded.
 
 **6. The merged view lands.** The last fragment is stamped `source: "shell"`: `shell:synthesis`, the merged view's tree as ordinary A2UI, with its formulas riding beside the stamp on the same event. The client hands the formulas to the answer's **synthesis session**, which evaluates every cell before React renders, so the table's first frame already has its values. The progress line settles on "Joined Linear issues to GitHub PRs and CircleCI runs".
 
@@ -179,19 +179,12 @@ Two rules adapt it to composition:
 
 ### Catalogs arrive at runtime
 
-The client compiles no vendor catalog in. Its own two, the shell catalog and the standard basic catalog, are built at startup; every other catalog is a **catalog artifact** the orchestrator serves under `/registry`: a descriptor (`artifact.json`), the catalog schema, one ES module and its stylesheets and fonts, packed from the vendor's catalog package by Stellify.
+The client compiles no vendor catalog in. Its own two, the shell catalog and the standard basic catalog, are built at startup; every other catalog is a **catalog artifact** the orchestrator serves under `/registry`: a descriptor (`artifact.json`), the catalog schema, one ES module and its stylesheets and fonts, packed from the vendor's catalog package by Stellify. [`app-install.md`](app-install.md#loading-in-the-client) follows one from GitHub's install to its first paint. In brief:
 
-**The host-module interface.** An artifact leaves React, react-dom, the A2UI runtime and zod out of its bundle and reads them from one global object, `__a2uiverse_host__`, which `catalogs/host.ts` registers before any artifact loads: the client's own module namespaces, so the page has one React and one A2UI runtime, and `loadStylesheet`, which the artifact's rewritten stylesheet imports call. It appends one `<link>` per URL in call order and resolves when the sheet has loaded.
-
-**The loader** (`catalogs/loader.ts`) turns the registry into catalogs:
-
-1. It reads the catalog table, `catalogs.json`, never from the browser's cache: the table changes with every install.
-2. For a catalog it doesn't hold, it reads the artifact's `artifact.json` and checks the interface version the artifact was built against.
-3. It imports the entry from its served URL, never from a blob, because the entry's own URL is the base its stylesheet loads resolve against.
-4. It checks the running code: the module exports `CATALOG` (and at most one `Provider`), and `CATALOG.id` is the id the table listed.
-5. It wraps the catalog for navigation and pushes it into the one array every processor reads, and the render layer's Provider table updates.
-
-The preload loads every artifact the table lists, in the background from boot. A catalog the table doesn't list sends the loader back to the table once, so an install made while the page is open is found without a reload. One load is in flight per catalog; a failed load isn't kept, so the next arrival tries again; and the first load of a catalog wins for the session, so an install-over of a catalog shows after a reload.
+- **The host-module interface** goes on the page first (`catalogs/host.ts`): one global object, `__a2uiverse_host__`, carrying the client's own React, react-dom, A2UI runtime and zod, which an artifact reads instead of bundling its own, so the page has one of each, and `loadStylesheet`, which the artifact's rewritten stylesheet imports call, one `<link>` per URL in call order.
+- **The loader** (`catalogs/loader.ts`) reads the catalog table, past the browser's cache, since it changes with every install. For each artifact it reads the descriptor, imports the entry from its served URL (never a blob: the entry's own URL is the base its stylesheets resolve against), checks the running code (the module exports `CATALOG` with the id the table listed, and at most one `Provider`), and pushes the catalog into the one array every processor reads.
+- **The preload** loads every artifact the table lists, in the background from boot. A catalog the table doesn't list sends the loader back to the table once, so an install made while the page is open is found without a reload. One load is in flight per catalog; a failed load isn't kept, so the next arrival tries again; and the first load of a catalog wins for the session, so an install-over of a catalog shows after a reload.
+- **Every request of a load is bounded.** A request with no answer in 10 seconds, 30 for the entry, is asked once more, then the load fails. A stylesheet or an entry asked again goes under a URL of its own, `?attempt=N`, since the browser would answer the same URL from a request still unanswered or a module that already failed.
 
 **The catalog gate** (`catalogs/catalogGate.ts`) sits in front of each answer's turn runner. A batch whose catalogs are all held passes straight through. A batch that creates a surface in a catalog not held yet is held, with everything the answer receives after it, on the turn or a stream beside it, in order, until the catalog loads. Meanwhile the fragment hasn't claimed its slot, so the slot shows its loading state, and the fragment's tick on the progress line waits too. If the catalog can't be loaded, the gate drops the fragment's messages and the answer reports a **catalog load failure** to the orchestrator, which fails the slot with the `load` cause: "Something went wrong loading this.", with Retry.
 
@@ -432,6 +425,7 @@ The merged view is explained end to end in [`synthesis.md`](synthesis.md). The c
 | **No vendor catalog compiled in** | Installing an app needs no client build; the client names no app | Every vendor catalog is a network load, and a reload loads them again |
 | **A catalog gate in front of each answer's runner** | The turn runner stays synchronous; ordering across the turn and its side streams is kept whole | While one catalog loads, everything after it in that answer waits |
 | **The first load of a catalog wins for the session** | Every answer renders a catalog the same way; two versions' stylesheets never meet | An install-over of a catalog shows after a reload |
+| **Every request of a catalog load bounded** | A request nothing answers fails its slot, with Retry, instead of leaving it loading for good | A load through a very slow link can fail where waiting longer would have worked |
 | **The render waits for nothing** | The shell paints at once, registry up or not | A fragment can show loading while its catalog arrives |
 | **Placement by the stamp's `source`** | No component tree points into another surface; a slot and its fragment meet by name | The orchestrator must stamp every event |
 | **Hold-and-swap, with a staging processor as the validator** | A broken or half-built paint never replaces a good one | A staged paint shows only when it's complete |
@@ -451,7 +445,7 @@ The merged view is explained end to end in [`synthesis.md`](synthesis.md). The c
 - **Visual containment isn't DOM containment.** A vendor component that is `position: fixed` paints over the whole canvas while its DOM stays inside its boundary; Primer's `ConfirmationDialog` does exactly this. The detector checks DOM ownership, not painted bounds.
 - **A vendor component can still declare `aria-modal`.** The shell puts up no modal for a promoted slot, but a vendor's own dialog can hide the rest of the canvas from assistive technology.
 - **Test setup is shaped around Primer.** `setupTests.ts` shims exist because `github-catalog`'s Primer components need them under jsdom.
-- **A loading catalog holds its whole answer.** The gate keeps order by holding everything the answer receives after a batch whose catalog is loading, so other apps' fragments wait behind it too.
+- **A loading catalog holds its whole answer.** The gate keeps order by holding everything the answer receives after a batch whose catalog is loading, so other apps' fragments wait behind it too, until the load lands or fails.
 - **Through the tunnel, a reload loads every artifact again.** The tunnel adds its own `Cache-Control: no-cache,no-store` beside the orchestrator's immutable header, so the browser keeps no artifact across reloads there; within a page, each is loaded once.
 - **A design system's own sheets aren't held to the read rule.** They read variables their components set inline through `style`, which a static scan can't see, so the read rule checks only a catalog's own sheets; the write and duplicate rules check every sheet an artifact carries.
 - **jsdom applies no artifact stylesheet.** The tests' host records each stylesheet an artifact asks for and resolves; the cascade is the Playwright layer's.
@@ -531,4 +525,6 @@ Recorded beats live in `apps/client/recordings/beats/`, taken through the orches
 | **Host-module interface** | The global object an artifact reads the page's React, A2UI runtime and zod from, and loads its stylesheets through |
 | **Catalog loader** | What reads the registry's table and turns each artifact into a catalog the processors can use |
 | **Catalog gate** | The holder in front of an answer's turn runner: a batch waits there while a catalog it needs loads |
+| **Catalog table** | Each catalog id and where it comes from: the client itself, or an installed artifact |
+| **Catalog load failure** | The client's report that a catalog couldn't load, which fails the app's slot with the `load` cause |
 | **Registry snapshot** | The catalog table and the packed artifacts the tests and e2e load, generated from the apps repo at one pinned commit |
