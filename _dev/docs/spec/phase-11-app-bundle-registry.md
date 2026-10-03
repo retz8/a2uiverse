@@ -57,11 +57,11 @@ The platform app id — the provenance tag, the surface namespace, the vault key
 
 ### 11. One writer: the orchestrator owns the registry
 
-Install, uninstall and install-over are orchestrator operations exposed over `orchestratorApi`, which becomes HTTP and also serves the installed list, the catalog table and the artifacts. A thin command wraps the operations for M7; the Store page at M10 and the store loop at M11 call the same ones. A change is live at once: the Planner's installed-apps reader and the Router see it on the next turn. The write operations take a local token the orchestrator writes into its state directory at startup; the command and the launcher read it from there (task 11.4).
+Install, uninstall and install-over are orchestrator operations exposed over `orchestratorApi`, which becomes HTTP and also serves the installed list, the catalog table and the artifacts. A thin command wraps the operations for M7; the Store page at M10 and the store loop at M11 call the same ones. A change is live at once: the Planner's installed-apps reader and the Router see it on the next turn. The write operations take a local token the orchestrator writes into its state directory at startup; the command and the launcher read it from there (task 11.4). Install answers with what it changed — installed, updated or reinstalled; the card's version and each catalog's artifact, old → new where they moved; "nothing changed" when the card and the catalogs are as they were — and the command and the launcher print it (task 11.8, decision 22).
 
 ### 12. Install, uninstall and install-over semantics
 
-Install refuses the whole app on any uncovered catalog id or any failed static check. Installing an id already held replaces its card and artifacts in place. A new hash for a held catalog id is accepted only when no other installed app names that id; otherwise install refuses, naming the apps that hold it (task 11.4). Uninstall removes the app's card and record; a catalog artifact stays in the table while another installed card names it and goes when none does — the basic catalog and the shell catalog never go. Canvases already composed over the app keep what they hold; a dispatch already running when its app is uninstalled finishes, checked against the entitlement it was sent under, and a new dispatch to an uninstalled app fails into the failure tile with a not-installed cause of its own, Retry kept (task 11.4).
+Install refuses the whole app on any uncovered catalog id or any failed static check. Installing an id already held replaces its card and artifacts in place. A new hash for a held catalog id is accepted only when no other installed app names that id; otherwise install refuses, naming the apps that hold it (task 11.4). Uninstall removes the app's card and record; a catalog artifact stays in the table while another installed card names it and goes when none does — the basic catalog and the shell catalog never go. Canvases already composed over the app keep what they hold; a dispatch already running when its app is uninstalled finishes, checked against the entitlement it was sent under, and a new dispatch to an uninstalled app fails into the failure tile with a not-installed cause of its own, Retry kept (task 11.4). Retry sends again what failed: the action inside the fragment that failed, kept on its slot until an action or a Retry there completes, otherwise the slot's request from the plan (task 11.8, decision 23).
 
 ### 13. Three gates
 
@@ -69,7 +69,7 @@ Install verifies everything the files alone can prove: the descriptor conforms; 
 
 ### 14. The client preloads at boot and loads lazily after
 
-The client reads the catalog table at boot and loads every artifact; a surface arriving in a catalog not yet loaded triggers the fetch, its slot pending meanwhile, the implementation cached for the session. An install while the client is open needs no reload. The orchestrator serves each artifact as immutable content. The client imports each artifact's entry from its served URL, never from a blob: the entry's own URL is the artifact's base URL, which its stylesheet loads resolve against (task 11.3). A surface in a catalog the registry does not hold fails that slot.
+The client reads the catalog table at boot and loads every artifact; a surface arriving in a catalog not yet loaded triggers the fetch, its slot pending meanwhile, the implementation cached for the session. An install while the client is open needs no reload. The orchestrator serves each artifact as immutable content. The client imports each artifact's entry from its served URL, never from a blob: the entry's own URL is the artifact's base URL, which its stylesheet loads resolve against (task 11.3). A surface in a catalog the registry does not hold fails that slot. Every request of a load is bounded: the table, the descriptor and each stylesheet are asked once more after 10 s with no answer, the entry after 30 s, then the load fails its slots with Retry; the table and the descriptor are read past the browser's cache, and a stylesheet asked again or an entry loaded after a failed load goes under a URL of its own (task 11.8, decision 20).
 
 ### 15. The orchestrator boots from its persisted registry alone
 
@@ -77,11 +77,11 @@ A fresh state directory is an empty registry, and empty is a valid platform: the
 
 ### 16. The dev harness installs, the orchestrator does not know the checkout
 
-The launcher holds a dev roster naming each app to auto-install from the apps checkout — its id, its folder, its tier, the mocks only when their tier is on. On launch it assigns each a port, starts it, packs its catalog and installs it through the orchestrator's operation. `A2UIVERSE_AGENTS_DIR` is the launcher's input, not the orchestrator's. E2e and replays read the registry table and artifacts over `orchestratorApi` from a **registry snapshot** — the table plus the artifacts — generated from the apps repo at a pinned ref through pnpm into a git-ignored directory, never committed, and the client's tests load it too (task 11.5); dev replays use the live orchestrator.
+The launcher holds a dev roster naming each app to auto-install from the apps checkout — its id, its folder, its tier, the mocks only when their tier is on. On launch it starts each on the port its roster entry fixes (task 11.6), packs its catalog and installs it through the orchestrator's operation. `A2UIVERSE_AGENTS_DIR` is the launcher's input, not the orchestrator's. E2e and replays read the registry table and artifacts over `orchestratorApi` from a **registry snapshot** — the table plus the artifacts — generated from the apps repo at a pinned ref through pnpm into a git-ignored directory, never committed, and the client's tests load it too (task 11.5); dev replays use the live orchestrator. Stellify files a package's own files by their path below the package root wherever the package sits, so a catalog packed installed in a `node_modules` files them as in its checkout (task 11.8, decision 18); the snapshot's artifact of a catalog equals its publisher's where both installs resolve every bundled dependency at the same path and version. The launcher's `--no-install` starts the agents and builds, packs, installs and uninstalls nothing, for installs by hand through the command (task 11.8, decision 5).
 
 ### 17. Proof
 
-Every app, GitHub first, installed from its card URL and its packed catalog, with no line of client or orchestrator code naming it.
+Every app, GitHub first, installed from its card URL and its packed catalog, with no line of client or orchestrator code naming it. A test in `pnpm verify` searches the runtime source of the client, the orchestrator and the shell catalog for every roster app id, catalog id and catalog package name, against a short allow-list (task 11.8, decision 4).
 
 ### 18. Docs
 
@@ -94,4 +94,5 @@ SPEC §9.1 (the bundle becomes the catalog artifact; the card is the app), §10 
 
 ## Open items
 
-- Ownership of an app id and of a catalog id in the marketplace's index — who may publish or replace the artifact for an id — is a Phase 13 rule.
+- Ownership of an app id and of a catalog id in the marketplace's index — who may publish or replace the artifact for an id, and so how one publisher updates a catalog several of its apps name — is a Phase 13 rule.
+- How an app update is discovered and accepted, and the window between an agent's new card and its install-over, belong to Phases 13 to 15 (task 11.8).
