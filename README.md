@@ -83,7 +83,7 @@ Clicking into something inside an app, like a CI run, paints a new screen in its
 
 ### Any A2UI agent can join
 
-**App = MCP server + Agentic BFF + A2UI catalog.** Five apps, GitHub, Gmail, Google Calendar, CircleCI and Linear, live in [`a2uiverse-apps`](https://github.com/retz8/a2uiverse-apps), with a kit to build agents on and a scaffolder for new apps. On the way to the screen, an app's A2UI is changed only where two apps could collide, so an A2UI agent takes part with no changes to its code.
+**App = MCP server + Agentic BFF + A2UI catalog.** Five apps, GitHub, Gmail, Google Calendar, CircleCI and Linear, live in [`a2uiverse-apps`](https://github.com/retz8/a2uiverse-apps), with a kit to build agents on and a scaffolder for new apps. On the way to the screen, an app's A2UI is changed only where two apps could collide, so an A2UI agent takes part with no changes to its code. An app is installed into a running platform from its agent card and its catalog, packed by Stellify: the client loads the catalog when it's first needed, and nothing in A2UIVerse's code names an app.
 
 ## How it works
 
@@ -115,7 +115,7 @@ The client talks only to the orchestrator, and the orchestrator to the apps. One
 | [`packages/registry-snapshot`](packages/registry-snapshot/) | The catalog table and the seven catalog packages, packed, at one pinned commit, for the tests and replays   |
 | [`a2uiverse-apps`](https://github.com/retz8/a2uiverse-apps) | The apps, their agent kit and the scaffolder, in their own repo                                             |
 
-Going deeper: **[SPEC.md](SPEC.md)** is the full design, and [`docs/design/`](docs/design/) has a guide to each part: the [synthesis](docs/design/synthesis.md) behind the merged view, the [client](docs/design/client.md), the [orchestrator](docs/design/orchestrator.md), the [shell catalog](docs/design/shell-catalog.md) and the [agent kit](docs/design/agent-kit.md).
+Going deeper: **[SPEC.md](SPEC.md)** is the full design, and [`docs/design/`](docs/design/) has a guide to each part: the [synthesis](docs/design/synthesis.md) behind the merged view, the [client](docs/design/client.md), the [orchestrator](docs/design/orchestrator.md), the [shell catalog](docs/design/shell-catalog.md), the [agent kit](docs/design/agent-kit.md) and [app install](docs/design/app-install.md).
 
 ## Getting it running
 
@@ -201,9 +201,8 @@ A pnpm workspace with Turborepo over it. Each package's README has its own comma
 
 ## Where it's headed
 
-What's built so far is the composed screen. Next comes the ecosystem around it:
+What's built so far is the composed screen, and installing an app into it from its card and its packed catalog. Next comes the rest of the ecosystem around it:
 
-- **Apps as bundles**: an app installed locally as one package, and the list of apps no longer written into the code.
 - **Sign-in the shell owns**: when an app needs access, a tile and a consent dialog drawn by the shell, never by the app, with credentials kept in a vault.
 - **A marketplace**: a local index of published apps, package hosting, a publish step, and a new app tried out by rendering its first screen.
 - **Store and App Library pages**: trusted pages to browse and install apps, and to manage installed ones and their accounts.

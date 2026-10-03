@@ -30,7 +30,7 @@ flowchart LR
 
 An app is an A2A agent, installed from its agent card. The orchestrator keeps the registry of installed apps in its state directory: each app's card, the URL it came from, and the catalogs it paints in. It's the registry's only writer, through three operations over HTTP: install, uninstall, and install over an app already installed.
 
-- **Install fetches the card** and stores it as written. Any catalog the card names that the client doesn't already have comes with it as a catalog artifact, which is what Stellify packs. Install checks everything the files can prove, and refuses the whole app on any failure, listing every reason at once.
+- **Install fetches the card** and stores it as written. Every catalog the card names, the standard basic catalog aside, comes with it as a catalog artifact, which is what Stellify packs. Install checks everything the files can prove, and refuses the whole app on any failure, listing every reason at once. It answers with one line saying what it changed.
 - **An install is live at once.** The next question can route to the app, with no restart.
 - **A fresh state directory is an empty registry**, and that's a valid platform. Only A2UIVerse's own card is there to answer.
 - **Installs persist.** At every startup the orchestrator reads the registry, checks each artifact's files against their hashes, and fetches each card again. A damaged registry stops the startup with the file and the problem named.
@@ -77,7 +77,7 @@ The orchestrator runs each fact against the apps' data before accepting the row;
 
 ### Stays honest when apps are slow or fail
 
-- **One app failing never fails the rest.** Its slot says why (the app's own words, unreachable, timed out, or a paint the client couldn't draw) and offers Retry, and its data leaves the merge.
+- **One app failing never fails the rest.** Its slot says why (the app's own words, unreachable, timed out, a paint the client couldn't draw, a catalog the client couldn't load, or the app uninstalled since) and offers Retry, and its data leaves the merge. Retry sends again what failed: the click inside the app's answer, when a click failed, otherwise the app's request from the plan. A paint in a catalog the app isn't entitled to fails its slot with no Retry.
 - **The merge doesn't wait forever.** Once two apps have answered, 10 seconds with no further answer releases the merge over what arrived. A late app still fills its own slot, and Include folds it into the merge. After 300 seconds an app's slot fails; an answer arriving later is kept until Retry. When the merge is built around one app's items, that app is always waited for.
 - **Only the first merge is automatic.** Every later model call has a press behind it: Retry, Include or Try again. The merged view never changes without a visible reason.
 
@@ -138,14 +138,22 @@ pnpm --filter @a2uiverse/orchestrator build | typecheck | test | lint
 It listens on port **10001** and starts from whatever its registry holds, nothing at first. Install an app while it runs, with the app's agent up and its catalog packed by Stellify:
 
 ```bash
-pnpm --filter @a2uiverse/orchestrator registry install gmail http://localhost:11002/.well-known/agent-card.json ../a2uiverse-apps/gmail/gmail-catalog/dist/artifact
-pnpm --filter @a2uiverse/orchestrator registry uninstall gmail
+pnpm --filter @a2uiverse/orchestrator registry install github http://localhost:11001/.well-known/agent-card.json ../a2uiverse-apps/github/github-catalog/dist/artifact
+pnpm --filter @a2uiverse/orchestrator registry uninstall github
 pnpm --filter @a2uiverse/orchestrator registry list
 ```
 
-Install takes the app's id, its card's full URL, and a directory for each catalog its card names that the client doesn't already have. An app on the basic catalog needs none. Installing an id that's already installed replaces it. The command reads the write token the orchestrator puts in its state directory at startup, so it only works against an orchestrator running on the same state directory.
+Install takes the app's id, its card's full URL, and a directory for each catalog its card names other than the basic catalog, as `stellify pack` wrote it. An app on the basic catalog needs none. Installing an id that's already installed replaces it. The command prints what the install changed, in one line:
 
-**Agent cards are fetched at startup**: an app whose agent is down then stays installed but can't be asked anything until the orchestrator restarts or the app is installed again. It names any app it couldn't reach, so if nothing gets routed, read that line first.
+```text
+installed github · card 0.1.0 · catalog sha256-muNbmR5m…
+updated github · card 0.1.0 · catalog sha256-muNbmR5m… → sha256-bYxc_jOA…
+reinstalled github · nothing changed · card 0.1.0 · catalog sha256-muNbmR5m…
+```
+
+A refusal prints every finding, one per line, and exits 1. The command reads the write token the orchestrator puts in its state directory at startup, so it only works against an orchestrator running on the same state directory.
+
+**Agent cards are fetched at startup**: an app whose agent is down then stays installed but can't be routed to until the orchestrator restarts or the app is installed again. It names any app it couldn't reach, so if nothing gets routed, read that line first.
 
 The registry's routes, all under `/registry`:
 
@@ -169,7 +177,7 @@ The registry's routes, all under `/registry`:
 | Synthesizer   | `src/synthesizer/` | The second model call: the merged view's wiring, validated, with one retry                                                                                                                                  |
 | Composition   | `src/composition/` | One composition per context, the shell's own paints, the relay, each app's data, when to merge, the presses, the fragment histories, and which refs still hold                                              |
 | AgentsPool    | `src/agentsPool/`  | The connections to the apps: requests, time limits, cancel                                                                                                                                                  |
-| IntentJournal | `src/journal/`     | One line per turn, appended to `STATE_DIR/intent-journal.jsonl`                                                                                                                                             |
+| IntentJournal | `src/journal/`     | One line per turn, and one per install, uninstall or refusal, appended to `STATE_DIR/intent-journal.jsonl`                                                                                                  |
 | Executor      | `src/executor.ts`  | The A2A entry point that runs it all                                                                                                                                                                        |
 
 The Planner and the Synthesizer run on Gemini through the Vercel AI SDK.
@@ -198,4 +206,4 @@ The Planner and the Synthesizer run on Gemini through the Vercel AI SDK.
 
 </details>
 
-The design record, with every step of a turn, is [`docs/design/orchestrator.md`](../../docs/design/orchestrator.md).
+The design record, with every step of a turn, is [`docs/design/orchestrator.md`](../../docs/design/orchestrator.md). How an app is installed, from Stellify's pack to the client's load, is [`docs/design/app-install.md`](../../docs/design/app-install.md).

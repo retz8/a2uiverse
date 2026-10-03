@@ -1,7 +1,7 @@
 {
   "name": "@a2uiverse/sdk",
   "version": "0.3.0",
-  "description": "The A2UIVerse composition contract between orchestrator and client, and generic A2UI tools.",
+  "description": "The A2UIVerse platform contracts — composition between orchestrator and client, and the catalog export and artifact contracts — and generic A2UI tools.",
   "license": "MIT",
   "repository": {
     "type": "git",

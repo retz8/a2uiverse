@@ -1,6 +1,6 @@
 # @a2uiverse/sdk
 
-The contract between A2UIVerse's orchestrator and its canvas client, and generic A2UI tools. The orchestrator, the client and the shell catalog use it.
+The contracts A2UIVerse's platform shares, and generic A2UI tools: what the orchestrator adds around the A2UI it relays to the client, and what a catalog package, Stellify, the registry and the client agree a catalog artifact is. The orchestrator, the client, the shell catalog, Stellify and the registry snapshot use it.
 
 ## What's in it
 
@@ -9,7 +9,8 @@ The contract between A2UIVerse's orchestrator and its canvas client, and generic
 - **Synthesis**: the merged view's wiring, with its schema and validator. The wiring is formulas over refs into each app's data, match claims that say which entries are one thing, and sorts.
 - **Resolution**: pointers with key predicates, like `/threads[id="1a06f2"]/time`, resolved against a data model.
 - **A2UI tools**: an A2UI v0.9.1 validator that follows upstream's, and catalog pruning.
-- **Catalogs**: what a catalog package exposes (`CATALOG`, an optional `Provider`), what the client lends a loaded catalog (the host-module interface keyed by A2UI version — `0.9.1`, seven specifiers), the catalog artifact's descriptor with its validator and file checks, and the checks the registry and the marketplace share — two-directional coverage over a card's `supportedCatalogIds`, each app's catalog entitlement, the app id's grammar and claim, the credential lint over a schema. The app itself is its A2A AgentCard; nothing here describes one.
+- **Catalogs**: what a catalog package exposes (`CATALOG`, an optional `Provider`), what the client lends a loaded catalog (the host-module interface keyed by A2UI version — `0.9.1`, seven specifiers and `loadStylesheet` — and which versions the platform supplies), which imports Stellify leaves to the host, bundles or refuses, and the checks over an app at install: the catalog ids a card declares, read in both of the shapes the A2UI extension's params are written in, two-directional coverage against the artifacts handed, each app's catalog entitlement, the app id's grammar and its claim, the credential lint over a schema. The marketplace runs the same checks at publish. The app itself is its A2A AgentCard; nothing here describes one.
+- **Artifacts**: the catalog artifact's descriptor, `artifact.json`, with its validator; the file hash and the artifact id, the descriptor's own hash spelled URL-safe; the checks that every listed file is there with its hash and nothing else is, that the schema's `catalogId` is the descriptor's, and that the schema compiles as an A2UI catalog.
 
 ```
 contracts/composition.v0.8.json         the composition contract — an A2A extension, versioned in its URI; the package is tested against it
@@ -65,6 +66,39 @@ if (checked.ok) {
 }
 ```
 
+### Check an app's catalogs at install
+
+```ts
+import {
+  checkCoverage,
+  coverageErrors,
+  entitlementOf,
+  readSupportedCatalogIds,
+} from '@a2uiverse/sdk';
+
+const declared = readSupportedCatalogIds(card); // the ids under the card's A2UI extension, flat or keyed by version
+if (declared.ok) {
+  const handed = [githubCatalogId]; // the catalog id of each artifact handed with the card
+  const errors = coverageErrors(checkCoverage(declared.value, handed));
+  // [] when every declared id is handed or public and every handed id is declared
+  entitlementOf(handed); // [the basic catalog's id, githubCatalogId]: what the app may paint in
+}
+```
+
+### Verify a catalog artifact's files
+
+```ts
+import {artifactIdOf, validateArtifactDescriptor, verifyArtifactFiles} from '@a2uiverse/sdk';
+
+const descriptor = validateArtifactDescriptor(
+  JSON.parse(new TextDecoder().decode(descriptorBytes)),
+);
+if (descriptor.ok) {
+  await verifyArtifactFiles(descriptor.value, files); // [] when every listed file matches its hash and nothing else is there
+  await artifactIdOf(descriptorBytes); // "sha256-muNbmR5m…": the artifact's id, the descriptor's hash spelled URL-safe
+}
+```
+
 ### Resolve a pointer
 
 ```ts
@@ -81,17 +115,21 @@ locatePointer(model, '/threads[id="1a06f2"]/time');
 
 One entry point, `@a2uiverse/sdk`.
 
-| Area           | Main exports                                                                                                                                                      | In                                   |
-| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
-| Stamp          | `CompositionStamp` (`{source, role?, settled?}`), `STAMP_KEY`, `COMPOSITION_EXTENSION_URI`, `namespaceSurfaceId`, `parseSurfaceId`, `readStamp`                   | `js/src/composition.ts`              |
-| Parent context | `CanvasParent` (`{parent}`), `canvasParentMetadata`, `readCanvasParent`                                                                                           | `js/src/composition.ts`              |
-| Paint meta     | `PaintMeta` (`{surfaceId, title?, kind?}`), `PAINT_META_MIME_TYPE`, `QUESTION_PAINT_KIND`, `clipPaintMetaTitle` (48 characters), `paintMetaData`, `readPaintMeta` | `js/src/composition.ts`              |
-| Presses        | `CompositionOperation` (`{kind, sources, step?}`), `OPERATION_KINDS` (`retry`, `include`, `tryAgain`, `step`, `close`), `operationData`, `readOperation`          | `js/src/composition.ts`              |
-| Synthesis      | `SynthesisPayload`, `Ref`, `Formula`, `MatchClaim`, `SortDeclaration`, `SYNTHESIS_SCHEMA`, `SYNTHESIS_KEY`, `readSynthesis`, `validateSynthesisPayload`           | `js/src/synthesis.ts`, `validate.ts` |
-| Resolution     | `parsePointer`, `resolvePointer`, `locatePointer`, `isFormula`, `walkModel`, `refsOf`, `reachSortPath`                                                            | `js/src/pointer.ts`, `walk.ts`       |
-| A2UI tools     | `createA2uiValidator`, `formatA2uiFinding`, `pruneCatalog`, `A2UI_SPEC_COMMIT`, and their types                                                                   | `js/src/a2ui/`                       |
+| Area           | Main exports                                                                                                                                                                                                                                                                                                                                                                                                                   | In                                   |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------ |
+| Stamp          | `CompositionStamp` (`{source, role?, settled?}`), `STAMP_KEY`, `COMPOSITION_EXTENSION_URI`, `namespaceSurfaceId`, `parseSurfaceId`, `readStamp`                                                                                                                                                                                                                                                                                | `js/src/composition.ts`              |
+| Parent context | `CanvasParent` (`{parent}`), `canvasParentMetadata`, `readCanvasParent`                                                                                                                                                                                                                                                                                                                                                        | `js/src/composition.ts`              |
+| Paint meta     | `PaintMeta` (`{surfaceId, title?, kind?}`), `PAINT_META_MIME_TYPE`, `QUESTION_PAINT_KIND`, `clipPaintMetaTitle` (48 characters), `paintMetaData`, `readPaintMeta`                                                                                                                                                                                                                                                              | `js/src/composition.ts`              |
+| Presses        | `CompositionOperation` (`{kind, sources, step?}`), `OPERATION_KINDS` (`retry`, `include`, `tryAgain`, `step`, `close`), `operationData`, `readOperation`                                                                                                                                                                                                                                                                       | `js/src/composition.ts`              |
+| Synthesis      | `SynthesisPayload`, `Ref`, `Formula`, `MatchClaim`, `SortDeclaration`, `SYNTHESIS_SCHEMA`, `SYNTHESIS_KEY`, `readSynthesis`, `validateSynthesisPayload`                                                                                                                                                                                                                                                                        | `js/src/synthesis.ts`, `validate.ts` |
+| Resolution     | `parsePointer`, `resolvePointer`, `locatePointer`, `isFormula`, `walkModel`, `refsOf`, `reachSortPath`                                                                                                                                                                                                                                                                                                                         | `js/src/pointer.ts`, `walk.ts`       |
+| A2UI tools     | `createA2uiValidator`, `formatA2uiFinding`, `pruneCatalog`, `A2UI_SPEC_COMMIT`, and their types                                                                                                                                                                                                                                                                                                                                | `js/src/a2ui/`                       |
+| Catalogs       | `CATALOG_EXPORTS`, `checkCatalogExports`, `HOST_INTERFACE_VERSION`, `SUPPORTED_HOST_INTERFACES`, `checkHostInterface`, `HOST_INTERFACE_GLOBAL`, `HOST_SPECIFIERS`, `HOST_STYLESHEET_LOADER`, `HostInterface`, `classifySpecifier`, `BASIC_CATALOG_ID`, `PUBLIC_CATALOG_IDS`, `readSupportedCatalogIds`, `clientCapabilities`, `checkCoverage`, `coverageErrors`, `entitlementOf`, `checkAppId`, `claimAppId`, `credentialLint` | `js/src/catalog.ts`                  |
+| Artifacts      | `ArtifactDescriptor`, `ARTIFACT_DESCRIPTOR_FILE`, `ARTIFACT_DESCRIPTOR_SCHEMA`, `validateArtifactDescriptor`, `hashArtifactFile`, `artifactIdOf`, `verifyArtifactFiles`, `checkArtifactSchema`, `checkCatalogSchemaCompiles`                                                                                                                                                                                                   | `js/src/artifact.ts`                 |
 
 `validateSynthesisPayload` checks the payload's shape: every leaf is a formula, every match claim relates two refs in two different apps, and every sort is well formed. Whether a relation actually holds is left to the caller.
+
+`credentialLint` matches its terms as whole words, case-insensitively, against a catalog schema's component names, prop names, enum values and constants, never its descriptions; `pin` alone is allowed, `pin code` is not.
 
 ## Commands
 
@@ -121,4 +159,5 @@ ESM, runs in Node and the browser.
 ## Further reading
 
 - [`docs/design/synthesis.md`](../../docs/design/synthesis.md): the merged view end to end.
+- [`docs/design/app-install.md`](../../docs/design/app-install.md): the catalog contracts in use, from Stellify's pack to the client's load.
 - [`docs/design/orchestrator.md`](../../docs/design/orchestrator.md) and [`docs/design/client.md`](../../docs/design/client.md): how each side uses the contract.

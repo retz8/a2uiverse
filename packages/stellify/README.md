@@ -6,8 +6,8 @@ _Stellify: to turn into a star._ Stellify packs a catalog package into the **cat
 
 - **One command to ship a catalog.** `stellify pack` bundles your built entry, your stylesheets, your fonts and icons and your catalog schema into a folder with a descriptor listing every file and its hash. That folder is what the registry installs.
 - **Your source stays yours.** You import React, `@a2ui/react` and your CSS the way you always did. Stellify rewrites those imports in the bundle, not in your files: React and the other host packages become reads from the client's shared copies, and each stylesheet import becomes a load the client performs. No wrapper to write, no build step to change.
-- **A dry run that tells the truth.** `stellify check` runs the exact same pipeline in memory, then the same checks the registry runs at install, and writes nothing. Green here means the install will be green.
-- **Same input, same bytes.** Packing the same package tree with the same Stellify version gives the same artifact, hash for hash. Two apps sharing a catalog share one row in the registry.
+- **A dry run that tells the truth.** `stellify check` runs the exact same pipeline in memory, then the same checks the registry runs over an artifact's files at install, and writes nothing. Green here means the registry's gate will pass your artifact; the install itself can still refuse the app for what lies outside the artifact, such as a card that doesn't name the catalog, or a catalog another installed app holds at another hash.
+- **Same input, same bytes.** Packing the same package tree with the same installed dependencies and the same Stellify version gives the same artifact, hash for hash, wherever the package sits, in its own checkout or installed in a `node_modules`. Two apps sharing a catalog share one row in the registry. Two installs of one package can still differ: esbuild spells each bundled module's path from the package into the entry, so a dependency resolved at another path, or at another version, changes `index.js`.
 - **Zero configuration** when your package looks like the catalog packages in [`a2uiverse-apps`](https://github.com/retz8/a2uiverse-apps): a built entry named by `exports["."]`, a schema at `catalogs/v0.9.1/catalog.json`. Anything else is a four-field config file.
 
 ## Running it
@@ -21,7 +21,7 @@ stellify pack               # writes dist/artifact/
 stellify pack --out ../packed --json
 ```
 
-Findings print one per line as `file: reason`. `--json` prints the descriptor and the findings as one object, for CI.
+Findings print one per line as `file: reason`, and any finding exits 1. `--json` prints the descriptor, the findings and the folder written (`null` under `check`) as one object, for CI. `--out` is relative to the working directory; the config's `outDir` to the package.
 
 A package that departs from the convention adds a `stellify.config.ts`:
 
@@ -29,7 +29,7 @@ A package that departs from the convention adds a `stellify.config.ts`:
 import {defineConfig} from '@a2uiverse/stellify';
 
 export default defineConfig({
-  entry: 'lib/index.js', // default: what exports["."] names
+  entry: 'lib/index.js', // default: what exports["."] names, else main
   schema: 'schema/catalog.json', // default: catalogs/v0.9.1/catalog.json
   catalogId: 'https://example.com/star/catalog.json', // must equal the schema's
   outDir: 'build/artifact', // default: dist/artifact
@@ -43,12 +43,12 @@ Every field is optional. Keep the file a plain object: one that reads the enviro
 Every failure is a finding, and all of them are reported together:
 
 1. The config has only known keys, and its `catalogId` matches the schema's.
-2. The entry exists and bundles. Any import of a host package the client does not lend is refused, with the list of what it does lend: `react`, `react/jsx-runtime`, `react-dom`, `react-dom/client`, `@a2ui/react/v0_9`, `@a2ui/web_core/v0_9`, `zod`.
+2. `package.json` has a name and a version, and names a built entry that exists and bundles. Any import of a host package the client does not lend is refused, with the list of what it does lend: `react`, `react/jsx-runtime`, `react-dom`, `react-dom/client`, `@a2ui/react/v0_9`, `@a2ui/web_core/v0_9`, `zod`.
 3. Every stylesheet reached, and every `url()` or `@import` inside it, resolves to a file inside your package or one of its dependencies.
 4. The entry exports `CATALOG`.
-5. The schema is a valid A2UI catalog: it compiles, and its `catalogId` is the one the descriptor carries.
-6. No component name, prop name or enum value in the schema is a credential word such as `password` or `otp`.
-7. The descriptor is well formed and lists every file with its hash.
+5. The schema parses, has a `catalogId`, and is a valid A2UI catalog: it compiles, and its `catalogId` is the one the descriptor carries.
+6. No component name, prop name, enum value or constant in the schema is a credential word such as `password` or `otp`.
+7. The descriptor is well formed, names the host-module interface the client lends (`0.9.1`), and lists every file with its hash.
 
 Stellify runs none of your code. Exports are read from the bundle, the id from the schema file. Whether `CATALOG.id` agrees is the client's check when it loads the artifact.
 
@@ -66,7 +66,7 @@ if (result.findings.length === 0) await writeArtifact(result);
 <details>
 <summary>What the artifact looks like</summary>
 
-The artifact mirrors your package, so nothing inside a stylesheet has to be rewritten:
+The artifact mirrors your package, so nothing inside a stylesheet has to be rewritten. Your own files keep their path from the package root, wherever the package sits; a dependency's go under the name its `package.json` gives, never pnpm's real path:
 
 ```
 artifact.json                         the descriptor: every file below with its hash
@@ -108,15 +108,20 @@ pnpm --filter @a2uiverse/stellify test        # vitest over the fixture catalog 
 <details>
 <summary>Where things are</summary>
 
-| Concern                        | File                        |
-| ------------------------------ | --------------------------- |
-| Pipeline and checks            | `src/pack.ts`               |
-| Bundler and the two rewrites   | `src/bundle.ts`             |
-| Artifact paths                 | `src/layout.ts`             |
-| Stylesheet assets              | `src/stylesheets.ts`        |
-| Config file                    | `src/config.ts`             |
-| Writer                         | `src/write.ts`              |
-| Command line                   | `src/cli.ts`, `src/main.ts` |
-| Fixture catalog and dependency | `test/fixtures/`            |
+| Concern                        | File                           |
+| ------------------------------ | ------------------------------ |
+| Pipeline and checks            | `src/pack.ts`                  |
+| Bundler and the two rewrites   | `src/bundle.ts`                |
+| Artifact paths                 | `src/layout.ts`                |
+| Stylesheet assets              | `src/stylesheets.ts`           |
+| Config file                    | `src/config.ts`                |
+| The package's entry and name   | `src/manifest.ts`              |
+| Writer                         | `src/write.ts`                 |
+| Command line                   | `src/cli.ts`, `src/main.ts`    |
+| The API and its types          | `src/index.ts`, `src/types.ts` |
+| The committed build            | `scripts/build.mjs`            |
+| Fixture catalog and dependency | `test/fixtures/`               |
 
 </details>
+
+How the artifact is installed and loaded, end to end, is in the design record [`docs/design/app-install.md`](../../docs/design/app-install.md).
