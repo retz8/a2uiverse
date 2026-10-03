@@ -54,6 +54,7 @@ describe('install', () => {
       ok: true,
       appId: 'shop-a',
       replaced: false,
+      summary: 'installed shop-a · card 0.0.0',
       notes: ['the card declares no catalogs: it paints in the basic catalog only'],
     });
     expect(registry.get('shop-a')).toEqual({
@@ -75,7 +76,7 @@ describe('install', () => {
       cardUrl: cards.serve(card),
       catalogs: [artifact],
     });
-    expect(result).toEqual({ok: true, appId: 'gmail', replaced: false, notes: []});
+    expect(result).toMatchObject({ok: true, appId: 'gmail', replaced: false, notes: []});
     expect(registry.get('gmail').entitlement).toEqual([BASIC_CATALOG_ID, GMAIL]);
     expect(registry.table()).toContainEqual({catalogId: GMAIL, artifact: id, entry: 'index.js'});
     for (const [path, bytes] of artifact) {
@@ -303,7 +304,7 @@ describe('a held catalog id', () => {
       cardUrl: cards.serve(cardFor('http://127.0.0.1:11002', {catalogs: [GMAIL]})),
       catalogs: [next],
     });
-    expect(result).toEqual({ok: true, appId: 'gmail', replaced: true, notes: []});
+    expect(result).toMatchObject({ok: true, appId: 'gmail', replaced: true, notes: []});
     expect(registry.table()).toContainEqual({
       catalogId: GMAIL,
       artifact: await idOf(next),
@@ -490,5 +491,71 @@ describe('the journal', () => {
       },
       {operation: 'uninstall', appId: 'gmail', catalogs, outcome: 'uninstalled'},
     ]);
+  });
+});
+
+describe('the install’s summary: what it changed (task-11.8 decision 22)', () => {
+  const short = (id: string) => `${id.slice(0, 'sha256-'.length + 8)}…`;
+
+  test('a first install names the card’s version and each catalog’s artifact', async () => {
+    const {registry, cards} = await fresh();
+    const artifact = await fixtureArtifact(GMAIL);
+    const result = await registry.install({
+      appId: 'gmail',
+      cardUrl: cards.serve(cardFor('http://127.0.0.1:11002', {catalogs: [GMAIL]})),
+      catalogs: [artifact],
+    });
+    expect(result.ok && result.summary).toBe(
+      `installed gmail · card 0.0.0 · catalog ${short(await idOf(artifact))}`,
+    );
+  });
+
+  test('an install over it with a new artifact is an update, old → new', async () => {
+    const old = await fixtureArtifact(GMAIL);
+    const {registry, cards} = await fresh([
+      {id: 'gmail', card: cardFor('http://127.0.0.1:11002', {catalogs: [GMAIL]}), catalogs: [old]},
+    ]);
+    const next = await fixtureArtifact(GMAIL, {version: '0.2.0'});
+    const result = await registry.install({
+      appId: 'gmail',
+      cardUrl: cards.serve(cardFor('http://127.0.0.1:11002', {catalogs: [GMAIL]})),
+      catalogs: [next],
+    });
+    expect(result.ok && result.summary).toBe(
+      `updated gmail · card 0.0.0 · catalog ${short(await idOf(old))} → ${short(await idOf(next))}`,
+    );
+  });
+
+  test('an install over it changing nothing says so', async () => {
+    const artifact = await fixtureArtifact(GMAIL);
+    const card = cardFor('http://127.0.0.1:11002', {catalogs: [GMAIL]});
+    const {registry, cards} = await fresh([{id: 'gmail', card, catalogs: [artifact]}]);
+    const result = await registry.install({
+      appId: 'gmail',
+      cardUrl: cards.serve(card),
+      catalogs: [artifact],
+    });
+    expect(result.ok && result.summary).toBe(
+      `reinstalled gmail · nothing changed · card 0.0.0 · catalog ${short(await idOf(artifact))}`,
+    );
+  });
+
+  test('a new card version and a catalog id swapped for another name both sides', async () => {
+    const old = await fixtureArtifact(GMAIL);
+    const {registry, cards} = await fresh([
+      {id: 'gmail', card: cardFor('http://127.0.0.1:11002', {catalogs: [GMAIL]}), catalogs: [old]},
+    ]);
+    const next = await fixtureArtifact(CALENDAR);
+    const result = await registry.install({
+      appId: 'gmail',
+      cardUrl: cards.serve({
+        ...cardFor('http://127.0.0.1:11002', {catalogs: [CALENDAR]}),
+        version: '0.1.0',
+      }),
+      catalogs: [next],
+    });
+    expect(result.ok && result.summary).toBe(
+      `updated gmail · card 0.0.0 → 0.1.0 · catalog ${GMAIL} ${short(await idOf(old))} gone · catalog ${CALENDAR} ${short(await idOf(next))} new`,
+    );
   });
 });

@@ -258,7 +258,7 @@ async function installLaunch(selected, running, registry, agentsDir) {
         );
       }
       installed.push(id);
-      log(answer.replaced ? `installed ${id} over the one installed` : `installed ${id}`);
+      log(answer.summary ?? `installed ${id}`);
       for (const note of answer.notes ?? []) log(`${id}: ${note}`);
     }),
   );

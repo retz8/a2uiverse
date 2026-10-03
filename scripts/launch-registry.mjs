@@ -66,7 +66,7 @@ export class Registry {
     }
   }
 
-  /** `{ok: true, replaced?, notes?}`, or `{ok: false, findings}` when the gate refuses. */
+  /** `{ok: true, replaced?, summary?, notes?}`, or `{ok: false, findings}` when the gate refuses. */
   install(body) {
     return this.#write('install', body);
   }

@@ -74,10 +74,13 @@ describe('the registry command', () => {
       cardFor('http://127.0.0.1:11002', {name: 'Gmail', catalogs: [GMAIL]}),
     );
     const result = await run(['install', 'gmail', cardUrl, dir], env);
-    expect(result).toEqual({code: 0, out: ['installed gmail'], err: []});
+    expect(result).toMatchObject({code: 0, err: []});
+    expect(result.out).toEqual([
+      expect.stringMatching(/^installed gmail · card 0\.0\.0 · catalog sha256-/),
+    ]);
     expect(registry.get('gmail').catalogs).toEqual([GMAIL]);
     const again = await run(['install', 'gmail', cardUrl, dir], env);
-    expect(again.out).toEqual(['installed gmail over the one installed']);
+    expect(again.out).toEqual([expect.stringMatching(/^reinstalled gmail · nothing changed · /)]);
   });
 
   test('a card on the basic catalog prints the note', async () => {
@@ -85,7 +88,7 @@ describe('the registry command', () => {
     const cardUrl = cards.serve(cardFor('http://127.0.0.1:12001'));
     const result = await run(['install', 'shop-a', cardUrl], env);
     expect(result.out).toEqual([
-      'installed shop-a',
+      'installed shop-a · card 0.0.0',
       'note: the card declares no catalogs: it paints in the basic catalog only',
     ]);
   });

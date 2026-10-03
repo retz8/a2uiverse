@@ -106,7 +106,12 @@ describe('install and uninstall over HTTP', () => {
       token,
     );
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ok: true, appId: 'gmail', replaced: false, notes: []});
+    expect(await response.json()).toMatchObject({
+      ok: true,
+      appId: 'gmail',
+      replaced: false,
+      notes: [],
+    });
 
     const apps = (await (await fetch(`${base}/apps.json`)).json()) as {id: string}[];
     expect(apps.map(app => app.id)).toEqual(['gmail']);

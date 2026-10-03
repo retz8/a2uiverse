@@ -60,7 +60,7 @@ export async function runRegistryCommand(argv: readonly string[], io: CommandIo)
       }
       const body = await write(base, stateDir, 'install', {appId, cardUrl, catalogs});
       if (!body.ok) return refused(io, appId, body.findings);
-      io.out(body.replaced ? `installed ${appId} over the one installed` : `installed ${appId}`);
+      io.out(body.summary ?? `installed ${appId}`);
       for (const note of body.notes ?? []) io.out(`note: ${note}`);
       return 0;
     }
@@ -91,7 +91,8 @@ export async function runRegistryCommand(argv: readonly string[], io: CommandIo)
 }
 
 type WriteAnswer =
-  {ok: true; appId: string; replaced?: boolean; notes?: string[]} | {ok: false; findings: string[]};
+  | {ok: true; appId: string; replaced?: boolean; summary?: string; notes?: string[]}
+  | {ok: false; findings: string[]};
 
 async function write(
   base: string,

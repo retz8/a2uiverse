@@ -100,6 +100,10 @@ GitHub installed with the page open, its fragment held "Loading…" for good: of
 
 On an empty registry the capability tile drew a box across the whole canvas, its one line and its small button centred in it, so it read as an empty placeholder. The tile keeps its box — task 7.9's decision 23 keeps it, SPEC §8 calling it a tile — sized to its content at the slot's leading edge, where the failure tile's line sits, the line and the button side by side. What the tile holds beyond a minimal line stays Phase 15's, as Phase 6's spec defers it. Replaced: a box stretched across the slot, its line above its button, centred.
 
+### 22. An install says what it changed
+
+The registry command printed "installed github over the one installed" for any install over a held app id, whatever it changed or did not. The install answers with a one-line summary its reader — the command and the launcher's log — prints: installed, updated or reinstalled; the card's version, old → new when it moved; each catalog's artifact, old → new when it moved, a catalog id gone or new named in full; "nothing changed" when the card and the catalogs are as they were — `updated github · card 0.1.0 · catalog sha256-muNbmR5m… → sha256-bYxc_jOA…`. Replaced: "installed <id>", with "over the one installed" on an install over a held id.
+
 ## Evidence
 
 ### Before the live run

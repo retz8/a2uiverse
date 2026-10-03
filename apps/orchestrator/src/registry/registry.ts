@@ -57,7 +57,8 @@ export interface InstallRequest {
 }
 
 export type InstallResult =
-  {ok: true; appId: string; replaced: boolean; notes: string[]} | {ok: false; findings: string[]};
+  | {ok: true; appId: string; replaced: boolean; summary: string; notes: string[]}
+  | {ok: false; findings: string[]};
 
 export type UninstallResult = {ok: true; appId: string} | {ok: false; findings: string[]};
 
@@ -239,7 +240,8 @@ export class Registry {
   }
 
   async #install({appId, cardUrl, catalogs}: InstallRequest): Promise<InstallResult> {
-    const operation = this.#records.has(appId) ? 'install-over' : 'install';
+    const previous = this.#records.get(appId);
+    const operation = previous ? 'install-over' : 'install';
     const findings = [...checkAppId(appId)];
 
     let card: AgentCard | undefined;
@@ -325,6 +327,7 @@ export class Registry {
       ok: true,
       appId,
       replaced: operation === 'install-over',
+      summary: installSummary(previous, record),
       notes: declared.length === 0 ? [BASIC_ONLY_NOTE] : [],
     };
   }
@@ -390,4 +393,49 @@ export class Registry {
       entitlement: [...record.entitlement],
     };
   }
+}
+
+/** An artifact id as a line names it: its digest's first characters. */
+const shortId = (id: string) => `${id.slice(0, 'sha256-'.length + 8)}…`;
+
+/**
+ * What an install did, in one line for whoever reads the command's or the launcher's output
+ * (task-11.8 decision 22): installed, updated or reinstalled; the card's version, old → new when it
+ * moved; each catalog's artifact, old → new when it moved, an id gone or new named in full.
+ */
+export function installSummary(
+  previous: InstalledRecord | undefined,
+  next: InstalledRecord,
+): string {
+  const version = (record: InstalledRecord) => record.card.version ?? '?';
+  const before = previous?.catalogs ?? {};
+  const parts: string[] = [];
+  parts.push(
+    previous && version(previous) !== version(next)
+      ? `card ${version(previous)} → ${version(next)}`
+      : `card ${version(next)}`,
+  );
+  if (previous) {
+    for (const [catalogId, artifact] of Object.entries(before)) {
+      if (!(catalogId in next.catalogs))
+        parts.push(`catalog ${catalogId} ${shortId(artifact)} gone`);
+    }
+  }
+  for (const [catalogId, artifact] of Object.entries(next.catalogs)) {
+    const old = before[catalogId];
+    if (!previous || old === artifact) parts.push(`catalog ${shortId(artifact)}`);
+    else if (old === undefined) parts.push(`catalog ${catalogId} ${shortId(artifact)} new`);
+    else parts.push(`catalog ${shortId(old)} → ${shortId(artifact)}`);
+  }
+  const changed =
+    previous !== undefined &&
+    (JSON.stringify(previous.card) !== JSON.stringify(next.card) ||
+      JSON.stringify(Object.entries(before).sort()) !==
+        JSON.stringify(Object.entries(next.catalogs).sort()));
+  const verb = !previous ? 'installed' : changed ? 'updated' : 'reinstalled';
+  return [
+    `${verb} ${next.id}`,
+    ...(previous && !changed ? ['nothing changed'] : []),
+    ...parts,
+  ].join(' · ');
 }
