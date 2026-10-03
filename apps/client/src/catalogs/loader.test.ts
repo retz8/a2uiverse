@@ -198,3 +198,53 @@ describe('the preload', () => {
     expect(loader.catalogs).toHaveLength(SNAPSHOT_ARTIFACTS.length + 2);
   });
 });
+
+describe('a request that gets no answer (task-11.8 decision 20)', () => {
+  const never = () => new Promise<never>(() => {});
+
+  it('asks the table once more after the timeout, and loads on that answer', async () => {
+    vi.useFakeTimers();
+    try {
+      let reads = 0;
+      const fetchJson = vi.fn(async (url: string) => {
+        if (url === `${REGISTRY}catalogs.json`)
+          return reads++ === 0 ? never() : [...CLIENT_ROWS, DEMO_ROW];
+        return {catalogId: DEMO, entry: 'index.js', hostInterface: '0.9.1'};
+      });
+      const loader = createCatalogLoader({
+        registry: REGISTRY,
+        defaults: clientCatalogs(),
+        fetchJson,
+        importModule: async () => demoModule(),
+      });
+      const loaded = loader.load(DEMO);
+      await vi.advanceTimersByTimeAsync(10_000);
+      await loaded;
+      expect(loader.has(DEMO)).toBe(true);
+      expect(reads).toBe(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('imports an entry with no answer once more under a URL of its own, then fails', async () => {
+    vi.useFakeTimers();
+    try {
+      const {loader, importModule} = fakeRegistry({module: never});
+      const failed = loader.load(DEMO);
+      const settled = failed.then(
+        () => new Error('loaded'),
+        (err: unknown) => err as Error,
+      );
+      await vi.advanceTimersByTimeAsync(30_000);
+      await vi.advanceTimersByTimeAsync(30_000);
+      expect((await settled).message).toContain('no answer in 30 s, twice');
+      expect(importModule.mock.calls.map(([url]) => url)).toEqual([
+        `${REGISTRY}artifacts/sha256-demo/index.js`,
+        `${REGISTRY}artifacts/sha256-demo/index.js?attempt=2`,
+      ]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});

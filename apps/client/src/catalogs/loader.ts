@@ -10,7 +10,10 @@
  * arriving in a catalog not yet held waits on the same load (one in flight per catalog). The first
  * load of a catalog wins for the session (decision 6); a failed load is not kept (decision 4), so
  * the next arrival tries again — its entry imported under a URL of its own, since the browser keeps
- * a module whose evaluation failed and answers its URL with the same failure (task-11.8 decision 20). A catalog the table does not list sends the loader back to the
+ * a module whose evaluation failed and answers its URL with the same failure. Every request it
+ * makes is bounded: one that gets no answer in time is asked once more, then the load fails, so a
+ * request nothing answers fails the catalog's slots rather than holding them pending (task-11.8
+ * decision 20). A catalog the table does not list sends the loader back to the
  * table once before it fails.
  */
 import type {Catalog} from '@a2ui/web_core/v0_9';
@@ -29,7 +32,42 @@ export interface CatalogLoaderOptions {
   fetchJson?: (url: string, fresh: boolean) => Promise<unknown>;
   /** Imports an artifact's entry from its served URL. */
   importModule?: (url: string) => Promise<Record<string, unknown>>;
+  /** How long a JSON read and an entry's import wait for an answer before each is asked once more. */
+  timeouts?: {json: number; entry: number};
 }
+
+/** A JSON read is small; an entry carries its design system, megabytes through a slow link. */
+export const LOADER_TIMEOUTS = {json: 10_000, entry: 30_000};
+
+/**
+ * `ask`, given `ms` to answer and asked once more if it does not: no answer to that either
+ * rejects. An answer that is an error rejects at once.
+ */
+function bounded<T>(ask: () => Promise<T>, ms: number, what: string): Promise<T> {
+  const attempt = () =>
+    new Promise<T | typeof NO_ANSWER>((resolve, reject) => {
+      const timer = setTimeout(() => resolve(NO_ANSWER), ms);
+      ask().then(
+        value => {
+          clearTimeout(timer);
+          resolve(value);
+        },
+        err => {
+          clearTimeout(timer);
+          reject(err);
+        },
+      );
+    });
+  return attempt().then(first =>
+    first !== NO_ANSWER
+      ? first
+      : attempt().then(second => {
+          if (second === NO_ANSWER) throw new Error(`${what}: no answer in ${ms / 1000} s, twice`);
+          return second;
+        }),
+  );
+}
+const NO_ANSWER = Symbol('no answer');
 
 export interface CatalogLoader {
   /** The array every processor is built over: the client's own catalogs, then each one loaded. */
@@ -64,9 +102,12 @@ function rowsOf(table: unknown): CatalogRow[] {
 export function createCatalogLoader({
   registry: registryBase,
   defaults,
-  fetchJson = httpJson,
+  fetchJson: fetchJsonOnce = httpJson,
   importModule = importFromUrl,
+  timeouts = LOADER_TIMEOUTS,
 }: CatalogLoaderOptions): CatalogLoader {
+  const fetchJson = (url: string, fresh: boolean) =>
+    bounded(() => fetchJsonOnce(url, fresh), timeouts.json, url);
   // The routes resolve against the registry as a directory.
   const registry = registryBase.endsWith('/') ? registryBase : `${registryBase}/`;
   const catalogs = defaults.map(resolved => resolved.catalog);
@@ -123,13 +164,16 @@ export function createCatalogLoader({
     const interfaceErrors = checkHostInterface(String(descriptor.hostInterface));
     if (interfaceErrors.length > 0) throw new Error(interfaceErrors.join('; '));
     const entry = typeof descriptor.entry === 'string' ? descriptor.entry : row.entry;
-    const attempt = (imports.get(catalogId) ?? 0) + 1;
-    imports.set(catalogId, attempt);
-    const entryUrl = new URL(entry, base);
-    if (attempt > 1) entryUrl.searchParams.set('attempt', String(attempt));
+    const importEntry = () => {
+      const attempt = (imports.get(catalogId) ?? 0) + 1;
+      imports.set(catalogId, attempt);
+      const entryUrl = new URL(entry, base);
+      if (attempt > 1) entryUrl.searchParams.set('attempt', String(attempt));
+      return importModule(entryUrl.href);
+    };
     let module: Record<string, unknown>;
     try {
-      module = await importModule(entryUrl.href);
+      module = await bounded(importEntry, timeouts.entry, 'its entry');
     } catch (err) {
       throw new Error(`the artifact's entry did not run: ${describe(err)}`);
     }
