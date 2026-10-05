@@ -2,9 +2,10 @@
  * The dev-only fault map (phase-8 decision 13, task-8.3 decision 14): source → one fault the
  * AgentsPool applies as it forwards that source's stream, so recorded beats and end-to-end runs
  * reach lateness, the hard cap and an answer held past it, a broken stream, a refused connection,
- * a vendor failure, a paint the client cannot draw, and a paint carrying a credential input — the
- * repair going through clean on the plan's dispatch alone, refused again with `every` (task-12.7
- * decision 9). Vendors are untouched. Read from the
+ * a vendor failure, a paint the client cannot draw, and a paint carrying a credential input — a
+ * basic-catalog surface with an obscured `TextField` added to it, the repair going through clean on
+ * the plan's dispatch alone, refused again with `every` (task-12.7 decision 9). Vendors are
+ * untouched. Read from the
  * orchestrator's environment only, never from the wire.
  */
 

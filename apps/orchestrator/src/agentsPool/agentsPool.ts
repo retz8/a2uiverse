@@ -88,6 +88,11 @@ export class AgentsPool {
   readonly #sentTo = new WeakMap<DispatchRecord, AppRecord>();
   // Keyed by client task id; a fan-out turn holds several handles under one key.
   readonly #inflight = new Map<string, Set<DispatchHandle>>();
+  /**
+   * The catalog each surface was created in, by client context, source and the vendor's surface id
+   * (task-12.7 decision 1): a later answer's update is checked against its surface's catalog.
+   */
+  readonly #catalogs = new Map<string, Map<string, Map<string, string>>>();
 
   constructor(registry: Registry, options: AgentsPoolOptions) {
     this.#registry = registry;
@@ -98,6 +103,16 @@ export class AgentsPool {
   /** A composition closed (task-9.3 decision 5): its vendor conversations are let go. */
   forget(clientContextId: string): void {
     this.#contexts.drop(clientContextId);
+    this.#catalogs.delete(clientContextId);
+  }
+
+  /** The catalog each surface a source painted in this composition was created in, by vendor id. */
+  #surfaceCatalogs(clientContextId: string, source: string): Map<string, string> {
+    let bySource = this.#catalogs.get(clientContextId);
+    if (!bySource) this.#catalogs.set(clientContextId, (bySource = new Map()));
+    let catalogs = bySource.get(source);
+    if (!catalogs) bySource.set(source, (catalogs = new Map()));
+    return catalogs;
   }
 
   dispatch(source: string, turn: DispatchTurn): DispatchHandle {
@@ -228,8 +243,11 @@ export class AgentsPool {
         }
         let headers = prepared?.headers ?? {};
         const client = await this.#connect(app);
-        // What the app's catalogs declare as options: what a painted value is matched by.
-        const declared = this.#registry.credentialOptions(app);
+        // The catalog each of the source's surfaces was created in: its options are what a
+        // painted value is matched by.
+        const catalogs = this.#surfaceCatalogs(turn.clientContextId, source);
+        const optionsFor = (catalogId: string | undefined) =>
+          this.#registry.credentialOptions(app, catalogId);
         let outgoing = withEntitlement(turn.message, app);
         let resent = false;
         // A paint carrying a credential input is never relayed (task-12.7 decisions 2, 3): what the
@@ -305,7 +323,7 @@ export class AgentsPool {
                   out = withCredentialField(event);
                   injected = out !== event;
                 }
-                found = credentialIn(out, declared);
+                found = credentialIn(out, catalogs, optionsFor);
                 if (found) {
                   foundOnTerminal = isTerminal(event);
                   break;

@@ -7,6 +7,7 @@
 import {randomUUID} from 'node:crypto';
 import type {AgentCard, Message, Part} from '@a2a-js/sdk';
 import {
+  BASIC_CATALOG_ID,
   credentialInputIn,
   describeCredentialFinding,
   type CatalogOptions,
@@ -44,15 +45,31 @@ export function repairOf(sent: Message, found: CredentialFinding): Message {
   };
 }
 
-/** The first credential input among the components an event paints, if any. */
+/**
+ * The first credential input among the components an event paints, if any, each matched against
+ * the options of the catalog its surface was created in (task-12.7 decision 1). `catalogs` holds
+ * the source's surfaces by the vendor's own ids, each with its catalog: a create in the event is
+ * learned before the updates after it are read.
+ */
 export function credentialIn(
   event: VendorEvent,
-  declared: CatalogOptions,
+  catalogs: Map<string, string>,
+  optionsFor: (catalogId: string | undefined) => CatalogOptions,
 ): CredentialFinding | undefined {
   for (const message of a2uiMessagesOf(event)) {
+    const create = message.createSurface;
+    if (
+      isObject(create) &&
+      typeof create.surfaceId === 'string' &&
+      typeof create.catalogId === 'string'
+    ) {
+      catalogs.set(create.surfaceId, create.catalogId);
+    }
     const update = message.updateComponents;
     if (!isObject(update) || !Array.isArray(update.components)) continue;
-    const found = credentialInputIn(update.components, declared);
+    const surfaceId = typeof update.surfaceId === 'string' ? update.surfaceId : undefined;
+    const catalogId = surfaceId !== undefined ? catalogs.get(surfaceId) : undefined;
+    const found = credentialInputIn(update.components, optionsFor(catalogId));
     if (found) return found;
   }
   return undefined;
@@ -118,57 +135,48 @@ export function continueUrlOf(card: AgentCard | null | undefined): string | unde
   );
 }
 
-/** The `credential` fault's component, added when the paint carries no `TextField` of its own. */
-export const CREDENTIAL_FAULT_COMPONENT = {
-  id: 'credential-fault',
-  component: 'TextField',
-  label: 'Password',
-  variant: 'obscured',
-} as const;
+/** The `credential` fault's surface: in the basic catalog, which every app may paint in. */
+export const CREDENTIAL_FAULT_SURFACE = 'credential-fault';
 
 /**
- * The `credential` fault (task-12.7 decision 9): the first `updateComponents` in the event with its
- * first `TextField` given the `obscured` variant, or one added. The same event back when it carries
- * no `updateComponents`.
+ * The `credential` fault (task-12.7 decision 9): a surface of its own in the basic catalog, an
+ * obscured `TextField` its root, added to the first event that carries an A2UI message — whatever
+ * catalog the app paints in, the bar finds it. The same event back when it carries none.
  */
 export function withCredentialField(event: VendorEvent): VendorEvent {
-  let swapped = false;
-  const swap = (parts: Part[]): Part[] =>
-    parts.map(part => {
-      if (swapped || part.kind !== 'data') return part;
-      const update = part.data.updateComponents;
-      if (!isObject(update) || !Array.isArray(update.components)) return part;
-      const components = update.components as unknown[];
-      const index = components.findIndex(c => isObject(c) && c.component === 'TextField');
-      swapped = true;
-      return {
-        ...part,
-        data: {
-          ...part.data,
-          updateComponents: {
-            ...update,
-            components:
-              index < 0
-                ? [...components, CREDENTIAL_FAULT_COMPONENT]
-                : components.map((c, i) =>
-                    i === index ? {...(c as object), variant: 'obscured'} : c,
-                  ),
-          },
+  const existing = a2uiMessagesOf(event).find(message => typeof message.version === 'string');
+  if (!existing) return event;
+  const version = existing.version as string;
+  const added: Part[] = [
+    {
+      kind: 'data',
+      data: {
+        version,
+        createSurface: {surfaceId: CREDENTIAL_FAULT_SURFACE, catalogId: BASIC_CATALOG_ID},
+      },
+    },
+    {
+      kind: 'data',
+      data: {
+        version,
+        updateComponents: {
+          surfaceId: CREDENTIAL_FAULT_SURFACE,
+          components: [
+            {id: 'root', component: 'TextField', label: 'Password', variant: 'obscured'},
+          ],
         },
-      };
-    });
-  if (event.kind === 'message') {
-    const parts = swap(event.parts);
-    return swapped ? {...event, parts} : event;
-  }
+      },
+    },
+  ];
+  if (event.kind === 'message') return {...event, parts: [...event.parts, ...added]};
   if (event.kind === 'artifact-update') {
-    const parts = swap(event.artifact.parts);
-    return swapped ? {...event, artifact: {...event.artifact, parts}} : event;
+    return {...event, artifact: {...event.artifact, parts: [...event.artifact.parts, ...added]}};
   }
-  const message = event.status.message;
-  if (!message) return event;
-  const parts = swap(message.parts);
-  return swapped ? {...event, status: {...event.status, message: {...message, parts}}} : event;
+  const message = event.status.message!;
+  return {
+    ...event,
+    status: {...event.status, message: {...message, parts: [...message.parts, ...added]}},
+  };
 }
 
 /** Every A2UI message an event carries, in both wire forms: one per part, or a `messages` list. */

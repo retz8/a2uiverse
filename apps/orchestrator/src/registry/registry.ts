@@ -149,17 +149,18 @@ export class Registry {
   }
 
   /**
-   * The options an app's catalogs declare, per component — the basic catalog's and those of every
-   * catalog handed at its install — what the credential bar matches a painted value against
-   * (task-12.7 decision 1). A component named alike in two catalogs takes both's options.
+   * The options a painter's catalog declares, per component: what the credential bar matches a
+   * painted value against (task-12.7 decision 1) — the basic catalog's, or the catalog handed at
+   * the app's install under that id. With no catalog id — a surface whose create the hub never
+   * saw — every catalog of the app's, a component named alike in two taking both's options.
    */
-  credentialOptions(app: AppRecord): CatalogOptions {
-    const record = this.#records.get(app.id);
-    const handed = Object.values(record?.catalogs ?? {}).flatMap(artifact => {
-      const options = this.#options.get(artifact);
-      return options ? [options] : [];
-    });
-    return mergeCatalogOptions([basicCatalogOptions(), ...handed]);
+  credentialOptions(app: AppRecord, catalogId: string | undefined): CatalogOptions {
+    const handed = this.#records.get(app.id)?.catalogs ?? {};
+    const of = (artifact: string | undefined) =>
+      (artifact !== undefined ? this.#options.get(artifact) : undefined) ?? new Map();
+    if (catalogId === BASIC_CATALOG_ID) return basicCatalogOptions();
+    if (catalogId !== undefined) return of(handed[catalogId]);
+    return mergeCatalogOptions([basicCatalogOptions(), ...Object.values(handed).map(of)]);
   }
 
   /**

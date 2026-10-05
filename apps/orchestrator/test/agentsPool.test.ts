@@ -595,9 +595,10 @@ describe('AgentsPool — the credential bar at the paint (task 12.7)', () => {
         version: 'v0.9',
         updateComponents: {surfaceId: 's1', components: secret ? [CLEAN, SECRET] : [CLEAN]},
       };
+      // The basic catalog: its TextField declares `obscured`.
       const create = {
         version: 'v0.9',
-        createSurface: {surfaceId: 's1', catalogId: FAKE_CATALOG_ID},
+        createSurface: {surfaceId: 's1', catalogId: BASIC_CATALOG_ID},
       };
       const event = (parts: object[], final: boolean): TaskStatusUpdateEvent => ({
         kind: 'status-update',
@@ -732,5 +733,43 @@ describe('AgentsPool — the credential bar at the paint (task 12.7)', () => {
   const repairShaped = (s: Parameters<Script>[0]): Message => ({
     ...s.ctx.userMessage,
     parts: [{kind: 'text', text: 'Your last answer included'}],
+  });
+});
+
+describe('AgentsPool — the credential bar reads the painter’s catalog (task-12.7 decision 1)', () => {
+  const answer =
+    (data: Record<string, unknown>[]): Script =>
+    ({ctx, vendorContextId}) => [
+      {
+        kind: 'message',
+        messageId: crypto.randomUUID(),
+        role: 'agent',
+        parts: data.map(d => ({kind: 'data' as const, data: d})),
+        contextId: vendorContextId,
+        taskId: ctx.taskId,
+      },
+    ];
+  const field = {id: 'pw', component: 'TextField', label: 'Password', variant: 'obscured'};
+  const update = {version: 'v0.9', updateComponents: {surfaceId: 's1', components: [field]}};
+
+  test('an option its own catalog does not declare is not matched', async () => {
+    // The fixture catalog declares no TextField: `obscured` is no option of it there.
+    const create = {version: 'v0.9', createSurface: {surfaceId: 's1', catalogId: FAKE_CATALOG_ID}};
+    const {pool, vendor} = await poolFor({script: answer([create, update])});
+    const {record} = await drain(pool.dispatch('github', turn()));
+    expect(record.outcome).toBe('completed');
+    expect(vendor.requests).toHaveLength(1);
+  });
+
+  test('a later answer’s update is read against the catalog its surface was created in', async () => {
+    let sends = 0;
+    const create = {version: 'v0.9', createSurface: {surfaceId: 's1', catalogId: BASIC_CATALOG_ID}};
+    const script: Script = s => answer(++sends === 1 ? [create] : [update])(s);
+    const {pool, vendor} = await poolFor({script});
+    await drain(pool.dispatch('github', turn()));
+    const {record} = await drain(pool.dispatch('github', turn()));
+    // The press's answer painted the field on the basic surface: refused, repaired, refused again.
+    expect(record).toMatchObject({outcome: 'failed', cause: 'credential'});
+    expect(vendor.requests).toHaveLength(3);
   });
 });
