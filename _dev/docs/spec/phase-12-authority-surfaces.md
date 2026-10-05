@@ -83,7 +83,7 @@ Scope escalation inside a fragment appears on the fragment's attribution row as 
 
 ### 17. The full tile once per app per session
 
-A slot for an app with no account takes the full tile once per app per session. After that, a slot for that app is one quiet line where its fragment would have sat — "<App> · not signed in · Sign in" — with no decline button. The orchestrator remembers it for the session; a reload starts fresh.
+A slot for an app with no account takes the full tile once per app per session. After that, a slot for that app is one quiet line where its fragment would have sat — "Not signed in · Sign in", under the attribution marker that names the app (task-12.3 decision 11) — with no decline button. The orchestrator remembers it for the session; a reload starts fresh.
 
 ### 18. A needs-sign-in slot in the merge
 
