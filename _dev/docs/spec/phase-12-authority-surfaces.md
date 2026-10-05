@@ -39,7 +39,7 @@ Before every dispatch the hub evaluates the card-level `security` — an OR of A
 
 ### 6. An in-task request names keys only
 
-An `auth-required` request names the scheme by its key on the card and the missing scopes by their keys in that scheme's `scopes` map. The words on the consent surface come from the card as installed. A key the installed card does not declare makes the request invalid: it fails like a malformed paint and no consent is shown. A scope the card did not declare needs an install-over.
+An `auth-required` request names the scheme by its key on the card and the missing scopes by their keys in that scheme's `scopes` map, in the card's own `security` requirement shape as a data part of the status message (task-12.2 decision 12). The words on the consent surface come from the card as installed. A key the installed card does not declare makes the request invalid: it fails like a malformed paint and no consent is shown. A scope the card did not declare needs an install-over.
 
 ### 7. Our agents are their own sign-in front door
 
@@ -51,7 +51,7 @@ The vault follows the authorization server the card's scheme names, with the aut
 
 ### 9. Third-party sign-in supported
 
-OAuth and OpenID Connect against a server that lets the client register itself; and `http` bearer and `apiKey`, entered on a page the orchestrator serves and the browser opens in a popup, showing the scheme's `description` as the vendor's words and the card's `documentationUrl`. A mock store declares an `apiKey` scheme in deterministic mode. Any other declared scheme fills the slot with the authority tile under a "not supported here" cause; the app stays installed. The how-to for a token lives in the scheme's `description` on the card.
+OAuth and OpenID Connect against a server that lets the client register itself; and `http` bearer and `apiKey`, entered on a page the orchestrator serves and the browser opens in a popup, showing the scheme's `description` as the vendor's words and the card's `documentationUrl`. A mock store declares an `apiKey` scheme in deterministic mode. Any other declared scheme fills the slot with the authority tile under a "not supported here" cause, offering Manage apps, which opens the App Library; the app stays installed. The how-to for a token lives in the scheme's `description` on the card.
 
 ### 10. Where the vault keeps credentials
 
@@ -67,11 +67,11 @@ Uninstall deletes the app's accounts from the vault and revokes their tokens at 
 
 ### 13. The authority tile is the consent
 
-The tile is deterministic shell UI, visually constant: what is needed, the scopes in the words of the card's `scopes` map — only the missing ones on escalation — the domain the popup will open, and one press. There is no consent dialog and no decline button on the tile; the composite does not block, and the rest of the canvas never waits on it.
+The tile is deterministic shell UI, visually constant: what is needed, the scopes in the words of the card's `scopes` map — only the missing ones on escalation — one press, and that it opens the app's sign-in in a new window, in plain words with no address shown. There is no consent dialog and no decline button on the tile; the composite does not block, and the rest of the canvas never waits on it.
 
 ### 14. Sign-in runs in a browser popup
 
-Sign-in runs in a real browser popup, never in a frame inside the canvas. The popup is opened with `noopener,noreferrer`; its completion reaches the canvas from the orchestrator, never between windows; only https URLs are opened, localhost exempt. While the popup is open the tile says to finish signing in in the window that opened, with Cancel; closing the popup puts the tile back as it was.
+Sign-in runs in a real browser popup, never in a frame inside the canvas. The popup is opened with `noopener,noreferrer`; its completion reaches the canvas from the orchestrator, never between windows; only https URLs are opened, localhost exempt. While the popup is open the tile says to finish signing in in the window that opened, naming no address, with Cancel; closing the popup puts the tile back as it was.
 
 ### 15. Resume after sign-in
 
@@ -79,7 +79,7 @@ When sign-in completes, the client learns the outcome over `orchestratorApi` and
 
 ### 16. Escalation on the attribution row
 
-Scope escalation inside a fragment appears on the fragment's attribution row — "<App> also wants to: <scopes>", [Allow] and [Not now] — and the fragment stays on screen. Allow opens the popup, and the press that needed the scope is sent again. Not now dismisses the request and drops that press; the fragment stays as it was.
+Scope escalation inside a fragment appears on the fragment's attribution row as a fixed-width "Needs access" chip beside the arrows, its request on a card floating over the fragment's top — the missing scopes, [Allow] and [Not now] — nothing moving, and the fragment stays on screen. Allow opens the popup, and the press that needed the scope is sent again. Not now dismisses the request and drops that press; the fragment stays as it was.
 
 ### 17. The full tile once per app per session
 
@@ -87,11 +87,11 @@ A slot for an app with no account takes the full tile once per app per session. 
 
 ### 18. A needs-sign-in slot in the merge
 
-A slot needing sign-in behaves like a failed source, with sign-in as its Retry. It resolves at once — a slot the hub's check filled was never dispatched. Signed in, its source is included in the merge on arrival. An anchored join hypothesis whose home source needs sign-in collapses the merge slot with Sign in as the press that brings it back. A reserved column for that source reads "not signed in". An escalation waiting on Allow counts as quiescent.
+A slot needing sign-in behaves like a failed source, with sign-in as its Retry. It resolves at once — a slot the hub's check filled was never dispatched. Signed in, its source is included in the merge on arrival. An anchored join hypothesis whose home source needs sign-in collapses the merge slot to a line in words with no press; the slot's own Sign in brings it back. A reserved column for that source reads "not signed in". An escalation waiting on Allow counts as quiescent.
 
 ### 19. Multi-account: slot naming and the dispatch unit
 
-Slot naming and the dispatch unit are by (app, account). The Planner chooses accounts: the installed-apps platform reader lists each app's accounts by label, never a credential, and §7's fan-out rule applies one level down — a question about state gathers from every account; a command, or an utterance naming an account, goes to that account alone. An action inside a fragment goes to the account that painted it.
+Slot naming and the dispatch unit are by (app, account). The Planner chooses accounts: the installed-apps platform reader lists each app's accounts by label, never a credential, and §7's fan-out rule applies one level down — a question about state gathers from every account; a command, or an utterance naming an account, goes to that account alone. An action inside a fragment goes to the account that painted it. A match claim's relation joins two different sources, so two accounts of one app can be joined.
 
 ### 20. The add-account shell action
 
