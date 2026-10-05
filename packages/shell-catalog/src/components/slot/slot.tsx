@@ -96,6 +96,12 @@ export type PressHandler = (press: {
  * A slot holding a `gap` is the capability tile (task-6.2 decision 6): fixed shell UI, no model
  * wording — a minimal line and a button searching the Store for the missing capability, the gap.
  *
+ * A slot holding `chooseAccount` is the account choice (task-12.6 decision 5): fixed shell UI
+ * asking which of the app's accounts to use, one press per account by its label. A press gives
+ * the choice way to the pending line at once, as Retry does; the repaint then names the account
+ * the slot now waits on. A press that never reached the orchestrator, or whose stream broke,
+ * brings the choice back saying so.
+ *
  * `weight` is the region's flex share inside a `Row` or `Column`, proportional among its
  * siblings and 1 when the Planner wrote none (task-6.4 decision 2): unweighted regions share
  * their axis equally, and a wrapped slot fills the `Attribution` box that carries its weight.
@@ -103,6 +109,8 @@ export type PressHandler = (press: {
 export function SlotView({
   source,
   gap,
+  chooseAccount,
+  accounts,
   weight,
   state = 'pending',
   label,
@@ -188,6 +196,77 @@ export function SlotView({
               </Button>
             </Flex>
           </div>
+        </div>
+      );
+    }
+
+    if (chooseAccount !== undefined) {
+      const choices = accounts ?? [];
+      const pressed = presses.find(
+        p =>
+          p.operation.kind === 'useAccount' &&
+          choices.some(account => account.source === p.operation.sources[0]),
+      )?.status;
+      if (pressed === 'sent') {
+        return (
+          <div
+            data-slot-choose-account={chooseAccount}
+            data-slot-state="pending"
+            style={{...weighted, ...reservedStyle, opacity: 0.6}}
+          >
+            <Text
+              as="span"
+              size="1"
+              color="gray"
+              tabIndex={-1}
+              data-press-line=""
+              ref={element => takeFocus(element, focusLine)}
+              style={{display: 'inline-flex', alignItems: 'center', gap: 6}}
+            >
+              <Spinner size="1" />
+              Loading…
+            </Text>
+          </div>
+        );
+      }
+      const note =
+        pressed === 'unreached' ? UNREACHED_WORDS : pressed === 'lost' ? LOST_WORDS : undefined;
+      if (note) announcement = note;
+      return (
+        <div
+          data-slot-choose-account={chooseAccount}
+          data-slot-state="choosing"
+          style={{...weighted, ...reservedStyle}}
+        >
+          <Flex direction="column" align="start" gap="4">
+            <Text as="p" size="2">
+              Which {label ?? chooseAccount} account should I use?
+            </Text>
+            {onPress && (
+              <Flex align="center" gap="3" wrap="wrap">
+                {choices.map(account => (
+                  <Button
+                    key={account.source}
+                    size="2"
+                    variant="outline"
+                    color="gray"
+                    disabled={!enabled}
+                    ref={element => takeFocus(element, focusLine)}
+                    onClick={event =>
+                      press({kind: 'useAccount', sources: [account.source]}, event.currentTarget)
+                    }
+                  >
+                    {account.label}
+                  </Button>
+                ))}
+                {note && (
+                  <Text as="span" size="1" color="gray" data-slot-press-note="">
+                    {note}
+                  </Text>
+                )}
+              </Flex>
+            )}
+          </Flex>
         </div>
       );
     }
@@ -920,6 +999,8 @@ export function createSlotComponent(
       <SlotView
         source={props.source}
         gap={props.gap}
+        chooseAccount={props.chooseAccount}
+        accounts={props.accounts}
         weight={props.weight}
         state={props.state}
         label={props.label}

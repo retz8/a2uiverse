@@ -802,6 +802,8 @@ export function syntheticBeat(name: string): BeatFixture | undefined {
       return PLATFORM_ANSWER_BEAT;
     case 'gap':
       return GAP_BEAT;
+    case 'account-choice':
+      return ACCOUNT_CHOICE_BEAT;
     case 'long-question':
       return longQuestionBeat();
     case 'merging':
@@ -1023,6 +1025,56 @@ export const GAP_BEAT: BeatFixture = {
                 components: [
                   {id: 'root', component: 'Column', children: ['flight']},
                   {id: 'flight', component: 'Slot', gap: 'flight booking'},
+                ],
+              },
+            }),
+          ],
+          texts: [],
+        },
+      ],
+    },
+  ],
+};
+
+/**
+ * The account choice (task-12.6 decision 5): a command for Gmail, which has two accounts, naming
+ * neither — the slot asks which, one press per account by its label.
+ */
+export const ACCOUNT_CHOICE_BEAT: BeatFixture = {
+  ...base,
+  name: 'synthetic-account-choice',
+  beat: 119,
+  title: 'Account choice',
+  prompt: 'reply to Bob that I will be late',
+  turns: [
+    {
+      taskId: 'synthetic-account-choice',
+      kind: 'utterance',
+      prompt: 'reply to Bob that I will be late',
+      action: null,
+      outcome: 'completed',
+      durationMs: 200,
+      batches: [
+        {
+          offsetMs: 0,
+          stamp: {source: 'shell', role: 'shell'},
+          messages: [
+            msg({createSurface: {surfaceId: 'shell:main', catalogId: SHELL_CATALOG_ID}}),
+            msg({
+              updateComponents: {
+                surfaceId: 'shell:main',
+                components: [
+                  {id: 'root', component: 'Column', children: ['ask']},
+                  {
+                    id: 'ask',
+                    component: 'Slot',
+                    chooseAccount: 'gmail',
+                    label: 'Gmail',
+                    accounts: [
+                      {source: 'gmail.1', label: 'alice@example.com'},
+                      {source: 'gmail.2', label: 'bob@example.com'},
+                    ],
+                  },
                 ],
               },
             }),

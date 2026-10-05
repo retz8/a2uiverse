@@ -25,10 +25,14 @@ export const NO_ACCOUNTS: AccountStore = {
   nextAccount: () => 1,
 };
 
-/** One source of an installed app, with its account's label when it has one. */
+/**
+ * One source of an installed app, with its account's label when it has one, and — for the account
+ * its next sign-in will create — that it is not signed in yet.
+ */
 export interface AppSource {
   source: string;
   label?: string;
+  notSignedIn?: true;
 }
 
 /**
@@ -56,7 +60,7 @@ export class Sources {
     }
     const card = this.#registry.card(appId) ?? this.#registry.storedCard(appId);
     if (!asksSignIn(card)) return [{source: appId}];
-    return [{source: sourceId(appId, this.#accounts.nextAccount(appId))}];
+    return [{source: sourceId(appId, this.#accounts.nextAccount(appId)), notSignedIn: true}];
   }
 
   /** The app a source belongs to. */
@@ -71,6 +75,13 @@ export class Sources {
     const held = this.#accounts.accountsOf(parsed.appId);
     if (held.length < 2) return undefined;
     return held.find(({n}) => n === parsed.account)?.label;
+  }
+
+  /** An account's label from its sign-in, whatever the number of its app's accounts. */
+  label(source: string): string | undefined {
+    const parsed = parseSourceId(source);
+    if (parsed?.account === undefined) return undefined;
+    return this.#accounts.accountsOf(parsed.appId).find(({n}) => n === parsed.account)?.label;
   }
 
   /** The app's display name: what the attribution marker names. */

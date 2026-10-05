@@ -802,18 +802,35 @@
     },
     "Slot": {
       "type": "object",
-      "description": "A named region of a composed screen whose content is mounted by the client. Paint one per planned fragment; later repaints may change its state but never its position. While no content has arrived it renders a pending placeholder. A slot whose content is the shell's own \u2014 the merged view \u2014 is declared `content: \"shell\"`: it keeps its reserved position but is painted like the shell's own UI, with no tile: while pending it is reserved as the merged view's label, its planned column headers and a few skeleton rows, and the view takes its own height when it lands. A source that fails shows the failure tile in its region: the failure said in the shell's words, Retry, and the vendor's own words beneath. A source that needs sign-in shows the authority tile in its region. A collapsed merge leaves its slot as one line saying why: the Synthesizer's reason when it declined, the shell's own words otherwise.",
+      "description": "A named region of a composed screen whose content is mounted by the client. Paint one per planned fragment; later repaints may change its state but never its position. While no content has arrived it renders a pending placeholder. A slot whose content is the shell's own \u2014 the merged view \u2014 is declared `content: \"shell\"`: it keeps its reserved position but is painted like the shell's own UI, with no tile: while pending it is reserved as the merged view's label, its planned column headers and a few skeleton rows, and the view takes its own height when it lands. A source that fails shows the failure tile in its region: the failure said in the shell's words, Retry, and the vendor's own words beneath. A source that needs sign-in shows the authority tile in its region. An app with two or more accounts, for a command that named none, shows the account choice in its region. A collapsed merge leaves its slot as one line saying why: the Synthesizer's reason when it declined, the shell's own words otherwise.",
       "properties": {
         "component": {
           "const": "Slot"
         },
         "source": {
           "type": "string",
-          "description": "The dispatched source whose content fills the region: a source id — the app and the account it paints under, `<appId>.<n>`, the bare app id for an app needing no sign-in — or `shell` for the merged view. The slot's identity within the layout; unique per surface. A slot holds exactly one of `source` or `gap`."
+          "description": "The dispatched source whose content fills the region: a source id — the app and the account it paints under, `<appId>.<n>`, the bare app id for an app needing no sign-in — or `shell` for the merged view. The slot's identity within the layout; unique per surface. A slot holds exactly one of `source`, `gap` or `chooseAccount`."
         },
         "gap": {
           "type": "string",
-          "description": "A capability no installed app serves, in words. The region is drawn as a fixed tile offering to search the Store for it. A slot holds exactly one of `source` or `gap`."
+          "description": "A capability no installed app serves, in words. The region is drawn as a fixed tile offering to search the Store for it. A slot holds exactly one of `source`, `gap` or `chooseAccount`."
+        },
+        "chooseAccount": {
+          "type": "string",
+          "description": "An app id: the app has two or more accounts and the command for it named none. The region is drawn as a fixed tile asking which account to use, one press per account; the press sends the request planned for the app to that account, and its answer fills this region. A slot holds exactly one of `source`, `gap` or `chooseAccount`."
+        },
+        "accounts": {
+          "type": "array",
+          "description": "With `chooseAccount` only: the app's accounts the choice offers, each its source id and its label. Painted by the runtime and never written by an author.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "source": {"type": "string"},
+              "label": {"type": "string"}
+            },
+            "required": ["source", "label"],
+            "additionalProperties": false
+          }
         },
         "weight": {
           "type": "number",
@@ -999,6 +1016,9 @@
         },
         {
           "required": ["gap"]
+        },
+        {
+          "required": ["chooseAccount"]
         }
       ]
     },

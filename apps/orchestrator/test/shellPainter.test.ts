@@ -7,7 +7,7 @@ import {clipPaintMetaTitle, PAINT_META_MIME_TYPE} from '@a2uiverse/sdk';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 import {describe, expect, test} from 'vitest';
 import {Sources} from '../src/accounts/accounts.js';
-import {compositionFrom} from '../src/composition/state.js';
+import {chooseAccount, compositionFrom} from '../src/composition/state.js';
 import {
   paintLayout,
   shellCreateParts,
@@ -289,6 +289,97 @@ describe('two accounts of one app (task 12.4)', () => {
     expect(byId.get('work')).toMatchObject({label: 'Gmail · alice@example.com'});
     expect(byId.get('home')).toMatchObject({label: 'Gmail · bob@example.com'});
     expect(byId.get('gh')).toMatchObject({label: 'GitHub'});
+  });
+});
+
+describe('the account choice (task 12.6)', () => {
+  const accounts = {
+    accountsOf: (appId: string) =>
+      appId === 'gmail'
+        ? [
+            {n: 1, label: 'alice@example.com'},
+            {n: 2, label: 'bob@example.com'},
+          ]
+        : [],
+    nextAccount: () => 3,
+  };
+  const sources = new Sources(registry, accounts);
+  const asking: LayoutSurface = {
+    dispatch: [
+      {chooseAccount: 'gmail', request: 'Draft a reply to Bob.'},
+      {source: 'github', request: 'c'},
+    ],
+    tree: {
+      components: [
+        {id: 'root', component: 'Column', children: ['ask', 'gh']},
+        {id: 'ask', component: 'Slot', chooseAccount: 'gmail', weight: 2},
+        {id: 'gh', component: 'Slot', source: 'github'},
+      ],
+    },
+    dataModel: {},
+  };
+
+  test('the choice is no slot of the composition until an account is chosen', () => {
+    const state = compositionFrom(asking, sources, 'reply to Bob');
+    expect([...state.slots.keys()]).toEqual(['github']);
+    expect(state.choices.get('gmail')).toEqual({
+      request: 'Draft a reply to Bob.',
+      displayName: 'Gmail',
+      accounts: [
+        {source: 'gmail.1', label: 'alice@example.com'},
+        {source: 'gmail.2', label: 'bob@example.com'},
+      ],
+    });
+  });
+
+  test('unchosen, the slot is painted bare with the app’s name and each account by its label (decision 5)', () => {
+    const painted = paintLayout(compositionFrom(asking, sources, 'reply to Bob'));
+    expect(painted.map(c => c.id)).toEqual(['root', 'ask', 'attribution-gh', 'gh']);
+    expect(painted[1]).toEqual({
+      id: 'ask',
+      component: 'Slot',
+      chooseAccount: 'gmail',
+      weight: 2,
+      label: 'Gmail',
+      accounts: [
+        {source: 'gmail.1', label: 'alice@example.com'},
+        {source: 'gmail.2', label: 'bob@example.com'},
+      ],
+    });
+  });
+
+  test('chosen, the slot is the account’s: wrapped, keyed by its source, pending, its request the plan’s (decision 6)', () => {
+    const state = compositionFrom(asking, sources, 'reply to Bob');
+    const slot = chooseAccount(state, sources, 'gmail.2');
+    expect(slot?.plan).toMatchObject({source: 'gmail.2', request: 'Draft a reply to Bob.'});
+    expect([...state.slots.keys()]).toEqual(['github', 'gmail.2']);
+    const byId = new Map(paintLayout(state).map(c => [c.id, c]));
+    expect(byId.get('root')).toMatchObject({children: ['attribution-ask', 'attribution-gh']});
+    expect(byId.get('attribution-ask')).toEqual({
+      id: 'attribution-ask',
+      component: 'Attribution',
+      displayName: 'Gmail',
+      source: 'gmail.2',
+      account: 'bob@example.com',
+      child: 'ask',
+      weight: 2,
+    });
+    expect(byId.get('ask')).toEqual({
+      id: 'ask',
+      component: 'Slot',
+      source: 'gmail.2',
+      weight: 2,
+      state: 'pending',
+      label: 'Gmail · bob@example.com',
+    });
+  });
+
+  test('an account is chosen once, and only one the choice offers', () => {
+    const state = compositionFrom(asking, sources, 'reply to Bob');
+    expect(chooseAccount(state, sources, 'gmail.3')).toBeUndefined();
+    expect(chooseAccount(state, sources, 'github')).toBeUndefined();
+    expect(chooseAccount(state, sources, 'gmail.1')).toBeDefined();
+    expect(chooseAccount(state, sources, 'gmail.2')).toBeUndefined();
   });
 });
 

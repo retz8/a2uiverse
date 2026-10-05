@@ -1151,3 +1151,101 @@ test('the reserved view marks a column whose source needs sign-in', () => {
   );
   expect(screen.getByText('· not signed in', {exact: false})).toBeInTheDocument();
 });
+
+/* ── Task 12.6: the account choice ─────────────────────────────────────────── */
+
+const GMAIL_ACCOUNTS = [
+  {source: 'gmail.1', label: 'jioh@gmail.com'},
+  {source: 'gmail.2', label: 'jioh@umich.edu'},
+];
+
+test('schema holds exactly one of source, gap or chooseAccount; the accounts only on the choice (task 12.6)', () => {
+  const choice = {chooseAccount: 'gmail', label: 'Gmail', accounts: GMAIL_ACCOUNTS};
+  expect(SlotApi.schema.safeParse(choice).success).toBe(true);
+  expect(SlotApi.schema.safeParse({...choice, source: 'gmail.1'}).success).toBe(false);
+  expect(SlotApi.schema.safeParse({...choice, gap: 'x'}).success).toBe(false);
+  expect(SlotApi.schema.safeParse({source: 'gmail.1', accounts: GMAIL_ACCOUNTS}).success).toBe(
+    false,
+  );
+  expect(
+    SlotApi.schema.safeParse({...choice, accounts: [{source: 'gmail.1', label: 'x', extra: 1}]})
+      .success,
+  ).toBe(false);
+});
+
+test('the account choice asks which account in plain words, one press per account by its label, resolving no content (task-12.6 decision 5)', () => {
+  const {container} = render(
+    <SlotContentContext.Provider value={() => <em>content</em>}>
+      <SlotView chooseAccount="gmail" label="Gmail" accounts={GMAIL_ACCOUNTS} onPress={() => {}} />
+    </SlotContentContext.Provider>,
+  );
+  expect(container.querySelector('[data-slot-choose-account="gmail"]')).not.toBeNull();
+  expect(screen.getByText('Which Gmail account should I use?')).toBeInTheDocument();
+  expect(screen.getAllByRole('button').map(button => button.textContent)).toEqual([
+    'jioh@gmail.com',
+    'jioh@umich.edu',
+  ]);
+  expect(screen.queryByText('content')).not.toBeInTheDocument();
+});
+
+test('the account choice draws no press without a host that takes presses, and disabled where none can be made', () => {
+  const bare = render(<SlotView chooseAccount="gmail" label="Gmail" accounts={GMAIL_ACCOUNTS} />);
+  expect(screen.getByText('Which Gmail account should I use?')).toBeInTheDocument();
+  expect(screen.queryByRole('button')).toBeNull();
+  bare.unmount();
+  render(
+    pressState(
+      [],
+      false,
+    )(
+      <SlotView chooseAccount="gmail" label="Gmail" accounts={GMAIL_ACCOUNTS} onPress={() => {}} />,
+    ),
+  );
+  for (const button of screen.getAllByRole('button')) expect(button).toBeDisabled();
+});
+
+test('through the catalog, an account’s press hands the host useAccount naming that account (task-12.6 decision 6)', () => {
+  const presses: unknown[] = [];
+  renderTree(
+    [
+      {
+        id: 'root',
+        component: 'Slot',
+        chooseAccount: 'gmail',
+        label: 'Gmail',
+        accounts: GMAIL_ACCOUNTS,
+      },
+    ],
+    {onPress: press => presses.push(press)},
+  );
+  screen.getByRole('button', {name: 'jioh@umich.edu'}).click();
+  expect(presses).toEqual([
+    {
+      operation: {kind: 'useAccount', sources: ['gmail.2']},
+      surfaceId: SURFACE_ID,
+      componentId: 'root',
+    },
+  ]);
+});
+
+test('an account pressed gives the choice way to the pending line; one that never reached says so beside the presses', () => {
+  const use = {kind: 'useAccount' as const, sources: ['gmail.2']};
+  const tile = (status: PressRecord['status']) =>
+    render(
+      pressState([{operation: use, status}])(
+        <SlotView
+          chooseAccount="gmail"
+          label="Gmail"
+          accounts={GMAIL_ACCOUNTS}
+          onPress={() => {}}
+        />,
+      ),
+    );
+  const sent = tile('sent');
+  expect(screen.getByText('Loading…')).toBeInTheDocument();
+  expect(screen.queryByRole('button')).toBeNull();
+  sent.unmount();
+  tile('unreached');
+  expect(screen.getByRole('button', {name: 'jioh@umich.edu'})).toBeEnabled();
+  expect(screen.getAllByText(UNREACHED_WORDS)[0]!.closest('[data-slot-press-note]')).not.toBeNull();
+});

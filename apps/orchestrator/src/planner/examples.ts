@@ -5,7 +5,7 @@
  * hypothesis over fixture cards (task-7.6 decision 2); a command over the same cards that one agent
  * answers alone, and a status question in one app's own noun merged over every agent holding a part
  * of it (task-7.8 decision 16); a platform answer that calls one reader and templates its
- * result; and a capability gap. The examples teach form; the rules doc
+ * result; a capability gap; and an account choice (task 12.6). The examples teach form; the rules doc
  * (`planner.md`) teaches the vocabulary and the rules. Their trees are authored against the
  * Planner's pruned shell catalog; its tests put each through the whole validator.
  */
@@ -13,6 +13,8 @@ import type {LayoutSurface} from './document.js';
 
 export interface ExampleAgent {
   appId: string;
+  /** Its sources as the turn lists them, for an app with accounts; the bare app id without. */
+  sources?: {source: string; label: string}[];
   name: string;
   description: string;
   skills: {name: string; description: string}[];
@@ -379,6 +381,42 @@ export const CAPABILITY_GAP: LayoutExample = {
   },
 };
 
+/**
+ * The account choice (task-12.6 decisions 3, 5): a command for an app with two accounts that
+ * names neither, asked from no canvas — the shell asks which, the request written as for the
+ * agent.
+ */
+export const ACCOUNT_CHOICE: LayoutExample = {
+  name: 'account-choice',
+  intent: 'Reply to Bob that I’ll be ten minutes late.',
+  agents: [
+    {
+      ...GMAIL,
+      sources: [
+        {source: 'gmail.1', label: 'alice@example.com'},
+        {source: 'gmail.2', label: 'alice@work.example'},
+      ],
+    },
+  ],
+  output: {
+    title: 'Reply to Bob',
+    dispatch: [
+      {
+        chooseAccount: 'gmail',
+        request:
+          'Draft a reply to the latest thread from Bob saying I’ll be ten minutes late. Show the draft for me to review before it is sent.',
+      },
+    ],
+    tree: {
+      components: [
+        {id: 'root', component: 'Column', children: ['reply']},
+        {id: 'reply', component: 'Slot', chooseAccount: 'gmail'},
+      ],
+    },
+    dataModel: {},
+  },
+};
+
 export const LAYOUT_EXAMPLES: readonly LayoutExample[] = [
   MORNING_FAN_OUT,
   ORDERS_JOIN,
@@ -386,4 +424,5 @@ export const LAYOUT_EXAMPLES: readonly LayoutExample[] = [
   APPLICATIONS_JOIN,
   INSTALLED_APPS_ANSWER,
   CAPABILITY_GAP,
+  ACCOUNT_CHOICE,
 ];

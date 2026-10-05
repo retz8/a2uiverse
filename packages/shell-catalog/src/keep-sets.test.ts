@@ -68,6 +68,12 @@ describe('the layout surface keep-set', () => {
   const pruned = pruneCatalog(catalog, LAYOUT_SURFACE_KEEP_SET);
   const validator = createA2uiValidator({catalog: pruned});
 
+  test('carries every shell action, add an account among them (task-12.6 decision 8)', () => {
+    expect([...LAYOUT_SURFACE_KEEP_SET.functions].sort()).toEqual(
+      ['addAccount', 'openAppLibrary', 'openStore'].sort(),
+    );
+  });
+
   test('carries no relation: the Planner writes no match claim', () => {
     for (const relation of RELATIONS)
       expect(LAYOUT_SURFACE_KEEP_SET.functions).not.toContain(relation);

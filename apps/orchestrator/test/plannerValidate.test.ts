@@ -219,7 +219,7 @@ describe('slot accounting', () => {
     const bare = fanOut();
     bare.dispatch[0] = {source: 'gmail', request: 'a'};
     expect(check(bare, accounts).join('\n')).toContain(
-      "/dispatch/0/source: 'gmail' is not on this turn's shortlist",
+      "/dispatch/0/source: 'gmail' has more than one account — name one of gmail.1, gmail.2, or ask with chooseAccount",
     );
   });
 });
@@ -351,7 +351,7 @@ describe('what the Planner may write on a Slot', () => {
       content: 'fragment',
     };
     expect(check(doc)).toEqual([
-      "/tree (gh): Slot.state, Slot.label, Slot.content are written by the shell; write only source or gap, and weight — the merged view's columns, column marks and join go on its dispatch entry",
+      "/tree (gh): Slot.state, Slot.label, Slot.content are written by the shell; write only source, gap or chooseAccount, and weight — the merged view's columns, column marks and join go on its dispatch entry",
     ]);
     for (const [prop, value] of [
       ['noun', 'GitHub PRs'],
@@ -368,7 +368,7 @@ describe('what the Planner may write on a Slot', () => {
       const painted = fanOut();
       painted.tree.components[4] = {id: 'gh', component: 'Slot', source: 'github', [prop]: value};
       expect(check(painted)).toEqual([
-        `/tree (gh): Slot.${prop} is written by the shell; write only source or gap, and weight — the merged view's columns, column marks and join go on its dispatch entry`,
+        `/tree (gh): Slot.${prop} is written by the shell; write only source, gap or chooseAccount, and weight — the merged view's columns, column marks and join go on its dispatch entry`,
       ]);
     }
     const onSlot = fanOut();
@@ -412,6 +412,184 @@ describe('the data model holds literals', () => {
     ref.dataModel = {apps: [{name: {surface: 'gmail:s1', pointer: '/threads'}, does: 'x'}]};
     expect(check(ref)).toEqual([
       '/dataModel/apps/0/name: a ref; the layout surface holds literal values only',
+    ]);
+  });
+});
+
+describe('accounts (task 12.6)', () => {
+  /** GitHub not signed in yet, Gmail with two accounts, Calendar asking no sign-in. */
+  const sources = ['github.1', 'gmail.1', 'gmail.2', 'calendar'];
+  const accepted = (document: unknown): LayoutSurface => {
+    const result = validateLayoutSurface(document, {tree, shortlist: sources});
+    if (!result.ok) throw new Error(result.errors.join('\n'));
+    return result.document;
+  };
+  const errors = (document: unknown): string[] => check(document, sources);
+  const one = (source: string, slot: Record<string, unknown> = {source}): LayoutSurface => ({
+    dispatch: [{source, request: 'Show my open pull requests.'}],
+    tree: {components: [{id: 'root', component: 'Slot', ...slot}]},
+    dataModel: {},
+  });
+  const choice = (app = 'gmail'): LayoutSurface => ({
+    dispatch: [{chooseAccount: app, request: 'Draft a reply to Bob saying I will be late.'}],
+    tree: {components: [{id: 'root', component: 'Slot', chooseAccount: app}]},
+    dataModel: {},
+  });
+
+  test('a source of an account passes as written', () => {
+    expect(accepted(one('gmail.2'))).toEqual(one('gmail.2'));
+  });
+
+  test('a bare app id with one source is rewritten to it wherever the plan names it (decision 2)', () => {
+    const doc: LayoutSurface = {
+      dispatch: [
+        {source: 'github', request: 'My open pull requests, with the time of each.'},
+        {source: 'calendar', request: 'My meetings today, with the time of each.'},
+        {
+          source: 'shell',
+          request: 'One timeline, latest first.',
+          columns: ['When', 'What'],
+          columnSources: [null, 'github'],
+          join: {home: 'github', nouns: {github: 'PRs', calendar: 'meetings'}},
+        },
+      ],
+      tree: {
+        components: [
+          {id: 'root', component: 'Column', children: ['merged', 'gh', 'cal']},
+          {id: 'merged', component: 'Slot', source: 'shell'},
+          {id: 'gh', component: 'Slot', source: 'github'},
+          {id: 'cal', component: 'Slot', source: 'calendar'},
+        ],
+      },
+      dataModel: {},
+    };
+    const document = accepted(doc);
+    expect(document.dispatch).toEqual([
+      {source: 'github.1', request: 'My open pull requests, with the time of each.'},
+      {source: 'calendar', request: 'My meetings today, with the time of each.'},
+      {
+        source: 'shell',
+        request: 'One timeline, latest first.',
+        columns: ['When', 'What'],
+        columnSources: [null, 'github.1'],
+        join: {home: 'github.1', nouns: {'github.1': 'PRs', calendar: 'meetings'}},
+      },
+    ]);
+    expect(document.tree.components[2]).toEqual({id: 'gh', component: 'Slot', source: 'github.1'});
+  });
+
+  test('a bare app id with two or more accounts is refused, naming them (decision 2)', () => {
+    expect(errors(one('gmail'))).toEqual([
+      "/dispatch/0/source: 'gmail' has more than one account — name one of gmail.1, gmail.2, or ask with chooseAccount",
+    ]);
+  });
+
+  test('an account choice for an app with two or more accounts passes as written (decision 5)', () => {
+    expect(accepted(choice())).toEqual(choice());
+  });
+
+  test('an account choice for an app with one source is rewritten to a dispatch to it (decision 7)', () => {
+    const document = accepted(choice('github'));
+    expect(document.dispatch).toEqual([
+      {source: 'github.1', request: 'Draft a reply to Bob saying I will be late.'},
+    ]);
+    expect(document.tree.components).toEqual([{id: 'root', component: 'Slot', source: 'github.1'}]);
+  });
+
+  test('an account choice names an app on the shortlist, once, not also dispatched, with a request', () => {
+    expect(errors(choice('linear'))).toEqual([
+      "/dispatch/0/chooseAccount: 'linear' is not on this turn's shortlist",
+    ]);
+    const twice = choice();
+    twice.dispatch.push({chooseAccount: 'gmail', request: 'Again.'});
+    expect(errors(twice)).toEqual(["/dispatch/1/chooseAccount: 'gmail' is asked about twice"]);
+    const both = choice();
+    both.dispatch.push({source: 'gmail.1', request: 'My unread mail.'});
+    both.tree.components = [
+      {id: 'root', component: 'Column', children: ['a', 'b']},
+      {id: 'a', component: 'Slot', chooseAccount: 'gmail'},
+      {id: 'b', component: 'Slot', source: 'gmail.1'},
+    ];
+    expect(errors(both)).toEqual([
+      "/dispatch/0/chooseAccount: 'gmail' is both asked about and dispatched to gmail.1; ask, or dispatch, not both",
+    ]);
+    const blank = choice();
+    blank.dispatch[0] = {chooseAccount: 'gmail', request: '  '};
+    expect(errors(blank)).toEqual([
+      "/dispatch/0/request: the request for the account choice on 'gmail' is blank",
+    ]);
+  });
+
+  test('an account choice holds one Slot by its app, and does not count toward a merged view (decision 6)', () => {
+    const unheld = choice();
+    unheld.tree.components = [{id: 'root', component: 'Slot', source: 'calendar'}];
+    expect(errors(unheld)).toEqual([
+      "/tree (root): Slot holds source 'calendar', which the dispatch does not name",
+      "/tree: no Slot holds the account choice on 'gmail', which the dispatch names",
+    ]);
+    const merged: LayoutSurface = {
+      dispatch: [
+        {chooseAccount: 'gmail', request: 'Draft a reply to Bob.'},
+        {source: 'calendar', request: 'My meetings today.'},
+        {source: 'shell', request: 'One timeline.'},
+      ],
+      tree: {
+        components: [
+          {id: 'root', component: 'Column', children: ['merged', 'gm', 'cal']},
+          {id: 'merged', component: 'Slot', source: 'shell'},
+          {id: 'gm', component: 'Slot', chooseAccount: 'gmail'},
+          {id: 'cal', component: 'Slot', source: 'calendar'},
+        ],
+      },
+      dataModel: {},
+    };
+    expect(errors(merged)).toEqual([
+      '/dispatch: a merged view (source shell) needs two or more vendor sources; 1 dispatched',
+    ]);
+  });
+
+  const adding = (app: unknown): LayoutSurface => ({
+    dispatch: [],
+    tree: {
+      components: [
+        {id: 'root', component: 'Column', children: ['line', 'add']},
+        {id: 'line', component: 'Text', text: 'Gmail has two accounts.'},
+        {
+          id: 'add',
+          component: 'Button',
+          child: 'add-label',
+          action: {functionCall: {call: 'addAccount', args: {app}}},
+        },
+        {id: 'add-label', component: 'Text', text: 'Add an account'},
+      ],
+    },
+    dataModel: {},
+  });
+
+  test('add an account names a shortlisted app that asks sign-in, by its app id (decision 8)', () => {
+    expect(errors(adding('gmail'))).toEqual([]);
+    expect(errors(adding('github'))).toEqual([]);
+    expect(errors(adding('calendar'))).toEqual([
+      "/tree (add): addAccount names 'calendar', which asks no sign-in",
+    ]);
+    expect(errors(adding('linear'))).toEqual([
+      "/tree (add): addAccount names 'linear', which is not on this turn's shortlist",
+    ]);
+    expect(errors(adding('gmail.1'))).toEqual([
+      "/tree (add): addAccount names 'gmail.1', which is not on this turn's shortlist",
+    ]);
+  });
+
+  test('the accounts on a Slot are the painter’s', () => {
+    const doc = choice();
+    doc.tree.components[0] = {
+      id: 'root',
+      component: 'Slot',
+      chooseAccount: 'gmail',
+      accounts: [{source: 'gmail.1', label: 'x'}],
+    };
+    expect(errors(doc)).toEqual([
+      "/tree (root): Slot.accounts is written by the shell; write only source, gap or chooseAccount, and weight — the merged view's columns, column marks and join go on its dispatch entry",
     ]);
   });
 });

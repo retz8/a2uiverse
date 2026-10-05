@@ -144,7 +144,11 @@ describe('the Planner’s files and prompt', () => {
     expect(Object.keys(files.catalog.components!).sort()).toEqual(
       [...LAYOUT_SURFACE_KEEP_SET.components].sort(),
     );
-    expect(Object.keys(files.catalog.functions!).sort()).toEqual(['openAppLibrary', 'openStore']);
+    expect(Object.keys(files.catalog.functions!).sort()).toEqual([
+      'addAccount',
+      'openAppLibrary',
+      'openStore',
+    ]);
     expect(files.guidance).toContain('# Platform UI guidance');
     expect(files.rules).toContain('# The layout surface');
   });
@@ -165,9 +169,18 @@ describe('the Planner’s files and prompt', () => {
   test.each(LAYOUT_EXAMPLES)('the worked example $name passes the whole validator', example => {
     const result = validateLayoutSurface(example.output, {
       tree,
-      shortlist: example.agents.map(a => a.appId),
+      shortlist: example.agents.flatMap(a => a.sources?.map(({source}) => source) ?? [a.appId]),
     });
     expect(result.ok ? [] : result.errors).toEqual([]);
+  });
+
+  test('the account choice is shown: a command over an app with two accounts naming neither (task-12.6 decision 3)', () => {
+    const example = LAYOUT_EXAMPLES.find(e => e.output.dispatch.some(d => 'chooseAccount' in d))!;
+    expect(example.agents.find(a => a.appId === 'gmail')!.sources).toHaveLength(2);
+    expect(example.output.dispatch).toEqual([
+      {chooseAccount: 'gmail', request: expect.stringMatching(/Bob/)},
+    ]);
+    expect(plannerSystemPrompt(files)).toContain('"chooseAccount": "gmail"');
   });
 
   test('the three kinds of turn are each shown: a fan-out with a merged view, a platform answer from a reader, a gap', () => {
@@ -211,6 +224,30 @@ describe('the Planner’s files and prompt', () => {
     expect(turn.indexOf("The platform's card")).toBeGreaterThan(turn.indexOf('appId: gmail'));
     expect(turn).toContain(`<${LAYOUT_SURFACE_TAG}>`);
     expect(turn).not.toContain('slot-');
+  });
+
+  test('each agent carries its sources: an account by its label, the next sign-in’s as not signed in yet (task-12.6 decision 1)', () => {
+    const sourcesOf = (appId: string) =>
+      appId === 'gmail'
+        ? [
+            {source: 'gmail.1', label: 'jioh@gmail.com'},
+            {source: 'gmail.2', label: 'jioh@umich.edu'},
+          ]
+        : appId === 'github'
+          ? [{source: 'github.1', notSignedIn: true as const}]
+          : [{source: appId}];
+    const turn = buildPlannerTurn({utterance: 'x', shortlist}, sourcesOf);
+    expect(turn).toContain(
+      '- appId: gmail\n  sources:\n    - gmail.1 · jioh@gmail.com\n    - gmail.2 · jioh@umich.edu\n  name: Gmail',
+    );
+    expect(turn).toContain('- appId: github\n  sources:\n    - github.1 · not signed in yet\n');
+    expect(turn).not.toContain('sources:\n    - shell');
+  });
+
+  test('without sources each agent is its bare app id', () => {
+    expect(buildPlannerTurn({utterance: 'x', shortlist})).toContain(
+      '- appId: github\n  sources:\n    - github\n',
+    );
   });
 
   test('a shortlist without the platform’s card says so, so the model does not invent one', () => {
@@ -353,7 +390,8 @@ describe('ModelPlanner — the loop', () => {
       },
       dataModel: {},
     };
-    const sourcesOf = (appId: string) => (appId === 'gmail' ? ['gmail.1', 'gmail.2'] : [appId]);
+    const sourcesOf = (appId: string) =>
+      appId === 'gmail' ? [{source: 'gmail.1'}, {source: 'gmail.2'}] : [{source: appId}];
     const {model} = scripted([text(tagged(accounts))]);
     const outcome = await new ModelPlanner({
       model,

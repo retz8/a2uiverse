@@ -75,6 +75,8 @@ const readers: PlatformReaders = {
         description: e.card.description,
         skills: e.card.skills.map(s => ({name: s.name, description: s.description})),
         reachable: true,
+        signIn: false,
+        accounts: [],
       })),
   thisComposition: () => undefined,
   recentTurns: () => [],
@@ -122,6 +124,93 @@ describe.skipIf(!live)('Planner (live)', () => {
     expect(outcome.toolCalls.map(c => c.name)).toContain('installed_apps');
     expect(outcome.document.tree.components.some(c => c.component === 'Slot')).toBe(false);
   }, 90_000);
+
+  describe('accounts (task 12.6)', () => {
+    /** GitHub not signed in yet, Gmail with two accounts, Calendar asking no sign-in. */
+    const sourcesOf = (appId: string) =>
+      appId === 'github'
+        ? [{source: 'github.1', notSignedIn: true as const}]
+        : appId === 'gmail'
+          ? [
+              {source: 'gmail.1', label: 'jioh@gmail.com'},
+              {source: 'gmail.2', label: 'jioh@umich.edu'},
+            ]
+          : [{source: appId}];
+    const withAccounts = new ModelPlanner({
+      model: getModel(settings),
+      providerOptions: plannerProviderOptions(settings),
+      systemPrompt: plannerSystemPrompt(files),
+      catalog: files.catalog,
+      readers: {
+        ...readers,
+        installedApps: () =>
+          readers.installedApps().map(app =>
+            app.id === 'gmail'
+              ? {
+                  ...app,
+                  signIn: true,
+                  accounts: [
+                    {source: 'gmail.1', label: 'jioh@gmail.com'},
+                    {source: 'gmail.2', label: 'jioh@umich.edu'},
+                  ],
+                }
+              : app.id === 'github'
+                ? {...app, signIn: true}
+                : app,
+          ),
+      },
+      sourcesOf,
+    });
+    const plan = async (utterance: string) => {
+      const started = Date.now();
+      const outcome = await withAccounts.plan({utterance, shortlist});
+      console.log(
+        `live ${JSON.stringify(utterance)} in ${Date.now() - started}ms:`,
+        JSON.stringify(outcome),
+      );
+      expect(outcome.kind).toBe('planned');
+      if (outcome.kind !== 'planned') throw new Error('not planned');
+      return outcome;
+    };
+    const dispatched = (outcome: Awaited<ReturnType<typeof plan>>) =>
+      outcome.document.dispatch.flatMap(d => ('source' in d ? [d.source] : []));
+
+    test('an app not signed in yet is dispatched as the account its sign-in will create (found in 12.10)', async () => {
+      const outcome = await plan('Show my open pull requests on GitHub');
+      expect(dispatched(outcome)).toEqual(['github.1']);
+    }, 90_000);
+
+    test('a command naming no account, for an app with two, asks which', async () => {
+      const outcome = await plan('Reply to Bob that I will be ten minutes late');
+      expect(outcome.document.dispatch).toEqual([
+        {chooseAccount: 'gmail', request: expect.any(String)},
+      ]);
+    }, 90_000);
+
+    test('a command naming its account goes to that account alone', async () => {
+      const outcome = await plan('Show my unread mail on my umich account');
+      expect(dispatched(outcome)).toEqual(['gmail.2']);
+    }, 90_000);
+
+    test('a question about state gathers from every account', async () => {
+      const outcome = await plan('What is unread in my mail?');
+      expect(
+        dispatched(outcome)
+          .filter(s => s.startsWith('gmail'))
+          .sort(),
+      ).toEqual(['gmail.1', 'gmail.2']);
+    }, 90_000);
+
+    test('asked to add an account, the answer offers add an account for that app', async () => {
+      const outcome = await plan('Add another Gmail account');
+      const calls = outcome.document.tree.components.flatMap(c => {
+        const call = (c as {action?: {functionCall?: {call?: string; args?: {app?: string}}}})
+          .action?.functionCall;
+        return call ? [call] : [];
+      });
+      expect(calls).toContainEqual({call: 'addAccount', args: {app: 'gmail'}});
+    }, 90_000);
+  });
 
   test('a capability gap: no dispatch, one gap slot', async () => {
     const started = Date.now();

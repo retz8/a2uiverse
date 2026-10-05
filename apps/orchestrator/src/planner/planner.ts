@@ -5,7 +5,7 @@ import {extractTaggedBlock} from '../authoring/taggedBlock.js';
 import type {ToolCallRecord} from '../journal/types.js';
 import type {ShortlistEntry} from '../router/router.js';
 import type {LayoutSurface} from './document.js';
-import {buildPlannerTurn, buildRetryTurn, LAYOUT_SURFACE_TAG} from './prompt.js';
+import {buildPlannerTurn, buildRetryTurn, LAYOUT_SURFACE_TAG, type SourcesOf} from './prompt.js';
 import {readerTools, type PlatformReaders} from './readers.js';
 import {validateLayoutSurface} from './validate.js';
 
@@ -56,7 +56,7 @@ export class ModelPlanner implements Planner {
   readonly #system: string;
   readonly #tree: A2uiValidator;
   readonly #readers: PlatformReaders;
-  readonly #sourcesOf: (appId: string) => readonly string[];
+  readonly #sourcesOf: SourcesOf;
 
   constructor(options: {
     model: LanguageModel;
@@ -65,23 +65,30 @@ export class ModelPlanner implements Planner {
     /** The shell catalog pruned to the layout surface's keep-set: the one the prompt shows. */
     catalog: A2uiCatalogSchema;
     readers: PlatformReaders;
-    /** Each shortlisted app's sources (task-12.4 decision 2); the bare app id alone when omitted. */
-    sourcesOf?: (appId: string) => readonly string[];
+    /**
+     * Each shortlisted app's sources with their labels (task-12.4 decision 2, task-12.6 decision
+     * 1); the bare app id alone when omitted.
+     */
+    sourcesOf?: SourcesOf;
   }) {
     this.#model = options.model;
     this.#providerOptions = options.providerOptions;
     this.#system = options.systemPrompt;
     this.#tree = createA2uiValidator({catalog: options.catalog});
     this.#readers = options.readers;
-    this.#sourcesOf = options.sourcesOf ?? (appId => [appId]);
+    this.#sourcesOf = options.sourcesOf ?? (appId => [{source: appId}]);
   }
 
   async plan(input: PlanInput): Promise<PlanOutcome> {
-    const shortlist = input.shortlist.flatMap(entry => this.#sourcesOf(entry.record.id));
+    const shortlist = input.shortlist.flatMap(entry =>
+      this.#sourcesOf(entry.record.id).map(({source}) => source),
+    );
     const tools = readerTools(this.#readers, input.askedFrom);
     const attempts: PlanAttempt[] = [];
     const toolCalls: ToolCallRecord[] = [];
-    let messages: ModelMessage[] = [{role: 'user', content: buildPlannerTurn(input)}];
+    let messages: ModelMessage[] = [
+      {role: 'user', content: buildPlannerTurn(input, this.#sourcesOf)},
+    ];
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
       const result = await generateText({
         model: this.#model,

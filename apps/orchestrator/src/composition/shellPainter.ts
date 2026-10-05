@@ -90,11 +90,18 @@ function updateComponentsPart(state: CompositionState): Part {
  */
 export function paintLayout(state: CompositionState): ShellComponent[] {
   const {components} = state.layout.tree;
+  // An account choice is its chosen account's slot once pressed (task-12.6 decision 6).
+  const sourceOf = (component: ShellComponent): string | undefined =>
+    typeof component.source === 'string'
+      ? component.source
+      : typeof component.chooseAccount === 'string'
+        ? state.choices.get(component.chooseAccount)?.chosen
+        : undefined;
   const wrapperOf = new Map<string, string>();
   for (const component of components) {
     if (component.component !== 'Slot') continue;
-    const source = component.source;
-    if (typeof source === 'string' && source !== SHELL_SOURCE_ID) {
+    const source = sourceOf(component);
+    if (source !== undefined && source !== SHELL_SOURCE_ID) {
       wrapperOf.set(component.id, `${PAINTER_ID_PREFIX}${component.id}`);
     }
   }
@@ -115,7 +122,18 @@ export function paintLayout(state: CompositionState): ShellComponent[] {
       painted.push({...component});
       continue;
     }
-    const source = String(component.source);
+    const choice =
+      typeof component.chooseAccount === 'string'
+        ? state.choices.get(component.chooseAccount)
+        : undefined;
+    if (choice && choice.chosen === undefined) {
+      // The account choice (task-12.6 decision 5): the catalog draws the tile from the app's
+      // name and its accounts by label, read from the vault, never from the model.
+      painted.push({...component, label: choice.displayName, accounts: choice.accounts});
+      continue;
+    }
+    const {chooseAccount: _chooseAccount, ...authored} = component;
+    const source = String(sourceOf(component));
     const entry = state.slots.get(source);
     const slotState = entry?.state ?? 'pending';
     if (source === SHELL_SOURCE_ID) {
@@ -166,7 +184,8 @@ export function paintLayout(state: CompositionState): ShellComponent[] {
         ...(typeof component.weight === 'number' ? {weight: component.weight} : {}),
       },
       {
-        ...component,
+        ...authored,
+        source,
         state: slotState,
         label: entry?.plan.name ?? source,
         ...(entry?.plan.noun ? {noun: entry.plan.noun} : {}),

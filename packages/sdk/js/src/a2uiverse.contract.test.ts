@@ -239,6 +239,18 @@ test('a dismiss names the one source whose scope request Not now drops', () => {
   ).toBeUndefined();
 });
 
+test('a useAccount names the one account the account choice sends to', () => {
+  const use = operationData({kind: 'useAccount', sources: ['gmail.2']}, 'v0.9');
+  expect(use).toEqual({version: 'v0.9', operation: {kind: 'useAccount', sources: ['gmail.2']}});
+  expect(readOperation(use)).toEqual({kind: 'useAccount', sources: ['gmail.2']});
+  expect(
+    readOperation({version: 'v0.9', operation: {kind: 'useAccount', sources: []}}),
+  ).toBeUndefined();
+  expect(
+    readOperation({version: 'v0.9', operation: {kind: 'useAccount', sources: ['a.1', 'a.2']}}),
+  ).toBeUndefined();
+});
+
 test('a step names one agent and the step it shows; a close names nothing', () => {
   const step = operationData({kind: 'step', sources: ['github'], step: 0}, 'v0.9');
   expect(step).toEqual({version: 'v0.9', operation: {kind: 'step', sources: ['github'], step: 0}});

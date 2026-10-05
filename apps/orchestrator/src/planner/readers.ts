@@ -19,13 +19,23 @@ export interface InstalledApp {
   catalogs: string[];
   /** Whether its card was fetched at startup: an unreachable app is unroutable this run. */
   reachable: boolean;
+  /** Whether its card asks sign-in (task-12.6 decision 9). */
+  signIn: boolean;
+  /** Its accounts the vault holds, by source and label; none for an app not signed in. */
+  accounts: {source: string; label: string}[];
 }
 
 export interface CompositionSlot {
+  /** The slot's source; the app id for an account choice still waiting. */
   source: string;
   displayName: string;
-  /** The orchestrator's view: pending, arrived (painted), failed, collapsed, or needing sign-in (`authority`). */
-  state: 'pending' | 'arrived' | 'failed' | 'collapsed' | 'authority';
+  /** The account's label, for a slot of an account (task-12.6 decision 9). */
+  label?: string;
+  /**
+   * The orchestrator's view: pending, arrived (painted), failed, collapsed, needing sign-in
+   * (`authority`), or an account choice waiting on the user's press (`choosing-account`).
+   */
+  state: 'pending' | 'arrived' | 'failed' | 'collapsed' | 'authority' | 'choosing-account';
 }
 
 export interface CompositionView {
@@ -37,7 +47,7 @@ export interface CompositionView {
 }
 
 export interface PlatformReaders {
-  /** Installed apps — from the Registry: id, display name, the card's name, description and skills, catalogs, reachability. */
+  /** Installed apps — from the Registry: id, display name, the card's name, description and skills, catalogs, reachability, whether it asks sign-in and its accounts by label. */
   installedApps(): InstalledApp[];
   /**
    * This composition — the structure of the composition the question was asked from (task-9.3 decision 2);
@@ -65,13 +75,13 @@ export function readerTools(readers: PlatformReaders, askedFrom: string | undefi
   return {
     installed_apps: tool({
       description:
-        'The apps installed on this platform: each one’s id, display name, its card’s name, description and skills, the catalogs it paints in, and whether it was reachable at boot. Call it to answer which apps there are or what an installed app can do. The platform itself is not an app.',
+        'The apps installed on this platform: each one’s id, display name, its card’s name, description and skills, the catalogs it paints in, whether it was reachable at boot, whether it asks the user to sign in, and the accounts signed in to it — each its source id and its label; none listed means not signed in. Call it to answer which apps there are, what an installed app can do, or which accounts an app has. The platform itself is not an app.',
       inputSchema: NO_INPUT,
       execute: async () => readers.installedApps(),
     }),
     this_canvas: tool({
       description:
-        'The canvas the user is looking at — the one this question was asked from — as structure: the utterance it came from, which sources hold a slot and each slot’s state, whether a merged view is live, collapsed or declined and why, and any capability gaps. Never an app’s data. Call it to answer what the user is looking at.',
+        'The canvas the user is looking at — the one this question was asked from — as structure: the utterance it came from, which sources hold a slot — an account’s with its label — and each slot’s state, whether a merged view is live, collapsed or declined and why, and any capability gaps. Never an app’s data. Call it to answer what the user is looking at, or which account holds what is on it.',
       inputSchema: NO_INPUT,
       execute: async () =>
         readers.thisComposition(askedFrom) ?? {empty: true, note: 'Nothing is on the canvas yet.'},

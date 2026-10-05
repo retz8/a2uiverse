@@ -171,7 +171,11 @@ function utterance(text: string, session = 'page-1'): Message {
   };
 }
 
-function press(kind: 'retry' | 'dismiss', source: string, contextId: string): Message {
+function press(
+  kind: 'retry' | 'dismiss' | 'useAccount',
+  source: string,
+  contextId: string,
+): Message {
   return {
     kind: 'message',
     messageId: crypto.randomUUID(),
@@ -452,6 +456,40 @@ describe('schemes and accounts', () => {
     });
     expect(over.ok).toBe(true);
     expect(orchestrator.vault.accountsOf('shop')).toHaveLength(2);
+  });
+});
+
+describe('the account choice (task 12.6)', () => {
+  test('a chosen account whose sign-in ran out takes "sign in again" in the choice’s place; a live one is dispatched with its header', async () => {
+    let plan: () => ReturnType<typeof layoutFor> = shopOnly;
+    const {base, client, orchestrator} = await boot({
+      apps: {shop: {card: oauthCard(), admit: admitsTokens()}},
+      plan: () => plan(),
+    });
+    const canvas = contextOf(await collect(client, utterance('my orders')));
+    await signIn(base, canvas, 'shop.1');
+    auth.account = {sub: 'sub-bob', email: 'bob@example.com'};
+    await signIn(base, canvas, 'shop.2');
+    await orchestrator.vault.markAgain('shop.2', 'test');
+    plan = () => ({
+      dispatch: [{chooseAccount: 'shop', request: 'Cancel my last order.'}],
+      tree: {components: [{id: 'root', component: 'Slot', chooseAccount: 'shop'}]},
+      dataModel: {},
+    });
+
+    const asked = contextOf(await collect(client, utterance('cancel my last order')));
+    const ran = await collect(client, press('useAccount', 'shop.2', asked));
+    expect(slotOf(ran, 'shop.2')).toMatchObject({state: 'authority', authority: {cause: 'again'}});
+    expect(vendors[0]!.requests).toHaveLength(0);
+
+    const live = contextOf(await collect(client, utterance('cancel my last order')));
+    const sent = await collect(client, press('useAccount', 'shop.1', live));
+    expect(slotOf(sent, 'shop.1')).toMatchObject({
+      state: 'pending',
+      label: 'Shop · ada@example.com',
+    });
+    expect(vendors[0]!.requests).toHaveLength(1);
+    expect(vendors[0]!.requests[0]!.authorization).toMatch(/^Bearer /);
   });
 });
 

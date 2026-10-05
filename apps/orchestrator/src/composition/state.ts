@@ -13,7 +13,13 @@ import type {VendorEvent} from '../agentsPool/relay.js';
 import type {DispatchHandle, DispatchOutcome, DispatchRecord} from '../agentsPool/types.js';
 import type {JournalTurn} from '../journal/intentJournal.js';
 import type {SynthesisRecord} from '../journal/types.js';
-import {isGap, type JoinNouns, type LayoutSurface} from '../planner/document.js';
+import {
+  isAccountChoice,
+  isGap,
+  isSourceDispatch,
+  type JoinNouns,
+  type LayoutSurface,
+} from '../planner/document.js';
 import type {Sources} from '../accounts/accounts.js';
 import {SHELL_SOURCE_ID} from '../registry/types.js';
 import {SYNTHESIS_DISPLAY_NAME} from './constants.js';
@@ -115,6 +121,18 @@ export interface SlotEntry {
   keptPress?: Message;
 }
 
+/**
+ * An account choice (task-12.6 decisions 5, 6): the request the plan wrote for the app, the app's
+ * name, the accounts it offers by label — and, once pressed, the account chosen, whose slot it
+ * now is.
+ */
+export interface AccountChoice {
+  request: string;
+  displayName: string;
+  accounts: {source: string; label: string}[];
+  chosen?: string;
+}
+
 /** Where a turn's events go: its task, its stream, its journal line. */
 export interface Sink {
   ctx: {taskId: string; contextId: string};
@@ -131,10 +149,10 @@ export interface Sink {
 export interface OwedPress {
   /**
    * The presses that owe the merge a call, the walk after a press inside a fragment, and a step
-   * in a fragment’s history (task 9.4) — a walk with the step’s name on it; a close (task 9.3)
-   * and a dismiss (task 12.2) owe none.
+   * in a fragment’s history (task 9.4) — a walk with the step’s name on it; a close (task 9.3),
+   * a dismiss (task 12.2) and an account chosen (task 12.6) owe none.
    */
-  kind: Exclude<OperationKind, 'close' | 'dismiss'> | 'walk';
+  kind: Exclude<OperationKind, 'close' | 'dismiss' | 'useAccount'> | 'walk';
   sink: Sink;
   /** Settles with what became of the call it was made in. */
   resolve(end: SynthesisEnd): void;
@@ -196,6 +214,8 @@ export interface CompositionState {
   slots: Map<string, SlotEntry>;
   /** The capability gaps the Planner named, in dispatch order; each has a `Slot` in the tree. */
   gaps: string[];
+  /** The account choices the Planner asked, by app; each has a `Slot` in the tree (task 12.6). */
+  choices: Map<string, AccountChoice>;
   /** Every surface's data model. */
   partitions: Partitions;
   /** Each agent's paints in this composition and the wiring accepted per combination of them (tasks 9.4, 10.9). */
@@ -276,30 +296,36 @@ export function compositionFrom(
 ): CompositionState {
   const slots = new Map<string, SlotEntry>();
   const gaps: string[] = [];
-  const merged = layout.dispatch.find(entry => !isGap(entry) && entry.source === SHELL_SOURCE_ID);
-  const join = merged && !isGap(merged) ? merged.join : undefined;
+  const choices = new Map<string, AccountChoice>();
+  const merged = layout.dispatch.find(
+    entry => isSourceDispatch(entry) && entry.source === SHELL_SOURCE_ID,
+  );
+  const join = merged && isSourceDispatch(merged) ? merged.join : undefined;
   for (const entry of layout.dispatch) {
     if (isGap(entry)) {
       gaps.push(entry.gap);
       continue;
     }
-    const shell = entry.source === SHELL_SOURCE_ID;
-    const displayName = shell ? SYNTHESIS_DISPLAY_NAME : sources.displayName(entry.source);
-    const account = shell ? undefined : sources.account(entry.source);
-    const name = shell ? SYNTHESIS_DISPLAY_NAME : sources.name(entry.source);
-    const noun = join?.nouns[entry.source];
-    slots.set(entry.source, {
-      plan: {
-        source: entry.source,
-        displayName,
-        ...(account !== undefined ? {account} : {}),
-        name,
+    if (isAccountChoice(entry)) {
+      const appId = entry.chooseAccount;
+      choices.set(appId, {
         request: entry.request,
+        displayName: sources.displayName(appId),
+        accounts: sources
+          .of(appId)
+          .filter(({notSignedIn}) => !notSignedIn)
+          .map(({source, label}) => ({source, label: label ?? source})),
+      });
+      continue;
+    }
+    const shell = entry.source === SHELL_SOURCE_ID;
+    slots.set(entry.source, {
+      plan: slotPlan(sources, entry.source, entry.request, {
         ...(entry.columns ? {columns: entry.columns} : {}),
         ...(entry.columnSources ? {columnSources: entry.columnSources} : {}),
         ...(entry.join ? {join: entry.join} : {}),
-        ...(noun && !shell ? {noun: `${name} ${noun}`} : {}),
-      },
+        ...(!shell && join?.nouns[entry.source] ? {noun: join.nouns[entry.source]} : {}),
+      }),
       state: 'pending',
     });
   }
@@ -314,6 +340,7 @@ export function compositionFrom(
     ...(origin.metadata ? {requestMetadata: origin.metadata} : {}),
     slots,
     gaps,
+    choices,
     partitions: new Partitions(),
     history: new History(),
     arrived: new Set(),
@@ -327,6 +354,48 @@ export function compositionFrom(
     operations: new Set(),
     retired: new AbortController(),
   };
+}
+
+/** A slot's plan: the source's names, its request, and what the merged view's entry carries. */
+function slotPlan(
+  sources: Sources,
+  source: string,
+  request: string,
+  extra: Pick<SlotPlan, 'columns' | 'columnSources' | 'join'> & {noun?: string} = {},
+): SlotPlan {
+  const shell = source === SHELL_SOURCE_ID;
+  const account = shell ? undefined : sources.account(source);
+  const name = shell ? SYNTHESIS_DISPLAY_NAME : sources.name(source);
+  const {noun, ...merged} = extra;
+  return {
+    source,
+    displayName: shell ? SYNTHESIS_DISPLAY_NAME : sources.displayName(source),
+    ...(account !== undefined ? {account} : {}),
+    name,
+    request,
+    ...merged,
+    ...(noun ? {noun: `${name} ${noun}`} : {}),
+  };
+}
+
+/**
+ * An account pressed on the account choice (task-12.6 decision 6): the choice is that account's
+ * slot from here, pending, its request the plan's. Undefined when no choice offers the account,
+ * or its choice was already made.
+ */
+export function chooseAccount(
+  state: CompositionState,
+  sources: Sources,
+  source: string,
+): SlotEntry | undefined {
+  const choice = state.choices.get(sources.appOf(source));
+  if (!choice || choice.chosen !== undefined) return undefined;
+  if (!choice.accounts.some(account => account.source === source)) return undefined;
+  if (state.slots.has(source)) return undefined;
+  choice.chosen = source;
+  const slot: SlotEntry = {plan: slotPlan(sources, source, choice.request), state: 'pending'};
+  state.slots.set(source, slot);
+  return slot;
 }
 
 /** The dispatched vendor sources among `sources`, in slot order. */

@@ -166,7 +166,7 @@ flowchart TD
 ]
 ```
 
-A `Slot` holds **exactly one** of `source` (whose answer fills it) or `gap` (a capability no installed app has; more on that below). `weight` is the basic catalog's flex share: three slots of weight 1 split their row equally. `content: "shell"` marks the merged view's slot as the shell's own content, `columns` are the view's planned headers, and `columnSources` the app each one shows.
+A `Slot` holds **exactly one** of `source` (whose answer fills it), `gap` (a capability no installed app has; more on that below) or `chooseAccount` (an app with two accounts, for a command that named neither). `weight` is the basic catalog's flex share: three slots of weight 1 split their row equally. `content: "shell"` marks the merged view's slot as the shell's own content, `columns` are the view's planned headers, and `columnSources` the app each one shows.
 
 **2. The orchestrator wraps each app's slot.** The `Attribution` entries above aren't the Planner's: the orchestrator adds one around every app's `Slot`, copying the slot's `weight` onto it so wrapped and bare slots size by one rule. The merged view's slot stays bare, because the merged view is the shell's own page, not something an app painted.
 
@@ -188,6 +188,7 @@ A `Slot` holds **exactly one** of `source` (whose answer fills it) or `gap` (a c
 | presses the back arrow | `Attribution` | `onPress({kind: "step", sources: ["circleci"], step: 0})` |
 | presses Retry | `Slot` | `onPress({kind: "retry", sources: ["github"]})` |
 | presses "Search the Store" | `Slot` with a `gap` | `onShellAction({name: "openStore", query: …})` |
+| presses an account | `Slot` with `chooseAccount` | `onPress({kind: "useAccount", sources: ["gmail.2"]})` |
 
 Every press carries the surface and component that raised it, so the client knows which answer and which slot it came from.
 
@@ -333,6 +334,8 @@ A paint the orchestrator refused for a credential field fails its slot with `cau
 ### Shell actions
 
 The shell has exactly three actions of its own: **`openStore`**, with an optional `query`, **`openAppLibrary`**, and **`addAccount`**, naming an installed app, which opens the same sign-in the authority tile opens. Each is a catalog function, like the basic catalog's `openUrl`, that a `Button` runs through a `functionCall`. The function does nothing itself: it hands the host one plain object, `{name, surfaceId, query?}`, through `onShellAction`, and the host decides what opening the Store looks like.
+
+The **account choice** is the capability tile's sibling. A `Slot` with `chooseAccount` draws "Which Gmail account should I use?" and one press per account, labelled from `accounts`, which the orchestrator paints from the vault, never the model. A press is a `useAccount` naming the account; the slot gives way to the loading line at once, and the repaint names the account the slot now waits on, wrapped in its `Attribution` like any app's.
 
 The capability tile is the one component that raises an action itself. A `Slot` with a `gap` (a capability no installed app has) draws "No installed app can do this." beside a "Search the Store" button, which raises `openStore` with the gap as the query and the slot's own id as `componentId`. The tile keeps a box, unlike every other slot, because it's the shell's own UI with an action in it, not a place held for an app's pixels. The box hugs its line and its button at the slot's leading edge, where a failure tile's line sits, and wraps the button under the line only when the slot is too narrow for both.
 

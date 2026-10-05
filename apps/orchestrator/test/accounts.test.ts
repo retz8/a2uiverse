@@ -50,7 +50,9 @@ describe('the accounts seam (task-12.4 decision 3)', () => {
   });
 
   test('an app that asks sign-in with no account held is named for the account its sign-in will create', async () => {
-    expect((await sources(NO_ACCOUNTS)).of('linear')).toEqual([{source: 'linear.1'}]);
+    expect((await sources(NO_ACCOUNTS)).of('linear')).toEqual([
+      {source: 'linear.1', notSignedIn: true},
+    ]);
   });
 
   test('an app with accounts held is one source per account, each with its label', async () => {

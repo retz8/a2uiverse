@@ -116,6 +116,7 @@ export function buildOrchestrator({
   const compositions = new Compositions();
   const readers = platformReaders({
     registry,
+    sources,
     composition: contextId => compositions.get(contextId),
     ancestry: contextId => compositions.ancestry(contextId),
   });
@@ -219,7 +220,7 @@ function plannerFrom(config: Config, readers: PlatformReaders, sources: Sources)
     systemPrompt: plannerSystemPrompt(files),
     catalog: files.catalog,
     readers,
-    sourcesOf: appId => sources.of(appId).map(({source}) => source),
+    sourcesOf: appId => sources.of(appId),
   });
 }
 

@@ -660,6 +660,39 @@ describe('CanvasApp shell surface', () => {
     expect(screen.getByRole('button', {name: 'Manage apps'})).toBeInTheDocument();
   });
 
+  it('the account choice sends the pressed account as useAccount and gives the choice way at once (task-12.6 decision 6)', async () => {
+    window.history.replaceState(null, '', '?beat=account-choice&instant');
+    // The press's stream stays open: the orchestrator has not answered yet.
+    const sent: MessageSendParams[] = [];
+    const silent = {
+      next: () => new Promise<never>(() => {}),
+      return: () => Promise.resolve({done: true as const, value: undefined}),
+      throw: (thrown: unknown) => Promise.reject(thrown),
+      [Symbol.asyncIterator]: () => silent,
+    };
+    const sender: A2AMessageSender = {
+      sendMessageStream(params) {
+        sent.push(params);
+        return silent as unknown as ReturnType<A2AMessageSender['sendMessageStream']>;
+      },
+    };
+    render(
+      <Providers>
+        <CanvasApp client={sender} catalogs={BOUND_CATALOGS} hostRelay={HOST_RELAY} />
+      </Providers>,
+    );
+    expect(await screen.findByText('Which Gmail account should I use?')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'bob@example.com'}));
+    expect(screen.queryByRole('button', {name: 'alice@example.com'})).toBeNull();
+    expect(screen.getByText('Loading…')).toBeInTheDocument();
+    await waitFor(() => expect(sent).toHaveLength(1));
+    const part = sent[0].message.parts[0];
+    expect(part.kind === 'data' ? part.data : {}).toEqual({
+      version: 'v0.9',
+      operation: {kind: 'useAccount', sources: ['gmail.2']},
+    });
+  });
+
   it('the capability tile opens the Store over the canvas with the gap as the query, and reports the action on the side (task-6.5 decisions 3, 4, 6)', async () => {
     const {sent} = renderShellCanvas('gap');
     await userEvent.click(await screen.findByRole('button', {name: 'Search the Store'}));

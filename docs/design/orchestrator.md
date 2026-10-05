@@ -260,7 +260,16 @@ Everything the orchestrator keeps per answer is keyed by **source**: the app, an
 
 Each source has **one name in words**, `Sources.name(source)`: the app's display name, with the account's label beside it when the app has more than one account, `Gmail · alice@example.com`. The shell painter puts the label on the fragment's `Attribution` (as `account`) and the whole name on its `Slot` (as `label`); the Synthesizer's prompt names each partition the same way, `from: Gmail · alice@example.com (gmail.1)`, so the merged view can tell two inboxes apart.
 
-The Planner names sources too. Its shortlist check accepts every source of each shortlisted app, and "dispatched twice" compares sources, so `gmail.1` and `gmail.2` in one plan are two dispatches. A click inside a fragment goes back to the source in its surface id, which is the account that painted it.
+The Planner names sources too. Its turn lists each shortlisted app with its sources, an account by its label and the next sign-in's as `not signed in yet`:
+
+```
+- appId: gmail
+  sources:
+    - gmail.1 · alice@example.com
+    - gmail.2 · bob@example.com
+```
+
+Its shortlist check accepts every source of each shortlisted app, and "dispatched twice" compares sources, so `gmail.1` and `gmail.2` in one plan are two dispatches. A bare app id is forgiven when only one thing can be meant: an app with one source has `github` rewritten to `github.1` everywhere the plan names it, before the checks. With two accounts a bare id is refused, naming them. A question about state gathers from every account; a command goes to the one the words name, or the one on the canvas it points at. A command that names none, for an app with two accounts, is an **account choice**: the plan's entry `{"chooseAccount": "gmail", "request": "…"}`, a slot the shell draws asking which account, one press per account by its label. The press, `useAccount` naming the account, makes that slot the account's and sends the plan's request to it, with no second plan. A click inside a fragment goes back to the source in its surface id, which is the account that painted it.
 
 ### Refusing a repeat
 
@@ -305,10 +314,10 @@ flowchart LR
     X -->|"errors again"| BAD["Broken turn"]
 ```
 
-- **The readers** are the Planner's only view of the platform: three tools with no input. `installed_apps` lists the apps and their skills; `this_canvas` describes the answer the question was asked from (which apps hold which slot, whether a merged view stands); `recent_turns` gives one line per question up that answer's chain of parents. Each is a small projection of the orchestrator's own state. None ever returns an app's data. The Planner can answer "what's on my screen?" without seeing what's on it.
+- **The readers** are the Planner's only view of the platform: three tools with no input. `installed_apps` lists the apps, their skills, whether each asks sign-in and its accounts by label; `this_canvas` describes the answer the question was asked from (which sources hold which slot, an account's with its label, whether a merged view stands); `recent_turns` gives one line per question up that answer's chain of parents, each source by its name. Each is a small projection of the orchestrator's own state. None ever returns an app's data. The Planner can answer "what's on my screen?" without seeing what's on it.
 - **A step budget.** Each attempt may take at most four steps (`stopWhen: stepCountIs(4)`): the three readers and the answer.
 - **One tagged block.** The model answers with its JSON inside `<layout-surface>…</layout-surface>`. `extractTaggedBlock` takes exactly one such block and tolerates text around it. The tag is the orchestrator's own and never `<a2ui-json>`, the tag the client extracts A2UI from, so model output meant for the orchestrator can never be mistaken for UI.
-- **The validator** (`src/planner/validate.ts`) checks, in order: the output schema; the tree against the shell catalog pruned to the layout's components (`Slot`, `Row`, `Column`, `Card`, `Text`, `Divider`, `DataList`, `DataListItem`, `Table`, `TableRow`, `Button`), so `Attribution` is simply not a word the Planner has; every dispatched app is on the shortlist, once, with a request; a merged view needs at least two apps; its columns, column marks and join name only dispatched apps; exactly one `Slot` per dispatch entry; none of the painter's own props on a `Slot`; and a data model of plain values, never a formula or a ref.
+- **The validator** (`src/planner/validate.ts`) checks, in order: the output schema; the tree against the shell catalog pruned to the layout's components (`Slot`, `Row`, `Column`, `Card`, `Text`, `Divider`, `DataList`, `DataListItem`, `Table`, `TableRow`, `Button`), so `Attribution` is simply not a word the Planner has; every dispatched source is on the shortlist, once, with a request; an account choice names an app with two accounts, once, not also dispatched; a merged view needs at least two sources; its columns, column marks and join name only dispatched sources; exactly one `Slot` per dispatch entry; none of the painter's own props on a `Slot`; an "Add an account" press names an app that asks sign-in; and a data model of plain values, never a formula or a ref.
 - **One retry, in the same conversation.** The failed answer and every reader result stay in the message list, and the errors are appended as one more turn: fix this, don't start over. A second failure makes the turn a **broken turn**, its final naming the findings.
 
 The title the Planner writes is clipped to 48 characters before it's sent, and a clip is logged and journaled.

@@ -108,6 +108,8 @@ describe('installed apps', () => {
         skills: [{name: 'Pull requests', description: 'lists and reviews pull requests'}],
         catalogs: ['basic catalog'],
         reachable: true,
+        signIn: false,
+        accounts: [],
       },
       {
         id: 'gmail',
@@ -117,6 +119,8 @@ describe('installed apps', () => {
         skills: [{name: 'Threads', description: 'reads threads'}],
         catalogs: ['urn:gmail'],
         reachable: false,
+        signIn: false,
+        accounts: [],
       },
     ]);
   });
@@ -210,12 +214,12 @@ describe('recent turns — the ancestry (task-9.3 decision 2)', () => {
     state.arrived.add('github');
     state.slots.get('gmail')!.state = 'failed';
     expect(compositionLine({kind: 'open', state})).toBe(
-      '2026-09-13T06:00:00.000Z · "what needs my review?" → github (answered), gmail (failed) · still loading',
+      '2026-09-13T06:00:00.000Z · "what needs my review?" → GitHub (answered), Gmail (failed) · still loading',
     );
     state.answeredAt = opened + 5_000;
     state.mergedView = {outcome: 'declined', reason: 'nothing joinable'};
     expect(compositionLine({kind: 'open', state})).toBe(
-      '2026-09-13T06:00:00.000Z · "what needs my review?" → github (answered), gmail (failed) · merged view declined: nothing joinable · answered',
+      '2026-09-13T06:00:00.000Z · "what needs my review?" → GitHub (answered), Gmail (failed) · merged view declined: nothing joinable · answered',
     );
     state.mergedView = {outcome: 'synthesized'};
     expect(compositionLine({kind: 'open', state})).toContain('· merged view live · answered');
@@ -244,7 +248,7 @@ describe('recent turns — the ancestry (task-9.3 decision 2)', () => {
     expect(compositions.close('c2')).toMatchObject({
       utterance: 'two',
       parent: 'c1',
-      answered: ['gmail'],
+      answered: ['Gmail'],
     });
     expect(compositions.get('c2')).toBeUndefined();
     expect(compositions.isClosed('c2')).toBe(true);
@@ -259,7 +263,7 @@ describe('recent turns — the ancestry (task-9.3 decision 2)', () => {
     expect(lines).toHaveLength(5);
     expect(lines.map(l => askedIn(l))).toEqual(['"three"', '"four"', '"five"', '"six"', '"seven"']);
     expect(readers.recentTurns('c3').map(l => askedIn(l))).toEqual(['"one"', '"two"', '"three"']);
-    expect(readers.recentTurns('c3')[1]).toBe('2026-09-13T06:00:00.000Z · "two" → gmail · closed');
+    expect(readers.recentTurns('c3')[1]).toBe('2026-09-13T06:00:00.000Z · "two" → Gmail · closed');
     expect(readers.recentTurns(undefined)).toEqual([]);
     expect(readers.recentTurns('nowhere')).toEqual([]);
     // A parent the session does not hold ends the chain.
@@ -324,5 +328,87 @@ describe('the composition’s slots are keyed by source (task-6.3 decision 6)', 
     });
     expect(state.gaps).toEqual(['flight booking']);
     expect(state.utterance).toBe('u');
+  });
+});
+
+describe('accounts (task-12.6 decision 9)', () => {
+  /** Gmail with two accounts held, GitHub asking sign-in with none, Calendar asking none. */
+  const signInCard = (id: string, name: string): AgentCard => ({
+    ...named(id, name),
+    securitySchemes: {signIn: {type: 'http', scheme: 'bearer'}},
+    security: [{signIn: []}],
+  });
+  const accounts = {
+    accountsOf: (appId: string) =>
+      appId === 'gmail'
+        ? [
+            {n: 1, label: 'alice@example.com'},
+            {n: 2, label: 'bob@example.com'},
+          ]
+        : [],
+    nextAccount: () => 1,
+  };
+  let registry: Registry;
+  let sources: Sources;
+  beforeAll(async () => {
+    registry = await registryWith({
+      github: signInCard('github', 'GitHub'),
+      gmail: signInCard('gmail', 'Gmail'),
+      calendar: named('calendar', 'Calendar'),
+    });
+    sources = new Sources(registry, accounts);
+  });
+
+  test('installed apps say whether each asks sign-in, and list its accounts by source and label', () => {
+    const readers = platformReaders({
+      registry,
+      sources,
+      composition: () => undefined,
+      ancestry: () => [],
+    });
+    const byId = new Map(readers.installedApps().map(app => [app.id, app]));
+    expect(byId.get('gmail')).toMatchObject({
+      signIn: true,
+      accounts: [
+        {source: 'gmail.1', label: 'alice@example.com'},
+        {source: 'gmail.2', label: 'bob@example.com'},
+      ],
+    });
+    expect(byId.get('github')).toMatchObject({signIn: true, accounts: []});
+    expect(byId.get('calendar')).toMatchObject({signIn: false, accounts: []});
+  });
+
+  const asking = {
+    dispatch: [
+      {source: 'gmail.2', request: 'mail'},
+      {chooseAccount: 'gmail', request: 'Draft a reply.'},
+      {source: 'calendar', request: 'meetings'},
+    ],
+    tree: {
+      components: [
+        {id: 'root', component: 'Column', children: ['gm', 'ask', 'cal']},
+        {id: 'gm', component: 'Slot', source: 'gmail.2'},
+        {id: 'ask', component: 'Slot', chooseAccount: 'gmail'},
+        {id: 'cal', component: 'Slot', source: 'calendar'},
+      ],
+    },
+    dataModel: {},
+  };
+
+  test('this canvas gives each account’s slot its label, and an account choice still waiting its own state', () => {
+    const state = compositionFrom(asking, sources, 'x');
+    expect(compositionView(state, sources).slots).toEqual([
+      {source: 'gmail.2', displayName: 'Gmail', label: 'bob@example.com', state: 'pending'},
+      {source: 'calendar', displayName: 'Calendar', state: 'pending'},
+      {source: 'gmail', displayName: 'Gmail', state: 'choosing-account'},
+    ]);
+  });
+
+  test('recent turns name an account’s source by its one name', () => {
+    const state = compositionFrom(asking, sources, 'x', {turnId: 't', openedAt: 0});
+    state.arrived.add('gmail.2');
+    expect(compositionLine({kind: 'open', state})).toContain(
+      '→ Gmail · bob@example.com (answered), Calendar (loading)',
+    );
   });
 });

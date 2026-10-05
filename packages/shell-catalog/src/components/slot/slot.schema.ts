@@ -6,12 +6,16 @@ import {z} from 'zod';
  * All props are fixed authoring-time configuration — none are data-bound, so none use `Dynamic*`
  * wrappers.
  *
- * - A slot holds exactly one of `source` or `gap`.
+ * - A slot holds exactly one of `source`, `gap` or `chooseAccount`.
  * - `source` is the dispatched source whose content fills the region: a source id — the app and
  *   the account it paints under, `<appId>.<n>`, the bare app id for an app needing no sign-in
  *   (task-12.2 decision 3) — or `shell` for the merged view. It is the slot's identity within the layout; the host resolves content by it.
  * - `gap` is a capability no installed app serves, in words (task-6.3 decision 6): the region is
  *   the capability tile, and the gap is its Store query.
+ * - `chooseAccount` is an app with two or more accounts whose command named none (task-12.6
+ *   decisions 3, 5): the region is the account choice, and `accounts` — painted by the runtime,
+ *   from the vault — are its presses, each an account's source and its label. A press sends the
+ *   request the plan wrote for the app to that account, painting in this slot.
  * - `weight` is the basic catalog's flex-grow share inside a `Row` or `Column`.
  * - `state` is the lifecycle state the orchestrator paints (`pending` default in catalog.json).
  *   `filled` is not a wire state: content arriving via the host resolver is what fills a slot.
@@ -146,6 +150,8 @@ export const SlotApi = {
     .object({
       source: z.string().optional(),
       gap: z.string().optional(),
+      chooseAccount: z.string().optional(),
+      accounts: z.array(z.object({source: z.string(), label: z.string()}).strict()).optional(),
       weight: z.number().optional(),
       state: z.enum(['pending', 'failed', 'collapsed', 'authority']).optional(),
       label: z.string().optional(),
@@ -175,8 +181,14 @@ export const SlotApi = {
       retrying: z.array(z.string()).optional(),
     })
     .strict()
-    .refine(props => (props.source === undefined) !== (props.gap === undefined), {
-      message: 'a Slot holds exactly one of source or gap',
+    .refine(
+      props =>
+        [props.source, props.gap, props.chooseAccount].filter(held => held !== undefined).length ===
+        1,
+      {message: 'a Slot holds exactly one of source, gap or chooseAccount'},
+    )
+    .refine(props => props.accounts === undefined || props.chooseAccount !== undefined, {
+      message: 'a Slot carries accounts only when it is the account choice',
     })
     .refine(props => props.authority === undefined || props.state === 'authority', {
       message: 'a Slot carries an authority only when its state is `authority`',
@@ -194,3 +206,4 @@ export type SlotFailure = z.infer<typeof FailureSchema>;
 export type SlotAuthority = z.infer<typeof AuthoritySchema>;
 export type SlotCollapse = z.infer<typeof CollapseSchema>;
 export type SlotCallFailed = z.infer<typeof CallFailedSchema>;
+export type SlotAccount = NonNullable<SlotProps['accounts']>[number];

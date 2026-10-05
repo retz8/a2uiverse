@@ -32,8 +32,8 @@ export const SYNTHESIS_SURFACE_KEEP_SET: KeepSet = {
 
 /**
  * The layout surface (`shell:main`): slots, the shell's own words around them, and the shell's
- * actions — `addAccount` held back until the plan check validates the app it names (task-12.2
- * decision 11).
+ * actions — `addAccount` among them, the plan check validating the app it names (task-12.2
+ * decision 11, task-12.6 decision 8).
  */
 export const LAYOUT_SURFACE_KEEP_SET: KeepSet = {
   components: [
@@ -49,5 +49,5 @@ export const LAYOUT_SURFACE_KEEP_SET: KeepSet = {
     'TableRow',
     'Button',
   ],
-  functions: SHELL_ACTIONS.filter(name => name !== 'addAccount'),
+  functions: [...SHELL_ACTIONS],
 };

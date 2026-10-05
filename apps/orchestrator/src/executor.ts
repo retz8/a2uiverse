@@ -23,6 +23,7 @@ import {synthesisEnvelope, synthesisParts} from './composition/synthesisPainter.
 import {vendorMetadata} from './composition/partition.js';
 import {shellCreateParts, shellEnvelope, shellRepaintParts} from './composition/shellPainter.js';
 import {
+  chooseAccount,
   compositionFrom,
   inSlotOrder,
   lateSources,
@@ -798,6 +799,16 @@ export class OrchestratorExecutor implements AgentExecutor {
         );
         if (Object.keys(surfaces).length === 0) return refuse('The step carries no paint.');
         work = () => this.#step(sink, state, source, index, surfaces);
+        break;
+      }
+      case 'useAccount': {
+        // An account pressed on the account choice (task-12.6 decision 6): the choice becomes
+        // that account's slot, and the plan's request goes to it — no second plan.
+        const source = operation.sources[0]!;
+        if (!chooseAccount(state, this.#deps.sources, source)) {
+          return refuse(`No account choice here offers ${source}.`);
+        }
+        work = signal => this.#useAccount(sink, state, source, signal);
         break;
       }
       case 'dismiss': {
@@ -1621,6 +1632,39 @@ export class OrchestratorExecutor implements AgentExecutor {
       keys: need.keys,
       words: need.words,
     };
+  }
+
+  /**
+   * The account chosen on the account choice (task-12.6 decision 6): its slot, pending in the
+   * choice's place, and the plan's request dispatched to that account, painting in the slot — the
+   * pool's own check taking the slot to the authority tile when the account's sign-in ran out, as
+   * on a Retry. Its arrival is any source's: beside a merged view it waits for Include.
+   */
+  async #useAccount(
+    sink: Sink,
+    state: CompositionState,
+    source: string,
+    signal: AbortSignal,
+  ): Promise<void> {
+    const slot = state.slots.get(source)!;
+    this.#repaint([sink], state);
+    const handle = this.#deps.pool.dispatch(source, {
+      clientContextId: sink.ctx.contextId,
+      clientTaskId: sink.ctx.taskId,
+      message: {
+        kind: 'message',
+        messageId: randomUUID(),
+        role: 'user',
+        parts: [{kind: 'text', text: slot.plan.request}],
+        metadata: vendorMetadata(state.requestMetadata, source),
+      },
+      fromPlan: true,
+    });
+    const abort = () => handle.cancel();
+    signal.addEventListener('abort', abort, {once: true});
+    const run = this.#pump(sink, state, handle, source, {collapse: true, signal});
+    sink.drains?.push(run.drained);
+    await run.settled.finally(() => signal.removeEventListener('abort', abort));
   }
 
   /**

@@ -3,6 +3,7 @@ import {createRequire} from 'node:module';
 import {fileURLToPath} from 'node:url';
 import {pruneCatalog, type A2uiCatalogSchema} from '@a2uiverse/sdk';
 import {LAYOUT_SURFACE_KEEP_SET} from '@a2uiverse/shell-catalog/schema';
+import type {AppSource} from '../accounts/accounts.js';
 import {SHELL_SOURCE_ID} from '../registry/types.js';
 import type {ShortlistEntry} from '../router/router.js';
 import {LAYOUT_SURFACE_SCHEMA} from './document.js';
@@ -47,7 +48,7 @@ export function readPlannerFiles(): PlannerFiles {
 }
 
 const EXAMPLES_FRAMING =
-  'The examples below show the form of a layout surface for the kinds of turn: agents dispatched with a merged view over them — a timeline across their entries, and a merged view over one kind of thing with its join hypothesis — a command over the same cards that one agent answers alone, a status question in one app’s own noun merged over every agent that holds a part of it, a question about the platform answered from a reader, and a capability gap. Their agents and reader results are fixtures chosen to make the form legible; they are not the agents of the current turn and never a document to reuse.';
+  'The examples below show the form of a layout surface for the kinds of turn: agents dispatched with a merged view over them — a timeline across their entries, and a merged view over one kind of thing with its join hypothesis — a command over the same cards that one agent answers alone, a status question in one app’s own noun merged over every agent that holds a part of it, a question about the platform answered from a reader, a capability gap, and an account choice for a command over an app with two accounts that names neither. Their agents and reader results are fixtures chosen to make the form legible; they are not the agents of the current turn and never a document to reuse.';
 
 function renderExample(example: LayoutExample): string {
   const body = JSON.stringify(
@@ -81,34 +82,54 @@ export function plannerSystemPrompt(
   return parts.join('\n\n');
 }
 
-function renderCard({record, card}: ShortlistEntry): string {
+/** Each shortlisted app's sources (task-12.4 decision 3); the bare app id alone when not given. */
+export type SourcesOf = (appId: string) => readonly AppSource[];
+
+const BARE: SourcesOf = appId => [{source: appId}];
+
+/** A source as the listing names it: the account's label, or that it is not signed in yet. */
+function renderSource({source, label, notSignedIn}: AppSource): string {
+  const said = label ?? (notSignedIn ? 'not signed in yet' : undefined);
+  return `    - ${source}${said !== undefined ? ` · ${said}` : ''}`;
+}
+
+function renderCard({record, card}: ShortlistEntry, sourcesOf?: SourcesOf): string {
   const skills = (card.skills ?? [])
     .map(skill => {
       const examples = skill.examples?.length ? ` (e.g. ${skill.examples.join('; ')})` : '';
       return `  - ${skill.name}: ${skill.description}${examples}`;
     })
     .join('\n');
-  return `- appId: ${record.id}\n  name: ${card.name}\n  description: ${card.description}${skills ? `\n  skills:\n${skills}` : ''}`;
+  // The agents carry the sources the dispatch names (task-12.6 decision 1); the platform none.
+  const sources = sourcesOf
+    ? `\n  sources:\n${sourcesOf(record.id).map(renderSource).join('\n')}`
+    : '';
+  return `- appId: ${record.id}${sources}\n  name: ${card.name}\n  description: ${card.description}${skills ? `\n  skills:\n${skills}` : ''}`;
 }
 
 const ANSWER_LINE = `Answer with one JSON document inside <${LAYOUT_SURFACE_TAG}> and </${LAYOUT_SURFACE_TAG}>, and nothing outside the block.`;
 
 /**
- * The first user turn: the utterance, the shortlist's agent cards, and — apart, when the Router
- * ranked it — the platform's own card, which is answered by the Planner, never dispatched.
+ * The first user turn: the utterance, the shortlist's agent cards each with its sources — an
+ * account by its label, the one the next sign-in will create as not signed in yet (task-12.6
+ * decision 1) — and, apart, when the Router ranked it, the platform's own card, which is answered
+ * by the Planner, never dispatched.
  */
-export function buildPlannerTurn({
-  utterance,
-  shortlist,
-}: {
-  utterance: string;
-  shortlist: readonly ShortlistEntry[];
-}): string {
+export function buildPlannerTurn(
+  {
+    utterance,
+    shortlist,
+  }: {
+    utterance: string;
+    shortlist: readonly ShortlistEntry[];
+  },
+  sourcesOf: SourcesOf = BARE,
+): string {
   const agents = shortlist.filter(e => e.record.id !== SHELL_SOURCE_ID);
   const platform = shortlist.find(e => e.record.id === SHELL_SOURCE_ID);
   const parts = [
     `User utterance:\n${utterance}`,
-    `Available agents:\n${agents.length > 0 ? agents.map(renderCard).join('\n') : '- none'}`,
+    `Available agents:\n${agents.length > 0 ? agents.map(agent => renderCard(agent, sourcesOf)).join('\n') : '- none'}`,
   ];
   if (platform) {
     parts.push(

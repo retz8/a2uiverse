@@ -54,10 +54,10 @@
       "carriedOn": "a data part of its own, {version, operation}, on a new A2A message in the canvas's context — beside the A2UI action, the error report and the utterance; version is the A2UI version the client speaks",
       "required": ["kind", "sources"],
       "optional": ["step"],
-      "kinds": ["retry", "include", "tryAgain", "step", "dismiss", "close"],
+      "kinds": ["retry", "include", "tryAgain", "step", "dismiss", "close", "useAccount"],
       "fields": {
-        "kind": "The press: 'retry' sends again what one source's slot keeps — the action inside the fragment that failed or needed a scope, otherwise the slot's request from the plan — and is also the resume after sign-in, the orchestrator checking the vault again first; 'include' folds the sources that arrived after the merge into it; 'tryAgain' makes again a merge whose call failed; 'step' reports a fragment stepped back or forward in its own history — the paint's data model rides a2uiClientDataModel as on an action; 'dismiss' is Not now on a scope request: the press that needed the scope is dropped and the request taken off the attribution; 'close' ends the canvas: everything running in it cancelled, its composition dropped.",
-        "sources": "The source ids the press names: exactly one with 'retry', 'step' and 'dismiss', at least one with 'include', none with 'tryAgain' and 'close'.",
+        "kind": "The press: 'retry' sends again what one source's slot keeps — the action inside the fragment that failed or needed a scope, otherwise the slot's request from the plan — and is also the resume after sign-in, the orchestrator checking the vault again first; 'include' folds the sources that arrived after the merge into it; 'tryAgain' makes again a merge whose call failed; 'step' reports a fragment stepped back or forward in its own history — the paint's data model rides a2uiClientDataModel as on an action; 'dismiss' is Not now on a scope request: the press that needed the scope is dropped and the request taken off the attribution; 'close' ends the canvas: everything running in it cancelled, its composition dropped; 'useAccount' is an account's press on the account choice: the request the Planner wrote for that app sent to that account, painting in the account choice's slot.",
+        "sources": "The source ids the press names: exactly one with 'retry', 'step', 'dismiss' and 'useAccount', at least one with 'include', none with 'tryAgain' and 'close'.",
         "step": "With 'step' only, required there: the paint id the fragment now shows — one paint per createSurface from that agent, counted the same way on both sides, from 0, never reused. A non-negative integer."
       }
     },

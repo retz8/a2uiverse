@@ -1972,7 +1972,7 @@ describe('quiescence (task 8.10)', () => {
 
 /** A press on the composition, as the client sends it (task-8.4 decision 14). */
 function press(
-  kind: 'retry' | 'include' | 'tryAgain' | 'close',
+  kind: 'retry' | 'include' | 'tryAgain' | 'close' | 'useAccount',
   sources: string[],
   contextId: string,
 ): Message {
@@ -3058,5 +3058,75 @@ describe('two accounts of one app (task 12.4)', () => {
       ]),
     );
     expect(prompt).toContain('from: Gmail · bob@example.com (gmail.2)');
+  });
+});
+
+describe('the account choice (task 12.6)', () => {
+  const twoGmail: AccountStore = {
+    accountsOf: appId =>
+      appId === 'gmail'
+        ? [
+            {n: 1, label: 'alice@example.com'},
+            {n: 2, label: 'bob@example.com'},
+          ]
+        : [],
+    nextAccount: () => 3,
+  };
+  const asking = (): LayoutSurface => ({
+    dispatch: [{chooseAccount: 'gmail', request: 'Draft a reply to Bob saying I will be late.'}],
+    tree: {components: [{id: 'root', component: 'Slot', chooseAccount: 'gmail'}]},
+    dataModel: {},
+  });
+
+  test('a command naming no account paints the choice and calls no agent; an account’s press sends the plan’s request to it, painted in that slot (decisions 5, 6)', async () => {
+    const {client} = await boot({planner: new FakePlanner(asking), accounts: twoGmail});
+    const contextId = crypto.randomUUID();
+    const turn = await collect(client, utterance('reply to Bob that I will be late', contextId));
+    expect(finalOf(turn).status.state).toBe('completed');
+    const gmail = vendors.gmail!;
+    expect(gmail.requests).toHaveLength(0);
+    const [choice] = shellPaints(turn)[0]!.find(d => d.updateComponents)!.updateComponents!
+      .components as Array<Record<string, unknown>>;
+    expect(choice).toEqual({
+      id: 'root',
+      component: 'Slot',
+      chooseAccount: 'gmail',
+      label: 'Gmail',
+      accounts: [
+        {source: 'gmail.1', label: 'alice@example.com'},
+        {source: 'gmail.2', label: 'bob@example.com'},
+      ],
+    });
+
+    const pressed = await collect(client, press('useAccount', ['gmail.2'], contextId));
+    expect(finalOf(pressed).status.state).toBe('completed');
+    expect(gmail.requests).toHaveLength(1);
+    expect(gmail.requests[0]!.message.parts).toEqual([
+      {kind: 'text', text: 'Draft a reply to Bob saying I will be late.'},
+    ]);
+    expect(slotsOf(shellPaints(pressed)[0]!)['gmail.2']).toMatchObject({
+      id: 'root',
+      state: 'pending',
+      label: 'Gmail · bob@example.com',
+    });
+    const stamped = new Set(
+      pressed.filter(e => stampOf(e)?.role === 'fragment').map(e => stampOf(e)!.source),
+    );
+    expect(stamped).toEqual(new Set(['gmail.2']));
+    const lines = await journalLines(2);
+    expect((lines[1]!.dispatch as Array<{source: string}>).map(d => d.source)).toEqual(['gmail.2']);
+  });
+
+  test('a press naming an account no choice offers, or a choice already made, is refused', async () => {
+    const {client} = await boot({planner: new FakePlanner(asking), accounts: twoGmail});
+    const contextId = crypto.randomUUID();
+    await collect(client, utterance('reply to Bob', contextId));
+    const offered = await collect(client, press('useAccount', ['gmail.3'], contextId));
+    expect(finalOf(offered).status.state).toBe('failed');
+    expect(textsIn(offered)).toContain('No account choice here offers gmail.3.');
+    await collect(client, press('useAccount', ['gmail.1'], contextId));
+    const again = await collect(client, press('useAccount', ['gmail.2'], contextId));
+    expect(textsIn(again)).toContain('No account choice here offers gmail.2.');
+    expect(vendors.gmail!.requests).toHaveLength(1);
   });
 });

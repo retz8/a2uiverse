@@ -268,7 +268,8 @@ export function readPaintMeta(data: unknown): PaintMeta | undefined {
 
 /**
  * The reader's presses on the composition (task-8.4 decisions 9, 14), from task 9.2 a fragment's
- * step in its own history and the canvas closed, and from task 12.2 a scope request dismissed.
+ * step in its own history and the canvas closed, from task 12.2 a scope request dismissed, and
+ * from task 12.6 an account chosen on the account choice.
  */
 export const OPERATION_KINDS = [
   'retry',
@@ -277,6 +278,7 @@ export const OPERATION_KINDS = [
   'step',
   'dismiss',
   'close',
+  'useAccount',
 ] as const;
 export type OperationKind = (typeof OPERATION_KINDS)[number];
 
@@ -285,7 +287,8 @@ export type OperationKind = (typeof OPERATION_KINDS)[number];
  * `{version, operation}` — on a new A2A message in the canvas's context. `retry` names the one
  * source whose slot sends again what it keeps — also the resume after sign-in (task-12.2 decision
  * 9) — `include` the late sources it folds in, `tryAgain` none; `dismiss` the one source whose
- * scope request Not now drops (task-12.2 decision 10); `step`
+ * scope request Not now drops (task-12.2 decision 10); `useAccount` the one account the account
+ * choice's request goes to, painting in that slot (task-12.6 decision 6); `step`
  * names the one agent whose fragment stepped and, in `step`, the paint id it now shows — one paint
  * per `createSurface`, from 0, never reused (task-10.9 decision 6) — the paint's data model riding
  * `a2uiClientDataModel` as on an action; `close` names nothing.
@@ -320,6 +323,7 @@ const SOURCES_BY_KIND: Record<OperationKind, {exactly: number} | {atLeast: numbe
   step: {exactly: 1},
   dismiss: {exactly: 1},
   close: {exactly: 0},
+  useAccount: {exactly: 1},
 };
 
 /** The data part's body carrying a press: `{version, operation}`. */

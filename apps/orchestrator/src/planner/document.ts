@@ -40,10 +40,29 @@ export interface GapDispatch {
   gap: string;
 }
 
-export type DispatchEntry = SourceDispatch | GapDispatch;
+/**
+ * The account choice (task-12.6 decisions 3, 5): an app with two or more accounts, for a command
+ * that named none, and the request the Planner wrote for it — sent to the account the person
+ * presses.
+ */
+export interface AccountChoiceDispatch {
+  chooseAccount: string;
+  request: string;
+}
+
+export type DispatchEntry = SourceDispatch | GapDispatch | AccountChoiceDispatch;
 
 export function isGap(entry: DispatchEntry): entry is GapDispatch {
   return 'gap' in entry;
+}
+
+export function isAccountChoice(entry: DispatchEntry): entry is AccountChoiceDispatch {
+  return 'chooseAccount' in entry;
+}
+
+/** A dispatch to a source — an agent, or `shell` for the merged view. */
+export function isSourceDispatch(entry: DispatchEntry): entry is SourceDispatch {
+  return 'source' in entry;
 }
 
 /** The layout tree: an A2UI components list in the shell catalog, one of them `root`. */
@@ -68,7 +87,7 @@ const treeSchema = {
   additionalProperties: false,
   required: ['components'],
   description:
-    'The layout surface: the A2UI components list an agent would put in an updateComponents, authored in the catalog you were given. One component has the id `root`. A `Slot` stands for each dispatch entry, matched by its source or its gap.',
+    'The layout surface: the A2UI components list an agent would put in an updateComponents, authored in the catalog you were given. One component has the id `root`. A `Slot` stands for each dispatch entry, matched by its source, its gap or its account choice.',
   properties: {
     components: {
       type: 'array',
@@ -101,7 +120,7 @@ export const LAYOUT_SURFACE_SCHEMA = {
     dispatch: {
       type: 'array',
       description:
-        'Who answers this turn. One entry per source to dispatch, each with the prose request it receives; `shell` is the merged view over two or more of the others, its request the brief for that view. One entry per capability gap, naming the capability in words. Empty when the shell answers alone.',
+        'Who answers this turn. One entry per source to dispatch, each with the prose request it receives; `shell` is the merged view over two or more of the others, its request the brief for that view. One entry per capability gap, naming the capability in words. One entry per account choice: an app with two or more accounts whose command named none. Empty when the shell answers alone.',
       items: {
         oneOf: [
           {
@@ -113,7 +132,7 @@ export const LAYOUT_SURFACE_SCHEMA = {
                 type: 'string',
                 minLength: 1,
                 description:
-                  'The source id of the agent to dispatch — its app id from the available agents — or `shell` for the merged view the shell itself authors over the other sources on the screen.',
+                  'The source id of the agent to dispatch — one of the sources listed under its app in the available agents — or `shell` for the merged view the shell itself authors over the other sources on the screen.',
               },
               request: {
                 type: 'string',
@@ -174,6 +193,25 @@ export const LAYOUT_SURFACE_SCHEMA = {
                 minLength: 1,
                 description:
                   'A capability the utterance needs that no installed app serves, in words — the query the Store will be searched for.',
+              },
+            },
+          },
+          {
+            type: 'object',
+            additionalProperties: false,
+            required: ['chooseAccount', 'request'],
+            properties: {
+              chooseAccount: {
+                type: 'string',
+                minLength: 1,
+                description:
+                  'The app id of an app listed with two or more accounts, when the utterance is a command for it that names no account and points at none on the canvas. The shell asks the user which account, and sends the request to the one they press.',
+              },
+              request: {
+                type: 'string',
+                minLength: 1,
+                description:
+                  'The message the chosen account’s agent receives, as for a source: the only thing it sees, in plain language.',
               },
             },
           },

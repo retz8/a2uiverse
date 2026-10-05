@@ -14,7 +14,7 @@ export interface ClosedComposition {
   parent?: string;
   openedAt: number;
   closedAt: number;
-  /** The sources that had answered, in slot order. */
+  /** The sources that had answered, in slot order, each by its one name. */
   answered: string[];
   mergedView?: CompositionState['mergedView'];
 }
@@ -76,9 +76,9 @@ export class Compositions {
       ...(state.parent !== undefined ? {parent: state.parent} : {}),
       openedAt: state.openedAt,
       closedAt,
-      answered: [...state.slots.keys()].filter(
-        source => source !== SHELL_SOURCE_ID && state.arrived.has(source),
-      ),
+      answered: [...state.slots.values()]
+        .filter(({plan}) => plan.source !== SHELL_SOURCE_ID && state.arrived.has(plan.source))
+        .map(({plan}) => plan.name),
       ...(state.mergedView ? {mergedView: state.mergedView} : {}),
     };
     this.#closed.set(contextId, record);
