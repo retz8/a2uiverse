@@ -7,7 +7,7 @@ The `[apps]` part of Phase 12 (`_dev/docs/spec/phase-12-authority-surfaces.md`, 
 - Per-account fixtures in the agent kit, for the stub mail and the deterministic answers.
 - Gmail's second fake account and its hand-written mailbox.
 - Its deterministic answers, recorded and derived through Gmail's existing pipeline, per account.
-- The kit's beat driver signing in, so a recording runs against an agent with sign-in.
+- The kit's beat driver signing in, so a recording runs against an agent with sign-in, in every mode; each agent's README on recording signed in.
 - Tests in the kit and in Gmail; Gmail's README.
 - Out: the platform's recording scripts and e2e signed in, the real popup, the tunnel URLs (12.12); the two accounts merged on the canvas (12.13).
 
@@ -39,7 +39,7 @@ The personal account is recorded over Gmail's four existing beats, verbatim — 
 
 ### 7. Recording signs in
 
-The non-interactive entry naming a fake account is honored in stub mode as well as deterministic mode, amending task-12.9 decision 12; live mode still refuses it. The kit's beat driver signs in as a named fake account through it, asking for every scope of the app, and Gmail's recording takes the account.
+The non-interactive entry naming a fake account is honored in stub mode as well as deterministic mode, amending task-12.9 decision 12; live mode still refuses it. The kit's beat driver signs in asking for every scope of the app: as a named fake account through the entry, and without one through the agent's own sign-in page in the browser, the return caught on a loopback address (RFC 8252) — the vendor's sign-in in live mode. An agent signing in with an API key is driven with its key. Gmail's recording takes the account. Every agent's README records signed in.
 
 ### 8. What proves it
 
