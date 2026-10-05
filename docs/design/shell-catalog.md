@@ -55,7 +55,7 @@ flowchart LR
 
 ### 2. Basic catalog, drawn on Radix Themes
 
-The basic catalog's eighteen components are all here, **with upstream's props exactly**. Only the drawing changed: each one is mapped onto its nearest Radix Themes component.
+The basic catalog's eighteen components are all here, **with upstream's props exactly**, less one value: `TextField` has no `obscured` variant, because the shell carries no credential input (`SPEC.md` axiom 1). Otherwise only the drawing changed: each one is mapped onto its nearest Radix Themes component.
 
 | Basic component | Drawn with Radix | Worth knowing |
 | --- | --- | --- |
@@ -64,7 +64,7 @@ The basic catalog's eighteen components are all here, **with upstream's props ex
 | `Card`, `Divider`, `Tabs`, `Slider` | `Card`, `Separator`, `Tabs`, `Slider` | only the selected tab's panel mounts |
 | `Modal` | `Dialog` | its content mounts inside the catalog's own portal root |
 | `Button` | `Button` | `default` is `surface` gray, `primary` is `solid`, `borderless` is `ghost`; it keeps its label's width, at most its container's, so a `Column`, which stretches its children across by default, never draws a button across the page |
-| `TextField`, `CheckBox`, `DateTimeInput` | `TextField` or `TextArea`, `Checkbox`, a native date input | the first failing check shows under the field in red |
+| `TextField`, `CheckBox`, `DateTimeInput` | `TextField` or `TextArea`, `Checkbox`, a native date input | the first failing check shows under the field in red; `TextField`'s schema is upstream's with `obscured` taken out of `variant`, so a paint asking for a password field fails validation |
 | `ChoicePicker` | `RadioGroup`, `CheckboxGroup`, `SegmentedControl`, or toggle `Button`s | one control per combination of one-or-many and checkbox-or-chips |
 | `Icon` | Radix Icons | an unknown icon name draws a question mark carrying the name |
 | `Image`, `Video`, `AudioPlayer` | plain elements under the Theme's tokens | |
@@ -77,8 +77,8 @@ Eight components exist only in the shell catalog. In the example:
 
 | Component | What it is | In the example |
 | --- | --- | --- |
-| **`Slot`** | A region of the layout reserved for one source's answer. It draws the answer when there is one, and otherwise its state: loading, failed, or collapsed | One per app, plus one for the merged view (`source: "shell"`) |
-| **`Attribution`** | The quiet app name above a slot, and that app's back and forward arrows | "Linear", "GitHub", "CircleCI" above the three slots |
+| **`Slot`** | A region of the layout reserved for one source's answer. It draws the answer when there is one, and otherwise its state: loading, failed, collapsed, or waiting for sign-in | One per app, plus one for the merged view (`source: "shell"`) |
+| **`Attribution`** | The quiet app name above a slot, the account's label when the app has more than one, that app's back and forward arrows, and a "Needs access" chip when the app asks for more | "Linear", "GitHub", "CircleCI" above the three slots |
 | **`DerivedValue`** | The only way a merged view shows a value: the value plus how sure it is | Every cell of the table |
 | **`SortControl`** | "Sort by" with the options and the direction | "Sort by Updated ↓" |
 | **`Table`**, **`TableRow`** | A list of like things whose columns line up | The "Work items" table |
@@ -110,20 +110,22 @@ The catalog is a library; the **host** is the app that renders with it, here the
   | Option | Called when |
   | --- | --- |
   | `onShellAction` | a shell button raises `openStore` or `openAppLibrary` |
-  | `onPress` | the reader presses Retry, Include or Try again on a `Slot`, or a back or forward arrow on an `Attribution` |
+  | `onPress` | the reader presses Retry, Include or Try again on a `Slot`, or a back or forward arrow or Not now on an `Attribution` |
+  | `onSignIn` | the reader presses Sign in, Sign in again, Allow or Cancel: `{kind: "start" or "cancel", source, surfaceId, componentId}`, called inside the click so the host can open the sign-in window without the browser blocking it |
   | `onNavigate` | the reader clicks a `DerivedValue`, to land on the element it came from |
   | `appDisplayName` | a component needs an app's name for its id |
 
-- **State that changes as the question runs** goes into four React contexts the host provides:
+- **State that changes as the question runs** goes into five React contexts the host provides:
 
   | Context | What it answers | Read by |
   | --- | --- | --- |
   | `SlotContentContext` | "what's the content for this source?" | `Slot` |
-  | `SlotStateContext` | "where does this source's slot stand?" (`pending`, `filled`, `failed`, `collapsed`, or `late` while it waits for Include) | `Table`, the reserved merged view |
+  | `SlotStateContext` | "where does this source's slot stand?" (`pending`, `filled`, `failed`, `collapsed`, `late` while it waits for Include, or `authority` while it needs sign-in) | `Table`, the reserved merged view, the collapsed merged view's lines |
   | `PressStateContext` | "which presses are on their way, and can a press be made here at all?" | `Slot`, `Attribution` |
   | `FragmentHistoryContext` | "where does this app stand in its back and forward history?" | `Attribution` |
+  | `SignInContext` | "is a sign-in window open for this source?" | `Slot`, `Attribution` |
 
-Every context has a default that says nothing (no content, no state, presses enabled, no history), and every handler is optional: without `onPress` no press button or arrow is drawn, and without `onNavigate` cells aren't clickable. So the catalog renders correctly in a unit test or a replay with no host at all. And the catalog computes nothing on the host's behalf: the host works out, for example, which step is "back" for an app, and the catalog only draws it.
+Every context has a default that says nothing (no content, no state, presses enabled, no history, no sign-in window open), and every handler is optional: without `onPress` no press button or arrow is drawn, without `onSignIn` no Sign in or Allow, and without `onNavigate` cells aren't clickable. So the catalog renders correctly in a unit test or a replay with no host at all. And the catalog computes nothing on the host's behalf: the host works out, for example, which step is "back" for an app, and the catalog only draws it.
 
 ### 6. One Provider, in its own box
 
@@ -232,7 +234,7 @@ The client's collision detector finds a package's stylesheets by scanning its Ja
 
 The failure tile and the merged view's lines say different things depending on what happened, what the reader has pressed, and whether that press has reached the orchestrator yet. All of that wording is written by **pure functions** in `src/components/slot/slot.tsx` and `press-lines.ts`: facts in, sentences out, no React. They're tested as plain functions.
 
-- **`failureStatement(failure)`** picks the failure tile's one sentence, and **`failureRetries(failure)`** whether Retry follows it. The orchestrator paints a cause on the failed `Slot`, one of seven:
+- **`failureStatement(failure)`** picks the failure tile's one sentence, and **`failureRetries(failure)`** whether Retry follows it. The orchestrator paints a cause on the failed `Slot`, one of eight:
 
   | Cause | The tile says | Retry |
   | --- | --- | --- |
@@ -243,13 +245,13 @@ The failure tile and the merged view's lines say different things depending on w
   | `catalog` | "This app sent something that can't be shown here." | no |
   | `uninstalled` | "This app isn't installed anymore." | yes |
   | `load` | "Something went wrong loading this." | yes |
-  | `credential` | "This app couldn't answer." | no |
+  | `credential` | "This app asked for a password, code or card number here. A2UIVerse never asks for those on this screen." | no; "Continue on <App>" instead |
 
-  `catalog` is a paint the orchestrator refused because the app painted in a catalog it isn't entitled to; retrying would be refused the same way. `load` is a catalog the client couldn't load. Both carry the catalog id, which the tile never shows. `credential` is a paint the orchestrator refused because it held a password, code or card field the app did not take out when asked; it carries the app's own page as `continueUrl`, and its words and its "Continue on" button are drawn in sub-task 12.3. The sentence says "this app", never its name: the `Attribution` above already names it. The merged view's own failed slot says "Something went wrong here."
+  `catalog` is a paint the orchestrator refused because the app painted in a catalog it isn't entitled to; retrying would be refused the same way. `load` is a catalog the client couldn't load. Both carry the catalog id, which the tile never shows. `credential` is a paint the orchestrator refused because it held a password, code or card field the app did not take out when asked; it carries the app's own page as `continueUrl`, drawn as a "Continue on <App>" link that opens it in a new tab (see [Authority surfaces](#authority-surfaces)). The sentence says "this app", never its name: the `Attribution` above already names it. The merged view's own failed slot says "Something went wrong here."
 
-- **`collapseLine(collapse)`** words a collapsed merged view: "The merged view needs Linear issues, which didn't load.", "The merged view needs at least two sources, and only GitHub answered.", or "The merged view couldn't be made."
+- **`collapseLine(collapse, homeSignIn?)`** words a collapsed merged view: "The merged view needs Linear issues, which didn't load.", "The merged view needs at least two sources, and only GitHub answered.", or "The merged view couldn't be made." When the home app's slot needs sign-in, as `SlotStateContext` says, the first becomes "The merged view needs Linear issues, and Linear isn't signed in. Signing in to Linear brings it back.", with no press: the app's own Sign in brings the view back.
 
-- **`collapsedLines(facts, presses, …)`** and **`landedLines(…)`** decide which lines a collapsed or a landed merged view shows. For a collapsed view they try, **in priority order**: a merge being made ("Making the merged view…"), a Retry that could bring it back running ("Waiting for Linear, then merging…"), the same Retry pressed but not yet painted, a view that couldn't be made (with Try again), a collapse with its Retry on the line ("Retry Linear", or "Retry all"), and finally the plain collapse line or the Synthesizer's decline. The first rule that matches wins. Under a decline, a late app is then offered with Include.
+- **`collapsedLines(facts, presses, …)`** and **`landedLines(…)`** decide which lines a collapsed or a landed merged view shows. For a collapsed view they try, **in priority order**: a merge being made ("Making the merged view…"), a Retry that could bring it back running ("Waiting for Linear, then merging…"), the same Retry pressed but not yet painted, a view that couldn't be made (with Try again), a collapse with its Retry on the line ("Retry Linear", or "Retry all"), and finally the plain collapse line or the Synthesizer's decline. The first rule that matches wins. Under a decline, a late app is then offered with Include. An app whose slot needs sign-in is never on a line's Retry: Retry can't sign it in.
 
 The facts come from props the orchestrator paints on the merged view's `Slot` (`late`, `working`, `callFailed`, `retrying`, `declined`, `collapse`), and the presses from `PressStateContext`. So a press shows **the moment it's clicked**, before the orchestrator's repaint arrives: Retry turns the tile back into "Loading…" at once. A press that never reached the orchestrator adds "That didn't reach A2UIVerse." beside its button; a stream that broke after it answered says "Lost the connection to A2UIVerse. Ask again to see where this stands."
 
@@ -273,13 +275,14 @@ The join marks themselves come from `cellJoin` in `src/components/derived-value/
 
 ### Reserving a column
 
-A `Table` may mark each column to the app whose values it shows (`columnSources`). When that app hasn't answered yet, the column is **reserved**: `Table` asks `SlotStateContext` where that app's slot stands, and `reservedColumnState` turns the answer into one of three states:
+A `Table` may mark each column to the app whose values it shows (`columnSources`). When that app hasn't answered yet, the column is **reserved**: `Table` asks `SlotStateContext` where that app's slot stands, and `reservedColumnState` turns the answer into one of four states:
 
 | The app's slot | The heading | The cells |
 | --- | --- | --- |
 | `pending` | "CI · loading" | a skeleton bar in each cell |
 | `failed` | "CI · unavailable" | the empty dash |
 | `late` (arrived after the view was made) | "CI · not included" | the cells the Synthesizer wrote, until Include adds the real ones |
+| `authority` (needs sign-in) | "Mail · not signed in" | the empty dash |
 
 The table passes the column states down to its rows through a small React context, so each `TableRow` knows which of its cells to hold back. The reserved merged view in the first image uses the same heading and cell geometry, so when the real table lands, nothing moves.
 
@@ -289,8 +292,8 @@ The table passes the column states down to its rows through a small React contex
 
 - An arrow is drawn **only when there's somewhere to go**, and only when the host passed `onPress`.
 - Each arrow is **named for where it goes**: "Back to" and the paint's title when the app gave that paint one (the `paintMeta` title, see [`a2uiverse-apps`](https://github.com/retz8/a2uiverse-apps#connecting-to-a2uiverse)), just "Back" when it didn't. The name is its tooltip and its accessible name.
-- Pressing one raises `{kind: "step", sources: [appId], step}` through the host's press handler.
-- The arrows draw **disabled** while `busy` (that app's repaint is on its way) and wherever `PressStateContext` says no press can be made.
+- Pressing one raises `{kind: "step", sources: [source], step}` through the host's press handler.
+- The arrows draw **disabled** while `busy` (that app's repaint is on its way) and wherever `PressStateContext` says no press can be made. A scope request waiting on Allow doesn't make them busy.
 - When a pressed arrow disappears, because there's no more history that way, **focus moves to the other arrow, or back to the app's name**.
 
 <p align="center">
@@ -301,9 +304,35 @@ The table passes the column states down to its rows through a small React contex
 
 The arrows are soft accent icon buttons at the right edge of the name's row, with no border around the row: the boundary is still just the name, the app's own pixels and the whitespace.
 
+### Authority surfaces
+
+When an app needs the reader to sign in, the orchestrator paints its `Slot` with `state: "authority"` and an `authority` object, and the slot draws the **authority tile**: the consent itself, in plain words, with no address shown.
+
+| `authority` | The slot draws |
+| --- | --- |
+| `{cause: "signIn", scopes}` | "Sign in to Gmail to show it here.", then "Gmail will be able to" over the scopes in the card's own words (left out when there are none, as for a key or a token), a **Sign in** button, and "Opens Gmail's sign-in in a new window" |
+| `{cause: "signIn", quiet: true}` | after the full tile has shown once this session: one line, "Not signed in · Sign in". The name above it already says which app; the line's accessible name says "Gmail, not signed in" |
+| `{cause: "again"}` | the silent refresh failed: "Your Google Calendar sign-in has run out.", **Sign in again**, and the same new-window line |
+| `{cause: "unsupported"}` | "Signing in to Acme Wiki isn't supported here.", "Acme Wiki asks for a kind of sign-in A2UIVerse can't do. The app stays installed.", and **Manage apps**, which raises `openAppLibrary` |
+
+The tile names the app, unlike the failure tile, because its sentence is about that app's sign-in. The name comes from the host's `appDisplayName`, looked up by the app part of the source id (`gmail` for `gmail.2`).
+
+Sign in raises `onSignIn({kind: "start", …})`, and the host opens the sign-in window. While `SignInContext` says that window is open, the slot draws the **waiting form** in place, in the shape it already had: the tile says "Finish signing in to Gmail in the window that opened." over a spinner, "Waiting for you to finish signing in", and **Cancel**; the quiet line stays one line, the spinner, the same words and Cancel. Cancel raises `{kind: "cancel"}`, and once the host says the window is closed the tile comes back as it was. When sign-in completes, the host sends the slot's `retry`; from the moment that press is `sent` the slot draws "Loading…", as a failure tile's Retry does, and a press that never reached the orchestrator, or whose stream broke, brings the tile back with the same words a failure tile's Retry uses.
+
+A **scope request** inside a fragment is painted on its `Attribution` as `escalation: {scopes}`, the missing ones only. The marker's row gets a fixed-width "Needs access" chip, beside the arrows, and a card floats over the fragment's top, at the row's right edge, no wider than the slot: "GitHub needs more access to finish this.", "It will also be able to" over the scopes, **Allow** and **Not now**, and "Allow opens GitHub's sign-in in a new window". Nothing under it moves, and the fragment stays as it was.
+
+- The card **opens when the request arrives**. The chip, Escape, or a press anywhere outside folds it without answering; the chip stays and opens it again. Focus stays where the reader had it; the request is said through a polite `role="status"` region.
+- **Allow** raises `onSignIn({kind: "start"})`. While the window is open the card keeps the scopes and Allow and Not now give way to the spinner line and Cancel.
+- **Not now** raises `{kind: "dismiss", sources: [source]}` through `onPress`.
+- A `retry` or a `dismiss` `sent` for the source hides the chip and the card at once, before the orchestrator's repaint drops `escalation`.
+
+When an app has more than one account, the orchestrator paints the account's label as `account`, and the marker reads "Gmail · me@example.com" **at rest**, so two fragments of one app tell apart at a glance. A long label ends in an ellipsis; the whole of it is in the hover title and the accessible name.
+
+A paint the orchestrator refused for a credential field fails its slot with `cause: "credential"`. Its tile has no Retry; when the failure carries `continueUrl`, a **Continue on <App>** link opens that page in a new tab (`noopener,noreferrer`), with "Opens Shop A's website in a new tab" under it. The link is drawn only for an `https` address, or `http` on this machine.
+
 ### Shell actions
 
-The shell has exactly two actions of its own: **`openStore`**, with an optional `query`, and **`openAppLibrary`**. Each is a catalog function, like the basic catalog's `openUrl`, that a `Button` runs through a `functionCall`. The function does nothing itself: it hands the host one plain object, `{name, surfaceId, query?}`, through `onShellAction`, and the host decides what opening the Store looks like.
+The shell has exactly three actions of its own: **`openStore`**, with an optional `query`, **`openAppLibrary`**, and **`addAccount`**, naming an installed app, which opens the same sign-in the authority tile opens. Each is a catalog function, like the basic catalog's `openUrl`, that a `Button` runs through a `functionCall`. The function does nothing itself: it hands the host one plain object, `{name, surfaceId, query?}`, through `onShellAction`, and the host decides what opening the Store looks like.
 
 The capability tile is the one component that raises an action itself. A `Slot` with a `gap` (a capability no installed app has) draws "No installed app can do this." beside a "Search the Store" button, which raises `openStore` with the gap as the query and the slot's own id as `componentId`. The tile keeps a box, unlike every other slot, because it's the shell's own UI with an action in it, not a place held for an app's pixels. The box hugs its line and its button at the slot's leading edge, where a failure tile's line sits, and wraps the button under the line only when the slot is too narrow for both.
 
@@ -311,7 +340,7 @@ The capability tile is the one component that raises an action itself. A `Slot` 
 
 Two kinds of test keep the three files of [idea 1](#1-one-catalog-three-files-that-must-agree) honest:
 
-- **Name-level parity** (`catalog.parity.test.ts`): the catalog id matches everywhere; every component in `catalog.json` has an implementation and the other way round; the declared functions are exactly upstream's, plus the operators, the relations and the two shell actions.
+- **Name-level parity** (`catalog.parity.test.ts`): the catalog id matches everywhere; every component in `catalog.json` has an implementation and the other way round; the declared functions are exactly upstream's, plus the operators, the relations and the three shell actions.
 - **Render-level parity** (`catalog.render-parity.test.tsx`), which is **generated from `catalog.json`**. `fixture/matrix.ts` walks every component and every enum prop, and for each value builds a minimal valid tree: required props sampled from their declared types, a small seed per component so the sample is readable, and the one prop being varied. Every case renders through the real renderer under the Provider and must produce an element, with no validation error and no console error or warning. Add an enum value to `catalog.json` and it's tested automatically.
 
 `keep-sets.test.ts` checks the pruning: a merged view validates against the Synthesizer's pruned catalog while `Slot`, `Attribution` and `Button` don't, and a layout validates against the Planner's while `Attribution`, `DerivedValue` and `SortControl` don't. `scoped-css.test.ts` checks that no `:root` survived in the stylesheet.
@@ -324,7 +353,9 @@ Two kinds of test keep the three files of [idea 1](#1-one-catalog-three-files-th
 | **Radix Themes as the whole design system** | One design system for everything the shell draws; no token vocabulary of the shell's own to maintain | The shell looks like Radix, and follows Radix's releases |
 | **Two faces from the same component APIs** | The schema face and the React face can't disagree about a prop; the orchestrator gets the catalog's names with no React | `catalog.json` is a third copy, kept in step by tests |
 | **A keep-set per author, shown and validated alike** | A model can't use what it wasn't shown; "not allowed here" is a validation error, not a judgment | Two lists to keep current as components are added |
-| **Handlers as options, changing state as contexts** | The catalog never reaches into the host; defaults make it render in a test or a replay with no host | The host has four contexts to fill |
+| **Handlers as options, changing state as contexts** | The catalog never reaches into the host; defaults make it render in a test or a replay with no host | The host has five contexts to fill |
+| **Sign-in its own handler, not a shell action** | The shell's actions stay the ones a model may paint; Sign in, Allow and Cancel reach the host inside the click, so its window opens unblocked | One more handler and one more context for the host |
+| **Waiting drawn in place, in each surface's own shape** | The quiet line stays one line and the escalation card keeps its scopes; nothing moves while the reader is in the sign-in window | Three waiting shapes instead of one |
 | **The host computes, the catalog draws** | History, press state and slot state live in one place, the client | The catalog can't be smarter than what it's told |
 | **Every line's wording as a pure function** | The words are tested without rendering; one place to change them | The functions take many facts, and their priority order matters |
 | **`Slot` reads its own model, not the binder's props** | A prop the orchestrator stops painting really goes away | It works around upstream's binder instead of through it |
@@ -342,6 +373,7 @@ Two kinds of test keep the three files of [idea 1](#1-one-catalog-three-files-th
 - the merged view built from a worked timeline example, evaluated, with a live sort;
 - every `DerivedValue` reading, from hand-built cells: complete, partial, absent, empty, guessed, broken;
 - every `Slot` and `Attribution` state, the capability tile, the presses and their lines, and the way-back arrows;
+- the authority surfaces: the authority tile with and without scopes, waiting, the quiet line, sign in again, not supported, the refused paint, two accounts' labels, the escalation chip and card, a column and a merge waiting on sign-in;
 - the scoping proof: two Providers under two different host Themes in one document.
 
 **Replays in the client.** Start the client (`pnpm dev:client`) and open a replay; see the [client README](../../apps/client/README.md#working-without-a-model).
@@ -363,9 +395,10 @@ Two kinds of test keep the three files of [idea 1](#1-one-catalog-three-files-th
 | Keep-sets | `src/keep-sets.ts` (pruning itself: `packages/sdk/js/src/a2ui/prune.ts`) |
 | The guidance docs | `docs/synthesis-guidance.md`, `docs/platform-ui-guidance.md` |
 | The Provider and its scoped stylesheet | `src/provider.tsx`, `scripts/scope-radix.mjs` |
-| The host's contexts | `src/slot-content.ts`, `src/slot-state.ts`, `src/press-state.ts`, `src/fragment-history.ts` |
-| `Slot`, the failure tile and the lines | `src/components/slot/slot.tsx`, `src/components/slot/press-lines.ts` |
-| `Attribution` and the arrows | `src/components/attribution/attribution.tsx` |
+| The host's contexts | `src/slot-content.ts`, `src/slot-state.ts`, `src/press-state.ts`, `src/fragment-history.ts`, `src/sign-in.ts` |
+| `Slot`, the failure tile, the authority tile and the lines | `src/components/slot/slot.tsx`, `src/components/slot/press-lines.ts` |
+| `Attribution`, the arrows and the escalation | `src/components/attribution/attribution.tsx` |
+| `TextField` without `obscured` | `src/components/text-field/text-field.schema.ts` |
 | `DerivedValue` and the join marks | `src/components/derived-value/derived-value.tsx`, `src/components/derived-value/join.ts` |
 | `SortControl`, `Table`, `DataList` | `src/components/sort-control/`, `src/components/table/`, `src/components/data-list/` |
 | Operators, relations, shell actions | `src/functions/operators.ts`, `src/functions/relations.ts`, `src/functions/shell-actions.ts` |
@@ -393,6 +426,9 @@ In the client, the catalog is built in `apps/client/src/catalogs/clientCatalogs.
 | **Portal root** | The element inside the Provider where floating content mounts |
 | **Failure tile** | What a failed app's slot shows: one sentence, then Retry |
 | **Capability tile** | What a `gap` slot shows: "No installed app can do this." and "Search the Store" |
+| **Authority tile** | What a slot that needs sign-in shows: what the app will be able to do, and Sign in |
+| **Escalation** | An app asking, from inside its fragment, for more than it was allowed: the "Needs access" chip and its card |
+| **Source** | An app and the account it paints under: `gmail.2`, or the bare app id when the app needs no sign-in |
 | **Press** | A reader's Retry, Include, Try again, or back or forward step |
 | **Reserved column** | A column whose app hasn't answered, drawn from that app's slot state |
 | **Shell action** | `openStore` or `openAppLibrary`: handed to the host, which opens the page |

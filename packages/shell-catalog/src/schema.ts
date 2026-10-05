@@ -18,6 +18,7 @@ import {
 import {CATALOG_ID} from './catalog-id.js';
 import {AttributionApi} from './components/attribution/attribution.schema.js';
 import {DerivedValueApi} from './components/derived-value/derived-value.schema.js';
+import {TextFieldApi} from './components/text-field/text-field.schema.js';
 import {
   AUTHORITY_CAUSES,
   CALL_FAILED_KINDS,
@@ -108,7 +109,12 @@ export const SHELL_COMPONENT_APIS: readonly ComponentApi[] = [
  */
 export const SCHEMA_CATALOG: Catalog<ComponentApi> = new Catalog<ComponentApi>(
   CATALOG_ID,
-  [...BASIC_COMPONENTS, ...SHELL_COMPONENT_APIS],
+  // Upstream's basic components, its `TextField` swapped for the shell's, which has no credential
+  // input (task 12.3).
+  [
+    ...BASIC_COMPONENTS.map(api => (api.name === TextFieldApi.name ? TextFieldApi : api)),
+    ...SHELL_COMPONENT_APIS,
+  ],
   [
     ...(BASIC_FUNCTIONS as FunctionImplementation[]),
     ...operatorFunctions,

@@ -14,6 +14,7 @@ import {
   type NavigationHandler,
   type PressHandler,
   type ShellActionHandler,
+  type SignInHandler,
 } from '../catalog.js';
 import {CATALOG_ID} from '../catalog-id.js';
 import {Provider} from '../provider.js';
@@ -31,6 +32,8 @@ export interface TreeOptions {
   onShellAction?: ShellActionHandler;
   /** Receives every press a failure tile or a merged view's line raises. */
   onPress?: PressHandler;
+  /** Receives every sign-in an authority tile or an escalation card raises. */
+  onSignIn?: SignInHandler;
   /** Receives every navigation a derived-value cell raises. */
   onNavigate?: NavigationHandler;
   /** The host's display names for apps. */
@@ -52,6 +55,7 @@ export function surfaceFor(
       createCatalog({
         onShellAction: options.onShellAction ?? (() => {}),
         onPress: options.onPress,
+        onSignIn: options.onSignIn,
         onNavigate: options.onNavigate,
         appDisplayName: options.appDisplayName,
       }),

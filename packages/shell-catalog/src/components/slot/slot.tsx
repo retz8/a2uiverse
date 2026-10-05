@@ -1,11 +1,12 @@
 import {useContext, useRef, type CSSProperties, type MutableRefObject} from 'react';
 import {createComponentImplementation} from '@a2ui/react/v0_9';
-import {UpdateIcon} from '@radix-ui/react-icons';
-import {Button, Flex, Spinner, Table, Text} from '@radix-ui/themes';
-import type {CompositionOperation} from '@a2uiverse/sdk';
+import {CheckIcon, ExternalLinkIcon, LockClosedIcon, UpdateIcon} from '@radix-ui/react-icons';
+import {Button, Flex, Link, Spinner, Table, Text} from '@radix-ui/themes';
+import {parseSourceId, type CompositionOperation} from '@a2uiverse/sdk';
 import type {ShellActionHandler} from '../../functions/shell-actions.js';
 import type {AppDisplayName} from '../derived-value/join.js';
 import {PressStateContext} from '../../press-state.js';
+import {SignInContext, type SignInHandler} from '../../sign-in.js';
 import {SlotContentContext} from '../../slot-content.js';
 import {SlotStateContext} from '../../slot-state.js';
 import {weightStyle} from '../shared/layout.js';
@@ -24,7 +25,13 @@ import {
   UNREACHED_WORDS,
   type PressLine,
 } from './press-lines.js';
-import {SlotApi, type SlotCollapse, type SlotFailure, type SlotProps} from './slot.schema.js';
+import {
+  SlotApi,
+  type SlotAuthority,
+  type SlotCollapse,
+  type SlotFailure,
+  type SlotProps,
+} from './slot.schema.js';
 
 /**
  * What the host does when the reader presses Retry, Include or Try again (task-8.5 decision 5):
@@ -76,6 +83,16 @@ export type PressHandler = (press: {
  * While pending or failed a fragment slot holds the space it reserved and draws nothing around it
  * (task-7.9 decision 23).
  *
+ * A slot that needs sign-in is the authority tile (SPEC §8, task 12.3), the consent itself: what
+ * the app will be able to do in the words of its card, one Sign in, and that it opens the app's
+ * sign-in in a new window — or "sign in again" when the silent refresh failed, or "not supported
+ * here" with Manage apps. After the first full tile for an app this session it is one quiet line,
+ * "Not signed in · Sign in", under the marker that names the app (decision 11). While the host
+ * says a sign-in window is open for the source, the tile or the line says to finish there, with
+ * Cancel, in place (decision 3); a Retry sent once sign-in completes draws the pending line, as
+ * the failure tile's does (decision 10). A paint refused for a credential field is a failure tile
+ * with Continue on the app, opening its own page, and no Retry (decision 7).
+ *
  * A slot holding a `gap` is the capability tile (task-6.2 decision 6): fixed shell UI, no model
  * wording — a minimal line and a button searching the Store for the missing capability, the gap.
  *
@@ -90,6 +107,7 @@ export function SlotView({
   state = 'pending',
   label,
   failure,
+  authority,
   content = 'fragment',
   columns,
   columnSources,
@@ -102,15 +120,23 @@ export function SlotView({
   retrying,
   onSearchStore,
   onPress,
+  onSignIn,
+  onOpenAppLibrary,
   nameOf = appId => appId,
 }: SlotProps & {
   onSearchStore?: (query: string | undefined) => void;
   /** The reader's press, as the operation the wire carries; without it no press button is drawn. */
   onPress?: (operation: CompositionOperation) => void;
-  /** The host's display name for an app id; the id itself without one. */
-  nameOf?: (appId: string) => string;
+  /** Start or cancel this slot's sign-in, inside the click; without it no Sign in is drawn. */
+  onSignIn?: (kind: 'start' | 'cancel') => void;
+  /** Manage apps on the "not supported here" tile: opens the App Library. */
+  onOpenAppLibrary?: () => void;
+  /** The host's display name for a source; the source itself without one. */
+  nameOf?: (source: string) => string;
 }) {
   const resolve = useContext(SlotContentContext);
+  const resolveState = useContext(SlotStateContext);
+  const signingIn = useContext(SignInContext);
   const {enabled, presses} = useContext(PressStateContext);
   // Set by a press whose button held focus: the line that replaces the button takes it (task-8.5
   // decision 15), so a keyboard reader's place is not dropped to the page.
@@ -121,14 +147,22 @@ export function SlotView({
     if (button.ownerDocument.activeElement === button) focusLine.current = true;
     onPress?.(operation);
   };
+  const home = join?.home ?? undefined;
+  // The merge's sources that need sign-in, as the host's slot states say (task-12.3 decision 8).
+  const signIn = shell
+    ? [...(home === undefined ? [] : [home]), ...(collapse?.failed ?? [])].filter(
+        s => resolveState(s) === 'authority',
+      )
+    : [];
   const facts = {
-    home: join?.home ?? undefined,
+    home,
     late,
     working,
     callFailed,
     retrying,
     declined,
     collapse,
+    signIn,
   };
   const retry = source === undefined || shell ? undefined : retryStatus(presses, source);
 
@@ -161,7 +195,10 @@ export function SlotView({
     const resolved = source === undefined ? null : resolve(source);
 
     if (state === 'collapsed') {
-      const line = shell ? (declined?.reason ?? (collapse && collapseLine(collapse))) : undefined;
+      const homeApp = home !== undefined && signIn.includes(home) ? {app: nameOf(home)} : undefined;
+      const line = shell
+        ? (declined?.reason ?? (collapse && collapseLine(collapse, homeApp)))
+        : undefined;
       const lines = shell ? announced(collapsedLines(facts, presses, nameOf, line)) : [];
       if (lines.length > 0) {
         return (
@@ -199,6 +236,29 @@ export function SlotView({
       );
     }
 
+    if (state === 'authority' && !shell && source !== undefined && retry !== 'sent') {
+      const note =
+        retry === 'unreached' ? UNREACHED_WORDS : retry === 'lost' ? LOST_WORDS : undefined;
+      if (note) announcement = note;
+      return (
+        <div data-slot={source} data-slot-state="authority" style={{...weighted, ...reservedStyle}}>
+          <AuthorityTile
+            app={nameOf(source)}
+            authority={authority ?? {cause: 'signIn', scopes: []}}
+            waiting={signingIn(source)}
+            note={note}
+            enabled={enabled}
+            handOff={button => {
+              if (button.ownerDocument.activeElement === button) focusLine.current = true;
+            }}
+            receive={element => takeFocus(element, focusLine)}
+            onSignIn={onSignIn}
+            onOpenAppLibrary={onOpenAppLibrary}
+          />
+        </div>
+      );
+    }
+
     if (state === 'failed' && retry !== 'sent') {
       if (shell) {
         return (
@@ -213,12 +273,27 @@ export function SlotView({
         );
       }
       if (retry === 'unreached') announcement = UNREACHED_WORDS;
+      const continueAt =
+        failure?.cause === 'credential' ? continueHref(failure.continueUrl) : undefined;
       return (
         <div data-slot={source} data-slot-state="failed" style={{...weighted, ...reservedStyle}}>
           <Flex direction="column" align="start" gap="4">
             <Text as="p" size="2" data-slot-failure-line="">
               {failureStatement(failure)}
             </Text>
+            {continueAt !== undefined && source !== undefined && (
+              <Flex direction="column" align="start" gap="2">
+                <Button asChild size="2" variant="outline" color="gray">
+                  <a href={continueAt} target="_blank" rel="noopener noreferrer">
+                    Continue on {nameOf(source)}
+                    <ExternalLinkIcon aria-hidden />
+                  </a>
+                </Button>
+                <Text as="span" size="1" color="gray">
+                  Opens {nameOf(source)}’s website in a new tab
+                </Text>
+              </Flex>
+            )}
             {onPress && source !== undefined && failureRetries(failure) && (
               <Flex align="center" gap="3">
                 <Button
@@ -435,6 +510,9 @@ export function failureStatement(failure: SlotFailure | undefined): string {
       return 'This app isn’t installed anymore.';
     case 'load':
       return 'Something went wrong loading this.';
+    case 'credential':
+      // Said for the reader (task-12.3 decision 7): what the app asked for, and that it never is.
+      return 'This app asked for a password, code or card number here. A2UIVerse never asks for those on this screen.';
     default:
       return 'This app couldn’t answer.';
   }
@@ -453,11 +531,16 @@ export function failureRetries(failure: SlotFailure | undefined): boolean {
 /**
  * The collapsed merge's line when it was not declined (task-8.3 decision 9), in the shell's
  * words: the home source it cannot join without, the one source that answered — or none — or the
- * view that could not be made.
+ * view that could not be made. A home source that needs sign-in is said so, naming its app, and
+ * the line carries no press: the slot's own Sign in brings the view back (task-12.3 decision 8).
  */
-export function collapseLine(collapse: SlotCollapse): string {
+export function collapseLine(collapse: SlotCollapse, homeSignIn?: {app: string}): string {
   switch (collapse.cause) {
     case 'home':
+      if (homeSignIn) {
+        const {app} = homeSignIn;
+        return `The merged view needs ${collapse.home ?? 'the home source'}, and ${app} isn’t signed in. Signing in to ${app} brings it back.`;
+      }
       // Said for the reader (task-8.7 decision 23): what the view needs and what happened to it.
       return `The merged view needs ${collapse.home ?? 'the home source'}, which didn’t load.`;
     case 'few': {
@@ -527,6 +610,251 @@ function ReservedView({
   );
 }
 
+/**
+ * Where Continue on the app goes: the painted page when it is https, or http on this machine —
+ * any other scheme draws no button.
+ */
+export function continueHref(url: string | undefined): string | undefined {
+  if (url === undefined) return undefined;
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol === 'https:') return parsed.href;
+    const local = ['localhost', '127.0.0.1', '[::1]'].includes(parsed.hostname);
+    return parsed.protocol === 'http:' && local ? parsed.href : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+const WAITING_WORDS = 'Waiting for you to finish signing in';
+
+/**
+ * The authority tile (task 12.3), the canvas's T1, L1 and L3: deterministic shell UI in plain
+ * words, no address shown. A full tile is a column at the slot's leading edge — the statement,
+ * the scopes under "<App> will be able to" when the card named any, Sign in, and that it opens in
+ * a new window; waiting, the statement turns to finishing in the window that opened, then the
+ * spinner line and Cancel. The quiet form is one line in either state, so nothing moves.
+ */
+function AuthorityTile({
+  app,
+  authority,
+  waiting,
+  note,
+  enabled,
+  handOff,
+  receive,
+  onSignIn,
+  onOpenAppLibrary,
+}: {
+  app: string;
+  authority: SlotAuthority;
+  waiting: boolean;
+  /** A resume press that never reached the orchestrator, or whose stream broke. */
+  note?: string;
+  enabled: boolean;
+  /** A pressed button that held focus: the control replacing it takes the focus. */
+  handOff: (button: HTMLElement) => void;
+  /** The control that replaced a pressed button: it takes the focus, once. */
+  receive: (element: HTMLElement | null) => void;
+  onSignIn?: (kind: 'start' | 'cancel') => void;
+  onOpenAppLibrary?: () => void;
+}) {
+  const signIn = (kind: 'start' | 'cancel', button: HTMLElement) => {
+    handOff(button);
+    onSignIn?.(kind);
+  };
+  const noteText = note && (
+    <Text as="span" size="1" color="gray" data-slot-press-note="">
+      {note}
+    </Text>
+  );
+  const cancel = (size: '1' | '2') =>
+    onSignIn && (
+      <Button
+        size={size}
+        variant="outline"
+        color="gray"
+        ref={receive}
+        onClick={event => signIn('cancel', event.currentTarget)}
+      >
+        Cancel
+      </Button>
+    );
+
+  if (authority.cause === 'unsupported') {
+    return (
+      <Flex direction="column" align="start" gap="4" data-authority="unsupported">
+        <Text as="p" size="2">
+          Signing in to {app} isn’t supported here.
+        </Text>
+        <Text as="p" size="1" color="gray">
+          {app} asks for a kind of sign-in A2UIVerse can’t do. The app stays installed.
+        </Text>
+        {onOpenAppLibrary && (
+          <Button size="2" variant="outline" color="gray" onClick={() => onOpenAppLibrary()}>
+            Manage apps
+          </Button>
+        )}
+      </Flex>
+    );
+  }
+
+  if (authority.quiet) {
+    return (
+      <Flex
+        role="group"
+        aria-label={`${app}, not signed in`}
+        align="center"
+        gap="2"
+        wrap="wrap"
+        data-authority="quiet"
+        style={{minHeight: 28}}
+      >
+        {waiting ? (
+          <>
+            <Spinner size="1" />
+            <Text size="2" color="gray">
+              {WAITING_WORDS}
+            </Text>
+            {onSignIn && (
+              <Link asChild size="2" weight="medium">
+                <button
+                  type="button"
+                  style={linkButtonStyle}
+                  ref={receive}
+                  onClick={event => signIn('cancel', event.currentTarget)}
+                >
+                  Cancel
+                </button>
+              </Link>
+            )}
+          </>
+        ) : (
+          <>
+            <LockClosedIcon aria-hidden style={{color: 'var(--gray-10)'}} />
+            <Text size="2" color="gray">
+              Not signed in
+            </Text>
+            {onSignIn && (
+              <>
+                <span aria-hidden style={dotStyle} />
+                <Link asChild size="2" weight="medium">
+                  <button
+                    type="button"
+                    style={linkButtonStyle}
+                    disabled={!enabled}
+                    ref={receive}
+                    onClick={event => signIn('start', event.currentTarget)}
+                  >
+                    Sign in
+                  </button>
+                </Link>
+              </>
+            )}
+            {noteText}
+          </>
+        )}
+      </Flex>
+    );
+  }
+
+  if (waiting) {
+    return (
+      <Flex direction="column" align="start" gap="4" data-authority="waiting">
+        <Text as="p" size="2">
+          Finish signing in to {app} in the window that opened.
+        </Text>
+        <Flex align="center" gap="3" wrap="wrap">
+          <Spinner size="1" />
+          <Text as="span" size="1" color="gray">
+            {WAITING_WORDS}
+          </Text>
+          {cancel('1')}
+        </Flex>
+      </Flex>
+    );
+  }
+
+  const again = authority.cause === 'again';
+  const scopes = again ? [] : (authority.scopes ?? []);
+  return (
+    <Flex direction="column" align="start" gap="4" data-authority={authority.cause}>
+      {again ? (
+        <Text as="p" size="2">
+          Your {app} sign-in has run out.
+        </Text>
+      ) : (
+        <Text as="p" size="3" weight="bold">
+          Sign in to {app} to show it here.
+        </Text>
+      )}
+      {scopes.length > 0 && (
+        <Flex direction="column" gap="2">
+          <Text as="span" size="1" color="gray">
+            {app} will be able to
+          </Text>
+          <ul style={scopeListStyle}>
+            {scopes.map(scope => (
+              <li key={scope} style={scopeItemStyle}>
+                <CheckIcon
+                  aria-hidden
+                  style={{flex: 'none', marginTop: 2, color: 'var(--gray-10)'}}
+                />
+                <Text size="2">{scope}</Text>
+              </li>
+            ))}
+          </ul>
+        </Flex>
+      )}
+      {onSignIn && (
+        <Flex align="center" gap="3" wrap="wrap">
+          <Button
+            size="2"
+            disabled={!enabled}
+            ref={receive}
+            onClick={event => signIn('start', event.currentTarget)}
+          >
+            {again ? 'Sign in again' : 'Sign in'}
+            <ExternalLinkIcon aria-hidden />
+          </Button>
+          {noteText}
+        </Flex>
+      )}
+      <Text as="span" size="1" color="gray">
+        Opens {app}’s sign-in in a new window
+      </Text>
+    </Flex>
+  );
+}
+
+/** A button drawn as a link: the quiet line's Sign in and Cancel. */
+const linkButtonStyle: CSSProperties = {
+  background: 'none',
+  border: 0,
+  padding: 0,
+  font: 'inherit',
+  cursor: 'pointer',
+};
+
+const dotStyle: CSSProperties = {
+  width: 3,
+  height: 3,
+  borderRadius: 2,
+  background: 'var(--gray-8)',
+  flex: 'none',
+};
+
+const scopeListStyle: CSSProperties = {
+  listStyle: 'none',
+  margin: 0,
+  padding: 0,
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 6,
+};
+
+const scopeItemStyle: CSSProperties = {display: 'flex', gap: 8, alignItems: 'flex-start'};
+
 /** The shell's quiet register: subdued text, no box, no floor. */
 function quietLine(text: string) {
   return (
@@ -570,12 +898,17 @@ const reservedStyle: CSSProperties = {
  * Catalog entry, bound to the host's handlers: the generic binder resolves props, then renders
  * SlotView, whose capability tile raises `openStore` and whose presses — Retry on the failure tile,
  * Include and Try again on the merged view's lines — raise the host's press from this slot's
- * surface. Without a press handler no press button is drawn. Sources are named by the host's
- * lookup, the app id without one.
+ * surface. The authority tile's Sign in and Cancel raise the host's sign-in handler, its Manage
+ * apps `openAppLibrary`. Without a press handler no press button is drawn, without a sign-in
+ * handler no Sign in. Sources are named by the host's lookup of their app, the app id without one.
  */
 export function createSlotComponent(
   onShellAction: ShellActionHandler,
-  {onPress, appDisplayName}: {onPress?: PressHandler; appDisplayName?: AppDisplayName} = {},
+  {
+    onPress,
+    onSignIn,
+    appDisplayName,
+  }: {onPress?: PressHandler; onSignIn?: SignInHandler; appDisplayName?: AppDisplayName} = {},
 ) {
   return createComponentImplementation(SlotApi, ({context}) => {
     // Read from the component's own model, not the binder's resolved props: upstream's binder
@@ -592,6 +925,7 @@ export function createSlotComponent(
         label={props.label}
         noun={props.noun}
         failure={props.failure}
+        authority={props.authority}
         content={props.content}
         columns={props.columns}
         columnSources={props.columnSources}
@@ -616,7 +950,30 @@ export function createSlotComponent(
               componentId: context.componentModel.id,
             }))
         }
-        nameOf={appId => appDisplayName?.(appId) ?? appId}
+        onSignIn={
+          onSignIn && props.source !== undefined
+            ? kind =>
+                onSignIn({
+                  kind,
+                  source: props.source!,
+                  surfaceId: context.dataContext.surface.id,
+                  componentId: context.componentModel.id,
+                })
+            : undefined
+        }
+        onOpenAppLibrary={() =>
+          onShellAction({
+            name: 'openAppLibrary',
+            surfaceId: context.dataContext.surface.id,
+            componentId: context.componentModel.id,
+          })
+        }
+        nameOf={source => {
+          // A source names the app and the account it paints under (task-12.2 decision 3); the
+          // app's display name stands for it.
+          const appId = parseSourceId(source)?.appId ?? source;
+          return appDisplayName?.(appId) ?? appId;
+        }}
       />
     );
   });

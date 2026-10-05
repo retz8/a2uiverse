@@ -18,6 +18,11 @@ export interface MergeFacts {
   retrying?: string[];
   declined?: {reason: string};
   collapse?: SlotCollapse;
+  /**
+   * The sources whose slot needs sign-in, as the host's slot states say (task-12.3 decision 8): a
+   * Retry cannot bring them back — their own Sign in does — so no line's Retry carries them.
+   */
+  signIn?: string[];
 }
 
 /** One line: a sentence, the spinner while something runs, and at most one press. */
@@ -133,14 +138,17 @@ export function collapsedLines(
   const making = facts.working !== undefined || sent !== undefined;
   const retrying = facts.retrying ?? [];
   // The sources whose Retry the collapse line carries (task-8.7 decisions 23 and 24): the home
-  // source when the merge collapsed on it, every source that did not arrive when too few did.
+  // source when the merge collapsed on it, every source that did not arrive when too few did —
+  // less those that need sign-in, whose own Sign in brings them back (task-12.3 decision 8).
   const collapse = facts.declined ? undefined : facts.collapse;
-  const retryable =
+  const signIn = facts.signIn ?? [];
+  const retryable = (
     collapse?.cause === 'home' && facts.home !== undefined
       ? [facts.home]
       : collapse?.cause === 'few'
         ? (collapse.failed ?? [])
-        : [];
+        : []
+  ).filter(source => !signIn.includes(source));
   const retrySent = retryable.filter(source =>
     presses.some(
       p => p.status === 'sent' && p.operation.kind === 'retry' && p.operation.sources[0] === source,

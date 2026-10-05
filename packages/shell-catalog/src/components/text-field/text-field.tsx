@@ -1,21 +1,20 @@
 import {useId, type CSSProperties} from 'react';
 import {createComponentImplementation} from '@a2ui/react/v0_9';
-import {TextFieldApi} from '@a2ui/web_core/v0_9';
 import {TextArea, TextField} from '@radix-ui/themes';
 import {Field} from '../shared/field.js';
 import {weightStyle} from '../shared/layout.js';
+import {TEXT_FIELD_VARIANTS, TextFieldApi} from './text-field.schema.js';
 
-export type TextFieldVariant = 'longText' | 'number' | 'shortText' | 'obscured';
+export type TextFieldVariant = (typeof TEXT_FIELD_VARIANTS)[number];
 
-const INPUT_TYPES: Record<Exclude<TextFieldVariant, 'longText'>, 'text' | 'number' | 'password'> = {
+const INPUT_TYPES: Record<Exclude<TextFieldVariant, 'longText'>, 'text' | 'number'> = {
   shortText: 'text',
   number: 'number',
-  obscured: 'password',
 };
 
 /**
  * `TextField` on Radix `TextField` — or Radix `TextArea` for `longText` — under the shared
- * field shape. Edits write back through `onChange` (the binder's two-way setter); a failing
+ * field shape, with no `obscured` variant: the shell catalog carries no credential input. Edits write back through `onChange` (the binder's two-way setter); a failing
  * check turns the control red and shows its first error. `validationRegexp` is carried by the
  * schema and, as in upstream's implementation, not evaluated here: checks are the mechanism.
  */

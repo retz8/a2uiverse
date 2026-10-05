@@ -55,6 +55,15 @@ test('a headless processor accepts a merged-view tree and rejects a bad prop', (
   );
 });
 
+test('a headless processor refuses a credential input: no `obscured` TextField (task 12.3)', () => {
+  expect(
+    processorWith([{id: 'root', component: 'TextField', label: 'Name', variant: 'shortText'}]),
+  ).not.toThrow();
+  expect(
+    processorWith([{id: 'root', component: 'TextField', label: 'Password', variant: 'obscured'}]),
+  ).toThrow(/TextField/);
+});
+
 test('the two guidance docs ship beside the schema', () => {
   const synthesis = readFileSync('docs/synthesis-guidance.md', 'utf8');
   expect(synthesis).toContain('DerivedValue');

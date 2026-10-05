@@ -32,6 +32,7 @@ import {DataListComponent, DataListItemComponent} from './components/data-list/i
 import {operatorFunctions} from './functions/operators.js';
 import {relationFunctions} from './functions/relations.js';
 import {shellActionFunctions, type ShellActionHandler} from './functions/shell-actions.js';
+import type {SignInHandler} from './sign-in.js';
 
 export {OPERATORS, type Operator} from './functions/operators.js';
 export {
@@ -43,6 +44,7 @@ export {
 } from './functions/relations.js';
 export type {AppDisplayName, NavigationHandler} from './components/derived-value/index.js';
 export type {PressHandler} from './components/slot/index.js';
+export type {SignInHandler, SignInRequest} from './sign-in.js';
 export {
   SHELL_ACTIONS,
   type ShellAction,
@@ -80,18 +82,21 @@ export const BASIC_IMPLEMENTATIONS: readonly ReactComponentImplementation[] = [
  * The shell's own primitives — composition, synthesis and the merged view's shapes — also on
  * Radix Themes. `Slot` is bound to the host's shell-action and press handlers and its app names:
  * its capability tile raises `openStore`, its failure tile and the merged view's lines the reader's
- * presses. `Attribution` is bound to the press handler too: its arrows raise the step (task 9.5). `DerivedValue` is bound to the host's navigation handler and app names (task-7.5
+ * presses, its authority tile the sign-in handler (task 12.3). `Attribution` is bound to the press
+ * handler too — its arrows raise the step (task 9.5), its escalation card's Not now `dismiss` —
+ * and to the sign-in handler for Allow (task 12.3). `DerivedValue` is bound to the host's navigation handler and app names (task-7.5
  * decisions 11, 13). Layout is the basic catalog's `Row` and `Column` (task-6.4 decision 4).
  */
 function shellImplementations({
   onShellAction,
   onPress,
+  onSignIn,
   onNavigate,
   appDisplayName,
 }: CreateCatalogOptions): ReactComponentImplementation[] {
   return [
-    createSlotComponent(onShellAction, {onPress, appDisplayName}),
-    createAttributionComponent({onPress}),
+    createSlotComponent(onShellAction, {onPress, onSignIn, appDisplayName}),
+    createAttributionComponent({onPress, onSignIn}),
     createDerivedValueComponent({onNavigate, appDisplayName}),
     SortControlComponent,
     TableComponent,
@@ -110,6 +115,13 @@ export interface CreateCatalogOptions {
    * no arrow is drawn (task-8.5 decision 5).
    */
   onPress?: PressHandler;
+  /**
+   * What the host does when the reader starts or cancels a source's sign-in — Sign in on the
+   * authority tile and the quiet line, Allow on the escalation card, Cancel while the window is
+   * open (task-12.3 decision 2) — called inside the click, so the host can open the sign-in
+   * window. Without it, no Sign in and no Allow is drawn.
+   */
+  onSignIn?: SignInHandler;
   /**
    * What the host does when a derived-value cell is activated: land on the element its target
    * names. Without it, cells are not interactive.

@@ -2,6 +2,7 @@ import {screen} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {expect, test} from 'vitest';
 import {renderTree} from '../../testing/render';
+import {TextFieldApi} from './text-field.schema';
 
 test('typing writes back to the bound path (two-way binding)', async () => {
   const user = userEvent.setup();
@@ -15,7 +16,7 @@ test('typing writes back to the bound path (two-way binding)', async () => {
   expect(surface.dataModel.get('/name')).toBe('Ada L');
 });
 
-test('the variants pick the control: longText is a Radix TextArea, obscured a password input, number a number input', () => {
+test('the variants pick the control: longText is a Radix TextArea, number a number input', () => {
   const long = renderTree([
     {id: 'root', component: 'TextField', label: 'Notes', variant: 'longText', value: 'x'},
   ]);
@@ -24,16 +25,16 @@ test('the variants pick the control: longText is a Radix TextArea, obscured a pa
   expect(area.closest('.rt-TextAreaRoot')).not.toBeNull();
   long.unmount();
 
-  const obscured = renderTree([
-    {id: 'root', component: 'TextField', label: 'Secret', variant: 'obscured', value: 'x'},
-  ]);
-  expect(screen.getByLabelText('Secret')).toHaveAttribute('type', 'password');
-  obscured.unmount();
-
   renderTree([{id: 'root', component: 'TextField', label: 'Age', variant: 'number', value: '3'}]);
   const number = screen.getByLabelText('Age');
   expect(number).toHaveAttribute('type', 'number');
   expect(number.closest('.rt-TextFieldRoot')).not.toBeNull();
+});
+
+test('no credential input: the schema has no `obscured` variant (task 12.3)', () => {
+  const ok = (variant: string) => TextFieldApi.schema.safeParse({label: 'Secret', variant}).success;
+  expect(ok('shortText')).toBe(true);
+  expect(ok('obscured')).toBe(false);
 });
 
 test('a failing check shows its first error and colours the field red', () => {

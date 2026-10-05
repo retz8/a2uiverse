@@ -17,12 +17,15 @@ export {
   type ShellAction,
   type ShellActionHandler,
   type ShellActionName,
+  type SignInHandler,
+  type SignInRequest,
 } from './catalog.js';
 export {CATALOG_ID} from './catalog-id.js';
 export {LAYOUT_SURFACE_KEEP_SET, SYNTHESIS_SURFACE_KEEP_SET} from './keep-sets.js';
 export {PortalRootContext, Provider} from './provider.js';
 export {SlotContentContext, type SlotContentResolver} from './slot-content.js';
 export {SlotStateContext, type SlotStateResolver, type SourceSlotState} from './slot-state.js';
+export {SignInContext, type SignInResolver} from './sign-in.js';
 export {
   FragmentHistoryContext,
   type FragmentHistory,

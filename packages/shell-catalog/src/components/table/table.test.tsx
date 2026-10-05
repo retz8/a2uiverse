@@ -155,6 +155,20 @@ test('a column whose source failed draws the empty dash and says unavailable', (
   expect(consoleError.mock.calls).toEqual([]);
 });
 
+test('a column whose source needs sign-in draws the empty dash and says not signed in (task-12.3 decision 8)', () => {
+  const {container} = renderTree(RESERVED_TREE, {
+    wrap: withStates({linear: 'filled', github: 'filled', circleci: 'authority'}),
+  });
+  const headings = [...container.querySelectorAll('thead th')].map(th =>
+    th.textContent?.replace(/\s+/g, ' '),
+  );
+  expect(headings[2]).toBe('CI build · not signed in');
+  const cell = container.querySelectorAll('tbody td')[2]!;
+  expect(cell.textContent).toBe('—');
+  expect(cell).toHaveAttribute('data-column-reserved', 'authority');
+  expect(consoleError.mock.calls).toEqual([]);
+});
+
 test('a filled source, or one the host says nothing about, leaves the authored cell and heading alone', () => {
   const filled = renderTree(RESERVED_TREE, {
     wrap: withStates({linear: 'filled', github: 'filled', circleci: 'filled'}),

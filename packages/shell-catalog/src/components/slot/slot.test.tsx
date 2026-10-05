@@ -1,12 +1,14 @@
 import {act, render, screen} from '@testing-library/react';
 import type {ReactNode} from 'react';
 import {expect, test} from 'vitest';
+import type {ShellAction} from '../../functions/shell-actions';
 import {PressStateContext, type PressRecord} from '../../press-state';
+import {SignInContext, type SignInRequest} from '../../sign-in';
 import {SlotContentContext} from '../../slot-content';
 import {SlotStateContext} from '../../slot-state';
-import {renderTree} from '../../testing/render';
+import {renderTree, SURFACE_ID} from '../../testing/render';
 import {collapsedLines, landedLines, LOST_WORDS, UNREACHED_WORDS} from './press-lines';
-import {collapseLine, SlotView} from './slot';
+import {collapseLine, continueHref, SlotView} from './slot';
 import {SlotApi} from './slot.schema';
 
 test('pending renders a loading line naming nobody — the marker above names the source', () => {
@@ -821,4 +823,331 @@ test('a fact the runtime stops painting leaves the slot with its repaint (upstre
   });
   expect(container.textContent).not.toContain('Making the merged view…');
   expect(container.textContent).toContain('The merged view couldn’t be made.');
+});
+
+// ── Task 12.3: the authority tile, the refused paint, the merge's sign-in pieces ──
+
+const signInScopes = ['Read your email and its labels', 'See your name and email address'];
+const gmailName = (source: string) => (source.startsWith('gmail') ? 'Gmail' : source);
+
+test('the authority tile asks to sign in: the scopes under "will be able to", Sign in, and the new window in plain words', () => {
+  const kinds: string[] = [];
+  render(
+    <SlotView
+      source="gmail.1"
+      state="authority"
+      authority={{cause: 'signIn', scopes: signInScopes}}
+      nameOf={gmailName}
+      onSignIn={kind => kinds.push(kind)}
+    />,
+  );
+  expect(screen.getByText('Sign in to Gmail to show it here.')).toBeInTheDocument();
+  expect(screen.getByText('Gmail will be able to')).toBeInTheDocument();
+  for (const scope of signInScopes) expect(screen.getByText(scope)).toBeInTheDocument();
+  expect(screen.getByText('Opens Gmail’s sign-in in a new window')).toBeInTheDocument();
+  expect(
+    screen.getByText('Sign in to Gmail to show it here.').closest('[data-slot]'),
+  ).toHaveAttribute('data-slot-state', 'authority');
+  act(() => screen.getByRole('button', {name: 'Sign in'}).click());
+  expect(kinds).toEqual(['start']);
+});
+
+test('with no scopes — a key or a token — the tile leaves the list out, the wording the same (task-12.3 decision 4)', () => {
+  render(
+    <SlotView
+      source="shop-b.1"
+      state="authority"
+      authority={{cause: 'signIn', scopes: []}}
+      nameOf={() => 'Shop B'}
+      onSignIn={() => {}}
+    />,
+  );
+  expect(screen.getByText('Sign in to Shop B to show it here.')).toBeInTheDocument();
+  expect(screen.queryByText(/will be able to/)).toBeNull();
+  expect(screen.getByRole('button', {name: 'Sign in'})).toBeInTheDocument();
+});
+
+test('without a sign-in handler the tile draws its words and no Sign in', () => {
+  render(<SlotView source="gmail.1" state="authority" authority={{cause: 'signIn', scopes: []}} />);
+  expect(screen.queryByRole('button')).toBeNull();
+});
+
+test('after the first tile, one quiet line naming no app — its accessible name does (task-12.3 decision 11)', () => {
+  const kinds: string[] = [];
+  render(
+    <SlotView
+      source="gmail.1"
+      state="authority"
+      authority={{cause: 'signIn', quiet: true, scopes: signInScopes}}
+      nameOf={gmailName}
+      onSignIn={kind => kinds.push(kind)}
+    />,
+  );
+  const line = screen.getByRole('group', {name: 'Gmail, not signed in'});
+  expect(line).toHaveTextContent('Not signed in');
+  expect(line).not.toHaveTextContent('Gmail');
+  expect(screen.queryByText(/will be able to/)).toBeNull();
+  act(() => screen.getByRole('button', {name: 'Sign in'}).click());
+  expect(kinds).toEqual(['start']);
+});
+
+test('sign in again when the refresh failed; not supported here with Manage apps', () => {
+  const opened: string[] = [];
+  const {unmount} = render(
+    <SlotView
+      source="calendar.1"
+      state="authority"
+      authority={{cause: 'again'}}
+      nameOf={() => 'Google Calendar'}
+      onSignIn={() => {}}
+    />,
+  );
+  expect(screen.getByText('Your Google Calendar sign-in has run out.')).toBeInTheDocument();
+  expect(screen.getByRole('button', {name: 'Sign in again'})).toBeInTheDocument();
+  expect(screen.getByText('Opens Google Calendar’s sign-in in a new window')).toBeInTheDocument();
+  unmount();
+
+  render(
+    <SlotView
+      source="acme-wiki"
+      state="authority"
+      authority={{cause: 'unsupported'}}
+      nameOf={() => 'Acme Wiki'}
+      onSignIn={() => {}}
+      onOpenAppLibrary={() => opened.push('library')}
+    />,
+  );
+  expect(screen.getByText('Signing in to Acme Wiki isn’t supported here.')).toBeInTheDocument();
+  expect(
+    screen.getByText(
+      'Acme Wiki asks for a kind of sign-in A2UIVerse can’t do. The app stays installed.',
+    ),
+  ).toBeInTheDocument();
+  expect(screen.queryByRole('button', {name: /Sign in/})).toBeNull();
+  act(() => screen.getByRole('button', {name: 'Manage apps'}).click());
+  expect(opened).toEqual(['library']);
+});
+
+test('while the sign-in window is open the tile says to finish there, with Cancel; the quiet line stays one line (task-12.3 decision 3)', () => {
+  const kinds: string[] = [];
+  const {unmount} = render(
+    <SignInContext.Provider value={source => source === 'gmail.1'}>
+      <SlotView
+        source="gmail.1"
+        state="authority"
+        authority={{cause: 'signIn', scopes: signInScopes}}
+        nameOf={gmailName}
+        onSignIn={kind => kinds.push(kind)}
+      />
+    </SignInContext.Provider>,
+  );
+  expect(
+    screen.getByText('Finish signing in to Gmail in the window that opened.'),
+  ).toBeInTheDocument();
+  expect(screen.getByText('Waiting for you to finish signing in')).toBeInTheDocument();
+  expect(screen.queryByText(signInScopes[0]!)).toBeNull();
+  act(() => screen.getByRole('button', {name: 'Cancel'}).click());
+  expect(kinds).toEqual(['cancel']);
+  unmount();
+
+  render(
+    <SignInContext.Provider value={() => true}>
+      <SlotView
+        source="gmail.1"
+        state="authority"
+        authority={{cause: 'signIn', quiet: true, scopes: []}}
+        nameOf={gmailName}
+        onSignIn={() => {}}
+      />
+    </SignInContext.Provider>,
+  );
+  const line = screen.getByRole('group', {name: 'Gmail, not signed in'});
+  expect(line).toHaveTextContent('Waiting for you to finish signing in');
+  expect(line).toContainElement(screen.getByRole('button', {name: 'Cancel'}));
+  expect(screen.queryByText(/Finish signing in/)).toBeNull();
+});
+
+test('signed in, the resume Retry draws the pending line; one that never reached brings the tile back saying so (task-12.3 decision 10)', () => {
+  const tile = (status: PressRecord['status']) => (
+    <PressStateContext.Provider
+      value={{enabled: true, presses: [{operation: {kind: 'retry', sources: ['gmail.1']}, status}]}}
+    >
+      <SlotView
+        source="gmail.1"
+        state="authority"
+        authority={{cause: 'signIn', scopes: []}}
+        nameOf={gmailName}
+        onSignIn={() => {}}
+      />
+    </PressStateContext.Provider>
+  );
+  const {rerender} = render(tile('sent'));
+  expect(screen.getByText('Loading…')).toBeInTheDocument();
+  expect(screen.queryByText(/Sign in to Gmail/)).toBeNull();
+  rerender(tile('unreached'));
+  expect(screen.getByText('Sign in to Gmail to show it here.')).toBeInTheDocument();
+  expect(screen.getAllByText(UNREACHED_WORDS).length).toBeGreaterThan(0);
+  rerender(tile('lost'));
+  expect(screen.getAllByText(LOST_WORDS).length).toBeGreaterThan(0);
+});
+
+test('the sign-in buttons draw disabled where no press can be made', () => {
+  render(
+    <PressStateContext.Provider value={{enabled: false, presses: []}}>
+      <SlotView
+        source="gmail.1"
+        state="authority"
+        authority={{cause: 'signIn', scopes: []}}
+        onSignIn={() => {}}
+      />
+    </PressStateContext.Provider>,
+  );
+  expect(screen.getByRole('button', {name: 'Sign in'})).toBeDisabled();
+});
+
+test('through the catalog: Sign in hands the host the source, the surface and the slot; the app named from its source', () => {
+  const requests: SignInRequest[] = [];
+  const shell: ShellAction[] = [];
+  renderTree(
+    [
+      {
+        id: 'root',
+        component: 'Slot',
+        source: 'gmail.2',
+        state: 'authority',
+        authority: {cause: 'signIn', scopes: ['Read your email and its labels']},
+      },
+    ],
+    {
+      onSignIn: request => requests.push(request),
+      onShellAction: action => shell.push(action),
+      appDisplayName: appId => (appId === 'gmail' ? 'Gmail' : undefined),
+    },
+  );
+  expect(screen.getByText('Sign in to Gmail to show it here.')).toBeInTheDocument();
+  act(() => screen.getByRole('button', {name: 'Sign in'}).click());
+  expect(requests).toEqual([
+    {kind: 'start', source: 'gmail.2', surfaceId: SURFACE_ID, componentId: 'root'},
+  ]);
+  expect(shell).toEqual([]);
+});
+
+test('through the catalog: Manage apps opens the App Library', () => {
+  const shell: ShellAction[] = [];
+  renderTree(
+    [
+      {
+        id: 'root',
+        component: 'Slot',
+        source: 'acme',
+        state: 'authority',
+        authority: {cause: 'unsupported'},
+      },
+    ],
+    {onShellAction: action => shell.push(action)},
+  );
+  act(() => screen.getByRole('button', {name: 'Manage apps'}).click());
+  expect(shell).toEqual([{name: 'openAppLibrary', surfaceId: SURFACE_ID, componentId: 'root'}]);
+});
+
+test('a paint refused for a credential field: one statement, Continue on the app to its own page, no Retry (task-12.3 decision 7)', () => {
+  const {unmount} = render(
+    <SlotView
+      source="shop-a"
+      state="failed"
+      failure={{cause: 'credential', continueUrl: 'https://shop-a.example/checkout'}}
+      nameOf={() => 'Shop A'}
+      onPress={() => {}}
+    />,
+  );
+  expect(
+    screen.getByText(
+      'This app asked for a password, code or card number here. A2UIVerse never asks for those on this screen.',
+    ),
+  ).toBeInTheDocument();
+  const link = screen.getByRole('link', {name: 'Continue on Shop A'});
+  expect(link).toHaveAttribute('href', 'https://shop-a.example/checkout');
+  expect(link).toHaveAttribute('target', '_blank');
+  expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+  expect(screen.getByText('Opens Shop A’s website in a new tab')).toBeInTheDocument();
+  expect(screen.queryByRole('button', {name: /Retry/})).toBeNull();
+  unmount();
+
+  render(
+    <SlotView source="shop-a" state="failed" failure={{cause: 'credential'}} onPress={() => {}} />,
+  );
+  expect(screen.queryByRole('link')).toBeNull();
+  expect(screen.queryByRole('button')).toBeNull();
+});
+
+test('Continue on goes only to https, or http on this machine', () => {
+  expect(continueHref('https://shop-a.example')).toBe('https://shop-a.example/');
+  expect(continueHref('http://localhost:10001/shop')).toBe('http://localhost:10001/shop');
+  expect(continueHref('http://shop-a.example')).toBeUndefined();
+  expect(continueHref('javascript:alert(1)')).toBeUndefined();
+  expect(continueHref('not a url')).toBeUndefined();
+  expect(continueHref(undefined)).toBeUndefined();
+});
+
+test('a home source that needs sign-in: the collapse line says so, naming its app, with no press (task-12.3 decision 8)', () => {
+  expect(collapseLine({cause: 'home', home: 'Linear issues'}, {app: 'Linear'})).toBe(
+    'The merged view needs Linear issues, and Linear isn’t signed in. Signing in to Linear brings it back.',
+  );
+  render(
+    <SlotStateContext.Provider value={source => (source === 'linear.1' ? 'authority' : 'filled')}>
+      <SlotView
+        source="shell"
+        content="shell"
+        state="collapsed"
+        join={{home: 'linear.1', nouns: {}}}
+        collapse={{cause: 'home', home: 'Linear issues'}}
+        nameOf={source => (source.startsWith('linear') ? 'Linear' : source)}
+        onPress={() => {}}
+      />
+    </SlotStateContext.Provider>,
+  );
+  expect(
+    screen.getByText(
+      'The merged view needs Linear issues, and Linear isn’t signed in. Signing in to Linear brings it back.',
+    ),
+  ).toBeInTheDocument();
+  expect(screen.queryByRole('button')).toBeNull();
+});
+
+test('too few arrived: the line’s Retry leaves out a source that needs sign-in', () => {
+  const facts = {
+    collapse: {cause: 'few' as const, answered: ['GitHub'], failed: ['gmail.1', 'calendar']},
+    signIn: ['gmail.1'],
+  };
+  const [line] = collapsedLines(
+    facts,
+    [],
+    gmailName,
+    'The merged view needs at least two sources, and only GitHub answered.',
+  );
+  expect(line!.press).toEqual({
+    label: 'Retry calendar',
+    operation: {kind: 'retry', sources: ['calendar']},
+  });
+  const [alone] = collapsedLines(
+    {...facts, collapse: {...facts.collapse, failed: ['gmail.1']}},
+    [],
+    gmailName,
+    'The merged view needs at least two sources, and only GitHub answered.',
+  );
+  expect(alone!.press).toBeUndefined();
+});
+
+test('the reserved view marks a column whose source needs sign-in', () => {
+  render(
+    <SlotStateContext.Provider value={source => (source === 'gmail.1' ? 'authority' : undefined)}>
+      <SlotView
+        source="shell"
+        content="shell"
+        columns={['When', 'Mail']}
+        columnSources={[null, 'gmail.1']}
+      />
+    </SlotStateContext.Provider>,
+  );
+  expect(screen.getByText('· not signed in', {exact: false})).toBeInTheDocument();
 });

@@ -3,7 +3,9 @@
  * value of every enum prop, generated from `catalog.json` and rendered through the real renderer
  * from A2UI trees — under Radix light · Radix dark · no host Theme; the task 5.11 timeline
  * example as one merged view; the Slot/Attribution states; the failure tile, the reserved column
- * and the reader's presses (tasks 8.2–8.5); the DerivedValue join states (task 7.5); and the
+ * and the reader's presses (tasks 8.2–8.5); the authority surfaces — the authority tile, the
+ * quiet line, waiting, the refused paint, the account label and the escalation (task 12.3); the
+ * DerivedValue join states (task 7.5); and the
  * scoping proof (two Providers under different host Themes, one document).
  */
 import {StrictMode, useEffect, useMemo, useState, type ReactNode} from 'react';
@@ -22,6 +24,7 @@ import {
   PressStateContext,
   Provider,
   SlotContentContext,
+  SignInContext,
   SlotStateContext,
   SlotView,
 } from '../src/index.js';
@@ -461,13 +464,166 @@ function ReservedColumnMatrix() {
       <h3 style={{font: '600 12px sans-serif', opacity: 0.8, margin: '12px 0 0'}}>
         Table · a column reserved for its source
       </h3>
-      {(['pending', 'failed', 'late', 'filled'] as const).map(state => (
+      {(['pending', 'failed', 'late', 'authority', 'filled'] as const).map(state => (
         <Cell key={state} label={`CircleCI ${state}`}>
           <SlotStateContext.Provider value={source => (source === 'circleci' ? state : 'filled')}>
             <Tree components={RESERVED_TABLE} data={RESERVED_ROWS} />
           </SlotStateContext.Provider>
         </Cell>
       ))}
+    </section>
+  );
+}
+
+/* ── The authority surfaces (task 12.3, the design canvas Authority surfaces) ── */
+
+const logSignIn = (kind: string) => console.log('[fixture sign-in]', kind);
+const GMAIL_SCOPES = ['Read your email and its labels', 'See your name and email address'];
+
+const AUTHORITY_TILES: {
+  label: string;
+  props: Parameters<typeof SlotView>[0];
+  waiting?: boolean;
+  presses?: PressRecord[];
+}[] = [
+  {
+    label: 'sign in, the scopes up front',
+    props: {source: 'gmail.1', authority: {cause: 'signIn', scopes: GMAIL_SCOPES}},
+  },
+  {
+    label: 'sign in, a key or a token: no scopes',
+    props: {source: 'shop-b.1', authority: {cause: 'signIn', scopes: []}},
+  },
+  {
+    label: 'waiting on the sign-in window',
+    props: {source: 'gmail.1', authority: {cause: 'signIn', scopes: GMAIL_SCOPES}},
+    waiting: true,
+  },
+  {
+    label: 'the quiet line, after the first tile',
+    props: {source: 'gmail.1', authority: {cause: 'signIn', quiet: true, scopes: GMAIL_SCOPES}},
+  },
+  {
+    label: 'the quiet line, waiting',
+    props: {source: 'gmail.1', authority: {cause: 'signIn', quiet: true, scopes: GMAIL_SCOPES}},
+    waiting: true,
+  },
+  {
+    label: 'sign in again',
+    props: {source: 'calendar.1', authority: {cause: 'again'}},
+  },
+  {
+    label: 'not supported here',
+    props: {source: 'acme-wiki', authority: {cause: 'unsupported'}},
+  },
+  {
+    label: 'the resume Retry never reached',
+    props: {source: 'gmail.1', authority: {cause: 'signIn', scopes: GMAIL_SCOPES}},
+    presses: [{operation: {kind: 'retry', sources: ['gmail.1']}, status: 'unreached'}],
+  },
+];
+
+const AUTHORITY_NAMES: Record<string, string> = {
+  ...APP_NAMES,
+  calendar: 'Google Calendar',
+  'shop-a': 'Shop A',
+  'shop-b': 'Shop B',
+  'acme-wiki': 'Acme Wiki',
+};
+const authorityName = (source: string) => {
+  const appId = source.split('.')[0]!;
+  return AUTHORITY_NAMES[appId] ?? appId;
+};
+
+function AuthorityMatrix() {
+  return (
+    <section style={{display: 'grid', gap: 12}}>
+      <h3 style={{font: '600 12px sans-serif', opacity: 0.8, margin: '12px 0 0'}}>
+        Slot · the authority tile
+      </h3>
+      {AUTHORITY_TILES.map(({label, props, waiting, presses}) => (
+        <Cell key={label} label={label}>
+          <PressStateContext.Provider value={{enabled: true, presses: presses ?? []}}>
+            <SignInContext.Provider value={() => waiting ?? false}>
+              <AttributionView displayName={authorityName(props.source!)} account={null} />
+              <SlotView
+                {...props}
+                state="authority"
+                nameOf={authorityName}
+                onSignIn={logSignIn}
+                onOpenAppLibrary={() => console.log('[fixture shell action] openAppLibrary')}
+              />
+            </SignInContext.Provider>
+          </PressStateContext.Provider>
+        </Cell>
+      ))}
+      <Cell label="a paint refused for a credential field, Continue on the app">
+        <AttributionView displayName="Shop A" account={null} />
+        <SlotView
+          source="shop-a"
+          state="failed"
+          failure={{cause: 'credential', continueUrl: 'https://shop-a.example'}}
+          nameOf={authorityName}
+          onPress={logPress}
+        />
+      </Cell>
+      <Cell label="a paint refused, no page to continue on">
+        <AttributionView displayName="Shop A" account={null} />
+        <SlotView
+          source="shop-a"
+          state="failed"
+          failure={{cause: 'credential'}}
+          onPress={logPress}
+        />
+      </Cell>
+      <Cell label="two accounts: the label at rest">
+        <AttributionView displayName="Gmail" source="gmail.1" account="me@example.com" />
+        <AttributionView
+          displayName="Gmail"
+          source="gmail.2"
+          account="a-very-long-work-address@an-example-company.example.com"
+        />
+      </Cell>
+      {[false, true].map(waiting => (
+        <Cell
+          key={String(waiting)}
+          label={
+            waiting
+              ? 'escalation, waiting on the sign-in window'
+              : 'escalation, the card open on arrival'
+          }
+        >
+          <SignInContext.Provider value={() => waiting}>
+            <div style={{minHeight: 260}}>
+              <AttributionView
+                displayName="GitHub"
+                source="github.1"
+                escalation={{scopes: ['Merge pull requests and push to your repositories']}}
+                history={{back: {step: 0, title: 'Review requests'}}}
+                onPress={logPress}
+                onSignIn={logSignIn}
+              >
+                <Fragment label="Keep the AuthVault in an owner-only file #42" />
+              </AttributionView>
+            </div>
+          </SignInContext.Provider>
+        </Cell>
+      ))}
+      <Cell label="the merge collapsed: its home source needs sign-in">
+        <SlotStateContext.Provider
+          value={source => (source === 'linear.1' ? 'authority' : 'filled')}
+        >
+          <SlotView
+            source="shell"
+            content="shell"
+            state="collapsed"
+            join={{home: 'linear.1', nouns: {}}}
+            collapse={{cause: 'home', home: 'Linear issues'}}
+            nameOf={authorityName}
+            onPress={logPress}
+          />
+        </SlotStateContext.Provider>
+      </Cell>
     </section>
   );
 }
@@ -753,6 +909,7 @@ function Everything() {
       <JoinMatrix />
       <SlotMatrix />
       <FailureMatrix />
+      <AuthorityMatrix />
       <ReservedColumnMatrix />
       <PressMatrix />
       <CatalogMatrix />

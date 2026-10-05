@@ -4,10 +4,10 @@ The shell's own A2UI catalog: what the orchestrator paints with. It's the A2UI b
 
 ## What's in it
 
-- **The basic catalog**: all eighteen components, each drawn with its Radix Themes counterpart (`Row` and `Column` as `Flex`, `Modal` as `Dialog`, `ChoicePicker` as a radio group, checkboxes or a segmented control, …). The props are exactly the basic catalog's.
+- **The basic catalog**: all eighteen components, each drawn with its Radix Themes counterpart (`Row` and `Column` as `Flex`, `Modal` as `Dialog`, `ChoicePicker` as a radio group, checkboxes or a segmented control, …). The props are exactly the basic catalog's, less `TextField`'s `obscured` variant: the shell never draws a password field.
 - **Composition**:
-  - **`Slot`**: a region of the layout, filled by one app's fragment. It draws the waiting state, the failure tile with Retry, and the capability tile for an app you don't have, with a button that searches the Store. The merged view's slot draws its placeholder while the view is made, one line when it isn't, and the Include and Try again presses.
-  - **`Attribution`**: the marker naming the app that painted a fragment, with the fragment's back and forward arrows at the right of its row.
+  - **`Slot`**: a region of the layout, filled by one app's fragment. It draws the waiting state, the failure tile with Retry, the authority tile for an app you aren't signed in to (with Sign in, or one quiet line after the first time), a refused paint's "Continue on" link to the app's own page, and the capability tile for an app you don't have, with a button that searches the Store. The merged view's slot draws its placeholder while the view is made, one line when it isn't, and the Include and Try again presses.
+  - **`Attribution`**: the marker naming the app that painted a fragment, and the account when the app has more than one, with the fragment's back and forward arrows at the right of its row, and a "Needs access" chip and its card with Allow and Not now when the app asks for more.
 - **The merged view**:
   - **`DerivedValue`**: a cell computed from a formula. It shows how sure it is by its contrast, says where it came from on hover, and takes you to the value in its app's fragment when clicked.
   - **`SortControl`**: the sort in force, which the reader can change.
@@ -19,17 +19,18 @@ The shell's own A2UI catalog: what the orchestrator paints with. It's the A2UI b
 ```ts
 import {createCatalog, Provider} from '@a2uiverse/shell-catalog';
 
-const catalog = createCatalog({onShellAction, onPress, onNavigate, appDisplayName});
+const catalog = createCatalog({onShellAction, onPress, onSignIn, onNavigate, appDisplayName});
 ```
 
 - **`onShellAction`** opens the Store or the App Library.
-- **`onPress`** receives the reader's presses (Retry, Include, Try again, a step back or forward) as a composition operation. Without it, no press button is drawn.
+- **`onPress`** receives the reader's presses (Retry, Include, Try again, a step back or forward, Not now) as a composition operation. Without it, no press button is drawn.
+- **`onSignIn`** receives Sign in, Allow and Cancel for one source, inside the click, so the host can open the sign-in window. Without it, no Sign in or Allow is drawn.
 - **`onNavigate`** takes a merged cell's click to the value it came from. Without it, cells aren't clickable.
 - **`appDisplayName`** gives an app's name. Without it, the app's id is shown.
 
 Wrap the rendered surfaces in **`Provider`**: a Radix Theme scoped to its own wrapper, never the page, that follows the host's light or dark and accent colour.
 
-The host also fills four React contexts the components read:
+The host also fills five React contexts the components read:
 
 | Context                  | What it tells the components                                           |
 | ------------------------ | ---------------------------------------------------------------------- |
@@ -37,6 +38,7 @@ The host also fills four React contexts the components read:
 | `SlotStateContext`       | each source's state, for a merged-view column reserved for that source |
 | `FragmentHistoryContext` | where each fragment stands in its history, for `Attribution`'s arrows  |
 | `PressStateContext`      | presses on their way, and whether a press can be made at all           |
+| `SignInContext`          | which sources have a sign-in window open, for the waiting form         |
 
 ## For the orchestrator
 

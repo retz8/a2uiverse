@@ -4,18 +4,22 @@ import {expect, test} from 'vitest';
 import {AttributionView} from './attribution';
 import {AttributionApi} from './attribution.schema';
 
-test('at rest shows only the display name, with full detail as the accessible name', () => {
-  render(<AttributionView displayName="Gmail" account="work" />);
-  const marker = screen.getByLabelText('Gmail · work');
-  expect(marker).toHaveTextContent('Gmail');
+test('an app with more than one account names it at rest, truncated, the whole label on hover and in the accessible name (task-12.3 decision 6)', () => {
+  render(<AttributionView displayName="Gmail" account="me@example.com" />);
+  const marker = screen.getByLabelText('Gmail · me@example.com');
+  expect(marker).toHaveTextContent('Gmail · me@example.com');
   expect(marker).not.toHaveTextContent('Painted by');
+  const label = screen.getByTitle('Gmail · me@example.com');
+  expect(label).toHaveStyle({textOverflow: 'ellipsis', whiteSpace: 'nowrap', overflow: 'hidden'});
 });
 
-test('keyboard focus expands to the full detail', async () => {
+test('keyboard focus brightens the marker and keeps the same words', async () => {
   const user = userEvent.setup();
   render(<AttributionView displayName="Gmail" account="work" />);
   await user.tab();
-  expect(screen.getByLabelText('Gmail · work')).toHaveTextContent('Gmail · work');
+  const marker = screen.getByLabelText('Gmail · work');
+  expect(marker).toHaveFocus();
+  expect(marker).toHaveTextContent('Gmail · work');
 });
 
 test('single-account apps omit the account clause', () => {
@@ -297,4 +301,147 @@ test('an arrow pressed from the keyboard hands focus on when it leaves the row: 
     <AttributionView displayName="GitHub" source="github" history={{}} onPress={() => {}} />,
   );
   expect(screen.getByLabelText('GitHub')).toHaveFocus();
+});
+
+/* ── The escalation on the attribution row (task 12.3) ──────────────────────── */
+
+import {act, fireEvent} from '@testing-library/react';
+import {SignInContext, type SignInRequest} from '../../sign-in';
+
+const MERGE = 'Merge pull requests and push to your repositories';
+
+function escalated(
+  props: {
+    onPress?: (operation: CompositionOperation) => void;
+    onSignIn?: (kind: 'start' | 'cancel') => void;
+    history?: FragmentHistory;
+  } = {},
+) {
+  return (
+    <AttributionView
+      displayName="GitHub"
+      source="github.1"
+      escalation={{scopes: [MERGE]}}
+      onPress={props.onPress ?? (() => {})}
+      onSignIn={props.onSignIn ?? (() => {})}
+      history={props.history}
+    >
+      <p>the fragment</p>
+    </AttributionView>
+  );
+}
+
+test('a scope request is a "Needs access" chip on the row, its card open on arrival with the missing scopes, Allow and Not now', () => {
+  render(escalated());
+  const chip = screen.getByRole('button', {name: 'Needs access'});
+  expect(chip).toHaveAttribute('aria-expanded', 'true');
+  const card = screen.getByRole('dialog', {name: 'GitHub needs more access to finish this.'});
+  expect(card).toHaveTextContent('It will also be able to');
+  expect(card).toHaveTextContent(MERGE);
+  expect(card).toHaveTextContent('Allow opens GitHub’s sign-in in a new window');
+  expect(screen.getByRole('button', {name: 'Allow'})).toBeInTheDocument();
+  expect(screen.getByRole('button', {name: 'Not now'})).toBeInTheDocument();
+  // The fragment stays on screen under the card; focus did not move into it.
+  expect(screen.getByText('the fragment')).toBeInTheDocument();
+  expect(card).not.toContainElement(document.activeElement as HTMLElement);
+  expect(screen.getByRole('status')).toHaveTextContent('GitHub needs more access to finish this.');
+});
+
+test('the chip folds the card without answering and opens it again; so do Escape and a press outside (task-12.3 decision 5)', () => {
+  const pressed: CompositionOperation[] = [];
+  render(escalated({onPress: operation => pressed.push(operation)}));
+  const chip = screen.getByRole('button', {name: 'Needs access'});
+  act(() => chip.click());
+  expect(screen.queryByRole('dialog')).toBeNull();
+  expect(chip).toHaveAttribute('aria-expanded', 'false');
+  act(() => chip.click());
+  expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+  fireEvent.keyDown(screen.getByRole('button', {name: 'Allow'}), {key: 'Escape'});
+  expect(screen.queryByRole('dialog')).toBeNull();
+  expect(chip).toHaveFocus();
+  act(() => chip.click());
+  fireEvent.pointerDown(screen.getByText('the fragment'));
+  expect(screen.queryByRole('dialog')).toBeNull();
+  expect(screen.getByRole('button', {name: 'Needs access'})).toBeInTheDocument();
+  expect(pressed).toEqual([]);
+});
+
+test('Allow starts the sign-in; Not now raises dismiss for the one source', () => {
+  const kinds: string[] = [];
+  const pressed: CompositionOperation[] = [];
+  render(escalated({onSignIn: kind => kinds.push(kind), onPress: op => pressed.push(op)}));
+  act(() => screen.getByRole('button', {name: 'Allow'}).click());
+  act(() => screen.getByRole('button', {name: 'Not now'}).click());
+  expect(kinds).toEqual(['start']);
+  expect(pressed).toEqual([{kind: 'dismiss', sources: ['github.1']}]);
+});
+
+test('while the sign-in window is open the card keeps its scopes and says to finish there, with Cancel (task-12.3 decision 3)', () => {
+  const kinds: string[] = [];
+  render(
+    <SignInContext.Provider value={source => source === 'github.1'}>
+      {escalated({onSignIn: kind => kinds.push(kind)})}
+    </SignInContext.Provider>,
+  );
+  const card = screen.getByRole('dialog');
+  expect(card).toHaveTextContent(MERGE);
+  expect(card).toHaveTextContent('Waiting for you to finish signing in');
+  expect(screen.queryByRole('button', {name: 'Allow'})).toBeNull();
+  expect(screen.queryByRole('button', {name: 'Not now'})).toBeNull();
+  act(() => screen.getByRole('button', {name: 'Cancel'}).click());
+  expect(kinds).toEqual(['cancel']);
+});
+
+test('a retry or a dismiss sent for the source hides the chip and the card at once (task-12.3 decision 10)', () => {
+  for (const kind of ['retry', 'dismiss'] as const) {
+    const {unmount} = render(
+      <PressStateContext.Provider
+        value={{
+          enabled: true,
+          presses: [{operation: {kind, sources: ['github.1']}, status: 'sent'}],
+        }}
+      >
+        {escalated()}
+      </PressStateContext.Provider>,
+    );
+    expect(screen.queryByRole('button', {name: 'Needs access'})).toBeNull();
+    expect(screen.queryByRole('dialog')).toBeNull();
+    unmount();
+  }
+});
+
+test('the arrows stay live while a request waits (task-12.3 decision 9)', () => {
+  const pressed: CompositionOperation[] = [];
+  render(
+    escalated({
+      onPress: op => pressed.push(op),
+      history: {back: {step: 0, title: 'Review requests'}},
+    }),
+  );
+  const back = screen.getByRole('button', {name: 'Back to Review requests'});
+  expect(back).toBeEnabled();
+  act(() => back.click());
+  expect(pressed).toEqual([{kind: 'step', sources: ['github.1'], step: 0}]);
+  expect(screen.getByRole('button', {name: 'Needs access'})).toBeInTheDocument();
+});
+
+test('through the catalog: Allow hands the host the source, the surface and the component', () => {
+  const requests: SignInRequest[] = [];
+  renderTree(
+    [
+      {
+        id: 'root',
+        component: 'Attribution',
+        displayName: 'GitHub',
+        source: 'github.1',
+        escalation: {scopes: [MERGE]},
+      },
+    ],
+    {onSignIn: request => requests.push(request), onPress: () => {}},
+  );
+  act(() => screen.getByRole('button', {name: 'Allow'}).click());
+  expect(requests).toEqual([
+    {kind: 'start', source: 'github.1', surfaceId: SURFACE_ID, componentId: 'root'},
+  ]);
 });

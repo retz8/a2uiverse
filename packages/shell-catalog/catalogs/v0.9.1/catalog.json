@@ -551,7 +551,7 @@
             "variant": {
               "type": "string",
               "description": "The type of input field to display.",
-              "enum": ["longText", "number", "shortText", "obscured"],
+              "enum": ["longText", "number", "shortText"],
               "default": "shortText"
             },
             "validationRegexp": {
