@@ -52,7 +52,7 @@ The term list, with the word splitting and whole-word matching, stays in the sdk
 
 ### 9. A `credential` dev fault
 
-The orchestrator's dev fault map gains a `credential` fault: the source's paint carries a `TextField` with the `obscured` variant — its first `TextField` rewritten, or one added. On the plan's dispatch alone, the default, the repair goes through clean: refusal, then repair. With every dispatch hit, the repair is refused too: refusal, then fallback.
+The orchestrator's dev fault map gains a `credential` fault: a surface of its own in the basic catalog, an obscured `TextField` its root, added to the source's paint. On the plan's dispatch alone, the default, the repair goes through clean: refusal, then repair. With every dispatch hit, the repair is refused too: refusal, then fallback.
 
 ### 10. The refusal is logged without a value
 
