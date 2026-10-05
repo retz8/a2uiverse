@@ -171,8 +171,8 @@ export class Synthesizer {
 /** What the validator checks the Table's column marks against, from the brief. */
 function columnChecks(input: SynthesisInput): SynthesisChecks['columns'] {
   const sources = [
-    ...input.sources.map(source => source.appId),
-    ...(input.missing ?? []).map(source => source.appId),
+    ...input.sources.map(s => s.source),
+    ...(input.missing ?? []).map(s => s.source),
   ];
   if (sources.length === 0) return undefined;
   return {
@@ -181,8 +181,8 @@ function columnChecks(input: SynthesisInput): SynthesisChecks['columns'] {
       header,
       source: input.columnSources?.[i] ?? null,
     })),
-    missing: (input.missing ?? []).map(source => source.appId),
-    surfaces: Object.fromEntries(input.sources.map(source => [source.surface, source.appId])),
+    missing: (input.missing ?? []).map(s => s.source),
+    surfaces: Object.fromEntries(input.sources.map(s => [s.surface, s.source])),
   };
 }
 

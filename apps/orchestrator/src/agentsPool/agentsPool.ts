@@ -10,7 +10,7 @@ import {
   type Client,
 } from '@a2a-js/sdk/client';
 import type {FailureCause} from '@a2uiverse/shell-catalog/schema';
-import {A2UI_CLIENT_CAPABILITIES_KEY, clientCapabilities} from '@a2uiverse/sdk';
+import {A2UI_CLIENT_CAPABILITIES_KEY, clientCapabilities, parseSourceId} from '@a2uiverse/sdk';
 import {A2UI_EXTENSION_URI_V09, A2UI_EXTENSION_URI_V091} from '../agentCard.js';
 import type {Registry} from '../registry/registry.js';
 import type {AppRecord} from '../registry/types.js';
@@ -34,8 +34,9 @@ export const FAILED_STATES: ReadonlySet<TaskState> = new Set(['failed', 'cancele
 const TERMINAL_STATES: ReadonlySet<TaskState> = new Set([...FAILED_STATES, 'completed']);
 
 /**
- * A2A connections to vendor agents (SPEC §10). Dispatch unit `(endpoint,
- * credential)`; credential is a placeholder until M8. Transparent streaming relay, the hard cap
+ * A2A connections to vendor agents (SPEC §10). Dispatch unit `(endpoint, credential)`, by source —
+ * the app and the account (task-12.4): the endpoint is the app's, the vendor conversation the
+ * source's own; the credential is a placeholder until the vault lands (task 12.5). Transparent streaming relay, the hard cap
  * per dispatch, the cause of a failure, A2A's cancel sent to a vendor whose dispatch is aborted,
  * and the dev-only fault map. Knows nothing of plans or slots.
  */
@@ -60,9 +61,9 @@ export class AgentsPool {
     this.#contexts.drop(clientContextId);
   }
 
-  dispatch(appId: string, turn: DispatchTurn): DispatchHandle {
+  dispatch(source: string, turn: DispatchTurn): DispatchHandle {
     const record: DispatchRecord = {
-      appId,
+      source,
       clientContextId: turn.clientContextId,
       clientTaskId: turn.clientTaskId,
       startedAt: new Date().toISOString(),
@@ -71,7 +72,7 @@ export class AgentsPool {
       deadlineMs: this.#options.hardCapMs,
     };
     const startedAt = Date.now();
-    logLine(`→ ${appId} task=${turn.clientTaskId}`);
+    logLine(`→ ${source} task=${turn.clientTaskId}`);
     const controller = new AbortController();
     if (turn.signal) {
       if (turn.signal.aborted) controller.abort();
@@ -88,7 +89,7 @@ export class AgentsPool {
     const capTimer = setTimeout(() => {
       if (ended) return;
       record.cappedAt = new Date().toISOString();
-      logLine(`⏱ ${appId} task=${turn.clientTaskId} hard cap ${this.#options.hardCapMs} ms`);
+      logLine(`⏱ ${source} task=${turn.clientTaskId} hard cap ${this.#options.hardCapMs} ms`);
       resolveCapped();
     }, this.#options.hardCapMs);
     capTimer.unref?.();
@@ -107,7 +108,7 @@ export class AgentsPool {
       }
       record.endedAt = new Date().toISOString();
       logLine(
-        `← ${appId} task=${turn.clientTaskId} ${outcome}${failure ? ` (${failure.error})` : ''} ${elapsedMs(startedAt)} ms`,
+        `← ${source} task=${turn.clientTaskId} ${outcome}${failure ? ` (${failure.error})` : ''} ${elapsedMs(startedAt)} ms`,
       );
       registered.delete(handle);
       if (registered.size === 0) this.#inflight.delete(turn.clientTaskId);
@@ -115,14 +116,14 @@ export class AgentsPool {
     };
 
     const handle: DispatchHandle = {
-      events: this.#stream(appId, turn, record, controller, finish),
+      events: this.#stream(source, turn, record, controller, finish),
       done,
       record,
       capped,
       cancel: () => {
         if (ended || controller.signal.aborted) return;
         controller.abort();
-        this.#cancelVendor(appId, record);
+        this.#cancelVendor(source, record);
       },
     };
     registered.add(handle);
@@ -134,7 +135,7 @@ export class AgentsPool {
   }
 
   async *#stream(
-    appId: string,
+    source: string,
     turn: DispatchTurn,
     record: DispatchRecord,
     controller: AbortController,
@@ -143,18 +144,19 @@ export class AgentsPool {
     const relayCtx = {
       taskId: turn.clientTaskId,
       contextId: turn.clientContextId,
-      appId,
+      source,
       debugIds: this.#options.debugIds,
     };
-    const fault = this.#faultFor(appId, turn);
+    const fault = this.#faultFor(source, turn);
     if (fault) record.fault = fault.fault;
     let finalState: TaskState | undefined;
     let finalMessage: string | undefined;
     // A non-streaming vendor answers with one Task in a terminal state and no final update.
     let terminalTaskState: TaskState | undefined;
     let broke = false;
-    // The app as the registry holds it now: the entitlement this dispatch is sent under and
-    // checked against to its end, whatever the registry does meanwhile (task-11.4 decision 6).
+    // The source's app as the registry holds it now: the entitlement this dispatch is sent under
+    // and checked against to its end, whatever the registry does meanwhile (task-11.4 decision 6).
+    const appId = parseSourceId(source)?.appId ?? source;
     const app = this.#registry.find(appId);
     if (!app) {
       finish('failed', {error: `app ${appId} is not installed`, cause: 'uninstalled'});
@@ -175,7 +177,7 @@ export class AgentsPool {
         yield relayEvent(event, relayCtx);
       } else {
         const client = await this.#connect(app);
-        const vendorContextId = this.#contexts.get(turn.clientContextId, appId);
+        const vendorContextId = this.#contexts.get(turn.clientContextId, source);
         const params = prepareOutgoing(withEntitlement(turn.message, app), vendorContextId);
         const options = {
           signal: controller.signal,
@@ -185,7 +187,7 @@ export class AgentsPool {
         };
         let injected = false;
         for await (const event of client.sendMessageStream(params, options)) {
-          this.#learnIds(event, appId, turn, record);
+          this.#learnIds(event, source, turn, record);
           // A paint outside the app's entitlement is refused at the hub, never relayed
           // (task-11.4 decision 12): the dispatch ends failed on the catalog's id.
           outside = catalogOutside(event, entitlement);
@@ -219,7 +221,7 @@ export class AgentsPool {
       const endState = record.sawFinal ? finalState : terminalTaskState;
       if (outside !== undefined) {
         record.catalogId = outside;
-        this.#cancelVendor(appId, record);
+        this.#cancelVendor(source, record);
         finish('failed', {
           error: `painted in catalog ${JSON.stringify(outside)}, outside its entitlement`,
           cause: 'catalog',
@@ -245,9 +247,14 @@ export class AgentsPool {
     }
   }
 
-  /** The plan's dispatch of a faulted source, or every dispatch of it when the fault says so. */
-  #faultFor(appId: string, turn: DispatchTurn): Fault | undefined {
-    const fault = this.#options.faults?.get(appId);
+  /**
+   * The plan's dispatch of a faulted source, or every dispatch of it when the fault says so: the
+   * fault keyed by the source, else by its app, which covers every source of it (task-12.4
+   * decision 8).
+   */
+  #faultFor(source: string, turn: DispatchTurn): Fault | undefined {
+    const faults = this.#options.faults;
+    const fault = faults?.get(source) ?? faults?.get(parseSourceId(source)?.appId ?? source);
     return fault && (turn.fromPlan || fault.every) ? fault : undefined;
   }
 
@@ -255,7 +262,7 @@ export class AgentsPool {
    * A2A's cancel for an aborted dispatch (task-8.3 decision 4): closing the stream alone leaves
    * the vendor working on. Fire and forget; a vendor that refuses is logged, never fatal.
    */
-  #cancelVendor(appId: string, record: DispatchRecord): void {
+  #cancelVendor(source: string, record: DispatchRecord): void {
     const id = record.vendorTaskId;
     const app = this.#sentTo.get(record);
     if (
@@ -269,19 +276,19 @@ export class AgentsPool {
     void this.#connect(app)
       .then(client => client.cancelTask({id}))
       .then(
-        () => logLine(`✗ ${appId} task=${record.clientTaskId} cancel sent`),
+        () => logLine(`✗ ${source} task=${record.clientTaskId} cancel sent`),
         err =>
           logLine(
-            `✗ ${appId} task=${record.clientTaskId} cancel refused (${err instanceof Error ? err.message : String(err)})`,
+            `✗ ${source} task=${record.clientTaskId} cancel refused (${err instanceof Error ? err.message : String(err)})`,
           ),
       );
   }
 
-  #learnIds(event: VendorEvent, appId: string, turn: DispatchTurn, record: DispatchRecord): void {
+  #learnIds(event: VendorEvent, source: string, turn: DispatchTurn, record: DispatchRecord): void {
     const contextId = event.contextId;
     if (contextId && !record.vendorContextId) {
       record.vendorContextId = contextId;
-      this.#contexts.set(turn.clientContextId, appId, contextId);
+      this.#contexts.set(turn.clientContextId, source, contextId);
     }
     const taskId = event.kind === 'task' ? event.id : event.taskId;
     if (taskId && !record.vendorTaskId) record.vendorTaskId = taskId;

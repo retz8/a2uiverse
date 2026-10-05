@@ -56,6 +56,7 @@ export class ModelPlanner implements Planner {
   readonly #system: string;
   readonly #tree: A2uiValidator;
   readonly #readers: PlatformReaders;
+  readonly #sourcesOf: (appId: string) => readonly string[];
 
   constructor(options: {
     model: LanguageModel;
@@ -64,16 +65,19 @@ export class ModelPlanner implements Planner {
     /** The shell catalog pruned to the layout surface's keep-set: the one the prompt shows. */
     catalog: A2uiCatalogSchema;
     readers: PlatformReaders;
+    /** Each shortlisted app's sources (task-12.4 decision 2); the bare app id alone when omitted. */
+    sourcesOf?: (appId: string) => readonly string[];
   }) {
     this.#model = options.model;
     this.#providerOptions = options.providerOptions;
     this.#system = options.systemPrompt;
     this.#tree = createA2uiValidator({catalog: options.catalog});
     this.#readers = options.readers;
+    this.#sourcesOf = options.sourcesOf ?? (appId => [appId]);
   }
 
   async plan(input: PlanInput): Promise<PlanOutcome> {
-    const shortlist = input.shortlist.map(entry => entry.record.id);
+    const shortlist = input.shortlist.flatMap(entry => this.#sourcesOf(entry.record.id));
     const tools = readerTools(this.#readers, input.askedFrom);
     const attempts: PlanAttempt[] = [];
     const toolCalls: ToolCallRecord[] = [];

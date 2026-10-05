@@ -77,7 +77,7 @@ export class Compositions {
       openedAt: state.openedAt,
       closedAt,
       answered: [...state.slots.keys()].filter(
-        appId => appId !== SHELL_SOURCE_ID && state.arrived.has(appId),
+        source => source !== SHELL_SOURCE_ID && state.arrived.has(source),
       ),
       ...(state.mergedView ? {mergedView: state.mergedView} : {}),
     };

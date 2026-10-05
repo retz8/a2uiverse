@@ -50,21 +50,21 @@ export class History {
         if (typeof create !== 'object' || create === null) continue;
         const surfaceId = (create as {surfaceId?: unknown}).surfaceId;
         if (typeof surfaceId !== 'string') continue;
-        const appId = parseSurfaceId(surfaceId)?.source;
-        if (appId === undefined || appId === SHELL_SOURCE_ID) continue;
-        this.#paint(appId);
+        const source = parseSurfaceId(surfaceId)?.source;
+        if (source === undefined || source === SHELL_SOURCE_ID) continue;
+        this.#paint(source);
       }
     }
   }
 
-  paintsOf(appId: string): Paints | undefined {
-    const paints = this.#paints.get(appId);
+  paintsOf(source: string): Paints | undefined {
+    const paints = this.#paints.get(source);
     return paints ? {...paints} : undefined;
   }
 
   /** The client reported the fragment showing paint `id`: true when the source made that paint. */
-  stepTo(appId: string, id: number): boolean {
-    const paints = this.#paints.get(appId);
+  stepTo(source: string, id: number): boolean {
+    const paints = this.#paints.get(source);
     if (!paints || id < 0 || id >= paints.count) return false;
     paints.at = id;
     return true;
@@ -72,7 +72,7 @@ export class History {
 
   /** Every painted source's paint on screen — the key the wiring is remembered under. */
   combination(): Record<string, number> {
-    return Object.fromEntries([...this.#paints].map(([appId, {at}]) => [appId, at]));
+    return Object.fromEntries([...this.#paints].map(([source, {at}]) => [source, at]));
   }
 
   /** Files the wiring under the current combination, over an earlier entry there. */
@@ -96,22 +96,22 @@ export class History {
     for (const [key, remembered] of this.#remembered) {
       const named = Object.entries(keyOf(key));
       if (named.length >= Object.keys(now).length) continue;
-      if (!named.every(([appId, at]) => now[appId] === at)) continue;
+      if (!named.every(([source, at]) => now[source] === at)) continue;
       if (best && named.length < best.named.length) continue;
-      best = {remembered, named: named.map(([appId]) => appId)};
+      best = {remembered, named: named.map(([source]) => source)};
     }
     if (!best) return undefined;
     const named = new Set(best.named);
     return {
       remembered: best.remembered,
-      since: Object.keys(now).filter(appId => !named.has(appId)),
+      since: Object.keys(now).filter(source => !named.has(source)),
     };
   }
 
-  #paint(appId: string): void {
-    const paints = this.#paints.get(appId);
+  #paint(source: string): void {
+    const paints = this.#paints.get(source);
     if (!paints) {
-      this.#paints.set(appId, {count: 1, at: 0});
+      this.#paints.set(source, {count: 1, at: 0});
       return;
     }
     paints.at = paints.count;

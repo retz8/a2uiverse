@@ -75,13 +75,13 @@ function resolveRef(ref: Ref, models: EvaluateInput['models']): {found: boolean;
   return result.found && result.value !== undefined ? result : {found: false};
 }
 
-/** A source is an app (task-4.5 decision 8): the app a namespaced surface belongs to. */
-function appOf(surface: string): string {
+/** The source a namespaced surface belongs to — the app and the account it painted under (task 12.4). */
+function sourceOf(surface: string): string {
   return parseSurfaceId(surface)?.source ?? surface;
 }
 
 function targetOf(ref: Ref): CellTarget {
-  return {app: appOf(ref.surface), surface: ref.surface, pointer: ref.pointer};
+  return {app: sourceOf(ref.surface), surface: ref.surface, pointer: ref.pointer};
 }
 
 /** An object's match claim, evaluated; absent, the claim in force above it stands. */
@@ -95,8 +95,8 @@ function evaluateFormula(formula: Formula, input: EvaluateInput, claim?: Claim):
     if (resolved.found) survivors.push({ref, value: resolved.value});
     else absent.push(ref.surface);
   }
-  const apps = formula.args.map(ref => appOf(ref.surface));
-  const present = new Set(survivors.map(s => appOf(s.ref.surface)));
+  const apps = formula.args.map(ref => sourceOf(ref.surface));
+  const present = new Set(survivors.map(s => sourceOf(s.ref.surface)));
   const join =
     claim &&
     cellJoin(
@@ -129,7 +129,7 @@ function evaluateFormula(formula: Formula, input: EvaluateInput, claim?: Claim):
     // A source selector names a source, and the cell navigates to the entry that won.
     if (winner !== undefined) {
       return {
-        value: appOf(winner.surface),
+        value: sourceOf(winner.surface),
         names: 'app',
         contributed: survivors.length,
         ...base,
@@ -153,7 +153,7 @@ function evaluateRelation(name: string, formula: Formula, input: EvaluateInput) 
   if (!isRelation(formula.op) || !a || !b || formula.args.length !== 2) return undefined;
   const side = (ref: Ref): RelationSide => {
     const resolved = resolveRef(ref, input.models);
-    return {app: appOf(ref.surface), ref, ...(resolved.found && {value: resolved.value})};
+    return {app: sourceOf(ref.surface), ref, ...(resolved.found && {value: resolved.value})};
   };
   const sides: [RelationSide, RelationSide] = [side(a), side(b)];
   let state: EvaluatedRelation['state'] = 'absent';

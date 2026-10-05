@@ -13,7 +13,7 @@ export {
   FormatSchema,
 } from './derived-value.schema.js';
 export type {
-  AppDisplayName,
+  SourceName,
   CellJoin,
   CellTarget,
   EvaluatedRelation,

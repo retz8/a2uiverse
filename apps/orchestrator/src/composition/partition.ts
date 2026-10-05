@@ -13,7 +13,7 @@ type Metadata = Message['metadata'];
  */
 export function filterClientDataModel(
   metadata: Metadata,
-  appId: string,
+  source: string,
 ): Record<string, unknown> | undefined {
   const model = metadata?.[A2UI_CLIENT_DATA_MODEL_KEY];
   if (typeof model !== 'object' || model === null) return undefined;
@@ -23,7 +23,7 @@ export function filterClientDataModel(
   let any = false;
   for (const [key, value] of Object.entries(surfaces)) {
     const parsed = parseSurfaceId(key);
-    if (parsed?.source !== appId) continue;
+    if (parsed?.source !== source) continue;
     own[parsed.surfaceId] = value;
     any = true;
   }
@@ -36,9 +36,9 @@ export function filterClientDataModel(
  * decision 12) — and every a2uiverse-specific key dropped: nothing a2uiverse-specific rides the
  * vendor wire.
  */
-export function vendorMetadata(metadata: Metadata, appId: string): Metadata {
+export function vendorMetadata(metadata: Metadata, source: string): Metadata {
   const out: NonNullable<Metadata> = {};
-  const model = filterClientDataModel(metadata, appId);
+  const model = filterClientDataModel(metadata, source);
   if (model !== undefined) out[A2UI_CLIENT_DATA_MODEL_KEY] = model;
   return Object.keys(out).length > 0 ? out : undefined;
 }

@@ -1005,7 +1005,7 @@ test('the sign-in buttons draw disabled where no press can be made', () => {
   expect(screen.getByRole('button', {name: 'Sign in'})).toBeDisabled();
 });
 
-test('through the catalog: Sign in hands the host the source, the surface and the slot; the app named from its source', () => {
+test('through the catalog: Sign in hands the host the source, the surface and the slot; the source named by the host', () => {
   const requests: SignInRequest[] = [];
   const shell: ShellAction[] = [];
   renderTree(
@@ -1021,7 +1021,7 @@ test('through the catalog: Sign in hands the host the source, the surface and th
     {
       onSignIn: request => requests.push(request),
       onShellAction: action => shell.push(action),
-      appDisplayName: appId => (appId === 'gmail' ? 'Gmail' : undefined),
+      sourceName: source => (source === 'gmail.2' ? 'Gmail' : undefined),
     },
   );
   expect(screen.getByText('Sign in to Gmail to show it here.')).toBeInTheDocument();

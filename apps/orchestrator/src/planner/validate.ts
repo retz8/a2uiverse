@@ -25,7 +25,10 @@ import {isGap, LAYOUT_SURFACE_SCHEMA, type LayoutSurface} from './document.js';
 export interface LayoutChecks {
   /** The sdk's A2UI validator over the layout surface's pruned catalog. */
   tree: A2uiValidator;
-  /** The app ids on this turn's shortlist — the only sources the dispatch may name. */
+  /**
+   * The sources of the apps on this turn's shortlist — every account of each (task-12.4
+   * decision 2) — the only sources the dispatch may name.
+   */
   shortlist: readonly string[];
 }
 

@@ -28,7 +28,7 @@ const msg = (m: Record<string, unknown>): A2uiMessage =>
  * layout surface with one slot per source, each vendor slot the `child` of the `Attribution`
  * that names it — the shape the roster pairs by, and the one guarantee a vendor fragment gets.
  */
-const paintedLayout = (slots: Array<string | [appId: string, displayName: string]>) => {
+const paintedLayout = (slots: Array<string | [source: string, displayName: string]>) => {
   const leaves = slots.map(slot => (typeof slot === 'string' ? [slot, slot] : slot));
   return [
     msg({createSurface: {surfaceId: 'shell:main', catalogId: SHELL_CATALOG_ID}}),
@@ -37,15 +37,15 @@ const paintedLayout = (slots: Array<string | [appId: string, displayName: string
         surfaceId: 'shell:main',
         components: [
           {id: 'root', component: 'Column', children: leaves.map(([id]) => `attribution-${id}`)},
-          ...leaves.flatMap(([appId, displayName]) => [
+          ...leaves.flatMap(([source, displayName]) => [
             {
-              id: `attribution-${appId}`,
+              id: `attribution-${source}`,
               component: 'Attribution',
-              source: appId,
+              source: source,
               displayName,
-              child: appId,
+              child: source,
             },
-            {id: appId, component: 'Slot', source: appId, state: 'pending', label: displayName},
+            {id: source, component: 'Slot', source: source, state: 'pending', label: displayName},
           ]),
         ],
       },
@@ -571,8 +571,8 @@ describe('composed turns (the hub stamps its events)', () => {
     // Known before any agent answers — which is what lets a source that never paints still be
     // named, and what fixes the stack's order for the turn.
     expect(store.getState().roster).toEqual([
-      {appId: 'github', displayName: 'GitHub'},
-      {appId: 'gmail', displayName: 'Gmail'},
+      {source: 'github', name: 'GitHub'},
+      {source: 'gmail', name: 'Gmail'},
     ]);
   });
 
@@ -584,7 +584,7 @@ describe('composed turns (the hub stamps its events)', () => {
       [create('github:pr-list'), textRoot('github:pr-list', 'Pull requests')],
       fragment('github'),
     );
-    expect(store.getState().roster).toEqual([{appId: 'github', displayName: 'GitHub'}]);
+    expect(store.getState().roster).toEqual([{source: 'github', name: 'GitHub'}]);
   });
 
   it("a new turn clears the previous turn's answers", () => {

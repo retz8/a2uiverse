@@ -113,7 +113,7 @@ The catalog is a library; the **host** is the app that renders with it, here the
   | `onPress` | the reader presses Retry, Include or Try again on a `Slot`, or a back or forward arrow or Not now on an `Attribution` |
   | `onSignIn` | the reader presses Sign in, Sign in again, Allow or Cancel: `{kind: "start" or "cancel", source, surfaceId, componentId}`, called inside the click so the host can open the sign-in window without the browser blocking it |
   | `onNavigate` | the reader clicks a `DerivedValue`, to land on the element it came from |
-  | `appDisplayName` | a component needs an app's name for its id |
+  | `sourceName` | a component needs a source's name: the app's, with the account's label when the app has more than one account (`Gmail · alice@example.com`), looked up by the whole source |
 
 - **State that changes as the question runs** goes into five React contexts the host provides:
 
@@ -315,7 +315,7 @@ When an app needs the reader to sign in, the orchestrator paints its `Slot` with
 | `{cause: "again"}` | the silent refresh failed: "Your Google Calendar sign-in has run out.", **Sign in again**, and the same new-window line |
 | `{cause: "unsupported"}` | "Signing in to Acme Wiki isn't supported here.", "Acme Wiki asks for a kind of sign-in A2UIVerse can't do. The app stays installed.", and **Manage apps**, which raises `openAppLibrary` |
 
-The tile names the app, unlike the failure tile, because its sentence is about that app's sign-in. The name comes from the host's `appDisplayName`, looked up by the app part of the source id (`gmail` for `gmail.2`).
+The tile names the app, unlike the failure tile, because its sentence is about that app's sign-in. The name comes from the host's `sourceName`, looked up by the whole source id (`gmail.2`), so with two Gmail accounts it says which one.
 
 Sign in raises `onSignIn({kind: "start", …})`, and the host opens the sign-in window. While `SignInContext` says that window is open, the slot draws the **waiting form** in place, in the shape it already had: the tile says "Finish signing in to Gmail in the window that opened." over a spinner, "Waiting for you to finish signing in", and **Cancel**; the quiet line stays one line, the spinner, the same words and Cancel. Cancel raises `{kind: "cancel"}`, and once the host says the window is closed the tile comes back as it was. When sign-in completes, the host sends the slot's `retry`; from the moment that press is `sent` the slot draws "Loading…", as a failure tile's Retry does, and a press that never reached the orchestrator, or whose stream broke, brings the tile back with the same words a failure tile's Retry uses.
 

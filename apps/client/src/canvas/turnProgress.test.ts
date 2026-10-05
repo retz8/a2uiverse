@@ -8,21 +8,21 @@ import {createCanvasStore, type RosterEntry} from './canvasStore';
 import {listed, turnProgress} from './turnProgress';
 
 const ROSTER = [
-  {appId: 'shell', displayName: 'Synthesis'},
-  {appId: 'linear', displayName: 'Linear'},
-  {appId: 'github', displayName: 'GitHub'},
-  {appId: 'circleci', displayName: 'CircleCI'},
+  {source: 'shell', name: 'Synthesis'},
+  {source: 'linear', name: 'Linear'},
+  {source: 'github', name: 'GitHub'},
+  {source: 'circleci', name: 'CircleCI'},
 ];
 
 const JOINED: RosterEntry[] = [
   {
-    appId: 'shell',
-    displayName: 'Synthesis',
+    source: 'shell',
+    name: 'Synthesis',
     join: {home: 'linear', nouns: {linear: 'issues', github: 'PRs', circleci: 'runs'}},
   },
-  {appId: 'linear', displayName: 'Linear'},
-  {appId: 'github', displayName: 'GitHub'},
-  {appId: 'circleci', displayName: 'CircleCI'},
+  {source: 'linear', name: 'Linear'},
+  {source: 'github', name: 'GitHub'},
+  {source: 'circleci', name: 'CircleCI'},
 ];
 
 /** A composition whose merge landed over Linear and GitHub, the turn over. */
@@ -36,6 +36,19 @@ function landed() {
 }
 
 describe('turnProgress', () => {
+  it('two accounts of one app are two steps, each named by its source (task 12.4)', () => {
+    const store = createCanvasStore();
+    store.setRoster([
+      {source: 'gmail.1', name: 'Gmail · alice@example.com'},
+      {source: 'gmail.2', name: 'Gmail · bob@example.com'},
+    ]);
+    store.placeFragment('gmail.2', {surfaceId: 'gmail.2:inbox', source: 'gmail.2'});
+    expect(turnProgress(store.getState()).sources).toEqual([
+      {source: 'gmail.1', name: 'Gmail · alice@example.com', status: 'idle'},
+      {source: 'gmail.2', name: 'Gmail · bob@example.com', status: 'done'},
+    ]);
+  });
+
   it('an utterance in flight with nothing planned is the Planner at work', () => {
     const store = createCanvasStore();
     store.beginPaint('utterance');
@@ -57,7 +70,7 @@ describe('turnProgress', () => {
     store.beginPaint('surface-action', 'github');
     const running = turnProgress(store.getState());
     expect(running.working).toBeNull();
-    expect(running.sources.map(s => [s.appId, s.status])).toEqual([
+    expect(running.sources.map(s => [s.source, s.status])).toEqual([
       ['linear', 'done'],
       ['github', 'working'],
       ['circleci', 'working'],
@@ -65,7 +78,7 @@ describe('turnProgress', () => {
     expect(running.merge).not.toBeNull();
     store.settleInFlight('github');
     expect(turnProgress(store.getState()).sources[1]).toMatchObject({
-      appId: 'github',
+      source: 'github',
       status: 'done',
     });
   });
@@ -79,9 +92,9 @@ describe('turnProgress', () => {
     const progress = turnProgress(store.getState());
     expect(progress.working).toBeNull();
     expect(progress.sources).toEqual([
-      {appId: 'linear', name: 'Linear', status: 'done'},
-      {appId: 'github', name: 'GitHub', status: 'working'},
-      {appId: 'circleci', name: 'CircleCI', status: 'failed'},
+      {source: 'linear', name: 'Linear', status: 'done'},
+      {source: 'github', name: 'GitHub', status: 'working'},
+      {source: 'circleci', name: 'CircleCI', status: 'failed'},
     ]);
     // One arrived, one failed: no merge is possible yet, so the step waits for the one still out.
     expect(progress.merge).toEqual({
@@ -163,12 +176,12 @@ describe('turnProgress', () => {
     store.beginPaint('utterance');
     store.setRoster([
       {
-        appId: 'shell',
-        displayName: 'Synthesis',
+        source: 'shell',
+        name: 'Synthesis',
         join: {home: null, entity: 'cameras', nouns: {'shop-a': 'cameras', 'shop-b': 'cameras'}},
       },
-      {appId: 'shop-a', displayName: 'Aperture & Co'},
-      {appId: 'shop-b', displayName: 'Northlight'},
+      {source: 'shop-a', name: 'Aperture & Co'},
+      {source: 'shop-b', name: 'Northlight'},
     ]);
     const text = () => turnProgress(store.getState()).merge?.text;
     expect(text()).toBe('Joining cameras across Aperture & Co and Northlight');
@@ -199,16 +212,16 @@ describe('turnProgress', () => {
   it('a join whose home is not among the sources names the apps alone', () => {
     const store = createCanvasStore();
     store.setRoster([
-      {appId: 'shell', displayName: 'Synthesis', join: {home: 'jira', nouns: {github: 'PRs'}}},
-      {appId: 'github', displayName: 'GitHub'},
-      {appId: 'gmail', displayName: 'Gmail'},
+      {source: 'shell', name: 'Synthesis', join: {home: 'jira', nouns: {github: 'PRs'}}},
+      {source: 'github', name: 'GitHub'},
+      {source: 'gmail', name: 'Gmail'},
     ]);
     expect(turnProgress(store.getState()).merge?.text).toBe('Could not join GitHub PRs and Gmail');
   });
 
   it('a single-source turn has no merge step', () => {
     const store = createCanvasStore();
-    store.setRoster([{appId: 'github', displayName: 'GitHub'}]);
+    store.setRoster([{source: 'github', name: 'GitHub'}]);
     expect(turnProgress(store.getState()).merge).toBeNull();
   });
 });
@@ -244,10 +257,10 @@ describe('the merge step, landed without a source', () => {
   it('with no noun, a failed source is left out by name', () => {
     const store = createCanvasStore();
     store.setRoster([
-      {appId: 'shell', displayName: 'Synthesis'},
-      {appId: 'github', displayName: 'GitHub'},
-      {appId: 'gmail', displayName: 'Gmail'},
-      {appId: 'calendar', displayName: 'Google Calendar'},
+      {source: 'shell', name: 'Synthesis'},
+      {source: 'github', name: 'GitHub'},
+      {source: 'gmail', name: 'Gmail'},
+      {source: 'calendar', name: 'Google Calendar'},
     ]);
     for (const app of ['github', 'gmail', 'shell'])
       store.placeFragment(app, {surfaceId: `${app}:s`, source: app});

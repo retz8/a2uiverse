@@ -69,8 +69,8 @@ describe.skipIf(!live)('Synthesizer (live)', () => {
         utterance: 'compare camera prices across both stores',
         request: 'compare price per camera; best price first',
         sources: [
-          {surface: 'shop-a:list', appId: 'shop-a', displayName: 'Shop A', data: a},
-          {surface: 'shop-b:list', appId: 'shop-b', displayName: 'Shop B', data: b},
+          {surface: 'shop-a:list', source: 'shop-a', name: 'Shop A', data: a},
+          {surface: 'shop-b:list', source: 'shop-b', name: 'Shop B', data: b},
         ],
       },
       partitions,

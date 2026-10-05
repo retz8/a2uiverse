@@ -15,11 +15,11 @@
  */
 import type {ReactNode} from 'react';
 
-/** The detector's anchor and the isolation hook; its value is the painting app's id. */
+/** The detector's anchor and the isolation hook; its value is the painting source's id. */
 export const FRAGMENT_BOUNDARY_ATTR = 'data-a2ui-fragment';
 
 export interface FragmentBoundaryProps {
-  /** The stamp's `source` — which app painted what is inside. */
+  /** The stamp's `source` — which app, and which account of it, painted what is inside. */
   source: string;
   /** The namespaced surface id, for debugging and for the detector's DOM-ownership check. */
   surfaceId: string;

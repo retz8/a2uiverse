@@ -22,7 +22,7 @@ import {DateTimeInputComponent} from './components/date-time-input/index.js';
 import {createSlotComponent, type PressHandler} from './components/slot/index.js';
 import {createAttributionComponent} from './components/attribution/index.js';
 import {
-  type AppDisplayName,
+  type SourceName,
   createDerivedValueComponent,
   type NavigationHandler,
 } from './components/derived-value/index.js';
@@ -42,7 +42,7 @@ export {
   type RelationKind,
   type RelationOp,
 } from './functions/relations.js';
-export type {AppDisplayName, NavigationHandler} from './components/derived-value/index.js';
+export type {SourceName, NavigationHandler} from './components/derived-value/index.js';
 export type {PressHandler} from './components/slot/index.js';
 export type {SignInHandler, SignInRequest} from './sign-in.js';
 export {
@@ -84,7 +84,7 @@ export const BASIC_IMPLEMENTATIONS: readonly ReactComponentImplementation[] = [
  * its capability tile raises `openStore`, its failure tile and the merged view's lines the reader's
  * presses, its authority tile the sign-in handler (task 12.3). `Attribution` is bound to the press
  * handler too — its arrows raise the step (task 9.5), its escalation card's Not now `dismiss` —
- * and to the sign-in handler for Allow (task 12.3). `DerivedValue` is bound to the host's navigation handler and app names (task-7.5
+ * and to the sign-in handler for Allow (task 12.3). `DerivedValue` is bound to the host's navigation handler and source names (task-7.5
  * decisions 11, 13). Layout is the basic catalog's `Row` and `Column` (task-6.4 decision 4).
  */
 function shellImplementations({
@@ -92,12 +92,12 @@ function shellImplementations({
   onPress,
   onSignIn,
   onNavigate,
-  appDisplayName,
+  sourceName,
 }: CreateCatalogOptions): ReactComponentImplementation[] {
   return [
-    createSlotComponent(onShellAction, {onPress, onSignIn, appDisplayName}),
+    createSlotComponent(onShellAction, {onPress, onSignIn, sourceName}),
     createAttributionComponent({onPress, onSignIn}),
-    createDerivedValueComponent({onNavigate, appDisplayName}),
+    createDerivedValueComponent({onNavigate, sourceName}),
     SortControlComponent,
     TableComponent,
     TableRowComponent,
@@ -127,8 +127,8 @@ export interface CreateCatalogOptions {
    * names. Without it, cells are not interactive.
    */
   onNavigate?: NavigationHandler;
-  /** The host's display name for an app id; without one, the app id is shown. */
-  appDisplayName?: AppDisplayName;
+  /** The host's name for a source (task-12.4 decision 5); without one, the source id is shown. */
+  sourceName?: SourceName;
 }
 
 /**

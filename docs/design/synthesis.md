@@ -57,7 +57,7 @@ Here's part of Linear's data model from the example:
 
 A **partition** is one app's surface data model, as A2UIVerse holds it. Two rules keep partitions apart:
 
-- **Surface ids are namespaced** as `<appId>:<surfaceId>`. Linear's `linear-1` becomes `linear:linear-1`, so two apps can never collide on a name.
+- **Surface ids are namespaced** as `<source>:<surfaceId>`, the source being the app and the account it painted under. Linear's `linear-1` becomes `linear:linear-1`, so two sources can never collide on a name, two accounts of one app included.
 - **Nothing copies data out of a partition.** No app ever sees another's data. Only the shell, A2UIVerse's own UI, reads across partitions, and the merged view is the shell's.
 
 ```mermaid
@@ -210,7 +210,7 @@ The evaluator never writes a bare value. At every formula it writes a **cell**:
 | `absent`      | the surfaces whose refs didn't resolve                          |
 | `join`        | when the row carries a match claim: how the value's tie stands  |
 | `target`      | where a click on the cell goes: the element in the app's slot   |
-| `names`       | `"app"` when the value is an app id, so it's shown by its name  |
+| `names`       | `"app"` when the value is a source id, so it's shown by its name |
 
 Only one component reads cells: **`DerivedValue`**. The validator rejects a tree that binds a formula path to anything else, so a value computed from part of its sources can never be drawn like a complete one. That guarantee comes from the structure, not from reviewing each view. A cell is in one of four states:
 
@@ -347,7 +347,7 @@ A match claim applies to every cell below the object that carries it, down to th
 1. Resolve every ref. Split them into **survivors** (found) and **absent** (anything else, or a surface the client doesn't hold).
 2. No survivors: the cell has no value, `contributed: 0`.
 3. Otherwise call the operator on the survivors' values. Operators are plain catalog functions over a list of values; none of them ever sees a surface id or a ref.
-4. `argmin`, `argmax` and `source` return an **index** into the survivors. The evaluator maps it back to the winning ref's app and writes the app id as the value, with `names: "app"`. `DerivedValue` draws the app's display name, while sorting keeps using the stable id.
+4. `argmin`, `argmax` and `source` return an **index** into the survivors. The evaluator maps it back to the winning ref's source and writes the source id as the value, with `names: "app"`. `DerivedValue` draws the source's name, while sorting keeps using the stable id.
 5. Record `contributed`, `of`, `absent`, the `target` (the first survivor, or the winner for a selector), and the `join` when a claim applies.
 
 Then every sort declaration reorders its list in place (see [Sorting](#sorting)) and the declarations are written at `/sorts`, where the `SortControl` reads them.
@@ -515,7 +515,7 @@ Each app's slot has its own back and forward arrows. The history behind them is 
 
 **Paints and visits per app.** Every `createSurface` an app sends is one **paint**, numbered by its **paint id**, stored on the orchestrator as `{count, at}`: how many the app has made, and the one on screen. Both sides count creates the same way, in stream order, so paint 2 means the same paint on both. The client keeps each paint (its tree and data model, as last seen) and the list of paints you visited, which the arrows walk; the orchestrator keeps only the numbers. Nothing is dropped: after a Back, a new paint first visits where you landed, then itself, so everything you opened stays reachable ([`client.md`](client.md#way-back-screens-and-visits-per-app) walks an example).
 
-**A combination is where every app stands.** For example `{circleci: 1, github: 0, linear: 0}` means CircleCI shows its paint 1 (a run's detail) and the others their paint 0, however you got there. Its key is the JSON of the `[app, index]` pairs **sorted by app**, so the same combination always produces the same string.
+**A combination is where every source stands.** For example `{circleci: 1, github: 0, linear: 0}` means CircleCI shows its paint 1 (a run's detail) and the others their paint 0, however you got there. Its key is the JSON of the `[source, index]` pairs **sorted by source**, so the same combination always produces the same string.
 
 **The wiring memory is a map** from combination key to the merged view's accepted document (and the set of apps it merged). A document is filed under the current combination every time one is accepted. A paint id is never reused, so an entry never goes stale: the runs list visited a second time is the same key as the first, and its wiring comes back with no call.
 

@@ -171,7 +171,7 @@ const sameBranch: EvaluatedRelation = {
 };
 const target = {app: 'linear', surface: 'linear:issues', pointer: '/issues[id="A2U-5"]/state'};
 const names: Record<string, string> = {github: 'GitHub', linear: 'Linear', circleci: 'CircleCI'};
-const appDisplayName = (appId: string) => names[appId];
+const sourceName = (source: string) => names[source];
 
 const joined = (join: CellObject['join'], rest: Partial<CellObject> = {}): CellObject => ({
   value: 'In Progress',
@@ -187,7 +187,7 @@ test("a value that names an app is drawn by the host's name for it, its id when 
   const {rerender} = render(
     <DerivedValueView
       cell={{value: 'linear', names: 'app', contributed: 2, of: 2, absent: []}}
-      appDisplayName={appDisplayName}
+      sourceName={sourceName}
     />,
   );
   expect(screen.getByLabelText('Linear · 2 of 2 sources')).toHaveTextContent('Linear');
@@ -199,7 +199,7 @@ test("a value that names an app is drawn by the host's name for it, its id when 
   rerender(
     <DerivedValueView
       cell={{value: 'linear', contributed: 1, of: 1, absent: []}}
-      appDisplayName={appDisplayName}
+      sourceName={sourceName}
     />,
   );
   expect(screen.getByLabelText('linear · 1 of 1 sources')).toBeInTheDocument();
@@ -211,7 +211,7 @@ test('a confirmed complete value draws no rule and stays silent: its audit is th
   render(
     <DerivedValueView
       cell={joined({mark: 'none', apps: ['linear'], evidence: [samePr]})}
-      appDisplayName={appDisplayName}
+      sourceName={sourceName}
       onNavigate={onNavigate}
     />,
   );
@@ -235,7 +235,7 @@ test('a guessed value steps back in contrast, and its detail gives both values',
   render(
     <DerivedValueView
       cell={joined({mark: 'guessed', apps: ['linear'], evidence: [sameIssue]})}
-      appDisplayName={appDisplayName}
+      sourceName={sourceName}
     />,
   );
   const detail = 'From Linear · same issue: “Fix login” / “Login broken”';
@@ -256,7 +256,7 @@ test('a broken value keeps the one escalating glyph and its detail gives both va
         {mark: 'broken', apps: ['circleci'], evidence: [sameBranch]},
         {value: 'failed', target: {...target, app: 'circleci', surface: 'circleci:runs'}},
       )}
-      appDisplayName={appDisplayName}
+      sourceName={sourceName}
     />,
   );
   const cell = screen.getByLabelText(
@@ -273,7 +273,7 @@ test('partial and guessed at once is one statement, not two marks', () => {
         {mark: 'guessed', apps: ['github', 'linear'], evidence: [sameIssue]},
         {contributed: 1, of: 2, absent: ['github:prs']},
       )}
-      appDisplayName={appDisplayName}
+      sourceName={sourceName}
     />,
   );
   const cell = screen.getByLabelText(
@@ -290,7 +290,7 @@ test('an absent value from a claimed object keeps its absence and adds no join m
         {mark: 'none', apps: ['linear'], evidence: [{...samePr, state: 'absent'}]},
         {value: undefined, contributed: 0, of: 1, absent: ['linear:issues']},
       )}
-      appDisplayName={appDisplayName}
+      sourceName={sourceName}
     />,
   );
   const cell = screen.getByLabelText(
@@ -303,16 +303,13 @@ test('an absent value from a claimed object keeps its absence and adds no join m
 test('the host names the apps; without a name the app id stands in', () => {
   const cell = {value: 899, contributed: 1, of: 2, absent: ['shop-b:list']};
   const {unmount} = render(
-    <DerivedValueView
-      cell={cell}
-      appDisplayName={id => (id === 'shop-b' ? 'Shop B' : undefined)}
-    />,
+    <DerivedValueView cell={cell} sourceName={id => (id === 'shop-b' ? 'Shop B' : undefined)} />,
   );
   expect(
     screen.getByLabelText('899 · 1 of 2 sources · Shop B not showing this'),
   ).toBeInTheDocument();
   unmount();
-  render(<DerivedValueView cell={cell} appDisplayName={() => undefined} />);
+  render(<DerivedValueView cell={cell} sourceName={() => undefined} />);
   expect(
     screen.getByLabelText('899 · 1 of 2 sources · shop-b not showing this'),
   ).toBeInTheDocument();
@@ -325,7 +322,7 @@ describe('the value is the button (decision 13)', () => {
     render(
       <DerivedValueView
         cell={joined({mark: 'guessed', apps: ['linear'], evidence: [sameIssue]})}
-        appDisplayName={appDisplayName}
+        sourceName={sourceName}
         onNavigate={onNavigate}
       />,
     );
@@ -345,7 +342,7 @@ describe('the value is the button (decision 13)', () => {
     render(
       <DerivedValueView
         cell={joined({mark: 'guessed', apps: ['linear'], evidence: [sameIssue]})}
-        appDisplayName={appDisplayName}
+        sourceName={sourceName}
         onNavigate={onNavigate}
       />,
     );
@@ -400,7 +397,7 @@ describe('built for a host (decisions 11, 13)', () => {
   test('createCatalog’s navigation handler receives the cell’s target, and its lookup names the apps', async () => {
     const user = userEvent.setup();
     const onNavigate = vi.fn();
-    renderTree(tree, {data: {status}, onNavigate, appDisplayName});
+    renderTree(tree, {data: {status}, onNavigate, sourceName});
     const button = screen.getByRole('button', {
       name: 'In Progress · 1 of 2 sources · GitHub not showing this · guessed match · From Linear · same issue: “Fix login” / “Login broken”',
     });
@@ -458,7 +455,7 @@ describe('a value named in danger', () => {
       <DerivedValueView
         cell={joined({mark: 'guessed', apps: ['linear'], evidence: [sameIssue]}, {value: 'Failed'})}
         danger={['Failed']}
-        appDisplayName={appDisplayName}
+        sourceName={sourceName}
       />,
     );
     const cell = screen.getByLabelText(
@@ -478,7 +475,7 @@ describe('a value named in danger', () => {
           {value: 'Failed'},
         )}
         danger={['Failed']}
-        appDisplayName={appDisplayName}
+        sourceName={sourceName}
       />,
     );
     const cell = screen.getByLabelText(/^Failed · needs attention · 1 of 1 sources · broken match/);

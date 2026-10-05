@@ -19,14 +19,14 @@ The shell's own A2UI catalog: what the orchestrator paints with. It's the A2UI b
 ```ts
 import {createCatalog, Provider} from '@a2uiverse/shell-catalog';
 
-const catalog = createCatalog({onShellAction, onPress, onSignIn, onNavigate, appDisplayName});
+const catalog = createCatalog({onShellAction, onPress, onSignIn, onNavigate, sourceName});
 ```
 
 - **`onShellAction`** opens the Store or the App Library.
 - **`onPress`** receives the reader's presses (Retry, Include, Try again, a step back or forward, Not now) as a composition operation. Without it, no press button is drawn.
 - **`onSignIn`** receives Sign in, Allow and Cancel for one source, inside the click, so the host can open the sign-in window. Without it, no Sign in or Allow is drawn.
 - **`onNavigate`** takes a merged cell's click to the value it came from. Without it, cells aren't clickable.
-- **`appDisplayName`** gives an app's name. Without it, the app's id is shown.
+- **`sourceName`** gives a source's name — the app's, with the account's label when the app has more than one. Without it, the source id is shown.
 
 Wrap the rendered surfaces in **`Provider`**: a Radix Theme scoped to its own wrapper, never the page, that follows the host's light or dark and accent colour.
 

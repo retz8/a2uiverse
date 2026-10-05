@@ -151,7 +151,7 @@ The plan is checked by a validator; if it fails, the model gets one retry. The P
 ```jsonc
 {"id": "status", "component": "Slot", "source": "shell", "state": "pending", "label": "Synthesis", "content": "shell",
  "columns": ["Issue", "Priority", "Status", "Pull request", "CI", "Updated"], "columnSources": ["…"], "join": {"home": "linear", "…": "…"}},
-{"id": "attribution-linear", "component": "Attribution", "displayName": "Linear", "appId": "linear", "child": "linear", "weight": 1},
+{"id": "attribution-linear", "component": "Attribution", "displayName": "Linear", "source": "linear", "child": "linear", "weight": 1},
 {"id": "linear", "component": "Slot", "source": "linear", "weight": 1, "state": "pending", "label": "Linear", "noun": "Linear issues"}
 ```
 
@@ -186,9 +186,9 @@ In the recording, GitHub's answer reached the client at 6.07 s, Linear's at 6.08
   "descriptor": "what's the status of what I'm working on?",
   "plan": {"outcome": "planned", "planMs": 6038, "layoutSurface": {"…": "the plan above"}, "title": "Status of current work", "attempts": ["…one"], "toolCalls": []},
   "dispatch": [
-    {"appId": "github", "vendorContextId": "7a3c3416-…", "vendorTaskId": "3ab4822a-…", "startedAt": "2026-09-27T08:41:29.652Z", "endedAt": "2026-09-27T08:41:29.676Z", "outcome": "completed"},
-    {"appId": "linear",   "…": "…", "outcome": "completed"},
-    {"appId": "circleci", "…": "…", "outcome": "completed"}
+    {"source": "github", "vendorContextId": "7a3c3416-…", "vendorTaskId": "3ab4822a-…", "startedAt": "2026-09-27T08:41:29.652Z", "endedAt": "2026-09-27T08:41:29.676Z", "outcome": "completed"},
+    {"source": "linear",   "…": "…", "outcome": "completed"},
+    {"source": "circleci", "…": "…", "outcome": "completed"}
   ],
   "synthesis": {"outcome": "synthesized", "attempts": ["…the accepted one"], "deadAirMs": 11382},
   "surfaces": {"created": ["shell:main", "github:notifications-1", "linear:linear-1", "circleci:circleci-1", "shell:synthesis"], "…": "…"},
@@ -245,6 +245,22 @@ What the rest of the orchestrator relies on:
 - **A change is live at once.** Install embeds the card before it writes anything, so the Router ranks the app on the very next turn, and the Planner's `installed_apps` reader reads the registry as it stands. Operations run one at a time, through a promise chain.
 - **Two cards per app.** The record keeps the card as it was installed, and it changes only through install-over. The run uses the card fetched at startup for the dispatch URL, the skills the Router ranks, and the name the Planner reads and the attribution shows. When the agent was down at startup, the Planner's reader shows the stored card, marked unreachable.
 - **The routes** sit under `/registry` on the orchestrator's own port: `apps.json`, `catalogs.json`, an artifact's files under `artifacts/<id>/` served as immutable content, and the two writes, `install` and `uninstall`, which need the write token the orchestrator writes into its state directory at startup.
+
+### Sources: an app and its account
+
+Everything the orchestrator keeps per answer is keyed by **source**: the app, and the account it paints under. One app can have several accounts, two Gmail inboxes for instance, and each is its own source with its own slot, its own copy of the data, its own conversation with the agent and its own history. A source is one string:
+
+| The app | Its sources |
+| --- | --- |
+| Asks no sign-in on its card (GitHub today) | `github`, the bare app id |
+| Asks sign-in, two accounts signed in | `gmail.1`, `gmail.2` |
+| Asks sign-in, none signed in yet | `linear.1`, named for the account its sign-in will create |
+
+`src/accounts/accounts.ts` is the one place that turns an app into its sources and a source back into its app. `Sources.of(appId)` lists an app's sources; `appOf(source)` parses the app back out, for the few things that belong to the app: its card, its agent's URL, its entitlement and its display name. The accounts come from an `AccountStore`. Until the AuthVault lands nothing is held and no installed card asks for sign-in, so every source is still a bare app id and nothing behaves differently; the tests hand in two Gmail accounts.
+
+Each source has **one name in words**, `Sources.name(source)`: the app's display name, with the account's label beside it when the app has more than one account, `Gmail · alice@example.com`. The shell painter puts the label on the fragment's `Attribution` (as `account`) and the whole name on its `Slot` (as `label`); the Synthesizer's prompt names each partition the same way, `from: Gmail · alice@example.com (gmail.1)`, so the merged view can tell two inboxes apart.
+
+The Planner names sources too. Its shortlist check accepts every source of each shortlisted app, and "dispatched twice" compares sources, so `gmail.1` and `gmail.2` in one plan are two dispatches. A click inside a fragment goes back to the source in its surface id, which is the account that painted it.
 
 ### Refusing a repeat
 
@@ -313,7 +329,7 @@ A2UIVerse promises that **an unmodified A2UI agent composes**. So the relay chan
 | Change | What | Why |
 | --- | --- | --- |
 | **Stamp** | `metadata.a2uiverse = {source, role: "fragment"}` | the client places the surface by `source` |
-| **Namespace** | `surfaceId` becomes `<appId>:<surfaceId>` on the four A2UI operations and on the app's `paintMeta` | two apps can't collide on one screen, and a paint's title and question mark land on the surface the client sees |
+| **Namespace** | `surfaceId` becomes `<source>:<surfaceId>` on the four A2UI operations and on the app's `paintMeta` | two apps can't collide on one screen, and a paint's title and question mark land on the surface the client sees |
 | **Partition filter** | outbound: each app gets only its own surfaces' data, keys un-namespaced | an app never sees another app's data |
 
 Those are the only changes to content. Two more touch only the **envelope**:
@@ -325,7 +341,7 @@ One small extra: when an app fails with words ("rate limit exceeded"), those wor
 
 ### AgentsPool: one handle per dispatch
 
-`src/agentsPool/agentsPool.ts` is pure transport: it knows nothing about plans or slots. `dispatch(appId, turn)` returns a **handle** right away:
+`src/agentsPool/agentsPool.ts` is pure transport: it knows nothing about plans or slots. `dispatch(source, turn)` returns a **handle** right away. The endpoint, the card and the entitlement are the source's app's:
 
 ```ts
 interface DispatchHandle {
@@ -343,7 +359,7 @@ The structures behind it:
 - **An `AbortController` per dispatch**, linked to the turn's signal, so aborting the turn aborts every dispatch at once. `cancel()` aborts it and also sends the app A2A's `tasks/cancel` (fire and forget: a refusal is logged, never fatal), since closing the stream alone would leave the app working.
 - **`#inflight: Map<clientTaskId, Set<handle>>`.** One question fans out to several apps under one client task id, so cancelling that task cancels every handle in its set.
 - **`#clients: Map<url, Promise<Client>>`**, a cache of connections, each built from the app's card as the registry holds it, so a dispatch fetches no card of its own. It stores the **promise**, not the client, so two dispatches to the same app at once share one connection attempt; a failed attempt is removed so the next one tries again.
-- **A vendor context map**, `clientContextId → appId → vendorContextId` (two nested `Map`s). Each answer gets its own conversation with each app, and closing the answer drops them.
+- **A vendor context map**, `clientContextId → source → vendorContextId` (two nested `Map`s). Each answer gets its own conversation with each source, so two accounts of one app are two conversations with its agent, and closing the answer drops them.
 
 **Catalog entitlement** ([`app-install.md`](app-install.md#entitlement-at-the-hub) has it end to end). A dispatch reads the app from the registry once, as it starts, and keeps that snapshot to its end. The app's **entitlement** is the catalogs handed at its install plus the basic catalog. It goes out as the message's `a2uiClientCapabilities.supportedCatalogIds`, in place of whatever the client sent, so each app is told only what it may paint in. Every event coming back is checked: a `createSurface` in any other catalog is never relayed, the app is sent `tasks/cancel`, and the dispatch fails with the `catalog` cause, carrying the id.
 
@@ -407,7 +423,7 @@ Several things can ask for a new merge while one is already being made: a Retry 
 
 So however many requests pile up while the model is writing, they're answered by **one** next call, and each request's promise settles with how it went: `landed`, `kept`, `collapsed`, `none` or `abandoned`.
 
-A merge also waits for **quiet**. `Presses` (`src/composition/presses.ts`) counts the clicks in flight per app in a `Map<appId, count>`. `quiet()` loops until none of the apps the merge reads has a click in flight, waking each time one ends. A merge whose apps' data changes while the model is writing is thrown away and made again.
+A merge also waits for **quiet**. `Presses` (`src/composition/presses.ts`) counts the clicks in flight per source in a `Map<source, count>`. `quiet()` loops until none of the apps the merge reads has a click in flight, waking each time one ends. A merge whose apps' data changes while the model is writing is thrown away and made again.
 
 ### Journal
 
@@ -470,7 +486,7 @@ Set `A2UIVERSE_DEBUG_IDS=1` to see the app's own ids under the stamp while debug
 
 **Retry sends again what failed.** A click inside an app's answer that fails is kept on its slot (`failedPress` in `composition/state.ts`), as it was sent, and that slot's Retry sends it again under a fresh message id. A Retry that fails again keeps it for the next, and a click or a Retry there that completes lets it go. A slot whose turn's dispatch failed retries the plan's request. So after an app is uninstalled and installed again, Retry on a click that failed shows what the click opened, not the app's first answer.
 
-For testing failures on purpose, `A2UIVERSE_FAULTS` makes a chosen app `delay`, `hang`, `break` mid-stream, `refuse` the connection, `fail` with a message, or paint something `invalid`, for example `{"github": {"fault": "delay", "seconds": 40}}`. It's for development only, and the boot log says loudly when it's on.
+For testing failures on purpose, `A2UIVERSE_FAULTS` makes a chosen source `delay`, `hang`, `break` mid-stream, `refuse` the connection, `fail` with a message, or paint something `invalid`, for example `{"github": {"fault": "delay", "seconds": 40}}`. A key is a source: `gmail.2` hits that account alone, and a bare app id like `gmail` hits every account of the app. It's for development only, and the boot log says loudly when it's on.
 
 ## Design decisions
 
@@ -495,6 +511,7 @@ For testing failures on purpose, `A2UIVERSE_FAULTS` makes a chosen app `delay`, 
 | **Refuse repeated message ids, 256 kept** | A resent request never repeats an app's write | A repeat older than 256 messages would run again |
 | **A heartbeat on every stream** | A proxy never cuts a turn waiting on a slow app | An empty event every 30 seconds of silence |
 | **Retry sends again the click that failed** | Retry after a failed click shows what the click opened | A slot keeps the failed click until something there completes |
+| **Everything keyed by source, the app parsed out only where the app is meant** | Two accounts of one app are two slots, two conversations and two copies of the data with no special case | Each lookup of the card, URL or name parses the source first |
 
 ## Trying it without a model
 
@@ -521,6 +538,7 @@ All paths are under `apps/orchestrator/src/`.
 | The Planner | `planner/` (`planner.ts`, `validate.ts`, `prompt.ts`, `planner.md`, `examples.ts`, `readers.ts`, `platformReaders.ts`, `document.ts`, `getModel.ts`) |
 | The Synthesizer | `synthesizer/` (see [`synthesis.md`](synthesis.md)) |
 | One model answer, one tag | `authoring/taggedBlock.ts` |
+| An app's sources and each source's name | `accounts/accounts.ts` |
 | Talking to apps | `agentsPool/` (`agentsPool.ts`, `relay.ts`, `contextMap.ts`, `faults.ts`) |
 | The composition's state and store | `composition/state.ts`, `composition/compositions.ts` |
 | Painting the shell | `composition/shellPainter.ts`, `composition/synthesisPainter.ts`, `composition/constants.ts` |
@@ -547,15 +565,16 @@ All paths are under `apps/orchestrator/src/`.
 | **Composition** | Everything the orchestrator holds about one question's answer; one per context |
 | **Parent** | The context a question was asked from, when it was asked from an older answer |
 | **Shell** | A2UIVerse's own UI, painted by the orchestrator: the layout (`shell:main`) and the merged view (`shell:synthesis`) |
+| **Source** | An app and the account it paints under: `gmail.2`, or the bare app id for an app that needs no sign-in. What every slot, partition and conversation is keyed by |
 | **Stamp** | `metadata.a2uiverse` on every event: the `source` it came from and its `role` |
 | **Router** | Ranks the apps' cards against a question with an embedding model |
 | **Shortlist** | The Router's top apps, handed to the Planner |
 | **Planner** | The first model call: which apps to ask, what to ask each, and the layout |
 | **Layout surface** | The Planner's answer: the dispatch list, the layout tree, its data model and title |
 | **Reader** | One of the Planner's three tools over the platform's own state |
-| **Dispatch** | Asking one app, through the AgentsPool |
+| **Dispatch** | Asking one source, through the AgentsPool |
 | **Relay** | Passing an app's events to the client: stamped, namespaced, final demoted |
-| **Partition** | One app's surface data model; the orchestrator keeps a copy of each |
+| **Partition** | One source's surface data model; the orchestrator keeps a copy of each |
 | **Settled** | An app's answer ended: arrived, failed, cancelled, or at the hard cap |
 | **Hard cap** | 300 seconds: after it an app's slot fails, and a later answer is held for Retry |
 | **Soft deadline** | 10 seconds of quiet after enough apps arrived: the merge goes ahead without the rest |

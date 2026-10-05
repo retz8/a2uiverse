@@ -9,7 +9,7 @@ import type {DispatchHandle, DispatchOutcome, DispatchRecord} from '../agentsPoo
 import type {JournalTurn} from '../journal/intentJournal.js';
 import type {SynthesisRecord} from '../journal/types.js';
 import {isGap, type JoinNouns, type LayoutSurface} from '../planner/document.js';
-import type {Registry} from '../registry/registry.js';
+import type {Sources} from '../accounts/accounts.js';
 import {SHELL_SOURCE_ID} from '../registry/types.js';
 import {SYNTHESIS_DISPLAY_NAME} from './constants.js';
 import {History} from './history.js';
@@ -24,9 +24,17 @@ import {Presses} from './presses.js';
 export type SlotState = 'pending' | 'failed' | 'collapsed';
 
 export interface SlotPlan {
-  /** The dispatched source: an app id, or `shell` for the merged view. The slot's key. */
+  /**
+   * The dispatched source — the app and the account (task-12.4 decision 2), or `shell` for the
+   * merged view. The slot's key.
+   */
   source: string;
+  /** The app's display name, the merged view's own for `shell`. */
   displayName: string;
+  /** The account's label, when its app has more than one account (phase-12 decision 22). */
+  account?: string;
+  /** The source's one name in words (task-12.4 decision 5). */
+  name: string;
   request: string;
   /** The merged view's planned column headers: painted on its slot, handed to the Synthesizer. */
   columns?: string[];
@@ -204,12 +212,12 @@ export interface CompositionState {
    * While a merge is being made: a source it reads has been reported undrawable and left the
    * set, so the call is thrown away and made again without it (task-8.7 decision 25).
    */
-  left?: (appId: string) => void;
+  left?: (source: string) => void;
   /**
    * While the turn's one automatic synthesis is undecided: a retried source rejoins the pack and
    * settles again (task-8.4 decision 6).
    */
-  trigger?: {unsettle(appId: string): void; settle(appId: string): void};
+  trigger?: {unsettle(source: string): void; settle(source: string): void};
   /** The presses running on it: what closing the composition ends. */
   operations: Set<Operation>;
   /** Aborted once the composition is closed: every call a press caused ends. */
@@ -224,7 +232,7 @@ export interface CompositionState {
 
 export function compositionFrom(
   layout: LayoutSurface,
-  registry: Registry,
+  sources: Sources,
   utterance: string,
   origin: {
     turnId: string;
@@ -242,20 +250,22 @@ export function compositionFrom(
       gaps.push(entry.gap);
       continue;
     }
-    const displayName =
-      entry.source === SHELL_SOURCE_ID
-        ? SYNTHESIS_DISPLAY_NAME
-        : registry.displayName(entry.source);
+    const shell = entry.source === SHELL_SOURCE_ID;
+    const displayName = shell ? SYNTHESIS_DISPLAY_NAME : sources.displayName(entry.source);
+    const account = shell ? undefined : sources.account(entry.source);
+    const name = shell ? SYNTHESIS_DISPLAY_NAME : sources.name(entry.source);
     const noun = join?.nouns[entry.source];
     slots.set(entry.source, {
       plan: {
         source: entry.source,
         displayName,
+        ...(account !== undefined ? {account} : {}),
+        name,
         request: entry.request,
         ...(entry.columns ? {columns: entry.columns} : {}),
         ...(entry.columnSources ? {columnSources: entry.columnSources} : {}),
         ...(entry.join ? {join: entry.join} : {}),
-        ...(noun && entry.source !== SHELL_SOURCE_ID ? {noun: `${displayName} ${noun}`} : {}),
+        ...(noun && !shell ? {noun: `${name} ${noun}`} : {}),
       },
       state: 'pending',
     });
@@ -286,9 +296,11 @@ export function compositionFrom(
   };
 }
 
-/** The dispatched vendor sources among `appIds`, in slot order. */
-export function inSlotOrder(state: CompositionState, appIds: ReadonlySet<string>): string[] {
-  return [...state.slots.keys()].filter(appId => appId !== SHELL_SOURCE_ID && appIds.has(appId));
+/** The dispatched vendor sources among `sources`, in slot order. */
+export function inSlotOrder(state: CompositionState, sources: ReadonlySet<string>): string[] {
+  return [...state.slots.keys()].filter(
+    source => source !== SHELL_SOURCE_ID && sources.has(source),
+  );
 }
 
 /**
@@ -300,7 +312,7 @@ export function lateSources(state: CompositionState): string[] {
   const outcome = state.mergedView?.outcome;
   if (!synthesisSlot(state) || !outcome || outcome === 'home' || outcome === 'skipped') return [];
   const waiting = new Set(
-    [...state.arrived].filter(appId => !state.merged.has(appId) && !state.folding.has(appId)),
+    [...state.arrived].filter(source => !state.merged.has(source) && !state.folding.has(source)),
   );
   return inSlotOrder(state, waiting);
 }

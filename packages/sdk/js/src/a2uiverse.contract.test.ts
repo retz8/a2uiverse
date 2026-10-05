@@ -26,6 +26,7 @@ import {
   operationData,
   paintMetaData,
   parseSourceId,
+  sourceName,
   parseSurfaceId,
   readAuthRequired,
   readCanvasParent,
@@ -180,6 +181,12 @@ test('a source is the app and its account: <appId>.<n>, the bare app id with no 
   expect(parseSourceId('gmail.02')).toBeUndefined();
   expect(parseSourceId('gmail.x')).toBeUndefined();
   expect(parseSourceId('gmail.1.2')).toBeUndefined();
+});
+
+test("a source's name is the app's, with the account's label when there is one", () => {
+  expect(sourceName('Gmail', 'alice@example.com')).toBe('Gmail · alice@example.com');
+  expect(sourceName('Gmail')).toBe('Gmail');
+  expect(sourceName('Gmail', null)).toBe('Gmail');
 });
 
 test('an operation round-trips through its data part', () => {

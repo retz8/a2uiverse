@@ -1,7 +1,7 @@
 /** @a2uiverse/shell-catalog — the shell's paint vocabulary: the basic catalog on Radix Themes + composition primitives. */
 export {
   BASIC_IMPLEMENTATIONS,
-  type AppDisplayName,
+  type SourceName,
   createCatalog,
   type CreateCatalogOptions,
   type NavigationHandler,

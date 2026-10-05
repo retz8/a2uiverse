@@ -9,10 +9,10 @@ import {createCanvasStore} from '../canvasStore';
 import {ProgressLine} from './ProgressLine';
 
 const ROSTER = [
-  {appId: 'shell', displayName: 'Synthesis'},
-  {appId: 'linear', displayName: 'Linear'},
-  {appId: 'github', displayName: 'GitHub'},
-  {appId: 'circleci', displayName: 'CircleCI'},
+  {source: 'shell', name: 'Synthesis'},
+  {source: 'linear', name: 'Linear'},
+  {source: 'github', name: 'GitHub'},
+  {source: 'circleci', name: 'CircleCI'},
 ];
 
 describe('ProgressLine', () => {
@@ -58,11 +58,11 @@ describe('ProgressLine', () => {
     store.beginPaint('utterance');
     store.setRoster([
       {
-        appId: 'shell',
-        displayName: 'Synthesis',
+        source: 'shell',
+        name: 'Synthesis',
         join: {home: 'linear', nouns: {linear: 'issues', github: 'PRs', circleci: 'runs'}},
       },
-      ...ROSTER.filter(entry => entry.appId !== 'shell'),
+      ...ROSTER.filter(entry => entry.source !== 'shell'),
     ]);
     for (const source of ['linear', 'github', 'circleci']) {
       store.placeFragment(source, {surfaceId: `${source}:x`, source});

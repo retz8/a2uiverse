@@ -84,7 +84,7 @@ export function useSlotContent(
       // source's running commentary belongs in the shell's notice region, not inside it. A
       // source the roster does not hold reserved no slot, so it has nothing to rest on. The
       // merged view never rests on words: a decline is said on its collapsed slot (task 8.5).
-      const reserved = source !== SHELL_SOURCE && roster?.some(entry => entry.appId === source);
+      const reserved = source !== SHELL_SOURCE && roster?.some(entry => entry.source === source);
       const spoken = reserved ? prose?.get(source)?.trim() : undefined;
       return renderSlotContent(
         surfaces,

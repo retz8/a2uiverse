@@ -40,8 +40,8 @@ const input: SynthesisInput = {
   utterance: 'compare camera prices',
   request: 'compare price per camera; best price first',
   sources: [
-    {surface: A, appId: 'shop-a', displayName: 'Shop A', data: {items: [{id: 'x100', price: 899}]}},
-    {surface: B, appId: 'shop-b', displayName: 'Shop B', data: {items: [{id: 'x100', price: 949}]}},
+    {surface: A, source: 'shop-a', name: 'Shop A', data: {items: [{id: 'x100', price: 899}]}},
+    {surface: B, source: 'shop-b', name: 'Shop B', data: {items: [{id: 'x100', price: 949}]}},
   ],
 };
 const partitions = () =>
@@ -511,7 +511,7 @@ describe('the Table’s column marks (task-8.3 decision 13)', () => {
         ...input,
         columns: ['Camera', 'Best price', 'At C'],
         columnSources: [null, null, 'shop-c'],
-        missing: [{appId: 'shop-c', displayName: 'Shop C', state: 'loading'}],
+        missing: [{source: 'shop-c', name: 'Shop C', state: 'loading'}],
       },
       partitions(),
     );

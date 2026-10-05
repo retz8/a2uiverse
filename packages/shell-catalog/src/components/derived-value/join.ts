@@ -43,8 +43,9 @@ export interface CellJoin {
 
 /** The element a cell names in a vendor's fragment: where navigation lands. */
 export interface CellTarget {
+  /** The source the element is in — the app and the account it painted under. */
   app: string;
-  /** The namespaced surface id (`<appId>:<surfaceId>`). */
+  /** The namespaced surface id (`<source>:<surfaceId>`). */
   surface: string;
   pointer: string;
 }
@@ -52,8 +53,11 @@ export interface CellTarget {
 /** What the host does when a cell is activated. */
 export type NavigationHandler = (target: CellTarget) => void;
 
-/** The host's display name for an app; undefined when it has none, and the app id stands in. */
-export type AppDisplayName = (appId: string) => string | undefined;
+/**
+ * The host's name for a source — the app's, with the account's label when the app has more than
+ * one (task-12.4 decision 5); undefined when it has none, and the source id stands in.
+ */
+export type SourceName = (source: string) => string | undefined;
 
 const SEVERITY: Record<JoinMark, number> = {none: 0, guessed: 1, broken: 2};
 

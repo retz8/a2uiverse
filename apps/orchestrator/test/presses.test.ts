@@ -15,7 +15,7 @@ describe('presses', () => {
     expect(quiet).toBe(false);
 
     presses.end('github');
-    expect(await waits).toEqual([{appId: 'github', ms: expect.any(Number)}]);
+    expect(await waits).toEqual([{source: 'github', ms: expect.any(Number)}]);
   });
 
   test('a press on a source it does not watch holds nothing', async () => {

@@ -5,7 +5,7 @@ import {prepareOutgoing, relayEvent, type RelayContext} from '../src/agentsPool/
 const ctx: RelayContext = {
   taskId: 'o-task',
   contextId: 'o-ctx',
-  appId: 'github',
+  source: 'github',
   debugIds: false,
 };
 

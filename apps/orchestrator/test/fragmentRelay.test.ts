@@ -2,7 +2,7 @@ import type {TaskStatusUpdateEvent} from '@a2a-js/sdk';
 import {describe, expect, test} from 'vitest';
 import {composeFragment, retask} from '../src/composition/fragmentRelay.js';
 
-const ctx = {appId: 'github'};
+const ctx = {source: 'github'};
 
 function statusUpdate(parts: unknown[], final = true): TaskStatusUpdateEvent {
   return {
@@ -132,7 +132,7 @@ describe('composeFragment', () => {
 });
 
 test('the stamp carries source and role, and no generations', () => {
-  const out = composeFragment(statusUpdate([], false), {appId: 'shop-a'});
+  const out = composeFragment(statusUpdate([], false), {source: 'shop-a'});
   expect(out.metadata?.a2uiverse).toEqual({source: 'shop-a', role: 'fragment'});
 });
 

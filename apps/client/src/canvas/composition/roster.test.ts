@@ -20,39 +20,73 @@ const msg = (m: Record<string, unknown>): A2uiMessage =>
  * slot wrapped in an attribution whose `child` names it, the wrapper standing where the slot
  * stood in its parent.
  */
-const shellPaint = (leaves: Array<{appId: string; displayName?: string}>) =>
+const shellPaint = (leaves: Array<{source: string; name?: string}>) =>
   msg({
     updateComponents: {
       surfaceId: 'shell:main',
       components: [
-        {id: 'root', component: 'Row', children: leaves.map(l => `attribution-${l.appId}`)},
+        {id: 'root', component: 'Row', children: leaves.map(l => `attribution-${l.source}`)},
         ...leaves.flatMap(l => [
           {
-            id: `attribution-${l.appId}`,
+            id: `attribution-${l.source}`,
             component: 'Attribution',
-            source: l.appId,
-            child: l.appId,
-            ...(l.displayName !== undefined ? {displayName: l.displayName} : {}),
+            source: l.source,
+            child: l.source,
+            ...(l.name !== undefined ? {displayName: l.name} : {}),
           },
-          {id: l.appId, component: 'Slot', source: l.appId, state: 'pending'},
+          {id: l.source, component: 'Slot', source: l.source, state: 'pending'},
         ]),
       ],
     },
   });
 
 describe('rosterFromShellMessages', () => {
+  it('two accounts of one app are two sources, each named by the app and its account’s label (task 12.4)', () => {
+    const attributed = (source: string, account: string) => [
+      {
+        id: `attribution-${source}`,
+        component: 'Attribution',
+        displayName: 'Gmail',
+        source,
+        account,
+        child: source,
+      },
+      {id: source, component: 'Slot', source, state: 'pending'},
+    ];
+    const roster = rosterFromShellMessages([
+      msg({
+        updateComponents: {
+          surfaceId: 'shell:main',
+          components: [
+            {
+              id: 'root',
+              component: 'Row',
+              children: ['attribution-gmail.1', 'attribution-gmail.2'],
+            },
+            ...attributed('gmail.1', 'alice@example.com'),
+            ...attributed('gmail.2', 'bob@example.com'),
+          ],
+        },
+      }),
+    ]);
+    expect(roster).toEqual([
+      {source: 'gmail.1', name: 'Gmail · alice@example.com'},
+      {source: 'gmail.2', name: 'Gmail · bob@example.com'},
+    ]);
+  });
+
   it('reads the sources in the order the slots were painted', () => {
     const roster = rosterFromShellMessages([
       shellPaint([
-        {appId: 'github', displayName: 'GitHub'},
-        {appId: 'gmail', displayName: 'Gmail'},
-        {appId: 'calendar', displayName: 'Google Calendar'},
+        {source: 'github', name: 'GitHub'},
+        {source: 'gmail', name: 'Gmail'},
+        {source: 'calendar', name: 'Google Calendar'},
       ]),
     ]);
     expect(roster).toEqual([
-      {appId: 'github', displayName: 'GitHub'},
-      {appId: 'gmail', displayName: 'Gmail'},
-      {appId: 'calendar', displayName: 'Google Calendar'},
+      {source: 'github', name: 'GitHub'},
+      {source: 'gmail', name: 'Gmail'},
+      {source: 'calendar', name: 'Google Calendar'},
     ]);
   });
 
@@ -88,8 +122,8 @@ describe('rosterFromShellMessages', () => {
     });
     expect(shellPaintSlots([paint])).toEqual({
       roster: [
-        {appId: 'gmail', displayName: 'Gmail'},
-        {appId: 'github', displayName: 'GitHub'},
+        {source: 'gmail', name: 'Gmail'},
+        {source: 'github', name: 'GitHub'},
       ],
       unattributed: [],
     });
@@ -121,8 +155,8 @@ describe('rosterFromShellMessages', () => {
       },
     });
     expect(rosterFromShellMessages([paint])).toEqual([
-      {appId: SHELL_SOURCE, displayName: 'Synthesis'},
-      {appId: 'github', displayName: 'GitHub'},
+      {source: SHELL_SOURCE, name: 'Synthesis'},
+      {source: 'github', name: 'GitHub'},
     ]);
     expect(SHELL_SOURCE).toBe('shell');
   });
@@ -147,8 +181,8 @@ describe('rosterFromShellMessages', () => {
     });
     expect(rosterFromShellMessages([paint])).toEqual([
       {
-        appId: SHELL_SOURCE,
-        displayName: 'Synthesis',
+        source: SHELL_SOURCE,
+        name: 'Synthesis',
         join: {home: 'linear', nouns: {linear: 'issues', github: 'PRs'}},
       },
     ]);
@@ -189,7 +223,7 @@ describe('rosterFromShellMessages', () => {
       },
     });
     expect(shellPaintSlots([paint])).toEqual({
-      roster: [{appId: 'github', displayName: 'GitHub'}],
+      roster: [{source: 'github', name: 'GitHub'}],
       unattributed: ['gmail'],
     });
   });
@@ -209,8 +243,8 @@ describe('rosterFromShellMessages', () => {
   });
 
   it('falls back to the app id when the paint carries no display name', () => {
-    expect(rosterFromShellMessages([shellPaint([{appId: 'github'}])])).toEqual([
-      {appId: 'github', displayName: 'github'},
+    expect(rosterFromShellMessages([shellPaint([{source: 'github'}])])).toEqual([
+      {source: 'github', name: 'github'},
     ]);
   });
 

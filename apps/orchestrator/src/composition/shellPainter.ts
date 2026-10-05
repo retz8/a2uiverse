@@ -75,10 +75,11 @@ function updateComponentsPart(state: CompositionState): Part {
 /**
  * The layout surface as painted (task-6.4 decisions 1, 3, 11): the Planner's tree and ids kept,
  * with what the shell owns written in. Each vendor `Slot` is wrapped in an `Attribution` — the
- * marker over the fragment, one box of the layout — that names the source, holds the slot as its
- * child and carries the slot's weight; its parent names the wrapper where it named the slot. The
- * synthesis slot is shell content, bare, and a gap slot is left as authored: the catalog draws the
- * tile. `state` and `label` (and `content`, `columns`, `columnSources` and `join` on the synthesis
+ * marker over the fragment, one box of the layout — that names the source, the account's label
+ * beside the app's name when its app has more than one account (phase-12 decision 22), holds the
+ * slot as its child and carries the slot's weight; its parent names the wrapper where it named the
+ * slot. The synthesis slot is shell content, bare, and a gap slot is left as authored: the catalog
+ * draws the tile. `state` and `label` — the source's name — (and `content`, `columns`, `columnSources` and `join` on the synthesis
  * slot) are the painter's, so a repaint flips a slot by its source and every id stays put. So are
  * the facts a state carries (task-8.3 decisions 6, 9, 10): a vendor slot's `noun` under a join
  * and its `failure` once failed; the merge slot's `declined` reason or `collapse` cause once
@@ -125,7 +126,7 @@ export function paintLayout(state: CompositionState): ShellComponent[] {
       const late = lateSources(state);
       const folding = inSlotOrder(
         state,
-        new Set([...state.folding].filter(appId => state.arrived.has(appId))),
+        new Set([...state.folding].filter(source => state.arrived.has(source))),
       );
       painted.push({
         ...component,
@@ -159,13 +160,14 @@ export function paintLayout(state: CompositionState): ShellComponent[] {
         component: 'Attribution',
         displayName,
         source,
+        ...(entry?.plan.account !== undefined ? {account: entry.plan.account} : {}),
         child: component.id,
         ...(typeof component.weight === 'number' ? {weight: component.weight} : {}),
       },
       {
         ...component,
         state: slotState,
-        label: displayName,
+        label: entry?.plan.name ?? source,
         ...(entry?.plan.noun ? {noun: entry.plan.noun} : {}),
         ...(slotState === 'failed' && entry?.failure ? {failure: entry.failure} : {}),
       },

@@ -1,6 +1,6 @@
 /** A press the merge waited on (task-8.10 decision 7): its source and how long it held the merge. */
 export interface PressWait {
-  appId: string;
+  source: string;
   ms: number;
 }
 
@@ -11,26 +11,26 @@ export interface PressWait {
  */
 export class Presses {
   readonly #inFlight = new Map<string, number>();
-  readonly #listeners = new Set<(appId: string) => void>();
+  readonly #listeners = new Set<(source: string) => void>();
 
-  begin(appId: string): void {
-    this.#inFlight.set(appId, (this.#inFlight.get(appId) ?? 0) + 1);
+  begin(source: string): void {
+    this.#inFlight.set(source, (this.#inFlight.get(source) ?? 0) + 1);
   }
 
-  end(appId: string): void {
-    const left = (this.#inFlight.get(appId) ?? 1) - 1;
-    if (left > 0) this.#inFlight.set(appId, left);
-    else this.#inFlight.delete(appId);
-    for (const listener of [...this.#listeners]) listener(appId);
+  end(source: string): void {
+    const left = (this.#inFlight.get(source) ?? 1) - 1;
+    if (left > 0) this.#inFlight.set(source, left);
+    else this.#inFlight.delete(source);
+    for (const listener of [...this.#listeners]) listener(source);
   }
 
-  /** The sources among `appIds` with a press in flight. */
-  pressing(appIds: ReadonlySet<string>): string[] {
-    return [...appIds].filter(appId => this.#inFlight.has(appId));
+  /** The sources among `sources` with a press in flight. */
+  pressing(sources: ReadonlySet<string>): string[] {
+    return [...sources].filter(source => this.#inFlight.has(source));
   }
 
   /** Calls `listener` each time a press ends; returns the unsubscribe. */
-  onEnd(listener: (appId: string) => void): () => void {
+  onEnd(listener: (source: string) => void): () => void {
     this.#listeners.add(listener);
     return () => this.#listeners.delete(listener);
   }
@@ -45,13 +45,13 @@ export class Presses {
     const waiting = new Set<string>();
     for (;;) {
       const pressing = new Set(this.pressing(within()));
-      for (const appId of waiting) {
-        if (pressing.has(appId)) continue;
-        waiting.delete(appId);
-        waits.push({appId, ms: Date.now() - startedAt});
+      for (const source of waiting) {
+        if (pressing.has(source)) continue;
+        waiting.delete(source);
+        waits.push({source, ms: Date.now() - startedAt});
       }
       if (pressing.size === 0 || signal?.aborted) return waits;
-      for (const appId of pressing) waiting.add(appId);
+      for (const source of pressing) waiting.add(source);
       await this.#nextEnd(signal);
     }
   }

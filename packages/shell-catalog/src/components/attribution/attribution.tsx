@@ -11,7 +11,7 @@ import {
   type RefObject,
 } from 'react';
 import {createComponentImplementation} from '@a2ui/react/v0_9';
-import type {CompositionOperation} from '@a2uiverse/sdk';
+import {sourceName, type CompositionOperation} from '@a2uiverse/sdk';
 import {
   ArrowLeftIcon,
   ArrowRightIcon,
@@ -94,7 +94,7 @@ export function AttributionView({
   const resolveHistory = useContext(FragmentHistoryContext);
   const {enabled, presses} = useContext(PressStateContext);
   const signingIn = useContext(SignInContext);
-  const detail = account ? `${displayName} · ${account}` : displayName;
+  const detail = sourceName(displayName, account);
   // A request answered at the press: a sent `retry` (Allow, signed in) or `dismiss` (Not now)
   // hides it before the repaint drops it (task-12.3 decision 10).
   const answered =

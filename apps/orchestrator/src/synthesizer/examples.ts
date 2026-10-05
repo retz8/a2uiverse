@@ -51,8 +51,8 @@ export const TODAY_TIMELINE: SynthesisExample = {
   sources: [
     {
       surface: GMAIL,
-      appId: 'gmail',
-      displayName: 'Gmail',
+      source: 'gmail',
+      name: 'Gmail',
       data: {
         threads: [
           {
@@ -72,8 +72,8 @@ export const TODAY_TIMELINE: SynthesisExample = {
     },
     {
       surface: GITHUB,
-      appId: 'github',
-      displayName: 'GitHub',
+      source: 'github',
+      name: 'GitHub',
       data: {
         prs: [
           {
@@ -93,8 +93,8 @@ export const TODAY_TIMELINE: SynthesisExample = {
     },
     {
       surface: CALENDAR,
-      appId: 'calendar',
-      displayName: 'Google Calendar',
+      source: 'calendar',
+      name: 'Google Calendar',
       data: {
         waiting: [
           {

@@ -46,7 +46,7 @@ export function listed(names: readonly string[]): string {
   return names.length < 2 ? names.join('') : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`;
 }
 
-type Name = (appId: string) => string;
+type Name = (source: string) => string;
 
 /** The Include press named for its object: one late source by name, several as "all". */
 const includeLabel = (late: readonly string[], name: Name) =>

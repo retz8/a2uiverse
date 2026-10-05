@@ -35,6 +35,7 @@ import {
 } from './fakeVendor.js';
 import {fixtureArtifact} from './registryFixture.js';
 import type {FaultMap} from '../src/agentsPool/faults.js';
+import type {AccountStore} from '../src/accounts/accounts.js';
 
 const APPS = ['github', 'gmail', 'calendar'] as const;
 type AppId = (typeof APPS)[number];
@@ -80,6 +81,9 @@ async function boot(
     faults?: FaultMap;
     /** The apps installed after startup; every one unless a test says otherwise. */
     installed?: readonly AppId[];
+    /** The accounts held per app (task 12.4); none unless a test says otherwise. */
+    accounts?: AccountStore;
+    shortlistCap?: number;
   } = {},
 ) {
   for (const appId of APPS) {
@@ -105,7 +109,7 @@ async function boot(
       googleApiKey: undefined,
       plannerModelId: 'test-model',
       plannerEffort: 'low',
-      shortlistCap: 5,
+      shortlistCap: options.shortlistCap ?? 5,
       synthesizerModelId: 'test-model',
       synthesizerEffort: 'low',
       softDeadlineMs: options.softDeadlineMs ?? 10_000,
@@ -119,6 +123,7 @@ async function boot(
       ...(options.synthesizer ? {synthesisModel: options.synthesizer} : {}),
       // The step quiet is its own test's to lengthen; elsewhere a step walks as soon as it can.
       stepQuietMs: options.stepQuietMs ?? 0,
+      ...(options.accounts ? {accounts: options.accounts} : {}),
     },
   };
   const orchestrator = buildOrchestrator(built);
@@ -247,7 +252,7 @@ describe('orchestrator', () => {
     expect(final.status.state).toBe('completed');
     // Not dispatched means no dispatch record — and no failed slot from a dispatch that never could succeed.
     const [line] = await journalLines(1);
-    const dispatched = (line.dispatch as Array<{appId: string}>).map(d => d.appId).sort();
+    const dispatched = (line.dispatch as Array<{source: string}>).map(d => d.source).sort();
     expect(dispatched).toEqual(['github', 'gmail']);
     const paints = shellPaints(events);
     expect(slotStates(paints.at(-1)!)['shell']).not.toBe('failed');
@@ -807,8 +812,8 @@ describe('orchestrator', () => {
     expect(plan.planMs).toBeGreaterThanOrEqual(0);
     expect(Array.isArray(line.embedding)).toBe(true);
     expect((line.embedding as number[]).length).toBeGreaterThan(0);
-    const dispatch = line.dispatch as Array<{appId: string; outcome: string}>;
-    expect(dispatch.map(d => d.appId).sort()).toEqual(['calendar', 'github', 'gmail']);
+    const dispatch = line.dispatch as Array<{source: string; outcome: string}>;
+    expect(dispatch.map(d => d.source).sort()).toEqual(['calendar', 'github', 'gmail']);
     const surfaces = line.surfaces as {created: string[]};
     expect([...surfaces.created].sort()).toEqual([
       'calendar:s1',
@@ -924,7 +929,7 @@ describe('synthesis (tasks 4.4, 5.4)', () => {
     const {input, prompt} = synthesizer.calls[0]!;
     expect(input.request).toBe('Compare across both.');
     expect(input.sources.map(s => s.surface).sort()).toEqual(['github:s1', 'gmail:s1']);
-    expect(input.sources.find(s => s.surface === 'github:s1')?.displayName).toBe('GitHub');
+    expect(input.sources.find(s => s.surface === 'github:s1')?.name).toBe('GitHub');
     expect(prompt).toContain('Compare across both.');
     expect(input.previous).toBeUndefined();
 
@@ -1278,12 +1283,12 @@ describe('late arrival and failure (task 8.3)', () => {
     });
     const events = await collect(client, utterance('compare'));
     expect(synthesizer.calls).toHaveLength(1);
-    expect(synthesizer.calls[0]!.input.sources.map(s => s.appId).sort()).toEqual([
+    expect(synthesizer.calls[0]!.input.sources.map(s => s.source).sort()).toEqual([
       'github',
       'gmail',
     ]);
     expect(synthesizer.calls[0]!.input.missing).toEqual([
-      {appId: 'calendar', displayName: 'Google Calendar', state: 'loading'},
+      {source: 'calendar', name: 'Google Calendar', state: 'loading'},
     ]);
     // The merge lands before the straggler; the straggler's fragment still arrives in the turn.
     const merged = events.findIndex(e => e.metadata?.[SYNTHESIS_KEY] !== undefined);
@@ -1298,7 +1303,7 @@ describe('late arrival and failure (task 8.3)', () => {
       outcome: 'synthesized',
       release: {by: 'soft-deadline'},
       sources: ['github', 'gmail'],
-      missing: [{appId: 'calendar', state: 'loading'}],
+      missing: [{source: 'calendar', state: 'loading'}],
     });
     expect(line.deadlines).toEqual({softMs: 100, capMs: 300_000});
   });
@@ -1322,7 +1327,7 @@ describe('late arrival and failure (task 8.3)', () => {
     });
     await collect(client, utterance('join'));
     expect(synthesizer.calls).toHaveLength(1);
-    expect(synthesizer.calls[0]!.input.sources.map(s => s.appId).sort()).toEqual([
+    expect(synthesizer.calls[0]!.input.sources.map(s => s.source).sort()).toEqual([
       'calendar',
       'github',
       'gmail',
@@ -1346,7 +1351,7 @@ describe('late arrival and failure (task 8.3)', () => {
     // The line closes when the held answer has arrived: it says when.
     const [line] = await journalLines(1);
     const record = (line.dispatch as Array<Record<string, unknown>>).find(
-      d => d.appId === 'gmail',
+      d => d.source === 'gmail',
     )!;
     expect(record.cappedAt).toBeDefined();
     expect(record.heldAt).toBeDefined();
@@ -1366,7 +1371,7 @@ describe('late arrival and failure (task 8.3)', () => {
     expect(textsIn(events)).not.toContain('Rate limited — try again in a minute.');
     const [line] = await journalLines(1);
     expect(
-      (line.dispatch as Array<Record<string, unknown>>).find(d => d.appId === 'gmail'),
+      (line.dispatch as Array<Record<string, unknown>>).find(d => d.source === 'gmail'),
     ).toMatchObject({cause: 'vendor', vendorMessage: 'Rate limited — try again in a minute.'});
   });
 
@@ -1663,8 +1668,8 @@ async function until(check: () => boolean, what: string) {
 const arrivedIn = (events: AnyEvent[], source: string) =>
   events.some(e => stampOf(e)?.source === source && a2uiDatas(e).some(d => d.updateDataModel));
 
-const itemsOf = (call: SynthesisCall, appId: string) =>
-  (call.input.sources.find(s => s.appId === appId)?.data as {items: unknown[]}).items;
+const itemsOf = (call: SynthesisCall, source: string) =>
+  (call.input.sources.find(s => s.source === source)?.data as {items: unknown[]}).items;
 
 describe('quiescence (task 8.10)', () => {
   const three = ['github', 'gmail', 'calendar'] as const;
@@ -1707,8 +1712,8 @@ describe('quiescence (task 8.10)', () => {
     const lines = await journalLines(2);
     const line = lines.find(l => l.turnId === events[0]!.id)!;
     expect(line.synthesis).toMatchObject({release: {by: 'soft-deadline'}});
-    const waited = (line.synthesis as {waited: Array<{appId: string; ms: number}>}).waited;
-    expect(waited.map(w => w.appId)).toEqual(['github']);
+    const waited = (line.synthesis as {waited: Array<{source: string; ms: number}>}).waited;
+    expect(waited.map(w => w.source)).toEqual(['github']);
     expect(waited[0]!.ms).toBeGreaterThan(300);
   });
 
@@ -1856,7 +1861,7 @@ describe('quiescence (task 8.10)', () => {
     });
     const contextId = crypto.randomUUID();
     await collect(client, utterance('compare', contextId));
-    expect(synthesizer.calls[0]!.input.sources.map(s => s.appId).sort()).toEqual([
+    expect(synthesizer.calls[0]!.input.sources.map(s => s.source).sort()).toEqual([
       'github',
       'gmail',
     ]);
@@ -1912,7 +1917,7 @@ describe('quiescence (task 8.10)', () => {
     // landed read the set without it, and no Gmail row can reach the client.
     expect(synthesizer.calls).toHaveLength(2);
     expect(synthesizer.calls[0]!.signal?.aborted).toBe(true);
-    expect(synthesizer.calls[1]!.input.sources.map(s => s.appId).sort()).toEqual([
+    expect(synthesizer.calls[1]!.input.sources.map(s => s.source).sort()).toEqual([
       'calendar',
       'github',
     ]);
@@ -1926,7 +1931,7 @@ describe('quiescence (task 8.10)', () => {
     // The next rebuild runs over the merge's own set, Gmail no longer in it.
     await collect(client, actionOn('github:s1', contextId));
     expect(synthesizer.calls).toHaveLength(3);
-    expect(synthesizer.calls[2]!.input.sources.map(s => s.appId).sort()).toEqual([
+    expect(synthesizer.calls[2]!.input.sources.map(s => s.source).sort()).toEqual([
       'calendar',
       'github',
     ]);
@@ -1960,7 +1965,7 @@ describe('quiescence (task 8.10)', () => {
 
     expect(synthesizer.calls).toHaveLength(1);
     const {input} = synthesizer.calls[0]!;
-    expect(input.sources.map(s => s.appId).sort()).toEqual(['calendar', 'github', 'gmail']);
+    expect(input.sources.map(s => s.source).sort()).toEqual(['calendar', 'github', 'gmail']);
     expect(input.missing).toBeUndefined();
   });
 });
@@ -2022,10 +2027,10 @@ describe('Include, Retry and Try again (task 8.4)', () => {
 
     expect(synthesizer.calls).toHaveLength(2);
     const {input} = synthesizer.calls[1]!;
-    expect(input.joined).toEqual([{appId: 'calendar', displayName: 'Google Calendar'}]);
+    expect(input.joined).toEqual([{source: 'calendar', name: 'Google Calendar'}]);
     expect(input.previous).toBeDefined();
     expect(input.utterance).toBe('compare');
-    expect(input.sources.map(s => s.appId).sort()).toEqual(['calendar', 'github', 'gmail']);
+    expect(input.sources.map(s => s.source).sort()).toEqual(['calendar', 'github', 'gmail']);
     expect(synthesisEvents(events)).toHaveLength(1);
     expect(shellSlotOf(events)).toMatchObject({merged: ['github', 'gmail', 'calendar']});
     expect(shellSlotOf(events)).not.toHaveProperty('working');
@@ -2064,7 +2069,7 @@ describe('Include, Retry and Try again (task 8.4)', () => {
     const record = (
       lines.find(l => l.kind === 'operation')!.dispatch as Array<Record<string, unknown>>
     )[0]!;
-    expect(record).toMatchObject({appId: 'gmail', outcome: 'completed'});
+    expect(record).toMatchObject({source: 'gmail', outcome: 'completed'});
     expect(record.heldAt).toBeDefined();
     expect(record.drawnAt).toBeDefined();
   });
@@ -2201,7 +2206,7 @@ describe('Include, Retry and Try again (task 8.4)', () => {
     expect(arrivedIn(events, 'calendar')).toBe(true);
     expect(finalOf(events).status.state).toBe('completed');
     expect(synthesizer.calls).toHaveLength(1);
-    expect(synthesizer.calls[0]!.input.sources.map(s => s.appId).sort()).toEqual([
+    expect(synthesizer.calls[0]!.input.sources.map(s => s.source).sort()).toEqual([
       'calendar',
       'github',
       'gmail',
@@ -2233,7 +2238,7 @@ describe('Include, Retry and Try again (task 8.4)', () => {
     expect(slotsOf(shellPaints(events)[0]!)['shell']).not.toHaveProperty('late');
     expect(synthesizer.calls).toHaveLength(2);
     expect(synthesizer.calls[1]!.input.joined).toEqual([
-      {appId: 'calendar', displayName: 'Google Calendar'},
+      {source: 'calendar', name: 'Google Calendar'},
     ]);
     expect(synthesizer.calls[1]!.prompt).toContain('asked to include sources');
     expect(synthesisEvents(events)).toHaveLength(1);
@@ -2331,7 +2336,7 @@ describe('Include, Retry and Try again (task 8.4)', () => {
     expect(first).toMatchObject({state: 'collapsed', retrying: ['gmail']});
     expect(synthesizer.calls).toHaveLength(1);
     expect(synthesizer.calls[0]!.input.previous).toBeUndefined();
-    expect(synthesizer.calls[0]!.input.sources.map(s => s.appId).sort()).toEqual([
+    expect(synthesizer.calls[0]!.input.sources.map(s => s.source).sort()).toEqual([
       'calendar',
       'github',
       'gmail',
@@ -2390,7 +2395,7 @@ describe('Include, Retry and Try again (task 8.4)', () => {
     const events = await collect(client, press('include', ['calendar'], contextId));
     expect(synthesizer.calls).toHaveLength(2);
     expect(synthesizer.calls[1]!.input.previous).toBeUndefined();
-    expect(synthesizer.calls[1]!.input.sources.map(s => s.appId).sort()).toEqual([
+    expect(synthesizer.calls[1]!.input.sources.map(s => s.source).sort()).toEqual([
       'calendar',
       'github',
       'gmail',
@@ -2423,7 +2428,7 @@ describe('Include, Retry and Try again (task 8.4)', () => {
     expect(synthesizer.calls).toHaveLength(2);
     expect(synthesizer.calls[0]!.signal?.aborted).toBe(false);
     expect(synthesizer.calls[1]!.input.joined).toEqual([
-      {appId: 'calendar', displayName: 'Google Calendar'},
+      {source: 'calendar', name: 'Google Calendar'},
     ]);
     expect(synthesisEvents(events)).toHaveLength(1);
     expect(synthesisEvents(retried)).toHaveLength(1);
@@ -2523,7 +2528,7 @@ function drillScript(items: unknown[]): Script {
 
 /** A fragment stepped in its history, as the client reports it: the paint's data model rides along. */
 function step(
-  appId: string,
+  source: string,
   index: number,
   contextId: string,
   surfaces: Record<string, unknown>,
@@ -2534,7 +2539,7 @@ function step(
     role: 'user',
     contextId,
     parts: [
-      {kind: 'data', data: operationData({kind: 'step', sources: [appId], step: index}, 'v0.9')},
+      {kind: 'data', data: operationData({kind: 'step', sources: [source], step: index}, 'v0.9')},
     ],
     metadata: {a2uiClientDataModel: {version: 'v0.9', surfaces}},
   };
@@ -2930,5 +2935,128 @@ describe('the registry on the running orchestrator (task 11.4)', () => {
       failure: {cause: 'uninstalled'},
     });
     expect(vendors.github!.requests).toHaveLength(1);
+  });
+});
+
+describe('two accounts of one app (task 12.4)', () => {
+  /** Gmail with two accounts held: two sources of one app. */
+  const twoGmail: AccountStore = {
+    accountsOf: appId =>
+      appId === 'gmail'
+        ? [
+            {n: 1, label: 'alice@example.com'},
+            {n: 2, label: 'bob@example.com'},
+          ]
+        : [],
+    nextAccount: () => 3,
+  };
+  const bothAccounts = () => new FakePlanner(() => layoutFor(['gmail.1', 'gmail.2']));
+
+  test('each account is a source of its own: dispatched to the one agent, stamped, namespaced and journaled by source', async () => {
+    const {client} = await boot({planner: bothAccounts(), accounts: twoGmail});
+    const events = await collect(client, utterance('my mail'));
+
+    const gmail = vendors.gmail!;
+    expect(gmail.requests).toHaveLength(2);
+    expect(gmail.contextIds).toHaveLength(2);
+    expect(vendors.github!.requests).toHaveLength(0);
+    const created = events.flatMap(a2uiDatas).flatMap(d => {
+      const create = d.createSurface as {surfaceId: string} | undefined;
+      return create ? [create.surfaceId] : [];
+    });
+    expect(new Set(created)).toEqual(new Set(['shell:main', 'gmail.1:s1', 'gmail.2:s1']));
+    const stamped = new Set(
+      events.filter(e => stampOf(e)?.role === 'fragment').map(e => stampOf(e)!.source),
+    );
+    expect(stamped).toEqual(new Set(['gmail.1', 'gmail.2']));
+    const painted = shellPaints(events)[0]!.find(d => d.updateComponents)!.updateComponents as {
+      components: Array<Record<string, unknown>>;
+    };
+    expect(painted.components).toContainEqual(
+      expect.objectContaining({
+        component: 'Attribution',
+        displayName: 'Gmail',
+        source: 'gmail.2',
+        account: 'bob@example.com',
+      }),
+    );
+    const [line] = await journalLines(1);
+    expect((line.dispatch as Array<{source: string}>).map(d => d.source).sort()).toEqual([
+      'gmail.1',
+      'gmail.2',
+    ]);
+  });
+
+  test('an action inside a fragment goes to the account that painted it, in that account’s own conversation (decision 7)', async () => {
+    const {client} = await boot({planner: bothAccounts(), accounts: twoGmail});
+    const [first] = await collect(client, utterance('my mail'));
+    const gmail = vendors.gmail!;
+    // The vendor's conversation for each account, by the request that opened it.
+    const conversationOf = (source: string) =>
+      gmail.contextIds[
+        gmail.requests.findIndex(r =>
+          r.message.parts.some(p => p.kind === 'text' && p.text.includes(source)),
+        )
+      ];
+    const events = await collect(client, actionOn('gmail.2:s1', first.contextId!));
+    expect(gmail.requests).toHaveLength(3);
+    expect(gmail.requests[2]!.message.contextId).toBe(conversationOf('gmail.2'));
+    expect(gmail.requests[2]!.message.contextId).not.toBe(conversationOf('gmail.1'));
+    const stamped = events
+      .filter(e => stampOf(e)?.role === 'fragment')
+      .map(e => stampOf(e)!.source);
+    expect(new Set(stamped)).toEqual(new Set(['gmail.2']));
+    const lines = await journalLines(2);
+    expect((lines[1]!.dispatch as Array<{source: string}>).map(d => d.source)).toEqual(['gmail.2']);
+  });
+
+  test('a fault keyed by a source fails that account alone; keyed by the app it fails every account (decision 8)', async () => {
+    const one = await boot({
+      planner: bothAccounts(),
+      accounts: twoGmail,
+      faults: new Map([['gmail.2', {fault: 'fail' as const}]]),
+    });
+    const alone = slotStates(shellPaints(await collect(one.client, utterance('my mail'))).at(-1)!);
+    expect(alone).toEqual({'gmail.1': 'pending', 'gmail.2': 'failed'});
+    for (const vendor of Object.values(vendors)) await vendor.close();
+    vendors = {};
+    await new Promise<void>(resolve => server!.close(() => resolve()));
+    server = undefined;
+    const every = await boot({
+      planner: bothAccounts(),
+      accounts: twoGmail,
+      faults: new Map([['gmail', {fault: 'fail' as const}]]),
+    });
+    const both = slotStates(shellPaints(await collect(every.client, utterance('my mail'))).at(-1)!);
+    expect(both).toEqual({'gmail.1': 'failed', 'gmail.2': 'failed'});
+  });
+
+  test('a question asked from a canvas holding two accounts keeps their app plannable', async () => {
+    const planner = bothAccounts();
+    // With no room on the shortlist, only what the viewed canvas holds is kept on it.
+    const {client} = await boot({planner, accounts: twoGmail, shortlistCap: 0});
+    const [first] = await collect(client, utterance('my mail'));
+    await collect(client, utterance('and the older ones?', undefined, first.contextId));
+    expect(planner.calls[1]!.shortlist.map(entry => entry.record.id)).toEqual(['gmail']);
+  });
+
+  test('the Synthesizer is shown each account by the source’s name (decision 6)', async () => {
+    const synthesizer = new FakeSynthesizer(decline('nothing to join'));
+    const {client} = await boot({
+      planner: new FakePlanner(() =>
+        layoutFor(['gmail.1', 'gmail.2'], {merged: 'Both inboxes, latest first.'}),
+      ),
+      synthesizer,
+      accounts: twoGmail,
+    });
+    await collect(client, utterance('all my mail'));
+    const {input, prompt} = synthesizer.calls[0]!;
+    expect(input.sources.map(({source, name}) => ({source, name}))).toEqual(
+      expect.arrayContaining([
+        {source: 'gmail.1', name: 'Gmail · alice@example.com'},
+        {source: 'gmail.2', name: 'Gmail · bob@example.com'},
+      ]),
+    );
+    expect(prompt).toContain('from: Gmail · bob@example.com (gmail.2)');
   });
 });

@@ -49,7 +49,7 @@ Every event the orchestrator relays carries a **stamp** in its metadata: which a
 {"source": "linear", "role": "fragment", "settled": true}   // Linear's answer has ended
 ```
 
-Placement is by `source`. The stamp names no slot, and no component tree points at another surface: the `Slot` whose `source` is `"linear"` is where Linear's surface belongs. Surface ids are namespaced by the orchestrator as `<appId>:<surfaceId>` (Linear's `linear-1` arrives as `linear:linear-1`), so two apps can never collide on a name.
+Placement is by `source`. The stamp names no slot, and no component tree points at another surface: the `Slot` whose `source` is `"linear"` is where Linear's surface belongs. A source is the app and the account it painted under: `linear` for an app that needs no sign-in, `gmail.1` and `gmail.2` for two Gmail accounts side by side, each its own slot. The client never parses one; it keys everything by the whole string. Surface ids are namespaced by the orchestrator as `<source>:<surfaceId>` (Linear's `linear-1` arrives as `linear:linear-1`), so two sources can never collide on a name.
 
 ### 3. Shell owns the container, the app owns the interior
 
@@ -154,7 +154,7 @@ host: {
     if (target) target.onPress(press);
     else console.warn('press raised before the canvas mounted', press);
   },
-  // …onShellAction, onNavigate, appDisplayName the same way
+  // …onShellAction, onNavigate, sourceName the same way
 },
 bind: next => { target = next; return () => { if (target === next) target = null; }; },
 ```
@@ -204,7 +204,7 @@ For every batch, the turn runner reads the stamp and routes:
 The runner reads two **projections** of the layout paint:
 
 - **The placement map** says which surface filled which slot, but only once one has, and in the order they filled.
-- **The roster** (`canvas/composition/roster.ts`) is the complement: every app the layout reserved a slot for, in **slot order**, with the display names the orchestrator painted. The orchestrator wraps every app's `Slot` in an `Attribution` whose `child` names that slot, and `shellPaintSlots` pairs them by that link, never by where either sits in the tree. The merged view's `Slot` pairs with no attribution and carries the join's nouns (`{"linear": "issues", "github": "PRs", "circleci": "runs"}`) for the progress line.
+- **The roster** (`canvas/composition/roster.ts`) is the complement: every source the layout reserved a slot for, in **slot order**, each with its one name: the app's display name the orchestrator painted on the `Attribution`, with the account's label beside it when the app has more than one account (`Gmail · alice@example.com`). The progress line, the notices, and every name the shell catalog asks the host for (`sourceName`, by the full source) read it there. The orchestrator wraps every app's `Slot` in an `Attribution` whose `child` names that slot, and `shellPaintSlots` pairs them by that link, never by where either sits in the tree. The merged view's `Slot` pairs with no attribution and carries the join's nouns (`{"linear": "issues", "github": "PRs", "circleci": "runs"}`) for the progress line.
 
 The roster enforces the shell's one promise to an app: **a fragment never renders unattributed**. If a layout paint leaves an app's slot without its `Attribution` (a bug in the orchestrator's painter), that app's surfaces are refused: not mounted, reported as undrawable, and the orchestrator fails the slot.
 
@@ -385,7 +385,7 @@ Only the latest step owns the merge line: a later step ends the "working" an ear
 
 ### Many design systems on one page
 
-**The boundary is a real element.** `FragmentBoundary` is a `<div>`, never a React fragment or `display: contents`, because CSS `@scope`, a portal root and the collision detector all need something to attach to. It carries `data-a2ui-fragment` with the app id, and it's `display: flow-root`, so an app's top margin stays inside it instead of collapsing through; its box is what navigation lands on and what neighbouring slots align by.
+**The boundary is a real element.** `FragmentBoundary` is a `<div>`, never a React fragment or `display: contents`, because CSS `@scope`, a portal root and the collision detector all need something to attach to. It carries `data-a2ui-fragment` with the source, and it's `display: flow-root`, so an app's top margin stays inside it instead of collapsing through; its box is what navigation lands on and what neighbouring slots align by.
 
 **Each catalog brings one Provider and one CSS setup**, both scoped to the boundary. The loader takes each artifact's catalog and its Provider, and the client wraps that catalog's surfaces only (`catalogs/CatalogContext.tsx`). It registers nothing at the app root and does no per-vendor CSS setup of its own, so installing an app is a table entry, not a shell change.
 
@@ -510,7 +510,7 @@ Recorded beats live in `apps/client/recordings/beats/`, taken through the orches
 | **Attribution** | The app's name above its slot, painted by the orchestrator |
 | **Stamp** | The metadata on every relayed event: `source`, `role`, and `settled` at a stream's end |
 | **Placement map** | Which surface fills which app's slot |
-| **Roster** | Every app the layout reserved a slot for, in slot order |
+| **Roster** | Every source the layout reserved a slot for, in slot order, with its name |
 | **Turn** | One request and the stream that answers it: an utterance or an action |
 | **Side stream** | A stream beside the turn, for a press or a report |
 | **Press** | The reader's Retry, Include or Try again |

@@ -123,9 +123,9 @@ export function ProgressLine({state, since, compact, sourcesOnly}: ProgressLineP
           )}
         </>
       )}
-      {progress.sources.map(source => (
-        <Step key={source.appId} status={source.status} compact={compact}>
-          {source.name}
+      {progress.sources.map(step => (
+        <Step key={step.source} status={step.status} compact={compact}>
+          {step.name}
         </Step>
       ))}
       {progress.merge && !sourcesOnly && (

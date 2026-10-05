@@ -12,8 +12,8 @@ export interface OpenTurn {
   turnId: string;
   clientContextId: string;
   message: Message;
-  /** The dispatched app, when the turn has exactly one (action turns). */
-  appId?: string;
+  /** The dispatched source, when the turn has exactly one (action turns). */
+  source?: string;
 }
 
 export interface JournalTurn {
@@ -62,7 +62,7 @@ export class IntentJournal implements RegistryJournal {
   }
 
   open(turn: OpenTurn): JournalTurn {
-    const {kind, descriptor, payload} = describe(turn.message, turn.appId);
+    const {kind, descriptor, payload} = describe(turn.message, turn.source);
     const metadata = turn.message.metadata ?? {};
     const dataModel = metadata.a2uiClientDataModel;
     const entry: JournalEntry = {

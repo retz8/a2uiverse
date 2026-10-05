@@ -13,12 +13,14 @@ handed back to you once to fix, and a second failure discards your answer.
 
 ## Partitions
 
-- Every source you are shown is one **partition**: a surface id (`<appId>:<surfaceId>`) and that
+- Every source you are shown is one **partition**: a surface id (`<source>:<surfaceId>`) and that
   surface's data model, as the agent painted it. The data model is the only thing you know about a
   source. You never see its component tree, and you never write into its partition.
 - Partitions are isolated from each other. A path means nothing without the surface it belongs to.
-- Sources are shown with the display name of the app that painted them. Use the surface id in your
-  wiring, exactly as given; use the display name only in text a user reads.
+- Sources are shown with their name: the app that painted them, and the account it painted under
+  when the app has more than one (`Gmail · alice@example.com`). Two accounts of one app are two
+  sources. Use the surface id in your wiring, exactly as given; use the name only in text a user
+  reads.
 
 ## Refs
 

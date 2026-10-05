@@ -37,7 +37,7 @@ function setup(inFlight: boolean) {
   if (inFlight) store.beginPaint('utterance');
   else {
     // A landed turn: one vendor answered, so the progress line has a step to keep.
-    store.setRoster([{appId: 'github', displayName: 'GitHub'}]);
+    store.setRoster([{source: 'github', name: 'GitHub'}]);
     store.placeFragment('github', {surfaceId: 'github:s', source: 'github'});
   }
   const scroller = createRef<HTMLElement>();

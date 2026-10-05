@@ -193,8 +193,8 @@ describe('createCanvasStore', () => {
   it('orders the stack by slot, with the shell last and unknown sources by their id', () => {
     const store = createCanvasStore();
     store.setRoster([
-      {appId: 'github', displayName: 'GitHub'},
-      {appId: 'gmail', displayName: 'Gmail'},
+      {source: 'github', name: 'GitHub'},
+      {source: 'gmail', name: 'Gmail'},
     ]);
     // Deliberately out of slot order: gmail answered first.
     store.appendProse(null, 'painting…');

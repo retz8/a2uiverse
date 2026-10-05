@@ -170,7 +170,7 @@ export function createCanvasWiring({
     host: {
       onShellAction,
       onNavigate: cell => viewed()?.navigator.navigate(cell),
-      appDisplayName: appId => viewed()?.appDisplayName(appId),
+      sourceName: source => viewed()?.sourceName(source),
       onPress,
     },
   };

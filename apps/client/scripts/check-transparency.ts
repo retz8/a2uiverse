@@ -28,6 +28,7 @@ import {readFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {parseArgs} from 'node:util';
 import {isDeepStrictEqual} from 'node:util';
+import {parseSourceId} from '@a2uiverse/sdk';
 import type {A2AStreamEventData} from '../src/a2a/messages';
 import {extractStampFromEvent} from '../src/a2a/messages';
 import {createSender, driveTurn, supportedCatalogIds} from './lib/drive';
@@ -61,12 +62,12 @@ function isOrchestratorEnvelope(event: A2AStreamEventData): boolean {
 }
 
 /**
- * Un-namespace `<appId>:<surfaceId>` back to the vendor's own id — the inverse of the hub's one
+ * Un-namespace `<source>:<surfaceId>` back to the vendor's own id — the inverse of the hub's one
  * A2UI rewrite and of the same rewrite on a `paintMeta`, applied so the comparison sees the
  * vendor's stream as the vendor sent it.
  */
-function unnamespace(value: unknown, appId: string): unknown {
-  if (Array.isArray(value)) return value.map(v => unnamespace(v, appId));
+function unnamespace(value: unknown, source: string): unknown {
+  if (Array.isArray(value)) return value.map(v => unnamespace(v, source));
   if (!value || typeof value !== 'object') return value;
   const out: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
@@ -74,12 +75,12 @@ function unnamespace(value: unknown, appId: string): unknown {
       const body = v as Record<string, unknown>;
       const id = body[SURFACE_ID_KEY];
       out[k] =
-        typeof id === 'string' && id.startsWith(`${appId}:`)
-          ? {...body, [SURFACE_ID_KEY]: id.slice(appId.length + 1)}
-          : unnamespace(body, appId);
+        typeof id === 'string' && id.startsWith(`${source}:`)
+          ? {...body, [SURFACE_ID_KEY]: id.slice(source.length + 1)}
+          : unnamespace(body, source);
       continue;
     }
-    out[k] = unnamespace(v, appId);
+    out[k] = unnamespace(v, source);
   }
   return out;
 }
@@ -146,7 +147,7 @@ function surfaceIdsOf(value: unknown, found: string[] = []): string[] {
 interface JournalEntry {
   /** The Planner's layout surface (task 6.4): each source dispatched with its request, `shell` the merged view, a gap no source. */
   plan?: {layoutSurface?: {dispatch?: Array<{source?: string; request?: string; gap?: string}>}};
-  dispatch?: Array<{appId?: string}>;
+  dispatch?: Array<{source?: string}>;
   embedding?: number[] | null;
 }
 
@@ -212,15 +213,15 @@ async function main() {
   console.log(`✓ journal +1 (${journal})`);
   const entry = JSON.parse(lines[lines.length - 1]) as JournalEntry;
   const planned = (entry.plan?.layoutSurface?.dispatch ?? []).flatMap(d =>
-    d.source && d.source !== 'shell' && d.request ? [{appId: d.source, request: d.request}] : [],
+    d.source && d.source !== 'shell' && d.request ? [{source: d.source, request: d.request}] : [],
   );
   if (planned.length === 0) bad('the journal line carries no plan — nothing was routed');
   if (!entry.embedding || entry.embedding.length === 0)
     bad('the journal line has a null embedding');
   else console.log(`✓ embedding non-null (${entry.embedding.length} dims)`);
 
-  const dispatched = new Set((entry.dispatch ?? []).map(d => d.appId));
-  const missing = planned.map(s => s.appId).filter(id => !dispatched.has(id));
+  const dispatched = new Set((entry.dispatch ?? []).map(d => d.source));
+  const missing = planned.map(s => s.source).filter(id => !dispatched.has(id));
   if (missing.length) bad(`plan targeted ${missing.join(', ')} but the dispatch list omits them`);
   else console.log(`✓ dispatch records all ${planned.length} fan-out target(s)`);
 
@@ -238,12 +239,14 @@ async function main() {
 
   // ── The relay comparison, per planned slot ──
   for (const slot of planned) {
-    const agent = agents.get(slot.appId);
+    // A source names the app and the account it painted under: the agent is the app's (task 12.4).
+    const appId = parseSourceId(slot.source)?.appId ?? slot.source;
+    const agent = agents.get(appId);
     if (!agent) {
-      bad(`'${slot.appId}' is not installed on the hub — pass its url in --agents`);
+      bad(`'${appId}' is not installed on the hub — pass its url in --agents`);
       continue;
     }
-    console.log(`\ndirect → ${slot.appId} @ ${agent.url}`);
+    console.log(`\ndirect → ${slot.source} @ ${agent.url}`);
     console.log(`  request: ${slot.request}`);
     const direct = await driveTurn(
       await createSender(agent.url, agent.path),
@@ -255,29 +258,29 @@ async function main() {
     const relayed = hub.events
       .map(e => e.event)
       .filter(e => !isOrchestratorEnvelope(e))
-      .filter(e => extractStampFromEvent(e)?.source === slot.appId)
+      .filter(e => extractStampFromEvent(e)?.source === slot.source)
       // The hub's own marker after a source's last event (task 8.7), carrying no parts: not relayed.
       .filter(e => !extractStampFromEvent(e)?.settled);
 
     // The hub owns the turn-final, so no vendor's stream may still carry one.
     const stillFinal = relayed.filter(e => e.kind === 'status-update' && e.final);
-    if (stillFinal.length) bad(`${slot.appId}: a vendor final survived the relay`);
+    if (stillFinal.length) bad(`${slot.source}: a vendor final survived the relay`);
 
     const a = direct.events.map(e => normalize(demote(e.event)));
-    const b = relayed.map(e => normalize(demote(unnamespace(e, slot.appId))));
+    const b = relayed.map(e => normalize(demote(unnamespace(e, slot.source))));
     if (a.length !== b.length) {
-      bad(`${slot.appId}: event count differs — direct ${a.length}, hub ${b.length}`);
+      bad(`${slot.source}: event count differs — direct ${a.length}, hub ${b.length}`);
       console.error(`direct:\n${show(direct.events.map(e => e.event))}\nhub:\n${show(relayed)}`);
       continue;
     }
     const i = a.findIndex((e, idx) => !isDeepStrictEqual(e, b[idx]));
     if (i >= 0) {
-      bad(`${slot.appId}: first difference at event [${i}]`);
+      bad(`${slot.source}: first difference at event [${i}]`);
       console.error(
         `direct:\n${JSON.stringify(a[i], null, 2)}\nhub:\n${JSON.stringify(b[i], null, 2)}`,
       );
     } else {
-      console.log(`✓ ${slot.appId}: ${a.length} events equal modulo the named rewrites`);
+      console.log(`✓ ${slot.source}: ${a.length} events equal modulo the named rewrites`);
     }
   }
 

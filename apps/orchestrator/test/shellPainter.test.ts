@@ -6,6 +6,7 @@
 import {clipPaintMetaTitle, PAINT_META_MIME_TYPE} from '@a2uiverse/sdk';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 import {describe, expect, test} from 'vitest';
+import {Sources} from '../src/accounts/accounts.js';
 import {compositionFrom} from '../src/composition/state.js';
 import {
   paintLayout,
@@ -54,7 +55,7 @@ const componentsOf = (part: {kind: string; data?: unknown}) =>
   (dataOf(part).updateComponents as {components: Array<Record<string, unknown>>}).components;
 
 describe('paintLayout', () => {
-  const state = compositionFrom(layout, registry, 'my day');
+  const state = compositionFrom(layout, new Sources(registry), 'my day');
   const painted = paintLayout(state);
   const byId = new Map(painted.map(c => [c.id, c]));
 
@@ -139,7 +140,7 @@ describe('paintLayout', () => {
           : entry,
       ),
     };
-    const merged = paintLayout(compositionFrom(planned, registry, 'what now?')).find(
+    const merged = paintLayout(compositionFrom(planned, new Sources(registry), 'what now?')).find(
       c => c.id === 'merged',
     );
     expect(merged).toEqual({
@@ -168,7 +169,7 @@ describe('paintLayout', () => {
           : entry,
       ),
     };
-    const state = compositionFrom(planned, registry, 'what now?');
+    const state = compositionFrom(planned, new Sources(registry), 'what now?');
     const slot = (source: string) =>
       paintLayout(state).find(c => c.component === 'Slot' && c.source === source)!;
     // From plan time: the column marks on the merge slot, each vendor slot's noun.
@@ -194,7 +195,7 @@ describe('paintLayout', () => {
   });
 
   test('the facts the presses’ lines are drawn from are painted on the merge slot (task-8.4 decision 13)', () => {
-    const state = compositionFrom(layout, registry, 'my day');
+    const state = compositionFrom(layout, new Sources(registry), 'my day');
     const merge = () =>
       paintLayout(state).find(c => c.component === 'Slot' && c.source === 'shell')!;
     for (const prop of ['merged', 'late', 'working', 'callFailed', 'retrying']) {
@@ -234,10 +235,69 @@ describe('paintLayout', () => {
   });
 });
 
+describe('two accounts of one app (task 12.4)', () => {
+  const accounts = {
+    accountsOf: (appId: string) =>
+      appId === 'gmail'
+        ? [
+            {n: 1, label: 'alice@example.com'},
+            {n: 2, label: 'bob@example.com'},
+          ]
+        : [],
+    nextAccount: () => 3,
+  };
+  const twoAccounts: LayoutSurface = {
+    dispatch: [
+      {source: 'gmail.1', request: 'a'},
+      {source: 'gmail.2', request: 'b'},
+      {source: 'github', request: 'c'},
+    ],
+    tree: {
+      components: [
+        {id: 'root', component: 'Column', children: ['work', 'home', 'gh']},
+        {id: 'work', component: 'Slot', source: 'gmail.1'},
+        {id: 'home', component: 'Slot', source: 'gmail.2'},
+        {id: 'gh', component: 'Slot', source: 'github'},
+      ],
+    },
+    dataModel: {},
+  };
+  const state = compositionFrom(twoAccounts, new Sources(registry, accounts), 'my mail');
+  const byId = new Map(paintLayout(state).map(c => [c.id, c]));
+
+  test('each account is its own slot, keyed by its source', () => {
+    expect([...state.slots.keys()]).toEqual(['gmail.1', 'gmail.2', 'github']);
+  });
+
+  test('attribution names the account by its label beside the app’s name; an app with one account names none (phase-12 decision 22)', () => {
+    expect(byId.get('attribution-work')).toEqual({
+      id: 'attribution-work',
+      component: 'Attribution',
+      displayName: 'Gmail',
+      source: 'gmail.1',
+      account: 'alice@example.com',
+      child: 'work',
+    });
+    expect(byId.get('attribution-home')).toMatchObject({
+      source: 'gmail.2',
+      account: 'bob@example.com',
+    });
+    expect(byId.get('attribution-gh')).not.toHaveProperty('account');
+  });
+
+  test('each slot’s label is the source’s one name (task-12.4 decision 5)', () => {
+    expect(byId.get('work')).toMatchObject({label: 'Gmail · alice@example.com'});
+    expect(byId.get('home')).toMatchObject({label: 'Gmail · bob@example.com'});
+    expect(byId.get('gh')).toMatchObject({label: 'GitHub'});
+  });
+});
+
 describe('shellCreateParts', () => {
   test('a titled composition leads with the shell’s own paintMeta, clipped to the cap (task-9.3 decision 4)', () => {
     const long = 'Pull requests, issues and runs waiting on you across every tool';
-    const parts = shellCreateParts(compositionFrom({...layout, title: long}, registry, 'x'));
+    const parts = shellCreateParts(
+      compositionFrom({...layout, title: long}, new Sources(registry), 'x'),
+    );
     expect(parts).toHaveLength(3);
     expect(parts[0]).toEqual({
       kind: 'data',
@@ -245,13 +305,13 @@ describe('shellCreateParts', () => {
       metadata: {mimeType: PAINT_META_MIME_TYPE},
     });
     expect(dataOf(parts[1]!).createSurface).toBeDefined();
-    expect(shellCreateParts(compositionFrom({...layout, title: '  '}, registry, 'x'))).toHaveLength(
-      2,
-    );
+    expect(
+      shellCreateParts(compositionFrom({...layout, title: '  '}, new Sources(registry), 'x')),
+    ).toHaveLength(2);
   });
 
   test('paints createSurface for shell:main in the shell catalog, then the components; no data part for an empty model', () => {
-    const parts = shellCreateParts(compositionFrom(layout, registry, 'x'));
+    const parts = shellCreateParts(compositionFrom(layout, new Sources(registry), 'x'));
     expect(parts).toHaveLength(2);
     expect(dataOf(parts[0]!)).toEqual({
       version: 'v0.9',
@@ -274,7 +334,9 @@ describe('shellCreateParts', () => {
       },
       dataModel: {answer: 'Two apps are installed.'},
     };
-    const parts = shellCreateParts(compositionFrom(answer, registry, 'what apps do I have?'));
+    const parts = shellCreateParts(
+      compositionFrom(answer, new Sources(registry), 'what apps do I have?'),
+    );
     expect(parts.map(p => Object.keys(dataOf(p))[1])).toEqual([
       'createSurface',
       'updateDataModel',
@@ -289,7 +351,7 @@ describe('shellCreateParts', () => {
 
 describe('shellRepaintParts', () => {
   test('repaints the same surface with the flipped slot state, found by source, ids stable', () => {
-    const state = compositionFrom(layout, registry, 'x');
+    const state = compositionFrom(layout, new Sources(registry), 'x');
     state.slots.get('gmail')!.state = 'failed';
     state.slots.get('shell')!.state = 'collapsed';
     const parts = shellRepaintParts(state);
@@ -299,14 +361,14 @@ describe('shellRepaintParts', () => {
     expect(components.find(c => c.id === 'merged')!.state).toBe('collapsed');
     expect(components.find(c => c.id === 'gh')!.state).toBe('pending');
     expect(components.map(c => c.id)).toEqual(
-      paintLayout(compositionFrom(layout, registry, 'x')).map(c => c.id),
+      paintLayout(compositionFrom(layout, new Sources(registry), 'x')).map(c => c.id),
     );
   });
 });
 
 describe('shellEnvelope', () => {
   test('is a non-final working status-update stamped as the shell', () => {
-    const state = compositionFrom(layout, registry, 'x');
+    const state = compositionFrom(layout, new Sources(registry), 'x');
     const event = shellEnvelope({taskId: 't1', contextId: 'c1'}, shellCreateParts(state));
     expect(event.kind).toBe('status-update');
     expect(event.final).toBe(false);

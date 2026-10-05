@@ -13,7 +13,7 @@ import {SHELL_SOURCE} from './composition/roster';
 export type StepStatus = 'done' | 'working' | 'failed' | 'idle';
 
 export interface SourceStep {
-  appId: string;
+  source: string;
   name: string;
   status: StepStatus;
 }
@@ -35,16 +35,16 @@ export function running(state: CanvasState): boolean {
   );
 }
 
-const sourceStatus = (state: CanvasState, appId: string, busy: boolean): StepStatus => {
+const sourceStatus = (state: CanvasState, source: string, busy: boolean): StepStatus => {
   // The reader's Retry is drawn from the press, before the paint says so.
-  const retried = retrying(state, appId);
-  const painted = state.slotStates.get(appId);
+  const retried = retrying(state, source);
+  const painted = state.slotStates.get(source);
   if (painted === 'failed' && !retried) return 'failed';
   // An action inside its fragment is that source working again, until its stream ends (task-9.9
   // decision 25): the line names no action, only the source it went to.
-  if (state.inFlight?.source === appId && !state.inFlight.settled) return 'working';
+  if (state.inFlight?.source === source && !state.inFlight.settled) return 'working';
   // A source that answered in prose without painting still answered.
-  if (state.placement.has(appId) || state.prose.has(appId)) return 'done';
+  if (state.placement.has(source) || state.prose.has(source)) return 'done';
   if (painted === 'collapsed') return 'done';
   return busy || retried ? 'working' : 'idle';
 };
@@ -52,8 +52,8 @@ const sourceStatus = (state: CanvasState, appId: string, busy: boolean): StepSta
 export function turnProgress(state: CanvasState): TurnProgress {
   const busy = running(state);
   const roster = state.roster;
-  const vendors = roster.filter(entry => entry.appId !== SHELL_SOURCE);
-  const merged = roster.find(entry => entry.appId === SHELL_SOURCE);
+  const vendors = roster.filter(entry => entry.source !== SHELL_SOURCE);
+  const merged = roster.find(entry => entry.source === SHELL_SOURCE);
   // An utterance plans until its roster lands; an action runs inside the composition as its
   // source's tick (task-9.9 decision 25).
   const planning =
@@ -66,9 +66,9 @@ export function turnProgress(state: CanvasState): TurnProgress {
   return {
     working,
     sources: vendors.map(entry => ({
-      appId: entry.appId,
-      name: entry.displayName,
-      status: sourceStatus(state, entry.appId, busy),
+      source: entry.source,
+      name: entry.name,
+      status: sourceStatus(state, entry.source, busy),
     })),
     merge: merged && vendors.length > 0 ? mergeStep(state, vendors, merged.join, busy) : null,
   };
@@ -93,24 +93,24 @@ function mergeStep(
   busy: boolean,
 ): {text: string; status: StepStatus} {
   const facts = state.merge ?? {};
-  const noun = (entry: RosterEntry) => join?.nouns[entry.appId];
+  const noun = (entry: RosterEntry) => join?.nouns[entry.source];
   const phrase = (entry: RosterEntry) =>
-    noun(entry) ? `${entry.displayName} ${noun(entry)}` : entry.displayName;
-  const home = join?.home ? vendors.find(entry => entry.appId === join.home) : undefined;
+    noun(entry) ? `${entry.name} ${noun(entry)}` : entry.name;
+  const home = join?.home ? vendors.find(entry => entry.source === join.home) : undefined;
   // A union join (task-8.7 decision 30) names the thing across the sources: "cameras across
   // Aperture & Co, Northlight and Fieldstone"; an anchored one the home's noun to the others'.
   const joined = (entries: readonly RosterEntry[]) => {
     if (join && join.home === null && join.entity)
-      return `${join.entity} across ${listed(entries.map(entry => entry.displayName))}`;
+      return `${join.entity} across ${listed(entries.map(entry => entry.name))}`;
     const others = entries.filter(entry => entry !== home).map(phrase);
     if (!home || !entries.includes(home)) return listed(entries.map(phrase));
     return others.length > 0 ? `${phrase(home)} to ${listed(others)}` : phrase(home);
   };
-  const by = (ids: readonly string[] | undefined) => vendors.filter(v => ids?.includes(v.appId));
+  const by = (ids: readonly string[] | undefined) => vendors.filter(v => ids?.includes(v.source));
   const pressed = (kind: 'include' | 'tryAgain') =>
     state.presses.find(press => press.status === 'sent' && press.operation.kind === kind);
   const shell = state.slotStates.get(SHELL_SOURCE);
-  const arrived = vendors.filter(v => state.placement.has(v.appId));
+  const arrived = vendors.filter(v => state.placement.has(v.source));
 
   if (shell === 'collapsed') {
     if (facts.working || pressed('include') || pressed('tryAgain'))
@@ -170,12 +170,12 @@ function mergeStep(
     const clauses = vendors
       .filter(entry => !inMerge.includes(entry))
       .flatMap(entry => {
-        const id = entry.appId;
+        const id = entry.source;
         if (including.includes(id)) return [`including ${phrase(entry)}`];
         if (failedInclude.includes(id)) return [`couldn’t include ${phrase(entry)}`];
         if (facts.late?.includes(id)) return [`${phrase(entry)} not in this view yet`];
         if (state.slotStates.get(id) === 'failed' && !retrying(state, id))
-          return [noun(entry) ? `no ${phrase(entry)} to join` : `without ${entry.displayName}`];
+          return [noun(entry) ? `no ${phrase(entry)} to join` : `without ${entry.name}`];
         if (!state.placement.has(id) && state.slotStates.get(id) !== 'collapsed')
           return [`${phrase(entry)} still loading`];
         return [];
@@ -192,19 +192,19 @@ function mergeStep(
   // deadline's release, so the sentence never claims to know whether a straggler will make it.
   const failed = (id: string) => state.slotStates.get(id) === 'failed' && !retrying(state, id);
   const out = vendors.filter(
-    entry => !state.placement.has(entry.appId) && !state.prose.has(entry.appId),
+    entry => !state.placement.has(entry.source) && !state.prose.has(entry.source),
   );
-  const awaited = out.filter(entry => !failed(entry.appId));
+  const awaited = out.filter(entry => !failed(entry.source));
   const possible = arrived.length >= 2 && (!home || arrived.includes(home));
   // Nothing arrived yet: the plan, in one short sentence, rather than every source awaited.
   if (arrived.length === 0) return {text: `Joining ${joined(vendors)}`, status: 'working'};
   if (!possible && awaited.length > 0)
     return {text: `Waiting for ${listed(awaited.map(phrase))}, then joining`, status: 'working'};
   const clauses = out.map(entry =>
-    failed(entry.appId)
+    failed(entry.source)
       ? noun(entry)
         ? `no ${phrase(entry)} to join`
-        : `without ${entry.displayName}`
+        : `without ${entry.name}`
       : `${phrase(entry)} still loading`,
   );
   const over = arrived.length > 0 ? arrived : vendors;

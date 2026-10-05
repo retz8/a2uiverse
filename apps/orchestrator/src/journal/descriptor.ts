@@ -12,14 +12,14 @@ export interface Description {
 }
 
 /** Renders the client's message into the journal's free-form descriptor. No model involved. */
-export function describe(message: Message, appId?: string): Description {
+export function describe(message: Message, source?: string): Description {
   const action = findAction(message);
   if (action) {
     const name = typeof action.name === 'string' ? action.name : '?';
     const surfaceId = typeof action.surfaceId === 'string' ? action.surfaceId : '?';
     return {
       kind: 'action',
-      descriptor: `${name} on surface ${surfaceId}${appId ? ` in ${appId}` : ''}`,
+      descriptor: `${name} on surface ${surfaceId}${source ? ` in ${source}` : ''}`,
       payload: action.context,
     };
   }

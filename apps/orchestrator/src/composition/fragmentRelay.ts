@@ -15,7 +15,7 @@ const A2UI_OPS = ['createSurface', 'updateComponents', 'updateDataModel', 'delet
  * the executor owns the single turn-final. The original event is never mutated.
  */
 export interface ComposeContext {
-  appId: string;
+  source: string;
 }
 
 export function composeFragment(event: VendorEvent, ctx: ComposeContext): VendorEvent {
@@ -24,23 +24,25 @@ export function composeFragment(event: VendorEvent, ctx: ComposeContext): Vendor
       return withStamp(
         {
           ...event,
-          status: demoteStatus(rewriteStatus(event.status, ctx.appId)),
-          ...(event.history ? {history: event.history.map(m => rewriteMessage(m, ctx.appId))} : {}),
+          status: demoteStatus(rewriteStatus(event.status, ctx.source)),
+          ...(event.history
+            ? {history: event.history.map(m => rewriteMessage(m, ctx.source))}
+            : {}),
         },
         ctx,
       );
     case 'status-update':
-      return withStamp(demoteStatusUpdate(rewriteStatusUpdate(event, ctx.appId)), ctx);
+      return withStamp(demoteStatusUpdate(rewriteStatusUpdate(event, ctx.source)), ctx);
     case 'artifact-update':
       return withStamp(
         {
           ...event,
-          artifact: {...event.artifact, parts: namespaceParts(event.artifact.parts, ctx.appId)},
+          artifact: {...event.artifact, parts: namespaceParts(event.artifact.parts, ctx.source)},
         },
         ctx,
       );
     case 'message':
-      return withStamp(rewriteMessage(event, ctx.appId), ctx);
+      return withStamp(rewriteMessage(event, ctx.source), ctx);
   }
 }
 
@@ -52,7 +54,7 @@ function withStamp<E extends VendorEvent>(event: E, ctx: ComposeContext): E {
       ...event.metadata,
       [STAMP_KEY]: {
         ...(typeof existing === 'object' && existing !== null ? existing : {}),
-        source: ctx.appId,
+        source: ctx.source,
         role: 'fragment',
       },
     },
@@ -67,22 +69,22 @@ function demoteStatus<S extends Task['status']>(status: S): S {
   return TERMINAL.has(status.state) ? {...status, state: 'working'} : status;
 }
 
-function rewriteStatusUpdate(event: TaskStatusUpdateEvent, appId: string): TaskStatusUpdateEvent {
-  return {...event, status: rewriteStatus(event.status, appId)};
+function rewriteStatusUpdate(event: TaskStatusUpdateEvent, source: string): TaskStatusUpdateEvent {
+  return {...event, status: rewriteStatus(event.status, source)};
 }
 
-function rewriteStatus(status: Task['status'], appId: string): Task['status'] {
-  return status.message ? {...status, message: rewriteMessage(status.message, appId)} : status;
+function rewriteStatus(status: Task['status'], source: string): Task['status'] {
+  return status.message ? {...status, message: rewriteMessage(status.message, source)} : status;
 }
 
-function rewriteMessage(message: Message, appId: string): Message {
-  return {...message, parts: namespaceParts(message.parts, appId)};
+function rewriteMessage(message: Message, source: string): Message {
+  return {...message, parts: namespaceParts(message.parts, source)};
 }
 
-function namespaceParts(parts: Part[], appId: string): Part[] {
+function namespaceParts(parts: Part[], source: string): Part[] {
   return parts.map(part => {
     if (part.kind !== 'data') return part;
-    const data = namespaceData(part.data, appId);
+    const data = namespaceData(part.data, source);
     return data === part.data ? part : {...part, data};
   });
 }
@@ -94,20 +96,20 @@ type Data = Record<string, unknown>;
  * vendor's `paintMeta` part, whose title and question kind the client files under the surface id
  * it sees (task 10.9).
  */
-function namespaceData(data: Data, appId: string): Data {
-  if (typeof data.version === 'string') return namespaceMessage(data, appId);
+function namespaceData(data: Data, source: string): Data {
+  if (typeof data.version === 'string') return namespaceMessage(data, source);
   const meta = data.paintMeta;
   if (typeof meta === 'object' && meta !== null) {
     const surfaceId = (meta as {surfaceId?: unknown}).surfaceId;
     if (typeof surfaceId !== 'string') return data;
-    return {...data, paintMeta: {...meta, surfaceId: namespaceSurfaceId(appId, surfaceId)}};
+    return {...data, paintMeta: {...meta, surfaceId: namespaceSurfaceId(source, surfaceId)}};
   }
   if (Array.isArray(data.messages)) {
     return {
       ...data,
       messages: data.messages.map(m =>
         typeof m === 'object' && m !== null && typeof (m as Data).version === 'string'
-          ? namespaceMessage(m as Data, appId)
+          ? namespaceMessage(m as Data, source)
           : m,
       ),
     };
@@ -115,13 +117,13 @@ function namespaceData(data: Data, appId: string): Data {
   return data;
 }
 
-function namespaceMessage(message: Data, appId: string): Data {
+function namespaceMessage(message: Data, source: string): Data {
   for (const op of A2UI_OPS) {
     const body = message[op];
     if (typeof body !== 'object' || body === null) continue;
     const surfaceId = (body as {surfaceId?: unknown}).surfaceId;
     if (typeof surfaceId !== 'string') continue;
-    return {...message, [op]: {...body, surfaceId: namespaceSurfaceId(appId, surfaceId)}};
+    return {...message, [op]: {...body, surfaceId: namespaceSurfaceId(source, surfaceId)}};
   }
   return message;
 }

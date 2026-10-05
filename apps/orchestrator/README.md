@@ -122,7 +122,7 @@ Clicking into something inside an app's answer, like a CI run, makes the app pai
 
 Every app's UI passes through the orchestrator on its way to the screen, and every click passes back the same way. It changes as little as it can, so any A2UI agent can take part as it is.
 
-- **Surface ids are namespaced by app**, `inbox` becoming `gmail:inbox`, so two apps can't collide on one screen, and changed back on the way in. It's the only change made inside an app's A2UI.
+- **Surface ids are namespaced by source**, the app and the account it painted under: `inbox` becomes `gmail:inbox`, or `gmail.2:inbox` for one of two Gmail accounts, so no two sources collide on one screen, and it's changed back on the way in. It's the only change made inside an app's A2UI.
 - **Every event is stamped** with the app that painted it, so the client knows which slot it fills.
 - **Only the orchestrator ends a turn.** Each app's own "done" is held back, and the orchestrator sends one when all of them have answered.
 - **Each app sees only its own data** when the client sends the screen's data back with a click.
@@ -187,22 +187,22 @@ The Planner and the Synthesizer run on Gemini through the Vercel AI SDK.
 <details>
 <summary><b>Configuration</b></summary>
 
-| Variable                          | Default                                       | Meaning                                                                                                |
-| --------------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| `PORT`                            | `10001`                                       | Listen port                                                                                            |
-| `BASE_URL`                        | `http://localhost:<PORT>`                     | The address its agent card advertises                                                                  |
-| `STATE_DIR`                       | `./.state`                                    | The registry, the journal and the cached embedding model                                               |
-| `GOOGLE_API_KEY`                  | none                                          | The Gemini key. Without it, questions fail; actions inside fragments still work                        |
-| `A2UIVERSE_PLANNER_MODEL`         | `gemini-3.7-flash`                            | The Planner's model                                                                                    |
-| `A2UIVERSE_PLANNER_EFFORT`        | `low`                                         | `low` (no thinking) or `default`                                                                       |
-| `A2UIVERSE_SYNTHESIZER_MODEL`     | the Planner's if set, else `gemini-3.7-flash` | The Synthesizer's model                                                                                |
-| `A2UIVERSE_SYNTHESIZER_EFFORT`    | `low`                                         | `low` or `default`                                                                                     |
-| `A2UIVERSE_SHORTLIST_CAP`         | `5`                                           | How many apps the Router hands the Planner                                                             |
-| `A2UIVERSE_SOFT_DEADLINE_SECONDS` | `10`                                          | How long with no answer releases the merge without the late apps                                       |
-| `A2UIVERSE_HARD_CAP_SECONDS`      | `300`                                         | How long before an app's slot fails                                                                    |
-| `A2UIVERSE_HEARTBEAT_SECONDS`     | `30`                                          | How often a quiet stream sends an empty event, so a proxy's idle timeout never cuts it                 |
-| `A2UIVERSE_DEBUG_IDS`             | off                                           | `1` adds each app's own task and context ids to what it relays                                         |
-| `A2UIVERSE_FAULTS`                | none                                          | Dev only: JSON making an app's answers slow, hang, break, refused, failed or invalid, to test failures |
+| Variable                          | Default                                       | Meaning                                                                                                                                               |
+| --------------------------------- | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PORT`                            | `10001`                                       | Listen port                                                                                                                                           |
+| `BASE_URL`                        | `http://localhost:<PORT>`                     | The address its agent card advertises                                                                                                                 |
+| `STATE_DIR`                       | `./.state`                                    | The registry, the journal and the cached embedding model                                                                                              |
+| `GOOGLE_API_KEY`                  | none                                          | The Gemini key. Without it, questions fail; actions inside fragments still work                                                                       |
+| `A2UIVERSE_PLANNER_MODEL`         | `gemini-3.7-flash`                            | The Planner's model                                                                                                                                   |
+| `A2UIVERSE_PLANNER_EFFORT`        | `low`                                         | `low` (no thinking) or `default`                                                                                                                      |
+| `A2UIVERSE_SYNTHESIZER_MODEL`     | the Planner's if set, else `gemini-3.7-flash` | The Synthesizer's model                                                                                                                               |
+| `A2UIVERSE_SYNTHESIZER_EFFORT`    | `low`                                         | `low` or `default`                                                                                                                                    |
+| `A2UIVERSE_SHORTLIST_CAP`         | `5`                                           | How many apps the Router hands the Planner                                                                                                            |
+| `A2UIVERSE_SOFT_DEADLINE_SECONDS` | `10`                                          | How long with no answer releases the merge without the late apps                                                                                      |
+| `A2UIVERSE_HARD_CAP_SECONDS`      | `300`                                         | How long before an app's slot fails                                                                                                                   |
+| `A2UIVERSE_HEARTBEAT_SECONDS`     | `30`                                          | How often a quiet stream sends an empty event, so a proxy's idle timeout never cuts it                                                                |
+| `A2UIVERSE_DEBUG_IDS`             | off                                           | `1` adds each app's own task and context ids to what it relays                                                                                        |
+| `A2UIVERSE_FAULTS`                | none                                          | Dev only: JSON making a source's answers slow, hang, break, refused, failed or invalid, to test failures; a bare app id hits every account of the app |
 
 </details>
 

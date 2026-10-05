@@ -7,13 +7,7 @@ import {equal} from '../../functions/relations.js';
 import {PortalRootContext} from '../../provider.js';
 import {formatInstant} from '../shared/instant.js';
 import {type CellObject, DerivedValueApi, type Format} from './derived-value.schema.js';
-import type {
-  AppDisplayName,
-  CellJoin,
-  EvaluatedRelation,
-  JoinMark,
-  NavigationHandler,
-} from './join.js';
+import type {SourceName, CellJoin, EvaluatedRelation, JoinMark, NavigationHandler} from './join.js';
 
 /**
  * Four readings, not three (task-7.9 decision 21). `empty` and `absent` both show no value, and
@@ -152,19 +146,19 @@ export function DerivedValueView({
   cell,
   format,
   danger,
-  appDisplayName,
+  sourceName,
   onNavigate,
 }: {
   cell?: CellObject;
   format?: Format;
   danger?: readonly string[];
-  appDisplayName?: AppDisplayName;
+  sourceName?: SourceName;
   onNavigate?: NavigationHandler;
 }) {
   const [active, setActive] = useState(false);
   const portalRoot = useContext(PortalRootContext);
   if (!cell) return null;
-  const nameOf: NameOf = appId => appDisplayName?.(appId) || appId;
+  const nameOf: NameOf = source => sourceName?.(source) || source;
   const state = cellState(cell);
   const text =
     cell.names === 'app' && typeof cell.value === 'string'
@@ -276,20 +270,20 @@ export interface DerivedValueHost {
   /** What the host does when a cell is activated; without it, cells are not interactive. */
   onNavigate?: NavigationHandler;
   /** The host's display name for an app. */
-  appDisplayName?: AppDisplayName;
+  sourceName?: SourceName;
 }
 
 /**
  * Catalog entry, built for one host: the generic binder resolves `cell` to the evaluator's
  * object, then renders it with the host's names and navigation.
  */
-export function createDerivedValueComponent({onNavigate, appDisplayName}: DerivedValueHost = {}) {
+export function createDerivedValueComponent({onNavigate, sourceName}: DerivedValueHost = {}) {
   return createComponentImplementation(DerivedValueApi, ({props}) => (
     <DerivedValueView
       cell={props.cell as CellObject | undefined}
       format={props.format}
       danger={props.danger}
-      appDisplayName={appDisplayName}
+      sourceName={sourceName}
       onNavigate={onNavigate}
     />
   ));

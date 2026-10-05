@@ -206,21 +206,21 @@ const msg = (m: Record<string, unknown>): A2uiMessage =>
 const SHELL: CompositionStamp = {source: 'shell', role: 'shell'};
 const fragment = (source: string): CompositionStamp => ({source, role: 'fragment'});
 
-const layout = (appId: string) => [
+const layout = (source: string) => [
   msg({createSurface: {surfaceId: 'shell:main', catalogId: SHELL_CATALOG_ID}}),
   msg({
     updateComponents: {
       surfaceId: 'shell:main',
       components: [
-        {id: 'root', component: 'Column', children: [`attribution-${appId}`]},
+        {id: 'root', component: 'Column', children: [`attribution-${source}`]},
         {
-          id: `attribution-${appId}`,
+          id: `attribution-${source}`,
           component: 'Attribution',
-          source: appId,
+          source,
           displayName: 'GitHub',
-          child: appId,
+          child: source,
         },
-        {id: appId, component: 'Slot', source: appId, state: 'pending', label: 'GitHub'},
+        {id: source, component: 'Slot', source, state: 'pending', label: 'GitHub'},
       ],
     },
   }),

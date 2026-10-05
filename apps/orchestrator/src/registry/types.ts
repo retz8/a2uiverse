@@ -26,7 +26,7 @@ export interface InstalledRecord {
  * the entitlement the hub advertises and enforces (decision 12).
  */
 export interface AppRecord {
-  /** Stable app id; doubles as the provenance tag on relayed events. */
+  /** Stable app id: a source with no account, and the app part of every source of it (task-12.4). */
   id: string;
   displayName: string;
   /** The card's `url`: where dispatch goes. */

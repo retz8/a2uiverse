@@ -10,12 +10,12 @@ test('the relay forwards to the bound canvas, and to nothing once it unbinds', (
   const canvas: ShellHost = {
     onShellAction: vi.fn(),
     onNavigate: vi.fn(),
-    appDisplayName: appId => (appId === 'github' ? 'GitHub' : undefined),
+    sourceName: source => (source === 'github' ? 'GitHub' : undefined),
     onPress: vi.fn(),
   };
 
   relay.host.onNavigate(TARGET);
-  expect(relay.host.appDisplayName('github')).toBeUndefined();
+  expect(relay.host.sourceName('github')).toBeUndefined();
   expect(warn).toHaveBeenCalledOnce();
 
   const unbind = relay.bind(canvas);
@@ -30,9 +30,9 @@ test('the relay forwards to the bound canvas, and to nothing once it unbinds', (
   expect(canvas.onPress).toHaveBeenCalledWith(press);
   expect(canvas.onNavigate).toHaveBeenCalledWith(TARGET);
   expect(canvas.onShellAction).toHaveBeenCalledOnce();
-  expect(relay.host.appDisplayName('github')).toBe('GitHub');
+  expect(relay.host.sourceName('github')).toBe('GitHub');
 
   unbind();
-  expect(relay.host.appDisplayName('github')).toBeUndefined();
+  expect(relay.host.sourceName('github')).toBeUndefined();
   warn.mockRestore();
 });

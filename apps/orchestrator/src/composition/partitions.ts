@@ -51,13 +51,13 @@ export class Partitions {
    * taken with their data as sent — so the merge and the vendor's next answer see what the user
    * sees, a surface the partitions no longer held included. Returns the surfaces taken.
    */
-  replace(appId: string, surfaces: Record<string, unknown>): string[] {
+  replace(source: string, surfaces: Record<string, unknown>): string[] {
     for (const surface of [...this.#models.keys()]) {
-      if (parseSurfaceId(surface)?.source === appId) this.#models.delete(surface);
+      if (parseSurfaceId(surface)?.source === source) this.#models.delete(surface);
     }
     const taken: string[] = [];
     for (const [surface, model] of Object.entries(surfaces)) {
-      if (parseSurfaceId(surface)?.source !== appId) continue;
+      if (parseSurfaceId(surface)?.source !== source) continue;
       if (typeof model !== 'object' || model === null) continue;
       this.#models.set(surface, structuredClone(model) as Model);
       taken.push(surface);
@@ -78,8 +78,8 @@ export class Partitions {
   }
 
   /** Whether the source holds a surface now: what arriving means (task-8.3 decision 5). */
-  holdsSurfaceOf(appId: string): boolean {
-    return [...this.#models.keys()].some(surface => parseSurfaceId(surface)?.source === appId);
+  holdsSurfaceOf(source: string): boolean {
+    return [...this.#models.keys()].some(surface => parseSurfaceId(surface)?.source === source);
   }
 
   /**
@@ -87,8 +87,8 @@ export class Partitions {
    * synthesis runs over (task-8.3 decision 11). A surface of any other source is not there: the
    * Synthesizer's refs into it are refused, and the IntegrityChecker's walk does not see it.
    */
-  view(appIds: ReadonlySet<string>): PartitionsView {
-    const within = (surface: string) => appIds.has(parseSurfaceId(surface)?.source ?? '');
+  view(sources: ReadonlySet<string>): PartitionsView {
+    const within = (surface: string) => sources.has(parseSurfaceId(surface)?.source ?? '');
     return {
       has: surface => within(surface) && this.has(surface),
       get: surface => (within(surface) ? this.get(surface) : undefined),
@@ -98,13 +98,13 @@ export class Partitions {
   }
 
   /** What the given sources' surfaces hold now, to ask later what changed (task-8.10 decision 2). */
-  snapshot(appIds: ReadonlySet<string>): ReadonlyMap<string, unknown> {
-    return new Map(this.view(appIds).entries());
+  snapshot(sources: ReadonlySet<string>): ReadonlyMap<string, unknown> {
+    return new Map(this.view(sources).entries());
   }
 
   /** The given sources' surfaces holding other data than at the snapshot — added and gone ones too. */
-  changedSince(snapshot: ReadonlyMap<string, unknown>, appIds: ReadonlySet<string>): string[] {
-    const now = new Map(this.view(appIds).entries());
+  changedSince(snapshot: ReadonlyMap<string, unknown>, sources: ReadonlySet<string>): string[] {
+    const now = new Map(this.view(sources).entries());
     const surfaces = new Set([...snapshot.keys(), ...now.keys()]);
     return [...surfaces].filter(
       surface =>
@@ -132,10 +132,10 @@ export class Partitions {
       // surface retires its earlier one, as the client's slot does — a vendor that paints a
       // detail as a new surface never deletes its list, and refs into a surface the composition no
       // longer holds must stop resolving here too, or absence is seen on one side only.
-      const appId = parseSurfaceId(surface)?.source;
-      if (appId !== undefined) {
+      const source = parseSurfaceId(surface)?.source;
+      if (source !== undefined) {
         for (const other of [...this.#models.keys()]) {
-          if (other !== surface && parseSurfaceId(other)?.source === appId) {
+          if (other !== surface && parseSurfaceId(other)?.source === source) {
             this.#models.delete(other);
           }
         }

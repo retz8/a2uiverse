@@ -6,7 +6,10 @@
  */
 import type {A2uiComponent} from '@a2uiverse/sdk';
 
-/** A source to dispatch — an app id, or `shell` for the merged view — with the prose request it receives. */
+/**
+ * A source to dispatch — its source id, the app and the account (task-12.4 decision 2), or `shell`
+ * for the merged view — with the prose request it receives.
+ */
 export interface SourceDispatch {
   source: string;
   request: string;
@@ -110,7 +113,7 @@ export const LAYOUT_SURFACE_SCHEMA = {
                 type: 'string',
                 minLength: 1,
                 description:
-                  'The app id of the agent to dispatch, from the available agents — or `shell` for the merged view the shell itself authors over the other sources on the screen.',
+                  'The source id of the agent to dispatch — its app id from the available agents — or `shell` for the merged view the shell itself authors over the other sources on the screen.',
               },
               request: {
                 type: 'string',
@@ -130,7 +133,7 @@ export const LAYOUT_SURFACE_SCHEMA = {
                 minItems: 1,
                 items: {type: ['string', 'null']},
                 description:
-                  '`shell` only, required whenever `columns` is written, one entry per column in the same order: the app id of the dispatched agent whose values the column shows, or null for a column that shows no single agent’s values. A column marked to an agent that has not answered stays in the view, marked as waiting for it.',
+                  '`shell` only, required whenever `columns` is written, one entry per column in the same order: the source id of the dispatched agent whose values the column shows, or null for a column that shows no single agent’s values. A column marked to an agent that has not answered stays in the view, marked as waiting for it.',
               },
               join: {
                 type: 'object',
@@ -143,7 +146,7 @@ export const LAYOUT_SURFACE_SCHEMA = {
                     type: ['string', 'null'],
                     minLength: 1,
                     description:
-                      'Anchored: the home source, the app id whose instances are the rows. Union: null — the rows are every instance any agent lists, the same thing across agents merged into one row.',
+                      'Anchored: the home source, the source id whose instances are the rows. Union: null — the rows are every instance any agent lists, the same thing across agents merged into one row.',
                   },
                   entity: {
                     type: 'string',
@@ -155,7 +158,7 @@ export const LAYOUT_SURFACE_SCHEMA = {
                     type: 'object',
                     additionalProperties: {type: 'string', minLength: 1},
                     description:
-                      'Per dispatched agent, by app id, the plural noun for its entries as the user says it — e.g. `issues`, `PRs`, `runs`.',
+                      'Per dispatched agent, by source id, the plural noun for its entries as the user says it — e.g. `issues`, `PRs`, `runs`.',
                   },
                 },
               },

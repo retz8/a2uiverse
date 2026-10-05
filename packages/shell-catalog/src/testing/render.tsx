@@ -9,7 +9,7 @@ import {A2uiSurface, type ReactComponentImplementation} from '@a2ui/react/v0_9';
 import {MessageProcessor, type SurfaceModel} from '@a2ui/web_core/v0_9';
 import type {A2uiClientAction} from '@a2ui/web_core/v0_9';
 import {
-  type AppDisplayName,
+  type SourceName,
   createCatalog,
   type NavigationHandler,
   type PressHandler,
@@ -37,7 +37,7 @@ export interface TreeOptions {
   /** Receives every navigation a derived-value cell raises. */
   onNavigate?: NavigationHandler;
   /** The host's display names for apps. */
-  appDisplayName?: AppDisplayName;
+  sourceName?: SourceName;
 }
 
 export const SURFACE_ID = 'test';
@@ -57,7 +57,7 @@ export function surfaceFor(
         onPress: options.onPress,
         onSignIn: options.onSignIn,
         onNavigate: options.onNavigate,
-        appDisplayName: options.appDisplayName,
+        sourceName: options.sourceName,
       }),
     ],
     options.onAction,

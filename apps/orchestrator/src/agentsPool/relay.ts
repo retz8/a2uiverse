@@ -14,8 +14,8 @@ export interface RelayContext {
   taskId: string;
   /** The client ↔ orchestrator conversation id. */
   contextId: string;
-  /** Provenance: the app the event came from. */
-  appId: string;
+  /** Provenance: the source the event came from — the app and the account. */
+  source: string;
   /** Expose vendor ids under the stamp (debugging only). */
   debugIds: boolean;
 }
@@ -93,7 +93,7 @@ function stamp(
     ...metadata,
     [STAMP_KEY]: {
       ...(typeof existing === 'object' && existing !== null ? existing : {}),
-      source: ctx.appId,
+      source: ctx.source,
       ...(ctx.debugIds ? {vendorContextId, vendorTaskId} : {}),
     },
   };

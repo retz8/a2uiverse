@@ -2,9 +2,9 @@ import {useContext, useRef, type CSSProperties, type MutableRefObject} from 'rea
 import {createComponentImplementation} from '@a2ui/react/v0_9';
 import {CheckIcon, ExternalLinkIcon, LockClosedIcon, UpdateIcon} from '@radix-ui/react-icons';
 import {Button, Flex, Link, Spinner, Table, Text} from '@radix-ui/themes';
-import {parseSourceId, type CompositionOperation} from '@a2uiverse/sdk';
+import type {CompositionOperation} from '@a2uiverse/sdk';
 import type {ShellActionHandler} from '../../functions/shell-actions.js';
-import type {AppDisplayName} from '../derived-value/join.js';
+import type {SourceName} from '../derived-value/join.js';
 import {PressStateContext} from '../../press-state.js';
 import {SignInContext, type SignInHandler} from '../../sign-in.js';
 import {SlotContentContext} from '../../slot-content.js';
@@ -122,7 +122,7 @@ export function SlotView({
   onPress,
   onSignIn,
   onOpenAppLibrary,
-  nameOf = appId => appId,
+  nameOf = source => source,
 }: SlotProps & {
   onSearchStore?: (query: string | undefined) => void;
   /** The reader's press, as the operation the wire carries; without it no press button is drawn. */
@@ -907,8 +907,8 @@ export function createSlotComponent(
   {
     onPress,
     onSignIn,
-    appDisplayName,
-  }: {onPress?: PressHandler; onSignIn?: SignInHandler; appDisplayName?: AppDisplayName} = {},
+    sourceName,
+  }: {onPress?: PressHandler; onSignIn?: SignInHandler; sourceName?: SourceName} = {},
 ) {
   return createComponentImplementation(SlotApi, ({context}) => {
     // Read from the component's own model, not the binder's resolved props: upstream's binder
@@ -968,12 +968,7 @@ export function createSlotComponent(
             componentId: context.componentModel.id,
           })
         }
-        nameOf={source => {
-          // A source names the app and the account it paints under (task-12.2 decision 3); the
-          // app's display name stands for it.
-          const appId = parseSourceId(source)?.appId ?? source;
-          return appDisplayName?.(appId) ?? appId;
-        }}
+        nameOf={source => sourceName?.(source) ?? source}
       />
     );
   });

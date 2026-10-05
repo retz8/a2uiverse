@@ -144,8 +144,8 @@ describe('the turn', () => {
     utterance: 'compare camera prices',
     request: 'compare price per camera; best price first',
     sources: [
-      {surface: 'shop-a:list', appId: 'shop-a', displayName: 'Shop A', data: {items: [{id: 'x'}]}},
-      {surface: 'shop-b:list', appId: 'shop-b', displayName: 'Shop B', data: {products: []}},
+      {surface: 'shop-a:list', source: 'shop-a', name: 'Shop A', data: {items: [{id: 'x'}]}},
+      {surface: 'shop-b:list', source: 'shop-b', name: 'Shop B', data: {products: []}},
     ],
   };
 
@@ -175,8 +175,8 @@ describe('the turn', () => {
       columns: ['Camera', 'Price at A', 'Price at C'],
       columnSources: [null, 'shop-a', 'shop-c'],
       missing: [
-        {appId: 'shop-c', displayName: 'Shop C', state: 'loading'},
-        {appId: 'shop-d', displayName: 'Shop D', state: 'failed'},
+        {source: 'shop-c', name: 'Shop C', state: 'loading'},
+        {source: 'shop-d', name: 'Shop D', state: 'failed'},
       ],
     });
     expect(turn).toContain(
@@ -226,7 +226,7 @@ describe('the turn', () => {
     const joined = buildSynthesisTurn({
       ...base,
       previous: {declined: true, reason: 'x'},
-      joined: [{appId: 'shop-b', displayName: 'Shop B'}],
+      joined: [{source: 'shop-b', name: 'Shop B'}],
     });
     expect(joined).toContain('asked to include sources that answered after it was made');
     expect(joined).toContain('- these sources joined the view');
@@ -236,7 +236,7 @@ describe('the turn', () => {
     const both = buildSynthesisTurn({
       ...base,
       previous: {declined: true, reason: 'x'},
-      joined: [{appId: 'shop-b', displayName: 'Shop B'}],
+      joined: [{source: 'shop-b', name: 'Shop B'}],
       changes: {
         absent: [{surface: 'shop-a:list', pointer: '/items[id="gone"]/price'}],
         appeared: [],

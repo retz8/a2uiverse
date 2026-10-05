@@ -337,4 +337,31 @@ describe('ModelPlanner — the loop', () => {
       "/dispatch/0/source: 'reddit' is not on this turn's shortlist",
     ]);
   });
+
+  test('the shortlist is every source of each shortlisted app: two accounts of one app plan as two sources (task-12.4 decision 2)', async () => {
+    const accounts: LayoutSurface = {
+      dispatch: [
+        {source: 'gmail.1', request: 'work mail'},
+        {source: 'gmail.2', request: 'home mail'},
+      ],
+      tree: {
+        components: [
+          {id: 'root', component: 'Column', children: ['a', 'b']},
+          {id: 'a', component: 'Slot', source: 'gmail.1'},
+          {id: 'b', component: 'Slot', source: 'gmail.2'},
+        ],
+      },
+      dataModel: {},
+    };
+    const sourcesOf = (appId: string) => (appId === 'gmail' ? ['gmail.1', 'gmail.2'] : [appId]);
+    const {model} = scripted([text(tagged(accounts))]);
+    const outcome = await new ModelPlanner({
+      model,
+      systemPrompt: 'SYSTEM',
+      catalog: files.catalog,
+      readers,
+      sourcesOf,
+    }).plan(input);
+    expect(outcome.kind).toBe('planned');
+  });
 });

@@ -10,10 +10,13 @@ import type {CompositionOperation} from '@a2uiverse/sdk';
 import type {MergeFacts} from '@a2uiverse/shell-catalog';
 import type {PaintCause} from './turn/cause';
 
-/** A fragment mounted into a slot: which surface, and which app painted it. */
+/** A fragment mounted into a slot: which surface, and which source painted it. */
 export interface PlacedFragment {
   surfaceId: string;
-  /** The stamp's `source` — the app id, carried so nothing has to parse it back out of ids. */
+  /**
+   * The stamp's `source` — the app and the account it painted under — carried so nothing has to
+   * parse it back out of ids.
+   */
   source: string;
 }
 
@@ -23,7 +26,7 @@ export interface PlacedFragment {
  */
 export interface Notice {
   key: number;
-  /** The app that spoke; null when the shell speaks as itself — its cues, and unstamped prose. */
+  /** The source that spoke; null when the shell speaks as itself — its cues, and unstamped prose. */
   source: string | null;
   text: string;
 }
@@ -31,12 +34,16 @@ export interface Notice {
 /**
  * A source the turn's shell paint reserved a slot for, in slot order. Derived from the shell's
  * own `Attribution` components — the client's second projection of the shell paint, beside
- * `placement`, and the only place the display names the orchestrator painted are readable.
+ * `placement`, and the only place the names the orchestrator painted are readable.
  */
 export interface RosterEntry {
   /** The source the shell reserved a slot for — the key the slot is placed by. */
-  appId: string;
-  displayName: string;
+  source: string;
+  /**
+   * The source's one name in words (task-12.4 decision 5): the app's display name, with the
+   * account's label when the app has more than one account.
+   */
+  name: string;
   /** The merged view's entry only, when its merge is over an entity: the join's nouns. */
   join?: JoinNouns;
 }
@@ -146,7 +153,7 @@ export interface CanvasState {
    */
   roster: readonly RosterEntry[];
   /**
-   * What each source said this turn, by app id — kept for the whole turn, where `notices` is
+   * What each source said this turn, by source — kept for the whole turn, where `notices` is
    * only what is currently *shown*. A slot whose source spoke but never painted rests on this,
    * so the fact that a source was consulted survives the stack's fade.
    */
@@ -228,11 +235,11 @@ export interface CanvasStore {
 /**
  * The stack as rendered: one line per source in the order the plan gave the slots, so the stack
  * echoes the layout below it and never reorders under a reader, with the shell's own line last.
- * A source the roster does not know keeps its appId — the degenerate, uncomposed case.
+ * A source the roster does not know keeps its id — the degenerate, uncomposed case.
  */
 export function orderedNotices(state: CanvasState): readonly RenderedNotice[] {
-  const rank = new Map(state.roster.map((entry, i) => [entry.appId, i]));
-  const label = new Map(state.roster.map(entry => [entry.appId, entry.displayName]));
+  const rank = new Map(state.roster.map((entry, i) => [entry.source, i]));
+  const label = new Map(state.roster.map(entry => [entry.source, entry.name]));
   const indexOf = (notice: Notice) =>
     notice.source === null ? Number.MAX_SAFE_INTEGER : (rank.get(notice.source) ?? rank.size);
   return [...state.notices]

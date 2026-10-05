@@ -22,13 +22,13 @@ export interface Fault {
   every?: boolean;
 }
 
-/** By app id. */
+/** By source; a bare app id covers every source of the app (task-12.4 decision 8). */
 export type FaultMap = ReadonlyMap<string, Fault>;
 
 const KEY = 'A2UIVERSE_FAULTS';
 
 /**
- * `{"github": {"fault": "delay", "seconds": 40}, "circleci": {"fault": "fail", "message": "…"}}`.
+ * `{"github": {"fault": "delay", "seconds": 40}, "gmail.2": {"fault": "fail", "message": "…"}}`.
  * Unset or blank is no fault; anything malformed fails boot naming the entry.
  */
 export function parseFaults(raw: string | undefined): FaultMap {
@@ -39,16 +39,16 @@ export function parseFaults(raw: string | undefined): FaultMap {
   } catch (err) {
     throw new Error(`${KEY}: invalid JSON (${(err as Error).message})`);
   }
-  if (!isRecord(parsed)) throw new Error(`${KEY}: expected a JSON object of app id → fault`);
+  if (!isRecord(parsed)) throw new Error(`${KEY}: expected a JSON object of source → fault`);
   const faults = new Map<string, Fault>();
-  for (const [appId, entry] of Object.entries(parsed)) {
-    faults.set(appId, parseFault(appId, entry));
+  for (const [source, entry] of Object.entries(parsed)) {
+    faults.set(source, parseFault(source, entry));
   }
   return faults;
 }
 
-function parseFault(appId: string, entry: unknown): Fault {
-  const where = `${KEY}.${appId}`;
+function parseFault(source: string, entry: unknown): Fault {
+  const where = `${KEY}.${source}`;
   if (!isRecord(entry)) throw new Error(`${where}: expected an object with a "fault"`);
   const {fault, seconds, message, every, ...rest} = entry;
   const unknown = Object.keys(rest);
@@ -79,13 +79,13 @@ function parseFault(appId: string, entry: unknown): Fault {
 /** One line per fault, for the boot log: a run with faults is never mistaken for a clean one. */
 export function describeFaults(faults: FaultMap): string {
   return [...faults]
-    .map(([appId, f]) => {
+    .map(([source, f]) => {
       const detail = [
         f.seconds !== undefined ? `${f.seconds} s` : undefined,
         f.message !== undefined ? JSON.stringify(f.message) : undefined,
         f.every ? 'every dispatch' : 'the plan’s dispatch',
       ].filter(Boolean);
-      return `${appId}: ${f.fault} (${detail.join(', ')})`;
+      return `${source}: ${f.fault} (${detail.join(', ')})`;
     })
     .join('; ');
 }

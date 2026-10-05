@@ -23,24 +23,30 @@ export const SYNTHESIZER_ROLE =
 export interface SynthesisSource {
   /** Namespaced surface id — what refs name. */
   surface: string;
-  appId: string;
-  displayName: string;
+  source: string;
+  /**
+   * The source's name in words: the app's, with the account's label when the app has more than
+   * one (task-12.4 decision 6).
+   */
+  name: string;
   /** The partition's live data model. */
   data: unknown;
 }
 
 /** A dispatched source that brings no data to this synthesis (task-8.3 decision 13). */
 export interface MissingSource {
-  appId: string;
-  displayName: string;
+  source: string;
+  /** The source's name in words, as on the screen. */
+  name: string;
   /** Still in flight, failed, or answered after the merge was made and not included yet. */
   state: 'loading' | 'failed' | 'arrived';
 }
 
 /** A source folded into the live view at the reader's press (task-8.4 decision 12). */
 export interface JoinedSource {
-  appId: string;
-  displayName: string;
+  source: string;
+  /** The source's name in words, as on the screen. */
+  name: string;
 }
 
 /** A fact of a match claim that stopped holding while both its refs resolve (task-7.6 decision 13). */
@@ -95,7 +101,7 @@ const EXAMPLES_FRAMING =
 function renderExample(example: SynthesisExample): string {
   const sources = example.sources.map(s => ({
     surface: s.surface,
-    from: `${s.displayName} (${s.appId})`,
+    from: `${s.name} (${s.source})`,
     data: s.data,
   }));
   const body = JSON.stringify(
@@ -157,7 +163,7 @@ function renderSources(sources: readonly SynthesisSource[]): string {
   return sources
     .map(
       s =>
-        `- surface: ${s.surface}\n  from: ${s.displayName} (${s.appId})\n  data:\n${indent(JSON.stringify(s.data, null, 2), 4)}`,
+        `- surface: ${s.surface}\n  from: ${s.name} (${s.source})\n  data:\n${indent(JSON.stringify(s.data, null, 2), 4)}`,
     )
     .join('\n');
 }
@@ -208,7 +214,7 @@ function renderMissing(missing: readonly MissingSource[]): string {
     failed: 'failed',
     arrived: 'answered after this view was made, and is not in it yet',
   } as const;
-  const lines = missing.map(s => `- ${s.displayName} (${s.appId}): ${said[s.state]}`);
+  const lines = missing.map(s => `- ${s.name} (${s.source}): ${said[s.state]}`);
   return `Sources with no data in this view — keep every column marked to one, the empty cell in each of its rows:\n${lines.join('\n')}`;
 }
 
@@ -235,7 +241,7 @@ export function buildSynthesisTurn(inputs: SynthesisTurnInputs): string {
     );
     if (previous !== undefined) parts.push(`Your previous document:\n${previous}`);
   } else if (inputs.joined && inputs.joined.length > 0) {
-    const joined = inputs.joined.map(s => `  - ${s.displayName} (${s.appId})`).join('\n');
+    const joined = inputs.joined.map(s => `  - ${s.name} (${s.source})`).join('\n');
     const changed = inputs.changes ? `\n${renderChanges(inputs.changes)}` : '';
     parts.push(
       `The user is looking at your previous view and asked to include sources that answered after it was made${inputs.changes ? ', and the sources changed under it' : ''}. Keep the view: fold in each source that joined — attach its entries to the rows they belong to, into a row’s list, or as new rows when it is the home source, and fill the columns marked to it — or leave out what belongs nowhere; re-point the refs that broke; attach each entry that appeared, or leave it out; re-point, re-evidence or detach each fact that no longer holds; keep the tree and the shape of the model unless the data no longer supports them; and say what changed in the note. What changed:\n- these sources joined the view, their data among the sources above:\n${joined}${changed}`,

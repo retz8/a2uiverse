@@ -44,7 +44,7 @@ const base = {
 
 /** One slot of a layout: a vendor's, the reserved synthesis slot (`shell`), or a gap. */
 interface LayoutSlot {
-  appId: string;
+  source: string;
   name: string;
   state?: 'pending' | 'failed' | 'collapsed';
   /** The synthesis slot: shell content, no attribution around it (task-5.5 decision 1). */
@@ -65,7 +65,7 @@ function layoutComponents(
   slots: readonly LayoutSlot[],
   axis: 'Row' | 'Column' = 'Column',
 ): Array<Record<string, unknown>> {
-  const idOf = (s: LayoutSlot) => `slot-${s.appId}`;
+  const idOf = (s: LayoutSlot) => `slot-${s.source}`;
   return [
     {
       id: 'root',
@@ -77,7 +77,7 @@ function layoutComponents(
       const slot = {
         id: idOf(s),
         component: 'Slot',
-        source: s.appId,
+        source: s.source,
         state: s.state ?? 'pending',
         label: s.name,
         ...weight,
@@ -97,7 +97,7 @@ function layoutComponents(
           id: `attribution-${idOf(s)}`,
           component: 'Attribution',
           displayName: s.name,
-          source: s.appId,
+          source: s.source,
           child: idOf(s),
           ...weight,
         },
@@ -122,8 +122,8 @@ function layoutRepaint(slots: readonly LayoutSlot[], axis?: 'Row' | 'Column'): A
   ];
 }
 
-const GITHUB: LayoutSlot = {appId: 'github', name: 'GitHub'};
-const GMAIL: LayoutSlot = {appId: 'gmail', name: 'Gmail'};
+const GITHUB: LayoutSlot = {source: 'github', name: 'GitHub'};
+const GMAIL: LayoutSlot = {source: 'gmail', name: 'Gmail'};
 
 /**
  * The wire shape of a server-side validation failure, as the agent's `_teardown` produces it:
@@ -421,14 +421,14 @@ export const COMPOSED_QUESTION_BEAT: BeatFixture = {
  */
 const SYNTHESIS_SLOTS: LayoutSlot[] = [
   {
-    appId: SYNTHESIS_SOURCE,
+    source: SYNTHESIS_SOURCE,
     name: 'Synthesis',
     shell: true,
     columns: ['Camera', SHOP_A_NAME, SHOP_B_NAME, 'In stock'],
     join: {home: 'shop-a', nouns: {'shop-a': 'cameras', 'shop-b': 'listings'}},
   },
-  {appId: 'shop-a', name: SHOP_A_NAME},
-  {appId: 'shop-b', name: SHOP_B_NAME},
+  {source: 'shop-a', name: SHOP_A_NAME},
+  {source: 'shop-b', name: SHOP_B_NAME},
 ];
 
 /**

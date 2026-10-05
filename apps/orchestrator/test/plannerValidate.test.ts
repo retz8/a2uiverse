@@ -201,6 +201,27 @@ describe('slot accounting', () => {
     blank.dispatch[0] = {source: 'github', request: '   '};
     expect(check(blank)).toEqual(["/dispatch/0/request: the request for 'github' is blank"]);
   });
+
+  test('two accounts of one app are two sources, each dispatched once (task-12.4 decision 2)', () => {
+    const accounts = ['gmail.1', 'gmail.2', 'shell'];
+    const both = fanOut();
+    both.dispatch[0] = {source: 'gmail.1', request: 'Work mail needing a reply.'};
+    both.dispatch[1] = {source: 'gmail.2', request: 'Home mail needing a reply.'};
+    both.tree.components[4] = {id: 'gh', component: 'Slot', source: 'gmail.1'};
+    both.tree.components[5] = {id: 'gm', component: 'Slot', source: 'gmail.2'};
+    expect(check(both, accounts)).toEqual([]);
+    const twice = fanOut();
+    twice.dispatch[0] = {source: 'gmail.2', request: 'a'};
+    twice.dispatch[1] = {source: 'gmail.2', request: 'b'};
+    expect(check(twice, accounts).join('\n')).toContain(
+      "/dispatch/1/source: 'gmail.2' is dispatched twice",
+    );
+    const bare = fanOut();
+    bare.dispatch[0] = {source: 'gmail', request: 'a'};
+    expect(check(bare, accounts).join('\n')).toContain(
+      "/dispatch/0/source: 'gmail' is not on this turn's shortlist",
+    );
+  });
 });
 
 describe('the merged view’s columns and join (task-7.15)', () => {

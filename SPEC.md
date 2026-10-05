@@ -597,7 +597,7 @@ Properties that follow from the decisions above, recorded so they are not discov
 - The shell chooses the merge's columns and criterion. The criterion is named, displayed, and user-changeable for this reason.
 - The Planner authors each dispatched agent's request. What a vendor receives is the orchestrator's words, not the user's — fan-out can disclose more, or less, than the user said.
 - A credential the user types into the utterance is the user's own act: it reaches the Planner, the intent journal, the canvas's header and the trail, and nothing detects it.
-- An account's label — an email address, a username — reaches the Planner, which chooses accounts by it (§7, §9.5).
+- An account's label — an email address, a username — reaches the Planner, which chooses accounts by it, and the Synthesizer, which tells two accounts of one app apart by it (§7, §9.5).
 
 ---
 

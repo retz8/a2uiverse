@@ -46,6 +46,16 @@ export function parseSourceId(source: string): {appId: string; account?: number}
   return {appId, account: Number(n)};
 }
 
+/**
+ * A source's one name in words (task-12.4 decision 5): the app's display name, with the account's
+ * label when the app has more than one account — `Gmail · alice@example.com` — otherwise the app's
+ * name alone. The attribution marker, every word on the canvas naming a source and the
+ * Synthesizer's prompt read it.
+ */
+export function sourceName(displayName: string, account?: string | null): string {
+  return account ? `${displayName} · ${account}` : displayName;
+}
+
 /** Separator in a namespaced surface id: `<source>:<surfaceId>`. */
 export const SURFACE_NS_SEPARATOR = ':';
 

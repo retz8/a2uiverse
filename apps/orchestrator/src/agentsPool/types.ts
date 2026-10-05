@@ -5,9 +5,9 @@ import type {VendorEvent} from './relay.js';
 
 export type DispatchOutcome = 'completed' | 'failed' | 'cancelled' | 'timeout';
 
-/** One dispatch of one turn to one app. Journaled; the quiescence unit from Phase 2. */
+/** One dispatch of one turn to one source. Journaled; the quiescence unit from Phase 2. */
 export interface DispatchRecord {
-  appId: string;
+  source: string;
   clientContextId: string;
   clientTaskId: string;
   vendorContextId?: string;

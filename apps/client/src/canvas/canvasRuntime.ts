@@ -35,7 +35,7 @@ import {streamUserMessage} from '../a2a/streamUserMessage';
 import {describeError} from '../shared/describeError';
 import {createCatalogGate, gateRunner, type CatalogLoadFailure} from '../catalogs/catalogGate';
 import type {CatalogLoader} from '../catalogs/loader';
-import {createCanvasStore, type CanvasStore} from './canvasStore';
+import {createCanvasStore, type CanvasStore, type RosterEntry} from './canvasStore';
 import type {FragmentFailure, TurnRunner} from './turn/canvasTurn';
 import {createTurnRunner} from './turn/canvasTurn';
 import type {PaintCause} from './turn/cause';
@@ -83,8 +83,8 @@ export interface CanvasRuntime {
   press(operation: CompositionOperation): Promise<void>;
   /** A shell action raised from a shell surface: the page is the caller's to open; reported here for the journal. */
   reportShellAction(action: ShellAction): void;
-  /** An app's display name as this canvas's shell paint has it. */
-  appDisplayName(appId: string): string | undefined;
+  /** A source's name as this canvas's shell paint has it (task-12.4 decision 5). */
+  sourceName(source: string): string | undefined;
   /**
    * The canvas closes (task-9.6 decision 8): the turn in flight and every stream beside it end,
    * and the orchestrator is told, on the canvas's context — nothing is sent for a canvas that
@@ -527,14 +527,15 @@ export function createCanvasRuntime({
   const navigator = createNavigator(bindingIndex);
 
   /**
-   * An app's display name as this canvas's shell paint has it (task-7.5 decision 11), read off
-   * the shell paint on the stage, then the store's roster.
+   * A source's name as this canvas's shell paint has it (task-7.5 decision 11, task-12.4
+   * decision 5) — the app's, with the account's label when the app has more than one — read off
+   * the shell paint on the stage, then the store's roster, by the full source.
    */
-  const appDisplayName = (appId: string) => {
+  const sourceName = (source: string) => {
     const stageId = store.getState().stageId;
     const surface = stageId ? processor.model.getSurface(stageId) : undefined;
-    const named = (roster: readonly {appId: string; displayName: string}[]) =>
-      roster.find(entry => entry.appId === appId)?.displayName;
+    const named = (roster: readonly RosterEntry[]) =>
+      roster.find(entry => entry.source === source)?.name;
     return (surface && named(rosterOfSurface(surface))) ?? named(store.getState().roster);
   };
 
@@ -569,7 +570,7 @@ export function createCanvasRuntime({
     open,
     press,
     reportShellAction,
-    appDisplayName,
+    sourceName,
     close,
   };
 }

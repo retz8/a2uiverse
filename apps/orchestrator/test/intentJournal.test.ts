@@ -23,7 +23,7 @@ const utterance: Message = {
 };
 
 const record: DispatchRecord = {
-  appId: 'github',
+  source: 'github',
   clientContextId: 'c1',
   clientTaskId: 't1',
   vendorContextId: 'v1',
@@ -51,7 +51,7 @@ describe('IntentJournal', () => {
       turnId: 't1',
       clientContextId: 'c1',
       message: utterance,
-      appId: 'github',
+      source: 'github',
     });
     turn.dispatched(record);
     turn.surfaces({created: ['s1'], updated: [], deleted: []});
@@ -114,7 +114,7 @@ describe('IntentJournal', () => {
       turnId: 't1',
       clientContextId: 'c1',
       message: utterance,
-      appId: 'github',
+      source: 'github',
     });
     await turn.close('completed');
     const [entry] = await lines(file);
@@ -129,10 +129,10 @@ describe('IntentJournal', () => {
     const file = join(dir, 'j.jsonl');
     const journal = new IntentJournal(file);
     await journal
-      .open({turnId: 't1', clientContextId: 'c1', message: utterance, appId: 'github'})
+      .open({turnId: 't1', clientContextId: 'c1', message: utterance, source: 'github'})
       .close('completed');
     await journal
-      .open({turnId: 't2', clientContextId: 'c1', message: utterance, appId: 'github'})
+      .open({turnId: 't2', clientContextId: 'c1', message: utterance, source: 'github'})
       .close('failed');
     const entries = await lines(file);
     expect(entries.map(e => e.turnId)).toEqual(['t1', 't2']);
@@ -150,7 +150,7 @@ describe('IntentJournal', () => {
       turnId: 't1',
       clientContextId: 'c1',
       message: utterance,
-      appId: 'github',
+      source: 'github',
     });
     await expect(turn.close('completed')).resolves.toBeUndefined();
   });

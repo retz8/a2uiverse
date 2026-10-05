@@ -6,6 +6,7 @@
 import type {AgentCard} from '@a2a-js/sdk';
 import {beforeAll, describe, expect, test} from 'vitest';
 import {Compositions} from '../src/composition/compositions.js';
+import {Sources} from '../src/accounts/accounts.js';
 import {compositionFrom, type CompositionState} from '../src/composition/state.js';
 import {compositionLine, compositionView, platformReaders} from '../src/planner/platformReaders.js';
 import {READER_NAMES, readerTools, type PlatformReaders} from '../src/planner/readers.js';
@@ -131,7 +132,7 @@ describe('this composition', () => {
   });
 
   test('is the composition’s structure: the utterance, each slot and its state, the merged view, the gaps', () => {
-    const state = compositionFrom(layout, registry, 'what needs my attention today?');
+    const state = compositionFrom(layout, new Sources(registry), 'what needs my attention today?');
     state.arrived.add('github');
     state.slots.get('gmail')!.state = 'failed';
     expect(compositionView(state)).toEqual({
@@ -146,7 +147,7 @@ describe('this composition', () => {
   });
 
   test('says whether the merged view is live, collapsed or declined, and why', () => {
-    const state = compositionFrom(layout, registry, 'x');
+    const state = compositionFrom(layout, new Sources(registry), 'x');
     state.mergedView = {outcome: 'declined', reason: 'nothing joinable'};
     expect(compositionView(state).mergedView).toEqual({
       state: 'declined',
@@ -159,12 +160,16 @@ describe('this composition', () => {
     });
     state.mergedView = {outcome: 'synthesized'};
     expect(compositionView(state).mergedView).toEqual({state: 'live'});
-    const plain = compositionFrom({...layout, dispatch: [layout.dispatch[0]!]}, registry, 'x');
+    const plain = compositionFrom(
+      {...layout, dispatch: [layout.dispatch[0]!]},
+      new Sources(registry),
+      'x',
+    );
     expect(compositionView(plain).mergedView).toBeUndefined();
   });
 
   test('never carries a partition’s contents or the synthesis document', () => {
-    const state = compositionFrom(layout, registry, 'x');
+    const state = compositionFrom(layout, new Sources(registry), 'x');
     const paint = (op: Record<string, unknown>) => ({
       kind: 'message' as const,
       messageId: 'm',
@@ -198,7 +203,7 @@ describe('recent turns — the ancestry (task-9.3 decision 2)', () => {
   const opened = Date.parse('2026-09-13T06:00:00.000Z');
 
   test('one line per context: when it was opened, what was asked, which sources answered, the merged view, whether it still loads', () => {
-    const state = compositionFrom(layout, registry, 'what needs my review?', {
+    const state = compositionFrom(layout, new Sources(registry), 'what needs my review?', {
       turnId: 't',
       openedAt: opened,
     });
@@ -220,7 +225,7 @@ describe('recent turns — the ancestry (task-9.3 decision 2)', () => {
     const askedIn = (line: string) => /"[^"]*"/.exec(line)?.[0];
     const compositions = new Compositions();
     const open = (id: string, utterance: string, parent?: string) => {
-      const state = compositionFrom(layout, registry, utterance, {
+      const state = compositionFrom(layout, new Sources(registry), utterance, {
         turnId: id,
         openedAt: opened,
         ...(parent ? {parent} : {}),
@@ -309,11 +314,12 @@ describe('the composition’s slots are keyed by source (task-6.3 decision 6)', 
       github: named('github', 'GitHub'),
       gmail: named('gmail', 'Gmail'),
     });
-    const state: CompositionState = compositionFrom(layout, registry, 'u');
+    const state: CompositionState = compositionFrom(layout, new Sources(registry), 'u');
     expect([...state.slots.keys()]).toEqual(['github', 'gmail', 'shell']);
     expect(state.slots.get('shell')!.plan).toEqual({
       source: 'shell',
       displayName: 'Synthesis',
+      name: 'Synthesis',
       request: 'timeline',
     });
     expect(state.gaps).toEqual(['flight booking']);

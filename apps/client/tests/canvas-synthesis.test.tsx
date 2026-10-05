@@ -89,7 +89,7 @@ describe('the synthesis turn on the canvas', () => {
   it('the reserved slot rests quietly as shell content while the sources answer', async () => {
     const {store, runner, renderStage} = setup();
     await replayBeatOnCanvas(beforeSynthesis(SYNTHESIS_BEAT), {runner, store, paced: false});
-    expect(store.getState().roster.map(r => [r.appId, r.displayName])).toEqual([
+    expect(store.getState().roster.map(r => [r.source, r.name])).toEqual([
       ['shell', 'Synthesis'],
       ['shop-a', 'Aperture & Co'],
       ['shop-b', 'Northlight'],

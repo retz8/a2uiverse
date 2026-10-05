@@ -46,8 +46,8 @@ const CAMERA_COMPARISON = {
   sources: [
     {
       surface: SHOP_A_SURFACE,
-      appId: 'shop-a',
-      displayName: 'Aperture & Co',
+      source: 'shop-a',
+      name: 'Aperture & Co',
       data: {
         items: [
           {id: 'lumen-x100', name: 'Lumen X100', price: 1299, inStock: true},
@@ -58,8 +58,8 @@ const CAMERA_COMPARISON = {
     },
     {
       surface: SHOP_B_SURFACE,
-      appId: 'shop-b',
-      displayName: 'Northlight',
+      source: 'shop-b',
+      name: 'Northlight',
       data: {
         products: [
           {sku: 'verity-a7', title: 'Verity A7 body', price: 1799, available: 2},
@@ -120,8 +120,8 @@ export const SYNTHESIS_SOURCE = 'shell';
 const [shopA, shopB] = CAMERA_COMPARISON.sources;
 export const SHOP_A = shopA!.surface;
 export const SHOP_B = shopB!.surface;
-export const SHOP_A_NAME = shopA!.displayName;
-export const SHOP_B_NAME = shopB!.displayName;
+export const SHOP_A_NAME = shopA!.name;
+export const SHOP_B_NAME = shopB!.name;
 
 export interface ShopAItem {
   id: string;

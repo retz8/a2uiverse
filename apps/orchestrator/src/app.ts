@@ -5,6 +5,7 @@ import {AGENT_CARD_PATH} from '@a2a-js/sdk';
 import {DefaultAgentCardResolver} from '@a2a-js/sdk/client';
 import {DefaultRequestHandler, InMemoryTaskStore} from '@a2a-js/sdk/server';
 import {agentCardHandler, jsonRpcHandler, UserBuilder} from '@a2a-js/sdk/server/express';
+import {NO_ACCOUNTS, Sources, type AccountStore} from './accounts/accounts.js';
 import {buildAgentCard} from './agentCard.js';
 import {AgentsPool} from './agentsPool/agentsPool.js';
 import {Compositions} from './composition/compositions.js';
@@ -53,9 +54,11 @@ export interface OrchestratorOverrides {
   resolveCard?: ResolveCard;
   /** The quiet after a step before its walk starts; `STEP_QUIET_MS` unless a test shortens it. */
   stepQuietMs?: number;
+  /** The accounts held per app; none until the vault lands (task-12.4 decision 3). */
+  accounts?: AccountStore;
 }
 
-/** Wires the orchestrator: Registry · Embedder · Router · Planner · Synthesizer · AgentsPool · IntentJournal behind one A2A executor, the registry's routes beside it. */
+/** Wires the orchestrator: Registry · the accounts seam · Embedder · Router · Planner · Synthesizer · AgentsPool · IntentJournal behind one A2A executor, the registry's routes beside it. */
 export function buildOrchestrator({
   config,
   overrides,
@@ -79,13 +82,14 @@ export function buildOrchestrator({
     platformCard: card,
   });
   let writeToken: string | undefined;
+  const sources = new Sources(registry, overrides?.accounts ?? NO_ACCOUNTS);
   const compositions = new Compositions();
   const readers = platformReaders({
     registry,
     composition: contextId => compositions.get(contextId),
     ancestry: contextId => compositions.ancestry(contextId),
   });
-  const planner = overrides?.planner ?? plannerFrom(config, readers);
+  const planner = overrides?.planner ?? plannerFrom(config, readers, sources);
   const synthesizer = synthesizerFrom(config, overrides?.synthesisModel);
   const router = new Router(registry, embedder, {shortlistCap: config.shortlistCap});
   const pool = new AgentsPool(registry, {
@@ -94,7 +98,7 @@ export function buildOrchestrator({
     faults: config.faults,
   });
   const executor = new OrchestratorExecutor({
-    registry,
+    sources,
     pool,
     journal,
     router,
@@ -135,7 +139,7 @@ export function buildOrchestrator({
  * The turn's one model call, authored here: its prompt from the files read at boot, its pruned
  * catalog, and the readers as its tools. Without a key it is a broken turn.
  */
-function plannerFrom(config: Config, readers: PlatformReaders): Planner {
+function plannerFrom(config: Config, readers: PlatformReaders, sources: Sources): Planner {
   const {googleApiKey} = config;
   if (!googleApiKey) {
     // Booting without a key is fine (actions still route); a palette turn is then a broken turn.
@@ -153,6 +157,7 @@ function plannerFrom(config: Config, readers: PlatformReaders): Planner {
     systemPrompt: plannerSystemPrompt(files),
     catalog: files.catalog,
     readers,
+    sourcesOf: appId => sources.of(appId).map(({source}) => source),
   });
 }
 

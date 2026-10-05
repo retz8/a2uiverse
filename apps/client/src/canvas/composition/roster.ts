@@ -22,6 +22,7 @@
  * the catalog's own: it names no source and enters no roster.
  */
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
+import {sourceName} from '@a2uiverse/sdk';
 import type {JoinNouns, PaintedMerge, PaintedSlotState, RosterEntry} from '../canvasStore';
 
 /** The reserved source id the hub stamps its own content with — the shell speaking as itself. */
@@ -36,8 +37,8 @@ const SLOT = 'Slot';
 interface ShellComponent {
   id?: unknown;
   component?: unknown;
-  appId?: unknown;
   displayName?: unknown;
+  account?: unknown;
   child?: unknown;
   source?: unknown;
   label?: unknown;
@@ -60,8 +61,8 @@ export interface ShellPaintSlots {
    * list. Undefined when the paint names no source: a shell repaint is how the orchestrator
    * flips a slot's state, and a repaint may legally carry only the components it changed — so a
    * paint with no slot in it says nothing about the roster rather than declaring the composition
-   * has none. Reading it as the latter drops the display names mid-turn and the stack falls
-   * back to raw app ids.
+   * has none. Reading it as the latter drops the names mid-turn and the stack falls back to raw
+   * source ids.
    */
   roster: RosterEntry[] | undefined;
   /**
@@ -87,14 +88,19 @@ export function shellPaintSlots(messages: readonly A2uiMessage[]): ShellPaintSlo
     const components = (update.components as ShellComponent[]).filter(Boolean);
     const wholeTree = components.some(raw => raw.id === ROOT_ID);
     // The attribution wrapping each slot, by the slot's id — the `child` link is the pairing.
-    const attributionOf = new Map<string, {appId: string; displayName: string}>();
+    const attributionOf = new Map<string, RosterEntry>();
     for (const raw of components) {
       if (raw.component !== ATTRIBUTION || typeof raw.child !== 'string') continue;
-      const {source, displayName} = raw;
+      const {source, displayName, account} = raw;
       if (typeof source !== 'string') continue;
+      // The source's one name: the app's, with the account's label the painter put beside it
+      // when the app has more than one (task-12.4 decision 5).
       attributionOf.set(raw.child, {
-        appId: source,
-        displayName: typeof displayName === 'string' && displayName ? displayName : source,
+        source,
+        name: sourceName(
+          typeof displayName === 'string' && displayName ? displayName : source,
+          typeof account === 'string' ? account : undefined,
+        ),
       });
     }
     for (const raw of components) {
@@ -103,14 +109,14 @@ export function shellPaintSlots(messages: readonly A2uiMessage[]): ShellPaintSlo
         // Shell content pairs with no attribution: the slot itself says whose it is.
         const join = joinNouns(raw.join);
         roster.push({
-          appId: SHELL_SOURCE,
-          displayName: typeof raw.label === 'string' && raw.label ? raw.label : SHELL_SOURCE,
+          source: SHELL_SOURCE,
+          name: typeof raw.label === 'string' && raw.label ? raw.label : SHELL_SOURCE,
           ...(join ? {join} : {}),
         });
         continue;
       }
       const attribution = typeof raw.id === 'string' ? attributionOf.get(raw.id) : undefined;
-      if (attribution?.appId === raw.source) roster.push(attribution);
+      if (attribution?.source === raw.source) roster.push(attribution);
       else if (wholeTree) unattributed.push(raw.source);
     }
   }

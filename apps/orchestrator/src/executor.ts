@@ -8,6 +8,7 @@ import {
   type SynthesisPayload,
 } from '@a2uiverse/sdk';
 import {SHELL_ACTIONS, type SlotCollapse} from '@a2uiverse/shell-catalog/schema';
+import type {Sources} from './accounts/accounts.js';
 import type {AgentsPool} from './agentsPool/agentsPool.js';
 import {STAMP_KEY, type VendorEvent} from './agentsPool/relay.js';
 import type {DispatchHandle, DispatchOutcome, DispatchRecord} from './agentsPool/types.js';
@@ -41,7 +42,6 @@ import type {SynthesisRecord, SynthesisRelease} from './journal/types.js';
 import {elapsedMs, logLine} from './log.js';
 import {emptyTouches, mergeTouches, touchesOf, type SurfaceTouches} from './journal/surfaces.js';
 import type {Planner} from './planner/planner.js';
-import type {Registry} from './registry/registry.js';
 import {SHELL_SOURCE_ID} from './registry/types.js';
 import type {Router} from './router/router.js';
 import type {ChangeAccount, MissingSource} from './synthesizer/prompt.js';
@@ -49,7 +49,8 @@ import type {Synthesis} from './synthesizer/document.js';
 import type {Synthesizer} from './synthesizer/synthesizer.js';
 
 export interface OrchestratorDeps {
-  registry: Registry;
+  /** Each app's sources and each source's name (task-12.4 decision 3). */
+  sources: Sources;
   pool: AgentsPool;
   journal: IntentJournal;
   router: Router;
@@ -211,7 +212,7 @@ export class OrchestratorExecutor implements AgentExecutor {
             turnId: ctx.taskId,
             clientContextId: ctx.contextId,
             message: ctx.userMessage,
-            appId: owner,
+            source: owner,
           });
           if (owner === SHELL_SOURCE_ID) {
             this.#shellActionTurn(turnKind);
@@ -398,9 +399,15 @@ export class OrchestratorExecutor implements AgentExecutor {
     // included, since nothing paints before either.
     let outcome;
     try {
-      // Asked from a view: what is on screen there stays plannable (phase-9 decision 12).
+      // Asked from a view: the apps on screen there stay plannable (phase-9 decision 12).
       const viewed = parent !== undefined ? this.#compositions.get(parent) : undefined;
-      const onScreen = [...(viewed?.slots.keys() ?? [])].filter(id => id !== SHELL_SOURCE_ID);
+      const onScreen = [
+        ...new Set(
+          [...(viewed?.slots.keys() ?? [])]
+            .filter(source => source !== SHELL_SOURCE_ID)
+            .map(source => this.#deps.sources.appOf(source)),
+        ),
+      ];
       const shortlist = await this.#deps.router.shortlist(text, onScreen);
       signal.throwIfAborted();
       outcome = await this.#deps.planner.plan({
@@ -432,7 +439,7 @@ export class OrchestratorExecutor implements AgentExecutor {
       );
     }
 
-    const state = compositionFrom(outcome.document, this.#deps.registry, text, {
+    const state = compositionFrom(outcome.document, this.#deps.sources, text, {
       turnId: ctx.taskId,
       metadata: ctx.userMessage.metadata,
       ...(parent !== undefined ? {parent} : {}),
@@ -539,13 +546,13 @@ export class OrchestratorExecutor implements AgentExecutor {
     // again from the press — the soft deadline's quiet not restarted — and settled again when its
     // re-dispatch ends. The turn waits for it as for any dispatch of its own.
     state.trigger = {
-      unsettle: appId => {
-        settled.delete(appId);
+      unsettle: source => {
+        settled.delete(source);
         wake();
       },
-      settle: appId => {
-        settled.add(appId);
-        evaluate(appId);
+      settle: source => {
+        settled.add(source);
+        evaluate(source);
         wake();
       },
     };
@@ -619,9 +626,10 @@ export class OrchestratorExecutor implements AgentExecutor {
   ): Promise<void> {
     const parsed = parseSurfaceId(action.surfaceId);
     if (!parsed) throw new Error(`action on un-namespaced surface: ${action.surfaceId}`);
-    // The fragment's owner, installed or not: a dispatch to an app no longer installed fails in the
-    // pool with its own cause, painted on the slot (task-11.4 decision 6).
-    const owner = {id: parsed.source};
+    // The fragment's owner — the app and the account that painted it (phase-12 decision 19) —
+    // installed or not: a dispatch to an app no longer installed fails in the pool with its own
+    // cause, painted on the slot (task-11.4 decision 6).
+    const owner = parsed.source;
     const composition = this.#compositions.get(ctx.contextId);
     // Two-way edits reach the partitions through the returning client data model.
     composition?.partitions.applyClientDataModel(clientSurfaces(ctx.userMessage.metadata));
@@ -634,21 +642,21 @@ export class OrchestratorExecutor implements AgentExecutor {
           ? {...part, data: unnamespaceAction(part.data, parsed.surfaceId)}
           : part,
       ),
-      metadata: vendorMetadata(ctx.userMessage.metadata, owner.id),
+      metadata: vendorMetadata(ctx.userMessage.metadata, owner),
     };
-    const handle = this.#deps.pool.dispatch(owner.id, {
+    const handle = this.#deps.pool.dispatch(owner, {
       clientContextId: ctx.contextId,
       clientTaskId: ctx.taskId,
       message,
     });
     // An action that repaints nothing must not collapse a filled slot.
-    const run = this.#pump(sink, undefined, handle, owner.id, {collapse: false});
+    const run = this.#pump(sink, undefined, handle, owner, {collapse: false});
     // The press is in flight until its dispatch settles: the merge that would read this source
     // waits for it (task-8.10 decision 1).
-    composition?.presses.begin(owner.id);
-    const outcome = await run.settled.finally(() => composition?.presses.end(owner.id));
+    composition?.presses.begin(owner);
+    const outcome = await run.settled.finally(() => composition?.presses.end(owner));
     // A press that failed is what its slot's Retry sends again (task-11.8 decision 23).
-    const pressed = composition?.slots.get(owner.id);
+    const pressed = composition?.slots.get(owner);
     if (pressed && outcome !== 'cancelled') {
       if (outcome === 'completed') delete pressed.failedPress;
       else pressed.failedPress = message;
@@ -699,17 +707,17 @@ export class OrchestratorExecutor implements AgentExecutor {
     let work: (signal: AbortSignal) => Promise<unknown>;
     switch (operation.kind) {
       case 'retry': {
-        const appId = operation.sources[0]!;
-        const slot = state.slots.get(appId);
-        if (!slot || appId === SHELL_SOURCE_ID || slot.state !== 'failed') {
-          return refuse(`${slot?.plan.displayName ?? appId} has not failed.`);
+        const source = operation.sources[0]!;
+        const slot = state.slots.get(source);
+        if (!slot || source === SHELL_SOURCE_ID || slot.state !== 'failed') {
+          return refuse(`${slot?.plan.name ?? source} has not failed.`);
         }
-        work = signal => this.#retry(sink, state, appId, signal);
+        work = signal => this.#retry(sink, state, source, signal);
         break;
       }
       case 'include': {
         const late = new Set(lateSources(state));
-        const sources = operation.sources.filter(appId => late.has(appId));
+        const sources = operation.sources.filter(source => late.has(source));
         if (sources.length === 0) return refuse('No source is waiting to be included.');
         work = () => this.#owe(state, {joining: sources}, 'include', sink);
         break;
@@ -728,21 +736,21 @@ export class OrchestratorExecutor implements AgentExecutor {
         // The fragment stepped in its history (task-9.4 decision 6, task-10.9 decision 6):
         // refused when the source has not painted here, when it made no such paint, or when the
         // message carries no surface of the source — the partition would be left stale.
-        const appId = operation.sources[0]!;
-        const slot = state.slots.get(appId);
-        const name = slot?.plan.displayName ?? appId;
-        const paints = state.history.paintsOf(appId);
-        if (!slot || appId === SHELL_SOURCE_ID || !paints)
+        const source = operation.sources[0]!;
+        const slot = state.slots.get(source);
+        const name = slot?.plan.name ?? source;
+        const paints = state.history.paintsOf(source);
+        if (!slot || source === SHELL_SOURCE_ID || !paints)
           return refuse(`${name} has not painted.`);
         const index = operation.step ?? 0;
         if (index >= paints.count) return refuse(`${name} has no paint ${index}.`);
         const surfaces = Object.fromEntries(
           Object.entries(clientSurfaces(ctx.userMessage.metadata)).filter(
-            ([surface]) => parseSurfaceId(surface)?.source === appId,
+            ([surface]) => parseSurfaceId(surface)?.source === source,
           ),
         );
         if (Object.keys(surfaces).length === 0) return refuse('The step carries no paint.');
-        work = () => this.#step(sink, state, appId, index, surfaces);
+        work = () => this.#step(sink, state, source, index, surfaces);
         break;
       }
       case 'dismiss':
@@ -787,14 +795,14 @@ export class OrchestratorExecutor implements AgentExecutor {
   async #step(
     sink: Sink,
     state: CompositionState,
-    appId: string,
+    source: string,
     index: number,
     surfaces: Record<string, unknown>,
   ): Promise<void> {
     state.stepQuiet?.abort();
     state.stepWalk?.abort();
-    state.history.stepTo(appId, index);
-    state.partitions.replace(appId, surfaces);
+    state.history.stepTo(source, index);
+    state.partitions.replace(source, surfaces);
     // Read as the step made it: a later step may move the combination while this one waits.
     const combination = state.history.combination();
     const seen = state.history.recall();
@@ -819,7 +827,7 @@ export class OrchestratorExecutor implements AgentExecutor {
     const end = quietEnded ? await this.#owe(state, {}, 'step', sink) : 'abandoned';
     const walk = end === 'none' ? 'silent' : end;
     const how = seen ? 'seen' : covering ? `covered, ${late.join(', ') || 'none'} late` : 'unseen';
-    logLine(`↶ ${appId} task=${sink.ctx.taskId} paint ${index} (${how}, walk ${walk})`);
+    logLine(`↶ ${source} task=${sink.ctx.taskId} paint ${index} (${how}, walk ${walk})`);
     sink.turn.step({
       combination,
       seen: seen !== undefined,
@@ -854,32 +862,32 @@ export class OrchestratorExecutor implements AgentExecutor {
   async #retry(
     sink: Sink,
     state: CompositionState,
-    appId: string,
+    source: string,
     signal: AbortSignal,
   ): Promise<void> {
-    const slot = state.slots.get(appId)!;
+    const slot = state.slots.get(source)!;
     const merge = synthesisSlot(state);
     const pack = !state.mergeDecided && state.trigger !== undefined;
     slot.state = 'pending';
     delete slot.failure;
-    if (pack) state.trigger!.unsettle(appId);
+    if (pack) state.trigger!.unsettle(source);
     // A collapsed merge this arrival can bring back waits on it, in the client's words.
     const bringsBack =
       merge?.state === 'collapsed' &&
-      (merge.collapse?.cause !== 'home' || merge.plan.join?.home === appId);
-    if (bringsBack) state.retrying.add(appId);
+      (merge.collapse?.cause !== 'home' || merge.plan.join?.home === source);
+    if (bringsBack) state.retrying.add(source);
     this.#repaint([sink], state);
 
-    const arrived = await this.#redispatch(sink, state, appId, signal);
-    const wasRetrying = state.retrying.delete(appId);
-    if (pack) state.trigger?.settle(appId);
+    const arrived = await this.#redispatch(sink, state, source, signal);
+    const wasRetrying = state.retrying.delete(source);
+    if (pack) state.trigger?.settle(source);
     if (signal.aborted) return;
     if (!arrived) {
       if (wasRetrying) this.#repaint([sink], state);
       return;
     }
     if (!merge || !state.mergeDecided) return;
-    await this.#owe(state, {joining: [appId]}, 'retry', sink);
+    await this.#owe(state, {joining: [source]}, 'retry', sink);
   }
 
   /**
@@ -893,11 +901,11 @@ export class OrchestratorExecutor implements AgentExecutor {
   async #redispatch(
     sink: Sink,
     state: CompositionState,
-    appId: string,
+    source: string,
     signal: AbortSignal,
   ): Promise<boolean> {
-    const slot = state.slots.get(appId)!;
-    if (slot.held) return this.#draw(sink, state, appId, slot.held);
+    const slot = state.slots.get(source)!;
+    if (slot.held) return this.#draw(sink, state, source, slot.held);
     const original = slot.running;
     const message: Message = slot.failedPress
       ? {...slot.failedPress, messageId: randomUUID()}
@@ -906,9 +914,9 @@ export class OrchestratorExecutor implements AgentExecutor {
           messageId: randomUUID(),
           role: 'user',
           parts: [{kind: 'text', text: slot.plan.request}],
-          metadata: vendorMetadata(state.requestMetadata, appId),
+          metadata: vendorMetadata(state.requestMetadata, source),
         };
-    const handle = this.#deps.pool.dispatch(appId, {
+    const handle = this.#deps.pool.dispatch(source, {
       clientContextId: sink.ctx.contextId,
       clientTaskId: sink.ctx.taskId,
       message,
@@ -916,7 +924,7 @@ export class OrchestratorExecutor implements AgentExecutor {
     const lost = new AbortController();
     const abort = () => lost.abort();
     signal.addEventListener('abort', abort, {once: true});
-    const run = this.#pump(sink, state, handle, appId, {
+    const run = this.#pump(sink, state, handle, source, {
       collapse: true,
       signal: lost.signal,
       buffer: original !== undefined,
@@ -943,9 +951,9 @@ export class OrchestratorExecutor implements AgentExecutor {
       handle.record.race = 'lost';
       lost.abort();
       handle.cancel();
-      return this.#draw(sink, state, appId, winner.original, 'won');
+      return this.#draw(sink, state, source, winner.original, 'won');
     }
-    const arrived = winner.retry === 'completed' && state.arrived.has(appId);
+    const arrived = winner.retry === 'completed' && state.arrived.has(source);
     if (winner.retry === 'completed') delete slot.failedPress;
     if (arrived && original && slot.running === original) {
       handle.record.race = 'won';
@@ -959,11 +967,11 @@ export class OrchestratorExecutor implements AgentExecutor {
   #draw(
     sink: Sink,
     state: CompositionState,
-    appId: string,
+    source: string,
     held: HeldAnswer,
     race?: 'won',
   ): boolean {
-    const slot = state.slots.get(appId);
+    const slot = state.slots.get(source);
     if (slot?.held === held) delete slot.held;
     let touches = emptyTouches();
     for (const event of held.events) {
@@ -977,10 +985,10 @@ export class OrchestratorExecutor implements AgentExecutor {
     held.record.drawnAt = new Date().toISOString();
     if (race) held.record.race = race;
     sink.turn.dispatched({...held.record});
-    logLine(`▶ ${appId} task=${sink.ctx.taskId} held answer drawn`);
-    if (!state.partitions.holdsSurfaceOf(appId)) return false;
-    if (state.mergeDecided && synthesisSlot(state)) state.folding.add(appId);
-    state.arrived.add(appId);
+    logLine(`▶ ${source} task=${sink.ctx.taskId} held answer drawn`);
+    if (!state.partitions.holdsSurfaceOf(source)) return false;
+    if (state.mergeDecided && synthesisSlot(state)) state.folding.add(source);
+    state.arrived.add(source);
     return true;
   }
 
@@ -998,9 +1006,9 @@ export class OrchestratorExecutor implements AgentExecutor {
   ): Promise<SynthesisEnd> {
     if (state.retired.signal.aborted) return Promise.resolve('none');
     const owed = (state.owed ??= {joining: new Set(), make: false, walk: false, presses: []});
-    for (const appId of what.joining ?? []) {
-      owed.joining.add(appId);
-      state.folding.add(appId);
+    for (const source of what.joining ?? []) {
+      owed.joining.add(source);
+      state.folding.add(source);
     }
     owed.make ||= what.make === true;
     owed.walk ||= what.walk === true;
@@ -1065,7 +1073,7 @@ export class OrchestratorExecutor implements AgentExecutor {
       const slot = synthesisSlot(state);
       if (!slot || signal.aborted) return end;
       const joining = inSlotOrder(state, owed.joining).filter(
-        appId => state.arrived.has(appId) && !state.merged.has(appId),
+        source => state.arrived.has(source) && !state.merged.has(source),
       );
       if (state.synthesis) {
         const at = named.length > 0 ? Date.now() : (state.lastSettledAt ?? Date.now());
@@ -1081,7 +1089,7 @@ export class OrchestratorExecutor implements AgentExecutor {
         end = await this.#synthesize(sinks, state, {kind: 'make', by, at: Date.now(), signal});
       }
     } finally {
-      for (const appId of owed.joining) state.folding.delete(appId);
+      for (const source of owed.joining) state.folding.delete(source);
       state.pressWork -= pressed.length;
       if (state.stepWalk === stepped) delete state.stepWalk;
       if (!signal.aborted && (pressed.length > 0 || end === 'kept' || owed.walk)) {
@@ -1124,7 +1132,7 @@ export class OrchestratorExecutor implements AgentExecutor {
     const thrownAway: {changed: string[]; at: string}[] = [];
     const joiningNow = () =>
       run.kind === 'again'
-        ? run.joining.filter(appId => state.arrived.has(appId) && !state.merged.has(appId))
+        ? run.joining.filter(source => state.arrived.has(source) && !state.merged.has(source))
         : [];
     const within = (): ReadonlySet<string> =>
       fresh ? state.arrived : new Set([...state.merged, ...joiningNow()]);
@@ -1148,7 +1156,7 @@ export class OrchestratorExecutor implements AgentExecutor {
         sources: [...over],
         ...(joined.length > 0 ? {joined} : {}),
         ...(missing.length > 0
-          ? {missing: missing.map(({appId, state: at}) => ({appId, state: at}))}
+          ? {missing: missing.map(({source, state: at}) => ({source, state: at}))}
           : {}),
         ...(again ? {changes: again.changes} : {}),
       };
@@ -1207,9 +1215,9 @@ export class OrchestratorExecutor implements AgentExecutor {
 
       const view = state.partitions.view(over);
       const sources = view.entries().flatMap(([surface, data]) => {
-        const appId = parseSurfaceId(surface)?.source;
-        if (!appId) return [];
-        return [{surface, appId, displayName: this.#deps.registry.displayName(appId), data}];
+        const source = parseSurfaceId(surface)?.source;
+        if (!source) return [];
+        return [{surface, source, name: this.#deps.sources.name(source), data}];
       });
 
       // What the sources it reads hold as the call starts: a press answered with other data
@@ -1219,17 +1227,17 @@ export class OrchestratorExecutor implements AgentExecutor {
       const endCall = () => call.abort();
       signal.addEventListener('abort', endCall, {once: true});
       let changed: string[] = [];
-      const stopWatching = state.presses.onEnd(appId => {
-        if (!over.has(appId) || changed.length > 0) return;
+      const stopWatching = state.presses.onEnd(source => {
+        if (!over.has(source) || changed.length > 0) return;
         changed = state.partitions.changedSince(snapshot, over);
         if (changed.length > 0) call.abort();
       });
       // A source this call reads, reported undrawable meanwhile, has left the set: the call is
       // thrown away and made again without it (task-8.7 decision 25, amending 8.10 decision 5).
       let left: string[] = [];
-      state.left = appId => {
-        if (!over.has(appId) || left.length > 0) return;
-        left = [appId];
+      state.left = source => {
+        if (!over.has(source) || left.length > 0) return;
+        left = [source];
         call.abort();
       };
       let outcome;
@@ -1247,10 +1255,7 @@ export class OrchestratorExecutor implements AgentExecutor {
             ...(again ? {changes: again.changes} : {}),
             ...(joined.length > 0
               ? {
-                  joined: joined.map(appId => ({
-                    appId,
-                    displayName: this.#deps.registry.displayName(appId),
-                  })),
+                  joined: joined.map(source => ({source, name: this.#deps.sources.name(source)})),
                 }
               : {}),
           },
@@ -1266,7 +1271,7 @@ export class OrchestratorExecutor implements AgentExecutor {
       state.left = undefined;
       signal.removeEventListener('abort', endCall);
       if (gone()) return 'none';
-      if (left.length === 0) left = [...over].filter(appId => !within().has(appId));
+      if (left.length === 0) left = [...over].filter(source => !within().has(source));
       if (left.length > 0) {
         thrownAway.push({changed: left, at: new Date().toISOString()});
         logLine(`merge task=${sinks[0]?.ctx.taskId} thrown away (${left.join(', ')} left)`);
@@ -1303,7 +1308,9 @@ export class OrchestratorExecutor implements AgentExecutor {
       state.synthesis = {document, payload, watch, seen: seenOf(view)};
       // A source that failed while it was made leaves the merge as it would once landed
       // (task-8.10 decision 5).
-      state.merged = new Set([...over].filter(appId => state.slots.get(appId)?.state !== 'failed'));
+      state.merged = new Set(
+        [...over].filter(source => state.slots.get(source)?.state !== 'failed'),
+      );
       // Remembered under the combination of steps it was accepted over (task-9.4 decision 4).
       state.history.remember({synthesis: state.synthesis, merged: state.merged});
       state.mergedView = {outcome: 'synthesized'};
@@ -1362,8 +1369,8 @@ export class OrchestratorExecutor implements AgentExecutor {
     return [...state.slots.values()]
       .filter(({plan}) => plan.source !== SHELL_SOURCE_ID && !over.has(plan.source))
       .map(({plan, state: slotState}) => ({
-        appId: plan.source,
-        displayName: plan.displayName,
+        source: plan.source,
+        name: plan.name,
         state:
           slotState === 'failed'
             ? 'failed'
@@ -1374,16 +1381,14 @@ export class OrchestratorExecutor implements AgentExecutor {
   }
 
   /**
-   * Too few arrived: the ones that did, by display name, and the ones that did not, by id — the
+   * Too few arrived: the ones that did, by name, and the ones that did not, by id — the
    * line's Retry all covers them (task-8.7 decision 24) — each in slot order.
    */
   #fewCollapse(state: CompositionState, arrived: ReadonlySet<string>): SlotCollapse {
     const vendors = [...state.slots.values()].filter(({plan}) => plan.source !== SHELL_SOURCE_ID);
     return {
       cause: 'few',
-      answered: vendors
-        .filter(({plan}) => arrived.has(plan.source))
-        .map(({plan}) => plan.displayName),
+      answered: vendors.filter(({plan}) => arrived.has(plan.source)).map(({plan}) => plan.name),
       failed: vendors.filter(({plan}) => !arrived.has(plan.source)).map(({plan}) => plan.source),
     };
   }
@@ -1475,20 +1480,20 @@ export class OrchestratorExecutor implements AgentExecutor {
    * on it, its data out of the merge — not arrived, out of the merge's set — and, under a join,
    * the merge collapsed at once when it was the home source.
    */
-  #failSlot(sink: Sink, state: CompositionState, appId: string, failure: SlotFailure): void {
-    state.arrived.delete(appId);
-    state.merged.delete(appId);
-    const slot = state.slots.get(appId);
+  #failSlot(sink: Sink, state: CompositionState, source: string, failure: SlotFailure): void {
+    state.arrived.delete(source);
+    state.merged.delete(source);
+    const slot = state.slots.get(source);
     if (!slot) return;
     slot.state = 'failed';
     slot.failure = failure;
     this.#repaint([sink], state);
     const merge = synthesisSlot(state);
-    if (merge && merge.state !== 'collapsed' && merge.plan.join?.home === appId) {
+    if (merge && merge.state !== 'collapsed' && merge.plan.join?.home === source) {
       this.#collapseMerge(
         [sink],
         state,
-        {collapse: homeCollapse(state, appId)},
+        {collapse: homeCollapse(state, source)},
         {outcome: 'home', collapse: 'home', attempts: []},
       );
     }
@@ -1498,13 +1503,13 @@ export class OrchestratorExecutor implements AgentExecutor {
   #settleSlot(
     sink: Sink,
     state: CompositionState,
-    appId: string,
+    source: string,
     record: DispatchRecord,
     options: PumpOptions,
   ): void {
-    const next = outcomeToSlotState(record.outcome, state.partitions.holdsSurfaceOf(appId));
+    const next = outcomeToSlotState(record.outcome, state.partitions.holdsSurfaceOf(source));
     if (next === 'failed') {
-      return this.#failSlot(sink, state, appId, {
+      return this.#failSlot(sink, state, source, {
         cause: record.cause ?? 'unreachable',
         ...(record.cause === 'vendor' && record.vendorMessage
           ? {message: record.vendorMessage}
@@ -1514,18 +1519,18 @@ export class OrchestratorExecutor implements AgentExecutor {
     }
     // Left to the client means it holds a surface: this source has arrived.
     if (next === undefined) {
-      if (record.outcome !== 'completed' || state.arrived.has(appId)) return;
+      if (record.outcome !== 'completed' || state.arrived.has(source)) return;
       if (options.folding && state.mergeDecided && synthesisSlot(state)) {
-        state.folding.add(appId);
+        state.folding.add(source);
       }
-      state.arrived.add(appId);
+      state.arrived.add(source);
       // A source arriving after the merge waits for Include, said on the merge slot
       // (task-8.4 decision 1).
-      if (lateSources(state).includes(appId)) this.#repaint([sink], state);
+      if (lateSources(state).includes(source)) this.#repaint([sink], state);
       return;
     }
-    state.arrived.delete(appId);
-    const slot = state.slots.get(appId);
+    state.arrived.delete(source);
+    const slot = state.slots.get(source);
     if (slot && options.collapse && slot.state !== next) {
       slot.state = next;
       this.#repaint([sink], state);
@@ -1544,7 +1549,7 @@ export class OrchestratorExecutor implements AgentExecutor {
     sink: Sink,
     state: CompositionState | undefined,
     handle: DispatchHandle,
-    appId: string,
+    source: string,
     options: PumpOptions,
   ): {settled: Promise<DispatchOutcome>; drained: Promise<void>} {
     const composition = state ?? this.#compositions.get(sink.ctx.contextId);
@@ -1564,9 +1569,9 @@ export class OrchestratorExecutor implements AgentExecutor {
     void handle.capped.then(() => {
       if (isSettled || options.signal?.aborted) return;
       capped = true;
-      const slot = composition?.slots.get(appId);
+      const slot = composition?.slots.get(source);
       if (slot) slot.running = handle;
-      if (composition) this.#failSlot(sink, composition, appId, {cause: 'timeout'});
+      if (composition) this.#failSlot(sink, composition, source, {cause: 'timeout'});
       settle('timeout');
     });
     const drained = (async () => {
@@ -1584,13 +1589,13 @@ export class OrchestratorExecutor implements AgentExecutor {
         sink.bus.publish(composed);
       };
       for await (const event of handle.events) {
-        const composed = composeFragment(withoutFailureWords(event), {appId});
+        const composed = composeFragment(withoutFailureWords(event), {source});
         if (capped) held.push(composed);
         else if (options.buffer) buffered.push(composed);
         else relay(composed);
       }
       const ended = await handle.done;
-      const slot = composition?.slots.get(appId);
+      const slot = composition?.slots.get(source);
       if (slot?.running === handle) delete slot.running;
       if (capped) {
         if (
@@ -1601,7 +1606,7 @@ export class OrchestratorExecutor implements AgentExecutor {
         ) {
           record.heldAt = new Date().toISOString();
           const answer: HeldAnswer = {events: held, record};
-          logLine(`⏸ ${appId} task=${sink.ctx.taskId} answered past the hard cap — held`);
+          logLine(`⏸ ${source} task=${sink.ctx.taskId} answered past the hard cap — held`);
           if (slot.race) slot.race(answer);
           else slot.held = answer;
         }
@@ -1613,11 +1618,11 @@ export class OrchestratorExecutor implements AgentExecutor {
       // The source's stream has ended: one event with no parts says so on its stamp, so the
       // client judges this source's fragments now, before any merge over them (task 8.7).
       if (ended.outcome === 'completed' && !options.signal?.aborted) {
-        sink.bus.publish(settledMarker(sink.ctx, appId));
+        sink.bus.publish(settledMarker(sink.ctx, source));
       }
       sink.turn.surfaces(touches);
       if (composition && !options.signal?.aborted) {
-        this.#settleSlot(sink, composition, appId, ended, options);
+        this.#settleSlot(sink, composition, source, ended, options);
       }
       settle(ended.outcome);
     })();
@@ -1628,7 +1633,7 @@ export class OrchestratorExecutor implements AgentExecutor {
 /** The home source failed: the line names its entries as the join calls them. */
 function homeCollapse(state: CompositionState, home: string): SlotCollapse {
   const plan = state.slots.get(home)?.plan;
-  return {cause: 'home', home: plan?.noun ?? plan?.displayName ?? home};
+  return {cause: 'home', home: plan?.noun ?? plan?.name ?? home};
 }
 
 function touchedAny(touches: SurfaceTouches): boolean {
@@ -1664,7 +1669,7 @@ const RECEIVED_IDS_KEPT = 256;
 /** A fragment source's stream has ended (task-8.7 decision 25): the stamp says so, nothing else rides it. */
 function settledMarker(
   ctx: Pick<RequestContext, 'taskId' | 'contextId'>,
-  appId: string,
+  source: string,
 ): TaskStatusUpdateEvent {
   return {
     kind: 'status-update',
@@ -1672,7 +1677,7 @@ function settledMarker(
     contextId: ctx.contextId,
     final: false,
     status: {state: 'working', timestamp: new Date().toISOString()},
-    metadata: {[STAMP_KEY]: {source: appId, role: 'fragment', settled: true}},
+    metadata: {[STAMP_KEY]: {source: source, role: 'fragment', settled: true}},
   };
 }
 
