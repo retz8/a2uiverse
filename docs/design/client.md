@@ -47,7 +47,10 @@ Every event the orchestrator relays carries a **stamp** in its metadata: which a
 {"source": "linear", "role": "fragment"}   // a Linear surface: it fills the slot whose source is "linear"
 {"source": "shell",  "role": "shell"}      // the layout itself
 {"source": "linear", "role": "fragment", "settled": true}   // Linear's answer has ended
+{"source": "linear", "role": "fragment", "refused": true}   // take down what Linear's answer showed
 ```
+
+The last one comes from the orchestrator's credential bar: when an app paints a password, code or card field, the orchestrator never passes that event on, and if the answer had already shown surfaces it sends one event stamped `refused`, carrying a `deleteSurface` for each. The runner takes them down. A surface filling its slot leaves the slot, which shows what it did before, loading, until the app's second try lands or the slot fails. A surface still in staging, answering a click inside the app's screen, leaves staging, so the screen you were looking at stays.
 
 Placement is by `source`. The stamp names no slot, and no component tree points at another surface: the `Slot` whose `source` is `"linear"` is where Linear's surface belongs. A source is the app and the account it painted under: `linear` for an app that needs no sign-in, `gmail.1` and `gmail.2` for two Gmail accounts side by side, each its own slot. The client never parses one; it keys everything by the whole string. Surface ids are namespaced by the orchestrator as `<source>:<surfaceId>` (Linear's `linear-1` arrives as `linear:linear-1`), so two sources can never collide on a name.
 
@@ -354,7 +357,7 @@ visits   0 · 1 · 2 · 0 · 3
 Back:    3 → 0 (the list, visited again) → 2 (the job left behind) → 1 → 0
 ```
 
-- **The count runs at the wire.** Every `createSurface` an app sends is a paint of that app the moment it arrives, before the runner decides anything about it, and is visited at once. A create that never reached the screen, one the client couldn't draw, or a question each still take their paint id, as **placeholders** with nothing to return to. The arrows skip placeholders when they look for the nearest earlier or later visit.
+- **The count runs at the wire.** Every `createSurface` an app sends is a paint of that app the moment it arrives, before the runner decides anything about it, and is visited at once. A create that never reached the screen, one the client couldn't draw, one the orchestrator took down as refused, or a question each still take their paint id, as **placeholders** with nothing to return to. The arrows skip placeholders when they look for the nearest earlier or later visit.
 - **A new paint after a Back visits where you landed, then the new paint.** You were on the runs list when the other run arrived, so the list is visited again before it; the run you passed through on the way back to the list isn't. Nothing is dropped, so the job is still two Backs away.
 - **A screen is copied only when you move off it.** The screen on screen is the live surface itself. Just before a new paint or a swap destroys it, the runner calls `leaving`, and only then is it copied: its component tree and its data model, with every update the app pushed into it, as plain JSON (`canvas/history/paintCopy.ts`). A copy costs nothing until you actually leave a screen, and a screen visited twice has one copy, taken when you last left it.
 - **A restore takes the same path as a live paint.** `rebuildMessages` turns a copy back into three A2UI messages (create, the whole tree, the whole data model) and applies them through the processor, so a restored screen gets catalog resolution, data binding and action handling exactly like a fresh one. There's no second way to construct a surface.

@@ -2,11 +2,21 @@
  * The dev-only fault map (phase-8 decision 13, task-8.3 decision 14): source → one fault the
  * AgentsPool applies as it forwards that source's stream, so recorded beats and end-to-end runs
  * reach lateness, the hard cap and an answer held past it, a broken stream, a refused connection,
- * a vendor failure and a paint the client cannot draw. Vendors are untouched. Read from the
+ * a vendor failure, a paint the client cannot draw, and a paint carrying a credential input — the
+ * repair going through clean on the plan's dispatch alone, refused again with `every` (task-12.7
+ * decision 9). Vendors are untouched. Read from the
  * orchestrator's environment only, never from the wire.
  */
 
-export const FAULT_KINDS = ['delay', 'hang', 'break', 'refuse', 'fail', 'invalid'] as const;
+export const FAULT_KINDS = [
+  'delay',
+  'hang',
+  'break',
+  'refuse',
+  'fail',
+  'invalid',
+  'credential',
+] as const;
 export type FaultKind = (typeof FAULT_KINDS)[number];
 
 export interface Fault {
@@ -18,7 +28,10 @@ export interface Fault {
   seconds?: number;
   /** `fail` only: the words of the vendor's failed final. */
   message?: string;
-  /** Hit every dispatch of the source; by default only the plan's dispatch is hit. */
+  /**
+   * Hit every dispatch of the source; by default only the plan's dispatch is hit. A `credential`
+   * fault hits the repair inside a dispatch only with this set.
+   */
   every?: boolean;
 }
 

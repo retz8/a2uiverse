@@ -75,6 +75,13 @@ export interface CompositionStamp {
    * is made — instead of at the turn's end.
    */
   settled?: boolean;
+  /**
+   * The source's paint was refused at the hub for a credential input (task-12.7 decisions 2, 7):
+   * set on one event the orchestrator emits carrying a `deleteSurface` for each surface of the
+   * refused answer it had already relayed. The client takes those surfaces down — off the slot,
+   * out of staging — and none of them is a paint the way back returns to.
+   */
+  refused?: boolean;
   /** Debug only, gated by orchestrator config. */
   vendorContextId?: string;
   vendorTaskId?: string;
@@ -85,6 +92,7 @@ export const STAMP_FIELDS = [
   'source',
   'role',
   'settled',
+  'refused',
   'vendorContextId',
   'vendorTaskId',
 ] as const satisfies readonly (keyof CompositionStamp)[];

@@ -4,12 +4,12 @@ import {expect, test} from 'vitest';
 import {Ajv2020} from 'ajv/dist/2020.js';
 import {CLIENT_CAPABILITIES_SCHEMA} from './a2ui/spec.generated';
 import {ARTIFACT_DESCRIPTOR_FILE, ARTIFACT_DESCRIPTOR_SCHEMA} from './artifact';
+import {CREDENTIAL_TERMS} from './credential';
 import {
   A2UI_EXTENSION_URI,
   APP_ID_MAX_LENGTH,
   APP_ID_PATTERN,
   CATALOG_EXPORTS,
-  CREDENTIAL_TERMS,
   HOST_INTERFACE_GLOBAL,
   HOST_INTERFACE_VERSION,
   SUPPORTED_HOST_INTERFACES,
@@ -30,7 +30,7 @@ const contract = read('catalog.json') as {
   artifact: {descriptorFile: string; descriptorSchema: string};
   publicCatalogIds: string[];
   appId: {pattern: string; maxLength: number; reserved: string[]};
-  credentialLint: {terms: string[]};
+  credentialBar: {terms: string[]};
 };
 
 test('no version line of its own: the sdk is the version; the A2UI extension URI is the protocol', () => {
@@ -76,7 +76,7 @@ test('the app id grammar', () => {
 });
 
 test('the credential terms', () => {
-  expect(contract.credentialLint.terms).toEqual([...CREDENTIAL_TERMS]);
+  expect(contract.credentialBar.terms).toEqual([...CREDENTIAL_TERMS]);
 });
 
 test('what the hub writes validates against the pinned client_capabilities.json', () => {

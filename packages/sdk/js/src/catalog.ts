@@ -1,7 +1,7 @@
 /**
  * The catalog contracts (SPEC §9.1, task 11.2): what a catalog package exposes, what the client
  * lends a loaded catalog, and the checks the registry and the marketplace share — coverage in both
- * directions, entitlement, the app id, the credential lint, the card's declaration read. The
+ * directions, entitlement, the app id, the card's declaration read. The
  * normative definition is `../contracts/catalog.json`; `catalog.contract.test.ts` asserts this
  * projection against it. The artifact half — the descriptor and its files — lives in `artifact.ts`.
  * The contracts carry no version of their own: they are versioned with the sdk, whose every consumer
@@ -13,7 +13,6 @@
  */
 import {Ajv2020} from 'ajv/dist/2020.js';
 import {BASIC_CATALOG_ID, SERVER_CAPABILITIES_SCHEMA} from './a2ui/spec.generated.js';
-import type {A2uiCatalogSchema} from './a2ui/types.js';
 import {schemaErrors, type Validation} from './validate.js';
 
 export {BASIC_CATALOG_ID};
@@ -304,96 +303,4 @@ export function claimAppId(id: string, taken: ReadonlySet<string>): string[] {
     errors.push(`app id ${JSON.stringify(id)} is already taken`);
   }
   return errors;
-}
-
-// --- The credential lint ----------------------------------------------------------------------
-
-/** Terms no component name, prop name or enum value may carry as whole words (task-11.2 decision 5). */
-export const CREDENTIAL_TERMS: readonly string[] = [
-  'password',
-  'passcode',
-  'passphrase',
-  'otp',
-  'pin code',
-  'pin input',
-  'pin field',
-  'pin number',
-  'cvv',
-  'cvc',
-  'card number',
-  'security code',
-];
-
-/** `cardNumber` → `card number`, `OTP_field` → `otp field`, `security-code` → `security code`. */
-export function wordsOf(name: string): string {
-  return name
-    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
-    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
-    .split(/[^A-Za-z0-9]+/)
-    .filter(Boolean)
-    .join(' ')
-    .toLowerCase();
-}
-
-const termIn = (name: string): string | undefined => {
-  const words = ` ${wordsOf(name)} `;
-  return CREDENTIAL_TERMS.find(term => words.includes(` ${term} `));
-};
-
-function lintNode(node: unknown, where: string, findings: string[]): void {
-  if (Array.isArray(node)) {
-    node.forEach(item => lintNode(item, where, findings));
-    return;
-  }
-  if (!isObject(node)) return;
-  if (isObject(node.properties)) {
-    for (const prop of Object.keys(node.properties)) {
-      const term = termIn(prop);
-      if (term)
-        findings.push(
-          `${where}, prop ${JSON.stringify(prop)}: name matches ${JSON.stringify(term)}`,
-        );
-    }
-  }
-  if (Array.isArray(node.enum)) {
-    for (const value of node.enum) {
-      if (typeof value !== 'string') continue;
-      const term = termIn(value);
-      if (term) {
-        findings.push(
-          `${where}: enum value ${JSON.stringify(value)} matches ${JSON.stringify(term)}`,
-        );
-      }
-    }
-  }
-  if (typeof node.const === 'string') {
-    const term = termIn(node.const);
-    if (term)
-      findings.push(
-        `${where}: const ${JSON.stringify(node.const)} matches ${JSON.stringify(term)}`,
-      );
-  }
-  for (const [key, value] of Object.entries(node)) {
-    if (key === 'enum' || key === 'const' || key === 'description' || key === 'title') continue;
-    lintNode(value, where, findings);
-  }
-}
-
-/**
- * The credential-component lint over a catalog schema: component names, prop names and enum
- * values, in `components` and `$defs`. Findings name the place and the term; empty when clean.
- * A lint, not a proof — enforcement proper is the marketplace's review.
- */
-export function credentialLint(schema: A2uiCatalogSchema): string[] {
-  const findings: string[] = [];
-  for (const [name, component] of Object.entries(schema.components ?? {})) {
-    const where = `component ${JSON.stringify(name)}`;
-    const term = termIn(name);
-    if (term) findings.push(`${where}: name matches ${JSON.stringify(term)}`);
-    lintNode(component, where, findings);
-  }
-  for (const [name, def] of Object.entries(schema.$defs ?? {})) {
-    lintNode(def, `$defs ${JSON.stringify(name)}`, findings);
-  }
-  return findings;
 }

@@ -67,6 +67,8 @@ export interface SlotFailure {
    * client could not load, with `load` (task-11.5 decision 4).
    */
   catalogId?: string;
+  /** The app's own page, only with `credential` (task-12.7 decision 5): what Continue opens. */
+  continueUrl?: string;
 }
 
 /**

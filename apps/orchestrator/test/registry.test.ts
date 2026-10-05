@@ -222,17 +222,6 @@ describe('install', () => {
       ]);
     });
 
-    test('the credential lint over the schema', async () => {
-      const artifact = await fixtureArtifact(GMAIL, {
-        schema: {catalogId: GMAIL, components: {PasswordField: {type: 'object'}}},
-      });
-      expect(await refused({card: {catalogs: [GMAIL]}, catalogs: [artifact]})).toEqual([
-        expect.stringMatching(
-          /^catalog artifact 1 \(.*\): catalog.json: component "PasswordField"/,
-        ),
-      ]);
-    });
-
     test('an artifact for a catalog the client provides', async () => {
       const basic = await fixtureArtifact(BASIC_CATALOG_ID);
       expect(await refused({card: {catalogs: [BASIC_CATALOG_ID]}, catalogs: [basic]})).toEqual([

@@ -17,12 +17,22 @@ import {
   parseSourceId,
   readAuthRequired,
   type AuthRequired,
+  type CredentialFinding,
 } from '@a2uiverse/sdk';
 import {A2UI_EXTENSION_URI_V09, A2UI_EXTENSION_URI_V091} from '../agentCard.js';
 import type {Registry} from '../registry/registry.js';
 import type {AppRecord} from '../registry/types.js';
 import type {Prepared, Request as AuthorityRequest} from '../vault/vault.js';
 import {InMemoryVendorContextMap, type VendorContextMap} from './contextMap.js';
+import {
+  continueUrlOf,
+  createdIn,
+  credentialIn,
+  repairOf,
+  takeDown,
+  withCredentialField,
+  type CreatedSurface,
+} from './credentialBar.js';
 import type {Fault, FaultMap} from './faults.js';
 import {prepareOutgoing, relayEvent, type VendorEvent} from './relay.js';
 import type {DispatchHandle, DispatchOutcome, DispatchRecord, DispatchTurn} from './types.js';
@@ -195,6 +205,7 @@ export class AgentsPool {
     this.#sentTo.set(record, app);
     const entitlement = new Set(app.entitlement);
     let outside: string | undefined;
+    let credentialRefused = false;
     try {
       if (fault?.seconds) await sleep(fault.seconds * 1000, controller.signal);
       if (fault?.fault === 'hang') await sleep(Infinity, controller.signal);
@@ -217,103 +228,143 @@ export class AgentsPool {
         }
         let headers = prepared?.headers ?? {};
         const client = await this.#connect(app);
-        const vendorContextId = this.#contexts.get(turn.clientContextId, source);
-        const params = prepareOutgoing(withEntitlement(turn.message, app), vendorContextId);
-        let injected = false;
+        // What the app's catalogs declare as options: what a painted value is matched by.
+        const declared = this.#registry.credentialOptions(app);
+        let outgoing = withEntitlement(turn.message, app);
         let resent = false;
-        // At most two sends: a refusal — 401, or an `auth-required` naming nothing — is answered
-        // once by a refresh and a resend; a second makes the account sign in again (task-12.5
-        // decisions 1, 8).
-        for (;;) {
-          const options = {
-            signal: controller.signal,
-            serviceParameters: {
-              ...ServiceParameters.create(
-                withA2AExtensions(A2UI_EXTENSION_URI_V091, A2UI_EXTENSION_URI_V09),
-              ),
-              ...headers,
-            },
-          };
-          let refused = false;
-          record.sawFinal = false;
-          finalState = undefined;
-          terminalTaskState = undefined;
-          try {
-            for await (const event of client.sendMessageStream(params, options)) {
-              this.#learnIds(event, source, turn, record);
-              // A paint outside the app's entitlement is refused at the hub, never relayed
-              // (task-11.4 decision 12): the dispatch ends failed on the catalog's id.
-              outside = catalogOutside(event, entitlement);
-              if (outside !== undefined) break;
-              // The agent asks for authority mid-task (phase-12 decisions 4, 6): read against the
-              // installed card, never relayed.
-              const asked = authRequiredOf(event);
-              if (asked !== undefined) {
-                const request = credentials?.requested(source, asked.request) ?? {kind: 'unsigned'};
-                if (request.kind === 'unauthorized') {
-                  refused = true;
-                } else if (request.kind === 'escalate') {
-                  record.authority = {
-                    cause: 'signIn',
-                    scheme: request.scheme,
-                    keys: request.keys,
-                    words: request.words,
-                    escalation: true,
+        // A paint carrying a credential input is never relayed (task-12.7 decisions 2, 3): what the
+        // answer had already shown is taken down, and the reason alone goes back to the agent once,
+        // in the same conversation; a repair refused again fails the slot.
+        for (let send = 0; ; send++) {
+          const params = prepareOutgoing(
+            outgoing,
+            this.#contexts.get(turn.clientContextId, source),
+          );
+          const faulted = fault !== undefined && (send === 0 || fault.every === true);
+          let injected = false;
+          let found: CredentialFinding | undefined;
+          let foundOnTerminal = false;
+          let sendTaskId: string | undefined;
+          const shown: CreatedSurface[] = [];
+          // At most two sends: a refusal — 401, or an `auth-required` naming nothing — is answered
+          // once by a refresh and a resend; a second makes the account sign in again (task-12.5
+          // decisions 1, 8).
+          for (;;) {
+            const options = {
+              signal: controller.signal,
+              serviceParameters: {
+                ...ServiceParameters.create(
+                  withA2AExtensions(A2UI_EXTENSION_URI_V091, A2UI_EXTENSION_URI_V09),
+                ),
+                ...headers,
+              },
+            };
+            let refused = false;
+            record.sawFinal = false;
+            finalState = undefined;
+            terminalTaskState = undefined;
+            try {
+              for await (const event of client.sendMessageStream(params, options)) {
+                this.#learnIds(event, source, turn, record);
+                sendTaskId ??= taskIdOf(event);
+                // A paint outside the app's entitlement is refused at the hub, never relayed
+                // (task-11.4 decision 12): the dispatch ends failed on the catalog's id.
+                outside = catalogOutside(event, entitlement);
+                if (outside !== undefined) break;
+                // The agent asks for authority mid-task (phase-12 decisions 4, 6): read against
+                // the installed card, never relayed.
+                const asked = authRequiredOf(event);
+                if (asked !== undefined) {
+                  const request = credentials?.requested(source, asked.request) ?? {
+                    kind: 'unsigned',
                   };
-                } else if (request.kind === 'invalid') {
-                  invalid = request.reason;
-                } else {
-                  record.sawFinal = true;
-                  finalState = 'failed';
-                  finalMessage = asked.text;
+                  if (request.kind === 'unauthorized') {
+                    refused = true;
+                  } else if (request.kind === 'escalate') {
+                    record.authority = {
+                      cause: 'signIn',
+                      scheme: request.scheme,
+                      keys: request.keys,
+                      words: request.words,
+                      escalation: true,
+                    };
+                  } else if (request.kind === 'invalid') {
+                    invalid = request.reason;
+                  } else {
+                    record.sawFinal = true;
+                    finalState = 'failed';
+                    finalMessage = asked.text;
+                  }
+                  break;
                 }
-                break;
+                let out: VendorEvent = event;
+                if (faulted && fault.fault === 'invalid' && !injected) {
+                  out = withRejectedProp(event);
+                  injected = out !== event;
+                } else if (faulted && fault.fault === 'credential' && !injected) {
+                  out = withCredentialField(event);
+                  injected = out !== event;
+                }
+                found = credentialIn(out, declared);
+                if (found) {
+                  foundOnTerminal = isTerminal(event);
+                  break;
+                }
+                if (event.kind === 'message') {
+                  record.sawFinal = true;
+                } else if (event.kind === 'status-update' && event.final) {
+                  record.sawFinal = true;
+                  finalState = event.status.state;
+                  finalMessage = textOf(event.status.message?.parts);
+                } else if (event.kind === 'task' && TERMINAL_STATES.has(event.status.state)) {
+                  terminalTaskState = event.status.state;
+                  finalMessage = textOf(event.status.message?.parts);
+                }
+                shown.push(...createdIn(out));
+                yield relayEvent(out, relayCtx);
+                // The first paint forwarded, then no final — even where the vendor's paint rode
+                // its final, which the relay has already demoted (task 8.6: the deterministic
+                // roster paints that way).
+                if (fault?.fault === 'break' && carriesA2ui(event)) {
+                  record.sawFinal = false;
+                  broke = true;
+                  break;
+                }
               }
-              if (event.kind === 'message') {
-                record.sawFinal = true;
-              } else if (event.kind === 'status-update' && event.final) {
-                record.sawFinal = true;
-                finalState = event.status.state;
-                finalMessage = textOf(event.status.message?.parts);
-              } else if (event.kind === 'task' && TERMINAL_STATES.has(event.status.state)) {
-                terminalTaskState = event.status.state;
-                finalMessage = textOf(event.status.message?.parts);
+            } catch (err) {
+              if (!(err instanceof UnauthorizedError) || !credentials || prepared === undefined) {
+                throw err;
               }
-              let out: VendorEvent = event;
-              if (fault?.fault === 'invalid' && !injected) {
-                const swapped = withRejectedProp(event);
-                injected = swapped !== event;
-                out = swapped;
-              }
-              yield relayEvent(out, relayCtx);
-              // The first paint forwarded, then no final — even where the vendor's paint rode its
-              // final, which the relay has already demoted (task 8.6: the deterministic roster
-              // paints that way).
-              if (fault?.fault === 'break' && carriesA2ui(event)) {
-                record.sawFinal = false;
-                broke = true;
-                break;
-              }
+              refused = true;
             }
-          } catch (err) {
-            if (!(err instanceof UnauthorizedError) || !credentials || prepared === undefined) {
-              throw err;
+            if (!refused) break;
+            if (resent) {
+              await credentials!.markAgain(source, 'refused after a refresh');
+              record.authority = {cause: 'again'};
+              break;
             }
-            refused = true;
+            const renewed = await credentials!.unauthorized(source, headers);
+            if ('need' in renewed) {
+              record.authority = renewed.need;
+              break;
+            }
+            headers = renewed.headers;
+            resent = true;
           }
-          if (!refused) break;
-          if (resent) {
-            await credentials!.markAgain(source, 'refused after a refresh');
-            record.authority = {cause: 'again'};
+          if (found === undefined) break;
+          // The source, the component and the term — never a value (task-12.7 decision 10).
+          logLine(
+            `✗ ${source} task=${turn.clientTaskId} painted a credential input: ${found.component}, matching ${JSON.stringify(found.term)}`,
+          );
+          if (sendTaskId !== undefined && !foundOnTerminal) {
+            this.#cancelTask(source, app, record, sendTaskId);
+          }
+          if (shown.length > 0) yield relayEvent(takeDown(shown), relayCtx);
+          if (send > 0) {
+            credentialRefused = true;
             break;
           }
-          const renewed = await credentials!.unauthorized(source, headers);
-          if ('need' in renewed) {
-            record.authority = renewed.need;
-            break;
-          }
-          headers = renewed.headers;
-          resent = true;
+          outgoing = repairOf(outgoing, found);
         }
       }
       const endState = record.sawFinal ? finalState : terminalTaskState;
@@ -330,6 +381,15 @@ export class AgentsPool {
         finish('failed', {
           error: `painted in catalog ${JSON.stringify(outside)}, outside its entitlement`,
           cause: 'catalog',
+        });
+      } else if (credentialRefused) {
+        const continueUrl = continueUrlOf(
+          this.#registry.card(app.id) ?? this.#registry.storedCard(app.id),
+        );
+        if (continueUrl !== undefined) record.continueUrl = continueUrl;
+        finish('failed', {
+          error: 'painted a credential input, and again after the repair',
+          cause: 'credential',
         });
       } else if (broke || (!record.sawFinal && !terminalTaskState)) {
         finish('failed', {
@@ -378,6 +438,11 @@ export class AgentsPool {
       record.fault === 'refuse'
     )
       return;
+    this.#cancelTask(source, app, record, id);
+  }
+
+  /** A2A's cancel for one vendor task, fire and forget. */
+  #cancelTask(source: string, app: AppRecord, record: DispatchRecord, id: string): void {
     void this.#connect(app)
       .then(client => client.cancelTask({id}))
       .then(
@@ -491,6 +556,19 @@ function textOf(parts: Part[] | undefined): string | undefined {
     .filter(Boolean)
     .join('\n');
   return text === '' ? undefined : text;
+}
+
+/** The vendor task an event belongs to. */
+function taskIdOf(event: VendorEvent): string | undefined {
+  return event.kind === 'task' ? event.id : event.taskId;
+}
+
+/** An event that ends the vendor's task: nothing left to cancel. */
+function isTerminal(event: VendorEvent): boolean {
+  if (event.kind === 'message') return true;
+  if (event.kind === 'status-update') return event.final;
+  if (event.kind === 'task') return TERMINAL_STATES.has(event.status.state);
+  return false;
 }
 
 /** Waits `ms`, or forever for `Infinity`; rejects when the dispatch is aborted. */

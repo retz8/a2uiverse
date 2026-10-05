@@ -11,7 +11,7 @@ The contracts themselves are JSON in [`../contracts/`](../contracts/): [`a2uiver
 - **`apps/orchestrator`**: stamps what it relays, namespaces surface ids, narrows the shell catalog for each model call and validates what the model writes, resolves refs.
 - **`apps/client`**: reads the stamps to place each fragment, and checks and evaluates the merged view's wiring.
 - **`packages/shell-catalog`**: narrows its catalog to what each model is shown, and types the presses its components send.
-- **`apps/orchestrator`'s registry**: checks an app at install — its id, its card's catalog ids, coverage, each artifact's descriptor, files, schema and host interface, the credential lint — and tells each app its entitlement.
+- **`apps/orchestrator`'s registry**: checks an app at install — its id, its card's catalog ids, coverage, each artifact's descriptor, files, schema and host interface — tells each app its entitlement, and keeps each installed catalog's declared options for the credential check at the paint.
 - **`apps/client`'s loader**: registers the host-module interface, and checks each artifact's host interface and its module's exports at load.
 - **`packages/stellify`**: classifies the imports it bundles, writes the descriptor and gates its own output with the same checks as install.
 - **`packages/registry-snapshot`**: names each packed artifact by its id.

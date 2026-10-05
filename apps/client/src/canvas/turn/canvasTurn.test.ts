@@ -1225,6 +1225,70 @@ describe("the fragment's history (task 9.7)", () => {
     action.end();
   }
 
+  /** The hub's take-down of a paint it refused for a credential input (task 12.7). */
+  const refusedStamp: CompositionStamp = {source: 'github', role: 'fragment', refused: true};
+
+  it('a refused paint streamed onto an empty slot is taken down, and the way back never returns to it (task-12.7 decisions 2, 7)', () => {
+    const catalogs = [CATALOG, SHELL_CATALOG];
+    const processor = new MessageProcessor(catalogs);
+    const store = createCanvasStore();
+    const history = createFragmentHistory({
+      capture: source => {
+        const placed = store.getState().placement.get(source);
+        return placed ? capturePaint(processor, placed.surfaceId) : undefined;
+      },
+    });
+    const runner = createTurnRunner({
+      processor,
+      store,
+      createStaging: () => new MessageProcessor(catalogs),
+      history,
+    });
+    const turn = runner.begin(utterance('pay my bill'));
+    turn.apply(paintedLayout(['github']), SHELL);
+    turn.apply([create('github:pay'), textRoot('github:pay', 'Pay')], fragment('github'));
+    expect(store.getState().placement.get('github')?.surfaceId).toBe('github:pay');
+
+    turn.apply([del('github:pay')], refusedStamp);
+    expect(store.getState().placement.has('github')).toBe(false);
+    expect(processor.model.getSurface('github:pay')).toBeUndefined();
+
+    // The repair's answer, under the same surface id, fills the slot.
+    turn.apply(
+      [create('github:pay'), textRoot('github:pay', 'Pay on the website')],
+      fragment('github'),
+    );
+    turn.apply([], {source: 'github', role: 'fragment', settled: true});
+    turn.end();
+    expect(store.getState().placement.get('github')?.surfaceId).toBe('github:pay');
+    expect(rootText(processor, 'github:pay')).toBe('Pay on the website');
+    // Both creates were counted; the refused one is no step to return to.
+    expect(history.visitsOf('github')).toEqual({visits: [0, 1], at: 1});
+    expect(history.neighbours('github')).toEqual({});
+    expect(store.getState().error).toBeNull();
+  });
+
+  it('a refused answer to a press leaves staging; the fragment on screen stays, and the repair swaps in (task-12.7 decisions 2, 4, 7)', () => {
+    const {processor, store, runner, history} = historied();
+    const action = runner.begin(surfaceAction('pay'));
+    action.apply([create('github:pay'), textRoot('github:pay', 'Pay')], fragment('github'));
+    action.apply([del('github:pay')], refusedStamp);
+    // The list stays where it was while the repair is out.
+    expect(store.getState().placement.get('github')?.surfaceId).toBe('github:pr-list');
+    action.apply(
+      [create('github:pay'), textRoot('github:pay', 'Pay on the website')],
+      fragment('github'),
+    );
+    action.apply([], {source: 'github', role: 'fragment', settled: true});
+    action.end();
+    expect(store.getState().placement.get('github')?.surfaceId).toBe('github:pay');
+    expect(rootText(processor, 'github:pay')).toBe('Pay on the website');
+    expect(history.visitsOf('github')).toEqual({visits: [0, 1, 2], at: 2});
+    // Back goes to the list, past the refused paint.
+    expect(history.neighbours('github')?.back).toEqual({step: 0, title: 'Pull requests'});
+    expect(store.getState().error).toBeNull();
+  });
+
   it('a drill-down swaps into its slot when its source settles, not when the turn ends; the merged view held until then (task-9.9 decision 23)', () => {
     const {processor, store, runner, synthesis} = historied();
     // A merged view stands over the fragments.

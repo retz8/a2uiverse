@@ -22,13 +22,14 @@
       "direction": "orchestrator → client",
       "carriedOn": "every relayed A2A event's metadata, keyed by stampKey",
       "required": ["source"],
-      "optional": ["role", "settled", "vendorContextId", "vendorTaskId"],
+      "optional": ["role", "settled", "refused", "vendorContextId", "vendorTaskId"],
       "fields": {
         "source": "Provenance and placement: the source id the event came from — the app and the account it painted under. A fragment's surface fills the layout's Slot whose source is this id.",
         "role": "Which surface the canvas renders as the composition root: 'shell' | 'fragment'.",
         "vendorContextId": "Debug only, gated by orchestrator config.",
         "vendorTaskId": "Debug only, gated by orchestrator config.",
-        "settled": "This source's stream has ended: set on one event the orchestrator emits after relaying a fragment source's last event, with no A2UI parts. The client judges that source's fragments there instead of at the turn's end."
+        "settled": "This source's stream has ended: set on one event the orchestrator emits after relaying a fragment source's last event, with no A2UI parts. The client judges that source's fragments there instead of at the turn's end.",
+        "refused": "This source's paint was refused at the hub for a credential input: set on one event the orchestrator emits carrying a deleteSurface for each surface of the refused answer it had already relayed. The client takes those surfaces down, and none of them is a paint the way back returns to."
       }
     },
     "canvasParent": {

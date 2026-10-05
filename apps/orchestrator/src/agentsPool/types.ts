@@ -21,6 +21,11 @@ export interface DispatchRecord {
   cause?: FailureCause;
   /** The catalog a paint was refused in, with the `catalog` cause (task-11.4 decision 12). */
   catalogId?: string;
+  /**
+   * The app's own page, with the `credential` cause (task-12.7 decision 5): the card's
+   * `provider.url`, otherwise its `documentationUrl`, when one is https or local.
+   */
+  continueUrl?: string;
   /** The vendor's own words on its failed final, when it gave any. */
   vendorMessage?: string;
   /** Whether the vendor terminated its stream (final status-update or message). */

@@ -6,6 +6,7 @@ export * from './pointer.js';
 export * from './walk.js';
 export * from './validate.js';
 export * from './catalog.js';
+export * from './credential.js';
 export * from './artifact.js';
 export * from './a2ui/types.js';
 export * from './a2ui/validator.js';

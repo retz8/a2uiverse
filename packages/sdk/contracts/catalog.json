@@ -1,6 +1,6 @@
 {
   "name": "a2uiverse-catalog",
-  "description": "The A2UIVerse catalog contracts (SPEC §9.1, task 11.2), versioned with the sdk that carries them: what a catalog package exposes (the export contract), what the client lends a loaded catalog (the host-module interface), what Stellify, the pack tool, writes and the marketplace, the registry and the client verify (the catalog artifact, whose descriptor is the JSON Schema beside this file), and the checks the registry and the marketplace share — two-directional coverage, entitlement, the app id, the credential lint. The agent is described by its A2A AgentCard alone and nothing here describes one. Normative for every language projection; each projection's contract test asserts against this file.",
+  "description": "The A2UIVerse catalog contracts (SPEC §9.1, task 11.2), versioned with the sdk that carries them: what a catalog package exposes (the export contract), what the client lends a loaded catalog (the host-module interface), what Stellify, the pack tool, writes and the marketplace, the registry and the client verify (the catalog artifact, whose descriptor is the JSON Schema beside this file), and the checks the registry and the marketplace share — two-directional coverage, entitlement, the app id — and the credential bar's terms, which the hub matches against every paint. The agent is described by its A2A AgentCard alone and nothing here describes one. Normative for every language projection; each projection's contract test asserts against this file.",
   "a2uiExtensionUri": "https://a2ui.org/a2a-extension/a2ui/v0.9.1",
   "exportContract": {
     "required": ["CATALOG"],
@@ -42,7 +42,7 @@
     "reserved": ["shell"],
     "rule": "A slug chosen by the publisher, unique in the marketplace's index: lowercase ASCII letters, digits and hyphens, starting with a letter."
   },
-  "credentialLint": {
+  "credentialBar": {
     "terms": [
       "password",
       "passcode",
@@ -55,8 +55,9 @@
       "cvv",
       "cvc",
       "card number",
-      "security code"
+      "security code",
+      "obscured"
     ],
-    "rule": "Matched case-insensitively as whole words against component names, prop names and enum values of the catalog schema, names split at case changes and separators; a match refuses the install naming the component and the term. Enforcement proper is the marketplace's review over the schema at publish."
+    "rule": "No credential input is painted on the canvas. The hub matches the terms case-insensitively as whole words — names split at case changes and separators — against every paint's component types, property names, and the property values its painter's catalog declares as fixed options, never free text or the data model; a paint with one match is refused whole."
   }
 }

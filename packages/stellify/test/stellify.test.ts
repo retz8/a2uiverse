@@ -283,17 +283,6 @@ describe('refusals', () => {
     ]);
   });
 
-  test('a credential term in the schema', async () => {
-    const dir = copyFixture();
-    edit(dir, 'catalogs/v0.9.1/catalog.json', s =>
-      s.replace(
-        '"label": {"type": "string"}',
-        '"label": {"type": "string"}, "password": {"type": "string"}',
-      ),
-    );
-    expect(reasons(await stellify(dir))).toEqual([expect.stringMatching(/StarButton.*password/)]);
-  });
-
   test('a schema that does not compile', async () => {
     const dir = copyFixture();
     edit(dir, 'catalogs/v0.9.1/catalog.json', s => s.replace('#/$defs/tone', '#/$defs/nowhere'));

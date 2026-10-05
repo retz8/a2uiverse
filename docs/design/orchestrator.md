@@ -372,10 +372,13 @@ The structures behind it:
 
 **Catalog entitlement** ([`app-install.md`](app-install.md#entitlement-at-the-hub) has it end to end). A dispatch reads the app from the registry once, as it starts, and keeps that snapshot to its end. The app's **entitlement** is the catalogs handed at its install plus the basic catalog. It goes out as the message's `a2uiClientCapabilities.supportedCatalogIds`, in place of whatever the client sent, so each app is told only what it may paint in. Every event coming back is checked: a `createSurface` in any other catalog is never relayed, the app is sent `tasks/cancel`, and the dispatch fails with the `catalog` cause, carrying the id.
 
+**The credential bar.** No password, code or card field is ever painted on the canvas, whatever it is for. Every event coming back is checked before it is relayed: each painted component's type, its property names, and the property values the app's catalogs declare as fixed options (the registry keeps, per installed catalog, every `enum` and `const` each component declares, and the basic catalog's beside them) are matched as whole words against the sdk's terms, `password`, `otp`, `card number`, `obscured` and the rest. Labels, free text and the app's data are never read, so "Forgot your password?" passes, and so does an unmasked field labelled "Password". An event with a match is never relayed. If the answer had already shown surfaces, one event stamped `refused` carries a `deleteSurface` for each, so the client takes them down; the app's task, still running, is sent `tasks/cancel`. Then the reason alone goes back to the app once, as a new message in the same conversation: "Your last answer included a field that asks for a password, a one-time code, a PIN or a card number: the TextField component's variant "obscured". Answer the same request again without it; for anything like that, offer a link to your own website instead." The request or click is not sent again. The repair runs inside the same dispatch, under the same hard cap, so the slot just loads a little longer. A repair that paints one again fails the dispatch with the `credential` cause and the app's own page, the card's `provider.url` or else its `documentationUrl` (https, or this machine). The log line names the source, the component and the matched term, never a value. Every text request the hub writes to an app (the plan's, its re-sends on Retry and resume, the account choice's) ends with the same advice: "Don't include any field that asks for a password, a one-time code, a PIN or a card number; for anything like that, offer a link to your own website instead." It lives in `src/agentsPool/credentialBar.ts`.
+
 **How a dispatch ends.** `completed`; `cancelled` (aborted); or `failed` with a cause:
 - `vendor` when the app ended its task as failed, its words kept.
 - `unreachable` when the connection failed or the stream ended with no final.
 - `catalog` when the app painted outside its entitlement.
+- `credential` when the app painted a credential field and painted one again when asked not to, carrying its own page as `continueUrl`.
 - `uninstalled` when the app isn't installed at dispatch time, so it isn't asked at all.
 
 **The hard cap** is a `setTimeout` for 300 seconds. When it fires first, `capped` resolves, but the stream is **not** ended: the slot fails as `timeout` right away, and whatever arrives after that is **held**, undrawn, until you press Retry. If the app is still running when you retry, the old dispatch and the new one **race**: the first to answer is drawn and the other is cancelled.
@@ -479,6 +482,7 @@ Set `A2UIVERSE_DEBUG_IDS=1` to see the app's own ids under the stamp while debug
 | No `GOOGLE_API_KEY` | Questions are broken turns; clicks inside apps still work |
 | An app failed, couldn't be reached, or hit the hard cap | That app's slot shows the failure tile with Retry; the others carry on |
 | An app painted in a catalog outside its entitlement | The paint is dropped; that app's slot fails with the `catalog` cause and the id, with no Retry |
+| An app painted a password, code or card field | The paint is never shown; what its answer already showed is taken down and the app is asked once to answer without it. If it paints one again, its slot fails with the `credential` cause and "Continue on <App>", with no Retry |
 | A dispatch (a Retry, a click inside its answer) to an app uninstalled since | That app's slot fails with the `uninstalled` cause, with Retry |
 | The registry on disk is damaged | The orchestrator doesn't start; the error names the file and the problem |
 | An install fails a check | Nothing changes; every finding is answered at once, `422` |
@@ -495,7 +499,7 @@ Set `A2UIVERSE_DEBUG_IDS=1` to see the app's own ids under the stamp while debug
 
 **Retry sends again what failed.** A click inside an app's answer that fails is kept on its slot (`failedPress` in `composition/state.ts`), as it was sent, and that slot's Retry sends it again under a fresh message id. A Retry that fails again keeps it for the next, and a click or a Retry there that completes lets it go. A slot whose turn's dispatch failed retries the plan's request. So after an app is uninstalled and installed again, Retry on a click that failed shows what the click opened, not the app's first answer.
 
-For testing failures on purpose, `A2UIVERSE_FAULTS` makes a chosen source `delay`, `hang`, `break` mid-stream, `refuse` the connection, `fail` with a message, or paint something `invalid`, for example `{"github": {"fault": "delay", "seconds": 40}}`. A key is a source: `gmail.2` hits that account alone, and a bare app id like `gmail` hits every account of the app. It's for development only, and the boot log says loudly when it's on.
+For testing failures on purpose, `A2UIVERSE_FAULTS` makes a chosen source `delay`, `hang`, `break` mid-stream, `refuse` the connection, `fail` with a message, paint something `invalid`, or paint a `credential` field (a `TextField` given the `obscured` variant: on the plan's dispatch alone the repair goes through clean, with `"every": true` it's refused again), for example `{"github": {"fault": "delay", "seconds": 40}}`. A key is a source: `gmail.2` hits that account alone, and a bare app id like `gmail` hits every account of the app. It's for development only, and the boot log says loudly when it's on.
 
 ## Design decisions
 
@@ -548,7 +552,7 @@ All paths are under `apps/orchestrator/src/`.
 | The Synthesizer | `synthesizer/` (see [`synthesis.md`](synthesis.md)) |
 | One model answer, one tag | `authoring/taggedBlock.ts` |
 | An app's sources and each source's name | `accounts/accounts.ts` |
-| Talking to apps | `agentsPool/` (`agentsPool.ts`, `relay.ts`, `contextMap.ts`, `faults.ts`) |
+| Talking to apps | `agentsPool/` (`agentsPool.ts`, `relay.ts`, `contextMap.ts`, `faults.ts`, `credentialBar.ts`) |
 | The composition's state and store | `composition/state.ts`, `composition/compositions.ts` |
 | Painting the shell | `composition/shellPainter.ts`, `composition/synthesisPainter.ts`, `composition/constants.ts` |
 | The relay's composition half and the partition filter | `composition/fragmentRelay.ts`, `composition/partition.ts` |

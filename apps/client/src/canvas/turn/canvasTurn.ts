@@ -211,6 +211,32 @@ export function createTurnRunner({
   };
 
   /**
+   * A paint the hub refused for a credential input, taken down (task-12.7 decisions 2, 7): each
+   * surface its answer had already shown leaves the registry, and a fragment of it filling its
+   * slot leaves the slot as no paint the way back returns to. The slot shows what it showed
+   * before, loading, until the repair's answer lands or the shell paints it failed.
+   */
+  const takeDownRefused = (source: string, surfaceIds: readonly string[]) => {
+    const placed = store.getState().placement.get(source);
+    for (const id of surfaceIds) {
+      if (processor.model.getSurface(id)) processor.model.deleteSurface(id);
+    }
+    if (placed && surfaceIds.includes(placed.surfaceId)) {
+      store.unplace(source);
+      store.demoteSlot(source);
+      history?.dropped(source);
+    }
+    store.bumpApplied();
+  };
+
+  /** The surfaces a refused paint's take-down names. */
+  const takenDownIn = (messages: A2uiMessage[]) =>
+    messages.flatMap(message => {
+      const {kind, surfaceId} = targetOf(message);
+      return kind === 'delete' && surfaceId !== undefined ? [surfaceId] : [];
+    });
+
+  /**
    * What a shell paint says about the composition, on whichever stream carries it: the roster,
    * each slot's state, the merged view's facts — and a vendor slot painted failed takes its
    * fragment off the canvas (task-8.5 decision 3). Returns the vendor slots painted with no
@@ -678,6 +704,29 @@ export function createTurnRunner({
       store.bumpApplied();
     };
 
+    /**
+     * A refused paint taken down (task-12.7 decisions 2, 7). In staged mode what it created this
+     * turn leaves staging — its claims, its buffered messages — so its source's swap finds nothing
+     * of it, and the fragment on screen stays; anything it put live leaves as in progressive mode.
+     */
+    const takeDown = (source: string, surfaceIds: readonly string[]) => {
+      if (!stagedMode || !staging) return takeDownRefused(source, surfaceIds);
+      const staged = surfaceIds.filter(id => createdIds.has(id));
+      for (const id of staged) {
+        if (staging.model.getSurface(id)) staging.model.deleteSurface(id);
+        createdIds.delete(id);
+        fragmentSlots.delete(id);
+        for (let i = claims.length - 1; i >= 0; i--) {
+          if (claims[i]!.surfaceId === id) claims.splice(i, 1);
+        }
+        for (let i = buffered.length - 1; i >= 0; i--) {
+          if (targetOf(buffered[i]!).surfaceId === id) buffered.splice(i, 1);
+        }
+      }
+      const live = surfaceIds.filter(id => !staged.includes(id));
+      if (live.length > 0) takeDownRefused(source, live);
+    };
+
     /** A source's settled marker: its paint swapped in, its fragments judged, its tick done. */
     const sourceSettled = (source: string) => {
       if (stagedMode) swapSource(source);
@@ -763,6 +812,11 @@ export function createTurnRunner({
           const meta = readPaintMeta(message);
           if (meta) acceptPaintMeta(meta);
           else rest.push(message);
+        }
+        const refusedFrom = stamp?.refused ? slotOf(stamp) : undefined;
+        if (refusedFrom !== undefined) {
+          takeDown(refusedFrom, takenDownIn(rest));
+          return;
         }
         // A source's settled marker: nothing to apply, its fragments judged now.
         const ended = stamp?.settled ? slotOf(stamp) : undefined;
@@ -895,6 +949,11 @@ export function createTurnRunner({
           const meta = readPaintMeta(message);
           if (meta) accept(meta);
           else rest.push(message);
+        }
+        const refusedFrom = stamp?.refused ? slotOf(stamp) : undefined;
+        if (refusedFrom !== undefined) {
+          takeDownRefused(refusedFrom, takenDownIn(rest));
+          return;
         }
         if (stamp?.role === 'shell') {
           for (const source of applyShellPaint(rest)) refused.add(source);

@@ -35,6 +35,7 @@ import {
 } from './fakeVendor.js';
 import {fixtureArtifact} from './registryFixture.js';
 import type {FaultMap} from '../src/agentsPool/faults.js';
+import {withGuidance} from '../src/agentsPool/credentialBar.js';
 import type {AccountStore} from '../src/accounts/accounts.js';
 
 const APPS = ['github', 'gmail', 'calendar'] as const;
@@ -461,7 +462,7 @@ describe('orchestrator', () => {
       const [request] = vendors[appId]!.requests;
       const textPart = request.message.parts.find(p => p.kind === 'text');
       expect(textPart && 'text' in textPart ? textPart.text : '').toBe(
-        `Paint a compact ${appId} card.`,
+        withGuidance(`Paint a compact ${appId} card.`),
       );
       for (const key of Object.keys(request.message.metadata ?? {})) {
         expect(key.startsWith('a2ui')).toBe(true);
@@ -1628,6 +1629,53 @@ describe('late arrival and failure (task 8.3)', () => {
       collapse: {cause: 'home', home: 'GitHub PRs'},
     });
     expect(synthesizer.calls).toHaveLength(1);
+  });
+
+  test('a paint with a credential input the agent does not repair fails its slot credential; the field never reaches the client (task 12.7)', async () => {
+    const painted: Script = ({ctx, vendorContextId}) => [
+      {
+        kind: 'status-update',
+        taskId: ctx.taskId,
+        contextId: vendorContextId,
+        final: true,
+        status: {
+          state: 'completed',
+          message: {
+            kind: 'message',
+            messageId: crypto.randomUUID(),
+            role: 'agent',
+            contextId: vendorContextId,
+            taskId: ctx.taskId,
+            parts: [
+              {
+                kind: 'data',
+                data: {version: 'v0.9', createSurface: {surfaceId: 's1', catalogId: 'cat'}},
+              },
+              {
+                kind: 'data',
+                data: {
+                  version: 'v0.9',
+                  updateComponents: {
+                    surfaceId: 's1',
+                    components: [{id: 'root', component: 'Text', text: 'Pay'}],
+                  },
+                },
+              },
+            ],
+          },
+        },
+      },
+    ];
+    const {client} = await boot({
+      planner: new FakePlanner(() => layoutFor(['github'])),
+      scripts: {github: painted},
+      faults: new Map([['github', {fault: 'credential' as const, every: true}]]),
+    });
+    const events = await collect(client, utterance('pay'));
+    expect(JSON.stringify(events)).not.toContain('obscured');
+    const slots = slotsOf(shellPaints(events).at(-1)!);
+    expect(slots['github']).toMatchObject({state: 'failed', failure: {cause: 'credential'}});
+    expect(vendors.github!.requests).toHaveLength(2);
   });
 });
 
@@ -3102,7 +3150,7 @@ describe('the account choice (task 12.6)', () => {
     expect(finalOf(pressed).status.state).toBe('completed');
     expect(gmail.requests).toHaveLength(1);
     expect(gmail.requests[0]!.message.parts).toEqual([
-      {kind: 'text', text: 'Draft a reply to Bob saying I will be late.'},
+      {kind: 'text', text: withGuidance('Draft a reply to Bob saying I will be late.')},
     ]);
     expect(slotsOf(shellPaints(pressed)[0]!)['gmail.2']).toMatchObject({
       id: 'root',

@@ -34,6 +34,8 @@ const body = [
   `export const CLIENT_CAPABILITIES_SCHEMA: Record<string, unknown> = ${JSON.stringify(clientCapabilities)};`,
   `/** The id of the standard basic catalog, as its pinned \`catalog.json\` declares it. */`,
   `export const BASIC_CATALOG_ID = ${JSON.stringify(basicCatalog.catalogId)};`,
+  `/** The standard basic catalog's \`catalog.json\`, verbatim: the options its components declare (the credential bar). */`,
+  `export const BASIC_CATALOG_SCHEMA: Record<string, unknown> = ${JSON.stringify(basicCatalog)};`,
   '',
 ].join('\n');
 

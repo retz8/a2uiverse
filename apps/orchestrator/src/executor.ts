@@ -12,6 +12,7 @@ import {
 import {SHELL_ACTIONS, type SlotCollapse} from '@a2uiverse/shell-catalog/schema';
 import type {Sources} from './accounts/accounts.js';
 import type {AgentsPool} from './agentsPool/agentsPool.js';
+import {withGuidance} from './agentsPool/credentialBar.js';
 import {STAMP_KEY, type VendorEvent} from './agentsPool/relay.js';
 import type {DispatchHandle, DispatchOutcome, DispatchRecord} from './agentsPool/types.js';
 import type {Compositions} from './composition/compositions.js';
@@ -592,7 +593,7 @@ export class OrchestratorExecutor implements AgentExecutor {
           kind: 'message',
           messageId: randomUUID(),
           role: 'user',
-          parts: [{kind: 'text', text: slot.request}],
+          parts: [{kind: 'text', text: withGuidance(slot.request)}],
           metadata: vendorMetadata(ctx.userMessage.metadata, slot.source),
         };
         const handle = this.#deps.pool.dispatch(slot.source, {
@@ -981,7 +982,7 @@ export class OrchestratorExecutor implements AgentExecutor {
           kind: 'message',
           messageId: randomUUID(),
           role: 'user',
-          parts: [{kind: 'text', text: slot.plan.request}],
+          parts: [{kind: 'text', text: withGuidance(slot.plan.request)}],
           metadata: vendorMetadata(state.requestMetadata, source),
         };
     const handle = this.#deps.pool.dispatch(source, {
@@ -1655,7 +1656,7 @@ export class OrchestratorExecutor implements AgentExecutor {
         kind: 'message',
         messageId: randomUUID(),
         role: 'user',
-        parts: [{kind: 'text', text: slot.plan.request}],
+        parts: [{kind: 'text', text: withGuidance(slot.plan.request)}],
         metadata: vendorMetadata(state.requestMetadata, source),
       },
       fromPlan: true,
@@ -1685,7 +1686,7 @@ export class OrchestratorExecutor implements AgentExecutor {
           kind: 'message',
           messageId: randomUUID(),
           role: 'user',
-          parts: [{kind: 'text', text: slot.plan.request}],
+          parts: [{kind: 'text', text: withGuidance(slot.plan.request)}],
           metadata: vendorMetadata(state.requestMetadata, source),
         };
     delete slot.escalation;
@@ -1728,6 +1729,9 @@ export class OrchestratorExecutor implements AgentExecutor {
           ? {message: record.vendorMessage}
           : {}),
         ...(record.cause === 'catalog' && record.catalogId ? {catalogId: record.catalogId} : {}),
+        ...(record.cause === 'credential' && record.continueUrl
+          ? {continueUrl: record.continueUrl}
+          : {}),
       });
     }
     // Left to the client means it holds a surface: this source has arrived.

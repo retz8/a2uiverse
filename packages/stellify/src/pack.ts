@@ -7,7 +7,6 @@
 import {
   checkArtifactSchema,
   checkCatalogSchemaCompiles,
-  credentialLint,
   hashArtifactFile,
   HOST_INTERFACE_VERSION,
   validateArtifactDescriptor,
@@ -96,9 +95,6 @@ export async function stellify(
     }
     for (const error of checkCatalogSchemaCompiles(schema))
       findings.push({file: schemaRel, reason: error});
-    for (const error of credentialLint(schema as Parameters<typeof credentialLint>[0])) {
-      findings.push({file: schemaRel, reason: error});
-    }
   }
 
   // The entry: built, bundled, exporting CATALOG.

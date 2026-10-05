@@ -252,7 +252,7 @@ On the next reload, the paint waits for nothing: the boot's **preload** loads ev
 `packages/stellify` turns a built catalog package into an artifact in one in-memory pipeline (`src/pack.ts`, `src/bundle.ts`). `pack` writes the result; `check` runs the same pipeline and writes nothing, for a vendor's CI.
 
 1. **Find the inputs.** The built entry is what `package.json`'s `exports["."]` names, else `main`. The schema is `catalogs/v0.9.1/catalog.json`. A `stellify.config.ts` with four optional fields (`entry`, `schema`, `catalogId`, `outDir`) covers a package laid out otherwise; GitHub's has none.
-2. **Read the schema, never run the code.** The catalog id is the schema's `catalogId`. The schema must compile as an A2UI catalog and pass the [credential lint](#the-credential-lint).
+2. **Read the schema, never run the code.** The catalog id is the schema's `catalogId`. The schema must compile as an A2UI catalog.
 3. **Bundle with esbuild** into one ES module: for the browser, no code splitting, no minification, no source maps. Two esbuild plugins do the rewriting below.
 4. **Assemble, hash, describe.** The files are sorted by path and hashed, the descriptor is built, and the result is checked by the same sdk functions install runs.
 
@@ -335,15 +335,12 @@ Both must be empty. `public` is the basic catalog alone. A card that declares no
 2. Every listed file is there with its hash, and nothing unlisted is.
 3. The host interface is one the platform supplies, `0.9.1`.
 4. The schema parses, its `catalogId` is the descriptor's, and it compiles as an A2UI catalog.
-5. The credential lint finds nothing.
 
 What only running code can show, like what the module exports and whether `CATALOG.id` agrees, is the client's check, when it loads the artifact.
 
-#### The credential lint
+#### Credential inputs are checked at the paint
 
-No password, card-number or one-time-code input exists in any catalog A2UIVerse loads. An app can't paint a login form, because its vocabulary lacks the word: signing in is a surface only the shell draws. The lint enforces that over the schema. It splits each name into words at case changes and separators (`cardNumber` becomes `card number`, `OTPField` becomes `otp field`) and looks for any of twelve terms as whole words: `password`, `passcode`, `passphrase`, `otp`, `pin code`, `pin input`, `pin field`, `pin number`, `cvv`, `cvc`, `card number`, `security code`. It reads component names, prop names, enum values and constants, never descriptions. Whole words matter: Primer's icon set has `pin` and `pin-slash`, which are fine, and `pinned` isn't `pin`.
-
-The lint is the first line. Enforcement proper is the marketplace's review over the schema at publish.
+Install doesn't look for credential inputs in a catalog. The orchestrator checks every paint instead, and refuses one that carries a password, code or card field, whatever catalog it's in ([`orchestrator.md`](orchestrator.md#agentspool-one-handle-per-dispatch), the credential bar). It reads the options each installed catalog's components declare, which the registry keeps when it installs or loads an artifact.
 
 **One hash per catalog id.** The table holds one artifact per catalog id. An artifact for a held id at another hash is a new version of that catalog. It's accepted only when no other installed app names that id, and refused otherwise, naming the apps that hold it: `catalog "…/github-catalog/catalogs/v0.9.1/catalog.json" is held at another hash by github`. Two apps share a catalog by handing the same artifact: same id, same hash.
 
@@ -558,7 +555,7 @@ Installing needs no model. Questions do, since the Planner is a model call, but 
 | Concern | Where |
 | --- | --- |
 | The contracts, as JSON | `packages/sdk/contracts/catalog.json`, `packages/sdk/contracts/catalog-artifact.schema.json` |
-| The contracts' checks | `packages/sdk/js/src/catalog.ts` (host interface, coverage, entitlement, app id, credential lint), `packages/sdk/js/src/artifact.ts` (descriptor, hashes, files, schema) |
+| The contracts' checks | `packages/sdk/js/src/catalog.ts` (host interface, coverage, entitlement, app id), `packages/sdk/js/src/artifact.ts` (descriptor, hashes, files, schema) |
 | Packing | `packages/stellify/src/` (`pack.ts`, `bundle.ts`, `layout.ts`, `stylesheets.ts`, `config.ts`, `manifest.ts`, `write.ts`, `cli.ts`) |
 | Install, uninstall, the summary | `apps/orchestrator/src/registry/registry.ts`, `gate.ts` |
 | Storage, routes, token, command | `apps/orchestrator/src/registry/store.ts`, `api.ts`, `token.ts`, `command.ts`, `cli.ts`, `types.ts` |
@@ -590,7 +587,6 @@ Installing needs no model. Questions do, since the Planner is a model call, but 
 | **Install-over** | An install of an app id already installed, replacing its card, artifacts and entitlement |
 | **Coverage** | Every catalog a card declares is handed or public, and every artifact handed is declared |
 | **Static gate** | Install's checks over an artifact's files, with nothing run |
-| **Credential lint** | The check that no catalog schema can describe a credential input |
 | **Entitlement** | The catalogs an app may paint in: those handed at its install, plus the basic catalog |
 | **Write token** | The secret the write operations need, written into the state directory at every startup |
 | **Catalog loader** | The client's reader of the table, turning each artifact into a catalog the processors use |

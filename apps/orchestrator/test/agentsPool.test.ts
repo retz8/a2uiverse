@@ -580,3 +580,157 @@ describe('AgentsPool — catalog entitlement and the installed set (task-11.4 de
     expect(JSON.stringify(events)).toContain(FAKE_CATALOG_ID);
   });
 });
+
+describe('AgentsPool — the credential bar at the paint (task 12.7)', () => {
+  const SECRET = {id: 'pw', component: 'TextField', label: 'Password', variant: 'obscured'};
+  const CLEAN = {id: 'root', component: 'Text', text: 'Open your settings on the website.'};
+  const isRepair = (message: Message) =>
+    message.parts.some(p => p.kind === 'text' && p.text.startsWith('Your last answer included'));
+
+  /** One paint per send: the secret field until the repair arrives, then a clean one. */
+  function paints(options: {stream?: boolean; repairs?: boolean} = {}): Script {
+    return ({ctx, vendorContextId}) => {
+      const secret = !(options.repairs ?? true) || !isRepair(ctx.userMessage);
+      const update = {
+        version: 'v0.9',
+        updateComponents: {surfaceId: 's1', components: secret ? [CLEAN, SECRET] : [CLEAN]},
+      };
+      const create = {
+        version: 'v0.9',
+        createSurface: {surfaceId: 's1', catalogId: FAKE_CATALOG_ID},
+      };
+      const event = (parts: object[], final: boolean): TaskStatusUpdateEvent => ({
+        kind: 'status-update',
+        taskId: ctx.taskId,
+        contextId: vendorContextId,
+        final,
+        status: {
+          state: final ? 'completed' : 'working',
+          message: {
+            kind: 'message',
+            messageId: crypto.randomUUID(),
+            role: 'agent',
+            parts: parts.map(data => ({
+              kind: 'data' as const,
+              data: data as Record<string, unknown>,
+            })),
+            contextId: vendorContextId,
+            taskId: ctx.taskId,
+          },
+        },
+      });
+      return options.stream
+        ? [event([create], false), event([update], false), event([], true)]
+        : [event([create, update], true)];
+    };
+  }
+
+  test('a paint carrying one is never relayed; the reason alone goes back once, in the same conversation', async () => {
+    const {pool, vendor} = await poolFor({script: paints()});
+    const {events, record} = await drain(pool.dispatch('github', turn()));
+    expect(JSON.stringify(events)).not.toContain('obscured');
+    expect(JSON.stringify(events)).toContain('Open your settings');
+    expect(record).toMatchObject({outcome: 'completed'});
+    expect(record.cause).toBeUndefined();
+    expect(vendor.requests).toHaveLength(2);
+    const [first, repair] = vendor.requests;
+    expect(repair!.message.contextId).toBe(vendor.contextIds[0]);
+    expect(repair!.message.parts).toEqual([
+      {
+        kind: 'text',
+        text: 'Your last answer included a field that asks for a password, a one-time code, a PIN or a card number: the TextField component\'s variant "obscured". Answer the same request again without it; for anything like that, offer a link to your own website instead.',
+      },
+    ]);
+    // The press or request is not sent again; the metadata it rode on is.
+    expect(first!.message.parts).toEqual([{kind: 'text', text: 'hello'}]);
+    expect(repair!.message.metadata?.a2uiClientDataModel).toEqual({v: 1});
+  });
+
+  test('what a streamed answer already showed is taken down, stamped refused, before the repair', async () => {
+    const {pool, vendor} = await poolFor({script: paints({stream: true})});
+    const {events, record} = await drain(pool.dispatch('github', turn()));
+    const stamps = events.map(e => (e.metadata as Record<string, {refused?: boolean}>).a2uiverse);
+    const down = stamps.findIndex(stamp => stamp?.refused === true);
+    expect(down).toBeGreaterThan(0);
+    const takenDown = events[down] as TaskStatusUpdateEvent;
+    expect(takenDown.final).toBe(false);
+    expect(takenDown.status.message!.parts).toEqual([
+      {kind: 'data', data: {version: 'v0.9', deleteSurface: {surfaceId: 's1'}}},
+    ]);
+    expect(JSON.stringify(events)).not.toContain('obscured');
+    expect(record.outcome).toBe('completed');
+    // The refused answer's task was still running: its vendor was asked to cancel it.
+    await vi.waitFor(() => expect(vendor.methods).toContain('tasks/cancel'));
+  });
+
+  test('a repair refused again fails with the credential cause and the app’s own page', async () => {
+    const vendor = await startFakeVendor({script: paints({repairs: false})});
+    vendors.push(vendor);
+    const card = {
+      ...cardFor(vendor.url, {name: 'GitHub', catalogs: [FAKE_CATALOG_ID]}),
+      provider: {organization: 'GitHub', url: 'http://github.example'},
+      documentationUrl: 'https://docs.github.example',
+    };
+    const {registry} = await testRegistry([
+      {id: 'github', card, catalogs: [await fixtureArtifact(FAKE_CATALOG_ID)]},
+    ]);
+    const pool = new AgentsPool(registry, {hardCapMs: 30000, debugIds: false});
+    const {events, record} = await drain(pool.dispatch('github', turn()));
+    expect(JSON.stringify(events)).not.toContain('obscured');
+    expect(vendor.requests).toHaveLength(2);
+    // provider.url is plain http on a public host: the documentation is the way out.
+    expect(record).toMatchObject({
+      outcome: 'failed',
+      cause: 'credential',
+      continueUrl: 'https://docs.github.example',
+    });
+  });
+
+  test('a value its catalog does not declare as an option is free text, and passes', async () => {
+    const script: Script = ({ctx, vendorContextId}) => [
+      {
+        kind: 'message',
+        messageId: crypto.randomUUID(),
+        role: 'agent',
+        parts: [
+          {
+            kind: 'data',
+            data: {
+              version: 'v0.9',
+              updateComponents: {
+                surfaceId: 's1',
+                components: [{id: 'root', component: 'Text', text: 'password'}],
+              },
+            },
+          },
+        ],
+        contextId: vendorContextId,
+        taskId: ctx.taskId,
+      },
+    ];
+    const {pool, vendor} = await poolFor({script});
+    const {record} = await drain(pool.dispatch('github', turn()));
+    expect(record.outcome).toBe('completed');
+    expect(vendor.requests).toHaveLength(1);
+  });
+
+  test('the credential fault: refusal then a clean repair on the plan’s dispatch; refused again with every', async () => {
+    const clean = paints({repairs: true});
+    const script: Script = s => clean({...s, ctx: {...s.ctx, userMessage: repairShaped(s)}});
+    const once = await poolFor({script}, faulted({fault: 'credential'}));
+    const repaired = await drain(once.pool.dispatch('github', turn({fromPlan: true})));
+    expect(repaired.record).toMatchObject({outcome: 'completed', fault: 'credential'});
+    expect(once.vendor.requests).toHaveLength(2);
+
+    const every = await poolFor({script}, faulted({fault: 'credential', every: true}));
+    const refused = await drain(every.pool.dispatch('github', turn({fromPlan: true})));
+    expect(refused.record).toMatchObject({outcome: 'failed', cause: 'credential'});
+  });
+
+  const faulted = (fault: Fault) => ({faults: new Map([['github', fault]])});
+  /** The vendor answers every send clean: the fault alone paints the secret field. */
+  const repairShaped = (s: Parameters<Script>[0]): Message => ({
+    ...s.ctx.userMessage,
+    parts: [{kind: 'text', text: 'Your last answer included'}],
+  });
+});

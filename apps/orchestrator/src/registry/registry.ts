@@ -1,6 +1,13 @@
+import {readFile} from 'node:fs/promises';
+import {join} from 'node:path';
 import type {AgentCard} from '@a2a-js/sdk';
 import {
   BASIC_CATALOG_ID,
+  basicCatalogOptions,
+  catalogOptions,
+  mergeCatalogOptions,
+  type A2uiCatalogSchema,
+  type CatalogOptions,
   checkAppId,
   checkCoverage,
   coverageErrors,
@@ -91,6 +98,8 @@ export class Registry {
   readonly #store: RegistryStore;
   #records = new Map<string, InstalledRecord>();
   readonly #descriptors = new Map<string, ArtifactDescriptor>();
+  /** The options each artifact's schema declares, by artifact id: what the credential bar reads. */
+  readonly #options = new Map<string, CatalogOptions>();
   /** This run's cards: null when the startup fetch failed; absent before it ran. */
   readonly #cards = new Map<string, AgentCard | null>();
   readonly #vectors = new Map<string, number[]>();
@@ -131,7 +140,26 @@ export class Registry {
     const {records, descriptors} = await this.#store.load();
     this.#records = new Map(records.map(record => [record.id, record]));
     this.#descriptors.clear();
-    for (const [id, descriptor] of descriptors) this.#descriptors.set(id, descriptor);
+    this.#options.clear();
+    for (const [id, descriptor] of descriptors) {
+      this.#descriptors.set(id, descriptor);
+      const schema = await readFile(join(this.#store.artifactsDir, id, descriptor.schema));
+      this.#options.set(id, optionsOf(schema));
+    }
+  }
+
+  /**
+   * The options an app's catalogs declare, per component — the basic catalog's and those of every
+   * catalog handed at its install — what the credential bar matches a painted value against
+   * (task-12.7 decision 1). A component named alike in two catalogs takes both's options.
+   */
+  credentialOptions(app: AppRecord): CatalogOptions {
+    const record = this.#records.get(app.id);
+    const handed = Object.values(record?.catalogs ?? {}).flatMap(artifact => {
+      const options = this.#options.get(artifact);
+      return options ? [options] : [];
+    });
+    return mergeCatalogOptions([basicCatalogOptions(), ...handed]);
   }
 
   /**
@@ -325,7 +353,11 @@ export class Registry {
     const next = new Map(this.#records);
     next.set(appId, record);
     await this.#commit(next);
-    for (const artifact of gated) this.#descriptors.set(artifact.id, artifact.descriptor);
+    for (const artifact of gated) {
+      this.#descriptors.set(artifact.id, artifact.descriptor);
+      const schema = artifact.files.get(artifact.descriptor.schema);
+      if (schema) this.#options.set(artifact.id, optionsOf(schema));
+    }
     this.#cards.set(appId, card);
     this.#vectors.set(appId, vector);
     await this.#journal({operation, appId, cardUrl, catalogs: journaled, outcome: 'installed'});
@@ -380,6 +412,9 @@ export class Registry {
     await this.#store.removeArtifactsExcept(named);
     for (const id of [...this.#descriptors.keys()]) {
       if (!named.has(id)) this.#descriptors.delete(id);
+    }
+    for (const id of [...this.#options.keys()]) {
+      if (!named.has(id)) this.#options.delete(id);
     }
   }
 
@@ -451,4 +486,13 @@ export function installSummary(
     ...(previous && !changed ? ['nothing changed'] : []),
     ...parts,
   ].join(' · ');
+}
+
+/** A gated schema's declared options; a schema that does not parse declares none. */
+function optionsOf(bytes: Uint8Array): CatalogOptions {
+  try {
+    return catalogOptions(JSON.parse(new TextDecoder().decode(bytes)) as A2uiCatalogSchema);
+  } catch {
+    return new Map();
+  }
 }

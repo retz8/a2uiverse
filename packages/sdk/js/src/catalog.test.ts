@@ -9,11 +9,9 @@ import {
   claimAppId,
   classifySpecifier,
   coverageErrors,
-  credentialLint,
   entitlementOf,
   readSupportedCatalogIds,
   SUPPORTED_HOST_INTERFACES,
-  wordsOf,
 } from './catalog';
 
 const GITHUB = 'https://example.com/github/catalog.json';
@@ -169,74 +167,6 @@ describe('the app id', () => {
     expect(claimAppId('github', new Set(['gmail']))).toEqual([]);
     expect(claimAppId('github', new Set(['github']))).toEqual(['app id "github" is already taken']);
     expect(claimAppId('GitHub', new Set(['github']))).toHaveLength(1);
-  });
-});
-
-describe('the credential lint', () => {
-  test('wordsOf splits case changes and separators', () => {
-    expect(wordsOf('cardNumber')).toBe('card number');
-    expect(wordsOf('OTPField')).toBe('otp field');
-    expect(wordsOf('security-code')).toBe('security code');
-    expect(wordsOf('pinned_items')).toBe('pinned items');
-  });
-
-  test('a clean schema has no findings', () => {
-    const schema = {
-      components: {
-        TextField: {
-          properties: {label: {type: 'string'}, inputType: {enum: ['text', 'email', 'number']}},
-        },
-        PinnedList: {properties: {items: {type: 'array'}}},
-        Card: {properties: {title: {type: 'string'}, description: {type: 'string'}}},
-      },
-    };
-    expect(credentialLint(schema)).toEqual([]);
-  });
-
-  test('component names, prop names, enum values and consts, in components and $defs', () => {
-    const schema = {
-      components: {
-        PasswordField: {properties: {label: {type: 'string'}}},
-        TextField: {
-          properties: {inputType: {enum: ['text', 'password']}, cardNumber: {type: 'string'}},
-        },
-        Otp: {properties: {}},
-      },
-      $defs: {inputKind: {oneOf: [{const: 'text'}, {const: 'security-code'}]}},
-    };
-    expect(credentialLint(schema)).toEqual([
-      'component "PasswordField": name matches "password"',
-      'component "TextField", prop "cardNumber": name matches "card number"',
-      'component "TextField": enum value "password" matches "password"',
-      'component "Otp": name matches "otp"',
-      '$defs "inputKind": const "security-code" matches "security code"',
-    ]);
-  });
-
-  test('whole words only: pinned is not pin, and descriptions are not read', () => {
-    const schema = {
-      components: {
-        List: {properties: {pinned: {type: 'boolean', description: 'a password is never asked'}}},
-      },
-    };
-    expect(credentialLint(schema)).toEqual([]);
-  });
-
-  test('a pin is a pushpin alone, a credential only as a pin code, input, field or number', () => {
-    const schema = {
-      components: {
-        Icon: {properties: {name: {enum: ['pin', 'pin-slash', 'star']}}},
-        Overlay: {properties: {pinPosition: {type: 'boolean'}}},
-        PinInput: {properties: {}},
-        Form: {properties: {pinCode: {type: 'string'}, kind: {enum: ['pin-field', 'pin_number']}}},
-      },
-    };
-    expect(credentialLint(schema)).toEqual([
-      'component "PinInput": name matches "pin input"',
-      'component "Form", prop "pinCode": name matches "pin code"',
-      'component "Form": enum value "pin-field" matches "pin field"',
-      'component "Form": enum value "pin_number" matches "pin number"',
-    ]);
   });
 });
 

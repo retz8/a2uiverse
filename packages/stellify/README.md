@@ -47,8 +47,7 @@ Every failure is a finding, and all of them are reported together:
 3. Every stylesheet reached, and every `url()` or `@import` inside it, resolves to a file inside your package or one of its dependencies.
 4. The entry exports `CATALOG`.
 5. The schema parses, has a `catalogId`, and is a valid A2UI catalog: it compiles, and its `catalogId` is the one the descriptor carries.
-6. No component name, prop name, enum value or constant in the schema is a credential word such as `password` or `otp`.
-7. The descriptor is well formed, names the host-module interface the client lends (`0.9.1`), and lists every file with its hash.
+6. The descriptor is well formed, names the host-module interface the client lends (`0.9.1`), and lists every file with its hash.
 
 Stellify runs none of your code. Exports are read from the bundle, the id from the schema file. Whether `CATALOG.id` agrees is the client's check when it loads the artifact.
 

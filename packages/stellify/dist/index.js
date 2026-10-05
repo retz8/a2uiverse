@@ -7667,7 +7667,6 @@ var SERVER_CAPABILITIES_SCHEMA = { "$schema": "https://json-schema.org/draft/202
 
 // ../sdk/js/dist/catalog.js
 var A2UI_CAPABILITIES_VERSION_KEY = "v0.9";
-var isObject = (value) => typeof value === "object" && value !== null && !Array.isArray(value);
 var HOST_INTERFACE_VERSION = "0.9.1";
 var HOST_INTERFACE_GLOBAL = "__a2uiverse_host__";
 var HOST_SPECIFIERS = [
@@ -7699,76 +7698,6 @@ function classifySpecifier(specifier) {
 var ajv2 = new import__2.Ajv2020({ allErrors: true, strict: true, allowUnionTypes: true });
 var serverCapabilities = ajv2.compile(SERVER_CAPABILITIES_SCHEMA);
 var serverCapabilitiesVersion = ajv2.compile(SERVER_CAPABILITIES_SCHEMA.properties[A2UI_CAPABILITIES_VERSION_KEY]);
-var CREDENTIAL_TERMS = [
-  "password",
-  "passcode",
-  "passphrase",
-  "otp",
-  "pin code",
-  "pin input",
-  "pin field",
-  "pin number",
-  "cvv",
-  "cvc",
-  "card number",
-  "security code"
-];
-function wordsOf(name) {
-  return name.replace(/([a-z0-9])([A-Z])/g, "$1 $2").replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2").split(/[^A-Za-z0-9]+/).filter(Boolean).join(" ").toLowerCase();
-}
-var termIn = (name) => {
-  const words = ` ${wordsOf(name)} `;
-  return CREDENTIAL_TERMS.find((term) => words.includes(` ${term} `));
-};
-function lintNode(node, where, findings) {
-  if (Array.isArray(node)) {
-    node.forEach((item) => lintNode(item, where, findings));
-    return;
-  }
-  if (!isObject(node))
-    return;
-  if (isObject(node.properties)) {
-    for (const prop of Object.keys(node.properties)) {
-      const term = termIn(prop);
-      if (term)
-        findings.push(`${where}, prop ${JSON.stringify(prop)}: name matches ${JSON.stringify(term)}`);
-    }
-  }
-  if (Array.isArray(node.enum)) {
-    for (const value of node.enum) {
-      if (typeof value !== "string")
-        continue;
-      const term = termIn(value);
-      if (term) {
-        findings.push(`${where}: enum value ${JSON.stringify(value)} matches ${JSON.stringify(term)}`);
-      }
-    }
-  }
-  if (typeof node.const === "string") {
-    const term = termIn(node.const);
-    if (term)
-      findings.push(`${where}: const ${JSON.stringify(node.const)} matches ${JSON.stringify(term)}`);
-  }
-  for (const [key, value] of Object.entries(node)) {
-    if (key === "enum" || key === "const" || key === "description" || key === "title")
-      continue;
-    lintNode(value, where, findings);
-  }
-}
-function credentialLint(schema) {
-  const findings = [];
-  for (const [name, component] of Object.entries(schema.components ?? {})) {
-    const where = `component ${JSON.stringify(name)}`;
-    const term = termIn(name);
-    if (term)
-      findings.push(`${where}: name matches ${JSON.stringify(term)}`);
-    lintNode(component, where, findings);
-  }
-  for (const [name, def] of Object.entries(schema.$defs ?? {})) {
-    lintNode(def, `$defs ${JSON.stringify(name)}`, findings);
-  }
-  return findings;
-}
 
 // ../sdk/js/dist/artifact.js
 var import__4 = __toESM(require__(), 1);
@@ -7781,9 +7710,9 @@ var ROOT_ID = "root";
 var MAX_GLOBAL_DEPTH = 50;
 var MAX_FUNC_CALL_DEPTH = 5;
 var RELAXED_PATH_PATTERN = /^(?:(?:\/(?:[^~/]|~[01])*)*|(?:[^~/]|~[01])+(?:\/(?:[^~/]|~[01])*)*)$/;
-var isObject2 = (value) => typeof value === "object" && value !== null && !Array.isArray(value);
+var isObject = (value) => typeof value === "object" && value !== null && !Array.isArray(value);
 function refEndsWith(schema, suffix) {
-  if (!isObject2(schema))
+  if (!isObject(schema))
     return false;
   if (typeof schema.$ref === "string" && schema.$ref.endsWith(suffix))
     return true;
@@ -7797,7 +7726,7 @@ function refEndsWith(schema, suffix) {
 var isComponentId = (schema) => refEndsWith(schema, "/ComponentId");
 var isChildList = (schema) => refEndsWith(schema, "/ChildList");
 function resolveLocal(schema, catalog, seen = /* @__PURE__ */ new Set()) {
-  if (!isObject2(schema) || typeof schema.$ref !== "string")
+  if (!isObject(schema) || typeof schema.$ref !== "string")
     return schema;
   const ref = schema.$ref;
   if (!ref.startsWith("#/") || seen.has(ref) || isComponentId(schema) || isChildList(schema)) {
@@ -7806,30 +7735,30 @@ function resolveLocal(schema, catalog, seen = /* @__PURE__ */ new Set()) {
   seen.add(ref);
   let node = catalog;
   for (const part of ref.slice(2).split("/")) {
-    if (!isObject2(node))
+    if (!isObject(node))
       return schema;
     node = node[part];
   }
-  return isObject2(node) ? resolveLocal(node, catalog, seen) : schema;
+  return isObject(node) ? resolveLocal(node, catalog, seen) : schema;
 }
 function extractRefFields(catalog) {
   const map = /* @__PURE__ */ new Map();
   for (const [name, componentSchema] of Object.entries(catalog.components ?? {})) {
     const fields = { single: /* @__PURE__ */ new Set(), list: /* @__PURE__ */ new Set(), nested: /* @__PURE__ */ new Map() };
     const visit = (schema) => {
-      if (!isObject2(schema))
+      if (!isObject(schema))
         return;
-      for (const [prop, propSchema] of Object.entries(isObject2(schema.properties) ? schema.properties : {})) {
+      for (const [prop, propSchema] of Object.entries(isObject(schema.properties) ? schema.properties : {})) {
         const resolved = resolveLocal(propSchema, catalog);
         if (isComponentId(resolved)) {
           fields.single.add(prop);
         } else if (isChildList(resolved)) {
           fields.list.add(prop);
-        } else if (isObject2(resolved) && resolved.type === "array" && resolved.items !== void 0) {
+        } else if (isObject(resolved) && resolved.type === "array" && resolved.items !== void 0) {
           const items = resolveLocal(resolved.items, catalog);
           if (isComponentId(items) || isChildList(items)) {
             fields.list.add(prop);
-          } else if (isObject2(items) && isObject2(items.properties)) {
+          } else if (isObject(items) && isObject(items.properties)) {
             for (const [key, sub] of Object.entries(items.properties)) {
               const resolvedSub = resolveLocal(sub, catalog);
               if (isComponentId(resolvedSub) || isChildList(resolvedSub)) {
@@ -7870,7 +7799,7 @@ function componentReferences(component, refFields) {
         const sub = typeof item === "string" && !path.includes("[") ? path : `${path}[${index}]`;
         extract(item, sub);
       });
-    } else if (isObject2(value)) {
+    } else if (isObject(value)) {
       if ("componentId" in value) {
         if (typeof value.componentId === "string") {
           found.push({ id: value.componentId, field: `${path}.componentId` });
@@ -8017,7 +7946,7 @@ function recursionAndPathFindings(data) {
     if (Array.isArray(item)) {
       return item.every((x, i) => traverse(x, depth + 1, funcDepth, `${at}/${i}`));
     }
-    if (!isObject2(item))
+    if (!isObject(item))
       return true;
     if (typeof item.path === "string" && !RELAXED_PATH_PATTERN.test(item.path)) {
       findings.push({
@@ -8026,7 +7955,7 @@ function recursionAndPathFindings(data) {
         message: `Invalid path syntax: '${item.path}'`
       });
     }
-    const legacyCall = isObject2(item.functionCall);
+    const legacyCall = isObject(item.functionCall);
     const call = "call" in item && "args" in item;
     if ((legacyCall || call) && funcDepth >= MAX_FUNC_CALL_DEPTH) {
       findings.push({
@@ -8047,11 +7976,11 @@ function recursionAndPathFindings(data) {
 
 // ../sdk/js/dist/a2ui/validator.js
 var MESSAGE_TYPES = ["createSurface", "updateComponents", "updateDataModel", "deleteSurface"];
-var isObject3 = (value) => typeof value === "object" && value !== null && !Array.isArray(value);
+var isObject2 = (value) => typeof value === "object" && value !== null && !Array.isArray(value);
 function openComponents(schema) {
   if (Array.isArray(schema))
     return schema.map(openComponents);
-  if (!isObject3(schema))
+  if (!isObject2(schema))
     return schema;
   if (typeof schema.$ref === "string" && schema.$ref.endsWith("#/$defs/anyComponent")) {
     return { type: "object" };
@@ -8059,9 +7988,9 @@ function openComponents(schema) {
   return Object.fromEntries(Object.entries(schema).map(([k, v]) => [k, openComponents(v)]));
 }
 function definesProperty(schema, prop) {
-  if (!isObject3(schema))
+  if (!isObject2(schema))
     return false;
-  if (isObject3(schema.properties) && prop in schema.properties)
+  if (isObject2(schema.properties) && prop in schema.properties)
     return true;
   for (const key of ["allOf", "oneOf", "anyOf"]) {
     const branches = schema[key];
@@ -8104,7 +8033,7 @@ function functionCalls(value, at, found) {
     value.forEach((item, i) => functionCalls(item, `${at}/${i}`, found));
     return;
   }
-  if (!isObject3(value))
+  if (!isObject2(value))
     return;
   if (typeof value.call === "string")
     found.push({ name: value.call, path: at });
@@ -8130,7 +8059,7 @@ function createA2uiValidator(options) {
   const envelopes = /* @__PURE__ */ new Map();
   const envelopeFor = (type) => {
     const def = type ? `${type[0].toUpperCase()}${type.slice(1)}Message` : void 0;
-    const hasDef = def !== void 0 && isObject3(serverToClient.$defs) && def in serverToClient.$defs;
+    const hasDef = def !== void 0 && isObject2(serverToClient.$defs) && def in serverToClient.$defs;
     const key = hasDef ? def : "";
     let validate = envelopes.get(key);
     if (!validate) {
@@ -8152,7 +8081,7 @@ function createA2uiValidator(options) {
   const functions = options.catalog.functions ?? {};
   const refFields = extractRefFields(options.catalog);
   const componentFindings = (component, base) => {
-    if (!isObject3(component)) {
+    if (!isObject2(component)) {
       return [{ category: "ValidationError", path: base, message: "a component must be an object" }];
     }
     const id = typeof component.id === "string" ? component.id : void 0;
@@ -8203,7 +8132,7 @@ function createA2uiValidator(options) {
       let creates = false;
       messages.forEach((message, index) => {
         const base = `/${index}`;
-        if (!isObject3(message)) {
+        if (!isObject2(message)) {
           findings.push({
             category: "ValidationError",
             path: base,
@@ -8218,10 +8147,10 @@ function createA2uiValidator(options) {
         if ("createSurface" in message)
           creates = true;
         const update = message.updateComponents;
-        if (isObject3(update) && Array.isArray(update.components)) {
+        if (isObject2(update) && Array.isArray(update.components)) {
           update.components.forEach((component, i) => {
             findings.push(...componentFindings(component, `${base}/updateComponents/components/${i}`));
-            if (isObject3(component))
+            if (isObject2(component))
               all.push(component);
           });
         }
@@ -8720,9 +8649,6 @@ async function stellify(packageDir, options = {}) {
     }
     for (const error of checkCatalogSchemaCompiles(schema))
       findings.push({ file: schemaRel, reason: error });
-    for (const error of credentialLint(schema)) {
-      findings.push({ file: schemaRel, reason: error });
-    }
   }
   const entryRel = config.entry ?? manifest?.entry;
   let code;
