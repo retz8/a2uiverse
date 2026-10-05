@@ -91,11 +91,11 @@ A slot needing sign-in behaves like a failed source, with sign-in as its Retry. 
 
 ### 19. Multi-account: slot naming and the dispatch unit
 
-Slot naming and the dispatch unit are by (app, account). The Planner chooses accounts: the installed-apps platform reader lists each app's accounts by label, never a credential, and §7's fan-out rule applies one level down — a question about state gathers from every account; a command, or an utterance naming an account, goes to that account alone. An action inside a fragment goes to the account that painted it. A match claim's relation joins two different sources, so two accounts of one app can be joined.
+Slot naming and the dispatch unit are by (app, account). The Planner chooses accounts: the installed-apps platform reader lists each app's accounts by label, never a credential, and §7's fan-out rule applies one level down — a question about state gathers from every account; a command, or an utterance naming an account, goes to that account alone. An utterance also names an account when it points unambiguously at something on the canvas it was asked from and only one account of that app holds a slot there. A command naming no account, for an app with two or more, takes the account choice: the shell draws one press per held account, and the press sends the Planner's request to that account in that slot (task-12.6). An action inside a fragment goes to the account that painted it. A match claim's relation joins two different sources, so two accounts of one app can be joined.
 
 ### 20. The add-account shell action
 
-The shell's closed action set gains "add an account to <app>", which the Planner may paint as an affordance; it opens the same popup sign-in the authority tile opens.
+The shell's closed action set gains "add an account to <app>", which the Planner paints when the utterance asks for it; it opens the same popup sign-in the authority tile opens. It also gains the account choice's press (decision 19).
 
 ### 21. Account labels
 
