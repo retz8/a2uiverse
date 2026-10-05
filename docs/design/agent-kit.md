@@ -318,7 +318,7 @@ flowchart LR
 The techniques inside:
 
 - **Templates with tokens.** Template files are copied as they are, with `__TOKEN__` placeholders (`__DISPLAY_NAME__`, `__PORT__`) filled in, in file contents and file names alike. A token the scaffolder doesn't define is an error, not a silent blank. `_gitignore` becomes `.gitignore` on the way, since npm won't publish a real `.gitignore`.
-- **Overlays.** The agent is built in layers: the common `templates/agent`, then `templates/agent-kind/basic` or `custom` over it, then `templates/agent-google-adc` when the app signs in with a Google login. A later layer overwrites the files beneath it.
+- **Overlays.** The agent is built in layers: the common `templates/agent`, then `templates/agent-kind/basic` or `custom` over it. The later layer overwrites the files beneath it.
 - **Three files generated in code**, where a template would be too rigid: `pyproject.toml` (with the kit pin), `app/config.py` (the `AgentAppConfig`, with or without the paint-title prose and a question policy), and `app/mcp.py`.
 - **A port suggestion.** One above the highest `default_port` any sibling app's agent config declares, or 11001 when there are none, so a new app beside the five lands on 11006.
 - **Pinning the kit.** The new agent takes the kit as a git dependency pinned to one commit, so an app scaffolded today keeps working when the kit changes. The pin is the commit the CLI runs from. If that commit isn't pushed, nobody could fetch it, so the scaffolder pins the newest commit a remote carries instead, and says whether the kit changed in between.
@@ -380,7 +380,6 @@ In `a2uiverse-apps/agent-kit/src/a2ui_agent_kit/`:
 | `paint_meta.py`                | The tag filter, the `paintMeta` part, the two question policies                                 |
 | `toolset.py`, `tool_shaping.py`| The MCP tool hooks; the annotation walker                                                       |
 | `recorder.py`, `corpus.py`, `beats.py` | Recording what was painted and what was read; the beat driver                           |
-| `google_adc.py`                | Optional: sign in to a Google MCP server with Application Default Credentials                   |
 | `testing.py`                   | Run an executor in-process, for tests                                                           |
 
 The scaffolder is `a2uiverse-apps/create-a2ui-agent/`: `src/cli.ts` (flags and the flow), `src/prompts.ts` (the walkthrough), `src/scaffold.ts` (composing templates), `src/generate.ts` (the four generated files), `src/kit.ts` (the pin), `src/ports.ts`, and `templates/`. Its drift gate is `test/scaffold-run.test.ts`.

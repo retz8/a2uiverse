@@ -599,6 +599,7 @@ Properties that follow from the decisions above, recorded so they are not discov
 - The Planner authors each dispatched agent's request. What a vendor receives is the orchestrator's words, not the user's — fan-out can disclose more, or less, than the user said.
 - A credential the user types into the utterance is the user's own act: it reaches the Planner, the intent journal, the canvas's header and the trail, and nothing detects it.
 - An account's label — an email address, a username — reaches the Planner, which chooses accounts by it, and the Synthesizer, which tells two accounts of one app apart by it (§7, §9.5).
+- Gmail and Google Calendar sign in to Google with the publisher's OAuth client, kept in Testing status: only its listed test users can sign in, and Google ends each sign-in after 7 days, when the slot asks to sign in again (§8). Publishing the client needs Google's app verification and, for Gmail's restricted scopes, a security assessment.
 
 ---
 
