@@ -419,7 +419,7 @@ export function createCanvasRuntime({
 
   /**
    * A fragment whose catalog did not load (task-11.5 decision 4), reported to the hub as the
-   * composition contract's catalog load failure: the hub fails its slot under `load`. The create
+   * A2UIVerse extension's catalog load failure: the hub fails its slot under `load`. The create
    * the gate dropped is still the source's paint — the orchestrator counted it when it relayed it
    * — so it is counted here too. A surface the shell painted itself has no slot to fail: the
    * strip says so.
@@ -466,7 +466,11 @@ export function createCanvasRuntime({
       sourceComponentId: action.componentId ?? FUNCTION_CALL_SOURCE,
       timestamp: new Date().toISOString(),
       context:
-        action.name === 'openStore' && action.query !== undefined ? {query: action.query} : {},
+        action.name === 'openStore' && action.query !== undefined
+          ? {query: action.query}
+          : action.name === 'addAccount'
+            ? {app: action.app}
+            : {},
     };
     void (async () => {
       // The hub answers with nothing. Should it ever answer with a paint, it lands like the
@@ -570,11 +574,19 @@ export function createCanvasRuntime({
   };
 }
 
-/** What a shell action opens: the page the trail store holds (task-6.5 decisions 2, 3). */
-export function trustedPageOf(action: ShellAction): TrustedPageState {
-  return action.name === 'openStore'
-    ? {page: 'store', ...(action.query !== undefined ? {query: action.query} : {})}
-    : {page: 'appLibrary'};
+/**
+ * What a shell action opens: the page the trail store holds (task-6.5 decisions 2, 3). Adding an
+ * account opens no page — it opens the sign-in (task-12.2 decision 11).
+ */
+export function trustedPageOf(action: ShellAction): TrustedPageState | undefined {
+  switch (action.name) {
+    case 'openStore':
+      return {page: 'store', ...(action.query !== undefined ? {query: action.query} : {})};
+    case 'openAppLibrary':
+      return {page: 'appLibrary'};
+    case 'addAccount':
+      return undefined;
+  }
 }
 
 export type {A2AMessageSender};

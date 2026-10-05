@@ -2,10 +2,12 @@
 import {readFileSync} from 'node:fs';
 import {expect, test} from 'vitest';
 import {
+  A2UIVERSE_EXTENSION_URI,
+  AUTH_REQUIRED_FIELDS,
+  AUTH_REQUIRED_STATE,
   CANVAS_PARENT_FIELDS,
   CATALOG_LOAD_FAILED,
   CATALOG_LOAD_FAILURE_FIELDS,
-  COMPOSITION_EXTENSION_URI,
   OPERATION_FIELDS,
   OPERATION_KINDS,
   PAINT_META_FIELDS,
@@ -14,26 +16,32 @@ import {
   PAINT_META_TITLE_MAX_LENGTH,
   QUESTION_PAINT_KIND,
   STAMP_FIELDS,
+  SOURCE_ID_SEPARATOR,
   STAMP_KEY,
   SURFACE_NS_SEPARATOR,
+  authRequiredData,
   canvasParentMetadata,
   clipPaintMetaTitle,
   namespaceSurfaceId,
   operationData,
   paintMetaData,
+  parseSourceId,
   parseSurfaceId,
+  readAuthRequired,
   readCanvasParent,
   readCatalogLoadFailure,
   readOperation,
   readPaintMeta,
   readStamp,
-} from './composition';
+  sourceId,
+} from './a2uiverse';
 
 const contract = JSON.parse(
-  readFileSync(new URL('../../contracts/composition.v0.8.json', import.meta.url), 'utf8'),
+  readFileSync(new URL('../../contracts/a2uiverse.v0.9.json', import.meta.url), 'utf8'),
 ) as {
   extensionUri: string;
   stampKey: string;
+  sourceIdSeparator: string;
   surfaceIdSeparator: string;
   canvasIdentity: {is: string};
   paintMetaMimeType: string;
@@ -46,8 +54,9 @@ const contract = JSON.parse(
 };
 
 test('constants match the contract', () => {
-  expect(COMPOSITION_EXTENSION_URI).toBe(contract.extensionUri);
+  expect(A2UIVERSE_EXTENSION_URI).toBe(contract.extensionUri);
   expect(STAMP_KEY).toBe(contract.stampKey);
+  expect(SOURCE_ID_SEPARATOR).toBe(contract.sourceIdSeparator);
   expect(SURFACE_NS_SEPARATOR).toBe(contract.surfaceIdSeparator);
   expect(PAINT_META_MIME_TYPE).toBe(contract.paintMetaMimeType);
   expect(PAINT_META_TITLE_MAX_LENGTH).toBe(contract.paintMetaTitleMaxLength);
@@ -109,18 +118,68 @@ test('readCatalogLoadFailure reads the code, the surface and the catalog, and re
   expect(readCatalogLoadFailure('CATALOG_LOAD_FAILED')).toBeUndefined();
 });
 
-test('the contract carries no vendor-facing shape', () => {
+test('the contract carries no vendor-facing shape; the one shape from an agent is the auth-required request', () => {
   expect(Object.keys(contract.shapes)).toEqual([
     'compositionStamp',
     'canvasParent',
     'compositionOperation',
     'catalogLoadFailure',
     'paintMeta',
+    'authRequired',
     'synthesizeDataModel',
   ]);
-  for (const shape of Object.values(contract.shapes)) {
-    expect(['orchestrator → client', 'client → orchestrator']).toContain(shape.direction);
+  for (const [name, shape] of Object.entries(contract.shapes)) {
+    const from = name === 'authRequired' ? ['agent → orchestrator'] : [];
+    expect(['orchestrator → client', 'client → orchestrator', ...from]).toContain(shape.direction);
   }
+});
+
+test('the auth-required request matches the contract', () => {
+  const request = contract.shapes.authRequired!;
+  expect(request.direction).toBe('agent → orchestrator');
+  expect([...AUTH_REQUIRED_FIELDS].sort()).toEqual(
+    [...request.required!, ...request.optional!].sort(),
+  );
+  expect(AUTH_REQUIRED_STATE).toBe('auth-required');
+});
+
+test("an auth-required request round-trips in the card's own requirement shape", () => {
+  const request = {security: [{github_oauth: ['repo']}, {github_pat: []}]};
+  expect(authRequiredData(request)).toEqual(request);
+  expect(readAuthRequired(authRequiredData(request))).toEqual(request);
+  expect(readAuthRequired({security: [{oauth: ['read', 'write'], api_key: []}]})).toEqual({
+    security: [{oauth: ['read', 'write'], api_key: []}],
+  });
+});
+
+test('readAuthRequired refuses what is not a well-formed request', () => {
+  expect(readAuthRequired(undefined)).toBeUndefined();
+  expect(readAuthRequired('auth-required')).toBeUndefined();
+  expect(readAuthRequired({})).toBeUndefined();
+  expect(readAuthRequired({security: []})).toBeUndefined();
+  expect(readAuthRequired({security: {oauth: ['repo']}})).toBeUndefined();
+  expect(readAuthRequired({security: [{}]})).toBeUndefined();
+  expect(readAuthRequired({security: [['oauth']]})).toBeUndefined();
+  expect(readAuthRequired({security: [{'': ['repo']}]})).toBeUndefined();
+  expect(readAuthRequired({security: [{oauth: 'repo'}]})).toBeUndefined();
+  expect(readAuthRequired({security: [{oauth: ['']}]})).toBeUndefined();
+  expect(readAuthRequired({security: [{oauth: [3]}]})).toBeUndefined();
+  expect(readAuthRequired({security: [{oauth: ['repo', 'repo']}]})).toBeUndefined();
+});
+
+test('a source is the app and its account: <appId>.<n>, the bare app id with no account', () => {
+  expect(sourceId('gmail', 2)).toBe('gmail.2');
+  expect(sourceId('github')).toBe('github');
+  expect(parseSourceId('gmail.2')).toEqual({appId: 'gmail', account: 2});
+  expect(parseSourceId('github')).toEqual({appId: 'github'});
+  expect(parseSourceId('shell')).toEqual({appId: 'shell'});
+  expect(parseSourceId('')).toBeUndefined();
+  expect(parseSourceId('.2')).toBeUndefined();
+  expect(parseSourceId('gmail.')).toBeUndefined();
+  expect(parseSourceId('gmail.0')).toBeUndefined();
+  expect(parseSourceId('gmail.02')).toBeUndefined();
+  expect(parseSourceId('gmail.x')).toBeUndefined();
+  expect(parseSourceId('gmail.1.2')).toBeUndefined();
 });
 
 test('an operation round-trips through its data part', () => {
@@ -138,6 +197,21 @@ test('an operation round-trips through its data part', () => {
     kind: 'tryAgain',
     sources: [],
   });
+});
+
+test('a dismiss names the one source whose scope request Not now drops', () => {
+  const dismiss = operationData({kind: 'dismiss', sources: ['github.1']}, 'v0.9');
+  expect(dismiss).toEqual({version: 'v0.9', operation: {kind: 'dismiss', sources: ['github.1']}});
+  expect(readOperation(dismiss)).toEqual({kind: 'dismiss', sources: ['github.1']});
+  expect(
+    readOperation({version: 'v0.9', operation: {kind: 'dismiss', sources: []}}),
+  ).toBeUndefined();
+  expect(
+    readOperation({version: 'v0.9', operation: {kind: 'dismiss', sources: ['a', 'b']}}),
+  ).toBeUndefined();
+  expect(
+    readOperation({version: 'v0.9', operation: {kind: 'dismiss', sources: ['a'], step: 0}}),
+  ).toBeUndefined();
 });
 
 test('a step names one agent and the step it shows; a close names nothing', () => {
@@ -234,10 +308,12 @@ test('a title past the cap is clipped with an ellipsis, whitespace collapsed fir
   expect(clipPaintMetaTitle('   ')).toBe('');
 });
 
-test('surface id namespacing round-trips', () => {
+test('surface id namespacing round-trips, by source', () => {
   expect(namespaceSurfaceId('github', 'pr-list')).toBe('github:pr-list');
-  expect(parseSurfaceId('github:pr-list')).toEqual({appId: 'github', surfaceId: 'pr-list'});
-  expect(parseSurfaceId('gmail:chat:1')).toEqual({appId: 'gmail', surfaceId: 'chat:1'});
+  expect(namespaceSurfaceId('gmail.2', 'inbox')).toBe('gmail.2:inbox');
+  expect(parseSurfaceId('github:pr-list')).toEqual({source: 'github', surfaceId: 'pr-list'});
+  expect(parseSurfaceId('gmail.2:inbox')).toEqual({source: 'gmail.2', surfaceId: 'inbox'});
+  expect(parseSurfaceId('gmail:chat:1')).toEqual({source: 'gmail', surfaceId: 'chat:1'});
   expect(parseSurfaceId('un-namespaced')).toBeUndefined();
   expect(parseSurfaceId(':pr-list')).toBeUndefined();
   expect(parseSurfaceId('github:')).toBeUndefined();

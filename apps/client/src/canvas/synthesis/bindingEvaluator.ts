@@ -77,7 +77,7 @@ function resolveRef(ref: Ref, models: EvaluateInput['models']): {found: boolean;
 
 /** A source is an app (task-4.5 decision 8): the app a namespaced surface belongs to. */
 function appOf(surface: string): string {
-  return parseSurfaceId(surface)?.appId ?? surface;
+  return parseSurfaceId(surface)?.source ?? surface;
 }
 
 function targetOf(ref: Ref): CellTarget {

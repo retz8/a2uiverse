@@ -47,7 +47,7 @@
                     "id": "attribution-inbox-slot",
                     "component": "Attribution",
                     "displayName": "Gmail",
-                    "appId": "gmail",
+                    "source": "gmail",
                     "child": "inbox-slot",
                     "weight": 1
                   },
@@ -63,7 +63,7 @@
                     "id": "attribution-calendar-slot",
                     "component": "Attribution",
                     "displayName": "Google Calendar",
-                    "appId": "calendar",
+                    "source": "calendar",
                     "child": "calendar-slot",
                     "weight": 1
                   },

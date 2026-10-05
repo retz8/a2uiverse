@@ -7,8 +7,9 @@ import {z} from 'zod';
  * wrappers.
  *
  * - A slot holds exactly one of `source` or `gap`.
- * - `source` is the dispatched source whose content fills the region: an app id, or `shell` for
- *   the merged view. It is the slot's identity within the layout; the host resolves content by it.
+ * - `source` is the dispatched source whose content fills the region: a source id — the app and
+ *   the account it paints under, `<appId>.<n>`, the bare app id for an app needing no sign-in
+ *   (task-12.2 decision 3) — or `shell` for the merged view. It is the slot's identity within the layout; the host resolves content by it.
  * - `gap` is a capability no installed app serves, in words (task-6.3 decision 6): the region is
  *   the capability tile, and the gap is its Store query.
  * - `weight` is the basic catalog's flex-grow share inside a `Row` or `Column`.
@@ -19,10 +20,17 @@ import {z} from 'zod';
  *   "CircleCI runs" — written by the painter at plan time (task-8.2 decision 3). It stays a
  *   painted prop; the failure tile no longer draws it.
  * - `failure` (fragment content) is why the source failed, painted by the runtime with `state:
- *   "failed"` (task-8.2 decision 2): one of seven causes, the vendor's own message only when the
+ *   "failed"` (task-8.2 decision 2): one of eight causes, the vendor's own message only when the
  *   vendor ended its task itself, and the catalog id only with `catalog` — a paint in a catalog
  *   the app is not entitled to (task-11.4 decisions 12, 13) — and with `load` — a catalog the
- *   client could not load (task-11.5 decision 4).
+ *   client could not load (task-11.5 decision 4). `credential` is a paint refused for a credential
+ *   field and not repaired, carrying `continueUrl` — the app's own page from its card — when it
+ *   has one (task-12.2 decision 7).
+ * - `authority` (fragment content) is the slot's sign-in, painted by the runtime with `state:
+ *   "authority"` (task-12.2 decision 5): `signIn` — no usable account — with the scopes' words
+ *   from the card, possibly none, and `quiet` for the one-line form after the first full tile for
+ *   that app this session; `again` — the silent refresh failed; `unsupported` — a scheme the vault
+ *   cannot do.
  * - `content` says whose content fills the region (task-5.5 decision 1): an agent's
  *   fragment (default), or the shell's own — the merged view — which keeps its reserved
  *   position but is painted like the shell's own UI, no tile: while pending, reserved as the
@@ -58,6 +66,7 @@ export const FAILURE_CAUSES = [
   'catalog',
   'uninstalled',
   'load',
+  'credential',
 ] as const;
 export type FailureCause = (typeof FAILURE_CAUSES)[number];
 
@@ -66,6 +75,7 @@ const FailureSchema = z
     cause: z.enum(FAILURE_CAUSES),
     message: z.string().optional(),
     catalogId: z.string().optional(),
+    continueUrl: z.string().optional(),
   })
   .strict()
   .refine(failure => failure.message === undefined || failure.cause === 'vendor', {
@@ -76,7 +86,27 @@ const FailureSchema = z
       (failure.catalogId !== undefined) ===
       (failure.cause === 'catalog' || failure.cause === 'load'),
     {message: 'a failure carries a catalog id exactly when its cause is `catalog` or `load`'},
-  );
+  )
+  .refine(failure => failure.continueUrl === undefined || failure.cause === 'credential', {
+    message: 'a failure carries a continue URL only when its cause is `credential`',
+  });
+
+export const AUTHORITY_CAUSES = ['signIn', 'again', 'unsupported'] as const;
+export type AuthorityCause = (typeof AUTHORITY_CAUSES)[number];
+
+const AuthoritySchema = z
+  .object({
+    cause: z.enum(AUTHORITY_CAUSES),
+    quiet: z.boolean().optional(),
+    scopes: z.array(z.string()).optional(),
+  })
+  .strict()
+  .refine(authority => authority.quiet === undefined || authority.cause === 'signIn', {
+    message: 'only a slot asking to sign in takes the quiet line',
+  })
+  .refine(authority => (authority.scopes !== undefined) === (authority.cause === 'signIn'), {
+    message: 'an authority carries the scopes exactly when it asks to sign in',
+  });
 
 export const COLLAPSE_CAUSES = ['home', 'few', 'unmade'] as const;
 export type CollapseCause = (typeof COLLAPSE_CAUSES)[number];
@@ -117,10 +147,11 @@ export const SlotApi = {
       source: z.string().optional(),
       gap: z.string().optional(),
       weight: z.number().optional(),
-      state: z.enum(['pending', 'failed', 'collapsed']).optional(),
+      state: z.enum(['pending', 'failed', 'collapsed', 'authority']).optional(),
       label: z.string().optional(),
       noun: z.string().optional(),
       failure: FailureSchema.optional(),
+      authority: AuthoritySchema.optional(),
       content: z.enum(['fragment', 'shell']).optional(),
       columns: z.array(z.string()).optional(),
       columnSources: z.array(z.string().nullable()).optional(),
@@ -147,6 +178,9 @@ export const SlotApi = {
     .refine(props => (props.source === undefined) !== (props.gap === undefined), {
       message: 'a Slot holds exactly one of source or gap',
     })
+    .refine(props => props.authority === undefined || props.state === 'authority', {
+      message: 'a Slot carries an authority only when its state is `authority`',
+    })
     .refine(
       props =>
         props.columnSources === undefined ||
@@ -157,5 +191,6 @@ export const SlotApi = {
 
 export type SlotProps = z.infer<typeof SlotApi.schema>;
 export type SlotFailure = z.infer<typeof FailureSchema>;
+export type SlotAuthority = z.infer<typeof AuthoritySchema>;
 export type SlotCollapse = z.infer<typeof CollapseSchema>;
 export type SlotCallFailed = z.infer<typeof CallFailedSchema>;

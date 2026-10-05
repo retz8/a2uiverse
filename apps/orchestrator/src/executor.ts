@@ -206,7 +206,7 @@ export class OrchestratorExecutor implements AgentExecutor {
           break;
         }
         case 'action': {
-          const owner = parseSurfaceId(turnKind.surfaceId)?.appId;
+          const owner = parseSurfaceId(turnKind.surfaceId)?.source;
           turn = this.#deps.journal.open({
             turnId: ctx.taskId,
             clientContextId: ctx.contextId,
@@ -621,7 +621,7 @@ export class OrchestratorExecutor implements AgentExecutor {
     if (!parsed) throw new Error(`action on un-namespaced surface: ${action.surfaceId}`);
     // The fragment's owner, installed or not: a dispatch to an app no longer installed fails in the
     // pool with its own cause, painted on the slot (task-11.4 decision 6).
-    const owner = {id: parsed.appId};
+    const owner = {id: parsed.source};
     const composition = this.#compositions.get(ctx.contextId);
     // Two-way edits reach the partitions through the returning client data model.
     composition?.partitions.applyClientDataModel(clientSurfaces(ctx.userMessage.metadata));
@@ -738,13 +738,17 @@ export class OrchestratorExecutor implements AgentExecutor {
         if (index >= paints.count) return refuse(`${name} has no paint ${index}.`);
         const surfaces = Object.fromEntries(
           Object.entries(clientSurfaces(ctx.userMessage.metadata)).filter(
-            ([surface]) => parseSurfaceId(surface)?.appId === appId,
+            ([surface]) => parseSurfaceId(surface)?.source === appId,
           ),
         );
         if (Object.keys(surfaces).length === 0) return refuse('The step carries no paint.');
         work = () => this.#step(sink, state, appId, index, surfaces);
         break;
       }
+      case 'dismiss':
+        // Not now on a scope request (task-12.2 decision 10): no request is painted until the
+        // vault asks for one, so there is nothing to drop yet.
+        return refuse('There is no request for more access to dismiss.');
     }
     const running: Operation = {
       taskId: ctx.taskId,
@@ -1203,7 +1207,7 @@ export class OrchestratorExecutor implements AgentExecutor {
 
       const view = state.partitions.view(over);
       const sources = view.entries().flatMap(([surface, data]) => {
-        const appId = parseSurfaceId(surface)?.appId;
+        const appId = parseSurfaceId(surface)?.source;
         if (!appId) return [];
         return [{surface, appId, displayName: this.#deps.registry.displayName(appId), data}];
       });
@@ -1447,9 +1451,9 @@ export class OrchestratorExecutor implements AgentExecutor {
   #clientErrorTurn(sink: Sink, error: Turn & {kind: 'clientError'}): void {
     const parsed = parseSurfaceId(error.surfaceId);
     const state = this.#compositions.get(sink.ctx.contextId);
-    const slot = parsed && state?.slots.get(parsed.appId);
+    const slot = parsed && state?.slots.get(parsed.source);
     if (!state || !slot || slot.state === 'failed') return;
-    if (parsed.appId === SHELL_SOURCE_ID) {
+    if (parsed.source === SHELL_SOURCE_ID) {
       slot.state = 'failed';
       this.#repaint([sink], state);
       return;
@@ -1457,12 +1461,12 @@ export class OrchestratorExecutor implements AgentExecutor {
     this.#failSlot(
       sink,
       state,
-      parsed.appId,
+      parsed.source,
       error.catalogId !== undefined
         ? {cause: 'load', catalogId: error.catalogId}
         : {cause: 'invalid'},
     );
-    state.left?.(parsed.appId);
+    state.left?.(parsed.source);
     state.reevaluate?.();
   }
 

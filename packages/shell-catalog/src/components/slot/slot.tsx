@@ -442,10 +442,12 @@ export function failureStatement(failure: SlotFailure | undefined): string {
 
 /**
  * Whether the tile offers Retry (task-11.5 decision 9): every cause but `catalog` — a paint the
- * hub refused outside the app's catalogs fails the same way again, so there is nothing to retry.
+ * hub refused outside the app's catalogs fails the same way again, so there is nothing to retry —
+ * and `credential`, a paint refused for a credential field the agent did not repair (task-12.2
+ * decision 7).
  */
 export function failureRetries(failure: SlotFailure | undefined): boolean {
-  return failure?.cause !== 'catalog';
+  return failure?.cause !== 'catalog' && failure?.cause !== 'credential';
 }
 
 /**

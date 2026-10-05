@@ -2,14 +2,14 @@
  * The contract's validator over the synthesis payload: what the client runs over what it receives,
  * and what the orchestrator runs over the derived model and sorts the Synthesizer wrote. Checks what
  * the contract states on its own — the schema, then the structure the schema cannot express: every
- * leaf a formula, every pointer parses, every relation of a match claim joins two different apps,
+ * leaf a formula, every pointer parses, every relation of a match claim joins two different sources,
  * every sort names an array of the model — once, reaching through `*` the list inside every
  * element of the arrays enclosing it — whose elements carry every option key as a formula with at
  * least one ref, and the initial key is an option. Whether a relation's operator
  * is a relation, and whether it holds, is the consumer's: the sdk knows no catalog and no partition.
  */
 import {Ajv2020, type ErrorObject, type ValidateFunction} from 'ajv/dist/2020.js';
-import {parseSurfaceId} from './composition.js';
+import {parseSurfaceId} from './a2uiverse.js';
 import {parsePointer, PointerSyntaxError, resolvePointer} from './pointer.js';
 import {
   SYNTHESIS_SCHEMA,
@@ -50,14 +50,16 @@ function modelErrors(model: DerivedModel): string[] {
   }
   for (const claim of claims) {
     for (const {path: where, formula} of claim.relations) {
-      const apps = formula.args.map(ref => parseSurfaceId(ref.surface)?.appId);
-      const bare = formula.args.find((_, i) => apps[i] === undefined);
+      const sources = formula.args.map(ref => parseSurfaceId(ref.surface)?.source);
+      const bare = formula.args.find((_, i) => sources[i] === undefined);
       if (bare) {
         errors.push(
-          `${where}: ref surface ${JSON.stringify(bare.surface)} names no app — a surface is <appId>:<surfaceId>`,
+          `${where}: ref surface ${JSON.stringify(bare.surface)} names no source — a surface is <source>:<surfaceId>`,
         );
-      } else if (apps[0] === apps[1]) {
-        errors.push(`${where}: a relation joins two different apps; both refs are in ${apps[0]}`);
+      } else if (sources[0] === sources[1]) {
+        errors.push(
+          `${where}: a relation joins two different sources; both refs are in ${sources[0]}`,
+        );
       }
     }
   }

@@ -41,7 +41,7 @@ const paintedLayout = (slots: Array<string | [appId: string, displayName: string
             {
               id: `attribution-${appId}`,
               component: 'Attribution',
-              appId,
+              source: appId,
               displayName,
               child: appId,
             },

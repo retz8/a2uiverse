@@ -50,7 +50,7 @@ export class History {
         if (typeof create !== 'object' || create === null) continue;
         const surfaceId = (create as {surfaceId?: unknown}).surfaceId;
         if (typeof surfaceId !== 'string') continue;
-        const appId = parseSurfaceId(surfaceId)?.appId;
+        const appId = parseSurfaceId(surfaceId)?.source;
         if (appId === undefined || appId === SHELL_SOURCE_ID) continue;
         this.#paint(appId);
       }

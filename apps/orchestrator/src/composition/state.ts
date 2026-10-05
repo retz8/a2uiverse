@@ -92,10 +92,10 @@ export interface Sink {
 export interface OwedPress {
   /**
    * The presses that owe the merge a call, the walk after a press inside a fragment, and a step
-   * in a fragment's history (task 9.4) — a walk with the step's name on it; a close (task 9.3)
-   * owes none.
+   * in a fragment’s history (task 9.4) — a walk with the step’s name on it; a close (task 9.3)
+   * and a dismiss (task 12.2) owe none.
    */
-  kind: Exclude<OperationKind, 'close'> | 'walk';
+  kind: Exclude<OperationKind, 'close' | 'dismiss'> | 'walk';
   sink: Sink;
   /** Settles with what became of the call it was made in. */
   resolve(end: SynthesisEnd): void;

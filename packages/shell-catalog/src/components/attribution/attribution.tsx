@@ -33,7 +33,7 @@ import {AttributionApi, type AttributionProps} from './attribution.schema.js';
  * The fragment's way back rides the marker's row (SPEC §6.5, task 9.5), at its right edge
  * (task-9.9 decision 15): a back arrow when the host says there is a step to go back to, a
  * forward arrow beside it when there is one to go forward to — read from `FragmentHistoryContext`
- * by the painted `appId`, or handed in as `history` — each a soft accent icon button named
+ * by the painted `source`, or handed in as `history` — each a soft accent icon button named
  * "Back to" or "Forward to" that paint's title, "Back" or "Forward" alone when the agent named
  * nothing, the name on hover, focus and for assistive technology. An arrow raises the step operation — the one source and
  * the neighbour's index — through the host's press handler; without one no arrow is drawn, and
@@ -50,13 +50,13 @@ import {AttributionApi, type AttributionProps} from './attribution.schema.js';
  */
 export function AttributionView({
   displayName,
-  appId,
+  source,
   account,
   weight,
   history,
   onPress,
   children,
-}: Pick<AttributionProps, 'displayName' | 'appId' | 'account' | 'weight'> & {
+}: Pick<AttributionProps, 'displayName' | 'source' | 'account' | 'weight'> & {
   /** Where the fragment stands in its history; read from the host's context when not given. */
   history?: FragmentHistory;
   /** What an arrow raises: the step operation. Without it no arrow is drawn. */
@@ -70,8 +70,8 @@ export function AttributionView({
   const resolveHistory = useContext(FragmentHistoryContext);
   const {enabled} = useContext(PressStateContext);
   const detail = account ? `${displayName} · ${account}` : displayName;
-  const stands = history ?? (appId === undefined ? undefined : resolveHistory(appId));
-  const arrows = onPress && appId !== undefined ? stands : undefined;
+  const stands = history ?? (source === undefined ? undefined : resolveHistory(source));
+  const arrows = onPress && source !== undefined ? stands : undefined;
   const back = arrows?.back;
   const forward = arrows?.forward;
   // Disabled where no press can be made, and while this source's own repaint is in flight.
@@ -121,7 +121,7 @@ export function AttributionView({
 
   const stepTo = (which: 'back' | 'forward', step: HistoryStep, button: HTMLElement) => {
     if (button.ownerDocument.activeElement === button) pressed.current = which;
-    onPress!({kind: 'step', sources: [appId!], step: step.step});
+    onPress!({kind: 'step', sources: [source!], step: step.step});
   };
   const row =
     back || forward ? (
@@ -218,7 +218,7 @@ export function createAttributionComponent({onPress}: {onPress?: PressHandler} =
   return createComponentImplementation(AttributionApi, ({props, buildChild, context}) => (
     <AttributionView
       displayName={props.displayName}
-      appId={props.appId}
+      source={props.source}
       account={props.account}
       weight={props.weight}
       onPress={

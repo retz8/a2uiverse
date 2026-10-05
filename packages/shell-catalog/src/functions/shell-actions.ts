@@ -7,7 +7,7 @@ import {z} from 'zod';
  * catalog's `openUrl`. A function does nothing itself — it hands the action to the host, which
  * decides what opening the Store or the App Library looks like.
  */
-export const SHELL_ACTIONS = ['openStore', 'openAppLibrary'] as const;
+export const SHELL_ACTIONS = ['openStore', 'openAppLibrary', 'addAccount'] as const;
 export type ShellActionName = (typeof SHELL_ACTIONS)[number];
 
 /**
@@ -17,11 +17,15 @@ export type ShellActionName = (typeof SHELL_ACTIONS)[number];
  */
 export type ShellAction =
   | {name: 'openStore'; surfaceId: string; componentId?: string; query?: string}
-  | {name: 'openAppLibrary'; surfaceId: string; componentId?: string};
+  | {name: 'openAppLibrary'; surfaceId: string; componentId?: string}
+  | {name: 'addAccount'; surfaceId: string; componentId?: string; app: string};
 
 export type ShellActionHandler = (action: ShellAction) => void;
 
-/** The two functions, bound to the host's handler. */
+/**
+ * The three functions, bound to the host's handler. `addAccount` names the bare app id — an
+ * account is added to an app, the vault numbering it (task-12.2 decision 11).
+ */
 export function shellActionFunctions(onShellAction: ShellActionHandler): FunctionImplementation[] {
   return [
     createFunctionImplementation(
@@ -37,6 +41,12 @@ export function shellActionFunctions(onShellAction: ShellActionHandler): Functio
       {name: 'openAppLibrary', returnType: 'void', schema: z.object({})},
       (_args, context) => {
         onShellAction({name: 'openAppLibrary', surfaceId: context.surface.id});
+      },
+    ),
+    createFunctionImplementation(
+      {name: 'addAccount', returnType: 'void', schema: z.object({app: z.string().min(1)})},
+      ({app}, context) => {
+        onShellAction({name: 'addAccount', surfaceId: context.surface.id, app});
       },
     ),
   ];

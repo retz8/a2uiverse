@@ -95,7 +95,7 @@ Two models write shell surfaces, and each is allowed a different part of the cat
 | Keep-set | Components | Functions | Author |
 | --- | --- | --- | --- |
 | `SYNTHESIS_SURFACE_KEEP_SET` | `DerivedValue`, `SortControl`, `Table`, `TableRow`, `DataList`, `DataListItem`, `Text`, `Column`, `Row`, `Card`, `Divider` | the formula operators and the relations | the Synthesizer, `shell:synthesis` |
-| `LAYOUT_SURFACE_KEEP_SET` | `Slot`, `Row`, `Column`, `Card`, `Text`, `Divider`, `DataList`, `DataListItem`, `Table`, `TableRow`, `Button` | `openStore`, `openAppLibrary` | the Planner, `shell:main` |
+| `LAYOUT_SURFACE_KEEP_SET` | `Slot`, `Row`, `Column`, `Card`, `Text`, `Divider`, `DataList`, `DataListItem`, `Table`, `TableRow`, `Button` | `openStore`, `openAppLibrary` — `addAccount` held back until the plan check validates the app it names | the Planner, `shell:main` |
 
 The orchestrator shows each model `catalog.json` **pruned** to its keep-set, and validates that model's output against **the same pruned catalog**. So the Synthesizer has never heard of `Slot` or `Button`, and a `Slot` in its tree is a validation error, not a judgment call. Neither model gets `Attribution`: it's the orchestrator's alone. [Pruning a catalog](#pruning-a-catalog-graph-reachability) shows how the pruning works.
 
@@ -158,7 +158,7 @@ flowchart TD
    "columnSources": ["linear", "linear", "linear", "github", "circleci", "linear"],
    "join": {"home": "linear", "nouns": {"linear": "issues", "github": "PRs", "circleci": "runs"}}},
   {"id": "sources", "component": "Row", "children": ["attribution-linear", "attribution-github", "attribution-circleci"]},
-  {"id": "attribution-linear", "component": "Attribution", "displayName": "Linear", "appId": "linear", "child": "linear", "weight": 1},
+  {"id": "attribution-linear", "component": "Attribution", "displayName": "Linear", "source": "linear", "child": "linear", "weight": 1},
   {"id": "linear", "component": "Slot", "source": "linear", "weight": 1, "state": "pending", "label": "Linear", "noun": "Linear issues"}
   // …the same for GitHub and CircleCI
 ]
@@ -243,8 +243,9 @@ The failure tile and the merged view's lines say different things depending on w
   | `catalog` | "This app sent something that can't be shown here." | no |
   | `uninstalled` | "This app isn't installed anymore." | yes |
   | `load` | "Something went wrong loading this." | yes |
+  | `credential` | "This app couldn't answer." | no |
 
-  `catalog` is a paint the orchestrator refused because the app painted in a catalog it isn't entitled to; retrying would be refused the same way. `load` is a catalog the client couldn't load. Both carry the catalog id, which the tile never shows. The sentence says "this app", never its name: the `Attribution` above already names it. The merged view's own failed slot says "Something went wrong here."
+  `catalog` is a paint the orchestrator refused because the app painted in a catalog it isn't entitled to; retrying would be refused the same way. `load` is a catalog the client couldn't load. Both carry the catalog id, which the tile never shows. `credential` is a paint the orchestrator refused because it held a password, code or card field the app did not take out when asked; it carries the app's own page as `continueUrl`, and its words and its "Continue on" button are drawn in sub-task 12.3. The sentence says "this app", never its name: the `Attribution` above already names it. The merged view's own failed slot says "Something went wrong here."
 
 - **`collapseLine(collapse)`** words a collapsed merged view: "The merged view needs Linear issues, which didn't load.", "The merged view needs at least two sources, and only GitHub answered.", or "The merged view couldn't be made."
 
@@ -284,7 +285,7 @@ The table passes the column states down to its rows through a small React contex
 
 ### Way-back arrows
 
-`Attribution` draws the back and forward arrows for its app. It asks `FragmentHistoryContext` where the app stands, by the painted `appId`, and gets `{back?, forward?, busy?}`, each neighbour a `{step, title?}`:
+`Attribution` draws the back and forward arrows for its app. It asks `FragmentHistoryContext` where the app stands, by the painted `source`, and gets `{back?, forward?, busy?}`, each neighbour a `{step, title?}`:
 
 - An arrow is drawn **only when there's somewhere to go**, and only when the host passed `onPress`.
 - Each arrow is **named for where it goes**: "Back to" and the paint's title when the app gave that paint one (the `paintMeta` title, see [`a2uiverse-apps`](https://github.com/retz8/a2uiverse-apps#connecting-to-a2uiverse)), just "Back" when it didn't. The name is its tooltip and its accessible name.

@@ -40,7 +40,7 @@ const layout = [
         {
           id: 'attribution-github',
           component: 'Attribution',
-          appId: 'github',
+          source: 'github',
           displayName: 'GitHub',
           child: 'github',
         },

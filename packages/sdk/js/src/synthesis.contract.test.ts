@@ -1,7 +1,7 @@
 /** Asserts the synthesis half of the projection — the synthesis payload — against the normative contract. */
 import {readFileSync} from 'node:fs';
 import {expect, test} from 'vitest';
-import {COMPOSITION_EXTENSION_URI, STAMP_KEY} from './composition';
+import {A2UIVERSE_EXTENSION_URI, STAMP_KEY} from './a2uiverse';
 import {
   MATCH_KEY,
   readSynthesis,
@@ -11,7 +11,7 @@ import {
 } from './synthesis';
 
 const contract = JSON.parse(
-  readFileSync(new URL('../../contracts/composition.v0.8.json', import.meta.url), 'utf8'),
+  readFileSync(new URL('../../contracts/a2uiverse.v0.9.json', import.meta.url), 'utf8'),
 ) as {
   version: string;
   extensionUri: string;
@@ -29,9 +29,9 @@ const contract = JSON.parse(
 };
 
 test('one version line: file, version, extension URI', () => {
-  expect(contract.version).toBe('0.8.0');
-  expect(contract.extensionUri).toBe('https://a2uiverse.dev/ext/composition/v0.8');
-  expect(COMPOSITION_EXTENSION_URI).toBe(contract.extensionUri);
+  expect(contract.version).toBe('0.9.0');
+  expect(contract.extensionUri).toBe('https://a2uiverse.dev/ext/a2uiverse/v0.9');
+  expect(A2UIVERSE_EXTENSION_URI).toBe(contract.extensionUri);
 });
 
 test('the synthesis key matches the contract and is not the stamp key', () => {
@@ -40,13 +40,14 @@ test('the synthesis key matches the contract and is not the stamp key', () => {
   expect(SYNTHESIS_KEY).not.toBe(STAMP_KEY);
 });
 
-test('the contract carries the stamp, paintMeta and the synthesis payload orchestrator → client, the parent, the operation and the catalog load failure back', () => {
+test('the contract carries the stamp, paintMeta and the synthesis payload orchestrator → client, the parent, the operation and the catalog load failure back, and the auth-required request from an agent', () => {
   expect(Object.keys(contract.shapes)).toEqual([
     'compositionStamp',
     'canvasParent',
     'compositionOperation',
     'catalogLoadFailure',
     'paintMeta',
+    'authRequired',
     'synthesizeDataModel',
   ]);
   expect(contract.shapes.compositionStamp.direction).toBe('orchestrator → client');

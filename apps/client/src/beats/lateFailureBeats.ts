@@ -254,7 +254,7 @@ function storeComponents(layout: Layout, stores: readonly Store[]): Array<Record
           id: `attribution-${store}`,
           component: 'Attribution',
           displayName: NAMES[store],
-          appId: store,
+          source: store,
           child: store,
           weight: 1,
         },

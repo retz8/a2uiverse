@@ -1,7 +1,7 @@
 /**
  * A canvas meeting a catalog it does not hold yet (task-11.5 decisions 1 to 4): the fragment waits
  * for the load and then claims its slot; a catalog that fails to load is reported to the hub as
- * the composition contract's catalog load failure, and the fragment never claims its slot. The
+ * the A2UIVerse extension's catalog load failure, and the fragment never claims its slot. The
  * canvas advertises the client's own two catalogs, whatever it holds (decision 8).
  */
 import {describe, expect, it, vi} from 'vitest';

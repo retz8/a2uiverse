@@ -30,7 +30,7 @@ const shellPaint = (leaves: Array<{appId: string; displayName?: string}>) =>
           {
             id: `attribution-${l.appId}`,
             component: 'Attribution',
-            appId: l.appId,
+            source: l.appId,
             child: l.appId,
             ...(l.displayName !== undefined ? {displayName: l.displayName} : {}),
           },
@@ -72,14 +72,14 @@ describe('rosterFromShellMessages', () => {
           {
             id: 'attribution-code',
             component: 'Attribution',
-            appId: 'github',
+            source: 'github',
             displayName: 'GitHub',
             child: 'code',
           },
           {
             id: 'attribution-mail',
             component: 'Attribution',
-            appId: 'gmail',
+            source: 'gmail',
             displayName: 'Gmail',
             child: 'mail',
           },
@@ -112,7 +112,7 @@ describe('rosterFromShellMessages', () => {
           {
             id: 'attribution-github',
             component: 'Attribution',
-            appId: 'github',
+            source: 'github',
             displayName: 'GitHub',
             child: 'github',
           },
@@ -178,12 +178,12 @@ describe('rosterFromShellMessages', () => {
           {
             id: 'attribution-github',
             component: 'Attribution',
-            appId: 'github',
+            source: 'github',
             displayName: 'GitHub',
             child: 'github',
           },
           {id: 'github', component: 'Slot', source: 'github', state: 'pending'},
-          {id: 'stray', component: 'Attribution', appId: 'gmail', displayName: 'Gmail'},
+          {id: 'stray', component: 'Attribution', source: 'gmail', displayName: 'Gmail'},
           {id: 'gmail', component: 'Slot', source: 'gmail', state: 'pending'},
         ],
       },
@@ -200,7 +200,7 @@ describe('rosterFromShellMessages', () => {
         surfaceId: 'shell:main',
         components: [
           {id: 'root', component: 'Column', children: ['attribution-x']},
-          {id: 'attribution-x', component: 'Attribution', appId: 'github', child: 'x'},
+          {id: 'attribution-x', component: 'Attribution', source: 'github', child: 'x'},
           {id: 'x', component: 'Slot', source: 'gmail', state: 'pending'},
         ],
       },

@@ -158,7 +158,7 @@ export function paintLayout(state: CompositionState): ShellComponent[] {
         id: wrapperOf.get(component.id)!,
         component: 'Attribution',
         displayName,
-        appId: source,
+        source,
         child: component.id,
         ...(typeof component.weight === 'number' ? {weight: component.weight} : {}),
       },

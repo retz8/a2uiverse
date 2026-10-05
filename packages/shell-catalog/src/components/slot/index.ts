@@ -6,6 +6,8 @@ export {
   SlotView,
 } from './slot.js';
 export {
+  AUTHORITY_CAUSES,
+  type AuthorityCause,
   CALL_FAILED_KINDS,
   COLLAPSE_CAUSES,
   type CollapseCause,
@@ -15,6 +17,7 @@ export {
   type CallFailedKind,
   type SlotCallFailed,
   type SlotCollapse,
+  type SlotAuthority,
   type SlotFailure,
   type SlotProps,
 } from './slot.schema.js';

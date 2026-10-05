@@ -802,14 +802,14 @@
     },
     "Slot": {
       "type": "object",
-      "description": "A named region of a composed screen whose content is mounted by the client. Paint one per planned fragment; later repaints may change its state but never its position. While no content has arrived it renders a pending placeholder. A slot whose content is the shell's own \u2014 the merged view \u2014 is declared `content: \"shell\"`: it keeps its reserved position but is painted like the shell's own UI, with no tile: while pending it is reserved as the merged view's label, its planned column headers and a few skeleton rows, and the view takes its own height when it lands. A source that fails shows the failure tile in its region: the failure said in the shell's words, Retry, and the vendor's own words beneath. A collapsed merge leaves its slot as one line saying why: the Synthesizer's reason when it declined, the shell's own words otherwise.",
+      "description": "A named region of a composed screen whose content is mounted by the client. Paint one per planned fragment; later repaints may change its state but never its position. While no content has arrived it renders a pending placeholder. A slot whose content is the shell's own \u2014 the merged view \u2014 is declared `content: \"shell\"`: it keeps its reserved position but is painted like the shell's own UI, with no tile: while pending it is reserved as the merged view's label, its planned column headers and a few skeleton rows, and the view takes its own height when it lands. A source that fails shows the failure tile in its region: the failure said in the shell's words, Retry, and the vendor's own words beneath. A source that needs sign-in shows the authority tile in its region. A collapsed merge leaves its slot as one line saying why: the Synthesizer's reason when it declined, the shell's own words otherwise.",
       "properties": {
         "component": {
           "const": "Slot"
         },
         "source": {
           "type": "string",
-          "description": "The dispatched source whose content fills the region: an app id, or `shell` for the merged view. The slot's identity within the layout; unique per surface. A slot holds exactly one of `source` or `gap`."
+          "description": "The dispatched source whose content fills the region: a source id — the app and the account it paints under, `<appId>.<n>`, the bare app id for an app needing no sign-in — or `shell` for the merged view. The slot's identity within the layout; unique per surface. A slot holds exactly one of `source` or `gap`."
         },
         "gap": {
           "type": "string",
@@ -821,9 +821,9 @@
         },
         "state": {
           "type": "string",
-          "enum": ["pending", "failed", "collapsed"],
+          "enum": ["pending", "failed", "collapsed", "authority"],
           "default": "pending",
-          "description": "The region\u2019s lifecycle state, painted by the runtime and never written by an author. `pending` shows a placeholder until content arrives; `failed` shows the failure tile; `collapsed` removes the region from view without moving its neighbours."
+          "description": "The region\u2019s lifecycle state, painted by the runtime and never written by an author. `pending` shows a placeholder until content arrives; `failed` shows the failure tile; `collapsed` removes the region from view without moving its neighbours; `authority` shows the authority tile."
         },
         "content": {
           "type": "string",
@@ -852,9 +852,10 @@
                 "invalid",
                 "catalog",
                 "uninstalled",
-                "load"
+                "load",
+                "credential"
               ],
-              "description": "`vendor`: the vendor ended its task failed; `unreachable`: the connection or stream broke, nothing said; `timeout`: no answer within the time allowed; `invalid`: the paint arrived and could not be rendered; `catalog`: the agent painted in a catalog the app is not entitled to; `uninstalled`: the app is no longer installed; `load`: the client could not load the catalog the paint is in."
+              "description": "`vendor`: the vendor ended its task failed; `unreachable`: the connection or stream broke, nothing said; `timeout`: no answer within the time allowed; `invalid`: the paint arrived and could not be rendered; `catalog`: the agent painted in a catalog the app is not entitled to; `uninstalled`: the app is no longer installed; `load`: the client could not load the catalog the paint is in; `credential`: the agent painted a credential field and did not repair it — no Retry."
             },
             "message": {
               "type": "string",
@@ -863,6 +864,32 @@
             "catalogId": {
               "type": "string",
               "description": "The catalog the agent painted in, only with `cause: \"catalog\"` or `cause: \"load\"`."
+            },
+            "continueUrl": {
+              "type": "string",
+              "description": "Only with `cause: \"credential\"`, when the app has one: its own page, from its card's provider URL or documentation URL, https only, localhost exempt."
+            }
+          },
+          "required": ["cause"],
+          "additionalProperties": false
+        },
+        "authority": {
+          "type": "object",
+          "description": "Fragment content only: the slot's sign-in. Painted by the runtime with `state: \"authority\"` and never written by an author.",
+          "properties": {
+            "cause": {
+              "type": "string",
+              "enum": ["signIn", "again", "unsupported"],
+              "description": "`signIn`: no usable account for this app; `again`: the account's sign-in ran out and the silent refresh failed; `unsupported`: the app asks for a kind of sign-in A2UIVerse cannot do."
+            },
+            "quiet": {
+              "type": "boolean",
+              "description": "With `cause: \"signIn\"` only: the one-line form, after the full tile for this app was shown once this session."
+            },
+            "scopes": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "With `cause: \"signIn\"`, required there: what the app will be able to do, in the words of its card — none for a key or a token."
             }
           },
           "required": ["cause"],
@@ -986,13 +1013,27 @@
           "type": "string",
           "description": "The display name of the app whose content fills the region."
         },
-        "appId": {
+        "source": {
           "type": "string",
-          "description": "The stable id of that app."
+          "description": "The source id of the region: the app and the account it painted under."
         },
         "account": {
           "type": ["string", "null"],
-          "description": "The user-given label of the account the content was fetched with; null when the app has a single account."
+          "description": "The label from the sign-in of the account the content was fetched with; null when the app has a single account."
+        },
+        "escalation": {
+          "type": "object",
+          "description": "A scope request inside the region waiting on Allow or Not now. Painted by the runtime and never written by an author.",
+          "properties": {
+            "scopes": {
+              "type": "array",
+              "items": {"type": "string"},
+              "minItems": 1,
+              "description": "The missing scopes only, in the words of the app's card."
+            }
+          },
+          "required": ["scopes"],
+          "additionalProperties": false
         },
         "child": {
           "type": "string",
@@ -1561,6 +1602,31 @@
         "args": {
           "type": "object",
           "properties": {},
+          "additionalProperties": false
+        },
+        "returnType": {
+          "const": "void"
+        }
+      },
+      "required": ["call", "args"],
+      "unevaluatedProperties": false
+    },
+    "addAccount": {
+      "type": "object",
+      "description": "Opens the sign-in that adds another account to an installed app. Use from a button when an answer leads the user to add an account. This function has no return value.",
+      "properties": {
+        "call": {
+          "const": "addAccount"
+        },
+        "args": {
+          "type": "object",
+          "properties": {
+            "app": {
+              "type": "string",
+              "description": "The installed app's id."
+            }
+          },
+          "required": ["app"],
           "additionalProperties": false
         },
         "returnType": {
@@ -2160,6 +2226,9 @@
         },
         {
           "$ref": "#/functions/openAppLibrary"
+        },
+        {
+          "$ref": "#/functions/addAccount"
         },
         {
           "$ref": "#/functions/and"

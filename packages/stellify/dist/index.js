@@ -7531,7 +7531,7 @@ var refSchema = {
   properties: {
     surface: {
       type: "string",
-      description: "The namespaced surfaceId (<appId>:<surfaceId>) the pointer resolves in."
+      description: "The namespaced surfaceId (<source>:<surfaceId>) the pointer resolves in."
     },
     pointer: {
       type: "string",
@@ -7554,7 +7554,7 @@ var relationSchema = {
   type: "object",
   additionalProperties: false,
   required: ["op", "args"],
-  description: "One named relation of a match claim: a formula like any other leaf, its operator a relation the shell catalog declares, over exactly two refs in two different apps — the appId of each ref's namespaced surface. The contract does not enumerate relations; the consumer checks the operator against the shell catalog.",
+  description: "One named relation of a match claim: a formula like any other leaf, its operator a relation the shell catalog declares, over exactly two refs in two different sources — the source of each ref's namespaced surface — so two accounts of one app can be joined, and a source never to itself. The contract does not enumerate relations; the consumer checks the operator against the shell catalog.",
   properties: {
     op: { type: "string", description: "A relation the shell catalog declares as a function." },
     args: { type: "array", minItems: 2, maxItems: 2, items: { $ref: "#/$defs/ref" } }
@@ -7564,7 +7564,7 @@ var matchSchema = {
   type: "object",
   minProperties: 1,
   additionalProperties: { $ref: "#/$defs/relation" },
-  description: "A match claim, under the reserved key `match` of an object of the derived model, the root included: the Synthesizer's word that the entries the object joins from different apps are one thing, with its evidence. Each key is the Synthesizer's own words for what matched, each value a relation. At least one relation; flat. No object is required to carry one. Disclosed on the object's values by the shell's derived-value component; the tree binds no path under `match`."
+  description: "A match claim, under the reserved key `match` of an object of the derived model, the root included: the Synthesizer's word that the entries the object joins from different sources are one thing, with its evidence. Each key is the Synthesizer's own words for what matched, each value a relation. At least one relation; flat. No object is required to carry one. Disclosed on the object's values by the shell's derived-value component; the tree binds no path under `match`."
 };
 var nodeSchema = {
   description: "A node of the free-form derived model: a formula leaf, an object whose values are nodes — its key `match`, when present, is its match claim — or an array of nodes. A scalar anywhere is a violation — every leaf is a formula, never a literal value.",

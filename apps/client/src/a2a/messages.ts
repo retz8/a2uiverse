@@ -90,7 +90,7 @@ export interface A2uiClientError {
   surfaceId: string;
   path?: string;
   message?: string;
-  /** With the composition contract's catalog load failure: the catalog the client could not load. */
+  /** With the A2UIVerse extension's catalog load failure: the catalog the client could not load. */
   catalogId?: string;
 }
 
@@ -119,7 +119,7 @@ export function buildErrorMessageParams(
 
 /**
  * Wrap the reader's press — Retry, Include, Try again, or a step in a fragment's history — as A2A
- * send params carrying the composition contract's operation as a data part of its own (task-8.4
+ * send params carrying the A2UIVerse extension's operation as a data part of its own (task-8.4
  * decision 14). The press acts on the composition in its context; a step alone carries the data
  * model, the restored paint's among it, so the orchestrator writes its partition from what is on
  * screen (task-9.2 decision 5).
@@ -233,7 +233,7 @@ export function extractA2uiMessages(result: Task | Message): A2uiMessage[] {
 }
 
 /**
- * Pull paintMeta shell objects — the composition contract's `paintMeta` part, `@a2uiverse/sdk`'s
+ * Pull paintMeta shell objects — the A2UIVerse extension's `paintMeta` part, `@a2uiverse/sdk`'s
  * `readPaintMeta` — out of a single A2A stream event. Emitted ahead of the `createSurface` it
  * names, so the A2UI extractor above never sees it.
  */
@@ -258,7 +258,7 @@ export function extractPaintMetasFromEvent(event: A2AStreamEventData): PaintMeta
 
 /**
  * The composition stamp the orchestrator writes onto every event it relays
- * (`metadata.a2uiverse`, defined by `@a2uiverse/sdk`'s composition extension): who painted this
+ * (`metadata.a2uiverse`, defined by `@a2uiverse/sdk`'s A2UIVerse extension): who painted this
  * (`source`) and whether it is the shell's paint or a fragment (`role`); a fragment fills the
  * `Slot` whose `source` is the stamp's. One stamp per event, because one event is one source.
  * Absent on any stream that did not come through a composing hub.

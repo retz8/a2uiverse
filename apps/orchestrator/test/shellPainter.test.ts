@@ -86,7 +86,7 @@ describe('paintLayout', () => {
       id: 'attribution-gh',
       component: 'Attribution',
       displayName: 'GitHub',
-      appId: 'github',
+      source: 'github',
       child: 'gh',
       weight: 2,
     });
@@ -94,7 +94,7 @@ describe('paintLayout', () => {
       id: 'attribution-gm',
       component: 'Attribution',
       displayName: 'Gmail',
-      appId: 'gmail',
+      source: 'gmail',
       child: 'gm',
     });
     // The parent now names the wrapper where it named the slot — in a children list and as a child.

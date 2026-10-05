@@ -19,10 +19,13 @@ import {CATALOG_ID} from './catalog-id.js';
 import {AttributionApi} from './components/attribution/attribution.schema.js';
 import {DerivedValueApi} from './components/derived-value/derived-value.schema.js';
 import {
+  AUTHORITY_CAUSES,
   CALL_FAILED_KINDS,
   COLLAPSE_CAUSES,
   FAILURE_CAUSES,
   SlotApi,
+  type AuthorityCause,
+  type SlotAuthority,
   type CollapseCause,
   type FailureCause,
   type CallFailedKind,
@@ -44,6 +47,7 @@ import {
 import {SHELL_ACTIONS, shellActionFunctions} from './functions/shell-actions.js';
 
 export {
+  AUTHORITY_CAUSES,
   CATALOG_ID,
   CALL_FAILED_KINDS,
   COLLAPSE_CAUSES,
@@ -53,12 +57,14 @@ export {
   relationFunctions,
   relationKind,
   SHELL_ACTIONS,
+  type AuthorityCause,
   type CollapseCause,
   type FailureCause,
   type Operator,
   type RelationKind,
   type RelationOp,
   type CallFailedKind,
+  type SlotAuthority,
   type SlotCallFailed,
   type SlotCollapse,
   type SlotFailure,

@@ -23,7 +23,7 @@ export function filterClientDataModel(
   let any = false;
   for (const [key, value] of Object.entries(surfaces)) {
     const parsed = parseSurfaceId(key);
-    if (parsed?.appId !== appId) continue;
+    if (parsed?.source !== appId) continue;
     own[parsed.surfaceId] = value;
     any = true;
   }

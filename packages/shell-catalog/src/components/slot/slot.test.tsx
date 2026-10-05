@@ -72,6 +72,31 @@ test('schema accepts the painted shape and rejects extras', () => {
   expect(SlotApi.schema.safeParse({name: 'slot-gmail'}).success).toBe(false);
 });
 
+test('the authority state: a cause, the quiet line only asking to sign in, the scopes exactly then (task 12.2)', () => {
+  const ok = (authority: unknown, state = 'authority') =>
+    SlotApi.schema.safeParse({source: 'gmail.1', state, authority}).success;
+  expect(ok({cause: 'signIn', scopes: ['Read your email and its labels']})).toBe(true);
+  expect(ok({cause: 'signIn', scopes: []})).toBe(true);
+  expect(ok({cause: 'signIn', quiet: true, scopes: []})).toBe(true);
+  expect(ok({cause: 'again'})).toBe(true);
+  expect(ok({cause: 'unsupported'})).toBe(true);
+  expect(ok({cause: 'signIn'})).toBe(false);
+  expect(ok({cause: 'again', scopes: []})).toBe(false);
+  expect(ok({cause: 'again', quiet: true})).toBe(false);
+  expect(ok({cause: 'unsupported', quiet: false})).toBe(false);
+  expect(ok({cause: 'expired'})).toBe(false);
+  expect(ok({cause: 'signIn', scopes: [], domain: 'github.com'})).toBe(false);
+  expect(ok({cause: 'again'}, 'failed')).toBe(false);
+});
+
+test('a paint refused for a credential field: the `credential` cause, a continue URL only with it (task 12.2)', () => {
+  const ok = (failure: unknown) =>
+    SlotApi.schema.safeParse({source: 'shop-a', state: 'failed', failure}).success;
+  expect(ok({cause: 'credential', continueUrl: 'https://shop-a.example'})).toBe(true);
+  expect(ok({cause: 'credential'})).toBe(true);
+  expect(ok({cause: 'invalid', continueUrl: 'https://shop-a.example'})).toBe(false);
+});
+
 test('shell content pending is the merged view reserved: the planned headers over four skeleton rows', () => {
   const {container} = render(
     <SlotView

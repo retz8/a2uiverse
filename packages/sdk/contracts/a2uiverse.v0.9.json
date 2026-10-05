@@ -1,12 +1,17 @@
 {
-  "name": "a2uiverse-composition",
-  "version": "0.8.0",
-  "description": "The A2UIVerse composition extension (SPEC §14): the A2A metadata contract for cross-agent UI composition, internal to the platform (orchestrator ↔ client). A canvas is an A2A context: an utterance that opens one carries no contextId, the orchestrator mints it, and every later message in the canvas carries it. Outbound, the composition stamp (provenance, role) on every relayed event, the paintMeta part naming a paint ahead of its createSurface — the orchestrator's own for the layout surface, carrying the Planner's title for the canvas — and the synthesis payload — the derived data model of formula leaves, its match claims, and the sort declarations of a merged view — on the event that paints a synthesis surface; inbound, the parent canvas on the utterance that opens a child, and the composition operation — the reader's press on the composition: Retry, Include, Try again, a fragment's step back, the canvas closed — on a message of its own. Nothing a2uiverse-specific rides the vendor wire. Normative for every language projection; each projection's contract test asserts against this file.",
-  "extensionUri": "https://a2uiverse.dev/ext/composition/v0.8",
+  "name": "a2uiverse",
+  "version": "0.9.0",
+  "description": "The A2UIVerse extension (SPEC §14): the platform's one A2A extension. Between orchestrator and client, the metadata contract for cross-agent UI composition. A canvas is an A2A context: an utterance that opens one carries no contextId, the orchestrator mints it, and every later message in the canvas carries it. Outbound, the composition stamp (provenance, role) on every relayed event, the paintMeta part naming a paint ahead of its createSurface — the orchestrator's own for the layout surface, carrying the Planner's title for the canvas — and the synthesis payload — the derived data model of formula leaves, its match claims, and the sort declarations of a merged view — on the event that paints a synthesis surface; inbound, the parent canvas on the utterance that opens a child, and the composition operation — the reader's press on the composition: Retry, Include, Try again, a fragment's step back, a scope request dismissed, the canvas closed — on a message of its own. From an agent, read and never required, the auth-required request in A2A's own requirement shape. Nothing a2uiverse-specific rides the vendor wire. Normative for every language projection; each projection's contract test asserts against this file.",
+  "extensionUri": "https://a2uiverse.dev/ext/a2uiverse/v0.9",
   "stampKey": "a2uiverse",
+  "sourceIdSeparator": ".",
+  "sourceId": {
+    "form": "<appId> | <appId><sourceIdSeparator><n>",
+    "rule": "A source is the app and the account it paints under. <n> is a short ordinal the AuthVault assigns per app at that account's first sign-in and never reuses; a slot for an app that needs sign-in, while the vault holds no account for it, is named for the account its sign-in will create — the next ordinal. A source with no account — an app whose card needs no sign-in, and shell — is the bare app id. The id carries neither the account's label nor its subject. App ids never contain the separator."
+  },
   "surfaceIdSeparator": ":",
   "surfaceIdNamespacing": {
-    "form": "<appId><surfaceIdSeparator><surfaceId>",
+    "form": "<source><surfaceIdSeparator><surfaceId>",
     "appliedTo": ["createSurface", "updateComponents", "updateDataModel", "deleteSurface"],
     "rule": "The orchestrator namespaces surfaceId on the four A2UI server→client message types and reverses it on inbound client actions. Component ids, binding paths, and catalog ids are never rewritten."
   },
@@ -19,7 +24,7 @@
       "required": ["source"],
       "optional": ["role", "settled", "vendorContextId", "vendorTaskId"],
       "fields": {
-        "source": "Provenance and placement: the app id the event came from. A fragment's surface fills the layout's Slot whose source is this id.",
+        "source": "Provenance and placement: the source id the event came from — the app and the account it painted under. A fragment's surface fills the layout's Slot whose source is this id.",
         "role": "Which surface the canvas renders as the composition root: 'shell' | 'fragment'.",
         "vendorContextId": "Debug only, gated by orchestrator config.",
         "vendorTaskId": "Debug only, gated by orchestrator config.",
@@ -40,10 +45,10 @@
       "carriedOn": "a data part of its own, {version, operation}, on a new A2A message in the canvas's context — beside the A2UI action, the error report and the utterance; version is the A2UI version the client speaks",
       "required": ["kind", "sources"],
       "optional": ["step"],
-      "kinds": ["retry", "include", "tryAgain", "step", "close"],
+      "kinds": ["retry", "include", "tryAgain", "step", "dismiss", "close"],
       "fields": {
-        "kind": "The press: 'retry' re-dispatches one failed source's request; 'include' folds the sources that arrived after the merge into it; 'tryAgain' makes again a merge whose call failed; 'step' reports a fragment stepped back or forward in its own history — the paint's data model rides a2uiClientDataModel as on an action; 'close' ends the canvas: everything running in it cancelled, its composition dropped.",
-        "sources": "The source ids the press names: exactly one with 'retry' and 'step', at least one with 'include', none with 'tryAgain' and 'close'.",
+        "kind": "The press: 'retry' sends again what one source's slot keeps — the action inside the fragment that failed or needed a scope, otherwise the slot's request from the plan — and is also the resume after sign-in, the orchestrator checking the vault again first; 'include' folds the sources that arrived after the merge into it; 'tryAgain' makes again a merge whose call failed; 'step' reports a fragment stepped back or forward in its own history — the paint's data model rides a2uiClientDataModel as on an action; 'dismiss' is Not now on a scope request: the press that needed the scope is dropped and the request taken off the attribution; 'close' ends the canvas: everything running in it cancelled, its composition dropped.",
+        "sources": "The source ids the press names: exactly one with 'retry', 'step' and 'dismiss', at least one with 'include', none with 'tryAgain' and 'close'.",
         "step": "With 'step' only, required there: the paint id the fragment now shows — one paint per createSurface from that agent, counted the same way on both sides, from 0, never reused. A non-negative integer."
       }
     },
@@ -72,6 +77,16 @@
       },
       "authors": "The orchestrator emits the part for its own layout surface. A vendor agent's part is the agent kit's, in this same shape, relayed untouched; the contract describes the part, it does not own the kit's emission — an agent that never emits one composes, its paints titled from their cause."
     },
+    "authRequired": {
+      "direction": "agent → orchestrator",
+      "carriedOn": "a data part of the status message of a task in A2A's `auth-required` state, recognized by the state and its `security` key; no A2UIVerse marker",
+      "required": ["security"],
+      "optional": [],
+      "fields": {
+        "security": "What the agent needs, in the card's own `security` requirement shape: a list of alternatives, at least one, each mapping a scheme key on the card to the scope keys in that scheme's `scopes` map it is missing. An empty scope list asks for a sign-in with that scheme. A key the installed card does not declare makes the request invalid."
+      },
+      "authors": "An agent that needs authority mid-task — scope escalation — moves its task to `auth-required` with this part, as A2A's in-task authentication describes (A2A 0.3 §4.5). The agent kit emits it for the platform's own agents; any other agent may, in the same plain A2A vocabulary. The contract describes the part, it does not own an agent's emission; an agent that never emits one is read as its card declares."
+    },
     "synthesizeDataModel": {
       "direction": "orchestrator → client",
       "carriedOn": "metadata.a2uiverseSynthesis of the event that paints a synthesis surface; the tree is painted as ordinary A2UI on the same event",
@@ -90,7 +105,7 @@
               "properties": {
                 "surface": {
                   "type": "string",
-                  "description": "The namespaced surfaceId (<appId>:<surfaceId>) the pointer resolves in."
+                  "description": "The namespaced surfaceId (<source>:<surfaceId>) the pointer resolves in."
                 },
                 "pointer": {
                   "type": "string",
@@ -122,7 +137,7 @@
               "type": "object",
               "additionalProperties": false,
               "required": ["op", "args"],
-              "description": "One named relation of a match claim: a formula like any other leaf, its operator a relation the shell catalog declares, over exactly two refs in two different apps — the appId of each ref's namespaced surface. The contract does not enumerate relations; the consumer checks the operator against the shell catalog.",
+              "description": "One named relation of a match claim: a formula like any other leaf, its operator a relation the shell catalog declares, over exactly two refs in two different sources — the source of each ref's namespaced surface — so two accounts of one app can be joined, and a source never to itself. The contract does not enumerate relations; the consumer checks the operator against the shell catalog.",
               "properties": {
                 "op": {
                   "type": "string",
@@ -144,7 +159,7 @@
               "additionalProperties": {
                 "$ref": "#/$defs/relation"
               },
-              "description": "A match claim, under the reserved key `match` of an object of the derived model, the root included: the Synthesizer's word that the entries the object joins from different apps are one thing, with its evidence. Each key is the Synthesizer's own words for what matched, each value a relation. At least one relation; flat. No object is required to carry one. Disclosed on the object's values by the shell's derived-value component; the tree binds no path under `match`."
+              "description": "A match claim, under the reserved key `match` of an object of the derived model, the root included: the Synthesizer's word that the entries the object joins from different sources are one thing, with its evidence. Each key is the Synthesizer's own words for what matched, each value a relation. At least one relation; flat. No object is required to carry one. Disclosed on the object's values by the shell's derived-value component; the tree binds no path under `match`."
             },
             "node": {
               "description": "A node of the free-form derived model: a formula leaf, an object whose values are nodes — its key `match`, when present, is its match claim — or an array of nodes. A scalar anywhere is a violation — every leaf is a formula, never a literal value.",

@@ -74,7 +74,7 @@
                     "id": "attribution-calendar-slot",
                     "component": "Attribution",
                     "displayName": "Google Calendar",
-                    "appId": "calendar",
+                    "source": "calendar",
                     "child": "calendar-slot",
                     "weight": 1
                   },
@@ -90,7 +90,7 @@
                     "id": "attribution-gmail-slot",
                     "component": "Attribution",
                     "displayName": "Gmail",
-                    "appId": "gmail",
+                    "source": "gmail",
                     "child": "gmail-slot",
                     "weight": 1
                   },
@@ -114,7 +114,7 @@
                     "id": "attribution-github-slot",
                     "component": "Attribution",
                     "displayName": "GitHub",
-                    "appId": "github",
+                    "source": "github",
                     "child": "github-slot",
                     "weight": 1
                   },
@@ -130,7 +130,7 @@
                     "id": "attribution-linear-slot",
                     "component": "Attribution",
                     "displayName": "Linear",
-                    "appId": "linear",
+                    "source": "linear",
                     "child": "linear-slot",
                     "weight": 1
                   },
@@ -189,7 +189,7 @@
                     "id": "attribution-calendar-slot",
                     "component": "Attribution",
                     "displayName": "Google Calendar",
-                    "appId": "calendar",
+                    "source": "calendar",
                     "child": "calendar-slot",
                     "weight": 1
                   },
@@ -209,7 +209,7 @@
                     "id": "attribution-gmail-slot",
                     "component": "Attribution",
                     "displayName": "Gmail",
-                    "appId": "gmail",
+                    "source": "gmail",
                     "child": "gmail-slot",
                     "weight": 1
                   },
@@ -233,7 +233,7 @@
                     "id": "attribution-github-slot",
                     "component": "Attribution",
                     "displayName": "GitHub",
-                    "appId": "github",
+                    "source": "github",
                     "child": "github-slot",
                     "weight": 1
                   },
@@ -249,7 +249,7 @@
                     "id": "attribution-linear-slot",
                     "component": "Attribution",
                     "displayName": "Linear",
-                    "appId": "linear",
+                    "source": "linear",
                     "child": "linear-slot",
                     "weight": 1
                   },
@@ -3371,7 +3371,7 @@
                     "id": "attribution-calendar-slot",
                     "component": "Attribution",
                     "displayName": "Google Calendar",
-                    "appId": "calendar",
+                    "source": "calendar",
                     "child": "calendar-slot",
                     "weight": 1
                   },
@@ -3391,7 +3391,7 @@
                     "id": "attribution-gmail-slot",
                     "component": "Attribution",
                     "displayName": "Gmail",
-                    "appId": "gmail",
+                    "source": "gmail",
                     "child": "gmail-slot",
                     "weight": 1
                   },
@@ -3415,7 +3415,7 @@
                     "id": "attribution-github-slot",
                     "component": "Attribution",
                     "displayName": "GitHub",
-                    "appId": "github",
+                    "source": "github",
                     "child": "github-slot",
                     "weight": 1
                   },
@@ -3431,7 +3431,7 @@
                     "id": "attribution-linear-slot",
                     "component": "Attribution",
                     "displayName": "Linear",
-                    "appId": "linear",
+                    "source": "linear",
                     "child": "linear-slot",
                     "weight": 1
                   },
@@ -3512,7 +3512,7 @@
                     "id": "attribution-calendar-slot",
                     "component": "Attribution",
                     "displayName": "Google Calendar",
-                    "appId": "calendar",
+                    "source": "calendar",
                     "child": "calendar-slot",
                     "weight": 1
                   },
@@ -3528,7 +3528,7 @@
                     "id": "attribution-gmail-slot",
                     "component": "Attribution",
                     "displayName": "Gmail",
-                    "appId": "gmail",
+                    "source": "gmail",
                     "child": "gmail-slot",
                     "weight": 1
                   },
@@ -3552,7 +3552,7 @@
                     "id": "attribution-github-slot",
                     "component": "Attribution",
                     "displayName": "GitHub",
-                    "appId": "github",
+                    "source": "github",
                     "child": "github-slot",
                     "weight": 1
                   },
@@ -3568,7 +3568,7 @@
                     "id": "attribution-linear-slot",
                     "component": "Attribution",
                     "displayName": "Linear",
-                    "appId": "linear",
+                    "source": "linear",
                     "child": "linear-slot",
                     "weight": 1
                   },
@@ -4067,7 +4067,7 @@
                     "id": "attribution-calendar-slot",
                     "component": "Attribution",
                     "displayName": "Google Calendar",
-                    "appId": "calendar",
+                    "source": "calendar",
                     "child": "calendar-slot",
                     "weight": 1
                   },
@@ -4083,7 +4083,7 @@
                     "id": "attribution-gmail-slot",
                     "component": "Attribution",
                     "displayName": "Gmail",
-                    "appId": "gmail",
+                    "source": "gmail",
                     "child": "gmail-slot",
                     "weight": 1
                   },
@@ -4107,7 +4107,7 @@
                     "id": "attribution-github-slot",
                     "component": "Attribution",
                     "displayName": "GitHub",
-                    "appId": "github",
+                    "source": "github",
                     "child": "github-slot",
                     "weight": 1
                   },
@@ -4123,7 +4123,7 @@
                     "id": "attribution-linear-slot",
                     "component": "Attribution",
                     "displayName": "Linear",
-                    "appId": "linear",
+                    "source": "linear",
                     "child": "linear-slot",
                     "weight": 1
                   },
@@ -4826,7 +4826,7 @@
                     "id": "attribution-calendar-slot",
                     "component": "Attribution",
                     "displayName": "Google Calendar",
-                    "appId": "calendar",
+                    "source": "calendar",
                     "child": "calendar-slot",
                     "weight": 1
                   },
@@ -4842,7 +4842,7 @@
                     "id": "attribution-gmail-slot",
                     "component": "Attribution",
                     "displayName": "Gmail",
-                    "appId": "gmail",
+                    "source": "gmail",
                     "child": "gmail-slot",
                     "weight": 1
                   },
@@ -4866,7 +4866,7 @@
                     "id": "attribution-github-slot",
                     "component": "Attribution",
                     "displayName": "GitHub",
-                    "appId": "github",
+                    "source": "github",
                     "child": "github-slot",
                     "weight": 1
                   },
@@ -4882,7 +4882,7 @@
                     "id": "attribution-linear-slot",
                     "component": "Attribution",
                     "displayName": "Linear",
-                    "appId": "linear",
+                    "source": "linear",
                     "child": "linear-slot",
                     "weight": 1
                   },

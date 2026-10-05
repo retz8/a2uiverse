@@ -53,11 +53,11 @@ export class Partitions {
    */
   replace(appId: string, surfaces: Record<string, unknown>): string[] {
     for (const surface of [...this.#models.keys()]) {
-      if (parseSurfaceId(surface)?.appId === appId) this.#models.delete(surface);
+      if (parseSurfaceId(surface)?.source === appId) this.#models.delete(surface);
     }
     const taken: string[] = [];
     for (const [surface, model] of Object.entries(surfaces)) {
-      if (parseSurfaceId(surface)?.appId !== appId) continue;
+      if (parseSurfaceId(surface)?.source !== appId) continue;
       if (typeof model !== 'object' || model === null) continue;
       this.#models.set(surface, structuredClone(model) as Model);
       taken.push(surface);
@@ -79,7 +79,7 @@ export class Partitions {
 
   /** Whether the source holds a surface now: what arriving means (task-8.3 decision 5). */
   holdsSurfaceOf(appId: string): boolean {
-    return [...this.#models.keys()].some(surface => parseSurfaceId(surface)?.appId === appId);
+    return [...this.#models.keys()].some(surface => parseSurfaceId(surface)?.source === appId);
   }
 
   /**
@@ -88,7 +88,7 @@ export class Partitions {
    * Synthesizer's refs into it are refused, and the IntegrityChecker's walk does not see it.
    */
   view(appIds: ReadonlySet<string>): PartitionsView {
-    const within = (surface: string) => appIds.has(parseSurfaceId(surface)?.appId ?? '');
+    const within = (surface: string) => appIds.has(parseSurfaceId(surface)?.source ?? '');
     return {
       has: surface => within(surface) && this.has(surface),
       get: surface => (within(surface) ? this.get(surface) : undefined),
@@ -132,10 +132,10 @@ export class Partitions {
       // surface retires its earlier one, as the client's slot does — a vendor that paints a
       // detail as a new surface never deletes its list, and refs into a surface the composition no
       // longer holds must stop resolving here too, or absence is seen on one side only.
-      const appId = parseSurfaceId(surface)?.appId;
+      const appId = parseSurfaceId(surface)?.source;
       if (appId !== undefined) {
         for (const other of [...this.#models.keys()]) {
-          if (other !== surface && parseSurfaceId(other)?.appId === appId) {
+          if (other !== surface && parseSurfaceId(other)?.source === appId) {
             this.#models.delete(other);
           }
         }

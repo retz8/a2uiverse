@@ -414,7 +414,7 @@ describe('orchestrator', () => {
         id: `attribution-slot-${appId}`,
         component: 'Attribution',
         displayName: expect.any(String),
-        appId,
+        source: appId,
         child: `slot-${appId}`,
       });
     }

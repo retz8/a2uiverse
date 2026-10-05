@@ -17,7 +17,7 @@ export type Turn =
 /**
  * What kind of turn a client message opens. Actions and client errors carry a
  * (namespaced) surfaceId inside their A2UI payload; a press on the composition carries the
- * composition contract's operation (task-8.4 decision 14); anything with plain text
+ * A2UIVerse extension's operation (task-8.4 decision 14); anything with plain text
  * is an utterance.
  */
 export function classifyTurn(message: Message): Turn {

@@ -4,7 +4,7 @@ The TypeScript package of the [sdk](../): the contracts A2UIVerse's platform sha
 
 ## Kept in step with the contract
 
-The contracts themselves are JSON in [`../contracts/`](../contracts/): [`composition.v0.8.json`](../contracts/composition.v0.8.json), checked by `src/composition.contract.test.ts` and `src/synthesis.contract.test.ts`, and [`catalog.json`](../contracts/catalog.json) with [`catalog-artifact.schema.json`](../contracts/catalog-artifact.schema.json), checked by `src/catalog.contract.test.ts`, so any drift fails the build. This is the contracts' only package; another language gets one when something needs it.
+The contracts themselves are JSON in [`../contracts/`](../contracts/): [`a2uiverse.v0.9.json`](../contracts/a2uiverse.v0.9.json), checked by `src/a2uiverse.contract.test.ts` and `src/synthesis.contract.test.ts`, and [`catalog.json`](../contracts/catalog.json) with [`catalog-artifact.schema.json`](../contracts/catalog-artifact.schema.json), checked by `src/catalog.contract.test.ts`, so any drift fails the build. This is the contracts' only package; another language gets one when something needs it.
 
 ## Used by
 

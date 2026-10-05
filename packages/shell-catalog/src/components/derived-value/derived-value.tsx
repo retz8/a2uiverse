@@ -66,7 +66,7 @@ function contributorDetail(state: CellState, cell: CellObject, nameOf: NameOf): 
     case 'absent':
       return 'no source is showing this';
     case 'partial': {
-      const missing = cell.absent.map(s => nameOf(parseSurfaceId(s)?.appId ?? s)).join(', ');
+      const missing = cell.absent.map(s => nameOf(parseSurfaceId(s)?.source ?? s)).join(', ');
       return `${cell.contributed} of ${cell.of} sources · ${missing} not showing this`;
     }
     case 'complete':

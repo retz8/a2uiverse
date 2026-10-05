@@ -36,6 +36,8 @@ export {
   type PressStatus,
 } from './press-state.js';
 export {
+  AUTHORITY_CAUSES,
+  type AuthorityCause,
   CALL_FAILED_KINDS,
   COLLAPSE_CAUSES,
   type CollapseCause,
@@ -54,6 +56,7 @@ export {
   SlotApi,
   type CallFailedKind,
   type SlotCallFailed,
+  type SlotAuthority,
   type SlotCollapse,
   type SlotFailure,
   SlotView,

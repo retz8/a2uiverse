@@ -152,7 +152,7 @@ const joined = (match: unknown): SynthesisPayload =>
   ({dataModel: {pulls: [{...row(), match}]}, sorts: []}) as unknown as SynthesisPayload;
 
 describe('the match claim', () => {
-  test('accepts named relations, each over two refs in two different apps', () => {
+  test('accepts named relations, each over two refs in two different sources', () => {
     const ok: SynthesisPayload = {dataModel: {pulls: [row()]}, sorts: []} as never;
     expect(validateSynthesisPayload(ok)).toEqual({ok: true, value: ok});
   });
@@ -201,7 +201,20 @@ describe('the match claim', () => {
     expect(validateSynthesisPayload(joined(three)).ok).toBe(false);
   });
 
-  test('rejects a relation whose two refs are in the same app, naming it', () => {
+  test('accepts a relation joining two accounts of one app: two sources', () => {
+    const accounts = {
+      thread: {
+        op: 'equal',
+        args: [
+          {surface: 'gmail.1:inbox', pointer: '/threads[id="t1"]/subject'},
+          {surface: 'gmail.2:inbox', pointer: '/threads[id="t9"]/subject'},
+        ],
+      },
+    };
+    expect(validateSynthesisPayload(joined(accounts)).ok).toBe(true);
+  });
+
+  test('rejects a relation whose two refs are in the same source, naming it', () => {
     const same = {
       branch: {
         op: 'equal',
@@ -212,12 +225,12 @@ describe('the match claim', () => {
     expect(result).toEqual({
       ok: false,
       errors: [
-        '/pulls/0/match/branch: a relation joins two different apps; both refs are in github',
+        '/pulls/0/match/branch: a relation joins two different sources; both refs are in github',
       ],
     });
   });
 
-  test('rejects a relation whose ref names no app, naming it', () => {
+  test('rejects a relation whose ref names no source, naming it', () => {
     const bare = {
       branch: {
         op: 'equal',
@@ -228,7 +241,7 @@ describe('the match claim', () => {
     expect(result).toEqual({
       ok: false,
       errors: [
-        '/pulls/0/match/branch: ref surface "runs" names no app — a surface is <appId>:<surfaceId>',
+        '/pulls/0/match/branch: ref surface "runs" names no source — a surface is <source>:<surfaceId>',
       ],
     });
   });

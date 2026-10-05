@@ -97,7 +97,7 @@ function layoutComponents(
           id: `attribution-${idOf(s)}`,
           component: 'Attribution',
           displayName: s.name,
-          appId: s.appId,
+          source: s.appId,
           child: idOf(s),
           ...weight,
         },

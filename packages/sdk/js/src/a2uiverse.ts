@@ -1,18 +1,18 @@
 /**
- * The composition extension (SPEC §14): the A2A metadata contract for
- * cross-agent UI composition, internal to the platform (orchestrator ↔
- * client) — nothing a2uiverse-specific rides the vendor wire. The normative
- * definition is `../contracts/composition.v0.8.json`;
- * `composition.contract.test.ts` asserts this projection against it. The
- * synthesis half of the contract (the synthesize data model) lives in `synthesis.ts`.
+ * The A2UIVerse extension (SPEC §14), the platform's one A2A extension: between orchestrator and
+ * client, the metadata contract for cross-agent UI composition; from an agent, read and never
+ * required, the `auth-required` request in A2A's own requirement shape — nothing a2uiverse-specific
+ * rides the vendor wire. The normative definition is `../contracts/a2uiverse.v0.9.json`;
+ * `a2uiverse.contract.test.ts` asserts this projection against it. The synthesis half of the
+ * contract (the synthesize data model) lives in `synthesis.ts`.
  *
  * A canvas is an A2A context (task-9.2 decision 1): the utterance that opens one carries no
  * contextId, the orchestrator mints it, and every later message in the canvas carries it. The
  * contract therefore names no canvas id of its own; it names the parent on the opening utterance.
  */
 
-/** The A2A extension URI this project declares for composition. */
-export const COMPOSITION_EXTENSION_URI = 'https://a2uiverse.dev/ext/composition/v0.8';
+/** The A2A extension URI this project declares: the platform's one extension. */
+export const A2UIVERSE_EXTENSION_URI = 'https://a2uiverse.dev/ext/a2uiverse/v0.9';
 
 /**
  * Metadata key the orchestrator owns on relayed events — and, inbound, the key the parent canvas
@@ -20,14 +20,40 @@ export const COMPOSITION_EXTENSION_URI = 'https://a2uiverse.dev/ext/composition/
  */
 export const STAMP_KEY = 'a2uiverse';
 
-/** Separator in a namespaced surface id: `<appId>:<surfaceId>`. */
+/** Separator in a source id: `<appId>.<n>` (task-12.2 decision 3). App ids never contain it. */
+export const SOURCE_ID_SEPARATOR = '.';
+
+/**
+ * A source — the app and the account it paints under (task-12.2 decision 3): `gmail` + `2` →
+ * `gmail.2`; with no account — an app whose card needs no sign-in, and `shell` — the bare app id.
+ * `account` is the AuthVault's per-app ordinal, assigned at that account's first sign-in and never
+ * reused.
+ */
+export function sourceId(appId: string, account?: number): string {
+  return account === undefined ? appId : `${appId}${SOURCE_ID_SEPARATOR}${account}`;
+}
+
+/**
+ * `gmail.2` → `{appId: 'gmail', account: 2}`; `github` → `{appId: 'github'}`; undefined when the
+ * id is empty or its account part is not a positive integer.
+ */
+export function parseSourceId(source: string): {appId: string; account?: number} | undefined {
+  const i = source.indexOf(SOURCE_ID_SEPARATOR);
+  if (i < 0) return source ? {appId: source} : undefined;
+  const appId = source.slice(0, i);
+  const n = source.slice(i + 1);
+  if (!appId || !/^[1-9][0-9]*$/.test(n)) return undefined;
+  return {appId, account: Number(n)};
+}
+
+/** Separator in a namespaced surface id: `<source>:<surfaceId>`. */
 export const SURFACE_NS_SEPARATOR = ':';
 
 /** Inbound, orchestrator → client, on every relayed event's metadata under {@link STAMP_KEY}. */
 export interface CompositionStamp {
   /**
-   * Provenance and placement: the app that painted this. A fragment's surface fills the layout's
-   * `Slot` whose `source` is this id.
+   * Provenance and placement: the source that painted this — the app and the account it painted
+   * under. A fragment's surface fills the layout's `Slot` whose `source` is this id.
    */
   source: string;
   /** Which surface the canvas renders as the composition root. */
@@ -59,16 +85,16 @@ const _stampComplete: Exclude<keyof CompositionStamp, (typeof STAMP_FIELDS)[numb
   : never = true;
 void _stampComplete;
 
-/** `pr-list` + `github` → `github:pr-list`. */
-export function namespaceSurfaceId(appId: string, surfaceId: string): string {
-  return `${appId}${SURFACE_NS_SEPARATOR}${surfaceId}`;
+/** `pr-list` + `gmail.2` → `gmail.2:pr-list`. */
+export function namespaceSurfaceId(source: string, surfaceId: string): string {
+  return `${source}${SURFACE_NS_SEPARATOR}${surfaceId}`;
 }
 
-/** `github:pr-list` → `{appId: 'github', surfaceId: 'pr-list'}`; undefined when un-namespaced. */
-export function parseSurfaceId(id: string): {appId: string; surfaceId: string} | undefined {
+/** `gmail.2:inbox` → `{source: 'gmail.2', surfaceId: 'inbox'}`; undefined when un-namespaced. */
+export function parseSurfaceId(id: string): {source: string; surfaceId: string} | undefined {
   const i = id.indexOf(SURFACE_NS_SEPARATOR);
   if (i <= 0 || i === id.length - 1) return undefined;
-  return {appId: id.slice(0, i), surfaceId: id.slice(i + 1)};
+  return {source: id.slice(0, i), surfaceId: id.slice(i + 1)};
 }
 
 /** The composition stamp on an event's metadata, if present and object-shaped. */
@@ -193,16 +219,25 @@ export function readPaintMeta(data: unknown): PaintMeta | undefined {
 }
 
 /**
- * The reader's presses on the composition (task-8.4 decisions 9, 14) and, from task 9.2, a
- * fragment's step in its own history and the canvas closed.
+ * The reader's presses on the composition (task-8.4 decisions 9, 14), from task 9.2 a fragment's
+ * step in its own history and the canvas closed, and from task 12.2 a scope request dismissed.
  */
-export const OPERATION_KINDS = ['retry', 'include', 'tryAgain', 'step', 'close'] as const;
+export const OPERATION_KINDS = [
+  'retry',
+  'include',
+  'tryAgain',
+  'step',
+  'dismiss',
+  'close',
+] as const;
 export type OperationKind = (typeof OPERATION_KINDS)[number];
 
 /**
  * Outbound, client → orchestrator: a press on the composition, as a data part of its own —
  * `{version, operation}` — on a new A2A message in the canvas's context. `retry` names the one
- * failed source it re-dispatches, `include` the late sources it folds in, `tryAgain` none; `step`
+ * source whose slot sends again what it keeps — also the resume after sign-in (task-12.2 decision
+ * 9) — `include` the late sources it folds in, `tryAgain` none; `dismiss` the one source whose
+ * scope request Not now drops (task-12.2 decision 10); `step`
  * names the one agent whose fragment stepped and, in `step`, the paint id it now shows — one paint
  * per `createSurface`, from 0, never reused (task-10.9 decision 6) — the paint's data model riding
  * `a2uiClientDataModel` as on an action; `close` names nothing.
@@ -235,6 +270,7 @@ const SOURCES_BY_KIND: Record<OperationKind, {exactly: number} | {atLeast: numbe
   include: {atLeast: 1},
   tryAgain: {exactly: 0},
   step: {exactly: 1},
+  dismiss: {exactly: 1},
   close: {exactly: 0},
 };
 
@@ -321,4 +357,73 @@ export function readCatalogLoadFailure(error: unknown): CatalogLoadFailure | und
   if (typeof surfaceId !== 'string' || surfaceId === '') return undefined;
   if (typeof catalogId !== 'string' || catalogId === '') return undefined;
   return {code, surfaceId, message: typeof message === 'string' ? message : '', catalogId};
+}
+
+/** The A2A task state an agent moves to when it needs authority mid-task (A2A 0.3 §4.5). */
+export const AUTH_REQUIRED_STATE = 'auth-required';
+
+/**
+ * One alternative of a card's `security` requirement, A2A's own shape: a scheme key on the card →
+ * the scope keys in that scheme's `scopes` map. An empty list asks for the scheme alone.
+ */
+export type SecurityRequirement = Record<string, string[]>;
+
+/**
+ * From an agent, agent → orchestrator (task-12.2 decision 12): the data part of an `auth-required`
+ * status message — `{security}`, the card's own requirement shape, at least one alternative, each
+ * naming what the agent is missing by its keys on the card. Recognized by the task state and the
+ * `security` key; whether the keys are the installed card's is the orchestrator's to check.
+ */
+export interface AuthRequired {
+  security: SecurityRequirement[];
+}
+
+/** Wire field names, typechecked against the interface; the contract test compares them to the contract. */
+export const AUTH_REQUIRED_FIELDS = ['security'] as const satisfies readonly (keyof AuthRequired)[];
+
+const _authRequiredComplete: Exclude<
+  keyof AuthRequired,
+  (typeof AUTH_REQUIRED_FIELDS)[number]
+> extends never
+  ? true
+  : never = true;
+void _authRequiredComplete;
+
+/** The data part's body carrying an `auth-required` request: `{security}`. */
+export function authRequiredData(request: AuthRequired): AuthRequired {
+  return {
+    security: request.security.map(alternative =>
+      Object.fromEntries(
+        Object.entries(alternative).map(([scheme, scopes]) => [scheme, [...scopes]]),
+      ),
+    ),
+  };
+}
+
+/**
+ * The `auth-required` request a data part's body carries, if it is one and well formed: at least
+ * one alternative, each naming at least one scheme by a non-empty key, each scheme a list of
+ * distinct non-empty scope keys.
+ */
+export function readAuthRequired(data: unknown): AuthRequired | undefined {
+  if (typeof data !== 'object' || data === null || Array.isArray(data)) return undefined;
+  const {security} = data as Record<string, unknown>;
+  if (!Array.isArray(security) || security.length === 0) return undefined;
+  const alternatives: SecurityRequirement[] = [];
+  for (const alternative of security) {
+    if (typeof alternative !== 'object' || alternative === null || Array.isArray(alternative)) {
+      return undefined;
+    }
+    const entries = Object.entries(alternative as Record<string, unknown>);
+    if (entries.length === 0) return undefined;
+    const requirement: SecurityRequirement = {};
+    for (const [scheme, scopes] of entries) {
+      if (scheme === '' || !Array.isArray(scopes)) return undefined;
+      if (!scopes.every(scope => typeof scope === 'string' && scope !== '')) return undefined;
+      if (new Set(scopes).size !== scopes.length) return undefined;
+      requirement[scheme] = [...(scopes as string[])];
+    }
+    alternatives.push(requirement);
+  }
+  return {security: alternatives};
 }

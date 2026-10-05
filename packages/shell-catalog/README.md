@@ -12,7 +12,7 @@ The shell's own A2UI catalog: what the orchestrator paints with. It's the A2UI b
   - **`DerivedValue`**: a cell computed from a formula. It shows how sure it is by its contrast, says where it came from on hover, and takes you to the value in its app's fragment when clicked.
   - **`SortControl`**: the sort in force, which the reader can change.
   - **`Table`** / **`TableRow`** and **`DataList`** / **`DataListItem`**: the shapes a merged view is laid out in.
-- **Functions**: the formula operators (`value`, `min`, `max`, `sum`, `avg`, `count`, `argmin`, `argmax`, `source`), the relations a match claim is written in (`equal`, `contains`, `judged`), and two shell actions, `openStore` and `openAppLibrary`.
+- **Functions**: the formula operators (`value`, `min`, `max`, `sum`, `avg`, `count`, `argmin`, `argmax`, `source`), the relations a match claim is written in (`equal`, `contains`, `judged`), and three shell actions, `openStore`, `openAppLibrary` and `addAccount` — the last held back from the Planner until its plan check validates the app it names.
 
 ## Using it
 

@@ -1,8 +1,8 @@
 /**
- * The synthesis half of the composition extension (SPEC §5.2, §14): the payload the orchestrator
+ * The synthesis half of the A2UIVerse extension (SPEC §5.2, §14): the payload the orchestrator
  * sends the client beside a painted synthesis surface — the derived data model whose every leaf is
  * a formula over refs into partitions, its match claims, and the sort declarations — and the pieces
- * both sides agree on. Normative definition: `../contracts/composition.v0.8.json`
+ * both sides agree on. Normative definition: `../contracts/a2uiverse.v0.9.json`
  * (`shapes.synthesizeDataModel`); `synthesis.contract.test.ts` asserts this projection against it.
  * What the Synthesizer writes, and how it is told to, belongs to the orchestrator; the tree it
  * writes is painted as ordinary A2UI and never rides this payload.
@@ -27,7 +27,7 @@ const refSchema = {
   properties: {
     surface: {
       type: 'string',
-      description: 'The namespaced surfaceId (<appId>:<surfaceId>) the pointer resolves in.',
+      description: 'The namespaced surfaceId (<source>:<surfaceId>) the pointer resolves in.',
     },
     pointer: {
       type: 'string',
@@ -55,7 +55,7 @@ const relationSchema = {
   additionalProperties: false,
   required: ['op', 'args'],
   description:
-    "One named relation of a match claim: a formula like any other leaf, its operator a relation the shell catalog declares, over exactly two refs in two different apps — the appId of each ref's namespaced surface. The contract does not enumerate relations; the consumer checks the operator against the shell catalog.",
+    "One named relation of a match claim: a formula like any other leaf, its operator a relation the shell catalog declares, over exactly two refs in two different sources — the source of each ref's namespaced surface — so two accounts of one app can be joined, and a source never to itself. The contract does not enumerate relations; the consumer checks the operator against the shell catalog.",
   properties: {
     op: {type: 'string', description: 'A relation the shell catalog declares as a function.'},
     args: {type: 'array', minItems: 2, maxItems: 2, items: {$ref: '#/$defs/ref'}},
@@ -67,7 +67,7 @@ const matchSchema = {
   minProperties: 1,
   additionalProperties: {$ref: '#/$defs/relation'},
   description:
-    "A match claim, under the reserved key `match` of an object of the derived model, the root included: the Synthesizer's word that the entries the object joins from different apps are one thing, with its evidence. Each key is the Synthesizer's own words for what matched, each value a relation. At least one relation; flat. No object is required to carry one. Disclosed on the object's values by the shell's derived-value component; the tree binds no path under `match`.",
+    "A match claim, under the reserved key `match` of an object of the derived model, the root included: the Synthesizer's word that the entries the object joins from different sources are one thing, with its evidence. Each key is the Synthesizer's own words for what matched, each value a relation. At least one relation; flat. No object is required to carry one. Disclosed on the object's values by the shell's derived-value component; the tree binds no path under `match`.",
 } as const;
 
 const nodeSchema = {
@@ -163,7 +163,7 @@ export const SYNTHESIS_SCHEMA = {
 
 /** A pointer that resolves in another surface's data model. */
 export interface Ref {
-  /** The namespaced surfaceId (`<appId>:<surfaceId>`) the pointer resolves in. */
+  /** The namespaced surfaceId (`<source>:<surfaceId>`) the pointer resolves in. */
   surface: string;
   /** JSON Pointer into that surface's data model; a segment may carry a `[key=value]` predicate. */
   pointer: string;
@@ -176,7 +176,7 @@ export interface Formula {
   args: Ref[];
 }
 
-/** One named relation of a match claim: a formula over two refs in two different apps. */
+/** One named relation of a match claim: a formula over two refs in two different sources. */
 export interface Relation {
   /** A relation the shell catalog declares as a function. */
   op: string;

@@ -42,7 +42,7 @@ function composedProcessor(slotState: 'pending' | 'failed' | 'collapsed' = 'pend
             id: 'attribution-github',
             component: 'Attribution',
             displayName: 'GitHub',
-            appId: 'github',
+            source: 'github',
             child: 'github',
           },
           {

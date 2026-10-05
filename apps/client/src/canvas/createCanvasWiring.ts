@@ -138,7 +138,8 @@ export function createCanvasWiring({
   };
 
   const onShellAction = (action: ShellAction) => {
-    trail.openTrustedPage(trustedPageOf(action));
+    const page = trustedPageOf(action);
+    if (page) trail.openTrustedPage(page);
     viewed()?.reportShellAction(action);
   };
 

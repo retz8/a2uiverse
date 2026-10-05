@@ -98,7 +98,7 @@
                     "id": "attribution-linear-slot",
                     "component": "Attribution",
                     "displayName": "Linear",
-                    "appId": "linear",
+                    "source": "linear",
                     "child": "linear-slot",
                     "weight": 1
                   },
@@ -115,7 +115,7 @@
                     "id": "attribution-github-slot",
                     "component": "Attribution",
                     "displayName": "GitHub",
-                    "appId": "github",
+                    "source": "github",
                     "child": "github-slot",
                     "weight": 1
                   },
@@ -132,7 +132,7 @@
                     "id": "attribution-circleci-slot",
                     "component": "Attribution",
                     "displayName": "CircleCI",
-                    "appId": "circleci",
+                    "source": "circleci",
                     "child": "circleci-slot",
                     "weight": 1
                   },
@@ -6107,7 +6107,7 @@
                     "id": "attribution-linear-slot",
                     "component": "Attribution",
                     "displayName": "Linear",
-                    "appId": "linear",
+                    "source": "linear",
                     "child": "linear-slot",
                     "weight": 1
                   },
@@ -6124,7 +6124,7 @@
                     "id": "attribution-github-slot",
                     "component": "Attribution",
                     "displayName": "GitHub",
-                    "appId": "github",
+                    "source": "github",
                     "child": "github-slot",
                     "weight": 1
                   },
@@ -6141,7 +6141,7 @@
                     "id": "attribution-circleci-slot",
                     "component": "Attribution",
                     "displayName": "CircleCI",
-                    "appId": "circleci",
+                    "source": "circleci",
                     "child": "circleci-slot",
                     "weight": 1
                   },
@@ -6225,7 +6225,7 @@
                     "id": "attribution-calendar",
                     "component": "Attribution",
                     "displayName": "Google Calendar",
-                    "appId": "calendar",
+                    "source": "calendar",
                     "child": "calendar",
                     "weight": 1
                   },
@@ -6241,7 +6241,7 @@
                     "id": "attribution-gmail",
                     "component": "Attribution",
                     "displayName": "Gmail",
-                    "appId": "gmail",
+                    "source": "gmail",
                     "child": "gmail",
                     "weight": 1
                   },
@@ -6257,7 +6257,7 @@
                     "id": "attribution-github",
                     "component": "Attribution",
                     "displayName": "GitHub",
-                    "appId": "github",
+                    "source": "github",
                     "child": "github",
                     "weight": 1
                   },
@@ -6273,7 +6273,7 @@
                     "id": "attribution-linear",
                     "component": "Attribution",
                     "displayName": "Linear",
-                    "appId": "linear",
+                    "source": "linear",
                     "child": "linear",
                     "weight": 1
                   },
@@ -9972,7 +9972,7 @@
                     "id": "attribution-calendar",
                     "component": "Attribution",
                     "displayName": "Google Calendar",
-                    "appId": "calendar",
+                    "source": "calendar",
                     "child": "calendar",
                     "weight": 1
                   },
@@ -9988,7 +9988,7 @@
                     "id": "attribution-gmail",
                     "component": "Attribution",
                     "displayName": "Gmail",
-                    "appId": "gmail",
+                    "source": "gmail",
                     "child": "gmail",
                     "weight": 1
                   },
@@ -10004,7 +10004,7 @@
                     "id": "attribution-github",
                     "component": "Attribution",
                     "displayName": "GitHub",
-                    "appId": "github",
+                    "source": "github",
                     "child": "github",
                     "weight": 1
                   },
@@ -10020,7 +10020,7 @@
                     "id": "attribution-linear",
                     "component": "Attribution",
                     "displayName": "Linear",
-                    "appId": "linear",
+                    "source": "linear",
                     "child": "linear",
                     "weight": 1
                   },

@@ -216,7 +216,7 @@ const layout = (appId: string) => [
         {
           id: `attribution-${appId}`,
           component: 'Attribution',
-          appId,
+          source: appId,
           displayName: 'GitHub',
           child: appId,
         },

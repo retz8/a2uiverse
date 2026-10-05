@@ -25,19 +25,31 @@ test('single-account apps omit the account clause', () => {
 
 test('schema accepts the painted shape and rejects extras', () => {
   expect(
-    AttributionApi.schema.safeParse({displayName: 'Gmail', appId: 'gmail', account: null}).success,
+    AttributionApi.schema.safeParse({displayName: 'Gmail', source: 'gmail', account: null}).success,
   ).toBe(true);
   expect(AttributionApi.schema.safeParse({displayName: 'Gmail', style: 'loud'}).success).toBe(
     false,
   );
-  expect(AttributionApi.schema.safeParse({appId: 'gmail'}).success).toBe(false);
+  expect(AttributionApi.schema.safeParse({source: 'gmail'}).success).toBe(false);
+});
+
+test('schema carries a scope request waiting on Allow or Not now: at least one scope (task 12.2)', () => {
+  const ok = (escalation: unknown) =>
+    AttributionApi.schema.safeParse({displayName: 'GitHub', source: 'github.1', escalation})
+      .success;
+  expect(ok({scopes: ['Merge pull requests and push to your repositories']})).toBe(true);
+  expect(ok({scopes: []})).toBe(false);
+  expect(ok({scopes: ['x'], domain: 'github.com'})).toBe(false);
+  expect(AttributionApi.schema.safeParse({displayName: 'GitHub', appId: 'github'}).success).toBe(
+    false,
+  );
 });
 
 test('schema accepts the wrapper shape: a child id and a weight (task-6.4 decision 3)', () => {
   expect(
     AttributionApi.schema.safeParse({
       displayName: 'Gmail',
-      appId: 'gmail',
+      source: 'gmail',
       child: 'gmail-slot',
       weight: 2,
     }).success,
@@ -93,7 +105,7 @@ function withHistory(history: Record<string, FragmentHistory>, node: React.React
 }
 
 test('no arrow without somewhere to go: a fragment that painted once has none', () => {
-  render(<AttributionView displayName="GitHub" appId="github" onPress={() => {}} />);
+  render(<AttributionView displayName="GitHub" source="github" onPress={() => {}} />);
   expect(screen.queryByRole('button')).toBeNull();
 });
 
@@ -101,7 +113,7 @@ test('a back arrow when there is a step back, named "Back to" the previous paint
   const {rerender} = render(
     <AttributionView
       displayName="GitHub"
-      appId="github"
+      source="github"
       history={{back: {step: 0, title: 'Open pull requests'}}}
       onPress={() => {}}
     />,
@@ -113,7 +125,7 @@ test('a back arrow when there is a step back, named "Back to" the previous paint
   rerender(
     <AttributionView
       displayName="GitHub"
-      appId="github"
+      source="github"
       history={{back: {step: 0, title: 'Open pull requests'}, forward: {step: 2, title: 'PR #42'}}}
       onPress={() => {}}
     />,
@@ -134,7 +146,7 @@ test("the arrows sit at the right edge of the marker's row, icons alone, soft ac
   render(
     <AttributionView
       displayName="GitHub"
-      appId="github"
+      source="github"
       history={{back: {step: 0, title: 'Open pull requests'}, forward: {step: 2, title: 'PR #42'}}}
       onPress={() => {}}
     />,
@@ -158,7 +170,7 @@ test('"Back" and "Forward" alone when the agent named nothing', () => {
   render(
     <AttributionView
       displayName="GitHub"
-      appId="github"
+      source="github"
       history={{back: {step: 0}, forward: {step: 2}}}
       onPress={() => {}}
     />,
@@ -173,7 +185,7 @@ test("an arrow raises the step operation: the one source and the neighbour's ind
   render(
     <AttributionView
       displayName="GitHub"
-      appId="github"
+      source="github"
       history={{back: {step: 1, title: 'List'}, forward: {step: 3}}}
       onPress={operation => pressed.push(operation)}
     />,
@@ -190,7 +202,7 @@ test('without a press handler no arrow is drawn, whatever the history says', () 
   render(
     <AttributionView
       displayName="GitHub"
-      appId="github"
+      source="github"
       history={{back: {step: 0, title: 'List'}}}
     />,
   );
@@ -203,7 +215,7 @@ test('the arrows follow the press state: disabled where no press can be made (ta
     <PressStateContext.Provider value={{enabled: false, presses: []}}>
       <AttributionView
         displayName="GitHub"
-        appId="github"
+        source="github"
         history={{back: {step: 0, title: 'List'}}}
         onPress={() => {}}
       />
@@ -216,7 +228,7 @@ test('the arrows draw disabled while the source is busy — its repaint in fligh
   render(
     <AttributionView
       displayName="GitHub"
-      appId="github"
+      source="github"
       history={{back: {step: 0, title: 'List'}, forward: {step: 2}, busy: true}}
       onPress={() => {}}
     />,
@@ -230,7 +242,7 @@ test("through the catalog: the history read from the host's context by the paint
   const presses: Parameters<NonNullable<Parameters<typeof renderTree>[1]['onPress']>>[0][] = [];
   renderTree(
     [
-      {id: 'root', component: 'Attribution', displayName: 'GitHub', appId: 'github', child: 'c1'},
+      {id: 'root', component: 'Attribution', displayName: 'GitHub', source: 'github', child: 'c1'},
       {id: 'c1', component: 'Text', text: 'the fragment'},
     ],
     {
@@ -249,7 +261,7 @@ test("through the catalog: the history read from the host's context by the paint
 });
 
 test('through the catalog: a source the host knows nothing about draws no arrow', () => {
-  renderTree([{id: 'root', component: 'Attribution', displayName: 'Gmail', appId: 'gmail'}], {
+  renderTree([{id: 'root', component: 'Attribution', displayName: 'Gmail', source: 'gmail'}], {
     onPress: () => {},
   });
   expect(screen.queryByRole('button')).toBeNull();
@@ -261,7 +273,7 @@ test('an arrow pressed from the keyboard hands focus on when it leaves the row: 
   const {rerender} = render(
     <AttributionView
       displayName="GitHub"
-      appId="github"
+      source="github"
       history={{back: {step: 0, title: 'List'}}}
       onPress={() => {}}
     />,
@@ -274,13 +286,15 @@ test('an arrow pressed from the keyboard hands focus on when it leaves the row: 
   rerender(
     <AttributionView
       displayName="GitHub"
-      appId="github"
+      source="github"
       history={{forward: {step: 1, title: 'PR #42'}}}
       onPress={() => {}}
     />,
   );
   expect(screen.getByRole('button', {name: 'Forward to PR #42'})).toHaveFocus();
   await user.keyboard('{Enter}');
-  rerender(<AttributionView displayName="GitHub" appId="github" history={{}} onPress={() => {}} />);
+  rerender(
+    <AttributionView displayName="GitHub" source="github" history={{}} onPress={() => {}} />,
+  );
   expect(screen.getByLabelText('GitHub')).toHaveFocus();
 });

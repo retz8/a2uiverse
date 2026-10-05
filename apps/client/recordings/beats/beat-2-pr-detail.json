@@ -40,7 +40,7 @@
                     "id": "attribution-github-slot",
                     "component": "Attribution",
                     "displayName": "GitHub",
-                    "appId": "github",
+                    "source": "github",
                     "child": "github-slot"
                   },
                   {

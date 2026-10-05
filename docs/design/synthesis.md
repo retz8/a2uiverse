@@ -610,14 +610,14 @@ In the orchestrator's tests, the model sits behind a one-method **text seam** (t
 
 | Concern | sdk (`packages/sdk/js/src`) | Orchestrator (`apps/orchestrator/src`) | Client (`apps/client/src`) | Shell catalog (`packages/shell-catalog`) |
 | --- | --- | --- | --- | --- |
-| The contract | `synthesis.ts`, `../../contracts/composition.v0.8.json` | `synthesizer/document.ts` | | |
+| The contract | `synthesis.ts`, `../../contracts/a2uiverse.v0.9.json` | `synthesizer/document.ts` | | |
 | Refs and pointers | `pointer.ts`, `walk.ts` | `composition/partitions.ts` | `canvas/synthesis/bindingEvaluator.ts` | |
 | Checking the model's work | `validate.ts`, `a2ui/` | `synthesizer/validate.ts` | `canvas/synthesis/intake.ts` | `src/keep-sets.ts` |
 | The prompt | | `synthesizer/prompt.ts`, `synthesizer/synthesis.md`, `synthesizer/examples.ts` | | `docs/synthesis-guidance.md` |
 | The model call | | `synthesizer/synthesizer.ts` | | |
 | When to merge, the presses | | `composition/trigger.ts`, `composition/presses.ts` | `canvas/composition/columnState.ts` | `src/components/slot/press-lines.ts` |
 | What changed after a click | | `composition/integrity.ts`, `composition/relations.ts` | | |
-| Going back | `composition.ts` | `composition/history.ts` | `canvas/history/fragmentHistory.ts` | |
+| Going back | `a2uiverse.ts` | `composition/history.ts` | `canvas/history/fragmentHistory.ts` | |
 | Painting the view | | `composition/synthesisPainter.ts` | | |
 | Evaluating and staying live | | | `canvas/synthesis/bindingEvaluator.ts`, `canvas/synthesis/synthesisSession.ts` | `src/functions/operators.ts`, `src/functions/relations.ts`, `src/components/derived-value/join.ts` |
 | Reading time | | | | `src/components/shared/instant.ts` |

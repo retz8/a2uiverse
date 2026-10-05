@@ -38,6 +38,15 @@ test('a button calling openAppLibrary hands the host its surface', () => {
   expect(shell).toEqual([{name: 'openAppLibrary', surfaceId: SURFACE_ID}]);
 });
 
+test('a button calling addAccount hands the host its surface and the app, by its bare id', () => {
+  const shell: ShellAction[] = [];
+  renderTree(button({functionCall: {call: 'addAccount', args: {app: 'gmail'}}}), {
+    onShellAction: action => shell.push(action),
+  });
+  fireEvent.click(screen.getByRole('button', {name: 'Go'}));
+  expect(shell).toEqual([{name: 'addAccount', surfaceId: SURFACE_ID, app: 'gmail'}]);
+});
+
 test('the capability tile searches the Store for the missing capability', () => {
   const shell: ShellAction[] = [];
   const {container} = renderTree([{id: 'root', component: 'Slot', gap: 'flight booking'}], {

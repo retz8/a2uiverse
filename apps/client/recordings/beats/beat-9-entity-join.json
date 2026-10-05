@@ -88,7 +88,7 @@
                     "id": "attribution-linear",
                     "component": "Attribution",
                     "displayName": "Linear",
-                    "appId": "linear",
+                    "source": "linear",
                     "child": "linear",
                     "weight": 1
                   },
@@ -105,7 +105,7 @@
                     "id": "attribution-github",
                     "component": "Attribution",
                     "displayName": "GitHub",
-                    "appId": "github",
+                    "source": "github",
                     "child": "github",
                     "weight": 1
                   },
@@ -122,7 +122,7 @@
                     "id": "attribution-circleci",
                     "component": "Attribution",
                     "displayName": "CircleCI",
-                    "appId": "circleci",
+                    "source": "circleci",
                     "child": "circleci",
                     "weight": 1
                   },
@@ -6097,7 +6097,7 @@
                     "id": "attribution-linear",
                     "component": "Attribution",
                     "displayName": "Linear",
-                    "appId": "linear",
+                    "source": "linear",
                     "child": "linear",
                     "weight": 1
                   },
@@ -6114,7 +6114,7 @@
                     "id": "attribution-github",
                     "component": "Attribution",
                     "displayName": "GitHub",
-                    "appId": "github",
+                    "source": "github",
                     "child": "github",
                     "weight": 1
                   },
@@ -6131,7 +6131,7 @@
                     "id": "attribution-circleci",
                     "component": "Attribution",
                     "displayName": "CircleCI",
-                    "appId": "circleci",
+                    "source": "circleci",
                     "child": "circleci",
                     "weight": 1
                   },

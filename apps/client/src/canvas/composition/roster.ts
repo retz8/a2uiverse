@@ -90,11 +90,11 @@ export function shellPaintSlots(messages: readonly A2uiMessage[]): ShellPaintSlo
     const attributionOf = new Map<string, {appId: string; displayName: string}>();
     for (const raw of components) {
       if (raw.component !== ATTRIBUTION || typeof raw.child !== 'string') continue;
-      const {appId, displayName} = raw;
-      if (typeof appId !== 'string') continue;
+      const {source, displayName} = raw;
+      if (typeof source !== 'string') continue;
       attributionOf.set(raw.child, {
-        appId,
-        displayName: typeof displayName === 'string' && displayName ? displayName : appId,
+        appId: source,
+        displayName: typeof displayName === 'string' && displayName ? displayName : source,
       });
     }
     for (const raw of components) {
