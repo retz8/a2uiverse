@@ -7,8 +7,9 @@ The `[apps]` part of Phase 12 (`_dev/docs/spec/phase-12-authority-surfaces.md`, 
 - Per-account fixtures in the agent kit, for the stub mail and the deterministic answers.
 - Gmail's second fake account and its hand-written mailbox.
 - Its deterministic answers, recorded and derived through Gmail's existing pipeline, per account.
+- The kit's beat driver signing in, so a recording runs against an agent with sign-in.
 - Tests in the kit and in Gmail; Gmail's README.
-- Out: the platform's recordings and e2e signed in as two accounts (12.12); the two accounts merged on the canvas (12.13).
+- Out: the platform's recording scripts and e2e signed in, the real popup, the tunnel URLs (12.12); the two accounts merged on the canvas (12.13).
 
 ## Locked decisions
 
@@ -36,10 +37,14 @@ Self-contained, mirroring the work mailbox's shape: about ten threads over the s
 
 The personal account is recorded over Gmail's four existing beats, verbatim — the Planner's pinned attention prompt, opening the most recent thread, drafting the reply, listing the labels — so both accounts answer the same actions. Recording and deriving take the account; the hand-written cancel-draft answer exists for each account.
 
-### 7. What proves it
+### 7. Recording signs in
+
+The non-interactive entry naming a fake account is honored in stub mode as well as deterministic mode, amending task-12.9 decision 12; live mode still refuses it. The kit's beat driver signs in as a named fake account through it, asking for every scope of the app, and Gmail's recording takes the account.
+
+### 8. What proves it
 
 Kit tests: a two-account test app gets each account's own fixtures; a one-account app is unchanged. Gmail tests: signed in as `personal` through the non-interactive entry, text gets the personal digest while `you` still gets the work one, and a press is answered from the pressing account's set. The publishable-corpus check covers the new subdirectories. Gmail's README covers the second account and recording per account.
 
-### 8. The recording script's stale mode
+### 9. The recording script's stale mode
 
 `record_beats.py`'s docstring naming live mode is corrected to stub mode.
