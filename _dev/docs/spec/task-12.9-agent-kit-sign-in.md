@@ -32,7 +32,7 @@ The kit accepts a client ID metadata document — added in Authlib's client look
 
 ### 5. Scopes per action, enforced by the kit
 
-The app declares its scopes once, as the card's `scopes` map, in plain customer words. Its config maps action names and tool names to the scopes they need. The kit checks the token's granted scopes — in deterministic mode before the canned answer is served, in LLM mode in the tool wrapper before the tool runs — and on a missing scope ends the run with `auth-required` naming the missing keys.
+The app declares its scopes once, as the card's `scopes` map, in plain customer words. Its config maps action names and tool names to the scopes they need. The kit checks the token's granted scopes — in deterministic mode before the canned answer is served, in LLM mode in the agent's before-tool callback before the tool runs, stub tools and MCP tools alike — and on a missing scope ends the run with `auth-required` naming the missing keys.
 
 ### 6. `auth-required` ends the run
 
@@ -40,7 +40,7 @@ The run ends at `auth-required`; the agent keeps nothing pending. The hub's rese
 
 ### 7. 401 at dispatch
 
-A request with no token, an unknown, expired or revoked one gets HTTP 401 with `WWW-Authenticate: Bearer error="invalid_token"` (RFC 6750 §3). The card stays publicly readable.
+A request with no token gets HTTP 401 with `WWW-Authenticate: Bearer`; an unknown, expired or revoked one gets HTTP 401 with `WWW-Authenticate: Bearer error="invalid_token"` (RFC 6750 §3, §3.1). The card stays publicly readable.
 
 ### 8. Lifetimes and refresh
 
