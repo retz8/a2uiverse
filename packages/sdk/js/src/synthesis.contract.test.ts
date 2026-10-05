@@ -40,10 +40,11 @@ test('the synthesis key matches the contract and is not the stamp key', () => {
   expect(SYNTHESIS_KEY).not.toBe(STAMP_KEY);
 });
 
-test('the contract carries the stamp, paintMeta and the synthesis payload orchestrator → client, the parent, the operation and the catalog load failure back, and the auth-required request from an agent', () => {
+test('the contract carries the stamp, paintMeta and the synthesis payload orchestrator → client, the parent, the session, the operation and the catalog load failure back, and the auth-required request from an agent', () => {
   expect(Object.keys(contract.shapes)).toEqual([
     'compositionStamp',
     'canvasParent',
+    'clientSession',
     'compositionOperation',
     'catalogLoadFailure',
     'paintMeta',

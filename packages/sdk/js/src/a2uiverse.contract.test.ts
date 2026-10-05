@@ -6,6 +6,7 @@ import {
   AUTH_REQUIRED_FIELDS,
   AUTH_REQUIRED_STATE,
   CANVAS_PARENT_FIELDS,
+  CLIENT_SESSION_FIELDS,
   CATALOG_LOAD_FAILED,
   CATALOG_LOAD_FAILURE_FIELDS,
   OPERATION_FIELDS,
@@ -21,6 +22,7 @@ import {
   SURFACE_NS_SEPARATOR,
   authRequiredData,
   canvasParentMetadata,
+  clientSessionMetadata,
   clipPaintMetaTitle,
   namespaceSurfaceId,
   operationData,
@@ -30,6 +32,7 @@ import {
   parseSurfaceId,
   readAuthRequired,
   readCanvasParent,
+  readClientSession,
   readCatalogLoadFailure,
   readOperation,
   readPaintMeta,
@@ -79,6 +82,11 @@ test('shape fields match the contract', () => {
   expect([...CANVAS_PARENT_FIELDS].sort()).toEqual(
     [...parent.required!, ...parent.optional!].sort(),
   );
+  const session = contract.shapes.clientSession!;
+  expect(session.direction).toBe('client → orchestrator');
+  expect([...CLIENT_SESSION_FIELDS].sort()).toEqual(
+    [...session.required!, ...session.optional!].sort(),
+  );
   const paintMeta = contract.shapes.paintMeta!;
   expect(paintMeta.direction).toBe('orchestrator → client');
   expect([...PAINT_META_FIELDS].sort()).toEqual(
@@ -95,6 +103,15 @@ test('the operation matches the contract: its fields and its kinds', () => {
     [...operation.required!, ...operation.optional!].sort(),
   );
   expect([...OPERATION_KINDS]).toEqual(operation.kinds);
+});
+
+test('the session rides every client message beside the parent, and reads back', () => {
+  const metadata = clientSessionMetadata('page-1', 'ctx-parent');
+  expect(readClientSession(metadata)).toEqual({session: 'page-1'});
+  expect(readCanvasParent(metadata)).toEqual({parent: 'ctx-parent'});
+  expect(readClientSession(clientSessionMetadata('page-1'))).toEqual({session: 'page-1'});
+  expect(readClientSession(canvasParentMetadata('ctx-parent'))).toBeUndefined();
+  expect(readClientSession({[STAMP_KEY]: {session: ''}})).toBeUndefined();
 });
 
 test('the catalog load failure matches the contract', () => {
@@ -123,6 +140,7 @@ test('the contract carries no vendor-facing shape; the one shape from an agent i
   expect(Object.keys(contract.shapes)).toEqual([
     'compositionStamp',
     'canvasParent',
+    'clientSession',
     'compositionOperation',
     'catalogLoadFailure',
     'paintMeta',

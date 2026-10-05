@@ -65,7 +65,7 @@ export interface SynthesisRecord {
   /** The sources the synthesis ran over. */
   sources?: string[];
   /** The dispatched sources it ran without, each still loading, failed, or arrived after the merge. */
-  missing?: {source: string; state: 'loading' | 'failed' | 'arrived'}[];
+  missing?: {source: string; state: 'loading' | 'failed' | 'signedOut' | 'arrived'}[];
   /** The accepted document, on `synthesized`. */
   synthesizeDataModel?: Synthesis;
   /** The document's note, on `synthesized`: the deviation from the brief, when any. */

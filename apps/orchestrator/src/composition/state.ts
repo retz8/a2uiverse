@@ -1,7 +1,12 @@
 import type {Message} from '@a2a-js/sdk';
 import type {ExecutionEventBus} from '@a2a-js/sdk/server';
 import {clipPaintMetaTitle, type OperationKind, type SynthesisPayload} from '@a2uiverse/sdk';
-import type {FailureCause, SlotCallFailed, SlotCollapse} from '@a2uiverse/shell-catalog/schema';
+import type {
+  AuthorityCause,
+  FailureCause,
+  SlotCallFailed,
+  SlotCollapse,
+} from '@a2uiverse/shell-catalog/schema';
 import type {Seen, Watch} from './integrity.js';
 import type {Synthesis} from '../synthesizer/document.js';
 import type {VendorEvent} from '../agentsPool/relay.js';
@@ -19,9 +24,9 @@ import {Presses} from './presses.js';
 /**
  * The orchestrator-side slot states. `filled` is deliberately absent — a slot
  * renders its fragment when a surface claims it, which is inherently the
- * client's (phase decision 12).
+ * client's (phase decision 12). `authority`: the slot needs a sign-in (task 12.5).
  */
-export type SlotState = 'pending' | 'failed' | 'collapsed';
+export type SlotState = 'pending' | 'failed' | 'collapsed' | 'authority';
 
 export interface SlotPlan {
   /**
@@ -58,6 +63,26 @@ export interface SlotFailure {
   catalogId?: string;
 }
 
+/**
+ * The authority a slot takes (task 12.5, phase-12 decisions 13, 17): its cause, the quiet line
+ * once the app's full tile was shown this session, and — asking to sign in — the scheme and the
+ * scope keys the sign-in asks, the scopes in the card's words.
+ */
+export interface SlotAuthorityState {
+  cause: AuthorityCause;
+  quiet?: boolean;
+  scheme?: string;
+  keys?: string[];
+  words?: string[];
+}
+
+/** A request for more access inside the fragment, waiting on Allow or Not now (phase-12 decision 16). */
+export interface SlotEscalation {
+  scheme: string;
+  keys: string[];
+  words: string[];
+}
+
 /** An answer that arrived past the hard cap: held, undrawn, until the reader presses Retry. */
 export interface HeldAnswer {
   /** The dispatch's events after the cap, composed as they would have been relayed. */
@@ -82,6 +107,12 @@ export interface SlotEntry {
   race?: (held: HeldAnswer) => void;
   /** The press inside this source's fragment that failed, as sent: what Retry sends again (task-11.8 decision 23). */
   failedPress?: Message;
+  /** The authority the slot takes, with `authority`. */
+  authority?: SlotAuthorityState;
+  /** A request for more access the fragment waits on. */
+  escalation?: SlotEscalation;
+  /** The press the request held: what Allow sends again; the plan's request when absent. */
+  keptPress?: Message;
 }
 
 /** Where a turn's events go: its task, its stream, its journal line. */
@@ -228,6 +259,8 @@ export interface CompositionState {
   mergedView?: {outcome: SynthesisRecord['outcome']; reason?: string};
   /** When the last source settled — the start of the dead-air interval. */
   lastSettledAt?: number;
+  /** The page-load session the composition was opened in (task-12.5 decision 6). */
+  session?: string;
 }
 
 export function compositionFrom(

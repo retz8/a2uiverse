@@ -10,10 +10,18 @@ import {
   type Client,
 } from '@a2a-js/sdk/client';
 import type {FailureCause} from '@a2uiverse/shell-catalog/schema';
-import {A2UI_CLIENT_CAPABILITIES_KEY, clientCapabilities, parseSourceId} from '@a2uiverse/sdk';
+import {
+  A2UI_CLIENT_CAPABILITIES_KEY,
+  AUTH_REQUIRED_STATE,
+  clientCapabilities,
+  parseSourceId,
+  readAuthRequired,
+  type AuthRequired,
+} from '@a2uiverse/sdk';
 import {A2UI_EXTENSION_URI_V09, A2UI_EXTENSION_URI_V091} from '../agentCard.js';
 import type {Registry} from '../registry/registry.js';
 import type {AppRecord} from '../registry/types.js';
+import type {Prepared, Request as AuthorityRequest} from '../vault/vault.js';
 import {InMemoryVendorContextMap, type VendorContextMap} from './contextMap.js';
 import type {Fault, FaultMap} from './faults.js';
 import {prepareOutgoing, relayEvent, type VendorEvent} from './relay.js';
@@ -27,6 +35,27 @@ export interface AgentsPoolOptions {
   faults?: FaultMap;
   contexts?: VendorContextMap;
   fetchImpl?: typeof fetch;
+  /** The vault (task 12.5): the header a dispatch carries, and what a refusal asks. */
+  credentials?: Credentials;
+}
+
+/** The vault as the AgentsPool reaches it. */
+export interface Credentials {
+  /** The header a dispatch to the source carries; undefined when its card asks nothing. */
+  prepare(source: string): Promise<Prepared | undefined>;
+  /** A 401 to `sent`: renewed headers to send again once, or the authority needed. */
+  unauthorized(source: string, sent: Record<string, string>): Promise<Prepared>;
+  /** A second refusal: the account signs in again. */
+  markAgain(source: string, reason: string): Promise<void>;
+  /** An in-task `auth-required`, read against the installed card. */
+  requested(source: string, request: AuthRequired | undefined): AuthorityRequest;
+}
+
+/** A vendor answered 401: thrown from inside the A2A client's fetch, so it reaches the dispatch. */
+export class UnauthorizedError extends Error {
+  constructor() {
+    super('the agent refused the request: 401');
+  }
 }
 
 /** The final states that end a vendor's task as a failure it declared itself. */
@@ -98,13 +127,13 @@ export class AgentsPool {
     if (!handles) this.#inflight.set(turn.clientTaskId, (handles = new Set()));
     const registered = handles;
     // The stream body runs only once iterated, so `handle` exists by the time finish fires.
-    const finish = (outcome: DispatchOutcome, failure?: {error: string; cause: FailureCause}) => {
+    const finish = (outcome: DispatchOutcome, failure?: {error: string; cause?: FailureCause}) => {
       ended = true;
       clearTimeout(capTimer);
       record.outcome = outcome;
       if (failure) {
         record.error = failure.error;
-        record.cause = failure.cause;
+        if (failure.cause) record.cause = failure.cause;
       }
       record.endedAt = new Date().toISOString();
       logLine(
@@ -139,7 +168,7 @@ export class AgentsPool {
     turn: DispatchTurn,
     record: DispatchRecord,
     controller: AbortController,
-    finish: (outcome: DispatchOutcome, failure?: {error: string; cause: FailureCause}) => void,
+    finish: (outcome: DispatchOutcome, failure?: {error: string; cause?: FailureCause}) => void,
   ): AsyncGenerator<VendorEvent> {
     const relayCtx = {
       taskId: turn.clientTaskId,
@@ -154,6 +183,7 @@ export class AgentsPool {
     // A non-streaming vendor answers with one Task in a terminal state and no final update.
     let terminalTaskState: TaskState | undefined;
     let broke = false;
+    let invalid: string | undefined;
     // The source's app as the registry holds it now: the entitlement this dispatch is sent under
     // and checked against to its end, whatever the registry does meanwhile (task-11.4 decision 6).
     const appId = parseSourceId(source)?.appId ?? source;
@@ -176,50 +206,125 @@ export class AgentsPool {
         finalMessage = fault.message;
         yield relayEvent(event, relayCtx);
       } else {
+        // The header the card's scheme names, from the vault (phase-12 decision 4); a card the
+        // vault cannot meet is not called (decision 5).
+        const credentials = this.#options.credentials;
+        const prepared = credentials ? await credentials.prepare(source) : undefined;
+        if (prepared && 'need' in prepared) {
+          record.authority = prepared.need;
+          finish('failed', {error: 'the app needs sign-in'});
+          return;
+        }
+        let headers = prepared?.headers ?? {};
         const client = await this.#connect(app);
         const vendorContextId = this.#contexts.get(turn.clientContextId, source);
         const params = prepareOutgoing(withEntitlement(turn.message, app), vendorContextId);
-        const options = {
-          signal: controller.signal,
-          serviceParameters: ServiceParameters.create(
-            withA2AExtensions(A2UI_EXTENSION_URI_V091, A2UI_EXTENSION_URI_V09),
-          ),
-        };
         let injected = false;
-        for await (const event of client.sendMessageStream(params, options)) {
-          this.#learnIds(event, source, turn, record);
-          // A paint outside the app's entitlement is refused at the hub, never relayed
-          // (task-11.4 decision 12): the dispatch ends failed on the catalog's id.
-          outside = catalogOutside(event, entitlement);
-          if (outside !== undefined) break;
-          if (event.kind === 'message') {
-            record.sawFinal = true;
-          } else if (event.kind === 'status-update' && event.final) {
-            record.sawFinal = true;
-            finalState = event.status.state;
-            finalMessage = textOf(event.status.message?.parts);
-          } else if (event.kind === 'task' && TERMINAL_STATES.has(event.status.state)) {
-            terminalTaskState = event.status.state;
-            finalMessage = textOf(event.status.message?.parts);
+        let resent = false;
+        // At most two sends: a refusal — 401, or an `auth-required` naming nothing — is answered
+        // once by a refresh and a resend; a second makes the account sign in again (task-12.5
+        // decisions 1, 8).
+        for (;;) {
+          const options = {
+            signal: controller.signal,
+            serviceParameters: {
+              ...ServiceParameters.create(
+                withA2AExtensions(A2UI_EXTENSION_URI_V091, A2UI_EXTENSION_URI_V09),
+              ),
+              ...headers,
+            },
+          };
+          let refused = false;
+          record.sawFinal = false;
+          finalState = undefined;
+          terminalTaskState = undefined;
+          try {
+            for await (const event of client.sendMessageStream(params, options)) {
+              this.#learnIds(event, source, turn, record);
+              // A paint outside the app's entitlement is refused at the hub, never relayed
+              // (task-11.4 decision 12): the dispatch ends failed on the catalog's id.
+              outside = catalogOutside(event, entitlement);
+              if (outside !== undefined) break;
+              // The agent asks for authority mid-task (phase-12 decisions 4, 6): read against the
+              // installed card, never relayed.
+              const asked = authRequiredOf(event);
+              if (asked !== undefined) {
+                const request = credentials?.requested(source, asked.request) ?? {kind: 'unsigned'};
+                if (request.kind === 'unauthorized') {
+                  refused = true;
+                } else if (request.kind === 'escalate') {
+                  record.authority = {
+                    cause: 'signIn',
+                    scheme: request.scheme,
+                    keys: request.keys,
+                    words: request.words,
+                    escalation: true,
+                  };
+                } else if (request.kind === 'invalid') {
+                  invalid = request.reason;
+                } else {
+                  record.sawFinal = true;
+                  finalState = 'failed';
+                  finalMessage = asked.text;
+                }
+                break;
+              }
+              if (event.kind === 'message') {
+                record.sawFinal = true;
+              } else if (event.kind === 'status-update' && event.final) {
+                record.sawFinal = true;
+                finalState = event.status.state;
+                finalMessage = textOf(event.status.message?.parts);
+              } else if (event.kind === 'task' && TERMINAL_STATES.has(event.status.state)) {
+                terminalTaskState = event.status.state;
+                finalMessage = textOf(event.status.message?.parts);
+              }
+              let out: VendorEvent = event;
+              if (fault?.fault === 'invalid' && !injected) {
+                const swapped = withRejectedProp(event);
+                injected = swapped !== event;
+                out = swapped;
+              }
+              yield relayEvent(out, relayCtx);
+              // The first paint forwarded, then no final — even where the vendor's paint rode its
+              // final, which the relay has already demoted (task 8.6: the deterministic roster
+              // paints that way).
+              if (fault?.fault === 'break' && carriesA2ui(event)) {
+                record.sawFinal = false;
+                broke = true;
+                break;
+              }
+            }
+          } catch (err) {
+            if (!(err instanceof UnauthorizedError) || !credentials || prepared === undefined) {
+              throw err;
+            }
+            refused = true;
           }
-          let out: VendorEvent = event;
-          if (fault?.fault === 'invalid' && !injected) {
-            const swapped = withRejectedProp(event);
-            injected = swapped !== event;
-            out = swapped;
-          }
-          yield relayEvent(out, relayCtx);
-          // The first paint forwarded, then no final — even where the vendor's paint rode its final,
-          // which the relay has already demoted (task 8.6: the deterministic roster paints that way).
-          if (fault?.fault === 'break' && carriesA2ui(event)) {
-            record.sawFinal = false;
-            broke = true;
+          if (!refused) break;
+          if (resent) {
+            await credentials!.markAgain(source, 'refused after a refresh');
+            record.authority = {cause: 'again'};
             break;
           }
+          const renewed = await credentials!.unauthorized(source, headers);
+          if ('need' in renewed) {
+            record.authority = renewed.need;
+            break;
+          }
+          headers = renewed.headers;
+          resent = true;
         }
       }
       const endState = record.sawFinal ? finalState : terminalTaskState;
-      if (outside !== undefined) {
+      if (record.authority) {
+        finish('failed', {error: 'the app needs sign-in'});
+      } else if (invalid !== undefined) {
+        finish('failed', {
+          error: `the request for more access is invalid: ${invalid}`,
+          cause: 'invalid',
+        });
+      } else if (outside !== undefined) {
         record.catalogId = outside;
         this.#cancelVendor(source, record);
         finish('failed', {
@@ -302,10 +407,20 @@ export class AgentsPool {
     const {agentUrl} = app;
     let pending = this.#clients.get(agentUrl);
     if (!pending) {
-      const fetchImpl = this.#options.fetchImpl;
+      const base = this.#options.fetchImpl ?? fetch;
+      // A 401 becomes an error of its own, thrown out through the A2A client to the dispatch
+      // that sent it, which the SDK's own error would only name in its message.
+      const fetchImpl: typeof fetch = async (input, init) => {
+        const response = await base(input, init);
+        if (response.status === 401) {
+          await response.body?.cancel().catch(() => {});
+          throw new UnauthorizedError();
+        }
+        return response;
+      };
       const factory = new ClientFactory({
-        transports: [new JsonRpcTransportFactory(fetchImpl ? {fetchImpl} : undefined)],
-        cardResolver: new DefaultAgentCardResolver(fetchImpl ? {fetchImpl} : undefined),
+        transports: [new JsonRpcTransportFactory({fetchImpl})],
+        cardResolver: new DefaultAgentCardResolver({fetchImpl}),
       });
       const card = this.#registry.card(app.id) ?? this.#registry.storedCard(app.id);
       const created = card ? factory.createFromAgentCard(card) : factory.createFromUrl(agentUrl);
@@ -347,6 +462,26 @@ function catalogOutside(event: VendorEvent, entitlement: ReadonlySet<string>): s
     }
   }
   return undefined;
+}
+
+/**
+ * An agent's `auth-required` (A2A 0.3 §4.5): the task moving to it, with the request in the
+ * card's `security` shape when its status message carries one (task-12.2 decision 12), and the
+ * agent's own words. Undefined for any other event.
+ */
+function authRequiredOf(
+  event: VendorEvent,
+): {request: AuthRequired | undefined; text: string | undefined} | undefined {
+  const status = event.kind === 'status-update' || event.kind === 'task' ? event.status : undefined;
+  if (status?.state !== AUTH_REQUIRED_STATE) return undefined;
+  const parts = status.message?.parts ?? [];
+  let request: AuthRequired | undefined;
+  for (const part of parts) {
+    if (part.kind !== 'data') continue;
+    request = readAuthRequired(part.data);
+    if (request) break;
+  }
+  return {request, text: textOf(parts)};
 }
 
 /** The text parts of a status message, joined: the vendor's own words. */

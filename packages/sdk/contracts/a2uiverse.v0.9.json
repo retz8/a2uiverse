@@ -40,6 +40,15 @@
         "parent": "The contextId of the canvas this question was asked from: the trail's edge, and the canvas the Planner reads as this canvas, its ancestry as the recent turns."
       }
     },
+    "clientSession": {
+      "direction": "client → orchestrator",
+      "carriedOn": "every client message's metadata, keyed by stampKey, beside the parent on an opening utterance",
+      "required": ["session"],
+      "optional": [],
+      "fields": {
+        "session": "The client's page load: minted once when the page loads and named on every message it sends, so the orchestrator can keep what holds for one sitting — whether an app's full sign-in tile was shown (task-12.5 decision 6). A reload is a new session."
+      }
+    },
     "compositionOperation": {
       "direction": "client → orchestrator",
       "carriedOn": "a data part of its own, {version, operation}, on a new A2A message in the canvas's context — beside the A2UI action, the error report and the utterance; version is the A2UI version the client speaks",

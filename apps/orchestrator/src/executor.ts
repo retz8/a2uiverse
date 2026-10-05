@@ -2,8 +2,10 @@ import {randomUUID} from 'node:crypto';
 import type {Message, Task, TaskState, TaskStatusUpdateEvent} from '@a2a-js/sdk';
 import type {AgentExecutor, ExecutionEventBus, RequestContext} from '@a2a-js/sdk/server';
 import {
+  parseSourceId,
   parseSurfaceId,
   readCanvasParent,
+  readClientSession,
   type CompositionOperation,
   type SynthesisPayload,
 } from '@a2uiverse/sdk';
@@ -47,6 +49,15 @@ import type {Router} from './router/router.js';
 import type {ChangeAccount, MissingSource} from './synthesizer/prompt.js';
 import type {Synthesis} from './synthesizer/document.js';
 import type {Synthesizer} from './synthesizer/synthesizer.js';
+import type {AuthorityNeed, Standing} from './vault/vault.js';
+
+/** The vault as the executor reaches it (task 12.5): the card checked, the quiet line kept. */
+export interface SignInGate {
+  /** The card checked against the vault for the source, with no network. */
+  standing(source: string): Standing;
+  /** Whether the session already saw the app's full tile; the first ask marks it shown. */
+  quietFor(session: string | undefined, appId: string): boolean;
+}
 
 export interface OrchestratorDeps {
   /** Each app's sources and each source's name (task-12.4 decision 3). */
@@ -71,6 +82,8 @@ export interface OrchestratorDeps {
   heartbeatMs: number;
   /** The quiet after a step before its walk starts (task-10.9 decision 7). */
   stepQuietMs: number;
+  /** The vault's check before dispatch (task 12.5); none checks nothing. */
+  gate?: SignInGate;
 }
 
 /** An utterance turn from its arrival until its last dispatch ends: what closing the composition ends. */
@@ -459,6 +472,15 @@ export class OrchestratorExecutor implements AgentExecutor {
       toolCalls: outcome.toolCalls,
       planMs,
     });
+    const session = readClientSession(ctx.userMessage.metadata)?.session;
+    if (session !== undefined) state.session = session;
+    // The card checked before dispatch (phase-12 decision 5): a slot whose app the vault cannot
+    // meet takes its authority at first paint and its agent is not called.
+    for (const {plan} of state.slots.values()) {
+      if (plan.source === SHELL_SOURCE_ID) continue;
+      const standing = this.#deps.gate?.standing(plan.source);
+      if (standing?.kind === 'need') this.#takeAuthority(state, plan.source, standing.need);
+    }
     this.#compositions.open(ctx.contextId, state);
     const sink: Sink = {ctx, bus, turn};
 
@@ -557,29 +579,36 @@ export class OrchestratorExecutor implements AgentExecutor {
       },
     };
 
-    const runs = sources.map(({plan: slot}) => {
-      const request: Message = {
-        kind: 'message',
-        messageId: randomUUID(),
-        role: 'user',
-        parts: [{kind: 'text', text: slot.request}],
-        metadata: vendorMetadata(ctx.userMessage.metadata, slot.source),
-      };
-      const handle = this.#deps.pool.dispatch(slot.source, {
-        clientContextId: ctx.contextId,
-        clientTaskId: ctx.taskId,
-        message: request,
-        fromPlan: true,
+    // A slot needing sign-in resolves at once, like a failed source (phase-12 decision 18).
+    for (const {plan} of sources) {
+      if (state.slots.get(plan.source)?.state === 'authority') settled.add(plan.source);
+    }
+    if (settled.size > 0) evaluate();
+    const runs = sources
+      .filter(({plan}) => state.slots.get(plan.source)?.state !== 'authority')
+      .map(({plan: slot}) => {
+        const request: Message = {
+          kind: 'message',
+          messageId: randomUUID(),
+          role: 'user',
+          parts: [{kind: 'text', text: slot.request}],
+          metadata: vendorMetadata(ctx.userMessage.metadata, slot.source),
+        };
+        const handle = this.#deps.pool.dispatch(slot.source, {
+          clientContextId: ctx.contextId,
+          clientTaskId: ctx.taskId,
+          message: request,
+          fromPlan: true,
+        });
+        return this.#pump(sink, state, handle, slot.source, {
+          collapse: true,
+          signal,
+          onSettled: () => {
+            settled.add(slot.source);
+            evaluate(slot.source);
+          },
+        });
       });
-      return this.#pump(sink, state, handle, slot.source, {
-        collapse: true,
-        signal,
-        onSettled: () => {
-          settled.add(slot.source);
-          evaluate(slot.source);
-        },
-      });
-    });
     // The final waits for every dispatch to arrive, fail or reach the hard cap (task-8.3
     // decision 4), a source retried before the merge was decided among them, and for the
     // synthesis the last of them released.
@@ -655,9 +684,13 @@ export class OrchestratorExecutor implements AgentExecutor {
     // waits for it (task-8.10 decision 1).
     composition?.presses.begin(owner);
     const outcome = await run.settled.finally(() => composition?.presses.end(owner));
-    // A press that failed is what its slot's Retry sends again (task-11.8 decision 23).
+    // A press that failed is what its slot's Retry sends again (task-11.8 decision 23); one
+    // that asked for more access is what Allow sends again (phase-12 decision 16).
     const pressed = composition?.slots.get(owner);
-    if (pressed && outcome !== 'cancelled') {
+    const escalated =
+      handle.record.authority?.escalation === true && pressed?.escalation !== undefined;
+    if (pressed && escalated) pressed.keptPress = message;
+    else if (pressed && outcome !== 'cancelled') {
       if (outcome === 'completed') delete pressed.failedPress;
       else pressed.failedPress = message;
     }
@@ -665,8 +698,12 @@ export class OrchestratorExecutor implements AgentExecutor {
     // which covers the press (task-8.10 decision 3): the walk runs once it is done.
     if (composition) await this.#owe(composition, {}, 'walk', sink);
     const state: TaskState =
-      outcome === 'cancelled' ? 'canceled' : outcome === 'completed' ? 'completed' : 'failed';
-    bus.publish(finalStatus(ctx, state, handleError(outcome)));
+      outcome === 'cancelled'
+        ? 'canceled'
+        : outcome === 'completed' || escalated
+          ? 'completed'
+          : 'failed';
+    bus.publish(finalStatus(ctx, state, escalated ? undefined : handleError(outcome)));
     void run.drained.then(() => turn.close(outcome));
   }
 
@@ -707,9 +744,19 @@ export class OrchestratorExecutor implements AgentExecutor {
     let work: (signal: AbortSignal) => Promise<unknown>;
     switch (operation.kind) {
       case 'retry': {
+        // Retry, and the resume press after a sign-in (task-12.2 decision 9): a failed slot or
+        // one needing sign-in goes again; a request for more access sends its press again.
         const source = operation.sources[0]!;
         const slot = state.slots.get(source);
-        if (!slot || source === SHELL_SOURCE_ID || slot.state !== 'failed') {
+        if (slot && source !== SHELL_SOURCE_ID && slot.escalation) {
+          work = signal => this.#resumePress(sink, state, source, signal);
+          break;
+        }
+        if (
+          !slot ||
+          source === SHELL_SOURCE_ID ||
+          (slot.state !== 'failed' && slot.state !== 'authority')
+        ) {
           return refuse(`${slot?.plan.name ?? source} has not failed.`);
         }
         work = signal => this.#retry(sink, state, source, signal);
@@ -753,10 +800,19 @@ export class OrchestratorExecutor implements AgentExecutor {
         work = () => this.#step(sink, state, source, index, surfaces);
         break;
       }
-      case 'dismiss':
-        // Not now on a scope request (task-12.2 decision 10): no request is painted until the
-        // vault asks for one, so there is nothing to drop yet.
-        return refuse('There is no request for more access to dismiss.');
+      case 'dismiss': {
+        // Not now on a request for more access (task-12.2 decision 10): the press it held is
+        // dropped, the fragment stays as it was, the chip goes.
+        const source = operation.sources[0]!;
+        const slot = state.slots.get(source);
+        if (!slot?.escalation) return refuse('There is no request for more access to dismiss.');
+        work = async () => {
+          delete slot.escalation;
+          delete slot.keptPress;
+          this.#repaint([sink], state);
+        };
+        break;
+      }
     }
     const running: Operation = {
       taskId: ctx.taskId,
@@ -812,7 +868,7 @@ export class OrchestratorExecutor implements AgentExecutor {
     if (remembered) {
       state.synthesis = remembered.synthesis;
       state.merged = new Set(
-        [...remembered.merged].filter(id => state.slots.get(id)?.state !== 'failed'),
+        [...remembered.merged].filter(id => !outOfTheMerge(state.slots.get(id)?.state)),
       );
       // The failure said beside the view was the last call's; the restored view is not it.
       const failed = state.callFailed !== undefined;
@@ -870,6 +926,7 @@ export class OrchestratorExecutor implements AgentExecutor {
     const pack = !state.mergeDecided && state.trigger !== undefined;
     slot.state = 'pending';
     delete slot.failure;
+    delete slot.authority;
     if (pack) state.trigger!.unsettle(source);
     // A collapsed merge this arrival can bring back waits on it, in the client's words.
     const bringsBack =
@@ -1309,7 +1366,7 @@ export class OrchestratorExecutor implements AgentExecutor {
       // A source that failed while it was made leaves the merge as it would once landed
       // (task-8.10 decision 5).
       state.merged = new Set(
-        [...over].filter(source => state.slots.get(source)?.state !== 'failed'),
+        [...over].filter(source => !outOfTheMerge(state.slots.get(source)?.state)),
       );
       // Remembered under the combination of steps it was accepted over (task-9.4 decision 4).
       state.history.remember({synthesis: state.synthesis, merged: state.merged});
@@ -1374,9 +1431,11 @@ export class OrchestratorExecutor implements AgentExecutor {
         state:
           slotState === 'failed'
             ? 'failed'
-            : state.arrived.has(plan.source)
-              ? 'arrived'
-              : 'loading',
+            : slotState === 'authority'
+              ? 'signedOut'
+              : state.arrived.has(plan.source)
+                ? 'arrived'
+                : 'loading',
       }));
   }
 
@@ -1499,6 +1558,115 @@ export class OrchestratorExecutor implements AgentExecutor {
     }
   }
 
+  /**
+   * A dispatch that needed authority (task 12.5): a request for more access on a slot showing its
+   * fragment waits on the attribution row, the fragment kept (phase-12 decision 16); otherwise —
+   * before any paint, a 401 the vault could not answer, a card it cannot meet — the slot takes the
+   * authority tile, out of the merge like a failed source (decision 18).
+   */
+  #settleAuthority(
+    sink: Sink,
+    state: CompositionState,
+    source: string,
+    authority: AuthorityNeed & {escalation?: boolean},
+  ): void {
+    const slot = state.slots.get(source);
+    if (!slot) return;
+    if (
+      authority.escalation &&
+      authority.cause === 'signIn' &&
+      authority.words.length > 0 &&
+      state.partitions.holdsSurfaceOf(source)
+    ) {
+      slot.escalation = {scheme: authority.scheme, keys: authority.keys, words: authority.words};
+      this.#repaint([sink], state);
+      return;
+    }
+    state.arrived.delete(source);
+    state.merged.delete(source);
+    this.#takeAuthority(state, source, authority);
+    this.#repaint([sink], state);
+    const merge = synthesisSlot(state);
+    if (merge && merge.state !== 'collapsed' && merge.plan.join?.home === source) {
+      this.#collapseMerge(
+        [sink],
+        state,
+        {collapse: homeCollapse(state, source)},
+        {outcome: 'home', collapse: 'home', attempts: []},
+      );
+    }
+  }
+
+  /**
+   * The slot takes its authority (phase-12 decisions 13, 17): asking to sign in, the full tile
+   * once per app per session, the quiet line after it.
+   */
+  #takeAuthority(state: CompositionState, source: string, need: AuthorityNeed): void {
+    const slot = state.slots.get(source);
+    if (!slot) return;
+    slot.state = 'authority';
+    delete slot.failure;
+    delete slot.escalation;
+    delete slot.keptPress;
+    if (need.cause !== 'signIn') {
+      slot.authority = {cause: need.cause};
+      return;
+    }
+    const appId = parseSourceId(source)?.appId ?? source;
+    const quiet = this.#deps.gate?.quietFor(state.session, appId) ?? false;
+    slot.authority = {
+      cause: 'signIn',
+      ...(quiet ? {quiet: true} : {}),
+      scheme: need.scheme,
+      keys: need.keys,
+      words: need.words,
+    };
+  }
+
+  /**
+   * Allow, once signed in (task-12.2 decision 9): the press the request held goes again — the
+   * plan's request when none was held — the fragment staying where it is, its answer folding in
+   * as any press's does.
+   */
+  async #resumePress(
+    sink: Sink,
+    state: CompositionState,
+    source: string,
+    signal: AbortSignal,
+  ): Promise<void> {
+    const slot = state.slots.get(source)!;
+    const message: Message = slot.keptPress
+      ? {...slot.keptPress, messageId: randomUUID()}
+      : {
+          kind: 'message',
+          messageId: randomUUID(),
+          role: 'user',
+          parts: [{kind: 'text', text: slot.plan.request}],
+          metadata: vendorMetadata(state.requestMetadata, source),
+        };
+    delete slot.escalation;
+    delete slot.keptPress;
+    this.#repaint([sink], state);
+    const handle = this.#deps.pool.dispatch(source, {
+      clientContextId: sink.ctx.contextId,
+      clientTaskId: sink.ctx.taskId,
+      message,
+    });
+    const abort = () => handle.cancel();
+    signal.addEventListener('abort', abort, {once: true});
+    const run = this.#pump(sink, state, handle, source, {collapse: false, signal});
+    sink.drains?.push(run.drained);
+    state.presses.begin(source);
+    const outcome = await run.settled.finally(() => {
+      state.presses.end(source);
+      signal.removeEventListener('abort', abort);
+    });
+    if (handle.record.authority?.escalation && slot.escalation) slot.keptPress = message;
+    else if (outcome === 'completed') delete slot.failedPress;
+    else if (outcome !== 'cancelled') slot.failedPress = message;
+    await this.#owe(state, {}, 'walk', sink);
+  }
+
   /** A dispatch that ended: the slot state it ends in, and whether its source arrived. */
   #settleSlot(
     sink: Sink,
@@ -1507,6 +1675,7 @@ export class OrchestratorExecutor implements AgentExecutor {
     record: DispatchRecord,
     options: PumpOptions,
   ): void {
+    if (record.authority) return this.#settleAuthority(sink, state, source, record.authority);
     const next = outcomeToSlotState(record.outcome, state.partitions.holdsSurfaceOf(source));
     if (next === 'failed') {
       return this.#failSlot(sink, state, source, {
@@ -1628,6 +1797,11 @@ export class OrchestratorExecutor implements AgentExecutor {
     })();
     return {settled, drained};
   }
+}
+
+/** A slot whose data is out of the merge: failed, or needing sign-in (phase-12 decision 18). */
+function outOfTheMerge(state: string | undefined): boolean {
+  return state === 'failed' || state === 'authority';
 }
 
 /** The home source failed: the line names its entries as the join calls them. */

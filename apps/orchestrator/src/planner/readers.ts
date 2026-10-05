@@ -24,8 +24,8 @@ export interface InstalledApp {
 export interface CompositionSlot {
   source: string;
   displayName: string;
-  /** The orchestrator's view: pending, arrived (painted), failed, collapsed. */
-  state: 'pending' | 'arrived' | 'failed' | 'collapsed';
+  /** The orchestrator's view: pending, arrived (painted), failed, collapsed, or needing sign-in (`authority`). */
+  state: 'pending' | 'arrived' | 'failed' | 'collapsed' | 'authority';
 }
 
 export interface CompositionView {

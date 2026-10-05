@@ -32,6 +32,10 @@ export type Script = (
 export interface ReceivedRequest {
   extensionsHeader: string | undefined;
   message: Message;
+  /** The `Authorization` header it carried, when it carried one. */
+  authorization?: string;
+  /** The `X-Api-Key` header it carried, when it carried one. */
+  apiKey?: string;
 }
 
 export interface FakeVendor {
@@ -56,6 +60,10 @@ export interface FakeVendorOptions {
    * catalog the default script paints in, unless a test says otherwise; empty declares none.
    */
   catalogs?: string[];
+  /** Card fields beyond the defaults — `securitySchemes`, `security` (task 12.5). */
+  card?: Partial<AgentCard>;
+  /** Whether a JSON-RPC request is let in; refused, it is answered 401 (task 12.5). */
+  admit?: (request: Request) => boolean;
 }
 
 /** The catalog the default script paints in. */
@@ -148,17 +156,31 @@ export async function startFakeVendor(options: FakeVendorOptions = {}): Promise<
     defaultInputModes: ['text'],
     defaultOutputModes: ['text'],
     skills: options.skills ?? [{id: 'fake', name: 'fake', description: 'fake', tags: []}],
+    ...options.card,
   };
 
   const server: Server = createServer();
   const app = express();
   // Parse once here; the SDK's own express.json() skips already-parsed bodies.
   app.use(express.json());
-  app.use((req: Request, _res: Response, next: NextFunction) => {
+  app.use((req: Request, res: Response, next: NextFunction) => {
     const body = req.body as {method?: string; params?: {message?: Message}} | undefined;
     if (typeof body?.method === 'string') methods.push(body.method);
+    if (typeof body?.method === 'string' && options.admit && !options.admit(req)) {
+      res.status(401).set('WWW-Authenticate', 'Bearer error="invalid_token"').json({});
+      return;
+    }
     const message = body?.params?.message;
-    if (message) requests.push({extensionsHeader: req.header(HTTP_EXTENSION_HEADER), message});
+    if (message) {
+      const authorization = req.header('authorization');
+      const apiKey = req.header('x-api-key');
+      requests.push({
+        extensionsHeader: req.header(HTTP_EXTENSION_HEADER),
+        message,
+        ...(authorization ? {authorization} : {}),
+        ...(apiKey ? {apiKey} : {}),
+      });
+    }
     next();
   });
   await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));

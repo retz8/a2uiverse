@@ -5,7 +5,7 @@ import {AGENT_CARD_PATH} from '@a2a-js/sdk';
 import {DefaultAgentCardResolver} from '@a2a-js/sdk/client';
 import {DefaultRequestHandler, InMemoryTaskStore} from '@a2a-js/sdk/server';
 import {agentCardHandler, jsonRpcHandler, UserBuilder} from '@a2a-js/sdk/server/express';
-import {NO_ACCOUNTS, Sources, type AccountStore} from './accounts/accounts.js';
+import {Sources, type AccountStore} from './accounts/accounts.js';
 import {buildAgentCard} from './agentCard.js';
 import {AgentsPool} from './agentsPool/agentsPool.js';
 import {Compositions} from './composition/compositions.js';
@@ -23,6 +23,14 @@ import {registryRoutes, REGISTRY_ROUTE_PREFIX} from './registry/api.js';
 import {Registry, type ResolveCard} from './registry/registry.js';
 import {issueWriteToken} from './registry/token.js';
 import {Router} from './router/router.js';
+import {
+  AUTH_ROUTE_PREFIX,
+  authRoutes,
+  CALLBACK_PATH,
+  CLIENT_DOCUMENT_PATH,
+} from './vault/routes.js';
+import {VaultStore} from './vault/store.js';
+import {AuthVault} from './vault/vault.js';
 import {readSynthesizerFiles, synthesizerSystemPrompt} from './synthesizer/prompt.js';
 import {AiSdkSynthesisModel, Synthesizer, type SynthesisModel} from './synthesizer/synthesizer.js';
 
@@ -37,6 +45,7 @@ export interface Orchestrator {
   registry: Registry;
   pool: AgentsPool;
   journal: IntentJournal;
+  vault: AuthVault;
   /**
    * Boot step, run before listen: the persisted registry read and verified — a damaged one throws
    * (task-11.4 decision 9) — a fresh write token issued, every installed card fetched and the
@@ -54,8 +63,10 @@ export interface OrchestratorOverrides {
   resolveCard?: ResolveCard;
   /** The quiet after a step before its walk starts; `STEP_QUIET_MS` unless a test shortens it. */
   stepQuietMs?: number;
-  /** The accounts held per app; none until the vault lands (task-12.4 decision 3). */
+  /** The accounts held per app, in place of the vault's (task-12.4 decision 3): a test's seam. */
   accounts?: AccountStore;
+  /** The vault's network, for a test's fake authorization server. */
+  vaultFetch?: typeof fetch;
 }
 
 /** Wires the orchestrator: Registry · the accounts seam · Embedder · Router · Planner · Synthesizer · AgentsPool · IntentJournal behind one A2A executor, the registry's routes beside it. */
@@ -82,7 +93,26 @@ export function buildOrchestrator({
     platformCard: card,
   });
   let writeToken: string | undefined;
-  const sources = new Sources(registry, overrides?.accounts ?? NO_ACCOUNTS);
+  // The vault (task 12.5): the accounts seam, the card checked before dispatch, the header on the
+  // wire, and the sign-ins on `orchestratorApi`. Its client is this orchestrator at its public
+  // address.
+  const base = config.baseUrl.replace(/\/$/, '');
+  const identity = {
+    documentUrl: `${base}${AUTH_ROUTE_PREFIX}${CLIENT_DOCUMENT_PATH}`,
+    redirectUri: `${base}${AUTH_ROUTE_PREFIX}${CALLBACK_PATH}`,
+    name: 'A2UIVerse',
+  };
+  const vaultStore = new VaultStore(config.stateDir);
+  const vault = new AuthVault({
+    store: vaultStore,
+    cardOf: appId => registry.card(appId) ?? registry.storedCard(appId),
+    displayName: appId => registry.displayName(appId),
+    identity,
+    journal: record => void journal.signIn(record),
+    ...(overrides?.vaultFetch ? {fetchImpl: overrides.vaultFetch} : {}),
+  });
+  registry.onUninstalled(appId => vault.forgetApp(appId));
+  const sources = new Sources(registry, overrides?.accounts ?? vault);
   const compositions = new Compositions();
   const readers = platformReaders({
     registry,
@@ -96,6 +126,7 @@ export function buildOrchestrator({
     hardCapMs: config.hardCapMs,
     debugIds: config.debugIds,
     faults: config.faults,
+    credentials: vault,
   });
   const executor = new OrchestratorExecutor({
     sources,
@@ -108,6 +139,7 @@ export function buildOrchestrator({
     deadlines: {softMs: config.softDeadlineMs, capMs: config.hardCapMs},
     heartbeatMs: config.heartbeatMs,
     stepQuietMs: overrides?.stepQuietMs ?? STEP_QUIET_MS,
+    gate: vault,
   });
   const requestHandler = new DefaultRequestHandler(card, new InMemoryTaskStore(), executor);
 
@@ -119,6 +151,34 @@ export function buildOrchestrator({
     }),
   );
   app.use(REGISTRY_ROUTE_PREFIX, registryRoutes({registry, writeToken: () => writeToken}));
+  app.use(
+    AUTH_ROUTE_PREFIX,
+    authRoutes({
+      vault,
+      identity,
+      origin: new URL(base).origin,
+      ask: (canvas, source) => {
+        const state = compositions.get(canvas);
+        if (!state) return undefined;
+        const slot = state.slots.get(source);
+        const asked =
+          slot?.escalation ?? (slot?.authority?.cause === 'signIn' ? slot.authority : undefined);
+        return {
+          slot: slot !== undefined,
+          ...(asked?.scheme !== undefined && asked.keys !== undefined
+            ? {ask: {scheme: asked.scheme, keys: asked.keys}}
+            : {}),
+        };
+      },
+      app: appId => {
+        const card = registry.card(appId) ?? registry.storedCard(appId);
+        return {
+          name: registry.displayName(appId),
+          ...(card?.documentationUrl ? {documentationUrl: card.documentationUrl} : {}),
+        };
+      },
+    }),
+  );
   app.use(`/${AGENT_CARD_PATH}`, agentCardHandler({agentCardProvider: requestHandler}));
   app.use('/', jsonRpcHandler({requestHandler, userBuilder: UserBuilder.noAuthentication}));
 
@@ -127,8 +187,10 @@ export function buildOrchestrator({
     registry,
     pool,
     journal,
+    vault,
     init: async () => {
       await registry.load();
+      await vaultStore.load();
       writeToken = await issueWriteToken(config.stateDir);
       await registry.refreshCards();
     },

@@ -1,5 +1,6 @@
 import type {Message} from '@a2a-js/sdk';
 import type {FailureCause} from '@a2uiverse/shell-catalog/schema';
+import type {AuthorityNeed} from '../vault/vault.js';
 import type {FaultKind} from './faults.js';
 import type {VendorEvent} from './relay.js';
 
@@ -40,6 +41,12 @@ export interface DispatchRecord {
   race?: 'won' | 'lost';
   /** The fault the dev-only fault map applied, when it hit this dispatch. */
   fault?: FaultKind;
+  /**
+   * The dispatch needs authority (task 12.5): the card checked before dispatch, a 401 the vault
+   * could not answer, or the agent's in-task request for more access — `escalation` then. Set with
+   * a failed outcome and no cause; the slot takes the authority, or the fragment the request.
+   */
+  authority?: AuthorityNeed & {escalation?: boolean};
 }
 
 export interface DispatchTurn {

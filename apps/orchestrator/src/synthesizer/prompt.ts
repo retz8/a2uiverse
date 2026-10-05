@@ -38,8 +38,11 @@ export interface MissingSource {
   source: string;
   /** The source's name in words, as on the screen. */
   name: string;
-  /** Still in flight, failed, or answered after the merge was made and not included yet. */
-  state: 'loading' | 'failed' | 'arrived';
+  /**
+   * Still in flight, failed, waiting on a sign-in (task 12.5), or answered after the merge was
+   * made and not included yet.
+   */
+  state: 'loading' | 'failed' | 'signedOut' | 'arrived';
 }
 
 /** A source folded into the live view at the reader's press (task-8.4 decision 12). */
@@ -212,6 +215,7 @@ function renderMissing(missing: readonly MissingSource[]): string {
   const said = {
     loading: 'has not answered yet',
     failed: 'failed',
+    signedOut: 'is not signed in',
     arrived: 'answered after this view was made, and is not in it yet',
   } as const;
   const lines = missing.map(s => `- ${s.name} (${s.source}): ${said[s.state]}`);

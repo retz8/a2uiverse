@@ -96,6 +96,7 @@ export class Registry {
   readonly #vectors = new Map<string, number[]>();
   readonly #platform: {record: AppRecord; card: AgentCard} | undefined;
   #queue: Promise<unknown> = Promise.resolve();
+  readonly #uninstalled: ((appId: string) => Promise<void> | void)[] = [];
 
   constructor(deps: RegistryDeps) {
     this.#deps = deps;
@@ -113,6 +114,11 @@ export class Registry {
           card: platformCard,
         }
       : undefined;
+  }
+
+  /** Called after an app is uninstalled: the vault lets its accounts go (phase-12 decision 12). */
+  onUninstalled(listener: (appId: string) => Promise<void> | void): void {
+    this.#uninstalled.push(listener);
   }
 
   /** Where the artifacts' files are, each under its id — what the read routes serve. */
@@ -355,6 +361,13 @@ export class Registry {
       artifact,
     }));
     await this.#journal({operation: 'uninstall', appId, catalogs, outcome: 'uninstalled'});
+    for (const listener of this.#uninstalled) {
+      try {
+        await listener(appId);
+      } catch (err) {
+        console.error(`registry: an uninstall listener failed for ${appId}:`, err);
+      }
+    }
     return {ok: true, appId};
   }
 

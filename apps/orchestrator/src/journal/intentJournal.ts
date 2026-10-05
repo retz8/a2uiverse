@@ -4,6 +4,7 @@ import type {Message} from '@a2a-js/sdk';
 import type {DispatchOutcome, DispatchRecord} from '../agentsPool/types.js';
 import type {Embedder} from '../embedder/types.js';
 import type {RegistryJournal, RegistryJournalEntry} from '../registry/registry.js';
+import type {SignInRecord} from '../vault/vault.js';
 import {describe} from './descriptor.js';
 import {emptyTouches, mergeTouches, type SurfaceTouches} from './surfaces.js';
 import type {JournalEntry, PlanRecord, StepRecord, SynthesisRecord} from './types.js';
@@ -40,6 +41,9 @@ export interface JournalTurn {
 
 /** A registry change as its journal line carries it. */
 export type RegistryLine = {kind: 'registry'; at: string} & RegistryJournalEntry;
+
+/** A sign-in fact as its journal line carries it (task-12.5 decision 11): never a secret. */
+export type SignInLine = {kind: 'signIn'; at: string} & SignInRecord;
 
 /** How many closed turns a composition's ring keeps. */
 export const RECENT_TURNS = 5;
@@ -130,6 +134,15 @@ export class IntentJournal implements RegistryJournal {
     await this.#append({kind: 'registry', at: new Date().toISOString(), ...entry});
   }
 
+  /**
+   * A sign-in fact (task-12.5 decision 11): one line of kind `signIn` beside the turns — started,
+   * signed in, failed, expired, refreshed, a refresh failed, revoked — naming the app, the source,
+   * the canvas, why and the scope keys; never a token, a code, a key or the ID token. Never throws.
+   */
+  async signIn(record: SignInRecord): Promise<void> {
+    await this.#append({kind: 'signIn', at: new Date().toISOString(), ...record});
+  }
+
   /** The last closed turns of a composition, oldest first; at most `RECENT_TURNS`. */
   recent(clientContextId: string): readonly JournalEntry[] {
     return this.#recent.get(clientContextId) ?? [];
@@ -153,7 +166,7 @@ export class IntentJournal implements RegistryJournal {
     }
   }
 
-  async #append(entry: JournalEntry | RegistryLine): Promise<void> {
+  async #append(entry: JournalEntry | RegistryLine | SignInLine): Promise<void> {
     try {
       await mkdir(dirname(this.#filePath), {recursive: true});
       await appendFile(this.#filePath, `${JSON.stringify(entry)}\n`);

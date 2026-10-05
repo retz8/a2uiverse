@@ -5,7 +5,7 @@ import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 import {PAINTER_ID_PREFIX} from '../planner/validate.js';
 import {SHELL_SOURCE_ID} from '../registry/types.js';
 import {shellSurfaceId, SYNTHESIS_DISPLAY_NAME} from './constants.js';
-import {inSlotOrder, lateSources, type CompositionState} from './state.js';
+import {inSlotOrder, lateSources, type CompositionState, type SlotAuthorityState} from './state.js';
 
 /** The client's extractor keys off this inline version field. */
 export const A2UI_VERSION = 'v0.9';
@@ -161,6 +161,7 @@ export function paintLayout(state: CompositionState): ShellComponent[] {
         displayName,
         source,
         ...(entry?.plan.account !== undefined ? {account: entry.plan.account} : {}),
+        ...(entry?.escalation ? {escalation: {scopes: entry.escalation.words}} : {}),
         child: component.id,
         ...(typeof component.weight === 'number' ? {weight: component.weight} : {}),
       },
@@ -170,10 +171,26 @@ export function paintLayout(state: CompositionState): ShellComponent[] {
         label: entry?.plan.name ?? source,
         ...(entry?.plan.noun ? {noun: entry.plan.noun} : {}),
         ...(slotState === 'failed' && entry?.failure ? {failure: entry.failure} : {}),
+        ...(slotState === 'authority' && entry?.authority
+          ? {authority: paintedAuthority(entry.authority)}
+          : {}),
       },
     );
   }
   return painted;
+}
+
+/**
+ * The slot's authority as painted (task-12.2 decision 5): the cause, the quiet line, and the
+ * scopes in the card's words exactly when it asks to sign in — none for a key or a token.
+ */
+function paintedAuthority(authority: SlotAuthorityState): Record<string, unknown> {
+  if (authority.cause !== 'signIn') return {cause: authority.cause};
+  return {
+    cause: 'signIn',
+    ...(authority.quiet ? {quiet: true} : {}),
+    scopes: authority.words ?? [],
+  };
 }
 
 export function a2uiPart(op: Record<string, unknown>): Part {

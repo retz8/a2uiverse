@@ -152,6 +152,44 @@ export function readCanvasParent(
   return typeof parent === 'string' && parent !== '' ? {parent} : undefined;
 }
 
+/**
+ * Outbound, client → orchestrator, on every client message: the client's page load, under
+ * {@link STAMP_KEY} beside the parent of an opening utterance (task-12.5 decision 6). Minted once
+ * per page load; a reload is a new session.
+ */
+export interface ClientSession {
+  /** The page load's id: what the orchestrator keeps one sitting's memory by. */
+  session: string;
+}
+
+/** Wire field names, typechecked against the interface; the contract test compares them to the contract. */
+export const CLIENT_SESSION_FIELDS = [
+  'session',
+] as const satisfies readonly (keyof ClientSession)[];
+
+const _sessionComplete: Exclude<
+  keyof ClientSession,
+  (typeof CLIENT_SESSION_FIELDS)[number]
+> extends never
+  ? true
+  : never = true;
+void _sessionComplete;
+
+/** The message metadata naming the session, with the parent when the utterance has one. */
+export function clientSessionMetadata(session: string, parent?: string): Record<string, unknown> {
+  return {[STAMP_KEY]: {session, ...(parent !== undefined ? {parent} : {})}};
+}
+
+/** The session a client message's metadata names, if any. */
+export function readClientSession(
+  metadata: Record<string, unknown> | undefined,
+): ClientSession | undefined {
+  const raw = metadata?.[STAMP_KEY];
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return undefined;
+  const session = (raw as Record<string, unknown>).session;
+  return typeof session === 'string' && session !== '' ? {session} : undefined;
+}
+
 /** The MIME type on the data part's metadata that marks a paintMeta part. */
 export const PAINT_META_MIME_TYPE = 'application/json+a2ui-shell';
 
