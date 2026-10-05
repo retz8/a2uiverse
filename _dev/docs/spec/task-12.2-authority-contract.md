@@ -1,6 +1,6 @@
 # Task 12.2 — The contract and the shell catalog schema for authority
 
-The schema part of Phase 12 (`_dev/docs/spec/phase-12-authority-surfaces.md`, decisions 4–6, 9, 13–21, 23): the wire shapes and the shell catalog's schema the shell catalog (12.3), the orchestrator (12.4–12.7), the client (12.8) and the agent kit (12.9) build against. SPEC §4.1, §4.3, §8, §9.5, §14. The surfaces' UX is drawn on the design canvas *Authority surfaces — UX candidates* (https://claude.ai/artifact/VsSwaLrgPWJyBiL4zjkJAX).
+The schema part of Phase 12 (`_dev/docs/spec/phase-12-authority-surfaces.md`, decisions 4–6, 9, 13–21, 23): the wire shapes and the shell catalog's schema the shell catalog (12.3), the orchestrator (12.4–12.7), the client (12.8) and the agent kit (12.9) build against. SPEC §4.1, §4.3, §8, §9.5, §14. The surfaces' UX is drawn on the design canvas *Authority surfaces — UI reference* (https://claude.ai/artifact/VsSwaLrgPWJyBiL4zjkJAX).
 
 ## Scope
 
@@ -66,9 +66,9 @@ A match claim's relation runs over two refs in two different sources, so two acc
 
 Drawn on the design canvas and taken by 12.3 and 12.8:
 
-- The authority tile is T1: the scopes up front under "<App> will be able to", one Sign in, "Opens <App>'s sign-in in a new window".
+- The authority tile: the scopes up front under "<App> will be able to", one Sign in, "Opens <App>'s sign-in in a new window".
 - No address or host is shown anywhere; the window is named in plain words. The waiting line reads "Waiting for you to finish signing in", with Cancel.
-- Escalation is E2: a fixed-width "Needs access" chip on the attribution row beside the arrows, the request on a card floating over the fragment's top — nothing moves.
+- Escalation: a fixed-width "Needs access" chip on the attribution row beside the arrows, the request on a card floating over the fragment's top — nothing moves.
 - A home source that needs sign-in collapses the merge to a line in words with no press; the slot's own Sign in brings the merge back.
 - "Not supported here" offers "Manage apps", opening the App Library; the app stays installed.
 - The refused paint's tile offers "Continue on <App>", opening the app's website.
