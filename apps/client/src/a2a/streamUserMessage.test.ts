@@ -5,6 +5,7 @@ import type {A2AStreamEventData} from './messages';
 import type {A2AMessageSender} from './client';
 import {createA2ASession} from './session';
 import {streamUserMessage} from './streamUserMessage';
+import {PAGE_SESSION} from './pageSession';
 
 const A2UI_DATA = {version: 'v0.9', createSurface: {surfaceId: 's', catalogId: 'cat'}};
 const DATA_PART: Part = {kind: 'data', data: A2UI_DATA};
@@ -101,7 +102,9 @@ describe('streamUserMessage', () => {
   it('names the canvas it was asked from as the parent', async () => {
     const {getSender, sent} = fakeSender([statusUpdate([DATA_PART], 'ctx-43', true)]);
     await streamUserMessage('child', {getSender, apply: () => {}, parent: 'ctx-42'});
-    expect(sent[0].message.metadata).toEqual({a2uiverse: {parent: 'ctx-42'}});
+    expect(sent[0].message.metadata).toEqual({
+      a2uiverse: {session: PAGE_SESSION, parent: 'ctx-42'},
+    });
   });
 
   it('sends the current client data model as message metadata when a supplier is given', async () => {
@@ -117,10 +120,13 @@ describe('streamUserMessage', () => {
       getClientDataModel: () => clientDataModel,
     });
 
-    expect(sent[0].message.metadata).toEqual({a2uiClientDataModel: clientDataModel});
+    expect(sent[0].message.metadata).toEqual({
+      a2uiClientDataModel: clientDataModel,
+      a2uiverse: {session: PAGE_SESSION},
+    });
   });
 
-  it('sends no metadata when the supplier reports no data model', async () => {
+  it('sends only the page-load session when the supplier reports no data model', async () => {
     const {getSender, sent} = fakeSender([statusUpdate([DATA_PART], 'ctx-1', true)]);
 
     await streamUserMessage('hi', {
@@ -129,7 +135,7 @@ describe('streamUserMessage', () => {
       getClientDataModel: () => undefined,
     });
 
-    expect(sent[0].message.metadata).toBeUndefined();
+    expect(sent[0].message.metadata).toEqual({a2uiverse: {session: PAGE_SESSION}});
   });
 
   it('never throws: stream errors are logged and apply is skipped', async () => {

@@ -7,7 +7,7 @@
  * why it is a closure module and not component state.
  */
 import type {CompositionOperation} from '@a2uiverse/sdk';
-import type {MergeFacts} from '@a2uiverse/shell-catalog';
+import type {AuthorityCause, MergeFacts} from '@a2uiverse/shell-catalog';
 import type {PaintCause} from './turn/cause';
 
 /** A fragment mounted into a slot: which surface, and which source painted it. */
@@ -67,7 +67,7 @@ export interface Question {
 }
 
 /** A slot state the orchestrator painted on the shell surface; filled is never on the wire. */
-export type PaintedSlotState = 'pending' | 'failed' | 'collapsed';
+export type PaintedSlotState = 'pending' | 'failed' | 'collapsed' | 'authority';
 
 /**
  * What the orchestrator painted on the merged view's slot (task-8.4 decision 13): the merge's own
@@ -127,6 +127,20 @@ export interface CanvasState {
    * The composition's, like the roster: kept across the actions inside it, cleared when it retires.
    */
   slotStates: ReadonlyMap<string, PaintedSlotState>;
+  /**
+   * Each slot needing sign-in, by source: the authority tile's cause as the shell paint last said
+   * it (task-12.8 decision 7). The progress line words its step from it.
+   */
+  authority: ReadonlyMap<string, AuthorityCause>;
+  /** The sources whose attribution row carries a request for more access. */
+  escalations: ReadonlySet<string>;
+  /**
+   * The sources a sign-in window is open for, pressed on this canvas (task-12.8 decisions 1, 2):
+   * the waiting tile, and "signing in" on the progress line.
+   */
+  signingIn: ReadonlySet<string>;
+  /** An account added from this canvas, in words: "Added … to …" (task-12.8 decision 6). */
+  accountNotice: string | null;
   /** The merged view's painted facts, as the last shell paint carrying its slot said them. */
   merge: PaintedMerge | null;
   /** The presses made on the composition on stage, until the paint catches up or they end. */
@@ -185,6 +199,14 @@ export interface CanvasStore {
   setQuestion(question: Question): void;
   /** Merge the slot states a shell paint carried; `null` clears a source's. */
   mergeSlotStates(states: ReadonlyMap<string, PaintedSlotState | null>): void;
+  /** Merge the sign-in causes a shell paint carried; `null` clears a source's. */
+  mergeAuthority(causes: ReadonlyMap<string, AuthorityCause | null>): void;
+  /** Merge which attribution rows a shell paint carried ask for more access. */
+  mergeEscalations(asks: ReadonlyMap<string, boolean>): void;
+  /** A sign-in window opened for a source on this canvas, or the tile put back. */
+  setSigningIn(source: string, open: boolean): void;
+  /** An account added from this canvas, said on the progress line. */
+  showAccountNotice(text: string): void;
   /** The merged view's facts, from a shell paint carrying its slot. */
   setMerge(merge: PaintedMerge | null): void;
   /**
@@ -258,6 +280,10 @@ export function createCanvasStore(): CanvasStore {
     error: null,
     question: null,
     slotStates: new Map(),
+    authority: new Map(),
+    escalations: new Set(),
+    signingIn: new Set(),
+    accountNotice: null,
     merge: null,
     presses: [],
     mergeFollowingStep: false,
@@ -301,6 +327,32 @@ export function createCanvasStore(): CanvasStore {
       }
       set({slotStates: next});
     },
+    mergeAuthority: causes => {
+      if (causes.size === 0) return;
+      const next = new Map(state.authority);
+      for (const [source, cause] of causes) {
+        if (cause === null) next.delete(source);
+        else next.set(source, cause);
+      }
+      set({authority: next});
+    },
+    mergeEscalations: asks => {
+      if (asks.size === 0) return;
+      const next = new Set(state.escalations);
+      for (const [source, asking] of asks) {
+        if (asking) next.add(source);
+        else next.delete(source);
+      }
+      set({escalations: next});
+    },
+    setSigningIn: (source, open) => {
+      if (state.signingIn.has(source) === open) return;
+      const next = new Set(state.signingIn);
+      if (open) next.add(source);
+      else next.delete(source);
+      set({signingIn: next});
+    },
+    showAccountNotice: text => set({accountNotice: text}),
     setMerge: merge => set({merge}),
     addPress: operation => {
       const key = ++pressKey;
@@ -337,6 +389,10 @@ export function createCanvasStore(): CanvasStore {
       set({
         roster: [],
         slotStates: new Map(),
+        authority: new Map(),
+        escalations: new Set(),
+        signingIn: new Set(),
+        accountNotice: null,
         merge: null,
         presses: [],
         mergeFollowingStep: false,

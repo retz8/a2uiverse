@@ -13,6 +13,7 @@ import {
   type FragmentHistoryResolver,
   type PressState,
   PressStateContext,
+  SignInContext,
   SlotContentContext,
   SlotStateContext,
 } from '@a2uiverse/shell-catalog';
@@ -57,6 +58,9 @@ export function CanvasView({runtime, onEdit, past = false}: CanvasViewProps) {
     (source: string) => columnState({merge, slotStates, placement, presses}, source),
     [merge, slotStates, placement, presses],
   );
+  // The sources a sign-in window is open for, pressed on this canvas (task 12.8).
+  const {signingIn} = state;
+  const signingInOf = useCallback((source: string) => signingIn.has(source), [signingIn]);
   // The presses the paint has not caught up with. A press can always be made: a past canvas
   // takes one as the live canvas does (phase-9 decision 4).
   const pressState = useMemo<PressState>(
@@ -131,9 +135,11 @@ export function CanvasView({runtime, onEdit, past = false}: CanvasViewProps) {
           )}
           <SlotStateContext.Provider value={slotStateOf}>
             <PressStateContext.Provider value={pressState}>
-              <FragmentHistoryContext.Provider value={historyOf}>
-                <CanvasStage processor={runtime.processor} state={state} />
-              </FragmentHistoryContext.Provider>
+              <SignInContext.Provider value={signingInOf}>
+                <FragmentHistoryContext.Provider value={historyOf}>
+                  <CanvasStage processor={runtime.processor} state={state} />
+                </FragmentHistoryContext.Provider>
+              </SignInContext.Provider>
             </PressStateContext.Provider>
           </SlotStateContext.Provider>
         </div>

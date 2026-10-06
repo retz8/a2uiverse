@@ -147,7 +147,7 @@ flowchart TD
 
 ### Late binding: the host relay
 
-The shell catalog needs handlers from its host: what to do on a shell action (open the Store), a navigation (a click on a merged cell), a press (Retry), and how to name an app. But the catalog is built at startup, before any answer exists, and later the handlers must reach **whichever answer is on screen at that moment**.
+The shell catalog needs handlers from its host: what to do on a shell action (open the Store), a navigation (a click on a merged cell), a press (Retry), a sign-in (Sign in, Allow, Cancel), and how to name an app. But the catalog is built at startup, before any answer exists, and later the handlers must reach **whichever answer is on screen at that moment**.
 
 `canvas/hostRelay.ts` solves this with a **relay**: a stable object whose methods forward to a target bound later.
 
@@ -157,7 +157,7 @@ host: {
     if (target) target.onPress(press);
     else console.warn('press raised before the canvas mounted', press);
   },
-  // …onShellAction, onNavigate, sourceName the same way
+  // …onShellAction, onNavigate, onSignIn, sourceName the same way
 },
 bind: next => { target = next; return () => { if (target === next) target = null; }; },
 ```
@@ -257,6 +257,50 @@ It's a `Promise.race` between the stream's first event and a 10 second timer (`F
 
 When a turn still fails, the canvas says so in the client's own words, at the end of its progress line: "That didn't reach A2UIVerse. Ask again." when it never arrived, "Lost the connection to A2UIVerse. Ask again to see where this stands." when it broke after answering, and "That action failed." with the reason for an action.
 
+### Sign-in: a window, a poll, a resume
+
+Say Gmail isn't signed in yet. The orchestrator paints Gmail's slot as the **authority tile** ("Sign in to Gmail to show it here.") without ever calling Gmail. The shell catalog draws the tile; the client's job is everything that happens after you press Sign in. `canvas/signIn.ts` holds it, one for the page, built with the wiring.
+
+```mermaid
+sequenceDiagram
+    participant You
+    participant Canvas as Client
+    participant Window as Sign-in window
+    participant Orch as Orchestrator
+    You->>Canvas: Sign in (Gmail)
+    Canvas->>Window: open /auth/start?attempt&canvas&source=gmail.1<br/>noopener, noreferrer
+    Note over Canvas: tile waits: "Finish signing in to Gmail…"
+    Window->>Orch: the app's sign-in, then the callback
+    loop every second
+        Canvas->>Orch: GET /auth/attempts/:attempt
+        Orch-->>Canvas: pending
+    end
+    Orch-->>Canvas: signedIn as gmail.1
+    Canvas->>Orch: retry gmail.1 (on the answer it was pressed in)
+    Orch-->>Canvas: Gmail's fragment, painted in place
+```
+
+**The click opens the window, nothing else can.** The browser allows a popup only inside your click, so the shell catalog calls the sign-in handler synchronously, and the client opens the orchestrator's start route right there. The address names an **attempt** id the client just made (24 random bytes), the answer's A2A context and the source. The window is opened with `noopener,noreferrer`, and only on https, localhost exempt. That means `window.open` gives the client nothing back: no handle, no way to see the window close, no message from it. The outcome comes only from the orchestrator, by polling the attempt.
+
+**While the window is open, the tile waits**, and the progress line says "Gmail signing in". There are four ways out:
+
+| What happens | The slot |
+| --- | --- |
+| You come back to the canvas (it lost the focus, then got it back) | The tile goes back as it was |
+| You press Cancel | The tile goes back as it was |
+| The poll says failed, or expired | The tile goes back as it was, no words; the reason goes to the console |
+| The poll says signed in | The pressed slot's `retry` goes out, and the slot loads |
+
+The first two don't end the attempt: it's still polled for its ten minutes, so if you finish signing in after all, the slot still resumes. Closing the window is read from focus because focus is the only thing the canvas can see. The window is the place that says what went wrong, so the canvas adds nothing there.
+
+**Only the pressed slot resumes**, on the answer it was pressed in, on screen or not. The source is then **remembered for the page load**: another slot's Sign in for `gmail.1`, on this answer or another, sends `retry` at once and opens no window. A tile the orchestrator paints for that source afterwards makes the client forget it, so a sign-in that stopped working opens the window again. If the window opens for an account that's in fact signed in (from another tab, say), the orchestrator ends the attempt as signed in straight away, and the slot resumes.
+
+**Allow**, on a "Needs access" chip, always opens the window: a request for more access asks for scopes the account doesn't hold yet. Signed in, the client sends `retry` for that source, and the orchestrator sends again the press that needed them. **Not now** is a plain `dismiss` press.
+
+**Add-account** opens the same window on the bare app id, `source=gmail`, and the orchestrator picks the next account when the window opens. Nothing waits on the canvas. Signed in, the progress line of the answer it was pressed in says so: "Added work@example.com to Gmail.", or "work@example.com was already added to Gmail." when you signed in as an account already there.
+
+**Every message names the page load.** `a2a/pageSession.ts` makes one id when the page loads, and every message carries it under the stamp key. The orchestrator remembers by it that Gmail's full tile was already shown, so the next slot for Gmail is the quiet "Not signed in · Sign in" line. A reload is a new session, and the full tile comes back.
+
 ### Trail store and the spine
 
 `canvas/trail/trailStore.ts` holds the trail as a flat list of entries:
@@ -319,13 +363,15 @@ The question heads the canvas, verbatim. `QuestionHeader` measures it before the
 
 When the heading scrolls out of view, `CompactHead` shows a one-line bar at the top with the question and a compact progress line. It watches the heading with an `IntersectionObserver` rooted at the page's scroller, and hangs the bar from a **zero-height sticky anchor**, so showing the bar moves nothing on the page.
 
-**The progress line is computed, never a model's words.** `canvas/turnProgress.ts` is a pure function from the answer's store to what the line says: "planning" while nothing is planned; a step per app in slot order (a spinner while loading, ✓ once placed, ✕ once failed); then the merge, in sentences built from what the client holds:
+**The progress line is computed, never a model's words.** `canvas/turnProgress.ts` is a pure function from the answer's store to what the line says: "planning" while nothing is planned; a step per app in slot order (a spinner while loading, ✓ once placed, ✕ once failed, a lock while it waits on a sign-in); then the merge, in sentences built from what the client holds:
 
 | Moment in the example                   | The line                                                         |
 | --------------------------------------- | ---------------------------------------------------------------- |
 | waiting for all three apps              | Joining Linear issues to GitHub PRs and CircleCI runs            |
 | Linear and GitHub in, CircleCI loading  | Joining Linear issues to GitHub PRs · CircleCI runs still loading |
 | the merged view landed                  | Joined Linear issues to GitHub PRs and CircleCI runs             |
+
+An app waiting on a sign-in says which way: "Gmail not signed in", "Gmail signing in" while its window is open, "Calendar sign-in expired", "Acme Wiki not supported here", "GitHub needs more access". It never holds up the merge, which names only what it merged: "Joined GitHub and Calendar". An account added from the answer is said at the end of the line.
 
 The only model words in it are the join's nouns ("issues", "PRs", "runs"), which the Planner wrote into the layout. An action inside an app names no action of its own: that app's step spins again until its reply lands. And an error for the whole answer, like a request that never arrived, closes the line in the danger tone.
 
@@ -417,7 +463,7 @@ An app can paint a surface that asks you something, like "Send this reply?". It 
 
 ## Merged view on the client
 
-The merged view is explained end to end in [`synthesis.md`](synthesis.md). The client's part in brief: the merged view's slot renders its surface as **shell content**, in a bare element with no boundary and no attribution, because it's the shell writing on its own page. When `shell:synthesis` arrives, the turn runner hands its formulas to the answer's **synthesis session** once the surface is live. The session validates them, subscribes to every app surface they read, and runs the pure **BindingEvaluator**, writing the whole result in one write before React renders. A column planned for an app the merge doesn't include yet stays reserved, and its cells are drawn from that app's slot state (`canvas/composition/columnState.ts`): loading, unavailable, or waiting for Include.
+The merged view is explained end to end in [`synthesis.md`](synthesis.md). The client's part in brief: the merged view's slot renders its surface as **shell content**, in a bare element with no boundary and no attribution, because it's the shell writing on its own page. When `shell:synthesis` arrives, the turn runner hands its formulas to the answer's **synthesis session** once the surface is live. The session validates them, subscribes to every app surface they read, and runs the pure **BindingEvaluator**, writing the whole result in one write before React renders. A column planned for an app the merge doesn't include yet stays reserved, and its cells are drawn from that app's slot state (`canvas/composition/columnState.ts`): loading, unavailable, not signed in, or waiting for Include.
 
 ## Design decisions
 
@@ -442,6 +488,8 @@ The merged view is explained end to end in [`synthesis.md`](synthesis.md). The c
 | **A real element as the fragment boundary, and nothing drawn** | Scoping, portals and the detector have an anchor; the page reads as one screen, not tiles | Separation comes from attribution and white space alone |
 | **Questions declared, never inferred** | The shell holds no vendor component names; any design system can ask | An app that doesn't declare a question paints an ordinary surface |
 | **Progress in the client's words** | Every sentence is computed from what the client holds, so it can't claim what didn't happen | The phrasing is the client's, not the app's |
+| **A sign-in window with `noopener`, its outcome polled** | The app's sign-in page gets no handle on the canvas; nothing passes between windows | The client can't see the window close or be blocked, so it reads focus, and polls once a second |
+| **Sources remembered for the page load** | A second slot of an app just signed in loads with no window, as the press is made inside the click | A sign-in from another tab isn't known; its press opens a window the orchestrator closes as signed in |
 
 ## Known limits
 
@@ -455,6 +503,7 @@ The merged view is explained end to end in [`synthesis.md`](synthesis.md). The c
 - **Two renderer patches.** `@a2ui/react` is patched locally (`patches/@a2ui__react@0.10.2.patch`); the [client README](../../apps/client/README.md#renderer-patch) says why.
 - **The merged view round-trips.** `shell:synthesis` rides back to the orchestrator in the client's data models, which the orchestrator ignores.
 - **A request can be lost twice.** The resend covers one loss; a request lost on both tries fails with "The orchestrator did not answer."
+- **A blocked sign-in window isn't seen.** With `noopener` the browser answers the same whether the window opened or not, and a blocked one takes no focus, so the tile waits until you press Cancel or the attempt expires after ten minutes. The browser's own blocked-popup sign shows what happened.
 - **Equal weights can squeeze a slot.** Three weighted slots on one row at about 870px give each a third, and the Planner doesn't know an app's minimum width.
 
 ## Trying it without a model
@@ -485,7 +534,8 @@ Recorded beats live in `apps/client/recordings/beats/`, taken through the orches
 | One answer | `canvas/canvasRuntime.ts`, `canvas/canvasStore.ts` |
 | Turns, staging, routing | `canvas/turn/canvasTurn.ts`, `canvas/turn/turnMessages.ts`, `a2ui/applyMessages.ts` |
 | The layout's projections | `canvas/composition/roster.ts`, `canvas/composition/slotContent.tsx`, `canvas/composition/columnState.ts` |
-| Sending, the stamp | `a2a/client.ts`, `a2a/messages.ts`, `a2a/streamUserMessage.ts` |
+| Sending, the stamp | `a2a/client.ts`, `a2a/messages.ts`, `a2a/streamUserMessage.ts`, `a2a/pageSession.ts` |
+| Sign-in | `canvas/signIn.ts`, `orchestratorApi.ts` |
 | The trail | `canvas/trail/trailStore.ts`, `canvas/trail/spine.ts`, `canvas/components/TrailChrome.tsx`, `canvas/components/TrailPreview.tsx` |
 | The header, the progress line | `canvas/components/QuestionHeader.tsx`, `canvas/components/CompactHead.tsx`, `canvas/turnProgress.ts`, `canvas/components/ProgressLine.tsx` |
 | Navigation | `canvas/navigation/bindingIndex.ts`, `canvas/navigation/decorateCatalog.tsx`, `canvas/navigation/landing.ts` |
@@ -517,6 +567,9 @@ Recorded beats live in `apps/client/recordings/beats/`, taken through the orches
 | **Turn** | One request and the stream that answers it: an utterance or an action |
 | **Side stream** | A stream beside the turn, for a press or a report |
 | **Press** | The reader's Retry, Include or Try again |
+| **Authority tile** | A slot's "Sign in to <App>" tile, painted by the orchestrator when the app needs a sign-in it can't meet; after the first one per app, the quiet "Not signed in · Sign in" line |
+| **Sign-in attempt** | One sign-in window's attempt: an id the client makes, opened on the orchestrator's start route and polled until it ends |
+| **Page session** | The id one page load names on every message; a reload is a new one |
 | **Step** | A back or forward move in one app's slot |
 | **Paint id** | An app's screens numbered in the order they arrived, the same on both sides |
 | **Visit** | One entry in an app's history: the paint id you were on, in the order you went |

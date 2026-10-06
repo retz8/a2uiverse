@@ -5,6 +5,7 @@ import type {A2AStreamEventData} from './messages';
 import type {A2AMessageSender} from './client';
 import {createA2AActionHandler} from './createA2AActionHandler';
 import {createA2ASession} from './session';
+import {PAGE_SESSION} from './pageSession';
 
 const A2UI_DATA = {version: 'v0.9', createSurface: {surfaceId: 's', catalogId: 'cat'}};
 const DATA_PART: Part = {kind: 'data', data: A2UI_DATA};
@@ -74,7 +75,10 @@ describe('createA2AActionHandler', () => {
 
     await handler(ACTION);
 
-    expect(sent[0].message.metadata).toEqual({a2uiClientDataModel: clientDataModel});
+    expect(sent[0].message.metadata).toEqual({
+      a2uiClientDataModel: clientDataModel,
+      a2uiverse: {session: PAGE_SESSION},
+    });
   });
 
   it('never throws: wire failures are logged and apply is skipped', async () => {

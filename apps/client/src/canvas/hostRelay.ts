@@ -2,7 +2,7 @@
  * The one seam between the shell catalog and the canvas (SPEC §7; task-6.5 decisions 2–4,
  * task-7.7 decision 11). The catalog is built once, at the entry, before any canvas exists — what
  * it takes from its host has to be bound to a canvas later. The relay is that host: the
- * shell-action, navigation and press handlers forward to whatever the canvas bound, a raise
+ * shell-action, navigation, press and sign-in handlers forward to whatever the canvas bound, a raise
  * that arrives with nothing bound dropped; the source-name lookup answers from the bound canvas
  * and with nothing otherwise, so the source id stands in.
  */
@@ -12,6 +12,7 @@ import type {
   PressHandler,
   ShellAction,
   ShellActionHandler,
+  SignInHandler,
   SourceName,
 } from '@a2uiverse/shell-catalog';
 
@@ -22,6 +23,8 @@ export interface ShellHost {
   sourceName: SourceName;
   /** The reader's press — Retry, Include, Try again — on the composition (task 8.5). */
   onPress: PressHandler;
+  /** Sign in, Sign in again, Allow and Cancel, inside the click (task 12.8). */
+  onSignIn: SignInHandler;
 }
 
 export interface HostRelay {
@@ -47,6 +50,10 @@ export function createHostRelay(): HostRelay {
       onPress: press => {
         if (target) target.onPress(press);
         else console.warn('[A2UI:shell] press raised before the canvas mounted', press);
+      },
+      onSignIn: request => {
+        if (target) target.onSignIn(request);
+        else console.warn('[A2UI:shell] sign-in raised before the canvas mounted', request);
       },
     },
     bind: next => {

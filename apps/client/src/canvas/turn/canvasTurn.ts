@@ -58,7 +58,14 @@ import {A2uiValidationError} from '@a2ui/web_core/v0_9';
 import type {CompositionStamp, PaintMeta, SynthesisPayload} from '@a2uiverse/sdk';
 import {QUESTION_PAINT_KIND, readPaintMeta} from '@a2uiverse/sdk';
 import {applyA2uiMessages} from '../../a2ui/applyMessages';
-import {mergeFactsOf, SHELL_SOURCE, shellPaintSlots, slotStatesOf} from '../composition/roster';
+import {
+  authorityOf,
+  escalationsOf,
+  mergeFactsOf,
+  SHELL_SOURCE,
+  shellPaintSlots,
+  slotStatesOf,
+} from '../composition/roster';
 import {describeError} from '../../shared/describeError';
 import type {CanvasStore} from '../canvasStore';
 import type {PaintCause} from './cause';
@@ -128,6 +135,8 @@ export interface TurnRunnerOptions {
   onPaintMeta?: (meta: PaintMeta) => void;
   /** The fragment's history (task 9.7): counted, captured and filed by the runner. */
   history?: FragmentHistory;
+  /** The sources a shell paint just drew the authority tile or line for (task-12.8 decision 4). */
+  onAuthority?: (sources: readonly string[]) => void;
 }
 
 /** A stream beside the turn: a press's, or a side report's answer (module header). */
@@ -173,6 +182,7 @@ export function createTurnRunner({
   synthesis,
   onPaintMeta,
   history,
+  onAuthority,
 }: TurnRunnerOptions): TurnRunner {
   let current: TurnHandle | null = null;
 
@@ -247,6 +257,11 @@ export function createTurnRunner({
     if (roster) store.setRoster(roster);
     const states = slotStatesOf(messages);
     store.mergeSlotStates(states);
+    const authority = authorityOf(messages);
+    store.mergeAuthority(authority);
+    store.mergeEscalations(escalationsOf(messages));
+    const tiles = [...authority].flatMap(([source, cause]) => (cause ? [source] : []));
+    if (tiles.length > 0) onAuthority?.(tiles);
     const merge = mergeFactsOf(messages);
     if (merge) store.setMerge(merge);
     for (const [source, state] of states) {

@@ -412,6 +412,11 @@ body {
   color: var(--a2v-ink);
 }
 
+/* A source waiting on a sign-in (task-12.8 decision 7): a lock, in the line's own ink. */
+.canvas-progress-step--locked svg {
+  color: var(--a2v-ink-2);
+}
+
 .canvas-progress-step--faint {
   color: var(--a2v-faint);
 }

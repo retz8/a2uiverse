@@ -17,6 +17,10 @@ import {
   extractContextId,
   extractPaintMetasFromEvent,
 } from './messages';
+import {PAGE_SESSION} from './pageSession';
+
+/** The page load's session, on every message (task-12.5 decision 6). */
+const SESSION = {a2uiverse: {session: PAGE_SESSION}};
 
 const A2UI_DATA = {version: 'v0.9', createSurface: {surfaceId: 's', catalogId: 'cat'}};
 const DATA_PART: Part = {kind: 'data', data: A2UI_DATA};
@@ -74,17 +78,18 @@ describe('buildTextMessageParams', () => {
 
   it('attaches the client data model as message metadata when given', () => {
     const params = buildTextMessageParams('show', CLIENT_DM);
-    expect(params.message.metadata).toEqual({a2uiClientDataModel: CLIENT_DM});
+    expect(params.message.metadata).toEqual({a2uiClientDataModel: CLIENT_DM, ...SESSION});
   });
 
-  it('omits metadata when no client data model is given', () => {
-    expect(buildTextMessageParams('show').message.metadata).toBeUndefined();
+  it('names only the page-load session when no client data model is given', () => {
+    expect(buildTextMessageParams('show').message.metadata).toEqual(SESSION);
   });
 
   it('advertises the supported catalogs as a2uiClientCapabilities when given', () => {
     const params = buildTextMessageParams('show', undefined, ['cat-a']);
     expect(params.message.metadata).toEqual({
       a2uiClientCapabilities: {'v0.9': {supportedCatalogIds: ['cat-a']}},
+      ...SESSION,
     });
   });
 });
@@ -103,11 +108,11 @@ describe('buildActionMessageParams', () => {
 
   it('attaches the client data model as message metadata when given', () => {
     const params = buildActionMessageParams(ACTION, 'ctx-9', CLIENT_DM);
-    expect(params.message.metadata).toEqual({a2uiClientDataModel: CLIENT_DM});
+    expect(params.message.metadata).toEqual({a2uiClientDataModel: CLIENT_DM, ...SESSION});
   });
 
-  it('omits metadata when no client data model is given', () => {
-    expect(buildActionMessageParams(ACTION).message.metadata).toBeUndefined();
+  it('names only the page-load session when no client data model is given', () => {
+    expect(buildActionMessageParams(ACTION).message.metadata).toEqual(SESSION);
   });
 
   it('advertises the supported catalogs alongside the data model', () => {
@@ -115,6 +120,7 @@ describe('buildActionMessageParams', () => {
     expect(params.message.metadata).toEqual({
       a2uiClientCapabilities: {'v0.9': {supportedCatalogIds: ['cat-a']}},
       a2uiClientDataModel: CLIENT_DM,
+      ...SESSION,
     });
   });
 });
@@ -131,6 +137,7 @@ describe('buildOperationMessageParams', () => {
     // It acts on the composition in its context: no data model rides it.
     expect(params.message.metadata).toEqual({
       a2uiClientCapabilities: {'v0.9': {supportedCatalogIds: ['cat']}},
+      ...SESSION,
     });
   });
 
@@ -150,6 +157,7 @@ describe('buildOperationMessageParams', () => {
     expect(params.message.metadata).toEqual({
       a2uiClientCapabilities: {'v0.9': {supportedCatalogIds: ['cat']}},
       a2uiClientDataModel: CLIENT_DM,
+      ...SESSION,
     });
   });
 });
@@ -242,20 +250,30 @@ describe('the canvas on a message (task-9.2 decisions 1, 2)', () => {
     expect(params.message.contextId).toBeUndefined();
     expect(params.message.metadata).toEqual({
       a2uiClientDataModel: CLIENT_DM,
-      a2uiverse: {parent: 'ctx-parent'},
+      a2uiverse: {session: PAGE_SESSION, parent: 'ctx-parent'},
     });
   });
 
   it('a root question names no parent', () => {
     const params = buildTextMessageParams('what changed?');
     expect(params.message.contextId).toBeUndefined();
-    expect(params.message.metadata).toBeUndefined();
+    expect(params.message.metadata).toEqual(SESSION);
+  });
+
+  it('every message names the page-load session, one id for the page (task-12.5 decision 6)', () => {
+    const sessions = [
+      buildTextMessageParams('what changed?'),
+      buildActionMessageParams(ACTION, 'ctx-9'),
+      buildOperationMessageParams({kind: 'retry', sources: ['gmail.1']}, 'ctx-9'),
+    ].map(params => (params.message.metadata as typeof SESSION).a2uiverse.session);
+    expect(new Set(sessions)).toEqual(new Set([PAGE_SESSION]));
+    expect(PAGE_SESSION).toMatch(/^[0-9a-f-]{36}$/);
   });
 
   it('an action carries its canvas as the contextId and no parent', () => {
     const params = buildActionMessageParams(ACTION, 'ctx-9', CLIENT_DM);
     expect(params.message.contextId).toBe('ctx-9');
-    expect(params.message.metadata).toEqual({a2uiClientDataModel: CLIENT_DM});
+    expect(params.message.metadata).toEqual({a2uiClientDataModel: CLIENT_DM, ...SESSION});
   });
 });
 

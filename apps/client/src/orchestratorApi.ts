@@ -35,3 +35,51 @@ export async function fetchJson(url: string, init?: RequestInit): Promise<unknow
   if (!response.ok) throw new Error(`${url} answered ${response.status}`);
   return response.json();
 }
+
+/**
+ * Where a sign-in window opens (task-12.5 decision 5): the orchestrator's start route, naming the
+ * attempt the client made, the canvas — its A2A context — and the source, or the bare app id for
+ * add-account (task-12.8 decision 5).
+ */
+export function signInStartUrl(
+  base: string,
+  params: {attempt: string; canvas: string; source: string},
+): string {
+  const url = new URL('auth/start', base.endsWith('/') ? base : `${base}/`);
+  url.searchParams.set('attempt', params.attempt);
+  url.searchParams.set('canvas', params.canvas);
+  url.searchParams.set('source', params.source);
+  return url.href;
+}
+
+/**
+ * How a sign-in attempt stands, as the orchestrator answers the poll: signed in as a source —
+ * with the account's label, the app's name and whether the account was already held — failed with
+ * a reason, expired, or `unknown` once the orchestrator no longer has it.
+ */
+export interface AttemptOutcome {
+  state: 'pending' | 'signedIn' | 'failed' | 'expired' | 'unknown';
+  source?: string;
+  label?: string;
+  app?: string;
+  existing?: boolean;
+  reason?: string;
+}
+
+/** A poll gets this long before it counts as lost; the next one goes out regardless. */
+const POLL_TIMEOUT_MS = 10_000;
+
+/** Reads a sign-in attempt's outcome; rejects when the orchestrator could not be asked. */
+export async function readAttempt(base: string, attempt: string): Promise<AttemptOutcome> {
+  const url = new URL(
+    `auth/attempts/${encodeURIComponent(attempt)}`,
+    base.endsWith('/') ? base : `${base}/`,
+  );
+  const response = await fetch(url, {
+    cache: 'no-store',
+    signal: AbortSignal.timeout(POLL_TIMEOUT_MS),
+  });
+  if (response.status === 404) return {state: 'unknown'};
+  if (!response.ok) throw new Error(`${url.href} answered ${response.status}`);
+  return (await response.json()) as AttemptOutcome;
+}

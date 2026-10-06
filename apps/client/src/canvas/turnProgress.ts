@@ -2,20 +2,22 @@
  * The turn's progress, read off the store: what the progress line under the question says.
  * Every sentence is computed from what the client already holds — the roster the shell paint
  * named, the slots placed, the slot states and the merged view's facts the orchestrator painted,
- * the presses the reader made. The one model word in it is the entity's noun in each source, from
- * the Planner's join hypothesis (task-7.15).
+ * the presses the reader made, the sign-in windows open. The one model word in it is the entity's
+ * noun in each source, from the Planner's join hypothesis (task-7.15).
  */
 import type {CanvasState, JoinNouns, RosterEntry} from './canvasStore';
 import {retrying} from './composition/columnState';
 import {SHELL_SOURCE} from './composition/roster';
 
-/** Where one step of the turn stands. */
-export type StepStatus = 'done' | 'working' | 'failed' | 'idle';
+/** Where one step of the turn stands; `locked` is a source waiting on a sign-in. */
+export type StepStatus = 'done' | 'working' | 'failed' | 'idle' | 'locked';
 
 export interface SourceStep {
   source: string;
   name: string;
   status: StepStatus;
+  /** The step's words: the name, with its sign-in state when it waits on one. */
+  text: string;
 }
 
 export interface TurnProgress {
@@ -35,7 +37,39 @@ export function running(state: CanvasState): boolean {
   );
 }
 
+/**
+ * A source's sign-in in the progress line's words (task-12.8 decision 7), the reference canvas's:
+ * its window open, a request for more access on its row, or its tile's cause. None once its
+ * resume or its Not now is pressed.
+ */
+export function signInWords(state: CanvasState, source: string): string | undefined {
+  if (retrying(state, source)) return undefined;
+  if (state.signingIn.has(source)) return 'signing in';
+  const dismissed = state.presses.some(
+    press =>
+      press.status === 'sent' &&
+      press.operation.kind === 'dismiss' &&
+      press.operation.sources[0] === source,
+  );
+  if (state.escalations.has(source) && !dismissed) return 'needs more access';
+  switch (state.authority.get(source)) {
+    case 'signIn':
+      return 'not signed in';
+    case 'again':
+      return 'sign-in expired';
+    case 'unsupported':
+      return 'not supported here';
+    default:
+      return undefined;
+  }
+}
+
+/** A source whose slot waits on a sign-in: resolved at once, never awaited by the merge. */
+const needsSignIn = (state: CanvasState, source: string) =>
+  state.slotStates.get(source) === 'authority' && !retrying(state, source);
+
 const sourceStatus = (state: CanvasState, source: string, busy: boolean): StepStatus => {
+  if (signInWords(state, source)) return 'locked';
   // The reader's Retry is drawn from the press, before the paint says so.
   const retried = retrying(state, source);
   const painted = state.slotStates.get(source);
@@ -65,11 +99,15 @@ export function turnProgress(state: CanvasState): TurnProgress {
       : null;
   return {
     working,
-    sources: vendors.map(entry => ({
-      source: entry.source,
-      name: entry.name,
-      status: sourceStatus(state, entry.source, busy),
-    })),
+    sources: vendors.map(entry => {
+      const words = signInWords(state, entry.source);
+      return {
+        source: entry.source,
+        name: entry.name,
+        status: sourceStatus(state, entry.source, busy),
+        text: words ? `${entry.name} ${words}` : entry.name,
+      };
+    }),
     merge: merged && vendors.length > 0 ? mergeStep(state, vendors, merged.join, busy) : null,
   };
 }
@@ -174,6 +212,8 @@ function mergeStep(
         if (including.includes(id)) return [`including ${phrase(entry)}`];
         if (failedInclude.includes(id)) return [`couldn’t include ${phrase(entry)}`];
         if (facts.late?.includes(id)) return [`${phrase(entry)} not in this view yet`];
+        // The merge names only what it merged; the source's own step says it needs sign-in.
+        if (needsSignIn(state, id)) return [];
         if (state.slotStates.get(id) === 'failed' && !retrying(state, id))
           return [noun(entry) ? `no ${phrase(entry)} to join` : `without ${entry.name}`];
         if (!state.placement.has(id) && state.slotStates.get(id) !== 'collapsed')
@@ -192,7 +232,10 @@ function mergeStep(
   // deadline's release, so the sentence never claims to know whether a straggler will make it.
   const failed = (id: string) => state.slotStates.get(id) === 'failed' && !retrying(state, id);
   const out = vendors.filter(
-    entry => !state.placement.has(entry.source) && !state.prose.has(entry.source),
+    entry =>
+      !state.placement.has(entry.source) &&
+      !state.prose.has(entry.source) &&
+      !needsSignIn(state, entry.source),
   );
   const awaited = out.filter(entry => !failed(entry.source));
   const possible = arrived.length >= 2 && (!home || arrived.includes(home));

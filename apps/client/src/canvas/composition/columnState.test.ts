@@ -50,4 +50,13 @@ describe('columnState', () => {
     store.mergeSlotStates(new Map([['gmail', 'collapsed' as const]]));
     expect(columnState(store.getState(), 'gmail')).toBe('collapsed');
   });
+
+  it('a source waiting on a sign-in reads not signed in, and loading from its resume (task-12.8 decision 7)', () => {
+    const store = createCanvasStore();
+    store.setMerge({merged: ['github']});
+    store.mergeSlotStates(new Map([['gmail.1', 'authority' as const]]));
+    expect(columnState(store.getState(), 'gmail.1')).toBe('authority');
+    store.addPress({kind: 'retry', sources: ['gmail.1']});
+    expect(columnState(store.getState(), 'gmail.1')).toBe('pending');
+  });
 });

@@ -379,6 +379,9 @@ const pick = (label: string) =>
 
 const metadataOf = (params: MessageSendParams) =>
   params.message.metadata as Record<string, unknown> | undefined;
+/** The canvas an utterance was asked from, under the stamp key beside the page's session. */
+const parentOf = (params: MessageSendParams) =>
+  (metadataOf(params)?.a2uiverse as {parent?: string} | undefined)?.parent;
 
 describe('CanvasApp trail (task 9.6)', () => {
   it('Back views the previous canvas under the band; Return to live restores live', async () => {
@@ -463,10 +466,10 @@ describe('CanvasApp trail (task 9.6)', () => {
     // On the wire: no contextId, the viewed canvas's context as the parent.
     expect(sent).toHaveLength(3);
     expect(sent[2].message.contextId).toBeUndefined();
-    expect(metadataOf(sent[2])?.a2uiverse).toEqual({parent: 'ctx-1'});
+    expect(parentOf(sent[2])).toBe('ctx-1');
     // The second question, asked from live, named live as its parent — a child, not a branch.
-    expect(metadataOf(sent[1])?.a2uiverse).toEqual({parent: 'ctx-1'});
-    expect(metadataOf(sent[0])?.a2uiverse).toBeUndefined();
+    expect(parentOf(sent[1])).toBe('ctx-1');
+    expect(parentOf(sent[0])).toBeUndefined();
 
     await userEvent.click(screen.getByRole('button', {name: 'Trail'}));
     const entries = await screen.findAllByTestId('canvas-trail-entry');
@@ -495,7 +498,7 @@ describe('CanvasApp trail (task 9.6)', () => {
     const textPart = sent[2].message.parts.find(p => p.kind === 'text') as
       Extract<Part, {kind: 'text'}> | undefined;
     expect(textPart?.text).toBe('show my filters');
-    expect(metadataOf(sent[2])?.a2uiverse).toEqual({parent: 'ctx-1'});
+    expect(parentOf(sent[2])).toBe('ctx-1');
     expect(metadataOf(sent[2])?.a2uiClientDataModel).toBeUndefined();
   });
 
@@ -509,7 +512,7 @@ describe('CanvasApp trail (task 9.6)', () => {
     expect(screen.getByTestId('canvas-band')).toBeInTheDocument();
     expect(sent).toHaveLength(3);
     expect(sent[2].message.contextId).toBe('ctx-1');
-    expect(metadataOf(sent[2])?.a2uiverse).toBeUndefined();
+    expect(parentOf(sent[2])).toBeUndefined();
 
     await userEvent.click(screen.getByRole('button', {name: /Return to live/}));
     expect(await screen.findByText('hello from the agent')).toBeInTheDocument();

@@ -1,8 +1,9 @@
 /**
  * A reserved column's state, by the source the column is marked to (task-8.5 decision 12): what the
  * client tells the shell catalog's `Table` through `SlotStateContext`. The authored cells once the
- * source is in the merge; unavailable once it failed; loading while it loads, while its Retry runs,
- * and while it is being included; not included while it waits for Include. A source that answered in
+ * source is in the merge; unavailable once it failed; not signed in while it waits on a sign-in
+ * (task-12.8 decision 7); loading while it loads, while its Retry runs — its resume after a
+ * sign-in among them — and while it is being included; not included while it waits for Include. A source that answered in
  * words with no screen keeps the authored cells too. Every word is the shell catalog's; the client
  * only says which.
  */
@@ -40,6 +41,7 @@ export function columnState(state: ColumnInputs, source: string): SourceSlotStat
   if (merge?.merged?.includes(source)) return 'filled';
   const painted = slotStates.get(source);
   if (painted === 'failed' && !retrying(state, source)) return 'failed';
+  if (painted === 'authority' && !retrying(state, source)) return 'authority';
   const including = presses.some(
     press =>
       press.status === 'sent' &&

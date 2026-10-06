@@ -108,8 +108,10 @@ export interface Attempt {
   keys: string[];
   expiresAt: number;
   state: 'pending' | 'signedIn' | 'failed' | 'expired';
-  /** The source the sign-in ended as; the reason it failed. */
+  /** The source the sign-in ended as, its label and whether it was held; the reason it failed. */
   result?: string;
+  label?: string;
+  existing?: boolean;
   reason?: string;
   oauth?: {
     metadata: ServerMetadata;
@@ -124,9 +126,22 @@ export interface Attempt {
 export type Started =
   | {kind: 'redirect'; attempt: Attempt; url: string}
   | {kind: 'keyPage'; attempt: Attempt}
+  /** The account is signed in already: nothing to ask. */
+  | {kind: 'signedIn'; attempt: Attempt}
   | {kind: 'refused'; reason: string};
 
-export type Outcome = {state: Attempt['state']; source?: string; reason?: string};
+/**
+ * What the client polls. Signed in, the source the sign-in ended as, the account's label, the
+ * app's name and whether the account was already held (task-12.8 decision 6).
+ */
+export type Outcome = {
+  state: Attempt['state'];
+  source?: string;
+  reason?: string;
+  label?: string;
+  app?: string;
+  existing?: boolean;
+};
 
 export class AuthVault implements AccountStore {
   readonly #deps: VaultDeps;
@@ -352,16 +367,19 @@ export class AuthVault implements AccountStore {
     ask: (canvas: string, source: string) => SlotAsk | undefined;
   }): Promise<Started> {
     this.#expire();
-    const {attempt: id, canvas, source} = params;
+    const {attempt: id, canvas} = params;
     if (!/^[A-Za-z0-9_-]{16,128}$/.test(id) || this.#attempts.has(id)) {
       return {kind: 'refused', reason: 'this sign-in was already used'};
     }
+    const named = parseSourceId(params.source);
+    if (!named) return {kind: 'refused', reason: 'this app needs no sign-in'};
+    // The bare app id is add-account's: the app's next account, as it stands when the window
+    // opens (task-12.8 decision 5).
+    const {appId} = named;
+    const n = named.account ?? this.nextAccount(appId);
+    const source = sourceId(appId, n);
     const slot = params.ask(canvas, source);
     if (!slot) return {kind: 'refused', reason: 'there is no such canvas'};
-    const parsed = parseSourceId(source);
-    if (parsed?.account === undefined)
-      return {kind: 'refused', reason: 'this app needs no sign-in'};
-    const {appId, account: n} = parsed;
     const card = this.#deps.cardOf(appId);
     const need = cardNeed(card);
     if (need.kind === 'none') return {kind: 'refused', reason: 'this app needs no sign-in'};
@@ -386,7 +404,10 @@ export class AuthVault implements AccountStore {
       const schemeKey = asked?.scheme ?? own?.scheme ?? account.scheme;
       scheme = schemeOf(card, schemeKey) ?? first.scheme;
       keys = (asked?.keys ?? own?.keys ?? []).filter(scope => !account.scopes.includes(scope));
-      if (keys.length === 0) return {kind: 'refused', reason: 'this account is already signed in'};
+      // Signed in already — from another page, or since the canvas painted its tile: the window
+      // says so and the slot resumes (task-12.8 decision 4).
+      if (keys.length === 0)
+        return this.#alreadySignedIn({id, canvas, source, appId, scheme}, account);
       purpose = 'escalation';
     } else if (n === this.nextAccount(appId)) {
       purpose = slot.slot ? 'first' : 'addAccount';
@@ -452,6 +473,23 @@ export class AuthVault implements AccountStore {
     } catch (err) {
       return this.#refuse(attempt, reasonOf(err));
     }
+  }
+
+  #alreadySignedIn(
+    started: Pick<Attempt, 'id' | 'canvas' | 'source' | 'appId' | 'scheme'>,
+    account: VaultAccount,
+  ): Started {
+    const attempt: Attempt = {
+      ...started,
+      binding: randomBytes(24).toString('base64url'),
+      n: account.n,
+      purpose: 'first',
+      keys: [],
+      expiresAt: Date.now() + ATTEMPT_LIFETIME_MS,
+      state: 'pending',
+    };
+    this.#attempts.set(attempt.id, attempt);
+    return {kind: 'signedIn', attempt: this.#signedIn(attempt, account, true)};
   }
 
   #refuse(attempt: Attempt, reason: string): Started {
@@ -544,7 +582,7 @@ export class AuthVault implements AccountStore {
         `${this.#deps.displayName(attempt.appId)} account ${account.n}`;
       delete account.again;
       await this.#deps.store.save();
-      return this.#signedIn(attempt, account.n, existing);
+      return this.#signedIn(attempt, account, existing);
     } catch (err) {
       // A registration the server no longer knows is let go: the next sign-in registers again
       // (task-12.5 decision 3).
@@ -594,12 +632,14 @@ export class AuthVault implements AccountStore {
       account.header = attempt.scheme.header;
     delete account.again;
     await this.#deps.store.save();
-    return this.#signedIn(attempt, account.n, existing);
+    return this.#signedIn(attempt, account, existing);
   }
 
-  #signedIn(attempt: Attempt, n: number, existing: boolean): Attempt {
+  #signedIn(attempt: Attempt, account: VaultAccount, existing: boolean): Attempt {
     attempt.state = 'signedIn';
-    attempt.result = sourceId(attempt.appId, n);
+    attempt.result = sourceId(attempt.appId, account.n);
+    attempt.label = account.label;
+    attempt.existing = existing;
     delete attempt.oauth;
     this.#deps.journal({
       event: 'signedIn',
@@ -626,7 +666,14 @@ export class AuthVault implements AccountStore {
     if (!attempt) return undefined;
     return {
       state: attempt.state,
-      ...(attempt.result ? {source: attempt.result} : {}),
+      ...(attempt.result
+        ? {
+            source: attempt.result,
+            label: attempt.label ?? '',
+            app: this.#deps.displayName(attempt.appId),
+            existing: attempt.existing === true,
+          }
+        : {}),
       ...(attempt.reason ? {reason: attempt.reason} : {}),
     };
   }

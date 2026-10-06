@@ -14,13 +14,14 @@ import type {
   SynthesisPayload,
 } from '@a2uiverse/sdk';
 import {
-  canvasParentMetadata,
+  clientSessionMetadata,
   operationData,
   readPaintMeta,
   readStamp,
   readSynthesis,
 } from '@a2uiverse/sdk';
 import {logClientDataModelSize} from './dataModelSize';
+import {PAGE_SESSION} from './pageSession';
 
 /**
  * What `sendMessageStream` yields. The SDK declares this union on its client but does not export
@@ -46,7 +47,7 @@ function messageMetadata(
   clientDataModel?: A2uiClientDataModel,
   supportedCatalogIds?: string[],
   parent?: string,
-): {[k: string]: unknown} | undefined {
+): {[k: string]: unknown} {
   const metadata: {[k: string]: unknown} = {};
   if (supportedCatalogIds) {
     metadata[A2UI_CLIENT_CAPABILITIES_KEY] = {[A2UI_VERSION]: {supportedCatalogIds}};
@@ -56,9 +57,10 @@ function messageMetadata(
     logClientDataModelSize(clientDataModel);
     metadata[A2UI_CLIENT_DATA_MODEL_KEY] = clientDataModel;
   }
-  // The canvas this question was asked from rides under the stamp key (task-9.2 decision 2).
-  if (parent !== undefined) Object.assign(metadata, canvasParentMetadata(parent));
-  return Object.keys(metadata).length ? metadata : undefined;
+  // The page load's session, on every message, and the canvas this question was asked from ride
+  // under the stamp key (task-12.5 decision 6, task-9.2 decision 2).
+  Object.assign(metadata, clientSessionMetadata(PAGE_SESSION, parent));
+  return metadata;
 }
 
 /** Wrap an A2UI client action as A2A send params carrying one v0.9 A2UI DataPart. */

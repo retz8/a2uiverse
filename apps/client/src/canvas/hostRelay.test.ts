@@ -12,6 +12,7 @@ test('the relay forwards to the bound canvas, and to nothing once it unbinds', (
     onNavigate: vi.fn(),
     sourceName: source => (source === 'github' ? 'GitHub' : undefined),
     onPress: vi.fn(),
+    onSignIn: vi.fn(),
   };
 
   relay.host.onNavigate(TARGET);
@@ -28,6 +29,14 @@ test('the relay forwards to the bound canvas, and to nothing once it unbinds', (
   };
   relay.host.onPress(press);
   expect(canvas.onPress).toHaveBeenCalledWith(press);
+  const signIn = {
+    kind: 'start' as const,
+    source: 'gmail.1',
+    surfaceId: 'shell:main',
+    componentId: 'slot-gmail',
+  };
+  relay.host.onSignIn(signIn);
+  expect(canvas.onSignIn).toHaveBeenCalledWith(signIn);
   expect(canvas.onNavigate).toHaveBeenCalledWith(TARGET);
   expect(canvas.onShellAction).toHaveBeenCalledOnce();
   expect(relay.host.sourceName('github')).toBe('GitHub');

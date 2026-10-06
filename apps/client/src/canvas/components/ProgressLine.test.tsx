@@ -102,4 +102,28 @@ describe('ProgressLine', () => {
     renderWithShell(<ProgressLine state={store.getState()} since={null} />);
     expect(screen.queryByTestId('canvas-progress')).toBeNull();
   });
+
+  it('a source waiting on a sign-in carries a lock and says so (task-12.8 decision 7)', () => {
+    const store = createCanvasStore();
+    store.setRoster([
+      {source: 'github', name: 'GitHub'},
+      {source: 'gmail.1', name: 'Gmail'},
+    ]);
+    store.placeFragment('github', {surfaceId: 'github:x', source: 'github'});
+    store.mergeSlotStates(new Map([['gmail.1', 'authority' as const]]));
+    store.mergeAuthority(new Map([['gmail.1', 'signIn' as const]]));
+    renderWithShell(<ProgressLine state={store.getState()} since={null} />);
+    const step = screen.getByText('Gmail not signed in').closest('[data-status]')!;
+    expect(step).toHaveAttribute('data-status', 'locked');
+    expect(step.querySelector('svg')).not.toBeNull();
+  });
+
+  it('an account added from this canvas is said on the line, even with nothing else to say (task-12.8 decision 6)', () => {
+    const store = createCanvasStore();
+    store.showAccountNotice('Added work@example.com to Gmail.');
+    renderWithShell(<ProgressLine state={store.getState()} since={null} />);
+    expect(screen.getByTestId('canvas-progress')).toHaveTextContent(
+      'Added work@example.com to Gmail.',
+    );
+  });
 });

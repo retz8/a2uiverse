@@ -13,13 +13,15 @@
 import type {CompositionOperation} from '@a2uiverse/sdk';
 import type {Catalog} from '@a2ui/web_core/v0_9';
 import type {ReactComponentImplementation} from '@a2ui/react/v0_9';
-import type {PressHandler, ShellAction} from '@a2uiverse/shell-catalog';
+import type {PressHandler, ShellAction, SignInHandler} from '@a2uiverse/shell-catalog';
 import type {A2AMessageSender, A2ASenderOptions} from '../a2a/client';
 import {createSenderResolver} from '../a2a/client';
 import type {CatalogLoader} from '../catalogs/loader';
+import {agentUrl} from '../orchestratorApi';
 import type {CanvasRuntime} from './canvasRuntime';
 import {createCanvasRuntime, trustedPageOf} from './canvasRuntime';
 import type {ShellHost} from './hostRelay';
+import {createSignIn, type SignIn, type SignInOptions} from './signIn';
 import type {TrailStore} from './trail/trailStore';
 import {createTrailStore, entryOf, viewedCanvasId} from './trail/trailStore';
 import {running} from './turnProgress';
@@ -53,6 +55,8 @@ export interface CanvasWiring {
   attachReplay(sender: A2AMessageSender): () => void;
   /** What the shell catalog takes from the page, bound through the host relay while mounted. */
   host: ShellHost;
+  /** The page's sign-in (task 12.8). */
+  signIn: SignIn;
 }
 
 export interface CanvasWiringOptions extends A2ASenderOptions {
@@ -62,6 +66,8 @@ export interface CanvasWiringOptions extends A2ASenderOptions {
   loader?: Pick<CatalogLoader, 'has' | 'load'>;
   /** Mints a canvas id; the default is a UUID. Tests pass a counter. */
   mintId?: () => string;
+  /** The sign-in's window, poll and page; tests pass fakes. */
+  signIn?: Partial<Omit<SignInOptions, 'runtimeOf'>>;
 }
 
 export function createCanvasWiring({
@@ -70,9 +76,15 @@ export function createCanvasWiring({
   catalogs,
   loader,
   mintId = () => crypto.randomUUID(),
+  signIn: signInOptions,
 }: CanvasWiringOptions): CanvasWiring {
   const trail = createTrailStore();
   const runtimes = new Map<string, CanvasRuntime>();
+  const signIn = createSignIn({
+    serverUrl: serverUrl ?? agentUrl(),
+    ...signInOptions,
+    runtimeOf: id => runtimes.get(id),
+  });
   const getSender = createSenderResolver({serverUrl, client});
   /** A beat replay's transport, while one is attached: where the streams beside the turn go. */
   let replaySender: A2AMessageSender | null = null;
@@ -105,6 +117,7 @@ export function createCanvasWiring({
       getSideSender,
       onContext: contextId => trail.setContext(id, contextId),
       onTitle: title => trail.setTitle(id, title),
+      onAuthority: signIn.forget,
     });
     runtimes.set(id, runtime);
     trail.open({
@@ -140,7 +153,16 @@ export function createCanvasWiring({
   const onShellAction = (action: ShellAction) => {
     const page = trustedPageOf(action);
     if (page) trail.openTrustedPage(page);
-    viewed()?.reportShellAction(action);
+    const runtime = viewed();
+    // Adding an account opens the sign-in, inside the click (task-12.8 decision 5).
+    if (runtime && action.name === 'addAccount') signIn.addAccount(runtime, action.app);
+    runtime?.reportShellAction(action);
+  };
+
+  // Sign in, Sign in again, Allow and Cancel are raised on the canvas on screen.
+  const onSignIn: SignInHandler = request => {
+    const runtime = viewed();
+    if (runtime) signIn.request(runtime, request);
   };
 
   const press = (operation: CompositionOperation, id?: string) =>
@@ -172,6 +194,8 @@ export function createCanvasWiring({
       onNavigate: cell => viewed()?.navigator.navigate(cell),
       sourceName: source => viewed()?.sourceName(source),
       onPress,
+      onSignIn,
     },
+    signIn,
   };
 }

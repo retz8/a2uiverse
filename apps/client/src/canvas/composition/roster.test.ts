@@ -5,6 +5,8 @@
 import {describe, it, expect} from 'vitest';
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
 import {
+  authorityOf,
+  escalationsOf,
   mergeFactsOf,
   rosterFromShellMessages,
   SHELL_SOURCE,
@@ -362,5 +364,53 @@ describe('mergeFactsOf', () => {
     expect(
       mergeFactsOf(paint([{id: 'github', component: 'Slot', source: 'github'}])),
     ).toBeUndefined();
+  });
+});
+
+describe('the sign-in a shell paint carries (task-12.8 decision 7)', () => {
+  const paint = msg({
+    updateComponents: {
+      surfaceId: 'shell:main',
+      components: [
+        {id: 'a-gmail', component: 'Attribution', source: 'gmail.1', child: 's-gmail'},
+        {
+          id: 's-gmail',
+          component: 'Slot',
+          source: 'gmail.1',
+          state: 'authority',
+          authority: {cause: 'again'},
+        },
+        {
+          id: 'a-github',
+          component: 'Attribution',
+          source: 'github.1',
+          child: 's-github',
+          escalation: {scopes: ['Merge pull requests']},
+        },
+        {id: 's-github', component: 'Slot', source: 'github.1'},
+        {id: 's-shop', component: 'Slot', source: 'shop.1', state: 'authority'},
+        {id: 'merge', component: 'Slot', source: 'shell', content: 'shell', state: 'pending'},
+      ],
+    },
+  });
+
+  it('each vendor slot’s sign-in cause, null when painted otherwise; a cause left out is sign in', () => {
+    expect(slotStatesOf([paint]).get('gmail.1')).toBe('authority');
+    expect(authorityOf([paint])).toEqual(
+      new Map([
+        ['gmail.1', 'again'],
+        ['github.1', null],
+        ['shop.1', 'signIn'],
+      ]),
+    );
+  });
+
+  it('each attribution row, whether it asks for more access', () => {
+    expect(escalationsOf([paint])).toEqual(
+      new Map([
+        ['gmail.1', false],
+        ['github.1', true],
+      ]),
+    );
   });
 });

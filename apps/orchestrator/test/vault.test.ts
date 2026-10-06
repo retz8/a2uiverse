@@ -264,6 +264,9 @@ async function signIn(
     state: string;
     source?: string;
     reason?: string;
+    label?: string;
+    app?: string;
+    existing?: boolean;
   };
   return {attempt, start, authorize, callback, outcome, cookie};
 }
@@ -322,7 +325,13 @@ describe('before dispatch and the sign-in', () => {
     });
     const canvas = contextOf(await collect(client, utterance('my orders')));
     const {outcome, callback} = await signIn(base, canvas, 'shop.1');
-    expect(outcome).toEqual({state: 'signedIn', source: 'shop.1'});
+    expect(outcome).toEqual({
+      state: 'signedIn',
+      source: 'shop.1',
+      label: 'ada@example.com',
+      app: orchestrator.registry.displayName('shop'),
+      existing: false,
+    });
     expect(await callback!.text()).toContain("You're signed in");
     expect(orchestrator.vault.accountsOf('shop')).toEqual([{n: 1, label: 'ada@example.com'}]);
     // The vault asked openid itself beside the card's scopes, with PKCE and a nonce.
@@ -370,6 +379,27 @@ describe('before dispatch and the sign-in', () => {
 
     const wrongState = await fetch(`${base}/auth/callback?state=nope&code=x`);
     expect(await wrongState.text()).toContain("didn't finish");
+  });
+
+  test('a sign-in for an account already signed in ends signed in at once, the window saying so', async () => {
+    const {base, client} = await boot({apps: {shop: {card: oauthCard()}}, plan: shopOnly});
+    const canvas = contextOf(await collect(client, utterance('my orders')));
+    await signIn(base, canvas, 'shop.1');
+    const attempt = randomBytes(16).toString('base64url');
+    const start = await fetch(
+      `${base}/auth/start?attempt=${attempt}&canvas=${encodeURIComponent(canvas)}&source=shop.1`,
+      {redirect: 'manual'},
+    );
+    expect(start.status).toBe(200);
+    expect(await start.text()).toContain("You're signed in");
+    expect(auth.authorizations).toHaveLength(1);
+    const outcome = await (await fetch(`${base}/auth/attempts/${attempt}`)).json();
+    expect(outcome).toMatchObject({
+      state: 'signedIn',
+      source: 'shop.1',
+      label: 'ada@example.com',
+      existing: true,
+    });
   });
 
   test('dynamic registration is made once per server and kept; a server taking metadata documents gets ours', async () => {
@@ -429,24 +459,39 @@ describe('schemes and accounts', () => {
     });
   });
 
-  test('add-account: the next account signs in with no hint; the same account twice is one; install-over keeps them', async () => {
+  test('add-account: the bare app id signs in the next account with no hint; the same account twice is one; install-over keeps them', async () => {
     const {base, client, orchestrator} = await boot({
       apps: {shop: {card: oauthCard(), admit: admitsTokens()}},
       plan: shopOnly,
     });
     const canvas = contextOf(await collect(client, utterance('my orders')));
     await signIn(base, canvas, 'shop.1');
-    // The same account, through add-account: one account still.
-    const same = await signIn(base, canvas, 'shop.2');
-    expect(same.outcome).toEqual({state: 'signedIn', source: 'shop.1'});
+    // The same account, through add-account on the bare app id: one account still, said held.
+    const same = await signIn(base, canvas, 'shop');
+    expect(same.outcome).toMatchObject({
+      state: 'signedIn',
+      source: 'shop.1',
+      label: 'ada@example.com',
+      existing: true,
+    });
     expect(auth.authorizations.at(-1)!.get('login_hint')).toBeNull();
     // Another account: the next ordinal, labelled from its own ID token.
     auth.account = {sub: 'sub-bob', email: 'bob@example.com'};
-    const other = await signIn(base, canvas, 'shop.2');
-    expect(other.outcome).toEqual({state: 'signedIn', source: 'shop.2'});
+    const other = await signIn(base, canvas, 'shop');
+    expect(other.outcome).toMatchObject({
+      state: 'signedIn',
+      source: 'shop.2',
+      label: 'bob@example.com',
+      existing: false,
+    });
+    // The next account named outright still signs in as the one after.
+    auth.account = {sub: 'sub-cy', email: 'cy@example.com'};
+    const third = await signIn(base, canvas, 'shop.3');
+    expect(third.outcome).toMatchObject({state: 'signedIn', source: 'shop.3', existing: false});
     expect(orchestrator.vault.accountsOf('shop')).toEqual([
       {n: 1, label: 'ada@example.com'},
       {n: 2, label: 'bob@example.com'},
+      {n: 3, label: 'cy@example.com'},
     ]);
     const artifact = await fixtureArtifact(FAKE_CATALOG_ID);
     const over = await orchestrator.registry.install({
@@ -455,7 +500,7 @@ describe('schemes and accounts', () => {
       catalogs: [artifact],
     });
     expect(over.ok).toBe(true);
-    expect(orchestrator.vault.accountsOf('shop')).toHaveLength(2);
+    expect(orchestrator.vault.accountsOf('shop')).toHaveLength(3);
   });
 });
 
@@ -565,7 +610,7 @@ describe('on the wire', () => {
     expect(orchestrator.vault.accountsOf('shop')).toEqual([{n: 1, label: 'ada@example.com'}]);
     // Signing in again replaces its tokens, bound to the account.
     const again = await signIn(base, canvas, 'shop.1');
-    expect(again.outcome).toEqual({state: 'signedIn', source: 'shop.1'});
+    expect(again.outcome).toMatchObject({state: 'signedIn', source: 'shop.1'});
     expect(auth.authorizations.at(-1)!.get('login_hint')).toBe('sub-ada');
   });
 });
@@ -622,7 +667,7 @@ describe("the agent's requests for more access", () => {
 
     await collect(client, action('shop.1', canvas));
     const escalated = await signIn(base, canvas, 'shop.1');
-    expect(escalated.outcome).toEqual({state: 'signedIn', source: 'shop.1'});
+    expect(escalated.outcome).toMatchObject({state: 'signedIn', source: 'shop.1', existing: true});
     const authorization = auth.authorizations.at(-1)!;
     expect(authorization.get('login_hint')).toBe('sub-ada');
     expect(authorization.get('scope')).toBe('openid write');

@@ -44,8 +44,18 @@ describe('turnProgress', () => {
     ]);
     store.placeFragment('gmail.2', {surfaceId: 'gmail.2:inbox', source: 'gmail.2'});
     expect(turnProgress(store.getState()).sources).toEqual([
-      {source: 'gmail.1', name: 'Gmail · alice@example.com', status: 'idle'},
-      {source: 'gmail.2', name: 'Gmail · bob@example.com', status: 'done'},
+      {
+        source: 'gmail.1',
+        name: 'Gmail · alice@example.com',
+        status: 'idle',
+        text: 'Gmail · alice@example.com',
+      },
+      {
+        source: 'gmail.2',
+        name: 'Gmail · bob@example.com',
+        status: 'done',
+        text: 'Gmail · bob@example.com',
+      },
     ]);
   });
 
@@ -92,9 +102,9 @@ describe('turnProgress', () => {
     const progress = turnProgress(store.getState());
     expect(progress.working).toBeNull();
     expect(progress.sources).toEqual([
-      {source: 'linear', name: 'Linear', status: 'done'},
-      {source: 'github', name: 'GitHub', status: 'working'},
-      {source: 'circleci', name: 'CircleCI', status: 'failed'},
+      {source: 'linear', name: 'Linear', status: 'done', text: 'Linear'},
+      {source: 'github', name: 'GitHub', status: 'working', text: 'GitHub'},
+      {source: 'circleci', name: 'CircleCI', status: 'failed', text: 'CircleCI'},
     ]);
     // One arrived, one failed: no merge is possible yet, so the step waits for the one still out.
     expect(progress.merge).toEqual({
@@ -365,5 +375,74 @@ describe('the merge step on a step back (task-9.7 decision 4)', () => {
     });
     store.setMergeFollowingStep(false);
     expect(turnProgress(store.getState()).merge?.status).toBe('done');
+  });
+
+  describe('sign-in (task-12.8 decision 7)', () => {
+    /** Gmail needing sign-in beside GitHub and Calendar, the merge landed over the two. */
+    function signIn() {
+      const store = createCanvasStore();
+      store.setRoster([
+        {source: 'shell', name: 'Synthesis'},
+        {source: 'github', name: 'GitHub'},
+        {source: 'gmail.1', name: 'Gmail'},
+        {source: 'calendar.1', name: 'Calendar'},
+      ]);
+      for (const app of ['github', 'calendar.1', 'shell'])
+        store.placeFragment(app, {surfaceId: `${app}:s`, source: app});
+      store.mergeSlotStates(new Map([['gmail.1', 'authority' as const]]));
+      store.mergeAuthority(new Map([['gmail.1', 'signIn' as const]]));
+      store.setMerge({merged: ['github', 'calendar.1']});
+      return store;
+    }
+    const gmail = (store: ReturnType<typeof signIn>) =>
+      turnProgress(store.getState()).sources.find(step => step.source === 'gmail.1')!;
+
+    it('a source needing sign-in is locked, in the tile’s words; the merge names only what it merged', () => {
+      const store = signIn();
+      expect(gmail(store)).toMatchObject({status: 'locked', text: 'Gmail not signed in'});
+      expect(turnProgress(store.getState()).merge).toEqual({
+        text: 'Joined GitHub and Calendar',
+        status: 'done',
+      });
+      store.mergeAuthority(new Map([['gmail.1', 'again' as const]]));
+      expect(gmail(store).text).toBe('Gmail sign-in expired');
+      store.mergeAuthority(new Map([['gmail.1', 'unsupported' as const]]));
+      expect(gmail(store).text).toBe('Gmail not supported here');
+    });
+
+    it('signing in while its window is open; working from its resume', () => {
+      const store = signIn();
+      store.setSigningIn('gmail.1', true);
+      expect(gmail(store)).toMatchObject({status: 'locked', text: 'Gmail signing in'});
+      store.addPress({kind: 'retry', sources: ['gmail.1']});
+      expect(gmail(store)).toMatchObject({status: 'working', text: 'Gmail'});
+    });
+
+    it('a request for more access on the row, until Allow’s resume or Not now', () => {
+      const store = signIn();
+      store.mergeEscalations(new Map([['github', true]]));
+      const github = () =>
+        turnProgress(store.getState()).sources.find(step => step.source === 'github')!;
+      expect(github()).toMatchObject({status: 'locked', text: 'GitHub needs more access'});
+      const key = store.addPress({kind: 'dismiss', sources: ['github']});
+      expect(github()).toMatchObject({status: 'done', text: 'GitHub'});
+      store.removePress(key);
+      store.mergeEscalations(new Map([['github', false]]));
+      expect(github().status).toBe('done');
+    });
+
+    it('before the merge lands, a source needing sign-in is not waited for', () => {
+      const store = createCanvasStore();
+      store.setRoster(ROSTER);
+      store.beginPaint('utterance');
+      store.placeFragment('linear', {surfaceId: 'linear:s', source: 'linear'});
+      store.placeFragment('github', {surfaceId: 'github:s', source: 'github'});
+      store.mergeSlotStates(new Map([['circleci', 'authority' as const]]));
+      store.mergeAuthority(new Map([['circleci', 'signIn' as const]]));
+      expect(turnProgress(store.getState()).merge).toEqual({
+        text: 'Joining Linear and GitHub',
+        status: 'working',
+      });
+    });
   });
 });

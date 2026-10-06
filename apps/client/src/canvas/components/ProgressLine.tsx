@@ -2,9 +2,11 @@
  * The progress line under the question: planning, then a tick per source as its fragment fills,
  * then the merge in computed words. It stays after the turn lands, the ticks and the merge in the
  * past tense, and follows the reader's presses on the composition (task 8.5). The step that is
- * working carries the in-flight marker (`canvas-pending`). The canvas's sticky error — a message
- * of its own that failed or never arrived, cleared by its next dispatch — closes the line in the
- * danger tone, an alert on the full line (task-9.9 decision 20).
+ * working carries the in-flight marker (`canvas-pending`); a source waiting on a sign-in carries a
+ * lock and says so (task-12.8 decision 7). An account added from this canvas is said after the
+ * merge (task-12.8 decision 6). The canvas's sticky error — a message of its own that failed or
+ * never arrived, cleared by its next dispatch — closes the line in the danger tone, an alert on the
+ * full line (task-9.9 decision 20).
  */
 import {Fragment, useEffect, useState} from 'react';
 import type {CanvasState} from '../canvasStore';
@@ -39,6 +41,27 @@ const FailedIcon = () => (
   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
     <circle cx="7" cy="7" r="5.8" stroke="currentColor" strokeWidth="1.5" />
     <path d="M5 5l4 4M9 5l-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+  </svg>
+);
+
+const LockIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+    <rect
+      x="3"
+      y="6.2"
+      width="8"
+      height="5.8"
+      rx="1.2"
+      stroke="currentColor"
+      strokeWidth="1.4"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M4.8 6.2V4.6a2.2 2.2 0 0 1 4.4 0v1.6"
+      stroke="currentColor"
+      strokeWidth="1.4"
+      strokeLinecap="round"
+    />
   </svg>
 );
 
@@ -79,6 +102,7 @@ function Step({
     >
       {status === 'done' && <CheckIcon />}
       {status === 'failed' && <FailedIcon />}
+      {status === 'locked' && <LockIcon />}
       {working && <WorkingIcon />}
       <span>{children}</span>
     </span>
@@ -103,9 +127,11 @@ export function ProgressLine({state, since, compact, sourcesOnly}: ProgressLineP
   const planning = progress.working?.kind === 'planning';
   const elapsed = useElapsed(since, planning);
   const {error} = state;
+  const account = sourcesOnly ? null : state.accountNotice;
   // Nothing to say — a platform answer, no vendor dispatched — takes no room under the question
   // (task-8.7 decision 28).
-  if (!progress.working && progress.sources.length === 0 && !progress.merge && !error) return null;
+  if (!progress.working && progress.sources.length === 0 && !progress.merge && !error && !account)
+    return null;
   const said = progress.working || progress.sources.length > 0 || progress.merge;
   return (
     <div
@@ -125,7 +151,7 @@ export function ProgressLine({state, since, compact, sourcesOnly}: ProgressLineP
       )}
       {progress.sources.map(step => (
         <Step key={step.source} status={step.status} compact={compact}>
-          {step.name}
+          {step.text}
         </Step>
       ))}
       {progress.merge && !sourcesOnly && (
@@ -139,9 +165,17 @@ export function ProgressLine({state, since, compact, sourcesOnly}: ProgressLineP
           </Step>
         </Fragment>
       )}
-      {error && !sourcesOnly && (
+      {account && (
         <Fragment>
           {said && <Dot />}
+          <Step status="done" compact={compact}>
+            {account}
+          </Step>
+        </Fragment>
+      )}
+      {error && !sourcesOnly && (
+        <Fragment>
+          {(said || account) && <Dot />}
           <span
             className="canvas-progress-step canvas-progress-error"
             role={compact ? undefined : 'alert'}

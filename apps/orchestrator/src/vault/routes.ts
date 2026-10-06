@@ -7,7 +7,7 @@
  *
  * - `GET  /auth/client.json` — the vault's client ID metadata document.
  * - `GET  /auth/start?attempt&canvas&source` — opened by the popup; redirects to the
- *   authorization server, or to the token page.
+ *   authorization server, or to the token page. The bare app id as the source is add-account's.
  * - `GET  /auth/key?attempt` and `POST /auth/key` — the token page and its form.
  * - `GET  /auth/callback` — the authorization server's return.
  * - `GET  /auth/attempts/:id` — the outcome the client polls.
@@ -71,6 +71,7 @@ export function authRoutes(deps: AuthRoutesDeps): Router {
       logLine(`🔑 sign-in refused for ${source} (${started.reason})`);
       return html(res, 400, refusedPage());
     }
+    if (started.kind === 'signedIn') return html(res, 200, endPage(true));
     res.cookie(`${COOKIE_PREFIX}${started.attempt.id}`, started.attempt.binding, {
       httpOnly: true,
       sameSite: 'lax',

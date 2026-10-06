@@ -9,6 +9,7 @@ import {flushSync} from 'react-dom';
 import {
   type PressState,
   PressStateContext,
+  SignInContext,
   SlotContentContext,
   SlotStateContext,
 } from '@a2uiverse/shell-catalog';
@@ -55,6 +56,8 @@ export function TrailPreview({runtime, label, top, railColumn}: TrailPreviewProp
     () => (source: string) => columnState({merge, slotStates, placement, presses}, source),
     [merge, slotStates, placement, presses],
   );
+  const {signingIn} = state;
+  const signingInOf = useMemo(() => (source: string) => signingIn.has(source), [signingIn]);
   // The second mount registers in an index of its own: navigation must land in the canvas on
   // screen, never in a scaled copy.
   const [index] = useState(() => createBindingIndex(flushSync));
@@ -64,7 +67,7 @@ export function TrailPreview({runtime, label, top, railColumn}: TrailPreviewProp
 
   // Where the canvas got to, in the progress line's words: the preview's caption and its name.
   const progress = turnProgress(state);
-  const said = [progress.working?.label, ...progress.sources.map(source => source.name)].filter(
+  const said = [progress.working?.label, ...progress.sources.map(source => source.text)].filter(
     (text): text is string => !!text,
   );
   const hasProgress = said.length > 0;
@@ -88,9 +91,11 @@ export function TrailPreview({runtime, label, top, railColumn}: TrailPreviewProp
                 <SlotContentContext.Provider value={slotContent}>
                   <SlotStateContext.Provider value={slotStateOf}>
                     <PressStateContext.Provider value={NO_PRESSES}>
-                      <SurfaceErrorBoundary surfaceId={state.stageId} resetKey={state.appliedSeq}>
-                        <SurfaceFrame surface={surface} />
-                      </SurfaceErrorBoundary>
+                      <SignInContext.Provider value={signingInOf}>
+                        <SurfaceErrorBoundary surfaceId={state.stageId} resetKey={state.appliedSeq}>
+                          <SurfaceFrame surface={surface} />
+                        </SurfaceErrorBoundary>
+                      </SignInContext.Provider>
                     </PressStateContext.Provider>
                   </SlotStateContext.Provider>
                 </SlotContentContext.Provider>

@@ -116,6 +116,8 @@ export interface CanvasRuntimeOptions {
   onContext?: (contextId: string) => void;
   /** The Planner's title for the canvas arrived, as the `paintMeta` on the layout surface. */
   onTitle?: (title: string) => void;
+  /** A shell paint drew the authority tile or line for these sources (task-12.8 decision 4). */
+  onAuthority?: (sources: readonly string[]) => void;
 }
 
 export function createCanvasRuntime({
@@ -126,6 +128,7 @@ export function createCanvasRuntime({
   getSideSender,
   onContext,
   onTitle,
+  onAuthority,
 }: CanvasRuntimeOptions): CanvasRuntime {
   const store = createCanvasStore();
   const bare = createA2ASession();
@@ -176,6 +179,7 @@ export function createCanvasRuntime({
     onPaintMeta: (meta: PaintMeta) => {
       if (meta.surfaceId === SHELL_MAIN_SURFACE && meta.title) onTitle?.(meta.title);
     },
+    ...(onAuthority ? {onAuthority} : {}),
   });
   const runner = gateRunner(ungated, gate);
   const getClientDataModel = () => processor.getClientDataModel();
@@ -577,7 +581,7 @@ export function createCanvasRuntime({
 
 /**
  * What a shell action opens: the page the trail store holds (task-6.5 decisions 2, 3). Adding an
- * account opens no page — it opens the sign-in (task-12.2 decision 11).
+ * account opens no page — it opens the sign-in (task-12.8 decision 5).
  */
 export function trustedPageOf(action: ShellAction): TrustedPageState | undefined {
   switch (action.name) {

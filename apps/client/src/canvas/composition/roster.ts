@@ -23,6 +23,7 @@
  */
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
 import {sourceName} from '@a2uiverse/sdk';
+import {AUTHORITY_CAUSES, type AuthorityCause} from '@a2uiverse/shell-catalog';
 import type {JoinNouns, PaintedMerge, PaintedSlotState, RosterEntry} from '../canvasStore';
 
 /** The reserved source id the hub stamps its own content with — the shell speaking as itself. */
@@ -52,6 +53,8 @@ interface ShellComponent {
   retrying?: unknown;
   declined?: unknown;
   collapse?: unknown;
+  authority?: unknown;
+  escalation?: unknown;
 }
 
 /** What one shell paint says about its slots: the roster, and the vendor slots painted bare. */
@@ -139,7 +142,7 @@ function joinNouns(raw: unknown): JoinNouns | undefined {
   };
 }
 
-const PAINTED_STATES: readonly string[] = ['pending', 'failed', 'collapsed'];
+const PAINTED_STATES: readonly string[] = ['pending', 'failed', 'collapsed', 'authority'];
 
 /**
  * The state each `Slot` in a shell paint declares, by source — the synthesis slot under
@@ -165,6 +168,52 @@ export function slotStatesOf(
     }
   }
   return states;
+}
+
+/**
+ * What each vendor `Slot` in a shell paint says of its sign-in (task-12.8 decision 7), by source:
+ * the authority tile's cause, or null when the slot is painted in any other state. Sources the
+ * paint does not carry are absent.
+ */
+export function authorityOf(messages: readonly A2uiMessage[]): Map<string, AuthorityCause | null> {
+  const causes = new Map<string, AuthorityCause | null>();
+  for (const raw of shellComponents(messages)) {
+    if (raw.component !== SLOT || typeof raw.source !== 'string' || raw.content === 'shell')
+      continue;
+    if (raw.state !== 'authority') {
+      causes.set(raw.source, null);
+      continue;
+    }
+    const cause = (raw.authority as {cause?: unknown} | undefined)?.cause;
+    causes.set(
+      raw.source,
+      AUTHORITY_CAUSES.includes(cause as AuthorityCause) ? (cause as AuthorityCause) : 'signIn',
+    );
+  }
+  return causes;
+}
+
+/**
+ * Whether each `Attribution` in a shell paint carries a request for more access (task-12.8
+ * decision 7), by source. Sources the paint does not carry are absent.
+ */
+export function escalationsOf(messages: readonly A2uiMessage[]): Map<string, boolean> {
+  const asks = new Map<string, boolean>();
+  for (const raw of shellComponents(messages)) {
+    if (raw.component !== ATTRIBUTION || typeof raw.source !== 'string') continue;
+    asks.set(raw.source, typeof raw.escalation === 'object' && raw.escalation !== null);
+  }
+  return asks;
+}
+
+/** Every component a batch's `updateComponents` carry, in order. */
+function shellComponents(messages: readonly A2uiMessage[]): ShellComponent[] {
+  return messages.flatMap(message => {
+    const update = (message as {updateComponents?: {components?: unknown}}).updateComponents;
+    return update && Array.isArray(update.components)
+      ? (update.components as ShellComponent[]).filter(Boolean)
+      : [];
+  });
 }
 
 const strings = (raw: unknown): string[] | undefined =>
