@@ -14,10 +14,15 @@ working with this repo.
 - **Client:** every server URL the client is configured with must be that
   server's **tunnel URL** — a `localhost` default cannot be reached by the
   remote browser.
-- **Any A2A server (orchestrator, vendor agents):** run with its public
+- **Any A2A server the browser calls (the orchestrator):** run with its public
   **base URL set to its tunnel URL** so the agent card advertises an endpoint
   the caller can reach. With a `localhost` default the card fetch succeeds but
   the `message/send` POST targets an unreachable host.
+- **Vendor agents' sign-in pages:** the sign-in window opens each agent's own
+  sign-in page, so an agent runs with its **public URL set to its tunnel URL**
+  (task 12.12): the sign-in page, the account chooser's form and the finish
+  address a vendor returns to. Its card, its A2A endpoint and its token
+  endpoint stay on `localhost`, where the orchestrator reaches them.
 - Jioh forwards the ports in play and sets them **Public** manually at the
   start of a session. If you see `Failed to fetch` in the browser (or
   `401`/`404`/`502` at the tunnel), suspect a non-public or unforwarded port
@@ -30,7 +35,7 @@ working with this repo.
 
 ## Ports
 
-Platform processes are `1000x`; vendor agents are `11001+` and mock agents `12001+`, one port per app regardless of run mode. Only the platform processes need tunnel rows — the browser talks only to the orchestrator, and the orchestrator reaches vendor agents on `localhost`. A vendor agent is tunnelled only for a direct-vs-hub comparison.
+Platform processes are `1000x`; vendor agents are `11001+` and mock agents `12001+`, one port per app regardless of run mode. The browser talks to the orchestrator, and opens the vendor agents' sign-in pages; the orchestrator reaches the agents on `localhost`. The mock agents need no tunnel: shop-b's key is entered on the orchestrator's own page.
 
 | Process | Port | Tunnel | Repo |
 |---|---|---|---|
@@ -38,17 +43,19 @@ Platform processes are `1000x`; vendor agents are `11001+` and mock agents `1200
 | orchestrator | 10001 | yes | `a2uiverse` |
 | marketplace | 10002 (reserved) | yes | `a2uiverse` |
 | shell-catalog fixture (dev-only) | 5174 | when in use | `a2uiverse` |
-| vendor agents | 11001+ | no | `a2uiverse-apps` (table there) |
+| vendor agents | 11001–11005 | sign-in pages | `a2uiverse-apps` (table there) |
 | mock agents | 12001+ | no | `a2uiverse-apps` (`mocks/`, the launcher's mock tier) |
 
 ## Run commands
 
-Three terminals. Vendor agents stay on `localhost`; only the orchestrator
-advertises a tunnel URL, and the client reads the orchestrator's tunnel URL
-from an uncommitted `apps/client/.env.local`.
+Three terminals. The orchestrator advertises its tunnel URL, the client
+reads it from an uncommitted `apps/client/.env.local`, and the launcher gives
+each agent its sign-in pages' tunnel URL from `A2UIVERSE_PUBLIC_URL`, a
+pattern whose `{port}` slot each agent's port fills.
 
 ```bash
 # the apps, installed into the orchestrator once it answers — pick one mode; --only github for one app
+export A2UIVERSE_PUBLIC_URL='https://<tunnel-id>-{port}.asse.devtunnels.ms'
 pnpm dev:agents --mode deterministic
 pnpm dev:agents --mode stub
 pnpm dev:agents --mode live
@@ -59,6 +66,8 @@ BASE_URL=https://<tunnel-id>-10001.asse.devtunnels.ms pnpm --filter @a2uiverse/o
 # client — .env.local: VITE_ORCHESTRATOR_URL=https://<tunnel-id>-10001.asse.devtunnels.ms
 pnpm --filter @a2uiverse/client dev
 ```
+
+When the dev server's module requests stall in the tunnel, serve a production build on the same port instead: `pnpm --filter @a2uiverse/client build`, then `pnpm exec vite preview --port 5173 --strictPort` in `apps/client`.
 
 The client loads every app's catalog from the orchestrator's registry at runtime, through the tunnel (task 11.5). The tunnel adds its own `Cache-Control: no-cache,no-store` to every response, beside the orchestrator's immutable header on artifact files, so the browser keeps no artifact across reloads there: each reload loads every catalog again. Within a page each loads once. The tunnel sometimes leaves a request unanswered, for minutes: a stylesheet, the table, a descriptor, an entry. Every request of a catalog load is bounded (task 11.8): no answer in 10 s, 30 s for an entry, and it is asked once more, a stylesheet or an entry under `?attempt=N`; no answer to that either fails the catalog's slots with Retry.
 
@@ -89,6 +98,8 @@ The mock tier (synthesis acceptance) runs in place of the real roster:
 pnpm dev:all --tier mocks              # shop-a 12001 · shop-b 12002, deterministic
 pnpm dev:all --tier mocks --mode live  # the same, live
 ```
+
+Live sign-in returns to each agent's finish address, so GitHub's OAuth App and the Google client register the tunnel finish address beside the `localhost` one (each agent's README). CircleCI's sign-in server takes only a loopback return address: its live sign-in runs at the Mac, with `A2UIVERSE_PUBLIC_URL` unset.
 
 The launcher inherits the shell's environment for the agents; `turbo.json` passes `A2UIVERSE_*` and `STATE_DIR` through to the `dev` task, so a `STATE_DIR` set in the shell is the one the orchestrator and the launcher both use.
 

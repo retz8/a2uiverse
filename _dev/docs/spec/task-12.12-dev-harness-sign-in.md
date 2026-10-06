@@ -34,15 +34,15 @@ No special handling. CircleCI's self-registration admits only a loopback return 
 
 ### 5. The platform recorder signs in through the real flow
 
-The recorder walks the sign-in as a plain HTTP client: the orchestrator's start route, the non-interactive entry naming a fake account added to the agent's sign-in redirect, back to the vault's callback with the start route's cookie, the attempt polled to its outcome. Each beat names the fake accounts it signs in as — Gmail's `you` and `personal` where a beat needs two, one account for every other app.
+The recorder walks the sign-in as a plain HTTP client: the orchestrator's start route, the non-interactive entry naming a fake account added to the agent's sign-in redirect, back to the vault's callback with the start route's cookie, the attempt polled to its outcome. The start route signs in from a canvas the orchestrator holds, so the recorder first opens one with a question about the platform. Each beat names the fake accounts it signs in as — Gmail's `you` and `personal` where a beat needs two, one account for every other app. An account the orchestrator already holds is left as it is.
 
 ### 6. One beat re-recorded on each path
 
-One beat through the running orchestrator, one failure beat and one multi-canvas session beat on orchestrators the recorder starts. The other beats stay as migrated until a later change needs them.
+One beat through the running orchestrator, one failure beat and one multi-canvas session beat on orchestrators the recorder starts. The beat specs name sources by account, `<app>.1`. The other beats stay as migrated until a later change needs them.
 
 ### 7. The transparency check signs in on its direct side
 
-The check takes its own token straight from each agent through the non-interactive entry, as the same account the hub's slot is signed in as; shop-b is sent its demo key. The vault's file stays the orchestrator's alone.
+The check takes its own token straight from each agent through the non-interactive entry, as the same account the hub's slot is signed in as, for the scopes the vault asks at the first sign-in; shop-b is sent its demo key. The vault's file stays the orchestrator's alone. The direct side is sent the request as the hub sent it, the credential guidance included, read from the vendor task's history.
 
 ### 8. One sign-in through the real popup in e2e
 
@@ -56,6 +56,10 @@ In the browser through the tunnel: one deterministic sign-in — the tile, the p
 
 CircleCI's live sign-in with its token on the REST project list (task-12.10 decision 9), and live vendor recordings through the kit's beat driver, whose return is caught on a loopback address (task-12.11 decision 7), go to 12.13 as its part at the Mac.
 
-### 11. One sub-task in both repos
+### 11. Late and repeated requests through the tunnel
+
+A sign-in window that reaches the start route after the client's first poll is still watched: an attempt the orchestrator does not know yet is polled again, and once the orchestrator has answered for it, an unknown attempt ends. A callback arriving again for an attempt that ended — a stalled request the tunnel delivers late, a window reloaded — answers as the attempt ended, exchanging nothing; one without the window's binding is still refused.
+
+### 12. One sub-task in both repos
 
 The kit's public address and the vendor README lines land directly on `../a2uiverse-apps/` `main`; the launcher, the recorder, the transparency check, the e2e and the tunnel environment doc land in this repo.
