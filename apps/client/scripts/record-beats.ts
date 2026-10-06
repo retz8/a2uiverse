@@ -24,6 +24,11 @@
  *
  * Beat 26 is task 10.9's, a session of the same kind: CircleCI's history branching after a Back,
  * every step landing on a combination seen and every drill-down titled.
+ *
+ * Every orchestrator a beat runs through is signed in first, through the real flow (task-12.12
+ * decision 5): a canvas opened with a question about the platform, then each app that asks sign-in
+ * signed in from it as the fake accounts the beat names, or as its one account. An account the
+ * orchestrator in daily use already holds is left as it is.
  */
 import {mkdir, readFile, stat, writeFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
@@ -46,6 +51,7 @@ import {
 } from './lib/drive';
 import {startOrchestrator} from './lib/orchestrator';
 import {Session} from './lib/session';
+import {openCanvas, signIn, type Accounts} from './lib/signIn';
 
 /** The orchestrator's own defaults (`apps/orchestrator/src/config.ts`), unless a case shortens one. */
 const SOFT_DEADLINE_SECONDS = 10;
@@ -55,6 +61,19 @@ const HARD_CAP_SECONDS = 300;
 const MAX_ATTEMPTS = 3;
 
 const nameOf = (spec: BeatSpec) => `beat-${spec.beat}-${spec.slug}`;
+
+/** Sign the orchestrator at `url` in before a beat runs through it. */
+async function signedIn(
+  url: string,
+  sender: A2AMessageSender,
+  catalogIds: string[],
+  accounts?: Accounts,
+): Promise<void> {
+  const canvas = await openCanvas(sender, catalogIds);
+  const held = await signIn(url, canvas, accounts);
+  const named = held.map(a => `${a.source} as ${a.as}${a.label ? ` (${a.label})` : ''}`);
+  console.log(`  signed in · ${named.join(' · ') || 'no app asks sign-in'}`);
+}
 
 /** Group the wanted beats so a chained beat always follows the beat it continues. */
 function groupsOf(wanted: number[]): BeatSpec[][] {
@@ -214,6 +233,11 @@ async function main() {
   });
   if (plain.length > 0) {
     const sender = await createSender(values.url);
+    const named = Object.assign(
+      {},
+      ...plain.map(beat => BEATS.find(s => s.beat === beat)?.accounts ?? {}),
+    ) as Accounts;
+    await signedIn(values.url, sender, catalogIds, named);
     for (const group of groupsOf(plain)) {
       let contextId: string | undefined;
       let chainedFrom: string | null = null;
@@ -290,6 +314,7 @@ async function main() {
     );
     try {
       const sender = await createSender(orchestrator.url);
+      await signedIn(orchestrator.url, sender, catalogIds, spec.accounts);
       let take!: Awaited<ReturnType<typeof takeCase>>;
       let problem: string | undefined;
       for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
@@ -346,6 +371,7 @@ async function main() {
     );
     try {
       const sender = await createSender(orchestrator.url);
+      await signedIn(orchestrator.url, sender, catalogIds, spec.accounts);
       let take!: Awaited<ReturnType<typeof takeSession>>;
       let problem: string | undefined;
       for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {

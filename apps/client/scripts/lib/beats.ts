@@ -14,6 +14,7 @@
 import type {CompositionOperation} from '@a2uiverse/sdk';
 import type {BeatBatch, BeatTurn} from '../../src/beats/beatFixtures';
 import {sleep, type Session, type SessionCanvas} from './session';
+import type {Accounts} from './signIn';
 
 export interface BeatSpec {
   beat: number;
@@ -26,6 +27,11 @@ export interface BeatSpec {
   fault?: FaultCase;
   /** A session of several canvases, through an orchestrator the recorder starts for it. */
   session?: SessionCase;
+  /**
+   * The fake accounts the beat signs in as, by app, in account order — otherwise each app's one
+   * (task-12.12 decision 5).
+   */
+  accounts?: Accounts;
 }
 
 /**
@@ -229,12 +235,12 @@ export const BEATS: BeatSpec[] = [
     prompt: TODAY,
     fault: {
       faults: {calendar: {fault: 'fail', message: 'Google Calendar is not responding right now.'}},
-      presses: [{operation: {kind: 'retry', sources: ['calendar']}}],
+      presses: [{operation: {kind: 'retry', sources: ['calendar.1']}}],
       shows: ({turn, presses}) =>
         need(
-          [failedWith(turn, 'calendar', 'vendor'), 'Calendar’s slot never failed with its words'],
+          [failedWith(turn, 'calendar.1', 'vendor'), 'Calendar’s slot never failed with its words'],
           [merges(turn), 'no merge over the sources that arrived'],
-          [paints(presses[0] ?? [], 'calendar'), 'Retry’s stream never painted Calendar'],
+          [paints(presses[0] ?? [], 'calendar.1'), 'Retry’s stream never painted Calendar'],
           [merges(presses[0] ?? []), 'Retry’s arrival was not folded in'],
         ),
     },
@@ -246,12 +252,12 @@ export const BEATS: BeatSpec[] = [
     prompt: TODAY,
     fault: {
       faults: {gmail: {fault: 'delay', seconds: 25}},
-      presses: [{operation: {kind: 'include', sources: ['gmail']}}],
+      presses: [{operation: {kind: 'include', sources: ['gmail.1']}}],
       shows: ({turn, presses}) =>
         need(
           [
             slotsPainted(turn).some(
-              s => s.source === 'shell' && (s.late as unknown[])?.includes('gmail'),
+              s => s.source === 'shell' && (s.late as unknown[])?.includes('gmail.1'),
             ),
             'Gmail was never painted late',
           ],
@@ -268,7 +274,8 @@ export const BEATS: BeatSpec[] = [
       faults: {linear: {fault: 'delay', seconds: 20}},
       shows: ({turn}) => {
         const home = turn.findIndex(
-          b => b.stamp?.role === 'fragment' && b.stamp.source === 'linear' && b.messages.length > 0,
+          b =>
+            b.stamp?.role === 'fragment' && b.stamp.source === 'linear.1' && b.messages.length > 0,
         );
         const merge = turn.findIndex(
           b => b.stamp?.source === 'shell' && b.stamp.role === 'fragment' && b.synthesis,
@@ -276,7 +283,7 @@ export const BEATS: BeatSpec[] = [
         return need(
           [
             slotsPainted(turn).some(
-              s => s.source === 'shell' && (s.join as {home?: unknown})?.home === 'linear',
+              s => s.source === 'shell' && (s.join as {home?: unknown})?.home === 'linear.1',
             ),
             'no join with Linear home',
           ],
@@ -293,12 +300,12 @@ export const BEATS: BeatSpec[] = [
     fault: {
       faults: {gmail: {fault: 'delay', seconds: 20}},
       hardCapSeconds: 15,
-      presses: [{operation: {kind: 'retry', sources: ['gmail']}, atLeastMs: 26_000}],
+      presses: [{operation: {kind: 'retry', sources: ['gmail.1']}, atLeastMs: 26_000}],
       shows: ({turn, presses}) =>
         need(
-          [failedWith(turn, 'gmail', 'timeout'), 'Gmail never reached the cap'],
-          [!paints(turn, 'gmail'), 'Gmail’s held answer was drawn before Retry'],
-          [paints(presses[0] ?? [], 'gmail'), 'Retry did not draw the held answer'],
+          [failedWith(turn, 'gmail.1', 'timeout'), 'Gmail never reached the cap'],
+          [!paints(turn, 'gmail.1'), 'Gmail’s held answer was drawn before Retry'],
+          [paints(presses[0] ?? [], 'gmail.1'), 'Retry did not draw the held answer'],
         ),
     },
   },
@@ -310,11 +317,11 @@ export const BEATS: BeatSpec[] = [
     fault: {
       faults: {gmail: {fault: 'delay', seconds: 90}},
       hardCapSeconds: 15,
-      presses: [{operation: {kind: 'retry', sources: ['gmail']}}],
+      presses: [{operation: {kind: 'retry', sources: ['gmail.1']}}],
       shows: ({turn, presses}) =>
         need(
-          [failedWith(turn, 'gmail', 'timeout'), 'Gmail never reached the cap'],
-          [paints(presses[0] ?? [], 'gmail'), 'the re-dispatch never filled Gmail’s slot'],
+          [failedWith(turn, 'gmail.1', 'timeout'), 'Gmail never reached the cap'],
+          [paints(presses[0] ?? [], 'gmail.1'), 'the re-dispatch never filled Gmail’s slot'],
         ),
     },
   },
@@ -327,9 +334,9 @@ export const BEATS: BeatSpec[] = [
       faults: {github: {fault: 'break'}},
       shows: ({turn}) =>
         need(
-          [paints(turn, 'github'), 'GitHub never drew'],
+          [paints(turn, 'github.1'), 'GitHub never drew'],
           [
-            failedWith(turn, 'github', 'unreachable'),
+            failedWith(turn, 'github.1', 'unreachable'),
             'GitHub’s broken stream never failed its slot',
           ],
         ),
@@ -342,11 +349,14 @@ export const BEATS: BeatSpec[] = [
     prompt: TODAY,
     fault: {
       faults: {github: {fault: 'invalid'}},
-      report: 'github',
+      report: 'github.1',
       shows: ({report}) =>
         need(
           [report !== undefined, 'nothing to report'],
-          [failedWith(report ?? [], 'github', 'invalid'), 'the report did not fail GitHub’s slot'],
+          [
+            failedWith(report ?? [], 'github.1', 'invalid'),
+            'the report did not fail GitHub’s slot',
+          ],
         ),
     },
   },
@@ -357,12 +367,12 @@ export const BEATS: BeatSpec[] = [
     prompt: WORKING_ON,
     fault: {
       faults: {linear: {fault: 'fail', message: 'Linear could not load your issues.'}},
-      presses: [{operation: {kind: 'retry', sources: ['linear']}}],
+      presses: [{operation: {kind: 'retry', sources: ['linear.1']}}],
       shows: ({turn, presses}) =>
         need(
           [collapsedWith(turn, 'home'), 'the merge did not collapse on the home source'],
           [!merges(turn), 'a merge was made without the home source'],
-          [paints(presses[0] ?? [], 'linear'), 'Retry never painted Linear'],
+          [paints(presses[0] ?? [], 'linear.1'), 'Retry never painted Linear'],
           [merges(presses[0] ?? []), 'the merge was not brought back'],
         ),
     },
@@ -410,7 +420,7 @@ export const BEATS: BeatSpec[] = [
           b => b.stamp?.source === 'shell' && b.stamp.role === 'fragment' && b.synthesis,
         )?.offsetMs;
         return need(
-          [paints(today.batches, 'github'), 'the second question never painted'],
+          [paints(today.batches, 'github.1'), 'the second question never painted'],
           [mergedAt !== undefined, 'the entity join never merged'],
           [
             mergedAt !== undefined && mergedAt > (today.atMs ?? 0),
@@ -433,17 +443,17 @@ export const BEATS: BeatSpec[] = [
         const join = s.ask(WORKING_ON);
         await join.done;
         s.view(today);
-        await s.act(today, 'calendar', 'open-event');
-        await s.press(today, {kind: 'retry', sources: ['gmail']});
+        await s.act(today, 'calendar.1', 'open-event');
+        await s.press(today, {kind: 'retry', sources: ['gmail.1']});
       },
       shows: recorded => {
         const today = questionOf(recorded.turns, 0);
         const action = recorded.turns.find(t => t.kind === 'surface-action');
         const retry = recorded.turns.find(t => t.kind === 'press');
         return need(
-          [failedWith(today.batches, 'gmail', 'vendor'), 'Gmail never failed with its words'],
-          [paints(action?.batches ?? [], 'calendar'), 'the event never opened'],
-          [paints(retry?.batches ?? [], 'gmail'), 'Retry never painted Gmail'],
+          [failedWith(today.batches, 'gmail.1', 'vendor'), 'Gmail never failed with its words'],
+          [paints(action?.batches ?? [], 'calendar.1'), 'the event never opened'],
+          [paints(retry?.batches ?? [], 'gmail.1'), 'Retry never painted Gmail'],
           [
             linesOf(recorded, 0).filter(l => l.kind !== 'utterance').length >= 2,
             'the action and the press were not journaled on the first canvas',
@@ -474,7 +484,7 @@ export const BEATS: BeatSpec[] = [
           [parentOf(3) === parent, 'the question from the view was not planned from it'],
           [merges(questionOf(recorded.turns, 2).batches), 'the question asked again never merged'],
           [
-            paints(calendar, 'calendar') && !slotSources(calendar).has('github'),
+            paints(calendar, 'calendar.1') && !slotSources(calendar).has('github.1'),
             'the calendar part painted more than Calendar',
           ],
         );
@@ -502,11 +512,11 @@ export const BEATS: BeatSpec[] = [
         return need(
           [!merges(side!), 'side by side merged'],
           [
-            ['github', 'gmail', 'calendar'].every(source => slotSources(add!).has(source)),
+            ['github.1', 'gmail.1', 'calendar.1'].every(source => slotSources(add!).has(source)),
             'Add GitHub did not keep both and add GitHub',
           ],
           [
-            !slotSources(drop!).has('gmail') && slotSources(drop!).has('calendar'),
+            !slotSources(drop!).has('gmail.1') && slotSources(drop!).has('calendar.1'),
             'without Gmail did not drop Gmail alone',
           ],
           [merges(compare!), 'compare these never merged'],
@@ -527,14 +537,14 @@ export const BEATS: BeatSpec[] = [
       run: async s => {
         const join = s.ask(WORKING_ON);
         await join.done;
-        await s.act(join, 'circleci', 'open-run');
-        await s.step(join, 'circleci', 0);
+        await s.act(join, 'circleci.1', 'open-run');
+        await s.step(join, 'circleci.1', 0);
       },
       shows: recorded => {
         const action = recorded.turns.find(t => t.kind === 'surface-action');
         const step = linesOf(recorded, 0).find(l => l.step);
         return need(
-          [paints(action?.batches ?? [], 'circleci'), 'the run never opened'],
+          [paints(action?.batches ?? [], 'circleci.1'), 'the run never opened'],
           [merges(action?.batches ?? []), 'opening the run was not re-synthesized'],
           [step?.step?.seen === true, 'the step’s combination was not seen'],
           [
@@ -554,9 +564,9 @@ export const BEATS: BeatSpec[] = [
       run: async s => {
         const join = s.ask(WORKING_ON);
         await join.done;
-        await s.act(join, 'circleci', 'open-run');
-        await s.act(join, 'linear', 'open-issue');
-        await s.step(join, 'circleci', 0);
+        await s.act(join, 'circleci.1', 'open-run');
+        await s.act(join, 'linear.1', 'open-issue');
+        await s.step(join, 'circleci.1', 0);
       },
       shows: recorded => {
         const step = linesOf(recorded, 0).find(l => l.step);
@@ -578,7 +588,7 @@ export const BEATS: BeatSpec[] = [
       run: async s => {
         const today = s.ask(TODAY);
         await until(
-          () => paints(questionOf(s.turns, 0).batches, 'calendar'),
+          () => paints(questionOf(s.turns, 0).batches, 'calendar.1'),
           'a fragment on the canvas',
         );
         await sleep(1_500);
@@ -588,7 +598,7 @@ export const BEATS: BeatSpec[] = [
       shows: recorded => {
         const today = questionOf(recorded.turns, 0).batches;
         return need(
-          [!paints(today, 'github'), 'GitHub painted before the close'],
+          [!paints(today, 'github.1'), 'GitHub painted before the close'],
           [
             linesOf(recorded, 0).some(l => l.kind === 'utterance' && l.closed),
             'the journal did not record the turn cancelled by the close',
@@ -606,13 +616,13 @@ export const BEATS: BeatSpec[] = [
       run: async s => {
         const join = s.ask(WORKING_ON);
         await join.done;
-        await s.act(join, 'circleci', 'open-run');
-        await s.act(join, 'circleci', 'open-job');
-        await s.arrow(join, 'circleci', 'back');
-        await s.arrow(join, 'circleci', 'back');
-        await s.act(join, 'circleci', 'open-run', 1);
-        await s.arrow(join, 'circleci', 'back');
-        await s.arrow(join, 'circleci', 'back');
+        await s.act(join, 'circleci.1', 'open-run');
+        await s.act(join, 'circleci.1', 'open-job');
+        await s.arrow(join, 'circleci.1', 'back');
+        await s.arrow(join, 'circleci.1', 'back');
+        await s.act(join, 'circleci.1', 'open-run', 1);
+        await s.arrow(join, 'circleci.1', 'back');
+        await s.arrow(join, 'circleci.1', 'back');
       },
       shows: recorded => {
         const steps = linesOf(recorded, 0).filter(l => l.step);
@@ -624,7 +634,7 @@ export const BEATS: BeatSpec[] = [
         );
         return need(
           [
-            drills.length === 3 && drills.every(t => paints(t.batches, 'circleci')),
+            drills.length === 3 && drills.every(t => paints(t.batches, 'circleci.1')),
             'a drill-down did not paint',
           ],
           [titled, 'a drill-down came without its title'],

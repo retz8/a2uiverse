@@ -3,7 +3,7 @@
  * one prompt in, the raw event stream out with arrival times. Node-only; reuses the client's
  * own message builder and extractors so a script sees exactly what the canvas sees.
  */
-import {ClientFactory} from '@a2a-js/sdk/client';
+import {ClientFactory, ClientFactoryOptions, JsonRpcTransportFactory} from '@a2a-js/sdk/client';
 import type {MessageSendParams} from '@a2a-js/sdk';
 import type {A2AMessageSender} from '../../src/a2a/client';
 import type {A2AStreamEventData} from '../../src/a2a/messages';
@@ -32,10 +32,30 @@ export interface DrivenTurn {
 
 /**
  * Resolve the agent card and return a streaming sender (the non-deprecated SDK client): the card at
- * `url`'s well-known path, or at `url` itself when `path` is `''`.
+ * `url`'s well-known path, or at `url` itself when `path` is `''`. `headers` ride every request the
+ * sender makes — a direct send's credential.
  */
-export async function createSender(url: string, path?: string): Promise<A2AMessageSender> {
-  const client = await new ClientFactory().createFromUrl(url, path);
+export async function createSender(
+  url: string,
+  path?: string,
+  headers?: Record<string, string>,
+): Promise<A2AMessageSender> {
+  const factory = headers
+    ? new ClientFactory(
+        ClientFactoryOptions.createFrom(ClientFactoryOptions.default, {
+          transports: [
+            new JsonRpcTransportFactory({
+              fetchImpl: (input, init) =>
+                fetch(input, {
+                  ...init,
+                  headers: {...Object.fromEntries(new Headers(init?.headers)), ...headers},
+                }),
+            }),
+          ],
+        }),
+      )
+    : new ClientFactory();
+  const client = await factory.createFromUrl(url, path);
   return {
     sendMessageStream: (params, options) => client.sendMessageStream(params, options),
   };

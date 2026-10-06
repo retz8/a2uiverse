@@ -522,10 +522,13 @@ export class AuthVault implements AccountStore {
     return id === undefined ? undefined : this.attempt(id);
   }
 
-  /** The authorization server's answer, for an attempt the browser is bound to. */
+  /**
+   * The authorization server's answer, for an attempt the browser is bound to. An attempt already
+   * ended answers as it ended, exchanging nothing: the same return can arrive twice — a stalled
+   * request the tunnel delivers late, a window reloaded (task 12.12).
+   */
   async callback(attempt: Attempt, query: {code?: string; error?: string}): Promise<Attempt> {
     const oauth = attempt.oauth;
-    this.#byState.delete(oauth?.state ?? '');
     if (attempt.state !== 'pending' || !oauth) return attempt;
     if (query.error || !query.code) return this.#fail(attempt, query.error ?? 'no code came back');
     try {
@@ -687,8 +690,12 @@ export class AuthVault implements AccountStore {
         delete attempt.oauth;
         this.#deps.journal({event: 'expired', appId: attempt.appId, source: attempt.source});
       }
-      // A finished attempt stays readable for the client's next poll, then goes.
-      if (attempt.expiresAt + ATTEMPT_LIFETIME_MS <= now) this.#attempts.delete(attempt.id);
+      // A finished attempt stays readable for the client's next poll and a return arriving again,
+      // then goes.
+      if (attempt.expiresAt + ATTEMPT_LIFETIME_MS <= now) {
+        this.#attempts.delete(attempt.id);
+        for (const [state, id] of this.#byState) if (id === attempt.id) this.#byState.delete(state);
+      }
     }
   }
 

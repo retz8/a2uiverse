@@ -5,6 +5,9 @@
  *   pnpm dev:agents [--tier mocks] [--only github,gmail] [--mode deterministic|stub|live] [--agents-dir <path>] [--no-install]
  *   pnpm agents:list [--tier mocks]
  *
+ * `A2UIVERSE_PUBLIC_URL`, a pattern with a `{port}` slot (a tunnel address), gives each agent the
+ * public address the browser reaches its sign-in pages at (task-12.12 decision 2).
+ *
  * Apps are never built in this repo and never depend on it (SPEC §13), so this is the one place
  * that knows how to start them: the roster (`dev-roster.mjs`) names each app, its folder in the
  * checkout, its tier and its port. A launch runs one tier, the default one unless `--tier` says
@@ -35,7 +38,13 @@ import {fileURLToPath} from 'node:url';
 import {artifactFiles, stellify} from '@a2uiverse/stellify';
 
 import {DEFAULT_TIER, ROSTER} from './dev-roster.mjs';
-import {appsToUninstall, parseLaunchArgs, planLaunch, resolveAgentsDir} from './launch-plan.mjs';
+import {
+  appsToUninstall,
+  parseLaunchArgs,
+  planLaunch,
+  publicUrlsOf,
+  resolveAgentsDir,
+} from './launch-plan.mjs';
 import {
   cardAnswers,
   installBody,
@@ -99,9 +108,10 @@ async function waitFor(check, ms, gone = () => null) {
 
 /**
  * Start one agent on its roster port, and begin waiting for its card. `ready` resolves to null once
- * the card answers, or to the reason it never came up.
+ * the card answers, or to the reason it never came up. `publicUrl`, when set, is where the browser
+ * reaches the agent's sign-in pages; its card and the rest stay on `localhost`.
  */
-function start(entry, mode, color) {
+function start(entry, mode, color, publicUrl) {
   const child = spawn(
     'uv',
     [
@@ -115,6 +125,7 @@ function start(entry, mode, color) {
       'localhost',
       '--port',
       String(entry.port),
+      ...(publicUrl ? ['--public-url', publicUrl] : []),
     ],
     {cwd: entry.agentDir, stdio: ['ignore', 'pipe', 'pipe']},
   );
@@ -318,6 +329,9 @@ async function main() {
     );
   }
 
+  const publicUrls = publicUrlsOf(process.env.A2UIVERSE_PUBLIC_URL);
+  if (publicUrls.error) fail(publicUrls.error);
+
   const plan = planLaunch({
     roster: ROSTER,
     tier,
@@ -341,8 +355,12 @@ async function main() {
   if (!selected.length) fail(`no launchable apps in the ${tier} tier`);
 
   log(`${selected.map(e => e.id).join(', ')} in ${mode} mode (${tier} tier)`);
+  if (publicUrls.pattern) log(`sign-in pages at ${publicUrls.pattern} (A2UIVERSE_PUBLIC_URL)`);
   const running = new Map(
-    selected.map((entry, i) => [entry.id, start(entry, mode, COLORS[i % COLORS.length])]),
+    selected.map((entry, i) => [
+      entry.id,
+      start(entry, mode, COLORS[i % COLORS.length], publicUrls.of(entry.port)),
+    ]),
   );
 
   /** Ctrl-C tears the whole group down — the agents, and the platform if we started it. */

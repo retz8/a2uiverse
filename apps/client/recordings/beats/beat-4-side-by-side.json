@@ -4,18 +4,18 @@
   "title": "Side by side",
   "prompt": "Put my inbox and my calendar side by side.",
   "model": "gemini-3.7-flash",
-  "recordedAt": "2026-09-27T10:08:55Z",
-  "contextId": "873ceb13-27db-463c-aa8a-c708d793f6cd",
+  "recordedAt": "2026-10-06T10:51:17Z",
+  "contextId": "277734b6-5a75-4208-a691-e4975d70d6b2",
   "chainedFrom": null,
   "turns": [
     {
-      "taskId": "37ea8d1c-7dba-4ea2-ba7b-805ce59fb67f",
+      "taskId": "9443aa8a-2e0f-4c80-a4b7-90fa1f36f4ae",
       "kind": "utterance",
       "prompt": "Put my inbox and my calendar side by side.",
       "action": null,
       "batches": [
         {
-          "offsetMs": 4730,
+          "offsetMs": 4041,
           "messages": [
             {
               "paintMeta": {
@@ -39,22 +39,22 @@
                     "id": "root",
                     "component": "Row",
                     "children": [
-                      "attribution-inbox-slot",
+                      "attribution-gmail-slot",
                       "attribution-calendar-slot"
                     ]
                   },
                   {
-                    "id": "attribution-inbox-slot",
+                    "id": "attribution-gmail-slot",
                     "component": "Attribution",
                     "displayName": "Gmail",
-                    "source": "gmail",
-                    "child": "inbox-slot",
+                    "source": "gmail.1",
+                    "child": "gmail-slot",
                     "weight": 1
                   },
                   {
-                    "id": "inbox-slot",
+                    "id": "gmail-slot",
                     "component": "Slot",
-                    "source": "gmail",
+                    "source": "gmail.1",
                     "weight": 1,
                     "state": "pending",
                     "label": "Gmail"
@@ -63,14 +63,14 @@
                     "id": "attribution-calendar-slot",
                     "component": "Attribution",
                     "displayName": "Google Calendar",
-                    "source": "calendar",
+                    "source": "calendar.1",
                     "child": "calendar-slot",
                     "weight": 1
                   },
                   {
                     "id": "calendar-slot",
                     "component": "Slot",
-                    "source": "calendar",
+                    "source": "calendar.1",
                     "weight": 1,
                     "state": "pending",
                     "label": "Google Calendar"
@@ -86,621 +86,18 @@
           }
         },
         {
-          "offsetMs": 4750,
+          "offsetMs": 4048,
           "messages": [
             {
               "paintMeta": {
-                "surfaceId": "gmail:gmail-1",
-                "title": "Needs attention"
-              }
-            },
-            {
-              "version": "v0.9",
-              "createSurface": {
-                "surfaceId": "gmail:gmail-1",
-                "catalogId": "https://github.com/retz8/a2uiverse-apps/blob/main/gmail/gmail-catalog/catalogs/v0.9.1/catalog.json",
-                "sendDataModel": true
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "gmail:gmail-1",
-                "value": {
-                  "threads": [
-                    {
-                      "id": "19829cbece7facf1",
-                      "sender": "Mei Silva",
-                      "subject": "Re: Notes ahead of the design review: agenda surface"
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "gmail:gmail-1",
-                "value": {
-                  "threads": [
-                    {
-                      "id": "19829cbece7facf1",
-                      "sender": "Mei Silva",
-                      "subject": "Re: Notes ahead of the design review: agenda surface",
-                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?"
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "gmail:gmail-1",
-                "value": {
-                  "threads": [
-                    {
-                      "id": "19829cbece7facf1",
-                      "sender": "Mei Silva",
-                      "subject": "Re: Notes ahead of the design review: agenda surface",
-                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
-                      "when": "2026-09-19 12:41 UTC"
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "gmail:gmail-1",
-                "value": {
-                  "threads": [
-                    {
-                      "id": "19829cbece7facf1",
-                      "sender": "Mei Silva",
-                      "subject": "Re: Notes ahead of the design review: agenda surface",
-                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
-                      "when": "2026-09-19 12:41 UTC"
-                    },
-                    {
-                      "id": "1956e7633ba626aa",
-                      "sender": "Alex Bergman"
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "gmail:gmail-1",
-                "value": {
-                  "threads": [
-                    {
-                      "id": "19829cbece7facf1",
-                      "sender": "Mei Silva",
-                      "subject": "Re: Notes ahead of the design review: agenda surface",
-                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
-                      "when": "2026-09-19 12:41 UTC"
-                    },
-                    {
-                      "id": "1956e7633ba626aa",
-                      "sender": "Alex Bergman",
-                      "subject": "Could you review #8 before quarter planning?"
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "gmail:gmail-1",
-                "value": {
-                  "threads": [
-                    {
-                      "id": "19829cbece7facf1",
-                      "sender": "Mei Silva",
-                      "subject": "Re: Notes ahead of the design review: agenda surface",
-                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
-                      "when": "2026-09-19 12:41 UTC"
-                    },
-                    {
-                      "id": "1956e7633ba626aa",
-                      "sender": "Alex Bergman",
-                      "subject": "Could you review #8 before quarter planning?",
-                      "snippet": "Hey, Could you take a look at #8 today? I'd like to show the effort split at quarter planning tomorrow at 10, and it would be good to have your review on it first. Mostly the part where the"
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "gmail:gmail-1",
-                "value": {
-                  "threads": [
-                    {
-                      "id": "19829cbece7facf1",
-                      "sender": "Mei Silva",
-                      "subject": "Re: Notes ahead of the design review: agenda surface",
-                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
-                      "when": "2026-09-19 12:41 UTC"
-                    },
-                    {
-                      "id": "1956e7633ba626aa",
-                      "sender": "Alex Bergman",
-                      "subject": "Could you review #8 before quarter planning?",
-                      "snippet": "Hey, Could you take a look at #8 today? I'd like to show the effort split at quarter planning tomorrow at 10, and it would be good to have your review on it first. Mostly the part where the",
-                      "when": "2026-09-19 11:30 UTC"
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "gmail:gmail-1",
-                "value": {
-                  "threads": [
-                    {
-                      "id": "19829cbece7facf1",
-                      "sender": "Mei Silva",
-                      "subject": "Re: Notes ahead of the design review: agenda surface",
-                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
-                      "when": "2026-09-19 12:41 UTC"
-                    },
-                    {
-                      "id": "1956e7633ba626aa",
-                      "sender": "Alex Bergman",
-                      "subject": "Could you review #8 before quarter planning?",
-                      "snippet": "Hey, Could you take a look at #8 today? I'd like to show the effort split at quarter planning tomorrow at 10, and it would be good to have your review on it first. Mostly the part where the",
-                      "when": "2026-09-19 11:30 UTC"
-                    },
-                    {
-                      "id": "19fd40c07b154538"
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "gmail:gmail-1",
-                "value": {
-                  "threads": [
-                    {
-                      "id": "19829cbece7facf1",
-                      "sender": "Mei Silva",
-                      "subject": "Re: Notes ahead of the design review: agenda surface",
-                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
-                      "when": "2026-09-19 12:41 UTC"
-                    },
-                    {
-                      "id": "1956e7633ba626aa",
-                      "sender": "Alex Bergman",
-                      "subject": "Could you review #8 before quarter planning?",
-                      "snippet": "Hey, Could you take a look at #8 today? I'd like to show the effort split at quarter planning tomorrow at 10, and it would be good to have your review on it first. Mostly the part where the",
-                      "when": "2026-09-19 11:30 UTC"
-                    },
-                    {
-                      "id": "19fd40c07b154538",
-                      "sender": "Mei Silva",
-                      "subject": "CI failing on synthesizer-effort-apart-from-planner"
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "gmail:gmail-1",
-                "value": {
-                  "threads": [
-                    {
-                      "id": "19829cbece7facf1",
-                      "sender": "Mei Silva",
-                      "subject": "Re: Notes ahead of the design review: agenda surface",
-                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
-                      "when": "2026-09-19 12:41 UTC"
-                    },
-                    {
-                      "id": "1956e7633ba626aa",
-                      "sender": "Alex Bergman",
-                      "subject": "Could you review #8 before quarter planning?",
-                      "snippet": "Hey, Could you take a look at #8 today? I'd like to show the effort split at quarter planning tomorrow at 10, and it would be good to have your review on it first. Mostly the part where the",
-                      "when": "2026-09-19 11:30 UTC"
-                    },
-                    {
-                      "id": "19fd40c07b154538",
-                      "sender": "Mei Silva",
-                      "subject": "CI failing on synthesizer-effort-apart-from-planner",
-                      "snippet": "Morning! The latest run on synthesizer-effort-apart-from-planner failed in lint-format. Prettier flagged apps/orchestrator/src/config.ts, so it looks like formatting, not the tests. Want me to push"
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "gmail:gmail-1",
-                "value": {
-                  "threads": [
-                    {
-                      "id": "19829cbece7facf1",
-                      "sender": "Mei Silva",
-                      "subject": "Re: Notes ahead of the design review: agenda surface",
-                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
-                      "when": "2026-09-19 12:41 UTC"
-                    },
-                    {
-                      "id": "1956e7633ba626aa",
-                      "sender": "Alex Bergman",
-                      "subject": "Could you review #8 before quarter planning?",
-                      "snippet": "Hey, Could you take a look at #8 today? I'd like to show the effort split at quarter planning tomorrow at 10, and it would be good to have your review on it first. Mostly the part where the",
-                      "when": "2026-09-19 11:30 UTC"
-                    },
-                    {
-                      "id": "19fd40c07b154538",
-                      "sender": "Mei Silva",
-                      "subject": "CI failing on synthesizer-effort-apart-from-planner",
-                      "snippet": "Morning! The latest run on synthesizer-effort-apart-from-planner failed in lint-format. Prettier flagged apps/orchestrator/src/config.ts, so it looks like formatting, not the tests. Want me to push",
-                      "when": "2026-09-19 11:05 UTC"
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "gmail:gmail-1",
-                "value": {
-                  "threads": [
-                    {
-                      "id": "19829cbece7facf1",
-                      "sender": "Mei Silva",
-                      "subject": "Re: Notes ahead of the design review: agenda surface",
-                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
-                      "when": "2026-09-19 12:41 UTC"
-                    },
-                    {
-                      "id": "1956e7633ba626aa",
-                      "sender": "Alex Bergman",
-                      "subject": "Could you review #8 before quarter planning?",
-                      "snippet": "Hey, Could you take a look at #8 today? I'd like to show the effort split at quarter planning tomorrow at 10, and it would be good to have your review on it first. Mostly the part where the",
-                      "when": "2026-09-19 11:30 UTC"
-                    },
-                    {
-                      "id": "19fd40c07b154538",
-                      "sender": "Mei Silva",
-                      "subject": "CI failing on synthesizer-effort-apart-from-planner",
-                      "snippet": "Morning! The latest run on synthesizer-effort-apart-from-planner failed in lint-format. Prettier flagged apps/orchestrator/src/config.ts, so it looks like formatting, not the tests. Want me to push",
-                      "when": "2026-09-19 11:05 UTC"
-                    },
-                    {
-                      "id": "19b6cefab66744cf",
-                      "sender": "Clara Moreau"
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "gmail:gmail-1",
-                "value": {
-                  "threads": [
-                    {
-                      "id": "19829cbece7facf1",
-                      "sender": "Mei Silva",
-                      "subject": "Re: Notes ahead of the design review: agenda surface",
-                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
-                      "when": "2026-09-19 12:41 UTC"
-                    },
-                    {
-                      "id": "1956e7633ba626aa",
-                      "sender": "Alex Bergman",
-                      "subject": "Could you review #8 before quarter planning?",
-                      "snippet": "Hey, Could you take a look at #8 today? I'd like to show the effort split at quarter planning tomorrow at 10, and it would be good to have your review on it first. Mostly the part where the",
-                      "when": "2026-09-19 11:30 UTC"
-                    },
-                    {
-                      "id": "19fd40c07b154538",
-                      "sender": "Mei Silva",
-                      "subject": "CI failing on synthesizer-effort-apart-from-planner",
-                      "snippet": "Morning! The latest run on synthesizer-effort-apart-from-planner failed in lint-format. Prettier flagged apps/orchestrator/src/config.ts, so it looks like formatting, not the tests. Want me to push",
-                      "when": "2026-09-19 11:05 UTC"
-                    },
-                    {
-                      "id": "19b6cefab66744cf",
-                      "sender": "Clara Moreau",
-                      "subject": "Numbers for the 11:30 budget sync"
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "gmail:gmail-1",
-                "value": {
-                  "threads": [
-                    {
-                      "id": "19829cbece7facf1",
-                      "sender": "Mei Silva",
-                      "subject": "Re: Notes ahead of the design review: agenda surface",
-                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
-                      "when": "2026-09-19 12:41 UTC"
-                    },
-                    {
-                      "id": "1956e7633ba626aa",
-                      "sender": "Alex Bergman",
-                      "subject": "Could you review #8 before quarter planning?",
-                      "snippet": "Hey, Could you take a look at #8 today? I'd like to show the effort split at quarter planning tomorrow at 10, and it would be good to have your review on it first. Mostly the part where the",
-                      "when": "2026-09-19 11:30 UTC"
-                    },
-                    {
-                      "id": "19fd40c07b154538",
-                      "sender": "Mei Silva",
-                      "subject": "CI failing on synthesizer-effort-apart-from-planner",
-                      "snippet": "Morning! The latest run on synthesizer-effort-apart-from-planner failed in lint-format. Prettier flagged apps/orchestrator/src/config.ts, so it looks like formatting, not the tests. Want me to push",
-                      "when": "2026-09-19 11:05 UTC"
-                    },
-                    {
-                      "id": "19b6cefab66744cf",
-                      "sender": "Clara Moreau",
-                      "subject": "Numbers for the 11:30 budget sync",
-                      "snippet": "Hi, Ahead of our 11:30, I've put the Q4 numbers in the budget sheet. Everything is in except the model spend. Could you bring an estimate for October, even a rough one? Thanks, Clara"
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "gmail:gmail-1",
-                "value": {
-                  "threads": [
-                    {
-                      "id": "19829cbece7facf1",
-                      "sender": "Mei Silva",
-                      "subject": "Re: Notes ahead of the design review: agenda surface",
-                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
-                      "when": "2026-09-19 12:41 UTC"
-                    },
-                    {
-                      "id": "1956e7633ba626aa",
-                      "sender": "Alex Bergman",
-                      "subject": "Could you review #8 before quarter planning?",
-                      "snippet": "Hey, Could you take a look at #8 today? I'd like to show the effort split at quarter planning tomorrow at 10, and it would be good to have your review on it first. Mostly the part where the",
-                      "when": "2026-09-19 11:30 UTC"
-                    },
-                    {
-                      "id": "19fd40c07b154538",
-                      "sender": "Mei Silva",
-                      "subject": "CI failing on synthesizer-effort-apart-from-planner",
-                      "snippet": "Morning! The latest run on synthesizer-effort-apart-from-planner failed in lint-format. Prettier flagged apps/orchestrator/src/config.ts, so it looks like formatting, not the tests. Want me to push",
-                      "when": "2026-09-19 11:05 UTC"
-                    },
-                    {
-                      "id": "19b6cefab66744cf",
-                      "sender": "Clara Moreau",
-                      "subject": "Numbers for the 11:30 budget sync",
-                      "snippet": "Hi, Ahead of our 11:30, I've put the Q4 numbers in the budget sheet. Everything is in except the model spend. Could you bring an estimate for October, even a rough one? Thanks, Clara",
-                      "when": "2026-09-19 10:48 UTC"
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "gmail:gmail-1",
-                "path": "/",
-                "value": {
-                  "threads": [
-                    {
-                      "id": "19829cbece7facf1",
-                      "sender": "Mei Silva",
-                      "subject": "Re: Notes ahead of the design review: agenda surface",
-                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
-                      "when": "2026-09-19 12:41 UTC"
-                    },
-                    {
-                      "id": "1956e7633ba626aa",
-                      "sender": "Alex Bergman",
-                      "subject": "Could you review #8 before quarter planning?",
-                      "snippet": "Hey, Could you take a look at #8 today? I'd like to show the effort split at quarter planning tomorrow at 10, and it would be good to have your review on it first. Mostly the part where the",
-                      "when": "2026-09-19 11:30 UTC"
-                    },
-                    {
-                      "id": "19fd40c07b154538",
-                      "sender": "Mei Silva",
-                      "subject": "CI failing on synthesizer-effort-apart-from-planner",
-                      "snippet": "Morning! The latest run on synthesizer-effort-apart-from-planner failed in lint-format. Prettier flagged apps/orchestrator/src/config.ts, so it looks like formatting, not the tests. Want me to push",
-                      "when": "2026-09-19 11:05 UTC"
-                    },
-                    {
-                      "id": "19b6cefab66744cf",
-                      "sender": "Clara Moreau",
-                      "subject": "Numbers for the 11:30 budget sync",
-                      "snippet": "Hi, Ahead of our 11:30, I've put the Q4 numbers in the budget sheet. Everything is in except the model spend. Could you bring an estimate for October, even a rough one? Thanks, Clara",
-                      "when": "2026-09-19 10:48 UTC"
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateComponents": {
-                "components": [
-                  {
-                    "id": "root",
-                    "component": "Surface",
-                    "child": "body",
-                    "container": "low",
-                    "shape": "large",
-                    "padding": "small"
-                  },
-                  {
-                    "id": "body",
-                    "component": "Stack",
-                    "children": [
-                      "header",
-                      "sheet"
-                    ],
-                    "gap": "xs"
-                  },
-                  {
-                    "id": "header",
-                    "component": "Stack",
-                    "children": [
-                      "heading",
-                      "sub"
-                    ],
-                    "gap": "xs",
-                    "padding": "sm"
-                  },
-                  {
-                    "id": "heading",
-                    "component": "Text",
-                    "text": "Needs attention today",
-                    "variant": "titleLarge"
-                  },
-                  {
-                    "id": "sub",
-                    "component": "Text",
-                    "text": "4 unread threads waiting on your review or reply",
-                    "variant": "bodySmall",
-                    "color": "onSurfaceVariant"
-                  },
-                  {
-                    "id": "sheet",
-                    "component": "Surface",
-                    "child": "thread-list",
-                    "container": "lowest",
-                    "shape": "large",
-                    "padding": "none"
-                  },
-                  {
-                    "id": "thread-list",
-                    "component": "List",
-                    "children": {
-                      "path": "/threads",
-                      "componentId": "thread-row"
-                    },
-                    "dividers": true,
-                    "layout": "inline"
-                  },
-                  {
-                    "id": "thread-row",
-                    "component": "ListItem",
-                    "headline": "thread-sender",
-                    "supporting": "thread-preview",
-                    "meta": "thread-when",
-                    "leading": [
-                      "thread-avatar"
-                    ],
-                    "action": {
-                      "event": {
-                        "name": "open-thread",
-                        "context": {
-                          "threadId": {
-                            "path": "id"
-                          }
-                        }
-                      }
-                    }
-                  },
-                  {
-                    "id": "thread-avatar",
-                    "component": "Avatar",
-                    "name": {
-                      "path": "sender"
-                    },
-                    "size": "medium"
-                  },
-                  {
-                    "id": "thread-sender",
-                    "component": "Text",
-                    "text": {
-                      "path": "sender"
-                    },
-                    "weight": "bold",
-                    "maxLines": 1
-                  },
-                  {
-                    "id": "thread-when",
-                    "component": "Text",
-                    "text": {
-                      "path": "when"
-                    },
-                    "variant": "labelMedium",
-                    "color": "onSurfaceVariant"
-                  },
-                  {
-                    "id": "thread-preview",
-                    "component": "Stack",
-                    "children": [
-                      "thread-subject",
-                      "thread-snippet"
-                    ],
-                    "gap": "none"
-                  },
-                  {
-                    "id": "thread-subject",
-                    "component": "Text",
-                    "text": {
-                      "path": "subject"
-                    },
-                    "weight": "medium",
-                    "maxLines": 1
-                  },
-                  {
-                    "id": "thread-snippet",
-                    "component": "Text",
-                    "text": {
-                      "path": "snippet"
-                    },
-                    "color": "onSurfaceVariant",
-                    "maxLines": 1
-                  }
-                ],
-                "surfaceId": "gmail:gmail-1"
-              }
-            }
-          ],
-          "texts": [],
-          "stamp": {
-            "source": "gmail",
-            "role": "fragment"
-          }
-        },
-        {
-          "offsetMs": 4752,
-          "messages": [
-            {
-              "paintMeta": {
-                "surfaceId": "calendar:calendar-1",
+                "surfaceId": "calendar.1:calendar-1",
                 "title": "Needs attention today"
               }
             },
             {
               "version": "v0.9",
               "createSurface": {
-                "surfaceId": "calendar:calendar-1",
+                "surfaceId": "calendar.1:calendar-1",
                 "catalogId": "https://github.com/retz8/a2uiverse-apps/blob/main/calendar/calendar-catalog/catalogs/v0.9.1/catalog.json",
                 "sendDataModel": true
               }
@@ -708,7 +105,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "calendar:calendar-1",
+                "surfaceId": "calendar.1:calendar-1",
                 "value": {
                   "waiting": [
                     {
@@ -723,7 +120,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "calendar:calendar-1",
+                "surfaceId": "calendar.1:calendar-1",
                 "value": {
                   "waiting": [
                     {
@@ -739,7 +136,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "calendar:calendar-1",
+                "surfaceId": "calendar.1:calendar-1",
                 "value": {
                   "clashes": [
                     {
@@ -754,7 +151,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "calendar:calendar-1",
+                "surfaceId": "calendar.1:calendar-1",
                 "value": {
                   "clashes": [
                     {
@@ -770,7 +167,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "calendar:calendar-1",
+                "surfaceId": "calendar.1:calendar-1",
                 "value": {
                   "clashes": [
                     {
@@ -789,7 +186,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "calendar:calendar-1",
+                "surfaceId": "calendar.1:calendar-1",
                 "value": {
                   "clashes": [
                     {
@@ -809,7 +206,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "calendar:calendar-1",
+                "surfaceId": "calendar.1:calendar-1",
                 "value": {
                   "clashes": [
                     {
@@ -830,7 +227,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "calendar:calendar-1",
+                "surfaceId": "calendar.1:calendar-1",
                 "value": {
                   "clashes": [
                     {
@@ -852,7 +249,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "calendar:calendar-1",
+                "surfaceId": "calendar.1:calendar-1",
                 "path": "/",
                 "value": {
                   "waiting": [
@@ -1108,19 +505,622 @@
                     "maxLines": 1
                   }
                 ],
-                "surfaceId": "calendar:calendar-1"
+                "surfaceId": "calendar.1:calendar-1"
               }
             }
           ],
           "texts": [],
           "stamp": {
-            "source": "calendar",
+            "source": "calendar.1",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 4050,
+          "messages": [
+            {
+              "paintMeta": {
+                "surfaceId": "gmail.1:gmail-1",
+                "title": "Needs attention"
+              }
+            },
+            {
+              "version": "v0.9",
+              "createSurface": {
+                "surfaceId": "gmail.1:gmail-1",
+                "catalogId": "https://github.com/retz8/a2uiverse-apps/blob/main/gmail/gmail-catalog/catalogs/v0.9.1/catalog.json",
+                "sendDataModel": true
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail.1:gmail-1",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "19829cbece7facf1",
+                      "sender": "Mei Silva",
+                      "subject": "Re: Notes ahead of the design review: agenda surface"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail.1:gmail-1",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "19829cbece7facf1",
+                      "sender": "Mei Silva",
+                      "subject": "Re: Notes ahead of the design review: agenda surface",
+                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail.1:gmail-1",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "19829cbece7facf1",
+                      "sender": "Mei Silva",
+                      "subject": "Re: Notes ahead of the design review: agenda surface",
+                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
+                      "when": "2026-09-19 12:41 UTC"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail.1:gmail-1",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "19829cbece7facf1",
+                      "sender": "Mei Silva",
+                      "subject": "Re: Notes ahead of the design review: agenda surface",
+                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
+                      "when": "2026-09-19 12:41 UTC"
+                    },
+                    {
+                      "id": "1956e7633ba626aa",
+                      "sender": "Alex Bergman"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail.1:gmail-1",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "19829cbece7facf1",
+                      "sender": "Mei Silva",
+                      "subject": "Re: Notes ahead of the design review: agenda surface",
+                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
+                      "when": "2026-09-19 12:41 UTC"
+                    },
+                    {
+                      "id": "1956e7633ba626aa",
+                      "sender": "Alex Bergman",
+                      "subject": "Could you review #8 before quarter planning?"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail.1:gmail-1",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "19829cbece7facf1",
+                      "sender": "Mei Silva",
+                      "subject": "Re: Notes ahead of the design review: agenda surface",
+                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
+                      "when": "2026-09-19 12:41 UTC"
+                    },
+                    {
+                      "id": "1956e7633ba626aa",
+                      "sender": "Alex Bergman",
+                      "subject": "Could you review #8 before quarter planning?",
+                      "snippet": "Hey, Could you take a look at #8 today? I'd like to show the effort split at quarter planning tomorrow at 10, and it would be good to have your review on it first. Mostly the part where the"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail.1:gmail-1",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "19829cbece7facf1",
+                      "sender": "Mei Silva",
+                      "subject": "Re: Notes ahead of the design review: agenda surface",
+                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
+                      "when": "2026-09-19 12:41 UTC"
+                    },
+                    {
+                      "id": "1956e7633ba626aa",
+                      "sender": "Alex Bergman",
+                      "subject": "Could you review #8 before quarter planning?",
+                      "snippet": "Hey, Could you take a look at #8 today? I'd like to show the effort split at quarter planning tomorrow at 10, and it would be good to have your review on it first. Mostly the part where the",
+                      "when": "2026-09-19 11:30 UTC"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail.1:gmail-1",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "19829cbece7facf1",
+                      "sender": "Mei Silva",
+                      "subject": "Re: Notes ahead of the design review: agenda surface",
+                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
+                      "when": "2026-09-19 12:41 UTC"
+                    },
+                    {
+                      "id": "1956e7633ba626aa",
+                      "sender": "Alex Bergman",
+                      "subject": "Could you review #8 before quarter planning?",
+                      "snippet": "Hey, Could you take a look at #8 today? I'd like to show the effort split at quarter planning tomorrow at 10, and it would be good to have your review on it first. Mostly the part where the",
+                      "when": "2026-09-19 11:30 UTC"
+                    },
+                    {
+                      "id": "19fd40c07b154538"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail.1:gmail-1",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "19829cbece7facf1",
+                      "sender": "Mei Silva",
+                      "subject": "Re: Notes ahead of the design review: agenda surface",
+                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
+                      "when": "2026-09-19 12:41 UTC"
+                    },
+                    {
+                      "id": "1956e7633ba626aa",
+                      "sender": "Alex Bergman",
+                      "subject": "Could you review #8 before quarter planning?",
+                      "snippet": "Hey, Could you take a look at #8 today? I'd like to show the effort split at quarter planning tomorrow at 10, and it would be good to have your review on it first. Mostly the part where the",
+                      "when": "2026-09-19 11:30 UTC"
+                    },
+                    {
+                      "id": "19fd40c07b154538",
+                      "sender": "Mei Silva",
+                      "subject": "CI failing on synthesizer-effort-apart-from-planner"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail.1:gmail-1",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "19829cbece7facf1",
+                      "sender": "Mei Silva",
+                      "subject": "Re: Notes ahead of the design review: agenda surface",
+                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
+                      "when": "2026-09-19 12:41 UTC"
+                    },
+                    {
+                      "id": "1956e7633ba626aa",
+                      "sender": "Alex Bergman",
+                      "subject": "Could you review #8 before quarter planning?",
+                      "snippet": "Hey, Could you take a look at #8 today? I'd like to show the effort split at quarter planning tomorrow at 10, and it would be good to have your review on it first. Mostly the part where the",
+                      "when": "2026-09-19 11:30 UTC"
+                    },
+                    {
+                      "id": "19fd40c07b154538",
+                      "sender": "Mei Silva",
+                      "subject": "CI failing on synthesizer-effort-apart-from-planner",
+                      "snippet": "Morning! The latest run on synthesizer-effort-apart-from-planner failed in lint-format. Prettier flagged apps/orchestrator/src/config.ts, so it looks like formatting, not the tests. Want me to push"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail.1:gmail-1",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "19829cbece7facf1",
+                      "sender": "Mei Silva",
+                      "subject": "Re: Notes ahead of the design review: agenda surface",
+                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
+                      "when": "2026-09-19 12:41 UTC"
+                    },
+                    {
+                      "id": "1956e7633ba626aa",
+                      "sender": "Alex Bergman",
+                      "subject": "Could you review #8 before quarter planning?",
+                      "snippet": "Hey, Could you take a look at #8 today? I'd like to show the effort split at quarter planning tomorrow at 10, and it would be good to have your review on it first. Mostly the part where the",
+                      "when": "2026-09-19 11:30 UTC"
+                    },
+                    {
+                      "id": "19fd40c07b154538",
+                      "sender": "Mei Silva",
+                      "subject": "CI failing on synthesizer-effort-apart-from-planner",
+                      "snippet": "Morning! The latest run on synthesizer-effort-apart-from-planner failed in lint-format. Prettier flagged apps/orchestrator/src/config.ts, so it looks like formatting, not the tests. Want me to push",
+                      "when": "2026-09-19 11:05 UTC"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail.1:gmail-1",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "19829cbece7facf1",
+                      "sender": "Mei Silva",
+                      "subject": "Re: Notes ahead of the design review: agenda surface",
+                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
+                      "when": "2026-09-19 12:41 UTC"
+                    },
+                    {
+                      "id": "1956e7633ba626aa",
+                      "sender": "Alex Bergman",
+                      "subject": "Could you review #8 before quarter planning?",
+                      "snippet": "Hey, Could you take a look at #8 today? I'd like to show the effort split at quarter planning tomorrow at 10, and it would be good to have your review on it first. Mostly the part where the",
+                      "when": "2026-09-19 11:30 UTC"
+                    },
+                    {
+                      "id": "19fd40c07b154538",
+                      "sender": "Mei Silva",
+                      "subject": "CI failing on synthesizer-effort-apart-from-planner",
+                      "snippet": "Morning! The latest run on synthesizer-effort-apart-from-planner failed in lint-format. Prettier flagged apps/orchestrator/src/config.ts, so it looks like formatting, not the tests. Want me to push",
+                      "when": "2026-09-19 11:05 UTC"
+                    },
+                    {
+                      "id": "19b6cefab66744cf",
+                      "sender": "Clara Moreau"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail.1:gmail-1",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "19829cbece7facf1",
+                      "sender": "Mei Silva",
+                      "subject": "Re: Notes ahead of the design review: agenda surface",
+                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
+                      "when": "2026-09-19 12:41 UTC"
+                    },
+                    {
+                      "id": "1956e7633ba626aa",
+                      "sender": "Alex Bergman",
+                      "subject": "Could you review #8 before quarter planning?",
+                      "snippet": "Hey, Could you take a look at #8 today? I'd like to show the effort split at quarter planning tomorrow at 10, and it would be good to have your review on it first. Mostly the part where the",
+                      "when": "2026-09-19 11:30 UTC"
+                    },
+                    {
+                      "id": "19fd40c07b154538",
+                      "sender": "Mei Silva",
+                      "subject": "CI failing on synthesizer-effort-apart-from-planner",
+                      "snippet": "Morning! The latest run on synthesizer-effort-apart-from-planner failed in lint-format. Prettier flagged apps/orchestrator/src/config.ts, so it looks like formatting, not the tests. Want me to push",
+                      "when": "2026-09-19 11:05 UTC"
+                    },
+                    {
+                      "id": "19b6cefab66744cf",
+                      "sender": "Clara Moreau",
+                      "subject": "Numbers for the 11:30 budget sync"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail.1:gmail-1",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "19829cbece7facf1",
+                      "sender": "Mei Silva",
+                      "subject": "Re: Notes ahead of the design review: agenda surface",
+                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
+                      "when": "2026-09-19 12:41 UTC"
+                    },
+                    {
+                      "id": "1956e7633ba626aa",
+                      "sender": "Alex Bergman",
+                      "subject": "Could you review #8 before quarter planning?",
+                      "snippet": "Hey, Could you take a look at #8 today? I'd like to show the effort split at quarter planning tomorrow at 10, and it would be good to have your review on it first. Mostly the part where the",
+                      "when": "2026-09-19 11:30 UTC"
+                    },
+                    {
+                      "id": "19fd40c07b154538",
+                      "sender": "Mei Silva",
+                      "subject": "CI failing on synthesizer-effort-apart-from-planner",
+                      "snippet": "Morning! The latest run on synthesizer-effort-apart-from-planner failed in lint-format. Prettier flagged apps/orchestrator/src/config.ts, so it looks like formatting, not the tests. Want me to push",
+                      "when": "2026-09-19 11:05 UTC"
+                    },
+                    {
+                      "id": "19b6cefab66744cf",
+                      "sender": "Clara Moreau",
+                      "subject": "Numbers for the 11:30 budget sync",
+                      "snippet": "Hi, Ahead of our 11:30, I've put the Q4 numbers in the budget sheet. Everything is in except the model spend. Could you bring an estimate for October, even a rough one? Thanks, Clara"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail.1:gmail-1",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "19829cbece7facf1",
+                      "sender": "Mei Silva",
+                      "subject": "Re: Notes ahead of the design review: agenda surface",
+                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
+                      "when": "2026-09-19 12:41 UTC"
+                    },
+                    {
+                      "id": "1956e7633ba626aa",
+                      "sender": "Alex Bergman",
+                      "subject": "Could you review #8 before quarter planning?",
+                      "snippet": "Hey, Could you take a look at #8 today? I'd like to show the effort split at quarter planning tomorrow at 10, and it would be good to have your review on it first. Mostly the part where the",
+                      "when": "2026-09-19 11:30 UTC"
+                    },
+                    {
+                      "id": "19fd40c07b154538",
+                      "sender": "Mei Silva",
+                      "subject": "CI failing on synthesizer-effort-apart-from-planner",
+                      "snippet": "Morning! The latest run on synthesizer-effort-apart-from-planner failed in lint-format. Prettier flagged apps/orchestrator/src/config.ts, so it looks like formatting, not the tests. Want me to push",
+                      "when": "2026-09-19 11:05 UTC"
+                    },
+                    {
+                      "id": "19b6cefab66744cf",
+                      "sender": "Clara Moreau",
+                      "subject": "Numbers for the 11:30 budget sync",
+                      "snippet": "Hi, Ahead of our 11:30, I've put the Q4 numbers in the budget sheet. Everything is in except the model spend. Could you bring an estimate for October, even a rough one? Thanks, Clara",
+                      "when": "2026-09-19 10:48 UTC"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail.1:gmail-1",
+                "path": "/",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "19829cbece7facf1",
+                      "sender": "Mei Silva",
+                      "subject": "Re: Notes ahead of the design review: agenda surface",
+                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
+                      "when": "2026-09-19 12:41 UTC"
+                    },
+                    {
+                      "id": "1956e7633ba626aa",
+                      "sender": "Alex Bergman",
+                      "subject": "Could you review #8 before quarter planning?",
+                      "snippet": "Hey, Could you take a look at #8 today? I'd like to show the effort split at quarter planning tomorrow at 10, and it would be good to have your review on it first. Mostly the part where the",
+                      "when": "2026-09-19 11:30 UTC"
+                    },
+                    {
+                      "id": "19fd40c07b154538",
+                      "sender": "Mei Silva",
+                      "subject": "CI failing on synthesizer-effort-apart-from-planner",
+                      "snippet": "Morning! The latest run on synthesizer-effort-apart-from-planner failed in lint-format. Prettier flagged apps/orchestrator/src/config.ts, so it looks like formatting, not the tests. Want me to push",
+                      "when": "2026-09-19 11:05 UTC"
+                    },
+                    {
+                      "id": "19b6cefab66744cf",
+                      "sender": "Clara Moreau",
+                      "subject": "Numbers for the 11:30 budget sync",
+                      "snippet": "Hi, Ahead of our 11:30, I've put the Q4 numbers in the budget sheet. Everything is in except the model spend. Could you bring an estimate for October, even a rough one? Thanks, Clara",
+                      "when": "2026-09-19 10:48 UTC"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "root",
+                    "component": "Surface",
+                    "child": "body",
+                    "container": "low",
+                    "shape": "large",
+                    "padding": "small"
+                  },
+                  {
+                    "id": "body",
+                    "component": "Stack",
+                    "children": [
+                      "header",
+                      "sheet"
+                    ],
+                    "gap": "xs"
+                  },
+                  {
+                    "id": "header",
+                    "component": "Stack",
+                    "children": [
+                      "heading",
+                      "sub"
+                    ],
+                    "gap": "xs",
+                    "padding": "sm"
+                  },
+                  {
+                    "id": "heading",
+                    "component": "Text",
+                    "text": "Needs attention today",
+                    "variant": "titleLarge"
+                  },
+                  {
+                    "id": "sub",
+                    "component": "Text",
+                    "text": "4 unread threads waiting on your review or reply",
+                    "variant": "bodySmall",
+                    "color": "onSurfaceVariant"
+                  },
+                  {
+                    "id": "sheet",
+                    "component": "Surface",
+                    "child": "thread-list",
+                    "container": "lowest",
+                    "shape": "large",
+                    "padding": "none"
+                  },
+                  {
+                    "id": "thread-list",
+                    "component": "List",
+                    "children": {
+                      "path": "/threads",
+                      "componentId": "thread-row"
+                    },
+                    "dividers": true,
+                    "layout": "inline"
+                  },
+                  {
+                    "id": "thread-row",
+                    "component": "ListItem",
+                    "headline": "thread-sender",
+                    "supporting": "thread-preview",
+                    "meta": "thread-when",
+                    "leading": [
+                      "thread-avatar"
+                    ],
+                    "action": {
+                      "event": {
+                        "name": "open-thread",
+                        "context": {
+                          "threadId": {
+                            "path": "id"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "thread-avatar",
+                    "component": "Avatar",
+                    "name": {
+                      "path": "sender"
+                    },
+                    "size": "medium"
+                  },
+                  {
+                    "id": "thread-sender",
+                    "component": "Text",
+                    "text": {
+                      "path": "sender"
+                    },
+                    "weight": "bold",
+                    "maxLines": 1
+                  },
+                  {
+                    "id": "thread-when",
+                    "component": "Text",
+                    "text": {
+                      "path": "when"
+                    },
+                    "variant": "labelMedium",
+                    "color": "onSurfaceVariant"
+                  },
+                  {
+                    "id": "thread-preview",
+                    "component": "Stack",
+                    "children": [
+                      "thread-subject",
+                      "thread-snippet"
+                    ],
+                    "gap": "none"
+                  },
+                  {
+                    "id": "thread-subject",
+                    "component": "Text",
+                    "text": {
+                      "path": "subject"
+                    },
+                    "weight": "medium",
+                    "maxLines": 1
+                  },
+                  {
+                    "id": "thread-snippet",
+                    "component": "Text",
+                    "text": {
+                      "path": "snippet"
+                    },
+                    "color": "onSurfaceVariant",
+                    "maxLines": 1
+                  }
+                ],
+                "surfaceId": "gmail.1:gmail-1"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail.1",
             "role": "fragment"
           }
         }
       ],
       "outcome": "completed",
-      "durationMs": 4754
+      "durationMs": 4051
     }
   ]
 }

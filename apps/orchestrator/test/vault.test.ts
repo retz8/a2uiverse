@@ -381,6 +381,22 @@ describe('before dispatch and the sign-in', () => {
     expect(await wrongState.text()).toContain("didn't finish");
   });
 
+  test('the callback arriving again for a sign-in that finished says so, and exchanges nothing twice', async () => {
+    // A stalled request the tunnel delivers late, or the window reloaded (task 12.12).
+    const {base, client} = await boot({apps: {shop: {card: oauthCard()}}, plan: shopOnly});
+    const canvas = contextOf(await collect(client, utterance('my orders')));
+    const {authorize, cookie, outcome} = await signIn(base, canvas, 'shop.1');
+    expect(outcome!.state).toBe('signedIn');
+    const issued = auth.issued.length;
+    const back = authorize!.headers.get('location')!;
+    const again = await fetch(back, {redirect: 'manual', headers: {cookie}});
+    expect(await again.text()).toContain("You're signed in");
+    expect(auth.issued).toHaveLength(issued);
+    // Another browser's copy of the address is still no binding.
+    const foreign = await fetch(back, {redirect: 'manual'});
+    expect(await foreign.text()).toContain("didn't finish");
+  });
+
   test('a sign-in for an account already signed in ends signed in at once, the window saying so', async () => {
     const {base, client} = await boot({apps: {shop: {card: oauthCard()}}, plan: shopOnly});
     const canvas = contextOf(await collect(client, utterance('my orders')));

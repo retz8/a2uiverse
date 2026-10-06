@@ -4,8 +4,8 @@
   "title": "A tab finishing in the background",
   "prompt": "what's the status of what I'm working on?",
   "model": "gemini-3.7-flash",
-  "recordedAt": "2026-09-27T10:13:43Z",
-  "contextId": "12f50ac7-33b3-4477-b8df-345b667af4cc",
+  "recordedAt": "2026-10-06T10:59:35Z",
+  "contextId": "847064f0-7526-4cca-82eb-7b557611eab4",
   "chainedFrom": null,
   "deadlines": {
     "softDeadlineSeconds": 60,
@@ -19,18 +19,18 @@
   },
   "turns": [
     {
-      "taskId": "78dbb5c7-8782-43a9-a1b8-55e2234f2f2f",
+      "taskId": "9c1d8b02-f3d8-4983-b0e0-8567bd627bdd",
       "kind": "utterance",
       "prompt": "what's the status of what I'm working on?",
       "action": null,
       "batches": [
         {
-          "offsetMs": 6491,
+          "offsetMs": 7437,
           "messages": [
             {
               "paintMeta": {
                 "surfaceId": "shell:main",
-                "title": "Status of active work"
+                "title": "Work in progress"
               }
             },
             {
@@ -49,12 +49,12 @@
                     "id": "root",
                     "component": "Column",
                     "children": [
-                      "status-view",
+                      "merged-view",
                       "sources"
                     ]
                   },
                   {
-                    "id": "status-view",
+                    "id": "merged-view",
                     "component": "Slot",
                     "source": "shell",
                     "state": "pending",
@@ -62,26 +62,24 @@
                     "content": "shell",
                     "columns": [
                       "Issue",
-                      "Status",
                       "Priority",
+                      "Status",
                       "Pull request",
-                      "CI run",
-                      "Updated"
+                      "CI status"
                     ],
                     "columnSources": [
-                      "linear",
-                      "linear",
-                      "linear",
-                      "github",
-                      "circleci",
-                      "linear"
+                      "linear.1",
+                      "linear.1",
+                      "linear.1",
+                      "github.1",
+                      "circleci.1"
                     ],
                     "join": {
-                      "home": "linear",
+                      "home": "linear.1",
                       "nouns": {
-                        "linear": "issues",
-                        "github": "PRs",
-                        "circleci": "runs"
+                        "linear.1": "issues",
+                        "github.1": "PRs",
+                        "circleci.1": "runs"
                       }
                     }
                   },
@@ -98,14 +96,14 @@
                     "id": "attribution-linear-slot",
                     "component": "Attribution",
                     "displayName": "Linear",
-                    "source": "linear",
+                    "source": "linear.1",
                     "child": "linear-slot",
                     "weight": 1
                   },
                   {
                     "id": "linear-slot",
                     "component": "Slot",
-                    "source": "linear",
+                    "source": "linear.1",
                     "weight": 1,
                     "state": "pending",
                     "label": "Linear",
@@ -115,14 +113,14 @@
                     "id": "attribution-github-slot",
                     "component": "Attribution",
                     "displayName": "GitHub",
-                    "source": "github",
+                    "source": "github.1",
                     "child": "github-slot",
                     "weight": 1
                   },
                   {
                     "id": "github-slot",
                     "component": "Slot",
-                    "source": "github",
+                    "source": "github.1",
                     "weight": 1,
                     "state": "pending",
                     "label": "GitHub",
@@ -132,14 +130,14 @@
                     "id": "attribution-circleci-slot",
                     "component": "Attribution",
                     "displayName": "CircleCI",
-                    "source": "circleci",
+                    "source": "circleci.1",
                     "child": "circleci-slot",
                     "weight": 1
                   },
                   {
                     "id": "circleci-slot",
                     "component": "Slot",
-                    "source": "circleci",
+                    "source": "circleci.1",
                     "weight": 1,
                     "state": "pending",
                     "label": "CircleCI",
@@ -156,18 +154,18 @@
           }
         },
         {
-          "offsetMs": 6502,
+          "offsetMs": 7444,
           "messages": [
             {
               "paintMeta": {
-                "surfaceId": "linear:linear-8",
+                "surfaceId": "linear.1:linear-11",
                 "title": "My issues"
               }
             },
             {
               "version": "v0.9",
               "createSurface": {
-                "surfaceId": "linear:linear-8",
+                "surfaceId": "linear.1:linear-11",
                 "catalogId": "https://github.com/retz8/a2uiverse-apps/blob/main/linear/linear-catalog/catalogs/v0.9.1/catalog.json",
                 "sendDataModel": true
               }
@@ -175,7 +173,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-8",
+                "surfaceId": "linear.1:linear-11",
                 "value": {
                   "team": "A2uiverse"
                 }
@@ -184,7 +182,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-8",
+                "surfaceId": "linear.1:linear-11",
                 "value": {
                   "issues": [
                     {
@@ -202,7 +200,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-8",
+                "surfaceId": "linear.1:linear-11",
                 "value": {
                   "issues": [
                     {
@@ -221,7 +219,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-8",
+                "surfaceId": "linear.1:linear-11",
                 "value": {
                   "issues": [
                     {
@@ -244,7 +242,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-8",
+                "surfaceId": "linear.1:linear-11",
                 "value": {
                   "issues": [
                     {
@@ -269,7 +267,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-8",
+                "surfaceId": "linear.1:linear-11",
                 "value": {
                   "issues": [
                     {
@@ -297,7 +295,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-8",
+                "surfaceId": "linear.1:linear-11",
                 "value": {
                   "issues": [
                     {
@@ -326,7 +324,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-8",
+                "surfaceId": "linear.1:linear-11",
                 "value": {
                   "issues": [
                     {
@@ -356,7 +354,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-8",
+                "surfaceId": "linear.1:linear-11",
                 "value": {
                   "issues": [
                     {
@@ -389,7 +387,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-8",
+                "surfaceId": "linear.1:linear-11",
                 "value": {
                   "issues": [
                     {
@@ -426,7 +424,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-8",
+                "surfaceId": "linear.1:linear-11",
                 "value": {
                   "issues": [
                     {
@@ -465,7 +463,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-8",
+                "surfaceId": "linear.1:linear-11",
                 "value": {
                   "issues": [
                     {
@@ -505,7 +503,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-8",
+                "surfaceId": "linear.1:linear-11",
                 "path": "/",
                 "value": {
                   "team": "A2uiverse",
@@ -661,29 +659,29 @@
                     "variant": "caption"
                   }
                 ],
-                "surfaceId": "linear:linear-8"
+                "surfaceId": "linear.1:linear-11"
               }
             }
           ],
           "texts": [],
           "stamp": {
-            "source": "linear",
+            "source": "linear.1",
             "role": "fragment"
           }
         },
         {
-          "offsetMs": 6503,
+          "offsetMs": 7447,
           "messages": [
             {
               "paintMeta": {
-                "surfaceId": "github:notifications-8",
+                "surfaceId": "github.1:notifications-11",
                 "title": "My Open Pull Requests"
               }
             },
             {
               "version": "v0.9",
               "createSurface": {
-                "surfaceId": "github:notifications-8",
+                "surfaceId": "github.1:notifications-11",
                 "catalogId": "https://github.com/retz8/a2uiverse-apps/blob/main/github/github-catalog/catalogs/v0.9.1/catalog.json",
                 "sendDataModel": true
               }
@@ -691,7 +689,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-8",
+                "surfaceId": "github.1:notifications-11",
                 "value": {
                   "prs": [
                     {
@@ -707,7 +705,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-8",
+                "surfaceId": "github.1:notifications-11",
                 "value": {
                   "prs": [
                     {
@@ -725,7 +723,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-8",
+                "surfaceId": "github.1:notifications-11",
                 "value": {
                   "prs": [
                     {
@@ -745,7 +743,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-8",
+                "surfaceId": "github.1:notifications-11",
                 "value": {
                   "prs": [
                     {
@@ -767,7 +765,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-8",
+                "surfaceId": "github.1:notifications-11",
                 "value": {
                   "prs": [
                     {
@@ -791,7 +789,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-8",
+                "surfaceId": "github.1:notifications-11",
                 "value": {
                   "prs": [
                     {
@@ -816,7 +814,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-8",
+                "surfaceId": "github.1:notifications-11",
                 "value": {
                   "prs": [
                     {
@@ -843,7 +841,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-8",
+                "surfaceId": "github.1:notifications-11",
                 "value": {
                   "prs": [
                     {
@@ -872,7 +870,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-8",
+                "surfaceId": "github.1:notifications-11",
                 "value": {
                   "prs": [
                     {
@@ -904,7 +902,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-8",
+                "surfaceId": "github.1:notifications-11",
                 "value": {
                   "prs": [
                     {
@@ -937,7 +935,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-8",
+                "surfaceId": "github.1:notifications-11",
                 "value": {
                   "prs": [
                     {
@@ -971,7 +969,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-8",
+                "surfaceId": "github.1:notifications-11",
                 "value": {
                   "prs": [
                     {
@@ -1007,7 +1005,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-8",
+                "surfaceId": "github.1:notifications-11",
                 "value": {
                   "prs": [
                     {
@@ -1047,7 +1045,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-8",
+                "surfaceId": "github.1:notifications-11",
                 "value": {
                   "prs": [
                     {
@@ -1088,7 +1086,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-8",
+                "surfaceId": "github.1:notifications-11",
                 "value": {
                   "prs": [
                     {
@@ -1130,7 +1128,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-8",
+                "surfaceId": "github.1:notifications-11",
                 "value": {
                   "prs": [
                     {
@@ -1174,7 +1172,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-8",
+                "surfaceId": "github.1:notifications-11",
                 "value": {
                   "prs": [
                     {
@@ -1219,7 +1217,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-8",
+                "surfaceId": "github.1:notifications-11",
                 "value": {
                   "prs": [
                     {
@@ -1268,7 +1266,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-8",
+                "surfaceId": "github.1:notifications-11",
                 "value": {
                   "prs": [
                     {
@@ -1318,7 +1316,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-8",
+                "surfaceId": "github.1:notifications-11",
                 "value": {
                   "prs": [
                     {
@@ -1369,7 +1367,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-8",
+                "surfaceId": "github.1:notifications-11",
                 "value": {
                   "prs": [
                     {
@@ -1421,7 +1419,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-8",
+                "surfaceId": "github.1:notifications-11",
                 "value": {
                   "prs": [
                     {
@@ -1475,7 +1473,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-8",
+                "surfaceId": "github.1:notifications-11",
                 "value": {
                   "prs": [
                     {
@@ -1530,7 +1528,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-8",
+                "surfaceId": "github.1:notifications-11",
                 "value": {
                   "prs": [
                     {
@@ -1588,7 +1586,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-8",
+                "surfaceId": "github.1:notifications-11",
                 "value": {
                   "prs": [
                     {
@@ -1648,7 +1646,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-8",
+                "surfaceId": "github.1:notifications-11",
                 "value": {
                   "prs": [
                     {
@@ -1709,7 +1707,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-8",
+                "surfaceId": "github.1:notifications-11",
                 "value": {
                   "prs": [
                     {
@@ -1772,7 +1770,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-8",
+                "surfaceId": "github.1:notifications-11",
                 "value": {
                   "prs": [
                     {
@@ -1836,7 +1834,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-8",
+                "surfaceId": "github.1:notifications-11",
                 "path": "/",
                 "value": {
                   "prs": [
@@ -2097,29 +2095,29 @@
                     "second": "2-digit"
                   }
                 ],
-                "surfaceId": "github:notifications-8"
+                "surfaceId": "github.1:notifications-11"
               }
             }
           ],
           "texts": [],
           "stamp": {
-            "source": "github",
+            "source": "github.1",
             "role": "fragment"
           }
         },
         {
-          "offsetMs": 26551,
+          "offsetMs": 27448,
           "messages": [
             {
               "paintMeta": {
-                "surfaceId": "circleci:circleci-1",
+                "surfaceId": "circleci.1:circleci-6",
                 "title": "Recent pipeline runs"
               }
             },
             {
               "version": "v0.9",
               "createSurface": {
-                "surfaceId": "circleci:circleci-1",
+                "surfaceId": "circleci.1:circleci-6",
                 "catalogId": "https://github.com/retz8/a2uiverse-apps/blob/main/circleci/circleci-catalog/catalogs/v0.9.1/catalog.json",
                 "sendDataModel": true
               }
@@ -2127,7 +2125,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-1",
+                "surfaceId": "circleci.1:circleci-6",
                 "value": {
                   "runs": [
                     {
@@ -2144,7 +2142,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-1",
+                "surfaceId": "circleci.1:circleci-6",
                 "value": {
                   "runs": [
                     {
@@ -2162,7 +2160,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-1",
+                "surfaceId": "circleci.1:circleci-6",
                 "value": {
                   "runs": [
                     {
@@ -2181,7 +2179,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-1",
+                "surfaceId": "circleci.1:circleci-6",
                 "value": {
                   "runs": [
                     {
@@ -2201,7 +2199,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-1",
+                "surfaceId": "circleci.1:circleci-6",
                 "value": {
                   "runs": [
                     {
@@ -2224,7 +2222,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-1",
+                "surfaceId": "circleci.1:circleci-6",
                 "value": {
                   "runs": [
                     {
@@ -2250,7 +2248,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-1",
+                "surfaceId": "circleci.1:circleci-6",
                 "value": {
                   "runs": [
                     {
@@ -2277,7 +2275,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-1",
+                "surfaceId": "circleci.1:circleci-6",
                 "value": {
                   "runs": [
                     {
@@ -2305,7 +2303,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-1",
+                "surfaceId": "circleci.1:circleci-6",
                 "value": {
                   "runs": [
                     {
@@ -2334,7 +2332,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-1",
+                "surfaceId": "circleci.1:circleci-6",
                 "value": {
                   "runs": [
                     {
@@ -2364,7 +2362,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-1",
+                "surfaceId": "circleci.1:circleci-6",
                 "value": {
                   "runs": [
                     {
@@ -2397,7 +2395,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-1",
+                "surfaceId": "circleci.1:circleci-6",
                 "value": {
                   "runs": [
                     {
@@ -2432,7 +2430,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-1",
+                "surfaceId": "circleci.1:circleci-6",
                 "value": {
                   "runs": [
                     {
@@ -2469,7 +2467,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-1",
+                "surfaceId": "circleci.1:circleci-6",
                 "value": {
                   "runs": [
                     {
@@ -2507,7 +2505,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-1",
+                "surfaceId": "circleci.1:circleci-6",
                 "value": {
                   "runs": [
                     {
@@ -2546,7 +2544,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-1",
+                "surfaceId": "circleci.1:circleci-6",
                 "value": {
                   "runs": [
                     {
@@ -2586,7 +2584,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-1",
+                "surfaceId": "circleci.1:circleci-6",
                 "value": {
                   "runs": [
                     {
@@ -2631,7 +2629,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-1",
+                "surfaceId": "circleci.1:circleci-6",
                 "value": {
                   "runs": [
                     {
@@ -2677,7 +2675,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-1",
+                "surfaceId": "circleci.1:circleci-6",
                 "value": {
                   "runs": [
                     {
@@ -2725,7 +2723,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-1",
+                "surfaceId": "circleci.1:circleci-6",
                 "value": {
                   "runs": [
                     {
@@ -2774,7 +2772,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-1",
+                "surfaceId": "circleci.1:circleci-6",
                 "value": {
                   "runs": [
                     {
@@ -2824,7 +2822,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-1",
+                "surfaceId": "circleci.1:circleci-6",
                 "value": {
                   "runs": [
                     {
@@ -2878,7 +2876,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-1",
+                "surfaceId": "circleci.1:circleci-6",
                 "value": {
                   "runs": [
                     {
@@ -2933,7 +2931,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-1",
+                "surfaceId": "circleci.1:circleci-6",
                 "value": {
                   "runs": [
                     {
@@ -2990,7 +2988,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-1",
+                "surfaceId": "circleci.1:circleci-6",
                 "value": {
                   "runs": [
                     {
@@ -3048,7 +3046,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-1",
+                "surfaceId": "circleci.1:circleci-6",
                 "value": {
                   "runs": [
                     {
@@ -3107,7 +3105,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-1",
+                "surfaceId": "circleci.1:circleci-6",
                 "value": {
                   "runs": [
                     {
@@ -3167,7 +3165,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-1",
+                "surfaceId": "circleci.1:circleci-6",
                 "value": {
                   "runs": [
                     {
@@ -3231,7 +3229,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-1",
+                "surfaceId": "circleci.1:circleci-6",
                 "value": {
                   "runs": [
                     {
@@ -3297,7 +3295,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-1",
+                "surfaceId": "circleci.1:circleci-6",
                 "value": {
                   "runs": [
                     {
@@ -3364,7 +3362,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-1",
+                "surfaceId": "circleci.1:circleci-6",
                 "value": {
                   "runs": [
                     {
@@ -3432,7 +3430,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-1",
+                "surfaceId": "circleci.1:circleci-6",
                 "value": {
                   "runs": [
                     {
@@ -3501,7 +3499,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-1",
+                "surfaceId": "circleci.1:circleci-6",
                 "value": {
                   "runs": [
                     {
@@ -3571,7 +3569,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-1",
+                "surfaceId": "circleci.1:circleci-6",
                 "value": {
                   "runs": [
                     {
@@ -3646,7 +3644,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-1",
+                "surfaceId": "circleci.1:circleci-6",
                 "value": {
                   "runs": [
                     {
@@ -3723,7 +3721,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-1",
+                "surfaceId": "circleci.1:circleci-6",
                 "value": {
                   "runs": [
                     {
@@ -3801,7 +3799,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-1",
+                "surfaceId": "circleci.1:circleci-6",
                 "value": {
                   "runs": [
                     {
@@ -3880,7 +3878,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-1",
+                "surfaceId": "circleci.1:circleci-6",
                 "value": {
                   "runs": [
                     {
@@ -3960,7 +3958,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-1",
+                "surfaceId": "circleci.1:circleci-6",
                 "value": {
                   "runs": [
                     {
@@ -4044,7 +4042,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-1",
+                "surfaceId": "circleci.1:circleci-6",
                 "value": {
                   "runs": [
                     {
@@ -4130,7 +4128,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-1",
+                "surfaceId": "circleci.1:circleci-6",
                 "value": {
                   "runs": [
                     {
@@ -4217,7 +4215,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-1",
+                "surfaceId": "circleci.1:circleci-6",
                 "value": {
                   "runs": [
                     {
@@ -4305,7 +4303,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-1",
+                "surfaceId": "circleci.1:circleci-6",
                 "value": {
                   "runs": [
                     {
@@ -4394,7 +4392,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-1",
+                "surfaceId": "circleci.1:circleci-6",
                 "value": {
                   "runs": [
                     {
@@ -4484,7 +4482,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-1",
+                "surfaceId": "circleci.1:circleci-6",
                 "value": {
                   "runs": [
                     {
@@ -4579,7 +4577,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-1",
+                "surfaceId": "circleci.1:circleci-6",
                 "value": {
                   "runs": [
                     {
@@ -4675,7 +4673,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-1",
+                "surfaceId": "circleci.1:circleci-6",
                 "value": {
                   "runs": [
                     {
@@ -4772,7 +4770,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-1",
+                "surfaceId": "circleci.1:circleci-6",
                 "value": {
                   "runs": [
                     {
@@ -4871,7 +4869,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-1",
+                "surfaceId": "circleci.1:circleci-6",
                 "value": {
                   "runs": [
                     {
@@ -4971,7 +4969,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-1",
+                "surfaceId": "circleci.1:circleci-6",
                 "value": {
                   "runs": [
                     {
@@ -5074,7 +5072,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-1",
+                "surfaceId": "circleci.1:circleci-6",
                 "value": {
                   "runs": [
                     {
@@ -5180,7 +5178,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-1",
+                "surfaceId": "circleci.1:circleci-6",
                 "value": {
                   "runs": [
                     {
@@ -5287,7 +5285,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-1",
+                "surfaceId": "circleci.1:circleci-6",
                 "value": {
                   "runs": [
                     {
@@ -5396,7 +5394,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "circleci:circleci-1",
+                "surfaceId": "circleci.1:circleci-6",
                 "path": "/",
                 "value": {
                   "runs": [
@@ -5654,18 +5652,18 @@
                     "size": "small"
                   }
                 ],
-                "surfaceId": "circleci:circleci-1"
+                "surfaceId": "circleci.1:circleci-6"
               }
             }
           ],
           "texts": [],
           "stamp": {
-            "source": "circleci",
+            "source": "circleci.1",
             "role": "fragment"
           }
         },
         {
-          "offsetMs": 36792,
+          "offsetMs": 40760,
           "messages": [
             {
               "version": "v0.9",
@@ -5683,25 +5681,25 @@
                     "id": "root",
                     "component": "Column",
                     "children": [
-                      "head",
-                      "issues-table"
+                      "header",
+                      "table"
                     ]
                   },
                   {
-                    "id": "head",
+                    "id": "header",
                     "component": "Row",
                     "justify": "spaceBetween",
                     "align": "center",
                     "children": [
-                      "heading",
+                      "title",
                       "sort"
                     ]
                   },
                   {
-                    "id": "heading",
+                    "id": "title",
                     "component": "Text",
                     "variant": "h5",
-                    "text": "Work status"
+                    "text": "Active tasks"
                   },
                   {
                     "id": "sort",
@@ -5711,53 +5709,43 @@
                     }
                   },
                   {
-                    "id": "issues-table",
+                    "id": "table",
                     "component": "Table",
                     "columns": [
                       "Issue",
-                      "Status",
                       "Priority",
+                      "Status",
                       "Pull request",
-                      "CI run",
-                      "Updated"
+                      "CI status"
                     ],
                     "columnSources": [
-                      "linear",
-                      "linear",
-                      "linear",
-                      "github",
-                      "circleci",
-                      "linear"
+                      "linear.1",
+                      "linear.1",
+                      "linear.1",
+                      "github.1",
+                      "circleci.1"
                     ],
                     "children": {
-                      "path": "/issues",
-                      "componentId": "issue-row"
+                      "path": "/tasks",
+                      "componentId": "task-row"
                     }
                   },
                   {
-                    "id": "issue-row",
+                    "id": "task-row",
                     "component": "TableRow",
                     "children": [
                       "cell-issue",
-                      "cell-status",
                       "cell-priority",
+                      "cell-status",
                       "cell-pr",
-                      "cell-ci",
-                      "cell-updated"
+                      "cell-ci"
                     ]
                   },
                   {
                     "id": "cell-issue",
                     "component": "DerivedValue",
                     "cell": {
-                      "path": "id"
-                    }
-                  },
-                  {
-                    "id": "cell-status",
-                    "component": "DerivedValue",
-                    "cell": {
-                      "path": "status"
+                      "path": "issue"
                     }
                   },
                   {
@@ -5768,13 +5756,20 @@
                     }
                   },
                   {
+                    "id": "cell-status",
+                    "component": "DerivedValue",
+                    "cell": {
+                      "path": "status"
+                    }
+                  },
+                  {
                     "id": "cell-pr",
                     "component": "DerivedValue",
                     "cell": {
                       "path": "pr"
                     },
                     "format": {
-                      "kind": "text",
+                      "kind": "number",
                       "prefix": "#"
                     }
                   },
@@ -5787,16 +5782,6 @@
                     "danger": [
                       "Failed"
                     ]
-                  },
-                  {
-                    "id": "cell-updated",
-                    "component": "DerivedValue",
-                    "cell": {
-                      "path": "updated"
-                    },
-                    "format": {
-                      "kind": "datetime"
-                    }
                   }
                 ]
               }
@@ -5809,51 +5794,42 @@
           },
           "synthesis": {
             "dataModel": {
-              "issues": [
+              "tasks": [
                 {
                   "match": {
-                    "same title": {
+                    "linked pull request": {
                       "op": "equal",
                       "args": [
                         {
-                          "surface": "linear:linear-8",
-                          "pointer": "/issues[id=\"A2U-5\"]/title"
+                          "surface": "linear.1:linear-11",
+                          "pointer": "/issues[id=\"A2U-5\"]/link"
                         },
                         {
-                          "surface": "github:notifications-8",
-                          "pointer": "/prs[number=6]/title"
+                          "surface": "github.1:notifications-11",
+                          "pointer": "/prs[repository=\"retz8/a2uiverse\",number=6]/number"
                         }
                       ]
                     },
-                    "same branch": {
+                    "matching branch": {
                       "op": "equal",
                       "args": [
                         {
-                          "surface": "github:notifications-8",
-                          "pointer": "/prs[number=6]/branch"
+                          "surface": "github.1:notifications-11",
+                          "pointer": "/prs[repository=\"retz8/a2uiverse\",number=6]/branch"
                         },
                         {
-                          "surface": "circleci:circleci-1",
+                          "surface": "circleci.1:circleci-6",
                           "pointer": "/runs[id=\"6039cf16-6db3-4974-af2b-517f8ce26c2a\"]/branch"
                         }
                       ]
                     }
                   },
-                  "id": {
+                  "issue": {
                     "op": "value",
                     "args": [
                       {
-                        "surface": "linear:linear-8",
+                        "surface": "linear.1:linear-11",
                         "pointer": "/issues[id=\"A2U-5\"]/id"
-                      }
-                    ]
-                  },
-                  "status": {
-                    "op": "value",
-                    "args": [
-                      {
-                        "surface": "linear:linear-8",
-                        "pointer": "/issues[id=\"A2U-5\"]/status"
                       }
                     ]
                   },
@@ -5861,8 +5837,17 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "linear:linear-8",
+                        "surface": "linear.1:linear-11",
                         "pointer": "/issues[id=\"A2U-5\"]/priority"
+                      }
+                    ]
+                  },
+                  "status": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "linear.1:linear-11",
+                        "pointer": "/issues[id=\"A2U-5\"]/status"
                       }
                     ]
                   },
@@ -5870,8 +5855,8 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "github:notifications-8",
-                        "pointer": "/prs[number=6]/number"
+                        "surface": "github.1:notifications-11",
+                        "pointer": "/prs[repository=\"retz8/a2uiverse\",number=6]/number"
                       }
                     ]
                   },
@@ -5879,7 +5864,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "circleci:circleci-1",
+                        "surface": "circleci.1:circleci-6",
                         "pointer": "/runs[id=\"6039cf16-6db3-4974-af2b-517f8ce26c2a\"]/status"
                       }
                     ]
@@ -5888,102 +5873,47 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "linear:linear-8",
+                        "surface": "linear.1:linear-11",
                         "pointer": "/issues[id=\"A2U-5\"]/updated"
                       }
                     ]
                   }
                 },
                 {
-                  "id": {
-                    "op": "value",
-                    "args": [
-                      {
-                        "surface": "linear:linear-8",
-                        "pointer": "/issues[id=\"A2U-7\"]/id"
-                      }
-                    ]
-                  },
-                  "status": {
-                    "op": "value",
-                    "args": [
-                      {
-                        "surface": "linear:linear-8",
-                        "pointer": "/issues[id=\"A2U-7\"]/status"
-                      }
-                    ]
-                  },
-                  "priority": {
-                    "op": "value",
-                    "args": [
-                      {
-                        "surface": "linear:linear-8",
-                        "pointer": "/issues[id=\"A2U-7\"]/priority"
-                      }
-                    ]
-                  },
-                  "pr": {
-                    "op": "value",
-                    "args": []
-                  },
-                  "ciStatus": {
-                    "op": "value",
-                    "args": []
-                  },
-                  "updated": {
-                    "op": "value",
-                    "args": [
-                      {
-                        "surface": "linear:linear-8",
-                        "pointer": "/issues[id=\"A2U-7\"]/updated"
-                      }
-                    ]
-                  }
-                },
-                {
                   "match": {
-                    "same title": {
+                    "linked pull request": {
                       "op": "equal",
                       "args": [
                         {
-                          "surface": "linear:linear-8",
-                          "pointer": "/issues[id=\"A2U-6\"]/title"
+                          "surface": "linear.1:linear-11",
+                          "pointer": "/issues[id=\"A2U-6\"]/link"
                         },
                         {
-                          "surface": "github:notifications-8",
-                          "pointer": "/prs[number=7]/title"
+                          "surface": "github.1:notifications-11",
+                          "pointer": "/prs[repository=\"retz8/a2uiverse\",number=7]/number"
                         }
                       ]
                     },
-                    "same branch": {
+                    "matching branch": {
                       "op": "equal",
                       "args": [
                         {
-                          "surface": "github:notifications-8",
-                          "pointer": "/prs[number=7]/branch"
+                          "surface": "github.1:notifications-11",
+                          "pointer": "/prs[repository=\"retz8/a2uiverse\",number=7]/branch"
                         },
                         {
-                          "surface": "circleci:circleci-1",
+                          "surface": "circleci.1:circleci-6",
                           "pointer": "/runs[id=\"8ccc8586-fb31-49f8-96aa-daa8642abdb0\"]/branch"
                         }
                       ]
                     }
                   },
-                  "id": {
+                  "issue": {
                     "op": "value",
                     "args": [
                       {
-                        "surface": "linear:linear-8",
+                        "surface": "linear.1:linear-11",
                         "pointer": "/issues[id=\"A2U-6\"]/id"
-                      }
-                    ]
-                  },
-                  "status": {
-                    "op": "value",
-                    "args": [
-                      {
-                        "surface": "linear:linear-8",
-                        "pointer": "/issues[id=\"A2U-6\"]/status"
                       }
                     ]
                   },
@@ -5991,8 +5921,17 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "linear:linear-8",
+                        "surface": "linear.1:linear-11",
                         "pointer": "/issues[id=\"A2U-6\"]/priority"
+                      }
+                    ]
+                  },
+                  "status": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "linear.1:linear-11",
+                        "pointer": "/issues[id=\"A2U-6\"]/status"
                       }
                     ]
                   },
@@ -6000,8 +5939,8 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "github:notifications-8",
-                        "pointer": "/prs[number=7]/number"
+                        "surface": "github.1:notifications-11",
+                        "pointer": "/prs[repository=\"retz8/a2uiverse\",number=7]/number"
                       }
                     ]
                   },
@@ -6009,7 +5948,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "circleci:circleci-1",
+                        "surface": "circleci.1:circleci-6",
                         "pointer": "/runs[id=\"8ccc8586-fb31-49f8-96aa-daa8642abdb0\"]/status"
                       }
                     ]
@@ -6018,8 +5957,54 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "linear:linear-8",
+                        "surface": "linear.1:linear-11",
                         "pointer": "/issues[id=\"A2U-6\"]/updated"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "issue": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "linear.1:linear-11",
+                        "pointer": "/issues[id=\"A2U-7\"]/id"
+                      }
+                    ]
+                  },
+                  "priority": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "linear.1:linear-11",
+                        "pointer": "/issues[id=\"A2U-7\"]/priority"
+                      }
+                    ]
+                  },
+                  "status": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "linear.1:linear-11",
+                        "pointer": "/issues[id=\"A2U-7\"]/status"
+                      }
+                    ]
+                  },
+                  "pr": {
+                    "op": "value",
+                    "args": []
+                  },
+                  "ciStatus": {
+                    "op": "value",
+                    "args": []
+                  },
+                  "updated": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "linear.1:linear-11",
+                        "pointer": "/issues[id=\"A2U-7\"]/updated"
                       }
                     ]
                   }
@@ -6028,11 +6013,15 @@
             },
             "sorts": [
               {
-                "path": "/issues",
+                "path": "/tasks",
                 "options": [
                   {
                     "key": "/updated",
                     "label": "Updated"
+                  },
+                  {
+                    "key": "/issue",
+                    "label": "Issue"
                   }
                 ],
                 "key": "/updated",
@@ -6042,7 +6031,7 @@
           }
         },
         {
-          "offsetMs": 36792,
+          "offsetMs": 40760,
           "messages": [
             {
               "version": "v0.9",
@@ -6053,12 +6042,12 @@
                     "id": "root",
                     "component": "Column",
                     "children": [
-                      "status-view",
+                      "merged-view",
                       "sources"
                     ]
                   },
                   {
-                    "id": "status-view",
+                    "id": "merged-view",
                     "component": "Slot",
                     "source": "shell",
                     "state": "pending",
@@ -6066,32 +6055,30 @@
                     "content": "shell",
                     "columns": [
                       "Issue",
-                      "Status",
                       "Priority",
+                      "Status",
                       "Pull request",
-                      "CI run",
-                      "Updated"
+                      "CI status"
                     ],
                     "columnSources": [
-                      "linear",
-                      "linear",
-                      "linear",
-                      "github",
-                      "circleci",
-                      "linear"
+                      "linear.1",
+                      "linear.1",
+                      "linear.1",
+                      "github.1",
+                      "circleci.1"
                     ],
                     "join": {
-                      "home": "linear",
+                      "home": "linear.1",
                       "nouns": {
-                        "linear": "issues",
-                        "github": "PRs",
-                        "circleci": "runs"
+                        "linear.1": "issues",
+                        "github.1": "PRs",
+                        "circleci.1": "runs"
                       }
                     },
                     "merged": [
-                      "linear",
-                      "github",
-                      "circleci"
+                      "linear.1",
+                      "github.1",
+                      "circleci.1"
                     ]
                   },
                   {
@@ -6107,14 +6094,14 @@
                     "id": "attribution-linear-slot",
                     "component": "Attribution",
                     "displayName": "Linear",
-                    "source": "linear",
+                    "source": "linear.1",
                     "child": "linear-slot",
                     "weight": 1
                   },
                   {
                     "id": "linear-slot",
                     "component": "Slot",
-                    "source": "linear",
+                    "source": "linear.1",
                     "weight": 1,
                     "state": "pending",
                     "label": "Linear",
@@ -6124,14 +6111,14 @@
                     "id": "attribution-github-slot",
                     "component": "Attribution",
                     "displayName": "GitHub",
-                    "source": "github",
+                    "source": "github.1",
                     "child": "github-slot",
                     "weight": 1
                   },
                   {
                     "id": "github-slot",
                     "component": "Slot",
-                    "source": "github",
+                    "source": "github.1",
                     "weight": 1,
                     "state": "pending",
                     "label": "GitHub",
@@ -6141,14 +6128,14 @@
                     "id": "attribution-circleci-slot",
                     "component": "Attribution",
                     "displayName": "CircleCI",
-                    "source": "circleci",
+                    "source": "circleci.1",
                     "child": "circleci-slot",
                     "weight": 1
                   },
                   {
                     "id": "circleci-slot",
                     "component": "Slot",
-                    "source": "circleci",
+                    "source": "circleci.1",
                     "weight": 1,
                     "state": "pending",
                     "label": "CircleCI",
@@ -6166,21 +6153,21 @@
         }
       ],
       "outcome": "completed",
-      "durationMs": 36792
+      "durationMs": 40760
     },
     {
-      "taskId": "11465a93-df91-43c1-8089-9b855c88d440",
+      "taskId": "95459562-a37c-4215-b582-f1d8184baa54",
       "kind": "utterance",
       "prompt": "What needs my attention today?",
       "action": null,
       "batches": [
         {
-          "offsetMs": 6121,
+          "offsetMs": 13598,
           "messages": [
             {
               "paintMeta": {
                 "surfaceId": "shell:main",
-                "title": "Attention today"
+                "title": "Needs attention today"
               }
             },
             {
@@ -6225,14 +6212,14 @@
                     "id": "attribution-calendar",
                     "component": "Attribution",
                     "displayName": "Google Calendar",
-                    "source": "calendar",
+                    "source": "calendar.1",
                     "child": "calendar",
                     "weight": 1
                   },
                   {
                     "id": "calendar",
                     "component": "Slot",
-                    "source": "calendar",
+                    "source": "calendar.1",
                     "weight": 1,
                     "state": "pending",
                     "label": "Google Calendar"
@@ -6241,14 +6228,14 @@
                     "id": "attribution-gmail",
                     "component": "Attribution",
                     "displayName": "Gmail",
-                    "source": "gmail",
+                    "source": "gmail.1",
                     "child": "gmail",
                     "weight": 1
                   },
                   {
                     "id": "gmail",
                     "component": "Slot",
-                    "source": "gmail",
+                    "source": "gmail.1",
                     "weight": 1,
                     "state": "pending",
                     "label": "Gmail"
@@ -6257,14 +6244,14 @@
                     "id": "attribution-github",
                     "component": "Attribution",
                     "displayName": "GitHub",
-                    "source": "github",
+                    "source": "github.1",
                     "child": "github",
                     "weight": 1
                   },
                   {
                     "id": "github",
                     "component": "Slot",
-                    "source": "github",
+                    "source": "github.1",
                     "weight": 1,
                     "state": "pending",
                     "label": "GitHub"
@@ -6273,14 +6260,14 @@
                     "id": "attribution-linear",
                     "component": "Attribution",
                     "displayName": "Linear",
-                    "source": "linear",
+                    "source": "linear.1",
                     "child": "linear",
                     "weight": 1
                   },
                   {
                     "id": "linear",
                     "component": "Slot",
-                    "source": "linear",
+                    "source": "linear.1",
                     "weight": 1,
                     "state": "pending",
                     "label": "Linear"
@@ -6296,18 +6283,18 @@
           }
         },
         {
-          "offsetMs": 6126,
+          "offsetMs": 13603,
           "messages": [
             {
               "paintMeta": {
-                "surfaceId": "linear:linear-9",
+                "surfaceId": "linear.1:linear-12",
                 "title": "My issues"
               }
             },
             {
               "version": "v0.9",
               "createSurface": {
-                "surfaceId": "linear:linear-9",
+                "surfaceId": "linear.1:linear-12",
                 "catalogId": "https://github.com/retz8/a2uiverse-apps/blob/main/linear/linear-catalog/catalogs/v0.9.1/catalog.json",
                 "sendDataModel": true
               }
@@ -6315,7 +6302,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-9",
+                "surfaceId": "linear.1:linear-12",
                 "value": {
                   "team": "A2uiverse"
                 }
@@ -6324,7 +6311,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-9",
+                "surfaceId": "linear.1:linear-12",
                 "value": {
                   "issues": [
                     {
@@ -6342,7 +6329,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-9",
+                "surfaceId": "linear.1:linear-12",
                 "value": {
                   "issues": [
                     {
@@ -6361,7 +6348,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-9",
+                "surfaceId": "linear.1:linear-12",
                 "value": {
                   "issues": [
                     {
@@ -6384,7 +6371,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-9",
+                "surfaceId": "linear.1:linear-12",
                 "value": {
                   "issues": [
                     {
@@ -6409,7 +6396,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-9",
+                "surfaceId": "linear.1:linear-12",
                 "value": {
                   "issues": [
                     {
@@ -6437,7 +6424,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-9",
+                "surfaceId": "linear.1:linear-12",
                 "value": {
                   "issues": [
                     {
@@ -6466,7 +6453,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-9",
+                "surfaceId": "linear.1:linear-12",
                 "value": {
                   "issues": [
                     {
@@ -6496,7 +6483,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-9",
+                "surfaceId": "linear.1:linear-12",
                 "value": {
                   "issues": [
                     {
@@ -6529,7 +6516,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-9",
+                "surfaceId": "linear.1:linear-12",
                 "value": {
                   "issues": [
                     {
@@ -6566,7 +6553,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-9",
+                "surfaceId": "linear.1:linear-12",
                 "value": {
                   "issues": [
                     {
@@ -6605,7 +6592,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-9",
+                "surfaceId": "linear.1:linear-12",
                 "value": {
                   "issues": [
                     {
@@ -6645,7 +6632,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-9",
+                "surfaceId": "linear.1:linear-12",
                 "path": "/",
                 "value": {
                   "team": "A2uiverse",
@@ -6801,29 +6788,1062 @@
                     "variant": "caption"
                   }
                 ],
-                "surfaceId": "linear:linear-9"
+                "surfaceId": "linear.1:linear-12"
               }
             }
           ],
           "texts": [],
           "stamp": {
-            "source": "linear",
+            "source": "linear.1",
             "role": "fragment"
           }
         },
         {
-          "offsetMs": 6127,
+          "offsetMs": 13604,
           "messages": [
             {
               "paintMeta": {
-                "surfaceId": "github:notifications-9",
+                "surfaceId": "gmail.1:gmail-9",
+                "title": "Needs attention"
+              }
+            },
+            {
+              "version": "v0.9",
+              "createSurface": {
+                "surfaceId": "gmail.1:gmail-9",
+                "catalogId": "https://github.com/retz8/a2uiverse-apps/blob/main/gmail/gmail-catalog/catalogs/v0.9.1/catalog.json",
+                "sendDataModel": true
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail.1:gmail-9",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "19829cbece7facf1",
+                      "sender": "Mei Silva",
+                      "subject": "Re: Notes ahead of the design review: agenda surface"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail.1:gmail-9",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "19829cbece7facf1",
+                      "sender": "Mei Silva",
+                      "subject": "Re: Notes ahead of the design review: agenda surface",
+                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail.1:gmail-9",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "19829cbece7facf1",
+                      "sender": "Mei Silva",
+                      "subject": "Re: Notes ahead of the design review: agenda surface",
+                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
+                      "when": "2026-09-19 12:41 UTC"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail.1:gmail-9",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "19829cbece7facf1",
+                      "sender": "Mei Silva",
+                      "subject": "Re: Notes ahead of the design review: agenda surface",
+                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
+                      "when": "2026-09-19 12:41 UTC"
+                    },
+                    {
+                      "id": "1956e7633ba626aa",
+                      "sender": "Alex Bergman"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail.1:gmail-9",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "19829cbece7facf1",
+                      "sender": "Mei Silva",
+                      "subject": "Re: Notes ahead of the design review: agenda surface",
+                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
+                      "when": "2026-09-19 12:41 UTC"
+                    },
+                    {
+                      "id": "1956e7633ba626aa",
+                      "sender": "Alex Bergman",
+                      "subject": "Could you review #8 before quarter planning?"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail.1:gmail-9",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "19829cbece7facf1",
+                      "sender": "Mei Silva",
+                      "subject": "Re: Notes ahead of the design review: agenda surface",
+                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
+                      "when": "2026-09-19 12:41 UTC"
+                    },
+                    {
+                      "id": "1956e7633ba626aa",
+                      "sender": "Alex Bergman",
+                      "subject": "Could you review #8 before quarter planning?",
+                      "snippet": "Hey, Could you take a look at #8 today? I'd like to show the effort split at quarter planning tomorrow at 10, and it would be good to have your review on it first. Mostly the part where the"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail.1:gmail-9",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "19829cbece7facf1",
+                      "sender": "Mei Silva",
+                      "subject": "Re: Notes ahead of the design review: agenda surface",
+                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
+                      "when": "2026-09-19 12:41 UTC"
+                    },
+                    {
+                      "id": "1956e7633ba626aa",
+                      "sender": "Alex Bergman",
+                      "subject": "Could you review #8 before quarter planning?",
+                      "snippet": "Hey, Could you take a look at #8 today? I'd like to show the effort split at quarter planning tomorrow at 10, and it would be good to have your review on it first. Mostly the part where the",
+                      "when": "2026-09-19 11:30 UTC"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail.1:gmail-9",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "19829cbece7facf1",
+                      "sender": "Mei Silva",
+                      "subject": "Re: Notes ahead of the design review: agenda surface",
+                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
+                      "when": "2026-09-19 12:41 UTC"
+                    },
+                    {
+                      "id": "1956e7633ba626aa",
+                      "sender": "Alex Bergman",
+                      "subject": "Could you review #8 before quarter planning?",
+                      "snippet": "Hey, Could you take a look at #8 today? I'd like to show the effort split at quarter planning tomorrow at 10, and it would be good to have your review on it first. Mostly the part where the",
+                      "when": "2026-09-19 11:30 UTC"
+                    },
+                    {
+                      "id": "19fd40c07b154538"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail.1:gmail-9",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "19829cbece7facf1",
+                      "sender": "Mei Silva",
+                      "subject": "Re: Notes ahead of the design review: agenda surface",
+                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
+                      "when": "2026-09-19 12:41 UTC"
+                    },
+                    {
+                      "id": "1956e7633ba626aa",
+                      "sender": "Alex Bergman",
+                      "subject": "Could you review #8 before quarter planning?",
+                      "snippet": "Hey, Could you take a look at #8 today? I'd like to show the effort split at quarter planning tomorrow at 10, and it would be good to have your review on it first. Mostly the part where the",
+                      "when": "2026-09-19 11:30 UTC"
+                    },
+                    {
+                      "id": "19fd40c07b154538",
+                      "sender": "Mei Silva",
+                      "subject": "CI failing on synthesizer-effort-apart-from-planner"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail.1:gmail-9",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "19829cbece7facf1",
+                      "sender": "Mei Silva",
+                      "subject": "Re: Notes ahead of the design review: agenda surface",
+                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
+                      "when": "2026-09-19 12:41 UTC"
+                    },
+                    {
+                      "id": "1956e7633ba626aa",
+                      "sender": "Alex Bergman",
+                      "subject": "Could you review #8 before quarter planning?",
+                      "snippet": "Hey, Could you take a look at #8 today? I'd like to show the effort split at quarter planning tomorrow at 10, and it would be good to have your review on it first. Mostly the part where the",
+                      "when": "2026-09-19 11:30 UTC"
+                    },
+                    {
+                      "id": "19fd40c07b154538",
+                      "sender": "Mei Silva",
+                      "subject": "CI failing on synthesizer-effort-apart-from-planner",
+                      "snippet": "Morning! The latest run on synthesizer-effort-apart-from-planner failed in lint-format. Prettier flagged apps/orchestrator/src/config.ts, so it looks like formatting, not the tests. Want me to push"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail.1:gmail-9",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "19829cbece7facf1",
+                      "sender": "Mei Silva",
+                      "subject": "Re: Notes ahead of the design review: agenda surface",
+                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
+                      "when": "2026-09-19 12:41 UTC"
+                    },
+                    {
+                      "id": "1956e7633ba626aa",
+                      "sender": "Alex Bergman",
+                      "subject": "Could you review #8 before quarter planning?",
+                      "snippet": "Hey, Could you take a look at #8 today? I'd like to show the effort split at quarter planning tomorrow at 10, and it would be good to have your review on it first. Mostly the part where the",
+                      "when": "2026-09-19 11:30 UTC"
+                    },
+                    {
+                      "id": "19fd40c07b154538",
+                      "sender": "Mei Silva",
+                      "subject": "CI failing on synthesizer-effort-apart-from-planner",
+                      "snippet": "Morning! The latest run on synthesizer-effort-apart-from-planner failed in lint-format. Prettier flagged apps/orchestrator/src/config.ts, so it looks like formatting, not the tests. Want me to push",
+                      "when": "2026-09-19 11:05 UTC"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail.1:gmail-9",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "19829cbece7facf1",
+                      "sender": "Mei Silva",
+                      "subject": "Re: Notes ahead of the design review: agenda surface",
+                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
+                      "when": "2026-09-19 12:41 UTC"
+                    },
+                    {
+                      "id": "1956e7633ba626aa",
+                      "sender": "Alex Bergman",
+                      "subject": "Could you review #8 before quarter planning?",
+                      "snippet": "Hey, Could you take a look at #8 today? I'd like to show the effort split at quarter planning tomorrow at 10, and it would be good to have your review on it first. Mostly the part where the",
+                      "when": "2026-09-19 11:30 UTC"
+                    },
+                    {
+                      "id": "19fd40c07b154538",
+                      "sender": "Mei Silva",
+                      "subject": "CI failing on synthesizer-effort-apart-from-planner",
+                      "snippet": "Morning! The latest run on synthesizer-effort-apart-from-planner failed in lint-format. Prettier flagged apps/orchestrator/src/config.ts, so it looks like formatting, not the tests. Want me to push",
+                      "when": "2026-09-19 11:05 UTC"
+                    },
+                    {
+                      "id": "19b6cefab66744cf",
+                      "sender": "Clara Moreau"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail.1:gmail-9",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "19829cbece7facf1",
+                      "sender": "Mei Silva",
+                      "subject": "Re: Notes ahead of the design review: agenda surface",
+                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
+                      "when": "2026-09-19 12:41 UTC"
+                    },
+                    {
+                      "id": "1956e7633ba626aa",
+                      "sender": "Alex Bergman",
+                      "subject": "Could you review #8 before quarter planning?",
+                      "snippet": "Hey, Could you take a look at #8 today? I'd like to show the effort split at quarter planning tomorrow at 10, and it would be good to have your review on it first. Mostly the part where the",
+                      "when": "2026-09-19 11:30 UTC"
+                    },
+                    {
+                      "id": "19fd40c07b154538",
+                      "sender": "Mei Silva",
+                      "subject": "CI failing on synthesizer-effort-apart-from-planner",
+                      "snippet": "Morning! The latest run on synthesizer-effort-apart-from-planner failed in lint-format. Prettier flagged apps/orchestrator/src/config.ts, so it looks like formatting, not the tests. Want me to push",
+                      "when": "2026-09-19 11:05 UTC"
+                    },
+                    {
+                      "id": "19b6cefab66744cf",
+                      "sender": "Clara Moreau",
+                      "subject": "Numbers for the 11:30 budget sync"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail.1:gmail-9",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "19829cbece7facf1",
+                      "sender": "Mei Silva",
+                      "subject": "Re: Notes ahead of the design review: agenda surface",
+                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
+                      "when": "2026-09-19 12:41 UTC"
+                    },
+                    {
+                      "id": "1956e7633ba626aa",
+                      "sender": "Alex Bergman",
+                      "subject": "Could you review #8 before quarter planning?",
+                      "snippet": "Hey, Could you take a look at #8 today? I'd like to show the effort split at quarter planning tomorrow at 10, and it would be good to have your review on it first. Mostly the part where the",
+                      "when": "2026-09-19 11:30 UTC"
+                    },
+                    {
+                      "id": "19fd40c07b154538",
+                      "sender": "Mei Silva",
+                      "subject": "CI failing on synthesizer-effort-apart-from-planner",
+                      "snippet": "Morning! The latest run on synthesizer-effort-apart-from-planner failed in lint-format. Prettier flagged apps/orchestrator/src/config.ts, so it looks like formatting, not the tests. Want me to push",
+                      "when": "2026-09-19 11:05 UTC"
+                    },
+                    {
+                      "id": "19b6cefab66744cf",
+                      "sender": "Clara Moreau",
+                      "subject": "Numbers for the 11:30 budget sync",
+                      "snippet": "Hi, Ahead of our 11:30, I've put the Q4 numbers in the budget sheet. Everything is in except the model spend. Could you bring an estimate for October, even a rough one? Thanks, Clara"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail.1:gmail-9",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "19829cbece7facf1",
+                      "sender": "Mei Silva",
+                      "subject": "Re: Notes ahead of the design review: agenda surface",
+                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
+                      "when": "2026-09-19 12:41 UTC"
+                    },
+                    {
+                      "id": "1956e7633ba626aa",
+                      "sender": "Alex Bergman",
+                      "subject": "Could you review #8 before quarter planning?",
+                      "snippet": "Hey, Could you take a look at #8 today? I'd like to show the effort split at quarter planning tomorrow at 10, and it would be good to have your review on it first. Mostly the part where the",
+                      "when": "2026-09-19 11:30 UTC"
+                    },
+                    {
+                      "id": "19fd40c07b154538",
+                      "sender": "Mei Silva",
+                      "subject": "CI failing on synthesizer-effort-apart-from-planner",
+                      "snippet": "Morning! The latest run on synthesizer-effort-apart-from-planner failed in lint-format. Prettier flagged apps/orchestrator/src/config.ts, so it looks like formatting, not the tests. Want me to push",
+                      "when": "2026-09-19 11:05 UTC"
+                    },
+                    {
+                      "id": "19b6cefab66744cf",
+                      "sender": "Clara Moreau",
+                      "subject": "Numbers for the 11:30 budget sync",
+                      "snippet": "Hi, Ahead of our 11:30, I've put the Q4 numbers in the budget sheet. Everything is in except the model spend. Could you bring an estimate for October, even a rough one? Thanks, Clara",
+                      "when": "2026-09-19 10:48 UTC"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "gmail.1:gmail-9",
+                "path": "/",
+                "value": {
+                  "threads": [
+                    {
+                      "id": "19829cbece7facf1",
+                      "sender": "Mei Silva",
+                      "subject": "Re: Notes ahead of the design review: agenda surface",
+                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
+                      "when": "2026-09-19 12:41 UTC"
+                    },
+                    {
+                      "id": "1956e7633ba626aa",
+                      "sender": "Alex Bergman",
+                      "subject": "Could you review #8 before quarter planning?",
+                      "snippet": "Hey, Could you take a look at #8 today? I'd like to show the effort split at quarter planning tomorrow at 10, and it would be good to have your review on it first. Mostly the part where the",
+                      "when": "2026-09-19 11:30 UTC"
+                    },
+                    {
+                      "id": "19fd40c07b154538",
+                      "sender": "Mei Silva",
+                      "subject": "CI failing on synthesizer-effort-apart-from-planner",
+                      "snippet": "Morning! The latest run on synthesizer-effort-apart-from-planner failed in lint-format. Prettier flagged apps/orchestrator/src/config.ts, so it looks like formatting, not the tests. Want me to push",
+                      "when": "2026-09-19 11:05 UTC"
+                    },
+                    {
+                      "id": "19b6cefab66744cf",
+                      "sender": "Clara Moreau",
+                      "subject": "Numbers for the 11:30 budget sync",
+                      "snippet": "Hi, Ahead of our 11:30, I've put the Q4 numbers in the budget sheet. Everything is in except the model spend. Could you bring an estimate for October, even a rough one? Thanks, Clara",
+                      "when": "2026-09-19 10:48 UTC"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "root",
+                    "component": "Surface",
+                    "child": "body",
+                    "container": "low",
+                    "shape": "large",
+                    "padding": "small"
+                  },
+                  {
+                    "id": "body",
+                    "component": "Stack",
+                    "children": [
+                      "header",
+                      "sheet"
+                    ],
+                    "gap": "xs"
+                  },
+                  {
+                    "id": "header",
+                    "component": "Stack",
+                    "children": [
+                      "heading",
+                      "sub"
+                    ],
+                    "gap": "xs",
+                    "padding": "sm"
+                  },
+                  {
+                    "id": "heading",
+                    "component": "Text",
+                    "text": "Needs attention today",
+                    "variant": "titleLarge"
+                  },
+                  {
+                    "id": "sub",
+                    "component": "Text",
+                    "text": "4 unread threads waiting on your review or reply",
+                    "variant": "bodySmall",
+                    "color": "onSurfaceVariant"
+                  },
+                  {
+                    "id": "sheet",
+                    "component": "Surface",
+                    "child": "thread-list",
+                    "container": "lowest",
+                    "shape": "large",
+                    "padding": "none"
+                  },
+                  {
+                    "id": "thread-list",
+                    "component": "List",
+                    "children": {
+                      "path": "/threads",
+                      "componentId": "thread-row"
+                    },
+                    "dividers": true,
+                    "layout": "inline"
+                  },
+                  {
+                    "id": "thread-row",
+                    "component": "ListItem",
+                    "headline": "thread-sender",
+                    "supporting": "thread-preview",
+                    "meta": "thread-when",
+                    "leading": [
+                      "thread-avatar"
+                    ],
+                    "action": {
+                      "event": {
+                        "name": "open-thread",
+                        "context": {
+                          "threadId": {
+                            "path": "id"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "thread-avatar",
+                    "component": "Avatar",
+                    "name": {
+                      "path": "sender"
+                    },
+                    "size": "medium"
+                  },
+                  {
+                    "id": "thread-sender",
+                    "component": "Text",
+                    "text": {
+                      "path": "sender"
+                    },
+                    "weight": "bold",
+                    "maxLines": 1
+                  },
+                  {
+                    "id": "thread-when",
+                    "component": "Text",
+                    "text": {
+                      "path": "when"
+                    },
+                    "variant": "labelMedium",
+                    "color": "onSurfaceVariant"
+                  },
+                  {
+                    "id": "thread-preview",
+                    "component": "Stack",
+                    "children": [
+                      "thread-subject",
+                      "thread-snippet"
+                    ],
+                    "gap": "none"
+                  },
+                  {
+                    "id": "thread-subject",
+                    "component": "Text",
+                    "text": {
+                      "path": "subject"
+                    },
+                    "weight": "medium",
+                    "maxLines": 1
+                  },
+                  {
+                    "id": "thread-snippet",
+                    "component": "Text",
+                    "text": {
+                      "path": "snippet"
+                    },
+                    "color": "onSurfaceVariant",
+                    "maxLines": 1
+                  }
+                ],
+                "surfaceId": "gmail.1:gmail-9"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "gmail.1",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 13605,
+          "messages": [
+            {
+              "paintMeta": {
+                "surfaceId": "calendar.1:calendar-6",
+                "title": "Needs attention today"
+              }
+            },
+            {
+              "version": "v0.9",
+              "createSurface": {
+                "surfaceId": "calendar.1:calendar-6",
+                "catalogId": "https://github.com/retz8/a2uiverse-apps/blob/main/calendar/calendar-catalog/catalogs/v0.9.1/catalog.json",
+                "sendDataModel": true
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "calendar.1:calendar-6",
+                "value": {
+                  "waiting": [
+                    {
+                      "id": "7nuujj9h9ru89blofii3m5otlo",
+                      "when": "11:00",
+                      "summary": "Design review — agenda surface"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "calendar.1:calendar-6",
+                "value": {
+                  "waiting": [
+                    {
+                      "id": "7nuujj9h9ru89blofii3m5otlo",
+                      "when": "11:00",
+                      "summary": "Design review — agenda surface",
+                      "note": "ID: 7nuujj9h9ru89blofii3m5otlo • Unanswered invitation • Walk through the three fragment layouts."
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "calendar.1:calendar-6",
+                "value": {
+                  "clashes": [
+                    {
+                      "id": "7nuujj9h9ru89blofii3m5otlo",
+                      "when": "11:00 – 12:00",
+                      "summary": "Design review — agenda surface"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "calendar.1:calendar-6",
+                "value": {
+                  "clashes": [
+                    {
+                      "id": "7nuujj9h9ru89blofii3m5otlo",
+                      "when": "11:00 – 12:00",
+                      "summary": "Design review — agenda surface",
+                      "note": "ID: 7nuujj9h9ru89blofii3m5otlo • Overlaps Budget sync • Walk through the three fragment layouts."
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "calendar.1:calendar-6",
+                "value": {
+                  "clashes": [
+                    {
+                      "id": "7nuujj9h9ru89blofii3m5otlo",
+                      "when": "11:00 – 12:00",
+                      "summary": "Design review — agenda surface",
+                      "note": "ID: 7nuujj9h9ru89blofii3m5otlo • Overlaps Budget sync • Walk through the three fragment layouts."
+                    },
+                    {
+                      "id": "ev1fmp1rmvhhb260fbebvd7o9o"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "calendar.1:calendar-6",
+                "value": {
+                  "clashes": [
+                    {
+                      "id": "7nuujj9h9ru89blofii3m5otlo",
+                      "when": "11:00 – 12:00",
+                      "summary": "Design review — agenda surface",
+                      "note": "ID: 7nuujj9h9ru89blofii3m5otlo • Overlaps Budget sync • Walk through the three fragment layouts."
+                    },
+                    {
+                      "id": "ev1fmp1rmvhhb260fbebvd7o9o",
+                      "when": "11:30 – 12:15"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "calendar.1:calendar-6",
+                "value": {
+                  "clashes": [
+                    {
+                      "id": "7nuujj9h9ru89blofii3m5otlo",
+                      "when": "11:00 – 12:00",
+                      "summary": "Design review — agenda surface",
+                      "note": "ID: 7nuujj9h9ru89blofii3m5otlo • Overlaps Budget sync • Walk through the three fragment layouts."
+                    },
+                    {
+                      "id": "ev1fmp1rmvhhb260fbebvd7o9o",
+                      "when": "11:30 – 12:15",
+                      "summary": "Budget sync"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "calendar.1:calendar-6",
+                "value": {
+                  "clashes": [
+                    {
+                      "id": "7nuujj9h9ru89blofii3m5otlo",
+                      "when": "11:00 – 12:00",
+                      "summary": "Design review — agenda surface",
+                      "note": "ID: 7nuujj9h9ru89blofii3m5otlo • Overlaps Budget sync • Walk through the three fragment layouts."
+                    },
+                    {
+                      "id": "ev1fmp1rmvhhb260fbebvd7o9o",
+                      "when": "11:30 – 12:15",
+                      "summary": "Budget sync",
+                      "note": "ID: ev1fmp1rmvhhb260fbebvd7o9o • Overlaps Design review • Two line items still do not reconcile against the estimate."
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "calendar.1:calendar-6",
+                "path": "/",
+                "value": {
+                  "waiting": [
+                    {
+                      "id": "7nuujj9h9ru89blofii3m5otlo",
+                      "when": "11:00",
+                      "summary": "Design review — agenda surface",
+                      "note": "ID: 7nuujj9h9ru89blofii3m5otlo • Unanswered invitation • Walk through the three fragment layouts."
+                    }
+                  ],
+                  "clashes": [
+                    {
+                      "id": "7nuujj9h9ru89blofii3m5otlo",
+                      "when": "11:00 – 12:00",
+                      "summary": "Design review — agenda surface",
+                      "note": "ID: 7nuujj9h9ru89blofii3m5otlo • Overlaps Budget sync • Walk through the three fragment layouts."
+                    },
+                    {
+                      "id": "ev1fmp1rmvhhb260fbebvd7o9o",
+                      "when": "11:30 – 12:15",
+                      "summary": "Budget sync",
+                      "note": "ID: ev1fmp1rmvhhb260fbebvd7o9o • Overlaps Design review • Two line items still do not reconcile against the estimate."
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "components": [
+                  {
+                    "id": "root",
+                    "component": "Surface",
+                    "child": "body",
+                    "container": "low",
+                    "shape": "large",
+                    "padding": "small"
+                  },
+                  {
+                    "id": "body",
+                    "component": "Stack",
+                    "children": [
+                      "header",
+                      "sheet"
+                    ],
+                    "gap": "xs"
+                  },
+                  {
+                    "id": "header",
+                    "component": "Stack",
+                    "children": [
+                      "heading"
+                    ],
+                    "padding": "sm"
+                  },
+                  {
+                    "id": "heading",
+                    "component": "Text",
+                    "text": "Needs attention today",
+                    "variant": "titleLarge"
+                  },
+                  {
+                    "id": "sheet",
+                    "component": "Surface",
+                    "child": "sections",
+                    "container": "lowest",
+                    "shape": "large",
+                    "padding": "none"
+                  },
+                  {
+                    "id": "sections",
+                    "component": "Stack",
+                    "children": [
+                      "waiting-label",
+                      "waiting-list",
+                      "divider",
+                      "clash-label",
+                      "clash-list"
+                    ],
+                    "gap": "none"
+                  },
+                  {
+                    "id": "waiting-label",
+                    "component": "Stack",
+                    "children": [
+                      "waiting-title"
+                    ],
+                    "padding": "sm"
+                  },
+                  {
+                    "id": "waiting-title",
+                    "component": "Text",
+                    "text": "Unanswered invitations",
+                    "variant": "titleSmall",
+                    "color": "primary"
+                  },
+                  {
+                    "id": "waiting-list",
+                    "component": "List",
+                    "children": {
+                      "path": "/waiting",
+                      "componentId": "waiting-row"
+                    },
+                    "layout": "inline"
+                  },
+                  {
+                    "id": "waiting-row",
+                    "component": "ListItem",
+                    "headline": "waiting-when",
+                    "supporting": "waiting-body",
+                    "leading": [
+                      "waiting-swatch"
+                    ],
+                    "action": {
+                      "event": {
+                        "name": "open-event",
+                        "context": {
+                          "eventId": {
+                            "path": "id"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "waiting-swatch",
+                    "component": "ColorSwatch",
+                    "color": "peacock",
+                    "shape": "dot"
+                  },
+                  {
+                    "id": "waiting-when",
+                    "component": "Text",
+                    "text": {
+                      "path": "when"
+                    },
+                    "variant": "labelLarge"
+                  },
+                  {
+                    "id": "waiting-body",
+                    "component": "Stack",
+                    "children": [
+                      "waiting-summary",
+                      "waiting-note"
+                    ],
+                    "gap": "none"
+                  },
+                  {
+                    "id": "waiting-summary",
+                    "component": "Text",
+                    "text": {
+                      "path": "summary"
+                    },
+                    "maxLines": 1
+                  },
+                  {
+                    "id": "waiting-note",
+                    "component": "Text",
+                    "text": {
+                      "path": "note"
+                    },
+                    "variant": "bodySmall",
+                    "color": "onSurfaceVariant",
+                    "maxLines": 1
+                  },
+                  {
+                    "id": "divider",
+                    "component": "Divider"
+                  },
+                  {
+                    "id": "clash-label",
+                    "component": "Stack",
+                    "children": [
+                      "clash-title"
+                    ],
+                    "padding": "sm"
+                  },
+                  {
+                    "id": "clash-title",
+                    "component": "Text",
+                    "text": "Double-booked today",
+                    "variant": "titleSmall",
+                    "color": "primary"
+                  },
+                  {
+                    "id": "clash-list",
+                    "component": "List",
+                    "children": {
+                      "path": "/clashes",
+                      "componentId": "clash-row"
+                    },
+                    "layout": "inline"
+                  },
+                  {
+                    "id": "clash-row",
+                    "component": "ListItem",
+                    "headline": "clash-when",
+                    "supporting": "clash-body",
+                    "leading": [
+                      "clash-swatch"
+                    ],
+                    "action": {
+                      "event": {
+                        "name": "open-event",
+                        "context": {
+                          "eventId": {
+                            "path": "id"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "clash-swatch",
+                    "component": "ColorSwatch",
+                    "color": "peacock",
+                    "shape": "dot"
+                  },
+                  {
+                    "id": "clash-when",
+                    "component": "Text",
+                    "text": {
+                      "path": "when"
+                    },
+                    "variant": "labelLarge"
+                  },
+                  {
+                    "id": "clash-body",
+                    "component": "Stack",
+                    "children": [
+                      "clash-summary",
+                      "clash-note"
+                    ],
+                    "gap": "none"
+                  },
+                  {
+                    "id": "clash-summary",
+                    "component": "Text",
+                    "text": {
+                      "path": "summary"
+                    },
+                    "maxLines": 1
+                  },
+                  {
+                    "id": "clash-note",
+                    "component": "Text",
+                    "text": {
+                      "path": "note"
+                    },
+                    "variant": "bodySmall",
+                    "color": "onSurfaceVariant",
+                    "maxLines": 1
+                  }
+                ],
+                "surfaceId": "calendar.1:calendar-6"
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "calendar.1",
+            "role": "fragment"
+          }
+        },
+        {
+          "offsetMs": 13606,
+          "messages": [
+            {
+              "paintMeta": {
+                "surfaceId": "github.1:notifications-12",
                 "title": "My Open Pull Requests"
               }
             },
             {
               "version": "v0.9",
               "createSurface": {
-                "surfaceId": "github:notifications-9",
+                "surfaceId": "github.1:notifications-12",
                 "catalogId": "https://github.com/retz8/a2uiverse-apps/blob/main/github/github-catalog/catalogs/v0.9.1/catalog.json",
                 "sendDataModel": true
               }
@@ -6831,7 +7851,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-9",
+                "surfaceId": "github.1:notifications-12",
                 "value": {
                   "prs": [
                     {
@@ -6847,7 +7867,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-9",
+                "surfaceId": "github.1:notifications-12",
                 "value": {
                   "prs": [
                     {
@@ -6865,7 +7885,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-9",
+                "surfaceId": "github.1:notifications-12",
                 "value": {
                   "prs": [
                     {
@@ -6885,7 +7905,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-9",
+                "surfaceId": "github.1:notifications-12",
                 "value": {
                   "prs": [
                     {
@@ -6907,7 +7927,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-9",
+                "surfaceId": "github.1:notifications-12",
                 "value": {
                   "prs": [
                     {
@@ -6931,7 +7951,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-9",
+                "surfaceId": "github.1:notifications-12",
                 "value": {
                   "prs": [
                     {
@@ -6956,7 +7976,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-9",
+                "surfaceId": "github.1:notifications-12",
                 "value": {
                   "prs": [
                     {
@@ -6983,7 +8003,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-9",
+                "surfaceId": "github.1:notifications-12",
                 "value": {
                   "prs": [
                     {
@@ -7012,7 +8032,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-9",
+                "surfaceId": "github.1:notifications-12",
                 "value": {
                   "prs": [
                     {
@@ -7044,7 +8064,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-9",
+                "surfaceId": "github.1:notifications-12",
                 "value": {
                   "prs": [
                     {
@@ -7077,7 +8097,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-9",
+                "surfaceId": "github.1:notifications-12",
                 "value": {
                   "prs": [
                     {
@@ -7111,7 +8131,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-9",
+                "surfaceId": "github.1:notifications-12",
                 "value": {
                   "prs": [
                     {
@@ -7147,7 +8167,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-9",
+                "surfaceId": "github.1:notifications-12",
                 "value": {
                   "prs": [
                     {
@@ -7187,7 +8207,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-9",
+                "surfaceId": "github.1:notifications-12",
                 "value": {
                   "prs": [
                     {
@@ -7228,7 +8248,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-9",
+                "surfaceId": "github.1:notifications-12",
                 "value": {
                   "prs": [
                     {
@@ -7270,7 +8290,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-9",
+                "surfaceId": "github.1:notifications-12",
                 "value": {
                   "prs": [
                     {
@@ -7314,7 +8334,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-9",
+                "surfaceId": "github.1:notifications-12",
                 "value": {
                   "prs": [
                     {
@@ -7359,7 +8379,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-9",
+                "surfaceId": "github.1:notifications-12",
                 "value": {
                   "prs": [
                     {
@@ -7408,7 +8428,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-9",
+                "surfaceId": "github.1:notifications-12",
                 "value": {
                   "prs": [
                     {
@@ -7458,7 +8478,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-9",
+                "surfaceId": "github.1:notifications-12",
                 "value": {
                   "prs": [
                     {
@@ -7509,7 +8529,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-9",
+                "surfaceId": "github.1:notifications-12",
                 "value": {
                   "prs": [
                     {
@@ -7561,7 +8581,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-9",
+                "surfaceId": "github.1:notifications-12",
                 "value": {
                   "prs": [
                     {
@@ -7615,7 +8635,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-9",
+                "surfaceId": "github.1:notifications-12",
                 "value": {
                   "prs": [
                     {
@@ -7670,7 +8690,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-9",
+                "surfaceId": "github.1:notifications-12",
                 "value": {
                   "prs": [
                     {
@@ -7728,7 +8748,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-9",
+                "surfaceId": "github.1:notifications-12",
                 "value": {
                   "prs": [
                     {
@@ -7788,7 +8808,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-9",
+                "surfaceId": "github.1:notifications-12",
                 "value": {
                   "prs": [
                     {
@@ -7849,7 +8869,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-9",
+                "surfaceId": "github.1:notifications-12",
                 "value": {
                   "prs": [
                     {
@@ -7912,7 +8932,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-9",
+                "surfaceId": "github.1:notifications-12",
                 "value": {
                   "prs": [
                     {
@@ -7976,7 +8996,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-9",
+                "surfaceId": "github.1:notifications-12",
                 "path": "/",
                 "value": {
                   "prs": [
@@ -8237,1051 +9257,18 @@
                     "second": "2-digit"
                   }
                 ],
-                "surfaceId": "github:notifications-9"
+                "surfaceId": "github.1:notifications-12"
               }
             }
           ],
           "texts": [],
           "stamp": {
-            "source": "github",
+            "source": "github.1",
             "role": "fragment"
           }
         },
         {
-          "offsetMs": 6129,
-          "messages": [
-            {
-              "paintMeta": {
-                "surfaceId": "gmail:gmail-9",
-                "title": "Needs attention"
-              }
-            },
-            {
-              "version": "v0.9",
-              "createSurface": {
-                "surfaceId": "gmail:gmail-9",
-                "catalogId": "https://github.com/retz8/a2uiverse-apps/blob/main/gmail/gmail-catalog/catalogs/v0.9.1/catalog.json",
-                "sendDataModel": true
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "gmail:gmail-9",
-                "value": {
-                  "threads": [
-                    {
-                      "id": "19829cbece7facf1",
-                      "sender": "Mei Silva",
-                      "subject": "Re: Notes ahead of the design review: agenda surface"
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "gmail:gmail-9",
-                "value": {
-                  "threads": [
-                    {
-                      "id": "19829cbece7facf1",
-                      "sender": "Mei Silva",
-                      "subject": "Re: Notes ahead of the design review: agenda surface",
-                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?"
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "gmail:gmail-9",
-                "value": {
-                  "threads": [
-                    {
-                      "id": "19829cbece7facf1",
-                      "sender": "Mei Silva",
-                      "subject": "Re: Notes ahead of the design review: agenda surface",
-                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
-                      "when": "2026-09-19 12:41 UTC"
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "gmail:gmail-9",
-                "value": {
-                  "threads": [
-                    {
-                      "id": "19829cbece7facf1",
-                      "sender": "Mei Silva",
-                      "subject": "Re: Notes ahead of the design review: agenda surface",
-                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
-                      "when": "2026-09-19 12:41 UTC"
-                    },
-                    {
-                      "id": "1956e7633ba626aa",
-                      "sender": "Alex Bergman"
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "gmail:gmail-9",
-                "value": {
-                  "threads": [
-                    {
-                      "id": "19829cbece7facf1",
-                      "sender": "Mei Silva",
-                      "subject": "Re: Notes ahead of the design review: agenda surface",
-                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
-                      "when": "2026-09-19 12:41 UTC"
-                    },
-                    {
-                      "id": "1956e7633ba626aa",
-                      "sender": "Alex Bergman",
-                      "subject": "Could you review #8 before quarter planning?"
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "gmail:gmail-9",
-                "value": {
-                  "threads": [
-                    {
-                      "id": "19829cbece7facf1",
-                      "sender": "Mei Silva",
-                      "subject": "Re: Notes ahead of the design review: agenda surface",
-                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
-                      "when": "2026-09-19 12:41 UTC"
-                    },
-                    {
-                      "id": "1956e7633ba626aa",
-                      "sender": "Alex Bergman",
-                      "subject": "Could you review #8 before quarter planning?",
-                      "snippet": "Hey, Could you take a look at #8 today? I'd like to show the effort split at quarter planning tomorrow at 10, and it would be good to have your review on it first. Mostly the part where the"
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "gmail:gmail-9",
-                "value": {
-                  "threads": [
-                    {
-                      "id": "19829cbece7facf1",
-                      "sender": "Mei Silva",
-                      "subject": "Re: Notes ahead of the design review: agenda surface",
-                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
-                      "when": "2026-09-19 12:41 UTC"
-                    },
-                    {
-                      "id": "1956e7633ba626aa",
-                      "sender": "Alex Bergman",
-                      "subject": "Could you review #8 before quarter planning?",
-                      "snippet": "Hey, Could you take a look at #8 today? I'd like to show the effort split at quarter planning tomorrow at 10, and it would be good to have your review on it first. Mostly the part where the",
-                      "when": "2026-09-19 11:30 UTC"
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "gmail:gmail-9",
-                "value": {
-                  "threads": [
-                    {
-                      "id": "19829cbece7facf1",
-                      "sender": "Mei Silva",
-                      "subject": "Re: Notes ahead of the design review: agenda surface",
-                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
-                      "when": "2026-09-19 12:41 UTC"
-                    },
-                    {
-                      "id": "1956e7633ba626aa",
-                      "sender": "Alex Bergman",
-                      "subject": "Could you review #8 before quarter planning?",
-                      "snippet": "Hey, Could you take a look at #8 today? I'd like to show the effort split at quarter planning tomorrow at 10, and it would be good to have your review on it first. Mostly the part where the",
-                      "when": "2026-09-19 11:30 UTC"
-                    },
-                    {
-                      "id": "19fd40c07b154538"
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "gmail:gmail-9",
-                "value": {
-                  "threads": [
-                    {
-                      "id": "19829cbece7facf1",
-                      "sender": "Mei Silva",
-                      "subject": "Re: Notes ahead of the design review: agenda surface",
-                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
-                      "when": "2026-09-19 12:41 UTC"
-                    },
-                    {
-                      "id": "1956e7633ba626aa",
-                      "sender": "Alex Bergman",
-                      "subject": "Could you review #8 before quarter planning?",
-                      "snippet": "Hey, Could you take a look at #8 today? I'd like to show the effort split at quarter planning tomorrow at 10, and it would be good to have your review on it first. Mostly the part where the",
-                      "when": "2026-09-19 11:30 UTC"
-                    },
-                    {
-                      "id": "19fd40c07b154538",
-                      "sender": "Mei Silva",
-                      "subject": "CI failing on synthesizer-effort-apart-from-planner"
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "gmail:gmail-9",
-                "value": {
-                  "threads": [
-                    {
-                      "id": "19829cbece7facf1",
-                      "sender": "Mei Silva",
-                      "subject": "Re: Notes ahead of the design review: agenda surface",
-                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
-                      "when": "2026-09-19 12:41 UTC"
-                    },
-                    {
-                      "id": "1956e7633ba626aa",
-                      "sender": "Alex Bergman",
-                      "subject": "Could you review #8 before quarter planning?",
-                      "snippet": "Hey, Could you take a look at #8 today? I'd like to show the effort split at quarter planning tomorrow at 10, and it would be good to have your review on it first. Mostly the part where the",
-                      "when": "2026-09-19 11:30 UTC"
-                    },
-                    {
-                      "id": "19fd40c07b154538",
-                      "sender": "Mei Silva",
-                      "subject": "CI failing on synthesizer-effort-apart-from-planner",
-                      "snippet": "Morning! The latest run on synthesizer-effort-apart-from-planner failed in lint-format. Prettier flagged apps/orchestrator/src/config.ts, so it looks like formatting, not the tests. Want me to push"
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "gmail:gmail-9",
-                "value": {
-                  "threads": [
-                    {
-                      "id": "19829cbece7facf1",
-                      "sender": "Mei Silva",
-                      "subject": "Re: Notes ahead of the design review: agenda surface",
-                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
-                      "when": "2026-09-19 12:41 UTC"
-                    },
-                    {
-                      "id": "1956e7633ba626aa",
-                      "sender": "Alex Bergman",
-                      "subject": "Could you review #8 before quarter planning?",
-                      "snippet": "Hey, Could you take a look at #8 today? I'd like to show the effort split at quarter planning tomorrow at 10, and it would be good to have your review on it first. Mostly the part where the",
-                      "when": "2026-09-19 11:30 UTC"
-                    },
-                    {
-                      "id": "19fd40c07b154538",
-                      "sender": "Mei Silva",
-                      "subject": "CI failing on synthesizer-effort-apart-from-planner",
-                      "snippet": "Morning! The latest run on synthesizer-effort-apart-from-planner failed in lint-format. Prettier flagged apps/orchestrator/src/config.ts, so it looks like formatting, not the tests. Want me to push",
-                      "when": "2026-09-19 11:05 UTC"
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "gmail:gmail-9",
-                "value": {
-                  "threads": [
-                    {
-                      "id": "19829cbece7facf1",
-                      "sender": "Mei Silva",
-                      "subject": "Re: Notes ahead of the design review: agenda surface",
-                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
-                      "when": "2026-09-19 12:41 UTC"
-                    },
-                    {
-                      "id": "1956e7633ba626aa",
-                      "sender": "Alex Bergman",
-                      "subject": "Could you review #8 before quarter planning?",
-                      "snippet": "Hey, Could you take a look at #8 today? I'd like to show the effort split at quarter planning tomorrow at 10, and it would be good to have your review on it first. Mostly the part where the",
-                      "when": "2026-09-19 11:30 UTC"
-                    },
-                    {
-                      "id": "19fd40c07b154538",
-                      "sender": "Mei Silva",
-                      "subject": "CI failing on synthesizer-effort-apart-from-planner",
-                      "snippet": "Morning! The latest run on synthesizer-effort-apart-from-planner failed in lint-format. Prettier flagged apps/orchestrator/src/config.ts, so it looks like formatting, not the tests. Want me to push",
-                      "when": "2026-09-19 11:05 UTC"
-                    },
-                    {
-                      "id": "19b6cefab66744cf",
-                      "sender": "Clara Moreau"
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "gmail:gmail-9",
-                "value": {
-                  "threads": [
-                    {
-                      "id": "19829cbece7facf1",
-                      "sender": "Mei Silva",
-                      "subject": "Re: Notes ahead of the design review: agenda surface",
-                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
-                      "when": "2026-09-19 12:41 UTC"
-                    },
-                    {
-                      "id": "1956e7633ba626aa",
-                      "sender": "Alex Bergman",
-                      "subject": "Could you review #8 before quarter planning?",
-                      "snippet": "Hey, Could you take a look at #8 today? I'd like to show the effort split at quarter planning tomorrow at 10, and it would be good to have your review on it first. Mostly the part where the",
-                      "when": "2026-09-19 11:30 UTC"
-                    },
-                    {
-                      "id": "19fd40c07b154538",
-                      "sender": "Mei Silva",
-                      "subject": "CI failing on synthesizer-effort-apart-from-planner",
-                      "snippet": "Morning! The latest run on synthesizer-effort-apart-from-planner failed in lint-format. Prettier flagged apps/orchestrator/src/config.ts, so it looks like formatting, not the tests. Want me to push",
-                      "when": "2026-09-19 11:05 UTC"
-                    },
-                    {
-                      "id": "19b6cefab66744cf",
-                      "sender": "Clara Moreau",
-                      "subject": "Numbers for the 11:30 budget sync"
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "gmail:gmail-9",
-                "value": {
-                  "threads": [
-                    {
-                      "id": "19829cbece7facf1",
-                      "sender": "Mei Silva",
-                      "subject": "Re: Notes ahead of the design review: agenda surface",
-                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
-                      "when": "2026-09-19 12:41 UTC"
-                    },
-                    {
-                      "id": "1956e7633ba626aa",
-                      "sender": "Alex Bergman",
-                      "subject": "Could you review #8 before quarter planning?",
-                      "snippet": "Hey, Could you take a look at #8 today? I'd like to show the effort split at quarter planning tomorrow at 10, and it would be good to have your review on it first. Mostly the part where the",
-                      "when": "2026-09-19 11:30 UTC"
-                    },
-                    {
-                      "id": "19fd40c07b154538",
-                      "sender": "Mei Silva",
-                      "subject": "CI failing on synthesizer-effort-apart-from-planner",
-                      "snippet": "Morning! The latest run on synthesizer-effort-apart-from-planner failed in lint-format. Prettier flagged apps/orchestrator/src/config.ts, so it looks like formatting, not the tests. Want me to push",
-                      "when": "2026-09-19 11:05 UTC"
-                    },
-                    {
-                      "id": "19b6cefab66744cf",
-                      "sender": "Clara Moreau",
-                      "subject": "Numbers for the 11:30 budget sync",
-                      "snippet": "Hi, Ahead of our 11:30, I've put the Q4 numbers in the budget sheet. Everything is in except the model spend. Could you bring an estimate for October, even a rough one? Thanks, Clara"
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "gmail:gmail-9",
-                "value": {
-                  "threads": [
-                    {
-                      "id": "19829cbece7facf1",
-                      "sender": "Mei Silva",
-                      "subject": "Re: Notes ahead of the design review: agenda surface",
-                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
-                      "when": "2026-09-19 12:41 UTC"
-                    },
-                    {
-                      "id": "1956e7633ba626aa",
-                      "sender": "Alex Bergman",
-                      "subject": "Could you review #8 before quarter planning?",
-                      "snippet": "Hey, Could you take a look at #8 today? I'd like to show the effort split at quarter planning tomorrow at 10, and it would be good to have your review on it first. Mostly the part where the",
-                      "when": "2026-09-19 11:30 UTC"
-                    },
-                    {
-                      "id": "19fd40c07b154538",
-                      "sender": "Mei Silva",
-                      "subject": "CI failing on synthesizer-effort-apart-from-planner",
-                      "snippet": "Morning! The latest run on synthesizer-effort-apart-from-planner failed in lint-format. Prettier flagged apps/orchestrator/src/config.ts, so it looks like formatting, not the tests. Want me to push",
-                      "when": "2026-09-19 11:05 UTC"
-                    },
-                    {
-                      "id": "19b6cefab66744cf",
-                      "sender": "Clara Moreau",
-                      "subject": "Numbers for the 11:30 budget sync",
-                      "snippet": "Hi, Ahead of our 11:30, I've put the Q4 numbers in the budget sheet. Everything is in except the model spend. Could you bring an estimate for October, even a rough one? Thanks, Clara",
-                      "when": "2026-09-19 10:48 UTC"
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "gmail:gmail-9",
-                "path": "/",
-                "value": {
-                  "threads": [
-                    {
-                      "id": "19829cbece7facf1",
-                      "sender": "Mei Silva",
-                      "subject": "Re: Notes ahead of the design review: agenda surface",
-                      "snippet": "Will do. I'll bring the tokens and a side-by-side of the 24px and 32px gaps between the regions. One question for the room: when you go back inside an app, should the merged table keep its sort?",
-                      "when": "2026-09-19 12:41 UTC"
-                    },
-                    {
-                      "id": "1956e7633ba626aa",
-                      "sender": "Alex Bergman",
-                      "subject": "Could you review #8 before quarter planning?",
-                      "snippet": "Hey, Could you take a look at #8 today? I'd like to show the effort split at quarter planning tomorrow at 10, and it would be good to have your review on it first. Mostly the part where the",
-                      "when": "2026-09-19 11:30 UTC"
-                    },
-                    {
-                      "id": "19fd40c07b154538",
-                      "sender": "Mei Silva",
-                      "subject": "CI failing on synthesizer-effort-apart-from-planner",
-                      "snippet": "Morning! The latest run on synthesizer-effort-apart-from-planner failed in lint-format. Prettier flagged apps/orchestrator/src/config.ts, so it looks like formatting, not the tests. Want me to push",
-                      "when": "2026-09-19 11:05 UTC"
-                    },
-                    {
-                      "id": "19b6cefab66744cf",
-                      "sender": "Clara Moreau",
-                      "subject": "Numbers for the 11:30 budget sync",
-                      "snippet": "Hi, Ahead of our 11:30, I've put the Q4 numbers in the budget sheet. Everything is in except the model spend. Could you bring an estimate for October, even a rough one? Thanks, Clara",
-                      "when": "2026-09-19 10:48 UTC"
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateComponents": {
-                "components": [
-                  {
-                    "id": "root",
-                    "component": "Surface",
-                    "child": "body",
-                    "container": "low",
-                    "shape": "large",
-                    "padding": "small"
-                  },
-                  {
-                    "id": "body",
-                    "component": "Stack",
-                    "children": [
-                      "header",
-                      "sheet"
-                    ],
-                    "gap": "xs"
-                  },
-                  {
-                    "id": "header",
-                    "component": "Stack",
-                    "children": [
-                      "heading",
-                      "sub"
-                    ],
-                    "gap": "xs",
-                    "padding": "sm"
-                  },
-                  {
-                    "id": "heading",
-                    "component": "Text",
-                    "text": "Needs attention today",
-                    "variant": "titleLarge"
-                  },
-                  {
-                    "id": "sub",
-                    "component": "Text",
-                    "text": "4 unread threads waiting on your review or reply",
-                    "variant": "bodySmall",
-                    "color": "onSurfaceVariant"
-                  },
-                  {
-                    "id": "sheet",
-                    "component": "Surface",
-                    "child": "thread-list",
-                    "container": "lowest",
-                    "shape": "large",
-                    "padding": "none"
-                  },
-                  {
-                    "id": "thread-list",
-                    "component": "List",
-                    "children": {
-                      "path": "/threads",
-                      "componentId": "thread-row"
-                    },
-                    "dividers": true,
-                    "layout": "inline"
-                  },
-                  {
-                    "id": "thread-row",
-                    "component": "ListItem",
-                    "headline": "thread-sender",
-                    "supporting": "thread-preview",
-                    "meta": "thread-when",
-                    "leading": [
-                      "thread-avatar"
-                    ],
-                    "action": {
-                      "event": {
-                        "name": "open-thread",
-                        "context": {
-                          "threadId": {
-                            "path": "id"
-                          }
-                        }
-                      }
-                    }
-                  },
-                  {
-                    "id": "thread-avatar",
-                    "component": "Avatar",
-                    "name": {
-                      "path": "sender"
-                    },
-                    "size": "medium"
-                  },
-                  {
-                    "id": "thread-sender",
-                    "component": "Text",
-                    "text": {
-                      "path": "sender"
-                    },
-                    "weight": "bold",
-                    "maxLines": 1
-                  },
-                  {
-                    "id": "thread-when",
-                    "component": "Text",
-                    "text": {
-                      "path": "when"
-                    },
-                    "variant": "labelMedium",
-                    "color": "onSurfaceVariant"
-                  },
-                  {
-                    "id": "thread-preview",
-                    "component": "Stack",
-                    "children": [
-                      "thread-subject",
-                      "thread-snippet"
-                    ],
-                    "gap": "none"
-                  },
-                  {
-                    "id": "thread-subject",
-                    "component": "Text",
-                    "text": {
-                      "path": "subject"
-                    },
-                    "weight": "medium",
-                    "maxLines": 1
-                  },
-                  {
-                    "id": "thread-snippet",
-                    "component": "Text",
-                    "text": {
-                      "path": "snippet"
-                    },
-                    "color": "onSurfaceVariant",
-                    "maxLines": 1
-                  }
-                ],
-                "surfaceId": "gmail:gmail-9"
-              }
-            }
-          ],
-          "texts": [],
-          "stamp": {
-            "source": "gmail",
-            "role": "fragment"
-          }
-        },
-        {
-          "offsetMs": 6129,
-          "messages": [
-            {
-              "paintMeta": {
-                "surfaceId": "calendar:calendar-9",
-                "title": "Needs attention today"
-              }
-            },
-            {
-              "version": "v0.9",
-              "createSurface": {
-                "surfaceId": "calendar:calendar-9",
-                "catalogId": "https://github.com/retz8/a2uiverse-apps/blob/main/calendar/calendar-catalog/catalogs/v0.9.1/catalog.json",
-                "sendDataModel": true
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "calendar:calendar-9",
-                "value": {
-                  "waiting": [
-                    {
-                      "id": "7nuujj9h9ru89blofii3m5otlo",
-                      "when": "11:00",
-                      "summary": "Design review — agenda surface"
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "calendar:calendar-9",
-                "value": {
-                  "waiting": [
-                    {
-                      "id": "7nuujj9h9ru89blofii3m5otlo",
-                      "when": "11:00",
-                      "summary": "Design review — agenda surface",
-                      "note": "ID: 7nuujj9h9ru89blofii3m5otlo • Unanswered invitation • Walk through the three fragment layouts."
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "calendar:calendar-9",
-                "value": {
-                  "clashes": [
-                    {
-                      "id": "7nuujj9h9ru89blofii3m5otlo",
-                      "when": "11:00 – 12:00",
-                      "summary": "Design review — agenda surface"
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "calendar:calendar-9",
-                "value": {
-                  "clashes": [
-                    {
-                      "id": "7nuujj9h9ru89blofii3m5otlo",
-                      "when": "11:00 – 12:00",
-                      "summary": "Design review — agenda surface",
-                      "note": "ID: 7nuujj9h9ru89blofii3m5otlo • Overlaps Budget sync • Walk through the three fragment layouts."
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "calendar:calendar-9",
-                "value": {
-                  "clashes": [
-                    {
-                      "id": "7nuujj9h9ru89blofii3m5otlo",
-                      "when": "11:00 – 12:00",
-                      "summary": "Design review — agenda surface",
-                      "note": "ID: 7nuujj9h9ru89blofii3m5otlo • Overlaps Budget sync • Walk through the three fragment layouts."
-                    },
-                    {
-                      "id": "ev1fmp1rmvhhb260fbebvd7o9o"
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "calendar:calendar-9",
-                "value": {
-                  "clashes": [
-                    {
-                      "id": "7nuujj9h9ru89blofii3m5otlo",
-                      "when": "11:00 – 12:00",
-                      "summary": "Design review — agenda surface",
-                      "note": "ID: 7nuujj9h9ru89blofii3m5otlo • Overlaps Budget sync • Walk through the three fragment layouts."
-                    },
-                    {
-                      "id": "ev1fmp1rmvhhb260fbebvd7o9o",
-                      "when": "11:30 – 12:15"
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "calendar:calendar-9",
-                "value": {
-                  "clashes": [
-                    {
-                      "id": "7nuujj9h9ru89blofii3m5otlo",
-                      "when": "11:00 – 12:00",
-                      "summary": "Design review — agenda surface",
-                      "note": "ID: 7nuujj9h9ru89blofii3m5otlo • Overlaps Budget sync • Walk through the three fragment layouts."
-                    },
-                    {
-                      "id": "ev1fmp1rmvhhb260fbebvd7o9o",
-                      "when": "11:30 – 12:15",
-                      "summary": "Budget sync"
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "calendar:calendar-9",
-                "value": {
-                  "clashes": [
-                    {
-                      "id": "7nuujj9h9ru89blofii3m5otlo",
-                      "when": "11:00 – 12:00",
-                      "summary": "Design review — agenda surface",
-                      "note": "ID: 7nuujj9h9ru89blofii3m5otlo • Overlaps Budget sync • Walk through the three fragment layouts."
-                    },
-                    {
-                      "id": "ev1fmp1rmvhhb260fbebvd7o9o",
-                      "when": "11:30 – 12:15",
-                      "summary": "Budget sync",
-                      "note": "ID: ev1fmp1rmvhhb260fbebvd7o9o • Overlaps Design review • Two line items still do not reconcile against the estimate."
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateDataModel": {
-                "surfaceId": "calendar:calendar-9",
-                "path": "/",
-                "value": {
-                  "waiting": [
-                    {
-                      "id": "7nuujj9h9ru89blofii3m5otlo",
-                      "when": "11:00",
-                      "summary": "Design review — agenda surface",
-                      "note": "ID: 7nuujj9h9ru89blofii3m5otlo • Unanswered invitation • Walk through the three fragment layouts."
-                    }
-                  ],
-                  "clashes": [
-                    {
-                      "id": "7nuujj9h9ru89blofii3m5otlo",
-                      "when": "11:00 – 12:00",
-                      "summary": "Design review — agenda surface",
-                      "note": "ID: 7nuujj9h9ru89blofii3m5otlo • Overlaps Budget sync • Walk through the three fragment layouts."
-                    },
-                    {
-                      "id": "ev1fmp1rmvhhb260fbebvd7o9o",
-                      "when": "11:30 – 12:15",
-                      "summary": "Budget sync",
-                      "note": "ID: ev1fmp1rmvhhb260fbebvd7o9o • Overlaps Design review • Two line items still do not reconcile against the estimate."
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "version": "v0.9",
-              "updateComponents": {
-                "components": [
-                  {
-                    "id": "root",
-                    "component": "Surface",
-                    "child": "body",
-                    "container": "low",
-                    "shape": "large",
-                    "padding": "small"
-                  },
-                  {
-                    "id": "body",
-                    "component": "Stack",
-                    "children": [
-                      "header",
-                      "sheet"
-                    ],
-                    "gap": "xs"
-                  },
-                  {
-                    "id": "header",
-                    "component": "Stack",
-                    "children": [
-                      "heading"
-                    ],
-                    "padding": "sm"
-                  },
-                  {
-                    "id": "heading",
-                    "component": "Text",
-                    "text": "Needs attention today",
-                    "variant": "titleLarge"
-                  },
-                  {
-                    "id": "sheet",
-                    "component": "Surface",
-                    "child": "sections",
-                    "container": "lowest",
-                    "shape": "large",
-                    "padding": "none"
-                  },
-                  {
-                    "id": "sections",
-                    "component": "Stack",
-                    "children": [
-                      "waiting-label",
-                      "waiting-list",
-                      "divider",
-                      "clash-label",
-                      "clash-list"
-                    ],
-                    "gap": "none"
-                  },
-                  {
-                    "id": "waiting-label",
-                    "component": "Stack",
-                    "children": [
-                      "waiting-title"
-                    ],
-                    "padding": "sm"
-                  },
-                  {
-                    "id": "waiting-title",
-                    "component": "Text",
-                    "text": "Unanswered invitations",
-                    "variant": "titleSmall",
-                    "color": "primary"
-                  },
-                  {
-                    "id": "waiting-list",
-                    "component": "List",
-                    "children": {
-                      "path": "/waiting",
-                      "componentId": "waiting-row"
-                    },
-                    "layout": "inline"
-                  },
-                  {
-                    "id": "waiting-row",
-                    "component": "ListItem",
-                    "headline": "waiting-when",
-                    "supporting": "waiting-body",
-                    "leading": [
-                      "waiting-swatch"
-                    ],
-                    "action": {
-                      "event": {
-                        "name": "open-event",
-                        "context": {
-                          "eventId": {
-                            "path": "id"
-                          }
-                        }
-                      }
-                    }
-                  },
-                  {
-                    "id": "waiting-swatch",
-                    "component": "ColorSwatch",
-                    "color": "peacock",
-                    "shape": "dot"
-                  },
-                  {
-                    "id": "waiting-when",
-                    "component": "Text",
-                    "text": {
-                      "path": "when"
-                    },
-                    "variant": "labelLarge"
-                  },
-                  {
-                    "id": "waiting-body",
-                    "component": "Stack",
-                    "children": [
-                      "waiting-summary",
-                      "waiting-note"
-                    ],
-                    "gap": "none"
-                  },
-                  {
-                    "id": "waiting-summary",
-                    "component": "Text",
-                    "text": {
-                      "path": "summary"
-                    },
-                    "maxLines": 1
-                  },
-                  {
-                    "id": "waiting-note",
-                    "component": "Text",
-                    "text": {
-                      "path": "note"
-                    },
-                    "variant": "bodySmall",
-                    "color": "onSurfaceVariant",
-                    "maxLines": 1
-                  },
-                  {
-                    "id": "divider",
-                    "component": "Divider"
-                  },
-                  {
-                    "id": "clash-label",
-                    "component": "Stack",
-                    "children": [
-                      "clash-title"
-                    ],
-                    "padding": "sm"
-                  },
-                  {
-                    "id": "clash-title",
-                    "component": "Text",
-                    "text": "Double-booked today",
-                    "variant": "titleSmall",
-                    "color": "primary"
-                  },
-                  {
-                    "id": "clash-list",
-                    "component": "List",
-                    "children": {
-                      "path": "/clashes",
-                      "componentId": "clash-row"
-                    },
-                    "layout": "inline"
-                  },
-                  {
-                    "id": "clash-row",
-                    "component": "ListItem",
-                    "headline": "clash-when",
-                    "supporting": "clash-body",
-                    "leading": [
-                      "clash-swatch"
-                    ],
-                    "action": {
-                      "event": {
-                        "name": "open-event",
-                        "context": {
-                          "eventId": {
-                            "path": "id"
-                          }
-                        }
-                      }
-                    }
-                  },
-                  {
-                    "id": "clash-swatch",
-                    "component": "ColorSwatch",
-                    "color": "peacock",
-                    "shape": "dot"
-                  },
-                  {
-                    "id": "clash-when",
-                    "component": "Text",
-                    "text": {
-                      "path": "when"
-                    },
-                    "variant": "labelLarge"
-                  },
-                  {
-                    "id": "clash-body",
-                    "component": "Stack",
-                    "children": [
-                      "clash-summary",
-                      "clash-note"
-                    ],
-                    "gap": "none"
-                  },
-                  {
-                    "id": "clash-summary",
-                    "component": "Text",
-                    "text": {
-                      "path": "summary"
-                    },
-                    "maxLines": 1
-                  },
-                  {
-                    "id": "clash-note",
-                    "component": "Text",
-                    "text": {
-                      "path": "note"
-                    },
-                    "variant": "bodySmall",
-                    "color": "onSurfaceVariant",
-                    "maxLines": 1
-                  }
-                ],
-                "surfaceId": "calendar:calendar-9"
-              }
-            }
-          ],
-          "texts": [],
-          "stamp": {
-            "source": "calendar",
-            "role": "fragment"
-          }
-        },
-        {
-          "offsetMs": 20612,
+          "offsetMs": 26952,
           "messages": [
             {
               "version": "v0.9",
@@ -9389,14 +9376,12 @@
                     "id": "calendar",
                     "component": "Table",
                     "columns": [
-                      "Source",
                       "When",
                       "What"
                     ],
                     "columnSources": [
-                      "calendar",
-                      "calendar",
-                      "calendar"
+                      "calendar.1",
+                      "calendar.1"
                     ],
                     "children": {
                       "path": "/calendar",
@@ -9407,17 +9392,9 @@
                     "id": "event",
                     "component": "TableRow",
                     "children": [
-                      "e-source",
                       "e-when",
                       "e-what"
                     ]
-                  },
-                  {
-                    "id": "e-source",
-                    "component": "DerivedValue",
-                    "cell": {
-                      "path": "source"
-                    }
                   },
                   {
                     "id": "e-when",
@@ -9450,123 +9427,7 @@
                     "op": "source",
                     "args": [
                       {
-                        "surface": "gmail:gmail-9",
-                        "pointer": "/threads[id=\"19829cbece7facf1\"]/when"
-                      }
-                    ]
-                  },
-                  "when": {
-                    "op": "value",
-                    "args": [
-                      {
-                        "surface": "gmail:gmail-9",
-                        "pointer": "/threads[id=\"19829cbece7facf1\"]/when"
-                      }
-                    ]
-                  },
-                  "what": {
-                    "op": "value",
-                    "args": [
-                      {
-                        "surface": "gmail:gmail-9",
-                        "pointer": "/threads[id=\"19829cbece7facf1\"]/subject"
-                      }
-                    ]
-                  }
-                },
-                {
-                  "source": {
-                    "op": "source",
-                    "args": [
-                      {
-                        "surface": "gmail:gmail-9",
-                        "pointer": "/threads[id=\"1956e7633ba626aa\"]/when"
-                      }
-                    ]
-                  },
-                  "when": {
-                    "op": "value",
-                    "args": [
-                      {
-                        "surface": "gmail:gmail-9",
-                        "pointer": "/threads[id=\"1956e7633ba626aa\"]/when"
-                      }
-                    ]
-                  },
-                  "what": {
-                    "op": "value",
-                    "args": [
-                      {
-                        "surface": "gmail:gmail-9",
-                        "pointer": "/threads[id=\"1956e7633ba626aa\"]/subject"
-                      }
-                    ]
-                  }
-                },
-                {
-                  "source": {
-                    "op": "source",
-                    "args": [
-                      {
-                        "surface": "gmail:gmail-9",
-                        "pointer": "/threads[id=\"19fd40c07b154538\"]/when"
-                      }
-                    ]
-                  },
-                  "when": {
-                    "op": "value",
-                    "args": [
-                      {
-                        "surface": "gmail:gmail-9",
-                        "pointer": "/threads[id=\"19fd40c07b154538\"]/when"
-                      }
-                    ]
-                  },
-                  "what": {
-                    "op": "value",
-                    "args": [
-                      {
-                        "surface": "gmail:gmail-9",
-                        "pointer": "/threads[id=\"19fd40c07b154538\"]/subject"
-                      }
-                    ]
-                  }
-                },
-                {
-                  "source": {
-                    "op": "source",
-                    "args": [
-                      {
-                        "surface": "gmail:gmail-9",
-                        "pointer": "/threads[id=\"19b6cefab66744cf\"]/when"
-                      }
-                    ]
-                  },
-                  "when": {
-                    "op": "value",
-                    "args": [
-                      {
-                        "surface": "gmail:gmail-9",
-                        "pointer": "/threads[id=\"19b6cefab66744cf\"]/when"
-                      }
-                    ]
-                  },
-                  "what": {
-                    "op": "value",
-                    "args": [
-                      {
-                        "surface": "gmail:gmail-9",
-                        "pointer": "/threads[id=\"19b6cefab66744cf\"]/subject"
-                      }
-                    ]
-                  }
-                },
-                {
-                  "source": {
-                    "op": "source",
-                    "args": [
-                      {
-                        "surface": "linear:linear-9",
+                        "surface": "linear.1:linear-12",
                         "pointer": "/issues[id=\"A2U-5\"]/updated"
                       }
                     ]
@@ -9575,7 +9436,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "linear:linear-9",
+                        "surface": "linear.1:linear-12",
                         "pointer": "/issues[id=\"A2U-5\"]/updated"
                       }
                     ]
@@ -9584,7 +9445,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "linear:linear-9",
+                        "surface": "linear.1:linear-12",
                         "pointer": "/issues[id=\"A2U-5\"]/title"
                       }
                     ]
@@ -9595,7 +9456,7 @@
                     "op": "source",
                     "args": [
                       {
-                        "surface": "linear:linear-9",
+                        "surface": "linear.1:linear-12",
                         "pointer": "/issues[id=\"A2U-7\"]/updated"
                       }
                     ]
@@ -9604,7 +9465,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "linear:linear-9",
+                        "surface": "linear.1:linear-12",
                         "pointer": "/issues[id=\"A2U-7\"]/updated"
                       }
                     ]
@@ -9613,7 +9474,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "linear:linear-9",
+                        "surface": "linear.1:linear-12",
                         "pointer": "/issues[id=\"A2U-7\"]/title"
                       }
                     ]
@@ -9624,7 +9485,7 @@
                     "op": "source",
                     "args": [
                       {
-                        "surface": "linear:linear-9",
+                        "surface": "linear.1:linear-12",
                         "pointer": "/issues[id=\"A2U-6\"]/updated"
                       }
                     ]
@@ -9633,7 +9494,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "linear:linear-9",
+                        "surface": "linear.1:linear-12",
                         "pointer": "/issues[id=\"A2U-6\"]/updated"
                       }
                     ]
@@ -9642,7 +9503,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "linear:linear-9",
+                        "surface": "linear.1:linear-12",
                         "pointer": "/issues[id=\"A2U-6\"]/title"
                       }
                     ]
@@ -9653,8 +9514,8 @@
                     "op": "source",
                     "args": [
                       {
-                        "surface": "github:notifications-9",
-                        "pointer": "/prs[number=8]/updatedAt"
+                        "surface": "gmail.1:gmail-9",
+                        "pointer": "/threads[id=\"19829cbece7facf1\"]/when"
                       }
                     ]
                   },
@@ -9662,8 +9523,8 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "github:notifications-9",
-                        "pointer": "/prs[number=8]/updatedAt"
+                        "surface": "gmail.1:gmail-9",
+                        "pointer": "/threads[id=\"19829cbece7facf1\"]/when"
                       }
                     ]
                   },
@@ -9671,8 +9532,8 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "github:notifications-9",
-                        "pointer": "/prs[number=8]/title"
+                        "surface": "gmail.1:gmail-9",
+                        "pointer": "/threads[id=\"19829cbece7facf1\"]/subject"
                       }
                     ]
                   }
@@ -9682,8 +9543,8 @@
                     "op": "source",
                     "args": [
                       {
-                        "surface": "github:notifications-9",
-                        "pointer": "/prs[number=7]/updatedAt"
+                        "surface": "gmail.1:gmail-9",
+                        "pointer": "/threads[id=\"1956e7633ba626aa\"]/when"
                       }
                     ]
                   },
@@ -9691,8 +9552,8 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "github:notifications-9",
-                        "pointer": "/prs[number=7]/updatedAt"
+                        "surface": "gmail.1:gmail-9",
+                        "pointer": "/threads[id=\"1956e7633ba626aa\"]/when"
                       }
                     ]
                   },
@@ -9700,8 +9561,8 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "github:notifications-9",
-                        "pointer": "/prs[number=7]/title"
+                        "surface": "gmail.1:gmail-9",
+                        "pointer": "/threads[id=\"1956e7633ba626aa\"]/subject"
                       }
                     ]
                   }
@@ -9711,8 +9572,8 @@
                     "op": "source",
                     "args": [
                       {
-                        "surface": "github:notifications-9",
-                        "pointer": "/prs[number=6]/updatedAt"
+                        "surface": "gmail.1:gmail-9",
+                        "pointer": "/threads[id=\"19fd40c07b154538\"]/when"
                       }
                     ]
                   },
@@ -9720,8 +9581,8 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "github:notifications-9",
-                        "pointer": "/prs[number=6]/updatedAt"
+                        "surface": "gmail.1:gmail-9",
+                        "pointer": "/threads[id=\"19fd40c07b154538\"]/when"
                       }
                     ]
                   },
@@ -9729,8 +9590,8 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "github:notifications-9",
-                        "pointer": "/prs[number=6]/title"
+                        "surface": "gmail.1:gmail-9",
+                        "pointer": "/threads[id=\"19fd40c07b154538\"]/subject"
                       }
                     ]
                   }
@@ -9740,8 +9601,8 @@
                     "op": "source",
                     "args": [
                       {
-                        "surface": "github:notifications-9",
-                        "pointer": "/prs[number=2639]/updatedAt"
+                        "surface": "gmail.1:gmail-9",
+                        "pointer": "/threads[id=\"19b6cefab66744cf\"]/when"
                       }
                     ]
                   },
@@ -9749,8 +9610,8 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "github:notifications-9",
-                        "pointer": "/prs[number=2639]/updatedAt"
+                        "surface": "gmail.1:gmail-9",
+                        "pointer": "/threads[id=\"19b6cefab66744cf\"]/when"
                       }
                     ]
                   },
@@ -9758,8 +9619,8 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "github:notifications-9",
-                        "pointer": "/prs[number=2639]/title"
+                        "surface": "gmail.1:gmail-9",
+                        "pointer": "/threads[id=\"19b6cefab66744cf\"]/subject"
                       }
                     ]
                   }
@@ -9769,8 +9630,8 @@
                     "op": "source",
                     "args": [
                       {
-                        "surface": "github:notifications-9",
-                        "pointer": "/prs[number=2531]/updatedAt"
+                        "surface": "github.1:notifications-12",
+                        "pointer": "/prs[repository=\"retz8/a2uiverse\",number=8]/updatedAt"
                       }
                     ]
                   },
@@ -9778,8 +9639,8 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "github:notifications-9",
-                        "pointer": "/prs[number=2531]/updatedAt"
+                        "surface": "github.1:notifications-12",
+                        "pointer": "/prs[repository=\"retz8/a2uiverse\",number=8]/updatedAt"
                       }
                     ]
                   },
@@ -9787,8 +9648,8 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "github:notifications-9",
-                        "pointer": "/prs[number=2531]/title"
+                        "surface": "github.1:notifications-12",
+                        "pointer": "/prs[repository=\"retz8/a2uiverse\",number=8]/title"
                       }
                     ]
                   }
@@ -9798,8 +9659,8 @@
                     "op": "source",
                     "args": [
                       {
-                        "surface": "github:notifications-9",
-                        "pointer": "/prs[number=2529]/updatedAt"
+                        "surface": "github.1:notifications-12",
+                        "pointer": "/prs[repository=\"retz8/a2uiverse\",number=7]/updatedAt"
                       }
                     ]
                   },
@@ -9807,8 +9668,8 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "github:notifications-9",
-                        "pointer": "/prs[number=2529]/updatedAt"
+                        "surface": "github.1:notifications-12",
+                        "pointer": "/prs[repository=\"retz8/a2uiverse\",number=7]/updatedAt"
                       }
                     ]
                   },
@@ -9816,8 +9677,124 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "github:notifications-9",
-                        "pointer": "/prs[number=2529]/title"
+                        "surface": "github.1:notifications-12",
+                        "pointer": "/prs[repository=\"retz8/a2uiverse\",number=7]/title"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "source": {
+                    "op": "source",
+                    "args": [
+                      {
+                        "surface": "github.1:notifications-12",
+                        "pointer": "/prs[repository=\"retz8/a2uiverse\",number=6]/updatedAt"
+                      }
+                    ]
+                  },
+                  "when": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "github.1:notifications-12",
+                        "pointer": "/prs[repository=\"retz8/a2uiverse\",number=6]/updatedAt"
+                      }
+                    ]
+                  },
+                  "what": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "github.1:notifications-12",
+                        "pointer": "/prs[repository=\"retz8/a2uiverse\",number=6]/title"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "source": {
+                    "op": "source",
+                    "args": [
+                      {
+                        "surface": "github.1:notifications-12",
+                        "pointer": "/prs[repository=\"a2ui-project/a2ui\",number=2639]/updatedAt"
+                      }
+                    ]
+                  },
+                  "when": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "github.1:notifications-12",
+                        "pointer": "/prs[repository=\"a2ui-project/a2ui\",number=2639]/updatedAt"
+                      }
+                    ]
+                  },
+                  "what": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "github.1:notifications-12",
+                        "pointer": "/prs[repository=\"a2ui-project/a2ui\",number=2639]/title"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "source": {
+                    "op": "source",
+                    "args": [
+                      {
+                        "surface": "github.1:notifications-12",
+                        "pointer": "/prs[repository=\"a2ui-project/a2ui\",number=2531]/updatedAt"
+                      }
+                    ]
+                  },
+                  "when": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "github.1:notifications-12",
+                        "pointer": "/prs[repository=\"a2ui-project/a2ui\",number=2531]/updatedAt"
+                      }
+                    ]
+                  },
+                  "what": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "github.1:notifications-12",
+                        "pointer": "/prs[repository=\"a2ui-project/a2ui\",number=2531]/title"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "source": {
+                    "op": "source",
+                    "args": [
+                      {
+                        "surface": "github.1:notifications-12",
+                        "pointer": "/prs[repository=\"a2ui-project/a2ui\",number=2529]/updatedAt"
+                      }
+                    ]
+                  },
+                  "when": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "github.1:notifications-12",
+                        "pointer": "/prs[repository=\"a2ui-project/a2ui\",number=2529]/updatedAt"
+                      }
+                    ]
+                  },
+                  "what": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "github.1:notifications-12",
+                        "pointer": "/prs[repository=\"a2ui-project/a2ui\",number=2529]/title"
                       }
                     ]
                   }
@@ -9825,20 +9802,11 @@
               ],
               "calendar": [
                 {
-                  "source": {
-                    "op": "source",
-                    "args": [
-                      {
-                        "surface": "calendar:calendar-9",
-                        "pointer": "/waiting[id=\"7nuujj9h9ru89blofii3m5otlo\"]/when"
-                      }
-                    ]
-                  },
                   "when": {
                     "op": "value",
                     "args": [
                       {
-                        "surface": "calendar:calendar-9",
+                        "surface": "calendar.1:calendar-6",
                         "pointer": "/waiting[id=\"7nuujj9h9ru89blofii3m5otlo\"]/when"
                       }
                     ]
@@ -9847,27 +9815,18 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "calendar:calendar-9",
+                        "surface": "calendar.1:calendar-6",
                         "pointer": "/waiting[id=\"7nuujj9h9ru89blofii3m5otlo\"]/summary"
                       }
                     ]
                   }
                 },
                 {
-                  "source": {
-                    "op": "source",
-                    "args": [
-                      {
-                        "surface": "calendar:calendar-9",
-                        "pointer": "/clashes[id=\"7nuujj9h9ru89blofii3m5otlo\"]/when"
-                      }
-                    ]
-                  },
                   "when": {
                     "op": "value",
                     "args": [
                       {
-                        "surface": "calendar:calendar-9",
+                        "surface": "calendar.1:calendar-6",
                         "pointer": "/clashes[id=\"7nuujj9h9ru89blofii3m5otlo\"]/when"
                       }
                     ]
@@ -9876,27 +9835,18 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "calendar:calendar-9",
+                        "surface": "calendar.1:calendar-6",
                         "pointer": "/clashes[id=\"7nuujj9h9ru89blofii3m5otlo\"]/summary"
                       }
                     ]
                   }
                 },
                 {
-                  "source": {
-                    "op": "source",
-                    "args": [
-                      {
-                        "surface": "calendar:calendar-9",
-                        "pointer": "/clashes[id=\"ev1fmp1rmvhhb260fbebvd7o9o\"]/when"
-                      }
-                    ]
-                  },
                   "when": {
                     "op": "value",
                     "args": [
                       {
-                        "surface": "calendar:calendar-9",
+                        "surface": "calendar.1:calendar-6",
                         "pointer": "/clashes[id=\"ev1fmp1rmvhhb260fbebvd7o9o\"]/when"
                       }
                     ]
@@ -9905,7 +9855,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "calendar:calendar-9",
+                        "surface": "calendar.1:calendar-6",
                         "pointer": "/clashes[id=\"ev1fmp1rmvhhb260fbebvd7o9o\"]/summary"
                       }
                     ]
@@ -9929,7 +9879,7 @@
           }
         },
         {
-          "offsetMs": 20612,
+          "offsetMs": 26952,
           "messages": [
             {
               "version": "v0.9",
@@ -9952,10 +9902,10 @@
                     "label": "Synthesis",
                     "content": "shell",
                     "merged": [
-                      "calendar",
-                      "gmail",
-                      "github",
-                      "linear"
+                      "calendar.1",
+                      "gmail.1",
+                      "github.1",
+                      "linear.1"
                     ]
                   },
                   {
@@ -9972,14 +9922,14 @@
                     "id": "attribution-calendar",
                     "component": "Attribution",
                     "displayName": "Google Calendar",
-                    "source": "calendar",
+                    "source": "calendar.1",
                     "child": "calendar",
                     "weight": 1
                   },
                   {
                     "id": "calendar",
                     "component": "Slot",
-                    "source": "calendar",
+                    "source": "calendar.1",
                     "weight": 1,
                     "state": "pending",
                     "label": "Google Calendar"
@@ -9988,14 +9938,14 @@
                     "id": "attribution-gmail",
                     "component": "Attribution",
                     "displayName": "Gmail",
-                    "source": "gmail",
+                    "source": "gmail.1",
                     "child": "gmail",
                     "weight": 1
                   },
                   {
                     "id": "gmail",
                     "component": "Slot",
-                    "source": "gmail",
+                    "source": "gmail.1",
                     "weight": 1,
                     "state": "pending",
                     "label": "Gmail"
@@ -10004,14 +9954,14 @@
                     "id": "attribution-github",
                     "component": "Attribution",
                     "displayName": "GitHub",
-                    "source": "github",
+                    "source": "github.1",
                     "child": "github",
                     "weight": 1
                   },
                   {
                     "id": "github",
                     "component": "Slot",
-                    "source": "github",
+                    "source": "github.1",
                     "weight": 1,
                     "state": "pending",
                     "label": "GitHub"
@@ -10020,14 +9970,14 @@
                     "id": "attribution-linear",
                     "component": "Attribution",
                     "displayName": "Linear",
-                    "source": "linear",
+                    "source": "linear.1",
                     "child": "linear",
                     "weight": 1
                   },
                   {
                     "id": "linear",
                     "component": "Slot",
-                    "source": "linear",
+                    "source": "linear.1",
                     "weight": 1,
                     "state": "pending",
                     "label": "Linear"
@@ -10044,8 +9994,8 @@
         }
       ],
       "outcome": "completed",
-      "durationMs": 20612,
-      "atMs": 6517
+      "durationMs": 26953,
+      "atMs": 7479
     },
     {
       "taskId": null,
@@ -10056,7 +10006,7 @@
       "batches": [],
       "outcome": "completed",
       "durationMs": 0,
-      "atMs": 36792
+      "atMs": 40761
     }
   ]
 }

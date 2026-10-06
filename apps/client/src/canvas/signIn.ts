@@ -67,6 +67,8 @@ interface Attempt {
   waiting: boolean;
   /** The canvas window lost the focus while this one waited. */
   away: boolean;
+  /** The orchestrator has answered for it: the window reached the start route. */
+  seen?: boolean;
   until: number;
   timer?: ReturnType<typeof setTimeout>;
 }
@@ -154,7 +156,11 @@ export function createSignIn({
     }
     if (!attempts.has(attempt.id)) return;
     if (outcome?.state === 'signedIn') return signedIn(attempt, outcome);
-    if (outcome && outcome.state !== 'pending') {
+    // Unknown before it was ever seen: the window has not reached the start route yet — through
+    // the tunnel it can land after the first poll (task 12.12). Asked again like a pending one.
+    const early = outcome?.state === 'unknown' && !attempt.seen;
+    if (outcome && outcome.state !== 'unknown') attempt.seen = true;
+    if (outcome && outcome.state !== 'pending' && !early) {
       console.info(
         `[A2UI:sign-in] ${attempt.source}: ${outcome.state}${outcome.reason ? ` (${outcome.reason})` : ''}`,
       );

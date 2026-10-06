@@ -197,6 +197,29 @@ describe('waiting', () => {
   });
 });
 
+describe('an attempt not reached yet', () => {
+  it('is asked again until the window reaches the start route; once seen, unknown lets it go', async () => {
+    // Through the tunnel the window can reach the start route after the first poll (task 12.12).
+    const {signIn, add, answer} = setup();
+    const {runtime, pressed} = add('a');
+    signIn.request(runtime, {kind: 'start', source: 'gmail.1'});
+    answer(0, {state: 'unknown'});
+    await vi.advanceTimersByTimeAsync(3 * POLL_INTERVAL_MS);
+    expect(runtime.store.getState().signingIn.has('gmail.1')).toBe(true);
+    answer(0, {state: 'signedIn', source: 'gmail.1'});
+    await tick();
+    expect(pressed).toEqual([{kind: 'retry', sources: ['gmail.1']}]);
+
+    signIn.request(runtime, {kind: 'start', source: 'github.1'});
+    answer(1, {state: 'pending'});
+    await tick();
+    answer(1, {state: 'unknown'});
+    await tick();
+    expect(runtime.store.getState().signingIn.size).toBe(0);
+    expect(console.info).toHaveBeenCalledWith('[A2UI:sign-in] github.1: unknown');
+  });
+});
+
 describe('the resume', () => {
   it('goes to the canvas Sign in was pressed on, on screen or not; two windows on one slot resume it once', async () => {
     const {signIn, add, answer} = setup();

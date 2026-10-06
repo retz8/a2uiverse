@@ -74,11 +74,14 @@ pnpm dev:client     # from the repo root: Vite on port 5173
 pnpm --filter @a2uiverse/client build | typecheck | test | lint
 pnpm --filter @a2uiverse/client preview:snapshot   # built against the registry snapshot, served on 4173
 pnpm --filter @a2uiverse/client test:e2e   # Playwright over preview:snapshot, compares screenshots
+pnpm --filter @a2uiverse/client test:e2e:live   # one sign-in through the real window, on the real stack
 ```
 
 It sends to `VITE_ORCHESTRATOR_URL`, `http://localhost:10001` by default (see `.env.example`). When the orchestrator is somewhere else, set it in an uncommitted `.env.local`. It needs the orchestrator and the apps running too; `pnpm dev:all` from the root starts everything in order.
 
 Playwright's browser installs separately (`pnpm exec playwright install chromium`). Its screenshots are taken at 1024×768 in UTC and aren't committed: on a fresh clone, run `test:e2e --update-snapshots` once to take them.
+
+`test:e2e:live` runs on its own stack on `localhost`: an orchestrator on port 10081 over a scratch state directory, the GitHub agent in `deterministic` mode started and installed by the launcher from the sibling `a2uiverse-apps` checkout, and the client on 5183. It asks a question about GitHub, presses Sign in on the tile, chooses the account in the agent's own sign-in window and checks the slot fills in place. The Planner runs live on the orchestrator's `.env` key, and port 11001 must be free. It isn't part of `pnpm verify`.
 
 ## Working without a model
 
@@ -144,7 +147,9 @@ pnpm --filter @a2uiverse/client record:beats --model <model> --beats 1-9
 pnpm --filter @a2uiverse/client record:beats --model <model> --beats 10-26 [--fault-port 10091]
 ```
 
-Beats 1 to 9 run against live apps. Beats 10 to 26 need the apps in `deterministic` mode (`pnpm dev:all`) and port 10091 free: the recorder starts its own orchestrator there for each, on a state directory of its own, with the case's faults and time limits and the Gemini key in the orchestrator's `.env`. It installs into it every app the orchestrator at `--url` has installed, reads the take's journal lines from its own journal, and retakes a take that doesn't show its case, up to three times. The orchestrator you run is left as it was.
+Every orchestrator a beat runs through is signed in first, through the real sign-in: a canvas opened with a question about the platform, then each app that asks sign-in signed in from it as the fake account the agent's sign-in page offers it, named on its address instead of chosen — so the apps must be in `deterministic` or `stub` mode. A beat may name its own accounts; an account the orchestrator already holds is left as it is.
+
+Beats 1 to 9 run against the apps you have running. Beats 10 to 26 need the apps in `deterministic` mode (`pnpm dev:all`) and port 10091 free: the recorder starts its own orchestrator there for each, on a state directory of its own, with the case's faults and time limits and the Gemini key in the orchestrator's `.env`. It installs into it every app the orchestrator at `--url` has installed, reads the take's journal lines from its own journal, and retakes a take that doesn't show its case, up to three times. The orchestrator you run is left as it was.
 
 > [!IMPORTANT]
 > Start the Gmail agent with `A2UI_RECORD_DIR` set when recording. That's what makes it swap real mail for stand-ins, and the recorder can't tell whether that happened.
@@ -155,7 +160,7 @@ Beats 1 to 9 run against live apps. Beats 10 to 26 need the apps in `determinist
 A2UI_FIXTURE_FORBIDDEN="<real address>,<real name>" pnpm --filter @a2uiverse/client check:fixtures
 ```
 
-**Check the relay changes nothing but what it should.** Against `deterministic` apps, it sends one question through the orchestrator and the same requests straight to each app, and checks the two streams match once the orchestrator's own changes are undone. It reaches every app the orchestrator has installed at its card URL, advertising the catalogs the orchestrator advertises to it; `--agents id=url,…` points one elsewhere.
+**Check the relay changes nothing but what it should.** Against `deterministic` apps, it sends one question through the orchestrator and the same requests straight to each app, and checks the two streams match once the orchestrator's own changes are undone. It signs both sides in first: the orchestrator as the recorder does, and each app straight at its own sign-in page, as the same account. It reaches every app the orchestrator has installed at its card URL, advertising the catalogs the orchestrator advertises to it; `--agents id=url,…` points one elsewhere.
 
 ```bash
 pnpm --filter @a2uiverse/client check:transparency

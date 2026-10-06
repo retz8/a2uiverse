@@ -15,6 +15,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:e2e": "playwright test",
+    "test:e2e:live": "playwright test -c playwright.live.config.ts",
     "lint": "eslint .",
     "preview": "vite preview",
     "preview:snapshot": "pnpm --filter @a2uiverse/registry-snapshot build && VITE_ORCHESTRATOR_URL=http://localhost:4173 pnpm build && A2UIVERSE_REGISTRY_SNAPSHOT=1 vite preview --port 4173 --strictPort",

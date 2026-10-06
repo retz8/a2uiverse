@@ -4,8 +4,8 @@
   "title": "A fast failure, then Retry",
   "prompt": "What needs my attention today?",
   "model": "gemini-3.7-flash",
-  "recordedAt": "2026-09-27T10:09:52Z",
-  "contextId": "2041fc20-84eb-44f1-a10d-1d6ea1812a15",
+  "recordedAt": "2026-10-06T10:58:20Z",
+  "contextId": "efcc0433-5fdc-4ae8-958a-482bdcb7be5e",
   "chainedFrom": null,
   "deadlines": {
     "softDeadlineSeconds": 10,
@@ -19,13 +19,13 @@
   },
   "turns": [
     {
-      "taskId": "fd9be73d-1739-4fc6-9cb0-2a7d298b9f6e",
+      "taskId": "123e7c77-dc35-470f-9780-f929a0a06723",
       "kind": "utterance",
       "prompt": "What needs my attention today?",
       "action": null,
       "batches": [
         {
-          "offsetMs": 4592,
+          "offsetMs": 8152,
           "messages": [
             {
               "paintMeta": {
@@ -49,13 +49,12 @@
                     "id": "root",
                     "component": "Column",
                     "children": [
-                      "merged-overview",
-                      "sources-top",
-                      "sources-bottom"
+                      "overview",
+                      "sources"
                     ]
                   },
                   {
-                    "id": "merged-overview",
+                    "id": "overview",
                     "component": "Slot",
                     "source": "shell",
                     "state": "pending",
@@ -63,81 +62,75 @@
                     "content": "shell"
                   },
                   {
-                    "id": "sources-top",
+                    "id": "sources",
                     "component": "Row",
                     "children": [
-                      "attribution-calendar-slot",
-                      "attribution-gmail-slot"
+                      "attribution-calendar",
+                      "attribution-gmail",
+                      "attribution-github",
+                      "attribution-linear"
                     ]
                   },
                   {
-                    "id": "attribution-calendar-slot",
+                    "id": "attribution-calendar",
                     "component": "Attribution",
                     "displayName": "Google Calendar",
-                    "source": "calendar",
-                    "child": "calendar-slot",
+                    "source": "calendar.1",
+                    "child": "calendar",
                     "weight": 1
                   },
                   {
-                    "id": "calendar-slot",
+                    "id": "calendar",
                     "component": "Slot",
-                    "source": "calendar",
+                    "source": "calendar.1",
                     "weight": 1,
                     "state": "pending",
                     "label": "Google Calendar"
                   },
                   {
-                    "id": "attribution-gmail-slot",
+                    "id": "attribution-gmail",
                     "component": "Attribution",
                     "displayName": "Gmail",
-                    "source": "gmail",
-                    "child": "gmail-slot",
+                    "source": "gmail.1",
+                    "child": "gmail",
                     "weight": 1
                   },
                   {
-                    "id": "gmail-slot",
+                    "id": "gmail",
                     "component": "Slot",
-                    "source": "gmail",
+                    "source": "gmail.1",
                     "weight": 1,
                     "state": "pending",
                     "label": "Gmail"
                   },
                   {
-                    "id": "sources-bottom",
-                    "component": "Row",
-                    "children": [
-                      "attribution-github-slot",
-                      "attribution-linear-slot"
-                    ]
-                  },
-                  {
-                    "id": "attribution-github-slot",
+                    "id": "attribution-github",
                     "component": "Attribution",
                     "displayName": "GitHub",
-                    "source": "github",
-                    "child": "github-slot",
+                    "source": "github.1",
+                    "child": "github",
                     "weight": 1
                   },
                   {
-                    "id": "github-slot",
+                    "id": "github",
                     "component": "Slot",
-                    "source": "github",
+                    "source": "github.1",
                     "weight": 1,
                     "state": "pending",
                     "label": "GitHub"
                   },
                   {
-                    "id": "attribution-linear-slot",
+                    "id": "attribution-linear",
                     "component": "Attribution",
                     "displayName": "Linear",
-                    "source": "linear",
-                    "child": "linear-slot",
+                    "source": "linear.1",
+                    "child": "linear",
                     "weight": 1
                   },
                   {
-                    "id": "linear-slot",
+                    "id": "linear",
                     "component": "Slot",
-                    "source": "linear",
+                    "source": "linear.1",
                     "weight": 1,
                     "state": "pending",
                     "label": "Linear"
@@ -153,7 +146,7 @@
           }
         },
         {
-          "offsetMs": 4593,
+          "offsetMs": 8152,
           "messages": [
             {
               "version": "v0.9",
@@ -164,13 +157,12 @@
                     "id": "root",
                     "component": "Column",
                     "children": [
-                      "merged-overview",
-                      "sources-top",
-                      "sources-bottom"
+                      "overview",
+                      "sources"
                     ]
                   },
                   {
-                    "id": "merged-overview",
+                    "id": "overview",
                     "component": "Slot",
                     "source": "shell",
                     "state": "pending",
@@ -178,25 +170,27 @@
                     "content": "shell"
                   },
                   {
-                    "id": "sources-top",
+                    "id": "sources",
                     "component": "Row",
                     "children": [
-                      "attribution-calendar-slot",
-                      "attribution-gmail-slot"
+                      "attribution-calendar",
+                      "attribution-gmail",
+                      "attribution-github",
+                      "attribution-linear"
                     ]
                   },
                   {
-                    "id": "attribution-calendar-slot",
+                    "id": "attribution-calendar",
                     "component": "Attribution",
                     "displayName": "Google Calendar",
-                    "source": "calendar",
-                    "child": "calendar-slot",
+                    "source": "calendar.1",
+                    "child": "calendar",
                     "weight": 1
                   },
                   {
-                    "id": "calendar-slot",
+                    "id": "calendar",
                     "component": "Slot",
-                    "source": "calendar",
+                    "source": "calendar.1",
                     "weight": 1,
                     "state": "failed",
                     "label": "Google Calendar",
@@ -206,57 +200,49 @@
                     }
                   },
                   {
-                    "id": "attribution-gmail-slot",
+                    "id": "attribution-gmail",
                     "component": "Attribution",
                     "displayName": "Gmail",
-                    "source": "gmail",
-                    "child": "gmail-slot",
+                    "source": "gmail.1",
+                    "child": "gmail",
                     "weight": 1
                   },
                   {
-                    "id": "gmail-slot",
+                    "id": "gmail",
                     "component": "Slot",
-                    "source": "gmail",
+                    "source": "gmail.1",
                     "weight": 1,
                     "state": "pending",
                     "label": "Gmail"
                   },
                   {
-                    "id": "sources-bottom",
-                    "component": "Row",
-                    "children": [
-                      "attribution-github-slot",
-                      "attribution-linear-slot"
-                    ]
-                  },
-                  {
-                    "id": "attribution-github-slot",
+                    "id": "attribution-github",
                     "component": "Attribution",
                     "displayName": "GitHub",
-                    "source": "github",
-                    "child": "github-slot",
+                    "source": "github.1",
+                    "child": "github",
                     "weight": 1
                   },
                   {
-                    "id": "github-slot",
+                    "id": "github",
                     "component": "Slot",
-                    "source": "github",
+                    "source": "github.1",
                     "weight": 1,
                     "state": "pending",
                     "label": "GitHub"
                   },
                   {
-                    "id": "attribution-linear-slot",
+                    "id": "attribution-linear",
                     "component": "Attribution",
                     "displayName": "Linear",
-                    "source": "linear",
-                    "child": "linear-slot",
+                    "source": "linear.1",
+                    "child": "linear",
                     "weight": 1
                   },
                   {
-                    "id": "linear-slot",
+                    "id": "linear",
                     "component": "Slot",
-                    "source": "linear",
+                    "source": "linear.1",
                     "weight": 1,
                     "state": "pending",
                     "label": "Linear"
@@ -272,18 +258,18 @@
           }
         },
         {
-          "offsetMs": 4605,
+          "offsetMs": 8160,
           "messages": [
             {
               "paintMeta": {
-                "surfaceId": "linear:linear-2",
+                "surfaceId": "linear.1:linear-10",
                 "title": "My issues"
               }
             },
             {
               "version": "v0.9",
               "createSurface": {
-                "surfaceId": "linear:linear-2",
+                "surfaceId": "linear.1:linear-10",
                 "catalogId": "https://github.com/retz8/a2uiverse-apps/blob/main/linear/linear-catalog/catalogs/v0.9.1/catalog.json",
                 "sendDataModel": true
               }
@@ -291,7 +277,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-2",
+                "surfaceId": "linear.1:linear-10",
                 "value": {
                   "team": "A2uiverse"
                 }
@@ -300,7 +286,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-2",
+                "surfaceId": "linear.1:linear-10",
                 "value": {
                   "issues": [
                     {
@@ -318,7 +304,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-2",
+                "surfaceId": "linear.1:linear-10",
                 "value": {
                   "issues": [
                     {
@@ -337,7 +323,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-2",
+                "surfaceId": "linear.1:linear-10",
                 "value": {
                   "issues": [
                     {
@@ -360,7 +346,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-2",
+                "surfaceId": "linear.1:linear-10",
                 "value": {
                   "issues": [
                     {
@@ -385,7 +371,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-2",
+                "surfaceId": "linear.1:linear-10",
                 "value": {
                   "issues": [
                     {
@@ -413,7 +399,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-2",
+                "surfaceId": "linear.1:linear-10",
                 "value": {
                   "issues": [
                     {
@@ -442,7 +428,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-2",
+                "surfaceId": "linear.1:linear-10",
                 "value": {
                   "issues": [
                     {
@@ -472,7 +458,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-2",
+                "surfaceId": "linear.1:linear-10",
                 "value": {
                   "issues": [
                     {
@@ -505,7 +491,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-2",
+                "surfaceId": "linear.1:linear-10",
                 "value": {
                   "issues": [
                     {
@@ -542,7 +528,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-2",
+                "surfaceId": "linear.1:linear-10",
                 "value": {
                   "issues": [
                     {
@@ -581,7 +567,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-2",
+                "surfaceId": "linear.1:linear-10",
                 "value": {
                   "issues": [
                     {
@@ -621,7 +607,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "linear:linear-2",
+                "surfaceId": "linear.1:linear-10",
                 "path": "/",
                 "value": {
                   "team": "A2uiverse",
@@ -777,29 +763,29 @@
                     "variant": "caption"
                   }
                 ],
-                "surfaceId": "linear:linear-2"
+                "surfaceId": "linear.1:linear-10"
               }
             }
           ],
           "texts": [],
           "stamp": {
-            "source": "linear",
+            "source": "linear.1",
             "role": "fragment"
           }
         },
         {
-          "offsetMs": 4606,
+          "offsetMs": 8162,
           "messages": [
             {
               "paintMeta": {
-                "surfaceId": "gmail:gmail-3",
+                "surfaceId": "gmail.1:gmail-8",
                 "title": "Needs attention"
               }
             },
             {
               "version": "v0.9",
               "createSurface": {
-                "surfaceId": "gmail:gmail-3",
+                "surfaceId": "gmail.1:gmail-8",
                 "catalogId": "https://github.com/retz8/a2uiverse-apps/blob/main/gmail/gmail-catalog/catalogs/v0.9.1/catalog.json",
                 "sendDataModel": true
               }
@@ -807,7 +793,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "gmail:gmail-3",
+                "surfaceId": "gmail.1:gmail-8",
                 "value": {
                   "threads": [
                     {
@@ -822,7 +808,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "gmail:gmail-3",
+                "surfaceId": "gmail.1:gmail-8",
                 "value": {
                   "threads": [
                     {
@@ -838,7 +824,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "gmail:gmail-3",
+                "surfaceId": "gmail.1:gmail-8",
                 "value": {
                   "threads": [
                     {
@@ -855,7 +841,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "gmail:gmail-3",
+                "surfaceId": "gmail.1:gmail-8",
                 "value": {
                   "threads": [
                     {
@@ -876,7 +862,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "gmail:gmail-3",
+                "surfaceId": "gmail.1:gmail-8",
                 "value": {
                   "threads": [
                     {
@@ -898,7 +884,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "gmail:gmail-3",
+                "surfaceId": "gmail.1:gmail-8",
                 "value": {
                   "threads": [
                     {
@@ -921,7 +907,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "gmail:gmail-3",
+                "surfaceId": "gmail.1:gmail-8",
                 "value": {
                   "threads": [
                     {
@@ -945,7 +931,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "gmail:gmail-3",
+                "surfaceId": "gmail.1:gmail-8",
                 "value": {
                   "threads": [
                     {
@@ -972,7 +958,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "gmail:gmail-3",
+                "surfaceId": "gmail.1:gmail-8",
                 "value": {
                   "threads": [
                     {
@@ -1001,7 +987,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "gmail:gmail-3",
+                "surfaceId": "gmail.1:gmail-8",
                 "value": {
                   "threads": [
                     {
@@ -1031,7 +1017,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "gmail:gmail-3",
+                "surfaceId": "gmail.1:gmail-8",
                 "value": {
                   "threads": [
                     {
@@ -1062,7 +1048,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "gmail:gmail-3",
+                "surfaceId": "gmail.1:gmail-8",
                 "value": {
                   "threads": [
                     {
@@ -1097,7 +1083,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "gmail:gmail-3",
+                "surfaceId": "gmail.1:gmail-8",
                 "value": {
                   "threads": [
                     {
@@ -1133,7 +1119,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "gmail:gmail-3",
+                "surfaceId": "gmail.1:gmail-8",
                 "value": {
                   "threads": [
                     {
@@ -1170,7 +1156,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "gmail:gmail-3",
+                "surfaceId": "gmail.1:gmail-8",
                 "value": {
                   "threads": [
                     {
@@ -1208,7 +1194,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "gmail:gmail-3",
+                "surfaceId": "gmail.1:gmail-8",
                 "path": "/",
                 "value": {
                   "threads": [
@@ -1380,29 +1366,29 @@
                     "maxLines": 1
                   }
                 ],
-                "surfaceId": "gmail:gmail-3"
+                "surfaceId": "gmail.1:gmail-8"
               }
             }
           ],
           "texts": [],
           "stamp": {
-            "source": "gmail",
+            "source": "gmail.1",
             "role": "fragment"
           }
         },
         {
-          "offsetMs": 4607,
+          "offsetMs": 8163,
           "messages": [
             {
               "paintMeta": {
-                "surfaceId": "github:notifications-2",
+                "surfaceId": "github.1:notifications-10",
                 "title": "My Open Pull Requests"
               }
             },
             {
               "version": "v0.9",
               "createSurface": {
-                "surfaceId": "github:notifications-2",
+                "surfaceId": "github.1:notifications-10",
                 "catalogId": "https://github.com/retz8/a2uiverse-apps/blob/main/github/github-catalog/catalogs/v0.9.1/catalog.json",
                 "sendDataModel": true
               }
@@ -1410,7 +1396,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-2",
+                "surfaceId": "github.1:notifications-10",
                 "value": {
                   "prs": [
                     {
@@ -1426,7 +1412,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-2",
+                "surfaceId": "github.1:notifications-10",
                 "value": {
                   "prs": [
                     {
@@ -1444,7 +1430,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-2",
+                "surfaceId": "github.1:notifications-10",
                 "value": {
                   "prs": [
                     {
@@ -1464,7 +1450,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-2",
+                "surfaceId": "github.1:notifications-10",
                 "value": {
                   "prs": [
                     {
@@ -1486,7 +1472,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-2",
+                "surfaceId": "github.1:notifications-10",
                 "value": {
                   "prs": [
                     {
@@ -1510,7 +1496,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-2",
+                "surfaceId": "github.1:notifications-10",
                 "value": {
                   "prs": [
                     {
@@ -1535,7 +1521,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-2",
+                "surfaceId": "github.1:notifications-10",
                 "value": {
                   "prs": [
                     {
@@ -1562,7 +1548,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-2",
+                "surfaceId": "github.1:notifications-10",
                 "value": {
                   "prs": [
                     {
@@ -1591,7 +1577,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-2",
+                "surfaceId": "github.1:notifications-10",
                 "value": {
                   "prs": [
                     {
@@ -1623,7 +1609,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-2",
+                "surfaceId": "github.1:notifications-10",
                 "value": {
                   "prs": [
                     {
@@ -1656,7 +1642,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-2",
+                "surfaceId": "github.1:notifications-10",
                 "value": {
                   "prs": [
                     {
@@ -1690,7 +1676,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-2",
+                "surfaceId": "github.1:notifications-10",
                 "value": {
                   "prs": [
                     {
@@ -1726,7 +1712,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-2",
+                "surfaceId": "github.1:notifications-10",
                 "value": {
                   "prs": [
                     {
@@ -1766,7 +1752,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-2",
+                "surfaceId": "github.1:notifications-10",
                 "value": {
                   "prs": [
                     {
@@ -1807,7 +1793,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-2",
+                "surfaceId": "github.1:notifications-10",
                 "value": {
                   "prs": [
                     {
@@ -1849,7 +1835,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-2",
+                "surfaceId": "github.1:notifications-10",
                 "value": {
                   "prs": [
                     {
@@ -1893,7 +1879,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-2",
+                "surfaceId": "github.1:notifications-10",
                 "value": {
                   "prs": [
                     {
@@ -1938,7 +1924,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-2",
+                "surfaceId": "github.1:notifications-10",
                 "value": {
                   "prs": [
                     {
@@ -1987,7 +1973,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-2",
+                "surfaceId": "github.1:notifications-10",
                 "value": {
                   "prs": [
                     {
@@ -2037,7 +2023,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-2",
+                "surfaceId": "github.1:notifications-10",
                 "value": {
                   "prs": [
                     {
@@ -2088,7 +2074,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-2",
+                "surfaceId": "github.1:notifications-10",
                 "value": {
                   "prs": [
                     {
@@ -2140,7 +2126,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-2",
+                "surfaceId": "github.1:notifications-10",
                 "value": {
                   "prs": [
                     {
@@ -2194,7 +2180,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-2",
+                "surfaceId": "github.1:notifications-10",
                 "value": {
                   "prs": [
                     {
@@ -2249,7 +2235,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-2",
+                "surfaceId": "github.1:notifications-10",
                 "value": {
                   "prs": [
                     {
@@ -2307,7 +2293,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-2",
+                "surfaceId": "github.1:notifications-10",
                 "value": {
                   "prs": [
                     {
@@ -2367,7 +2353,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-2",
+                "surfaceId": "github.1:notifications-10",
                 "value": {
                   "prs": [
                     {
@@ -2428,7 +2414,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-2",
+                "surfaceId": "github.1:notifications-10",
                 "value": {
                   "prs": [
                     {
@@ -2491,7 +2477,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-2",
+                "surfaceId": "github.1:notifications-10",
                 "value": {
                   "prs": [
                     {
@@ -2555,7 +2541,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "github:notifications-2",
+                "surfaceId": "github.1:notifications-10",
                 "path": "/",
                 "value": {
                   "prs": [
@@ -2816,18 +2802,18 @@
                     "second": "2-digit"
                   }
                 ],
-                "surfaceId": "github:notifications-2"
+                "surfaceId": "github.1:notifications-10"
               }
             }
           ],
           "texts": [],
           "stamp": {
-            "source": "github",
+            "source": "github.1",
             "role": "fragment"
           }
         },
         {
-          "offsetMs": 19077,
+          "offsetMs": 17631,
           "messages": [
             {
               "version": "v0.9",
@@ -2846,7 +2832,7 @@
                     "component": "Column",
                     "children": [
                       "head",
-                      "table"
+                      "timeline"
                     ]
                   },
                   {
@@ -2855,12 +2841,12 @@
                     "justify": "spaceBetween",
                     "align": "center",
                     "children": [
-                      "title",
+                      "heading",
                       "sort"
                     ]
                   },
                   {
-                    "id": "title",
+                    "id": "heading",
                     "component": "Text",
                     "variant": "h5",
                     "text": "Needs attention today"
@@ -2873,12 +2859,12 @@
                     }
                   },
                   {
-                    "id": "table",
+                    "id": "timeline",
                     "component": "Table",
                     "columns": [
                       "Source",
                       "When",
-                      "What"
+                      "Summary"
                     ],
                     "columnSources": [
                       null,
@@ -2886,28 +2872,28 @@
                       null
                     ],
                     "children": {
-                      "path": "/items",
-                      "componentId": "item-row"
+                      "path": "/timeline",
+                      "componentId": "item"
                     }
                   },
                   {
-                    "id": "item-row",
+                    "id": "item",
                     "component": "TableRow",
                     "children": [
-                      "cell-source",
-                      "cell-when",
-                      "cell-what"
+                      "i-source",
+                      "i-when",
+                      "i-what"
                     ]
                   },
                   {
-                    "id": "cell-source",
+                    "id": "i-source",
                     "component": "DerivedValue",
                     "cell": {
                       "path": "source"
                     }
                   },
                   {
-                    "id": "cell-when",
+                    "id": "i-when",
                     "component": "DerivedValue",
                     "cell": {
                       "path": "when"
@@ -2917,7 +2903,7 @@
                     }
                   },
                   {
-                    "id": "cell-what",
+                    "id": "i-what",
                     "component": "DerivedValue",
                     "cell": {
                       "path": "what"
@@ -2934,100 +2920,13 @@
           },
           "synthesis": {
             "dataModel": {
-              "items": [
+              "timeline": [
                 {
                   "source": {
                     "op": "source",
                     "args": [
                       {
-                        "surface": "linear:linear-2",
-                        "pointer": "/issues[id=\"A2U-5\"]/updated"
-                      }
-                    ]
-                  },
-                  "when": {
-                    "op": "value",
-                    "args": [
-                      {
-                        "surface": "linear:linear-2",
-                        "pointer": "/issues[id=\"A2U-5\"]/updated"
-                      }
-                    ]
-                  },
-                  "what": {
-                    "op": "value",
-                    "args": [
-                      {
-                        "surface": "linear:linear-2",
-                        "pointer": "/issues[id=\"A2U-5\"]/title"
-                      }
-                    ]
-                  }
-                },
-                {
-                  "source": {
-                    "op": "source",
-                    "args": [
-                      {
-                        "surface": "linear:linear-2",
-                        "pointer": "/issues[id=\"A2U-7\"]/updated"
-                      }
-                    ]
-                  },
-                  "when": {
-                    "op": "value",
-                    "args": [
-                      {
-                        "surface": "linear:linear-2",
-                        "pointer": "/issues[id=\"A2U-7\"]/updated"
-                      }
-                    ]
-                  },
-                  "what": {
-                    "op": "value",
-                    "args": [
-                      {
-                        "surface": "linear:linear-2",
-                        "pointer": "/issues[id=\"A2U-7\"]/title"
-                      }
-                    ]
-                  }
-                },
-                {
-                  "source": {
-                    "op": "source",
-                    "args": [
-                      {
-                        "surface": "linear:linear-2",
-                        "pointer": "/issues[id=\"A2U-6\"]/updated"
-                      }
-                    ]
-                  },
-                  "when": {
-                    "op": "value",
-                    "args": [
-                      {
-                        "surface": "linear:linear-2",
-                        "pointer": "/issues[id=\"A2U-6\"]/updated"
-                      }
-                    ]
-                  },
-                  "what": {
-                    "op": "value",
-                    "args": [
-                      {
-                        "surface": "linear:linear-2",
-                        "pointer": "/issues[id=\"A2U-6\"]/title"
-                      }
-                    ]
-                  }
-                },
-                {
-                  "source": {
-                    "op": "source",
-                    "args": [
-                      {
-                        "surface": "gmail:gmail-3",
+                        "surface": "gmail.1:gmail-8",
                         "pointer": "/threads[id=\"19829cbece7facf1\"]/when"
                       }
                     ]
@@ -3036,7 +2935,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "gmail:gmail-3",
+                        "surface": "gmail.1:gmail-8",
                         "pointer": "/threads[id=\"19829cbece7facf1\"]/when"
                       }
                     ]
@@ -3045,7 +2944,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "gmail:gmail-3",
+                        "surface": "gmail.1:gmail-8",
                         "pointer": "/threads[id=\"19829cbece7facf1\"]/subject"
                       }
                     ]
@@ -3056,7 +2955,7 @@
                     "op": "source",
                     "args": [
                       {
-                        "surface": "gmail:gmail-3",
+                        "surface": "gmail.1:gmail-8",
                         "pointer": "/threads[id=\"1956e7633ba626aa\"]/when"
                       }
                     ]
@@ -3065,7 +2964,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "gmail:gmail-3",
+                        "surface": "gmail.1:gmail-8",
                         "pointer": "/threads[id=\"1956e7633ba626aa\"]/when"
                       }
                     ]
@@ -3074,7 +2973,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "gmail:gmail-3",
+                        "surface": "gmail.1:gmail-8",
                         "pointer": "/threads[id=\"1956e7633ba626aa\"]/subject"
                       }
                     ]
@@ -3085,7 +2984,7 @@
                     "op": "source",
                     "args": [
                       {
-                        "surface": "gmail:gmail-3",
+                        "surface": "gmail.1:gmail-8",
                         "pointer": "/threads[id=\"19fd40c07b154538\"]/when"
                       }
                     ]
@@ -3094,7 +2993,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "gmail:gmail-3",
+                        "surface": "gmail.1:gmail-8",
                         "pointer": "/threads[id=\"19fd40c07b154538\"]/when"
                       }
                     ]
@@ -3103,7 +3002,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "gmail:gmail-3",
+                        "surface": "gmail.1:gmail-8",
                         "pointer": "/threads[id=\"19fd40c07b154538\"]/subject"
                       }
                     ]
@@ -3114,7 +3013,7 @@
                     "op": "source",
                     "args": [
                       {
-                        "surface": "gmail:gmail-3",
+                        "surface": "gmail.1:gmail-8",
                         "pointer": "/threads[id=\"19b6cefab66744cf\"]/when"
                       }
                     ]
@@ -3123,7 +3022,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "gmail:gmail-3",
+                        "surface": "gmail.1:gmail-8",
                         "pointer": "/threads[id=\"19b6cefab66744cf\"]/when"
                       }
                     ]
@@ -3132,7 +3031,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "gmail:gmail-3",
+                        "surface": "gmail.1:gmail-8",
                         "pointer": "/threads[id=\"19b6cefab66744cf\"]/subject"
                       }
                     ]
@@ -3143,7 +3042,94 @@
                     "op": "source",
                     "args": [
                       {
-                        "surface": "github:notifications-2",
+                        "surface": "linear.1:linear-10",
+                        "pointer": "/issues[id=\"A2U-5\"]/updated"
+                      }
+                    ]
+                  },
+                  "when": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "linear.1:linear-10",
+                        "pointer": "/issues[id=\"A2U-5\"]/updated"
+                      }
+                    ]
+                  },
+                  "what": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "linear.1:linear-10",
+                        "pointer": "/issues[id=\"A2U-5\"]/title"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "source": {
+                    "op": "source",
+                    "args": [
+                      {
+                        "surface": "linear.1:linear-10",
+                        "pointer": "/issues[id=\"A2U-7\"]/updated"
+                      }
+                    ]
+                  },
+                  "when": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "linear.1:linear-10",
+                        "pointer": "/issues[id=\"A2U-7\"]/updated"
+                      }
+                    ]
+                  },
+                  "what": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "linear.1:linear-10",
+                        "pointer": "/issues[id=\"A2U-7\"]/title"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "source": {
+                    "op": "source",
+                    "args": [
+                      {
+                        "surface": "linear.1:linear-10",
+                        "pointer": "/issues[id=\"A2U-6\"]/updated"
+                      }
+                    ]
+                  },
+                  "when": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "linear.1:linear-10",
+                        "pointer": "/issues[id=\"A2U-6\"]/updated"
+                      }
+                    ]
+                  },
+                  "what": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "linear.1:linear-10",
+                        "pointer": "/issues[id=\"A2U-6\"]/title"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "source": {
+                    "op": "source",
+                    "args": [
+                      {
+                        "surface": "github.1:notifications-10",
                         "pointer": "/prs[repository=\"retz8/a2uiverse\",number=8]/updatedAt"
                       }
                     ]
@@ -3152,7 +3138,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "github:notifications-2",
+                        "surface": "github.1:notifications-10",
                         "pointer": "/prs[repository=\"retz8/a2uiverse\",number=8]/updatedAt"
                       }
                     ]
@@ -3161,7 +3147,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "github:notifications-2",
+                        "surface": "github.1:notifications-10",
                         "pointer": "/prs[repository=\"retz8/a2uiverse\",number=8]/title"
                       }
                     ]
@@ -3172,7 +3158,7 @@
                     "op": "source",
                     "args": [
                       {
-                        "surface": "github:notifications-2",
+                        "surface": "github.1:notifications-10",
                         "pointer": "/prs[repository=\"retz8/a2uiverse\",number=7]/updatedAt"
                       }
                     ]
@@ -3181,7 +3167,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "github:notifications-2",
+                        "surface": "github.1:notifications-10",
                         "pointer": "/prs[repository=\"retz8/a2uiverse\",number=7]/updatedAt"
                       }
                     ]
@@ -3190,7 +3176,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "github:notifications-2",
+                        "surface": "github.1:notifications-10",
                         "pointer": "/prs[repository=\"retz8/a2uiverse\",number=7]/title"
                       }
                     ]
@@ -3201,7 +3187,7 @@
                     "op": "source",
                     "args": [
                       {
-                        "surface": "github:notifications-2",
+                        "surface": "github.1:notifications-10",
                         "pointer": "/prs[repository=\"retz8/a2uiverse\",number=6]/updatedAt"
                       }
                     ]
@@ -3210,7 +3196,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "github:notifications-2",
+                        "surface": "github.1:notifications-10",
                         "pointer": "/prs[repository=\"retz8/a2uiverse\",number=6]/updatedAt"
                       }
                     ]
@@ -3219,7 +3205,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "github:notifications-2",
+                        "surface": "github.1:notifications-10",
                         "pointer": "/prs[repository=\"retz8/a2uiverse\",number=6]/title"
                       }
                     ]
@@ -3230,7 +3216,7 @@
                     "op": "source",
                     "args": [
                       {
-                        "surface": "github:notifications-2",
+                        "surface": "github.1:notifications-10",
                         "pointer": "/prs[repository=\"a2ui-project/a2ui\",number=2639]/updatedAt"
                       }
                     ]
@@ -3239,7 +3225,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "github:notifications-2",
+                        "surface": "github.1:notifications-10",
                         "pointer": "/prs[repository=\"a2ui-project/a2ui\",number=2639]/updatedAt"
                       }
                     ]
@@ -3248,7 +3234,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "github:notifications-2",
+                        "surface": "github.1:notifications-10",
                         "pointer": "/prs[repository=\"a2ui-project/a2ui\",number=2639]/title"
                       }
                     ]
@@ -3259,7 +3245,7 @@
                     "op": "source",
                     "args": [
                       {
-                        "surface": "github:notifications-2",
+                        "surface": "github.1:notifications-10",
                         "pointer": "/prs[repository=\"a2ui-project/a2ui\",number=2531]/updatedAt"
                       }
                     ]
@@ -3268,7 +3254,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "github:notifications-2",
+                        "surface": "github.1:notifications-10",
                         "pointer": "/prs[repository=\"a2ui-project/a2ui\",number=2531]/updatedAt"
                       }
                     ]
@@ -3277,7 +3263,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "github:notifications-2",
+                        "surface": "github.1:notifications-10",
                         "pointer": "/prs[repository=\"a2ui-project/a2ui\",number=2531]/title"
                       }
                     ]
@@ -3288,7 +3274,7 @@
                     "op": "source",
                     "args": [
                       {
-                        "surface": "github:notifications-2",
+                        "surface": "github.1:notifications-10",
                         "pointer": "/prs[repository=\"a2ui-project/a2ui\",number=2529]/updatedAt"
                       }
                     ]
@@ -3297,7 +3283,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "github:notifications-2",
+                        "surface": "github.1:notifications-10",
                         "pointer": "/prs[repository=\"a2ui-project/a2ui\",number=2529]/updatedAt"
                       }
                     ]
@@ -3306,7 +3292,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "github:notifications-2",
+                        "surface": "github.1:notifications-10",
                         "pointer": "/prs[repository=\"a2ui-project/a2ui\",number=2529]/title"
                       }
                     ]
@@ -3316,7 +3302,7 @@
             },
             "sorts": [
               {
-                "path": "/items",
+                "path": "/timeline",
                 "options": [
                   {
                     "key": "/when",
@@ -3330,7 +3316,7 @@
           }
         },
         {
-          "offsetMs": 19077,
+          "offsetMs": 17631,
           "messages": [
             {
               "version": "v0.9",
@@ -3341,44 +3327,45 @@
                     "id": "root",
                     "component": "Column",
                     "children": [
-                      "merged-overview",
-                      "sources-top",
-                      "sources-bottom"
+                      "overview",
+                      "sources"
                     ]
                   },
                   {
-                    "id": "merged-overview",
+                    "id": "overview",
                     "component": "Slot",
                     "source": "shell",
                     "state": "pending",
                     "label": "Synthesis",
                     "content": "shell",
                     "merged": [
-                      "gmail",
-                      "github",
-                      "linear"
+                      "gmail.1",
+                      "github.1",
+                      "linear.1"
                     ]
                   },
                   {
-                    "id": "sources-top",
+                    "id": "sources",
                     "component": "Row",
                     "children": [
-                      "attribution-calendar-slot",
-                      "attribution-gmail-slot"
+                      "attribution-calendar",
+                      "attribution-gmail",
+                      "attribution-github",
+                      "attribution-linear"
                     ]
                   },
                   {
-                    "id": "attribution-calendar-slot",
+                    "id": "attribution-calendar",
                     "component": "Attribution",
                     "displayName": "Google Calendar",
-                    "source": "calendar",
-                    "child": "calendar-slot",
+                    "source": "calendar.1",
+                    "child": "calendar",
                     "weight": 1
                   },
                   {
-                    "id": "calendar-slot",
+                    "id": "calendar",
                     "component": "Slot",
-                    "source": "calendar",
+                    "source": "calendar.1",
                     "weight": 1,
                     "state": "failed",
                     "label": "Google Calendar",
@@ -3388,57 +3375,49 @@
                     }
                   },
                   {
-                    "id": "attribution-gmail-slot",
+                    "id": "attribution-gmail",
                     "component": "Attribution",
                     "displayName": "Gmail",
-                    "source": "gmail",
-                    "child": "gmail-slot",
+                    "source": "gmail.1",
+                    "child": "gmail",
                     "weight": 1
                   },
                   {
-                    "id": "gmail-slot",
+                    "id": "gmail",
                     "component": "Slot",
-                    "source": "gmail",
+                    "source": "gmail.1",
                     "weight": 1,
                     "state": "pending",
                     "label": "Gmail"
                   },
                   {
-                    "id": "sources-bottom",
-                    "component": "Row",
-                    "children": [
-                      "attribution-github-slot",
-                      "attribution-linear-slot"
-                    ]
-                  },
-                  {
-                    "id": "attribution-github-slot",
+                    "id": "attribution-github",
                     "component": "Attribution",
                     "displayName": "GitHub",
-                    "source": "github",
-                    "child": "github-slot",
+                    "source": "github.1",
+                    "child": "github",
                     "weight": 1
                   },
                   {
-                    "id": "github-slot",
+                    "id": "github",
                     "component": "Slot",
-                    "source": "github",
+                    "source": "github.1",
                     "weight": 1,
                     "state": "pending",
                     "label": "GitHub"
                   },
                   {
-                    "id": "attribution-linear-slot",
+                    "id": "attribution-linear",
                     "component": "Attribution",
                     "displayName": "Linear",
-                    "source": "linear",
-                    "child": "linear-slot",
+                    "source": "linear.1",
+                    "child": "linear",
                     "weight": 1
                   },
                   {
-                    "id": "linear-slot",
+                    "id": "linear",
                     "component": "Slot",
-                    "source": "linear",
+                    "source": "linear.1",
                     "weight": 1,
                     "state": "pending",
                     "label": "Linear"
@@ -3455,20 +3434,20 @@
         }
       ],
       "outcome": "completed",
-      "durationMs": 19077
+      "durationMs": 17632
     },
     {
-      "taskId": "c27c4c60-9d80-4423-9892-2534665fceec",
+      "taskId": "0baedf96-a714-46f8-b5fb-5108f046d1fa",
       "kind": "press",
       "prompt": "",
       "action": null,
       "operation": {
         "kind": "retry",
         "sources": [
-          "calendar"
+          "calendar.1"
         ]
       },
-      "atMs": 19077,
+      "atMs": 17632,
       "batches": [
         {
           "offsetMs": 3,
@@ -3482,100 +3461,93 @@
                     "id": "root",
                     "component": "Column",
                     "children": [
-                      "merged-overview",
-                      "sources-top",
-                      "sources-bottom"
+                      "overview",
+                      "sources"
                     ]
                   },
                   {
-                    "id": "merged-overview",
+                    "id": "overview",
                     "component": "Slot",
                     "source": "shell",
                     "state": "pending",
                     "label": "Synthesis",
                     "content": "shell",
                     "merged": [
-                      "gmail",
-                      "github",
-                      "linear"
+                      "gmail.1",
+                      "github.1",
+                      "linear.1"
                     ]
                   },
                   {
-                    "id": "sources-top",
+                    "id": "sources",
                     "component": "Row",
                     "children": [
-                      "attribution-calendar-slot",
-                      "attribution-gmail-slot"
+                      "attribution-calendar",
+                      "attribution-gmail",
+                      "attribution-github",
+                      "attribution-linear"
                     ]
                   },
                   {
-                    "id": "attribution-calendar-slot",
+                    "id": "attribution-calendar",
                     "component": "Attribution",
                     "displayName": "Google Calendar",
-                    "source": "calendar",
-                    "child": "calendar-slot",
+                    "source": "calendar.1",
+                    "child": "calendar",
                     "weight": 1
                   },
                   {
-                    "id": "calendar-slot",
+                    "id": "calendar",
                     "component": "Slot",
-                    "source": "calendar",
+                    "source": "calendar.1",
                     "weight": 1,
                     "state": "pending",
                     "label": "Google Calendar"
                   },
                   {
-                    "id": "attribution-gmail-slot",
+                    "id": "attribution-gmail",
                     "component": "Attribution",
                     "displayName": "Gmail",
-                    "source": "gmail",
-                    "child": "gmail-slot",
+                    "source": "gmail.1",
+                    "child": "gmail",
                     "weight": 1
                   },
                   {
-                    "id": "gmail-slot",
+                    "id": "gmail",
                     "component": "Slot",
-                    "source": "gmail",
+                    "source": "gmail.1",
                     "weight": 1,
                     "state": "pending",
                     "label": "Gmail"
                   },
                   {
-                    "id": "sources-bottom",
-                    "component": "Row",
-                    "children": [
-                      "attribution-github-slot",
-                      "attribution-linear-slot"
-                    ]
-                  },
-                  {
-                    "id": "attribution-github-slot",
+                    "id": "attribution-github",
                     "component": "Attribution",
                     "displayName": "GitHub",
-                    "source": "github",
-                    "child": "github-slot",
+                    "source": "github.1",
+                    "child": "github",
                     "weight": 1
                   },
                   {
-                    "id": "github-slot",
+                    "id": "github",
                     "component": "Slot",
-                    "source": "github",
+                    "source": "github.1",
                     "weight": 1,
                     "state": "pending",
                     "label": "GitHub"
                   },
                   {
-                    "id": "attribution-linear-slot",
+                    "id": "attribution-linear",
                     "component": "Attribution",
                     "displayName": "Linear",
-                    "source": "linear",
-                    "child": "linear-slot",
+                    "source": "linear.1",
+                    "child": "linear",
                     "weight": 1
                   },
                   {
-                    "id": "linear-slot",
+                    "id": "linear",
                     "component": "Slot",
-                    "source": "linear",
+                    "source": "linear.1",
                     "weight": 1,
                     "state": "pending",
                     "label": "Linear"
@@ -3591,18 +3563,18 @@
           }
         },
         {
-          "offsetMs": 9,
+          "offsetMs": 8,
           "messages": [
             {
               "paintMeta": {
-                "surfaceId": "calendar:calendar-3",
+                "surfaceId": "calendar.1:calendar-5",
                 "title": "Needs attention today"
               }
             },
             {
               "version": "v0.9",
               "createSurface": {
-                "surfaceId": "calendar:calendar-3",
+                "surfaceId": "calendar.1:calendar-5",
                 "catalogId": "https://github.com/retz8/a2uiverse-apps/blob/main/calendar/calendar-catalog/catalogs/v0.9.1/catalog.json",
                 "sendDataModel": true
               }
@@ -3610,7 +3582,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "calendar:calendar-3",
+                "surfaceId": "calendar.1:calendar-5",
                 "value": {
                   "waiting": [
                     {
@@ -3625,7 +3597,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "calendar:calendar-3",
+                "surfaceId": "calendar.1:calendar-5",
                 "value": {
                   "waiting": [
                     {
@@ -3641,7 +3613,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "calendar:calendar-3",
+                "surfaceId": "calendar.1:calendar-5",
                 "value": {
                   "clashes": [
                     {
@@ -3656,7 +3628,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "calendar:calendar-3",
+                "surfaceId": "calendar.1:calendar-5",
                 "value": {
                   "clashes": [
                     {
@@ -3672,7 +3644,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "calendar:calendar-3",
+                "surfaceId": "calendar.1:calendar-5",
                 "value": {
                   "clashes": [
                     {
@@ -3691,7 +3663,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "calendar:calendar-3",
+                "surfaceId": "calendar.1:calendar-5",
                 "value": {
                   "clashes": [
                     {
@@ -3711,7 +3683,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "calendar:calendar-3",
+                "surfaceId": "calendar.1:calendar-5",
                 "value": {
                   "clashes": [
                     {
@@ -3732,7 +3704,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "calendar:calendar-3",
+                "surfaceId": "calendar.1:calendar-5",
                 "value": {
                   "clashes": [
                     {
@@ -3754,7 +3726,7 @@
             {
               "version": "v0.9",
               "updateDataModel": {
-                "surfaceId": "calendar:calendar-3",
+                "surfaceId": "calendar.1:calendar-5",
                 "path": "/",
                 "value": {
                   "waiting": [
@@ -4010,18 +3982,18 @@
                     "maxLines": 1
                   }
                 ],
-                "surfaceId": "calendar:calendar-3"
+                "surfaceId": "calendar.1:calendar-5"
               }
             }
           ],
           "texts": [],
           "stamp": {
-            "source": "calendar",
+            "source": "calendar.1",
             "role": "fragment"
           }
         },
         {
-          "offsetMs": 12,
+          "offsetMs": 11,
           "messages": [
             {
               "version": "v0.9",
@@ -4032,105 +4004,98 @@
                     "id": "root",
                     "component": "Column",
                     "children": [
-                      "merged-overview",
-                      "sources-top",
-                      "sources-bottom"
+                      "overview",
+                      "sources"
                     ]
                   },
                   {
-                    "id": "merged-overview",
+                    "id": "overview",
                     "component": "Slot",
                     "source": "shell",
                     "state": "pending",
                     "label": "Synthesis",
                     "content": "shell",
                     "merged": [
-                      "gmail",
-                      "github",
-                      "linear"
+                      "gmail.1",
+                      "github.1",
+                      "linear.1"
                     ],
                     "working": {
                       "sources": [
-                        "calendar"
+                        "calendar.1"
                       ]
                     }
                   },
                   {
-                    "id": "sources-top",
+                    "id": "sources",
                     "component": "Row",
                     "children": [
-                      "attribution-calendar-slot",
-                      "attribution-gmail-slot"
+                      "attribution-calendar",
+                      "attribution-gmail",
+                      "attribution-github",
+                      "attribution-linear"
                     ]
                   },
                   {
-                    "id": "attribution-calendar-slot",
+                    "id": "attribution-calendar",
                     "component": "Attribution",
                     "displayName": "Google Calendar",
-                    "source": "calendar",
-                    "child": "calendar-slot",
+                    "source": "calendar.1",
+                    "child": "calendar",
                     "weight": 1
                   },
                   {
-                    "id": "calendar-slot",
+                    "id": "calendar",
                     "component": "Slot",
-                    "source": "calendar",
+                    "source": "calendar.1",
                     "weight": 1,
                     "state": "pending",
                     "label": "Google Calendar"
                   },
                   {
-                    "id": "attribution-gmail-slot",
+                    "id": "attribution-gmail",
                     "component": "Attribution",
                     "displayName": "Gmail",
-                    "source": "gmail",
-                    "child": "gmail-slot",
+                    "source": "gmail.1",
+                    "child": "gmail",
                     "weight": 1
                   },
                   {
-                    "id": "gmail-slot",
+                    "id": "gmail",
                     "component": "Slot",
-                    "source": "gmail",
+                    "source": "gmail.1",
                     "weight": 1,
                     "state": "pending",
                     "label": "Gmail"
                   },
                   {
-                    "id": "sources-bottom",
-                    "component": "Row",
-                    "children": [
-                      "attribution-github-slot",
-                      "attribution-linear-slot"
-                    ]
-                  },
-                  {
-                    "id": "attribution-github-slot",
+                    "id": "attribution-github",
                     "component": "Attribution",
                     "displayName": "GitHub",
-                    "source": "github",
-                    "child": "github-slot",
+                    "source": "github.1",
+                    "child": "github",
                     "weight": 1
                   },
                   {
-                    "id": "github-slot",
+                    "id": "github",
                     "component": "Slot",
-                    "source": "github",
+                    "source": "github.1",
                     "weight": 1,
                     "state": "pending",
                     "label": "GitHub"
                   },
                   {
-                    "id": "attribution-linear-slot",
+                    "id": "attribution-linear",
                     "component": "Attribution",
                     "displayName": "Linear",
-                    "source": "linear",
-                    "child": "linear-slot",
+                    "source": "linear.1",
+                    "child": "linear",
                     "weight": 1
                   },
                   {
-                    "id": "linear-slot",
+                    "id": "linear",
                     "component": "Slot",
-                    "source": "linear",
+                    "source": "linear.1",
                     "weight": 1,
                     "state": "pending",
                     "label": "Linear"
@@ -4146,7 +4111,7 @@
           }
         },
         {
-          "offsetMs": 17651,
+          "offsetMs": 15391,
           "messages": [
             {
               "version": "v0.9",
@@ -4165,7 +4130,7 @@
                     "component": "Column",
                     "children": [
                       "head",
-                      "table",
+                      "timeline",
                       "calendar-heading",
                       "calendar"
                     ]
@@ -4176,12 +4141,12 @@
                     "justify": "spaceBetween",
                     "align": "center",
                     "children": [
-                      "title",
+                      "heading",
                       "sort"
                     ]
                   },
                   {
-                    "id": "title",
+                    "id": "heading",
                     "component": "Text",
                     "variant": "h5",
                     "text": "Needs attention today"
@@ -4194,12 +4159,12 @@
                     }
                   },
                   {
-                    "id": "table",
+                    "id": "timeline",
                     "component": "Table",
                     "columns": [
                       "Source",
                       "When",
-                      "What"
+                      "Summary"
                     ],
                     "columnSources": [
                       null,
@@ -4207,28 +4172,28 @@
                       null
                     ],
                     "children": {
-                      "path": "/items",
-                      "componentId": "item-row"
+                      "path": "/timeline",
+                      "componentId": "item"
                     }
                   },
                   {
-                    "id": "item-row",
+                    "id": "item",
                     "component": "TableRow",
                     "children": [
-                      "cell-source",
-                      "cell-when",
-                      "cell-what"
+                      "i-source",
+                      "i-when",
+                      "i-what"
                     ]
                   },
                   {
-                    "id": "cell-source",
+                    "id": "i-source",
                     "component": "DerivedValue",
                     "cell": {
                       "path": "source"
                     }
                   },
                   {
-                    "id": "cell-when",
+                    "id": "i-when",
                     "component": "DerivedValue",
                     "cell": {
                       "path": "when"
@@ -4238,7 +4203,7 @@
                     }
                   },
                   {
-                    "id": "cell-what",
+                    "id": "i-what",
                     "component": "DerivedValue",
                     "cell": {
                       "path": "what"
@@ -4255,34 +4220,34 @@
                     "component": "Table",
                     "columns": [
                       "When",
-                      "What"
+                      "Summary"
                     ],
                     "columnSources": [
-                      "calendar",
-                      "calendar"
+                      "calendar.1",
+                      "calendar.1"
                     ],
                     "children": {
                       "path": "/calendar",
-                      "componentId": "cal-row"
+                      "componentId": "c-item"
                     }
                   },
                   {
-                    "id": "cal-row",
+                    "id": "c-item",
                     "component": "TableRow",
                     "children": [
-                      "cal-cell-when",
-                      "cal-cell-what"
+                      "c-when",
+                      "c-what"
                     ]
                   },
                   {
-                    "id": "cal-cell-when",
+                    "id": "c-when",
                     "component": "DerivedValue",
                     "cell": {
                       "path": "when"
                     }
                   },
                   {
-                    "id": "cal-cell-what",
+                    "id": "c-what",
                     "component": "DerivedValue",
                     "cell": {
                       "path": "what"
@@ -4299,100 +4264,13 @@
           },
           "synthesis": {
             "dataModel": {
-              "items": [
+              "timeline": [
                 {
                   "source": {
                     "op": "source",
                     "args": [
                       {
-                        "surface": "linear:linear-2",
-                        "pointer": "/issues[id=\"A2U-5\"]/updated"
-                      }
-                    ]
-                  },
-                  "when": {
-                    "op": "value",
-                    "args": [
-                      {
-                        "surface": "linear:linear-2",
-                        "pointer": "/issues[id=\"A2U-5\"]/updated"
-                      }
-                    ]
-                  },
-                  "what": {
-                    "op": "value",
-                    "args": [
-                      {
-                        "surface": "linear:linear-2",
-                        "pointer": "/issues[id=\"A2U-5\"]/title"
-                      }
-                    ]
-                  }
-                },
-                {
-                  "source": {
-                    "op": "source",
-                    "args": [
-                      {
-                        "surface": "linear:linear-2",
-                        "pointer": "/issues[id=\"A2U-7\"]/updated"
-                      }
-                    ]
-                  },
-                  "when": {
-                    "op": "value",
-                    "args": [
-                      {
-                        "surface": "linear:linear-2",
-                        "pointer": "/issues[id=\"A2U-7\"]/updated"
-                      }
-                    ]
-                  },
-                  "what": {
-                    "op": "value",
-                    "args": [
-                      {
-                        "surface": "linear:linear-2",
-                        "pointer": "/issues[id=\"A2U-7\"]/title"
-                      }
-                    ]
-                  }
-                },
-                {
-                  "source": {
-                    "op": "source",
-                    "args": [
-                      {
-                        "surface": "linear:linear-2",
-                        "pointer": "/issues[id=\"A2U-6\"]/updated"
-                      }
-                    ]
-                  },
-                  "when": {
-                    "op": "value",
-                    "args": [
-                      {
-                        "surface": "linear:linear-2",
-                        "pointer": "/issues[id=\"A2U-6\"]/updated"
-                      }
-                    ]
-                  },
-                  "what": {
-                    "op": "value",
-                    "args": [
-                      {
-                        "surface": "linear:linear-2",
-                        "pointer": "/issues[id=\"A2U-6\"]/title"
-                      }
-                    ]
-                  }
-                },
-                {
-                  "source": {
-                    "op": "source",
-                    "args": [
-                      {
-                        "surface": "gmail:gmail-3",
+                        "surface": "gmail.1:gmail-8",
                         "pointer": "/threads[id=\"19829cbece7facf1\"]/when"
                       }
                     ]
@@ -4401,7 +4279,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "gmail:gmail-3",
+                        "surface": "gmail.1:gmail-8",
                         "pointer": "/threads[id=\"19829cbece7facf1\"]/when"
                       }
                     ]
@@ -4410,7 +4288,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "gmail:gmail-3",
+                        "surface": "gmail.1:gmail-8",
                         "pointer": "/threads[id=\"19829cbece7facf1\"]/subject"
                       }
                     ]
@@ -4421,7 +4299,7 @@
                     "op": "source",
                     "args": [
                       {
-                        "surface": "gmail:gmail-3",
+                        "surface": "gmail.1:gmail-8",
                         "pointer": "/threads[id=\"1956e7633ba626aa\"]/when"
                       }
                     ]
@@ -4430,7 +4308,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "gmail:gmail-3",
+                        "surface": "gmail.1:gmail-8",
                         "pointer": "/threads[id=\"1956e7633ba626aa\"]/when"
                       }
                     ]
@@ -4439,7 +4317,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "gmail:gmail-3",
+                        "surface": "gmail.1:gmail-8",
                         "pointer": "/threads[id=\"1956e7633ba626aa\"]/subject"
                       }
                     ]
@@ -4450,7 +4328,7 @@
                     "op": "source",
                     "args": [
                       {
-                        "surface": "gmail:gmail-3",
+                        "surface": "gmail.1:gmail-8",
                         "pointer": "/threads[id=\"19fd40c07b154538\"]/when"
                       }
                     ]
@@ -4459,7 +4337,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "gmail:gmail-3",
+                        "surface": "gmail.1:gmail-8",
                         "pointer": "/threads[id=\"19fd40c07b154538\"]/when"
                       }
                     ]
@@ -4468,7 +4346,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "gmail:gmail-3",
+                        "surface": "gmail.1:gmail-8",
                         "pointer": "/threads[id=\"19fd40c07b154538\"]/subject"
                       }
                     ]
@@ -4479,7 +4357,7 @@
                     "op": "source",
                     "args": [
                       {
-                        "surface": "gmail:gmail-3",
+                        "surface": "gmail.1:gmail-8",
                         "pointer": "/threads[id=\"19b6cefab66744cf\"]/when"
                       }
                     ]
@@ -4488,7 +4366,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "gmail:gmail-3",
+                        "surface": "gmail.1:gmail-8",
                         "pointer": "/threads[id=\"19b6cefab66744cf\"]/when"
                       }
                     ]
@@ -4497,7 +4375,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "gmail:gmail-3",
+                        "surface": "gmail.1:gmail-8",
                         "pointer": "/threads[id=\"19b6cefab66744cf\"]/subject"
                       }
                     ]
@@ -4508,7 +4386,94 @@
                     "op": "source",
                     "args": [
                       {
-                        "surface": "github:notifications-2",
+                        "surface": "linear.1:linear-10",
+                        "pointer": "/issues[id=\"A2U-5\"]/updated"
+                      }
+                    ]
+                  },
+                  "when": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "linear.1:linear-10",
+                        "pointer": "/issues[id=\"A2U-5\"]/updated"
+                      }
+                    ]
+                  },
+                  "what": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "linear.1:linear-10",
+                        "pointer": "/issues[id=\"A2U-5\"]/title"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "source": {
+                    "op": "source",
+                    "args": [
+                      {
+                        "surface": "linear.1:linear-10",
+                        "pointer": "/issues[id=\"A2U-7\"]/updated"
+                      }
+                    ]
+                  },
+                  "when": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "linear.1:linear-10",
+                        "pointer": "/issues[id=\"A2U-7\"]/updated"
+                      }
+                    ]
+                  },
+                  "what": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "linear.1:linear-10",
+                        "pointer": "/issues[id=\"A2U-7\"]/title"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "source": {
+                    "op": "source",
+                    "args": [
+                      {
+                        "surface": "linear.1:linear-10",
+                        "pointer": "/issues[id=\"A2U-6\"]/updated"
+                      }
+                    ]
+                  },
+                  "when": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "linear.1:linear-10",
+                        "pointer": "/issues[id=\"A2U-6\"]/updated"
+                      }
+                    ]
+                  },
+                  "what": {
+                    "op": "value",
+                    "args": [
+                      {
+                        "surface": "linear.1:linear-10",
+                        "pointer": "/issues[id=\"A2U-6\"]/title"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "source": {
+                    "op": "source",
+                    "args": [
+                      {
+                        "surface": "github.1:notifications-10",
                         "pointer": "/prs[repository=\"retz8/a2uiverse\",number=8]/updatedAt"
                       }
                     ]
@@ -4517,7 +4482,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "github:notifications-2",
+                        "surface": "github.1:notifications-10",
                         "pointer": "/prs[repository=\"retz8/a2uiverse\",number=8]/updatedAt"
                       }
                     ]
@@ -4526,7 +4491,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "github:notifications-2",
+                        "surface": "github.1:notifications-10",
                         "pointer": "/prs[repository=\"retz8/a2uiverse\",number=8]/title"
                       }
                     ]
@@ -4537,7 +4502,7 @@
                     "op": "source",
                     "args": [
                       {
-                        "surface": "github:notifications-2",
+                        "surface": "github.1:notifications-10",
                         "pointer": "/prs[repository=\"retz8/a2uiverse\",number=7]/updatedAt"
                       }
                     ]
@@ -4546,7 +4511,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "github:notifications-2",
+                        "surface": "github.1:notifications-10",
                         "pointer": "/prs[repository=\"retz8/a2uiverse\",number=7]/updatedAt"
                       }
                     ]
@@ -4555,7 +4520,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "github:notifications-2",
+                        "surface": "github.1:notifications-10",
                         "pointer": "/prs[repository=\"retz8/a2uiverse\",number=7]/title"
                       }
                     ]
@@ -4566,7 +4531,7 @@
                     "op": "source",
                     "args": [
                       {
-                        "surface": "github:notifications-2",
+                        "surface": "github.1:notifications-10",
                         "pointer": "/prs[repository=\"retz8/a2uiverse\",number=6]/updatedAt"
                       }
                     ]
@@ -4575,7 +4540,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "github:notifications-2",
+                        "surface": "github.1:notifications-10",
                         "pointer": "/prs[repository=\"retz8/a2uiverse\",number=6]/updatedAt"
                       }
                     ]
@@ -4584,7 +4549,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "github:notifications-2",
+                        "surface": "github.1:notifications-10",
                         "pointer": "/prs[repository=\"retz8/a2uiverse\",number=6]/title"
                       }
                     ]
@@ -4595,7 +4560,7 @@
                     "op": "source",
                     "args": [
                       {
-                        "surface": "github:notifications-2",
+                        "surface": "github.1:notifications-10",
                         "pointer": "/prs[repository=\"a2ui-project/a2ui\",number=2639]/updatedAt"
                       }
                     ]
@@ -4604,7 +4569,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "github:notifications-2",
+                        "surface": "github.1:notifications-10",
                         "pointer": "/prs[repository=\"a2ui-project/a2ui\",number=2639]/updatedAt"
                       }
                     ]
@@ -4613,7 +4578,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "github:notifications-2",
+                        "surface": "github.1:notifications-10",
                         "pointer": "/prs[repository=\"a2ui-project/a2ui\",number=2639]/title"
                       }
                     ]
@@ -4624,7 +4589,7 @@
                     "op": "source",
                     "args": [
                       {
-                        "surface": "github:notifications-2",
+                        "surface": "github.1:notifications-10",
                         "pointer": "/prs[repository=\"a2ui-project/a2ui\",number=2531]/updatedAt"
                       }
                     ]
@@ -4633,7 +4598,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "github:notifications-2",
+                        "surface": "github.1:notifications-10",
                         "pointer": "/prs[repository=\"a2ui-project/a2ui\",number=2531]/updatedAt"
                       }
                     ]
@@ -4642,7 +4607,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "github:notifications-2",
+                        "surface": "github.1:notifications-10",
                         "pointer": "/prs[repository=\"a2ui-project/a2ui\",number=2531]/title"
                       }
                     ]
@@ -4653,7 +4618,7 @@
                     "op": "source",
                     "args": [
                       {
-                        "surface": "github:notifications-2",
+                        "surface": "github.1:notifications-10",
                         "pointer": "/prs[repository=\"a2ui-project/a2ui\",number=2529]/updatedAt"
                       }
                     ]
@@ -4662,7 +4627,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "github:notifications-2",
+                        "surface": "github.1:notifications-10",
                         "pointer": "/prs[repository=\"a2ui-project/a2ui\",number=2529]/updatedAt"
                       }
                     ]
@@ -4671,7 +4636,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "github:notifications-2",
+                        "surface": "github.1:notifications-10",
                         "pointer": "/prs[repository=\"a2ui-project/a2ui\",number=2529]/title"
                       }
                     ]
@@ -4680,20 +4645,11 @@
               ],
               "calendar": [
                 {
-                  "source": {
-                    "op": "source",
-                    "args": [
-                      {
-                        "surface": "calendar:calendar-3",
-                        "pointer": "/waiting[id=\"7nuujj9h9ru89blofii3m5otlo\"]/when"
-                      }
-                    ]
-                  },
                   "when": {
                     "op": "value",
                     "args": [
                       {
-                        "surface": "calendar:calendar-3",
+                        "surface": "calendar.1:calendar-5",
                         "pointer": "/waiting[id=\"7nuujj9h9ru89blofii3m5otlo\"]/when"
                       }
                     ]
@@ -4702,27 +4658,18 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "calendar:calendar-3",
+                        "surface": "calendar.1:calendar-5",
                         "pointer": "/waiting[id=\"7nuujj9h9ru89blofii3m5otlo\"]/summary"
                       }
                     ]
                   }
                 },
                 {
-                  "source": {
-                    "op": "source",
-                    "args": [
-                      {
-                        "surface": "calendar:calendar-3",
-                        "pointer": "/clashes[id=\"7nuujj9h9ru89blofii3m5otlo\"]/when"
-                      }
-                    ]
-                  },
                   "when": {
                     "op": "value",
                     "args": [
                       {
-                        "surface": "calendar:calendar-3",
+                        "surface": "calendar.1:calendar-5",
                         "pointer": "/clashes[id=\"7nuujj9h9ru89blofii3m5otlo\"]/when"
                       }
                     ]
@@ -4731,27 +4678,18 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "calendar:calendar-3",
+                        "surface": "calendar.1:calendar-5",
                         "pointer": "/clashes[id=\"7nuujj9h9ru89blofii3m5otlo\"]/summary"
                       }
                     ]
                   }
                 },
                 {
-                  "source": {
-                    "op": "source",
-                    "args": [
-                      {
-                        "surface": "calendar:calendar-3",
-                        "pointer": "/clashes[id=\"ev1fmp1rmvhhb260fbebvd7o9o\"]/when"
-                      }
-                    ]
-                  },
                   "when": {
                     "op": "value",
                     "args": [
                       {
-                        "surface": "calendar:calendar-3",
+                        "surface": "calendar.1:calendar-5",
                         "pointer": "/clashes[id=\"ev1fmp1rmvhhb260fbebvd7o9o\"]/when"
                       }
                     ]
@@ -4760,7 +4698,7 @@
                     "op": "value",
                     "args": [
                       {
-                        "surface": "calendar:calendar-3",
+                        "surface": "calendar.1:calendar-5",
                         "pointer": "/clashes[id=\"ev1fmp1rmvhhb260fbebvd7o9o\"]/summary"
                       }
                     ]
@@ -4770,7 +4708,7 @@
             },
             "sorts": [
               {
-                "path": "/items",
+                "path": "/timeline",
                 "options": [
                   {
                     "key": "/when",
@@ -4784,7 +4722,7 @@
           }
         },
         {
-          "offsetMs": 17651,
+          "offsetMs": 15391,
           "messages": [
             {
               "version": "v0.9",
@@ -4795,101 +4733,94 @@
                     "id": "root",
                     "component": "Column",
                     "children": [
-                      "merged-overview",
-                      "sources-top",
-                      "sources-bottom"
+                      "overview",
+                      "sources"
                     ]
                   },
                   {
-                    "id": "merged-overview",
+                    "id": "overview",
                     "component": "Slot",
                     "source": "shell",
                     "state": "pending",
                     "label": "Synthesis",
                     "content": "shell",
                     "merged": [
-                      "calendar",
-                      "gmail",
-                      "github",
-                      "linear"
+                      "calendar.1",
+                      "gmail.1",
+                      "github.1",
+                      "linear.1"
                     ]
                   },
                   {
-                    "id": "sources-top",
+                    "id": "sources",
                     "component": "Row",
                     "children": [
-                      "attribution-calendar-slot",
-                      "attribution-gmail-slot"
+                      "attribution-calendar",
+                      "attribution-gmail",
+                      "attribution-github",
+                      "attribution-linear"
                     ]
                   },
                   {
-                    "id": "attribution-calendar-slot",
+                    "id": "attribution-calendar",
                     "component": "Attribution",
                     "displayName": "Google Calendar",
-                    "source": "calendar",
-                    "child": "calendar-slot",
+                    "source": "calendar.1",
+                    "child": "calendar",
                     "weight": 1
                   },
                   {
-                    "id": "calendar-slot",
+                    "id": "calendar",
                     "component": "Slot",
-                    "source": "calendar",
+                    "source": "calendar.1",
                     "weight": 1,
                     "state": "pending",
                     "label": "Google Calendar"
                   },
                   {
-                    "id": "attribution-gmail-slot",
+                    "id": "attribution-gmail",
                     "component": "Attribution",
                     "displayName": "Gmail",
-                    "source": "gmail",
-                    "child": "gmail-slot",
+                    "source": "gmail.1",
+                    "child": "gmail",
                     "weight": 1
                   },
                   {
-                    "id": "gmail-slot",
+                    "id": "gmail",
                     "component": "Slot",
-                    "source": "gmail",
+                    "source": "gmail.1",
                     "weight": 1,
                     "state": "pending",
                     "label": "Gmail"
                   },
                   {
-                    "id": "sources-bottom",
-                    "component": "Row",
-                    "children": [
-                      "attribution-github-slot",
-                      "attribution-linear-slot"
-                    ]
-                  },
-                  {
-                    "id": "attribution-github-slot",
+                    "id": "attribution-github",
                     "component": "Attribution",
                     "displayName": "GitHub",
-                    "source": "github",
-                    "child": "github-slot",
+                    "source": "github.1",
+                    "child": "github",
                     "weight": 1
                   },
                   {
-                    "id": "github-slot",
+                    "id": "github",
                     "component": "Slot",
-                    "source": "github",
+                    "source": "github.1",
                     "weight": 1,
                     "state": "pending",
                     "label": "GitHub"
                   },
                   {
-                    "id": "attribution-linear-slot",
+                    "id": "attribution-linear",
                     "component": "Attribution",
                     "displayName": "Linear",
-                    "source": "linear",
-                    "child": "linear-slot",
+                    "source": "linear.1",
+                    "child": "linear",
                     "weight": 1
                   },
                   {
-                    "id": "linear-slot",
+                    "id": "linear",
                     "component": "Slot",
-                    "source": "linear",
+                    "source": "linear.1",
                     "weight": 1,
                     "state": "pending",
                     "label": "Linear"
@@ -4906,7 +4837,7 @@
         }
       ],
       "outcome": "completed",
-      "durationMs": 17651
+      "durationMs": 15391
     }
   ]
 }

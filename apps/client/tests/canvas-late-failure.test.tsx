@@ -198,9 +198,12 @@ describe('Phase 8’s synthetic beats, up to their presses', () => {
   });
 });
 
-/** Where each recorded case ends: its source's slot and the merged view's. */
+/**
+ * Where each recorded case ends: its source's slot and the merged view's. A beat recorded since
+ * sources were keyed by account names its slot `<app>.1` (task 12.12).
+ */
 const RECORDED: Array<[beat: number, source: string, slotState: string, mergeState: string]> = [
-  [10, 'calendar', 'filled', 'filled'],
+  [10, 'calendar.1', 'filled', 'filled'],
   [11, 'gmail', 'filled', 'filled'],
   [12, 'linear', 'filled', 'filled'],
   [13, 'gmail', 'filled', 'filled'],

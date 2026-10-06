@@ -9,6 +9,7 @@ import {
   cardUrlOf,
   parseLaunchArgs,
   planLaunch,
+  publicUrlsOf,
   resolveAgentsDir,
   tiersOf,
 } from './launch-plan.mjs';
@@ -188,4 +189,17 @@ test('parseLaunchArgs names an unknown mode as the error that stops the launch',
   assert.deepEqual(parseArgsOf(['--mode', 'replay']), {
     error: "unknown --mode 'replay' (expected deterministic | stub | live)",
   });
+});
+
+test('publicUrlsOf fills each agent its own port from the pattern, and is off when unset', () => {
+  const urls = publicUrlsOf('https://abc-{port}.asse.devtunnels.ms');
+  assert.equal(urls.of(11001), 'https://abc-11001.asse.devtunnels.ms');
+  assert.equal(urls.of(12002), 'https://abc-12002.asse.devtunnels.ms');
+  assert.equal(publicUrlsOf(undefined).of(11001), null);
+  assert.equal(publicUrlsOf('').of(11001), null);
+});
+
+test('publicUrlsOf refuses a pattern with no port slot, or not on http(s)', () => {
+  assert.match(publicUrlsOf('https://abc.asse.devtunnels.ms').error, /\{port\}/);
+  assert.match(publicUrlsOf('abc-{port}.devtunnels.ms').error, /http/);
 });

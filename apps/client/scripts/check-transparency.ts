@@ -9,6 +9,11 @@
  * Run against **deterministic** agents, so the vendor side is identical between the two sends.
  * On demand only — needs live processes.
  *
+ * Both sides are signed in through the real flow (task-12.12 decision 7): the hub first, as the
+ * recorder signs it in — each app as its one fake account — and the direct side with a token of
+ * its own taken straight from each agent through the non-interactive entry, as the account the
+ * slot's source names, or with the app's demo key.
+ *
  * The agents compared against are every app the hub has installed, each reached at its card URL
  * and sent the entitlement the hub advertises to it (task-11.6 decision 13); `--agents` overrides
  * an app's URL.
@@ -33,6 +38,7 @@ import type {A2AStreamEventData} from '../src/a2a/messages';
 import {extractStampFromEvent} from '../src/a2a/messages';
 import {createSender, driveTurn, supportedCatalogIds} from './lib/drive';
 import {installedApps} from './lib/registry';
+import {accountsFor, agentHeaders, openCanvas, signIn} from './lib/signIn';
 import {BEATS} from './lib/beats';
 
 /** A2A envelope ids and clocks — minted per run on both sides. */
@@ -160,6 +166,27 @@ async function journalLines(path: string): Promise<string[]> {
   }
 }
 
+/** The text of the first message a vendor's task echoes in its history. */
+function sentText(events: A2AStreamEventData[]): string | undefined {
+  for (const event of events) {
+    if (event.kind !== 'task') continue;
+    const part = event.history?.[0]?.parts.find(p => p.kind === 'text');
+    if (part?.kind === 'text') return part.text;
+  }
+  return undefined;
+}
+
+/** Wait until the journal stops growing: each line is embedded before it lands. */
+async function journalSettled(path: string): Promise<void> {
+  let count = (await journalLines(path)).length;
+  for (let quiet = 0; quiet < 3;) {
+    await new Promise(r => setTimeout(r, 1000));
+    const now = (await journalLines(path)).length;
+    quiet = now === count ? quiet + 1 : 0;
+    count = now;
+  }
+}
+
 function show(events: A2AStreamEventData[]): string {
   return events.map((e, i) => `  [${i}] ${e.kind}`).join('\n');
 }
@@ -188,9 +215,15 @@ async function main() {
     agents.set(id, {url, catalogIds: agents.get(id)?.catalogIds ?? catalogIds});
   }
 
+  const hubSender = await createSender(values.hub);
+  const held = await signIn(values.hub, await openCanvas(hubSender, catalogIds));
+  console.log(`hub signed in · ${held.map(a => `${a.source} as ${a.as}`).join(' · ') || '—'}`);
+  // The canvas signed in from writes its own journal line: wait for it before counting.
+  await journalSettled(journal);
+
   const before = (await journalLines(journal)).length;
   console.log(`hub → ${values.hub}`);
-  const hub = await driveTurn(await createSender(values.hub), values.prompt, undefined, catalogIds);
+  const hub = await driveTurn(hubSender, values.prompt, undefined, catalogIds);
 
   // The journal line lands after the client stream ends; give the append a moment.
   let lines = await journalLines(journal);
@@ -240,27 +273,33 @@ async function main() {
   // ── The relay comparison, per planned slot ──
   for (const slot of planned) {
     // A source names the app and the account it painted under: the agent is the app's (task 12.4).
-    const appId = parseSourceId(slot.source)?.appId ?? slot.source;
+    const named = parseSourceId(slot.source);
+    const appId = named?.appId ?? slot.source;
     const agent = agents.get(appId);
     if (!agent) {
       bad(`'${appId}' is not installed on the hub — pass its url in --agents`);
       continue;
     }
-    console.log(`\ndirect → ${slot.source} @ ${agent.url}`);
-    console.log(`  request: ${slot.request}`);
-    const direct = await driveTurn(
-      await createSender(agent.url, agent.path),
-      slot.request,
-      undefined,
-      agent.catalogIds,
-    );
-
     const relayed = hub.events
       .map(e => e.event)
       .filter(e => !isOrchestratorEnvelope(e))
       .filter(e => extractStampFromEvent(e)?.source === slot.source)
       // The hub's own marker after a source's last event (task 8.7), carrying no parts: not relayed.
       .filter(e => !extractStampFromEvent(e)?.settled);
+
+    // What the hub sent: the plan's request with the credential guidance the hub adds (task
+    // 12.7), echoed in the vendor task's history.
+    const request = sentText(relayed) ?? slot.request;
+    console.log(`\ndirect → ${slot.source} @ ${agent.url}`);
+    console.log(`  request: ${request}`);
+    const as = accountsFor(appId)[(named?.account ?? 1) - 1];
+    const headers = as ? await agentHeaders(agent.url, as) : {};
+    const direct = await driveTurn(
+      await createSender(agent.url, agent.path, headers),
+      request,
+      undefined,
+      agent.catalogIds,
+    );
 
     // The hub owns the turn-final, so no vendor's stream may still carry one.
     const stillFinal = relayed.filter(e => e.kind === 'status-update' && e.final);

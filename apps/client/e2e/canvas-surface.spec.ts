@@ -48,7 +48,8 @@ test('beat 4: two vendors side by side, no merged view', async ({browser}) => {
   await expect(page.getByTestId('canvas-stage-content')).toHaveAttribute('data-slots', '2');
   await expect(page.locator('[data-shell-content]')).toHaveCount(0);
   const boxes = await Promise.all(
-    ['gmail', 'calendar'].map(async source => {
+    // Recorded since sources were keyed by account: each vendor is its first account (task 12.12).
+    ['gmail.1', 'calendar.1'].map(async source => {
       const fragment = page.locator(`[data-a2ui-fragment="${source}"]`);
       await expect(fragment).toHaveCount(1);
       return (await fragment.boundingBox())!;

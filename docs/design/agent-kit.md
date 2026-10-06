@@ -287,7 +287,7 @@ A2A says a task that reached a terminal state (`completed`, `canceled`, `rejecte
 - **CORS** allows `localhost` on any port and `*.devtunnels.ms`.
 - **Keep-alive is 300 seconds**, not uvicorn's 5. With 5, an idle connection between turns was closed by the server while a tunnel kept reusing it, and the next request hung.
 
-`--base-url` sets the address the card advertises, for when the client reaches the agent through a tunnel or proxy.
+`--base-url` sets the address the card advertises, for when the client reaches the agent through a tunnel or proxy. With sign-in on, `--public-url` sets where the browser reaches the sign-in pages (the sign-in page, the account chooser's form and the finish address a vendor returns to) while the card's endpoint, the metadata and the token endpoint stay on `--base-url`.
 
 ### Caching per config
 

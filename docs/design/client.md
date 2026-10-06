@@ -291,7 +291,7 @@ sequenceDiagram
 | The poll says failed, or expired | The tile goes back as it was, no words; the reason goes to the console |
 | The poll says signed in | The pressed slot's `retry` goes out, and the slot loads |
 
-The first two don't end the attempt: it's still polled for its ten minutes, so if you finish signing in after all, the slot still resumes. Closing the window is read from focus because focus is the only thing the canvas can see. The window is the place that says what went wrong, so the canvas adds nothing there.
+The first two don't end the attempt: it's still polled for its ten minutes, so if you finish signing in after all, the slot still resumes. An attempt the orchestrator doesn't know yet is asked again too: through the tunnel, the window can reach the start route after the first poll. Once the orchestrator has answered for it, an unknown attempt ends. Closing the window is read from focus because focus is the only thing the canvas can see. The window is the place that says what went wrong, so the canvas adds nothing there.
 
 **Only the pressed slot resumes**, on the answer it was pressed in, on screen or not. The source is then **remembered for the page load**: another slot's Sign in for `gmail.1`, on this answer or another, sends `retry` at once and opens no window. A tile the orchestrator paints for that source afterwards makes the client forget it, so a sign-in that stopped working opens the window again. If the window opens for an account that's in fact signed in (from another tab, say), the orchestrator ends the attempt as signed in straight away, and the slot resumes.
 

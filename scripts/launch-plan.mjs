@@ -61,6 +61,22 @@ export function resolveAgentsDir({flag, env, repoRoot}) {
   return {dir: resolve(repoRoot, '..', 'a2uiverse-apps'), source: 'default'};
 }
 
+/**
+ * Each agent's public address — where the browser reaches its sign-in pages — from
+ * `A2UIVERSE_PUBLIC_URL`, a pattern with a `{port}` slot the agent's roster port fills; unset, every
+ * agent stays on `localhost` (task-12.12 decision 2). A pattern the launcher cannot fill stops it.
+ */
+export function publicUrlsOf(pattern) {
+  if (!pattern) return {pattern: null, of: () => null};
+  if (!pattern.includes('{port}')) {
+    return {error: `A2UIVERSE_PUBLIC_URL '${pattern}' has no {port} slot for each agent's port`};
+  }
+  if (!/^https?:\/\//.test(pattern)) {
+    return {error: `A2UIVERSE_PUBLIC_URL '${pattern}' is not an http(s) address`};
+  }
+  return {pattern, of: port => pattern.replaceAll('{port}', String(port))};
+}
+
 /** The URL the registry fetches an app's card from: its agent, on its roster port. */
 export const cardUrlOf = port => `http://localhost:${port}/.well-known/agent-card.json`;
 
