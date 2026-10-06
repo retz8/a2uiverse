@@ -30,7 +30,7 @@ A failed outcome puts the tile back as it was at once, with no new words; an exp
 
 ### 4. The other slots of a signed-in app
 
-The client remembers the sources signed in during this page load, from the outcomes it polled. Sign in on a remembered source sends `retry` and opens no window — phase decision 15's "loads at once with no popup". A tile the orchestrator paints for that source afterwards makes the client forget it, so the next press opens the window. A source signed in from another tab is not known and opens the window.
+The client remembers the sources signed in during this page load, from the outcomes it polled. Sign in on a remembered source sends `retry` and opens no window — phase decision 15's "loads at once with no popup". A tile the orchestrator paints for that source afterwards makes the client forget it, so the next press opens the window. A source signed in from another tab is not known and opens the window. A sign-in started for an account already signed in, with nothing missing, ends signed in at once: the window says "You're signed in", and the slot resumes.
 
 ### 5. Add-account names the bare app
 
@@ -38,7 +38,7 @@ The add-account press opens the start route on the bare app id; the orchestrator
 
 ### 6. After add-account
 
-The add-account button stays as it is while the window is open. Once signed in, the progress line under the question shows one line naming the account by its label — "Added work@example.com to Gmail." — or, when the sign-in matched an account already held, "work@example.com was already added to Gmail." The poll's signed-in outcome carries the account's label. A failed sign-in shows nothing (decision 3).
+The add-account button stays as it is while the window is open. Once signed in, the progress line under the question shows one line naming the account by its label — "Added work@example.com to Gmail." — or, when the sign-in matched an account already held, "work@example.com was already added to Gmail." The poll's signed-in outcome carries the account's label, the app's name and whether the account was already held. A failed sign-in shows nothing (decision 3).
 
 ### 7. The progress line and the reserved column read the sign-in state
 
@@ -58,7 +58,7 @@ Allow on the escalation card always opens the window — an escalation asks for 
 
 ### 11. The proof
 
-Client tests over a fake window opener and a fake poll: the window opened on the start route with `noopener,noreferrer` and the attempt, canvas and source; https only, localhost exempt; waiting, focus and Cancel; each outcome; the resume to the pressed slot's canvas; remembered sources and a fresh tile forgetting one; Allow and Not now; add-account and its line; the session id on every message; the progress line's sign-in steps and the reserved column. Orchestrator tests for the bare app id on the start route and the label on the outcome. The live sign-in through the tunnel and the real popup in e2e are 12.12's and 12.13's.
+Client tests over a fake window opener and a fake poll: the window opened on the start route with `noopener,noreferrer` and the attempt, canvas and source; https only, localhost exempt; waiting, focus and Cancel; each outcome; the resume to the pressed slot's canvas; remembered sources and a fresh tile forgetting one; Allow and Not now; add-account and its line; the session id on every message; the progress line's sign-in steps and the reserved column. Orchestrator tests for the bare app id on the start route, the label, the app's name and the held account on the outcome, and a sign-in for an account already signed in ending at once. The live sign-in through the tunnel and the real popup in e2e are 12.12's and 12.13's.
 
 ## Invariants
 
