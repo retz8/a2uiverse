@@ -10,6 +10,9 @@ are numbered per `a2ui-findings.md`.
 | 1 | `ChoicePicker` radio groups collide across surfaces (React/Angular) | [#2447](https://github.com/a2ui-project/a2ui/issues/2447) | [#2449](https://github.com/a2ui-project/a2ui/pull/2449), merged 2026-09-01 |
 | 2 | Unsatisfiable `catalogId` requirement in `server_to_client.json` prose | [#2445](https://github.com/a2ui-project/a2ui/issues/2445) | [#2446](https://github.com/a2ui-project/a2ui/pull/2446), merged 2026-09-01 |
 | 4 | Generated setter for a binding-only prop is uncallable (`never` parameter) | [#2528](https://github.com/a2ui-project/a2ui/issues/2528) | [#2529](https://github.com/a2ui-project/a2ui/pull/2529), merged 2026-09-29 |
+| 10 | Kotlin streaming parser's placeholder is the basic catalog's `Row` whatever the catalog | [#2924](https://github.com/a2ui-project/a2ui/issues/2924) | [#2925](https://github.com/a2ui-project/a2ui/pull/2925), merged 2026-10-05 |
+| 11 | `componentTree` lets a component's own `type` prop replace its type (web_core, Python core) | [#2929](https://github.com/a2ui-project/a2ui/issues/2929) | [#2930](https://github.com/a2ui-project/a2ui/pull/2930), merged 2026-10-05 |
+| — | Dart `ComponentModel.toJson` lets an `id` or `component` property replace the model's own (raised in gspencergoog's review of #2930) | [#2979](https://github.com/a2ui-project/a2ui/issues/2979) | [#2980](https://github.com/a2ui-project/a2ui/pull/2980), merged 2026-10-05 |
 | — | Typo in the custom component video name in the docs | — | [#728](https://github.com/a2ui-project/a2ui/pull/728), merged 2026-02-26 |
 
 ## In review
@@ -17,9 +20,6 @@ are numbered per `a2ui-findings.md`.
 | Finding | What | Issue | PR |
 | --- | --- | --- | --- |
 | 3 | Basic catalog's CSS-module class maps are dead code (React renderer) | [#1307](https://github.com/a2ui-project/a2ui/issues/1307) (filed by another user) | [#2639](https://github.com/a2ui-project/a2ui/pull/2639) — ditman's review of 2026-09-28 addressed 2026-09-29; awaiting his second round |
-| 10 | Kotlin streaming parser's placeholder is the basic catalog's `Row` whatever the catalog | [#2924](https://github.com/a2ui-project/a2ui/issues/2924) | [#2925](https://github.com/a2ui-project/a2ui/pull/2925), opened 2026-10-01 — approved by jgindin 2026-10-02; awaiting merge |
-| 11 | `componentTree` lets a component's own `type` prop replace its type (web_core, Python core) | [#2929](https://github.com/a2ui-project/a2ui/issues/2929) | [#2930](https://github.com/a2ui-project/a2ui/pull/2930), opened 2026-10-01 — approved by gspencergoog 2026-10-02; awaiting merge |
-| — | Dart `ComponentModel.toJson` lets an `id` or `component` property replace the model's own (raised in gspencergoog's review of #2930) | [#2979](https://github.com/a2ui-project/a2ui/issues/2979) | [#2980](https://github.com/a2ui-project/a2ui/pull/2980), opened 2026-10-03 — awaiting review |
 
 ## Closed
 
