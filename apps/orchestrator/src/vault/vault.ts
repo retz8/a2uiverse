@@ -74,7 +74,16 @@ export interface SlotAsk {
 }
 
 export interface SignInRecord {
-  event: 'started' | 'signedIn' | 'failed' | 'expired' | 'refreshed' | 'refreshFailed' | 'revoked';
+  event:
+    | 'started'
+    | 'signedIn'
+    | 'failed'
+    | 'expired'
+    | 'refreshed'
+    | 'refreshFailed'
+    | 'revoked'
+    | 'escalationRequested'
+    | 'notNow';
   appId: string;
   source?: string;
   canvas?: string;
@@ -84,6 +93,8 @@ export interface SignInRecord {
   account?: 'new' | 'existing';
   reason?: string;
   revocation?: 'revoked' | 'nowhere' | 'failed';
+  /** An escalation request: whether its keys are the installed card's (phase-12 decision 6). */
+  valid?: boolean;
 }
 
 export interface VaultDeps {
@@ -320,8 +331,38 @@ export class AuthVault implements AccountStore {
 
   // ---- in the task (phase-12 decisions 4, 6) --------------------------------------------------
 
-  /** An in-task `auth-required`, read against the installed card. */
+  /**
+   * An in-task `auth-required`, read against the installed card; a request for more access is
+   * journaled, valid or invalid (task-12.5 decision 11).
+   */
   requested(source: string, request: AuthRequired | undefined): Request {
+    const read = this.#read(source, request);
+    const appId = parseSourceId(source)?.appId ?? source;
+    if (read.kind === 'escalate') {
+      this.#deps.journal({
+        event: 'escalationRequested',
+        appId,
+        source,
+        scopes: read.keys,
+        valid: true,
+      });
+    } else if (read.kind === 'invalid') {
+      const scopes = (request?.security ?? []).flatMap(alternative =>
+        Object.values(alternative).flat(),
+      );
+      this.#deps.journal({
+        event: 'escalationRequested',
+        appId,
+        source,
+        scopes,
+        valid: false,
+        reason: read.reason,
+      });
+    }
+    return read;
+  }
+
+  #read(source: string, request: AuthRequired | undefined): Request {
     const {appId, account: n} = parseSourceId(source) ?? {appId: source};
     const card = this.#deps.cardOf(appId);
     const need = cardNeed(card);

@@ -819,6 +819,12 @@ export class OrchestratorExecutor implements AgentExecutor {
         const slot = state.slots.get(source);
         if (!slot?.escalation) return refuse('There is no request for more access to dismiss.');
         work = async () => {
+          await this.#deps.journal.signIn({
+            event: 'notNow',
+            appId: parseSourceId(source)?.appId ?? source,
+            source,
+            scopes: slot.escalation?.keys ?? [],
+          });
           delete slot.escalation;
           delete slot.keptPress;
           this.#repaint([sink], state);

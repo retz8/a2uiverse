@@ -303,6 +303,21 @@ function sequence(...scripts: Script[]): Script {
 
 const shopOnly = () => layoutFor(['shop.1']);
 
+/** The journal's sign-in lines, once `expected` is among them: lines are written as they come. */
+async function signInLinesWith(expected: object): Promise<Record<string, unknown>[]> {
+  let lines: Record<string, unknown>[] = [];
+  await vi.waitFor(async () => {
+    const journal = await readFile(join(dir, JOURNAL_FILE), 'utf8');
+    lines = journal
+      .trim()
+      .split('\n')
+      .map(line => JSON.parse(line) as Record<string, unknown>)
+      .filter(line => line.kind === 'signIn');
+    expect(lines).toContainEqual(expect.objectContaining(expected));
+  });
+  return lines;
+}
+
 describe('before dispatch and the sign-in', () => {
   test('a card the vault cannot meet takes the full tile at first paint, and its agent is not called', async () => {
     const {client} = await boot({
@@ -678,8 +693,17 @@ describe("the agent's requests for more access", () => {
     });
     expect(asked.at(-1)).toMatchObject({status: {state: 'completed'}});
 
+    await signInLinesWith({
+      event: 'escalationRequested',
+      appId: 'shop',
+      source: 'shop.1',
+      scopes: ['write'],
+      valid: true,
+    });
+
     const dismissed = await collect(client, press('dismiss', 'shop.1', canvas));
     expect(attributionOf(dismissed, 'shop.1')).not.toHaveProperty('escalation');
+    await signInLinesWith({event: 'notNow', appId: 'shop', source: 'shop.1', scopes: ['write']});
 
     await collect(client, action('shop.1', canvas));
     const escalated = await signIn(base, canvas, 'shop.1');
@@ -716,6 +740,14 @@ describe("the agent's requests for more access", () => {
     await signIn(base, canvas, 'shop.1');
     const invalid = await collect(client, press('retry', 'shop.1', canvas));
     expect(slotOf(invalid, 'shop.1')).toMatchObject({state: 'failed', failure: {cause: 'invalid'}});
+    await signInLinesWith({
+      event: 'escalationRequested',
+      appId: 'shop',
+      source: 'shop.1',
+      scopes: ['delete'],
+      valid: false,
+      reason: 'the card declares no scope delete',
+    });
     const unnamed = await collect(client, press('retry', 'shop.1', canvas));
     expect(auth.refreshes).toBe(1);
     expect(slotOf(unnamed, 'shop.1')).toMatchObject({state: 'pending'});

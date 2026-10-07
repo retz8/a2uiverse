@@ -136,8 +136,9 @@ export class IntentJournal implements RegistryJournal {
 
   /**
    * A sign-in fact (task-12.5 decision 11): one line of kind `signIn` beside the turns — started,
-   * signed in, failed, expired, refreshed, a refresh failed, revoked — naming the app, the source,
-   * the canvas, why and the scope keys; never a token, a code, a key or the ID token. Never throws.
+   * signed in, failed, expired, refreshed, a refresh failed, revoked, a request for more access
+   * (valid or invalid) and its Not now — naming the app, the source, the canvas, why and the scope
+   * keys; never a token, a code, a key or the ID token. Never throws.
    */
   async signIn(record: SignInRecord): Promise<void> {
     await this.#append({kind: 'signIn', at: new Date().toISOString(), ...record});
