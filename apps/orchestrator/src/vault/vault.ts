@@ -708,6 +708,8 @@ export class AuthVault implements AccountStore {
   outcome(id: string): Outcome | undefined {
     const attempt = this.attempt(id);
     if (!attempt) return undefined;
+    // The app is named from the first answer: the client says an add-account window by it while
+    // the sign-in runs (task-12.13 decision 21).
     return {
       state: attempt.state,
       ...(attempt.result
@@ -717,7 +719,7 @@ export class AuthVault implements AccountStore {
             app: this.#deps.displayName(attempt.appId),
             existing: attempt.existing === true,
           }
-        : {}),
+        : {app: this.#deps.displayName(attempt.appId)}),
       ...(attempt.reason ? {reason: attempt.reason} : {}),
     };
   }

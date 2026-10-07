@@ -317,4 +317,33 @@ describe('add-account', () => {
     await tick();
     expect(a.runtime.store.getState().accountNotice).toBeNull();
   });
+
+  it('says at once that it is signing in, by the app name once the orchestrator gives it, until the account is said (task-12.13 decision 21)', async () => {
+    const {signIn, add, answer} = setup();
+    const a = add('a');
+    a.runtime.store.showAccountNotice('Added me@example.com to Gmail.');
+    signIn.addAccount(a.runtime, 'gmail');
+    expect(a.runtime.store.getState().addingAccount).toBe('Signing in');
+    answer(0, {state: 'pending', app: 'Gmail'});
+    await tick();
+    expect(a.runtime.store.getState().addingAccount).toBe('Gmail signing in');
+    answer(0, {state: 'signedIn', source: 'gmail.2', label: 'work@example.com', app: 'Gmail'});
+    await tick();
+    expect(a.runtime.store.getState().addingAccount).toBeNull();
+    expect(a.runtime.store.getState().accountNotice).toBe('Added work@example.com to Gmail.');
+  });
+
+  it('the step goes when the canvas gets the focus back, or the sign-in ends without an account', async () => {
+    const {signIn, page, add, answer} = setup();
+    const a = add('a');
+    signIn.addAccount(a.runtime, 'gmail');
+    page.dispatchEvent(new Event('blur'));
+    page.dispatchEvent(new Event('focus'));
+    expect(a.runtime.store.getState().addingAccount).toBeNull();
+    signIn.addAccount(a.runtime, 'gmail');
+    expect(a.runtime.store.getState().addingAccount).toBe('Signing in');
+    answer(1, {state: 'failed', reason: 'access_denied'});
+    await tick();
+    expect(a.runtime.store.getState().addingAccount).toBeNull();
+  });
 });

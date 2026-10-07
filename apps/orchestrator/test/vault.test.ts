@@ -374,11 +374,19 @@ describe('before dispatch and the sign-in', () => {
   });
 
   test('forged sign-ins are refused: no cookie, a reused attempt, a canvas not held; no scope taken from the address', async () => {
-    const {base, client} = await boot({apps: {shop: {card: oauthCard()}}, plan: shopOnly});
+    const {base, client, orchestrator} = await boot({
+      apps: {shop: {card: oauthCard()}},
+      plan: shopOnly,
+    });
     const canvas = contextOf(await collect(client, utterance('my orders')));
     const noCookie = await signIn(base, canvas, 'shop.1', {dropCookie: true});
     expect(await noCookie.callback!.text()).toContain("didn't finish");
-    expect(noCookie.outcome!.state).toBe('pending');
+    // Pending, it names the app already: the client says the add-account window at once (task-12.13
+    // decision 21).
+    expect(noCookie.outcome).toEqual({
+      state: 'pending',
+      app: orchestrator.registry.displayName('shop'),
+    });
 
     const reused = await fetch(
       `${base}/auth/start?attempt=${noCookie.attempt}&canvas=${canvas}&source=shop.1`,

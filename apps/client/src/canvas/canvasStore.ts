@@ -141,6 +141,11 @@ export interface CanvasState {
   signingIn: ReadonlySet<string>;
   /** An account added from this canvas, in words: "Added … to …" (task-12.8 decision 6). */
   accountNotice: string | null;
+  /**
+   * An add-account window open from this canvas, in words — "Gmail signing in" — said at once on
+   * the progress line until the account is said (task-12.13 decision 21).
+   */
+  addingAccount: string | null;
   /** The merged view's painted facts, as the last shell paint carrying its slot said them. */
   merge: PaintedMerge | null;
   /** The presses made on the composition on stage, until the paint catches up or they end. */
@@ -207,6 +212,8 @@ export interface CanvasStore {
   setSigningIn(source: string, open: boolean): void;
   /** An account added from this canvas, said on the progress line. */
   showAccountNotice(text: string): void;
+  /** An add-account window open from this canvas, in words, or `null` once it is not. */
+  setAddingAccount(text: string | null): void;
   /** The merged view's facts, from a shell paint carrying its slot. */
   setMerge(merge: PaintedMerge | null): void;
   /**
@@ -284,6 +291,7 @@ export function createCanvasStore(): CanvasStore {
     escalations: new Set(),
     signingIn: new Set(),
     accountNotice: null,
+    addingAccount: null,
     merge: null,
     presses: [],
     mergeFollowingStep: false,
@@ -353,6 +361,7 @@ export function createCanvasStore(): CanvasStore {
       set({signingIn: next});
     },
     showAccountNotice: text => set({accountNotice: text}),
+    setAddingAccount: text => set({addingAccount: text}),
     setMerge: merge => set({merge}),
     addPress: operation => {
       const key = ++pressKey;
@@ -393,6 +402,7 @@ export function createCanvasStore(): CanvasStore {
         escalations: new Set(),
         signingIn: new Set(),
         accountNotice: null,
+        addingAccount: null,
         merge: null,
         presses: [],
         mergeFollowingStep: false,

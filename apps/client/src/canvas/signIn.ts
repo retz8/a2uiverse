@@ -18,7 +18,9 @@
  *   orchestrator sends again the press that needed the scope (decision 10).
  * - Sign in on a remembered source opens no window: it sends `retry` at once (decision 4). A tile
  *   painted for the source after that makes it forgotten. Allow always opens the window.
- * - An added account is said on the progress line of the canvas it was pressed on (decision 6).
+ * - An added account is said on the progress line of the canvas it was pressed on (decision 6);
+ *   while its window is open the line says so at once, "Gmail signing in", the app named once the
+ *   orchestrator has answered for the attempt (task-12.13 decision 21).
  * - Failed or expired, the slot's tile goes back as it was, the reason to the console (decision 3).
  */
 import type {SignInRequest} from '@a2uiverse/shell-catalog';
@@ -69,6 +71,8 @@ interface Attempt {
   away: boolean;
   /** The orchestrator has answered for it: the window reached the start route. */
   seen?: boolean;
+  /** The app's name, once the orchestrator has given it. */
+  app?: string;
   until: number;
   timer?: ReturnType<typeof setTimeout>;
 }
@@ -115,19 +119,34 @@ export function createSignIn({
   const attempts = new Map<string, Attempt>();
 
   /** The slot waits while any of its attempts does. */
-  const showWaiting = (canvas: string, source: string) => {
+  const showSlotWaiting = (canvas: string, source: string) => {
     const waiting = [...attempts.values()].some(
-      a => a.canvas === canvas && a.source === source && a.waiting,
+      a => a.canvas === canvas && a.source === source && a.kind === 'resume' && a.waiting,
     );
     runtimeOf(canvas)?.store.setSigningIn(source, waiting);
   };
+
+  /** An add-account window open is said on the progress line, by the app's name once known. */
+  const showAdding = (canvas: string) => {
+    const adding = [...attempts.values()].find(
+      a => a.canvas === canvas && a.kind === 'addAccount' && a.waiting,
+    );
+    runtimeOf(canvas)?.store.setAddingAccount(
+      adding ? (adding.app ? `${adding.app} signing in` : 'Signing in') : null,
+    );
+  };
+
+  const showWaiting = (attempt: Attempt) =>
+    attempt.kind === 'addAccount'
+      ? showAdding(attempt.canvas)
+      : showSlotWaiting(attempt.canvas, attempt.source);
 
   const settle = (attempt: Attempt) => {
     clearTimeout(attempt.timer);
     attempts.delete(attempt.id);
     if (attempt.waiting) {
       attempt.waiting = false;
-      showWaiting(attempt.canvas, attempt.source);
+      showWaiting(attempt);
     }
   };
 
@@ -155,6 +174,10 @@ export function createSignIn({
       console.info('[A2UI:sign-in] poll failed', err);
     }
     if (!attempts.has(attempt.id)) return;
+    if (outcome?.app && attempt.app === undefined) {
+      attempt.app = outcome.app;
+      if (attempt.waiting) showWaiting(attempt);
+    }
     if (outcome?.state === 'signedIn') return signedIn(attempt, outcome);
     // Unknown before it was ever seen: the window has not reached the start route yet — through
     // the tunnel it can land after the first poll (task 12.12). Asked again like a pending one.
@@ -192,12 +215,12 @@ export function createSignIn({
       canvas: runtime.id,
       source,
       kind,
-      waiting: kind === 'resume',
+      waiting: true,
       away: false,
       until: Date.now() + ATTEMPT_WATCH_MS,
     };
     attempts.set(id, attempt);
-    if (attempt.waiting) showWaiting(attempt.canvas, source);
+    showWaiting(attempt);
     attempt.timer = setTimeout(() => void ask(attempt), POLL_INTERVAL_MS);
     return true;
   };
@@ -212,7 +235,7 @@ export function createSignIn({
       if (!attempt.waiting || !attempt.away) continue;
       attempt.waiting = false;
       attempt.away = false;
-      showWaiting(attempt.canvas, attempt.source);
+      showWaiting(attempt);
     }
   };
   page.addEventListener('blur', onBlur);
@@ -225,7 +248,7 @@ export function createSignIn({
         for (const attempt of attempts.values()) {
           if (attempt.canvas === runtime.id && attempt.source === source) attempt.waiting = false;
         }
-        showWaiting(runtime.id, source);
+        showSlotWaiting(runtime.id, source);
         return;
       }
       const asking = runtime.store.getState().escalations.has(source);

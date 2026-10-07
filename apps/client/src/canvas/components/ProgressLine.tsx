@@ -4,7 +4,8 @@
  * past tense, and follows the reader's presses on the composition (task 8.5). The step that is
  * working carries the in-flight marker (`canvas-pending`); a source waiting on a sign-in carries a
  * lock and says so (task-12.8 decision 7). An account added from this canvas is said after the
- * merge (task-12.8 decision 6). The canvas's sticky error — a message of its own that failed or
+ * merge (task-12.8 decision 6), and while its window is open, the working step saying so at once
+ * (task-12.13 decision 21). The canvas's sticky error — a message of its own that failed or
  * never arrived, cleared by its next dispatch — closes the line in the danger tone, an alert on the
  * full line (task-9.9 decision 20).
  */
@@ -127,10 +128,19 @@ export function ProgressLine({state, since, compact, sourcesOnly}: ProgressLineP
   const planning = progress.working?.kind === 'planning';
   const elapsed = useElapsed(since, planning);
   const {error} = state;
-  const account = sourcesOnly ? null : state.accountNotice;
+  // An add-account window open says so at once, in the notice's place (task-12.13 decision 21).
+  const adding = sourcesOnly ? null : state.addingAccount;
+  const account = sourcesOnly || adding ? null : state.accountNotice;
   // Nothing to say — a platform answer, no vendor dispatched — takes no room under the question
   // (task-8.7 decision 28).
-  if (!progress.working && progress.sources.length === 0 && !progress.merge && !error && !account)
+  if (
+    !progress.working &&
+    progress.sources.length === 0 &&
+    !progress.merge &&
+    !error &&
+    !account &&
+    !adding
+  )
     return null;
   const said = progress.working || progress.sources.length > 0 || progress.merge;
   return (
@@ -165,6 +175,14 @@ export function ProgressLine({state, since, compact, sourcesOnly}: ProgressLineP
           </Step>
         </Fragment>
       )}
+      {adding && (
+        <Fragment>
+          {said && <Dot />}
+          <Step status="working" compact={compact}>
+            {adding}
+          </Step>
+        </Fragment>
+      )}
       {account && (
         <Fragment>
           {said && <Dot />}
@@ -175,7 +193,7 @@ export function ProgressLine({state, since, compact, sourcesOnly}: ProgressLineP
       )}
       {error && !sourcesOnly && (
         <Fragment>
-          {(said || account) && <Dot />}
+          {(said || account || adding) && <Dot />}
           <span
             className="canvas-progress-step canvas-progress-error"
             role={compact ? undefined : 'alert'}

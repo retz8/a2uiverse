@@ -19,6 +19,7 @@ describe('createCanvasStore', () => {
       escalations: new Set(),
       signingIn: new Set(),
       accountNotice: null,
+      addingAccount: null,
       merge: null,
       presses: [],
       mergeFollowingStep: false,

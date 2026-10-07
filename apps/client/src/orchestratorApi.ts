@@ -53,9 +53,10 @@ export function signInStartUrl(
 }
 
 /**
- * How a sign-in attempt stands, as the orchestrator answers the poll: signed in as a source —
- * with the account's label, the app's name and whether the account was already held — failed with
- * a reason, expired, or `unknown` once the orchestrator no longer has it.
+ * How a sign-in attempt stands, as the orchestrator answers the poll: pending, signed in as a
+ * source — with the account's label and whether the account was already held — failed with a
+ * reason, expired, or `unknown` once the orchestrator no longer has it; the app's name on every
+ * answer it has the attempt for.
  */
 export interface AttemptOutcome {
   state: 'pending' | 'signedIn' | 'failed' | 'expired' | 'unknown';
