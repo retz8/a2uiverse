@@ -125,3 +125,7 @@ After the add-account press the canvas showed nothing until the sign-in ended an
 ### 22. The key page spaces its field and its button
 
 On the token page, "Paste your key" sat flush against Connect: the card spaces its own children, but the field and the button live in its form, which had no layout of its own. The form takes the card's grid and gap. Replaced: a form whose field and button touched.
+
+### 23. The cards name where a person finishes
+
+The credential fallback drew no "Continue on GitHub" and Shop B's key page no help link: no card on the roster declared `provider` or `documentationUrl`. The kit's app config takes both and writes them on the card. Each vendor agent names as its provider the vendor whose service it fronts, at the vendor's own site — GitHub, Google's Gmail and Calendar, Linear, CircleCI — and the mock stores a storefront of their own; each names its README in `a2uiverse-apps` as its help page. Replaced: cards naming neither, the fallback with no way out.
