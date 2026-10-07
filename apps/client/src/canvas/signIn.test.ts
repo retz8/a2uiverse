@@ -278,6 +278,26 @@ describe('the resume', () => {
   });
 });
 
+describe('signed in again as another identity', () => {
+  it('resumes the slot and says on its canvas who it is signed in as now (task-12.13 decision 24)', async () => {
+    const {signIn, add, answer} = setup();
+    const a = add('a');
+    signIn.request(a.runtime, {kind: 'start', source: 'linear.1'});
+    answer(0, {
+      state: 'signedIn',
+      source: 'linear.1',
+      label: 'me.new@example.com',
+      app: 'Linear',
+      rebound: true,
+    });
+    await tick();
+    expect(a.pressed).toEqual([{kind: 'retry', sources: ['linear.1']}]);
+    expect(a.runtime.store.getState().accountNotice).toBe(
+      'Signed in to Linear as me.new@example.com.',
+    );
+  });
+});
+
 describe('add-account', () => {
   it('opens the start route on the bare app id, nothing waits, and the account is said on the canvas it was pressed on', async () => {
     const {signIn, opened, add, answer} = setup();

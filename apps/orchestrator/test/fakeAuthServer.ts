@@ -43,6 +43,11 @@ export interface FakeAuthServer {
   scopesOf(token: string): string[] | undefined;
   /** Ends every sign-in, so a refresh is refused. */
   endAll(): void;
+  /**
+   * The server lost its accounts: a hint naming none binds nothing, and the person signs in
+   * under whatever account comes back.
+   */
+  forgets: boolean;
   close(): Promise<void>;
 }
 
@@ -82,6 +87,7 @@ export async function startFakeAuthServer(
       return grant && !grant.ended ? grant.scope : undefined;
     },
     endAll: () => grants.forEach(grant => (grant.ended = true)),
+    forgets: false,
     close: () => new Promise<void>(resolve => server.close(() => resolve())),
   };
   const mint = (bytes = 24) => {
@@ -147,7 +153,7 @@ export async function startFakeAuthServer(
       return;
     }
     const hint = query.get('login_hint');
-    if (hint && hint !== fake.account.sub) {
+    if (hint && hint !== fake.account.sub && !fake.forgets) {
       back.searchParams.set('error', 'access_denied');
       res.redirect(302, back.toString());
       return;

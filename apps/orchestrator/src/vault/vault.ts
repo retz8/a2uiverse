@@ -93,6 +93,8 @@ export interface SignInRecord {
   account?: 'new' | 'existing';
   reason?: string;
   revocation?: 'revoked' | 'nowhere' | 'failed';
+  /** Signed in again as another identity: the account re-bound to it. */
+  rebound?: boolean;
   /** An escalation request: whether its keys are the installed card's (phase-12 decision 6). */
   valid?: boolean;
 }
@@ -123,6 +125,8 @@ export interface Attempt {
   result?: string;
   label?: string;
   existing?: boolean;
+  /** Signed in again as another identity, the account re-bound to it. */
+  rebound?: boolean;
   reason?: string;
   oauth?: {
     metadata: ServerMetadata;
@@ -152,6 +156,7 @@ export type Outcome = {
   label?: string;
   app?: string;
   existing?: boolean;
+  rebound?: boolean;
 };
 
 export class AuthVault implements AccountStore {
@@ -588,10 +593,20 @@ export class AuthVault implements AccountStore {
           jwksUri: oauth.metadata.jwks_uri,
         });
       }
-      if (oauth.sub && claims && claims.sub !== oauth.sub) {
-        return this.#fail(attempt, 'signed in as a different account');
-      }
       const apps = this.#deps.store.app(attempt.appId);
+      // Signing in again to a server that lost the account comes back as another identity: the
+      // account is re-bound to it and the outcome says so — never onto an account the app holds
+      // already. A request for more access stays bound (task-12.13 decision 24).
+      let rebound = false;
+      if (oauth.sub && claims && claims.sub !== oauth.sub) {
+        if (attempt.purpose !== 'again') {
+          return this.#fail(attempt, 'signed in as a different account');
+        }
+        if (apps.accounts.some(held => held.sub === claims!.sub && held.n !== attempt.n)) {
+          return this.#fail(attempt, 'that account is already added');
+        }
+        rebound = true;
+      }
       const bound = attempt.purpose === 'again' || attempt.purpose === 'escalation';
       let account = bound ? this.#account(attempt.appId, attempt.n) : undefined;
       if (!bound && claims) account = apps.accounts.find(held => held.sub === claims!.sub);
@@ -626,6 +641,7 @@ export class AuthVault implements AccountStore {
         `${this.#deps.displayName(attempt.appId)} account ${account.n}`;
       delete account.again;
       await this.#deps.store.save();
+      if (rebound) attempt.rebound = true;
       return this.#signedIn(attempt, account, existing);
     } catch (err) {
       // A registration the server no longer knows is let go: the next sign-in registers again
@@ -692,6 +708,7 @@ export class AuthVault implements AccountStore {
       canvas: attempt.canvas,
       purpose: attempt.purpose,
       account: existing ? 'existing' : 'new',
+      ...(attempt.rebound ? {rebound: true} : {}),
     });
     logLine(`🔑 ${attempt.result} signed in (${attempt.purpose})`);
     return attempt;
@@ -718,6 +735,7 @@ export class AuthVault implements AccountStore {
             label: attempt.label ?? '',
             app: this.#deps.displayName(attempt.appId),
             existing: attempt.existing === true,
+            ...(attempt.rebound ? {rebound: true} : {}),
           }
         : {app: this.#deps.displayName(attempt.appId)}),
       ...(attempt.reason ? {reason: attempt.reason} : {}),

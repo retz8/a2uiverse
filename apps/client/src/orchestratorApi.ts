@@ -64,6 +64,8 @@ export interface AttemptOutcome {
   label?: string;
   app?: string;
   existing?: boolean;
+  /** Signed in again as another identity: the account re-bound to it (task-12.13 decision 24). */
+  rebound?: boolean;
   reason?: string;
 }
 

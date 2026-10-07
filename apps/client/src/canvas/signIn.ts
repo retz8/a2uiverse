@@ -162,6 +162,13 @@ export function createSignIn({
     for (const other of [...attempts.values()]) {
       if (other.canvas === attempt.canvas && other.source === attempt.source) settle(other);
     }
+    // Signed in again as another identity: said, so different data never comes in unexplained
+    // (task-12.13 decision 24).
+    if (outcome.rebound && outcome.label) {
+      runtime?.store.showAccountNotice(
+        `Signed in to ${outcome.app ?? attempt.source} as ${outcome.label}.`,
+      );
+    }
     void runtime?.press({kind: 'retry', sources: [attempt.source]});
   };
 

@@ -652,6 +652,38 @@ describe('on the wire', () => {
     expect(again.outcome).toMatchObject({state: 'signedIn', source: 'shop.1'});
     expect(auth.authorizations.at(-1)!.get('login_hint')).toBe('sub-ada');
   });
+
+  test('signing in again to a server that lost the account re-binds it, said on the outcome; one already held is refused (task-12.13 decision 24)', async () => {
+    const {base, client, orchestrator} = await boot({
+      apps: {shop: {card: oauthCard(), admit: admitsTokens()}},
+      plan: shopOnly,
+    });
+    const canvas = contextOf(await collect(client, utterance('my orders')));
+    await signIn(base, canvas, 'shop.1');
+    auth.endAll();
+    await collect(client, press('retry', 'shop.1', canvas));
+    auth.forgets = true;
+    auth.account = {sub: 'sub-ada-again', email: 'ada.new@example.com'};
+    const again = await signIn(base, canvas, 'shop.1');
+    expect(again.outcome).toMatchObject({
+      state: 'signedIn',
+      source: 'shop.1',
+      label: 'ada.new@example.com',
+      rebound: true,
+    });
+    expect(orchestrator.vault.accountsOf('shop')).toEqual([{n: 1, label: 'ada.new@example.com'}]);
+    expect(
+      await signInLinesWith({event: 'signedIn', source: 'shop.1', rebound: true}),
+    ).toBeTruthy();
+
+    // A second account, then the first's sign-in again comes back as it: refused.
+    auth.account = {sub: 'sub-bob', email: 'bob@example.com'};
+    await signIn(base, canvas, 'shop', {});
+    auth.endAll();
+    await collect(client, press('retry', 'shop.1', canvas));
+    const twice = await signIn(base, canvas, 'shop.1');
+    expect(twice.outcome).toMatchObject({state: 'failed', reason: 'that account is already added'});
+  });
 });
 
 describe("the agent's requests for more access", () => {
