@@ -295,7 +295,9 @@ function Escalation({
         aria-expanded={cardOpen}
         aria-controls={cardId}
         data-escalation-chip=""
-        style={{flex: 'none', whiteSpace: 'nowrap'}}
+        // Taller than the marker's line: its overhang reaches into the gap above and below, so
+        // the row keeps its height and nothing moves when the request arrives (phase-12 decision 16).
+        style={{flex: 'none', whiteSpace: 'nowrap', marginBlock: -4}}
         onClick={() => setCardOpen(open => !open)}
         onKeyDown={fold}
       >
@@ -474,35 +476,42 @@ export function createAttributionComponent({
   onPress,
   onSignIn,
 }: {onPress?: PressHandler; onSignIn?: SignInHandler} = {}) {
-  return createComponentImplementation(AttributionApi, ({props, buildChild, context}) => (
-    <AttributionView
-      displayName={props.displayName}
-      source={props.source}
-      account={props.account}
-      escalation={props.escalation}
-      weight={props.weight}
-      onSignIn={
-        onSignIn && props.source !== undefined
-          ? kind =>
-              onSignIn({
-                kind,
-                source: props.source!,
-                surfaceId: context.dataContext.surface.id,
-                componentId: context.componentModel.id,
-              })
-          : undefined
-      }
-      onPress={
-        onPress &&
-        (operation =>
-          onPress({
-            operation,
-            surfaceId: context.dataContext.surface.id,
-            componentId: context.componentModel.id,
-          }))
-      }
-    >
-      {props.child === undefined ? undefined : buildChild(props.child)}
-    </AttributionView>
-  ));
+  return createComponentImplementation(AttributionApi, ({buildChild, context}) => {
+    // Read from the component's own model, not the binder's resolved props: upstream's binder
+    // merges each repaint over the last, so a request the runtime stops painting — `escalation`
+    // after Not now or Allow — would keep its chip (`_dev/a2ui-findings.md` §9). Every
+    // Attribution prop is a literal the runtime paints and repaints.
+    const props = context.componentModel.properties as AttributionProps;
+    return (
+      <AttributionView
+        displayName={props.displayName}
+        source={props.source}
+        account={props.account}
+        escalation={props.escalation}
+        weight={props.weight}
+        onSignIn={
+          onSignIn && props.source !== undefined
+            ? kind =>
+                onSignIn({
+                  kind,
+                  source: props.source!,
+                  surfaceId: context.dataContext.surface.id,
+                  componentId: context.componentModel.id,
+                })
+            : undefined
+        }
+        onPress={
+          onPress &&
+          (operation =>
+            onPress({
+              operation,
+              surfaceId: context.dataContext.surface.id,
+              componentId: context.componentModel.id,
+            }))
+        }
+      >
+        {props.child === undefined ? undefined : buildChild(props.child)}
+      </AttributionView>
+    );
+  });
 }

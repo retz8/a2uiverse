@@ -98,7 +98,9 @@ test('without a child it is the bare marker, no wrapper box', () => {
 import type {CompositionOperation} from '@a2uiverse/sdk';
 import {FragmentHistoryContext, type FragmentHistory} from '../../fragment-history';
 import {PressStateContext} from '../../press-state';
-import {renderTree, SURFACE_ID} from '../../testing/render';
+import {renderTree, surfaceFor, SURFACE_ID} from '../../testing/render';
+import {A2uiSurface} from '@a2ui/react/v0_9';
+import {Provider} from '../../provider';
 
 function withHistory(history: Record<string, FragmentHistory>, node: React.ReactNode) {
   return (
@@ -444,4 +446,41 @@ test('through the catalog: Allow hands the host the source, the surface and the 
   expect(requests).toEqual([
     {kind: 'start', source: 'github.1', surfaceId: SURFACE_ID, componentId: 'root'},
   ]);
+});
+
+test('a repaint that drops the request takes the chip and its card away (_dev/a2ui-findings.md §9)', async () => {
+  const {surface, processor} = surfaceFor(
+    [
+      {
+        id: 'root',
+        component: 'Attribution',
+        displayName: 'Gmail',
+        source: 'gmail.1',
+        account: 'you@example.com',
+        escalation: {scopes: ['Read your email']},
+      },
+    ],
+    {onSignIn: () => {}, onPress: () => {}},
+  );
+  render(
+    <Provider>
+      <A2uiSurface surface={surface} />
+    </Provider>,
+  );
+  expect(screen.getByRole('button', {name: 'Needs access'})).toBeInTheDocument();
+  act(() =>
+    processor.processMessages([
+      {
+        version: 'v0.9',
+        updateComponents: {
+          surfaceId: SURFACE_ID,
+          components: [
+            {id: 'root', component: 'Attribution', displayName: 'Gmail', source: 'gmail.1'},
+          ],
+        },
+      },
+    ] as never),
+  );
+  expect(screen.queryByRole('button', {name: 'Needs access'})).not.toBeInTheDocument();
+  expect(screen.queryByText('you@example.com')).not.toBeInTheDocument();
 });

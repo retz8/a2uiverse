@@ -109,3 +109,11 @@ This spec is the record. Each on-the-spot fix is added as a numbered decision as
 ## Invariants
 
 - A credential never reaches the client, the models, a partition, the journal or the logs.
+
+### 19. Not now takes the chip away
+
+Not now on Gmail's request for more access left the chip and its card on the row: the orchestrator dropped the request and repainted, but `Attribution` read the binder's resolved props, which upstream merges over the last repaint (`_dev/a2ui-findings.md` §9), so the dropped `escalation` stood once the press settled. `Attribution` reads its literal props from its own component model, as `Slot` does. Replaced: a request that stayed on the row after Not now or Allow.
+
+### 20. The chip moves nothing
+
+The chip, a button taller than the attribution marker's line, grew the row on arrival and moved the fragment down 8 px. Its overhang reaches into the gap above and below, so the row keeps its height when the request arrives. Replaced: a row that grew by the chip's height.
