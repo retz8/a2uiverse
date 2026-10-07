@@ -121,3 +121,7 @@ The chip, a button taller than the attribution marker's line, grew the row on ar
 ### 21. An add-account window is said at once
 
 After the add-account press the canvas showed nothing until the sign-in ended and its line came — "Added … to Gmail." or "… was already added to Gmail." — so a reader could take the wait for a fault. While the window is open, the progress line shows a working step at once, in the waiting tile's words, "Gmail signing in" — "Signing in" until the orchestrator has answered for the attempt, which now names the app on every answer — replaced by the account's line when the sign-in ends. The canvas getting the focus back, or a sign-in ending without an account, takes the step away, as for the tile. The button stays as it is. Replaced: task-12.8 decision 6's button left as it is with nothing said until the outcome.
+
+### 22. The key page spaces its field and its button
+
+On the token page, "Paste your key" sat flush against Connect: the card spaces its own children, but the field and the button live in its form, which had no layout of its own. The form takes the card's grid and gap. Replaced: a form whose field and button touched.

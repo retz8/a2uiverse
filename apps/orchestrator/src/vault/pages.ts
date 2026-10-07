@@ -25,6 +25,7 @@ p { margin: 0; color: var(--soft); }
 button.link { justify-self: start; padding: 0; border: 0; background: none; color: var(--accent);
   font: inherit; cursor: pointer; }
 a.help { justify-self: start; color: var(--accent); }
+form { display: grid; gap: 16px; }
 label { display: grid; gap: 6px; font-weight: 500; }
 input { font: inherit; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px;
   background: var(--page); color: var(--ink); }
