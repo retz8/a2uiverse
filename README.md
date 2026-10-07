@@ -153,6 +153,7 @@ pnpm dev:client       # one platform process, in its own terminal
 pnpm dev:orch
 pnpm dev:marketplace
 pnpm verify           # build, typecheck, test, lint and format check
+pnpm sweep:secrets    # after a sitting: the journal and captured output searched for every token and key the vault and the agents hold, counts only: --state-dir, --agents-dir, --logs <dir>
 ```
 
 Ports: client `5173`, orchestrator `10001`, marketplace `10002`. The apps take `11001` and up, the mock stores `12001` and up; only the orchestrator reaches them.
@@ -189,7 +190,7 @@ packages/
   shell-catalog/   the shell's own A2UI catalog: schema and React implementation
   stellify/        the pack tool
   registry-snapshot/ the registry snapshot the tests and replays load
-scripts/           the dev:agents launcher and its roster
+scripts/           the dev:agents launcher and its roster, the secret sweep
 docs/
   design/          the design records: each part as built, its classes and flows
   images/          the screenshots in the READMEs

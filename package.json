@@ -25,6 +25,7 @@
     "dev:orch": "pnpm --filter @a2uiverse/orchestrator dev",
     "dev:marketplace": "pnpm --filter @a2uiverse/marketplace dev",
     "test:scripts": "node --test scripts/*.test.mjs",
+    "sweep:secrets": "node scripts/sweep-secrets.mjs",
     "verify": "turbo run build typecheck test && pnpm test:scripts && pnpm lint && pnpm format:check"
   },
   "devDependencies": {
