@@ -847,12 +847,14 @@ describe('the merge, key accounts, uninstall, secrets', () => {
         headers: {cookie, origin, 'Content-Type': 'application/x-www-form-urlencoded'},
         body: new URLSearchParams({attempt, key}).toString(),
       });
-      return {page: await page.text(), posted};
+      return {page: await page.text(), policy: page.headers.get('referrer-policy'), posted};
     };
 
     const forged = await pasteKey('https://evil.example', 'attacker-key');
     expect(forged.posted.status).toBe(403);
-    const {page, posted} = await pasteKey(new URL(base).origin, 'demo-key');
+    const {page, policy, posted} = await pasteKey(new URL(base).origin, 'demo-key');
+    // A browser sends the form's Origin only under a policy that keeps it same-origin (Fetch §3.2).
+    expect(policy).toBe('same-origin');
     expect(page).toContain('From Shop:');
     expect(page).toContain('&lt;b&gt;Settings&lt;/b&gt;');
     expect(page).not.toContain('href="https://evil.example');

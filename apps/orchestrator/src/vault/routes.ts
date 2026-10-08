@@ -46,7 +46,9 @@ export function authRoutes(deps: AuthRoutesDeps): Router {
         'Cache-Control': 'no-store',
         'X-Frame-Options': 'DENY',
         'Content-Security-Policy': "frame-ancestors 'none'",
-        'Referrer-Policy': 'no-referrer',
+        // Not `no-referrer`: under it a browser posts the token page's own form with `Origin:
+        // null`, which the form's check refuses (Fetch §3.2; task-12.13 decision 28).
+        'Referrer-Policy': 'same-origin',
       })
       .send(body);
 
