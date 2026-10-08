@@ -1,46 +1,46 @@
 # Handoff — 12.13, integration + acceptance
 
-Spec: `_dev/docs/spec/task-12.13-integration-acceptance.md` — 18 grill decisions, then the sitting's fixes as decisions 19–25. Read it first.
+Spec: `_dev/docs/spec/task-12.13-integration-acceptance.md` — 18 grill decisions, then the sitting's fixes as decisions 19–32. Read it first.
 
 ## Where it stands
 
-- **Before the run — done.** The journal's `escalationRequested` / `notNow` sign-in records (`09595f0`); `pnpm sweep:secrets` and its test (`aa42a66`); the regression pass before: `pnpm verify` green, Playwright replay 74/74 no diff, the live sign-in test 1/1.
-- **Deterministic half — first pass done** (decision 25: it counts as the run). Ten cases driven in the reader's Chrome through the tunnel; fixes 19–24 landed and committed (both repos), `pnpm verify` green after them; the secret sweep clean (0 of 11 secrets in 12 files).
-- **Agents' original sign-in stores** sit beside each live one as `<app>/agent/.state/sign-in.json.pre-12.13` in `a2uiverse-apps` (github, gmail, calendar, circleci, linear). Put them back at the end of the sitting (decision 7), after the live half.
-- `a2uiverse-apps` is 2 commits ahead of origin (`2f84b19`, `f607931`); pushed once at the end (decision 4).
+- **Before the run — done.** Journal records for an escalation request and Not now, `pnpm sweep:secrets`, the regression pass before (`verify-before.log`, `e2e-before.log`, `e2e-live-before.log`).
+- **Deterministic half — done.** The first pass of the ten cases (decision 25 counts it as the run), then decision 25's reruns on a fresh stack: all passed, the reader checking the waiting tile in a real tab and connecting Shop B with the demo key. The reader's points became decisions 26–32, each committed on `main` with `pnpm verify` green:
+  - 26 — a sign-in window open is said until it ends: the waiting form stays (no focus rule), Open the sign-in again and Cancel on a row under the waiting line.
+  - 27 — add-account is the shell's tile: the Planner places `Slot {addAccount: <app>}` only; the painter fills name, accounts, scopes; the `addAccount` shell action is gone.
+  - 28, 29 — the token page's Connect: `Referrer-Policy: same-origin` (no-referrer posted `Origin: null`), and the orchestrator's local origin admitted (the dev tunnel rewrites `Origin` to `http://localhost:10001`).
+  - 30 — a pasted key or token says Connect (authority cause `connect`).
+  - 31 — the end page names the app, says connected for a key, counts down 5 s with Close now.
+  - 32 — the merged view says "not connected" (slot state `connect`).
+- **Sweep over the deterministic half:** clean — 16 secrets, none in 31 files.
+- The deterministic stack is stopped. The agents' original sign-in stores still sit beside the live ones as `<app>/agent/.state/sign-in.json.pre-12.13` in `a2uiverse-apps`; put back at the end of the sitting (decision 7).
+- `a2uiverse-apps` is even with origin. `a2uiverse` `main` is 6 commits ahead of origin (`d2a3b03`…`e024388`).
 
-## Next — start here: decision 25's reruns on a fresh stack
+## Next — start here: the live half (decisions 12–16)
 
-Stack: a fresh `STATE_DIR` holding only the embedding model cache (copy `apps/orchestrator/.state/models`), agent stores emptied (`rm <app>/agent/.state/sign-in.json`, never the `.pre-12.13` files), `A2UIVERSE_PUBLIC_URL='https://vnw20xbg-{port}.asse.devtunnels.ms'`, `BASE_URL=https://vnw20xbg-10001…`; orchestrator first, then `pnpm dev:agents --mode deterministic`, client dev on 5173. The old env file is at `~/a2uiverse-12.13-evidence/env-det.sh` (its paths point at the last session's scratchpad — repoint them).
+Stack, in this order (the tunnel doc's commands, with these choices):
+1. A second fresh state folder holding only the model cache: `mkdir -p <scratch>/run/state-live && cp -R apps/orchestrator/.state/models <scratch>/run/state-live/`. Env as `~/a2uiverse-12.13-evidence/env-det2.sh` with `STATE_DIR=$RUN/state-live`, `LOGS=$RUN/logs-live` (repoint `RUN` to the new session's scratchpad).
+2. Empty the agents' stores: `rm <app>/agent/.state/sign-in.json` for github, gmail, calendar, circleci, linear — never the `.pre-12.13` files.
+3. Orchestrator (`pnpm --filter @a2uiverse/orchestrator dev`, `BASE_URL` the 10001 tunnel URL), then `A2UIVERSE_PUBLIC_URL='https://vnw20xbg-{port}.asse.devtunnels.ms' pnpm dev:agents --mode live` (add `A2UI_RECORD_DIR=<scratch dir>` for the recording case).
+4. Client: the dev server's modules stall in the tunnel — `pnpm --filter @a2uiverse/client build`, then `pnpm exec vite preview --port 5173 --strictPort` in `apps/client`.
+5. In the browser, pass each tunnel host's interstitial once (5173, 10001, 11001–11005).
 
-Reruns, the reader driving or watching:
-1. Case 2's focus: Sign in on a tile, click back to the canvas with the window open → the tile goes back.
-2. Decisions 19/20: open a thread in Gmail → chip and card, the fragment not moving; Not now → the chip goes.
-3. Decision 21: "Add another Gmail account" → press → "Gmail signing in" at once → "Added … to Gmail."
-4. Decisions 22/23 with the shops: `pnpm dev:agents --tier mocks --mode deterministic --no-install`, pack each shop (`node ../../../a2uiverse/packages/stellify/dist/cli.js pack` in `mocks/<shop>/<shop>-catalog`), `registry install shop-a|shop-b …` by hand (the default launch uninstalls them — install after it). "Compare camera prices across both shops" → Shop B's key page: spacing, "Open Shop B's help page"; the reader pastes the demo key (`mocks/shop-b/agent/README.md`) — Claude may not type it on a tunnel page.
-5. Decision 23's fallback: orchestrator restarted with `A2UIVERSE_FAULTS='{"github":{"fault":"credential","every":true}}'` → GitHub's tile with "Continue on GitHub"; restart without the fault after. Start the orchestrator only once every agent answers — a card unreachable at boot leaves its app unroutable for the run.
-6. Decision 24 + refresh: kill the launcher's Linear (port 11005), `rm linear/agent/.state/sign-in.json`, run it by hand: `.venv/bin/python3 -m app --mode deterministic --host localhost --port 11005 --public-url https://vnw20xbg-11005.asse.devtunnels.ms --access-token-lifetime 90`; a Linear question → "Your Linear sign-in has run out" → Sign in again → chooser → "Signed in to Linear as me@example.com."; >30 s later another Linear question → journal `refreshed`, nothing on screen.
-7. `pnpm sweep:secrets --state-dir $STATE_DIR --logs $LOGS` over the half.
+Cases (decision 14), the reader signing in to every vendor — Claude types no password or key:
+1. GitHub — first sign-in from the tile through GitHub; one read painted live.
+2. "What needs my attention today?" — Gmail and Calendar signed in with the test Google account; Calendar's write escalation adding an event; the demo calendar re-seeded; Linear signed in (the agent registers itself at Linear); the question again, merged over live data.
+3. CircleCI — sign-in on port 11004 with its return carried by hand (decision 2: the agent's sign-in page and CircleCI's return each reopened in the sign-in window on the agent's tunnel address); projects via CircleCI's API with the account's token; the work-item join over live data.
+4. GitHub's write escalation — an issue opened in a private scratch repository created for the run and kept; record whether it came from a press in the fragment or an utterance (decision 15).
+5. One live recording of GitHub's beats through the kit's beat driver, its loopback return delivered on the Mac; into a scratch folder, nothing committed (decision 16).
+6. `pnpm sweep:secrets --state-dir $STATE_DIR --logs $LOGS` over the live half.
 
-Then the live half (spec decisions 12–16, Q2's hand-carried localhost returns, CircleCI on port 11004), then the regression pass after, the tunnel-doc line, the write-up (decision 18), the stores put back, `a2uiverse-apps` pushed.
+Then: the agents' original stores put back; the regression pass after (`pnpm verify`, the Playwright replay — decisions 26–32 change the waiting tile, add-account and key wording, so expect diffs and retake the baselines naming what changed — and 12.12's live sign-in test); the tunnel doc's line on carrying a return by hand (decision 2) and on the tunnel rewriting `Origin` (decision 29); the write-up (decision 18); `a2uiverse-apps` pushed if it moved.
 
-## Evidence of the first pass
+## Open threads (for the write-up)
 
-Copied to `~/a2uiverse-12.13-evidence/`: the dry run's `intent-journal.jsonl` and every process log, the throwaway `http` basic card server (`basic-card/server.mjs`, decision 10), the regression logs before (`verify-before.log`, `e2e-before.log`, `e2e-live-before.log`) and `verify-mid.log`. Per case:
-- 1 — three full tiles, journal `dispatch: []`, synthesis `{outcome: home, collapse: home}`.
-- 2 — waiting tile, Cancel; sign-in finished in the window left open after Cancel resumed the slot; Linear signed in → merge back, column "CI · not signed in".
-- 3 — Gmail and Calendar full tiles; the third question: both quiet lines; Calendar from the quiet line; back on canvas 2 its tile loaded with no window; after reload CircleCI's full tile.
-- 4 — chip "Read your email"; Not now (journal `notNow`); Allow → window closed itself (bound to the account) → the thread opened; journal `escalationRequested` valid, `signedIn` purpose escalation.
-- 5 — add-account → `personal`, "Added you.personal@example.net to Gmail."; both accounts labelled and merged (Account column); "my personal email" → that account alone; a command → the account choice → the slot became `personal`'s; `you` again → "already added".
-- 6 — plan's dispatch: refused ("painted a credential input: TextField, matching \"obscured\""), repaired; every dispatch: the fallback tile (then without "Continue on GitHub" — fixed by 23).
-- 7 — `refreshFailed`, "Sign in again" dead end (fixed by 24), then `signedIn` again `rebound: true`, `refreshed`.
-- 8 — install-over kept both Gmail accounts; uninstall → `revoked` ×2, agent `POST /oauth/revoke` ×2; reinstall → full tile.
-- 9 — Shop B's tile without scopes, the key page (no help link then — fixed by 23); key not entered.
-- 10 — "Signing in to Harbor Tides isn't supported here.", Manage apps → App Library placeholder, the agent never called, the app stayed installed.
+- After a page reload, the first question typed in the ask box was lost several times (text cleared, Enter did nothing); a second try worked. Not investigated.
+- Tooling, not the app: the Chrome driver cannot move OS window focus (focus checks were scripted, the reader checked by hand); clicks into a background window sometimes don't register (chooser pressed by script); the tunnel stalls requests ~10 s (blank sign-in windows, slow polls).
+- Decisions 26–32 amend task-12.3 decision 4, task-12.8 decisions 1, 5, 6 and phase-12 decision 20 — the amendments are 12.14's.
 
-## Findings so far (for the write-up)
+## Evidence
 
-- The tunnel left a sign-in window's first request unanswered twice (blank window); closing it and pressing again worked.
-- Claude-in-Chrome clicks into a background window sometimes did not register; the chooser was pressed by script. Tooling, not the app.
-- Reference differences left for the reader: the home-collapse line's wording ("The merged view needs Linear issues…" vs the frame's), no lock icon on the reserved column's header, the Planner-written add-account button without the "opens … in a new window" note.
-- Merged-table times render in the browser's zone (8:41 AM vs the fragment's 12:41 UTC) — not Phase 12.
+`~/a2uiverse-12.13-evidence/`: the first pass (`deterministic-dryrun/`), the reruns (`reruns/` — journal, every process log, `NOTES.md` per step and per fix), the regression logs before, `env-det.sh` / `env-det2.sh`, the throwaway basic-auth card (`basic-card/`).
