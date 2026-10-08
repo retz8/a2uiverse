@@ -871,7 +871,11 @@ describe('the merge, key accounts, uninstall, secrets', () => {
     expect(page).toContain('&lt;b&gt;Settings&lt;/b&gt;');
     expect(page).not.toContain('href="https://evil.example');
     expect(page).toContain("Open Shop's help page");
-    expect(await posted.text()).toContain("You're signed in");
+    // A key says connected, and the window says it closes (task-12.13 decisions 30, 31).
+    const ended = await posted.text();
+    expect(ended).toContain("You're connected to Shop");
+    expect(ended).toContain('This window closes in');
+    expect(ended).toContain('Close now');
     expect(orchestrator.vault.accountsOf('shop')).toEqual([{n: 1, label: 'Shop account 1'}]);
 
     await collect(client, press('retry', 'shop.1', canvas));

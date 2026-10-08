@@ -51,18 +51,53 @@ function page(title: string, body: string, script = ''): string {
   );
 }
 
-/** A sign-in ended: one heading, one line; signed in, it tries to close itself. */
-export function endPage(signedIn: boolean): string {
-  return signedIn
-    ? page(
-        "You're signed in",
-        "<h1>You're signed in</h1><p>You can close this window.</p>",
-        'setTimeout(() => window.close(), 600);',
-      )
-    : page(
-        "Sign-in didn't finish",
-        "<h1>Sign-in didn't finish</h1><p>Close this window and try signing in again.</p>",
-      );
+/** How long a sign-in that ended well stays open, said on the page (task-12.13 decision 31). */
+export const END_CLOSE_SECONDS = 5;
+
+/**
+ * A sign-in ended: one heading, one line. Ended well, it says it closes in five seconds, counts
+ * down with Close now beside it, then closes — and says the window can be closed where the
+ * browser keeps it open. A pasted key or token says connected (task-12.13 decisions 30, 31).
+ */
+export function endPage(ended: boolean, about: {app?: string; connect?: boolean} = {}): string {
+  const app = about.app ? escapeHtml(about.app) : undefined;
+  const connect = about.connect === true;
+  if (!ended) {
+    return connect
+      ? page(
+          "Connecting didn't finish",
+          `<h1>${app ? `${app} wasn't connected` : "Connecting didn't finish"}</h1>` +
+            '<p>Close this window and try connecting again.</p>',
+        )
+      : page(
+          "Sign-in didn't finish",
+          "<h1>Sign-in didn't finish</h1><p>Close this window and try signing in again.</p>",
+        );
+  }
+  const heading = connect
+    ? app
+      ? `You're connected to ${app}`
+      : "You're connected"
+    : app
+      ? `You're signed in to ${app}`
+      : "You're signed in";
+  return page(
+    connect ? "You're connected" : "You're signed in",
+    `<h1>${heading}</h1>` +
+      `<p id="closing">This window closes in <span id="seconds">${END_CLOSE_SECONDS}</span> seconds.</p>` +
+      '<button class="go" id="close" type="button">Close now</button>',
+    [
+      `let left = ${END_CLOSE_SECONDS};`,
+      "const closing = document.getElementById('closing');",
+      "const seconds = document.getElementById('seconds');",
+      // Where the browser keeps the window open, say so in place of the count.
+      'const close = () => { clearInterval(timer); window.close();',
+      "  setTimeout(() => { closing.textContent = 'You can close this window.'; }, 300); };",
+      "document.getElementById('close').addEventListener('click', close);",
+      'const timer = setInterval(() => { left -= 1;',
+      '  if (left <= 0) close(); else seconds.textContent = String(left); }, 1000);',
+    ].join('\n'),
+  );
 }
 
 export function refusedPage(): string {

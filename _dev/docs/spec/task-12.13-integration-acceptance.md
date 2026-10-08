@@ -157,3 +157,7 @@ With decision 28 in place, Connect was still refused: the dev tunnel hands the f
 ### 30. A pasted key or token says Connect
 
 An app whose sign-in is a pasted key or token — `apiKey` or `http` bearer — is painted with the authority cause `connect`, beside `signIn`. Its tile says "Connect Shop B to show it here.", Connect, and "Opens a page to paste your Shop B key"; its quiet line "Not connected · Connect"; its waiting form "Finish connecting Shop B in the window that opened.", "Waiting for you to finish connecting", Open the page again and Cancel; the progress line "Shop B not connected" and "Shop B connecting". Replaced: task-12.3 decision 4's one wording, "Sign in", for every scheme.
+
+### 31. The window says it closes
+
+A sign-in that ends well names the app — "You're signed in to Google Calendar", or for a pasted key or token "You're connected to Shop B" — says "This window closes in 5 seconds.", counts down beside Close now, then closes; where the browser keeps it open, it says the window can be closed. One that ends badly stays open: "Sign-in didn't finish", or "Shop B wasn't connected" with "Close this window and try connecting again." Replaced: "You're signed in" for every app, the window closing itself 0.6 seconds later.

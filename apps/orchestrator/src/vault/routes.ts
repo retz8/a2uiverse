@@ -63,6 +63,12 @@ export function authRoutes(deps: AuthRoutesDeps): Router {
     return cookie !== undefined && cookie === attempt.binding ? attempt : undefined;
   };
 
+  /** What the end page names: the app, and whether its sign-in is a pasted key or token. */
+  const about = (attempt: Attempt) => ({
+    app: deps.app(attempt.appId).name,
+    connect: attempt.scheme.kind !== 'oauth',
+  });
+
   router.get(CLIENT_DOCUMENT_PATH, (_req, res) => {
     res.set('Cache-Control', 'no-cache').json(clientDocument(deps.identity));
   });
@@ -77,7 +83,7 @@ export function authRoutes(deps: AuthRoutesDeps): Router {
       logLine(`🔑 sign-in refused for ${source} (${started.reason})`);
       return html(res, 400, refusedPage());
     }
-    if (started.kind === 'signedIn') return html(res, 200, endPage(true));
+    if (started.kind === 'signedIn') return html(res, 200, endPage(true, about(started.attempt)));
     res.cookie(`${COOKIE_PREFIX}${started.attempt.id}`, started.attempt.binding, {
       httpOnly: true,
       sameSite: 'lax',
@@ -130,7 +136,7 @@ export function authRoutes(deps: AuthRoutesDeps): Router {
     const attempt = bound(req, deps.vault.attempt(id));
     if (!attempt || typeof req.body?.key !== 'string') return html(res, 400, refusedPage());
     const ended = await deps.vault.submitKey(attempt, req.body.key);
-    return html(res, 200, endPage(ended.state === 'signedIn'));
+    return html(res, 200, endPage(ended.state === 'signedIn', about(attempt)));
   });
 
   router.get(CALLBACK_PATH, async (req, res) => {
@@ -142,7 +148,7 @@ export function authRoutes(deps: AuthRoutesDeps): Router {
       ...(typeof req.query.error === 'string' ? {error: req.query.error} : {}),
     });
     res.clearCookie(`${COOKIE_PREFIX}${attempt.id}`, {path: AUTH_ROUTE_PREFIX});
-    return html(res, 200, endPage(ended.state === 'signedIn'));
+    return html(res, 200, endPage(ended.state === 'signedIn', about(attempt)));
   });
 
   router.get('/attempts/:id', (req, res) => {
