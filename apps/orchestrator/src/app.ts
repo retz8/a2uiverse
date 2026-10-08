@@ -157,7 +157,8 @@ export function buildOrchestrator({
     authRoutes({
       vault,
       identity,
-      origin: new URL(base).origin,
+      // Public first: it decides the cookie's `secure` (task-12.13 decision 29).
+      origins: [new URL(base).origin, `http://localhost:${config.port}`],
       ask: (canvas, source) => {
         const state = compositions.get(canvas);
         if (!state) return undefined;

@@ -852,6 +852,17 @@ describe('the merge, key accounts, uninstall, secrets', () => {
 
     const forged = await pasteKey('https://evil.example', 'attacker-key');
     expect(forged.posted.status).toBe(403);
+    // A dev tunnel hands the form on with Origin rewritten to the local address (task-12.13
+    // decision 29): past the origin check, refused here only for want of a bound attempt.
+    const tunnelled = await fetch(`${base}/auth/key`, {
+      method: 'POST',
+      headers: {
+        origin: `http://localhost:${new URL(base).port}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({attempt: 'none', key: 'x'}).toString(),
+    });
+    expect(tunnelled.status).toBe(400);
     const {page, policy, posted} = await pasteKey(new URL(base).origin, 'demo-key');
     // A browser sends the form's Origin only under a policy that keeps it same-origin (Fetch §3.2).
     expect(policy).toBe('same-origin');

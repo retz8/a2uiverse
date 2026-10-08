@@ -26,8 +26,12 @@ export const COOKIE_PREFIX = 'a2uiverse_signin_';
 export interface AuthRoutesDeps {
   vault: AuthVault;
   identity: ClientIdentity;
-  /** The orchestrator's public origin: what the token page's form posts from. */
-  origin: string;
+  /**
+   * The orchestrator's own origins — its public one and its local one — what the token page's form
+   * posts from: a dev tunnel hands the request on with `Origin` rewritten to the local address
+   * (task-12.13 decision 29).
+   */
+  origins: readonly string[];
   /** What the canvas knows of the source: whether it holds a slot, and what it asks. */
   ask(canvas: string, source: string): SlotAsk | undefined;
   /** An app's display name and its card's help page, for the token page. */
@@ -36,7 +40,7 @@ export interface AuthRoutesDeps {
 
 export function authRoutes(deps: AuthRoutesDeps): Router {
   const router = express.Router();
-  const secure = deps.origin.startsWith('https://');
+  const secure = deps.origins[0]!.startsWith('https://');
 
   const html = (res: Response, status: number, body: string) =>
     res
@@ -118,7 +122,10 @@ export function authRoutes(deps: AuthRoutesDeps): Router {
 
   router.post('/key', express.urlencoded({extended: false, limit: '16kb'}), async (req, res) => {
     // A foreign page cannot post a key in: the form is the orchestrator's own.
-    if (req.headers.origin !== deps.origin) return html(res, 403, refusedPage());
+    if (req.headers.origin === undefined || !deps.origins.includes(req.headers.origin)) {
+      logLine(`🔑 key refused: posted from ${JSON.stringify(req.headers.origin ?? null)}`);
+      return html(res, 403, refusedPage());
+    }
     const id = typeof req.body?.attempt === 'string' ? req.body.attempt : '';
     const attempt = bound(req, deps.vault.attempt(id));
     if (!attempt || typeof req.body?.key !== 'string') return html(res, 400, refusedPage());

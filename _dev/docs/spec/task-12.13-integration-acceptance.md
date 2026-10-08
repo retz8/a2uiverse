@@ -149,3 +149,7 @@ Adding an account is a `Slot` holding `addAccount`, an app id, which the Planner
 ### 28. The token page's form keeps its origin
 
 The key page's Connect answered "This sign-in can't start": the orchestrator's pages were served with `Referrer-Policy: no-referrer`, under which a browser posts a form with `Origin: null` (Fetch, "append a request `Origin` header"), and the form's route admits only the orchestrator's own origin. The pages are served with `same-origin`, which keeps the origin on the orchestrator's own form and sends no referrer elsewhere. Replaced: `no-referrer` on the sign-in routes' pages.
+
+### 29. The token page's form through a dev tunnel
+
+With decision 28 in place, Connect was still refused: the dev tunnel hands the form's post on with `Origin` rewritten to the orchestrator's local address, `http://localhost:10001`. The form's route admits the orchestrator's own origins, its public one and its local one, and logs the origin of a post it refuses. Replaced: the public origin alone.
