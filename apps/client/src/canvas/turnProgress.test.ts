@@ -410,6 +410,14 @@ describe('the merge step on a step back (task-9.7 decision 4)', () => {
       expect(gmail(store).text).toBe('Gmail not supported here');
     });
 
+    it('a pasted key or token says connect: not connected, connecting (task-12.13 decision 30)', () => {
+      const store = signIn();
+      store.mergeAuthority(new Map([['gmail.1', 'connect' as const]]));
+      expect(gmail(store)).toMatchObject({status: 'locked', text: 'Gmail not connected'});
+      store.setSigningIn('gmail.1', true);
+      expect(gmail(store).text).toBe('Gmail connecting');
+    });
+
     it('signing in while its window is open; working from its resume', () => {
       const store = signIn();
       store.setSigningIn('gmail.1', true);

@@ -829,7 +829,8 @@ describe('the merge, key accounts, uninstall, secrets', () => {
       plan: shopOnly,
     });
     const first = await collect(client, utterance('my orders'));
-    expect(slotOf(first, 'shop.1')).toMatchObject({authority: {cause: 'signIn', scopes: []}});
+    // A key says Connect (task-12.13 decision 30).
+    expect(slotOf(first, 'shop.1')).toMatchObject({authority: {cause: 'connect', scopes: []}});
     const canvas = contextOf(first);
 
     const pasteKey = async (origin: string, key: string) => {

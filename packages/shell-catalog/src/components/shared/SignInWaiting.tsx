@@ -3,6 +3,9 @@ import {Button, Flex, Spinner, Text} from '@radix-ui/themes';
 
 export const WAITING_WORDS = 'Waiting for you to finish signing in';
 export const OPEN_AGAIN_WORDS = 'Open the sign-in again';
+/** The same, for an app connected with a pasted key or token (task-12.13 decision 30). */
+export const CONNECT_WAITING_WORDS = 'Waiting for you to finish connecting';
+export const CONNECT_AGAIN_WORDS = 'Open the page again';
 
 /**
  * The full waiting form, drawn wherever a sign-in window was opened from a press — the authority
@@ -12,12 +15,15 @@ export const OPEN_AGAIN_WORDS = 'Open the sign-in again';
  */
 export function SignInWaiting({
   app,
+  connect = false,
   onAgain,
   onCancel,
   cancelRef,
 }: {
   /** The app's name; without one, the statement names none. */
   app?: string;
+  /** An app connected with a pasted key or token: its words say connecting. */
+  connect?: boolean;
   onAgain?: () => void;
   onCancel?: (button: HTMLElement) => void;
   /** The Cancel button, for a host handing it the focus. */
@@ -26,22 +32,24 @@ export function SignInWaiting({
   return (
     <Flex direction="column" align="start" gap="4" data-authority="waiting">
       <Text as="p" size="2">
-        {app
-          ? `Finish signing in to ${app} in the window that opened.`
-          : 'Finish in the window that opened.'}
+        {!app
+          ? 'Finish in the window that opened.'
+          : connect
+            ? `Finish connecting ${app} in the window that opened.`
+            : `Finish signing in to ${app} in the window that opened.`}
       </Text>
       <Flex direction="column" align="start" gap="3">
         <Flex align="center" gap="2">
           <Spinner size="1" />
           <Text as="span" size="1" color="gray">
-            {WAITING_WORDS}
+            {connect ? CONNECT_WAITING_WORDS : WAITING_WORDS}
           </Text>
         </Flex>
         {(onAgain || onCancel) && (
           <Flex align="center" gap="2" wrap="wrap">
             {onAgain && (
               <Button size="1" variant="outline" color="gray" onClick={() => onAgain()}>
-                {OPEN_AGAIN_WORDS}
+                {connect ? CONNECT_AGAIN_WORDS : OPEN_AGAIN_WORDS}
               </Button>
             )}
             {onCancel && (

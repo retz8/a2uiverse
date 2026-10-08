@@ -900,17 +900,17 @@
           "properties": {
             "cause": {
               "type": "string",
-              "enum": ["signIn", "again", "unsupported"],
-              "description": "`signIn`: no usable account for this app; `again`: the account's sign-in ran out and the silent refresh failed; `unsupported`: the app asks for a kind of sign-in A2UIVerse cannot do."
+              "enum": ["signIn", "connect", "again", "unsupported"],
+              "description": "`signIn`: no usable account for this app; `connect`: the same, for an app connected with a pasted key or token; `again`: the account's sign-in ran out and the silent refresh failed; `unsupported`: the app asks for a kind of sign-in A2UIVerse cannot do."
             },
             "quiet": {
               "type": "boolean",
-              "description": "With `cause: \"signIn\"` only: the one-line form, after the full tile for this app was shown once this session."
+              "description": "With `cause: \"signIn\"` or `\"connect\"` only: the one-line form, after the full tile for this app was shown once this session."
             },
             "scopes": {
               "type": "array",
               "items": {"type": "string"},
-              "description": "With `cause: \"signIn\"`, required there: what the app will be able to do, in the words of its card — none for a key or a token."
+              "description": "With `cause: \"signIn\"` or `\"connect\"`, required there: what the app will be able to do, in the words of its card — none for a key or a token."
             }
           },
           "required": ["cause"],

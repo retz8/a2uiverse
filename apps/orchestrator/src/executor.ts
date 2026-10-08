@@ -1653,6 +1653,7 @@ export class OrchestratorExecutor implements AgentExecutor {
     slot.authority = {
       cause: 'signIn',
       ...(quiet ? {quiet: true} : {}),
+      ...(need.connect ? {connect: true} : {}),
       scheme: need.scheme,
       keys: need.keys,
       words: need.words,

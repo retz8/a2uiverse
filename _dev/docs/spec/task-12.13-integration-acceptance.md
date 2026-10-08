@@ -153,3 +153,7 @@ The key page's Connect answered "This sign-in can't start": the orchestrator's p
 ### 29. The token page's form through a dev tunnel
 
 With decision 28 in place, Connect was still refused: the dev tunnel hands the form's post on with `Origin` rewritten to the orchestrator's local address, `http://localhost:10001`. The form's route admits the orchestrator's own origins, its public one and its local one, and logs the origin of a post it refuses. Replaced: the public origin alone.
+
+### 30. A pasted key or token says Connect
+
+An app whose sign-in is a pasted key or token — `apiKey` or `http` bearer — is painted with the authority cause `connect`, beside `signIn`. Its tile says "Connect Shop B to show it here.", Connect, and "Opens a page to paste your Shop B key"; its quiet line "Not connected · Connect"; its waiting form "Finish connecting Shop B in the window that opened.", "Waiting for you to finish connecting", Open the page again and Cancel; the progress line "Shop B not connected" and "Shop B connecting". Replaced: task-12.3 decision 4's one wording, "Sign in", for every scheme.

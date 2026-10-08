@@ -1328,3 +1328,60 @@ test('through the catalog, Add account hands the host the bare app’s addAccoun
     {kind: 'addAccount', source: 'gmail', surfaceId: SURFACE_ID, componentId: 'root'},
   ]);
 });
+
+/* ── Task 12.13: a pasted key or token says Connect ─────────────────────────── */
+
+test('an app connected with a key says Connect: the tile, its note, the quiet line and the waiting form (task-12.13 decision 30)', () => {
+  const shopName = () => 'Shop B';
+  const kinds: string[] = [];
+  const full = render(
+    <SlotView
+      source="shop-b.1"
+      state="authority"
+      authority={{cause: 'connect', scopes: []}}
+      nameOf={shopName}
+      onSignIn={kind => kinds.push(kind)}
+    />,
+  );
+  expect(screen.getByText('Connect Shop B to show it here.')).toBeInTheDocument();
+  expect(screen.getByText('Opens a page to paste your Shop B key')).toBeInTheDocument();
+  act(() => screen.getByRole('button', {name: 'Connect'}).click());
+  expect(kinds).toEqual(['start']);
+  full.unmount();
+
+  const quiet = render(
+    <SlotView
+      source="shop-b.1"
+      state="authority"
+      authority={{cause: 'connect', quiet: true, scopes: []}}
+      nameOf={shopName}
+      onSignIn={() => {}}
+    />,
+  );
+  expect(screen.getByRole('group', {name: 'Shop B, not connected'})).toHaveTextContent(
+    'Not connected',
+  );
+  expect(screen.getByRole('button', {name: 'Connect'})).toBeInTheDocument();
+  quiet.unmount();
+
+  render(
+    <SignInContext.Provider value={() => true}>
+      <SlotView
+        source="shop-b.1"
+        state="authority"
+        authority={{cause: 'connect', scopes: []}}
+        nameOf={shopName}
+        onSignIn={() => {}}
+      />
+    </SignInContext.Provider>,
+  );
+  expect(
+    screen.getByText('Finish connecting Shop B in the window that opened.'),
+  ).toBeInTheDocument();
+  expect(screen.getByText('Waiting for you to finish connecting')).toBeInTheDocument();
+  expect(screen.getByRole('button', {name: 'Open the page again'})).toBeInTheDocument();
+  expect(
+    SlotApi.schema.safeParse({source: 'x.1', state: 'authority', authority: {cause: 'connect'}})
+      .success,
+  ).toBe(false);
+});

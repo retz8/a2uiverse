@@ -99,8 +99,15 @@ const FailureSchema = z
     message: 'a failure carries a continue URL only when its cause is `credential`',
   });
 
-export const AUTHORITY_CAUSES = ['signIn', 'again', 'unsupported'] as const;
+export const AUTHORITY_CAUSES = ['signIn', 'connect', 'again', 'unsupported'] as const;
 export type AuthorityCause = (typeof AUTHORITY_CAUSES)[number];
+
+/**
+ * The causes asking for a first sign-in: `signIn`, and `connect` for an app connected with a pasted
+ * key or token, whose tile says Connect (task-12.13 decision 30).
+ */
+export const asksToSignIn = (cause: AuthorityCause): boolean =>
+  cause === 'signIn' || cause === 'connect';
 
 const AuthoritySchema = z
   .object({
@@ -109,10 +116,10 @@ const AuthoritySchema = z
     scopes: z.array(z.string()).optional(),
   })
   .strict()
-  .refine(authority => authority.quiet === undefined || authority.cause === 'signIn', {
+  .refine(authority => authority.quiet === undefined || asksToSignIn(authority.cause), {
     message: 'only a slot asking to sign in takes the quiet line',
   })
-  .refine(authority => (authority.scopes !== undefined) === (authority.cause === 'signIn'), {
+  .refine(authority => (authority.scopes !== undefined) === asksToSignIn(authority.cause), {
     message: 'an authority carries the scopes exactly when it asks to sign in',
   });
 

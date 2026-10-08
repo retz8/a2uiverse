@@ -44,7 +44,9 @@ export function running(state: CanvasState): boolean {
  */
 export function signInWords(state: CanvasState, source: string): string | undefined {
   if (retrying(state, source)) return undefined;
-  if (state.signingIn.has(source)) return 'signing in';
+  // A pasted key or token says connecting (task-12.13 decision 30).
+  const connect = state.authority.get(source) === 'connect';
+  if (state.signingIn.has(source)) return connect ? 'connecting' : 'signing in';
   const dismissed = state.presses.some(
     press =>
       press.status === 'sent' &&
@@ -55,6 +57,8 @@ export function signInWords(state: CanvasState, source: string): string | undefi
   switch (state.authority.get(source)) {
     case 'signIn':
       return 'not signed in';
+    case 'connect':
+      return 'not connected';
     case 'again':
       return 'sign-in expired';
     case 'unsupported':

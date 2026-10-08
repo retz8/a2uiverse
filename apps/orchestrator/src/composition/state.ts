@@ -79,6 +79,8 @@ export interface SlotFailure {
 export interface SlotAuthorityState {
   cause: AuthorityCause;
   quiet?: boolean;
+  /** A pasted key or token: the tile says Connect (task-12.13 decision 30). */
+  connect?: boolean;
   scheme?: string;
   keys?: string[];
   words?: string[];

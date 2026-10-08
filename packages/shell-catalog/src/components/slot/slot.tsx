@@ -10,7 +10,13 @@ import {SignInContext, type SignInHandler, type SignInKind} from '../../sign-in.
 import {SlotContentContext} from '../../slot-content.js';
 import {SlotStateContext} from '../../slot-state.js';
 import {weightStyle} from '../shared/layout.js';
-import {OPEN_AGAIN_WORDS, SignInWaiting, WAITING_WORDS} from '../shared/SignInWaiting.js';
+import {
+  CONNECT_AGAIN_WORDS,
+  CONNECT_WAITING_WORDS,
+  OPEN_AGAIN_WORDS,
+  SignInWaiting,
+  WAITING_WORDS,
+} from '../shared/SignInWaiting.js';
 import {SkeletonBar} from '../shared/skeleton.js';
 import {
   bodyCellStyle,
@@ -797,11 +803,13 @@ function AuthorityTile({
     );
   }
 
+  // A pasted key or token says Connect, not Sign in (task-12.13 decision 30).
+  const connect = authority.cause === 'connect';
   if (authority.quiet) {
     return (
       <Flex
         role="group"
-        aria-label={`${app}, not signed in`}
+        aria-label={connect ? `${app}, not connected` : `${app}, not signed in`}
         align="center"
         gap="2"
         wrap="wrap"
@@ -812,13 +820,13 @@ function AuthorityTile({
           <>
             <Spinner size="1" />
             <Text size="2" color="gray">
-              {WAITING_WORDS}
+              {connect ? CONNECT_WAITING_WORDS : WAITING_WORDS}
             </Text>
             {onSignIn && (
               <>
                 <Link asChild size="2" weight="medium">
                   <button type="button" style={linkButtonStyle} onClick={() => onSignIn('start')}>
-                    {OPEN_AGAIN_WORDS}
+                    {connect ? CONNECT_AGAIN_WORDS : OPEN_AGAIN_WORDS}
                   </button>
                 </Link>
                 <span aria-hidden style={dotStyle} />
@@ -839,7 +847,7 @@ function AuthorityTile({
           <>
             <LockClosedIcon aria-hidden style={{color: 'var(--gray-10)'}} />
             <Text size="2" color="gray">
-              Not signed in
+              {connect ? 'Not connected' : 'Not signed in'}
             </Text>
             {onSignIn && (
               <>
@@ -852,7 +860,7 @@ function AuthorityTile({
                     ref={receive}
                     onClick={event => signIn('start', event.currentTarget)}
                   >
-                    Sign in
+                    {connect ? 'Connect' : 'Sign in'}
                   </button>
                 </Link>
               </>
@@ -870,6 +878,7 @@ function AuthorityTile({
     return (
       <SignInWaiting
         app={app}
+        connect={connect}
         {...(onSignIn
           ? {
               onAgain: () => onSignIn('start'),
@@ -891,7 +900,7 @@ function AuthorityTile({
         </Text>
       ) : (
         <Text as="p" size="3" weight="bold">
-          Sign in to {app} to show it here.
+          {connect ? `Connect ${app} to show it here.` : `Sign in to ${app} to show it here.`}
         </Text>
       )}
       {scopes.length > 0 && (
@@ -920,14 +929,16 @@ function AuthorityTile({
             ref={receive}
             onClick={event => signIn('start', event.currentTarget)}
           >
-            {again ? 'Sign in again' : 'Sign in'}
+            {again ? 'Sign in again' : connect ? 'Connect' : 'Sign in'}
             <ExternalLinkIcon aria-hidden />
           </Button>
           {noteText}
         </Flex>
       )}
       <Text as="span" size="1" color="gray">
-        Opens {app}’s sign-in in a new window
+        {connect
+          ? `Opens a page to paste your ${app} key`
+          : `Opens ${app}’s sign-in in a new window`}
       </Text>
     </Flex>
   );
