@@ -9,9 +9,11 @@ import {createContext} from 'react';
 /**
  * A source's slot as the host sees it: the painted states, `filled` once its content mounted, and
  * `late` once it arrived after the merge and waits for Include (task-8.5 decision 12). `authority`
- * is a slot that needs sign-in (task-12.3 decision 8).
+ * is a slot that needs sign-in (task-12.3 decision 8); `connect`, one that needs a pasted key or
+ * token (task-12.13 decision 32).
  */
-export type SourceSlotState = 'pending' | 'filled' | 'failed' | 'collapsed' | 'late' | 'authority';
+export type SourceSlotState =
+  'pending' | 'filled' | 'failed' | 'collapsed' | 'late' | 'authority' | 'connect';
 
 /** What the host knows about a source's slot; `undefined` when it knows nothing, which reads as filled. */
 export type SlotStateResolver = (source: string) => SourceSlotState | undefined;

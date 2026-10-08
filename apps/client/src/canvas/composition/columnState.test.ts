@@ -59,4 +59,11 @@ describe('columnState', () => {
     store.addPress({kind: 'retry', sources: ['gmail.1']});
     expect(columnState(store.getState(), 'gmail.1')).toBe('pending');
   });
+
+  it('a source waiting on a pasted key reads not connected (task-12.13 decision 32)', () => {
+    const store = createCanvasStore();
+    store.mergeSlotStates(new Map([['shop-b.1', 'authority' as const]]));
+    store.mergeAuthority(new Map([['shop-b.1', 'connect' as const]]));
+    expect(columnState(store.getState(), 'shop-b.1')).toBe('connect');
+  });
 });

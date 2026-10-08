@@ -169,6 +169,17 @@ test('a column whose source needs sign-in draws the empty dash and says not sign
   expect(consoleError.mock.calls).toEqual([]);
 });
 
+test('a column whose source needs a pasted key says not connected (task-12.13 decision 32)', () => {
+  const {container} = renderTree(RESERVED_TREE, {
+    wrap: withStates({linear: 'filled', github: 'filled', circleci: 'connect'}),
+  });
+  const headings = [...container.querySelectorAll('thead th')].map(th =>
+    th.textContent?.replace(/\s+/g, ' '),
+  );
+  expect(headings[2]).toBe('CI build · not connected');
+  expect(container.querySelectorAll('tbody td')[2]!.textContent).toBe('—');
+});
+
 test('a filled source, or one the host says nothing about, leaves the authored cell and heading alone', () => {
   const filled = renderTree(RESERVED_TREE, {
     wrap: withStates({linear: 'filled', github: 'filled', circleci: 'filled'}),

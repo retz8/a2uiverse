@@ -10,7 +10,8 @@
 import type {SourceSlotState} from '@a2uiverse/shell-catalog';
 import type {CanvasState} from '../canvasStore';
 
-type ColumnInputs = Pick<CanvasState, 'merge' | 'slotStates' | 'placement' | 'presses'>;
+type ColumnInputs = Pick<CanvasState, 'merge' | 'slotStates' | 'placement' | 'presses'> &
+  Partial<Pick<CanvasState, 'authority'>>;
 
 /** Whether the reader's Retry of this source is pressed or still running. */
 export function retrying({presses}: Pick<CanvasState, 'presses'>, source: string): boolean {
@@ -37,11 +38,14 @@ export function sourceBusy(
 }
 
 export function columnState(state: ColumnInputs, source: string): SourceSlotState {
-  const {merge, slotStates, placement, presses} = state;
+  const {merge, slotStates, placement, presses, authority} = state;
   if (merge?.merged?.includes(source)) return 'filled';
   const painted = slotStates.get(source);
   if (painted === 'failed' && !retrying(state, source)) return 'failed';
-  if (painted === 'authority' && !retrying(state, source)) return 'authority';
+  if (painted === 'authority' && !retrying(state, source)) {
+    // A pasted key or token: the column says not connected (task-12.13 decision 32).
+    return authority?.get(source) === 'connect' ? 'connect' : 'authority';
+  }
   const including = presses.some(
     press =>
       press.status === 'sent' &&

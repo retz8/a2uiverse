@@ -53,10 +53,10 @@ export function CanvasView({runtime, onEdit, past = false}: CanvasViewProps) {
   );
 
   // What a reserved column in the merged view says of its source (task-8.5 decision 12).
-  const {merge, slotStates, placement, presses} = state;
+  const {merge, slotStates, placement, presses, authority} = state;
   const slotStateOf = useCallback(
-    (source: string) => columnState({merge, slotStates, placement, presses}, source),
-    [merge, slotStates, placement, presses],
+    (source: string) => columnState({merge, slotStates, placement, presses, authority}, source),
+    [merge, slotStates, placement, presses, authority],
   );
   // The sources a sign-in window is open for, pressed on this canvas (task 12.8).
   const {signingIn} = state;

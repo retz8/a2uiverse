@@ -1098,6 +1098,10 @@ test('a home source that needs sign-in: the collapse line says so, naming its ap
   expect(collapseLine({cause: 'home', home: 'Linear issues'}, {app: 'Linear'})).toBe(
     'The merged view needs Linear issues, and Linear isn’t signed in. Signing in to Linear brings it back.',
   );
+  // A pasted key or token says connect (task-12.13 decision 32).
+  expect(collapseLine({cause: 'home', home: 'Shop B prices'}, {app: 'Shop B', connect: true})).toBe(
+    'The merged view needs Shop B prices, and Shop B isn’t connected. Connecting Shop B brings it back.',
+  );
   render(
     <SlotStateContext.Provider value={source => (source === 'linear.1' ? 'authority' : 'filled')}>
       <SlotView

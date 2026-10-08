@@ -174,7 +174,7 @@ export function SlotView({
   // The merge's sources that need sign-in, as the host's slot states say (task-12.3 decision 8).
   const signIn = shell
     ? [...(home === undefined ? [] : [home]), ...(collapse?.failed ?? [])].filter(
-        s => resolveState(s) === 'authority',
+        s => resolveState(s) === 'authority' || resolveState(s) === 'connect',
       )
     : [];
   const facts = {
@@ -312,7 +312,10 @@ export function SlotView({
     const resolved = source === undefined ? null : resolve(source);
 
     if (state === 'collapsed') {
-      const homeApp = home !== undefined && signIn.includes(home) ? {app: nameOf(home)} : undefined;
+      const homeApp =
+        home !== undefined && signIn.includes(home)
+          ? {app: nameOf(home), connect: resolveState(home) === 'connect'}
+          : undefined;
       const line = shell
         ? (declined?.reason ?? (collapse && collapseLine(collapse, homeApp)))
         : undefined;
@@ -651,12 +654,19 @@ export function failureRetries(failure: SlotFailure | undefined): boolean {
  * view that could not be made. A home source that needs sign-in is said so, naming its app, and
  * the line carries no press: the slot's own Sign in brings the view back (task-12.3 decision 8).
  */
-export function collapseLine(collapse: SlotCollapse, homeSignIn?: {app: string}): string {
+export function collapseLine(
+  collapse: SlotCollapse,
+  homeSignIn?: {app: string; connect?: boolean},
+): string {
   switch (collapse.cause) {
     case 'home':
       if (homeSignIn) {
         const {app} = homeSignIn;
-        return `The merged view needs ${collapse.home ?? 'the home source'}, and ${app} isn’t signed in. Signing in to ${app} brings it back.`;
+        const needs = `The merged view needs ${collapse.home ?? 'the home source'}`;
+        // A pasted key or token says connect (task-12.13 decision 32).
+        return homeSignIn.connect
+          ? `${needs}, and ${app} isn’t connected. Connecting ${app} brings it back.`
+          : `${needs}, and ${app} isn’t signed in. Signing in to ${app} brings it back.`;
       }
       // Said for the reader (task-8.7 decision 23): what the view needs and what happened to it.
       return `The merged view needs ${collapse.home ?? 'the home source'}, which didn’t load.`;

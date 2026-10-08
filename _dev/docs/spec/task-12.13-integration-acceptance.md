@@ -161,3 +161,7 @@ An app whose sign-in is a pasted key or token — `apiKey` or `http` bearer — 
 ### 31. The window says it closes
 
 A sign-in that ends well names the app — "You're signed in to Google Calendar", or for a pasted key or token "You're connected to Shop B" — says "This window closes in 5 seconds.", counts down beside Close now, then closes; where the browser keeps it open, it says the window can be closed. One that ends badly stays open: "Sign-in didn't finish", or "Shop B wasn't connected" with "Close this window and try connecting again." Replaced: "You're signed in" for every app, the window closing itself 0.6 seconds later.
+
+### 32. The merged view says not connected
+
+A source needing a pasted key or token is, to the shell catalog, a slot in the state `connect`, beside `authority`: the merged view's reserved column reads "· not connected", and a home source's collapse line "…and Shop B isn't connected. Connecting Shop B brings it back." Replaced: "not signed in" and "isn't signed in. Signing in to …" for every scheme.

@@ -51,10 +51,11 @@ export function TrailPreview({runtime, label, top, railColumn}: TrailPreviewProp
     state.roster,
     state.prose,
   );
-  const {merge, slotStates, placement, presses} = state;
+  const {merge, slotStates, placement, presses, authority} = state;
   const slotStateOf = useMemo(
-    () => (source: string) => columnState({merge, slotStates, placement, presses}, source),
-    [merge, slotStates, placement, presses],
+    () => (source: string) =>
+      columnState({merge, slotStates, placement, presses, authority}, source),
+    [merge, slotStates, placement, presses, authority],
   );
   const {signingIn} = state;
   const signingInOf = useMemo(() => (source: string) => signingIn.has(source), [signingIn]);
