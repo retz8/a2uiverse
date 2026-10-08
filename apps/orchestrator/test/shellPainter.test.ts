@@ -469,3 +469,64 @@ describe('shellEnvelope', () => {
     expect(event.metadata?.a2uiverse).toEqual({source: 'shell', role: 'shell'});
   });
 });
+
+describe('the add-account tile (task-12.13 decision 27)', () => {
+  const accounts = {
+    accountsOf: (appId: string) =>
+      appId === 'gmail'
+        ? [
+            {n: 1, label: 'alice@example.com'},
+            {n: 2, label: 'bob@example.com'},
+          ]
+        : [],
+    nextAccount: () => 3,
+  };
+  const sources = new Sources(registry, accounts);
+  const adding: LayoutSurface = {
+    dispatch: [],
+    tree: {
+      components: [
+        {id: 'root', component: 'Column', children: ['add']},
+        {id: 'add', component: 'Slot', addAccount: 'gmail'},
+      ],
+    },
+    dataModel: {},
+  };
+
+  test('no slot of the composition: the app’s name and its accounts, read from the vault', () => {
+    const state = compositionFrom(adding, sources, 'add another gmail account');
+    expect(state.slots.size).toBe(0);
+    expect(state.adding.get('gmail')).toEqual({
+      displayName: 'Gmail',
+      accounts: [
+        {source: 'gmail.1', label: 'alice@example.com'},
+        {source: 'gmail.2', label: 'bob@example.com'},
+      ],
+      scopes: [],
+    });
+  });
+
+  test('painted under the app’s marker, with its name, its accounts and a new account’s scopes', () => {
+    const state = compositionFrom(adding, sources, 'add another gmail account');
+    state.adding.get('gmail')!.scopes = ['See your inbox'];
+    const byId = new Map(paintLayout(state).map(c => [c.id, c]));
+    expect(byId.get('root')).toMatchObject({children: ['attribution-add']});
+    expect(byId.get('attribution-add')).toEqual({
+      id: 'attribution-add',
+      component: 'Attribution',
+      displayName: 'Gmail',
+      child: 'add',
+    });
+    expect(byId.get('add')).toEqual({
+      id: 'add',
+      component: 'Slot',
+      addAccount: 'gmail',
+      label: 'Gmail',
+      accounts: [
+        {source: 'gmail.1', label: 'alice@example.com'},
+        {source: 'gmail.2', label: 'bob@example.com'},
+      ],
+      scopes: ['See your inbox'],
+    });
+  });
+});

@@ -809,19 +809,23 @@
         },
         "source": {
           "type": "string",
-          "description": "The dispatched source whose content fills the region: a source id — the app and the account it paints under, `<appId>.<n>`, the bare app id for an app needing no sign-in — or `shell` for the merged view. The slot's identity within the layout; unique per surface. A slot holds exactly one of `source`, `gap` or `chooseAccount`."
+          "description": "The dispatched source whose content fills the region: a source id — the app and the account it paints under, `<appId>.<n>`, the bare app id for an app needing no sign-in — or `shell` for the merged view. The slot's identity within the layout; unique per surface. A slot holds exactly one of `source`, `gap`, `chooseAccount` or `addAccount`."
         },
         "gap": {
           "type": "string",
-          "description": "A capability no installed app serves, in words. The region is drawn as a fixed tile offering to search the Store for it. A slot holds exactly one of `source`, `gap` or `chooseAccount`."
+          "description": "A capability no installed app serves, in words. The region is drawn as a fixed tile offering to search the Store for it. A slot holds exactly one of `source`, `gap`, `chooseAccount` or `addAccount`."
         },
         "chooseAccount": {
           "type": "string",
-          "description": "An app id: the app has two or more accounts and the command for it named none. The region is drawn as a fixed tile asking which account to use, one press per account; the press sends the request planned for the app to that account, and its answer fills this region. A slot holds exactly one of `source`, `gap` or `chooseAccount`."
+          "description": "An app id: the app has two or more accounts and the command for it named none. The region is drawn as a fixed tile asking which account to use, one press per account; the press sends the request planned for the app to that account, and its answer fills this region. A slot holds exactly one of `source`, `gap`, `chooseAccount` or `addAccount`."
+        },
+        "addAccount": {
+          "type": "string",
+          "description": "An app id: the utterance asked to add an account to the app. The region is drawn as a fixed tile — the accounts already added, what a new account lets the app do, and the press opening the app's sign-in for a new account. Write nothing else for it. A slot holds exactly one of `source`, `gap`, `chooseAccount` or `addAccount`."
         },
         "accounts": {
           "type": "array",
-          "description": "With `chooseAccount` only: the app's accounts the choice offers, each its source id and its label. Painted by the runtime and never written by an author.",
+          "description": "With `chooseAccount` or `addAccount` only: the app's accounts — those the choice offers, or those already added — each its source id and its label. Painted by the runtime and never written by an author.",
           "items": {
             "type": "object",
             "properties": {
@@ -1002,6 +1006,11 @@
           "required": ["kind", "sources"],
           "additionalProperties": false
         },
+        "scopes": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "With `addAccount` only: what a new account lets the app do, in the words of the app's card. Painted by the runtime and never written by an author."
+        },
         "retrying": {
           "type": "array",
           "items": {"type": "string"},
@@ -1019,6 +1028,9 @@
         },
         {
           "required": ["chooseAccount"]
+        },
+        {
+          "required": ["addAccount"]
         }
       ]
     },
@@ -1631,31 +1643,6 @@
       "required": ["call", "args"],
       "unevaluatedProperties": false
     },
-    "addAccount": {
-      "type": "object",
-      "description": "Opens the sign-in that adds another account to an installed app. Use from a button when an answer leads the user to add an account. This function has no return value.",
-      "properties": {
-        "call": {
-          "const": "addAccount"
-        },
-        "args": {
-          "type": "object",
-          "properties": {
-            "app": {
-              "type": "string",
-              "description": "The installed app's id."
-            }
-          },
-          "required": ["app"],
-          "additionalProperties": false
-        },
-        "returnType": {
-          "const": "void"
-        }
-      },
-      "required": ["call", "args"],
-      "unevaluatedProperties": false
-    },
     "and": {
       "type": "object",
       "description": "Performs a logical AND operation on a list of boolean values.",
@@ -2246,9 +2233,6 @@
         },
         {
           "$ref": "#/functions/openAppLibrary"
-        },
-        {
-          "$ref": "#/functions/addAccount"
         },
         {
           "$ref": "#/functions/and"

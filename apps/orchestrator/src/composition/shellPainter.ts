@@ -101,7 +101,9 @@ export function paintLayout(state: CompositionState): ShellComponent[] {
   for (const component of components) {
     if (component.component !== 'Slot') continue;
     const source = sourceOf(component);
-    if (source !== undefined && source !== SHELL_SOURCE_ID) {
+    const adding =
+      typeof component.addAccount === 'string' && state.adding.has(component.addAccount);
+    if (adding || (source !== undefined && source !== SHELL_SOURCE_ID)) {
       wrapperOf.set(component.id, `${PAINTER_ID_PREFIX}${component.id}`);
     }
   }
@@ -120,6 +122,30 @@ export function paintLayout(state: CompositionState): ShellComponent[] {
     }
     if (typeof component.gap === 'string') {
       painted.push({...component});
+      continue;
+    }
+    const adding =
+      typeof component.addAccount === 'string' ? state.adding.get(component.addAccount) : undefined;
+    if (adding) {
+      // The add-account tile (task-12.13 decision 27): the catalog draws it from the app's name,
+      // its accounts and a new account's scopes, read from the vault and the card, under the
+      // app's marker as a sign-in tile is.
+      const wrapper = `${PAINTER_ID_PREFIX}${component.id}`;
+      painted.push(
+        {
+          id: wrapper,
+          component: 'Attribution',
+          displayName: adding.displayName,
+          child: component.id,
+          ...(typeof component.weight === 'number' ? {weight: component.weight} : {}),
+        },
+        {
+          ...component,
+          label: adding.displayName,
+          accounts: adding.accounts,
+          scopes: adding.scopes,
+        },
+      );
       continue;
     }
     const choice =

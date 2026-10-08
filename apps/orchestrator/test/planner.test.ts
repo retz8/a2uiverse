@@ -144,11 +144,7 @@ describe('the Planner’s files and prompt', () => {
     expect(Object.keys(files.catalog.components!).sort()).toEqual(
       [...LAYOUT_SURFACE_KEEP_SET.components].sort(),
     );
-    expect(Object.keys(files.catalog.functions!).sort()).toEqual([
-      'addAccount',
-      'openAppLibrary',
-      'openStore',
-    ]);
+    expect(Object.keys(files.catalog.functions!).sort()).toEqual(['openAppLibrary', 'openStore']);
     expect(files.guidance).toContain('# Platform UI guidance');
     expect(files.rules).toContain('# The layout surface');
   });

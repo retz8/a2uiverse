@@ -26,8 +26,9 @@ import {
  * request; the merged view's `columns`, `columnSources` and `join` on `shell` alone, the join's
  * home and nouns naming exactly the dispatched vendor sources, a column mark beside every column
  * naming a dispatched vendor source or null (task-8.3 decision 12); what the Planner may write on
- * a `Slot` (`source`, `gap` or `chooseAccount`, and a positive `weight`; the rest are the
- * painter's); and a data model of literals. One line per finding, with its path, so the retry can
+ * a `Slot` (`source`, `gap`, `chooseAccount` or `addAccount`, and a positive `weight`; the rest
+ * are the painter's); the add-account tile on a shortlisted app that asks sign-in, once per app;
+ * and a data model of literals. One line per finding, with its path, so the retry can
  * hand them back.
  *
  * Accounts (task 12.6): before the checks, a bare app id naming an app with one source is
@@ -317,6 +318,7 @@ const PAINTER_PROPS = [
   'callFailed',
   'retrying',
   'accounts',
+  'scopes',
 ] as const;
 
 /** Slot accounting against the dispatch list, and what the Planner may write on a `Slot`. */
@@ -341,8 +343,19 @@ function slotErrors(document: LayoutSurface): string[] {
       source?: unknown;
       gap?: unknown;
       chooseAccount?: unknown;
+      addAccount?: unknown;
       weight?: unknown;
     };
+    // The add-account tile stands for no dispatch entry: one per app (task-12.13 decision 27).
+    if (typeof slot.addAccount === 'string') {
+      const key = `add:${slot.addAccount}`;
+      if (held.has(key)) {
+        errors.push(
+          `/tree (${slot.id}): a second Slot adds an account to '${slot.addAccount}'; one per app`,
+        );
+      }
+      held.add(key);
+    }
     const key =
       typeof slot.source === 'string'
         ? `source:${slot.source}`
@@ -366,7 +379,7 @@ function slotErrors(document: LayoutSurface): string[] {
     }
     if (PAINTER_PROPS.some(prop => prop in slot)) {
       errors.push(
-        `/tree (${slot.id}): Slot.${PAINTER_PROPS.filter(prop => prop in slot).join(', Slot.')} ${PAINTER_PROPS.filter(prop => prop in slot).length > 1 ? 'are' : 'is'} written by the shell; write only source, gap or chooseAccount, and weight — the merged view's columns, column marks and join go on its dispatch entry`,
+        `/tree (${slot.id}): Slot.${PAINTER_PROPS.filter(prop => prop in slot).join(', Slot.')} ${PAINTER_PROPS.filter(prop => prop in slot).length > 1 ? 'are' : 'is'} written by the shell; write only source, gap, chooseAccount or addAccount, and weight — the merged view's columns, column marks and join go on its dispatch entry`,
       );
     }
     if (slot.weight !== undefined && !(typeof slot.weight === 'number' && slot.weight > 0)) {
@@ -385,26 +398,23 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
 /**
- * Add an account names the app id of a shortlisted app whose card asks sign-in —
- * one whose sources are accounts (task-12.2 decision 11, task-12.6 decision 8).
+ * The add-account tile names the app id of a shortlisted app whose card asks sign-in — one whose
+ * sources are accounts (task-12.2 decision 11, task-12.6 decision 8). Adding an account is that
+ * `Slot` alone: no button of the Planner's calls it (task-12.13 decision 27).
  */
 function addAccountErrors(document: LayoutSurface, shortlist: readonly string[]): string[] {
   const errors: string[] = [];
   for (const component of document.tree.components) {
-    const action = (component as {action?: unknown}).action;
-    const call =
-      isRecord(action) && isRecord(action.functionCall) ? action.functionCall : undefined;
-    if (call?.call !== 'addAccount') continue;
-    const app = isRecord(call.args) ? call.args.app : undefined;
-    // A bound app is the catalog schema's to refuse.
+    if (component.component !== 'Slot') continue;
+    const app = (component as {addAccount?: unknown}).addAccount;
     if (typeof app !== 'string') continue;
     const own = sourcesOf(shortlist, app);
     if (own.length === 0 || parseSourceId(app)?.account !== undefined) {
       errors.push(
-        `/tree (${component.id}): addAccount names '${app}', which is not on this turn's shortlist`,
+        `/tree (${component.id}): Slot.addAccount names '${app}', which is not on this turn's shortlist`,
       );
     } else if (own.every(source => parseSourceId(source)?.account === undefined)) {
-      errors.push(`/tree (${component.id}): addAccount names '${app}', which asks no sign-in`);
+      errors.push(`/tree (${component.id}): Slot.addAccount names '${app}', which asks no sign-in`);
     }
   }
   return errors;

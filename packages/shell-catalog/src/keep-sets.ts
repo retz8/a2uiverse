@@ -32,8 +32,8 @@ export const SYNTHESIS_SURFACE_KEEP_SET: KeepSet = {
 
 /**
  * The layout surface (`shell:main`): slots, the shell's own words around them, and the shell's
- * actions — `addAccount` among them, the plan check validating the app it names (task-12.2
- * decision 11, task-12.6 decision 8).
+ * actions. Adding an account is a `Slot` holding `addAccount`, the plan check validating the app
+ * it names (task-12.6 decision 8, task-12.13 decision 27).
  */
 export const LAYOUT_SURFACE_KEEP_SET: KeepSet = {
   components: [

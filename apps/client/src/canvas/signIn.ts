@@ -1,7 +1,7 @@
 /**
  * The client's half of sign-in (SPEC §8; task 12.8): the page's one sign-in, built with the
- * canvases' wiring. Sign in, Sign in again, the quiet line's Sign in and Allow reach it from the
- * shell catalog inside the click; the add-account press from the shell action.
+ * canvases' wiring. Sign in, Sign in again, the quiet line's Sign in, Allow and the add-account
+ * tile's Add account reach it from the shell catalog inside the click.
  *
  * A press opens the orchestrator's start route in a window of its own, with `noopener,noreferrer`
  * and only to https, localhost exempt (phase-12 decision 14), naming an attempt the client made,
@@ -9,18 +9,19 @@
  * decision 5). The window gives back nothing, so the outcome is learned only by polling the attempt
  * over `orchestratorApi`, until it is signed in, failed or expired.
  *
- * - While the window is open the pressed slot waits. The tile goes back as it was when the canvas
- *   window gets the focus back after losing it, or on Cancel; the attempt is still polled, so a
- *   sign-in finished afterwards resumes the slot (decisions 1, 2). A blocked window takes no focus
- *   and leaves the slot waiting until Cancel (decision 9).
+ * - While the window is open the pressed slot waits, until the sign-in ends, Cancel or the attempt
+ *   expires: the window may be a tab hiding the canvas, so the canvas getting the focus back says
+ *   nothing of it. Open the sign-in again opens a new window on a new attempt; whichever finishes
+ *   resumes the slot. After Cancel the attempt is still polled, so a sign-in finished afterwards
+ *   resumes the slot (decisions 1, 2, 9; task-12.13 decision 26).
  * - Signed in, the source is remembered for the page load and the pressed slot's `retry` goes to
  *   the canvas it was pressed on, on screen or not (decision 8). Allow resumes the same way: the
  *   orchestrator sends again the press that needed the scope (decision 10).
  * - Sign in on a remembered source opens no window: it sends `retry` at once (decision 4). A tile
  *   painted for the source after that makes it forgotten. Allow always opens the window.
- * - An added account is said on the progress line of the canvas it was pressed on (decision 6);
- *   while its window is open the line says so at once, "Gmail signing in", the app named once the
- *   orchestrator has answered for the attempt (task-12.13 decision 21).
+ * - An added account is said on the progress line of the canvas it was pressed on (decision 6),
+ *   and the add-account tile's `retry` lists it there. While its window is open the tile waits as
+ *   the authority tile does, keyed by the bare app id (task-12.13 decisions 26, 27).
  * - Failed or expired, the slot's tile goes back as it was, the reason to the console (decision 3).
  */
 import type {SignInRequest} from '@a2uiverse/shell-catalog';
@@ -43,18 +44,14 @@ export interface SignInOptions {
   poll?: (attempt: string) => Promise<AttemptOutcome>;
   /** Makes an unguessable attempt id. */
   mintAttempt?: () => string;
-  /** The page whose focus says the window was left; the default is the browser's. */
-  page?: Pick<Window, 'addEventListener' | 'removeEventListener'>;
 }
 
 export interface SignIn {
   /** A sign-in raised on a canvas — start or cancel — synchronously inside the click. */
   request(runtime: CanvasRuntime, request: Pick<SignInRequest, 'kind' | 'source'>): void;
-  /** The add-account press on a canvas: the app's next account. */
-  addAccount(runtime: CanvasRuntime, app: string): void;
   /** Sources a shell paint drew the tile or the quiet line for: no longer known signed in. */
   forget(sources: readonly string[]): void;
-  /** Stops every poll and the focus watch. */
+  /** Stops every poll. */
   dispose(): void;
 }
 
@@ -67,12 +64,8 @@ interface Attempt {
   kind: 'resume' | 'addAccount';
   /** The pressed slot is waiting on the window. */
   waiting: boolean;
-  /** The canvas window lost the focus while this one waited. */
-  away: boolean;
   /** The orchestrator has answered for it: the window reached the start route. */
   seen?: boolean;
-  /** The app's name, once the orchestrator has given it. */
-  app?: string;
   until: number;
   timer?: ReturnType<typeof setTimeout>;
 }
@@ -112,34 +105,23 @@ export function createSignIn({
   openWindow = url => void window.open(url, '_blank', 'noopener,noreferrer'),
   poll = attempt => readAttempt(serverUrl, attempt),
   mintAttempt = mintAttemptId,
-  page = window,
 }: SignInOptions): SignIn {
   /** The sources signed in during this page load (decision 4). */
   const remembered = new Set<string>();
   const attempts = new Map<string, Attempt>();
 
-  /** The slot waits while any of its attempts does. */
+  /**
+   * The slot — or, for add-account, the app's add-account button — waits while any of its
+   * attempts does (task-12.13 decision 26).
+   */
   const showSlotWaiting = (canvas: string, source: string) => {
     const waiting = [...attempts.values()].some(
-      a => a.canvas === canvas && a.source === source && a.kind === 'resume' && a.waiting,
+      a => a.canvas === canvas && a.source === source && a.waiting,
     );
     runtimeOf(canvas)?.store.setSigningIn(source, waiting);
   };
 
-  /** An add-account window open is said on the progress line, by the app's name once known. */
-  const showAdding = (canvas: string) => {
-    const adding = [...attempts.values()].find(
-      a => a.canvas === canvas && a.kind === 'addAccount' && a.waiting,
-    );
-    runtimeOf(canvas)?.store.setAddingAccount(
-      adding ? (adding.app ? `${adding.app} signing in` : 'Signing in') : null,
-    );
-  };
-
-  const showWaiting = (attempt: Attempt) =>
-    attempt.kind === 'addAccount'
-      ? showAdding(attempt.canvas)
-      : showSlotWaiting(attempt.canvas, attempt.source);
+  const showWaiting = (attempt: Attempt) => showSlotWaiting(attempt.canvas, attempt.source);
 
   const settle = (attempt: Attempt) => {
     clearTimeout(attempt.timer);
@@ -153,14 +135,20 @@ export function createSignIn({
   const signedIn = (attempt: Attempt, outcome: AttemptOutcome) => {
     if (outcome.source) remembered.add(outcome.source);
     const runtime = runtimeOf(attempt.canvas);
-    if (attempt.kind === 'addAccount') {
-      settle(attempt);
-      runtime?.store.showAccountNotice(accountNoticeOf(outcome, attempt.source));
-      return;
-    }
-    // One resume per pressed slot: a second window on the same slot is let go.
+    // One outcome per pressed slot or add-account step: a second window on it is let go.
     for (const other of [...attempts.values()]) {
-      if (other.canvas === attempt.canvas && other.source === attempt.source) settle(other);
+      if (
+        other.canvas === attempt.canvas &&
+        other.source === attempt.source &&
+        other.kind === attempt.kind
+      )
+        settle(other);
+    }
+    if (attempt.kind === 'addAccount') {
+      runtime?.store.showAccountNotice(accountNoticeOf(outcome, attempt.source));
+      // The add-account tile lists the account added (task-12.13 decision 27).
+      void runtime?.press({kind: 'retry', sources: [attempt.source]});
+      return;
     }
     // Signed in again as another identity: said, so different data never comes in unexplained
     // (task-12.13 decision 24).
@@ -181,10 +169,6 @@ export function createSignIn({
       console.info('[A2UI:sign-in] poll failed', err);
     }
     if (!attempts.has(attempt.id)) return;
-    if (outcome?.app && attempt.app === undefined) {
-      attempt.app = outcome.app;
-      if (attempt.waiting) showWaiting(attempt);
-    }
     if (outcome?.state === 'signedIn') return signedIn(attempt, outcome);
     // Unknown before it was ever seen: the window has not reached the start route yet — through
     // the tunnel it can land after the first poll (task 12.12). Asked again like a pending one.
@@ -223,7 +207,6 @@ export function createSignIn({
       source,
       kind,
       waiting: true,
-      away: false,
       until: Date.now() + ATTEMPT_WATCH_MS,
     };
     attempts.set(id, attempt);
@@ -231,22 +214,6 @@ export function createSignIn({
     attempt.timer = setTimeout(() => void ask(attempt), POLL_INTERVAL_MS);
     return true;
   };
-
-  /** The canvas window lost the focus: the windows open now were gone to. */
-  const onBlur = () => {
-    for (const attempt of attempts.values()) if (attempt.waiting) attempt.away = true;
-  };
-  /** It came back: each slot waiting on a window it was away at goes back as it was (decision 1). */
-  const onFocus = () => {
-    for (const attempt of attempts.values()) {
-      if (!attempt.waiting || !attempt.away) continue;
-      attempt.waiting = false;
-      attempt.away = false;
-      showWaiting(attempt);
-    }
-  };
-  page.addEventListener('blur', onBlur);
-  page.addEventListener('focus', onFocus);
 
   return {
     request: (runtime, {kind, source}) => {
@@ -258,6 +225,11 @@ export function createSignIn({
         showSlotWaiting(runtime.id, source);
         return;
       }
+      // Add account on the add-account tile: the app's next account (task-12.13 decision 27).
+      if (kind === 'addAccount') {
+        begin(runtime, source, 'addAccount');
+        return;
+      }
       const asking = runtime.store.getState().escalations.has(source);
       if (remembered.has(source) && !asking) {
         void runtime.press({kind: 'retry', sources: [source]});
@@ -265,17 +237,12 @@ export function createSignIn({
       }
       begin(runtime, source, 'resume');
     },
-    addAccount: (runtime, app) => {
-      begin(runtime, app, 'addAccount');
-    },
     forget: sources => {
       for (const source of sources) remembered.delete(source);
     },
     dispose: () => {
       for (const attempt of attempts.values()) clearTimeout(attempt.timer);
       attempts.clear();
-      page.removeEventListener('blur', onBlur);
-      page.removeEventListener('focus', onFocus);
     },
   };
 }

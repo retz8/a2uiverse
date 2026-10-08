@@ -128,19 +128,10 @@ export function ProgressLine({state, since, compact, sourcesOnly}: ProgressLineP
   const planning = progress.working?.kind === 'planning';
   const elapsed = useElapsed(since, planning);
   const {error} = state;
-  // An add-account window open says so at once, in the notice's place (task-12.13 decision 21).
-  const adding = sourcesOnly ? null : state.addingAccount;
-  const account = sourcesOnly || adding ? null : state.accountNotice;
+  const account = sourcesOnly ? null : state.accountNotice;
   // Nothing to say — a platform answer, no vendor dispatched — takes no room under the question
   // (task-8.7 decision 28).
-  if (
-    !progress.working &&
-    progress.sources.length === 0 &&
-    !progress.merge &&
-    !error &&
-    !account &&
-    !adding
-  )
+  if (!progress.working && progress.sources.length === 0 && !progress.merge && !error && !account)
     return null;
   const said = progress.working || progress.sources.length > 0 || progress.merge;
   return (
@@ -175,14 +166,6 @@ export function ProgressLine({state, since, compact, sourcesOnly}: ProgressLineP
           </Step>
         </Fragment>
       )}
-      {adding && (
-        <Fragment>
-          {said && <Dot />}
-          <Step status="working" compact={compact}>
-            {adding}
-          </Step>
-        </Fragment>
-      )}
       {account && (
         <Fragment>
           {said && <Dot />}
@@ -193,7 +176,7 @@ export function ProgressLine({state, since, compact, sourcesOnly}: ProgressLineP
       )}
       {error && !sourcesOnly && (
         <Fragment>
-          {(said || account || adding) && <Dot />}
+          {(said || account) && <Dot />}
           <span
             className="canvas-progress-step canvas-progress-error"
             role={compact ? undefined : 'alert'}

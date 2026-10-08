@@ -154,8 +154,6 @@ export function createCanvasWiring({
     const page = trustedPageOf(action);
     if (page) trail.openTrustedPage(page);
     const runtime = viewed();
-    // Adding an account opens the sign-in, inside the click (task-12.8 decision 5).
-    if (runtime && action.name === 'addAccount') signIn.addAccount(runtime, action.app);
     runtime?.reportShellAction(action);
   };
 

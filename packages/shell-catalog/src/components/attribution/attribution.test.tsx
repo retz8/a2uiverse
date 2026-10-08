@@ -379,7 +379,7 @@ test('Allow starts the sign-in; Not now raises dismiss for the one source', () =
   expect(pressed).toEqual([{kind: 'dismiss', sources: ['github.1']}]);
 });
 
-test('while the sign-in window is open the card keeps its scopes and says to finish there, with Cancel (task-12.3 decision 3)', () => {
+test('while the sign-in window is open the card keeps its scopes and says to finish there, with Open the sign-in again and Cancel (task-12.3 decision 3; task-12.13 decision 26)', () => {
   const kinds: string[] = [];
   render(
     <SignInContext.Provider value={source => source === 'github.1'}>
@@ -391,8 +391,9 @@ test('while the sign-in window is open the card keeps its scopes and says to fin
   expect(card).toHaveTextContent('Waiting for you to finish signing in');
   expect(screen.queryByRole('button', {name: 'Allow'})).toBeNull();
   expect(screen.queryByRole('button', {name: 'Not now'})).toBeNull();
+  act(() => screen.getByRole('button', {name: 'Open the sign-in again'}).click());
   act(() => screen.getByRole('button', {name: 'Cancel'}).click());
-  expect(kinds).toEqual(['cancel']);
+  expect(kinds).toEqual(['start', 'cancel']);
 });
 
 test('a retry or a dismiss sent for the source hides the chip and the card at once (task-12.3 decision 10)', () => {

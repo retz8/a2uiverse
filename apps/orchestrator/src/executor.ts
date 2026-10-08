@@ -24,6 +24,7 @@ import {synthesisEnvelope, synthesisParts} from './composition/synthesisPainter.
 import {vendorMetadata} from './composition/partition.js';
 import {shellCreateParts, shellEnvelope, shellRepaintParts} from './composition/shellPainter.js';
 import {
+  addedAccounts,
   chooseAccount,
   compositionFrom,
   inSlotOrder,
@@ -483,6 +484,14 @@ export class OrchestratorExecutor implements AgentExecutor {
       const standing = this.#deps.gate?.standing(plan.source);
       if (standing?.kind === 'need') this.#takeAuthority(state, plan.source, standing.need);
     }
+    // The add-account tile's scopes: what a new account's first sign-in asks, in the card's
+    // words (task-12.13 decision 27).
+    for (const [appId, adding] of state.adding) {
+      const standing = this.#deps.gate?.standing(appId);
+      if (standing?.kind === 'need' && standing.need.cause === 'signIn') {
+        adding.scopes = standing.need.words;
+      }
+    }
     this.#compositions.open(ctx.contextId, state);
     const sink: Sink = {ctx, bus, turn};
 
@@ -749,6 +758,15 @@ export class OrchestratorExecutor implements AgentExecutor {
         // Retry, and the resume press after a sign-in (task-12.2 decision 9): a failed slot or
         // one needing sign-in goes again; a request for more access sends its press again.
         const source = operation.sources[0]!;
+        const adding = state.adding.get(source);
+        if (adding) {
+          // An account added from the add-account tile: the tile lists it (task-12.13 decision 27).
+          work = async () => {
+            adding.accounts = addedAccounts(this.#deps.sources, source);
+            this.#repaint([sink], state);
+          };
+          break;
+        }
         const slot = state.slots.get(source);
         if (slot && source !== SHELL_SOURCE_ID && slot.escalation) {
           work = signal => this.#resumePress(sink, state, source, signal);

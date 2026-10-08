@@ -28,6 +28,7 @@ import {
 import {PressStateContext} from '../../press-state.js';
 import {SignInContext, type SignInHandler} from '../../sign-in.js';
 import {weightStyle} from '../shared/layout.js';
+import {OPEN_AGAIN_WORDS, WAITING_WORDS} from '../shared/SignInWaiting.js';
 import type {PressHandler} from '../slot/slot.js';
 import {AttributionApi, type AttributionProps} from './attribution.schema.js';
 
@@ -227,8 +228,6 @@ const truncateStyle: CSSProperties = {
   minWidth: 0,
 };
 
-const WAITING_WORDS = 'Waiting for you to finish signing in';
-
 /**
  * The escalation (task 12.3, the canvas's E2 and E5): the chip, fixed width, a soft accent like the
  * arrows, and its card floating over the fragment's top at the row's right edge, no wider than
@@ -337,15 +336,28 @@ function Escalation({
             </ul>
           </Flex>
           {waiting ? (
-            <Flex align="center" gap="3" wrap="wrap">
-              <Spinner size="1" />
-              <Text as="span" size="1" color="gray">
-                {WAITING_WORDS}
-              </Text>
+            <Flex direction="column" align="start" gap="3">
+              <Flex align="center" gap="2">
+                <Spinner size="1" />
+                <Text as="span" size="1" color="gray">
+                  {WAITING_WORDS}
+                </Text>
+              </Flex>
               {onSignIn && (
-                <Button size="1" variant="outline" color="gray" onClick={() => onSignIn('cancel')}>
-                  Cancel
-                </Button>
+                <Flex align="center" gap="2" wrap="wrap">
+                  {/* A window closed or lost behind the canvas: a new one (task-12.13 decision 26). */}
+                  <Button size="1" variant="outline" color="gray" onClick={() => onSignIn('start')}>
+                    {OPEN_AGAIN_WORDS}
+                  </Button>
+                  <Button
+                    size="1"
+                    variant="outline"
+                    color="gray"
+                    onClick={() => onSignIn('cancel')}
+                  >
+                    Cancel
+                  </Button>
+                </Flex>
               )}
             </Flex>
           ) : (

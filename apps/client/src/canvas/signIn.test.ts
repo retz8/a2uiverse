@@ -36,7 +36,6 @@ function setup(base = 'https://vnw20xbg-10001.asse.devtunnels.ms') {
   const runtimes = new Map<string, CanvasRuntime>();
   const opened: string[] = [];
   const outcomes = new Map<string, AttemptOutcome | Error>();
-  const page = new EventTarget();
   let n = 0;
   const signIn = createSignIn({
     serverUrl: base,
@@ -47,7 +46,6 @@ function setup(base = 'https://vnw20xbg-10001.asse.devtunnels.ms') {
       return outcome instanceof Error ? Promise.reject(outcome) : Promise.resolve(outcome);
     },
     mintAttempt: () => `attempt-${++n}-0123456789abcdef`,
-    page: page as unknown as Window,
   });
   const add = (id: string, contextId?: string) => {
     const made = canvas(id, contextId);
@@ -58,7 +56,7 @@ function setup(base = 'https://vnw20xbg-10001.asse.devtunnels.ms') {
   const attemptOf = (i: number) => new URL(opened[i]!).searchParams.get('attempt')!;
   const answer = (i: number, outcome: AttemptOutcome | Error) =>
     outcomes.set(attemptOf(i), outcome);
-  return {signIn, opened, page, add, runtimes, attemptOf, answer};
+  return {signIn, opened, add, runtimes, attemptOf, answer};
 }
 
 const tick = () => vi.advanceTimersByTimeAsync(POLL_INTERVAL_MS);
@@ -126,19 +124,33 @@ describe('the window', () => {
 });
 
 describe('waiting', () => {
-  it('the canvas getting the focus back after losing it puts the tile back; the attempt is still watched and resumes', async () => {
-    const {signIn, page, add, answer} = setup();
+  it('the canvas getting the focus back leaves the slot waiting: the window may be a tab hiding it (task-12.13 decision 26)', async () => {
+    const {signIn, add, answer} = setup();
     const {runtime, pressed} = add('a');
     signIn.request(runtime, {kind: 'start', source: 'gmail.1'});
-    // A focus with no blur before it is not a window closed.
-    page.dispatchEvent(new Event('focus'));
+    window.dispatchEvent(new Event('blur'));
+    window.dispatchEvent(new Event('focus'));
     expect(runtime.store.getState().signingIn.has('gmail.1')).toBe(true);
-    page.dispatchEvent(new Event('blur'));
-    page.dispatchEvent(new Event('focus'));
-    expect(runtime.store.getState().signingIn.size).toBe(0);
     await tick();
     expect(pressed).toEqual([]);
     answer(0, {state: 'signedIn', source: 'gmail.1', label: 'me@example.com', existing: false});
+    await tick();
+    expect(runtime.store.getState().signingIn.size).toBe(0);
+    expect(pressed).toEqual([{kind: 'retry', sources: ['gmail.1']}]);
+  });
+
+  it('Open the sign-in again opens a new window on a new attempt, the slot still waiting; whichever finishes resumes it once', async () => {
+    const {signIn, opened, add, attemptOf, answer} = setup();
+    const {runtime, pressed} = add('a');
+    signIn.request(runtime, {kind: 'start', source: 'gmail.1'});
+    signIn.request(runtime, {kind: 'start', source: 'gmail.1'});
+    expect(opened).toHaveLength(2);
+    expect(attemptOf(1)).not.toBe(attemptOf(0));
+    expect(runtime.store.getState().signingIn.has('gmail.1')).toBe(true);
+    answer(1, {state: 'signedIn', source: 'gmail.1'});
+    await tick();
+    expect(runtime.store.getState().signingIn.size).toBe(0);
+    answer(0, {state: 'signedIn', source: 'gmail.1'});
     await tick();
     expect(pressed).toEqual([{kind: 'retry', sources: ['gmail.1']}]);
   });
@@ -299,12 +311,12 @@ describe('signed in again as another identity', () => {
 });
 
 describe('add-account', () => {
-  it('opens the start route on the bare app id, nothing waits, and the account is said on the canvas it was pressed on', async () => {
+  it('opens the start route on the bare app id, the tile waits, and the account is said and listed on the canvas it was pressed on', async () => {
     const {signIn, opened, add, answer} = setup();
     const a = add('a');
-    signIn.addAccount(a.runtime, 'gmail');
+    signIn.request(a.runtime, {kind: 'addAccount', source: 'gmail'});
     expect(new URL(opened[0]!).searchParams.get('source')).toBe('gmail');
-    expect(a.runtime.store.getState().signingIn.size).toBe(0);
+    expect([...a.runtime.store.getState().signingIn]).toEqual(['gmail']);
     answer(0, {
       state: 'signedIn',
       source: 'gmail.2',
@@ -314,7 +326,7 @@ describe('add-account', () => {
     });
     await tick();
     expect(a.runtime.store.getState().accountNotice).toBe('Added work@example.com to Gmail.');
-    expect(a.pressed).toEqual([]);
+    expect(a.pressed).toEqual([{kind: 'retry', sources: ['gmail']}]);
   });
 
   it('an account already held is said so; a failed one says nothing', async () => {
@@ -332,38 +344,59 @@ describe('add-account', () => {
     ).toBe('me@example.com was already added to Gmail.');
     const {signIn, add, answer} = setup();
     const a = add('a');
-    signIn.addAccount(a.runtime, 'gmail');
+    signIn.request(a.runtime, {kind: 'addAccount', source: 'gmail'});
     answer(0, {state: 'failed', reason: 'access_denied'});
     await tick();
     expect(a.runtime.store.getState().accountNotice).toBeNull();
   });
 
-  it('says at once that it is signing in, by the app name once the orchestrator gives it, until the account is said (task-12.13 decision 21)', async () => {
+  it('its tile waits while the window is open, the focus coming back changing nothing, until the account is said (task-12.13 decision 26)', async () => {
     const {signIn, add, answer} = setup();
     const a = add('a');
-    a.runtime.store.showAccountNotice('Added me@example.com to Gmail.');
-    signIn.addAccount(a.runtime, 'gmail');
-    expect(a.runtime.store.getState().addingAccount).toBe('Signing in');
+    signIn.request(a.runtime, {kind: 'addAccount', source: 'gmail'});
+    expect(a.runtime.store.getState().signingIn.has('gmail')).toBe(true);
     answer(0, {state: 'pending', app: 'Gmail'});
     await tick();
-    expect(a.runtime.store.getState().addingAccount).toBe('Gmail signing in');
+    window.dispatchEvent(new Event('blur'));
+    window.dispatchEvent(new Event('focus'));
+    expect(a.runtime.store.getState().signingIn.has('gmail')).toBe(true);
     answer(0, {state: 'signedIn', source: 'gmail.2', label: 'work@example.com', app: 'Gmail'});
     await tick();
-    expect(a.runtime.store.getState().addingAccount).toBeNull();
+    expect(a.runtime.store.getState().signingIn.size).toBe(0);
     expect(a.runtime.store.getState().accountNotice).toBe('Added work@example.com to Gmail.');
   });
 
-  it('the step goes when the canvas gets the focus back, or the sign-in ends without an account', async () => {
-    const {signIn, page, add, answer} = setup();
+  it('Cancel on the button stops the wait; a sign-in ending without an account does too', async () => {
+    const {signIn, add, answer} = setup();
     const a = add('a');
-    signIn.addAccount(a.runtime, 'gmail');
-    page.dispatchEvent(new Event('blur'));
-    page.dispatchEvent(new Event('focus'));
-    expect(a.runtime.store.getState().addingAccount).toBeNull();
-    signIn.addAccount(a.runtime, 'gmail');
-    expect(a.runtime.store.getState().addingAccount).toBe('Signing in');
+    signIn.request(a.runtime, {kind: 'addAccount', source: 'gmail'});
+    signIn.request(a.runtime, {kind: 'cancel', source: 'gmail'});
+    expect(a.runtime.store.getState().signingIn.size).toBe(0);
+    signIn.request(a.runtime, {kind: 'addAccount', source: 'gmail'});
+    expect(a.runtime.store.getState().signingIn.has('gmail')).toBe(true);
     answer(1, {state: 'failed', reason: 'access_denied'});
     await tick();
-    expect(a.runtime.store.getState().addingAccount).toBeNull();
+    expect(a.runtime.store.getState().signingIn.size).toBe(0);
+  });
+
+  it('pressed again, a new window for the same app; whichever adds the account says it once', async () => {
+    const {signIn, opened, add, attemptOf, answer} = setup();
+    const a = add('a');
+    signIn.request(a.runtime, {kind: 'addAccount', source: 'gmail'});
+    signIn.request(a.runtime, {kind: 'addAccount', source: 'gmail'});
+    expect(opened).toHaveLength(2);
+    expect(attemptOf(1)).not.toBe(attemptOf(0));
+    answer(1, {
+      state: 'signedIn',
+      source: 'gmail',
+      app: 'Gmail',
+      label: 'you.personal@example.net',
+      existing: false,
+    });
+    await tick();
+    expect(a.runtime.store.getState().signingIn.size).toBe(0);
+    expect(a.runtime.store.getState().accountNotice).toBe(
+      'Added you.personal@example.net to Gmail.',
+    );
   });
 });

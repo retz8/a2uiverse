@@ -6,10 +6,11 @@ import type {CompositionOperation} from '@a2uiverse/sdk';
 import type {ShellActionHandler} from '../../functions/shell-actions.js';
 import type {SourceName} from '../derived-value/join.js';
 import {PressStateContext} from '../../press-state.js';
-import {SignInContext, type SignInHandler} from '../../sign-in.js';
+import {SignInContext, type SignInHandler, type SignInKind} from '../../sign-in.js';
 import {SlotContentContext} from '../../slot-content.js';
 import {SlotStateContext} from '../../slot-state.js';
 import {weightStyle} from '../shared/layout.js';
+import {OPEN_AGAIN_WORDS, SignInWaiting, WAITING_WORDS} from '../shared/SignInWaiting.js';
 import {SkeletonBar} from '../shared/skeleton.js';
 import {
   bodyCellStyle,
@@ -27,6 +28,7 @@ import {
 } from './press-lines.js';
 import {
   SlotApi,
+  type SlotAccount,
   type SlotAuthority,
   type SlotCollapse,
   type SlotFailure,
@@ -96,6 +98,11 @@ export type PressHandler = (press: {
  * A slot holding a `gap` is the capability tile (task-6.2 decision 6): fixed shell UI, no model
  * wording — a minimal line and a button searching the Store for the missing capability, the gap.
  *
+ * A slot holding `addAccount` is the add-account tile (task-12.13 decision 27): fixed shell UI,
+ * the authority tile's sibling — the app's accounts already added, what a new one lets the app do,
+ * Add account, and that it opens in a new window; while that window is open, the authority tile's
+ * waiting form in its place.
+ *
  * A slot holding `chooseAccount` is the account choice (task-12.6 decision 5): fixed shell UI
  * asking which of the app's accounts to use, one press per account by its label. A press gives
  * the choice way to the pending line at once, as Retry does; the repaint then names the account
@@ -110,7 +117,9 @@ export function SlotView({
   source,
   gap,
   chooseAccount,
+  addAccount,
   accounts,
+  scopes,
   weight,
   state = 'pending',
   label,
@@ -136,7 +145,7 @@ export function SlotView({
   /** The reader's press, as the operation the wire carries; without it no press button is drawn. */
   onPress?: (operation: CompositionOperation) => void;
   /** Start or cancel this slot's sign-in, inside the click; without it no Sign in is drawn. */
-  onSignIn?: (kind: 'start' | 'cancel') => void;
+  onSignIn?: (kind: SignInKind) => void;
   /** Manage apps on the "not supported here" tile: opens the App Library. */
   onOpenAppLibrary?: () => void;
   /** The host's display name for a source; the source itself without one. */
@@ -196,6 +205,29 @@ export function SlotView({
               </Button>
             </Flex>
           </div>
+        </div>
+      );
+    }
+
+    if (addAccount !== undefined) {
+      return (
+        <div
+          data-slot-add-account={addAccount}
+          data-slot-state={signingIn(addAccount) ? 'waiting' : 'adding'}
+          style={{...weighted, ...reservedStyle}}
+        >
+          <AddAccountTile
+            app={label ?? addAccount}
+            accounts={accounts ?? []}
+            scopes={scopes ?? []}
+            waiting={signingIn(addAccount)}
+            enabled={enabled}
+            handOff={button => {
+              if (button.ownerDocument.activeElement === button) focusLine.current = true;
+            }}
+            receive={element => takeFocus(element, focusLine)}
+            onSignIn={onSignIn}
+          />
         </div>
       );
     }
@@ -705,14 +737,13 @@ export function continueHref(url: string | undefined): string | undefined {
   }
 }
 
-const WAITING_WORDS = 'Waiting for you to finish signing in';
-
 /**
  * The authority tile (task 12.3), the canvas's T1, L1 and L3: deterministic shell UI in plain
  * words, no address shown. A full tile is a column at the slot's leading edge — the statement,
  * the scopes under "<App> will be able to" when the card named any, Sign in, and that it opens in
  * a new window; waiting, the statement turns to finishing in the window that opened, then the
- * spinner line and Cancel. The quiet form is one line in either state, so nothing moves.
+ * spinner line, and under it Open the sign-in again and Cancel. The quiet form is one line in
+ * either state, so nothing moves.
  */
 function AuthorityTile({
   app,
@@ -735,10 +766,10 @@ function AuthorityTile({
   handOff: (button: HTMLElement) => void;
   /** The control that replaced a pressed button: it takes the focus, once. */
   receive: (element: HTMLElement | null) => void;
-  onSignIn?: (kind: 'start' | 'cancel') => void;
+  onSignIn?: (kind: SignInKind) => void;
   onOpenAppLibrary?: () => void;
 }) {
-  const signIn = (kind: 'start' | 'cancel', button: HTMLElement) => {
+  const signIn = (kind: SignInKind, button: HTMLElement) => {
     handOff(button);
     onSignIn?.(kind);
   };
@@ -747,18 +778,6 @@ function AuthorityTile({
       {note}
     </Text>
   );
-  const cancel = (size: '1' | '2') =>
-    onSignIn && (
-      <Button
-        size={size}
-        variant="outline"
-        color="gray"
-        ref={receive}
-        onClick={event => signIn('cancel', event.currentTarget)}
-      >
-        Cancel
-      </Button>
-    );
 
   if (authority.cause === 'unsupported') {
     return (
@@ -796,16 +815,24 @@ function AuthorityTile({
               {WAITING_WORDS}
             </Text>
             {onSignIn && (
-              <Link asChild size="2" weight="medium">
-                <button
-                  type="button"
-                  style={linkButtonStyle}
-                  ref={receive}
-                  onClick={event => signIn('cancel', event.currentTarget)}
-                >
-                  Cancel
-                </button>
-              </Link>
+              <>
+                <Link asChild size="2" weight="medium">
+                  <button type="button" style={linkButtonStyle} onClick={() => onSignIn('start')}>
+                    {OPEN_AGAIN_WORDS}
+                  </button>
+                </Link>
+                <span aria-hidden style={dotStyle} />
+                <Link asChild size="2" weight="medium">
+                  <button
+                    type="button"
+                    style={linkButtonStyle}
+                    ref={receive}
+                    onClick={event => signIn('cancel', event.currentTarget)}
+                  >
+                    Cancel
+                  </button>
+                </Link>
+              </>
             )}
           </>
         ) : (
@@ -838,19 +865,19 @@ function AuthorityTile({
   }
 
   if (waiting) {
+    // A window closed or lost behind the canvas: Open the sign-in again opens a new one, the slot
+    // still waiting (task-12.13 decision 26).
     return (
-      <Flex direction="column" align="start" gap="4" data-authority="waiting">
-        <Text as="p" size="2">
-          Finish signing in to {app} in the window that opened.
-        </Text>
-        <Flex align="center" gap="3" wrap="wrap">
-          <Spinner size="1" />
-          <Text as="span" size="1" color="gray">
-            {WAITING_WORDS}
-          </Text>
-          {cancel('1')}
-        </Flex>
-      </Flex>
+      <SignInWaiting
+        app={app}
+        {...(onSignIn
+          ? {
+              onAgain: () => onSignIn('start'),
+              onCancel: (button: HTMLElement) => signIn('cancel', button),
+              cancelRef: receive,
+            }
+          : {})}
+      />
     );
   }
 
@@ -898,6 +925,96 @@ function AuthorityTile({
           </Button>
           {noteText}
         </Flex>
+      )}
+      <Text as="span" size="1" color="gray">
+        Opens {app}’s sign-in in a new window
+      </Text>
+    </Flex>
+  );
+}
+
+/**
+ * The add-account tile (task-12.13 decision 27), laid out as the authority tile's full form: the
+ * statement, the accounts already added, what a new account lets the app do, Add account, and
+ * that it opens in a new window. Waiting, the authority tile's own waiting form.
+ */
+function AddAccountTile({
+  app,
+  accounts,
+  scopes,
+  waiting,
+  enabled,
+  handOff,
+  receive,
+  onSignIn,
+}: {
+  app: string;
+  accounts: SlotAccount[];
+  scopes: string[];
+  waiting: boolean;
+  enabled: boolean;
+  handOff: (button: HTMLElement) => void;
+  receive: (element: HTMLElement | null) => void;
+  onSignIn?: (kind: SignInKind) => void;
+}) {
+  const signIn = (kind: SignInKind, button: HTMLElement) => {
+    handOff(button);
+    onSignIn?.(kind);
+  };
+  if (waiting) {
+    return (
+      <SignInWaiting
+        app={app}
+        {...(onSignIn
+          ? {
+              onAgain: () => onSignIn('addAccount'),
+              onCancel: (button: HTMLElement) => signIn('cancel', button),
+              cancelRef: receive,
+            }
+          : {})}
+      />
+    );
+  }
+  return (
+    <Flex direction="column" align="start" gap="4" data-authority="addAccount">
+      <Flex direction="column" gap="2">
+        <Text as="p" size="3" weight="bold">
+          Add another {app} account.
+        </Text>
+        {accounts.length > 0 && (
+          <Text as="p" size="2" color="gray">
+            Already added: {accounts.map(account => account.label).join(', ')}
+          </Text>
+        )}
+      </Flex>
+      {scopes.length > 0 && (
+        <Flex direction="column" gap="2">
+          <Text as="span" size="1" color="gray">
+            {app} will be able to
+          </Text>
+          <ul style={scopeListStyle}>
+            {scopes.map(scope => (
+              <li key={scope} style={scopeItemStyle}>
+                <CheckIcon
+                  aria-hidden
+                  style={{flex: 'none', marginTop: 2, color: 'var(--gray-10)'}}
+                />
+                <Text size="2">{scope}</Text>
+              </li>
+            ))}
+          </ul>
+        </Flex>
+      )}
+      {onSignIn && (
+        <Button
+          size="2"
+          disabled={!enabled}
+          ref={receive}
+          onClick={event => signIn('addAccount', event.currentTarget)}
+        >
+          Add account
+          <ExternalLinkIcon aria-hidden />
+        </Button>
       )}
       <Text as="span" size="1" color="gray">
         Opens {app}’s sign-in in a new window
@@ -1000,7 +1117,9 @@ export function createSlotComponent(
         source={props.source}
         gap={props.gap}
         chooseAccount={props.chooseAccount}
+        addAccount={props.addAccount}
         accounts={props.accounts}
+        scopes={props.scopes}
         weight={props.weight}
         state={props.state}
         label={props.label}
@@ -1032,11 +1151,12 @@ export function createSlotComponent(
             }))
         }
         onSignIn={
-          onSignIn && props.source !== undefined
+          onSignIn && (props.source ?? props.addAccount) !== undefined
             ? kind =>
                 onSignIn({
                   kind,
-                  source: props.source!,
+                  // The add-account tile's sign-in is the bare app's (task-12.13 decision 27).
+                  source: (props.source ?? props.addAccount)!,
                   surfaceId: context.dataContext.surface.id,
                   componentId: context.componentModel.id,
                 })

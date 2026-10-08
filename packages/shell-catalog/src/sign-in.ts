@@ -9,13 +9,19 @@
  */
 import {createContext} from 'react';
 
-/** Start or cancel a source's sign-in, and where it was raised. */
+/**
+ * Start or cancel a source's sign-in, and where it was raised. `addAccount` starts a sign-in for
+ * the app's next account, from the add-account tile, its source the bare app id (task-12.13
+ * decision 27); Cancel stops either.
+ */
 export interface SignInRequest {
-  kind: 'start' | 'cancel';
+  kind: SignInKind;
   source: string;
   surfaceId: string;
   componentId: string;
 }
+
+export type SignInKind = 'start' | 'addAccount' | 'cancel';
 
 export type SignInHandler = (request: SignInRequest) => void;
 

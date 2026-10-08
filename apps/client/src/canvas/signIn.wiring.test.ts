@@ -72,7 +72,6 @@ function setup() {
     signIn: {
       openWindow: url => opened.push(url),
       poll: () => Promise.resolve(outcome),
-      page: new EventTarget() as unknown as Window,
     },
   });
   const canvas = wiring.openReplayCanvas('what needs my attention');
@@ -138,10 +137,10 @@ describe('sign-in on the page', () => {
     expect(operations().at(-1)).toEqual({kind: 'retry', sources: ['gmail.1']});
   });
 
-  it('the add-account shell action opens the window on the bare app id', async () => {
+  it('the add-account tile’s Add account opens the window on the bare app id (task-12.13 decision 27)', async () => {
     const {wiring, opened} = setup();
     await wiring.press({kind: 'include', sources: ['gmail.1']});
-    wiring.host.onShellAction({name: 'addAccount', surfaceId: 'shell:main', app: 'gmail'});
+    wiring.host.onSignIn({kind: 'addAccount', source: 'gmail', ...press});
     expect(new URL(opened[0]!).searchParams.get('source')).toBe('gmail');
   });
 });

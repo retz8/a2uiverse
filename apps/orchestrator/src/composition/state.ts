@@ -135,6 +135,25 @@ export interface AccountChoice {
   chosen?: string;
 }
 
+/**
+ * The add-account tile (task-12.13 decision 27): the app's name, its accounts already added by
+ * label, and what a new account lets the app do in the card's words — read from the vault and the
+ * card, never from the model.
+ */
+export interface AddingAccount {
+  displayName: string;
+  accounts: {source: string; label: string}[];
+  scopes: string[];
+}
+
+/** The app's accounts already added, by label, as the tile lists them. */
+export function addedAccounts(sources: Sources, appId: string): AddingAccount['accounts'] {
+  return sources
+    .of(appId)
+    .filter(({notSignedIn}) => !notSignedIn)
+    .map(({source, label}) => ({source, label: label ?? source}));
+}
+
 /** Where a turn's events go: its task, its stream, its journal line. */
 export interface Sink {
   ctx: {taskId: string; contextId: string};
@@ -218,6 +237,8 @@ export interface CompositionState {
   gaps: string[];
   /** The account choices the Planner asked, by app; each has a `Slot` in the tree (task 12.6). */
   choices: Map<string, AccountChoice>;
+  /** The add-account tiles the Planner placed, by app; each is a `Slot` in the tree (task-12.13 decision 27). */
+  adding: Map<string, AddingAccount>;
   /** Every surface's data model. */
   partitions: Partitions;
   /** Each agent's paints in this composition and the wiring accepted per combination of them (tasks 9.4, 10.9). */
@@ -299,6 +320,16 @@ export function compositionFrom(
   const slots = new Map<string, SlotEntry>();
   const gaps: string[] = [];
   const choices = new Map<string, AccountChoice>();
+  const adding = new Map<string, AddingAccount>();
+  for (const component of layout.tree.components) {
+    const appId = (component as {addAccount?: unknown}).addAccount;
+    if (component.component !== 'Slot' || typeof appId !== 'string') continue;
+    adding.set(appId, {
+      displayName: sources.displayName(appId),
+      accounts: addedAccounts(sources, appId),
+      scopes: [],
+    });
+  }
   const merged = layout.dispatch.find(
     entry => isSourceDispatch(entry) && entry.source === SHELL_SOURCE_ID,
   );
@@ -343,6 +374,7 @@ export function compositionFrom(
     slots,
     gaps,
     choices,
+    adding,
     partitions: new Partitions(),
     history: new History(),
     arrived: new Set(),

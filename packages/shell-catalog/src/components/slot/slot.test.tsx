@@ -928,7 +928,7 @@ test('sign in again when the refresh failed; not supported here with Manage apps
   expect(opened).toEqual(['library']);
 });
 
-test('while the sign-in window is open the tile says to finish there, with Cancel; the quiet line stays one line (task-12.3 decision 3)', () => {
+test('while the sign-in window is open the tile says to finish there, with Open the sign-in again and Cancel; the quiet line stays one line (task-12.3 decision 3; task-12.13 decision 26)', () => {
   const kinds: string[] = [];
   const {unmount} = render(
     <SignInContext.Provider value={source => source === 'gmail.1'}>
@@ -946,10 +946,12 @@ test('while the sign-in window is open the tile says to finish there, with Cance
   ).toBeInTheDocument();
   expect(screen.getByText('Waiting for you to finish signing in')).toBeInTheDocument();
   expect(screen.queryByText(signInScopes[0]!)).toBeNull();
+  act(() => screen.getByRole('button', {name: 'Open the sign-in again'}).click());
   act(() => screen.getByRole('button', {name: 'Cancel'}).click());
-  expect(kinds).toEqual(['cancel']);
+  expect(kinds).toEqual(['start', 'cancel']);
   unmount();
 
+  const quietKinds: string[] = [];
   render(
     <SignInContext.Provider value={() => true}>
       <SlotView
@@ -957,13 +959,16 @@ test('while the sign-in window is open the tile says to finish there, with Cance
         state="authority"
         authority={{cause: 'signIn', quiet: true, scopes: []}}
         nameOf={gmailName}
-        onSignIn={() => {}}
+        onSignIn={kind => quietKinds.push(kind)}
       />
     </SignInContext.Provider>,
   );
   const line = screen.getByRole('group', {name: 'Gmail, not signed in'});
   expect(line).toHaveTextContent('Waiting for you to finish signing in');
+  expect(line).toContainElement(screen.getByRole('button', {name: 'Open the sign-in again'}));
   expect(line).toContainElement(screen.getByRole('button', {name: 'Cancel'}));
+  act(() => screen.getByRole('button', {name: 'Open the sign-in again'}).click());
+  expect(quietKinds).toEqual(['start']);
   expect(screen.queryByText(/Finish signing in/)).toBeNull();
 });
 
@@ -1248,4 +1253,78 @@ test('an account pressed gives the choice way to the pending line; one that neve
   tile('unreached');
   expect(screen.getByRole('button', {name: 'jioh@umich.edu'})).toBeEnabled();
   expect(screen.getAllByText(UNREACHED_WORDS)[0]!.closest('[data-slot-press-note]')).not.toBeNull();
+});
+
+/* ── Task 12.13: the add-account tile ───────────────────────────────────────── */
+
+const INBOX = ['See your inbox'];
+
+test('schema: addAccount is one of the four a slot holds; accounts and scopes ride on it, scopes on nothing else (task-12.13 decision 27)', () => {
+  const adding = {addAccount: 'gmail', label: 'Gmail', accounts: GMAIL_ACCOUNTS, scopes: INBOX};
+  expect(SlotApi.schema.safeParse(adding).success).toBe(true);
+  expect(SlotApi.schema.safeParse({addAccount: 'gmail'}).success).toBe(true);
+  expect(SlotApi.schema.safeParse({...adding, source: 'gmail.1'}).success).toBe(false);
+  expect(SlotApi.schema.safeParse({...adding, chooseAccount: 'gmail'}).success).toBe(false);
+  expect(SlotApi.schema.safeParse({source: 'gmail.1', scopes: INBOX}).success).toBe(false);
+});
+
+test('the add-account tile: the statement, the accounts already added, what a new one lets the app do, Add account and its window (task-12.13 decision 27)', () => {
+  const kinds: string[] = [];
+  const {container} = render(
+    <SlotView
+      addAccount="gmail"
+      label="Gmail"
+      accounts={GMAIL_ACCOUNTS}
+      scopes={INBOX}
+      onSignIn={kind => kinds.push(kind)}
+    />,
+  );
+  expect(container.querySelector('[data-slot-add-account="gmail"]')).not.toBeNull();
+  expect(screen.getByText('Add another Gmail account.')).toBeInTheDocument();
+  expect(screen.getByText('Already added: jioh@gmail.com, jioh@umich.edu')).toBeInTheDocument();
+  expect(screen.getByText('Gmail will be able to')).toBeInTheDocument();
+  expect(screen.getByText('See your inbox')).toBeInTheDocument();
+  expect(screen.getByText('Opens Gmail’s sign-in in a new window')).toBeInTheDocument();
+  act(() => screen.getByRole('button', {name: 'Add account'}).click());
+  expect(kinds).toEqual(['addAccount']);
+});
+
+test('with no account added yet the tile names none; without a sign-in host it draws no press', () => {
+  render(<SlotView addAccount="gmail" label="Gmail" scopes={INBOX} />);
+  expect(screen.queryByText(/Already added/)).toBeNull();
+  expect(screen.queryByRole('button')).toBeNull();
+});
+
+test('while its window is open the tile is the authority tile’s waiting form: Open the sign-in again adds again, Cancel cancels', () => {
+  const kinds: string[] = [];
+  render(
+    <SignInContext.Provider value={source => source === 'gmail'}>
+      <SlotView
+        addAccount="gmail"
+        label="Gmail"
+        accounts={GMAIL_ACCOUNTS}
+        scopes={INBOX}
+        onSignIn={kind => kinds.push(kind)}
+      />
+    </SignInContext.Provider>,
+  );
+  expect(
+    screen.getByText('Finish signing in to Gmail in the window that opened.'),
+  ).toBeInTheDocument();
+  expect(screen.queryByRole('button', {name: 'Add account'})).toBeNull();
+  act(() => screen.getByRole('button', {name: 'Open the sign-in again'}).click());
+  act(() => screen.getByRole('button', {name: 'Cancel'}).click());
+  expect(kinds).toEqual(['addAccount', 'cancel']);
+});
+
+test('through the catalog, Add account hands the host the bare app’s addAccount sign-in', () => {
+  const requests: SignInRequest[] = [];
+  renderTree(
+    [{id: 'root', component: 'Slot', addAccount: 'gmail', label: 'Gmail', scopes: INBOX}],
+    {onSignIn: request => requests.push(request)},
+  );
+  screen.getByRole('button', {name: 'Add account'}).click();
+  expect(requests).toEqual([
+    {kind: 'addAccount', source: 'gmail', surfaceId: SURFACE_ID, componentId: 'root'},
+  ]);
 });

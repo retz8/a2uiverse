@@ -470,11 +470,7 @@ export function createCanvasRuntime({
       sourceComponentId: action.componentId ?? FUNCTION_CALL_SOURCE,
       timestamp: new Date().toISOString(),
       context:
-        action.name === 'openStore' && action.query !== undefined
-          ? {query: action.query}
-          : action.name === 'addAccount'
-            ? {app: action.app}
-            : {},
+        action.name === 'openStore' && action.query !== undefined ? {query: action.query} : {},
     };
     void (async () => {
       // The hub answers with nothing. Should it ever answer with a paint, it lands like the
@@ -589,8 +585,6 @@ export function trustedPageOf(action: ShellAction): TrustedPageState | undefined
       return {page: 'store', ...(action.query !== undefined ? {query: action.query} : {})};
     case 'openAppLibrary':
       return {page: 'appLibrary'};
-    case 'addAccount':
-      return undefined;
   }
 }
 

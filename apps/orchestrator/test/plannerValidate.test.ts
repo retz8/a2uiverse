@@ -351,7 +351,7 @@ describe('what the Planner may write on a Slot', () => {
       content: 'fragment',
     };
     expect(check(doc)).toEqual([
-      "/tree (gh): Slot.state, Slot.label, Slot.content are written by the shell; write only source, gap or chooseAccount, and weight — the merged view's columns, column marks and join go on its dispatch entry",
+      "/tree (gh): Slot.state, Slot.label, Slot.content are written by the shell; write only source, gap, chooseAccount or addAccount, and weight — the merged view's columns, column marks and join go on its dispatch entry",
     ]);
     for (const [prop, value] of [
       ['noun', 'GitHub PRs'],
@@ -368,7 +368,7 @@ describe('what the Planner may write on a Slot', () => {
       const painted = fanOut();
       painted.tree.components[4] = {id: 'gh', component: 'Slot', source: 'github', [prop]: value};
       expect(check(painted)).toEqual([
-        `/tree (gh): Slot.${prop} is written by the shell; write only source, gap or chooseAccount, and weight — the merged view's columns, column marks and join go on its dispatch entry`,
+        `/tree (gh): Slot.${prop} is written by the shell; write only source, gap, chooseAccount or addAccount, and weight — the merged view's columns, column marks and join go on its dispatch entry`,
       ]);
     }
     const onSlot = fanOut();
@@ -548,36 +548,59 @@ describe('accounts (task 12.6)', () => {
     ]);
   });
 
-  const adding = (app: unknown): LayoutSurface => ({
+  const adding = (app: unknown, extra: Record<string, unknown> = {}): LayoutSurface => ({
     dispatch: [],
     tree: {
       components: [
-        {id: 'root', component: 'Column', children: ['line', 'add']},
-        {id: 'line', component: 'Text', text: 'Gmail has two accounts.'},
-        {
-          id: 'add',
-          component: 'Button',
-          child: 'add-label',
-          action: {functionCall: {call: 'addAccount', args: {app}}},
-        },
-        {id: 'add-label', component: 'Text', text: 'Add an account'},
+        {id: 'root', component: 'Column', children: ['add']},
+        {id: 'add', component: 'Slot', addAccount: app, ...extra},
       ],
     },
     dataModel: {},
   });
 
-  test('add an account names a shortlisted app that asks sign-in, by its app id (decision 8)', () => {
+  test('the add-account tile names a shortlisted app that asks sign-in, by its app id, with no dispatch entry (task-12.13 decision 27)', () => {
     expect(errors(adding('gmail'))).toEqual([]);
     expect(errors(adding('github'))).toEqual([]);
     expect(errors(adding('calendar'))).toEqual([
-      "/tree (add): addAccount names 'calendar', which asks no sign-in",
+      "/tree (add): Slot.addAccount names 'calendar', which asks no sign-in",
     ]);
     expect(errors(adding('linear'))).toEqual([
-      "/tree (add): addAccount names 'linear', which is not on this turn's shortlist",
+      "/tree (add): Slot.addAccount names 'linear', which is not on this turn's shortlist",
     ]);
     expect(errors(adding('gmail.1'))).toEqual([
-      "/tree (add): addAccount names 'gmail.1', which is not on this turn's shortlist",
+      "/tree (add): Slot.addAccount names 'gmail.1', which is not on this turn's shortlist",
     ]);
+  });
+
+  test('its accounts and scopes are the painter’s; one tile per app', () => {
+    expect(errors(adding('gmail', {scopes: ['x']}))).toEqual([
+      "/tree (add): Slot.scopes is written by the shell; write only source, gap, chooseAccount or addAccount, and weight — the merged view's columns, column marks and join go on its dispatch entry",
+    ]);
+    const twice = adding('gmail');
+    twice.tree.components = [
+      {id: 'root', component: 'Column', children: ['add', 'again']},
+      {id: 'add', component: 'Slot', addAccount: 'gmail'},
+      {id: 'again', component: 'Slot', addAccount: 'gmail'},
+    ];
+    expect(errors(twice)).toEqual([
+      "/tree (again): a second Slot adds an account to 'gmail'; one per app",
+    ]);
+  });
+
+  test('a button calling addAccount is refused: adding an account is the tile alone', () => {
+    const doc = adding('gmail');
+    doc.tree.components = [
+      {id: 'root', component: 'Column', children: ['add']},
+      {
+        id: 'add',
+        component: 'Button',
+        child: 'add-label',
+        action: {functionCall: {call: 'addAccount', args: {app: 'gmail'}}},
+      },
+      {id: 'add-label', component: 'Text', text: 'Add an account'},
+    ];
+    expect(errors(doc).length).toBeGreaterThan(0);
   });
 
   test('the accounts on a Slot are the painter’s', () => {
@@ -589,7 +612,7 @@ describe('accounts (task 12.6)', () => {
       accounts: [{source: 'gmail.1', label: 'x'}],
     };
     expect(errors(doc)).toEqual([
-      "/tree (root): Slot.accounts is written by the shell; write only source, gap or chooseAccount, and weight — the merged view's columns, column marks and join go on its dispatch entry",
+      "/tree (root): Slot.accounts is written by the shell; write only source, gap, chooseAccount or addAccount, and weight — the merged view's columns, column marks and join go on its dispatch entry",
     ]);
   });
 });

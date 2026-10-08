@@ -6,7 +6,7 @@ import {z} from 'zod';
  * All props are fixed authoring-time configuration — none are data-bound, so none use `Dynamic*`
  * wrappers.
  *
- * - A slot holds exactly one of `source`, `gap` or `chooseAccount`.
+ * - A slot holds exactly one of `source`, `gap`, `chooseAccount` or `addAccount`.
  * - `source` is the dispatched source whose content fills the region: a source id — the app and
  *   the account it paints under, `<appId>.<n>`, the bare app id for an app needing no sign-in
  *   (task-12.2 decision 3) — or `shell` for the merged view. It is the slot's identity within the layout; the host resolves content by it.
@@ -16,6 +16,10 @@ import {z} from 'zod';
  *   decisions 3, 5): the region is the account choice, and `accounts` — painted by the runtime,
  *   from the vault — are its presses, each an account's source and its label. A press sends the
  *   request the plan wrote for the app to that account, painting in this slot.
+ * - `addAccount` is an app the utterance asked to add an account to (task-12.13 decision 27): the
+ *   region is the add-account tile, drawn by the shell. `accounts` — the app's accounts already
+ *   added, by label — and `scopes` — what a new account lets the app do, in the card's words —
+ *   are painted by the runtime from the vault and the card, never by the model.
  * - `weight` is the basic catalog's flex-grow share inside a `Row` or `Column`.
  * - `state` is the lifecycle state the orchestrator paints (`pending` default in catalog.json).
  *   `filled` is not a wire state: content arriving via the host resolver is what fills a slot.
@@ -151,6 +155,7 @@ export const SlotApi = {
       source: z.string().optional(),
       gap: z.string().optional(),
       chooseAccount: z.string().optional(),
+      addAccount: z.string().optional(),
       accounts: z.array(z.object({source: z.string(), label: z.string()}).strict()).optional(),
       weight: z.number().optional(),
       state: z.enum(['pending', 'failed', 'collapsed', 'authority']).optional(),
@@ -158,6 +163,7 @@ export const SlotApi = {
       noun: z.string().optional(),
       failure: FailureSchema.optional(),
       authority: AuthoritySchema.optional(),
+      scopes: z.array(z.string()).optional(),
       content: z.enum(['fragment', 'shell']).optional(),
       columns: z.array(z.string()).optional(),
       columnSources: z.array(z.string().nullable()).optional(),
@@ -183,12 +189,20 @@ export const SlotApi = {
     .strict()
     .refine(
       props =>
-        [props.source, props.gap, props.chooseAccount].filter(held => held !== undefined).length ===
-        1,
-      {message: 'a Slot holds exactly one of source, gap or chooseAccount'},
+        [props.source, props.gap, props.chooseAccount, props.addAccount].filter(
+          held => held !== undefined,
+        ).length === 1,
+      {message: 'a Slot holds exactly one of source, gap, chooseAccount or addAccount'},
     )
-    .refine(props => props.accounts === undefined || props.chooseAccount !== undefined, {
-      message: 'a Slot carries accounts only when it is the account choice',
+    .refine(
+      props =>
+        props.accounts === undefined ||
+        props.chooseAccount !== undefined ||
+        props.addAccount !== undefined,
+      {message: 'a Slot carries accounts only when it is the account choice or add-account'},
+    )
+    .refine(props => props.scopes === undefined || props.addAccount !== undefined, {
+      message: 'a Slot carries scopes only when it is add-account',
     })
     .refine(props => props.authority === undefined || props.state === 'authority', {
       message: 'a Slot carries an authority only when its state is `authority`',

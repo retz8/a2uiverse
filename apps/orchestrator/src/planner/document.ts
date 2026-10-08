@@ -87,7 +87,7 @@ const treeSchema = {
   additionalProperties: false,
   required: ['components'],
   description:
-    'The layout surface: the A2UI components list an agent would put in an updateComponents, authored in the catalog you were given. One component has the id `root`. A `Slot` stands for each dispatch entry, matched by its source, its gap or its account choice.',
+    'The layout surface: the A2UI components list an agent would put in an updateComponents, authored in the catalog you were given. One component has the id `root`. A `Slot` stands for each dispatch entry, matched by its source, its gap or its account choice. When the utterance asks to add an account to an app — or which accounts an app has — a `Slot` holding `addAccount`, the app id, stands for it, with no dispatch entry: the shell draws that tile, its accounts and its press; write nothing else for it.',
   properties: {
     components: {
       type: 'array',
