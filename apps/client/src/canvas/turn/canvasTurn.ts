@@ -8,8 +8,9 @@
  *   a turn whose creations were cleaned up again is discarded and the stage holds. Messages
  *   targeting a live surface not created this turn apply directly, progressively.
  * - **Progressive mode** (empty canvas): the paint streams straight onto the stage.
- * - **Question paints**: a validated surface recognised as a question routes to the overlay
- *   slot, never the stage.
+ * - **Question paints**: a paint declared a question is a paint like any other, in its slot or
+ *   on the stage; its source is said on the progress line as needing the reader's answer until a
+ *   press in it (task-12.13 decision 37).
  * - **A source swaps in when it settles** (task-9.9 decision 23): in staged mode a fragment's
  *   paint is held per source, not per turn — the source's settled marker swaps in what survives
  *   of it (net effect judged per source, a create cleaned up again discarded), so a drill-down
@@ -73,7 +74,7 @@ import type {SynthesisIntake} from '../synthesis/synthesisSession';
 import type {FragmentHistory, RestorableStep} from '../history/fragmentHistory';
 import {rebuildMessages} from '../history/paintCopy';
 import type {TurnProcessor} from './turnMessages';
-import {ROOT_COMPONENT_ID, invalidComponentsOf, questionTitleOf, targetOf} from './turnMessages';
+import {ROOT_COMPONENT_ID, invalidComponentsOf, targetOf} from './turnMessages';
 
 export type {CanvasSurface, TurnProcessor} from './turnMessages';
 
@@ -90,8 +91,8 @@ export interface TurnHandle {
   apply(messages: A2uiMessage[], stamp?: CompositionStamp, synthesis?: SynthesisPayload): void;
   /**
    * Accept one paintMeta shell object: the agent-authored title names the step in its source's
-   * history when its fragment claims a slot; `kind: "question"` is the routing contract, and the
-   * only thing that sends a paint to the overlay or promotes a slot.
+   * history when its fragment claims a slot; `kind: "question"` marks a paint that asks the reader
+   * something, and is the only thing that says so on the progress line.
    */
   acceptPaintMeta(meta: PaintMeta): void;
   /** The stream is exhausted: run the gate — swap in, or discard. No-op if canceled. */
@@ -158,12 +159,6 @@ export interface TurnRunner {
   /** The canvas is closing: the turn in flight and every stream beside it end (task-9.6 decision 8). */
   cancelAll(): void;
   /**
-   * Remove the pending question paint from the canvas and the live registry. Shared by Q&A's
-   * two exits — answering (the answer is captured into the next cause by the caller) and
-   * speaking past it (no trace).
-   */
-  removeOverlay(): void;
-  /**
    * A step back or forward (task-9.7): the copy the history handed back becomes the source's live
    * surface in its slot, the one there now retired.
    */
@@ -216,7 +211,7 @@ export function createTurnRunner({
       processor.model.deleteSurface(placed.surfaceId);
     dropped.add(placed.surfaceId);
     store.unplace(source);
-    store.demoteSlot(source);
+    store.answerSlot(source);
     history?.dropped(source);
   };
 
@@ -233,7 +228,7 @@ export function createTurnRunner({
     }
     if (placed && surfaceIds.includes(placed.surfaceId)) {
       store.unplace(source);
-      store.demoteSlot(source);
+      store.answerSlot(source);
       history?.dropped(source);
     }
     store.bumpApplied();
@@ -340,7 +335,7 @@ export function createTurnRunner({
       if (source === undefined) return;
       reported.add(surfaceId);
       // A slot that failed has nothing left to answer.
-      store.demoteSlot(source);
+      store.answerSlot(source);
       onFragmentFailure({surfaceId, source, path, message, ...(refused ? {refused} : {})});
     };
     /** A batch for a refused source: nothing of it enters the registry; its create is reported. */
@@ -405,7 +400,7 @@ export function createTurnRunner({
     // vendors through the hub's per-dispatch partition filter as stale state.
     for (const placed of placement.values()) processor.model.deleteSurface(placed.surfaceId);
     store.clearPlacement();
-    store.clearPromotions();
+    store.clearAsking();
     store.setStage(null);
     // The synthesis belongs to the composition: its payload and sorts go with it.
     synthesis?.retire();
@@ -420,22 +415,6 @@ export function createTurnRunner({
     store.resetComposition();
     history?.retire();
   }
-
-  /** A newer question replaces any pending one — an unanswered question leaves no trace. */
-  const replaceOverlay = (surfaceId: string) => {
-    const pending = store.getState().overlay;
-    if (pending && pending.surfaceId !== surfaceId)
-      processor.model.deleteSurface(pending.surfaceId);
-    store.setOverlay({surfaceId, question: questionTitleOf(processor, surfaceId)});
-  };
-
-  const removeOverlay = () => {
-    const overlay = store.getState().overlay;
-    if (!overlay) return;
-    processor.model.deleteSurface(overlay.surfaceId);
-    store.setOverlay(null);
-    store.bumpApplied();
-  };
 
   /** The source whose repaint an action inside a fragment sets in flight (task-9.7 decision 6). */
   const sourceOfCause = (cause: PaintCause): string | undefined => {
@@ -569,14 +548,10 @@ export function createTurnRunner({
       fragmentSlots.has(id) ||
       [...store.getState().placement.values()].some(p => p.surfaceId === id);
 
-    /**
-     * A fragment declaring a question does not get the overlay — that would re-parent it out of
-     * the slot the shell promised it, and would let one vendor block the whole canvas. The shell
-     * expresses the demand instead, in place.
-     */
-    const settlePromotion = (source: string) => {
+    /** A fragment declaring a question asks the reader something, said on the progress line. */
+    const settleAsking = (source: string) => {
       const placed = store.getState().placement.get(source);
-      if (placed && isQuestion(placed.surfaceId)) store.promoteSlot(source);
+      if (placed && isQuestion(placed.surfaceId)) store.askSlot(source);
     };
 
     /**
@@ -615,7 +590,7 @@ export function createTurnRunner({
         }
       }
       applyA2uiMessages(processor, messages, {onMessageError});
-      if (source) settlePromotion(source);
+      if (source) settleAsking(source);
       if (payload) {
         // The surface is live: evaluate now, so the first render already carries values.
         const target = synthesisTarget(messages, stamp);
@@ -663,10 +638,6 @@ export function createTurnRunner({
           if (kind !== 'delete') {
             // An update to an already-visible surface applies live, progressively.
             applyA2uiMessages(processor, [message], {onMessageError});
-          } else if (state.overlay?.surfaceId === surfaceId) {
-            // The agent withdrew its question.
-            processor.model.deleteSurface(surfaceId);
-            store.setOverlay(null);
           } else if (state.stageId === surfaceId) {
             // A deliberate delete of the live stage — retire it, go empty.
             retireStage();
@@ -715,7 +686,7 @@ export function createTurnRunner({
         if (!survivors.has(surfaceId)) continue;
         claimSlot(source, surfaceId, title, isQuestion(surfaceId));
       }
-      settlePromotion(source);
+      settleAsking(source);
       store.bumpApplied();
     };
 
@@ -756,12 +727,6 @@ export function createTurnRunner({
         if (createdIds.size > 0) store.reportError(EMPTY_FAILURE_TEXT);
         return;
       }
-      if (isQuestion(stageId)) {
-        // A question over the empty canvas: overlay slot, empty stage.
-        replaceOverlay(stageId);
-        store.setStage(null);
-        store.bumpApplied();
-      }
     };
 
     const endStaged = () => {
@@ -778,11 +743,8 @@ export function createTurnRunner({
         const {surfaceId} = targetOf(message);
         return surfaceId !== undefined && survivorSet.has(surfaceId);
       });
-      // Classify before replay: questions to the overlay, the rest are stage paints — by the
-      // declared marker. Fragments are neither: they are mounted through their slots.
-      const contenders = survivors.filter(id => !fragmentSlots.has(id));
-      const stagePaints = contenders.filter(id => !isQuestion(id));
-      const questions = contenders.filter(id => isQuestion(id));
+      // Stage paints are what survives that no slot mounts: fragments go through their slots.
+      const stagePaints = survivors.filter(id => !fragmentSlots.has(id));
 
       // The swap: retire the outgoing stage (serialize-on-swap), then replay the validated
       // paint into the live processor. A fragment the replay repaints under its own id is
@@ -797,7 +759,7 @@ export function createTurnRunner({
       for (const {surfaceId, source, title} of claims) {
         if (!survivorSet.has(surfaceId)) continue;
         claimSlot(source, surfaceId, title, isQuestion(surfaceId));
-        settlePromotion(source);
+        settleAsking(source);
       }
       // The synthesis surface reached live with the replay: its payload lands with it.
       if (pendingSynthesis && processor.model.getSurface(pendingSynthesis.surfaceId)) {
@@ -807,8 +769,6 @@ export function createTurnRunner({
       pendingSynthesis = undefined;
       for (const id of stagePaints.slice(0, -1)) retireIntermediate(id);
       if (stagePaints.length > 0) store.setStage(stagePaints[stagePaints.length - 1]);
-      for (const id of questions.slice(0, -1)) processor.model.deleteSurface(id);
-      if (questions.length > 0) replaceOverlay(questions[questions.length - 1]);
       store.bumpApplied();
     };
 
@@ -998,7 +958,7 @@ export function createTurnRunner({
         if (source) {
           const placed = store.getState().placement.get(source);
           if (placed && metas.get(placed.surfaceId)?.kind === QUESTION_PAINT_KIND)
-            store.promoteSlot(source);
+            store.askSlot(source);
         }
         if (payload) {
           const target = synthesisTarget(admitted, stamp);
@@ -1035,7 +995,7 @@ export function createTurnRunner({
     dropped.delete(paint.surfaceId);
     applyA2uiMessages(processor, rebuildMessages(paint), {onMessageError: reportMessageError});
     store.placeFragment(source, {surfaceId: paint.surfaceId, source});
-    store.demoteSlot(source);
+    store.answerSlot(source);
     store.bumpApplied();
   };
 
@@ -1046,7 +1006,6 @@ export function createTurnRunner({
     begin,
     beginSideStream,
     cancelAll,
-    removeOverlay,
     restore,
   };
 }

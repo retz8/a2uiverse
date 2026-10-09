@@ -152,7 +152,6 @@ export function gateRunner(runner: TurnRunner, gate: CatalogGate): TurnRunner {
     begin: cause => gated(runner.begin(cause)),
     beginSideStream: () => gated(runner.beginSideStream()),
     cancelAll: runner.cancelAll,
-    removeOverlay: runner.removeOverlay,
     restore: runner.restore,
   };
 }

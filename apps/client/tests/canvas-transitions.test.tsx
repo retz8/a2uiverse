@@ -62,17 +62,14 @@ describe('validation-failure turn (partial paint → cleanup delete → final)',
 });
 
 describe('question paint (declared kind="question")', () => {
-  it('routes to the overlay above the held stage, with the question extracted', async () => {
+  it('swaps in as the stage like any paint (task-12.13 decision 37)', async () => {
     const {processor, store, runner} = setup();
     await replayBeatOnCanvas(PLAIN_PAINT_BEAT, {runner, store, paced: false});
-    const held = store.getState().stageId;
 
     await replayBeatOnCanvas(QUESTION_BEAT, {runner, store, paced: false});
 
-    const state = store.getState();
-    expect(state.overlay).toEqual({surfaceId: 'which-repo', question: 'Which repository?'});
-    expect(state.stageId).toBe(held);
-    expect(Array.from(processor.model.surfacesMap.keys())).toEqual([held, 'which-repo']);
+    expect(store.getState().stageId).toBe('which-repo');
+    expect(Array.from(processor.model.surfacesMap.keys())).toEqual(['which-repo']);
   });
 });
 

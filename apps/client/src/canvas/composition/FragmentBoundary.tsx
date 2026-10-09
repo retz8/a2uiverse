@@ -23,19 +23,16 @@ export interface FragmentBoundaryProps {
   source: string;
   /** The namespaced surface id, for debugging and for the detector's DOM-ownership check. */
   surfaceId: string;
-  /** The fragment asked for attention and the shell granted it: raised, and named as such. */
-  promoted?: boolean;
   children: ReactNode;
 }
 
-export function FragmentBoundary({source, surfaceId, promoted, children}: FragmentBoundaryProps) {
+export function FragmentBoundary({source, surfaceId, children}: FragmentBoundaryProps) {
   return (
     <div
-      className={promoted ? 'fragment-boundary fragment-boundary--promoted' : 'fragment-boundary'}
+      className="fragment-boundary"
       role="group"
-      aria-label={promoted ? `${source} — needs your answer` : source}
+      aria-label={source}
       data-surface={surfaceId}
-      data-promoted={promoted ? 'true' : undefined}
       {...{[FRAGMENT_BOUNDARY_ATTR]: source}}
     >
       {children}

@@ -412,8 +412,10 @@ body {
   color: var(--a2v-ink);
 }
 
-/* A source waiting on a sign-in (task-12.8 decision 7): a lock, in the line's own ink. */
-.canvas-progress-step--locked svg {
+/* A source waiting on a sign-in (task-12.8 decision 7): a lock, in the line's own ink. A source
+   whose fragment asks a question (task-12.13 decision 37): a question mark, the same ink. */
+.canvas-progress-step--locked svg,
+.canvas-progress-step--asking svg {
   color: var(--a2v-ink-2);
 }
 
@@ -1143,50 +1145,25 @@ body {
   display: flow-root;
   min-width: 0;
   border-radius: var(--radius-3);
+  /* An app's dialog opens over its own slot (task-12.13 decision 42): the boundary is the
+     containing block of what the app positions fixed, so a backdrop and its dialog cover this
+     slot alone and several apps can each hold one open. Layout containment clips nothing, so a
+     menu still reaches past the slot. */
+  contain: layout;
+}
+
+/* The slot the reader is working in paints above its neighbours, so a menu or a dialog opened
+   in it is not drawn under the next slot. */
+.fragment-boundary:focus-within {
+  z-index: 1;
 }
 
 /* Nothing is drawn around a fragment (task-7.9 decision 23): no border, no background, no
    hover or focus treatment, however many share the canvas. The vendor's own pixels and the
    attribution marker above them are the whole region. */
 
-/* Shell-granted promotion: the fragment asked for attention and the shell raised it.
-   Emphasis must read on the boundary itself, because when every slot is promoted the
-   scrim covers nothing. */
-.fragment-boundary--promoted {
-  z-index: 2;
-  border-color: var(--accent-9);
-  box-shadow:
-    0 0 0 2px var(--accent-9),
-    var(--shadow-4);
-  background: var(--color-panel-solid);
-}
-
-/* The scrim dims the complement — every slot that is not asking. It is reinforcement,
-   never the signal, and it sits under the raised boundaries. */
-.canvas-scrim {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  background: var(--color-overlay, rgb(0 0 0 / 35%));
-  pointer-events: none;
-}
-
 .canvas-app {
   position: relative;
-}
-
-/* The promotion count is announced rather than trapping focus: promotion is plural, so
-   it is emphasis and not a modal. */
-.canvas-visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: -1px;
-  padding: 0;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-  border: 0;
 }
 
 /*

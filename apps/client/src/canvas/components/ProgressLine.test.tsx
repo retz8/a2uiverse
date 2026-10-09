@@ -118,6 +118,17 @@ describe('ProgressLine', () => {
     expect(step.querySelector('svg')).not.toBeNull();
   });
 
+  it('a source whose fragment asks a question carries a question mark and says so (task-12.13 decision 37)', () => {
+    const store = createCanvasStore();
+    store.setRoster([{source: 'calendar.1', name: 'Google Calendar'}]);
+    store.placeFragment('calendar.1', {surfaceId: 'calendar.1:x', source: 'calendar.1'});
+    store.askSlot('calendar.1');
+    renderWithShell(<ProgressLine state={store.getState()} since={null} />);
+    const step = screen.getByText('Google Calendar needs your answer').closest('[data-status]')!;
+    expect(step).toHaveAttribute('data-status', 'asking');
+    expect(step.querySelector('[data-icon="asking"]')).not.toBeNull();
+  });
+
   it('an account added from this canvas is said on the line, even with nothing else to say (task-12.8 decision 6)', () => {
     const store = createCanvasStore();
     store.showAccountNotice('Added work@example.com to Gmail.');

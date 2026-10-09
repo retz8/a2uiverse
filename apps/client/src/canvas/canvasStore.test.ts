@@ -1,5 +1,5 @@
 /**
- * The canvas store: one canvas's stage/overlay occupancy, in-flight status, question and
+ * The canvas store: one canvas's stage occupancy, in-flight status, question and
  * composition facts (task-9.6 decision 2).
  */
 import {describe, it, expect, vi} from 'vitest';
@@ -10,7 +10,6 @@ describe('createCanvasStore', () => {
     const store = createCanvasStore();
     expect(store.getState()).toEqual({
       stageId: null,
-      overlay: null,
       inFlight: null,
       error: null,
       question: null,
@@ -29,7 +28,7 @@ describe('createCanvasStore', () => {
       prose: new Map(),
       appliedSeq: 0,
       placement: new Map(),
-      promoted: new Set(),
+      asking: new Set(),
     });
   });
 
@@ -57,20 +56,20 @@ describe('createCanvasStore', () => {
     expect(store.getState().placement.size).toBe(0);
   });
 
-  it('promotes and demotes slots, and no-ops on a repeat', () => {
+  it('marks slots asking and answered, and no-ops on a repeat (task-12.13 decision 37)', () => {
     const store = createCanvasStore();
-    store.promoteSlot('github');
-    const promoted = store.getState();
-    store.promoteSlot('github');
-    expect(store.getState()).toBe(promoted);
+    store.askSlot('github');
+    const asked = store.getState();
+    store.askSlot('github');
+    expect(store.getState()).toBe(asked);
 
-    store.promoteSlot('gmail');
-    expect([...store.getState().promoted].sort()).toEqual(['github', 'gmail']);
+    store.askSlot('gmail');
+    expect([...store.getState().asking].sort()).toEqual(['github', 'gmail']);
 
-    store.demoteSlot('github');
-    expect([...store.getState().promoted]).toEqual(['gmail']);
-    store.clearPromotions();
-    expect(store.getState().promoted.size).toBe(0);
+    store.answerSlot('github');
+    expect([...store.getState().asking]).toEqual(['gmail']);
+    store.clearAsking();
+    expect(store.getState().asking.size).toBe(0);
   });
 
   it('beginPaint marks in-flight with its cause; endPaint settles back to idle', () => {
@@ -96,17 +95,6 @@ describe('createCanvasStore', () => {
     expect(store.getState().stageId).toBe('pull-request-list');
     store.setStage(null);
     expect(store.getState().stageId).toBeNull();
-  });
-
-  it('setOverlay moves the overlay pointer', () => {
-    const store = createCanvasStore();
-    store.setOverlay({surfaceId: 'question', question: 'Which repository?'});
-    expect(store.getState().overlay).toEqual({
-      surfaceId: 'question',
-      question: 'Which repository?',
-    });
-    store.setOverlay(null);
-    expect(store.getState().overlay).toBeNull();
   });
 
   it("each of the shell's cues gets a fresh key so repeats restart the fade", () => {

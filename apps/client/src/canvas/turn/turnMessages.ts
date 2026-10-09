@@ -58,14 +58,6 @@ export function targetOf(message: A2uiMessage): MessageTarget {
   return {kind: 'other'};
 }
 
-/** A question's title when statically known — a literal on the wire, not a data binding. */
-export function questionTitleOf(processor: TurnProcessor, surfaceId: string): string | undefined {
-  const root = processor.model.getSurface(surfaceId)?.componentsModel.get(ROOT_COMPONENT_ID);
-  const title = root?.properties?.title as {literalString?: unknown} | string | undefined;
-  if (typeof title === 'string') return title;
-  return typeof title?.literalString === 'string' ? title.literalString : undefined;
-}
-
 /**
  * Re-validate a settled surface against its catalog — the ids of components whose final
  * properties fail their schema. The processor validates every streamed batch and throws a

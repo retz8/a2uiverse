@@ -133,24 +133,18 @@ test('the shell and its painted surfaces agree on one palette in dark mode', asy
   await page.close();
 });
 
-test('a question fragment is promoted in place, with the rest of the canvas dimmed', async ({
+test('a question fragment asks in place: nothing raised or dimmed, the progress line says it (task-12.13 decision 37)', async ({
   page,
 }) => {
   await page.goto('/?beat=composed-question&instant');
   await expect(page.locator('main[data-replay="done"]')).toBeAttached({timeout: 30_000});
 
-  // The asking fragment is raised where it already was; the other keeps its place.
-  await expect(page.locator('[data-a2ui-fragment="gmail"][data-promoted="true"]')).toHaveCount(1);
-  await expect(page.locator('[data-a2ui-fragment="github"][data-promoted="true"]')).toHaveCount(0);
-  await expect(page.getByTestId('canvas-scrim')).toBeVisible();
-
-  // The shell grants attention; it does not seize it. Promotion is plural, so it puts up no
-  // modal of its own and no focus trap — the demand is announced instead.
+  // The asking fragment is where it painted itself, inside its slot.
+  await expect(page.locator('[data-a2ui-fragment="gmail"]')).toHaveCount(1);
+  await expect(page.locator('[data-promoted]')).toHaveCount(0);
+  await expect(page.getByTestId('canvas-scrim')).toHaveCount(0);
   await expect(page.getByTestId('canvas-overlay')).toHaveCount(0);
-  // The slots carry polite status regions of their own (task 8.5): the canvas's is the one that speaks here.
-  await expect(page.getByRole('status').filter({hasText: 'needs your answer'})).toContainText(
-    '1 source needs your answer',
-  );
+  await expect(page.getByTestId('canvas-progress')).toContainText('Gmail needs your answer');
   const shellModal = await page.evaluate(
     () =>
       [...document.querySelectorAll('[aria-modal="true"]')].filter(
@@ -162,6 +156,32 @@ test('a question fragment is promoted in place, with the rest of the canvas dimm
   // The question renders where the shell put it: inside its own slot, not floating over the page.
   const inSlot = page.locator('[data-slot="gmail"] [data-a2ui-fragment="gmail"]');
   await expect(inSlot).toContainText('Which account?');
+});
+
+test('an app’s fixed layer covers its own slot, not the canvas (task-12.13 decision 42)', async ({
+  page,
+}) => {
+  await page.goto('/?beat=composed-question&instant');
+  await expect(page.locator('main[data-replay="done"]')).toBeAttached({timeout: 30_000});
+  const boxes = await page.evaluate(() => {
+    const boundary = document.querySelector<HTMLElement>('[data-a2ui-fragment="gmail"]')!;
+    // What a vendor dialog's backdrop is: a fixed layer over the whole viewport.
+    const layer = document.createElement('div');
+    layer.style.cssText = 'position: fixed; inset: 0;';
+    boundary.appendChild(layer);
+    const rect = (el: Element) => {
+      const {x, y, width, height} = el.getBoundingClientRect();
+      return {
+        x: Math.round(x),
+        y: Math.round(y),
+        width: Math.round(width),
+        height: Math.round(height),
+      };
+    };
+    return {boundary: rect(boundary), layer: rect(layer), viewport: window.innerWidth};
+  });
+  expect(boxes.layer).toEqual(boxes.boundary);
+  expect(boxes.layer.width).toBeLessThan(boxes.viewport);
 });
 
 test('each source gets its own line, in slot order and named', async ({page}) => {
@@ -206,15 +226,6 @@ test('visual: a lone fragment owning the canvas', async ({page}) => {
   await expect(page.locator('main[data-replay="done"]')).toBeAttached({timeout: 30_000});
   await expect(page).toHaveScreenshot('composition-solo.png', {fullPage: true});
 });
-
-/*
- * There is deliberately no visual baseline for a promoted slot. Promotion lands a frame after the
- * replay stream is exhausted and the fragment's own height settles a frame after that, so the
- * capture is a coin flip between two legitimate renders however it is settled. A baseline that
- * fails half the time teaches people to ignore baselines. The behavioural test above covers what
- * the picture would have: the scrim, which boundary is raised, the question rendering inside its
- * own slot, and the announced count.
- */
 
 test('visual: the composed screen in dark mode', async ({browser}) => {
   const page = await browser.newPage({colorScheme: 'dark', viewport: {width: 1024, height: 768}});

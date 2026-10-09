@@ -346,9 +346,9 @@ export const COMPOSED_SOLO_BEAT: BeatFixture = {
 };
 
 /**
- * A composed turn where one fragment asks a question. It does not get the overlay — that would
- * re-parent it out of its slot and let one vendor block a canvas it shares. The shell grants
- * promotion instead: that slot is raised, the rest dimmed, and the fragment never moves.
+ * A composed turn where one fragment asks a question. It stays in its slot as it painted itself,
+ * nothing raised or dimmed; the progress line says the app needs the reader's answer (task-12.13
+ * decision 37).
  */
 export const COMPOSED_QUESTION_BEAT: BeatFixture = {
   ...base,
@@ -393,8 +393,8 @@ export const COMPOSED_QUESTION_BEAT: BeatFixture = {
           offsetMs: 240,
           stamp: {source: 'gmail', role: 'fragment'},
           messages: [
-            // The declared marker, not a dialog component: promotion raises a question where it
-            // already is, so the question renders inline in its slot rather than as an overlay.
+            // The declared marker, not a dialog component: the question renders inline in its
+            // slot, and the progress line says Gmail needs the reader's answer.
             msg({paintMeta: {surfaceId: 'gmail:ask', kind: 'question'}}),
             msg({createSurface: {surfaceId: 'gmail:ask', catalogId: SHELL_CATALOG_ID}}),
             msg({

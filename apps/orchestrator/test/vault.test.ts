@@ -761,6 +761,43 @@ describe("the agent's requests for more access", () => {
     );
   });
 
+  test('a later press in the fragment drops the request the earlier press left: no chip, journaled superseded, nothing held to send again (task-12.13 decision 39)', async () => {
+    const {base, client} = await boot({
+      apps: {
+        shop: {
+          card: oauthCard(),
+          admit: admitsTokens(),
+          script: sequence(
+            deterministicScript,
+            authRequired([{signIn: ['write']}]),
+            deterministicScript,
+          ),
+        },
+      },
+      plan: shopOnly,
+    });
+    const canvas = contextOf(await collect(client, utterance('my orders')));
+    await signIn(base, canvas, 'shop.1');
+    await collect(client, press('retry', 'shop.1', canvas));
+    const asked = await collect(client, action('shop.1', canvas));
+    expect(attributionOf(asked, 'shop.1')).toMatchObject({
+      escalation: {scopes: ['Change your orders']},
+    });
+
+    const later = await collect(client, action('shop.1', canvas));
+    expect(attributionOf(later, 'shop.1')).not.toHaveProperty('escalation');
+    await signInLinesWith({
+      event: 'superseded',
+      appId: 'shop',
+      source: 'shop.1',
+      scopes: ['write'],
+    });
+    const requests = vendors[0]!.requests.length;
+    const refused = await collect(client, press('dismiss', 'shop.1', canvas));
+    expect(refused.at(-1)).toMatchObject({status: {state: 'failed'}});
+    expect(vendors[0]!.requests).toHaveLength(requests);
+  });
+
   test('a key the card does not declare fails the slot; a request naming nothing is a 401', async () => {
     const {base, client} = await boot({
       apps: {

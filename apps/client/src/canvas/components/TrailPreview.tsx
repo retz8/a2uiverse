@@ -47,7 +47,6 @@ export function TrailPreview({runtime, label, top, railColumn}: TrailPreviewProp
     runtime.processor,
     state.placement,
     state.appliedSeq,
-    undefined,
     state.roster,
     state.prose,
   );

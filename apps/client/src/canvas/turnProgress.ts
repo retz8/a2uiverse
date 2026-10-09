@@ -9,14 +9,17 @@ import type {CanvasState, JoinNouns, RosterEntry} from './canvasStore';
 import {retrying} from './composition/columnState';
 import {SHELL_SOURCE} from './composition/roster';
 
-/** Where one step of the turn stands; `locked` is a source waiting on a sign-in. */
-export type StepStatus = 'done' | 'working' | 'failed' | 'idle' | 'locked';
+/**
+ * Where one step of the turn stands; `locked` is a source waiting on a sign-in, `asking` one
+ * whose fragment asks a question (task-12.13 decision 37).
+ */
+export type StepStatus = 'done' | 'working' | 'failed' | 'idle' | 'locked' | 'asking';
 
 export interface SourceStep {
   source: string;
   name: string;
   status: StepStatus;
-  /** The step's words: the name, with its sign-in state when it waits on one. */
+  /** The step's words: the name, with what it waits on when it waits on the reader. */
   text: string;
 }
 
@@ -72,15 +75,30 @@ export function signInWords(state: CanvasState, source: string): string | undefi
 const needsSignIn = (state: CanvasState, source: string) =>
   state.slotStates.get(source) === 'authority' && !retrying(state, source);
 
+/** A press the reader made inside the source's fragment, its stream not yet ended. */
+const pressRunning = (state: CanvasState, source: string) =>
+  state.inFlight?.source === source && !state.inFlight.settled;
+
+/**
+ * What the source waits on the reader for, in the progress line's words: a sign-in window open;
+ * otherwise nothing while a press made in its fragment runs, that press being the latest fact
+ * (task-12.13 decision 38); then its sign-in, or the question its fragment asks.
+ */
+function waitingWords(state: CanvasState, source: string): string | undefined {
+  if (state.signingIn.has(source)) return signInWords(state, source);
+  if (pressRunning(state, source)) return undefined;
+  return signInWords(state, source) ?? (state.asking.has(source) ? 'needs your answer' : undefined);
+}
+
 const sourceStatus = (state: CanvasState, source: string, busy: boolean): StepStatus => {
-  if (signInWords(state, source)) return 'locked';
+  if (waitingWords(state, source)) return signInWords(state, source) ? 'locked' : 'asking';
   // The reader's Retry is drawn from the press, before the paint says so.
   const retried = retrying(state, source);
   const painted = state.slotStates.get(source);
   if (painted === 'failed' && !retried) return 'failed';
   // An action inside its fragment is that source working again, until its stream ends (task-9.9
   // decision 25): the line names no action, only the source it went to.
-  if (state.inFlight?.source === source && !state.inFlight.settled) return 'working';
+  if (pressRunning(state, source)) return 'working';
   // A source that answered in prose without painting still answered.
   if (state.placement.has(source) || state.prose.has(source)) return 'done';
   if (painted === 'collapsed') return 'done';
@@ -104,7 +122,7 @@ export function turnProgress(state: CanvasState): TurnProgress {
   return {
     working,
     sources: vendors.map(entry => {
-      const words = signInWords(state, entry.source);
+      const words = waitingWords(state, entry.source);
       return {
         source: entry.source,
         name: entry.name,

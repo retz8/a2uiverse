@@ -41,7 +41,6 @@ export function renderSlotContent(
   surfaces: SurfaceSource,
   placed: PlacedFragment | undefined,
   resetKey: number,
-  promoted = false,
   spoken?: string,
 ): ReactNode | null {
   if (!placed) return spoken ? restingProse(spoken) : null;
@@ -63,7 +62,7 @@ export function renderSlotContent(
     );
   }
   return (
-    <FragmentBoundary source={placed.source} surfaceId={placed.surfaceId} promoted={promoted}>
+    <FragmentBoundary source={placed.source} surfaceId={placed.surfaceId}>
       {contained}
     </FragmentBoundary>
   );
@@ -74,7 +73,6 @@ export function useSlotContent(
   surfaces: SurfaceSource,
   placement: ReadonlyMap<string, PlacedFragment>,
   resetKey: number,
-  promoted?: ReadonlySet<string>,
   roster?: readonly RosterEntry[],
   prose?: ReadonlyMap<string, string>,
 ): SlotContentResolver {
@@ -86,14 +84,8 @@ export function useSlotContent(
       // merged view never rests on words: a decline is said on its collapsed slot (task 8.5).
       const reserved = source !== SHELL_SOURCE && roster?.some(entry => entry.source === source);
       const spoken = reserved ? prose?.get(source)?.trim() : undefined;
-      return renderSlotContent(
-        surfaces,
-        placement.get(source),
-        resetKey,
-        promoted?.has(source),
-        spoken || undefined,
-      );
+      return renderSlotContent(surfaces, placement.get(source), resetKey, spoken || undefined);
     },
-    [surfaces, placement, resetKey, promoted, roster, prose],
+    [surfaces, placement, resetKey, roster, prose],
   );
 }

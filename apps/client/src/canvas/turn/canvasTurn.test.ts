@@ -1,6 +1,6 @@
 /**
- * The turn runner: hold-and-swap with the net-effect validation gate, the overlay slot for
- * question paints, last-intent-wins cancel, the composition's facts, and the streams beside the
+ * The turn runner: hold-and-swap with the net-effect validation gate, question paints as paints
+ * like any other, last-intent-wins cancel, the composition's facts, and the streams beside the
  * turn — one runner per canvas (task 9.6).
  */
 import {describe, it, expect, vi} from 'vitest';
@@ -152,15 +152,13 @@ describe('progressive mode (empty canvas)', () => {
     expect(processor.model.getSurface('broken')).toBeFalsy();
   });
 
-  it('a dialog-rooted paint routes to the overlay, not the stage', () => {
+  it('a question paint over the empty canvas is the stage, like any paint (task-12.13 decision 37)', () => {
     const {store, runner} = setup();
     const turn = runner.begin(utterance('delete everything'));
     turn.apply([create('confirm-wipe'), ...questionPaint('confirm-wipe', 'Really wipe it all?')]);
     turn.end();
 
-    const state = store.getState();
-    expect(state.stageId).toBeNull();
-    expect(state.overlay).toEqual({surfaceId: 'confirm-wipe', question: 'Really wipe it all?'});
+    expect(store.getState().stageId).toBe('confirm-wipe');
   });
 
   it('a canceled progressive paint is removed from the stage', () => {
@@ -298,70 +296,19 @@ describe('staged mode (occupied stage): hold-and-swap', () => {
   });
 });
 
-describe('question paints and the overlay slot', () => {
-  it('a dialog-rooted paint passes the gate into the overlay; the stage paint is untouched', () => {
+describe('question paints (task-12.13 decision 37)', () => {
+  it('a question paint passes the gate and swaps in as the stage, like any paint', () => {
     const {processor, store, runner} = setup();
     paintStage(runner, 'stage', 'held content');
 
     const turn = runner.begin(utterance('which repo?'));
     turn.apply([create('which-repo'), ...questionPaint('which-repo', 'Which repository?')]);
     // Gated: the question is not live mid-turn.
-    expect(store.getState().overlay).toBeNull();
+    expect(store.getState().stageId).toBe('stage');
     turn.end();
 
-    const state = store.getState();
-    expect(state.overlay).toEqual({surfaceId: 'which-repo', question: 'Which repository?'});
-    expect(state.stageId).toBe('stage');
-    expect(Array.from(processor.model.surfacesMap.keys())).toEqual(['stage', 'which-repo']);
-  });
-
-  it('a new question replaces a pending one, which leaves no trace', () => {
-    const {processor, store, runner} = setup();
-    paintStage(runner, 'stage', 'held');
-
-    const first = runner.begin(utterance('q1'));
-    first.apply([create('question-1'), ...questionPaint('question-1', 'First?')]);
-    first.end();
-
-    const second = runner.begin(utterance('q2'));
-    second.apply([create('question-2'), ...questionPaint('question-2', 'Second?')]);
-    second.end();
-
-    const state = store.getState();
-    expect(state.overlay).toEqual({surfaceId: 'question-2', question: 'Second?'});
-    expect(processor.model.getSurface('question-1')).toBeFalsy();
-  });
-
-  it('removeOverlay drops the question from canvas and registry with no trace', () => {
-    const {processor, store, runner} = setup();
-    paintStage(runner, 'stage', 'held');
-    const turn = runner.begin(utterance('ask'));
-    turn.apply([create('question'), ...questionPaint('question', 'Sure?')]);
-    turn.end();
-
-    runner.removeOverlay();
-    const state = store.getState();
-    expect(state.overlay).toBeNull();
-    expect(processor.model.getSurface('question')).toBeFalsy();
-    expect(Array.from(processor.model.surfacesMap.keys())).toEqual(['stage']);
-  });
-
-  it('a validated turn can deliver a stage paint and a question together', () => {
-    const {store, runner} = setup();
-    paintStage(runner, 'old-stage', 'old');
-
-    const turn = runner.begin(utterance('both'));
-    turn.apply([
-      create('new-stage'),
-      textRoot('new-stage', 'new'),
-      create('question'),
-      ...questionPaint('question', 'Also this?'),
-    ]);
-    turn.end();
-
-    const state = store.getState();
-    expect(state.stageId).toBe('new-stage');
-    expect(state.overlay).toEqual({surfaceId: 'question', question: 'Also this?'});
+    expect(store.getState().stageId).toBe('which-repo');
+    expect(Array.from(processor.model.surfacesMap.keys())).toEqual(['which-repo']);
   });
 });
 
@@ -407,16 +354,14 @@ describe('cancel: last-intent-wins', () => {
 });
 
 describe('paint meta', () => {
-  it('kind="question" routes a non-dialog paint to the overlay — the marker is the contract', () => {
+  it('kind="question" names a paint a question and moves nothing: it lands on the stage', () => {
     const {store, runner} = setup();
     const turn = runner.begin(utterance('which repo?'));
     turn.acceptPaintMeta({surfaceId: 'which-repo', title: 'Which repository?', kind: 'question'});
     turn.apply([create('which-repo'), textRoot('which-repo', 'a2ui or a2ui-github?')]);
     turn.end();
 
-    const state = store.getState();
-    expect(state.stageId).toBeNull();
-    expect(state.overlay?.surfaceId).toBe('which-repo');
+    expect(store.getState().stageId).toBe('which-repo');
   });
 
   it('an undeclared dialog-rooted paint is an ordinary stage paint', () => {
@@ -428,9 +373,7 @@ describe('paint meta', () => {
     turn.apply([create('undeclared'), dialogRoot('undeclared', 'Looks like a question')]);
     turn.end();
 
-    const state = store.getState();
-    expect(state.stageId).toBe('undeclared');
-    expect(state.overlay).toBeNull();
+    expect(store.getState().stageId).toBe('undeclared');
   });
 
   it('an explicit non-question kind keeps a dialog-rooted paint on the stage', () => {
@@ -440,12 +383,10 @@ describe('paint meta', () => {
     turn.apply([create('dlg'), dialogRoot('dlg', 'Not a question')]);
     turn.end();
 
-    const state = store.getState();
-    expect(state.stageId).toBe('dlg');
-    expect(state.overlay).toBeNull();
+    expect(store.getState().stageId).toBe('dlg');
   });
 
-  it('staged mode routes a marker-declared question to the overlay while the stage holds', () => {
+  it('staged mode swaps a marker-declared question in as the stage', () => {
     const {store, runner} = setup();
     paintStage(runner, 'first', 'one');
     const turn = runner.begin(utterance('which repo?'));
@@ -453,9 +394,7 @@ describe('paint meta', () => {
     turn.apply([create('q'), textRoot('q', 'a or b?')]);
     turn.end();
 
-    const state = store.getState();
-    expect(state.stageId).toBe('first'); // the held stage survives a question paint
-    expect(state.overlay?.surfaceId).toBe('q');
+    expect(store.getState().stageId).toBe('q');
   });
 
   it('paintMeta objects inline in an applied batch are consumed, not fed to the processor', () => {
@@ -897,12 +836,12 @@ describe('fragment failure reporting', () => {
   });
 });
 
-describe('shell-granted promotion', () => {
+describe('a fragment that asks (task-12.13 decision 37)', () => {
   const SHELL: CompositionStamp = {source: 'shell', role: 'shell'};
   const fragment = (source: string): CompositionStamp => ({source, role: 'fragment'});
   const shellPaint = paintedLayout;
 
-  function promotionSetup() {
+  function askingSetup() {
     const catalogs = [CATALOG, SHELL_CATALOG];
     const processor = new MessageProcessor(catalogs);
     const store = createCanvasStore();
@@ -914,8 +853,8 @@ describe('shell-granted promotion', () => {
     return {processor, store, runner};
   }
 
-  it('a question fragment is promoted in place, never lifted into the overlay', () => {
-    const {store, runner} = promotionSetup();
+  it('a question fragment asks in place: its slot keeps it, and the source is marked asking', () => {
+    const {store, runner} = askingSetup();
     const turn = runner.begin(utterance('compose'));
     turn.apply(shellPaint(['github']), SHELL);
     turn.apply(
@@ -924,15 +863,14 @@ describe('shell-granted promotion', () => {
     );
     turn.end();
 
-    expect([...store.getState().promoted]).toEqual(['github']);
+    expect([...store.getState().asking]).toEqual(['github']);
     // The invariant: it stays where the shell put it.
-    expect(store.getState().overlay).toBeNull();
     expect(store.getState().stageId).toBe('shell:main');
     expect(store.getState().placement.get('github')?.surfaceId).toBe('github:ask');
   });
 
-  it('several fragments can ask at once — promotion is plural, not a modal', () => {
-    const {store, runner} = promotionSetup();
+  it('several fragments can ask at once', () => {
+    const {store, runner} = askingSetup();
     const turn = runner.begin(utterance('compose'));
     turn.apply(shellPaint(['github', 'gmail']), SHELL);
     turn.apply(
@@ -945,21 +883,20 @@ describe('shell-granted promotion', () => {
     );
     turn.end();
 
-    expect([...store.getState().promoted].sort()).toEqual(['github', 'gmail']);
-    expect(store.getState().overlay).toBeNull();
+    expect([...store.getState().asking].sort()).toEqual(['github', 'gmail']);
   });
 
-  it('an ordinary fragment is not promoted', () => {
-    const {store, runner} = promotionSetup();
+  it('an ordinary fragment asks nothing', () => {
+    const {store, runner} = askingSetup();
     const turn = runner.begin(utterance('compose'));
     turn.apply(shellPaint(['github']), SHELL);
     turn.apply([create('github:prs'), textRoot('github:prs', 'PRs')], fragment('github'));
     turn.end();
-    expect(store.getState().promoted.size).toBe(0);
+    expect(store.getState().asking.size).toBe(0);
   });
 
-  it('promotion clears when the composition is torn down', () => {
-    const {store, runner} = promotionSetup();
+  it('asking clears when the composition is torn down', () => {
+    const {store, runner} = askingSetup();
     const first = runner.begin(utterance('compose'));
     first.apply(shellPaint(['github']), SHELL);
     first.apply(
@@ -967,22 +904,12 @@ describe('shell-granted promotion', () => {
       fragment('github'),
     );
     first.end();
-    expect(store.getState().promoted.size).toBe(1);
+    expect(store.getState().asking.size).toBe(1);
 
     const second = runner.begin(utterance('compose again'));
     second.apply(shellPaint(['github']), SHELL);
     second.end();
-    expect(store.getState().promoted.size).toBe(0);
-  });
-
-  it('a shell-painted question still takes the overlay', () => {
-    const {store, runner} = promotionSetup();
-    const turn = runner.begin(utterance('ask'));
-    turn.apply([create('which-repo'), ...questionPaint('which-repo', 'Which repository?')], SHELL);
-    turn.end();
-
-    expect(store.getState().overlay?.surfaceId).toBe('which-repo');
-    expect(store.getState().promoted.size).toBe(0);
+    expect(store.getState().asking.size).toBe(0);
   });
 });
 

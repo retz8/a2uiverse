@@ -1,7 +1,7 @@
 /**
  * One canvas on screen (task-9.6 decisions 1, 2): the runtime's own store read here, its question
  * heading the page, its progress line, its stage with the slots resolved against its own processor,
- * its overlay question, its notices and its sticky error. Keyed by the canvas by the page, so
+ * its notices and its sticky error. Keyed by the canvas by the page, so
  * switching canvases remounts cleanly. A past canvas draws exactly as the live one — actable, its
  * presses made — the band above it is the page's chrome, not this view's. The arrows on each
  * attribution row read the canvas's history through the host's context (task 9.7): the two
@@ -23,7 +23,6 @@ import {columnState, sourceBusy} from '../composition/columnState';
 import {useSlotContent} from '../composition/slotContent';
 import {BindingIndexContext} from '../navigation/decorateCatalog';
 import {AmbientNotice} from './AmbientNotice';
-import {CanvasOverlay} from './CanvasOverlay';
 import {CanvasStage} from './CanvasStage';
 import {CompactHead} from './CompactHead';
 import {ProgressLine} from './ProgressLine';
@@ -47,7 +46,6 @@ export function CanvasView({runtime, onEdit, past = false}: CanvasViewProps) {
     runtime.processor,
     state.placement,
     state.appliedSeq,
-    state.promoted,
     state.roster,
     state.prose,
   );
@@ -87,10 +85,6 @@ export function CanvasView({runtime, onEdit, past = false}: CanvasViewProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [runtime, historyVersion, inFlight, presses],
   );
-
-  // Promotion is plural, so it is emphasis rather than a modal: no focus trap, and the count
-  // is announced instead of the focus being seized.
-  const promotedCount = state.promoted.size;
 
   /** The page that scrolls and the header at its top: the condensed header watches the one leave the other. */
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -143,15 +137,6 @@ export function CanvasView({runtime, onEdit, past = false}: CanvasViewProps) {
             </PressStateContext.Provider>
           </SlotStateContext.Provider>
         </div>
-        {promotedCount > 0 && (
-          <div className="canvas-scrim" data-testid="canvas-scrim" aria-hidden="true" />
-        )}
-        <div role="status" aria-live="polite" className="canvas-visually-hidden">
-          {promotedCount > 0
-            ? `${promotedCount} ${promotedCount === 1 ? 'source needs' : 'sources need'} your answer`
-            : ''}
-        </div>
-        <CanvasOverlay processor={runtime.processor} state={state} />
         <AmbientNotice notices={orderedNotices(state)} onDismiss={runtime.store.dismissNotice} />
       </SlotContentContext.Provider>
     </BindingIndexContext.Provider>

@@ -1,6 +1,6 @@
 /**
  * The canvas store: one hand-rolled external store (subscribe + snapshot, read by React via
- * useSyncExternalStore) owning one canvas's state — stage and overlay occupancy, in-flight
+ * useSyncExternalStore) owning one canvas's state — stage occupancy, in-flight
  * status, the question, and the composition's own facts. One per canvas (task-9.6 decision 2):
  * the trail store above it holds which canvases exist, which is live and which is viewed.
  * Written from non-React code (the turn runner, the replay driver, the A2A callbacks), which is
@@ -95,18 +95,9 @@ export interface RenderedNotice extends Notice {
   label: string | null;
 }
 
-/** The pending question paint occupying the overlay slot. */
-export interface OverlayState {
-  surfaceId: string;
-  /** The dialog's title when statically known — the question, for cause records and labels. */
-  question?: string;
-}
-
 export interface CanvasState {
   /** The surface occupying the stage; null is the empty canvas. */
   stageId: string | null;
-  /** The one transient question paint above the stage; null when no question is pending. */
-  overlay: OverlayState | null;
   /**
    * Set while a paint is streaming: the kind of cause that opened it — an utterance plans, an
    * action or an answer works inside what is already there — and, for an action inside a
@@ -186,12 +177,10 @@ export interface CanvasState {
    */
   placement: ReadonlyMap<string, PlacedFragment>;
   /**
-   * Slots whose fragment has asked for attention. A vendor cannot seize the canvas: it declares
-   * a question, and the shell decides how to express it — here, by dimming the complement and
-   * raising these. Plural by construction, since a fan-out can produce several at once, which is
-   * why this is emphasis and not a modal.
+   * Slots whose fragment asks a question, not yet answered: said on the progress line, the
+   * fragment left as it painted itself (task-12.13 decision 37).
    */
-  promoted: ReadonlySet<string>;
+  asking: ReadonlySet<string>;
 }
 
 export interface CanvasStore {
@@ -229,7 +218,6 @@ export interface CanvasStore {
   resetComposition(): void;
   reportError(text: string): void;
   setStage(stageId: string | null): void;
-  setOverlay(overlay: OverlayState | null): void;
   /**
    * Agent prose: append a streamed chunk to its source's buffer, creating the line on first
    * chunk. `null` is the shell's bucket — prose that arrived with no fragment stamp.
@@ -254,11 +242,11 @@ export interface CanvasStore {
   clearPlacement(): void;
   /** A source's fragment left its slot — its slot failed (task-8.5 decision 3). */
   unplace(source: string): void;
-  /** A fragment asks for attention; the shell grants it. */
-  promoteSlot(source: string): void;
-  /** Answered, failed, or gone: the slot drops back to the rest of the canvas. */
-  demoteSlot(source: string): void;
-  clearPromotions(): void;
+  /** A fragment asks a question. */
+  askSlot(source: string): void;
+  /** Answered, failed, or gone: the slot asks nothing. */
+  answerSlot(source: string): void;
+  clearAsking(): void;
 }
 
 /**
@@ -282,7 +270,6 @@ export function orderedNotices(state: CanvasState): readonly RenderedNotice[] {
 export function createCanvasStore(): CanvasStore {
   let state: CanvasState = {
     stageId: null,
-    overlay: null,
     inFlight: null,
     error: null,
     question: null,
@@ -301,7 +288,7 @@ export function createCanvasStore(): CanvasStore {
     prose: new Map(),
     appliedSeq: 0,
     placement: new Map(),
-    promoted: new Set(),
+    asking: new Set(),
   };
   let noticeKey = 0;
   let pressKey = 0;
@@ -410,7 +397,6 @@ export function createCanvasStore(): CanvasStore {
       }),
     reportError: text => set({error: text}),
     setStage: stageId => set({stageId}),
-    setOverlay: overlay => set({overlay}),
     appendProse: (source, text) => {
       const existing = state.notices.find(n => n.source === source);
       // A line is minted by the first chunk that says something: prose often opens with
@@ -457,17 +443,17 @@ export function createCanvasStore(): CanvasStore {
       placement.delete(source);
       set({placement});
     },
-    promoteSlot: source => {
-      if (!state.promoted.has(source)) set({promoted: new Set(state.promoted).add(source)});
+    askSlot: source => {
+      if (!state.asking.has(source)) set({asking: new Set(state.asking).add(source)});
     },
-    demoteSlot: source => {
-      if (!state.promoted.has(source)) return;
-      const next = new Set(state.promoted);
+    answerSlot: source => {
+      if (!state.asking.has(source)) return;
+      const next = new Set(state.asking);
       next.delete(source);
-      set({promoted: next});
+      set({asking: next});
     },
-    clearPromotions: () => {
-      if (state.promoted.size) set({promoted: new Set()});
+    clearAsking: () => {
+      if (state.asking.size) set({asking: new Set()});
     },
   };
 }

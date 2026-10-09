@@ -674,6 +674,20 @@ export class OrchestratorExecutor implements AgentExecutor {
     // Two-way edits reach the partitions through the returning client data model.
     composition?.partitions.applyClientDataModel(clientSurfaces(ctx.userMessage.metadata));
     const sink: Sink = {ctx, bus, turn};
+    // A request for more access holds the press that needed it, for Allow to send again: a later
+    // press in the fragment has moved on from it, so the request goes (task-12.13 decision 39).
+    const asking = composition?.slots.get(owner);
+    if (composition && asking?.escalation) {
+      await this.#deps.journal.signIn({
+        event: 'superseded',
+        appId: parseSourceId(owner)?.appId ?? owner,
+        source: owner,
+        scopes: asking.escalation.keys,
+      });
+      delete asking.escalation;
+      delete asking.keptPress;
+      this.#repaint([sink], composition);
+    }
 
     const message: Message = {
       ...ctx.userMessage,

@@ -1,7 +1,7 @@
 /**
- * The canvas page: the canvas on screen + overlay + palette + progress line + ambient notice
+ * The canvas page: the canvas on screen + palette + progress line + ambient notice
  * assembled over the A2A transport and the turn runner, with the ?beat= fixture-replay
- * affordance, the interaction policy (blocked actions with a cue, always-live overlay answers),
+ * affordance, the interaction policy (blocked actions with a cue),
  * and the trail — every question a canvas of its own, a past canvas a tab (task 9.6).
  */
 import {describe, it, expect, afterEach} from 'vitest';
@@ -208,10 +208,10 @@ describe('CanvasApp', () => {
     await waitFor(() => expect(screen.queryByTestId('canvas-pending')).toBeNull());
   });
 
-  it('a question paint lands in the overlay; answering dispatches the action and dismisses it', async () => {
+  it('a question paint lands as a paint like any other; answering dispatches the action (task-12.13 decision 37)', async () => {
     const QUESTION_MESSAGES = [
-      // The declared marker is what routes a paint to the overlay — the canvas no longer infers
-      // it from a ConfirmationDialog root. It rides its own DataPart, ahead of the create.
+      // The declared marker names the paint a question; it rides its own DataPart, ahead of the
+      // create, and moves nothing.
       {paintMeta: {surfaceId: 'which-repo', kind: 'question'}},
       {version: 'v0.9', createSurface: {surfaceId: 'which-repo', catalogId: CATALOG_ID}},
       {
@@ -237,8 +237,8 @@ describe('CanvasApp', () => {
 
     await ask('do the ambiguous thing');
     expect(await screen.findByText('Which repository?')).toBeInTheDocument();
-    // In the overlay, not on the stage — which is what the marker buys.
-    expect(screen.getByTestId('canvas-overlay')).toHaveTextContent('Which repository?');
+    // No overlay: the paint is where any paint goes.
+    expect(screen.queryByTestId('canvas-overlay')).toBeNull();
 
     await userEvent.click(screen.getByRole('button', {name: 'a2ui-project/a2ui'}));
 
@@ -248,7 +248,7 @@ describe('CanvasApp', () => {
     const dataPart = sent[1].message.parts.find(p => p.kind === 'data') as
       Extract<Part, {kind: 'data'}> | undefined;
     expect(dataPart?.data.action).toMatchObject({name: 'choose-repo', surfaceId: 'which-repo'});
-    // The dialog is gone — removed at answer dispatch.
+    // The answer's paint replaced the question's.
     expect(screen.queryByText('Which repository?')).toBeNull();
   });
 

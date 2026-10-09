@@ -66,6 +66,20 @@ const LockIcon = () => (
   </svg>
 );
 
+/** A question its fragment asks: a circled question mark (task-12.13 decision 37). */
+const AskingIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true" data-icon="asking">
+    <circle cx="7" cy="7" r="5.8" stroke="currentColor" strokeWidth="1.4" />
+    <path
+      d="M5.4 5.5a1.7 1.7 0 0 1 3.3.5c0 1.1-1.7 1.4-1.7 2.4"
+      stroke="currentColor"
+      strokeWidth="1.4"
+      strokeLinecap="round"
+    />
+    <circle cx="7" cy="10.2" r="0.8" fill="currentColor" />
+  </svg>
+);
+
 export const WorkingIcon = () => (
   <svg
     className="canvas-spin"
@@ -104,6 +118,7 @@ function Step({
       {status === 'done' && <CheckIcon />}
       {status === 'failed' && <FailedIcon />}
       {status === 'locked' && <LockIcon />}
+      {status === 'asking' && <AskingIcon />}
       {working && <WorkingIcon />}
       <span>{children}</span>
     </span>

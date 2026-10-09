@@ -71,8 +71,7 @@ function renderComposed(
   placement: Map<string, PlacedFragment>,
   spoken?: string,
 ) {
-  const resolve = (slot: string) =>
-    renderSlotContent(processor, placement.get(slot), 0, false, spoken);
+  const resolve = (slot: string) => renderSlotContent(processor, placement.get(slot), 0, spoken);
   const shell = processor.model.surfacesMap.get('shell:main')!;
   return render(
     <CatalogProvider catalogs={CATALOGS}>

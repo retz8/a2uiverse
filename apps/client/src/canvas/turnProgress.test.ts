@@ -93,6 +93,19 @@ describe('turnProgress', () => {
     });
   });
 
+  it('a source whose fragment asks a question needs your answer, until a press in it (task-12.13 decision 37)', () => {
+    const store = landed();
+    store.askSlot('github');
+    const github = () =>
+      turnProgress(store.getState()).sources.find(step => step.source === 'github')!;
+    expect(github()).toMatchObject({status: 'asking', text: 'GitHub needs your answer'});
+    store.answerSlot('github');
+    store.beginPaint('surface-action', 'github');
+    expect(github()).toMatchObject({status: 'working', text: 'GitHub'});
+    store.settleInFlight('github');
+    expect(github()).toMatchObject({status: 'done', text: 'GitHub'});
+  });
+
   it('a step per vendor source in slot order: done once placed, failed as painted, working until then', () => {
     const store = createCanvasStore();
     store.beginPaint('utterance');
@@ -437,6 +450,24 @@ describe('the merge step on a step back (task-9.7 decision 4)', () => {
       store.removePress(key);
       store.mergeEscalations(new Map([['github', false]]));
       expect(github().status).toBe('done');
+    });
+
+    it('a press running in the fragment shows the source working over its waiting words, which come back once it ends (task-12.13 decision 38)', () => {
+      const store = signIn();
+      store.mergeEscalations(new Map([['github', true]]));
+      store.beginPaint('surface-action', 'github');
+      const github = () =>
+        turnProgress(store.getState()).sources.find(step => step.source === 'github')!;
+      expect(github()).toMatchObject({status: 'working', text: 'GitHub'});
+      store.settleInFlight('github');
+      expect(github()).toMatchObject({status: 'locked', text: 'GitHub needs more access'});
+    });
+
+    it('a sign-in window open still says signing in while a press runs', () => {
+      const store = signIn();
+      store.beginPaint('surface-action', 'gmail.1');
+      store.setSigningIn('gmail.1', true);
+      expect(gmail(store)).toMatchObject({status: 'locked', text: 'Gmail signing in'});
     });
 
     it('before the merge lands, a source needing sign-in is not waited for', () => {

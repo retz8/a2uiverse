@@ -181,3 +181,19 @@ GitHub answered the attention question in words alone, its slot collapsed to the
 ### 36. A failure said in words is worded for the person
 
 GitHub's answer in words alone read "…the connection to GitHub encountered a 403 Forbidden error. Please check your GitHub authorization and permissions…": every agent's prompt keeps prose for a failure it must report and said nothing of its wording, so the model passed the vendor's error on. The kit's prompt assembly gives every app one rule, ahead of the app's own workflow blocks: a failure reported in prose is read on the screen by a person who may not work in tech — what didn't work, and what they can do about it when there is something, in their words; never a status code or error name, an exception, a tool or API name, a URL, or a sign-in or protocol term. Replaced: a failure's wording left to the model.
+
+### 37. No promotion: a question is the app's own paint
+
+Calendar's proposal, declared a question, was promoted — raised with an accent ring over a scrim dimming the rest of the canvas — and read as a dialog that, once pressed, closed into the same UI in its slot. Nothing is raised and nothing dimmed: a paint declared `kind="question"` is a paint like any other, a fragment in its slot or a paint on the stage, and the overlay for a question over the empty stage is gone with it. The progress line says the source "needs your answer", with a circled question mark, from the paint until a press inside it. Replaced: task-2.5 decisions 10 and 11 — shell-granted promotion, the scrim and the count announced — and the overlay for a question over the empty stage.
+
+### 38. A press running outranks the waiting words
+
+Discard pressed under a request for more access left the progress line saying "Google Calendar needs more access" while the press ran: the request's words outranked the press. While a press made inside a source's fragment runs, its step is the source working, its name alone; when the press ends, the step says what still waits on the reader — the request for more access, the question — or that it is done. A sign-in window open still says signing in. Replaced: the sign-in words above every other state of the step.
+
+### 39. A later press drops a request for more access
+
+A request for more access holds the press that needed it, for Allow to send again: after Create event asked for more access and Discard was pressed, the chip stayed, and Allow would have created the event that was discarded. A later press inside the same fragment drops the request — the chip and its card go, the press it held with them — and the journal records it as superseded, its scope keys named. A later press that needs more access itself asks again. Replaced: a request kept until Allow or Not now whatever was pressed after it.
+
+### 42. An app's dialog opens over its own slot
+
+A vendor may draw a dialog; Primer's `ConfirmationDialog` in GitHub's catalog is fixed over the viewport, so it painted over the whole canvas from inside its fragment. The fragment boundary is the containing block of what the app positions fixed — CSS layout containment, which clips nothing — so an app's backdrop and its dialog cover that app's slot alone, and several apps may hold one open at once. The slot holding the focus paints above its neighbours. Replaced: `docs/design/client.md`'s known limit that visual containment isn't DOM containment.

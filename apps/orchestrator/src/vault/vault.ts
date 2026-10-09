@@ -86,7 +86,9 @@ export interface SignInRecord {
     | 'refreshFailed'
     | 'revoked'
     | 'escalationRequested'
-    | 'notNow';
+    | 'notNow'
+    /** A request for more access dropped by a later press in its fragment (task-12.13 decision 39). */
+    | 'superseded';
   appId: string;
   source?: string;
   canvas?: string;

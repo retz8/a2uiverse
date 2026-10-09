@@ -7,7 +7,7 @@
  * presses finish — and nothing ends it but its close.
  *
  * Interaction policy while a paint is in flight: agent-bound surface actions are blocked with a
- * status cue; answering an overlay question is always live.
+ * status cue.
  *
  * The fragment's way back (task 9.7) lives here too: the canvas's history — each source's stack
  * and the wiring remembered per combination — fed by the turn runner, and the step press that
@@ -195,8 +195,6 @@ export function createCanvasRuntime({
   };
 
   const open = async (text: string, parent?: string) => {
-    // Speaking past a pending question dismisses it, no trace.
-    runner.removeOverlay();
     const turn = runner.begin({kind: 'utterance', payload: {text}});
     // A turn that answered and then lost its stream is said in the client's words, as a press
     // is (task-8.7 decision 31); one that never reached the orchestrator likewise. The browser's
@@ -491,26 +489,16 @@ export function createCanvasRuntime({
     })();
   };
 
-  /** Answering a promoted fragment is what ends its demand for attention. */
-  const demoteFor = (surfaceId: string) => {
+  /** A press inside a fragment that asks a question answers it (task-12.13 decision 37). */
+  const answeredIn = (surfaceId: string) => {
     for (const [source, placed] of store.getState().placement) {
-      if (placed.surfaceId === surfaceId) store.demoteSlot(source);
+      if (placed.surfaceId === surfaceId) store.answerSlot(source);
     }
   };
 
   const actionHandler: ActionListener = action => {
     const state = store.getState();
-    demoteFor(action.surfaceId);
-    if (state.overlay && action.surfaceId === state.overlay.surfaceId) {
-      // Answering the question (either dialog action): capture the Q&A into the cause and
-      // remove the dialog at dispatch — always live.
-      const cause: PaintCause = {
-        kind: 'overlay-answer',
-        payload: {question: state.overlay.question, answer: action},
-      };
-      runner.removeOverlay();
-      return sendCausedAction(action, cause);
-    }
+    answeredIn(action.surfaceId);
     if (state.inFlight) {
       // Agent-bound actions are blocked while a paint is in flight — a status cue, not a fire.
       store.showNotice(BLOCKED_CUE);
