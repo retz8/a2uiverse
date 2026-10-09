@@ -9,6 +9,7 @@ M8 of SPEC §12, authority surfaces: how an app that needs sign-in gets its cred
 - The AuthVault: a generic OAuth client; storage, refresh, revocation; the third-party schemes supported; the token page the orchestrator serves.
 - The surfaces: the authority tile as the consent, sign-in in a browser popup, resume after sign-in, escalation on the attribution row, the quiet line after the first tile, a needs-sign-in slot inside the merge.
 - Multi-account: slot naming and the dispatch unit by (app, account), the Planner choosing accounts, the add-account shell action, account labels in attribution.
+  *Amended by task 12.13 decision 27.* Adding an account is the add-account tile, a `Slot` the Planner places, not a shell action.
 - The credential bar at the paint, replacing the bar at install.
 - `[apps]`: the agent kit's sign-in front door; real OAuth in live mode for all five vendor agents; deterministic sign-in; Gmail's second account; a deterministic scope boundary; a mock store on an `apiKey` scheme.
 - Tooling: recordings and e2e signed in through the real flow; tunnel URLs for sign-in.
@@ -69,9 +70,13 @@ Uninstall deletes the app's accounts from the vault and revokes their tokens at 
 
 The tile is deterministic shell UI, visually constant: what is needed, the scopes in the words of the card's `scopes` map — only the missing ones on escalation — one press, and that it opens the app's sign-in in a new window, in plain words with no address shown. There is no consent dialog and no decline button on the tile; the composite does not block, and the rest of the canvas never waits on it.
 
+*Amended by task 12.13 decision 30.* An app whose sign-in is a pasted key or token — `apiKey` or `http` bearer — is painted with the authority cause `connect`, beside `signIn`: its tile says "Connect Shop B to show it here.", Connect, and "Opens a page to paste your Shop B key".
+
 ### 14. Sign-in runs in a browser popup
 
 Sign-in runs in a real browser popup, never in a frame inside the canvas. The popup is opened with `noopener,noreferrer`; its completion reaches the canvas from the orchestrator, never between windows; only https URLs are opened, localhost exempt. While the popup is open the tile says to finish signing in in the window that opened, naming no address, with Cancel; closing the popup puts the tile back as it was.
+
+*Amended by task 12.13 decision 26.* Closing the popup is not seen. The waiting form stays — on the authority tile, the quiet line, the request for more access and the add-account tile — until the sign-in ends, Cancel, or the attempt expires. The full waiting form is the statement, the spinner line, and under it Open the sign-in again and Cancel; Open the sign-in again opens a new window on a new attempt, and whichever finishes is the outcome, the other let go.
 
 ### 15. Resume after sign-in
 
@@ -81,25 +86,37 @@ When sign-in completes, the client learns the outcome over `orchestratorApi` and
 
 Scope escalation inside a fragment appears on the fragment's attribution row as a fixed-width "Needs access" chip beside the arrows, its request on a card floating over the fragment's top — the missing scopes, [Allow] and [Not now] — nothing moving, and the fragment stays on screen. Allow opens the popup, and the press that needed the scope is sent again. Not now dismisses the request and drops that press; the fragment stays as it was.
 
+*Amended by task 12.13 decision 39.* A later press inside the same fragment drops the request too — the chip and its card go, the press it held with them — and the journal records it as superseded, its scope keys named. A later press that needs more access itself asks again.
+
 ### 17. The full tile once per app per session
 
 A slot for an app with no account takes the full tile once per app per session. After that, a slot for that app is one quiet line where its fragment would have sat — "Not signed in · Sign in", under the attribution marker that names the app (task-12.3 decision 11) — with no decline button. The orchestrator remembers it for the session; a reload starts fresh.
+
+*Amended by task 12.13 decisions 30 and 50.* The quiet line says what its tile says: "Not signed in · Sign in" for a first sign-in, "Not connected · Connect" for an app whose sign-in is a pasted key or token, and "Needs more access · Allow" for an account held and asking only for more access — a request before any paint, or an account short of what the card now requires.
 
 ### 18. A needs-sign-in slot in the merge
 
 A slot needing sign-in behaves like a failed source, with sign-in as its Retry. It resolves at once — a slot the hub's check filled was never dispatched. Signed in, its source is included in the merge on arrival. An anchored join hypothesis whose home source needs sign-in collapses the merge slot to a line in words with no press; the slot's own Sign in brings it back. A reserved column for that source reads "not signed in". An escalation waiting on Allow counts as quiescent.
 
+*Amended by task 12.13 decisions 32 and 50.* A reserved column reads "· not signed in", "· not connected" for a source needing a pasted key or token, or "· needs more access" for an account held and asking only for more access; the home source's collapse line says the same, "…and Shop B isn't connected. Connecting Shop B brings it back." or "…and Gmail needs more access. Allowing Gmail more access brings it back.", the slot's own press bringing the merge back.
+
 ### 19. Multi-account: slot naming and the dispatch unit
 
 Slot naming and the dispatch unit are by (app, account). The Planner chooses accounts: the installed-apps platform reader lists each app's accounts by label, never a credential, and §7's fan-out rule applies one level down — a question about state gathers from every account; a command, or an utterance naming an account, goes to that account alone. An utterance also names an account when it points unambiguously at something on the canvas it was asked from and only one account of that app holds a slot there. A command naming no account, for an app with two or more, takes the account choice: the shell draws one press per held account, and the press sends the Planner's request to that account in that slot (task-12.6). An action inside a fragment goes to the account that painted it. A match claim's relation joins two different sources, so two accounts of one app can be joined.
+
+*Amended by task 12.13 decision 54.* A question about state gathers from every account of the app, beside a merged view too, each account a source of its own. "My", "mine" and "I" name no account — every account is the person's, a label telling them apart, never a reason to leave one out.
 
 ### 20. The add-account shell action
 
 The shell's closed action set gains "add an account to <app>", which the Planner paints when the utterance asks for it; it opens the same popup sign-in the authority tile opens. It also gains the account choice's press (decision 19).
 
+*Amended by task 12.13 decision 27.* Adding an account is a `Slot` holding `addAccount`, an app id, which the Planner places when the utterance asks to add an account to an app, or which accounts it has, with no dispatch entry; it writes nothing else for it. The plan check refuses it on an app off the shortlist or asking no sign-in, and a second one for the same app. The painter wraps it in the app's marker and paints, from the vault and the card, the app's name, its accounts already added by label, and what a new account lets the app do; the shell draws it laid out as the authority tile's full form, its Add account opening the same popup sign-in. The shell's closed action set gains the account choice's press alone.
+
 ### 21. Account labels
 
 An account's label comes from the sign-in: the ID token's display claims. Its stable `sub` keeps one account signed in twice as one entry. Where no identity comes back, the label is "<App> account N". Renaming waits for Phase 14's App Library.
+
+*Amended by task 12.13 decision 24.* On signing in again only, an account that comes back as another identity is re-bound to it — its tokens, its `sub` and its label replaced, the journal's sign-in record marked re-bound — and the client says it on the progress line of the slot's canvas, "Signed in to Linear as …"; one the app already holds as another account is refused, "that account is already added".
 
 ### 22. Attribution shows the account
 
@@ -142,6 +159,8 @@ In the tunnel environment the sign-in pages, the callbacks and the callbacks reg
 ### 30. Docs
 
 SPEC amendments: axiom 1 (catalog subtraction), §3 (the multi-account scenario exercised), §4.2 (the add-account action), §4.3 (the label from the sign-in), §5.6 (the installed-apps reader lists accounts), §8 (the consent surface, the credential bar at the paint, the schemes supported), §9.5 and §17 (multi-account exercised), §10 (the AuthVault), §16 (credentials in the utterance); the §14 delta register's rows for the auth-required state and the credential bar. `docs/design/authority.md` is the area's record over one running example.
+
+*Amended by task 12.13 decision 27.* The add-account tile is a `Slot` in §5.6's tree and a §14 row beside the account choice's, not an action in §4.2's closed action set.
 
 ## Invariants
 

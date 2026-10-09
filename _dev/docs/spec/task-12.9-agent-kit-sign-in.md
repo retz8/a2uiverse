@@ -54,6 +54,8 @@ Access tokens live 1 hour and carry `expires_in`. Refresh tokens rotate on every
 
 `login_hint` carrying the account's `sub`, which the vault (12.5) sends on escalation, binds the sign-in to that account: deterministic mode goes straight to it; in live mode the vendor account that comes back is checked against it, and a different account fails the sign-in with an error back to the vault. The new token grants the union of the scopes the account already granted and the new ones, so the vault asks only for the missing scopes. A sign-in with no `login_hint` — add-account — lets the person choose freely.
 
+*Amended by task 12.13 decision 24.* A `login_hint` naming no account the agent knows binds nothing: the agent lets the person choose. A request for more access stays bound to its account; an agent that still knows the account binds to it as before. On signing in again, the vault re-binds an account that comes back as another identity (task-12.5 decision 8).
+
 ### 11. Fake accounts and the deterministic sign-in page
 
 The app's config declares its fake accounts, each an id and its display claims. The account reaches the deterministic answer code. The deterministic sign-in page is an account chooser with no consent of its own, shown even with one account, in plain customer words. In live mode the page sends the person straight to the vendor's sign-in.
@@ -65,6 +67,8 @@ A sign-in parameter naming a fake account, honored in deterministic mode only, s
 ### 13. Sign-in is opt-in
 
 An app turns the kit's sign-in on by declaring its scopes, its first-sign-in scopes and its upstream sign-in. The kit then writes one `oauth2` scheme under a fixed key — the authorization-code flow with its sign-in, token and refresh URLs built from the agent's public URL, the `scopes` map, and `oauth2_metadata_url` — writes the card-level `security` as that scheme with the first-sign-in scopes, mounts the sign-in routes and turns the 401 check on. An app without it runs as today. The URLs are https, localhost exempt.
+
+*Amended by task 12.13 decision 23.* The kit's app config also takes the card's `provider` and `documentationUrl` and writes them on the card.
 
 ### 14. Revocation
 

@@ -6,6 +6,7 @@ The schema part of Phase 12 (`_dev/docs/spec/phase-12-authority-surfaces.md`, de
 
 - The sdk's contract: the source id, the presses, the `auth-required` request, relations across sources; the contract renamed and versioned; its projection and contract test.
 - The shell catalog's schema: the `Slot`'s authority state and the refused-paint cause, `Attribution`'s source and escalation, the add-account shell function. No drawing — drawing is 12.3's.
+  *Amended by task 12.13 decision 27.* Add-account is a `Slot` holding `addAccount`, not a shell function.
 - The rename's knock-on edits across the consumers, the recorded beats and the docs.
 
 ## Locked decisions
@@ -29,6 +30,8 @@ A slot for an app that needs sign-in, while the vault holds no account for it, i
 ### 5. The `Slot`'s authority state
 
 `state: "authority"`, its own state beside `failed`, with a runtime-painted `authority: {cause, quiet?, scopes?}`. `cause` is `signIn` (no usable account), `again` (the silent refresh failed) or `unsupported` (a scheme the vault cannot do). `quiet` marks the one-line form after the first full tile for that app this session, and is allowed only with `signIn`. `scopes` is required with `signIn`, possibly empty for `http` bearer and `apiKey`, and absent with `again` and `unsupported`. The orchestrator resolves the card's keys into the words of its `scopes` map; the client never reads a card. No domain is carried.
+
+*Amended by task 12.13 decisions 30, 32 and 50.* `cause` is `signIn`, `connect` (an app whose sign-in is a pasted key or token — `apiKey` or `http` bearer), `more` (an account held and asking only for more access — a request before any paint, or an account short of what the card now requires), `again` or `unsupported`. `quiet` and `scopes` go with the three causes asking to sign in — `signIn`, `connect` and `more` — `scopes` possibly empty for `connect` and only the missing ones for `more`. To the merged view, a source needing a pasted key or token is a slot in the state `connect` and one asking for more access a slot in the state `more`, beside `authority`.
 
 ### 6. The waiting state is the client's
 
@@ -54,6 +57,8 @@ A new operation, `dismiss`, names one source. The orchestrator drops the kept pr
 
 `addAccount`, `args: {app}`, the bare app id. The orchestrator's plan check refuses it for an app that is not installed or whose sign-in A2UIVerse cannot do: a plan finding, sent back to the Planner once.
 
+*Amended by task 12.13 decision 27.* Adding an account is a `Slot` holding `addAccount`, an app id, which the Planner places when the utterance asks to add an account to an app, or which accounts it has, with no dispatch entry; it writes nothing else for it. The plan check refuses it on an app off the shortlist or asking no sign-in, and a second one for the same app. The painter wraps it in the app's marker and paints on it, from the vault and the card, the app's accounts already added by label (`accounts`) and what a new account lets the app do (`scopes`).
+
 ### 12. The `auth-required` request in A2A's own shape
 
 An agent asking for authority mid-task moves the task to `auth-required` with a data part in its status message: `{security: [{"<scheme key>": ["<scope key>", …]}]}` — the card's own `security` requirement shape, checked by the same evaluator as the card before dispatch. An empty scope list means sign in with that scheme. It is recognized by the task state and the `security` key; no A2UIVerse-specific marker. It lives in the contract as a shape directed agent → orchestrator, described as `paintMeta` is: the contract describes it, the agent kit owns its emission.
@@ -72,6 +77,8 @@ Drawn on the design canvas and taken by 12.3 and 12.8:
 - A home source that needs sign-in collapses the merge to a line in words with no press; the slot's own Sign in brings the merge back.
 - "Not supported here" offers "Manage apps", opening the App Library; the app stays installed.
 - The refused paint's tile offers "Continue on <App>", opening the app's website.
+
+*Amended by task 12.13 decisions 26, 30 and 50.* An app whose sign-in is a pasted key or token says Connect, "Opens a page to paste your <App> key"; an account held and asking only for more access says "<App> needs more access to show it here." over the missing scopes, with Allow. The waiting form stays until the sign-in ends, Cancel, or the attempt expires: the statement, the spinner line, and under it Open the sign-in again — Open the page again for a pasted key or token — and Cancel.
 
 ## Invariants
 

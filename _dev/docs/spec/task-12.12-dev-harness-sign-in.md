@@ -24,6 +24,8 @@ The kit takes a second, public address, used for the sign-in page, the account c
 
 One environment variable, `A2UIVERSE_PUBLIC_URL`, holds the public address pattern with a slot for the port; the launcher gives each agent it starts its public address from it. Unset, every agent stays on `localhost`. The orchestrator's base URL and the client's orchestrator URL stay configured as they are.
 
+*Amended by task 12.13 decision 55.* The launcher also takes `--agent-state <dir>`, each agent it starts given `--state-dir <dir>/<app>`.
+
 ### 3. The vendors' return addresses
 
 GitHub's OAuth App and the Google client each register both the local and the tunnel finish address; both accept several. Each vendor README's setup says so.
@@ -47,6 +49,8 @@ The check takes its own token straight from each agent through the non-interacti
 ### 8. One sign-in through the real popup in e2e
 
 A second Playwright project runs on the real stack on `localhost`: an orchestrator on a scratch state folder, one deterministic kit agent from `../a2uiverse-apps/` through the launcher, and the client. The test presses Sign in on the tile, takes the popup, presses the kit's account chooser and sees the slot paint in place. The Planner runs live, on a question naming its app. The project runs on demand, outside `pnpm verify`.
+
+*Amended by task 12.13 decision 55.* The test passes the launcher `--agent-state` with a scratch folder cleared at its start; its agent's sign-in store is kept there, never in the checkout.
 
 ### 9. The pass through the tunnel
 

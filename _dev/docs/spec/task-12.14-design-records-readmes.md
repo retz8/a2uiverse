@@ -62,3 +62,15 @@ Task-12.13 decision 37 replaces promotion and the overlay for a question over th
 ### 11. Worked on `main`
 
 The work is done directly on `main`, with no worktree; the `a2uiverse-apps` READMEs on that repo's `main`.
+
+### 12. The Planner's prompt names two shell actions
+
+The Planner's rules doc listed `addAccount` among the shell's actions, beside `openStore` and `openAppLibrary`, while its output schema had it a `Slot`. The rules doc names two actions and has the Planner place a `Slot` holding `addAccount`. Replaced: `addAccount` named an action in the rules doc.
+
+### 13. A Retry holds the fragment's presses
+
+The orchestrator refused a press into a fragment while an earlier press or Allow's resume ran, but not while a Retry of that app ran (task-12.13 decision 46). A Retry marks its source as being sent again for as long as it runs, and a press into that source's fragment meanwhile is refused, journaled refused, the app sent nothing. The mark is apart from the presses in flight, so a Retry holds no merge. Replaced: a press sent beside a running Retry.
+
+### 14. The question marker taken out by hand
+
+CircleCI's rerun proposal, in its recording and its deterministic answer, and Linear's status proposal, in its recording, were declared questions, painted under the prompt before task-12.13 decision 40. The marker is taken out of those three files by hand; what the model painted stays as recorded. A live re-record of both apps is a backlog item. Replaced: a proposal declared a question in the roster's recordings and answers.

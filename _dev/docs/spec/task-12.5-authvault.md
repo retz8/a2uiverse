@@ -40,6 +40,8 @@ A client ID metadata document when the authorization server advertises it and ca
 
 That the client cannot see a popup opened with `noopener` close goes to 12.8.
 
+*Amended by task 12.13 decisions 28, 29 and 31.* A sign-in that ends well names the app — "You're signed in to Google Calendar", or for a pasted key or token "You're connected to Shop B" — says "This window closes in 5 seconds.", counts down beside Close now, then closes; where the browser keeps it open, it says the window can be closed. One that ends badly stays open: "Sign-in didn't finish", or "Shop B wasn't connected" with "Close this window and try connecting again." The sign-in routes' pages are served with `Referrer-Policy: same-origin`. The token page's form route admits the orchestrator's own origins, its public one and its local one, and logs the origin of a post it refuses.
+
 ### 6. The session is the page load
 
 The client mints a session id per page load and names it on every message; the orchestrator keeps per session whether the full tile was shown for an app (phase decision 17). The id is a field of the platform's contract in the sdk.
@@ -48,9 +50,13 @@ The client mints a session id per page load and names it on every message; the o
 
 An in-task `auth-required` with scopes, on a slot that has painted nothing, turns the slot into the authority tile under `signIn` with only the missing scopes, bound to the account — the quiet line once the full tile was shown this session — and resolves like any needs-sign-in slot. On a slot with a fragment it is the escalation on `Attribution`, the press kept (phase decision 16).
 
+*Amended by task 12.13 decision 50.* A slot whose account is held and asks only for more access — a request before any paint, or an account short of what the card now requires — takes the authority tile under the cause `more`, with only the missing scopes, bound to the account; the quiet line "Needs more access · Allow" once the full tile was shown this session.
+
 ### 8. Refresh
 
 One refresh at a time per account: every dispatch needing it waits on the same refresh and uses its result, the new tokens written to the vault file before the new access token is used. A token with less than a minute left is refreshed. After an unexpected 401: one refresh, shared the same way, and one resend; a second 401 is `again`. A failed refresh keeps the account with its label and marks it to sign in again; every slot for it takes `again`, and signing in again replaces its tokens.
+
+*Amended by task 12.13 decision 24.* On signing in again only, an account that comes back as another identity is re-bound to it — its tokens, its `sub` and its label replaced, the journal's sign-in record marked re-bound — and the client says it on the progress line of the slot's canvas, "Signed in to Linear as …"; one the app already holds as another account is refused, "that account is already added".
 
 ### 9. Accounts signed in with a key
 
@@ -60,9 +66,13 @@ A key already held for the app — matched by its hash — signs in as that acco
 
 The start route also takes an app's next account source, `<appId>.<next n>`, with no `login_hint`; the sign-in creates the account, or signs in as one already held by its `sub` or its key. The outcome names the source the sign-in ended as; there is nothing to resume.
 
+*Amended by task 12.13 decision 27.* The sign-in starts from the add-account tile, a `Slot` holding `addAccount`; once it ends with an account, the tile's `retry` repaints it listing the account.
+
 ### 11. The journal
 
 Sign-in records of facts only: a sign-in started (canvas, source, first / again / escalation / add-account, the scheme's kind, the scope keys asked); its outcome (the source signed in as, new or existing; failed and why; cancelled; expired); refreshes and their outcome; an escalation request (source, missing scope keys, valid or invalid) and Not now; uninstall's revocations per account (revoked, nowhere to revoke, failed). Never journaled or logged: tokens, codes, `state`, verifiers, nonces, pasted keys, the ID token. The callback's query is never logged; a dispatch error keeps the status and the vendor's message, never request headers. The label is the one identity value recorded.
+
+*Amended by task 12.13 decisions 5, 24 and 39.* A sign-in's outcome is the source signed in as — new or existing, marked re-bound when an account signing in again came back as another identity — failed and why, or expired; there is no cancelled outcome, since Cancel stays in the client and the orchestrator never learns of it. A request for more access dropped by a later press inside its fragment is recorded as superseded, its scope keys named.
 
 ### 12. The label
 

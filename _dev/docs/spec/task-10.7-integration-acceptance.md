@@ -64,6 +64,8 @@ The Playwright run against the Phase 9 baselines failed three behavioural assert
 
 The Playwright run showed Gmail's and Linear's times four hours late in the merged view. Their payloads carry UTC; since 10.4 and 10.5 their agents write the time zoneless — Gmail `2026-09-05 01:24`, Linear `Sep 19, 2026, 11:00 AM` — and the runtime reads a zoneless time as wall time in US Eastern. Each agent keeps its own spelling and appends `UTC` — Gmail `2026-09-12 09:41 UTC`, Linear `Sep 19, 2026, 11:00 AM UTC` — the model writing it as its brand guidance and knowledge examples show. Both agents' beats are re-recorded, their deterministic corpora derived again, and the client's beats holding a Gmail or Linear paint re-recorded, before the live run.
 
+*Amended by task 12.13 decision 52.* The runtime reads a time with no zone of its own as the viewer's wall time, and shows every time in the viewer's zone, as their runtime reports it.
+
 ### 12. A narrow Linear list keeps the title's line
 
 In a quarter-width slot Linear's row gave its title 129 px of 416: the trailing chip, link and time held up to 35% of the row. Under a list width of 720 px, measured by a container query on Linear's own list, every row takes the same three lines: the leading items and the title, then the chip and the link, the link taking what the chip leaves and cut only at the row's edge, then the time. A wider list keeps the one-line row. Replaced: one line at every width, each trailing item capped at 220 px.

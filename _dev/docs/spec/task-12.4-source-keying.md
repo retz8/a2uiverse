@@ -34,6 +34,8 @@ The shell painter sets `Attribution.account` from the seam on every fragment of 
 
 Each source has one name: the app's name, with the account's label when that app has more than one account. It rides `Attribution` into the client's roster, and every word naming a source — the progress line, the tiles, the derived value's disclosure, the merge's collapse lines — reads it by the full source. The slot's name lookup no longer reduces the source to the app id. How the name and the label are joined in words is decided in the plan, against 12.3's attribution drawing.
 
+*Amended by task 12.13 decision 56.* Where the merge step names a source before its noun, a source named by its account says its app and its noun, the label after them in parentheses: "Joined Linear issues to GitHub PRs and CircleCI pipeline runs (ekkicb71@gmail.com)". Each step and each attribution still names the source by its one name.
+
 ### 6. The Synthesizer sees the same name
 
 The Synthesizer's prompt names each partition by the source's name and the source. SPEC §16's line on the label is amended: the label reaches the Planner and the Synthesizer.

@@ -47,6 +47,8 @@ An agent asks its vendor for what the granted agent scopes need, and for more on
 
 Each also asks for the scopes of its identity lookup (decision 10). GitHub stays an OAuth App.
 
+*Amended by task 12.13 decision 33.* GitHub asks for `notifications` beside `repo` and `read:org`, for both its read and its write scope.
+
 ### 7. A dead vendor token ends the account's sign-ins
 
 When the vendor's token cannot be refreshed, or the vendor answers 401, the run fails and the agent ends that account's sign-ins, so the vault's next request is refused, its refresh fails, and the slot asks to sign in again. GitHub's OAuth App tokens are non-expiring.

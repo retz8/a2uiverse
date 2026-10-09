@@ -9,6 +9,7 @@ The client half of Phase 2's layout-only composition: rendering one shell surfac
 - Composition-aware turn semantics: stage candidacy, teardown, timeline capture.
 - Client-side validation and `VALIDATION_FAILED` reporting.
 - Question handling under composition: shell-granted promotion.
+  *Amended by task 12.13 decision 37.* No promotion: a paint declared a question is a paint like any other.
 - Collision detector.
 - ChoicePicker `pnpm patch`.
 - Deferred from 1.3: unknown-component degradation at the composition layer; shell re-skin on Radix tokens.
@@ -55,9 +56,13 @@ Validation errors stay deferred and are judged at turn end against the settled s
 
 The modal overlay is reserved for shell-painted questions. A fragment that declares a question is expressed through shell-granted promotion instead: the client dims the rest of the canvas and raises that slot, and the fragment never moves from its slot. Authority stays with the shell — a vendor requests attention and the shell decides how to express it. The wire-level request/grant protocol is the M8/M10 growth path, not built here.
 
+*Amended by task 12.13 decision 37.* Nothing is raised and nothing dimmed: a paint declared `kind="question"` is a paint like any other, a fragment in its slot or a paint on the stage, and there is no overlay for a question over the empty stage. The progress line says the source "needs your answer", with a circled question mark, from the paint until a press inside it.
+
 ### 11. Promotion is per-slot and plural
 
 Several fragments may be promoted at once; the scrim dims the complement rather than singling one out, and each promoted slot drops back as it is answered. Emphasis reads without the scrim, so the all-promoted case still communicates. Because promotion is plural it is not a modal: no focus trap, no modal semantics; each promoted boundary is named accessibly and the shell announces the count. Promotion clears when a slot fails and when the composition is torn down.
+
+*Amended by task 12.13 decision 37.* There is no promotion, no scrim and no count announced: any number of fragments may declare a question at once, each painted in its slot like any other fragment, and the progress line says of each source that it "needs your answer".
 
 ### 12. The collision detector is three layers
 
@@ -75,6 +80,8 @@ Only the bundle the client actually loads is patched, with the instance-unique g
 
 The shell re-skin builds this task's new chrome — boundary, promotion, adaptive weight, pending slot treatment — from the shell catalog's token vocabulary, and wires dark mode, which the token binding claims but nothing currently exercises. Existing client chrome keeps reading Radix variables directly.
 
+*Amended by task 12.13 decision 37.* There is no promotion chrome: nothing is raised and nothing dimmed.
+
 ## Invariants
 
 - Slot identity and position are fixed for the turn; fragments are never re-parented.
@@ -85,4 +92,5 @@ The shell re-skin builds this task's new chrome — boundary, promotion, adaptiv
 ## Open items
 
 - The wire-level request/grant protocol for fragment-initiated overlays — deferred to M8/M10.
+  *Amended by task 12.13 decision 37.* Closed: a question is the app's own paint; nothing is raised, dimmed or overlaid, and nothing is requested or granted.
 - A real CI workflow for the gate the collision detector runs in — filed as a separate chore.

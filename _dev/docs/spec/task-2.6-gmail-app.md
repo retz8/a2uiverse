@@ -44,6 +44,8 @@ A2UIVerse agents are read-write by design. The GitHub agent's layered read-only 
 
 Writes are authorized in two tiers. A **creating** write — composing a draft — is performed by the model in the painting turn and painted as an editable proposal rooted in `Card`, declared `paintMeta.kind === "question"`; the mutation fires only on the user's confirm action from inside the fragment. The shell's promotion treatment supplies the proposal's emphasis; the agent paints no overlay of its own. A **toggling** write — labeling and unlabeling — fires directly on its action, without a confirm step.
 
+*Amended by task 12.13 decisions 37 and 40.* The draft is a proposal, painted in its slot like any other paint: the kit's prompt gives every app the rule that a write the app drafts for the person to confirm is a proposal and is never declared a question — a question is for a choice it cannot go on without. The shell gives it no emphasis; nothing is raised and nothing dimmed. A proposal dismissed outright — Discard, Not now — is repainted as the same surface settled, its buttons gone, one plain line saying what did not happen.
+
 The server exposes twenty-three tools, including destructive ones: trashing, spam marking, and sensitive-label application. These are excluded from the agent's tool inventory by a client-side filter; the inventory is the reads plus draft creation, labeling, unlabeling, and label creation. Admitting destructive operations is deferred, and belongs with a real authority surface (M8) rather than with a scope grant.
 
 The exclusion is a **single** layer. Gmail offers no scope granting the toggling tier without also authorizing trashing and spam marking, so the credential permits what the filter withholds — unlike the GitHub agent's two independent layers, this one has no second barrier behind it.
@@ -111,6 +113,8 @@ The client routes on `paintMeta.kind === "question"` alone — its structural fa
 The GitHub agent additionally enforces a biconditional between the declaration and a `ConfirmationDialog` root. That check has no anchor here: the basic catalog has no rare, purpose-built dialog component, and `Card` — the only plausible substitute — roots most surfaces regardless. The structural half is dropped; validation may instead require that a declared question surface carries at least one action.
 
 A fragment declaring a question is not overlaid. The shell raises its slot and dims the complement, and that emphasis is plural rather than modal.
+
+*Amended by task 12.13 decisions 37 and 43.* GitHub's question policy runs one way: a surface declared a question still needs a `ConfirmationDialog` root; a `ConfirmationDialog` confirming a write GitHub proposed is not a question and is not declared one. A fragment declaring a question is a paint like any other in its slot: nothing is raised and nothing dimmed.
 
 ## Invariants
 

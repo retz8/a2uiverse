@@ -75,6 +75,8 @@ The beats recorded and committed, the deterministic corpora derived from them, t
 
 An utterance about the state of one kind of thing gathers from every installed app that holds part of it, whether or not the user names them. A command or lookup inside one app's object, or an utterance that names its app, goes to that app alone. The Planner is taught this as a stance in its role, beside the costs of each added agent, not as conditions.
 
+*Amended by task 12.13 decision 49.* The gathering rule also covers what is waiting on the person — what needs them, what is on their plate — whatever their apps hold for them to act on: a review asked of them, mail to answer, a meeting to attend, an issue assigned to them. An app not signed in yet is dispatched all the same, the shell asking for the sign-in in its slot; an agent whose card shows no part is left out.
+
 ### 15. The stance in the SPEC
 
 SPEC §7's fan-out section states the stance. The Planner's rules doc carries it in its own words.

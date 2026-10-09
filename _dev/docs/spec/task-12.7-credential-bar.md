@@ -42,6 +42,8 @@ The orchestrator appends one fixed sentence to every text request it writes to a
 
 A press inside a fragment carries no text and gets none. The Planner's prompt is unchanged.
 
+*Amended by task 12.13 decision 47.* After the guidance sentence each text request says the person's local time, from the clock the client sends with every message: "The person's local time is Friday 9 October 2026, 14:20 (Asia/Seoul)." — the press's own clock for a Retry, Allow's resume or an account chosen, else the question's. A request with no clock says none.
+
 ### 7. The way back
 
 A refused paint keeps its paint id, used and never reused, and is dropped on both the client and the orchestrator: it is never a step of the way back, and no wiring is remembered over it. The repaired paint takes the next id.

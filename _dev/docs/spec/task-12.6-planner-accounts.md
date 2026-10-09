@@ -9,6 +9,7 @@ What the Planner is shown of an app's accounts, how it chooses among them, the a
 - The fan-out rule one level down over accounts, and when the canvas names the account.
 - The account choice: the Planner's dispatch entry, the tile the shell draws, the press — the contract, the shell catalog, the orchestrator and the client, proven in the orchestrator's and the client's tests.
 - When the Planner paints the add-account action.
+  *Amended by task 12.13 decision 27.* The Planner places the add-account tile, a `Slot`, not an action.
 - The installed-apps, this-canvas and recent-turns readers over accounts.
 - The amendments to the phase spec's decisions 19 and 20 and to SPEC §4.2, §5.6 and §7.
 - Out: the add-account press opening the sign-in popup (12.8).
@@ -46,6 +47,8 @@ An account choice for an app with one source or none is rewritten to a dispatch 
 ### 8. Add an account only when asked
 
 The Planner paints the add-account action only when the utterance asks for it — including a question about which accounts an app has.
+
+*Amended by task 12.13 decision 27.* Adding an account is a `Slot` holding `addAccount`, an app id, which the Planner places when the utterance asks to add an account to an app, or which accounts it has, with no dispatch entry; it writes nothing else for it. The plan check refuses it on an app off the shortlist or asking no sign-in, and a second one for the same app.
 
 ### 9. The readers over accounts
 
