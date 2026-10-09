@@ -674,6 +674,14 @@ export class OrchestratorExecutor implements AgentExecutor {
     // Two-way edits reach the partitions through the returning client data model.
     composition?.partitions.applyClientDataModel(clientSurfaces(ctx.userMessage.metadata));
     const sink: Sink = {ctx, bus, turn};
+    // One press at a time into a fragment (task-12.13 decision 46): a second press while the
+    // first — or Allow's resume of it — still runs would send the same write twice.
+    if (composition?.presses.running(owner)) {
+      const name = composition.slots.get(owner)?.plan.name ?? owner;
+      const reason = `${name} is still working on that. Try again once it has finished.`;
+      turn.refused(reason);
+      throw new Error(reason);
+    }
     // A request for more access holds the press that needed it, for Allow to send again: a later
     // press in the fragment has moved on from it, so the request goes (task-12.13 decision 39).
     const asking = composition?.slots.get(owner);

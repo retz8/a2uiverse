@@ -2069,6 +2069,30 @@ const shellSlotOf = (events: AnyEvent[]) => slotsOf(shellPaints(events).at(-1)!)
 
 const finalOf = (events: AnyEvent[]) => events.at(-1) as TaskStatusUpdateEvent;
 
+describe('one press at a time per fragment (task-12.13 decision 46)', () => {
+  test('a second press into a fragment while its first still runs is refused: the app gets one request', async () => {
+    const {client} = await boot({
+      planner: new FakePlanner(() => layoutFor(['github'])),
+      scripts: {github: sequence(shopScript(camerasA), after(400, shopScript(camerasA)))},
+    });
+    const first = await collect(client, utterance('cameras'));
+    const contextId = first[0]!.contextId!;
+    const running = streamOf(client, actionOn('github:s1', contextId));
+    await until(() => vendors.github!.requests.length === 2, 'the first press reached the app');
+    const second = await collect(client, actionOn('github:s1', contextId));
+    expect(finalOf(second).status.state).toBe('failed');
+    expect(textsOf(finalOf(second).status.message!)).toEqual([
+      'GitHub is still working on that. Try again once it has finished.',
+    ]);
+    expect(finalOf(await running.done).status.state).toBe('completed');
+    expect(vendors.github!.requests).toHaveLength(2);
+    const lines = await journalLines(3);
+    expect(lines.find(l => l.refused)).toMatchObject({
+      refused: 'GitHub is still working on that. Try again once it has finished.',
+    });
+  });
+});
+
 describe('Include, Retry and Try again (task 8.4)', () => {
   const three = ['github', 'gmail', 'calendar'] as const;
 

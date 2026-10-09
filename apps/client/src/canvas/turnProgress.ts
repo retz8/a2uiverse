@@ -71,6 +71,22 @@ export function signInWords(state: CanvasState, source: string): string | undefi
   }
 }
 
+/**
+ * The source of the fragment holding `surfaceId`, while a press the reader made on that source —
+ * Allow's resume, a Retry — still runs: a press inside the fragment then would send its write a
+ * second time (task-12.13 decision 46).
+ */
+export function pressBusy(state: CanvasState, surfaceId: string): string | undefined {
+  const source = [...state.placement].find(([, placed]) => placed.surfaceId === surfaceId)?.[0];
+  if (source === undefined) return undefined;
+  const busy = state.presses.some(
+    press =>
+      (press.status === 'sent' || press.status === 'running') &&
+      press.operation.sources.includes(source),
+  );
+  return busy ? source : undefined;
+}
+
 /** A source whose slot waits on a sign-in: resolved at once, never awaited by the merge. */
 const needsSignIn = (state: CanvasState, source: string) =>
   state.slotStates.get(source) === 'authority' && !retrying(state, source);

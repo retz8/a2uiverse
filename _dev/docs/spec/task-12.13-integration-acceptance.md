@@ -217,3 +217,7 @@ With decisions 40, 41 and 43 the catalogs' test caches missed, and Gmail's surfa
 ### 45. A turn updating a surface painted before is sent
 
 Discard on Calendar's proposal was answered with the same card repainted settled — an update to the proposal's surface, no `createSurface` — and the canvas never changed: the kit's stream parser holds a surface's components back until it has seen that surface created in the same parse, and a delete likewise, so a turn that only updates or deletes a surface an earlier turn painted streamed nothing; the kit validated the whole response, logged it valid and completed. At the end of a valid turn the kit sends every message of the validated response whose surface and kind the stream did not send, whole and in order. A surface created in the turn streams as before. Replaced: an update or a delete to an earlier turn's surface dropped in live mode.
+
+### 46. One press at a time into a fragment
+
+After Allow, Calendar's resume re-sent Create event and ran for seventy seconds with the proposal still on screen; Create event pressed again went through beside it, and two events were created. A press into an app's fragment while a press on that app still runs — an action, Allow's resume, a Retry — is refused by the orchestrator, journaled refused, the app sent nothing; the client holds it back itself and says in the notice line "Google Calendar is still working on that. Try again once it has finished." Replaced: presses into one fragment sent side by side.

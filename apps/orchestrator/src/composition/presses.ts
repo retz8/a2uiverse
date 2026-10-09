@@ -24,6 +24,11 @@ export class Presses {
     for (const listener of [...this.#listeners]) listener(source);
   }
 
+  /** Whether `source` has a press in flight. */
+  running(source: string): boolean {
+    return this.#inFlight.has(source);
+  }
+
   /** The sources among `sources` with a press in flight. */
   pressing(sources: ReadonlySet<string>): string[] {
     return [...sources].filter(source => this.#inFlight.has(source));

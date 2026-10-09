@@ -36,6 +36,7 @@ import {describeError} from '../shared/describeError';
 import {createCatalogGate, gateRunner, type CatalogLoadFailure} from '../catalogs/catalogGate';
 import type {CatalogLoader} from '../catalogs/loader';
 import {createCanvasStore, type CanvasStore, type RosterEntry} from './canvasStore';
+import {pressBusy} from './turnProgress';
 import type {FragmentFailure, TurnRunner} from './turn/canvasTurn';
 import {createTurnRunner} from './turn/canvasTurn';
 import type {PaintCause} from './turn/cause';
@@ -502,6 +503,14 @@ export function createCanvasRuntime({
     if (state.inFlight) {
       // Agent-bound actions are blocked while a paint is in flight — a status cue, not a fire.
       store.showNotice(BLOCKED_CUE);
+      return;
+    }
+    // One press at a time into a fragment (task-12.13 decision 46), as the orchestrator holds.
+    const busy = pressBusy(state, action.surfaceId);
+    if (busy !== undefined) {
+      store.showNotice(
+        `${sourceName(busy) ?? 'This app'} is still working on that. Try again once it has finished.`,
+      );
       return;
     }
     return sendCausedAction(action, {kind: 'surface-action', payload: {action}});

@@ -5,7 +5,7 @@
  */
 import {describe, it, expect} from 'vitest';
 import {createCanvasStore, type RosterEntry} from './canvasStore';
-import {listed, turnProgress} from './turnProgress';
+import {listed, pressBusy, turnProgress} from './turnProgress';
 
 const ROSTER = [
   {source: 'shell', name: 'Synthesis'},
@@ -104,6 +104,16 @@ describe('turnProgress', () => {
     expect(github()).toMatchObject({status: 'working', text: 'GitHub'});
     store.settleInFlight('github');
     expect(github()).toMatchObject({status: 'done', text: 'GitHub'});
+  });
+
+  it('a fragment is busy while a press on its source runs — Allow’s resume, a Retry (task-12.13 decision 46)', () => {
+    const store = landed();
+    expect(pressBusy(store.getState(), 'github:s')).toBeUndefined();
+    const key = store.addPress({kind: 'retry', sources: ['github']});
+    expect(pressBusy(store.getState(), 'github:s')).toBe('github');
+    expect(pressBusy(store.getState(), 'linear:s')).toBeUndefined();
+    store.removePress(key);
+    expect(pressBusy(store.getState(), 'github:s')).toBeUndefined();
   });
 
   it('a step per vendor source in slot order: done once placed, failed as painted, working until then', () => {
