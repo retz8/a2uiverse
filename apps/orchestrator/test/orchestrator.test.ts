@@ -1255,6 +1255,29 @@ function failing(words?: string): Script {
   ];
 }
 
+/** A vendor that completes its task in words alone, with no surface. */
+function inWords(words: string): Script {
+  return ({ctx, vendorContextId}) => [
+    {
+      kind: 'status-update',
+      taskId: ctx.taskId,
+      contextId: vendorContextId,
+      final: true,
+      status: {
+        state: 'completed',
+        message: {
+          kind: 'message' as const,
+          messageId: crypto.randomUUID(),
+          role: 'agent' as const,
+          parts: [{kind: 'text' as const, text: words}],
+          contextId: vendorContextId,
+          taskId: ctx.taskId,
+        },
+      },
+    },
+  ];
+}
+
 function textsIn(events: AnyEvent[]): string[] {
   return events.flatMap(e => {
     const parts =
@@ -2419,6 +2442,30 @@ describe('Include, Retry and Try again (task 8.4)', () => {
     expect(arrivedIn(events, 'github')).toBe(true);
     expect(shellSlotOf(events)).toMatchObject({
       state: 'collapsed',
+      collapse: {cause: 'few', answered: ['GitHub'], failed: ['gmail']},
+    });
+  });
+
+  test('Retry on the merge’s line takes a source that answered in words alone: its request goes again (task-12.13 decision 35)', async () => {
+    const {client} = await boot({
+      planner: new FakePlanner(() => planWithSynthesis(['github', 'gmail'])),
+      scripts: {
+        github: sequence(inWords('Unable to reach GitHub.'), repaint(shopScript(camerasA))),
+        gmail: failing(),
+      },
+    });
+    const contextId = crypto.randomUUID();
+    const plan = await collect(client, utterance('compare', contextId));
+    expect(shellSlotOf(plan)).toMatchObject({
+      state: 'collapsed',
+      collapse: {cause: 'few', answered: [], failed: ['github', 'gmail']},
+    });
+
+    const events = await collect(client, press('retry', ['github'], contextId));
+    expect(finalOf(events).status.state).toBe('completed');
+    expect(vendors.github!.requests).toHaveLength(2);
+    expect(arrivedIn(events, 'github')).toBe(true);
+    expect(shellSlotOf(events)).toMatchObject({
       collapse: {cause: 'few', answered: ['GitHub'], failed: ['gmail']},
     });
   });

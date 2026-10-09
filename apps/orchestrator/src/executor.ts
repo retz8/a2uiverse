@@ -755,8 +755,10 @@ export class OrchestratorExecutor implements AgentExecutor {
     let work: (signal: AbortSignal) => Promise<unknown>;
     switch (operation.kind) {
       case 'retry': {
-        // Retry, and the resume press after a sign-in (task-12.2 decision 9): a failed slot or
-        // one needing sign-in goes again; a request for more access sends its press again.
+        // Retry, and the resume press after a sign-in (task-12.2 decision 9): a failed slot, one
+        // needing sign-in, or one that answered in words alone — the merge's line offers Retry
+        // to every source that did not arrive (task-12.13 decision 35) — goes again; a request
+        // for more access sends its press again.
         const source = operation.sources[0]!;
         const adding = state.adding.get(source);
         if (adding) {
@@ -775,7 +777,7 @@ export class OrchestratorExecutor implements AgentExecutor {
         if (
           !slot ||
           source === SHELL_SOURCE_ID ||
-          (slot.state !== 'failed' && slot.state !== 'authority')
+          (slot.state !== 'failed' && slot.state !== 'authority' && slot.state !== 'collapsed')
         ) {
           return refuse(`${slot?.plan.name ?? source} has not failed.`);
         }
