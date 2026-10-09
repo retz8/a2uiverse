@@ -197,3 +197,19 @@ A request for more access holds the press that needed it, for Allow to send agai
 ### 42. An app's dialog opens over its own slot
 
 A vendor may draw a dialog; Primer's `ConfirmationDialog` in GitHub's catalog is fixed over the viewport, so it painted over the whole canvas from inside its fragment. The fragment boundary is the containing block of what the app positions fixed — CSS layout containment, which clips nothing — so an app's backdrop and its dialog cover that app's slot alone, and several apps may hold one open at once. The slot holding the focus paints above its neighbours. Replaced: `docs/design/client.md`'s known limit that visual containment isn't DOM containment.
+
+### 40. A proposal is not a question; a dismissed one repaints settled
+
+Calendar's proposal for an event the reader had just asked for was declared a question, and Discard left it on screen with its buttons live, what happened said only in a passing line. The kit's prompt gives every app two rules beside its failure wording: a write the app drafts for the person to confirm is a proposal and is never declared a question — a question is for a choice it cannot go on without; and a proposal dismissed outright — Discard, Not now — is repainted as the same surface settled, its buttons gone, one plain line saying what did not happen. Backing out of a confirm step to edit returns to the draft. The roster's prompts drop the lines saying otherwise: a declined proposal painting nothing, a proposal listed among questions, the shell raising a question. The deterministic answers already repaint a dismissed proposal settled. These are the kit's guidance and the roster's own quality: an app that does otherwise still works on the canvas. Replaced: a proposal declared a question, and a dismissed proposal left as it was.
+
+### 41. Calendar's proposal is as wide as what it holds
+
+Calendar's proposal card stretched across its whole slot for two lines of content. Calendar's prompt has it put the proposal's Surface inside a vertical Stack aligned to start, its catalog's own way to size a card to its content. Replaced: a proposal stretched across the slot.
+
+### 43. GitHub's question policy runs one way
+
+GitHub's question policy tied the question marker and a `ConfirmationDialog` root both ways, so a write proposal drawn as a dialog had to be declared a question. A surface declared a question still needs a `ConfirmationDialog` root; a `ConfirmationDialog` confirming a write GitHub proposed is not a question and is not declared one. GitHub keeps its dialogs. Replaced: the marker and the dialog root implying each other.
+
+### 44. Gmail's surfaces test reads every account's answers
+
+With decisions 40, 41 and 43 the catalogs' test caches missed, and Gmail's surfaces test failed: it read each entry of the deterministic answers' folder as a file, and since task 12.11 that folder holds one set per fake account. The test walks the folder, rendering both accounts' answers. Replaced: a flat read of the folder, its failure hidden by the cache.
