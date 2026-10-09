@@ -2,6 +2,8 @@
 
 Recorded 2026-10-09. A2UIVerse as the name of a family rather than of one app: the canvas shell is its first member. Two customers, five products, one marketplace between them.
 
+User flows, imagined with the whole roadmap built: the design canvas *A2UIVerse User Flows* (https://claude.ai/artifact/3Z5mhd5Xq5bHmYKwZdixkn) — four groups, the person, the vendor's engineer, the vendor's designer and the team in production, each a numbered flow of sketch screens across the canvas shell, Stellify, Spectra and Observatory, with the handoffs between groups.
+
 ---
 
 ## The family
