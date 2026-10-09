@@ -165,3 +165,7 @@ A sign-in that ends well names the app — "You're signed in to Google Calendar"
 ### 32. The merged view says not connected
 
 A source needing a pasted key or token is, to the shell catalog, a slot in the state `connect`, beside `authority`: the merged view's reserved column reads "· not connected", and a home source's collapse line "…and Shop B isn't connected. Connecting Shop B brings it back." Replaced: "not signed in" and "isn't signed in. Signing in to …" for every scheme.
+
+### 33. GitHub's sign-in asks for notifications
+
+In the live half, "What needs my attention today?" painted GitHub's slot as a failure: GitHub's MCP server answered `list_notifications` with 403, `WWW-Authenticate: Bearer error="insufficient_scope", scope="notifications"`, and the lost session failed the calls beside it. The agent asked GitHub for `repo` and `read:org` alone, which GitHub's REST API takes for notifications and its MCP server does not. The agent asks GitHub for `notifications` beside them, for both its read and its write scope. Replaced: `repo` and `read:org` alone, the read scope promising notifications it could not show.
