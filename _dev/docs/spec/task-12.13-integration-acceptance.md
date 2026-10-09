@@ -169,3 +169,7 @@ A source needing a pasted key or token is, to the shell catalog, a slot in the s
 ### 33. GitHub's sign-in asks for notifications
 
 In the live half, "What needs my attention today?" painted GitHub's slot as a failure: GitHub's MCP server answered `list_notifications` with 403, `WWW-Authenticate: Bearer error="insufficient_scope", scope="notifications"`, and the lost session failed the calls beside it. The agent asked GitHub for `repo` and `read:org` alone, which GitHub's REST API takes for notifications and its MCP server does not. The agent asks GitHub for `notifications` beside them, for both its read and its write scope. Replaced: `repo` and `read:org` alone, the read scope promising notifications it could not show.
+
+### 34. A merge still too few names who answered since
+
+GitHub, back through Sign in again over a merge collapsed because no source answered, painted, and the merge's line still read "The merged view needs at least two sources, and none answered." with Retry GitHub, the progress line "No app answered, nothing to join": the arrival found a merge still impossible and left the collapse as it was written. A source arriving over a merge collapsed for too few, through Retry or the resume after a sign-in, writes the line afresh from the sources arrived — "Only GitHub answered, nothing to join", no Retry for it. Replaced: the line written once, when the merge collapsed.

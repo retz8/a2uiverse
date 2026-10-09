@@ -1178,7 +1178,12 @@ export class OrchestratorExecutor implements AgentExecutor {
           state.history.remember({synthesis: state.synthesis, merged: state.merged});
         }
       } else if (slot.state === 'collapsed' && (owed.make || joining.length > 0)) {
-        if (!mergePossible(state.arrived, slot.plan.join?.home ?? undefined)) return end;
+        if (!mergePossible(state.arrived, slot.plan.join?.home ?? undefined)) {
+          // Still too few: the line names who answered now (task-12.13 decision 34).
+          if (slot.collapse?.cause === 'few')
+            slot.collapse = this.#fewCollapse(state, state.arrived);
+          return end;
+        }
         end = await this.#synthesize(sinks, state, {kind: 'make', by, at: Date.now(), signal});
       }
     } finally {

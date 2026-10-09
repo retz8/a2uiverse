@@ -2400,6 +2400,29 @@ describe('Include, Retry and Try again (task 8.4)', () => {
     expect(shell).toMatchObject({merged: ['github', 'gmail', 'calendar']});
   });
 
+  test('a source back through Retry over a merge still too few says it answered: the line written afresh (task-12.13 decision 34)', async () => {
+    const synthesizer = new FakeSynthesizer();
+    const {client} = await boot({
+      planner: new FakePlanner(() => planWithSynthesis(['github', 'gmail'])),
+      synthesizer,
+      scripts: {github: sequence(failing(), repaint(shopScript(camerasA))), gmail: failing()},
+    });
+    const contextId = crypto.randomUUID();
+    const plan = await collect(client, utterance('compare', contextId));
+    expect(shellSlotOf(plan)).toMatchObject({
+      state: 'collapsed',
+      collapse: {cause: 'few', answered: [], failed: ['github', 'gmail']},
+    });
+
+    const events = await collect(client, press('retry', ['github'], contextId));
+    expect(synthesizer.calls).toHaveLength(0);
+    expect(arrivedIn(events, 'github')).toBe(true);
+    expect(shellSlotOf(events)).toMatchObject({
+      state: 'collapsed',
+      collapse: {cause: 'few', answered: ['GitHub'], failed: ['gmail']},
+    });
+  });
+
   test('Try again makes a merge that couldn’t be made', async () => {
     const synthesizer = new FakeSynthesizer(['no block', 'no block', bestPriceView]);
     const {client} = await boot({
