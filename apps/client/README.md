@@ -12,7 +12,7 @@ The canvas: you ask in words, and the answer is a full screen of UI composed fro
 
 ### One screen, many design systems
 
-Each app's UI renders with its own catalog: GitHub in Primer, Gmail and Calendar in Material 3, CircleCI and Linear each in a catalog of its own in its product's design language, side by side on one page. Every catalog keeps its styles inside its own slot, and the client's collision tests fail if any leak onto the page or into another app.
+Each app's UI renders with its own catalog: GitHub in Primer, Gmail and Calendar in Material 3, CircleCI and Linear each in a catalog of its own in its product's design language, side by side on one page. Every catalog keeps its styles inside its own slot, and the client's collision tests fail if any leak onto the page or into another app. An app's dialog covers its own slot, not the page, so several apps can each hold one open.
 
 The shell draws everything around the apps in Radix Themes: the question, the progress line, the palette, Back and Trail, the layout, and each app's name above its slot. It never reaches inside a slot.
 
@@ -20,13 +20,25 @@ The shell draws everything around the apps in Radix Themes: the question, the pr
 
 The merged table isn't something a model drew. The orchestrator sends formulas pointing into each app's data, and the client evaluates them itself, again on every change to that data, with no model call. Sorting it is local and free.
 
-Each value shows how sure it is by how strongly it's drawn, and says where it came from on hover. Clicking it scrolls to the element it came from in that app's slot and highlights it.
+Each value shows how sure it is by how strongly it's drawn, and says where it came from on hover. Clicking it scrolls to the element it came from in that app's slot and highlights it. Times are read and shown in your own time zone, as your browser reports it, in English.
 
 ### Paints as answers arrive, never half-drawn
 
 The layout lands first, with every slot waiting, and each app's UI fills its slot as it arrives. The line under the question says where things stand in the client's own words: a tick per app, then the merge, like "Joining Linear issues to GitHub PRs and CircleCI runs".
 
-A new paint over one already on screen is built and checked off screen, then swapped in whole, so the screen never shows half of something. An app that fails shows a failure tile with Retry in its own slot, and nothing else moves.
+A new paint over one already on screen is built and checked off screen, then swapped in whole, so the screen never shows half of something. An app that fails shows a failure tile with Retry in its own slot, and nothing else moves. A paint that asks you something stays in its slot like any other, and the progress line says the app needs your answer until you press inside it. A press into an app still working on an earlier one is held back, with a notice to try again once it has finished.
+
+Every message to the orchestrator carries your local time and time zone, so each app is told what "today" is for you.
+
+### Sign-in in a window of its own
+
+An app you aren't signed in to fills its slot with the shell's authority tile: what the app will be able to do, in the words of its card, and Sign in, which opens the app's sign-in in a new browser window, never a frame on the page. An app that takes a pasted key or token says Connect, and opens a page to paste it. While the window is open, the tile says to finish there, with Open the sign-in again and Cancel, until the sign-in ends, Cancel, or the attempt expires. The window hands nothing back: the client polls the orchestrator for the outcome, then sends a Retry for the slot whose Sign in was pressed, which fills in place. Another slot waiting on the same account loads at once on its own Sign in, with no window. After the first full tile for an app in a page load, its slots are one quiet line, "Not signed in · Sign in". A sign-in that has run out says Sign in again; a kind of sign-in A2UIVerse can't do says so, with Manage apps.
+
+An app that needs more access part-way puts a "Needs access" chip on its name row, without moving the fragment, and a card over the fragment listing what it asks: Allow opens the window and sends again the press that needed it, and Not now drops that press.
+
+Asking to add an account draws the add-account tile: the accounts already added, what a new one lets the app do, and Add account; the account added is said on the progress line. Every fragment of an app with more than one account is labelled with its account, and a command for such an app that names no account asks which one to use, one press per account.
+
+A paint carrying a password, code or card field never reaches the screen. If the app doesn't answer again without it, its slot says why, with "Continue on" the app's own site and no Retry.
 
 ### Keeps every question
 
@@ -174,10 +186,10 @@ pnpm --filter @a2uiverse/client check:transparency
 ```
 src/
   canvas.tsx         the entry: the host interface, the catalog loader, the canvas
-  orchestratorApi.ts the client's non-A2A channel to the orchestrator
+  orchestratorApi.ts the client's non-A2A channel to the orchestrator: the registry, the sign-in start and its outcome
   catalogs/          the client's own catalogs, the host interface, the loader, the gate
   canvas/            the canvas, with a short code guide
-  a2a/               the A2A side: the agent card, each answer's session, sending, paintMeta
+  a2a/               the A2A side: the agent card, each answer's session, sending, paintMeta, the person's clock
   a2ui/              applying streamed A2UI batches to a processor
   beats/             the beat format, replay, the synthetic beats
   shared/            error describers and the surface error boundary
@@ -187,4 +199,4 @@ e2e/                 Playwright screenshot tests
 
 </details>
 
-The design record is [`docs/design/client.md`](../../docs/design/client.md).
+The design record is [`docs/design/client.md`](../../docs/design/client.md); sign-in end to end is [`docs/design/authority.md`](../../docs/design/authority.md).

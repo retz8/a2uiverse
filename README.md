@@ -32,7 +32,7 @@ It explores what an application ecosystem looks like when AI agents can be packa
 | Typing an address                         | Asking a question; A2UIVerse picks the apps                          |
 | One site per tab                          | Several apps on one screen, each in its own look, and a merged view  |
 | Tabs and a history stack                  | An answer per question, each still working, on a trail that branches |
-| Permission prompts only the browser draws | Sign-in and consent only the shell draws, never an app (to come)     |
+| Permission prompts only the browser draws | Sign-in and consent only the shell draws, never an app               |
 
 The full design, from its axioms to its milestones, is in **[SPEC.md](SPEC.md)**.
 
@@ -66,6 +66,10 @@ One app failing never fails the rest: its slot says why and offers Retry, and it
 
 Every question gets its own answer, and none is thrown away when the next one is asked. A past answer still works like a browser tab: clicks and sorts land in it, and anything it was still loading keeps arriving. "Ask this again now" gets today's answer as a new one and leaves the past one as it was. Asking from a past answer starts a branch, and the trail draws every question on the branch it grew from.
 
+### Sign-in the shell draws
+
+An app that needs you signed in never draws its own sign-in. Its slot takes a tile the shell draws, saying what the app will be able to do in the words of its card, with one Sign in that opens the app's sign-in in a new window; when you're done, the slot fills in place, and the rest of the screen never waits on it. After its first tile in a sitting, an app you haven't signed in to is one quiet line. An app that needs more access part-way, to open a message or confirm a write, asks on its name row, with Allow and Not now. An app can hold several accounts, each named on what it paints: a question about where things stand gathers from all of them, and a command that names none asks which. No app can put a password, code or card field on the screen: a paint with one is refused and the app asked once to answer without it; if it doesn't, its slot says why and offers to continue on the app's own site. The orchestrator keeps the sign-ins in its vault; no credential reaches the client or the models. [More in the authority design record](docs/design/authority.md).
+
 ### Back and forward inside each app
 
 <table>
@@ -83,7 +87,7 @@ Clicking into something inside an app, like a CI run, paints a new screen in its
 
 ### Any A2UI agent can join
 
-**App = MCP server + Agentic BFF + A2UI catalog.** Five apps, GitHub, Gmail, Google Calendar, CircleCI and Linear, live in [`a2uiverse-apps`](https://github.com/retz8/a2uiverse-apps), with a kit to build agents on and a scaffolder for new apps. On the way to the screen, an app's A2UI is changed only where two apps could collide, so an A2UI agent takes part with no changes to its code. An app is installed into a running platform from its agent card and its catalog, packed by Stellify: the client loads the catalog when it's first needed, and nothing in A2UIVerse's code names an app.
+**App = MCP server + Agentic BFF + A2UI catalog.** Five apps, GitHub, Gmail, Google Calendar, CircleCI and Linear, live in [`a2uiverse-apps`](https://github.com/retz8/a2uiverse-apps), with a kit to build agents on and a scaffolder for new apps. On the way to the screen, an app's A2UI is changed only where two apps could collide, so an A2UI agent takes part with no changes to its code. An app is installed into a running platform from its agent card and its catalog, packed by Stellify: the client loads the catalog when it's first needed, and nothing in A2UIVerse's code names an app. Sign-in is read from the card too: A2UIVerse signs in to an app by the scheme its card declares, as any OAuth client would.
 
 ## How it works
 
@@ -104,18 +108,20 @@ The client talks only to the orchestrator, and the orchestrator to the apps. One
 4. **Synthesizer**, the second model call, runs once the apps have answered, when the plan reserved a merged view. It writes the view as formulas over the apps' data.
 5. **Client** evaluates the formulas, and again on every change, with no model call.
 
-| Part                                                        | What it is                                                                                                  |
-| ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| [`apps/client`](apps/client/)                               | The canvas: the palette, the composed screen, the merged view, the trail. Vite and React                    |
-| [`apps/orchestrator`](apps/orchestrator/)                   | The hub: an A2A agent server that picks the apps, plans the screen, relays the answers and writes the merge |
-| [`apps/marketplace`](apps/marketplace/)                     | Where apps will be published and found. Not built yet                                                       |
-| [`packages/sdk`](packages/sdk/)                             | The contract between the orchestrator and the client, and generic A2UI tools                                |
-| [`packages/shell-catalog`](packages/shell-catalog/)         | The shell's own A2UI catalog: the basic catalog on Radix Themes, plus the components that compose a screen  |
-| [`packages/stellify`](packages/stellify/)                   | Stellify, the pack tool: turns a catalog package into the catalog artifact the registry installs            |
-| [`packages/registry-snapshot`](packages/registry-snapshot/) | The catalog table and the seven catalog packages, packed, at one pinned commit, for the tests and replays   |
-| [`a2uiverse-apps`](https://github.com/retz8/a2uiverse-apps) | The apps, their agent kit and the scaffolder, in their own repo                                             |
+Before an app is asked, the orchestrator's **AuthVault** checks the app's card against the accounts it holds, and the request carries the account's credential as an HTTP header. An app you aren't signed in to isn't asked: its slot takes the sign-in tile, and signing in sends the request then.
 
-Going deeper: **[SPEC.md](SPEC.md)** is the full design, and [`docs/design/`](docs/design/) has a guide to each part: the [synthesis](docs/design/synthesis.md) behind the merged view, the [client](docs/design/client.md), the [orchestrator](docs/design/orchestrator.md), the [shell catalog](docs/design/shell-catalog.md), the [agent kit](docs/design/agent-kit.md) and [app install](docs/design/app-install.md).
+| Part                                                        | What it is                                                                                                                                             |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| [`apps/client`](apps/client/)                               | The canvas: the palette, the composed screen, the merged view, the trail. Vite and React                                                               |
+| [`apps/orchestrator`](apps/orchestrator/)                   | The hub: an A2A agent server that picks the apps, plans the screen, relays the answers and writes the merge, and keeps the apps' sign-ins in its vault |
+| [`apps/marketplace`](apps/marketplace/)                     | Where apps will be published and found. Not built yet                                                                                                  |
+| [`packages/sdk`](packages/sdk/)                             | The contract between the orchestrator and the client, and generic A2UI tools                                                                           |
+| [`packages/shell-catalog`](packages/shell-catalog/)         | The shell's own A2UI catalog: the basic catalog on Radix Themes, plus the components that compose a screen                                             |
+| [`packages/stellify`](packages/stellify/)                   | Stellify, the pack tool: turns a catalog package into the catalog artifact the registry installs                                                       |
+| [`packages/registry-snapshot`](packages/registry-snapshot/) | The catalog table and the seven catalog packages, packed, at one pinned commit, for the tests and replays                                              |
+| [`a2uiverse-apps`](https://github.com/retz8/a2uiverse-apps) | The apps, their agent kit and the scaffolder, in their own repo                                                                                        |
+
+Going deeper: **[SPEC.md](SPEC.md)** is the full design, and [`docs/design/`](docs/design/) has a guide to each part: the [synthesis](docs/design/synthesis.md) behind the merged view, the [client](docs/design/client.md), the [orchestrator](docs/design/orchestrator.md), the [shell catalog](docs/design/shell-catalog.md), the [agent kit](docs/design/agent-kit.md), [app install](docs/design/app-install.md), and [authority](docs/design/authority.md): sign-in, accounts and the credential bar.
 
 ## Getting it running
 
@@ -139,7 +145,7 @@ echo "GOOGLE_API_KEY=<your key>" > apps/orchestrator/.env
 pnpm dev:all        # the apps and the platform, the apps installed
 ```
 
-Open **http://localhost:5173** and press `⌘K`. The apps start in `deterministic` mode, answering from recordings with no key of their own, while the Planner and the Synthesizer run live. For real data, start the apps in `live` mode with `pnpm dev:all --mode live`; each app's agent README says which credentials it needs.
+Open **http://localhost:5173** and press `⌘K`. The apps start in `deterministic` mode, answering from recordings with no key of their own, while the Planner and the Synthesizer run live. The first time you ask something an app holds, its slot asks you to sign in, and the app's sign-in page offers made-up accounts. For real data, start the apps in `live` mode with `pnpm dev:all --mode live`: each agent then needs a Gemini key in its own `.env`, and you sign in to each vendor in the browser. GitHub, and Gmail and Calendar together, sign in through an OAuth client you register once; Linear and CircleCI need nothing set up. Each app's agent README has the steps.
 
 <details>
 <summary><b>Every command</b></summary>
@@ -147,7 +153,7 @@ Open **http://localhost:5173** and press `⌘K`. The apps start in `deterministi
 ```bash
 pnpm dev:all          # the apps and the platform, the apps installed
 pnpm dev              # the platform only: client, orchestrator, marketplace
-pnpm dev:agents       # the apps only, installed into the running orchestrator: --tier mocks, --only <ids>, --mode deterministic|stub|live, --agents-dir <path>, --no-install
+pnpm dev:agents       # the apps only, installed into the running orchestrator: --tier mocks, --only <ids>, --mode deterministic|stub|live, --agents-dir <path>, --no-install, --agent-state <dir>
 pnpm agents:list      # what a launch would run, and what would stop it: --tier mocks
 pnpm dev:client       # one platform process, in its own terminal
 pnpm dev:orch
@@ -156,7 +162,7 @@ pnpm verify           # build, typecheck, test, lint and format check
 pnpm sweep:secrets    # after a sitting: the journal and captured output searched for every token and key the vault and the agents hold, counts only: --state-dir, --agents-dir, --logs <dir>
 ```
 
-Ports: client `5173`, orchestrator `10001`, marketplace `10002`. The apps take `11001` and up, the mock stores `12001` and up; only the orchestrator reaches them.
+Ports: client `5173`, orchestrator `10001`, marketplace `10002`. The apps take `11001` and up, the mock stores `12001` and up; the orchestrator reaches them, and the browser only their sign-in pages.
 
 </details>
 
@@ -172,6 +178,8 @@ pnpm dev:all --tier mocks
 ```
 
 The launcher starts the agents and the platform together, builds each app's catalog package in the checkout, packs it with Stellify and, once the orchestrator answers, installs each app as soon as its agent is up. Then it uninstalls every roster app it did not launch, so the orchestrator holds what runs; an app you installed by hand that the roster does not name is left alone. `dev:agents` does the same against an orchestrator you started yourself. `--no-install` starts the agents only — nothing built, packed, installed or uninstalled — for installing apps by hand with the orchestrator's `registry` command.
+
+Each agent is started with `--host localhost` and its roster port. `A2UIVERSE_PUBLIC_URL`, a pattern with a `{port}` slot such as `https://<tunnel-id>-{port}.asse.devtunnels.ms`, gives each agent, as `--public-url`, the address the browser reaches its sign-in pages at, for a browser on another machine; unset, they stay on `localhost`. `--agent-state <dir>` keeps each agent's sign-in store in `<dir>/<app id>`, passed as `--state-dir`, in place of the agent's own `.state/`. The launcher handles no credentials: each agent reads its own `agent/.env`.
 
 An app that does not build, does not pack, never comes up, or is refused at install is named with its reason and left out, uninstalled if an earlier launch installed it; the rest still run. A roster app missing from the checkout is skipped. An unknown tier, an unknown `--only` id, or two apps of the tier on one port stop the launch. Stopping the launcher uninstalls nothing: the next launch sets the registry right.
 
@@ -202,9 +210,8 @@ A pnpm workspace with Turborepo over it. Each package's README has its own comma
 
 ## Where it's headed
 
-What's built so far is the composed screen, and installing an app into it from its card and its packed catalog. Next comes the rest of the ecosystem around it:
+What's built so far is the composed screen, installing an app into it from its card and its packed catalog, and signing in to apps, with several accounts each. Next comes the rest of the ecosystem around it:
 
-- **Sign-in the shell owns**: when an app needs access, a tile and a consent dialog drawn by the shell, never by the app, with credentials kept in a vault.
 - **A marketplace**: a local index of published apps, package hosting, a publish step, and a new app tried out by rendering its first screen.
 - **Store and App Library pages**: trusted pages to browse and install apps, and to manage installed ones and their accounts.
 - **Installing mid-question**: a question no installed app can answer finds one in the marketplace, installs it, and carries on.
