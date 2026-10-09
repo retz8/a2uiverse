@@ -19,6 +19,7 @@ import type {SynthesisCall, SynthesisModel} from '../src/synthesizer/synthesizer
 import {
   BASIC_CATALOG_ID,
   canvasParentMetadata,
+  clientSessionMetadata,
   clipPaintMetaTitle,
   operationData,
   PAINT_META_MIME_TYPE,
@@ -2068,6 +2069,48 @@ function sequence(...scripts: Script[]): Script {
 const shellSlotOf = (events: AnyEvent[]) => slotsOf(shellPaints(events).at(-1)!)['shell']!;
 
 const finalOf = (events: AnyEvent[]) => events.at(-1) as TaskStatusUpdateEvent;
+
+describe('the person’s now in the words of each request (task-12.13 decision 47)', () => {
+  const CLOCK = {now: '2026-10-09T14:20:00+09:00', timeZone: 'Asia/Seoul'};
+  const NOW = "The person's local time is Friday 9 October 2026, 14:20 (Asia/Seoul).";
+
+  test('a request carries the time the utterance was asked at; nothing a2uiverse rides the vendor wire', async () => {
+    const {client} = await boot({planner: new FakePlanner(() => layoutFor(['github']))});
+    const message = utterance('cameras');
+    message.metadata = {...message.metadata, ...clientSessionMetadata('page-1', undefined, CLOCK)};
+    await collect(client, message);
+    const [request] = vendors.github!.requests;
+    const text = request!.message.parts.find(p => p.kind === 'text');
+    expect(text && 'text' in text ? text.text : '').toBe(
+      `${withGuidance(`Paint a compact github card.`)} ${NOW}`,
+    );
+    expect(Object.keys(request!.message.metadata ?? {})).not.toContain('a2uiverse');
+  });
+
+  test('a Retry says the time it was pressed at; a request with no clock says none', async () => {
+    const {client} = await boot({
+      planner: new FakePlanner(() => layoutFor(['github'])),
+      scripts: {github: sequence(failing(), repaint(shopScript(camerasA)))},
+    });
+    const contextId = crypto.randomUUID();
+    await collect(client, utterance('cameras', contextId));
+    const retry = press('retry', ['github'], contextId);
+    retry.metadata = clientSessionMetadata('page-1', undefined, {
+      now: '2026-10-10T08:05:00+09:00',
+      timeZone: 'Asia/Seoul',
+    });
+    await collect(client, retry);
+    const [first, again] = vendors.github!.requests;
+    const words = (r: typeof first) => {
+      const text = r!.message.parts.find(p => p.kind === 'text');
+      return text && 'text' in text ? text.text : '';
+    };
+    expect(words(first)).toBe(withGuidance('Paint a compact github card.'));
+    expect(words(again)).toBe(
+      `${withGuidance('Paint a compact github card.')} The person's local time is Saturday 10 October 2026, 08:05 (Asia/Seoul).`,
+    );
+  });
+});
 
 describe('one press at a time per fragment (task-12.13 decision 46)', () => {
   test('a second press into a fragment while its first still runs is refused: the app gets one request', async () => {

@@ -105,6 +105,16 @@ test('the operation matches the contract: its fields and its kinds', () => {
   expect([...OPERATION_KINDS]).toEqual(operation.kinds);
 });
 
+test('the person’s clock rides beside the session, and reads back only whole (task-12.13 decision 47)', () => {
+  const clock = {now: '2026-10-09T14:20:00+09:00', timeZone: 'Asia/Seoul'};
+  const metadata = clientSessionMetadata('page-1', 'ctx-parent', clock);
+  expect(readClientSession(metadata)).toEqual({session: 'page-1', ...clock});
+  expect(readCanvasParent(metadata)).toEqual({parent: 'ctx-parent'});
+  expect(
+    readClientSession({[STAMP_KEY]: {session: 'page-1', now: '2026-10-09T14:20:00+09:00'}}),
+  ).toEqual({session: 'page-1'});
+});
+
 test('the session rides every client message beside the parent, and reads back', () => {
   const metadata = clientSessionMetadata('page-1', 'ctx-parent');
   expect(readClientSession(metadata)).toEqual({session: 'page-1'});

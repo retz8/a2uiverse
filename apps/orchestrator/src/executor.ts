@@ -12,7 +12,7 @@ import {
 import {SHELL_ACTIONS, type SlotCollapse} from '@a2uiverse/shell-catalog/schema';
 import type {Sources} from './accounts/accounts.js';
 import type {AgentsPool} from './agentsPool/agentsPool.js';
-import {withGuidance} from './agentsPool/credentialBar.js';
+import {requestWords} from './agentsPool/requestWords.js';
 import {STAMP_KEY, type VendorEvent} from './agentsPool/relay.js';
 import type {DispatchHandle, DispatchOutcome, DispatchRecord} from './agentsPool/types.js';
 import type {Compositions} from './composition/compositions.js';
@@ -602,7 +602,7 @@ export class OrchestratorExecutor implements AgentExecutor {
           kind: 'message',
           messageId: randomUUID(),
           role: 'user',
-          parts: [{kind: 'text', text: withGuidance(slot.request)}],
+          parts: [{kind: 'text', text: requestWords(slot.request, ctx.userMessage.metadata)}],
           metadata: vendorMetadata(ctx.userMessage.metadata, slot.source),
         };
         const handle = this.#deps.pool.dispatch(slot.source, {
@@ -772,7 +772,7 @@ export class OrchestratorExecutor implements AgentExecutor {
     if (!state) return refuse('No such context.');
     if (state.retired.signal.aborted) return refuse('This context is closed.');
     turn.composition(state.turnId);
-    const sink: Sink = {ctx, bus, turn, drains: []};
+    const sink: Sink = {ctx, bus, turn, drains: [], pressed: ctx.userMessage.metadata};
     const merge = synthesisSlot(state);
     let work: (signal: AbortSignal) => Promise<unknown>;
     switch (operation.kind) {
@@ -1030,7 +1030,12 @@ export class OrchestratorExecutor implements AgentExecutor {
           kind: 'message',
           messageId: randomUUID(),
           role: 'user',
-          parts: [{kind: 'text', text: withGuidance(slot.plan.request)}],
+          parts: [
+            {
+              kind: 'text',
+              text: requestWords(slot.plan.request, sink.pressed, state.requestMetadata),
+            },
+          ],
           metadata: vendorMetadata(state.requestMetadata, source),
         };
     const handle = this.#deps.pool.dispatch(source, {
@@ -1710,7 +1715,12 @@ export class OrchestratorExecutor implements AgentExecutor {
         kind: 'message',
         messageId: randomUUID(),
         role: 'user',
-        parts: [{kind: 'text', text: withGuidance(slot.plan.request)}],
+        parts: [
+          {
+            kind: 'text',
+            text: requestWords(slot.plan.request, sink.pressed, state.requestMetadata),
+          },
+        ],
         metadata: vendorMetadata(state.requestMetadata, source),
       },
       fromPlan: true,
@@ -1740,7 +1750,12 @@ export class OrchestratorExecutor implements AgentExecutor {
           kind: 'message',
           messageId: randomUUID(),
           role: 'user',
-          parts: [{kind: 'text', text: withGuidance(slot.plan.request)}],
+          parts: [
+            {
+              kind: 'text',
+              text: requestWords(slot.plan.request, sink.pressed, state.requestMetadata),
+            },
+          ],
           metadata: vendorMetadata(state.requestMetadata, source),
         };
     delete slot.escalation;

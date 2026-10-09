@@ -45,9 +45,11 @@
       "direction": "client → orchestrator",
       "carriedOn": "every client message's metadata, keyed by stampKey, beside the parent on an opening utterance",
       "required": ["session"],
-      "optional": [],
+      "optional": ["now", "timeZone"],
       "fields": {
-        "session": "The client's page load: minted once when the page loads and named on every message it sends, so the orchestrator can keep what holds for one sitting — whether an app's full sign-in tile was shown (task-12.5 decision 6). A reload is a new session."
+        "session": "The client's page load: minted once when the page loads and named on every message it sends, so the orchestrator can keep what holds for one sitting — whether an app's full sign-in tile was shown (task-12.5 decision 6). A reload is a new session.",
+        "now": "The person's local time when the message was sent, RFC 3339 with its offset. With timeZone, read whole or not at all: the orchestrator says it to an app in plain words in each request it writes — never as metadata on the vendor wire (task-12.13 decision 47).",
+        "timeZone": "The person's IANA time zone, as the browser has it."
       }
     },
     "compositionOperation": {

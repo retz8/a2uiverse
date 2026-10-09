@@ -7,6 +7,10 @@ import {createA2ASession} from './session';
 import {streamUserMessage} from './streamUserMessage';
 import {PAGE_SESSION} from './pageSession';
 
+/** The person's clock, fixed for the metadata these tests compare whole (task-12.13 decision 47). */
+const CLOCK = vi.hoisted(() => ({now: '2026-10-09T14:20:00+09:00', timeZone: 'Asia/Seoul'}));
+vi.mock('./clock', () => ({readClock: () => CLOCK}));
+
 const A2UI_DATA = {version: 'v0.9', createSurface: {surfaceId: 's', catalogId: 'cat'}};
 const DATA_PART: Part = {kind: 'data', data: A2UI_DATA};
 
@@ -103,7 +107,7 @@ describe('streamUserMessage', () => {
     const {getSender, sent} = fakeSender([statusUpdate([DATA_PART], 'ctx-43', true)]);
     await streamUserMessage('child', {getSender, apply: () => {}, parent: 'ctx-42'});
     expect(sent[0].message.metadata).toEqual({
-      a2uiverse: {session: PAGE_SESSION, parent: 'ctx-42'},
+      a2uiverse: {session: PAGE_SESSION, ...CLOCK, parent: 'ctx-42'},
     });
   });
 
@@ -122,7 +126,7 @@ describe('streamUserMessage', () => {
 
     expect(sent[0].message.metadata).toEqual({
       a2uiClientDataModel: clientDataModel,
-      a2uiverse: {session: PAGE_SESSION},
+      a2uiverse: {session: PAGE_SESSION, ...CLOCK},
     });
   });
 
@@ -135,7 +139,7 @@ describe('streamUserMessage', () => {
       getClientDataModel: () => undefined,
     });
 
-    expect(sent[0].message.metadata).toEqual({a2uiverse: {session: PAGE_SESSION}});
+    expect(sent[0].message.metadata).toEqual({a2uiverse: {session: PAGE_SESSION, ...CLOCK}});
   });
 
   it('never throws: stream errors are logged and apply is skipped', async () => {

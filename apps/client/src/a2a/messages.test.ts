@@ -1,4 +1,4 @@
-import {describe, it, expect} from 'vitest';
+import {describe, it, expect, vi} from 'vitest';
 import type {
   Message,
   Part,
@@ -19,8 +19,12 @@ import {
 } from './messages';
 import {PAGE_SESSION} from './pageSession';
 
+/** The person's clock, fixed for the metadata these tests compare whole (task-12.13 decision 47). */
+const CLOCK = vi.hoisted(() => ({now: '2026-10-09T14:20:00+09:00', timeZone: 'Asia/Seoul'}));
+vi.mock('./clock', () => ({readClock: () => CLOCK}));
+
 /** The page load's session, on every message (task-12.5 decision 6). */
-const SESSION = {a2uiverse: {session: PAGE_SESSION}};
+const SESSION = {a2uiverse: {session: PAGE_SESSION, ...CLOCK}};
 
 const A2UI_DATA = {version: 'v0.9', createSurface: {surfaceId: 's', catalogId: 'cat'}};
 const DATA_PART: Part = {kind: 'data', data: A2UI_DATA};
@@ -250,7 +254,7 @@ describe('the canvas on a message (task-9.2 decisions 1, 2)', () => {
     expect(params.message.contextId).toBeUndefined();
     expect(params.message.metadata).toEqual({
       a2uiClientDataModel: CLIENT_DM,
-      a2uiverse: {session: PAGE_SESSION, parent: 'ctx-parent'},
+      a2uiverse: {session: PAGE_SESSION, ...CLOCK, parent: 'ctx-parent'},
     });
   });
 

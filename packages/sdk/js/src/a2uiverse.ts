@@ -168,11 +168,23 @@ export function readCanvasParent(
 export interface ClientSession {
   /** The page load's id: what the orchestrator keeps one sitting's memory by. */
   session: string;
+  /**
+   * The person's local time when the message was sent, RFC 3339 with its offset — with
+   * `timeZone`, what the orchestrator tells an app the person's "now" is (task-12.13 decision 47).
+   */
+  now?: string;
+  /** The person's IANA time zone, as the browser has it. */
+  timeZone?: string;
 }
+
+/** The person's clock as the client reads it: both halves or neither. */
+export type ClientClock = Required<Pick<ClientSession, 'now' | 'timeZone'>>;
 
 /** Wire field names, typechecked against the interface; the contract test compares them to the contract. */
 export const CLIENT_SESSION_FIELDS = [
   'session',
+  'now',
+  'timeZone',
 ] as const satisfies readonly (keyof ClientSession)[];
 
 const _sessionComplete: Exclude<
@@ -183,9 +195,16 @@ const _sessionComplete: Exclude<
   : never = true;
 void _sessionComplete;
 
-/** The message metadata naming the session, with the parent when the utterance has one. */
-export function clientSessionMetadata(session: string, parent?: string): Record<string, unknown> {
-  return {[STAMP_KEY]: {session, ...(parent !== undefined ? {parent} : {})}};
+/**
+ * The message metadata naming the session, with the parent when the utterance has one and the
+ * person's clock when the client reads it.
+ */
+export function clientSessionMetadata(
+  session: string,
+  parent?: string,
+  clock?: ClientClock,
+): Record<string, unknown> {
+  return {[STAMP_KEY]: {session, ...(parent !== undefined ? {parent} : {}), ...clock}};
 }
 
 /** The session a client message's metadata names, if any. */
@@ -194,8 +213,12 @@ export function readClientSession(
 ): ClientSession | undefined {
   const raw = metadata?.[STAMP_KEY];
   if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return undefined;
-  const session = (raw as Record<string, unknown>).session;
-  return typeof session === 'string' && session !== '' ? {session} : undefined;
+  const {session, now, timeZone} = raw as Record<string, unknown>;
+  if (typeof session !== 'string' || session === '') return undefined;
+  // The clock is read whole or not at all: a time without its zone says no wall-clock time.
+  return typeof now === 'string' && now !== '' && typeof timeZone === 'string' && timeZone !== ''
+    ? {session, now, timeZone}
+    : {session};
 }
 
 /** The MIME type on the data part's metadata that marks a paintMeta part. */

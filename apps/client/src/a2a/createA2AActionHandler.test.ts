@@ -7,6 +7,10 @@ import {createA2AActionHandler} from './createA2AActionHandler';
 import {createA2ASession} from './session';
 import {PAGE_SESSION} from './pageSession';
 
+/** The person's clock, fixed for the metadata these tests compare whole (task-12.13 decision 47). */
+const CLOCK = vi.hoisted(() => ({now: '2026-10-09T14:20:00+09:00', timeZone: 'Asia/Seoul'}));
+vi.mock('./clock', () => ({readClock: () => CLOCK}));
+
 const A2UI_DATA = {version: 'v0.9', createSurface: {surfaceId: 's', catalogId: 'cat'}};
 const DATA_PART: Part = {kind: 'data', data: A2UI_DATA};
 const ACTION = {name: 'click', surfaceId: 's'} as unknown as A2uiClientAction;
@@ -77,7 +81,7 @@ describe('createA2AActionHandler', () => {
 
     expect(sent[0].message.metadata).toEqual({
       a2uiClientDataModel: clientDataModel,
-      a2uiverse: {session: PAGE_SESSION},
+      a2uiverse: {session: PAGE_SESSION, ...CLOCK},
     });
   });
 

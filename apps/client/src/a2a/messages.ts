@@ -22,6 +22,7 @@ import {
 } from '@a2uiverse/sdk';
 import {logClientDataModelSize} from './dataModelSize';
 import {PAGE_SESSION} from './pageSession';
+import {readClock} from './clock';
 
 /**
  * What `sendMessageStream` yields. The SDK declares this union on its client but does not export
@@ -57,9 +58,10 @@ function messageMetadata(
     logClientDataModelSize(clientDataModel);
     metadata[A2UI_CLIENT_DATA_MODEL_KEY] = clientDataModel;
   }
-  // The page load's session, on every message, and the canvas this question was asked from ride
-  // under the stamp key (task-12.5 decision 6, task-9.2 decision 2).
-  Object.assign(metadata, clientSessionMetadata(PAGE_SESSION, parent));
+  // The page load's session and the person's clock, on every message, and the canvas this
+  // question was asked from ride under the stamp key (task-12.5 decision 6, task-9.2 decision 2,
+  // task-12.13 decision 47).
+  Object.assign(metadata, clientSessionMetadata(PAGE_SESSION, parent, readClock()));
   return metadata;
 }
 

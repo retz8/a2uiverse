@@ -163,6 +163,11 @@ export interface Sink {
   turn: JournalTurn;
   /** The dispatches it started, which its journal line waits out. */
   drains?: Promise<void>[];
+  /**
+   * The metadata of the press the stream answers — a Retry, Allow's resume, an account chosen —
+   * whose clock a request it writes says before the question's (task-12.13 decision 47).
+   */
+  pressed?: Record<string, unknown>;
 }
 
 /**
