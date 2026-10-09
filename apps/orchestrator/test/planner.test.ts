@@ -220,6 +220,12 @@ describe('the Planner’s files and prompt', () => {
       expect(rules, phrase).toContain(phrase);
   });
 
+  test('“my” names no account: a question about state gathers every account, beside a merged view too (task-12.13 decision 54)', () => {
+    const rules = files.rules.replace(/\s+/g, ' ');
+    for (const phrase of ['names no account', 'every account is theirs', 'a merged view included'])
+      expect(rules, phrase).toContain(phrase);
+  });
+
   test('the turn carries the utterance, each agent’s card, the platform’s card apart, and the tag', () => {
     const turn = buildPlannerTurn({utterance: 'my day at a glance', shortlist});
     expect(turn).toContain('my day at a glance');

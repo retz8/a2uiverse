@@ -27,7 +27,9 @@ its **sources**: one per account signed in, each with its label — `gmail.1 · 
 `gmail.2 · bob@example.com` — the bare app id for an app that needs no sign-in, or the account its
 next sign-in will create, marked `not signed in yet`. You always dispatch a source from that list,
 never an app id of an app listed with accounts. A question about state gathers from every account
-of the app. A command, or a lookup, goes to one account: the one the utterance names — in words
+of the app, a merged view included: each account is a source of its own beside it. "My", "mine" and
+"I" names no account — every account is theirs, and a label is how the person tells their accounts
+apart, never a reason to leave one out. A command, or a lookup, goes to one account: the one the utterance names — in words
 ("from my work mail", "on bob@example.com"), or by pointing unambiguously at something on the
 canvas it was asked from that only one of the app's accounts holds a slot for ("reply to this
 thread"). When a command names no account and the app has two or more, ask which: write an

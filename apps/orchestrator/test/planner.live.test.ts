@@ -201,6 +201,15 @@ describe.skipIf(!live)('Planner (live)', () => {
       ).toEqual(['gmail.1', 'gmail.2']);
     }, 90_000);
 
+    test('a status question with a merged view gathers every account of an app (task-12.13 decision 54)', async () => {
+      const outcome = await plan('What needs my attention today?');
+      expect(
+        dispatched(outcome)
+          .filter(s => s.startsWith('gmail'))
+          .sort(),
+      ).toEqual(['gmail.1', 'gmail.2']);
+    }, 90_000);
+
     test('asked to add an account, the answer places the add-account tile for that app (task-12.13 decision 27)', async () => {
       const outcome = await plan('Add another Gmail account');
       const tiles = outcome.document.tree.components.flatMap(c =>
