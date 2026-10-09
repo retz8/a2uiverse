@@ -1,6 +1,6 @@
-# (idea) A monitor for generative UI agents — A2UI first
+# (idea) DevTool and Monitor for generative UI agents — A2UI first
 
-Recorded 2026-10-09. A new project, separate from A2UIVerse: observability and evaluation for agents that generate user interfaces. Protocol-agnostic in principle; A2UI is the first and, for now, the only target.
+Recorded 2026-10-09. A new project, separate from A2UIVerse: observability and evaluation for agents that generate user interfaces, in two parts on one floor — a **DevTool** for the developer of one agent, local, and a **Monitor** for the engineers and designers who run agents in production. Protocol-agnostic in principle; A2UI is the first and, for now, the only target.
 
 ---
 
@@ -24,15 +24,29 @@ Artifact kinds across the wider field, and what a monitor can see of each:
 
 Expansion beyond A2UI is an adapter per artifact kind over one normalized turn record, and span attributes defined as an extension of one of the 2026 conventions — OpenTelemetry GenAI, OpenInference or OpenLLMetry. Not now.
 
-## Architecture in one line
+## Two parts, one floor
+
+| | DevTool | Monitor |
+| --- | --- | --- |
+| Scope | One agent, one developer, the turn that just happened | Many turns, a team, production |
+| Where | Local: a panel beside the agent in development, served by the agent kit or a browser devtools pane | A service: a backend and a shared UI |
+| Question it answers | Why did it draw this | What is it drawing, for whom, how well, and what changed |
+| Users | The agent's developer | The engineer watching validity and latency; the designer watching coverage and misfit |
+| Needs | Nothing: no account, no server, no aggregation | Agents in production emitting the turn record |
+
+The floor they share: the two taps, the normalized turn record, and the renderer that replays a tree into pixels, built once as a library. The DevTool is the library with a local viewer; the Monitor is the library with a store behind it. Goldens sit on the seam: defined in the DevTool from fixtures, run by the Monitor as a gate and as the nightly drift check.
+
+The DevTool is what gets adopted — free, local, useful on the first turn an agent paints — and every DevTool user already emits the turn record the Monitor ingests. The DevTool can exist before there is production traffic to watch; the Monitor waits for agents in production.
+
+### The taps
 
 Two taps, one id. An agent-side tap records generation; a renderer-side tap records the render and the person's actions on it; joined by surface id and the transport's context id, stamped through v1.0 extensions. The renderer side is where "did it work for the person" lives, and nothing in the field sits there.
 
 ## Features
 
-Signature features are marked ★.
+Signature features are marked ★. Each group names the part that owns it.
 
-### Capture and the turn view
+### Capture and the turn view — DevTool
 
 - **Two taps.** Agent side: the prompt snippet with its catalog version, the raw model text, each parsed message with its timestamp, validation findings, retries, tool calls, tokens, cost. Renderer side: arrival, render completion, mounted components, data model snapshots, every action with the component that fired it and the time since render.
 - ★ **Film strip.** A surface replayed as it streamed, one frame per message, tool calls interleaved on the same timeline: where the seconds went — before the first token, between messages, inside a tool call.
@@ -41,7 +55,7 @@ Signature features are marked ★.
 - **Retry diff.** The tree diff between a failed attempt and its retry, beside the correction text that caused it.
 - **Action trail.** What the person did on the surface and the next turn it caused, on the same timeline.
 
-### Structural analytics
+### Structural analytics — Monitor
 
 - ★ **Intent by shape matrix.** Requests clustered by meaning, trees by normalized shape, crossed. One intent drawn as many shapes is an inconsistency; one shape serving many intents is an overloaded screen. The designer's coverage map, and later the list of widgets worth authoring.
 - **Catalog heat.** Components used, never used, or failing validation most. A dead component is prompt tokens paid on every turn.
@@ -50,14 +64,14 @@ Signature features are marked ★.
 - **Streaming quality.** Time to first component; whether the root arrived first; how long placeholders were on screen; components that moved after arrival.
 - **Error taxonomy.** Unknown component, dangling child id, truncated output, streaming parse failure, each with example turns and a link to the matching upstream issue.
 
-### Quality, review and rules
+### Quality, review and rules — Monitor; design-rule lint also runs in the DevTool on the current turn
 
 - ★ **Design-rule lint.** The vendor's designers write rules over the tree: a destructive action is never primary; every list declares an empty state; at most seven choices in a picker; no credential input anywhere. Violations trend per rule and link to turns.
 - **Review queue.** Sampled surfaces rendered for a person to score against a rubric, a vision model as first pass, disagreement tracked. A reviewed surface becomes a golden in one click.
 - **Accessibility audit.** On the tree against v1.0's label requirements; on the render with a standard checker.
 - **Vocabulary monitor.** Words on the screen that should never reach a person: protocol terms, developer terms, raw hosts.
 
-### Evaluation and change control
+### Evaluation and change control — one-click fixture and counterfactual replay in the DevTool; goldens defined there and run by the Monitor; the rest Monitor
 
 - ★ **One-click fixture.** Any production turn exported as a deterministic test case with its recorded tool results, from the trace view.
 - ★ **Counterfactual replay.** A recorded turn re-run with a different model, prompt, inference format or catalog version against the recorded tool results: no credentials, no live vendor.
@@ -66,7 +80,7 @@ Signature features are marked ★.
 - **Provider drift alarm.** The golden set run nightly with nothing changed locally; the only thing that notices a silent model update.
 - **Catalog change impact.** A renamed or removed component shows every recorded turn and golden that used it.
 
-### Operations and the designer's loop
+### Operations and the designer's loop — Monitor
 
 - **Dashboards and alerts** on validity, retry and apology rate, latency percentiles, tokens and cost, sliced by intent cluster, model and catalog version.
 - **Interaction funnel per shape.** Rendered, interacted, completed or abandoned; the rage signals — the same question re-asked, immediate back, a question surface dismissed unanswered.
@@ -76,7 +90,7 @@ Signature features are marked ★.
 
 ## Where to start
 
-Devtools, not a dashboard: the two taps and the four-pane turn view running beside an agent in development, a panel the engineer and the designer both open. Second, the intent by shape matrix and one-click fixtures. Third, dashboards, goldens and alarms, when there is production traffic to watch.
+The DevTool first: the two taps and the four-pane turn view beside an agent in development, with one-click fixture and counterfactual replay as its two signature features. It can begin the moment the Phase 19 model-trial harness is written as a reusable module rather than a script, since that trial is counterfactual replay done by hand. The Monitor follows at Phase 17 of A2UIVerse, in parallel with the ladder, when v1.0's extensions give the renderer tap a conformant home and the Phase 18 proposal has a second exhibit: not only a host that composes A2UI agents, but how an A2UI agent is operated.
 
 ## Raw material in hand
 
@@ -89,7 +103,7 @@ Devtools, not a dashboard: the two taps and the four-pane turn view running besi
 ## Risks
 
 - An LLM observability vendor can add "render this JSON and screenshot it" in a quarter. The renderer-side tap, the designer workflow and the library-coverage loop are the parts they will not easily add; they are built first.
-- Distribution runs through SDK integrations; the first adapters decide the first customers.
+- Distribution runs through the DevTool and through the renderer taps. A contribution adding telemetry hooks to upstream's renderers through v1.0 extensions is both the contribution and the channel: every host that updates gets the hooks, and the backend that understands them is the Monitor.
 - The demo has to show a designer fixing a real misfit in minutes, not a dashboard.
 
 ## Related
