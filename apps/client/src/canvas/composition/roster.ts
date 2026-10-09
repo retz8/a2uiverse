@@ -97,13 +97,14 @@ export function shellPaintSlots(messages: readonly A2uiMessage[]): ShellPaintSlo
       const {source, displayName, account} = raw;
       if (typeof source !== 'string') continue;
       // The source's one name: the app's, with the account's label the painter put beside it
-      // when the app has more than one (task-12.4 decision 5).
+      // when the app has more than one (task-12.4 decision 5); the two kept apart besides
+      // (task-12.13 decision 56).
+      const app = typeof displayName === 'string' && displayName ? displayName : source;
+      const label = typeof account === 'string' ? account : undefined;
       attributionOf.set(raw.child, {
         source,
-        name: sourceName(
-          typeof displayName === 'string' && displayName ? displayName : source,
-          typeof account === 'string' ? account : undefined,
-        ),
+        name: sourceName(app, label),
+        ...(label ? {account: {app, label}} : {}),
       });
     }
     for (const raw of components) {

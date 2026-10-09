@@ -72,8 +72,16 @@ describe('rosterFromShellMessages', () => {
       }),
     ]);
     expect(roster).toEqual([
-      {source: 'gmail.1', name: 'Gmail · alice@example.com'},
-      {source: 'gmail.2', name: 'Gmail · bob@example.com'},
+      {
+        source: 'gmail.1',
+        name: 'Gmail · alice@example.com',
+        account: {app: 'Gmail', label: 'alice@example.com'},
+      },
+      {
+        source: 'gmail.2',
+        name: 'Gmail · bob@example.com',
+        account: {app: 'Gmail', label: 'bob@example.com'},
+      },
     ]);
   });
 

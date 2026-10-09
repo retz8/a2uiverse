@@ -204,6 +204,31 @@ describe('turnProgress', () => {
     );
   });
 
+  it('a source named by its account says its app and noun, the account after (task-12.13 decision 56)', () => {
+    const store = createCanvasStore();
+    store.beginPaint('utterance');
+    store.setRoster([
+      {
+        source: 'shell',
+        name: 'Synthesis',
+        join: {
+          home: 'linear',
+          nouns: {linear: 'issues', github: 'PRs', 'circleci.2': 'pipeline runs'},
+        },
+      },
+      {source: 'linear', name: 'Linear'},
+      {source: 'github', name: 'GitHub'},
+      {
+        source: 'circleci.2',
+        name: 'CircleCI · ekkicb71@gmail.com',
+        account: {app: 'CircleCI', label: 'ekkicb71@gmail.com'},
+      },
+    ]);
+    expect(turnProgress(store.getState()).merge?.text).toBe(
+      'Joining Linear issues to GitHub PRs and CircleCI pipeline runs (ekkicb71@gmail.com)',
+    );
+  });
+
   it('a union join names the thing across the sources (task-8.7 decision 30)', () => {
     const store = createCanvasStore();
     store.beginPaint('utterance');

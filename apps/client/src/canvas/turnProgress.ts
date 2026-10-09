@@ -173,8 +173,14 @@ function mergeStep(
 ): {text: string; status: StepStatus} {
   const facts = state.merge ?? {};
   const noun = (entry: RosterEntry) => join?.nouns[entry.source];
-  const phrase = (entry: RosterEntry) =>
-    noun(entry) ? `${entry.name} ${noun(entry)}` : entry.name;
+  // A source named by its account says its app's noun, the label after it (task-12.13 decision 56).
+  const phrase = (entry: RosterEntry) => {
+    const said = noun(entry);
+    if (!said) return entry.name;
+    return entry.account
+      ? `${entry.account.app} ${said} (${entry.account.label})`
+      : `${entry.name} ${said}`;
+  };
   const home = join?.home ? vendors.find(entry => entry.source === join.home) : undefined;
   // A union join (task-8.7 decision 30) names the thing across the sources: "cameras across
   // Aperture & Co, Northlight and Fieldstone"; an anchored one the home's noun to the others'.

@@ -258,6 +258,10 @@ The apps' own cards showed time as their tools gave it: Calendar raw, "2026-10-0
 
 The regression pass after the live half ran task 12.12's live sign-in test right after the agents' original stores were put back: the test's orchestrator ran on a scratch state folder, but its GitHub agent, started by the launcher, kept its sign-in store in the checkout, and the test's sign-in wrote into GitHub's restored store. The launcher takes `--agent-state <dir>`, each agent started with `--state-dir <dir>/<app>`, and the live sign-in test passes a scratch folder cleared at its start. Seen: the test passes, its agent's store in the scratch folder, GitHub's store in the checkout untouched. Replaced: the checkout's own store written by every run of the test.
 
+### 56. A source named by its account says its app's noun, the account after
+
+With CircleCI signed in to two accounts, the merge step read "Joined Linear issues to CircleCI · ekkicb71@gmail.com pipeline runs": a join names each source by its one name before its noun, and an account's name carries its label. A source named by its account says its app and its noun, the label after them in parentheses: "Joined Linear issues to GitHub PRs and CircleCI pipeline runs (ekkicb71@gmail.com)". Each step and each attribution still names the source by its one name. Replaced: the label inside the noun phrase.
+
 ## Write-up
 
 Evidence lives in `~/a2uiverse-12.13-evidence/`: the regression logs before, the deterministic half's first pass (`deterministic-dryrun/`, its journal and every process log), its reruns (`reruns/`, `NOTES.md` per step), and the live half's notes and screenshots (`live/NOTES.md`). The live half's journal, logs, sweeps and the recording sit in the sitting's scratch run folder named in `env-live.sh`.

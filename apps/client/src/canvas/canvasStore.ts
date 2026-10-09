@@ -44,6 +44,11 @@ export interface RosterEntry {
    * account's label when the app has more than one account.
    */
   name: string;
+  /**
+   * The app and the account's label apart, when the name carries a label — so a sentence can put
+   * the label after the app's own words (task-12.13 decision 56).
+   */
+  account?: {app: string; label: string};
   /** The merged view's entry only, when its merge is over an entity: the join's nouns. */
   join?: JoinNouns;
 }
