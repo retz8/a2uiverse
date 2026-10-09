@@ -15,12 +15,24 @@ test('reads the spellings the roster has painted, all to the same instant', () =
   expect(parseInstant('2026-09-06T00:20:00.250Z')).toBe(t + 250);
 });
 
-test('a range reads as its start; a zone-less value is US Eastern wall time, not the viewer’s', () => {
+test('a range reads as its start; a zone-less value is the viewer’s wall time', () => {
   // 10:00 Eastern on Sep 6 (EDT, UTC-4) is 14:00 UTC.
-  expect(parseInstant('2026-09-06 10:00 – 11:30')).toBe(Date.UTC(2026, 8, 6, 14, 0));
-  expect(parseInstant('2026-09-06T10:00')).toBe(Date.UTC(2026, 8, 6, 14, 0));
+  const eastern = 'America/New_York';
+  expect(parseInstant('2026-09-06 10:00 – 11:30', eastern)).toBe(Date.UTC(2026, 8, 6, 14, 0));
+  expect(parseInstant('2026-09-06T10:00', eastern)).toBe(Date.UTC(2026, 8, 6, 14, 0));
   // In January the same wall time is EST, UTC-5.
-  expect(parseInstant('2026-01-06 10:00')).toBe(Date.UTC(2026, 0, 6, 15, 0));
+  expect(parseInstant('2026-01-06 10:00', eastern)).toBe(Date.UTC(2026, 0, 6, 15, 0));
+});
+
+test('every time is the viewer’s: zone-less wall time read and every instant shown in their zone, in English (task-12.13 decision 52)', () => {
+  // 10:00 in Seoul (UTC+9) is 01:00 UTC.
+  expect(parseInstant('2026-09-06 10:00', 'Asia/Seoul')).toBe(Date.UTC(2026, 8, 6, 1, 0));
+  expect(formatInstant('2026-10-09T06:53:00Z', 'Asia/Seoul')).toBe('Oct 9, 2026, 3:53 PM');
+  expect(formatInstant('2026-10-09T06:53:00Z', 'America/New_York')).toBe('Oct 9, 2026, 2:53 AM');
+  // Unnamed, the zone is the one the viewer's runtime reports.
+  const own = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  expect(formatInstant('2026-10-09T06:53:00Z')).toBe(formatInstant('2026-10-09T06:53:00Z', own));
+  expect(parseInstant('2026-09-06 10:00')).toBe(parseInstant('2026-09-06 10:00', own));
 });
 
 test('a range whose end is a full date and time reads as its start (task-12.13 decision 51)', () => {
@@ -28,8 +40,11 @@ test('a range whose end is a full date and time reads as its start (task-12.13 d
   expect(parseInstant('2026-10-09T21:00:00-04:00 – 2026-10-09T21:30:00-04:00')).toBe(
     Date.UTC(2026, 9, 10, 1, 0),
   );
-  expect(parseInstant('2026-09-06 10:00 – 2026-09-06 11:30')).toBe(Date.UTC(2026, 8, 6, 14, 0));
-  expect(formatInstant('2026-10-09T21:00:00-04:00 – 2026-10-09T21:30:00-04:00')).toBe(
+  const eastern = 'America/New_York';
+  expect(parseInstant('2026-09-06 10:00 – 2026-09-06 11:30', eastern)).toBe(
+    Date.UTC(2026, 8, 6, 14, 0),
+  );
+  expect(formatInstant('2026-10-09T21:00:00-04:00 – 2026-10-09T21:30:00-04:00', eastern)).toBe(
     'Oct 9, 2026, 9:00 PM',
   );
 });
@@ -52,10 +67,11 @@ test('a value without a year or without a clock is not an instant', () => {
   expect(parseInstant(undefined)).toBeUndefined();
 });
 
-test('formatInstant renders one human form for any spelling — English, US Eastern — and leaves what it cannot read as is', () => {
+test('formatInstant renders one human form for any spelling — English, in the viewer’s zone — and leaves what it cannot read as is', () => {
   // 00:20 UTC on Sep 6 is 8:20 PM on Sep 5 in New York (EDT).
-  expect(formatInstant('2026-09-06T00:20:00Z')).toBe('Sep 5, 2026, 8:20 PM');
-  expect(formatInstant('Sep 6, 2026 · 00:20 UTC')).toBe('Sep 5, 2026, 8:20 PM');
-  expect(formatInstant('2026-01-06T00:20:00Z')).toBe('Jan 5, 2026, 7:20 PM');
-  expect(formatInstant('11:00 – 12:00')).toBe('11:00 – 12:00');
+  const eastern = 'America/New_York';
+  expect(formatInstant('2026-09-06T00:20:00Z', eastern)).toBe('Sep 5, 2026, 8:20 PM');
+  expect(formatInstant('Sep 6, 2026 · 00:20 UTC', eastern)).toBe('Sep 5, 2026, 8:20 PM');
+  expect(formatInstant('2026-01-06T00:20:00Z', eastern)).toBe('Jan 5, 2026, 7:20 PM');
+  expect(formatInstant('11:00 – 12:00', eastern)).toBe('11:00 – 12:00');
 });

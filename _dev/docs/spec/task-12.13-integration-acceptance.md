@@ -241,3 +241,7 @@ On the attention question Gmail, signed in to see the inbox, opened a thread bef
 ### 51. A range whose end is a full date and time reads as its start
 
 The attention question's merged view drew Calendar's time as written, "2026-10-09T21:00:00-04:00 – 2026-10-09T21:30:00-04:00", beside GitHub's and Linear's "Sep 18, 2026, 7:51 AM", and sorted it as text: the runtime cut a range to its start only when its end was a bare clock. A range's end may also be a full date and time, so Calendar's spelling reads as its start, drawn and sorted with the others. Replaced: a range read only with a clock for its end.
+
+### 52. Every time the shell shows is the viewer's
+
+The merged view drew every time in US Eastern — Gmail's 06:53 UTC as "Oct 9, 2026, 2:53 AM" for a reader in Seoul, for whom it was 3:53 PM — and read a time written with no zone as Eastern wall time: task 5.7 fixed the form as English, US Eastern, after the unit's browser drew it in Korean. The shell reads and shows time in the viewer's zone, as their runtime reports it — the zone the client sends with each request (decision 47) — still in English: a reader in Seoul sees Seoul time, one in New York Eastern. A time with no zone of its own is the viewer's wall time. The shell catalog's tests view from US Eastern, pinned. Replaced: task 5.7's US Eastern for every viewer.

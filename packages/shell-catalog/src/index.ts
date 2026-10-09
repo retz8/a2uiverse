@@ -114,6 +114,6 @@ export {
 export {
   formatInstant,
   INSTANT_LOCALE,
-  INSTANT_TIME_ZONE,
+  viewerTimeZone,
   parseInstant,
 } from './components/shared/instant.js';

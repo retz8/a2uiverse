@@ -6,9 +6,16 @@
  * so what sorts together renders together.
  */
 
-/** The one form every source's time is shown in: English, US Eastern time. Fixed, not the viewer's locale. */
+/** The language every source's time is shown in: English, whatever the viewer's locale (task 5.7). */
 export const INSTANT_LOCALE = 'en-US';
-export const INSTANT_TIME_ZONE = 'America/New_York';
+
+/**
+ * The zone every time is read and shown in: the viewer's, as their runtime reports it — the one the
+ * client sends with each request (task-12.13 decisions 47, 52).
+ */
+export function viewerTimeZone(): string {
+  return Intl.DateTimeFormat().resolvedOptions().timeZone;
+}
 
 const YEAR = /(?:^|\D)(\d{4})(?:\D|$)/;
 const CLOCK = /\d{1,2}:\d{2}/;
@@ -27,8 +34,11 @@ const NAMED_ZONE = /\(([A-Za-z_]+\/[A-Za-z_/+-]+)\)/;
 const EXPLICIT_ZONE = /(?:Z|[+-]\d{2}:?\d{2}|\b(?:UTC|GMT|[A-Z]{3,4}))\s*$/;
 const ISO_LOCAL = /^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?)$/;
 
-/** The instant a value denotes, in ms since the epoch, or undefined when it is not one. */
-export function parseInstant(value: unknown): number | undefined {
+/**
+ * The instant a value denotes, in ms since the epoch, or undefined when it is not one; a value with
+ * no zone of its own is wall time in `zone`, the viewer's unless named.
+ */
+export function parseInstant(value: unknown, zone: string = viewerTimeZone()): number | undefined {
   if (typeof value !== 'string') return undefined;
   const text = value.trim();
   if (!YEAR.test(text) || !CLOCK.test(text)) return undefined;
@@ -47,11 +57,11 @@ export function parseInstant(value: unknown): number | undefined {
     .trim();
   if (!named && EXPLICIT_ZONE.test(normalized)) return finite(Date.parse(normalized));
   // No zone the engine can read: the value is wall time in the zone the source named, or in the
-  // zone every time is shown in — never the viewer's machine, which is not where the day happens.
+  // viewer's (task-12.13 decision 52).
   const iso = ISO_LOCAL.exec(normalized);
   const wall = finite(Date.parse(iso ? `${iso[1]}T${iso[2]}Z` : `${normalized} UTC`));
   if (wall === undefined) return undefined;
-  return wall - offsetMs(named ?? INSTANT_TIME_ZONE, wall);
+  return wall - offsetMs(named ?? zone, wall);
 }
 
 /** A clock as written: hours and minutes, optional seconds, optional fraction of a second. */
@@ -89,14 +99,27 @@ function finite(ms: number): number | undefined {
   return Number.isNaN(ms) ? undefined : ms;
 }
 
-const HUMAN = new Intl.DateTimeFormat(INSTANT_LOCALE, {
-  dateStyle: 'medium',
-  timeStyle: 'short',
-  timeZone: INSTANT_TIME_ZONE,
-});
+/** The human form's formatter for each zone it has been asked for. */
+const HUMAN = new Map<string, Intl.DateTimeFormat>();
 
-/** One human form for any spelling the runtime can read; the value as painted otherwise. */
-export function formatInstant(value: unknown): string {
-  const ms = parseInstant(value);
-  return ms === undefined ? String(value) : HUMAN.format(new Date(ms));
+function humanIn(zone: string): Intl.DateTimeFormat {
+  let format = HUMAN.get(zone);
+  if (!format) {
+    format = new Intl.DateTimeFormat(INSTANT_LOCALE, {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+      timeZone: zone,
+    });
+    HUMAN.set(zone, format);
+  }
+  return format;
+}
+
+/**
+ * One human form for any spelling the runtime can read, in English in `zone` — the viewer's unless
+ * named; the value as painted otherwise.
+ */
+export function formatInstant(value: unknown, zone: string = viewerTimeZone()): string {
+  const ms = parseInstant(value, zone);
+  return ms === undefined ? String(value) : humanIn(zone).format(new Date(ms));
 }
