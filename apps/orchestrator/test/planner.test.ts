@@ -210,6 +210,16 @@ describe('the Planner’s files and prompt', () => {
     expect(system).toContain('a merged view over one kind of thing');
   });
 
+  test('what waits on the person gathers from every app holding a part, one not signed in yet among them (task-12.13 decision 49)', () => {
+    const rules = files.rules.replace(/\s+/g, ' ');
+    for (const phrase of [
+      'what is waiting on the person',
+      'an issue assigned to them',
+      'not signed in yet is dispatched all the same',
+    ])
+      expect(rules, phrase).toContain(phrase);
+  });
+
   test('the turn carries the utterance, each agent’s card, the platform’s card apart, and the tag', () => {
     const turn = buildPlannerTurn({utterance: 'my day at a glance', shortlist});
     expect(turn).toContain('my day at a glance');

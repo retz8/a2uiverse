@@ -201,16 +201,45 @@ describe.skipIf(!live)('Planner (live)', () => {
       ).toEqual(['gmail.1', 'gmail.2']);
     }, 90_000);
 
-    test('asked to add an account, the answer offers add an account for that app', async () => {
+    test('asked to add an account, the answer places the add-account tile for that app (task-12.13 decision 27)', async () => {
       const outcome = await plan('Add another Gmail account');
-      const calls = outcome.document.tree.components.flatMap(c => {
-        const call = (c as {action?: {functionCall?: {call?: string; args?: {app?: string}}}})
-          .action?.functionCall;
-        return call ? [call] : [];
-      });
-      expect(calls).toContainEqual({call: 'addAccount', args: {app: 'gmail'}});
+      const tiles = outcome.document.tree.components.flatMap(c =>
+        c.component === 'Slot' && 'addAccount' in c ? [(c as {addAccount: string}).addAccount] : [],
+      );
+      expect(tiles).toEqual(['gmail']);
     }, 90_000);
   });
+
+  test('what waits on the person gathers every app holding a part, a tracker not signed in yet among them (task-12.13 decision 49)', async () => {
+    const tracker = entry(
+      'linear',
+      'Linear',
+      "Shows the user's Linear issues: what is assigned to them or in a team's queue, by status and priority.",
+      [
+        'Lists the issues assigned to the user — what is in progress, what is up next, what is urgent',
+      ],
+    );
+    const withTracker = new ModelPlanner({
+      model: getModel(settings),
+      providerOptions: plannerProviderOptions(settings),
+      systemPrompt: plannerSystemPrompt(files),
+      catalog: files.catalog,
+      readers,
+      sourcesOf: appId =>
+        appId === 'linear'
+          ? [{source: 'linear.1', notSignedIn: true}]
+          : [{source: `${appId}.1`, label: 'jioh@gmail.com'}],
+    });
+    const outcome = await withTracker.plan({
+      utterance: 'What needs my attention today?',
+      shortlist: [...shortlist.slice(0, 3), tracker, shortlist[3]!],
+    });
+    console.log('live attention plan:', JSON.stringify(outcome));
+    expect(outcome.kind).toBe('planned');
+    if (outcome.kind !== 'planned') return;
+    const sources = outcome.document.dispatch.flatMap(d => ('source' in d ? [d.source] : []));
+    expect(sources).toContain('linear.1');
+  }, 90_000);
 
   test('a capability gap: no dispatch, one gap slot', async () => {
     const started = Date.now();
