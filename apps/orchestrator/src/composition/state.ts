@@ -277,6 +277,11 @@ export interface CompositionState {
   mergeDecided: boolean;
   /** The reader's presses in flight, per source: what the merge waits on (task-8.10 decision 1). */
   presses: Presses;
+  /**
+   * Sources a Retry is sending again: a press into their fragment meanwhile is refused, as during
+   * another press (task-12.13 decision 46). Apart from `presses`, so a Retry holds no merge.
+   */
+  redispatching: Set<string>;
   /** The merge in the making, the first or a re-synthesis — one at a time (task-8.10 decision 3). */
   making?: Promise<void>;
   /**
@@ -394,6 +399,7 @@ export function compositionFrom(
     collapses: 0,
     mergeDecided: false,
     presses: new Presses(),
+    redispatching: new Set(),
     operations: new Set(),
     retired: new AbortController(),
   };

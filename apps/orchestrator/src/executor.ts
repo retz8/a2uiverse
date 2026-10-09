@@ -675,8 +675,8 @@ export class OrchestratorExecutor implements AgentExecutor {
     composition?.partitions.applyClientDataModel(clientSurfaces(ctx.userMessage.metadata));
     const sink: Sink = {ctx, bus, turn};
     // One press at a time into a fragment (task-12.13 decision 46): a second press while the
-    // first — or Allow's resume of it — still runs would send the same write twice.
-    if (composition?.presses.running(owner)) {
+    // first — Allow's resume of it, or a Retry — still runs would send the same write twice.
+    if (composition?.presses.running(owner) || composition?.redispatching.has(owner)) {
       const name = composition.slots.get(owner)?.plan.name ?? owner;
       const reason = `${name} is still working on that. Try again once it has finished.`;
       turn.refused(reason);
@@ -995,7 +995,10 @@ export class OrchestratorExecutor implements AgentExecutor {
     if (bringsBack) state.retrying.add(source);
     this.#repaint([sink], state);
 
-    const arrived = await this.#redispatch(sink, state, source, signal);
+    state.redispatching.add(source);
+    const arrived = await this.#redispatch(sink, state, source, signal).finally(() =>
+      state.redispatching.delete(source),
+    );
     const wasRetrying = state.retrying.delete(source);
     if (pack) state.trigger?.settle(source);
     if (signal.aborted) return;

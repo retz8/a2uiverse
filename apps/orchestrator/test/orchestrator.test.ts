@@ -2134,6 +2134,32 @@ describe('one press at a time per fragment (task-12.13 decision 46)', () => {
       refused: 'GitHub is still working on that. Try again once it has finished.',
     });
   });
+
+  test('a press into a fragment while a Retry on that app still runs is refused: the app gets no second write', async () => {
+    const {client} = await boot({
+      planner: new FakePlanner(() => layoutFor(['github'])),
+      scripts: {
+        github: sequence(
+          shopScript(camerasA),
+          failing('Busy.'),
+          after(400, shopScript(camerasA)),
+          shopScript(camerasA),
+        ),
+      },
+    });
+    const first = await collect(client, utterance('cameras'));
+    const contextId = first[0]!.contextId!;
+    await collect(client, actionOn('github:s1', contextId));
+    const retrying = streamOf(client, press('retry', ['github'], contextId));
+    await until(() => vendors.github!.requests.length === 3, 'the Retry reached the app');
+    const second = await collect(client, actionOn('github:s1', contextId));
+    expect(finalOf(second).status.state).toBe('failed');
+    expect(textsOf(finalOf(second).status.message!)).toEqual([
+      'GitHub is still working on that. Try again once it has finished.',
+    ]);
+    await retrying.done;
+    expect(vendors.github!.requests).toHaveLength(3);
+  });
 });
 
 describe('Include, Retry and Try again (task 8.4)', () => {
