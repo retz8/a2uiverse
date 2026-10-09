@@ -1389,3 +1389,50 @@ test('an app connected with a key says Connect: the tile, its note, the quiet li
       .success,
   ).toBe(false);
 });
+
+/* ── Task 12.13: a held account asking for more access says so ──────────────── */
+
+test('an account held and asking for more access says so: the tile, its quiet line, Allow (task-12.13 decision 50)', () => {
+  const gmailName = () => 'Gmail';
+  const kinds: string[] = [];
+  const full = render(
+    <SlotView
+      source="gmail.1"
+      state="authority"
+      authority={{cause: 'more', scopes: ['Read your email']}}
+      nameOf={gmailName}
+      onSignIn={kind => kinds.push(kind)}
+    />,
+  );
+  expect(screen.getByText('Gmail needs more access to show it here.')).toBeInTheDocument();
+  expect(screen.getByText('Gmail will be able to')).toBeInTheDocument();
+  expect(screen.getByText('Read your email')).toBeInTheDocument();
+  expect(screen.getByText('Opens Gmail’s sign-in in a new window')).toBeInTheDocument();
+  act(() => screen.getByRole('button', {name: 'Allow'}).click());
+  expect(kinds).toEqual(['start']);
+  full.unmount();
+
+  render(
+    <SlotView
+      source="gmail.1"
+      state="authority"
+      authority={{cause: 'more', quiet: true, scopes: ['Read your email']}}
+      nameOf={gmailName}
+      onSignIn={() => {}}
+    />,
+  );
+  expect(screen.getByRole('group', {name: 'Gmail, needs more access'})).toHaveTextContent(
+    'Needs more access',
+  );
+  expect(screen.getByRole('button', {name: 'Allow'})).toBeInTheDocument();
+  expect(
+    SlotApi.schema.safeParse({source: 'x.1', state: 'authority', authority: {cause: 'more'}})
+      .success,
+  ).toBe(false);
+});
+
+test('a home source asking for more access: the collapse line says so (task-12.13 decision 50)', () => {
+  expect(collapseLine({cause: 'home', home: 'Gmail threads'}, {app: 'Gmail', more: true})).toBe(
+    'The merged view needs Gmail threads, and Gmail needs more access. Allowing Gmail more access brings it back.',
+  );
+});

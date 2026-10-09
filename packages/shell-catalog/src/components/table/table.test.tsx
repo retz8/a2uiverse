@@ -215,3 +215,13 @@ test('the first column reads on one line, the others wrap under a cap; the table
   expect(bodyCellStyle(1)).toMatchObject({maxWidth: '56ch', overflowWrap: 'anywhere'});
   expect(bodyCellStyle(1)).not.toHaveProperty('whiteSpace');
 });
+
+test('a column whose source asks for more access says so (task-12.13 decision 50)', () => {
+  const {container} = renderTree(RESERVED_TREE, {
+    wrap: withStates({linear: 'filled', github: 'filled', circleci: 'more'}),
+  });
+  const headings = [...container.querySelectorAll('thead th')].map(th =>
+    th.textContent?.replace(/\s+/g, ' '),
+  );
+  expect(headings[2]).toBe('CI build · needs more access');
+});

@@ -99,15 +99,16 @@ const FailureSchema = z
     message: 'a failure carries a continue URL only when its cause is `credential`',
   });
 
-export const AUTHORITY_CAUSES = ['signIn', 'connect', 'again', 'unsupported'] as const;
+export const AUTHORITY_CAUSES = ['signIn', 'connect', 'more', 'again', 'unsupported'] as const;
 export type AuthorityCause = (typeof AUTHORITY_CAUSES)[number];
 
 /**
- * The causes asking for a first sign-in: `signIn`, and `connect` for an app connected with a pasted
- * key or token, whose tile says Connect (task-12.13 decision 30).
+ * The causes asking to sign in: `signIn`, `connect` for an app connected with a pasted key or
+ * token, whose tile says Connect (task-12.13 decision 30), and `more` for an account held and
+ * asking for more access (task-12.13 decision 50).
  */
 export const asksToSignIn = (cause: AuthorityCause): boolean =>
-  cause === 'signIn' || cause === 'connect';
+  cause === 'signIn' || cause === 'connect' || cause === 'more';
 
 const AuthoritySchema = z
   .object({

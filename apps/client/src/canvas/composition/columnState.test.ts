@@ -60,6 +60,13 @@ describe('columnState', () => {
     expect(columnState(store.getState(), 'gmail.1')).toBe('pending');
   });
 
+  it('a source whose account is asked for more access reads so (task-12.13 decision 50)', () => {
+    const store = createCanvasStore();
+    store.mergeSlotStates(new Map([['gmail.1', 'authority' as const]]));
+    store.mergeAuthority(new Map([['gmail.1', 'more' as const]]));
+    expect(columnState(store.getState(), 'gmail.1')).toBe('more');
+  });
+
   it('a source waiting on a pasted key reads not connected (task-12.13 decision 32)', () => {
     const store = createCanvasStore();
     store.mergeSlotStates(new Map([['shop-b.1', 'authority' as const]]));

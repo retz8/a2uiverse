@@ -687,7 +687,7 @@ describe('on the wire', () => {
 });
 
 describe("the agent's requests for more access", () => {
-  test('before any paint: the tile, with only the missing scopes', async () => {
+  test('before any paint: the tile asks for more access, with only the missing scopes (task-12.13 decision 50)', async () => {
     const {base, client} = await boot({
       apps: {
         shop: {
@@ -703,7 +703,30 @@ describe("the agent's requests for more access", () => {
     const events = await collect(client, press('retry', 'shop.1', canvas));
     expect(slotOf(events, 'shop.1')).toMatchObject({
       state: 'authority',
-      authority: {cause: 'signIn', quiet: true, scopes: ['Change your orders']},
+      authority: {cause: 'more', quiet: true, scopes: ['Change your orders']},
+    });
+  });
+
+  test('an account held short of what the card now requires: the tile asks for more access (task-12.13 decision 50)', async () => {
+    const card = oauthCard();
+    const {base, client, orchestrator} = await boot({
+      apps: {shop: {card, admit: admitsTokens()}},
+      plan: shopOnly,
+    });
+    const canvas = contextOf(await collect(client, utterance('my orders', 'page-1')));
+    await signIn(base, canvas, 'shop.1');
+    // The card's requirement grows, installed over: the account holds read alone.
+    (card.security![0]!.signIn as string[]).push('write');
+    const over = await orchestrator.registry.install({
+      appId: 'shop',
+      cardUrl: `${vendors[0]!.url}/.well-known/agent-card.json`,
+      catalogs: [await fixtureArtifact(FAKE_CATALOG_ID)],
+    });
+    expect(over.ok).toBe(true);
+    const events = await collect(client, utterance('my orders', 'page-2'));
+    expect(slotOf(events, 'shop.1')).toMatchObject({
+      state: 'authority',
+      authority: {cause: 'more', scopes: ['Change your orders']},
     });
   });
 

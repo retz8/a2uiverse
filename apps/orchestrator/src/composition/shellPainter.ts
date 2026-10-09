@@ -232,8 +232,9 @@ export function paintLayout(state: CompositionState): ShellComponent[] {
 function paintedAuthority(authority: SlotAuthorityState): Record<string, unknown> {
   if (authority.cause !== 'signIn') return {cause: authority.cause};
   return {
-    // A pasted key or token is painted `connect`: the tile says Connect (task-12.13 decision 30).
-    cause: authority.connect ? 'connect' : 'signIn',
+    // A pasted key or token is painted `connect`: the tile says Connect (task-12.13 decision 30);
+    // a held account asking only for more access, `more` (task-12.13 decision 50).
+    cause: authority.connect ? 'connect' : authority.more ? 'more' : 'signIn',
     ...(authority.quiet ? {quiet: true} : {}),
     scopes: authority.words ?? [],
   };

@@ -81,6 +81,8 @@ export interface SlotAuthorityState {
   quiet?: boolean;
   /** A pasted key or token: the tile says Connect (task-12.13 decision 30). */
   connect?: boolean;
+  /** A held account asking only for more access: the tile says so (task-12.13 decision 50). */
+  more?: boolean;
   scheme?: string;
   keys?: string[];
   words?: string[];

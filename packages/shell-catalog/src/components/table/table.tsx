@@ -16,10 +16,11 @@ const InTableContext = createContext<{reserved: (ReservedState | undefined)[]} |
  * A column reserved for its source (task-8.2 decisions 7–8, task-8.5 decision 12): `pending` while
  * the source is in flight or being included, `failed` once it failed, `late` while it waits for
  * Include, `authority` while it needs sign-in (task-12.3 decision 8), `connect` while it needs a
- * pasted key or token (task-12.13 decision 32). Filled, collapsed, unmarked,
- * or unknown to the host — the column draws what was authored.
+ * pasted key or token (task-12.13 decision 32), `more` while its account is asked for more access
+ * (task-12.13 decision 50). Filled, collapsed, unmarked, or unknown to the host — the column draws
+ * what was authored.
  */
-export type ReservedState = 'pending' | 'failed' | 'late' | 'authority' | 'connect';
+export type ReservedState = 'pending' | 'failed' | 'late' | 'authority' | 'connect' | 'more';
 
 export function reservedColumnState(
   resolve: SlotStateResolver,
@@ -31,7 +32,8 @@ export function reservedColumnState(
     state === 'failed' ||
     state === 'late' ||
     state === 'authority' ||
-    state === 'connect'
+    state === 'connect' ||
+    state === 'more'
     ? state
     : undefined;
 }
@@ -43,6 +45,7 @@ const RESERVED_WORDS: Record<ReservedState, string> = {
   late: 'not included',
   authority: 'not signed in',
   connect: 'not connected',
+  more: 'needs more access',
 };
 
 /**

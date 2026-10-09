@@ -1654,7 +1654,12 @@ export class OrchestratorExecutor implements AgentExecutor {
     }
     state.arrived.delete(source);
     state.merged.delete(source);
-    this.#takeAuthority(state, source, authority);
+    // A request for more access before any paint: the tile asks for it (task-12.13 decision 50).
+    this.#takeAuthority(
+      state,
+      source,
+      authority.escalation && authority.cause === 'signIn' ? {...authority, more: true} : authority,
+    );
     this.#repaint([sink], state);
     const merge = synthesisSlot(state);
     if (merge && merge.state !== 'collapsed' && merge.plan.join?.home === source) {
@@ -1688,6 +1693,7 @@ export class OrchestratorExecutor implements AgentExecutor {
       cause: 'signIn',
       ...(quiet ? {quiet: true} : {}),
       ...(need.connect ? {connect: true} : {}),
+      ...(need.more ? {more: true} : {}),
       scheme: need.scheme,
       keys: need.keys,
       words: need.words,

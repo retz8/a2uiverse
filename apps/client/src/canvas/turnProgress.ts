@@ -62,6 +62,9 @@ export function signInWords(state: CanvasState, source: string): string | undefi
       return 'not signed in';
     case 'connect':
       return 'not connected';
+    // An account held and asked for more access (task-12.13 decision 50).
+    case 'more':
+      return 'needs more access';
     case 'again':
       return 'sign-in expired';
     case 'unsupported':

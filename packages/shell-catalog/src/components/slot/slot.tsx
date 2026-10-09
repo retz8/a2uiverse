@@ -173,8 +173,8 @@ export function SlotView({
   const home = join?.home ?? undefined;
   // The merge's sources that need sign-in, as the host's slot states say (task-12.3 decision 8).
   const signIn = shell
-    ? [...(home === undefined ? [] : [home]), ...(collapse?.failed ?? [])].filter(
-        s => resolveState(s) === 'authority' || resolveState(s) === 'connect',
+    ? [...(home === undefined ? [] : [home]), ...(collapse?.failed ?? [])].filter(s =>
+        ['authority', 'connect', 'more'].includes(resolveState(s) ?? ''),
       )
     : [];
   const facts = {
@@ -314,7 +314,11 @@ export function SlotView({
     if (state === 'collapsed') {
       const homeApp =
         home !== undefined && signIn.includes(home)
-          ? {app: nameOf(home), connect: resolveState(home) === 'connect'}
+          ? {
+              app: nameOf(home),
+              connect: resolveState(home) === 'connect',
+              more: resolveState(home) === 'more',
+            }
           : undefined;
       const line = shell
         ? (declined?.reason ?? (collapse && collapseLine(collapse, homeApp)))
@@ -656,17 +660,20 @@ export function failureRetries(failure: SlotFailure | undefined): boolean {
  */
 export function collapseLine(
   collapse: SlotCollapse,
-  homeSignIn?: {app: string; connect?: boolean},
+  homeSignIn?: {app: string; connect?: boolean; more?: boolean},
 ): string {
   switch (collapse.cause) {
     case 'home':
       if (homeSignIn) {
         const {app} = homeSignIn;
         const needs = `The merged view needs ${collapse.home ?? 'the home source'}`;
-        // A pasted key or token says connect (task-12.13 decision 32).
-        return homeSignIn.connect
-          ? `${needs}, and ${app} isn’t connected. Connecting ${app} brings it back.`
-          : `${needs}, and ${app} isn’t signed in. Signing in to ${app} brings it back.`;
+        // A pasted key or token says connect (task-12.13 decision 32); an account held, more
+        // access (task-12.13 decision 50).
+        if (homeSignIn.connect)
+          return `${needs}, and ${app} isn’t connected. Connecting ${app} brings it back.`;
+        if (homeSignIn.more)
+          return `${needs}, and ${app} needs more access. Allowing ${app} more access brings it back.`;
+        return `${needs}, and ${app} isn’t signed in. Signing in to ${app} brings it back.`;
       }
       // Said for the reader (task-8.7 decision 23): what the view needs and what happened to it.
       return `The merged view needs ${collapse.home ?? 'the home source'}, which didn’t load.`;
@@ -813,13 +820,22 @@ function AuthorityTile({
     );
   }
 
-  // A pasted key or token says Connect, not Sign in (task-12.13 decision 30).
+  // A pasted key or token says Connect, not Sign in (task-12.13 decision 30); an account held and
+  // asked for more access says so, and Allow (task-12.13 decision 50).
   const connect = authority.cause === 'connect';
+  const more = authority.cause === 'more';
+  const press = connect ? 'Connect' : more ? 'Allow' : 'Sign in';
   if (authority.quiet) {
     return (
       <Flex
         role="group"
-        aria-label={connect ? `${app}, not connected` : `${app}, not signed in`}
+        aria-label={
+          connect
+            ? `${app}, not connected`
+            : more
+              ? `${app}, needs more access`
+              : `${app}, not signed in`
+        }
         align="center"
         gap="2"
         wrap="wrap"
@@ -857,7 +873,7 @@ function AuthorityTile({
           <>
             <LockClosedIcon aria-hidden style={{color: 'var(--gray-10)'}} />
             <Text size="2" color="gray">
-              {connect ? 'Not connected' : 'Not signed in'}
+              {connect ? 'Not connected' : more ? 'Needs more access' : 'Not signed in'}
             </Text>
             {onSignIn && (
               <>
@@ -870,7 +886,7 @@ function AuthorityTile({
                     ref={receive}
                     onClick={event => signIn('start', event.currentTarget)}
                   >
-                    {connect ? 'Connect' : 'Sign in'}
+                    {press}
                   </button>
                 </Link>
               </>
@@ -910,7 +926,11 @@ function AuthorityTile({
         </Text>
       ) : (
         <Text as="p" size="3" weight="bold">
-          {connect ? `Connect ${app} to show it here.` : `Sign in to ${app} to show it here.`}
+          {connect
+            ? `Connect ${app} to show it here.`
+            : more
+              ? `${app} needs more access to show it here.`
+              : `Sign in to ${app} to show it here.`}
         </Text>
       )}
       {scopes.length > 0 && (
@@ -939,7 +959,7 @@ function AuthorityTile({
             ref={receive}
             onClick={event => signIn('start', event.currentTarget)}
           >
-            {again ? 'Sign in again' : connect ? 'Connect' : 'Sign in'}
+            {again ? 'Sign in again' : press}
             <ExternalLinkIcon aria-hidden />
           </Button>
           {noteText}

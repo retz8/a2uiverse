@@ -43,8 +43,10 @@ export function columnState(state: ColumnInputs, source: string): SourceSlotStat
   const painted = slotStates.get(source);
   if (painted === 'failed' && !retrying(state, source)) return 'failed';
   if (painted === 'authority' && !retrying(state, source)) {
-    // A pasted key or token: the column says not connected (task-12.13 decision 32).
-    return authority?.get(source) === 'connect' ? 'connect' : 'authority';
+    // A pasted key or token: the column says not connected (task-12.13 decision 32); an account
+    // asked for more access, so (task-12.13 decision 50).
+    const cause = authority?.get(source);
+    return cause === 'connect' || cause === 'more' ? cause : 'authority';
   }
   const including = presses.some(
     press =>

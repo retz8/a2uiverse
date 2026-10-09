@@ -42,9 +42,17 @@ export const ATTEMPT_LIFETIME_MS = 10 * 60_000;
 export type AuthorityNeed =
   /**
    * No usable account, or one short of scopes: sign in, asking `keys` in the card's `words`;
-   * `connect` when the scheme is a pasted key or token (task-12.13 decision 30).
+   * `connect` when the scheme is a pasted key or token (task-12.13 decision 30); `more` when the
+   * account is held and asks only for more access (task-12.13 decision 50).
    */
-  | {cause: 'signIn'; scheme: string; keys: string[]; words: string[]; connect?: boolean}
+  | {
+      cause: 'signIn';
+      scheme: string;
+      keys: string[];
+      words: string[];
+      connect?: boolean;
+      more?: boolean;
+    }
   /** The account's credential stopped working and could not be renewed. */
   | {cause: 'again'}
   /** No alternative of the card names a scheme the vault can do. */
@@ -239,6 +247,7 @@ export class AuthVault implements AccountStore {
         keys: missing,
         words: wordsFor(own.scheme, missing),
         connect: own.scheme.kind !== 'oauth',
+        more: true,
       },
     };
   }
