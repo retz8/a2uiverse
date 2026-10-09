@@ -177,3 +177,7 @@ GitHub, back through Sign in again over a merge collapsed because no source answ
 ### 35. Retry takes a source that answered in words alone
 
 GitHub answered the attention question in words alone, its slot collapsed to them; the merge's line, carrying Retry over every source that did not arrive (task-8.7 decision 24), offered Retry GitHub, and the orchestrator refused the press — "GitHub has not failed." — with nothing said on the canvas. Retry takes a source that answered in words alone as it takes a failed one: the plan's request goes to it again. Replaced: Retry refused for any slot that had not failed or asked to sign in.
+
+### 36. A failure said in words is worded for the person
+
+GitHub's answer in words alone read "…the connection to GitHub encountered a 403 Forbidden error. Please check your GitHub authorization and permissions…": every agent's prompt keeps prose for a failure it must report and said nothing of its wording, so the model passed the vendor's error on. The kit's prompt assembly gives every app one rule, ahead of the app's own workflow blocks: a failure reported in prose is read on the screen by a person who may not work in tech — what didn't work, and what they can do about it when there is something, in their words; never a status code or error name, an exception, a tool or API name, a URL, or a sign-in or protocol term. Replaced: a failure's wording left to the model.
