@@ -20,7 +20,7 @@ Spec for sub-task 12.14 of Phase 12 (`_dev/docs/spec/phase-12-authority-surfaces
 
 In order:
 
-1. GitHub and Linear are signed in as `you`; Gmail and Calendar hold no account.
+1. GitHub and Linear are signed in, each as its one fake account; Gmail and Calendar hold no account.
 2. The question: GitHub and Linear paint; Gmail and Calendar each take the full tile and are not dispatched; the merged view joins GitHub and Linear, a reserved column for each of the other two reading not signed in.
 3. Gmail's Sign in: the waiting form, the window on the kit's account chooser, `you` chosen, the slot painted in place and included in the merge on arrival. Calendar is left.
 4. A thread opened in Gmail's fragment: the chip and its card asking "Read your email". Not now drops the press; Allow opens the window and the thread opens.
