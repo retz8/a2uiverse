@@ -257,3 +257,62 @@ The apps' own cards showed time as their tools gave it: Calendar raw, "2026-10-0
 ### 55. The live sign-in test keeps its agent's store in a scratch folder
 
 The regression pass after the live half ran task 12.12's live sign-in test right after the agents' original stores were put back: the test's orchestrator ran on a scratch state folder, but its GitHub agent, started by the launcher, kept its sign-in store in the checkout, and the test's sign-in wrote into GitHub's restored store. The launcher takes `--agent-state <dir>`, each agent started with `--state-dir <dir>/<app>`, and the live sign-in test passes a scratch folder cleared at its start. Seen: the test passes, its agent's store in the scratch folder, GitHub's store in the checkout untouched. Replaced: the checkout's own store written by every run of the test.
+
+## Write-up
+
+Evidence lives in `~/a2uiverse-12.13-evidence/`: the regression logs before, the deterministic half's first pass (`deterministic-dryrun/`, its journal and every process log), its reruns (`reruns/`, `NOTES.md` per step), and the live half's notes and screenshots (`live/NOTES.md`). The live half's journal, logs, sweeps and the recording sit in the sitting's scratch run folder named in `env-live.sh`.
+
+### Before the run
+
+Decision 5's journal records and decision 6's sweep landed first. The regression pass before, 7 October: `pnpm verify` 19 of 19 tasks (`verify-before.log`); the Playwright replay 74 passed (`e2e-before.log`); task 12.12's live sign-in test passed (`e2e-live-before.log`).
+
+### The deterministic half
+
+The first pass of the ten cases, 7 October, is the half's run (decision 25); its journal reads, case by case:
+
+1. "What's the status of what I'm working on?": nothing dispatched; the merge collapsed on its home source needing sign-in.
+2. GitHub signed in as a first account and resumed in place; Linear the same; CircleCI left.
+3. "What needs my attention today?": Linear and GitHub answered and merged, Gmail signed in and resumed. The question touching Calendar and CircleCI dispatched neither; Calendar signed in from the quiet line and resumed; Calendar's slot on the earlier canvas loaded on its press with no window.
+4. Gmail's thread: a request for more access for `messages`, valid; Not now dropped it, twice; then Allow signed in for more access on the same account and the press ran.
+5. A second Gmail account added through add-account; a mail question merged both accounts; "my personal email" went to the personal account alone; "Draft an email to Sam" took the account choice and its press; the same account added again was said already added.
+6. GitHub with the credential fault: the plan's dispatch repaired; on every dispatch the fallback tile.
+7. Linear restarted with its store emptied: the refresh failed, and Sign in again ended without an account — decision 24. After it, Linear signed in again, re-bound, and a later question refreshed silently.
+8. Gmail installed over kept both accounts; uninstalled, each account revoked; installed again, the full tile.
+9. The two shops installed by hand; the camera comparison: Shop A painted, Shop B's tile opened the key page; Connect was refused — decisions 28 and 29.
+10. A card asking `http` basic, installed by hand: the tile saying sign-in isn't supported here; Manage apps opened the App Library; the app uninstalled.
+
+The reruns on a fresh stack, 8 October, passed each fix the first pass raised: the waiting tile with the reader's own tab, the chip with Not now, add-account's tile, Shop B connected with the demo key by the reader, Continue on GitHub, signing in again to Linear after its store was emptied and the silent refresh after it (`reruns/NOTES.md`). The first pass and the reruns raised decisions 19 to 32. Sweeps: during the reruns, 13 secrets, the vault 8 and each of five agent stores 1, in none of 16 files; after the reader's checks, 16 secrets, the vault 11 and each store 1, in none of 31 files.
+
+### The live half
+
+On a fresh state folder with the agents' stores emptied, 9 October. The accounts were the reader's own Google account for Gmail and Calendar, their own GitHub and Linear, and for CircleCI their GitHub-linked login and a second account.
+
+1. **GitHub.** First sign-in from the tile through GitHub; three open pull requests painted live.
+2. **The attention merge.** Gmail and Calendar signed in to Google. Calendar's write escalation: Create event asked for `calendar.write`, Allow signed in for more access, the press ran — on the wrong date until decisions 47 and 48; the event after them was created for the next day at 10:00 in the reader's zone. Linear signed in, its agent registering itself at Linear. The question asked again planned all four apps (decision 49) and merged them; a source arriving after the merge joined on Include. Decisions 33 to 53 came of this case.
+3. **CircleCI.** Both returns carried by hand (decision 2); the agent found the account's projects through CircleCI's API, none for the GitHub-linked login; a second account added through add-account, its one failed run shown. "What's the status of what I'm working on?" joined Linear's issues to GitHub's pull requests — A2U-8 to #8, A2U-5 to #6, A2U-6 to #7, each by `equal` or `contains` — with no CircleCI run attached, the runs being on `main`. Decision 54 came of it.
+4. **GitHub's write escalation.** In the private repository `retz8/a2uiverse-12-13-scratch`, kept: from an utterance, GitHub drew an inline proposal; Submit Issue asked for `github.write`, valid; Allow signed in for more access on the same account; the press ran once and opened issue #1. No dialog was drawn, so decision 42 was not seen live.
+5. **The live recording.** GitHub's nine beats through the kit's beat driver against a recording agent on its own sign-in store, the loopback return delivered on the Mac; nine of nine on the first attempt, into the scratch folder; nothing derived or committed.
+6. **The sweep.** 26 secrets — the vault 12, GitHub's store 2, Gmail's, Calendar's, CircleCI's and Linear's 3 each — in none of 50 files: the journal, every process log, the recording's sessions and beats; the recording agent's own store, 2 secrets, in none of the same 50.
+
+The agents' original stores were put back after the half; the live stores are kept with the half's evidence.
+
+### The regression pass after
+
+`pnpm verify` 19 of 19 tasks in `a2uiverse`, 31 of 31 in `a2uiverse-apps`, and each Python agent's tests, 1,063 passed. The Playwright replay: 7 of 75 screenshots differed, every one in the times a merged view draws — US Eastern before, the viewer's zone after, decision 52, the replay viewing from UTC; retaken, 75 of 75. Task 12.12's live sign-in test passed, and wrote into GitHub's restored store — decision 55; passed again after it with the checkout's stores untouched.
+
+### Departures from the plan
+
+- Decision 13's dedicated test Google account did not exist: Gmail and Calendar ran on the reader's own account, and the demo calendar was not re-seeded, since seeding deletes every event on the account's primary calendar.
+- Decision 11's comparison of each screen against its frame on the UI reference canvas is not recorded for either half.
+
+### Findings
+
+- An orchestrator booted while the agents are down keeps every app unroutable for the run; the launcher's reinstall of an unchanged app does not probe it again.
+- `pnpm verify` in `a2uiverse-apps` does not run the Python agents' tests.
+- The client's notice for a press held back still reads "Hold on — a paint is in flight. Try again when it lands."
+- In the deterministic half, after a page reload the first question typed was lost several times; in the live half every lost question traced to the browser tab being hidden. Not reproduced by hand.
+- Calendar's card wraps "AM" onto a line of its own at content width.
+- The journal records a press that ended asking for more access as a failed dispatch.
+- GitHub answers a status question in two to three minutes, after the patience after the pack has released the merge, so it joins on Include.
+- CircleCI: an account following no projects gets no projects, and the agent's project picker opens only on a failed lookup, not an empty one.
+- For 12.14: decisions 19 to 55 amend task-2.5 decisions 10 and 11, task-5.7's time form, task-12.3 decision 4, task-12.8 decisions 1, 5 and 6, phase-12 decision 20, the a2uiverse contract's `clientSession`, and `docs/design/client.md`'s "Questions and promotion" and its known limit on visual containment.
