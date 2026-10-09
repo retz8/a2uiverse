@@ -81,7 +81,7 @@ It sends to `VITE_ORCHESTRATOR_URL`, `http://localhost:10001` by default (see `.
 
 Playwright's browser installs separately (`pnpm exec playwright install chromium`). Its screenshots are taken at 1024×768 in UTC and aren't committed: on a fresh clone, run `test:e2e --update-snapshots` once to take them.
 
-`test:e2e:live` runs on its own stack on `localhost`: an orchestrator on port 10081 over a scratch state directory, the GitHub agent in `deterministic` mode started and installed by the launcher from the sibling `a2uiverse-apps` checkout, and the client on 5183. It asks a question about GitHub, presses Sign in on the tile, chooses the account in the agent's own sign-in window and checks the slot fills in place. The Planner runs live on the orchestrator's `.env` key, and port 11001 must be free. It isn't part of `pnpm verify`.
+`test:e2e:live` runs on its own stack on `localhost`: an orchestrator on port 10081 over a scratch state directory, the GitHub agent in `deterministic` mode started and installed by the launcher from the sibling `a2uiverse-apps` checkout, its sign-in store in a scratch folder (`--agent-state`), and the client on 5183. It asks a question about GitHub, presses Sign in on the tile, chooses the account in the agent's own sign-in window and checks the slot fills in place. The Planner runs live on the orchestrator's `.env` key, and port 11001 must be free. It isn't part of `pnpm verify`.
 
 ## Working without a model
 

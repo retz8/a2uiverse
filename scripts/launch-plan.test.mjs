@@ -5,6 +5,7 @@ import {test} from 'node:test';
 import {DEFAULT_TIER, ROSTER} from './dev-roster.mjs';
 import {
   MODES,
+  agentCommand,
   appsToUninstall,
   cardUrlOf,
   parseLaunchArgs,
@@ -202,4 +203,39 @@ test('publicUrlsOf fills each agent its own port from the pattern, and is off wh
 test('publicUrlsOf refuses a pattern with no port slot, or not on http(s)', () => {
   assert.match(publicUrlsOf('https://abc.asse.devtunnels.ms').error, /\{port\}/);
   assert.match(publicUrlsOf('abc-{port}.devtunnels.ms').error, /http/);
+});
+
+test('--agent-state gives each agent a sign-in store of its own under the folder; unset, the agent keeps its own (task-12.13 decision 55)', () => {
+  const parsed = parseLaunchArgs(['--agent-state', 'scratch/agents'], {defaultTier: DEFAULT_TIER});
+  assert.equal(parsed.agentState, join(process.cwd(), 'scratch/agents'));
+  assert.equal(parseLaunchArgs([], {defaultTier: DEFAULT_TIER}).agentState, undefined);
+  const github = {id: 'github', port: 11001};
+  assert.deepEqual(agentCommand(github, 'deterministic', {agentState: '/tmp/agents'}), [
+    'run',
+    'python',
+    '-m',
+    'app',
+    '--mode',
+    'deterministic',
+    '--host',
+    'localhost',
+    '--port',
+    '11001',
+    '--state-dir',
+    join('/tmp/agents', 'github'),
+  ]);
+  assert.deepEqual(agentCommand(github, 'live', {publicUrl: 'https://tunnel-11001.example'}), [
+    'run',
+    'python',
+    '-m',
+    'app',
+    '--mode',
+    'live',
+    '--host',
+    'localhost',
+    '--port',
+    '11001',
+    '--public-url',
+    'https://tunnel-11001.example',
+  ]);
 });

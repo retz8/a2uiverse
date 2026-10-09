@@ -30,6 +30,7 @@ export function parseLaunchArgs(args, {defaultTier}) {
       'agents-dir': {type: 'string'},
       list: {type: 'boolean', default: false},
       'no-install': {type: 'boolean', default: false},
+      'agent-state': {type: 'string'},
     },
     allowPositionals: false,
   });
@@ -51,7 +52,31 @@ export function parseLaunchArgs(args, {defaultTier}) {
     agentsDir: values['agents-dir'],
     list: values.list,
     install: !values['no-install'],
+    // Each agent's sign-in store under this folder, not its own (task-12.13 decision 55).
+    ...(values['agent-state'] ? {agentState: resolve(values['agent-state'])} : {}),
   };
+}
+
+/**
+ * The command that starts one agent on its roster port: `publicUrl`, when set, is where the browser
+ * reaches its sign-in pages; `agentState`, when set, the folder holding each agent's sign-in store,
+ * the agent's own under it by its id (task-12.13 decision 55).
+ */
+export function agentCommand(entry, mode, {publicUrl, agentState} = {}) {
+  return [
+    'run',
+    'python',
+    '-m',
+    'app',
+    '--mode',
+    mode,
+    '--host',
+    'localhost',
+    '--port',
+    String(entry.port),
+    ...(publicUrl ? ['--public-url', publicUrl] : []),
+    ...(agentState ? ['--state-dir', join(agentState, entry.id)] : []),
+  ];
 }
 
 /** Where the apps checkout is, and which source said so — echoed on every run and every listing. */

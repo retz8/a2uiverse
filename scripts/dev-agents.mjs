@@ -2,7 +2,7 @@
 /**
  * Launch the apps of the dev roster from the sibling `a2uiverse-apps` checkout, and install them.
  *
- *   pnpm dev:agents [--tier mocks] [--only github,gmail] [--mode deterministic|stub|live] [--agents-dir <path>] [--no-install]
+ *   pnpm dev:agents [--tier mocks] [--only github,gmail] [--mode deterministic|stub|live] [--agents-dir <path>] [--no-install] [--agent-state <dir>]
  *   pnpm agents:list [--tier mocks]
  *
  * `A2UIVERSE_PUBLIC_URL`, a pattern with a `{port}` slot (a tunnel address), gives each agent the
@@ -39,6 +39,7 @@ import {artifactFiles, stellify} from '@a2uiverse/stellify';
 
 import {DEFAULT_TIER, ROSTER} from './dev-roster.mjs';
 import {
+  agentCommand,
   appsToUninstall,
   parseLaunchArgs,
   planLaunch,
@@ -109,26 +110,14 @@ async function waitFor(check, ms, gone = () => null) {
 /**
  * Start one agent on its roster port, and begin waiting for its card. `ready` resolves to null once
  * the card answers, or to the reason it never came up. `publicUrl`, when set, is where the browser
- * reaches the agent's sign-in pages; its card and the rest stay on `localhost`.
+ * reaches the agent's sign-in pages; its card and the rest stay on `localhost`. `agentState`, when
+ * set, holds the agent's sign-in store in place of its own (task-12.13 decision 55).
  */
-function start(entry, mode, color, publicUrl) {
-  const child = spawn(
-    'uv',
-    [
-      'run',
-      'python',
-      '-m',
-      'app',
-      '--mode',
-      mode,
-      '--host',
-      'localhost',
-      '--port',
-      String(entry.port),
-      ...(publicUrl ? ['--public-url', publicUrl] : []),
-    ],
-    {cwd: entry.agentDir, stdio: ['ignore', 'pipe', 'pipe']},
-  );
+function start(entry, mode, color, publicUrl, agentState) {
+  const child = spawn('uv', agentCommand(entry, mode, {publicUrl, agentState}), {
+    cwd: entry.agentDir,
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
   const prefix = `${color}[${entry.id}]${RESET}`;
   pipe(child.stdout, prefix, process.stdout);
   pipe(child.stderr, prefix, process.stderr);
@@ -315,7 +304,7 @@ function printListing({dir, source}, {tier, entries, fatal}) {
 }
 
 async function main() {
-  const {tier, mode, only, then, agentsDir, list, install} = parse();
+  const {tier, mode, only, then, agentsDir, list, install, agentState} = parse();
 
   const resolved = resolveAgentsDir({
     flag: agentsDir,
@@ -356,10 +345,11 @@ async function main() {
 
   log(`${selected.map(e => e.id).join(', ')} in ${mode} mode (${tier} tier)`);
   if (publicUrls.pattern) log(`sign-in pages at ${publicUrls.pattern} (A2UIVERSE_PUBLIC_URL)`);
+  if (agentState) log(`sign-in stores under ${agentState} (--agent-state)`);
   const running = new Map(
     selected.map((entry, i) => [
       entry.id,
-      start(entry, mode, COLORS[i % COLORS.length], publicUrls.of(entry.port)),
+      start(entry, mode, COLORS[i % COLORS.length], publicUrls.of(entry.port), agentState),
     ]),
   );
 

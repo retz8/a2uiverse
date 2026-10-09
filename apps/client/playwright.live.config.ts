@@ -9,9 +9,11 @@ import {AGENT_CARD, CLIENT_PORT, ORCHESTRATOR, ORCHESTRATOR_PORT} from './e2e-li
  * on the kit's sign-in from the sibling `a2uiverse-apps` checkout started and installed by the
  * launcher, and the client pointed at that orchestrator. The Planner runs live — the orchestrator's
  * `.env` brings its key. On demand only, outside `pnpm verify`; the agent's roster port must be
- * free.
+ * free. The agent keeps its sign-in store in a scratch folder too, never the checkout's own
+ * (task-12.13 decision 55).
  */
 const STATE_DIR = join(tmpdir(), 'a2uiverse-e2e-live-state');
+const AGENT_STATE = join(tmpdir(), 'a2uiverse-e2e-live-agents');
 
 export default defineConfig({
   testDir: './e2e-live',
@@ -32,7 +34,7 @@ export default defineConfig({
     },
     {
       // Installs the app into the orchestrator above once both answer; every address on localhost.
-      command: 'node ../../scripts/dev-agents.mjs --only github --mode deterministic',
+      command: `rm -rf ${AGENT_STATE} && node ../../scripts/dev-agents.mjs --only github --mode deterministic --agent-state ${AGENT_STATE}`,
       url: AGENT_CARD,
       env: {ORCHESTRATOR_URL: ORCHESTRATOR, STATE_DIR, A2UIVERSE_PUBLIC_URL: ''},
       reuseExistingServer: false,
