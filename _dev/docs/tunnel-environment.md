@@ -30,6 +30,9 @@ working with this repo.
 - First visit to a tunnel host shows a one-time "you are connecting to a dev
   tunnel" interstitial — click **Continue**.
 - Servers must allow `localhost` and `*.devtunnels.ms` in CORS.
+- The tunnel hands a form's post on with `Origin` rewritten to the server's
+  local address, `http://localhost:<port>`: a route that checks the origin
+  admits both the tunnel origin and the local one.
 - Claude-in-Chrome always drives tunnel URLs, never `localhost` — the
   controlled browser is on the remote side.
 
@@ -99,7 +102,7 @@ pnpm dev:all --tier mocks              # shop-a 12001 · shop-b 12002, determini
 pnpm dev:all --tier mocks --mode live  # the same, live
 ```
 
-Live sign-in returns to each agent's finish address, so GitHub's OAuth App and the Google client register the tunnel finish address beside the `localhost` one (each agent's README). CircleCI's sign-in server takes only a loopback return address: its live sign-in runs at the Mac, with `A2UIVERSE_PUBLIC_URL` unset.
+Live sign-in returns to each agent's finish address, so GitHub's OAuth App and the Google client register the tunnel finish address beside the `localhost` one (each agent's README). CircleCI's sign-in server takes only a loopback return address, so CircleCI runs with `A2UIVERSE_PUBLIC_URL` unset — a launcher of its own, `--only circleci --no-install`, beside one for the other apps, and the orchestrator restarted after to read its card — and a return the remote browser cannot reach is carried by hand: in the sign-in window, `http://localhost:<port>` is replaced by the port's tunnel URL, the rest kept, once for the agent's sign-in page and once for CircleCI's return to it. The beat driver's return to its `127.0.0.1` address is delivered on the Mac: the address the window ends on, run as `curl '<address>'` in a terminal there.
 
 The launcher inherits the shell's environment for the agents; `turbo.json` passes `A2UIVERSE_*` and `STATE_DIR` through to the `dev` task, so a `STATE_DIR` set in the shell is the one the orchestrator and the launcher both use.
 
