@@ -38,7 +38,7 @@ The agents record every live turn — the request, the tool calls, the tree. Tho
 ## Selection
 
 - **By retrieval.** An embedder indexes widgets by signature, description and recorded example requests. For a request, retrieval returns the top candidates and the model sees only those few, not the catalog. The model keeps the right to descend to primitives when no candidate fits.
-- **Fit.** Never certain at decision time. Three signals: coverage of the asks — the request's facts and the tool result's fields map onto the slots with nothing left over, a check; retrieval confidence against the recorded examples, a threshold tuned where fit has a ground truth, whether a turn's eventual tree equalled a widget's expansion; and the model's own call among the candidates, which is how upstream's macros already work. The residue — a confident wrong pick looks right until a person sees it — is what the monitor is for.
+- **Fit.** Never certain at decision time. Three signals: coverage of the asks — the request's facts and the tool result's fields map onto the slots with nothing left over, a check; retrieval confidence against the recorded examples, a threshold tuned where fit has a ground truth, whether a turn's eventual tree equalled a widget's expansion; and the model's own call among the candidates, which is how upstream's macros already work. The residue — a confident wrong pick looks right until a person sees it — is what Spectra and Observatory are for.
 
 ## What it changes
 
@@ -55,9 +55,9 @@ Nothing on the wire changes: the shell sees ordinary components, composability i
 
 ## Shape of the project
 
-An inference layer between the model and the A2UI wire, around an authored widget library in upstream's macro format: a widget index with embeddings over signatures and recorded example requests; retrieval and candidate presentation; expansion to A2UI, built on upstream's macro expander rather than beside it; the fill derived from recorded tool results; coverage telemetry for designers, which is the monitor's job (`(idea)Generative-UI-Monitor.md`); evals on tokens, time to first token, first-try validity and fit. Depends on A2UI alone. First dataset: the five agents in `a2uiverse-apps` and their recorded live corpora. Natural home: upstream's agent SDK, as a sibling of the macro expander and the inference formats.
+An inference layer between the model and the A2UI wire, around an authored widget library in upstream's macro format: a widget index with embeddings over signatures and recorded example requests; retrieval and candidate presentation; expansion to A2UI, built on upstream's macro expander rather than beside it; the fill derived from recorded tool results; coverage telemetry for designers, which is Observatory's job (`(idea)Generative-UI-Monitor.md`); evals on tokens, time to first token, first-try validity and fit. Depends on A2UI alone. First dataset: the five agents in `a2uiverse-apps` and their recorded live corpora. Natural home: upstream's agent SDK, as a sibling of the macro expander and the inference formats.
 
-Order: the monitor first, since it is the only way to see whether a library is working; the authored library second, run under the monitor; retrieval last, once the library is large enough that the model reading a list stops working.
+Order: Spectra and Observatory first, since they are the only way to see whether a library is working; the authored library second, run under Observatory; retrieval last, once the library is large enough that the model reading a list stops working.
 
 ## Upstream state
 
@@ -75,5 +75,5 @@ Absent from all of them: selection by retrieval over recorded requests, the fill
 
 ## Related
 
-- `_dev/docs/(idea)Generative-UI-Monitor.md` — the monitor that maintains the library: fall-through, misfit, the intent by shape matrix, the review queue, goldens.
+- `_dev/docs/(idea)Generative-UI-Monitor.md` — A2UIVerse Spectra and Observatory, the DevTool and Monitor that maintain the library: fall-through, misfit, the intent by shape matrix, the review queue, goldens.
 - `_dev/docs/phase-19-model-trial-notes.md` — where the time goes today, the model candidates, the upstream threads on generation versus deterministic UI, the A2UI-unique prompts.
