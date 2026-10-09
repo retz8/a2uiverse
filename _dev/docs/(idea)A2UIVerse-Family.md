@@ -88,6 +88,34 @@ The family is worth nothing until agents exist. Today's five agents are built on
 
 Stellify exists. Spectra starts when the Phase 19 model-trial harness is written as a module rather than a script. Observatory starts at Phase 17, in parallel with the ladder. The Electron shell is Phase 18's milestone; the marketplace index and publish step are Phases 13 to 15.
 
+## The metaphor: today's software stack, mapped
+
+| Today's software stack | Generative UI stack | Fit |
+| --- | --- | --- |
+| HTML, HTTP | A2UI, A2A | Exact: a declarative document format and a transport, owned by nobody |
+| The browser | The canvas shell | Close: renders documents from many independent origins into one window, owns the chrome and the consent prompts. A browser shows one site per tab; the canvas composes several into one page |
+| Same-origin policy, permission prompts | Fragment isolation, the authority tile | Exact in intent: the host owns consent; pages never draw their own |
+| A web framework and its CLI (Next.js, `create-next-app`) | The agent kit, `create-a2ui-agent` | Exact: opinionated scaffold, dev server, modes, tests |
+| The design system and component library | The vendor catalog | Exact: the same artifact, in the vendor's own language |
+| Page templates and reusable components | The widget library, upstream's macros | Exact, with one twist: the component is also the model's vocabulary, so a missing component is a missing word |
+| The bundler, the store's packager (`npm pack`, an Xcode archive) | Stellify | Exact: build-time only, runs the gates the store runs |
+| The app store | The marketplace | Exact, including the review step and the two-sided cold start |
+| Browser DevTools: Elements, Network | Spectra | Close: Elements is the tree pane, Network is the film strip. No analogue for the raw model text pane and token attribution; web pages were never typed by a model |
+| Sentry, Datadog RUM, LaunchDarkly, Chromatic | Observatory | Close, as a bundle: error tracking, real-user monitoring, feature flags and visual regression, four companies today |
+| Test fixtures, snapshot tests | One-click fixture, goldens | Exact |
+| A staging environment | Counterfactual replay | Strained, usefully: staging re-runs your code against copied data; replay re-runs another model against recorded tool results. The thing under test moved from the code to the author |
+| ESLint, Stylelint, axe | Design-rule lint | Exact in shape, new in subject: the rules are about UX decisions, not syntax |
+| The CI gate on a pull request | The goldens gate on a prompt, model or library change | Exact |
+| Dependabot's "a dependency changed under you" | The provider drift alarm | Exact, except nobody files a changelog |
+
+Where the metaphor breaks, and the break is the point:
+
+- **The author is a model.** Every tool in the left column assumes a human wrote the thing being observed. Devtools show what you wrote; Observatory shows what something else wrote on your behalf. The center of the tool moves from "what is on the screen" to "why is this on the screen," and the designer becomes a reader of traces.
+- **The variable is the screen, not the data.** Web monitoring assumes a stable interface and watches data and errors flow through it. Here the interface is the variable: the intent by shape matrix has no web ancestor, because no one needed to ask how many different pages a site rendered for one URL.
+- **Composition across origins is new.** No browser merged two sites' content into one view, so the synthesis surface, the join marks and attribution have no left-column entry. That is the part only A2UI can do, and why it is A2UIVerse's differentiator rather than a tool.
+
+The web built a ring of tools around a document that humans write. Generative UI needs the same ring around a document that models write, and the three new entries in the ring are the ones that answer "why did it draw this."
+
 ## Comparable
 
 A browser company that also sells the devtools, which nobody has done, because browsers never had a generation step to watch.
