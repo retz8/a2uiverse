@@ -192,6 +192,12 @@ UI reference: the design canvas *Authority surfaces — UI reference* (https://c
 - [WIP] **12.13** Integration + acceptance — on the deterministic roster through the tunnel: the tile at first paint, popup sign-in and resume, the quiet line; escalation over the scope boundary; the two Gmail accounts merged with labels, add-account; refusal, repair, fallback; refresh, uninstall with revocation; live OAuth per vendor and the live GitHub write escalation; at the Mac — CircleCI's dynamic registration admitting only a loopback return address (RFC 8252) or one CircleCI lists — CircleCI's live sign-in with its token on the REST project list (task-12.10 decision 9), and live vendor recordings through the kit's beat driver, its return caught on a loopback address (task-12.11 decision 7) (moved from 12.12); a clean regression pass; the write-up. Spec: `_dev/docs/spec/task-12.13-integration-acceptance.md` (after 12.6, 12.7, 12.10, 12.11 and 12.12)
 - [ ] **12.14** Design records + READMEs — `docs/design/authority.md` over one running example; `orchestrator.md`, `client.md`, `shell-catalog.md`, `agent-kit.md` and `app-install.md`'s credential-lint section pointing to it; the READMEs; the phase spec's decisions amended by 12.13 (after 12.13)
 
+## Phase 19 — Vendor-agent model trial
+The agent kit opened to models beyond Gemini through ADK's LiteLLM wrapper, and the fast models of the day tried on the vendor agents against `gemini-3.7-flash`. An experiment: worked in a worktree of `../a2uiverse-apps/`, not on its `main`.
+
+- [ ] **19.1** `[apps]` The kit on LiteLLM — a non-Gemini model reachable by name through ADK's LiteLLM wrapper, the three modes and every app's tests unchanged
+- [ ] **19.2** `[apps]` The model trial — candidate models run on the vendor agents over the recorded live prompts and measured against `gemini-3.7-flash`; which models, which measures and where the write-up lives decided here (after 19.1)
+
 ## Phase 13 — Marketplace + publish
 Local index, package hosting, publish step, hello-fragment smoke test (M9).
 From Phase 12: the publish smoke test meets agents that need sign-in.
