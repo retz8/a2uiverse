@@ -65,8 +65,12 @@ CONFIG = AgentAppConfig(
     question_policy=require_carries_action,
     stub_tools=STUB_TOOLS,               # stub mode: tools over canned data
     live_toolset_factory=_live_toolset,  # live mode: Linear's MCP server
+    provider=AgentProvider(organization="Linear", url="https://linear.app"),  # the card: whose service it fronts
+    documentation_url="https://github.com/retz8/a2uiverse-apps/blob/main/linear/agent/README.md",  # the card: its help page
 )
 ```
+
+`provider` and `documentation_url` go on the agent card as `provider` and `documentationUrl`: where a person finishes on the app's own side. Each vendor app names as its provider the vendor whose service it fronts, at the vendor's own site, and the mock stores a storefront of their own; each names its README in the apps repo as its help page. A client that can't draw something here links to them: A2UIVerse's "Continue on Linear" when it refused a paint, and the help link on the page where a key is pasted.
 
 And the whole entrypoint:
 
@@ -145,9 +149,9 @@ The kit strips the tag out of the prose and sends it as its own A2A data part, *
 {"paintMeta": {"surfaceId": "assigned-issues", "title": "Assigned Issues"}}
 ```
 
-A surface that asks the user something carries `kind="question"`. In the recorded follow-up "Move it to In Progress.", Linear paints `{"surfaceId": "status-proposal", "title": "Move to In Progress", "kind": "question"}`. And a turn that deliberately paints nothing (a declined confirmation, a request outside the app) says so with `<no-surface/>`.
+A surface that asks the user something the app can't go on without, such as which of two issues they mean, carries `kind="question"`: `{"surfaceId": "which-issue", "title": "Which issue?", "kind": "question"}`. A write the app drafts for the user to confirm, like Linear's proposal to move an issue to In Progress, is a **proposal**, not a question, and carries no kind: `{"surfaceId": "status-proposal", "title": "Move to In Progress"}`. And a turn that deliberately paints nothing (a change whose result is already on screen, a request outside the app, an action whose tool the agent doesn't hold) says so with `<no-surface/>`.
 
-**This is optional and degrades cleanly.** A client that doesn't know `paintMeta` ignores the part. A2UIVerse's canvas is the client that reads it: the title names the app's back and forward arrows, and a question raises the app's slot (see [client.md](client.md)). An app opts in by adding the prose block that teaches the model the tags (`SHELL_DESCRIPTION`) and choosing a question policy; `create-a2ui-agent --ecosystem` does both.
+**This is optional and degrades cleanly.** A client that doesn't know `paintMeta` ignores the part. A2UIVerse's canvas is the client that reads it: the title names the app's back and forward arrows, and a question is said on the progress line as the app needing an answer, its paint drawn like any other (see [client.md](client.md#questions)). An app opts in by adding the prose block that teaches the model the tags (`SHELL_DESCRIPTION`) and choosing a question policy; `create-a2ui-agent --ecosystem` does both.
 
 ## One question, end to end
 
@@ -184,6 +188,25 @@ flowchart TD
 
 ## Inside the machinery
 
+### Prompt: the app's prose, and three rules every app gets
+
+`prompt.py`'s `build_system_prompt` assembles the system prompt once, through the A2UI SDK's `generate_system_prompt`, which has a slot for each part:
+
+| Slot | What goes in |
+| --- | --- |
+| role | the config's `role_description` |
+| workflow | the kit's three rules, then the config's `workflow_descriptions`, then the domain doc |
+| UI description | the brand guide |
+| schema and examples | the app's catalog and its curated example surfaces, injected by the SDK, with the config's `examples_framing` spliced under the examples' header |
+
+The three rules come first in the workflow slot, ahead of anything the app wrote, because they hold for every app:
+
+1. **A failure is worded for the person.** A failure the model reports in prose is read on the screen by someone who may not work in tech: what didn't work, and what they can do about it when there's something, in their words. Never a status code or error name, an exception, a tool or API name, a URL, or a sign-in or protocol term like token or scope. "The connection to GitHub encountered a 403 Forbidden error" is what it rules out.
+2. **A proposal is not a question.** A write the app drafts for the person to confirm (an event, a reply, an issue, a rerun) is never declared `kind="question"`; a question is for a choice the app can't go on without. A proposal dismissed outright, with Discard or Not now, is repainted as the same surface settled: its buttons gone, one plain line saying what didn't happen, like "Discarded — not added to your calendar". Backing out of a confirm step to edit returns to the draft.
+3. **A time is the person's, never converted by the model.** The model passes the person's time zone, which the request states, on every call to a tool that takes one, a wider second search included; where a tool takes none, it shows the time as the tool gave it, its zone named. It never converts a time from one zone to another itself. A time is written for a person to read, never a raw timestamp, with its date and year where the request asks for the full date and time; today and tomorrow are the person's, by the date the request states; and no code value like `None` or `null` is shown.
+
+These are guidance the model reads, not checks: an app whose model does otherwise still works on a client. What must hold every time is code, below: the catalog check and the question policy. (A2UIVerse's requests end with the person's local time and zone, which is what rule 3 reads; see [orchestrator.md](orchestrator.md#one-question-end-to-end), step 5.)
+
 ### Streaming first, validating at the end
 
 `agent-kit/src/a2ui_agent_kit/executor_llm.py` is the heart of the kit. Its rule is **stream first, validate at the end, retry**. Streaming first means the user watches the UI assemble rather than waiting for the whole answer. Validating at the end is necessary because half a surface can't be judged: a `root` that hasn't arrived yet isn't missing.
@@ -194,6 +217,8 @@ Streaming partial JSON has sharp edges, and the kit's `LenientA2uiStreamParser` 
 - **Ids that aren't strings.** A model that writes an object where an id belongs would crash the SDK's component cache, which uses the id as a dictionary key. The kit swaps in a small `dict` subclass whose `__setitem__` drops non-string keys, which covers both places the SDK writes to it.
 
 **A retry patches in place.** One parser is kept across both attempts, with its memory of what it already sent. So a retry that repeats most of the first attempt sends only the components that changed, and the surface on screen is patched rather than wiped and redrawn. Nothing is torn down between attempts; only when every attempt has failed does the kit delete what it painted.
+
+**What the stream held back goes at the end.** The SDK's parser holds a surface's components back until it has seen that surface created in the same parse, and a delete likewise. So a turn that only updates or deletes a surface an earlier turn painted, like Calendar repainting its proposal settled after Discard, streams nothing at all. At the end of a valid turn, the kit sends every message of the validated answer whose surface and kind (`updateComponents`, `updateDataModel`, `deleteSurface`) the stream didn't send, whole and in order (`_unstreamed` in `executor_llm.py`). A surface created in the turn streams as before.
 
 The kit also tells failures apart, because each needs a different retry:
 
@@ -242,7 +267,7 @@ Which surfaces count as questions, and what a question must look like, differs b
 | Policy                         | Rule                                                                                         | Used by                          |
 | ------------------------------ | -------------------------------------------------------------------------------------------- | -------------------------------- |
 | `require_carries_action`       | a surface declared a question must carry at least one action, or the user can't answer it   | the basic-catalog apps, like Linear |
-| `require_root_component(name)` | a question must have a `name` root, and a `name`-rooted surface must be declared a question | GitHub, with `ConfirmationDialog` |
+| `require_root_component(name)` | a surface declared a question must have a `name` root; a `name`-rooted surface needn't be one, since a `ConfirmationDialog` confirming a write GitHub proposed is a proposal | GitHub, with `ConfirmationDialog` |
 
 The second is a small **factory**: it takes the component name and returns the policy function, so one rule serves any catalog that has a purpose-built dialog component.
 
@@ -279,6 +304,17 @@ Beside it, `tool_shaping.py` gives apps a walker for annotating results with not
 When a client cancels (A2A's `tasks/cancel`), the SDK calls the executor's `cancel`, which answers with a bare `canceled` status, and then cancels the running `execute`. The `CancelledError` lands wherever the attempt was waiting, usually on the model stream. The attempt's `finally` closes the stream, which stops ADK's run, and no further attempt starts. An MCP call already sent is abandoned: the server finishes it, and the reply goes nowhere.
 
 A2A says a task that reached a terminal state (`completed`, `canceled`, `rejected`, `failed`) can't be restarted. The A2A SDK's in-memory store didn't hold that line: it handed every reader the same object, the readers updated it in place, and a `working` update still queued could land after `canceled`, leaving the task reading `working`. The kit's `TerminalGuardedTaskStore` keeps **its own copy** of each task, hands out **copies**, and **refuses to overwrite** a task that already ended.
+
+### Sign-in: the agent's own front door
+
+Sign-in is explained end to end in [`authority.md`](authority.md). The kit's part in brief: an app that needs its user signed in puts a `SignIn` on its config, its scopes in its customer's words, the scopes the first sign-in asks, which actions and tools need which scopes, its made-up accounts, and its live **upstream**, the vendor's own sign-in. The agent then becomes its own sign-in front door:
+
+- the card declares one `oauth2` scheme, `signIn`, with its `scopes` map, and `security` asks for the first sign-in's scopes;
+- `sign_in_server.py` serves an OAuth authorization server beside A2A, on Authlib: metadata, `/oauth/authorize` with S256 PKCE, a token endpoint whose refresh tokens rotate, registration by a client ID metadata document or dynamically, revocation, and an ID token signed ES256 with the account's `sub` and display claims;
+- an A2A request without a live token the agent issued is answered 401, and inside a request `current_account()` is the signed-in account;
+- an action or tool needing a scope the token lacks raises `AuthRequired`, which ends the run in A2A's `auth-required` naming the missing scope keys, in the card's own `security` shape.
+
+The account comes from the upstream. In deterministic and stub mode that's a chooser over the made-up accounts, and `fake_account=<id>` on the sign-in address skips it, for recordings and tests. In live mode it's `VendorOAuth`, the vendor's OAuth: the agent keeps the vendor's token, refreshes it, and hands each MCP connection its account's token; the client only ever holds the token the agent issued. An app signed in with a key uses `ApiKeySignIn` instead. Each agent keeps its accounts, tokens and signing key in an owner-only store, `<app>/agent/.state/sign-in.json`, or under `--state-dir`.
 
 ### One card, every mode: the server
 
@@ -332,6 +368,7 @@ The apps in the repo don't pin: they take the kit as an **editable path dependen
 The kit knows nothing about A2UIVerse. The connection is made from A2UIVerse's side:
 
 - **The launcher** in the `a2uiverse` repo names each app in its roster — its folder, its tier and its port — and starts its agent through the kit's own entrypoint on that port: `uv run python -m app --mode <mode> --host localhost --port <port>`. It packs the app's catalog package with Stellify and installs the app into the orchestrator from the agent's card URL; [app-install.md](app-install.md) follows an install from the pack to the first paint.
+- **The orchestrator's AuthVault** signs in to the agent through its front door, as the card declares, and sends the token it issued as a header on every request; see [authority.md](authority.md).
 - **The orchestrator** talks A2A to the agent like any client. It renames the agent's surfaces (`assigned-issues` becomes `linear:assigned-issues`) and places them in the app's slot; see [orchestrator.md](orchestrator.md).
 - **The canvas** reads `paintMeta`, and draws the answer with the app's catalog; see [client.md](client.md). When the answer is joined with other apps' answers, [synthesis.md](synthesis.md) takes over.
 
@@ -343,6 +380,8 @@ The kit knows nothing about A2UIVerse. The connection is made from A2UIVerse's s
 | **Three modes, one port, one card** | Any mode drops in for any other; the card always describes the product | The card says nothing about which mode is running; the log does |
 | **Stream first, validate at the end** | The UI assembles on screen as the model writes it | An invalid answer is visible until the retry patches it, or the teardown removes it |
 | **A retry patches in place** | No wipe and redraw between attempts | The parser keeps state across attempts, and must be reset carefully between them |
+| **What the stream held back sent at the end** | An update or a delete to an earlier turn's surface reaches the client | It shows when the turn ends, not as it's written |
+| **Three rules every app gets, ahead of its own prose** | Failures, proposals and times read the same in every app, without each app writing them | Guidance, not a check: a model can still do otherwise |
 | **Error messages that name the fix** | The retry has what it needs to succeed | Each common mistake needs its own targeted check |
 | **Canned data derived from one live run** | Stub and deterministic data are real-shaped, never invented | Refreshing them means a new live run, with real credentials |
 | **Titles and questions as tags beside A2UI** | A2UI stays standard; any client ignores what it doesn't know | The model must write the tags; the prose teaches it, and the question policy checks it |
@@ -376,10 +415,11 @@ In `a2uiverse-apps/agent-kit/src/a2ui_agent_kit/`:
 | `executor_deterministic.py`, `responses.py` | The no-model executor; the fixture responder and stub fixture loader                |
 | `responder.py`                 | The responder protocol, and the ADK-backed implementation with a session per context          |
 | `catalog.py`, `versions.py`    | Catalog loading, `validate_surface` and `validate_update`; the wire version tag                 |
-| `prompt.py`, `knowledge.py`    | System prompt assembly from the config's prose, domain doc and brand guide                      |
+| `prompt.py`, `knowledge.py`    | System prompt assembly: the three rules every app gets, the config's prose, domain doc and brand guide |
 | `paint_meta.py`                | The tag filter, the `paintMeta` part, the two question policies                                 |
 | `toolset.py`, `tool_shaping.py`| The MCP tool hooks; the annotation walker                                                       |
 | `recorder.py`, `corpus.py`, `beats.py` | Recording what was painted and what was read; the beat driver                           |
+| `sign_in.py`, `sign_in_server.py`, `sign_in_store.py`, `sign_in_fake.py`, `sign_in_vendor.py` | Sign-in: the config, the authorization server and the 401, the store, the made-up accounts' chooser, the vendor's OAuth |
 | `testing.py`                   | Run an executor in-process, for tests                                                           |
 
 The scaffolder is `a2uiverse-apps/create-a2ui-agent/`: `src/cli.ts` (flags and the flow), `src/prompts.ts` (the walkthrough), `src/scaffold.ts` (composing templates), `src/generate.ts` (the four generated files), `src/kit.ts` (the pin), `src/ports.ts`, and `templates/`. Its drift gate is `test/scaffold-run.test.ts`.
@@ -403,4 +443,5 @@ The scaffolder is `a2uiverse-apps/create-a2ui-agent/`: `src/cli.ts` (flags and t
 | **Beat** | One scripted question in a recording session |
 | **paintMeta** | A surface's title and question mark, sent beside the A2UI |
 | **Question policy** | The app's rule for what a question surface must look like |
+| **Proposal** | A write the app drafts for the user to confirm: ordinary UI, never declared a question |
 | **Kit pin** | The commit of the kit a scaffolded app depends on |

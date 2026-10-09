@@ -77,7 +77,7 @@ Eight components exist only in the shell catalog. In the example:
 
 | Component | What it is | In the example |
 | --- | --- | --- |
-| **`Slot`** | A region of the layout reserved for one source's answer. It draws the answer when there is one, and otherwise its state: loading, failed, collapsed, or waiting for sign-in | One per app, plus one for the merged view (`source: "shell"`) |
+| **`Slot`** | A region of the layout reserved for one source's answer. It draws the answer when there is one, and otherwise its state: loading, failed, collapsed, or waiting for sign-in. It is also the shell's own tiles: a capability gap, the account choice, the add-account tile | One per app, plus one for the merged view (`source: "shell"`) |
 | **`Attribution`** | The quiet app name above a slot, the account's label when the app has more than one, that app's back and forward arrows, and a "Needs access" chip when the app asks for more | "Linear", "GitHub", "CircleCI" above the three slots |
 | **`DerivedValue`** | The only way a merged view shows a value: the value plus how sure it is | Every cell of the table |
 | **`SortControl`** | "Sort by" with the options and the direction | "Sort by Updated ↓" |
@@ -95,7 +95,7 @@ Two models write shell surfaces, and each is allowed a different part of the cat
 | Keep-set | Components | Functions | Author |
 | --- | --- | --- | --- |
 | `SYNTHESIS_SURFACE_KEEP_SET` | `DerivedValue`, `SortControl`, `Table`, `TableRow`, `DataList`, `DataListItem`, `Text`, `Column`, `Row`, `Card`, `Divider` | the formula operators and the relations | the Synthesizer, `shell:synthesis` |
-| `LAYOUT_SURFACE_KEEP_SET` | `Slot`, `Row`, `Column`, `Card`, `Text`, `Divider`, `DataList`, `DataListItem`, `Table`, `TableRow`, `Button` | `openStore`, `openAppLibrary` — `addAccount` held back until the plan check validates the app it names | the Planner, `shell:main` |
+| `LAYOUT_SURFACE_KEEP_SET` | `Slot`, `Row`, `Column`, `Card`, `Text`, `Divider`, `DataList`, `DataListItem`, `Table`, `TableRow`, `Button` | `openStore`, `openAppLibrary`; adding an account is a `Slot` holding `addAccount`, the plan check validating the app it names | the Planner, `shell:main` |
 
 The orchestrator shows each model `catalog.json` **pruned** to its keep-set, and validates that model's output against **the same pruned catalog**. So the Synthesizer has never heard of `Slot` or `Button`, and a `Slot` in its tree is a validation error, not a judgment call. Neither model gets `Attribution`: it's the orchestrator's alone. [Pruning a catalog](#pruning-a-catalog-graph-reachability) shows how the pruning works.
 
@@ -111,7 +111,7 @@ The catalog is a library; the **host** is the app that renders with it, here the
   | --- | --- |
   | `onShellAction` | a shell button raises `openStore` or `openAppLibrary` |
   | `onPress` | the reader presses Retry, Include or Try again on a `Slot`, or a back or forward arrow or Not now on an `Attribution` |
-  | `onSignIn` | the reader presses Sign in, Sign in again, Allow or Cancel: `{kind: "start" or "cancel", source, surfaceId, componentId}`, called inside the click so the host can open the sign-in window without the browser blocking it |
+  | `onSignIn` | the reader presses Sign in, Connect, Sign in again, Allow, Open the sign-in again, Add account or Cancel: `{kind: "start", "addAccount" or "cancel", source, surfaceId, componentId}`, called inside the click so the host can open the sign-in window without the browser blocking it; `addAccount` names the bare app id |
   | `onNavigate` | the reader clicks a `DerivedValue`, to land on the element it came from |
   | `sourceName` | a component needs a source's name: the app's, with the account's label when the app has more than one account (`Gmail · alice@example.com`), looked up by the whole source |
 
@@ -120,7 +120,7 @@ The catalog is a library; the **host** is the app that renders with it, here the
   | Context | What it answers | Read by |
   | --- | --- | --- |
   | `SlotContentContext` | "what's the content for this source?" | `Slot` |
-  | `SlotStateContext` | "where does this source's slot stand?" (`pending`, `filled`, `failed`, `collapsed`, `late` while it waits for Include, or `authority` while it needs sign-in) | `Table`, the reserved merged view, the collapsed merged view's lines |
+  | `SlotStateContext` | "where does this source's slot stand?" (`pending`, `filled`, `failed`, `collapsed`, `late` while it waits for Include, `authority` while it needs sign-in, `connect` while it needs a pasted key or token, or `more` while its account is asked for more access) | `Table`, the reserved merged view, the collapsed merged view's lines |
   | `PressStateContext` | "which presses are on their way, and can a press be made here at all?" | `Slot`, `Attribution` |
   | `FragmentHistoryContext` | "where does this app stand in its back and forward history?" | `Attribution` |
   | `SignInContext` | "is a sign-in window open for this source?" | `Slot`, `Attribution` |
@@ -250,7 +250,7 @@ The failure tile and the merged view's lines say different things depending on w
 
   `catalog` is a paint the orchestrator refused because the app painted in a catalog it isn't entitled to; retrying would be refused the same way. `load` is a catalog the client couldn't load. Both carry the catalog id, which the tile never shows. `credential` is a paint the orchestrator refused because it held a password, code or card field the app did not take out when asked; it carries the app's own page as `continueUrl`, drawn as a "Continue on <App>" link that opens it in a new tab (see [Authority surfaces](#authority-surfaces)). The sentence says "this app", never its name: the `Attribution` above already names it. The merged view's own failed slot says "Something went wrong here."
 
-- **`collapseLine(collapse, homeSignIn?)`** words a collapsed merged view: "The merged view needs Linear issues, which didn't load.", "The merged view needs at least two sources, and only GitHub answered.", or "The merged view couldn't be made." When the home app's slot needs sign-in, as `SlotStateContext` says, the first becomes "The merged view needs Linear issues, and Linear isn't signed in. Signing in to Linear brings it back.", with no press: the app's own Sign in brings the view back.
+- **`collapseLine(collapse, homeSignIn?)`** words a collapsed merged view: "The merged view needs Linear issues, which didn't load.", "The merged view needs at least two sources, and only GitHub answered.", or "The merged view couldn't be made." When the home app's slot needs sign-in, as `SlotStateContext` says, the first becomes "The merged view needs Linear issues, and Linear isn't signed in. Signing in to Linear brings it back.", with no press: the app's own Sign in brings the view back. A home app that needs a pasted key says "…and Shop B isn't connected. Connecting Shop B brings it back.", and one whose account needs more access "…and Gmail needs more access. Allowing Gmail more access brings it back."
 
 - **`collapsedLines(facts, presses, …)`** and **`landedLines(…)`** decide which lines a collapsed or a landed merged view shows. For a collapsed view they try, **in priority order**: a merge being made ("Making the merged view…"), a Retry that could bring it back running ("Waiting for Linear, then merging…"), the same Retry pressed but not yet painted, a view that couldn't be made (with Try again), a collapse with its Retry on the line ("Retry Linear", or "Retry all"), and finally the plain collapse line or the Synthesizer's decline. The first rule that matches wins. Under a decline, a late app is then offered with Include. An app whose slot needs sign-in is never on a line's Retry: Retry can't sign it in.
 
@@ -270,7 +270,7 @@ One more detail explains why `Slot` reads its props from the component's own mod
 - **A button, when it can go somewhere.** With a `target` and a host `onNavigate`, the value gets `role="button"`, takes focus, and navigates on click, Enter or Space.
 - **The full story, always, for assistive technology.** The accessible name carries the value, "needs attention" for a danger value, the contributor detail, the mark and the evidence, whatever the pointer is doing.
 
-A value that names an app (`names: "app"`) is drawn by the host's name for it. The `format` prop renders numbers, currency, and date-times in one fixed form (`en-US`, `America/New_York`, through the same `instant.ts` the client's sort uses), and `prefix` writes a `#` before a pull request number but never before the empty dash.
+A value that names an app (`names: "app"`) is drawn by the host's name for it. The `format` prop renders numbers, currency, and date-times in one form: a date-time in English (`en-US`) in the viewer's own zone, as their browser reports it, a time written with no zone read as the viewer's wall time, through the same `instant.ts` the client's sort uses ([`synthesis.md`](synthesis.md#reading-time)). The catalog's tests view from one zone, US Eastern, pinned in `vitest.setup.ts`. `prefix` writes a `#` before a pull request number but never before the empty dash.
 
 The join marks themselves come from `cellJoin` in `src/components/derived-value/join.ts`, a **union-find** over the apps linked by facts. `synthesis.md` walks through it in [Marking a join](synthesis.md#marking-a-join-union-find), and the relations it relies on are in [Checking a relation](synthesis.md#checking-a-relation).
 
@@ -284,6 +284,8 @@ A `Table` may mark each column to the app whose values it shows (`columnSources`
 | `failed` | "CI · unavailable" | the empty dash |
 | `late` (arrived after the view was made) | "CI · not included" | the cells the Synthesizer wrote, until Include adds the real ones |
 | `authority` (needs sign-in) | "Mail · not signed in" | the empty dash |
+| `connect` (needs a pasted key or token) | "Price · not connected" | the empty dash |
+| `more` (its account needs more access) | "Mail · needs more access" | the empty dash |
 
 The table passes the column states down to its rows through a small React context, so each `TableRow` knows which of its cells to hold back. The reserved merged view in the first image uses the same heading and cell geometry, so when the real table lands, nothing moves.
 
@@ -307,33 +309,40 @@ The arrows are soft accent icon buttons at the right edge of the name's row, wit
 
 ### Authority surfaces
 
-When an app needs the reader to sign in, the orchestrator paints its `Slot` with `state: "authority"` and an `authority` object, and the slot draws the **authority tile**: the consent itself, in plain words, with no address shown.
+Sign-in is explained end to end in [`authority.md`](authority.md). The shell catalog draws every surface a sign-in shows on the canvas; the orchestrator decides which, and the host opens the window.
+
+When an app needs a sign-in, the orchestrator paints its `Slot` with `state: "authority"` and an `authority` object, and the slot draws the **authority tile**: the consent itself, in plain words, with no address shown.
 
 | `authority` | The slot draws |
 | --- | --- |
-| `{cause: "signIn", scopes}` | "Sign in to Gmail to show it here.", then "Gmail will be able to" over the scopes in the card's own words (left out when there are none, as for a key or a token), a **Sign in** button, and "Opens Gmail's sign-in in a new window" |
-| `{cause: "signIn", quiet: true}` | after the full tile has shown once this session: one line, "Not signed in · Sign in". The name above it already says which app; the line's accessible name says "Gmail, not signed in" |
-| `{cause: "again"}` | the silent refresh failed: "Your Google Calendar sign-in has run out.", **Sign in again**, and the same new-window line |
+| `{cause: "signIn", scopes}` | "Sign in to Gmail to show it here.", then "Gmail will be able to" over the scopes in the card's own words (left out when there are none), a **Sign in** button, and "Opens Gmail's sign-in in a new window" |
+| `{cause: "connect", scopes}` | the app signs in with a pasted key or token: "Connect Shop B to show it here.", **Connect**, and "Opens a page to paste your Shop B key" |
+| `{cause: "more", scopes}` | the account is held, and asks only for more access before anything was painted: "Gmail needs more access to show it here.", "Gmail will be able to" over the missing scopes, **Allow**, and the new-window line |
+| `{cause: …, quiet: true}` | after the full tile has shown once this page load: one line, "Not signed in · Sign in", "Not connected · Connect" or "Needs more access · Allow". The name above it already says which app; the line's accessible name says "Gmail, not signed in" |
+| `{cause: "again"}` | the silent refresh failed: "Your Google Calendar sign-in has run out.", **Sign in again**, and the new-window line |
 | `{cause: "unsupported"}` | "Signing in to Acme Wiki isn't supported here.", "Acme Wiki asks for a kind of sign-in A2UIVerse can't do. The app stays installed.", and **Manage apps**, which raises `openAppLibrary` |
 
 The tile names the app, unlike the failure tile, because its sentence is about that app's sign-in. The name comes from the host's `sourceName`, looked up by the whole source id (`gmail.2`), so with two Gmail accounts it says which one.
 
-Sign in raises `onSignIn({kind: "start", …})`, and the host opens the sign-in window. While `SignInContext` says that window is open, the slot draws the **waiting form** in place, in the shape it already had: the tile says "Finish signing in to Gmail in the window that opened." over a spinner, "Waiting for you to finish signing in", and **Cancel**; the quiet line stays one line, the spinner, the same words and Cancel. Cancel raises `{kind: "cancel"}`, and once the host says the window is closed the tile comes back as it was. When sign-in completes, the host sends the slot's `retry`; from the moment that press is `sent` the slot draws "Loading…", as a failure tile's Retry does, and a press that never reached the orchestrator, or whose stream broke, brings the tile back with the same words a failure tile's Retry uses.
+Every press on it raises `onSignIn({kind: "start", …})`, and the host opens the sign-in window. While `SignInContext` says that window is open, the slot draws the **waiting form** in place (`components/shared/SignInWaiting.tsx`): the tile says "Finish signing in to Gmail in the window that opened." over a spinner and "Waiting for you to finish signing in", then **Open the sign-in again** and **Cancel**; for a pasted key, "Finish connecting Shop B…", "Waiting for you to finish connecting" and **Open the page again**. The quiet line stays one line: the spinner, the same words, the same two presses. The form stays until the host says the sign-in ended or was cancelled: a window can open as a tab hiding the canvas. Open the sign-in again raises `start` once more; Cancel raises `{kind: "cancel"}`, and the tile comes back as it was. When sign-in completes, the host sends the slot's `retry`; from the moment that press is `sent` the slot draws "Loading…", as a failure tile's Retry does, and a press that never reached the orchestrator, or whose stream broke, brings the tile back with the same words a failure tile's Retry uses.
 
-A **scope request** inside a fragment is painted on its `Attribution` as `escalation: {scopes}`, the missing ones only. The marker's row gets a fixed-width "Needs access" chip, beside the arrows, and a card floats over the fragment's top, at the row's right edge, no wider than the slot: "GitHub needs more access to finish this.", "It will also be able to" over the scopes, **Allow** and **Not now**, and "Allow opens GitHub's sign-in in a new window". Nothing under it moves, and the fragment stays as it was.
+A **request for more access** inside a fragment is painted on its `Attribution` as `escalation: {scopes}`, the missing ones only. The marker's row gets a fixed-width "Needs access" chip, beside the arrows, and a card floats over the fragment's top, at the row's right edge, no wider than the slot: "GitHub needs more access to finish this.", "It will also be able to" over the scopes, **Allow** and **Not now**, and "Allow opens GitHub's sign-in in a new window". Nothing under it moves, and the fragment stays as it was. The chip's overhang reaches into the gap above and below the row, so the row keeps its height when the request arrives.
 
 - The card **opens when the request arrives**. The chip, Escape, or a press anywhere outside folds it without answering; the chip stays and opens it again. Focus stays where the reader had it; the request is said through a polite `role="status"` region.
-- **Allow** raises `onSignIn({kind: "start"})`. While the window is open the card keeps the scopes and Allow and Not now give way to the spinner line and Cancel.
+- **Allow** raises `onSignIn({kind: "start"})`. While the window is open the card keeps the scopes and Allow and Not now give way to the waiting form's spinner line, Open the sign-in again and Cancel.
 - **Not now** raises `{kind: "dismiss", sources: [source]}` through `onPress`.
 - A `retry` or a `dismiss` `sent` for the source hides the chip and the card at once, before the orchestrator's repaint drops `escalation`.
+- `Attribution` reads `escalation`, like its other literal props, from its own component model, as `Slot` does: the binder's resolved props keep a dropped prop across a repaint ([upstream finding](../../_dev/a2ui-findings.md)).
 
 When an app has more than one account, the orchestrator paints the account's label as `account`, and the marker reads "Gmail · me@example.com" **at rest**, so two fragments of one app tell apart at a glance. A long label ends in an ellipsis; the whole of it is in the hover title and the accessible name.
+
+The **add-account tile** is a `Slot` holding `addAccount`, an app id, which the Planner places when the utterance asks to add an account. The orchestrator paints `accounts`, the ones already added by label, and `scopes`, what a new account lets the app do, from the vault and the card, never the model. It's laid out as the authority tile's full form: "Add another Gmail account.", "Already added: you@example.com", "Gmail will be able to" over the scopes, **Add account**, and the new-window line. Add account raises `onSignIn({kind: "addAccount"})`, its source the bare app id; while the window is open, the same waiting form.
 
 A paint the orchestrator refused for a credential field fails its slot with `cause: "credential"`. Its tile has no Retry; when the failure carries `continueUrl`, a **Continue on <App>** link opens that page in a new tab (`noopener,noreferrer`), with "Opens Shop A's website in a new tab" under it. The link is drawn only for an `https` address, or `http` on this machine.
 
 ### Shell actions
 
-The shell has exactly three actions of its own: **`openStore`**, with an optional `query`, **`openAppLibrary`**, and **`addAccount`**, naming an installed app, which opens the same sign-in the authority tile opens. Each is a catalog function, like the basic catalog's `openUrl`, that a `Button` runs through a `functionCall`. The function does nothing itself: it hands the host one plain object, `{name, surfaceId, query?}`, through `onShellAction`, and the host decides what opening the Store looks like.
+The shell has exactly two actions of its own: **`openStore`**, with an optional `query`, and **`openAppLibrary`**. Adding an account is the add-account tile, not an action ([Authority surfaces](#authority-surfaces)). Each is a catalog function, like the basic catalog's `openUrl`, that a `Button` runs through a `functionCall`. The function does nothing itself: it hands the host one plain object, `{name, surfaceId, query?}`, through `onShellAction`, and the host decides what opening the Store looks like.
 
 The **account choice** is the capability tile's sibling. A `Slot` with `chooseAccount` draws "Which Gmail account should I use?" and one press per account, labelled from `accounts`, which the orchestrator paints from the vault, never the model. A press is a `useAccount` naming the account; the slot gives way to the loading line at once, and the repaint names the account the slot now waits on, wrapped in its `Attribution` like any app's.
 
@@ -429,7 +438,7 @@ In the client, the catalog is built in `apps/client/src/catalogs/clientCatalogs.
 | **Portal root** | The element inside the Provider where floating content mounts |
 | **Failure tile** | What a failed app's slot shows: one sentence, then Retry |
 | **Capability tile** | What a `gap` slot shows: "No installed app can do this." and "Search the Store" |
-| **Authority tile** | What a slot that needs sign-in shows: what the app will be able to do, and Sign in |
+| **Authority tile** | What a slot that needs sign-in shows: what the app will be able to do, and Sign in, Connect or Allow |
 | **Escalation** | An app asking, from inside its fragment, for more than it was allowed: the "Needs access" chip and its card |
 | **Source** | An app and the account it paints under: `gmail.2`, or the bare app id when the app needs no sign-in |
 | **Press** | A reader's Retry, Include, Try again, or back or forward step |

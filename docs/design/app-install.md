@@ -65,6 +65,9 @@ Everything the platform needs is in it:
 | `description`, `skills` | routing: the Router ranks a question against them |
 | `url` | where a question to the app is sent |
 | `supportedCatalogIds`, under the A2UI extension | the catalogs the app paints in |
+| `provider` | the vendor the app fronts, at its own site: where "Continue on <App>" goes when a paint was refused |
+| `documentationUrl` | the app's help page: the link on the page where a key is pasted, and where "Continue on <App>" goes when there's no `provider` |
+| `securitySchemes`, `security` | the sign-in the app needs, checked before every dispatch ([`authority.md`](authority.md)) |
 
 The one thing the platform adds is the **app id**, `github` here: the namespace on every surface the app paints (`github:notifications-1`), and the app's name in every ref the merged view makes into its data. It's given at install: a lowercase slug, with `shell` reserved for A2UIVerse itself.
 
@@ -340,7 +343,7 @@ What only running code can show, like what the module exports and whether `CATAL
 
 #### Credential inputs are checked at the paint
 
-Install doesn't look for credential inputs in a catalog. The orchestrator checks every paint instead, and refuses one that carries a password, code or card field, whatever catalog it's in ([`orchestrator.md`](orchestrator.md#agentspool-one-handle-per-dispatch), the credential bar). It reads the options each installed catalog's components declare, which the registry keeps when it installs or loads an artifact.
+Install doesn't look for credential inputs in a catalog. The orchestrator checks every paint instead, and refuses one that carries a password, code or card field, whatever catalog it's in: the credential bar, in [`authority.md`](authority.md#credential-bar-no-password-field-on-the-canvas). Install's part is the options each installed catalog's components declare, which the registry keeps when it installs or loads an artifact, for the bar to read.
 
 **One hash per catalog id.** The table holds one artifact per catalog id. An artifact for a held id at another hash is a new version of that catalog. It's accepted only when no other installed app names that id, and refused otherwise, naming the apps that hold it: `catalog "…/github-catalog/catalogs/v0.9.1/catalog.json" is held at another hash by github`. Two apps share a catalog by handing the same artifact: same id, same hash.
 
@@ -488,7 +491,7 @@ Two browser behaviours shape the third column:
 | `shop-a` | `mocks/shop-a` | mocks | 12001 |
 | `shop-b` | `mocks/shop-b` | mocks | 12002 |
 
-`pnpm dev:all` starts the default tier's agents and the platform. It builds each app's catalog package in the checkout, packs it in memory with Stellify's programmatic API (`stellify()`, then `artifactFiles()`), and installs each app once the orchestrator and the app's own card both answer, printing the install's line. Then it uninstalls every roster app it didn't launch, and leaves alone any app the roster doesn't name. An app that fails to build, pack, come up or install is named with its reason and left out; the rest run. `--tier mocks` runs the two mock shops instead, and `--no-install` starts the agents and nothing else, for installing by hand with the command. With `A2UIVERSE_PUBLIC_URL` set, a pattern with a `{port}` slot such as a tunnel address, the launcher gives each agent its `--public-url`: where the browser reaches its sign-in pages, its card and the rest staying on `localhost`. The orchestrator knows nothing about the apps checkout: only the launcher reads it.
+`pnpm dev:all` starts the default tier's agents and the platform. It builds each app's catalog package in the checkout, packs it in memory with Stellify's programmatic API (`stellify()`, then `artifactFiles()`), and installs each app once the orchestrator and the app's own card both answer, printing the install's line. Then it uninstalls every roster app it didn't launch, and leaves alone any app the roster doesn't name. An app that fails to build, pack, come up or install is named with its reason and left out; the rest run. `--tier mocks` runs the two mock shops instead, and `--no-install` starts the agents and nothing else, for installing by hand with the command. `--agent-state <dir>` starts each agent with `--state-dir <dir>/<app>`, so every agent keeps its sign-in store in that folder instead of in its own checkout; the client's live sign-in test passes a scratch folder it clears at its start, and the checkout's stores are never written. With `A2UIVERSE_PUBLIC_URL` set, a pattern with a `{port}` slot such as a tunnel address, the launcher gives each agent its `--public-url`: where the browser reaches its sign-in pages, its card and the rest staying on `localhost`. The orchestrator knows nothing about the apps checkout: only the launcher reads it.
 
 **The registry snapshot** (`packages/registry-snapshot`) is the table and the packed artifacts of all seven catalog packages, for the tests and for replays with no orchestrator:
 

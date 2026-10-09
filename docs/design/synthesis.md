@@ -398,10 +398,10 @@ The apps paint time however they like. In the example alone: Linear writes `Sep 
 
 - A value is a time only if it has a **four-digit year and a clock** (`10:58`). Anything else, like a bare date or `11:30 – 12:15`, stays text.
 - The common shapes (ISO 8601, `2026-09-18 11:52:36 UTC`) are read directly.
-- Otherwise the value is tidied: a zone named in brackets like `(America/New_York)` is honoured, a range is cut to its start, and separators like `·` and `at` are dropped. Then the JavaScript engine reads what's left.
-- A time with no zone at all is read as wall time in **`America/New_York`**, a zone fixed in code. It's never the viewer's machine zone, because that isn't where the day happened.
+- Otherwise the value is tidied: a zone named in brackets like `(America/New_York)` is honoured, a range is cut to its start, and separators like `·` and `at` are dropped. Then the JavaScript engine reads what's left. A range's end may be a bare clock (`10:00 – 10:30`) or a full date and time: Calendar's `2026-10-09T21:00:00-04:00 – 2026-10-09T21:30:00-04:00` reads as its start, and is drawn and sorted with the others.
+- A time with no zone at all is read as wall time in **the viewer's zone**: the zone their browser reports, the same one the client sends the orchestrator with every request.
 
-The same function feeds the sort comparator and `DerivedValue`'s `datetime` format, which shows every readable time in one form, US English in `America/New_York`. So what sorts together shows together: Linear's `Sep 19, 2026, 11:00 AM UTC` appears in the table as "Sep 19, 2026, 7:00 AM".
+The same function feeds the sort comparator and `DerivedValue`'s `datetime` format, which shows every readable time in one form: English, whatever the viewer's language, in the viewer's own zone. So what sorts together shows together, and each reader sees their own clock: Linear's `Sep 19, 2026, 11:00 AM UTC` appears in the table as "Sep 19, 2026, 7:00 AM" to a reader in New York and "Sep 19, 2026, 8:00 PM" to one in Seoul. The shell catalog's tests view from one zone, US Eastern, pinned in their setup, so their expected strings hold on any machine.
 
 ### Checking a relation
 
@@ -559,13 +559,15 @@ A merged view that can't be shown collapses to **one line** where its label woul
 | ----------------------------------- | ----------------------------------------------------------------------------- | ----------- |
 | The Synthesizer declined            | its reason, in the model's words                                              | none        |
 | The home source failed              | "The merged view needs Linear issues, which didn't load."                     | Retry Linear |
-| Fewer than two apps answered        | "The merged view needs at least two sources, and only GitHub answered."       | Retry all   |
+| Fewer than two apps answered        | "The merged view needs at least two sources, and only GitHub answered.", or "…and none answered." | Retry over each app that didn't arrive: "Retry Linear", or "Retry all" |
 | The model's document failed twice, or the call failed | "The merged view couldn't be made."                         | Try again   |
+
+A too-few line is written afresh whenever an app arrives over it, through Retry or the resume after a sign-in, and the merge still can't be made. Say none answered, and GitHub comes back: the line becomes "…and only GitHub answered.", the progress line "Only GitHub answered, nothing to join", and the line's Retry covers only the apps still missing, never GitHub.
 
 Around a view that did land:
 
 - **A late app** fills its own slot for free. The view stays as it is, the late app's column reads "not included", and a line above the view offers **Include**, which runs a re-synthesis folding it in.
-- **Retry** asks one failed app again: the click inside its answer that failed, when one did, otherwise its original request.
+- **Retry** asks one app that didn't arrive again: one that failed, or one that answered in words alone, its slot collapsed to them. It sends the click inside its answer that failed, when one did, otherwise its original request.
 - **Try again** makes a merge whose model call failed, over every app that arrived.
 - A re-synthesis that fails **keeps the landed view** and says so beside the press that tries again.
 
@@ -586,7 +588,7 @@ If the client can't accept a payload at all (in practice, the two sides disagree
 | **Facts checked at accept and live** | A wrong join is refused before it's shown; a join that breaks later is marked | A `judged` link can't be checked, only marked as guessed |
 | **One mark: the value's contrast** | Partial and guessed read as one statement; only broken escalates | Guessed is carried visually by color alone; the hover detail and the accessible name carry the rest |
 | **Only the first merge is automatic** | Every later model call has a press behind it; the view never changes without a visible reason | A late app waits for Include |
-| **The runtime reads time, in a fixed zone** | Apps paint time however they like; sorting and display agree | Everyone sees times in `America/New_York` |
+| **The runtime reads time, in the viewer's zone** | Apps paint time however they like; sorting and display agree; each reader sees times on their own clock | A time an app wrote with no zone is read as the viewer's wall time, which is wrong when the app meant another zone |
 | **Wiring remembered per combination** | Stepping back to a screen already seen restores the view with no model call | The memory grows with each combination seen, for the life of the answer |
 
 Two things are deliberately left as they are. The wait between the last app's answer and the merged view appearing (**dead air**) is measured in the journal, not yet reduced; streaming the merged view in as the model writes it is on the backlog. And the Synthesizer's judgment of which entries match is taught by rules and an example but can't be enforced, so it varies from run to run.

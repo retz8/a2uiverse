@@ -157,7 +157,7 @@ The plan is checked by a validator; if it fails, the model gets one retry. The P
 
 The client can now draw the whole frame, the merged view's column headers over skeleton rows, and a waiting slot per app. **First paint never waits on any app.** In the recording it reached the client 6.05 seconds after the question was sent.
 
-**5. Each app is asked, in parallel.** For every app in the plan, the orchestrator builds an A2A message whose text is the Planner's request for that app, and hands it to the **AgentsPool**. The pool connects to the app, sends the message in that app's own conversation for this context, and streams back its events. The three requests went out within a millisecond of each other.
+**5. Each app is asked, in parallel.** For every app in the plan, the orchestrator builds an A2A message whose text is the Planner's request for that app, and hands it to the **AgentsPool**. The text ends with two sentences of the hub's own: the credential bar's advice (see [AgentsPool](#agentspool-one-handle-per-dispatch)), then the person's local time, from the clock the client sends on every message: "The person's local time is Friday 9 October 2026, 14:20 (Asia/Seoul)." An app reads "tomorrow" and "today" against it. A request re-sent for a press (a Retry, Allow's resume, an account chosen) says the press's own clock, any other the question's, and a message that carried no clock says no time. It's words in the request, so nothing A2UIVerse-specific rides the app's wire (`src/agentsPool/requestWords.ts`). The pool connects to the app, sends the message in that app's own conversation for this context, and streams back its events. The three requests went out within a millisecond of each other.
 
 **6. Every event is relayed into its slot.** As each event arrives, the orchestrator:
 
@@ -252,11 +252,11 @@ Everything the orchestrator keeps per answer is keyed by **source**: the app, an
 
 | The app | Its sources |
 | --- | --- |
-| Asks no sign-in on its card (GitHub today) | `github`, the bare app id |
+| Asks no sign-in on its card (Shop A, one of the mock stores) | `shop-a`, the bare app id |
 | Asks sign-in, two accounts signed in | `gmail.1`, `gmail.2` |
 | Asks sign-in, none signed in yet | `linear.1`, named for the account its sign-in will create |
 
-`src/accounts/accounts.ts` is the one place that turns an app into its sources and a source back into its app. `Sources.of(appId)` lists an app's sources; `appOf(source)` parses the app back out, for the few things that belong to the app: its card, its agent's URL, its entitlement and its display name. The accounts come from an `AccountStore`. Until the AuthVault lands nothing is held and no installed card asks for sign-in, so every source is still a bare app id and nothing behaves differently; the tests hand in two Gmail accounts.
+`src/accounts/accounts.ts` is the one place that turns an app into its sources and a source back into its app. `Sources.of(appId)` lists an app's sources; `appOf(source)` parses the app back out, for the few things that belong to the app: its card, its agent's URL, its entitlement and its display name. The accounts come from an `AccountStore`: the AuthVault in a running orchestrator, a list the tests hand in.
 
 Each source has **one name in words**, `Sources.name(source)`: the app's display name, with the account's label beside it when the app has more than one account, `Gmail · alice@example.com`. The shell painter puts the label on the fragment's `Attribution` (as `account`) and the whole name on its `Slot` (as `label`); the Synthesizer's prompt names each partition the same way, `from: Gmail · alice@example.com (gmail.1)`, so the merged view can tell two inboxes apart.
 
@@ -269,7 +269,16 @@ The Planner names sources too. Its turn lists each shortlisted app with its sour
     - gmail.2 · bob@example.com
 ```
 
-Its shortlist check accepts every source of each shortlisted app, and "dispatched twice" compares sources, so `gmail.1` and `gmail.2` in one plan are two dispatches. A bare app id is forgiven when only one thing can be meant: an app with one source has `github` rewritten to `github.1` everywhere the plan names it, before the checks. With two accounts a bare id is refused, naming them. A question about state gathers from every account; a command goes to the one the words name, or the one on the canvas it points at. A command that names none, for an app with two accounts, is an **account choice**: the plan's entry `{"chooseAccount": "gmail", "request": "…"}`, a slot the shell draws asking which account, one press per account by its label. The press, `useAccount` naming the account, makes that slot the account's and sends the plan's request to it, with no second plan. A click inside a fragment goes back to the source in its surface id, which is the account that painted it.
+Its shortlist check accepts every source of each shortlisted app, and "dispatched twice" compares sources, so `gmail.1` and `gmail.2` in one plan are two dispatches. A bare app id is forgiven when only one thing can be meant: an app with one source has `github` rewritten to `github.1` everywhere the plan names it, before the checks. With two accounts a bare id is refused, naming them. A question about state gathers from every account, a merged view included, each account a source of its own beside it. "My", "mine" and "I" name no account: every account is the person's, and a label only tells them apart, never a reason to leave one out. A command goes to the one the words name, or the one on the canvas it points at. A command that names none, for an app with two accounts, is an **account choice**: the plan's entry `{"chooseAccount": "gmail", "request": "…"}`, a slot the shell draws asking which account, one press per account by its label. The press, `useAccount` naming the account, makes that slot the account's and sends the plan's request to it, with no second plan. A click inside a fragment goes back to the source in its surface id, which is the account that painted it.
+
+### Sign-in: the AuthVault
+
+Sign-in is explained end to end in [`authority.md`](authority.md). The orchestrator's part in brief: `src/vault/` is the **AuthVault**, the one place a credential lives, one entry per (app, account) in an owner-only file in `STATE_DIR`, and a generic OAuth client that follows whatever server a card's scheme names. It is also the `AccountStore` above.
+
+- **Before every dispatch** the executor asks the vault for the source's **standing**, from the card and the vault alone: open, ready, or what the slot needs. A slot that needs sign-in takes its authority at first paint, the full tile once per app per page load and the quiet line after, and its agent is never called.
+- **The pool attaches the header** the card's scheme names, from the vault's `prepare`, which refreshes a token about to expire. A 401 is answered with one refresh, shared by every dispatch to that account, and one resend; a second refusal asks the slot to sign in again.
+- **An in-task `auth-required`** is never relayed: the vault reads its scheme and scope keys against the installed card, and a valid one becomes a request for more access on the fragment's attribution row, the press that asked kept for Allow.
+- **The sign-in routes** sit on `orchestratorApi` under `/auth`, reachable from the browser with no write token: the start route the window opens, the callback, the token page for a pasted key or token, the client document, and the attempt the client polls.
 
 ### Refusing a repeat
 
@@ -314,10 +323,11 @@ flowchart LR
     X -->|"errors again"| BAD["Broken turn"]
 ```
 
+- **The rule it plans by** is prose in its prompt (`src/planner/planner.md`): answer the question the person means. A question about where one kind of thing stands, or about what is waiting on the person (what needs them, what's on their plate), gathers from every app whose card shows it holds a part, named or not: a review asked of them, mail to answer, a meeting to attend, an issue assigned to them. An app not signed in yet is dispatched all the same, and the shell asks for the sign-in in its slot. A command or a lookup inside one app's object, or a question naming its app, goes to that app alone. An app whose card shows no part is left out: every app added lengthens the wait, so none joins to fill the screen.
 - **The readers** are the Planner's only view of the platform: three tools with no input. `installed_apps` lists the apps, their skills, whether each asks sign-in and its accounts by label; `this_canvas` describes the answer the question was asked from (which sources hold which slot, an account's with its label, whether a merged view stands); `recent_turns` gives one line per question up that answer's chain of parents, each source by its name. Each is a small projection of the orchestrator's own state. None ever returns an app's data. The Planner can answer "what's on my screen?" without seeing what's on it.
 - **A step budget.** Each attempt may take at most four steps (`stopWhen: stepCountIs(4)`): the three readers and the answer.
 - **One tagged block.** The model answers with its JSON inside `<layout-surface>…</layout-surface>`. `extractTaggedBlock` takes exactly one such block and tolerates text around it. The tag is the orchestrator's own and never `<a2ui-json>`, the tag the client extracts A2UI from, so model output meant for the orchestrator can never be mistaken for UI.
-- **The validator** (`src/planner/validate.ts`) checks, in order: the output schema; the tree against the shell catalog pruned to the layout's components (`Slot`, `Row`, `Column`, `Card`, `Text`, `Divider`, `DataList`, `DataListItem`, `Table`, `TableRow`, `Button`), so `Attribution` is simply not a word the Planner has; every dispatched source is on the shortlist, once, with a request; an account choice names an app with two accounts, once, not also dispatched; a merged view needs at least two sources; its columns, column marks and join name only dispatched sources; exactly one `Slot` per dispatch entry; none of the painter's own props on a `Slot`; an "Add an account" press names an app that asks sign-in; and a data model of plain values, never a formula or a ref.
+- **The validator** (`src/planner/validate.ts`) checks, in order: the output schema; the tree against the shell catalog pruned to the layout's components (`Slot`, `Row`, `Column`, `Card`, `Text`, `Divider`, `DataList`, `DataListItem`, `Table`, `TableRow`, `Button`), so `Attribution` is simply not a word the Planner has; every dispatched source is on the shortlist, once, with a request; an account choice names an app with two accounts, once, not also dispatched; a merged view needs at least two sources; its columns, column marks and join name only dispatched sources; exactly one `Slot` per dispatch entry; none of the painter's own props on a `Slot`; an add-account `Slot` names an app on the shortlist that asks sign-in, one per app; and a data model of plain values, never a formula or a ref.
 - **One retry, in the same conversation.** The failed answer and every reader result stay in the message list, and the errors are appended as one more turn: fix this, don't start over. A second failure makes the turn a **broken turn**, its final naming the findings.
 
 The title the Planner writes is clipped to 48 characters before it's sent, and a clip is logged and journaled.
@@ -372,7 +382,7 @@ The structures behind it:
 
 **Catalog entitlement** ([`app-install.md`](app-install.md#entitlement-at-the-hub) has it end to end). A dispatch reads the app from the registry once, as it starts, and keeps that snapshot to its end. The app's **entitlement** is the catalogs handed at its install plus the basic catalog. It goes out as the message's `a2uiClientCapabilities.supportedCatalogIds`, in place of whatever the client sent, so each app is told only what it may paint in. Every event coming back is checked: a `createSurface` in any other catalog is never relayed, the app is sent `tasks/cancel`, and the dispatch fails with the `catalog` cause, carrying the id.
 
-**The credential bar.** No password, code or card field is ever painted on the canvas, whatever it is for. Every event coming back is checked before it is relayed: each painted component's type, its property names, and the property values declared as fixed options by the catalog its surface was created in (the registry keeps, per installed catalog, every `enum` and `const` each component declares, and the basic catalog's beside them; the pool remembers each surface's catalog for the composition, so a later answer's update is read against it) are matched as whole words against the sdk's terms, `password`, `otp`, `card number`, `obscured` and the rest. Labels, free text and the app's data are never read, so "Forgot your password?" passes, and so does an unmasked field labelled "Password". An event with a match is never relayed. If the answer had already shown surfaces, one event stamped `refused` carries a `deleteSurface` for each, so the client takes them down; the app's task, still running, is sent `tasks/cancel`. Then the reason alone goes back to the app once, as a new message in the same conversation: "Your last answer included a field that asks for a password, a one-time code, a PIN or a card number: the TextField component's variant "obscured". Answer the same request again without it; for anything like that, offer a link to your own website instead." The request or click is not sent again. The repair runs inside the same dispatch, under the same hard cap, so the slot just loads a little longer. A repair that paints one again fails the dispatch with the `credential` cause and the app's own page, the card's `provider.url` or else its `documentationUrl` (https, or this machine). The log line names the source, the component and the matched term, never a value. Every text request the hub writes to an app (the plan's, its re-sends on Retry and resume, the account choice's) ends with the same advice: "Don't include any field that asks for a password, a one-time code, a PIN or a card number; for anything like that, offer a link to your own website instead." It lives in `src/agentsPool/credentialBar.ts`.
+**The credential bar.** No password, code or card field is ever painted on the canvas. Every event coming back is checked before it is relayed, by whole words over each painted component's type, its property names and the values its catalog declares as fixed options, never labels, free text or the app's data. A paint with a match is refused whole: never relayed, what its answer already showed taken down, the reason sent back to the app once in the same conversation, and a repair that paints one again failing the dispatch with the `credential` cause and the app's own page. Every text request the hub writes to an app ends with the same advice. [`authority.md`](authority.md#credential-bar-no-password-field-on-the-canvas) has it in full; it lives in `src/agentsPool/credentialBar.ts`.
 
 **How a dispatch ends.** `completed`; `cancelled` (aborted); or `failed` with a cause:
 - `vendor` when the app ended its task as failed, its words kept.
@@ -437,6 +447,8 @@ So however many requests pile up while the model is writing, they're answered by
 
 A merge also waits for **quiet**. `Presses` (`src/composition/presses.ts`) counts the clicks in flight per source in a `Map<source, count>`. `quiet()` loops until none of the apps the merge reads has a click in flight, waking each time one ends. A merge whose apps' data changes while the model is writing is thrown away and made again.
 
+The same count keeps **one press at a time** in a fragment. A click into an app's fragment while a click there, Allow's resume of one, or a Retry of that app is still in flight would send the same write twice, two calendar events for one Create event. So the action turn checks `presses.running(source)` and the composition's `redispatching` set, the sources a Retry is sending again, first, and refuses the click, journaled as refused, with the app sent nothing. A Retry is kept apart from the press count, so it doesn't hold the merge.
+
 ### Journal
 
 `src/journal/intentJournal.ts` writes **one JSON line per turn** to `STATE_DIR/intent-journal.jsonl`, appended when the turn closes:
@@ -445,6 +457,7 @@ A merge also waits for **quiet**. `Presses` (`src/composition/presses.ts`) count
 - `close()` writes it **once**: a second call does nothing. It also embeds the turn's **descriptor** (the question verbatim, or "open-run on surface circleci:circleci-1 in circleci" for an action) with the Router's model, for later analysis.
 - **It never throws.** A failed embedding writes `null`; a failed file write is logged. The journal must never break a turn.
 - **Registry changes get lines of their own**, `kind: "registry"`, beside the turns. Each install, install-over, uninstall and refusal gets one, with the app, the card URL, the catalogs and their artifact ids, the outcome, and a refusal's findings. There's no utterance behind one, so it has no embedding.
+- **Sign-in facts get lines of their own**, `kind: "signIn"`: a sign-in started, signed in, failed or expired, a refresh, a revocation, a request for more access (valid or not), Not now, and a request superseded by a later press, each naming the app, the source and the scope keys, never a token ([`authority.md`](authority.md#journal-and-the-secret-sweep)).
 
 Separately, every request leaves short lines on stdout (`src/log.ts`) as it runs, the trace of a turn that hasn't closed yet:
 
@@ -492,12 +505,14 @@ Set `A2UIVERSE_DEBUG_IDS=1` to see the app's own ids under the stamp while debug
 | A message id seen within the last 256 | Refused: "This request was already received." |
 | A question inside a context the session holds | Refused: "A question opens a context of its own." |
 | Anything else in a closed context | Refused: "This context is closed." |
-| A press the answer can't take (Retry on an app that didn't fail, nothing to Include) | Refused with a `failed` final saying why |
+| A press the answer can't take (Retry on an app whose answer is on screen or still coming, nothing to Include) | Refused with a `failed` final saying why |
+| A click inside an app's fragment while an earlier click there, or Allow's resume of one, still runs | Refused, and journaled as refused: "Google Calendar is still working on that. Try again once it has finished." The app is sent nothing. The client holds such a click back itself and says the same |
+| An app arrives, through Retry or the resume after a sign-in, over a merge that collapsed because too few answered, and the merge still can't be made | The collapse is painted afresh from the apps arrived: its line names who answered now, and its Retry covers only the apps still missing |
 | An unknown message or shell action | A broken turn |
 
 **One app failing never fails a turn.** Only a turn whose every dispatch was cancelled, or whose answer was closed, ends `canceled`.
 
-**Retry sends again what failed.** A click inside an app's answer that fails is kept on its slot (`failedPress` in `composition/state.ts`), as it was sent, and that slot's Retry sends it again under a fresh message id. A Retry that fails again keeps it for the next, and a click or a Retry there that completes lets it go. A slot whose turn's dispatch failed retries the plan's request. So after an app is uninstalled and installed again, Retry on a click that failed shows what the click opened, not the app's first answer.
+**Retry sends again what failed.** A click inside an app's answer that fails is kept on its slot (`failedPress` in `composition/state.ts`), as it was sent, and that slot's Retry sends it again under a fresh message id. A Retry that fails again keeps it for the next, and a click or a Retry there that completes lets it go. A slot whose turn's dispatch failed retries the plan's request, and so does a slot whose app answered in words alone, with no surface: the merged view's line offers Retry over every app that didn't arrive, and Retry takes each of them. So after an app is uninstalled and installed again, Retry on a click that failed shows what the click opened, not the app's first answer.
 
 For testing failures on purpose, `A2UIVERSE_FAULTS` makes a chosen source `delay`, `hang`, `break` mid-stream, `refuse` the connection, `fail` with a message, paint something `invalid`, or paint a `credential` field (a surface of its own in the basic catalog, an obscured `TextField`, added to the app's paint: on the plan's dispatch alone the repair goes through clean, with `"every": true` it's refused again), for example `{"github": {"fault": "delay", "seconds": 40}}`. A key is a source: `gmail.2` hits that account alone, and a bare app id like `gmail` hits every account of the app. It's for development only, and the boot log says loudly when it's on.
 
@@ -524,6 +539,8 @@ For testing failures on purpose, `A2UIVERSE_FAULTS` makes a chosen source `delay
 | **Refuse repeated message ids, 256 kept** | A resent request never repeats an app's write | A repeat older than 256 messages would run again |
 | **A heartbeat on every stream** | A proxy never cuts a turn waiting on a slow app | An empty event every 30 seconds of silence |
 | **Retry sends again the click that failed** | Retry after a failed click shows what the click opened | A slot keeps the failed click until something there completes |
+| **One press at a time into a fragment** | A second click never sends a write twice | A click made while another runs is refused, and has to be made again once it ends |
+| **The person's local time said in words in every request** | An app works out "tomorrow" on the person's own day, and nothing A2UIVerse-specific rides its wire | A click's own message carries no sentence, so an app must keep the exact times it drafted rather than work a relative date out again |
 | **Everything keyed by source, the app parsed out only where the app is meant** | Two accounts of one app are two slots, two conversations and two copies of the data with no special case | Each lookup of the card, URL or name parses the source first |
 
 ## Trying it without a model
@@ -550,9 +567,10 @@ All paths are under `apps/orchestrator/src/`.
 | Routing | `router/router.ts` |
 | The Planner | `planner/` (`planner.ts`, `validate.ts`, `prompt.ts`, `planner.md`, `examples.ts`, `readers.ts`, `platformReaders.ts`, `document.ts`, `getModel.ts`) |
 | The Synthesizer | `synthesizer/` (see [`synthesis.md`](synthesis.md)) |
+| Sign-in: the AuthVault, its routes and pages (see [`authority.md`](authority.md)) | `vault/` (`vault.ts`, `store.ts`, `schemes.ts`, `oauth.ts`, `routes.ts`, `pages.ts`) |
 | One model answer, one tag | `authoring/taggedBlock.ts` |
 | An app's sources and each source's name | `accounts/accounts.ts` |
-| Talking to apps | `agentsPool/` (`agentsPool.ts`, `relay.ts`, `contextMap.ts`, `faults.ts`, `credentialBar.ts`) |
+| Talking to apps | `agentsPool/` (`agentsPool.ts`, `relay.ts`, `contextMap.ts`, `faults.ts`, `credentialBar.ts`, `requestWords.ts`) |
 | The composition's state and store | `composition/state.ts`, `composition/compositions.ts` |
 | Painting the shell | `composition/shellPainter.ts`, `composition/synthesisPainter.ts`, `composition/constants.ts` |
 | The relay's composition half and the partition filter | `composition/fragmentRelay.ts`, `composition/partition.ts` |
