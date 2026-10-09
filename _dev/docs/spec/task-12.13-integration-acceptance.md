@@ -213,3 +213,7 @@ GitHub's question policy tied the question marker and a `ConfirmationDialog` roo
 ### 44. Gmail's surfaces test reads every account's answers
 
 With decisions 40, 41 and 43 the catalogs' test caches missed, and Gmail's surfaces test failed: it read each entry of the deterministic answers' folder as a file, and since task 12.11 that folder holds one set per fake account. The test walks the folder, rendering both accounts' answers. Replaced: a flat read of the folder, its failure hidden by the cache.
+
+### 45. A turn updating a surface painted before is sent
+
+Discard on Calendar's proposal was answered with the same card repainted settled — an update to the proposal's surface, no `createSurface` — and the canvas never changed: the kit's stream parser holds a surface's components back until it has seen that surface created in the same parse, and a delete likewise, so a turn that only updates or deletes a surface an earlier turn painted streamed nothing; the kit validated the whole response, logged it valid and completed. At the end of a valid turn the kit sends every message of the validated response whose surface and kind the stream did not send, whole and in order. A surface created in the turn streams as before. Replaced: an update or a delete to an earlier turn's surface dropped in live mode.
