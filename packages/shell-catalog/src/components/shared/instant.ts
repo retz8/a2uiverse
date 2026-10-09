@@ -15,8 +15,11 @@ const CLOCK = /\d{1,2}:\d{2}/;
 /** The named shapes the roster is known to paint; read directly, no normalising. */
 const ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:\d{2})?$/;
 const SPACE_UTC = /^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}(?::\d{2})?) UTC$/;
-/** A range's tail: ` – 11:30`, ` - 11:30 UTC`, ` to 11:30`. */
-const RANGE_TAIL = /\s(?:[–—-]|to)\s\d{1,2}:\d{2}.*$/;
+/**
+ * A range's tail: ` – 11:30`, ` - 11:30 UTC`, ` to 11:30`, or a full date and time,
+ * ` – 2026-10-09T21:30:00-04:00` (task-12.13 decision 51).
+ */
+const RANGE_TAIL = /\s(?:[–—-]|to)\s(?:\d{4}-\d{2}-\d{2}[T ])?\d{1,2}:\d{2}.*$/;
 
 /** An IANA zone the source wrote beside the time, `(America/New_York)`. */
 const NAMED_ZONE = /\(([A-Za-z_]+\/[A-Za-z_/+-]+)\)/;

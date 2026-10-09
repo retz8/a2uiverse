@@ -23,6 +23,17 @@ test('a range reads as its start; a zone-less value is US Eastern wall time, not
   expect(parseInstant('2026-01-06 10:00')).toBe(Date.UTC(2026, 0, 6, 15, 0));
 });
 
+test('a range whose end is a full date and time reads as its start (task-12.13 decision 51)', () => {
+  // Calendar's own spelling: 21:00 at UTC-4 on Oct 9 is 01:00 UTC on Oct 10.
+  expect(parseInstant('2026-10-09T21:00:00-04:00 – 2026-10-09T21:30:00-04:00')).toBe(
+    Date.UTC(2026, 9, 10, 1, 0),
+  );
+  expect(parseInstant('2026-09-06 10:00 – 2026-09-06 11:30')).toBe(Date.UTC(2026, 8, 6, 14, 0));
+  expect(formatInstant('2026-10-09T21:00:00-04:00 – 2026-10-09T21:30:00-04:00')).toBe(
+    'Oct 9, 2026, 9:00 PM',
+  );
+});
+
 test('a named zone in the value is honoured', () => {
   expect(parseInstant('2026-09-07, 15:00 – 15:30 (America/New_York)')).toBe(
     Date.UTC(2026, 8, 7, 19, 0),
