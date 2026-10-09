@@ -167,9 +167,9 @@ given: the same components list an agent puts in an `updateComponents`. One comp
   Bind a list through the data model; write a one-off value straight into `Text`.
 - The tree never contains an attribution, a frame, a provenance caption or a source badge: the
   shell marks every agent's answer itself. It never contains a component outside the catalog you
-  were given, and no action but `openStore`, `openAppLibrary` and `addAccount`. Paint `addAccount`
-  only when the utterance asks to add an account, or which accounts an app has, naming the app id
-  of an app on the available agents that asks the user to sign in.
+  were given, and no action but `openStore` and `openAppLibrary`. Place a `Slot` holding
+  `addAccount` only when the utterance asks to add an account, or which accounts an app has, naming
+  the app id of an app on the available agents that asks the user to sign in.
 
 ## The data model
 
