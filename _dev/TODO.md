@@ -194,6 +194,7 @@ UI reference: the design canvas *Authority surfaces — UI reference* (https://c
 
 ## Phase 19 — Vendor-agent model trial
 The agent kit opened to models beyond Gemini through ADK's LiteLLM wrapper, and the fast models of the day tried on the vendor agents against `gemini-3.7-flash`. An experiment: worked in a worktree of `../a2uiverse-apps/`, not on its `main`.
+Notes: `_dev/docs/phase-19-model-trial-notes.md` — the candidate models with their sources, and the A2UI-unique prompts; this phase may run that prompt testing as well.
 
 - [ ] **19.1** `[apps]` The kit on LiteLLM — a non-Gemini model reachable by name through ADK's LiteLLM wrapper, the three modes and every app's tests unchanged
 - [ ] **19.2** `[apps]` The model trial — candidate models run on the vendor agents over the recorded live prompts and measured against `gemini-3.7-flash`; which models, which measures and where the write-up lives decided here (after 19.1)
