@@ -303,7 +303,14 @@ The agents' original stores were put back after the half; the live stores are ke
 ### Departures from the plan
 
 - Decision 13's dedicated test Google account did not exist: Gmail and Calendar ran on the reader's own account, and the demo calendar was not re-seeded, since seeding deletes every event on the account's primary calendar.
-- Decision 11's comparison of each screen against its frame on the UI reference canvas is not recorded for either half.
+
+### The screens against the UI reference
+
+Decision 11's comparison was made after the run, against the canvas's thirteen frames by their words and arrangement: the shell catalog's current strings and the screens read during the live half. No frame was compared by pixels.
+
+- **The same:** T1, the first paint's full tile; L2, the slot painted in place; L3, the quiet line, the sign-in run out and sign-in not supported here; M1's reserved column, "· not signed in"; A1, each account named on its attribution and its progress step; E2 and E5, the chip, its card, Allow and Not now, "Allow opens GitHub's sign-in in a new window", the card no wider than its slot.
+- **Different, a later spec standing:** L1's waiting form adds Open the sign-in again (decision 26). A2's card written by the Planner is the shell's add-account tile (decision 27). R2's window is task-12.5 decision 2's token page — "From Shop B:", "Open Shop B's help page", "Paste your key", Connect — with no "asks for an API key" line, no Cancel and no "Kept on this computer" line, and its progress step says connecting (decision 30). R1's statement is task-12.3's one fixed statement, and a refused source's step is its name with the failure mark (task 7.14), not "couldn't be shown". M2's line is task-12.3 decision 8's, "The merged view needs …, and Linear isn't signed in. Signing in to Linear brings it back." M1's and A1's merge step reads "Joined …" (SPEC §4.3), not "Merged …".
+- **No frame:** L1's sign-in window, the agent's own page; decision 50's tile asking for more access before any paint; decision 31's end page; the account choice.
 
 ### Findings
 
