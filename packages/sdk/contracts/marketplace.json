@@ -1,0 +1,107 @@
+{
+  "name": "a2uiverse-marketplace",
+  "description": "The A2UIVerse marketplace contracts (SPEC §9.1, §9.3, §10; task 13.2), versioned with the sdk that carries them: what the marketplace serves and takes — the route layout, the index entry (the JSON Schema beside this file), the captured preview (its JSON Schema beside this file), the publisher and the token, the wire bodies — and the rules the marketplace and the registry share: the version contract within a catalog id, retirement, ahead of the Store, the smoke test. Read by the orchestrator, Stellify and the Store page without any of them importing the marketplace. The agent is described by its A2A AgentCard alone and nothing here describes one. Normative for every language projection; each projection's contract test asserts against this file.",
+  "routes": {
+    "index": "index.json",
+    "entry": "apps/<appId>/entry.json",
+    "preview": "apps/<appId>/preview.json",
+    "artifact": "artifacts/<artifactId>/<path>",
+    "search": "search",
+    "claim": "claim",
+    "publish": "publish",
+    "unpublish": "unpublish",
+    "report": "report",
+    "rule": "At the root of the marketplace's port, no prefix. The reads — index, entry, preview, artifact — are shaped like static files and take no token, so a directory of the same layout can stand in for the process and the served subtree can be part of the state directory; an artifact's files are served under its id, immutable, exactly as the registry serves them, so an install fetches only what the registry lacks; an entry answers 404 for an app not published. search takes the words in its query parameter and answers entries in rank order, each with its score; no token. claim takes a name and answers it with its token once, or findings when the name is taken; no token. publish and unpublish carry the publisher's token as a bearer token. report carries an app id and nothing about the person, and is accepted always, a nudge the marketplace verifies itself; no token. Transport is each caller's own."
+  },
+  "searchQueryParam": "q",
+  "publisher": {
+    "pattern": "^[a-z][a-z0-9-]*$",
+    "maxLength": 63,
+    "reserved": ["shell"],
+    "tokenBytes": 32,
+    "tokenPattern": "^[A-Za-z0-9_-]{43}$",
+    "tokenHash": "sha256-<base64>",
+    "rule": "A publisher is a name plus a secret, claimed once before the first publish. The name has the app id's grammar — claimed and compared, it is an id — with shell reserved. The token is 32 random bytes spelled base64url without padding, minted on claim, returned once and never recoverable; the marketplace stores its SHA-256 alone, in the artifact hashes' form. An app id and a catalog id belong to the publisher who first published them; whether a publisher is who they claim to be is not verified."
+  },
+  "ownership": {
+    "rule": "A catalog id belongs to the publisher who first publishes an artifact for it: only that publisher's apps may name it, and another publisher's app naming it is refused at publish whether or not it hands an artifact. The marketplace keeps one row per catalog id; a publish by the owner handing a new artifact for a held id replaces that row, and every app of theirs naming the id lists the new artifact. At publish a row the marketplace already holds for an id the publisher owns counts as covered."
+  },
+  "versions": {
+    "rule": "A catalog id is the catalog's only version. Within one id an artifact is a build, named by its artifact id; the descriptor's package version is information, never a rule. The card's version is the agent's version: a publish that changes the card carries a version this app id has never published, and a publish at a published version changes nothing. An app's version, as the index and a registry see it, is the card's version and each catalog id at its build."
+  },
+  "evolution": {
+    "rule": "A new artifact for a held catalog id is accepted when its schema is an additive evolution of the row's, checked where an artifact enters, at publish and at install, by a fixed structural walk of the held schema against the new one. Refused: a component, a function or a $defs entry removed; a property removed; a property becoming required; an enum value removed; type, $ref or const differing at any node; a constraint tightened — added where the held node had none, or made stricter. Accepted: a constraint loosened or dropped; description, title, default, examples, deprecated and x- keys changing freely. Any other keyword is ignored. A $ref is compared as a string, never resolved. A breaking change is a new catalog id.",
+    "refused": [
+      "a component, a function or a $defs entry removed",
+      "a property removed",
+      "a property becoming required",
+      "an enum value removed",
+      "type, $ref or const differing",
+      "a constraint tightened"
+    ],
+    "annotations": ["description", "title", "default", "examples", "deprecated", "x-"]
+  },
+  "retirement": {
+    "rule": "A publish whose card no longer names a catalog id retires that line for the app: the marketplace records the id among the entry's retired ids, and the row goes once no published app names it. Until then the publisher keeps the agent painting in every id it has published while the hub advertises it. There is no retire verb. The registry has the mirror of each half: an installed id no longer on the published card is a required update, and an artifact goes when no installed card names it."
+  },
+  "aheadOfStore": {
+    "rule": "The live card is the only copy of the card that says what the agent does now; the index's and the registry's are snapshots. An app is ahead of the Store when its live card names a catalog id its entry has no artifact for, public catalogs aside, or carries a version not among the entry's published ones; a live agent behind the index is not ahead of it. The orchestrator sees it from the card it fetched at boot and reports the app id; the marketplace treats the report as a nudge, refetches the live card itself and sets the entry's flag only when it sees the drift too, and does the same over every entry at its own boot. A malformed declaration is a finding, not drift; an unreachable live card is not drift."
+  },
+  "smokeTest": {
+    "greeting": "Hello! Show me what you can do.",
+    "rule": "At publish the marketplace sends the agent one A2A request advertising exactly the entitlement the app will have when installed — its published catalog ids plus the basic catalog — in the card's own words, its first skill's first example, else the greeting; and checks that the agent answers and reaches a terminal state, that the answer carries A2UI, that every surface's catalog id is inside the entitlement, that each tree validates against its catalog's schema, and that no credential input is painted. The paint is kept as the app's preview. An agent whose card requires sign-in is sent the request with no credential and passes when it answers HTTP 401 or an auth-required task naming a scheme its card declares; its preview is the paint the publisher's preview captured locally with their own credential, held to the same checks. No credential reaches the marketplace."
+  },
+  "entry": {
+    "schema": "marketplace-entry.schema.json"
+  },
+  "preview": {
+    "schema": "marketplace-preview.schema.json",
+    "capturedBy": ["marketplace", "publisher"]
+  },
+  "shapes": {
+    "claimRequest": {"direction": "publisher → marketplace", "required": ["publisher"]},
+    "claimResponse": {
+      "direction": "marketplace → publisher, once",
+      "required": ["publisher", "token"]
+    },
+    "publishRequest": {
+      "direction": "publisher → marketplace",
+      "required": ["appId", "cardUrl", "catalogs"],
+      "optional": ["preview"],
+      "catalog": ["files"],
+      "rule": "The registry's install body with a preview beside it: each catalog's files by path relative to the artifact's root, base64; the preview is the publisher's captured paint, for an app that needs sign-in."
+    },
+    "publishOutcome": {
+      "direction": "marketplace → publisher",
+      "required": ["ok", "appId", "version", "summary", "notes"]
+    },
+    "refusal": {"direction": "marketplace → caller", "required": ["ok", "findings"]},
+    "unpublishRequest": {"direction": "publisher → marketplace", "required": ["appId"]},
+    "reportRequest": {"direction": "orchestrator → marketplace", "required": ["appId"]},
+    "searchResponse": {
+      "direction": "marketplace → caller",
+      "required": ["results"],
+      "result": ["entry", "score"]
+    },
+    "updateState": {
+      "direction": "orchestrator → client",
+      "required": ["appId", "state", "installedVersion"],
+      "states": {
+        "unknown": {"required": [], "optional": []},
+        "not-published": {"required": [], "optional": []},
+        "ahead-of-store": {"required": ["publishedVersion", "catalogIds"], "optional": ["version"]},
+        "update-required": {"required": ["publishedVersion", "retired"], "optional": []},
+        "major-update": {
+          "required": ["publishedVersion", "newCatalogIds", "builds"],
+          "optional": []
+        },
+        "card-update": {"required": ["publishedVersion", "newScopes", "builds"], "optional": []},
+        "newer-build": {"required": ["publishedVersion", "builds"], "optional": []},
+        "up-to-date": {"required": ["publishedVersion"], "optional": []}
+      },
+      "buildMove": ["catalogId", "installed", "published"],
+      "newScopes": ["scheme", "scopes"],
+      "rule": "One state per installed app, the first match in the states' order: unknown, the marketplace unreached; not-published, no entry for the app id; ahead-of-store, from the live card; update-required, an installed catalog id not on the published card, that line retired; major-update, the published card naming a catalog id the installed card does not while every installed id is still there, suggested; card-update, the published version differing from the installed one with no catalog id added or dropped, its new scopes named; newer-build, the card version unchanged and an installed catalog at an older artifact id than the entry's, automatic for apps installed from the marketplace; up-to-date. Card changed is decided by version alone. A build riding with a card change is named under that state, never installed silently."
+    }
+  }
+}

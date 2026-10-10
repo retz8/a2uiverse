@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://a2uiverse.dev/contracts/marketplace-preview",
+  "title": "A2UIVerse marketplace preview",
+  "description": "An app's preview, served at apps/<appId>/preview.json: the smoke test's paint, stored with the published version — the A2UI messages the agent answered with, in order, for the Store page to render through the client's ordinary loader. Captured by the marketplace at publish, or by the publisher's preview for an app that needs sign-in and sent beside the artifacts; checked the same way either way. Versioned with the sdk; a change to its shape is additive.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["appId", "version", "words", "messages", "capturedBy", "capturedAt"],
+  "properties": {
+    "appId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "version": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The card version the paint was captured at."
+    },
+    "words": {
+      "type": "string",
+      "description": "The request text the agent was sent."
+    },
+    "messages": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["version"],
+        "properties": {
+          "version": {
+            "type": "string"
+          }
+        },
+        "description": "One A2UI server-to-client message, as the agent sent it."
+      },
+      "description": "The A2UI server-to-client messages in order, every kind kept — createSurface, updateComponents, updateDataModel, deleteSurface — surface ids as the agent wrote them."
+    },
+    "capturedBy": {
+      "type": "string",
+      "enum": ["marketplace", "publisher"]
+    },
+    "capturedAt": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}

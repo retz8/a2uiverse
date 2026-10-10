@@ -8,6 +8,7 @@ import {randomUUID} from 'node:crypto';
 import type {AgentCard, Message, Part} from '@a2a-js/sdk';
 import {
   BASIC_CATALOG_ID,
+  a2uiMessagesOf as a2uiMessagesIn,
   credentialInputIn,
   describeCredentialFinding,
   type CatalogOptions,
@@ -179,7 +180,7 @@ export function withCredentialField(event: VendorEvent): VendorEvent {
   };
 }
 
-/** Every A2UI message an event carries, in both wire forms: one per part, or a `messages` list. */
+/** Every A2UI message an event carries, through the sdk's one reader of both wire forms. */
 function a2uiMessagesOf(event: VendorEvent): Record<string, unknown>[] {
   const parts =
     event.kind === 'message'
@@ -187,13 +188,7 @@ function a2uiMessagesOf(event: VendorEvent): Record<string, unknown>[] {
       : event.kind === 'artifact-update'
         ? event.artifact.parts
         : (event.status.message?.parts ?? []);
-  const messages: Record<string, unknown>[] = [];
-  for (const part of parts) {
-    if (part.kind !== 'data') continue;
-    const list = Array.isArray(part.data.messages) ? part.data.messages : [part.data];
-    for (const message of list) if (isObject(message)) messages.push(message);
-  }
-  return messages;
+  return a2uiMessagesIn(parts);
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {

@@ -1,4 +1,5 @@
 import type {Part} from '@a2a-js/sdk';
+import {a2uiMessagesIn, type A2uiMessage} from '@a2uiverse/sdk';
 import type {VendorEvent} from '../agentsPool/relay.js';
 
 export interface SurfaceTouches {
@@ -45,18 +46,8 @@ export function partsOf(event: VendorEvent): Part[] {
   }
 }
 
-export type A2uiMessage = Record<string, unknown>;
-
-/** One message object per DataPart (a2ui-github agents) or the spec's array form under `messages`. */
-export function a2uiMessagesIn(data: Record<string, unknown>): A2uiMessage[] {
-  if (typeof data.version === 'string') return [data];
-  if (Array.isArray(data.messages)) {
-    return data.messages.filter(
-      (m): m is A2uiMessage => typeof m === 'object' && m !== null && typeof m.version === 'string',
-    );
-  }
-  return [];
-}
+/** One message object per DataPart (a2ui-github agents) or the spec's array form under `messages`: the sdk's reader. */
+export {a2uiMessagesIn, type A2uiMessage} from '@a2uiverse/sdk';
 
 const OPS: ReadonlyArray<[key: string, bucket: keyof SurfaceTouches]> = [
   ['createSurface', 'created'],
