@@ -7,4 +7,7 @@
 export { defineConfig } from './config.js';
 export { stellify } from './pack.js';
 export { artifactFiles, writeArtifact } from './write.js';
-export type { ArtifactDescriptor, Finding, StellifyConfig, StellifyOptions, StellifyResult, } from './types.js';
+export { preview } from './preview.js';
+export { claim, listPublished, publish, unpublish } from './verbs.js';
+export { describeNotice } from './notices.js';
+export type { ArtifactDescriptor, ClaimOptions, ClaimResult, Finding, ListOptions, ListResult, Notice, PreviewDocument, PreviewOptions, PreviewResult, PublishedApp, PublisherRecord, PublishOptions, PublishResult, StellifyConfig, StellifyOptions, StellifyResult, UnpublishOptions, UnpublishResult, } from './types.js';
