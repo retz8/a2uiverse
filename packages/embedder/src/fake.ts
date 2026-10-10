@@ -1,11 +1,11 @@
-import type {Embedder} from '../src/embedder/types.js';
+import type {Embedder} from './types.js';
 
 const DIM = 64;
 
 /**
- * Deterministic, dependency-free {@link Embedder} for tests: hashed
- * bag-of-words into a fixed-dimension unit vector, so texts sharing tokens
- * score a higher cosine than unrelated texts.
+ * Deterministic, dependency-free {@link Embedder} for tests, the orchestrator's and the
+ * marketplace's alike: hashed bag-of-words into a fixed-dimension unit vector, so texts sharing
+ * tokens score a higher cosine than unrelated texts. Records every call.
  */
 export class FakeEmbedder implements Embedder {
   calls: string[][] = [];

@@ -1,15 +1,15 @@
 /**
- * Live embedder test — downloads the real model (~23 MB on first run) into a
- * temp cache dir. Gated so `pnpm verify` and CI never fetch it:
+ * Live embedder test — downloads the real model (~23 MB on first run) into a temp cache dir.
+ * Gated so `pnpm verify` and CI never fetch it:
  *
- *   A2UIVERSE_EMBEDDER_LIVE=1 pnpm --filter @a2uiverse/orchestrator test embedder.live
+ *   A2UIVERSE_EMBEDDER_LIVE=1 pnpm --filter @a2uiverse/embedder test embedder.live
  */
 import {mkdtempSync, rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterAll, describe, expect, test} from 'vitest';
-import {cosine} from '../src/embedder/similarity.js';
-import {TransformersEmbedder} from '../src/embedder/transformersEmbedder.js';
+import {cosine} from '../src/similarity.js';
+import {TransformersEmbedder} from '../src/transformersEmbedder.js';
 
 const live = process.env.A2UIVERSE_EMBEDDER_LIVE === '1';
 const cacheDir = mkdtempSync(join(tmpdir(), 'a2uiverse-embedder-'));

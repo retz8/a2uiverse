@@ -207,7 +207,7 @@ In the recording, GitHub's answer reached the client at 6.07 s, Linear's at 6.08
 flowchart TD
     CFG["loadConfig()"] --> B["buildOrchestrator()"]
     B --> REG["Registry<br/>installed apps, the catalog table + A2UIVerse's own card"]
-    B --> EMB["Embedder"]
+    B --> EMB["Embedder<br/>@a2uiverse/embedder"]
     B --> CMP["Compositions"]
     B --> PL["Planner<br/>with its readers"]
     B --> SY["Synthesizer"]
@@ -299,12 +299,12 @@ Wrapping the function means no other code has to remember to reset the clock.
 
 ### Routing: embeddings and cosine similarity
 
-The Router (`src/router/router.ts`) answers one question: which apps are most like this question?
+The Router (`src/router/router.ts`) answers one question: which apps are most like this question? The pieces it ranks with — the embedder, the corpus document, cosine and the rank — come from the `@a2uiverse/embedder` package (`packages/embedder/`), which the marketplace's index ranks with too, so a question ranks the same against the local registry and the marketplace.
 
 - **Each app is one document.** `corpusDoc(card)` joins the card's name, description, and every skill's name, description, tags and example questions.
 - **Documents and questions become vectors.** The embedding model is `Xenova/all-MiniLM-L6-v2`, quantized to 8 bits, running in-process through transformers.js. It downloads once into `STATE_DIR/models` and then works offline. Each text becomes a vector of 384 numbers, **normalized** to length 1.
 - **Similarity is a dot product.** For two unit vectors, cosine similarity (how closely they point the same way) is just the sum of the products of their numbers, which is all `cosine()` computes.
-- **Rank, cap, keep.** Score every routable app, sort highest first, keep the first five (`A2UIVERSE_SHORTLIST_CAP`), plus any app on screen in the answer the question was asked from.
+- **Rank, cap, keep.** The package's `rank()` scores every routable app and sorts highest first; the Router keeps the first five (`A2UIVERSE_SHORTLIST_CAP`), plus any app on screen in the answer the question was asked from.
 
 The app vectors are computed at startup and at each install; each question costs one embedding and one pass over the apps, O(apps × 384). A2UIVerse's own card is ranked the same way, so "what apps do I have?" routes to the platform like any other question to any other app.
 
@@ -547,8 +547,8 @@ For testing failures on purpose, `A2UIVERSE_FAULTS` makes a chosen source `delay
 
 - **Replay the example.** Start the client (`pnpm dev:client`) and open `?beat=9`. The recording was made through the orchestrator, so the replay shows exactly the events it relayed; see the [client README](../../apps/client/README.md#working-without-a-model).
 - **Read the journal.** Every turn you run leaves a line in `apps/orchestrator/.state/intent-journal.jsonl`, with the plan, each dispatch's timings and the merge's attempts.
-- **The tests** (`pnpm --filter @a2uiverse/orchestrator test`) run the whole orchestrator with no model and no network. `test/fakeVendor.ts` is a real in-process A2A app, scripted per turn. `FakeEmbedder` hashes words into a vector, so texts sharing words rank higher. `FakePlanner` returns a fixed or derived layout, and `FakeSynthesizer` sits behind the Synthesizer's text-in, text-out seam; `HeldSynthesizer` holds each call until the test lets it go, to test what happens meanwhile.
-- **Live model tests** run only when asked: `A2UIVERSE_EMBEDDER_LIVE=1`, `A2UIVERSE_PLANNER_LIVE=1` or `A2UIVERSE_SYNTHESIZER_LIVE=1`, the last two with `GOOGLE_API_KEY`.
+- **The tests** (`pnpm --filter @a2uiverse/orchestrator test`) run the whole orchestrator with no model and no network. `test/fakeVendor.ts` is a real in-process A2A app, scripted per turn. `FakeEmbedder`, from `@a2uiverse/embedder`, hashes words into a vector, so texts sharing words rank higher. `FakePlanner` returns a fixed or derived layout, and `FakeSynthesizer` sits behind the Synthesizer's text-in, text-out seam; `HeldSynthesizer` holds each call until the test lets it go, to test what happens meanwhile.
+- **Live model tests** run only when asked: `A2UIVERSE_EMBEDDER_LIVE=1` (in `@a2uiverse/embedder`, where the model now lives), `A2UIVERSE_PLANNER_LIVE=1` or `A2UIVERSE_SYNTHESIZER_LIVE=1`, the last two with `GOOGLE_API_KEY`.
 - **The fault map** (above) plays slow and failing apps against a real run.
 
 Configuration (ports, models, deadlines) is listed in the [orchestrator README](../../apps/orchestrator/README.md).
@@ -562,8 +562,8 @@ All paths are under `apps/orchestrator/src/`.
 | Boot and wiring | `index.ts`, `app.ts`, `config.ts`, `agentCard.ts` (A2UIVerse's own card) |
 | The turn: every message, the pump, the merge in the making | `executor.ts` |
 | Classifying a message | `composition/classify.ts` |
-| Installed apps, the catalog table, install and uninstall (see [`app-install.md`](app-install.md)) | `registry/` (`registry.ts`, `gate.ts`, `store.ts`, `api.ts`, `token.ts`, `command.ts`, `cli.ts`, `corpus.ts`, `types.ts`) |
-| Embeddings | `embedder/` |
+| Installed apps, the catalog table, install and uninstall (see [`app-install.md`](app-install.md)) | `registry/` (`registry.ts`, `gate.ts`, `store.ts`, `api.ts`, `token.ts`, `command.ts`, `cli.ts`, `types.ts`) |
+| Embeddings, the corpus document, cosine and rank | `packages/embedder/` — the `@a2uiverse/embedder` package, shared with the marketplace |
 | Routing | `router/router.ts` |
 | The Planner | `planner/` (`planner.ts`, `validate.ts`, `prompt.ts`, `planner.md`, `examples.ts`, `readers.ts`, `platformReaders.ts`, `document.ts`, `getModel.ts`) |
 | The Synthesizer | `synthesizer/` (see [`synthesis.md`](synthesis.md)) |

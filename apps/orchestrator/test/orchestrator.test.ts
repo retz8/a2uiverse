@@ -12,7 +12,7 @@ import {A2UI_EXTENSION_URI_V091} from '../src/agentCard.js';
 import type {PlanRecord} from '../src/journal/types.js';
 import type {LayoutSurface} from '../src/planner/document.js';
 import type {Planner} from '../src/planner/planner.js';
-import {FakeEmbedder} from './fakeEmbedder.js';
+import {FakeEmbedder} from '@a2uiverse/embedder';
 import {FakePlanner, layoutFor, MalformedPlanner, ThrowingPlanner} from './fakePlanner.js';
 import {bestPriceView, decline, FakeSynthesizer, HeldSynthesizer} from './fakeSynthesizer.js';
 import type {SynthesisCall, SynthesisModel} from '../src/synthesizer/synthesizer.js';

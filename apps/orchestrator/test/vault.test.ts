@@ -17,7 +17,7 @@ import type {Express, Request} from 'express';
 import {clientSessionMetadata, operationData} from '@a2uiverse/sdk';
 import {buildOrchestrator, JOURNAL_FILE, type Orchestrator} from '../src/app.js';
 import {VAULT_FILE} from '../src/vault/store.js';
-import {FakeEmbedder} from './fakeEmbedder.js';
+import {FakeEmbedder} from '@a2uiverse/embedder';
 import {FakePlanner, layoutFor} from './fakePlanner.js';
 import {startFakeAuthServer, type FakeAuthServer} from './fakeAuthServer.js';
 import {

@@ -4,9 +4,8 @@ import {join} from 'node:path';
 import {afterEach, describe, expect, test} from 'vitest';
 import {ARTIFACT_DESCRIPTOR_FILE, artifactIdOf, BASIC_CATALOG_ID} from '@a2uiverse/sdk';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
-import {corpusDoc} from '../src/registry/corpus.js';
+import {corpusDoc, FakeEmbedder} from '@a2uiverse/embedder';
 import {Registry} from '../src/registry/registry.js';
-import {FakeEmbedder} from './fakeEmbedder.js';
 import {cardFor, fixtureArtifact, testRegistry, type TestRegistry} from './registryFixture.js';
 
 const GMAIL = 'https://example.com/gmail/catalog.json';

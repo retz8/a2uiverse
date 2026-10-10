@@ -13,9 +13,8 @@ import {
   HOST_INTERFACE_VERSION,
   hashArtifactFile,
 } from '@a2uiverse/sdk';
-import type {Embedder} from '../src/embedder/types.js';
+import {FakeEmbedder, type Embedder} from '@a2uiverse/embedder';
 import {Registry, type RegistryJournal} from '../src/registry/registry.js';
-import {FakeEmbedder} from './fakeEmbedder.js';
 
 export type ArtifactFiles = Map<string, Uint8Array>;
 

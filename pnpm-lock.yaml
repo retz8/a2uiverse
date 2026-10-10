@@ -145,6 +145,9 @@ importers:
       '@a2ui/web_core':
         specifier: ^0.10.6
         version: 0.10.6
+      '@a2uiverse/embedder':
+        specifier: workspace:*
+        version: link:../../packages/embedder
       '@a2uiverse/sdk':
         specifier: workspace:*
         version: link:../../packages/sdk/js
@@ -154,9 +157,6 @@ importers:
       '@ai-sdk/google':
         specifier: ^4.0.56
         version: 4.0.56(zod@4.4.3)
-      '@huggingface/transformers':
-        specifier: ^4.2.0
-        version: 4.2.0
       ai:
         specifier: ^7.0.83
         version: 7.0.83(zod@4.4.3)
@@ -185,6 +185,22 @@ importers:
       tsx:
         specifier: ^4.20.0
         version: 4.23.12
+      typescript:
+        specifier: ~5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.9
+        version: 4.1.11(@types/node@22.20.1)(jsdom@29.1.1)(vite@8.2.2(@types/node@22.20.1)(esbuild@0.28.2)(tsx@4.23.12)(yaml@2.9.1))
+
+  packages/embedder:
+    dependencies:
+      '@huggingface/transformers':
+        specifier: ^4.2.0
+        version: 4.2.0
+    devDependencies:
+      '@types/node':
+        specifier: ^22.15.0
+        version: 22.20.1
       typescript:
         specifier: ~5.9.3
         version: 5.9.3

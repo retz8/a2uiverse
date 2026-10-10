@@ -6,7 +6,7 @@ import type {Message} from '@a2a-js/sdk';
 import {IntentJournal} from '../src/journal/intentJournal.js';
 import type {DispatchRecord} from '../src/agentsPool/types.js';
 import type {PlanRecord} from '../src/journal/types.js';
-import {FakeEmbedder} from './fakeEmbedder.js';
+import {FakeEmbedder} from '@a2uiverse/embedder';
 
 let dir: string;
 beforeEach(async () => {

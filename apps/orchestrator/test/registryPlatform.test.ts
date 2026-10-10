@@ -4,7 +4,7 @@ import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 import {describe, expect, test} from 'vitest';
 import {buildAgentCard} from '../src/agentCard.js';
 import {Router} from '../src/router/router.js';
-import {FakeEmbedder} from './fakeEmbedder.js';
+import {FakeEmbedder} from '@a2uiverse/embedder';
 import {cardUrlOf, testRegistry} from './registryFixture.js';
 
 function cardFor(name: string, description: string): AgentCard {

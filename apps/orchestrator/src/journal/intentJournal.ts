@@ -2,7 +2,7 @@ import {appendFile, mkdir} from 'node:fs/promises';
 import {dirname} from 'node:path';
 import type {Message} from '@a2a-js/sdk';
 import type {DispatchOutcome, DispatchRecord} from '../agentsPool/types.js';
-import type {Embedder} from '../embedder/types.js';
+import type {Embedder} from '@a2uiverse/embedder';
 import type {RegistryJournal, RegistryJournalEntry} from '../registry/registry.js';
 import type {SignInRecord} from '../vault/vault.js';
 import {describe} from './descriptor.js';

@@ -12,7 +12,7 @@ import {compositionLine, compositionView, platformReaders} from '../src/planner/
 import {READER_NAMES, readerTools, type PlatformReaders} from '../src/planner/readers.js';
 import type {Registry} from '../src/registry/registry.js';
 import {cardUrlOf, fixtureArtifact, testRegistry} from './registryFixture.js';
-import {FakeEmbedder} from './fakeEmbedder.js';
+import {FakeEmbedder} from '@a2uiverse/embedder';
 
 function cardFor(
   id: string,

@@ -1,18 +1,18 @@
 import type {Embedder} from './types.js';
 
 /**
- * Recorded beside every vector: stored vectors carry their model version when
- * persistence arrives at M7 (SPEC decision 10).
+ * Recorded beside every stored vector: a vector carries the model that wrote it, so a model change
+ * is seen rather than ranked against.
  */
 export const EMBEDDER_MODEL_ID = 'Xenova/all-MiniLM-L6-v2';
 export const EMBEDDER_MODEL_REVISION = 'main';
 export const EMBEDDER_DTYPE = 'q8';
 
 /**
- * The production {@link Embedder}: quantized MiniLM over transformers.js,
- * in-process, no API key. The pipeline loads once, lazily, so importing this
- * module never touches onnxruntime; the first-boot model download is cached
- * under the orchestrator's state dir and later boots are offline.
+ * The production {@link Embedder}: quantized MiniLM over transformers.js, in-process, no API key.
+ * The pipeline loads once, lazily, so importing this module never touches onnxruntime; the
+ * first-boot model download is cached under the caller's directory — each process passes its own,
+ * inside its state directory — and later boots are offline.
  */
 export class TransformersEmbedder implements Embedder {
   #cacheDir: string;

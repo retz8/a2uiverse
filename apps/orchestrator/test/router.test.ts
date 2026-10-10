@@ -1,7 +1,7 @@
 import type {AgentCard} from '@a2a-js/sdk';
 import {describe, expect, test} from 'vitest';
 import {Router} from '../src/router/router.js';
-import {FakeEmbedder} from './fakeEmbedder.js';
+import {FakeEmbedder} from '@a2uiverse/embedder';
 import {cardUrlOf, testRegistry} from './registryFixture.js';
 
 function cardFor(name: string, description: string, id = name.toLowerCase()): AgentCard {

@@ -16,8 +16,7 @@ import {
   type ArtifactDescriptor,
 } from '@a2uiverse/sdk';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
-import type {Embedder} from '../embedder/types.js';
-import {corpusDoc} from './corpus.js';
+import {corpusDoc, type Embedder} from '@a2uiverse/embedder';
 import {gateArtifact, type GatedArtifact} from './gate.js';
 import {RegistryStore, type ArtifactFiles} from './store.js';
 import {SHELL_SOURCE_ID, type AppRecord, type CatalogRow, type InstalledRecord} from './types.js';
