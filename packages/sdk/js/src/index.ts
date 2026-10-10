@@ -21,4 +21,4 @@ export * from './smoke.js';
 export * from './a2ui/types.js';
 export * from './a2ui/validator.js';
 export * from './a2ui/prune.js';
-export {A2UI_SPEC_COMMIT} from './a2ui/spec.generated.js';
+export {A2UI_SPEC_COMMIT, BASIC_CATALOG_SCHEMA} from './a2ui/spec.generated.js';

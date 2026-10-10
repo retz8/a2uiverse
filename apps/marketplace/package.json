@@ -8,20 +8,28 @@
     "directory": "apps/marketplace"
   },
   "private": true,
-  "description": "The A2UIVerse marketplace: local AgentCard index, package hosting, and the publish step.",
+  "description": "The A2UIVerse marketplace: the index of published apps with its search, the artifacts hosted, the publishers and the publish step with its smoke test.",
   "type": "module",
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "lint": "eslint .",
-    "dev": "tsx src/index.ts",
-    "start": "node dist/index.js"
+    "dev": "tsx --env-file-if-exists=.env src/index.ts",
+    "start": "node dist/index.js",
+    "marketplace": "tsx --env-file-if-exists=.env src/cli.ts"
   },
   "dependencies": {
-    "@a2uiverse/sdk": "workspace:*"
+    "@a2a-js/sdk": "0.3.14",
+    "@a2uiverse/embedder": "workspace:*",
+    "@a2uiverse/sdk": "workspace:*",
+    "@a2uiverse/shell-catalog": "workspace:*",
+    "cors": "^2.8.6",
+    "express": "^5.2.1"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
     "@types/node": "^22.15.0",
     "tsx": "^4.20.0",
     "typescript": "~5.9.3",
