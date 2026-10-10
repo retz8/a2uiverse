@@ -10,6 +10,7 @@ import {
   cardUrlOf,
   parseLaunchArgs,
   planLaunch,
+  previewInstanceCommand,
   publicUrlsOf,
   resolveAgentsDir,
   tiersOf,
@@ -193,8 +194,8 @@ test('parseLaunchArgs names an unknown mode as the error that stops the launch',
   });
 });
 
-test('--publish installs from the marketplace, in deterministic and stub mode (task-13.6 decision 1)', () => {
-  for (const mode of ['deterministic', 'stub']) {
+test('--publish installs from the marketplace, in every mode (task-13.6 decision 1, task-13.7 decision 8)', () => {
+  for (const mode of ['deterministic', 'stub', 'live']) {
     const parsed = parseArgsOf(['--publish', '--mode', mode]);
     assert.equal(parsed.publish, true);
     assert.equal(parsed.install, true);
@@ -202,9 +203,25 @@ test('--publish installs from the marketplace, in deterministic and stub mode (t
   assert.equal(parseArgsOf(['--publish', '--list']).publish, true);
 });
 
-test('--publish is a usage error beside --no-install, and beside live mode (task-13.6 decisions 1 and 8)', () => {
+test('--publish is a usage error beside --no-install (task-13.6 decision 1)', () => {
   assert.match(parseArgsOf(['--publish', '--no-install']).error, /--no-install installs nothing/);
-  assert.match(parseArgsOf(['--publish', '--mode', 'live']).error, /live mode refuses/);
+});
+
+test('a preview instance is the checkout in deterministic mode on its own port and store, with no public address (task-13.7 decision 8)', () => {
+  assert.deepEqual(previewInstanceCommand(53117, '/tmp/a2uiverse-preview-github-x'), [
+    'run',
+    'python',
+    '-m',
+    'app',
+    '--mode',
+    'deterministic',
+    '--host',
+    'localhost',
+    '--port',
+    '53117',
+    '--state-dir',
+    '/tmp/a2uiverse-preview-github-x',
+  ]);
 });
 
 test('publicUrlsOf fills each agent its own port from the pattern, and is off when unset', () => {

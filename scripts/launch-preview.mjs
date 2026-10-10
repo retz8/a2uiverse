@@ -8,8 +8,11 @@
  * preview and never written, printed, or sent to the marketplace: Stellify's `preview` puts it in
  * the header the card names and sends it to the agent alone.
  *
- * The entry is refused in live mode, which is why `--publish` is (decision 8). Each sign-in leaves a
- * registered client and an issued token in the agent's own sign-in store, unrevoked.
+ * The entry is refused in live mode, so under `--mode live` each sign-in app is previewed from a
+ * deterministic instance of the same checkout instead (task-13.7 decision 8): the credential is
+ * obtained there, and the live agent and its sign-in store are untouched. Each sign-in leaves a
+ * registered client and an issued token in the store of the agent it signed in at, unrevoked — under
+ * live mode the instance's, removed with it.
  */
 import {createHash, randomBytes} from 'node:crypto';
 
@@ -34,6 +37,14 @@ export function requiresSignIn(card) {
         Object.keys(alternative).length > 0,
     )
   );
+}
+
+/**
+ * Whether the preview of an app with `card` is taken from a deterministic instance (task-13.7
+ * decision 8): under `--mode live`, for every card that requires sign-in, a key's among them.
+ */
+export function previewsFromInstance(mode, card) {
+  return mode === 'live' && requiresSignIn(card);
 }
 
 /**

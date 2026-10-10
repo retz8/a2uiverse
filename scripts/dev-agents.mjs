@@ -28,8 +28,12 @@
  * (`launch-marketplace.mjs`); then each app, once its card answers, is previewed when its card
  * requires sign-in, with a credential the launcher obtains (`launch-preview.mjs`), published, and
  * installed from the marketplace by its id alone, so every app the launch installs counts as
- * installed from the marketplace. A marketplace that does not answer, or a publisher that cannot be
- * established, installs nothing, as an orchestrator that does not answer; a refused preview,
+ * installed from the marketplace. Under `--mode live`, whose agents refuse the fake accounts, each
+ * sign-in app's preview is taken from a deterministic instance of the same checkout on a free port,
+ * its sign-in store in a temporary folder, stopped once the preview is captured; the app is then
+ * published against the live agent's card (task-13.7 decision 8). A marketplace that does not
+ * answer, or a publisher that cannot be established, installs nothing, as an orchestrator that does
+ * not answer; a refused preview,
  * publish or install leaves that app out, as any failure does. The reconcile stays the registry's:
  * the launcher never unpublishes. The notices of the dev publisher's apps this launch did not
  * publish are printed at the end.
@@ -45,7 +49,10 @@
  */
 import {spawn} from 'node:child_process';
 import {existsSync} from 'node:fs';
-import {dirname, resolve} from 'node:path';
+import {mkdtemp, rm} from 'node:fs/promises';
+import {createServer} from 'node:net';
+import {tmpdir} from 'node:os';
+import {dirname, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
 import {
@@ -65,6 +72,7 @@ import {
   appsToUninstall,
   parseLaunchArgs,
   planLaunch,
+  previewInstanceCommand,
   publicUrlsOf,
   resolveAgentsDir,
 } from './launch-plan.mjs';
@@ -79,7 +87,7 @@ import {
   readPublisherFile,
   writePublisherFile,
 } from './launch-marketplace.mjs';
-import {previewCredential, requiresSignIn} from './launch-preview.mjs';
+import {previewCredential, previewsFromInstance, requiresSignIn} from './launch-preview.mjs';
 import {
   cardAnswers,
   installBody,
@@ -111,6 +119,9 @@ const DIM = '\x1b[2m';
 const RESET = '\x1b[0m';
 
 const log = message => console.error(`dev:agents — ${message}`);
+
+/** The preview instances running under `--mode live --publish`, stopped with the launch. */
+const previewInstances = new Set();
 
 function fail(message) {
   log(message);
@@ -249,13 +260,112 @@ async function packCatalog(entry) {
 
 const indented = lines => lines.map(line => `\n    ${line}`).join('');
 
+/** A port nothing listens on now, the operating system's choice. */
+function freePort() {
+  return new Promise((r, reject) => {
+    const server = createServer();
+    server.on('error', reject);
+    server.listen(0, 'localhost', () => {
+      const {port} = server.address();
+      server.close(() => r(port));
+    });
+  });
+}
+
+/**
+ * A sign-in app's preview instance under `--mode live --publish` (task-13.7 decision 8): the same
+ * checkout in deterministic mode on a free port, its sign-in store in a temporary folder. Resolves
+ * to `{card, cardUrl, stop}` once its card answers, or `{reason}`; `stop` ends it and removes the
+ * folder.
+ */
+async function startPreviewInstance(entry) {
+  const port = await freePort();
+  const stateDir = await mkdtemp(join(tmpdir(), `a2uiverse-preview-${entry.id}-`));
+  const cardUrl = `http://localhost:${port}/.well-known/agent-card.json`;
+  const child = spawn('uv', previewInstanceCommand(port, stateDir), {
+    cwd: entry.agentDir,
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  const prefix = `${DIM}[${entry.id} preview]${RESET}`;
+  pipe(child.stdout, prefix, process.stdout);
+  pipe(child.stderr, prefix, process.stderr);
+  let exitedWith = null;
+  const exited = new Promise(r => {
+    child.on('error', err => {
+      exitedWith ??= `failed to spawn: ${err.message}`;
+      r();
+    });
+    child.on('exit', code => {
+      exitedWith ??= `exited (${code ?? 'signal'})`;
+      r();
+    });
+  });
+  const instance = {child, exited, stateDir};
+  previewInstances.add(instance);
+  const stop = async () => {
+    child.kill('SIGINT');
+    await exited;
+    previewInstances.delete(instance);
+    await rm(stateDir, {recursive: true, force: true});
+  };
+  const up = await waitFor(
+    () => cardAnswers(cardUrl),
+    CARD_TIMEOUT_MS,
+    () => exitedWith,
+  );
+  if (!up) {
+    await stop();
+    return {
+      reason: `its preview instance never came up: ${exitedWith ?? `its card did not answer on ${port} in ${CARD_TIMEOUT_MS / 1000} s`}`,
+    };
+  }
+  try {
+    const res = await fetch(cardUrl, {signal: AbortSignal.timeout(CARD_READ_TIMEOUT_MS)});
+    if (!res.ok) throw new Error(`it answered ${res.status}`);
+    return {card: await res.json(), cardUrl, stop};
+  } catch (err) {
+    await stop();
+    return {reason: `its preview instance's card could not be read: ${err.message}`};
+  }
+}
+
+/**
+ * The preview of `entry`, whose live `card` requires sign-in: its document, or the reason it was
+ * not captured. Under `--mode live` it is taken from a preview instance and the credential obtained
+ * there; otherwise from the launched agent.
+ */
+async function capturePreview(entry, card, files, {marketplace, publisher}, mode) {
+  const instance = previewsFromInstance(mode, card)
+    ? await startPreviewInstance(entry)
+    : {card, cardUrl: entry.cardUrl, stop: async () => {}};
+  if (instance.reason) return {reason: instance.reason};
+  try {
+    const {credential, reason} = await previewCredential(instance.card, entry);
+    if (reason) return {reason};
+    const result = await preview({
+      appId: entry.id,
+      cardUrl: instance.cardUrl,
+      catalogs: [files],
+      credential,
+      marketplace,
+      publisher,
+    });
+    if (result.findings.length)
+      return {reason: `its preview was refused:${indented(result.findings)}`};
+    return {document: result.document};
+  } finally {
+    await instance.stop();
+  }
+}
+
 /**
  * Preview, then publish, one app under `--publish` (task-13.6 decisions 7 to 9): the reason it is
  * left out, or null once the marketplace took it. The preview runs only for a card that requires
  * sign-in, with the credential `previewCredential` obtains, its document held in memory and handed
- * to publish; for any other card the marketplace captures the preview itself.
+ * to publish; for any other card the marketplace captures the preview itself. The publish always
+ * names the launched agent's card.
  */
-async function publishApp(entry, files, {marketplace, publisher, token}) {
+async function publishApp(entry, files, {marketplace, publisher, token}, mode) {
   let card;
   try {
     const res = await fetch(entry.cardUrl, {signal: AbortSignal.timeout(CARD_READ_TIMEOUT_MS)});
@@ -266,18 +376,15 @@ async function publishApp(entry, files, {marketplace, publisher, token}) {
   }
   let captured;
   if (requiresSignIn(card)) {
-    const {credential, reason} = await previewCredential(card, entry);
+    const {document, reason} = await capturePreview(
+      entry,
+      card,
+      files,
+      {marketplace, publisher},
+      mode,
+    );
     if (reason) return reason;
-    const result = await preview({
-      appId: entry.id,
-      cardUrl: entry.cardUrl,
-      catalogs: [files],
-      credential,
-      marketplace,
-      publisher,
-    });
-    if (result.findings.length) return `its preview was refused:${indented(result.findings)}`;
-    captured = result.document;
+    captured = document;
   }
   const answer = await publish({
     marketplace,
@@ -322,7 +429,7 @@ async function devPublisher(marketplace) {
  * left behind. `marketplace`, under `--publish`, is where each app is published before it is
  * installed from there by id (task-13.6).
  */
-async function installLaunch(selected, running, registry, agentsDir, marketplace) {
+async function installLaunch(selected, running, registry, agentsDir, marketplace, mode) {
   const failed = new Map();
   const report = (id, reason) => {
     failed.set(id, reason);
@@ -373,7 +480,7 @@ async function installLaunch(selected, running, registry, agentsDir, marketplace
       const notUp = await ready;
       if (notUp) return report(id, notUp);
       if (publisher) {
-        const notPublished = await publishApp(entry, files, publisher);
+        const notPublished = await publishApp(entry, files, publisher, mode);
         if (notPublished) return report(id, notPublished);
         published.push(id);
       }
@@ -434,9 +541,10 @@ async function installLaunch(selected, running, registry, agentsDir, marketplace
 /**
  * The listing (decision 11). Under `--publish` it also names the marketplace, the dev publisher's
  * file as it stands, and what each sign-in app's preview signs in with — read from disk, nothing
- * contacted, the exit code unchanged (task-13.6 decision 13).
+ * contacted, the exit code unchanged (task-13.6 decision 13) — and, under `--mode live`, that it
+ * does so on a deterministic instance (task-13.7 decision 8).
  */
-function printListing({dir, source}, {tier, entries, fatal}, publishing) {
+function printListing({dir, source}, {tier, entries, fatal}, publishing, mode) {
   console.log(`agents dir: ${dir} (${source})`);
   console.log(`tier: ${tier}`);
   if (publishing) {
@@ -447,7 +555,7 @@ function printListing({dir, source}, {tier, entries, fatal}, publishing) {
     e.id,
     e.folder,
     String(e.port),
-    ...(publishing ? [previewWords(e)] : []),
+    ...(publishing ? [previewWords(e, mode)] : []),
     e.ok ? 'ok' : `skipped: ${e.reason}`,
   ]);
   if (!rows.length) console.log('  no apps in this tier');
@@ -504,7 +612,7 @@ async function main() {
       marketplace,
       known: publisherState(await readPublisherFile(PUBLISHER_FILE), marketplace, PUBLISHER_FILE),
     };
-    printListing(resolved, plan, publishing);
+    printListing(resolved, plan, publishing, mode);
     process.exit(plan.fatal.length ? 2 : 0);
   }
 
@@ -535,9 +643,11 @@ async function main() {
   const stop = async () => {
     if (stopping) return;
     stopping = true;
-    for (const {child} of running.values()) child.kill('SIGINT');
+    const instances = [...previewInstances];
+    for (const {child} of [...running.values(), ...instances]) child.kill('SIGINT');
     platform?.kill('SIGINT');
-    await Promise.all([...running.values()].map(r => r.exited));
+    await Promise.all([...running.values(), ...instances].map(r => r.exited));
+    await Promise.all(instances.map(i => rm(i.stateDir, {recursive: true, force: true})));
     process.exit();
   };
   process.on('SIGINT', stop);
@@ -558,7 +668,7 @@ async function main() {
 
   const registry = new Registry(orchestrator);
   try {
-    await installLaunch(selected, running, registry, resolved.dir, marketplace);
+    await installLaunch(selected, running, registry, resolved.dir, marketplace, mode);
   } catch (err) {
     log(err instanceof CannotWrite ? err.message : `installing stopped: ${err.message}`);
   }

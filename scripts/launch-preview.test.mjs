@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {test} from 'node:test';
 
 import {ROSTER} from './dev-roster.mjs';
-import {previewCredential, requiresSignIn} from './launch-preview.mjs';
+import {previewCredential, previewsFromInstance, requiresSignIn} from './launch-preview.mjs';
 
 const OAUTH_CARD = {
   securitySchemes: {
@@ -109,6 +109,17 @@ test('a roster entry naming no preview credential, or a scheme the launcher cann
     security: [{basic: []}],
   };
   assert.match((await previewCredential(basic, {id: 'x'})).reason, /cannot sign a preview in/);
+});
+
+test('under live mode every sign-in app previews from a deterministic instance, a key app among them; otherwise none does (task-13.7 decisions 8 and 9)', () => {
+  const open = {securitySchemes: {}, security: []};
+  assert.equal(previewsFromInstance('live', OAUTH_CARD), true);
+  assert.equal(previewsFromInstance('live', KEY_CARD), true);
+  assert.equal(previewsFromInstance('live', open), false);
+  for (const mode of ['deterministic', 'stub']) {
+    assert.equal(previewsFromInstance(mode, OAUTH_CARD), false);
+    assert.equal(previewsFromInstance(mode, KEY_CARD), false);
+  }
 });
 
 test('every roster preview credential names one account or one key', () => {

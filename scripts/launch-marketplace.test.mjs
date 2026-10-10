@@ -184,7 +184,7 @@ test('the notices kept are the apps this launch did not publish (task-13.6 decis
   assert.deepEqual(noticesLeft(notices, []), notices);
 });
 
-test('the listing names the publisher file as it stands, and what each preview signs in with (task-13.6 decision 13)', () => {
+test('the listing names the publisher file as it stands, and what each preview signs in with, on a deterministic instance under live mode (task-13.6 decision 13, task-13.7 decision 8)', () => {
   assert.match(publisherLine({state: 'none'}, PATH), /not claimed yet: the launch claims it/);
   assert.match(publisherLine({state: 'held', record: HELD}, PATH), /held for this marketplace/);
   assert.match(
@@ -194,4 +194,13 @@ test('the listing names the publisher file as it stands, and what each preview s
   assert.equal(previewWords({previewAs: 'retz8'}), 'previews as retz8');
   assert.equal(previewWords({previewKey: 'k'}), 'previews with its demo key');
   assert.equal(previewWords({}), '');
+  assert.equal(
+    previewWords({previewAs: 'retz8'}, 'live'),
+    'previews as retz8 on a deterministic instance',
+  );
+  assert.equal(
+    previewWords({previewKey: 'k'}, 'live'),
+    'previews with its demo key on a deterministic instance',
+  );
+  assert.equal(previewWords({}, 'live'), '');
 });

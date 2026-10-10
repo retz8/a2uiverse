@@ -156,9 +156,13 @@ export function publisherLine(known, path) {
   }
 }
 
-/** What a roster entry's preview signs in with, for the listing: its account or its demo key. */
-export function previewWords(entry) {
-  if (entry.previewAs) return `previews as ${entry.previewAs}`;
-  if (entry.previewKey) return 'previews with its demo key';
+/**
+ * What a roster entry's preview signs in with, for the listing: its account or its demo key — under
+ * `--mode live`, on a deterministic instance (task-13.7 decision 8).
+ */
+export function previewWords(entry, mode) {
+  const on = mode === 'live' ? ' on a deterministic instance' : '';
+  if (entry.previewAs) return `previews as ${entry.previewAs}${on}`;
+  if (entry.previewKey) return `previews with its demo key${on}`;
   return '';
 }
