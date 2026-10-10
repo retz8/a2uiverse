@@ -114,7 +114,7 @@ Before an app is asked, the orchestrator's **AuthVault** checks the app's card a
 | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | [`apps/client`](apps/client/)                               | The canvas: the palette, the composed screen, the merged view, the trail. Vite and React                                                               |
 | [`apps/orchestrator`](apps/orchestrator/)                   | The hub: an A2A agent server that picks the apps, plans the screen, relays the answers and writes the merge, and keeps the apps' sign-ins in its vault |
-| [`apps/marketplace`](apps/marketplace/)                     | Where apps will be published and found. Not built yet                                                                                                  |
+| [`apps/marketplace`](apps/marketplace/)                     | Where apps are published and found: the index of published apps with its search, their catalogs hosted, and the publish step with its smoke test       |
 | [`packages/sdk`](packages/sdk/)                             | The contract between the orchestrator and the client, and generic A2UI tools                                                                           |
 | [`packages/shell-catalog`](packages/shell-catalog/)         | The shell's own A2UI catalog: the basic catalog on Radix Themes, plus the components that compose a screen                                             |
 | [`packages/stellify`](packages/stellify/)                   | Stellify, the pack tool: turns a catalog package into the catalog artifact the registry installs                                                       |
@@ -192,7 +192,7 @@ An app that does not build, does not pack, never comes up, or is refused at inst
 apps/
   client/          the canvas (Vite + React)
   orchestrator/    the A2A agent server: routing, planning, composition
-  marketplace/     where apps will be published and found
+  marketplace/     where apps are published and found: the index, the hosted catalogs, the publish step
 packages/
   sdk/             @a2uiverse/sdk: the orchestrator and client's contract
   shell-catalog/   the shell's own A2UI catalog: schema and React implementation
@@ -210,9 +210,9 @@ A pnpm workspace with Turborepo over it. Each package's README has its own comma
 
 ## Where it's headed
 
-What's built so far is the composed screen, installing an app into it from its card and its packed catalog, and signing in to apps, with several accounts each. Next comes the rest of the ecosystem around it:
+What's built so far is the composed screen, installing an app into it from its card and its packed catalog, signing in to apps, with several accounts each, and the marketplace an app is published to: its index with search, its hosted catalogs, and the publish step that tries a new app by asking it to paint its first screen. Next comes the rest of the ecosystem around it:
 
-- **A marketplace**: a local index of published apps, package hosting, a publish step, and a new app tried out by rendering its first screen.
+- **Publishing from the catalog's own checkout, and installing from the marketplace**: Stellify's claim, preview, publish and unpublish, and the orchestrator installing an app by its id alone and telling when a published update is waiting.
 - **Store and App Library pages**: trusted pages to browse and install apps, and to manage installed ones and their accounts.
 - **Installing mid-question**: a question no installed app can answer finds one in the marketplace, installs it, and carries on.
 - **One sitting, end to end**: publish a new app, discover it, install it, compose it with an existing one, and act inside it, with no code changes.

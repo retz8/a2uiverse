@@ -319,7 +319,7 @@ It's a **hash tree** one level deep, like a Merkle tree: the id is a hash over t
 
 ### Checking an app at install
 
-`apps/orchestrator/src/registry/registry.ts` (`Registry.install`) and `gate.ts`. Every check is a function of the sdk's, so the marketplace, once it's built, refuses the same things for the same reasons. Install runs every check and collects every finding before it answers. One finding refuses the whole app, and the publisher sees everything there is to fix at once.
+`apps/orchestrator/src/registry/registry.ts` (`Registry.install`) and the sdk's `gateArtifact` (`packages/sdk/js/src/gate.ts`). Every check is a function of the sdk's, and the marketplace runs the same gate at publish, so both refuse the same things for the same reasons. Install runs every check and collects every finding before it answers. One finding refuses the whole app, and the publisher sees everything there is to fix at once.
 
 **Reading the card's catalogs.** `readSupportedCatalogIds` finds the extension whose URI is A2UI v0.9.1's and reads `supportedCatalogIds` from its params. Upstream A2UI writes those params two ways: flat, as GitHub's card does, and keyed by version (`{"v0.9": {"supportedCatalogIds": […]}}`), as A2UI's own schema says. Both are read, and each is validated against the pinned schema. A malformed declaration is a finding, never read as "declares none".
 
@@ -560,9 +560,10 @@ Installing needs no model. Questions do, since the Planner is a model call, but 
 | The contracts, as JSON | `packages/sdk/contracts/catalog.json`, `packages/sdk/contracts/catalog-artifact.schema.json` |
 | The contracts' checks | `packages/sdk/js/src/catalog.ts` (host interface, coverage, entitlement, app id), `packages/sdk/js/src/artifact.ts` (descriptor, hashes, files, schema) |
 | Packing | `packages/stellify/src/` (`pack.ts`, `bundle.ts`, `layout.ts`, `stylesheets.ts`, `config.ts`, `manifest.ts`, `write.ts`, `cli.ts`) |
-| Install, uninstall, the summary | `apps/orchestrator/src/registry/registry.ts`, `gate.ts` |
+| Install, uninstall, the summary | `apps/orchestrator/src/registry/registry.ts` |
+| The static gate over one artifact, shared with the marketplace | `packages/sdk/js/src/gate.ts` |
 | Storage, routes, token, command | `apps/orchestrator/src/registry/store.ts`, `api.ts`, `token.ts`, `command.ts`, `cli.ts`, `types.ts` |
-| Routing an installed app | `apps/orchestrator/src/registry/corpus.ts`, `router/router.ts`, `planner/platformReaders.ts` |
+| Routing an installed app | `packages/embedder/src/corpus.ts`, `apps/orchestrator/src/router/router.ts`, `planner/platformReaders.ts` |
 | Entitlement at the hub | `apps/orchestrator/src/agentsPool/agentsPool.ts` |
 | A failed click kept for Retry; the `load` cause | `apps/orchestrator/src/composition/state.ts`, `executor.ts` |
 | Host interface and loading | `apps/client/src/catalogs/host.ts`, `loader.ts`, `clientCatalogs.ts`, `CatalogContext.tsx`, `apps/client/src/orchestratorApi.ts` |

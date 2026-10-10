@@ -234,7 +234,7 @@ flowchart LR
     CMD["registry install github<br/>card URL + packed catalog"] -->|POST /registry/install<br/>write token| API["api.ts"]
     API --> REG["Registry.install"]
     REG -->|fetch| CARD["GitHub's agent card"]
-    REG --> GATE["gate.ts<br/>each artifact's files"]
+    REG --> GATE["the sdk's gateArtifact<br/>each artifact's files"]
     REG --> IDX["the card embedded<br/>routable on the next turn"]
     REG --> DISK[("state directory<br/>registry.json + artifacts/&lt;id&gt;/")]
 ```
@@ -562,7 +562,7 @@ All paths are under `apps/orchestrator/src/`.
 | Boot and wiring | `index.ts`, `app.ts`, `config.ts`, `agentCard.ts` (A2UIVerse's own card) |
 | The turn: every message, the pump, the merge in the making | `executor.ts` |
 | Classifying a message | `composition/classify.ts` |
-| Installed apps, the catalog table, install and uninstall (see [`app-install.md`](app-install.md)) | `registry/` (`registry.ts`, `gate.ts`, `store.ts`, `api.ts`, `token.ts`, `command.ts`, `cli.ts`, `types.ts`) |
+| Installed apps, the catalog table, install and uninstall (see [`app-install.md`](app-install.md)) | `registry/` (`registry.ts`, `store.ts`, `api.ts`, `token.ts`, `command.ts`, `cli.ts`, `types.ts`); the static gate is the sdk's `gate.ts` |
 | Embeddings, the corpus document, cosine and rank | `packages/embedder/` — the `@a2uiverse/embedder` package, shared with the marketplace |
 | Routing | `router/router.ts` |
 | The Planner | `planner/` (`planner.ts`, `validate.ts`, `prompt.ts`, `planner.md`, `examples.ts`, `readers.ts`, `platformReaders.ts`, `document.ts`, `getModel.ts`) |

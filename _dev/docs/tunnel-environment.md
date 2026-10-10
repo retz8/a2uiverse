@@ -44,7 +44,7 @@ Platform processes are `1000x`; vendor agents are `11001+` and mock agents `1200
 |---|---|---|---|
 | client (canvas shell) | 5173 | yes | `a2uiverse` |
 | orchestrator | 10001 | yes | `a2uiverse` |
-| marketplace | 10002 (reserved) | yes | `a2uiverse` |
+| marketplace | 10002 | yes | `a2uiverse` |
 | shell-catalog fixture (dev-only) | 5174 | when in use | `a2uiverse` |
 | vendor agents | 11001–11005 | sign-in pages | `a2uiverse-apps` (table there) |
 | mock agents | 12001+ | no | `a2uiverse-apps` (`mocks/`, the launcher's mock tier) |
