@@ -31,6 +31,8 @@ A Stellify verb claims a publisher name against the running marketplace. A free 
 
 Claim, preview, publish and unpublish are built in this phase beside Phase 11's pack and check. Publish and preview take the app id, the card URL and packed artifact directories, as the registry command's install does; they never pack. The card URL is given on every publish, since the live card is what the marketplace fetches. Every verb that reaches the marketplace first prints the notices for the publisher's apps that are ahead of the Store (decision 14).
 
+*Amended by task 13.4 decision 10.* A fifth verb, `list`, prints what the publisher has published — each app's id, card version, catalogs at their builds, lines retired, and what the Store lacks when the app is ahead of it — the notices inline there.
+
 ### 5. A catalog id is owner-only, and its owner moves the one row
 
 A catalog id belongs to the publisher who first publishes an artifact for it; only that publisher's apps may name it, and another publisher's app naming it is refused at publish whether or not it hands an artifact. The marketplace keeps one row per catalog id. A publish by the owner handing a new artifact for a held id replaces that row, and every app of theirs naming the id lists the new artifact. At publish, a row the marketplace already holds for an id the publisher owns counts as covered, so a publish that changes the card alone hands nothing.
@@ -100,6 +102,6 @@ SPEC §9.1 (publish, ownership, the version contract, retirement, no tarball), �
 ## Open items
 
 - `[apps]`: whether the agent kit mints a credential for its own publisher's preview in live mode.
-- Whether Stellify gains a verb listing what a publisher has published, or the notices on every contact are enough — the task's decision.
+- Whether Stellify gains a verb listing what a publisher has published, or the notices on every contact are enough — decided in task 13.4 (decision 10): `list` is added.
 - Phase 14: the App Library showing each app's update state — a newer build quietly, a major update as a suggestion, a card update with its new scopes or catalogs named, required, ahead of the Store, no longer published; whether the Planner's installed-apps reader sees the update state.
 - Phase 15: the pre-dispatch check for an app ahead of the Store — the live card's ids sharing nothing with the entitlement, the slot taking a tile with no vendor call — and the update it offers once the Store has it; the forced update for an installed line the agent retired; the hub advertising an app's old ids beside its new one after an install-over.

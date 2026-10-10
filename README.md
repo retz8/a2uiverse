@@ -117,7 +117,7 @@ Before an app is asked, the orchestrator's **AuthVault** checks the app's card a
 | [`apps/marketplace`](apps/marketplace/)                     | Where apps are published and found: the index of published apps with its search, their catalogs hosted, and the publish step with its smoke test       |
 | [`packages/sdk`](packages/sdk/)                             | The contract between the orchestrator and the client, and generic A2UI tools                                                                           |
 | [`packages/shell-catalog`](packages/shell-catalog/)         | The shell's own A2UI catalog: the basic catalog on Radix Themes, plus the components that compose a screen                                             |
-| [`packages/stellify`](packages/stellify/)                   | Stellify, the pack tool: turns a catalog package into the catalog artifact the registry installs                                                       |
+| [`packages/stellify`](packages/stellify/)                   | Stellify, the pack and publish tool: turns a catalog package into the catalog artifact the registry installs, and takes an app to the marketplace      |
 | [`packages/registry-snapshot`](packages/registry-snapshot/) | The catalog table and the seven catalog packages, packed, at one pinned commit, for the tests and replays                                              |
 | [`a2uiverse-apps`](https://github.com/retz8/a2uiverse-apps) | The apps, their agent kit and the scaffolder, in their own repo                                                                                        |
 
@@ -196,7 +196,7 @@ apps/
 packages/
   sdk/             @a2uiverse/sdk: the orchestrator and client's contract
   shell-catalog/   the shell's own A2UI catalog: schema and React implementation
-  stellify/        the pack tool
+  stellify/        the pack and publish tool
   registry-snapshot/ the registry snapshot the tests and replays load
 scripts/           the dev:agents launcher and its roster, the secret sweep
 docs/
@@ -210,9 +210,9 @@ A pnpm workspace with Turborepo over it. Each package's README has its own comma
 
 ## Where it's headed
 
-What's built so far is the composed screen, installing an app into it from its card and its packed catalog, signing in to apps, with several accounts each, and the marketplace an app is published to: its index with search, its hosted catalogs, and the publish step that tries a new app by asking it to paint its first screen. Next comes the rest of the ecosystem around it:
+What's built so far is the composed screen, installing an app into it from its card and its packed catalog, signing in to apps, with several accounts each, and the marketplace an app is published to: its index with search, its hosted catalogs, the publish step that tries a new app by asking it to paint its first screen, and Stellify taking an app there from the catalog's own checkout. Next comes the rest of the ecosystem around it:
 
-- **Publishing from the catalog's own checkout, and installing from the marketplace**: Stellify's claim, preview, publish and unpublish, and the orchestrator installing an app by its id alone and telling when a published update is waiting.
+- **Installing from the marketplace**: the orchestrator installing an app by its id alone and telling when a published update is waiting.
 - **Store and App Library pages**: trusted pages to browse and install apps, and to manage installed ones and their accounts.
 - **Installing mid-question**: a question no installed app can answer finds one in the marketplace, installs it, and carries on.
 - **One sitting, end to end**: publish a new app, discover it, install it, compose it with an existing one, and act inside it, with no code changes.
