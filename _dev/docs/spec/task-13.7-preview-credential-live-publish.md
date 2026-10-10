@@ -40,6 +40,8 @@ The kit's app config gains a required `version`, which the card carries in place
 
 One pin across every catalog package and the scaffolder's two templates, moved to `18a1b9e`, Stellify 0.2.0. Every roster catalog packs to a new artifact id (task 13.4 decision 15).
 
+*Amended.* The pin moved to `b061a17`, Stellify 0.2.0, whose paint check judges each surface's tree as it stands when the agent's answer ends.
+
 ### 7. Preview run on each app
 
 By hand, from each roster app's checkout: the catalog packed, the agent in deterministic mode, the credential — the kit's command for an app on the kit's sign-in, Shop B's demo key, none for Shop A — and `stellify preview`; every app's paint passes. No package scripts and no committed preview per app.
