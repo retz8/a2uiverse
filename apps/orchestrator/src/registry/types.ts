@@ -7,9 +7,15 @@ import type {AgentCard} from '@a2a-js/sdk';
 export const SHELL_SOURCE_ID = 'shell';
 
 /**
+ * Where an app's last install came by (task-13.5 decision 3): resolved through the marketplace by
+ * its id, or handed from a local pack. Only an app from the marketplace is moved by its index.
+ */
+export type InstallSource = 'marketplace' | 'local';
+
+/**
  * An installed app as the registry persists it (task-11.4 decision 1): the card fetched at install,
- * verbatim, the URL it came from, the catalogs handed — catalog id to artifact id — and the
- * entitlement they make, fixed at install.
+ * verbatim, the URL it came from, the catalogs handed — catalog id to artifact id — the
+ * entitlement they make, fixed at install, and where the install came by (task-13.5 decision 3).
  */
 export interface InstalledRecord {
   id: string;
@@ -18,6 +24,7 @@ export interface InstalledRecord {
   catalogs: Record<string, string>;
   entitlement: string[];
   installedAt: string;
+  source: InstallSource;
 }
 
 /**

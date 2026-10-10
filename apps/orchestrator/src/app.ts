@@ -19,8 +19,10 @@ import {platformReaders} from './planner/platformReaders.js';
 import {plannerSystemPrompt, readPlannerFiles} from './planner/prompt.js';
 import type {PlatformReaders} from './planner/readers.js';
 import {registryRoutes, REGISTRY_ROUTE_PREFIX} from './registry/api.js';
+import {MarketplaceClient} from './registry/marketplace.js';
 import {Registry, type ResolveCard} from './registry/registry.js';
 import {issueWriteToken} from './registry/token.js';
+import {UpdateCheck, type CheckOutcome} from './registry/updates.js';
 import {Router} from './router/router.js';
 import {
   AUTH_ROUTE_PREFIX,
@@ -45,10 +47,16 @@ export interface Orchestrator {
   pool: AgentsPool;
   journal: IntentJournal;
   vault: AuthVault;
+  /** The update check `updates.json` and the boot run (task-13.5 decision 8). */
+  updates: UpdateCheck;
+  /** What the boot's check did, for the boot log; set by `init()`. */
+  bootCheck?: CheckOutcome;
   /**
    * Boot step, run before listen: the persisted registry read and verified — a damaged one throws
    * (task-11.4 decision 9) — a fresh write token issued, every installed card fetched and the
-   * Router corpus built.
+   * Router corpus built, then the update check run once, so a newer build of a marketplace app
+   * lands before any client preloads (task-13.5 decision 8). A marketplace that cannot be reached
+   * never fails the boot.
    */
   init(): Promise<void>;
 }
@@ -84,13 +92,19 @@ export function buildOrchestrator({
   // One platform card, two readers (phase-6 decision 1): the client fetches it; the Registry
   // indexes it.
   const resolveCard = overrides?.resolveCard ?? defaultResolveCard();
+  const marketplace = new MarketplaceClient({
+    url: config.marketplaceUrl,
+    timeoutMs: config.marketplaceTimeoutMs,
+  });
   const registry = new Registry({
     stateDir: config.stateDir,
     resolveCard,
     embedder,
     journal,
     platformCard: card,
+    marketplace,
   });
+  const updates = new UpdateCheck({registry, marketplace});
   let writeToken: string | undefined;
   // The vault (task 12.5): the accounts seam, the card checked before dispatch, the header on the
   // wire, and the sign-ins on `orchestratorApi`. Its client is this orchestrator at its public
@@ -150,7 +164,7 @@ export function buildOrchestrator({
       credentials: true,
     }),
   );
-  app.use(REGISTRY_ROUTE_PREFIX, registryRoutes({registry, writeToken: () => writeToken}));
+  app.use(REGISTRY_ROUTE_PREFIX, registryRoutes({registry, writeToken: () => writeToken, updates}));
   app.use(
     AUTH_ROUTE_PREFIX,
     authRoutes({
@@ -183,19 +197,22 @@ export function buildOrchestrator({
   app.use(`/${AGENT_CARD_PATH}`, agentCardHandler({agentCardProvider: requestHandler}));
   app.use('/', jsonRpcHandler({requestHandler, userBuilder: UserBuilder.noAuthentication}));
 
-  return {
+  const orchestrator: Orchestrator = {
     app,
     registry,
     pool,
     journal,
     vault,
+    updates,
     init: async () => {
       await registry.load();
       await vaultStore.load();
       writeToken = await issueWriteToken(config.stateDir);
       await registry.refreshCards();
+      orchestrator.bootCheck = await updates.check();
     },
   };
+  return orchestrator;
 }
 
 /**

@@ -64,7 +64,11 @@ export class RegistryStore {
     }
     const problem = recordFileProblem(parsed);
     if (problem) throw new Error(`${this.recordPath}: ${problem}`);
-    const records = (parsed as {apps: InstalledRecord[]}).apps;
+    // A record written before the source existed came from a local pack (task-13.5 decision 3).
+    const records = (parsed as {apps: InstalledRecord[]}).apps.map(record => ({
+      ...record,
+      source: record.source ?? 'local',
+    }));
     const descriptors = new Map<string, ArtifactDescriptor>();
     for (const record of records) {
       for (const id of Object.values(record.catalogs)) {
@@ -182,6 +186,9 @@ function recordFileProblem(parsed: unknown): string | undefined {
       return `${at}.entitlement: not a list of catalog ids`;
     }
     if (typeof a.installedAt !== 'string') return `${at}.installedAt: not a string`;
+    if (a.source !== undefined && a.source !== 'marketplace' && a.source !== 'local') {
+      return `${at}.source: not "marketplace" or "local"`;
+    }
   }
   return undefined;
 }

@@ -107,3 +107,22 @@ describe('loadConfig — deadlines and the fault map (task 8.3)', () => {
     expect(() => loadConfig({A2UIVERSE_FAULTS: '{'})).toThrow('A2UIVERSE_FAULTS: invalid JSON');
   });
 });
+
+describe('loadConfig — the marketplace (task-13.5 decisions 1, 11)', () => {
+  test('unset, the marketplace is at localhost:10002 and every contact with it has 10 s', () => {
+    const config = loadConfig({});
+    expect(config.marketplaceUrl).toBe('http://localhost:10002');
+    expect(config.marketplaceTimeoutMs).toBe(10_000);
+  });
+  test('reads MARKETPLACE_URL and A2UIVERSE_MARKETPLACE_TIMEOUT_SECONDS; nonsense names the variable', () => {
+    const config = loadConfig({
+      MARKETPLACE_URL: 'http://127.0.0.1:4343/',
+      A2UIVERSE_MARKETPLACE_TIMEOUT_SECONDS: '2.5',
+    });
+    expect(config.marketplaceUrl).toBe('http://127.0.0.1:4343');
+    expect(config.marketplaceTimeoutMs).toBe(2500);
+    expect(() => loadConfig({A2UIVERSE_MARKETPLACE_TIMEOUT_SECONDS: 'soon'})).toThrow(
+      'A2UIVERSE_MARKETPLACE_TIMEOUT_SECONDS',
+    );
+  });
+});

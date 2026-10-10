@@ -4,15 +4,19 @@
  * launcher, the Store page and the store loop call.
  *
  *   registry install <app-id> <card-url> [<artifact-dir> ...]   install, or install-over a held id
+ *   registry install <app-id>                                   from the marketplace, by id alone
  *   registry uninstall <app-id>
  *   registry list
+ *   registry updates                                            each installed app's update state
  *
- * An artifact directory is what `stellify pack` wrote. The orchestrator is reached at
+ * An artifact directory is what `stellify pack` wrote. An install by id alone and the update
+ * states are task 13.5's (decisions 2, 12). The orchestrator is reached at
  * `ORCHESTRATOR_URL` (default `http://localhost:$PORT`, port 10001), its write token read from the
  * state directory (`STATE_DIR`, default `.state` in the orchestrator package). Relative paths are
  * the caller's, not the package's.
  */
 import {resolve} from 'node:path';
+import {readUpdateState, type BuildMove, type UpdateState} from '@a2uiverse/sdk';
 import {REGISTRY_ROUTE_PREFIX} from './api.js';
 import {readTree} from './store.js';
 import {readWriteToken} from './token.js';
@@ -20,8 +24,10 @@ import type {InstalledRecord} from './types.js';
 
 export const USAGE = [
   'usage: registry install <app-id> <card-url> [<artifact-dir> ...]',
+  '       registry install <app-id>                  (from the marketplace)',
   '       registry uninstall <app-id>',
   '       registry list',
+  '       registry updates',
 ];
 
 export interface CommandIo {
@@ -40,6 +46,14 @@ export async function runRegistryCommand(argv: readonly string[], io: CommandIo)
   const base = `${(io.env.ORCHESTRATOR_URL ?? `http://localhost:${io.env.PORT ?? 10001}`).replace(/\/$/, '')}${REGISTRY_ROUTE_PREFIX}`;
   const stateDir = resolve(io.packageDir, io.env.STATE_DIR ?? '.state');
   try {
+    if (verb === 'install' && rest.length === 1) {
+      const [appId] = rest;
+      const body = await write(base, stateDir, 'install', {appId});
+      if (!body.ok) return refused(io, appId, body.findings);
+      io.out(body.summary ?? `installed ${appId}`);
+      for (const note of body.notes ?? []) io.out(`note: ${note}`);
+      return 0;
+    }
     if (verb === 'install' && rest.length >= 2) {
       const [appId, cardUrl, ...dirs] = rest;
       const catalogs = [];
@@ -77,8 +91,17 @@ export async function runRegistryCommand(argv: readonly string[], io: CommandIo)
       for (const app of (await response.json()) as InstalledRecord[]) {
         const catalogs = Object.keys(app.catalogs);
         io.out(
-          `${app.id}  ${app.cardUrl}  ${catalogs.length > 0 ? catalogs.join(', ') : 'basic catalog'}`,
+          `${app.id}  ${app.cardUrl}  ${catalogs.length > 0 ? catalogs.join(', ') : 'basic catalog'}  ${app.source}`,
         );
+      }
+      return 0;
+    }
+    if (verb === 'updates' && rest.length === 0) {
+      const response = await fetch(`${base}/updates.json`);
+      if (!response.ok) throw new Error(`the orchestrator answered ${response.status}`);
+      for (const raw of (await response.json()) as unknown[]) {
+        const state = readUpdateState(raw);
+        io.out(state ? describeUpdate(state) : `?  ${JSON.stringify(raw)}`);
       }
       return 0;
     }
@@ -124,6 +147,80 @@ async function write(
     );
   }
   return (await response.json()) as WriteAnswer;
+}
+
+const STATE_WORDS: Record<UpdateState['state'], string> = {
+  unknown: 'unknown',
+  'not-published': 'not published',
+  'ahead-of-store': 'ahead of the Store',
+  'update-required': 'update required',
+  'major-update': 'major update',
+  'card-update': 'card update',
+  'newer-build': 'newer build',
+  'up-to-date': 'up to date',
+};
+
+/** An artifact id as a line names it: its digest's first characters. */
+const shortId = (id: string) => `${id.slice(0, 'sha256-'.length + 8)}…`;
+
+const buildWords = (builds: readonly BuildMove[]) =>
+  builds.map(b => `catalog ${b.catalogId} ${shortId(b.installed)} → ${shortId(b.published)}`);
+
+/**
+ * One installed app's update state in words (task-13.5 decision 12): the id, the state, the
+ * installed and published versions, and the state's details — the builds that moved, the new
+ * catalog ids, the retired ids, the new scopes, or what the Store lacks.
+ */
+export function describeUpdate(state: UpdateState): string {
+  const published = 'publishedVersion' in state ? state.publishedVersion : undefined;
+  const versions =
+    published === undefined || published === state.installedVersion
+      ? state.installedVersion
+      : `${state.installedVersion} → ${published}`;
+  const details: string[] = [];
+  switch (state.state) {
+    case 'ahead-of-store': {
+      const lacks: string[] = [];
+      if (state.catalogIds.length > 0) {
+        lacks.push(
+          `catalog${state.catalogIds.length > 1 ? 's' : ''} ${state.catalogIds.join(', ')}`,
+        );
+      }
+      if (state.version !== undefined) lacks.push(`version ${state.version}`);
+      details.push(`the Store lacks ${lacks.join(' and ')}`);
+      break;
+    }
+    case 'update-required':
+      details.push(...state.retired.map(id => `retired ${id}`));
+      break;
+    case 'major-update':
+      details.push(
+        ...state.newCatalogIds.map(id => `new catalog ${id}`),
+        ...buildWords(state.builds),
+      );
+      break;
+    case 'card-update':
+      details.push(
+        ...(state.newScopes.length === 0
+          ? ['nothing new asked']
+          : state.newScopes.map(s =>
+              s.scopes.length > 0 ? `asks ${s.scheme}: ${s.scopes.join(', ')}` : `asks ${s.scheme}`,
+            )),
+        ...buildWords(state.builds),
+      );
+      break;
+    case 'newer-build':
+      details.push(...buildWords(state.builds));
+      break;
+    default:
+      break;
+  }
+  return [
+    state.appId,
+    STATE_WORDS[state.state],
+    versions,
+    ...(details.length > 0 ? [details.join('; ')] : []),
+  ].join('  ');
 }
 
 function refused(io: CommandIo, appId: string, findings: string[]): number {

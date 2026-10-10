@@ -28,12 +28,15 @@ flowchart LR
 
 ### Knows what's installed
 
-An app is an A2A agent, installed from its agent card. The orchestrator keeps the registry of installed apps in its state directory: each app's card, the URL it came from, and the catalogs it paints in. It's the registry's only writer, through three operations over HTTP: install, uninstall, and install over an app already installed.
+An app is an A2A agent, installed from its agent card. The orchestrator keeps the registry of installed apps in its state directory: each app's card, the URL it came from, the catalogs it paints in, and where the install came by — a local pack, or the marketplace. It's the registry's only writer, through three operations over HTTP: install, uninstall, and install over an app already installed.
 
 - **Install fetches the card** and stores it as written. Every catalog the card names, the standard basic catalog aside, comes with it as a catalog artifact, which is what Stellify packs. Install checks everything the files can prove, and refuses the whole app on any failure, listing every reason at once. It answers with one line saying what it changed.
+- **Install by id alone goes through the marketplace.** The orchestrator reads the app's entry there, fetches the card from the URL the entry names, and fetches only the artifact files it doesn't already hold. When the live card declares a catalog or a version the Store has no build for yet, the install is refused with words that say the Store is behind the app — never that the app is broken — and the marketplace is told.
+- **A catalog id is held at one build.** An install handing a new build for a catalog other installed apps render in moves the row, and those apps follow it, named in the install's line. The new build must be an additive evolution of the one they render in — nothing removed, no type changed — else the install is refused. An app alone on its row moves it freely.
 - **An install is live at once.** The next question can route to the app, with no restart.
 - **A fresh state directory is an empty registry**, and that's a valid platform. Only A2UIVerse's own card is there to answer.
 - **Installs persist.** At every startup the orchestrator reads the registry, checks each artifact's files against their hashes, and fetches each card again. A damaged registry stops the startup with the file and the problem named.
+- **It knows what's new.** At startup and whenever asked, it reads each installed app's marketplace entry and works out one update state per app: up to date; a newer build; a major update, suggested; a card update, with what it newly asks; an update required, the installed line retired; ahead of the Store; no longer published; unknown, the marketplace unreached. A newer build of an app installed from the marketplace installs itself at once, journaled; an app from a local pack is never moved. Every other update is the person's act.
 
 ### Picks the apps
 
@@ -156,31 +159,45 @@ It listens on port **10001** and starts from whatever its registry holds, nothin
 
 ```bash
 pnpm --filter @a2uiverse/orchestrator registry install github http://localhost:11001/.well-known/agent-card.json ../a2uiverse-apps/github/github-catalog/dist/artifact
+pnpm --filter @a2uiverse/orchestrator registry install github       # from the marketplace, by id alone
 pnpm --filter @a2uiverse/orchestrator registry uninstall github
 pnpm --filter @a2uiverse/orchestrator registry list
+pnpm --filter @a2uiverse/orchestrator registry updates
 ```
 
-Install takes the app's id, its card's full URL, and a directory for each catalog its card names other than the basic catalog, as `stellify pack` wrote it. An app on the basic catalog needs none. Installing an id that's already installed replaces it. The command prints what the install changed, in one line:
+Install takes the app's id, its card's full URL, and a directory for each catalog its card names other than the basic catalog, as `stellify pack` wrote it. An app on the basic catalog needs none. With the id alone, the app is installed from the marketplace: its entry read, its card fetched from the URL the entry names, its artifacts fetched. Installing an id that's already installed replaces it. The command prints what the install changed, in one line:
 
 ```text
 installed github · card 0.1.0 · catalog sha256-muNbmR5m…
 updated github · card 0.1.0 · catalog sha256-muNbmR5m… → sha256-bYxc_jOA…
 reinstalled github · nothing changed · card 0.1.0 · catalog sha256-muNbmR5m…
+installed inbox · card 0.1.0 · catalog sha256-muNbmR5m… → sha256-bYxc_jOA… · gmail followed
 ```
 
 A refusal prints every finding, one per line, and exits 1. The command reads the write token the orchestrator puts in its state directory at startup, so it only works against an orchestrator running on the same state directory.
 
-**Agent cards are fetched at startup**: an app whose agent is down then stays installed but can't be routed to until the orchestrator restarts or the app is installed again. It names any app it couldn't reach, so if nothing gets routed, read that line first.
+`list` prints each installed app with its card URL, its catalogs and where it came from, `marketplace` or `local`. `updates` runs the update check and prints one line per installed app — the id, the state, the installed and published versions, and the state's details in words:
+
+```text
+gmail  newer build  0.1.0  catalog https://…/gmail/catalog.json sha256-muNbmR5m… → sha256-bYxc_jOA…
+github  major update  0.1.0 → 1.0.0  new catalog https://…/github/v2/catalog.json
+linear  card update  0.1.0 → 0.2.0  asks linear: issues:write
+circleci  ahead of the Store  0.1.0  the Store lacks catalog https://…/circleci/v2/catalog.json
+shop-a  not published  0.0.0
+```
+
+**Agent cards are fetched at startup**: an app whose agent is down then stays installed but can't be routed to until the orchestrator restarts or the app is installed again. It names any app it couldn't reach, so if nothing gets routed, read that line first. **The update check runs at startup too**, before the orchestrator listens: a newer build of a marketplace app lands before any client preloads, and the boot log says what moved. A marketplace that can't be reached is one line, every state unknown until the next check, never a failed boot.
 
 The registry's routes, all under `/registry`:
 
-| Route                       | What it is                                                                           |
-| --------------------------- | ------------------------------------------------------------------------------------ |
-| `GET apps.json`             | The installed apps, as the registry stores them                                      |
-| `GET catalogs.json`         | The catalog table: the client's own catalogs, then each installed artifact by its id |
-| `GET artifacts/<id>/<path>` | An artifact's files, served as immutable content                                     |
-| `POST install`              | `{appId, cardUrl, catalogs: [{files: {<path>: <base64>}}]}`, with the write token    |
-| `POST uninstall`            | `{appId}`, with the write token                                                      |
+| Route                       | What it is                                                                                                                    |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `GET apps.json`             | The installed apps, as the registry stores them                                                                               |
+| `GET catalogs.json`         | The catalog table: the client's own catalogs, then each installed artifact by its id                                          |
+| `GET artifacts/<id>/<path>` | An artifact's files, served as immutable content                                                                              |
+| `GET updates.json`          | Runs the update check — the newer builds of marketplace apps installing themselves on the way — and answers one state per app |
+| `POST install`              | `{appId, cardUrl, catalogs: [{files: {<path>: <base64>}}]}`, or `{appId}` alone for the marketplace, with the write token     |
+| `POST uninstall`            | `{appId}`, with the write token                                                                                               |
 
 The sign-in routes, all under `/auth`, which the browser reaches with no write token. Each attempt is bound to the browser that started it by a cookie, beside `state`, PKCE and the `nonce`, and the token page's form is taken only from the orchestrator's own origins, its public one and `http://localhost:<PORT>`:
 
@@ -195,19 +212,19 @@ The sign-in routes, all under `/auth`, which the browser reaches with no write t
 <details>
 <summary><b>Modules</b></summary>
 
-| Module        | Where                 | What it does                                                                                                                                                                                                                                                   |
-| ------------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Registry      | `src/registry/`       | The installed apps, their cards and the catalog table, persisted in the state directory; install, uninstall and their routes; A2UIVerse's own card beside the apps                                                                                             |
-| Embedder      | `@a2uiverse/embedder` | One small embedding model, in-process, no API key — the workspace package the marketplace's index ranks with too, so a question ranks the same against both                                                                                                    |
-| Router        | `src/router/`         | Ranks the apps against the question and returns a shortlist                                                                                                                                                                                                    |
-| Planner       | `src/planner/`        | The first model call: the layout, which apps to ask, a title for the answer. On demand it reads the installed apps, the composition the question was asked from and the questions before it, never app data                                                    |
-| Synthesizer   | `src/synthesizer/`    | The second model call: the merged view's wiring, validated, with one retry                                                                                                                                                                                     |
-| AuthVault     | `src/vault/`          | The sign-ins: the vault file, the generic OAuth client, the schemes it can do, the card checked before a dispatch, the header a dispatch carries, refresh, revocation, the sign-in routes and their pages                                                      |
-| Accounts      | `src/accounts/`       | Each app's sources, one per account, and what each is called                                                                                                                                                                                                   |
-| Composition   | `src/composition/`    | One composition per context, the shell's own paints, the relay, each app's data, when to merge, the presses, the fragment histories, and which refs still hold                                                                                                 |
-| AgentsPool    | `src/agentsPool/`     | The connections to the apps: requests, time limits, cancel; the credential header, a 401 and an `auth-required`, and the credential bar over what they paint                                                                                                   |
-| IntentJournal | `src/journal/`        | One line per turn, one per install, uninstall or refusal, and one per sign-in fact (started, signed in, failed, expired, refreshed, revoked, a request for more access, Not now, superseded), never a credential, appended to `STATE_DIR/intent-journal.jsonl` |
-| Executor      | `src/executor.ts`     | The A2A entry point that runs it all                                                                                                                                                                                                                           |
+| Module        | Where                 | What it does                                                                                                                                                                                                                                                     |
+| ------------- | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Registry      | `src/registry/`       | The installed apps, their cards and the catalog table, persisted in the state directory; install — from a pack or from the marketplace by id — uninstall and their routes; the update check and the automatic build update; A2UIVerse's own card beside the apps |
+| Embedder      | `@a2uiverse/embedder` | One small embedding model, in-process, no API key — the workspace package the marketplace's index ranks with too, so a question ranks the same against both                                                                                                      |
+| Router        | `src/router/`         | Ranks the apps against the question and returns a shortlist                                                                                                                                                                                                      |
+| Planner       | `src/planner/`        | The first model call: the layout, which apps to ask, a title for the answer. On demand it reads the installed apps, the composition the question was asked from and the questions before it, never app data                                                      |
+| Synthesizer   | `src/synthesizer/`    | The second model call: the merged view's wiring, validated, with one retry                                                                                                                                                                                       |
+| AuthVault     | `src/vault/`          | The sign-ins: the vault file, the generic OAuth client, the schemes it can do, the card checked before a dispatch, the header a dispatch carries, refresh, revocation, the sign-in routes and their pages                                                        |
+| Accounts      | `src/accounts/`       | Each app's sources, one per account, and what each is called                                                                                                                                                                                                     |
+| Composition   | `src/composition/`    | One composition per context, the shell's own paints, the relay, each app's data, when to merge, the presses, the fragment histories, and which refs still hold                                                                                                   |
+| AgentsPool    | `src/agentsPool/`     | The connections to the apps: requests, time limits, cancel; the credential header, a 401 and an `auth-required`, and the credential bar over what they paint                                                                                                     |
+| IntentJournal | `src/journal/`        | One line per turn, one per install, uninstall or refusal, and one per sign-in fact (started, signed in, failed, expired, refreshed, revoked, a request for more access, Not now, superseded), never a credential, appended to `STATE_DIR/intent-journal.jsonl`   |
+| Executor      | `src/executor.ts`     | The A2A entry point that runs it all                                                                                                                                                                                                                             |
 
 The Planner and the Synthesizer run on Gemini through the Vercel AI SDK.
 
@@ -216,22 +233,24 @@ The Planner and the Synthesizer run on Gemini through the Vercel AI SDK.
 <details>
 <summary><b>Configuration</b></summary>
 
-| Variable                          | Default                                       | Meaning                                                                                                                                                                                 |
-| --------------------------------- | --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `PORT`                            | `10001`                                       | Listen port                                                                                                                                                                             |
-| `BASE_URL`                        | `http://localhost:<PORT>`                     | The address its agent card advertises, and the vault's: its client ID metadata document and the return address an authorization server sends the browser to. The tunnel URL in a tunnel |
-| `STATE_DIR`                       | `./.state`                                    | The registry, the vault (`vault/vault.json`), the journal and the cached embedding model                                                                                                |
-| `GOOGLE_API_KEY`                  | none                                          | The Gemini key. Without it, questions fail; actions inside fragments still work                                                                                                         |
-| `A2UIVERSE_PLANNER_MODEL`         | `gemini-3.7-flash`                            | The Planner's model                                                                                                                                                                     |
-| `A2UIVERSE_PLANNER_EFFORT`        | `low`                                         | `low` (no thinking) or `default`                                                                                                                                                        |
-| `A2UIVERSE_SYNTHESIZER_MODEL`     | the Planner's if set, else `gemini-3.7-flash` | The Synthesizer's model                                                                                                                                                                 |
-| `A2UIVERSE_SYNTHESIZER_EFFORT`    | `low`                                         | `low` or `default`                                                                                                                                                                      |
-| `A2UIVERSE_SHORTLIST_CAP`         | `5`                                           | How many apps the Router hands the Planner                                                                                                                                              |
-| `A2UIVERSE_SOFT_DEADLINE_SECONDS` | `10`                                          | How long with no answer releases the merge without the late apps                                                                                                                        |
-| `A2UIVERSE_HARD_CAP_SECONDS`      | `300`                                         | How long before an app's slot fails                                                                                                                                                     |
-| `A2UIVERSE_HEARTBEAT_SECONDS`     | `30`                                          | How often a quiet stream sends an empty event, so a proxy's idle timeout never cuts it                                                                                                  |
-| `A2UIVERSE_DEBUG_IDS`             | off                                           | `1` adds each app's own task and context ids to what it relays                                                                                                                          |
-| `A2UIVERSE_FAULTS`                | none                                          | Dev only: JSON making a source's answers slow, hang, break, refused, failed, invalid or carry a credential field, to test failures; a bare app id hits every account of the app         |
+| Variable                                | Default                                       | Meaning                                                                                                                                                                                 |
+| --------------------------------------- | --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PORT`                                  | `10001`                                       | Listen port                                                                                                                                                                             |
+| `BASE_URL`                              | `http://localhost:<PORT>`                     | The address its agent card advertises, and the vault's: its client ID metadata document and the return address an authorization server sends the browser to. The tunnel URL in a tunnel |
+| `STATE_DIR`                             | `./.state`                                    | The registry, the vault (`vault/vault.json`), the journal and the cached embedding model                                                                                                |
+| `GOOGLE_API_KEY`                        | none                                          | The Gemini key. Without it, questions fail; actions inside fragments still work                                                                                                         |
+| `A2UIVERSE_PLANNER_MODEL`               | `gemini-3.7-flash`                            | The Planner's model                                                                                                                                                                     |
+| `A2UIVERSE_PLANNER_EFFORT`              | `low`                                         | `low` (no thinking) or `default`                                                                                                                                                        |
+| `A2UIVERSE_SYNTHESIZER_MODEL`           | the Planner's if set, else `gemini-3.7-flash` | The Synthesizer's model                                                                                                                                                                 |
+| `A2UIVERSE_SYNTHESIZER_EFFORT`          | `low`                                         | `low` or `default`                                                                                                                                                                      |
+| `A2UIVERSE_SHORTLIST_CAP`               | `5`                                           | How many apps the Router hands the Planner                                                                                                                                              |
+| `A2UIVERSE_SOFT_DEADLINE_SECONDS`       | `10`                                          | How long with no answer releases the merge without the late apps                                                                                                                        |
+| `A2UIVERSE_HARD_CAP_SECONDS`            | `300`                                         | How long before an app's slot fails                                                                                                                                                     |
+| `A2UIVERSE_HEARTBEAT_SECONDS`           | `30`                                          | How often a quiet stream sends an empty event, so a proxy's idle timeout never cuts it                                                                                                  |
+| `MARKETPLACE_URL`                       | `http://localhost:10002`                      | The marketplace installs by id resolve through, the update check reads and reports to. Unreached: one boot line, every state unknown                                                    |
+| `A2UIVERSE_MARKETPLACE_TIMEOUT_SECONDS` | `10`                                          | How long each request to the marketplace gets                                                                                                                                           |
+| `A2UIVERSE_DEBUG_IDS`                   | off                                           | `1` adds each app's own task and context ids to what it relays                                                                                                                          |
+| `A2UIVERSE_FAULTS`                      | none                                          | Dev only: JSON making a source's answers slow, hang, break, refused, failed, invalid or carry a credential field, to test failures; a bare app id hits every account of the app         |
 
 </details>
 

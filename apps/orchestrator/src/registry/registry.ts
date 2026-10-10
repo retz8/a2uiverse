@@ -2,12 +2,18 @@ import {readFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import type {AgentCard} from '@a2a-js/sdk';
 import {
+  aheadOfStore,
+  ARTIFACT_DESCRIPTOR_FILE,
   BASIC_CATALOG_ID,
   basicCatalogOptions,
+  type CardWithExtensions,
+  type Drift,
+  validateArtifactDescriptor,
   catalogOptions,
   mergeCatalogOptions,
   type A2uiCatalogSchema,
   type CatalogOptions,
+  checkAdditiveEvolution,
   checkAppId,
   checkCoverage,
   coverageErrors,
@@ -16,11 +22,19 @@ import {
   type ArtifactDescriptor,
   gateArtifact,
   type GatedArtifact,
+  unnamedRows,
 } from '@a2uiverse/sdk';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 import {corpusDoc, type Embedder} from '@a2uiverse/embedder';
-import {RegistryStore, type ArtifactFiles} from './store.js';
-import {SHELL_SOURCE_ID, type AppRecord, type CatalogRow, type InstalledRecord} from './types.js';
+import type {MarketplaceClient} from './marketplace.js';
+import {readTree, RegistryStore, type ArtifactFiles} from './store.js';
+import {
+  SHELL_SOURCE_ID,
+  type AppRecord,
+  type CatalogRow,
+  type InstalledRecord,
+  type InstallSource,
+} from './types.js';
 
 /** How the registry fetches a card from its full URL; injected so tests need no network. */
 export type ResolveCard = (cardUrl: string) => Promise<AgentCard>;
@@ -41,7 +55,10 @@ export const CLIENT_CATALOG_IDS: readonly string[] = [BASIC_CATALOG_ID, SHELL_CA
 /** The note install gives an app whose card declares no catalogs (task-11.2 decision 8). */
 export const BASIC_ONLY_NOTE = 'the card declares no catalogs: it paints in the basic catalog only';
 
-/** One registry change as the journal records it (task-11.4 decision 15). */
+/**
+ * One registry change as the journal records it (task-11.4 decision 15), with where it came by
+ * (task-13.5 decision 6): the path of an install, the record's source for an uninstall.
+ */
 export interface RegistryJournalEntry {
   operation: 'install' | 'install-over' | 'uninstall';
   appId: string;
@@ -49,6 +66,19 @@ export interface RegistryJournalEntry {
   catalogs: {catalogId: string; artifact: string}[];
   outcome: 'installed' | 'uninstalled' | 'refused';
   findings?: string[];
+  source: InstallSource;
+  /** The other installed apps whose row this install moved (task-13.5 decision 6). */
+  followed?: string[];
+  /** The update check installed a newer build over the app by itself (task-13.5 decision 9). */
+  automatic?: true;
+}
+
+/** A held row moved to a new hash by an install, and the other apps that followed it. */
+export interface RowMove {
+  catalogId: string;
+  from: string;
+  to: string;
+  followed: string[];
 }
 
 export interface RegistryJournal {
@@ -61,6 +91,12 @@ export interface InstallRequest {
   cardUrl: string;
   /** One artifact's files per catalog handed, each with its descriptor. */
   catalogs: readonly ArtifactFiles[];
+  /** Where the install came by (task-13.5 decision 3); a local pack unless said otherwise. */
+  source?: InstallSource;
+  /** The card already fetched from `cardUrl` by the marketplace path, so it is fetched once. */
+  card?: AgentCard;
+  /** An install the update check runs by itself (task-13.5 decision 9), journaled as such. */
+  automatic?: boolean;
 }
 
 export type InstallResult =
@@ -76,6 +112,8 @@ export interface RegistryDeps {
   journal?: RegistryJournal;
   /** The orchestrator's own card, indexed under `shell` beside the installed apps. */
   platformCard?: AgentCard;
+  /** The marketplace an install by id resolves through (task-13.5 decision 2). */
+  marketplace?: MarketplaceClient;
 }
 
 /**
@@ -263,6 +301,154 @@ export class Registry {
     return this.#serial(() => this.#install(request));
   }
 
+  /**
+   * Install by app id alone, resolved through the marketplace (task-13.5 decisions 2, 4): the entry
+   * read, the live card fetched from the URL it names, the Store-behind refusal when the card is
+   * ahead of the entry, the artifacts' files the registry lacks fetched, then the same core as a
+   * local install. `automatic` is the update check's own install of a newer build (decision 9).
+   */
+  installFromMarketplace(
+    appId: string,
+    options: {automatic?: boolean} = {},
+  ): Promise<InstallResult> {
+    return this.#serial(() => this.#installFromMarketplace(appId, options));
+  }
+
+  async #installFromMarketplace(
+    appId: string,
+    {automatic = false}: {automatic?: boolean},
+  ): Promise<InstallResult> {
+    const marketplace = this.#deps.marketplace;
+    const operation = this.#records.has(appId) ? 'install-over' : 'install';
+    const refuse = async (findings: string[], cardUrl?: string): Promise<InstallResult> => {
+      await this.#journal({
+        operation,
+        appId,
+        ...(cardUrl !== undefined ? {cardUrl} : {}),
+        catalogs: [],
+        outcome: 'refused',
+        findings,
+        source: 'marketplace',
+        ...(automatic ? {automatic: true} : {}),
+      });
+      return {ok: false, findings};
+    };
+    const idFindings = checkAppId(appId);
+    if (idFindings.length > 0) return refuse(idFindings);
+    if (!marketplace) return refuse(['no marketplace is configured']);
+    const looked = await marketplace.entry(appId);
+    if (looked.kind === 'unreached') {
+      return refuse([
+        `the marketplace at ${marketplace.url} could not be reached: ${looked.reason}`,
+      ]);
+    }
+    if (looked.kind === 'not-published') {
+      return refuse([
+        `app ${JSON.stringify(appId)} is not published on the marketplace at ${marketplace.url}`,
+      ]);
+    }
+    if (looked.kind === 'malformed') {
+      return refuse([
+        `the marketplace's entry for ${JSON.stringify(appId)} is malformed: ${looked.errors.join('; ')}`,
+      ]);
+    }
+    const {entry} = looked;
+    let card: AgentCard;
+    try {
+      card = await this.#fetchCard(entry.cardUrl);
+    } catch (err) {
+      return refuse(
+        [`the card at ${entry.cardUrl} could not be fetched: ${(err as Error).message}`],
+        entry.cardUrl,
+      );
+    }
+    const drift = aheadOfStore(entry, card as CardWithExtensions & {version: string});
+    if (!drift.ok)
+      return refuse(
+        drift.errors.map(e => `the card's ${e}`),
+        entry.cardUrl,
+      );
+    if (drift.value) {
+      // Drift seen from a live card is what the marketplace wants to hear about (decision 10).
+      void marketplace.report(appId).catch((err: unknown) => {
+        console.error(`registry: the report of ${appId} failed:`, (err as Error).message);
+      });
+      return refuse([storeBehind(appId, drift.value)], entry.cardUrl);
+    }
+    const catalogs: ArtifactFiles[] = [];
+    try {
+      for (const artifactId of Object.values(entry.catalogs)) {
+        catalogs.push(await this.#resolveArtifact(marketplace, artifactId));
+      }
+    } catch (err) {
+      return refuse([(err as Error).message], entry.cardUrl);
+    }
+    return this.#install({
+      appId,
+      cardUrl: entry.cardUrl,
+      catalogs,
+      source: 'marketplace',
+      card,
+      automatic,
+    });
+  }
+
+  /**
+   * An artifact's files from the marketplace, only those the registry lacks (phase-13 decision 9):
+   * a held artifact id is read from disk whole; otherwise its descriptor is fetched and each file
+   * whose hash a held artifact already has is copied from it, the rest fetched.
+   */
+  async #resolveArtifact(
+    marketplace: MarketplaceClient,
+    artifactId: string,
+  ): Promise<ArtifactFiles> {
+    if (this.#descriptors.has(artifactId)) {
+      return readTree(join(this.#store.artifactsDir, artifactId));
+    }
+    const descriptorBytes = await marketplace.descriptor(artifactId);
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(new TextDecoder().decode(descriptorBytes));
+    } catch (err) {
+      throw new Error(
+        `the marketplace's artifact ${artifactId} has no readable descriptor: not JSON (${(err as Error).message})`,
+      );
+    }
+    const descriptor = validateArtifactDescriptor(parsed);
+    if (!descriptor.ok) {
+      throw new Error(
+        `the marketplace's artifact ${artifactId} has no readable descriptor: ${descriptor.errors.join('; ')}`,
+      );
+    }
+    const held = this.#heldFiles();
+    const files = new Map<string, Uint8Array>([[ARTIFACT_DESCRIPTOR_FILE, descriptorBytes]]);
+    for (const [path, hash] of Object.entries(descriptor.value.files).sort(([a], [b]) =>
+      a < b ? -1 : 1,
+    )) {
+      const have = held.get(hash);
+      files.set(
+        path,
+        have
+          ? new Uint8Array(
+              await readFile(join(this.#store.artifactsDir, have.artifactId, have.path)),
+            )
+          : await marketplace.file(artifactId, path),
+      );
+    }
+    return files;
+  }
+
+  /** Every file the held artifacts list, by its hash: what an install by id need not fetch. */
+  #heldFiles(): Map<string, {artifactId: string; path: string}> {
+    const held = new Map<string, {artifactId: string; path: string}>();
+    for (const [artifactId, descriptor] of this.#descriptors) {
+      for (const [path, hash] of Object.entries(descriptor.files)) {
+        if (!held.has(hash)) held.set(hash, {artifactId, path});
+      }
+    }
+    return held;
+  }
+
   /** Uninstall: the record goes, and each artifact no installed card names any more (decision 6). */
   uninstall(appId: string): Promise<UninstallResult> {
     return this.#serial(() => this.#uninstall(appId));
@@ -274,16 +460,26 @@ export class Registry {
     return run;
   }
 
-  async #install({appId, cardUrl, catalogs}: InstallRequest): Promise<InstallResult> {
+  async #install({
+    appId,
+    cardUrl,
+    catalogs,
+    source = 'local',
+    card: fetched,
+    automatic = false,
+  }: InstallRequest): Promise<InstallResult> {
     const previous = this.#records.get(appId);
     const operation = previous ? 'install-over' : 'install';
     const findings = [...checkAppId(appId)];
+    const journalExtra = automatic ? {automatic: true as const} : {};
 
-    let card: AgentCard | undefined;
-    try {
-      card = await this.#fetchCard(cardUrl);
-    } catch (err) {
-      findings.push(`the card at ${cardUrl} could not be fetched: ${(err as Error).message}`);
+    let card: AgentCard | undefined = fetched;
+    if (!card) {
+      try {
+        card = await this.#fetchCard(cardUrl);
+      } catch (err) {
+        findings.push(`the card at ${cardUrl} could not be fetched: ${(err as Error).message}`);
+      }
     }
 
     const gated: GatedArtifact[] = [];
@@ -316,17 +512,32 @@ export class Registry {
       }
     }
 
+    // A held id at a new hash moves the row and every other app naming it follows (task-13.5
+    // decision 5); the move is checked as an additive evolution of the build they render in.
+    const moves: RowMove[] = [];
     for (const artifact of gated) {
       const catalogId = artifact.descriptor.catalogId;
-      const holders = [...this.#records.values()].filter(
-        record => record.id !== appId && record.catalogs[catalogId] !== undefined,
+      const followers = [...this.#records.values()].filter(
+        record =>
+          record.id !== appId &&
+          record.catalogs[catalogId] !== undefined &&
+          record.catalogs[catalogId] !== artifact.id,
       );
-      if (holders.some(record => record.catalogs[catalogId] !== artifact.id)) {
+      if (followers.length === 0) continue;
+      const from = followers[0].catalogs[catalogId];
+      const followed = followers.map(record => record.id).sort();
+      const held = await this.#schemaOf(from);
+      const next = parseSchema(artifact.files.get(artifact.descriptor.schema));
+      const problems = held && next ? checkAdditiveEvolution(held, next) : [];
+      if (problems.length > 0) {
         findings.push(
-          `catalog ${JSON.stringify(catalogId)} is held at another hash by ${holders.map(r => r.id).join(', ')}`,
+          `catalog ${JSON.stringify(catalogId)} at its new build is not an additive evolution of the build ${followed.join(', ')} render${followed.length === 1 ? 's' : ''} in: ${problems.join('; ')}`,
         );
+      } else {
+        moves.push({catalogId, from, to: artifact.id, followed});
       }
     }
+    const followed = [...new Set(moves.flatMap(move => move.followed))].sort();
 
     const journaled = gated.map(a => ({catalogId: a.descriptor.catalogId, artifact: a.id}));
     if (findings.length > 0 || !card) {
@@ -337,6 +548,8 @@ export class Registry {
         catalogs: journaled,
         outcome: 'refused',
         findings,
+        source,
+        ...journalExtra,
       });
       return {ok: false, findings};
     }
@@ -350,23 +563,39 @@ export class Registry {
       catalogs: Object.fromEntries(journaled.map(({catalogId, artifact}) => [catalogId, artifact])),
       entitlement: entitlementOf([...counted.keys()]),
       installedAt: new Date().toISOString(),
+      source,
     };
     const next = new Map(this.#records);
     next.set(appId, record);
-    await this.#commit(next);
+    for (const move of moves) {
+      for (const id of move.followed) {
+        const follower = next.get(id)!;
+        next.set(id, {...follower, catalogs: {...follower.catalogs, [move.catalogId]: move.to}});
+      }
+    }
     for (const artifact of gated) {
       this.#descriptors.set(artifact.id, artifact.descriptor);
       const schema = artifact.files.get(artifact.descriptor.schema);
       if (schema) this.#options.set(artifact.id, optionsOf(schema));
     }
+    await this.#commit(next);
     this.#cards.set(appId, card);
     this.#vectors.set(appId, vector);
-    await this.#journal({operation, appId, cardUrl, catalogs: journaled, outcome: 'installed'});
+    await this.#journal({
+      operation,
+      appId,
+      cardUrl,
+      catalogs: journaled,
+      outcome: 'installed',
+      source,
+      ...(followed.length > 0 ? {followed} : {}),
+      ...journalExtra,
+    });
     return {
       ok: true,
       appId,
       replaced: operation === 'install-over',
-      summary: installSummary(previous, record),
+      summary: installSummary(previous, record, moves),
       notes: declared.length === 0 ? [BASIC_ONLY_NOTE] : [],
     };
   }
@@ -381,6 +610,7 @@ export class Registry {
         catalogs: [],
         outcome: 'refused',
         findings,
+        source: 'local',
       });
       return {ok: false, findings};
     }
@@ -393,7 +623,13 @@ export class Registry {
       catalogId,
       artifact,
     }));
-    await this.#journal({operation: 'uninstall', appId, catalogs, outcome: 'uninstalled'});
+    await this.#journal({
+      operation: 'uninstall',
+      appId,
+      catalogs,
+      outcome: 'uninstalled',
+      source: record.source,
+    });
     for (const listener of this.#uninstalled) {
       try {
         await listener(appId);
@@ -404,18 +640,41 @@ export class Registry {
     return {ok: true, appId};
   }
 
-  /** Persists the records, then lets go of every artifact none of them names. */
+  /**
+   * Persists the records, then lets go of every artifact none of them names any more — through the
+   * sdk's unnamed-rows function, the registry's half of the retirement rule (task-13.5 decision 5):
+   * an uninstalled app's artifacts, and the old build of a moved row.
+   */
   async #commit(next: Map<string, InstalledRecord>): Promise<void> {
+    const before: Record<string, string> = {};
+    for (const record of this.#records.values()) Object.assign(before, record.catalogs);
     const records = [...next.values()].sort((a, b) => (a.id < b.id ? -1 : 1));
     await this.#store.writeRecords(records);
     this.#records = new Map(records.map(record => [record.id, record]));
-    const named = new Set(records.flatMap(record => Object.values(record.catalogs)));
-    await this.#store.removeArtifactsExcept(named);
-    for (const id of [...this.#descriptors.keys()]) {
-      if (!named.has(id)) this.#descriptors.delete(id);
+    const {artifactIds: gone} = unnamedRows(
+      before,
+      records.map(record => record.catalogs),
+    );
+    for (const id of gone) {
+      this.#descriptors.delete(id);
+      this.#options.delete(id);
     }
-    for (const id of [...this.#options.keys()]) {
-      if (!named.has(id)) this.#options.delete(id);
+    // The disk mirrors the descriptors held: every named artifact, and nothing else.
+    await this.#store.removeArtifactsExcept(new Set(this.#descriptors.keys()));
+  }
+
+  /** A held artifact's catalog schema, read from disk; undefined when it does not parse. */
+  async #schemaOf(artifactId: string): Promise<A2uiCatalogSchema | undefined> {
+    const descriptor = this.#descriptors.get(artifactId);
+    if (!descriptor) return undefined;
+    try {
+      return parseSchema(
+        new Uint8Array(
+          await readFile(join(this.#store.artifactsDir, artifactId, descriptor.schema)),
+        ),
+      );
+    } catch {
+      return undefined;
     }
   }
 
@@ -444,17 +703,33 @@ export class Registry {
   }
 }
 
+/**
+ * The refusal of an install by id when the live card is ahead of the Store (phase-13 decision 14,
+ * task-13.5 decision 4): the Store cannot hand what the card now declares; never that the app is
+ * broken.
+ */
+export function storeBehind(appId: string, drift: Drift): string {
+  const parts: string[] = [];
+  if (drift.catalogIds.length > 0) {
+    parts.push(`catalog${drift.catalogIds.length > 1 ? 's' : ''} ${drift.catalogIds.join(', ')}`);
+  }
+  if (drift.version !== undefined) parts.push(`version ${drift.version}`);
+  return `the Store is behind ${appId}: its card now declares ${parts.join(' and ')} that the Store does not have yet; the publisher is told at their next contact with the Store, and the install can be tried again once they have published`;
+}
+
 /** An artifact id as a line names it: its digest's first characters. */
 const shortId = (id: string) => `${id.slice(0, 'sha256-'.length + 8)}…`;
 
 /**
  * What an install did, in one line for whoever reads the command's or the launcher's output
  * (task-11.8 decision 22): installed, updated or reinstalled; the card's version, old → new when it
- * moved; each catalog's artifact, old → new when it moved, an id gone or new named in full.
+ * moved; each catalog's artifact, old → new when it moved, an id gone or new named in full; a row
+ * moved under other installed apps names them as having followed (task-13.5 decision 6).
  */
 export function installSummary(
   previous: InstalledRecord | undefined,
   next: InstalledRecord,
+  moves: readonly RowMove[] = [],
 ): string {
   const version = (record: InstalledRecord) => record.card.version ?? '?';
   const before = previous?.catalogs ?? {};
@@ -472,7 +747,12 @@ export function installSummary(
   }
   for (const [catalogId, artifact] of Object.entries(next.catalogs)) {
     const old = before[catalogId];
-    if (!previous || old === artifact) parts.push(`catalog ${shortId(artifact)}`);
+    const move = moves.find(m => m.catalogId === catalogId);
+    if (move) {
+      parts.push(
+        `catalog ${shortId(move.from)} → ${shortId(move.to)} · ${move.followed.join(', ')} followed`,
+      );
+    } else if (!previous || old === artifact) parts.push(`catalog ${shortId(artifact)}`);
     else if (old === undefined) parts.push(`catalog ${catalogId} ${shortId(artifact)} new`);
     else parts.push(`catalog ${shortId(old)} → ${shortId(artifact)}`);
   }
@@ -491,9 +771,16 @@ export function installSummary(
 
 /** A gated schema's declared options; a schema that does not parse declares none. */
 function optionsOf(bytes: Uint8Array): CatalogOptions {
+  const schema = parseSchema(bytes);
+  return schema ? catalogOptions(schema) : new Map();
+}
+
+/** A schema file's content as a catalog schema; undefined when it is missing or does not parse. */
+function parseSchema(bytes: Uint8Array | undefined): A2uiCatalogSchema | undefined {
+  if (!bytes) return undefined;
   try {
-    return catalogOptions(JSON.parse(new TextDecoder().decode(bytes)) as A2uiCatalogSchema);
+    return JSON.parse(new TextDecoder().decode(bytes)) as A2uiCatalogSchema;
   } catch {
-    return new Map();
+    return undefined;
   }
 }

@@ -18,6 +18,7 @@ import {clientSessionMetadata, operationData} from '@a2uiverse/sdk';
 import {buildOrchestrator, JOURNAL_FILE, type Orchestrator} from '../src/app.js';
 import {VAULT_FILE} from '../src/vault/store.js';
 import {FakeEmbedder} from '@a2uiverse/embedder';
+import {nowhere} from './fakeMarketplace.js';
 import {FakePlanner, layoutFor} from './fakePlanner.js';
 import {startFakeAuthServer, type FakeAuthServer} from './fakeAuthServer.js';
 import {
@@ -136,6 +137,9 @@ async function boot(options: {
       hardCapMs: 300_000,
       heartbeatMs: 30_000,
       faults: new Map(),
+      // No marketplace in these sign-ins: the boot's check finds it unreached and goes on.
+      marketplaceUrl: await nowhere(),
+      marketplaceTimeoutMs: 2_000,
     },
     overrides: {
       embedder: new FakeEmbedder(),

@@ -7,29 +7,42 @@ import {afterEach, describe, expect, test} from 'vitest';
 import express from 'express';
 import {registryRoutes, REGISTRY_ROUTE_PREFIX} from '../src/registry/api.js';
 import {runRegistryCommand} from '../src/registry/command.js';
+import {MarketplaceClient} from '../src/registry/marketplace.js';
 import {issueWriteToken} from '../src/registry/token.js';
+import {UpdateCheck} from '../src/registry/updates.js';
+import {startFakeMarketplace, type FakeMarketplace} from './fakeMarketplace.js';
 import {cardFor, fixtureArtifact, testRegistry, type TestRegistry} from './registryFixture.js';
 
 const GMAIL = 'https://example.com/gmail/catalog.json';
+const CALENDAR = 'https://example.com/calendar/catalog.json';
 
 let server: Server | undefined;
 let made: TestRegistry | undefined;
+let marketplace: FakeMarketplace | undefined;
 const dirs: string[] = [];
 afterEach(async () => {
   await new Promise<void>(resolve => (server ? server.close(() => resolve()) : resolve()));
   server = undefined;
+  await marketplace?.close();
+  marketplace = undefined;
   if (made) dirs.push(made.stateDir);
   made = undefined;
   for (const dir of dirs.splice(0)) await rm(dir, {recursive: true, force: true});
 });
 
 async function orchestrator() {
-  made = await testRegistry();
+  marketplace = await startFakeMarketplace();
+  const client = new MarketplaceClient({url: marketplace.url, timeoutMs: 2_000});
+  made = await testRegistry([], {marketplace: client});
   const token = await issueWriteToken(made.stateDir);
   const app = express();
   app.use(
     REGISTRY_ROUTE_PREFIX,
-    registryRoutes({registry: made.registry, writeToken: () => token}),
+    registryRoutes({
+      registry: made.registry,
+      writeToken: () => token,
+      updates: new UpdateCheck({registry: made.registry, marketplace: client}),
+    }),
   );
   server = createServer(app);
   await new Promise<void>(resolve => server!.listen(0, '127.0.0.1', resolve));
@@ -39,6 +52,7 @@ async function orchestrator() {
     env: {ORCHESTRATOR_URL: `http://127.0.0.1:${address.port}`, STATE_DIR: made.stateDir},
     registry: made.registry,
     cards: made.cards,
+    marketplace,
   };
 }
 
@@ -111,9 +125,61 @@ describe('the registry command', () => {
     await run(['install', 'gmail', gmail, dir], env);
     await run(['install', 'shop-a', shop], env);
     expect((await run(['list'], env)).out).toEqual([
-      `gmail  ${gmail}  ${GMAIL}`,
-      `shop-a  ${shop}  basic catalog`,
+      `gmail  ${gmail}  ${GMAIL}  local`,
+      `shop-a  ${shop}  basic catalog  local`,
     ]);
+  });
+
+  test('install with the app id alone installs from the marketplace (task-13.5 decisions 2, 12)', async () => {
+    const {env, cards, marketplace, registry} = await orchestrator();
+    const card = cardFor('http://127.0.0.1:11002', {name: 'Gmail', catalogs: [GMAIL]});
+    const cardUrl = cards.serve(card);
+    await marketplace.publish('gmail', {card, cardUrl, catalogs: [await fixtureArtifact(GMAIL)]});
+    const result = await run(['install', 'gmail'], env);
+    expect(result.code).toBe(0);
+    expect(result.out).toEqual([
+      expect.stringMatching(/^installed gmail · card 0\.0\.0 · catalog sha256-/),
+    ]);
+    expect(registry.installed()[0].source).toBe('marketplace');
+    expect((await run(['list'], env)).out).toEqual([`gmail  ${cardUrl}  ${GMAIL}  marketplace`]);
+    const missing = await run(['install', 'inbox'], env);
+    expect(missing.code).toBe(1);
+    expect(missing.err).toEqual([
+      'refused inbox:',
+      `  app "inbox" is not published on the marketplace at ${marketplace.url}`,
+    ]);
+  });
+
+  test('updates prints one line per installed app: the state, the versions and its details in words (task-13.5 decision 12)', async () => {
+    const {env, cards, marketplace} = await orchestrator();
+    const gmail = cardFor('http://127.0.0.1:11002', {name: 'Gmail', catalogs: [GMAIL]});
+    const gmailUrl = cards.serve(gmail);
+    const first = await fixtureArtifact(GMAIL);
+    await marketplace.publish('gmail', {card: gmail, cardUrl: gmailUrl, catalogs: [first]});
+    await run(['install', 'gmail'], env);
+    const shop = cardFor('http://127.0.0.1:12001', {name: 'Shop A'});
+    const shopUrl = cards.serve(shop);
+    await run(['install', 'shop-a', shopUrl], env);
+    // Gmail moves to a new card with a new catalog: a major update, suggested, never automatic.
+    const next = {
+      ...cardFor('http://127.0.0.1:11002', {name: 'Gmail', catalogs: [GMAIL, CALENDAR]}),
+      version: '1.0.0',
+    };
+    await marketplace.publish('gmail', {
+      card: next,
+      cardUrl: gmailUrl,
+      catalogs: [await fixtureArtifact(GMAIL, {version: '0.2.0'}), await fixtureArtifact(CALENDAR)],
+      versions: ['0.0.0', '1.0.0'],
+    });
+    const result = await run(['updates'], env);
+    expect(result.code).toBe(0);
+    expect(result.out).toHaveLength(2);
+    expect(result.out[0]).toMatch(
+      new RegExp(
+        `^gmail  major update  0\\.0\\.0 → 1\\.0\\.0  new catalog ${CALENDAR}; catalog ${GMAIL} sha256-[^ ]+ → sha256-[^ ]+$`,
+      ),
+    );
+    expect(result.out[1]).toBe('shop-a  not published  0.0.0');
   });
 
   test('uninstall removes the app; one not installed exits 1', async () => {

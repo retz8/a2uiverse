@@ -221,6 +221,7 @@ describe('registry entries (task-11.4 decision 15)', () => {
       catalogs: [{catalogId: 'urn:gmail', artifact: 'sha256-abc'}],
       outcome: 'refused',
       findings: ['app id "Gmail" is not a slug'],
+      source: 'local',
     });
     expect(await lines(file)).toEqual([
       {
@@ -232,6 +233,7 @@ describe('registry entries (task-11.4 decision 15)', () => {
         catalogs: [{catalogId: 'urn:gmail', artifact: 'sha256-abc'}],
         outcome: 'refused',
         findings: ['app id "Gmail" is not a slug'],
+        source: 'local',
       },
     ]);
     expect(journal.recent('gmail')).toEqual([]);

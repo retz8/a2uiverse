@@ -37,11 +37,22 @@ export interface Config {
   heartbeatMs: number;
   /** The dev-only fault map (`A2UIVERSE_FAULTS`, task-8.3 decision 14); empty when unset. */
   faults: FaultMap;
+  /**
+   * The marketplace this orchestrator installs from, checks against and reports to
+   * (`MARKETPLACE_URL`, task-13.5 decision 1): the marketplace's own default port unless set. One
+   * that cannot be reached is one boot line and every update state unknown, never a failed boot.
+   */
+  marketplaceUrl: string;
+  /** Every request to the marketplace has this long (`A2UIVERSE_MARKETPLACE_TIMEOUT_SECONDS`, task-13.5 decision 11). */
+  marketplaceTimeoutMs: number;
 }
 
 type Env = Readonly<Record<string, string | undefined>>;
 
 const DEFAULT_PORT = 10001;
+/** The marketplace's default port, as its own config has it. */
+export const DEFAULT_MARKETPLACE_URL = 'http://localhost:10002';
+export const DEFAULT_MARKETPLACE_TIMEOUT_SECONDS = 10;
 const DEFAULT_SHORTLIST_CAP = 5;
 export const DEFAULT_SOFT_DEADLINE_SECONDS = 10;
 export const DEFAULT_HARD_CAP_SECONDS = 300;
@@ -90,6 +101,12 @@ export function loadConfig(env: Env = process.env): Config {
       DEFAULT_HEARTBEAT_SECONDS,
     ),
     faults: parseFaults(env.A2UIVERSE_FAULTS),
+    marketplaceUrl: (env.MARKETPLACE_URL ?? DEFAULT_MARKETPLACE_URL).replace(/\/$/, ''),
+    marketplaceTimeoutMs: parseSeconds(
+      env.A2UIVERSE_MARKETPLACE_TIMEOUT_SECONDS,
+      'A2UIVERSE_MARKETPLACE_TIMEOUT_SECONDS',
+      DEFAULT_MARKETPLACE_TIMEOUT_SECONDS,
+    ),
   };
 }
 

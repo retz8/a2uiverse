@@ -91,8 +91,26 @@ describe('install', () => {
         catalogs: {[GMAIL]: id},
         entitlement: [BASIC_CATALOG_ID, GMAIL],
         installedAt: expect.any(String),
+        source: 'local',
       },
     ]);
+  });
+
+  test('a record written before the source existed reads as installed from a local pack (task-13.5 decision 3)', async () => {
+    const {registry, cards, stateDir} = await fresh();
+    const card = cardFor('http://127.0.0.1:11002', {name: 'Gmail'});
+    await registry.install({appId: 'gmail', cardUrl: cards.serve(card), catalogs: []});
+    const path = join(stateDir, 'registry', 'registry.json');
+    const file = JSON.parse(await readFile(path, 'utf8')) as {apps: Record<string, unknown>[]};
+    delete file.apps[0].source;
+    await writeFile(path, JSON.stringify(file));
+    const reopened = new Registry({
+      stateDir,
+      resolveCard: cards.resolve,
+      embedder: new FakeEmbedder(),
+    });
+    await reopened.load();
+    expect(reopened.installed()[0].source).toBe('local');
   });
 
   test('an install is live at once: the app is routable with no restart', async () => {
@@ -262,22 +280,84 @@ describe('a held catalog id', () => {
     expect(await artifactIds(stateDir)).toEqual([await idOf(artifact)]);
   });
 
-  test('a new hash is refused while another installed app names the id, naming it', async () => {
-    const {registry, cards} = await fresh([
-      {
-        id: 'gmail',
-        card: cardFor('http://127.0.0.1:11002', {catalogs: [GMAIL]}),
-        catalogs: [await fixtureArtifact(GMAIL)],
-      },
+  test('a new hash while another installed app names the id moves the row; the other app follows, named (task-13.5 decisions 5, 6)', async () => {
+    const old = await fixtureArtifact(GMAIL);
+    const {registry, cards, stateDir, journal} = await fresh([
+      {id: 'gmail', card: cardFor('http://127.0.0.1:11002', {catalogs: [GMAIL]}), catalogs: [old]},
     ]);
+    const before = registry.installed()[0];
+    const next = await fixtureArtifact(GMAIL, {version: '0.2.0'});
     const result = await registry.install({
       appId: 'inbox',
       cardUrl: cards.serve(cardFor('http://127.0.0.1:11009', {catalogs: [GMAIL]})),
-      catalogs: [await fixtureArtifact(GMAIL, {version: '0.2.0'})],
+      catalogs: [next],
     });
+    const [oldId, nextId] = [await idOf(old), await idOf(next)];
+    const short = (id: string) => `${id.slice(0, 15)}…`;
     expect(result).toEqual({
-      ok: false,
-      findings: [`catalog "${GMAIL}" is held at another hash by gmail`],
+      ok: true,
+      appId: 'inbox',
+      replaced: false,
+      summary: `installed inbox · card 0.0.0 · catalog ${short(oldId)} → ${short(nextId)} · gmail followed`,
+      notes: [],
+    });
+    const gmail = registry.installed().find(r => r.id === 'gmail')!;
+    expect(gmail).toEqual({...before, catalogs: {[GMAIL]: nextId}});
+    expect(registry.table().filter(row => row.catalogId === GMAIL)).toEqual([
+      {catalogId: GMAIL, artifact: nextId, entry: 'index.js'},
+    ]);
+    expect(await artifactIds(stateDir)).toEqual([nextId]);
+    expect(journal.entries.at(-1)).toMatchObject({
+      operation: 'install',
+      appId: 'inbox',
+      outcome: 'installed',
+      followed: ['gmail'],
+    });
+  });
+
+  test('a breaking schema at a held id another app renders in is refused, naming the component and the apps (task-13.5 decision 5)', async () => {
+    const old = await fixtureArtifact(GMAIL);
+    const {registry, cards, stateDir} = await fresh([
+      {id: 'gmail', card: cardFor('http://127.0.0.1:11002', {catalogs: [GMAIL]}), catalogs: [old]},
+    ]);
+    const breaking = await fixtureArtifact(GMAIL, {
+      version: '0.2.0',
+      schema: {catalogId: GMAIL, components: {Badge: {type: 'object', properties: {}}}},
+    });
+    const result = await registry.install({
+      appId: 'inbox',
+      cardUrl: cards.serve(cardFor('http://127.0.0.1:11009', {catalogs: [GMAIL]})),
+      catalogs: [breaking],
+    });
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.findings).toHaveLength(1);
+    expect(result.findings[0]).toMatch(/gmail/);
+    expect(result.findings[0]).toMatch(/Text/);
+    expect(result.findings[0]).toMatch(/additive/);
+    expect(registry.list().map(app => app.id)).toEqual(['gmail']);
+    expect(await artifactIds(stateDir)).toEqual([await idOf(old)]);
+  });
+
+  test('an app alone on its row moves it freely, a breaking schema included (task-13.5 decision 5)', async () => {
+    const old = await fixtureArtifact(GMAIL);
+    const {registry, cards} = await fresh([
+      {id: 'gmail', card: cardFor('http://127.0.0.1:11002', {catalogs: [GMAIL]}), catalogs: [old]},
+    ]);
+    const breaking = await fixtureArtifact(GMAIL, {
+      version: '0.2.0',
+      schema: {catalogId: GMAIL, components: {Badge: {type: 'object', properties: {}}}},
+    });
+    const result = await registry.install({
+      appId: 'gmail',
+      cardUrl: cards.serve(cardFor('http://127.0.0.1:11002', {catalogs: [GMAIL]})),
+      catalogs: [breaking],
+    });
+    expect(result).toMatchObject({ok: true, replaced: true});
+    expect(registry.table()).toContainEqual({
+      catalogId: GMAIL,
+      artifact: await idOf(breaking),
+      entry: 'index.js',
     });
   });
 
@@ -466,9 +546,10 @@ describe('the journal', () => {
     await registry.uninstall('gmail');
     const cardUrl = 'http://127.0.0.1:11002/.well-known/agent-card.json';
     const catalogs = [{catalogId: GMAIL, artifact: await idOf(artifact)}];
+    const source = 'local';
     expect(journal.entries).toEqual([
-      {operation: 'install', appId: 'gmail', cardUrl, catalogs, outcome: 'installed'},
-      {operation: 'install-over', appId: 'gmail', cardUrl, catalogs, outcome: 'installed'},
+      {operation: 'install', appId: 'gmail', cardUrl, catalogs, outcome: 'installed', source},
+      {operation: 'install-over', appId: 'gmail', cardUrl, catalogs, outcome: 'installed', source},
       {
         operation: 'install',
         appId: 'Bad',
@@ -476,8 +557,9 @@ describe('the journal', () => {
         catalogs: [],
         outcome: 'refused',
         findings: expect.arrayContaining([expect.stringMatching(/is not a slug/)]),
+        source,
       },
-      {operation: 'uninstall', appId: 'gmail', catalogs, outcome: 'uninstalled'},
+      {operation: 'uninstall', appId: 'gmail', catalogs, outcome: 'uninstalled', source},
     ]);
   });
 });

@@ -14,6 +14,7 @@ import {
   hashArtifactFile,
 } from '@a2uiverse/sdk';
 import {FakeEmbedder, type Embedder} from '@a2uiverse/embedder';
+import type {MarketplaceClient} from '../src/registry/marketplace.js';
 import {Registry, type RegistryJournal} from '../src/registry/registry.js';
 
 export type ArtifactFiles = Map<string, Uint8Array>;
@@ -141,7 +142,12 @@ export class JournalSpy implements RegistryJournal {
  */
 export async function testRegistry(
   apps: readonly TestApp[] = [],
-  options: {platformCard?: AgentCard; embedder?: Embedder; stateDir?: string} = {},
+  options: {
+    platformCard?: AgentCard;
+    embedder?: Embedder;
+    stateDir?: string;
+    marketplace?: MarketplaceClient;
+  } = {},
 ): Promise<TestRegistry> {
   const stateDir = options.stateDir ?? (await mkdtemp(join(tmpdir(), 'a2uiverse-registry-')));
   const cards = new CardServer();
@@ -152,6 +158,7 @@ export async function testRegistry(
     embedder: options.embedder ?? new FakeEmbedder(),
     journal,
     ...(options.platformCard ? {platformCard: options.platformCard} : {}),
+    ...(options.marketplace ? {marketplace: options.marketplace} : {}),
   });
   await registry.load();
   for (const app of apps) {

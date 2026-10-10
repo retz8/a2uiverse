@@ -13,6 +13,7 @@ import type {PlanRecord} from '../src/journal/types.js';
 import type {LayoutSurface} from '../src/planner/document.js';
 import type {Planner} from '../src/planner/planner.js';
 import {FakeEmbedder} from '@a2uiverse/embedder';
+import {nowhere} from './fakeMarketplace.js';
 import {FakePlanner, layoutFor, MalformedPlanner, ThrowingPlanner} from './fakePlanner.js';
 import {bestPriceView, decline, FakeSynthesizer, HeldSynthesizer} from './fakeSynthesizer.js';
 import type {SynthesisCall, SynthesisModel} from '../src/synthesizer/synthesizer.js';
@@ -118,6 +119,9 @@ async function boot(
       hardCapMs: options.hardCapMs ?? 300_000,
       heartbeatMs: options.heartbeatMs ?? 30_000,
       faults: options.faults ?? new Map(),
+      // No marketplace in these turns: the boot's check finds it unreached and goes on.
+      marketplaceUrl: await nowhere(),
+      marketplaceTimeoutMs: 2_000,
     },
     overrides: {
       embedder: new FakeEmbedder(),

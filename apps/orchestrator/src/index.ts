@@ -5,7 +5,8 @@ import {DEFAULT_HARD_CAP_SECONDS, DEFAULT_SOFT_DEADLINE_SECONDS, loadConfig} fro
 export const APP_NAME = '@a2uiverse/orchestrator';
 
 const config = loadConfig();
-const {app, registry, init} = buildOrchestrator({config});
+const orchestrator = buildOrchestrator({config});
+const {app, registry, init} = orchestrator;
 
 if (!config.googleApiKey) {
   console.warn(`${APP_NAME}: GOOGLE_API_KEY not set — palette turns will fail until it is`);
@@ -25,8 +26,25 @@ if (config.faults.size > 0) {
 
 // The registry is read from the state directory — a damaged one stops the boot here (task-11.4
 // decision 9) — and every installed app's card fetched: an agent unreachable now is unroutable
-// this run, and stays installed.
+// this run, and stays installed. Then the update check runs once (task-13.5 decision 8).
 await init();
+
+// The marketplace unreached is one line and every state unknown until the next check; each
+// automatic update, refusal and report is said once, so the boot log tells what moved by itself.
+const checked = orchestrator.bootCheck;
+if (checked?.marketplace === 'unreached') {
+  console.warn(
+    `${APP_NAME}: marketplace at ${config.marketplaceUrl} unreached (${checked.reason}) — update states unknown until the next check`,
+  );
+}
+for (const {summary} of checked?.updated ?? [])
+  console.log(`${APP_NAME}: automatic update · ${summary}`);
+for (const {appId, findings} of checked?.failed ?? []) {
+  console.warn(`${APP_NAME}: automatic update of ${appId} refused: ${findings.join('; ')}`);
+}
+for (const appId of checked?.reported ?? []) {
+  console.warn(`${APP_NAME}: ${appId} is ahead of the Store — reported to the marketplace`);
+}
 
 const unroutable = registry.list().filter(r => !registry.card(r.id));
 if (unroutable.length > 0) {
