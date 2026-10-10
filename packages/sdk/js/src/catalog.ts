@@ -185,9 +185,10 @@ const serverCapabilitiesVersion = ajv.compile(
  * is a valid card that declares nothing — the basic-catalog fallback (task-11.2 decision 8). A
  * malformed declaration is an error, never treated as none.
  *
- * Upstream's schema keys the params by version (`{"v0.9": {supportedCatalogIds}}`) while its
- * extension guide's example and its Python agent SDK write them flat
- * (`{supportedCatalogIds}`); both are read, each against the schema's matching part.
+ * Upstream's extension guide writes the params flat (`{supportedCatalogIds}`), as the fields of
+ * the schema's version entry, and so does its Python agent SDK; a card may also key them by
+ * version (`{"v0.9": {supportedCatalogIds}}`), the shape of the schema's whole object. Both are
+ * read, each against the schema's matching part.
  */
 export function readSupportedCatalogIds(card: CardWithExtensions): Validation<string[]> {
   const extension = card.capabilities?.extensions?.find(e => e.uri === A2UI_EXTENSION_URI);
