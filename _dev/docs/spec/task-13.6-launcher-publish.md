@@ -19,6 +19,8 @@ Sub-task 13.6 of Phase 13 (`_dev/docs/spec/phase-13-marketplace-publish.md`, dec
 
 `--publish`. Under it the launcher establishes the dev publisher, publishes each launched roster app to the marketplace, and installs each from the marketplace by id through the install route, the body carrying the app id alone, so every app it installs counts as installed from the marketplace. Without it the launcher is unchanged and a launch needs no running marketplace. Beside `--no-install` it is a usage error, as it is beside `--mode live` (decision 8). It passes through `dev:all` with no package script of its own.
 
+*Amended by task 13.7 decision 8.* Beside `--mode live` it is allowed.
+
 ### 2. The marketplace
 
 Resolved exactly as the orchestrator resolves its own: `MARKETPLACE_URL` over the orchestrator's `.env`, the shell's environment winning, else `http://localhost:10002` — as the launcher already finds the orchestrator's address and state directory. The launcher publishes to the marketplace the orchestrator installs from.
@@ -46,6 +48,8 @@ Once the marketplace answers, the publisher is established once, before any publ
 ### 8. The preview's credential
 
 For an app on the kit's sign-in, the launcher signs in straight at the agent through the kit's non-interactive entry, as one fake account per app, for the scopes the card's first `security` alternative asks, as the client's transparency check does; Shop B is given its demo key. Each credential is used for its one preview and never written, printed, or sent to the marketplace. The account each app previews as and Shop B's demo key are on the app's roster entry; the launcher carries its own direct sign-in. The non-interactive entry is refused in live mode, so `--publish` beside `--mode live` is a usage error whose words say so. Each launch leaves one registered client and one issued token in each sign-in agent's own sign-in store, unrevoked, as the transparency check does.
+
+*Amended by task 13.7 decisions 8 and 9.* Under `--mode live` each sign-in app, Shop B included, is previewed from a deterministic instance of the same checkout on a free port with a temporary state directory, the launcher's own sign-in made there; the instance is stopped and its state directory removed after the preview, and the live agent's sign-in store is untouched.
 
 ### 9. A failure of one app
 
@@ -83,4 +87,4 @@ In this session: the launcher's header comment, which no longer says the launche
 
 ## Open items
 
-- Whether `--publish` beside `--mode live` is allowed, on 13.7's decision whether the kit mints a credential for its own publisher in live mode.
+- Whether `--publish` beside `--mode live` is allowed, on 13.7's decision whether the kit mints a credential for its own publisher in live mode — decided in task 13.7 (decision 8): allowed, each sign-in app previewed from a deterministic instance.

@@ -71,6 +71,8 @@ At publish the marketplace sends the agent one A2A request, advertising exactly 
 
 An agent whose card requires sign-in is sent the request with no credential and passes when it answers as the contract says — HTTP 401, or `auth-required` naming a scheme its card declares. Preview runs the same smoke test on the publisher's machine against their running agent, with a credential they supply locally, and captures the paint; publish sends the captured paint beside the artifacts, and the marketplace checks it exactly as it checks a live one — entitlement, schema, credential bar — before storing it as the preview. No credential leaves the publisher's machine. Known weakness: for a signed-in app the paint is verified offline, so a publisher could capture a paint their agent never made. For an agent on the kit, the non-interactive entry issues the credential in deterministic and stub mode; in live mode the publisher brings their own.
 
+*Amended by task 13.7 decisions 1 and 4.* For an agent on the kit the preview credential comes from the kit's preview credential command, signed in as one of the agent's fake accounts through the non-interactive entry against a deterministic or stub run. The kit issues none against a live agent: a live app's preview is captured from a deterministic or stub run of the same checkout, one card serving every mode.
+
 ### 14. Ahead of the Store
 
 The live card is the only copy of the card that says what the agent does now; the index's and the registry's are snapshots. When the live card names a catalog id the index has no artifact for, or carries a version the index does not know, the app is ahead of the Store. The orchestrator sees it from the card it fetched at boot and reports it to the marketplace; the marketplace treats the report as a nudge, refetches the live card itself, and sets its flag only when it sees the drift too. The marketplace refetches every published app's card at its own boot the same way. A flagged listing says it is waiting for the publisher; an install of it is refused by coverage with words that say the Store is behind the app, never that the app is broken; the publisher is told at their next Stellify contact, with the catalog id their card declares and the Store lacks. The report carries the app id and nothing about the person. What the canvas says for such an app, and the update it offers once the publisher publishes, are Phase 15's.
@@ -89,7 +91,7 @@ When the update check finds that the only difference between an installed app an
 
 Beside `--no-install`, a launcher flag claims a dev publisher name, publishes each roster app to the marketplace after starting its agent, and installs each from the marketplace by id, so every roster app then counts as installed from the marketplace. Without the flag the launcher installs from the checkout as before, and a launch needs no running marketplace.
 
-*Amended by task 13.6 decisions 1 and 8.* The flag is `--publish`, refused beside `--mode live`, where the kit's non-interactive entry each sign-in app's preview signs in through is refused.
+*Amended by task 13.6 decisions 1 and 8, and by task 13.7 decision 8.* The flag is `--publish`. Beside `--mode live`, where the kit's non-interactive entry is refused, each sign-in app is previewed from a deterministic instance of the same checkout and published against the live agent's card.
 
 ### 18. The marketplace's state
 
@@ -107,7 +109,7 @@ SPEC §9.1 (publish, ownership, the version contract, retirement, no tarball), �
 
 ## Open items
 
-- `[apps]`: whether the agent kit mints a credential for its own publisher's preview in live mode.
+- `[apps]`: whether the agent kit mints a credential for its own publisher's preview in live mode — decided in task 13.7 (decision 4): it issues none against a live agent, a live app's preview captured from a deterministic or stub run of the same checkout.
 - Whether Stellify gains a verb listing what a publisher has published, or the notices on every contact are enough — decided in task 13.4 (decision 10): `list` is added.
 - Phase 14: the App Library showing each app's update state — a newer build quietly, a major update as a suggestion, a card update with its new scopes or catalogs named, required, ahead of the Store, no longer published; whether the Planner's installed-apps reader sees the update state.
 - Phase 15: the pre-dispatch check for an app ahead of the Store — the live card's ids sharing nothing with the entitlement, the slot taking a tile with no vendor call — and the update it offers once the Store has it; the forced update for an installed line the agent retired; the hub advertising an app's old ids beside its new one after an install-over.

@@ -91,11 +91,14 @@ pnpm --filter @a2uiverse/orchestrator registry install <app-id> http://localhost
 pnpm --filter @a2uiverse/orchestrator registry uninstall <app-id>
 ```
 
-`--publish` takes every app through the marketplace instead (task 13.6): each is published as the dev publisher `a2uiverse-apps`, whose token the launcher keeps in `scripts/.state/stellify/publisher.json`, and installed from the marketplace by its id alone. Everything it reaches is on the Mac — the marketplace at the orchestrator's `MARKETPLACE_URL`, each agent's card and sign-in on `localhost` — so it needs nothing of the tunnel. It runs in deterministic and stub mode, never live:
+`--publish` takes every app through the marketplace instead (task 13.6): each is published as the dev publisher `a2uiverse-apps`, whose token the launcher keeps in `scripts/.state/stellify/publisher.json`, and installed from the marketplace by its id alone. Everything it reaches is on the Mac — the marketplace at the orchestrator's `MARKETPLACE_URL`, each agent's card and sign-in on `localhost` — so it needs nothing of the tunnel. Under `--mode live` each sign-in app is previewed from a deterministic copy of its agent on a free port (task 13.7), also on `localhost`:
 
 ```bash
 pnpm dev:all --mode deterministic --publish
+pnpm dev:all --mode live --publish
 ```
+
+The marketplace refuses a changed card at a version it has already published, and a kit app's card carries its addresses, the sign-in page's on `A2UIVERSE_PUBLIC_URL` among them. Publish with the same `A2UIVERSE_PUBLIC_URL` every time against one marketplace state; switching means wiping the marketplace's state directory, or moving each app's `version` in its agent's `app/config.py`.
 
 Most sessions run everything through the launcher instead — `BASE_URL` still comes from the orchestrator's `.env`. The real roster in both modes is an acceptance bed (task 5.7):
 
