@@ -146,7 +146,7 @@ One entry point, `@a2uiverse/sdk`.
 
 `validateSynthesisPayload` checks the payload's shape: every leaf is a formula, every match claim relates two refs in two different sources, and every sort is well formed. Whether a relation actually holds is left to the caller.
 
-`checkAdditiveEvolution` compares the two schema files as the gate reads them, a `$ref` as a string, never resolved; a keyword it does not know is ignored, never refused. `checkPaint` groups an answer's messages by surface and validates each against its own catalog, so one call serves a paint across catalogs and a captured preview alike.
+`checkAdditiveEvolution` compares the two schema files as the gate reads them, a `$ref` as a string, never resolved; a keyword it does not know is ignored, never refused. `checkPaint` groups an answer's messages by surface and validates each against its own catalog, so one call serves a paint across catalogs and a captured preview alike. It judges each surface's tree as it stands when the answer ends — each component's last copy, as `updateComponents` replaces a component by its id, and only what the root reaches — so an agent streaming its tree as the model writes it, every update sending it again with components half-written until a later copy completes them, passes when the finished tree does. The credential check reads every message.
 
 `credentialInputIn` matches the terms as whole words, case-insensitively, against painted components' types, property names, and the literal property values their catalog declares as options of that component — `enum` and `const` strings, never descriptions; free text and the data model are not read. `pin` alone is allowed, `pin code` is not.
 

@@ -101,6 +101,63 @@ describe('checkPaint', () => {
     ]);
   });
 
+  /**
+   * A model-mode agent streams its tree as it writes it, the way the kit's streaming parser does:
+   * every update sends the tree so far again, a component half-written until a later copy completes
+   * it, a `loading_*` placeholder standing where a child has not arrived (Shop A's live stream).
+   */
+  const streamed = (button: Record<string, unknown>) => [
+    {version: 'v0.9', createSurface: {surfaceId: 'main', catalogId: VENDOR}},
+    {
+      version: 'v0.9',
+      updateComponents: {
+        surfaceId: 'main',
+        components: [
+          {id: 'root', component: 'Card', child: 'body'},
+          {id: 'body', component: 'Column', children: ['loading_title']},
+          {id: 'loading_title', component: 'Row', children: []},
+        ],
+      },
+    },
+    {
+      version: 'v0.9',
+      updateComponents: {
+        surfaceId: 'main',
+        components: [
+          {id: 'root', component: 'Card', child: 'body'},
+          {id: 'body', component: 'Column', children: ['title', 'sort']},
+          {id: 'title', component: 'Text', text: 'Cameras'},
+          {id: 'sort', component: 'Button', variant: 'borderless'},
+        ],
+      },
+    },
+    {
+      version: 'v0.9',
+      updateComponents: {
+        surfaceId: 'main',
+        components: [
+          {id: 'root', component: 'Card', child: 'body'},
+          {id: 'body', component: 'Column', children: ['title', 'sort']},
+          {id: 'sort', component: 'Button', variant: 'borderless', ...button},
+          {id: 'sort-label', component: 'Text', text: 'Price'},
+        ],
+      },
+    },
+  ];
+
+  test('a tree streamed as it is written is judged as it stands at the end', () => {
+    const action = {event: {name: 'sort', context: {key: 'price'}}};
+    expect(checkPaint(streamed({child: 'sort-label', action}), check)).toEqual([]);
+  });
+
+  test('a component still invalid when the stream ends is a finding', () => {
+    const findings = checkPaint(streamed({child: 'sort-label'}), check);
+    expect(findings).toHaveLength(1);
+    expect(findings[0]).toMatch(
+      /^surface "main": .*\(sort\): must have required property 'action'/,
+    );
+  });
+
   test('two surfaces are checked each against its own catalog', () => {
     const messages = [
       ...paint(VENDOR),

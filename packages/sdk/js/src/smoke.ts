@@ -5,6 +5,7 @@
  * a sign-in agent's answer. Sending the A2A request and seeing the task end stay with each
  * transport; nothing here depends on an A2A package.
  */
+import {componentReferences, extractRefFields, ROOT_ID, type RefFields} from './a2ui/graph.js';
 import type {A2uiCatalogSchema} from './a2ui/types.js';
 import {createA2uiValidator, formatA2uiFinding, type A2uiValidator} from './a2ui/validator.js';
 import {readAuthRequired, AUTH_REQUIRED_STATE} from './a2uiverse.js';
@@ -77,9 +78,53 @@ export interface PaintCheck {
 const OPERATIONS = ['createSurface', 'updateComponents', 'updateDataModel', 'deleteSurface'];
 
 /**
+ * A surface's messages as the client holds them once the answer ends, `updateComponents` replacing
+ * each component by its id: every other message as sent, and in place of the component updates one
+ * update carrying the tree drawn from the root. A tree streamed as it is written — every update
+ * sending it again, a component half-written until a later copy completes it, a placeholder standing
+ * where a child has not arrived — is judged as it stands at the end. With no root, every component
+ * is kept, so its absence is a finding.
+ */
+function settled(messages: readonly A2uiMessage[], refFields: ReadonlyMap<string, RefFields>) {
+  const byId = new Map<string, Record<string, unknown>>();
+  const loose: unknown[] = [];
+  const rest: A2uiMessage[] = [];
+  let first: {at: number; message: A2uiMessage; update: Record<string, unknown>} | undefined;
+  for (const message of messages) {
+    const update = message.updateComponents;
+    if (!isObject(update) || !Array.isArray(update.components)) {
+      rest.push(message);
+      continue;
+    }
+    first ??= {at: rest.length, message, update};
+    for (const component of update.components) {
+      if (isObject(component) && typeof component.id === 'string')
+        byId.set(component.id, component);
+      else loose.push(component);
+    }
+  }
+  if (!first) return rest;
+  const drawn = new Set<string>();
+  const visit = (id: string) => {
+    const component = byId.get(id);
+    if (!component || drawn.has(id)) return;
+    drawn.add(id);
+    for (const ref of componentReferences(component, refFields)) visit(ref.id);
+  };
+  visit(ROOT_ID);
+  const tree = byId.has(ROOT_ID)
+    ? [...byId.values()].filter(c => drawn.has(c.id as string))
+    : [...byId.values()];
+  const components = [...tree, ...loose];
+  rest.splice(first.at, 0, {...first.message, updateComponents: {...first.update, components}});
+  return rest;
+}
+
+/**
  * The check over a paint, the live one and a captured one alike: at least one `createSurface`;
- * every surface's catalog id in the entitlement; each surface's tree against its catalog's
- * schema; no credential input. Findings name the surface; empty when the paint passes.
+ * every surface's catalog id in the entitlement; each surface's tree, as it stands when the answer
+ * ends, against its catalog's schema; no credential input in any message. Findings name the
+ * surface; empty when the paint passes.
  */
 export function checkPaint(messages: readonly A2uiMessage[], check: PaintCheck): string[] {
   const findings: string[] = [];
@@ -97,6 +142,7 @@ export function checkPaint(messages: readonly A2uiMessage[], check: PaintCheck):
   if (surfaces.size === 0) return ['the answer paints nothing: no createSurface'];
 
   const validators = new Map<string, A2uiValidator>();
+  const refs = new Map<string, Map<string, RefFields>>();
   const options = new Map<string, CatalogOptions>();
   for (const [surfaceId, {catalogId, messages: own}] of surfaces) {
     const at = `surface ${JSON.stringify(surfaceId)}`;
@@ -120,7 +166,14 @@ export function checkPaint(messages: readonly A2uiMessage[], check: PaintCheck):
       validator = createA2uiValidator({catalog: schema});
       validators.set(catalogId, validator);
     }
-    findings.push(...validator.validate(own).map(f => `${at}: ${formatA2uiFinding(f)}`));
+    let refFields = refs.get(catalogId);
+    if (!refFields) {
+      refFields = extractRefFields(schema);
+      refs.set(catalogId, refFields);
+    }
+    findings.push(
+      ...validator.validate(settled(own, refFields)).map(f => `${at}: ${formatA2uiFinding(f)}`),
+    );
     let declared = options.get(catalogId);
     if (!declared) {
       declared = catalogId === BASIC_CATALOG_ID ? basicCatalogOptions() : catalogOptions(schema);

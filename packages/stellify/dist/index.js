@@ -8716,6 +8716,42 @@ function a2uiMessagesOf(parts) {
   return messages;
 }
 var OPERATIONS = ["createSurface", "updateComponents", "updateDataModel", "deleteSurface"];
+function settled(messages, refFields) {
+  const byId = /* @__PURE__ */ new Map();
+  const loose = [];
+  const rest = [];
+  let first;
+  for (const message of messages) {
+    const update = message.updateComponents;
+    if (!isObject4(update) || !Array.isArray(update.components)) {
+      rest.push(message);
+      continue;
+    }
+    first ??= { at: rest.length, message, update };
+    for (const component of update.components) {
+      if (isObject4(component) && typeof component.id === "string")
+        byId.set(component.id, component);
+      else
+        loose.push(component);
+    }
+  }
+  if (!first)
+    return rest;
+  const drawn = /* @__PURE__ */ new Set();
+  const visit = (id) => {
+    const component = byId.get(id);
+    if (!component || drawn.has(id))
+      return;
+    drawn.add(id);
+    for (const ref of componentReferences(component, refFields))
+      visit(ref.id);
+  };
+  visit(ROOT_ID);
+  const tree = byId.has(ROOT_ID) ? [...byId.values()].filter((c) => drawn.has(c.id)) : [...byId.values()];
+  const components = [...tree, ...loose];
+  rest.splice(first.at, 0, { ...first.message, updateComponents: { ...first.update, components } });
+  return rest;
+}
 function checkPaint(messages, check) {
   const findings = [];
   const surfaces = /* @__PURE__ */ new Map();
@@ -8733,6 +8769,7 @@ function checkPaint(messages, check) {
   if (surfaces.size === 0)
     return ["the answer paints nothing: no createSurface"];
   const validators = /* @__PURE__ */ new Map();
+  const refs = /* @__PURE__ */ new Map();
   const options = /* @__PURE__ */ new Map();
   for (const [surfaceId, { catalogId, messages: own }] of surfaces) {
     const at = `surface ${JSON.stringify(surfaceId)}`;
@@ -8754,7 +8791,12 @@ function checkPaint(messages, check) {
       validator = createA2uiValidator({ catalog: schema });
       validators.set(catalogId, validator);
     }
-    findings.push(...validator.validate(own).map((f) => `${at}: ${formatA2uiFinding(f)}`));
+    let refFields = refs.get(catalogId);
+    if (!refFields) {
+      refFields = extractRefFields(schema);
+      refs.set(catalogId, refFields);
+    }
+    findings.push(...validator.validate(settled(own, refFields)).map((f) => `${at}: ${formatA2uiFinding(f)}`));
     let declared = options.get(catalogId);
     if (!declared) {
       declared = catalogId === BASIC_CATALOG_ID ? basicCatalogOptions() : catalogOptions(schema);
