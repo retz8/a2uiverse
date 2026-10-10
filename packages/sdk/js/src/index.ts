@@ -12,6 +12,7 @@ export * from './validate.js';
 export * from './catalog.js';
 export * from './credential.js';
 export * from './artifact.js';
+export * from './gate.js';
 export * from './marketplace.js';
 export * from './evolution.js';
 export * from './retirement.js';

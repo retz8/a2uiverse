@@ -1,21 +1,24 @@
 /**
- * The static gate over one handed artifact (task-11.4 decision 4, phase-11 decision 13): what the
- * files alone can prove, through the sdk's functions, so the marketplace refuses the same artifacts
- * for the same reasons. The descriptor conforms; every listed file is present with its hash and
- * nothing unlisted is there; the schema compiles as an A2UI catalog and its id is the descriptor's;
- * the host interface is one the platform supplies. Nothing is evaluated. Every finding is collected.
+ * The static gate over one handed artifact (task-11.4 decision 4, phase-11 decision 13,
+ * task-13.3 decision 4): what the files alone can prove, run by the registry at install and by the
+ * marketplace at publish, so both refuse the same artifacts for the same reasons. The descriptor
+ * conforms; every listed file is present with its hash and nothing unlisted is there; the schema
+ * compiles as an A2UI catalog and its id is the descriptor's; the host interface is one the
+ * platform supplies. Nothing is evaluated. Every finding is collected.
  */
 import {
   ARTIFACT_DESCRIPTOR_FILE,
   artifactIdOf,
   checkArtifactSchema,
   checkCatalogSchemaCompiles,
-  checkHostInterface,
   validateArtifactDescriptor,
   verifyArtifactFiles,
   type ArtifactDescriptor,
-} from '@a2uiverse/sdk';
-import type {ArtifactFiles} from './store.js';
+} from './artifact.js';
+import {checkHostInterface} from './catalog.js';
+
+/** An artifact's files by path relative to its root, the descriptor among them. */
+export type ArtifactFiles = ReadonlyMap<string, Uint8Array>;
 
 /** An artifact the gate passed: its id, its descriptor, its files. */
 export interface GatedArtifact {
@@ -32,7 +35,7 @@ export interface GateResult {
   artifact?: GatedArtifact;
 }
 
-/** The gate over the artifact handed `index`-th (from 0) in an install. */
+/** The gate over the artifact handed `index`-th (from 0) in an install or a publish. */
 export async function gateArtifact(files: ArtifactFiles, index: number): Promise<GateResult> {
   const label = `catalog artifact ${index + 1}`;
   const raw = files.get(ARTIFACT_DESCRIPTOR_FILE);
