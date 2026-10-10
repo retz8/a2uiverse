@@ -91,6 +91,12 @@ pnpm --filter @a2uiverse/orchestrator registry install <app-id> http://localhost
 pnpm --filter @a2uiverse/orchestrator registry uninstall <app-id>
 ```
 
+`--publish` takes every app through the marketplace instead (task 13.6): each is published as the dev publisher `a2uiverse-apps`, whose token the launcher keeps in `scripts/.state/stellify/publisher.json`, and installed from the marketplace by its id alone. Everything it reaches is on the Mac — the marketplace at the orchestrator's `MARKETPLACE_URL`, each agent's card and sign-in on `localhost` — so it needs nothing of the tunnel. It runs in deterministic and stub mode, never live:
+
+```bash
+pnpm dev:all --mode deterministic --publish
+```
+
 Most sessions run everything through the launcher instead — `BASE_URL` still comes from the orchestrator's `.env`. The real roster in both modes is an acceptance bed (task 5.7):
 
 ```bash

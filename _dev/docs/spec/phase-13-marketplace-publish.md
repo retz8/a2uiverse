@@ -89,6 +89,8 @@ When the update check finds that the only difference between an installed app an
 
 Beside `--no-install`, a launcher flag claims a dev publisher name, publishes each roster app to the marketplace after starting its agent, and installs each from the marketplace by id, so every roster app then counts as installed from the marketplace. Without the flag the launcher installs from the checkout as before, and a launch needs no running marketplace.
 
+*Amended by task 13.6 decisions 1 and 8.* The flag is `--publish`, refused beside `--mode live`, where the kit's non-interactive entry each sign-in app's preview signs in through is refused.
+
 ### 18. The marketplace's state
 
 The marketplace keeps its index, its artifacts and its publishers as files in its own state directory and boots from them alone; an empty marketplace is a valid one.

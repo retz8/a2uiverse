@@ -153,8 +153,8 @@ Open **http://localhost:5173** and press `⌘K`. The apps start in `deterministi
 ```bash
 pnpm dev:all          # the apps and the platform, the apps installed
 pnpm dev              # the platform only: client, orchestrator, marketplace
-pnpm dev:agents       # the apps only, installed into the running orchestrator: --tier mocks, --only <ids>, --mode deterministic|stub|live, --agents-dir <path>, --no-install, --agent-state <dir>
-pnpm agents:list      # what a launch would run, and what would stop it: --tier mocks
+pnpm dev:agents       # the apps only, installed into the running orchestrator: --tier mocks, --only <ids>, --mode deterministic|stub|live, --agents-dir <path>, --no-install, --publish, --agent-state <dir>
+pnpm agents:list      # what a launch would run, and what would stop it: --tier mocks, --publish
 pnpm dev:client       # one platform process, in its own terminal
 pnpm dev:orch
 pnpm dev:marketplace
@@ -179,9 +179,17 @@ pnpm dev:all --tier mocks
 
 The launcher starts the agents and the platform together, builds each app's catalog package in the checkout, packs it with Stellify and, once the orchestrator answers, installs each app as soon as its agent is up. Then it uninstalls every roster app it did not launch, so the orchestrator holds what runs; an app you installed by hand that the roster does not name is left alone. `dev:agents` does the same against an orchestrator you started yourself. `--no-install` starts the agents only — nothing built, packed, installed or uninstalled — for installing apps by hand with the orchestrator's `registry` command.
 
-Each agent is started with `--host localhost` and its roster port. `A2UIVERSE_PUBLIC_URL`, a pattern with a `{port}` slot such as `https://<tunnel-id>-{port}.asse.devtunnels.ms`, gives each agent, as `--public-url`, the address the browser reaches its sign-in pages at, for a browser on another machine; unset, they stay on `localhost`. `--agent-state <dir>` keeps each agent's sign-in store in `<dir>/<app id>`, passed as `--state-dir`, in place of the agent's own `.state/`. The launcher handles no credentials: each agent reads its own `agent/.env`.
+`--publish` takes every app through the marketplace instead, so each counts as installed from it:
 
-An app that does not build, does not pack, never comes up, or is refused at install is named with its reason and left out, uninstalled if an earlier launch installed it; the rest still run. A roster app missing from the checkout is skipped. An unknown tier, an unknown `--only` id, or two apps of the tier on one port stop the launch. Stopping the launcher uninstalls nothing: the next launch sets the registry right.
+```bash
+pnpm dev:all --publish
+```
+
+The launcher publishes to the marketplace the orchestrator installs from — `MARKETPLACE_URL`, read as the orchestrator reads it, `http://localhost:10002` by default — as the dev publisher `a2uiverse-apps`. It claims that name on its first launch and keeps the token in `scripts/.state/stellify/publisher.json`, never in your own Stellify publisher file; a marketplace whose state was wiped no longer knows the token, and the launcher claims the name again. `STELLIFY_HOME=scripts/.state/stellify` gives Stellify's command line the dev publisher by hand, for `list` or `unpublish`. Then each app, once its agent is up: an app whose card requires sign-in is previewed first, signed in as the fake account its roster entry names through the agent kit's sign-in without the account chooser, or with Shop B's demo key; then published; then installed from the marketplace by its id alone. When the marketplace never answers, holds the name under a token the launcher no longer has, or the publisher file names another marketplace, the launch installs nothing, and its line says what to do. An app whose preview, publish or install is refused is left out with the marketplace's or the orchestrator's words. The launcher never unpublishes; the notices for the dev publisher's apps that are ahead of the Store and were not published this launch are printed at the end. The fake accounts sign in only in deterministic and stub mode, so `--publish` is refused beside `--mode live`, as it is beside `--no-install`. With `--publish`, `agents:list` also names the marketplace, the publisher file's state and each preview's account.
+
+Each agent is started with `--host localhost` and its roster port. `A2UIVERSE_PUBLIC_URL`, a pattern with a `{port}` slot such as `https://<tunnel-id>-{port}.asse.devtunnels.ms`, gives each agent, as `--public-url`, the address the browser reaches its sign-in pages at, for a browser on another machine; unset, they stay on `localhost`. `--agent-state <dir>` keeps each agent's sign-in store in `<dir>/<app id>`, passed as `--state-dir`, in place of the agent's own `.state/`. The launcher hands no credential to an agent: each agent reads its own `agent/.env`. Under `--publish` it holds the dev publisher's token and each preview's credential, the latter for that one preview.
+
+An app that does not build, does not pack, never comes up, or is refused at preview, publish or install is named with its reason and left out, uninstalled if an earlier launch installed it; the rest still run. A roster app missing from the checkout is skipped. An unknown tier, an unknown `--only` id, or two apps of the tier on one port stop the launch. Stopping the launcher uninstalls nothing: the next launch sets the registry right.
 
 </details>
 
