@@ -35,6 +35,9 @@ working with this repo.
   admits both the tunnel origin and the local one.
 - Claude-in-Chrome always drives tunnel URLs, never `localhost` — the
   controlled browser is on the remote side.
+- **The orchestrator reaches the marketplace on its own machine**, so its
+  `MARKETPLACE_URL` default, `http://localhost:10002`, stands in a tunnel
+  session; only the browser needs the marketplace's tunnel URL.
 
 ## Ports
 

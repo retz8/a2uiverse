@@ -45,6 +45,8 @@ A new hash for a held catalog id replaces the row, and every installed app namin
 
 A catalog id is the catalog's only version. Within one id an artifact is a build, named by its artifact id; the descriptor's package version is stored and shown beside it, never enforced. A new artifact for a held id is accepted when its schema is an additive evolution of the row's — nothing removed, no type changed — and refused otherwise: a breaking change is a new catalog id. The check is written once in the sdk and runs at publish and at install. A new catalog id on the card is a new line. The card's `version` is the agent's version: a publish that changes the card must carry a version this app id has never published, and a publish at a published version must change nothing. An app's version as the index and a registry see it is the card's version and each catalog id at its build.
 
+*Amended by task 13.5 decision 5.* At install the check runs when the move would carry another installed app with it; an app alone on its row moves it freely. At publish it stays unconditional.
+
 ### 8. Retirement is a publish whose card drops the id
 
 The publisher's obligation is the protocol's migration rule: the agent keeps painting in every catalog id it has published while the hub advertises it, until the publisher publishes a version whose card no longer names that id. That publish retires the line for that app; the marketplace records it, and the row goes once no published app names the id. There is no retire verb. Changing the live agent without publishing is the breach decision 14 detects.
@@ -72,6 +74,8 @@ An agent whose card requires sign-in is sent the request with no credential and 
 ### 14. Ahead of the Store
 
 The live card is the only copy of the card that says what the agent does now; the index's and the registry's are snapshots. When the live card names a catalog id the index has no artifact for, or carries a version the index does not know, the app is ahead of the Store. The orchestrator sees it from the card it fetched at boot and reports it to the marketplace; the marketplace treats the report as a nudge, refetches the live card itself, and sets its flag only when it sees the drift too. The marketplace refetches every published app's card at its own boot the same way. A flagged listing says it is waiting for the publisher; an install of it is refused by coverage with words that say the Store is behind the app, never that the app is broken; the publisher is told at their next Stellify contact, with the catalog id their card declares and the Store lacks. The report carries the app id and nothing about the person. What the canvas says for such an app, and the update it offers once the publisher publishes, are Phase 15's.
+
+*Amended by task 13.5 decision 4.* The install by id is refused on either half of the drift — a catalog id the entry has no artifact for, or a version not among the published ones — through the sdk's drift function over the live card the orchestrator fetched, in the Store-behind words, the report posted; the marketplace's flag alone never refuses.
 
 ### 15. Unpublish, owner only
 
