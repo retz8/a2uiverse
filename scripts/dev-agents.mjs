@@ -2,8 +2,8 @@
 /**
  * Launch the apps of the dev roster from the sibling `a2uiverse-apps` checkout, and install them.
  *
- *   pnpm dev:agents [--tier mocks] [--only github,gmail] [--mode deterministic|stub|live] [--agents-dir <path>] [--no-install] [--agent-state <dir>]
- *   pnpm agents:list [--tier mocks]
+ *   pnpm dev:agents [--tier mocks] [--only github,gmail] [--mode deterministic|stub|live] [--agents-dir <path>] [--no-install | --publish] [--agent-state <dir>]
+ *   pnpm agents:list [--tier mocks] [--publish]
  *
  * `A2UIVERSE_PUBLIC_URL`, a pattern with a `{port}` slot (a tunnel address), gives each agent the
  * public address the browser reaches its sign-in pages at (task-12.12 decision 2).
@@ -23,19 +23,41 @@
  * and nothing is built, packed, installed or uninstalled: the apps are installed by hand through the
  * registry command (task-11.8 decision 5).
  *
+ * Under `--publish` each app goes through the marketplace the orchestrator installs from (task-13.6):
+ * the dev publisher `a2uiverse-apps` is established once, kept in the launcher's own file
+ * (`launch-marketplace.mjs`); then each app, once its card answers, is previewed when its card
+ * requires sign-in, with a credential the launcher obtains (`launch-preview.mjs`), published, and
+ * installed from the marketplace by its id alone, so every app the launch installs counts as
+ * installed from the marketplace. A marketplace that does not answer, or a publisher that cannot be
+ * established, installs nothing, as an orchestrator that does not answer; a refused preview,
+ * publish or install leaves that app out, as any failure does. The reconcile stays the registry's:
+ * the launcher never unpublishes. The notices of the dev publisher's apps this launch did not
+ * publish are printed at the end.
+ *
  * `--list` is the same plan halted before anything starts: what it reports is what a launch would
  * run, and it exits non-zero when it reports something that would stop one (decision 11).
  *
- * The launcher handles no credentials. Each agent loads its own `agent/.env`, and refuses to start
- * rather than degrade when a mode's credential is missing — so an agent that does not come up is
- * reported by name and left out, never papered over.
+ * The launcher hands no credential to an agent. Each agent loads its own `agent/.env`, and refuses
+ * to start rather than degrade when a mode's credential is missing — so an agent that does not come
+ * up is reported by name and left out, never papered over. Under `--publish` the launcher holds two
+ * of its own: the dev publisher's token, in its file and never printed, and each sign-in app's
+ * preview credential, for that one preview.
  */
 import {spawn} from 'node:child_process';
 import {existsSync} from 'node:fs';
 import {dirname, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
-import {artifactFiles, stellify} from '@a2uiverse/stellify';
+import {
+  artifactFiles,
+  claim,
+  describeNotice,
+  listPublished,
+  preview,
+  publish,
+  stellify,
+  unpublish,
+} from '@a2uiverse/stellify';
 
 import {DEFAULT_TIER, ROSTER} from './dev-roster.mjs';
 import {
@@ -47,20 +69,41 @@ import {
   resolveAgentsDir,
 } from './launch-plan.mjs';
 import {
+  DEV_PUBLISHER,
+  establishPublisher,
+  noticesLeft,
+  previewWords,
+  publisherFileOf,
+  publisherLine,
+  publisherState,
+  readPublisherFile,
+  writePublisherFile,
+} from './launch-marketplace.mjs';
+import {previewCredential, requiresSignIn} from './launch-preview.mjs';
+import {
   cardAnswers,
   installBody,
+  installByIdBody,
   orchestratorOf,
   Registry,
   CannotWrite,
 } from './launch-registry.mjs';
 
-const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const SCRIPTS_DIR = dirname(fileURLToPath(import.meta.url));
+const REPO_ROOT = resolve(SCRIPTS_DIR, '..');
+/** The dev publisher's file under `--publish` (task-13.6 decision 4). */
+const PUBLISHER_FILE = publisherFileOf(SCRIPTS_DIR);
 const ORCHESTRATOR_DIR = resolve(REPO_ROOT, 'apps', 'orchestrator');
 
 /** How long an agent has to answer its card before it counts as never having come up. */
 const CARD_TIMEOUT_MS = 90_000;
-/** How long to wait for the orchestrator: under `dev:all` it builds its workspace dependencies first. */
+/**
+ * How long to wait for the orchestrator: under `dev:all` it builds its workspace dependencies first.
+ * Under `--publish` the marketplace is waited for as long (task-13.6 decision 6).
+ */
 const ORCHESTRATOR_TIMEOUT_MS = 180_000;
+/** How long an agent's card may take to read under `--publish`, as Stellify's own card fetch. */
+const CARD_READ_TIMEOUT_MS = 10_000;
 const POLL_MS = 500;
 
 const COLORS = ['\x1b[36m', '\x1b[35m', '\x1b[33m', '\x1b[32m', '\x1b[34m', '\x1b[31m'];
@@ -204,12 +247,82 @@ async function packCatalog(entry) {
   return {files: artifactFiles(result)};
 }
 
+const indented = lines => lines.map(line => `\n    ${line}`).join('');
+
+/**
+ * Preview, then publish, one app under `--publish` (task-13.6 decisions 7 to 9): the reason it is
+ * left out, or null once the marketplace took it. The preview runs only for a card that requires
+ * sign-in, with the credential `previewCredential` obtains, its document held in memory and handed
+ * to publish; for any other card the marketplace captures the preview itself.
+ */
+async function publishApp(entry, files, {marketplace, publisher, token}) {
+  let card;
+  try {
+    const res = await fetch(entry.cardUrl, {signal: AbortSignal.timeout(CARD_READ_TIMEOUT_MS)});
+    if (!res.ok) return `its card answered ${res.status}`;
+    card = await res.json();
+  } catch (err) {
+    return `its card could not be read: ${err.message}`;
+  }
+  let captured;
+  if (requiresSignIn(card)) {
+    const {credential, reason} = await previewCredential(card, entry);
+    if (reason) return reason;
+    const result = await preview({
+      appId: entry.id,
+      cardUrl: entry.cardUrl,
+      catalogs: [files],
+      credential,
+      marketplace,
+      publisher,
+    });
+    if (result.findings.length) return `its preview was refused:${indented(result.findings)}`;
+    captured = result.document;
+  }
+  const answer = await publish({
+    marketplace,
+    token,
+    appId: entry.id,
+    cardUrl: entry.cardUrl,
+    catalogs: [files],
+    ...(captured ? {preview: captured} : {}),
+  });
+  if (!answer.ok) return `the marketplace refused it:${indented(answer.findings)}`;
+  log(answer.summary);
+  for (const note of answer.notes) log(`${entry.id}: ${note}`);
+  return null;
+}
+
+/** The dev publisher, established before any publish; null when the marketplace path cannot run. */
+async function devPublisher(marketplace) {
+  const established = await establishPublisher({
+    marketplace,
+    path: PUBLISHER_FILE,
+    api: {claim, unpublish},
+    read: readPublisherFile,
+    write: writePublisherFile,
+  });
+  if (!established.ok) {
+    log(`${established.words} · the apps run, not installed`);
+    return null;
+  }
+  log(
+    established.claimed === 'again'
+      ? `claimed ${DEV_PUBLISHER} again at ${marketplace}: it no longer knew the token in ${PUBLISHER_FILE}`
+      : established.claimed
+        ? `claimed ${DEV_PUBLISHER} at ${marketplace}, its token kept in ${PUBLISHER_FILE}`
+        : `publishing as ${DEV_PUBLISHER} to ${marketplace}`,
+  );
+  return established.record;
+}
+
 /**
  * Build, pack, install and reconcile (decisions 5 to 9). Every failure is reported by name with its
  * reason and leaves that app out; the reconcile then takes out any install of it an earlier launch
- * left behind.
+ * left behind. `marketplace`, under `--publish`, is where each app is published before it is
+ * installed from there by id (task-13.6).
  */
-async function installLaunch(selected, running, registry, agentsDir) {
+async function installLaunch(selected, running, registry, agentsDir, marketplace) {
   const failed = new Map();
   const report = (id, reason) => {
     failed.set(id, reason);
@@ -220,6 +333,8 @@ async function installLaunch(selected, running, registry, agentsDir) {
     () => cardAnswers(`${registry.url}/.well-known/agent-card.json`),
     ORCHESTRATOR_TIMEOUT_MS,
   );
+  const marketplaceUp =
+    marketplace && waitFor(() => cardAnswers(`${marketplace}/index.json`), ORCHESTRATOR_TIMEOUT_MS);
 
   log(`building ${selected.map(e => e.catalogPackage).join(', ')}…`);
   for (const [id, reason] of await buildCatalogs(agentsDir, selected)) report(id, reason);
@@ -238,15 +353,35 @@ async function installLaunch(selected, running, registry, agentsDir) {
   }
   await registry.readToken();
 
+  let publisher = null;
+  if (marketplace) {
+    if (!(await marketplaceUp)) {
+      log(
+        `no marketplace answered at ${marketplace} in ${ORCHESTRATOR_TIMEOUT_MS / 1000} s · the apps run, not installed`,
+      );
+      return;
+    }
+    publisher = await devPublisher(marketplace);
+    if (!publisher) return;
+  }
+
   const installed = [];
+  const published = [];
   await Promise.all(
     [...packed].map(async ([id, files]) => {
       const {entry, ready} = running.get(id);
       const notUp = await ready;
       if (notUp) return report(id, notUp);
+      if (publisher) {
+        const notPublished = await publishApp(entry, files, publisher);
+        if (notPublished) return report(id, notPublished);
+        published.push(id);
+      }
       let answer;
       try {
-        answer = await registry.install(installBody(id, entry.cardUrl, files));
+        answer = await registry.install(
+          publisher ? installByIdBody(id) : installBody(id, entry.cardUrl, files),
+        );
       } catch (err) {
         if (err instanceof CannotWrite) throw err;
         return report(id, `the install did not complete: ${err.message}`);
@@ -279,32 +414,67 @@ async function installLaunch(selected, running, registry, agentsDir) {
     log(`uninstalled ${id} — ${failed.has(id) ? 'it failed this launch' : 'not in this launch'}`);
   }
 
+  if (publisher) {
+    const listed = await listPublished({
+      marketplace: publisher.marketplace,
+      publisher: publisher.publisher,
+    });
+    if (!listed.ok) log(`the notices could not be read:${indented(listed.findings)}`);
+    else for (const notice of noticesLeft(listed.notices, published)) log(describeNotice(notice));
+  }
+
   const parts = [`installed ${installed.length ? installed.sort().join(', ') : 'nothing'}`];
+  if (publisher)
+    parts.unshift(`published ${published.length ? published.sort().join(', ') : 'nothing'}`);
   if (failed.size) parts.push(`left out ${[...failed.keys()].sort().join(', ')}`);
   if (uninstalled.length) parts.push(`uninstalled ${uninstalled.sort().join(', ')}`);
   log(parts.join(' · '));
 }
 
-function printListing({dir, source}, {tier, entries, fatal}) {
+/**
+ * The listing (decision 11). Under `--publish` it also names the marketplace, the dev publisher's
+ * file as it stands, and what each sign-in app's preview signs in with — read from disk, nothing
+ * contacted, the exit code unchanged (task-13.6 decision 13).
+ */
+function printListing({dir, source}, {tier, entries, fatal}, publishing) {
   console.log(`agents dir: ${dir} (${source})`);
   console.log(`tier: ${tier}`);
+  if (publishing) {
+    console.log(`marketplace: ${publishing.marketplace}`);
+    console.log(publisherLine(publishing.known, PUBLISHER_FILE));
+  }
   const rows = entries.map(e => [
     e.id,
     e.folder,
     String(e.port),
+    ...(publishing ? [previewWords(e)] : []),
     e.ok ? 'ok' : `skipped: ${e.reason}`,
   ]);
   if (!rows.length) console.log('  no apps in this tier');
-  const width = n => Math.max(...rows.map(r => r[n].length), 0);
-  const [w0, w1, w2] = [width(0), width(1), width(2)];
-  for (const [id, folder, port, status] of rows) {
-    console.log(`  ${id.padEnd(w0)}  ${folder.padEnd(w1)}  ${port.padStart(w2)}  ${status}`);
+  const widths = (rows[0] ?? []).map((_, n) => Math.max(...rows.map(r => r[n].length), 0));
+  for (const row of rows) {
+    const cells = row.map((cell, n) =>
+      n === row.length - 1 ? cell : n === 2 ? cell.padStart(widths[n]) : cell.padEnd(widths[n]),
+    );
+    console.log(`  ${cells.join('  ')}`);
   }
   for (const problem of fatal) console.log(`fatal: ${problem}`);
 }
 
 async function main() {
-  const {tier, mode, only, then, agentsDir, list, install, agentState} = parse();
+  const {
+    tier,
+    mode,
+    only,
+    then,
+    agentsDir,
+    list,
+    install,
+    publish: toMarketplace,
+    agentState,
+  } = parse();
+  const orchestrator = orchestratorOf({env: process.env, orchestratorDir: ORCHESTRATOR_DIR});
+  const marketplace = toMarketplace ? orchestrator.marketplaceUrl : null;
 
   const resolved = resolveAgentsDir({
     flag: agentsDir,
@@ -330,7 +500,11 @@ async function main() {
   });
 
   if (list) {
-    printListing(resolved, plan);
+    const publishing = marketplace && {
+      marketplace,
+      known: publisherState(await readPublisherFile(PUBLISHER_FILE), marketplace, PUBLISHER_FILE),
+    };
+    printListing(resolved, plan, publishing);
     process.exit(plan.fatal.length ? 2 : 0);
   }
 
@@ -346,6 +520,8 @@ async function main() {
   log(`${selected.map(e => e.id).join(', ')} in ${mode} mode (${tier} tier)`);
   if (publicUrls.pattern) log(`sign-in pages at ${publicUrls.pattern} (A2UIVERSE_PUBLIC_URL)`);
   if (agentState) log(`sign-in stores under ${agentState} (--agent-state)`);
+  if (marketplace)
+    log(`publishing to ${marketplace} as ${DEV_PUBLISHER}, installing from there (--publish)`);
   const running = new Map(
     selected.map((entry, i) => [
       entry.id,
@@ -380,11 +556,9 @@ async function main() {
     await new Promise(() => {});
   }
 
-  const registry = new Registry(
-    orchestratorOf({env: process.env, orchestratorDir: ORCHESTRATOR_DIR}),
-  );
+  const registry = new Registry(orchestrator);
   try {
-    await installLaunch(selected, running, registry, resolved.dir);
+    await installLaunch(selected, running, registry, resolved.dir, marketplace);
   } catch (err) {
     log(err instanceof CannotWrite ? err.message : `installing stopped: ${err.message}`);
   }

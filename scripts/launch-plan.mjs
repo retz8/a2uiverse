@@ -18,6 +18,9 @@ export const MODES = ['deterministic', 'stub', 'live'];
 /**
  * The launcher's command line: its options, or the error that stops it. `--no-install` starts the
  * agents and neither packs nor installs them, the registry left as it is (task-11.8 decision 5).
+ * `--publish` publishes each app to the marketplace and installs it from there by id (task-13.6
+ * decision 1): a usage error beside `--no-install`, and beside `--mode live`, whose agents refuse
+ * the fake accounts each sign-in app's preview signs in as (decision 8).
  */
 export function parseLaunchArgs(args, {defaultTier}) {
   const {values} = parseArgs({
@@ -30,6 +33,7 @@ export function parseLaunchArgs(args, {defaultTier}) {
       'agents-dir': {type: 'string'},
       list: {type: 'boolean', default: false},
       'no-install': {type: 'boolean', default: false},
+      publish: {type: 'boolean', default: false},
       'agent-state': {type: 'string'},
     },
     allowPositionals: false,
@@ -38,6 +42,18 @@ export function parseLaunchArgs(args, {defaultTier}) {
   // fails now rather than after every agent dies on it.
   if (!MODES.includes(values.mode)) {
     return {error: `unknown --mode '${values.mode}' (expected ${MODES.join(' | ')})`};
+  }
+  if (values.publish && values['no-install']) {
+    return {
+      error:
+        '--publish installs every app from the marketplace and --no-install installs nothing: pass one',
+    };
+  }
+  if (values.publish && values.mode === 'live') {
+    return {
+      error:
+        "--publish signs each sign-in app's preview in as one of the kit's fake accounts, which live mode refuses: publish in deterministic or stub mode",
+    };
   }
   return {
     tier: values.tier,
@@ -52,6 +68,7 @@ export function parseLaunchArgs(args, {defaultTier}) {
     agentsDir: values['agents-dir'],
     list: values.list,
     install: !values['no-install'],
+    publish: values.publish,
     // Each agent's sign-in store under this folder, not its own (task-12.13 decision 55).
     ...(values['agent-state'] ? {agentState: resolve(values['agent-state'])} : {}),
   };

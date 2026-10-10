@@ -5,7 +5,8 @@
  * `ORCHESTRATOR_URL`, else `http://localhost:$PORT` on 10001; the state directory `STATE_DIR`
  * against the orchestrator's package, `.state` by default; the token at `registry/write-token`
  * inside it — over the orchestrator's `.env` with the shell's environment winning, as `tsx
- * --env-file` gives the orchestrator.
+ * --env-file` gives the orchestrator. The marketplace `--publish` publishes to is the one the
+ * orchestrator installs from, `MARKETPLACE_URL` resolved the same way (task-13.6 decision 2).
  */
 import {existsSync, readFileSync} from 'node:fs';
 import {readFile} from 'node:fs/promises';
@@ -13,9 +14,14 @@ import {join, resolve} from 'node:path';
 import {parseEnv} from 'node:util';
 
 const ROUTE_PREFIX = '/registry';
+/** The orchestrator's own default (`DEFAULT_MARKETPLACE_URL`): the marketplace's port. */
+const DEFAULT_MARKETPLACE_URL = 'http://localhost:10002';
 const TOKEN_PATH = ['registry', 'write-token'];
 
-/** The orchestrator's address and state directory, as its `registry` command reads them. */
+/**
+ * The orchestrator's address and state directory, as its `registry` command reads them, and the
+ * marketplace it installs from by id.
+ */
 export function orchestratorOf({env, orchestratorDir}) {
   const envFile = join(orchestratorDir, '.env');
   const merged = {
@@ -26,10 +32,14 @@ export function orchestratorOf({env, orchestratorDir}) {
     /\/$/,
     '',
   );
-  return {url, stateDir: resolve(orchestratorDir, merged.STATE_DIR ?? '.state')};
+  return {
+    url,
+    stateDir: resolve(orchestratorDir, merged.STATE_DIR ?? '.state'),
+    marketplaceUrl: (merged.MARKETPLACE_URL ?? DEFAULT_MARKETPLACE_URL).replace(/\/$/, ''),
+  };
 }
 
-/** Whether an A2A server answers at its card URL — an agent, or the orchestrator. */
+/** Whether a process answers at an address of its own — an agent or the orchestrator at its card, the marketplace at its index. */
 export async function cardAnswers(cardUrl) {
   try {
     const res = await fetch(cardUrl, {signal: AbortSignal.timeout(2_000)});
@@ -45,6 +55,9 @@ export function installBody(appId, cardUrl, files) {
   for (const [path, bytes] of files) encoded[path] = Buffer.from(bytes).toString('base64');
   return {appId, cardUrl, catalogs: [{files: encoded}]};
 }
+
+/** The install request's body for an install from the marketplace: the app id alone (task-13.5 decision 2). */
+export const installByIdBody = appId => ({appId});
 
 /** Thrown when there is no token or the orchestrator refuses it: nothing can be written this launch. */
 export class CannotWrite extends Error {}

@@ -183,6 +183,7 @@ test('parseLaunchArgs defaults to the default tier in deterministic mode, splitt
     agentsDir: undefined,
     list: false,
     install: true,
+    publish: false,
   });
 });
 
@@ -190,6 +191,20 @@ test('parseLaunchArgs names an unknown mode as the error that stops the launch',
   assert.deepEqual(parseArgsOf(['--mode', 'replay']), {
     error: "unknown --mode 'replay' (expected deterministic | stub | live)",
   });
+});
+
+test('--publish installs from the marketplace, in deterministic and stub mode (task-13.6 decision 1)', () => {
+  for (const mode of ['deterministic', 'stub']) {
+    const parsed = parseArgsOf(['--publish', '--mode', mode]);
+    assert.equal(parsed.publish, true);
+    assert.equal(parsed.install, true);
+  }
+  assert.equal(parseArgsOf(['--publish', '--list']).publish, true);
+});
+
+test('--publish is a usage error beside --no-install, and beside live mode (task-13.6 decisions 1 and 8)', () => {
+  assert.match(parseArgsOf(['--publish', '--no-install']).error, /--no-install installs nothing/);
+  assert.match(parseArgsOf(['--publish', '--mode', 'live']).error, /live mode refuses/);
 });
 
 test('publicUrlsOf fills each agent its own port from the pattern, and is off when unset', () => {
