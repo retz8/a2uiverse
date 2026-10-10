@@ -679,48 +679,93 @@ properties spread last, so a prop named `metadata` would replace it the same way
 
 ---
 
-## 12. The A2UI extension's card `params` are keyed by version in the schema and written flat by the guide and the Python SDK
+## 12. The v0.9.1 capability schemas key their object `v0.9`; the v0.9.1 guide and web_core write `v0.9.1` (spec, Python agent SDK)
 
-**Component:** `specification/v0_9_1/json/server_capabilities.json`,
-`specification/v0_9_1/docs/a2ui_extension_specification.md` ("Agent Card"), and
-`agent_sdks/python/a2ui_agent/src/a2ui/a2a/extension.py` (`upstream/main` `52c641a3`).
+**Component:** `specification/v0_9_1/json/server_capabilities.json` and
+`specification/v0_9_1/json/client_capabilities.json` (the root's one required key, `v0.9`);
+`specification/v0_9_1/docs/a2ui_extension_specification.md`, lines 44 and 129; the Python agent
+SDK's `resolve_catalogs` (`python/a2ui_agent/src/a2ui/utils/catalog_resolver.py`, `_CAPABILITIES_ENTRIES`,
+lines 37–44); web_core's `MessageProcessor.getRendererCapabilities`
+(`typescript/web_core/src/processing/message-processor.ts`) (`upstream/main` `ce03d005`).
 
-**Severity:** interoperability — a client that validates a card's declaration against the schema
-refuses every card the SDK writes, and one that reads the guide's shape misses every card written to
-the schema.
+**Severity:** interoperability — a web_core renderer that advertises v0.9.1 and a Python agent
+serving a v0.9.1 catalog cannot negotiate: the agent raises on the renderer's capabilities. The
+v0.9.1 guide's own `a2uiClientCapabilities` example fails its schema.
+
+**Reported:** `a2ui-project/a2ui` issue
+[#3134](https://github.com/a2ui-project/a2ui/issues/3134); fix on `retz8:fix/v0_9_1-capabilities-key`,
+PR not opened yet.
 
 ### Issue
 
-The guide says the extension entry's `params` object "corresponds directly to the Server
-Capabilities Schema". That schema's root has one required key, `v0.9`, with `supportedCatalogIds`
-and `acceptsInlineCatalogs` under it:
+The v0.9.1 guide names the capabilities' version object `v0.9.1` twice: under the example agent card,
+"The `params` object corresponds to the `v0.9.1` object in the `server_capabilities.json` schema", and
+in its `a2uiClientCapabilities` example:
 
 ```json
-{"v0.9": {"supportedCatalogIds": ["…"], "acceptsInlineCatalogs": true}}
+{"a2uiClientCapabilities": {"v0.9.1": {"supportedCatalogIds": ["…"]}}}
 ```
 
-The same guide's example card, and the Python SDK's `extension.py`, write the two fields at the top
-of `params`, with no version key:
+Both v0.9.1 capability schemas have one required key, `v0.9`, and no `v0.9.1` — the same root as the
+v0.9 files. Elsewhere a version's capabilities sit under its own version string: `v0.9` in v0.9,
+`v1.0` in v1.0. The v0.9.1 message schemas accept both versions in `version`
+(`"enum": ["v0.9", "v0.9.1"]`).
 
-```json
-{"supportedCatalogIds": ["…"], "acceptsInlineCatalogs": true}
-```
+The implementations split along the same line:
 
-The client side has no such split: `client_capabilities.json` requires `v0.9` and every client
-writes it. So the two directions of the same negotiation are keyed differently in practice.
+- **`v0.9.1`:** web_core's `getRendererCapabilities` writes each requested version under its own
+  string, so `versions: ['v0.9.1']` gives `{"v0.9.1": {...}}`. Python core's
+  `MessageProcessor.get_renderer_capabilities` does the same, and Dart core's
+  `A2uiRendererCapabilities` reads and writes a `v0.9.1` key as its own entry.
+- **`v0.9`:** the Python agent SDK's `resolve_catalogs` looks v0.9.1 up under `v0.9` —
+  `_CAPABILITIES_ENTRIES` maps `ProtocolVersion.V0_9_1` to `("v0.9", v0_9.V09Capabilities)`,
+  commented "v0.9.1 reuses the v0.9 key" — and raises when that entry is missing.
 
 ### Reproduction
 
-Validate the guide's own example `params` against `server_capabilities.json`: it fails on the
-missing required `v0.9`. Build a card with the Python SDK's helper and validate its
-`capabilities.extensions[].params` the same way: the same failure.
+```ts
+const processor = new MessageProcessor([new Catalog('https://example.com/catalogs/my_catalog.json', 'v0.9.1', [])]);
+processor.getRendererCapabilities({versions: ['v0.9.1']});
+// {"v0.9.1": {"supportedCatalogIds": ["https://example.com/catalogs/my_catalog.json"]}}
+```
+
+```python
+catalog = Catalog.from_json(catalog_doc, protocol_version="0.9.1",
+                            catalog_id="https://example.com/catalogs/my_catalog.json")
+resolve_catalogs([CatalogConfig(catalog=catalog)], caps_from_web_core)
+# A2uiValidationError: The renderer capabilities have no 'v0.9' entry, which the registered catalogs read.
+resolve_catalogs([CatalogConfig(catalog=catalog)], {"v0.9": caps_from_web_core["v0.9.1"]})
+# resolves the catalog
+```
+
+Validating the guide's `a2uiClientCapabilities` example against the v0.9.1 `client_capabilities.json`
+fails with `'v0.9' is a required property`.
 
 ### Fix
 
-Pick one. Either the guide's example and the SDK write `params` under `v0.9` as the schema requires,
-or the schema drops the version key on the server side — the extension URI already carries the
-version. A2UIVerse reads both shapes, each against the schema's matching part (`readSupportedCatalogIds`
-in `@a2uiverse/sdk`).
+Rename the root key of both v0.9.1 capability schemas from `v0.9` to `v0.9.1`. Swift core embeds
+the v0.9.1 `client_capabilities.json` as `V09ClientCapabilitiesSchema`, which serves v0.9 and
+v0.9.1, and picks up the change when it is built.
+
+In the Python resolver, v0.9 and v0.9.1 catalogs read the `v0.9.1` entry and fall back to the `v0.9`
+entry. The resolver takes the key from the registered catalogs' protocol version, and
+`BasicCatalog("v0.9.1")` returns the v0.9 basic catalog, which reports v0.9. Renaming only the v0.9.1
+row would leave an agent on the basic catalog reading `v0.9`, and would reject an agent that
+registers the basic catalog beside its own v0.9.1 catalog.
+
+The opposite direction — keep `v0.9`, and have the guide, web_core, Python core and Dart core write
+`v0.9` for v0.9.1 — is also consistent.
+
+### Prior art
+
+No issue or PR reports this. The Python resolver's mapping came in PR
+[#2966](https://github.com/a2ui-project/a2ui/pull/2966) ("refactor(python): remove A2uiCatalog in favor
+of core Catalog", merged 2026-10-07), with no review discussion of the key. Closed issue
+[#1749](https://github.com/a2ui-project/a2ui/issues/1749) ("a2ui/react: v0.9.1 payload compatibility
+gap in v0_9 runtime"), fixed by PR [#1993](https://github.com/a2ui-project/a2ui/pull/1993), made the
+renderers accept v0.9.1 messages; capabilities were not part of it. Open issue
+[#3097](https://github.com/a2ui-project/a2ui/issues/3097) ("Unify v1.0 protocol version on bare
+'1.0'") renames the v1.0 capabilities key from `v1.0` to `1.0`.
 
 ---
 
