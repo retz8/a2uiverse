@@ -22,7 +22,7 @@ The registry — each installed app's card, the card URL it was fetched from, it
 
 ### 2. Install takes the files in the request body
 
-Install's core takes the app id, the card URL and one in-memory files map per catalog. Over `orchestratorApi` the request body carries each catalog's files as JSON. At M9 a tarball fetched from the marketplace is a second way into the same core. The orchestrator never reads a path it is handed.
+Install's core takes the app id, the card URL and one in-memory files map per catalog. Over `orchestratorApi` the request body carries each catalog's files as JSON. At M9 the artifact's files fetched from the marketplace — only those the registry lacks — are a second way into the same core (Phase 13, decision 9). The orchestrator never reads a path it is handed.
 
 ### 3. The card URL is the card's full URL
 
@@ -34,7 +34,7 @@ Install refuses the whole app on any failure of: the app id's grammar, `shell` r
 
 ### 5. A held catalog id at a new hash
 
-The catalog table holds one artifact per catalog id. An install handing an artifact for a held id at a different hash is accepted only when no other installed app names that id: the row is replaced and the old files dropped. Otherwise install refuses the whole app, naming the installed apps that name the id.
+The catalog table holds one artifact per catalog id. An install handing an artifact for a held id at a different hash is accepted only when no other installed app names that id: the row is replaced and the old files dropped. Otherwise install refuses the whole app, naming the installed apps that name the id. Amended by Phase 13, decision 6: the row moves on every install path, every installed app naming the id follows it, and the summary names them.
 
 ### 6. Install-over and uninstall
 
@@ -90,4 +90,4 @@ The orchestrator's tests move from the roster and the URL override to installs t
 
 ## Open items
 
-- Phase 13's ownership rule for catalog ids: there should be a way of checking that a publisher is who it claims to be — that "GitHub" is actually from GitHub. Once a catalog id exists, no app from a different publisher may publish with that catalog id; multiple apps over a single catalog are the catalog owner's responsibility.
+- Phase 13's ownership rule for catalog ids: there should be a way of checking that a publisher is who it claims to be — that "GitHub" is actually from GitHub. Once a catalog id exists, no app from a different publisher may publish with that catalog id; multiple apps over a single catalog are the catalog owner's responsibility. Decided in Phase 13 (decisions 2 and 5): a publisher is a name plus a secret, not verified; a catalog id is owner-only.

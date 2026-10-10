@@ -157,5 +157,5 @@ The deterministic roster through the tunnel on 2026-10-03, the orchestrator on a
 
 ## Open items
 
-- Ownership of a catalog id by its publisher — who may replace the artifact for an id, and so how one publisher updates a catalog several of its apps name — is decided in Phase 13.
-- How an app update is discovered and accepted, and the window between an agent's new card and its install-over, belong to Phases 13 to 15.
+- Ownership of a catalog id by its publisher — who may replace the artifact for an id, and so how one publisher updates a catalog several of its apps name — decided in Phase 13 (decisions 5 and 6).
+- How an app update is discovered and accepted, and the window between an agent's new card and its install-over: discovery decided in Phase 13 (decisions 7, 8, 10, 14 and 16); the consent and the window belong to Phases 14 and 15.

@@ -41,7 +41,7 @@ Two contracts, normative JSON with the JS projection, beside the composition con
 
 ### 7. The artifact is a directory of files served under one base URL
 
-The descriptor with every file and its hash, the catalog schema, one ESM, the CSS files as files, fonts and icons as files. The registry serves it statically under the catalog's base URL; a tarball of the directory is the transport form when the marketplace hosts it. The client caches by hash.
+The descriptor with every file and its hash, the catalog schema, one ESM, the CSS files as files, fonts and icons as files. The registry serves it statically under the catalog's base URL; the marketplace hosts it in the same layout, and an install from it fetches only the files the registry lacks (Phase 13, decision 9). The client caches by hash.
 
 ### 8. Host singletons through a host-module interface
 
@@ -53,7 +53,7 @@ Publish (M9) takes an agent URL and zero or more catalog artifacts; the marketpl
 
 ### 10. The app id is the publisher's, unique in the marketplace
 
-The platform app id — the provenance tag, the surface namespace, the vault key — is chosen by the publisher at publish and unique in the marketplace's index, checked for duplicates like a username and refused when taken; the same check covers catalog ids. The registry adopts it and keeps `shell` reserved. At M7 the install operation takes the id as its argument.
+The platform app id — the provenance tag, the surface namespace, the vault key — is chosen by the publisher at publish and unique in the marketplace's index, checked for duplicates like a username and refused when taken; the same check covers catalog ids. Both belong to the publisher who first published them (Phase 13, decisions 2 and 5). The registry adopts it and keeps `shell` reserved. At M7 the install operation takes the id as its argument.
 
 ### 11. One writer: the orchestrator owns the registry
 
@@ -61,7 +61,7 @@ Install, uninstall and install-over are orchestrator operations exposed over `or
 
 ### 12. Install, uninstall and install-over semantics
 
-Install refuses the whole app on any uncovered catalog id or any failed static check. Installing an id already held replaces its card and artifacts in place. A new hash for a held catalog id is accepted only when no other installed app names that id; otherwise install refuses, naming the apps that hold it (task 11.4). Uninstall removes the app's card and record; a catalog artifact stays in the table while another installed card names it and goes when none does — the basic catalog and the shell catalog never go. Canvases already composed over the app keep what they hold; a dispatch already running when its app is uninstalled finishes, checked against the entitlement it was sent under, and a new dispatch to an uninstalled app fails into the failure tile with a not-installed cause of its own, Retry kept (task 11.4). Retry sends again what failed: the action inside the fragment that failed, kept on its slot until an action or a Retry there completes, otherwise the slot's request from the plan (task 11.8, decision 23).
+Install refuses the whole app on any uncovered catalog id or any failed static check. Installing an id already held replaces its card and artifacts in place. A new hash for a held catalog id moves the row, every installed app naming the id following it, the summary naming them, on every install path (Phase 13, decision 6 — replacing task 11.4's decision 5, which refused it while another installed app named the id). Uninstall removes the app's card and record; a catalog artifact stays in the table while another installed card names it and goes when none does — the basic catalog and the shell catalog never go. Canvases already composed over the app keep what they hold; a dispatch already running when its app is uninstalled finishes, checked against the entitlement it was sent under, and a new dispatch to an uninstalled app fails into the failure tile with a not-installed cause of its own, Retry kept (task 11.4). Retry sends again what failed: the action inside the fragment that failed, kept on its slot until an action or a Retry there completes, otherwise the slot's request from the plan (task 11.8, decision 23).
 
 ### 13. Three gates
 
@@ -94,5 +94,5 @@ SPEC §9.1 (the bundle becomes the catalog artifact; the card is the app), §10 
 
 ## Open items
 
-- Ownership of an app id and of a catalog id in the marketplace's index — who may publish or replace the artifact for an id, and so how one publisher updates a catalog several of its apps name — is a Phase 13 rule.
-- How an app update is discovered and accepted, and the window between an agent's new card and its install-over, belong to Phases 13 to 15 (task 11.8).
+- Ownership of an app id and of a catalog id in the marketplace's index — who may publish or replace the artifact for an id, and so how one publisher updates a catalog several of its apps name — decided in Phase 13 (decisions 2, 5 and 6).
+- How an app update is discovered and accepted, and the window between an agent's new card and its install-over: discovery decided in Phase 13 (decisions 7, 8, 10, 14 and 16); the consent and the window belong to Phases 14 and 15.
