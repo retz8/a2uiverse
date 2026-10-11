@@ -131,6 +131,10 @@ The orchestrator judges a slot's access against the live card it fetched. In Lin
 
 The shell's formula operators gain `difference`: the gap between exactly two numbers, never negative, no value when either is absent. The Synthesizer fills a column with the operator that computes what its words say, by that operator's description; where none does, the column is dropped or renamed, never filled by an operator that computes something else. Replaced: a planned "Difference" column filled with `max`, the larger price shown as the difference.
 
+### 29. The update check fetches each app's live card
+
+Each update check fetches every installed app's live card beside its marketplace entry, in parallel. A card that answers replaces the one the orchestrator held, its search vector recomputed when it changed; one that does not answer leaves the one held. The states, and every sign-in judged on the live card after, read the card the agent serves now. Replaced: the live card fetched at boot and at install alone, an agent moved since judged on its old card until the orchestrator restarted.
+
 ## Invariants
 
 - No credential reaches the marketplace.
