@@ -80,6 +80,7 @@ export function marketplaceRoutes({marketplace}: {marketplace: Marketplace}): Ro
     }
     const result = await marketplace.claim(read.value.publisher);
     if (!result.ok) {
+      logLine(`refused a claim of ${read.value.publisher}: ${result.findings.join('; ')}`);
       res.status(result.kind === 'taken' ? 409 : 422).json(refusal(result.findings));
       return;
     }
@@ -127,6 +128,9 @@ export function marketplaceRoutes({marketplace}: {marketplace: Marketplace}): Ro
     const publisher = res.locals.publisher as string;
     const result = await marketplace.unpublish(publisher, read.value.appId);
     if (!result.ok) {
+      logLine(
+        `refused ${publisher}'s unpublish of ${read.value.appId}: ${result.findings.join('; ')}`,
+      );
       res.status(result.kind === 'forbidden' ? 403 : 404).json(refusal(result.findings));
       return;
     }

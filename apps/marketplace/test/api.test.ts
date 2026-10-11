@@ -3,7 +3,7 @@ import {createServer, type Server} from 'node:http';
 import {mkdtemp, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {afterEach, describe, expect, test} from 'vitest';
+import {afterEach, describe, expect, test, vi} from 'vitest';
 import {ARTIFACT_DESCRIPTOR_FILE, MARKETPLACE_ROUTES} from '@a2uiverse/sdk';
 import {FakeEmbedder} from '@a2uiverse/embedder';
 import {buildMarketplace} from '../src/app.js';
@@ -238,6 +238,32 @@ describe('unpublish', () => {
     expect(gone.status).toBe(200);
     expect(await gone.json()).toEqual({ok: true, appId: 'shop'});
     expect((await fetch(`${base}/apps/shop/entry.json`)).status).toBe(404);
+  });
+});
+
+describe('the log', () => {
+  test('a refused claim and a refused unpublish each print a line, as a refused publish does (task-13.8 decision 24)', async () => {
+    const {base} = await serve();
+    const token = await claimed(base);
+    const rival = await claimed(base, 'rival');
+    await published(base, token, 'shop', await agentOf());
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+    try {
+      await post(`${base}/claim`, {publisher: 'acme'});
+      await post(`${base}/claim`, {publisher: 'Acme!'});
+      await post(`${base}/unpublish`, {appId: 'shop'}, rival);
+      await post(`${base}/unpublish`, {appId: 'nope'}, token);
+      const lines = log.mock.calls.map(call => String(call[0]));
+      expect(lines[0]).toBe(
+        '@a2uiverse/marketplace: refused a claim of acme: publisher name "acme" is taken',
+      );
+      expect(lines[1]).toMatch(/^@a2uiverse\/marketplace: refused a claim of Acme!: /);
+      expect(lines[2]).toMatch(/^@a2uiverse\/marketplace: refused rival's unpublish of shop: /);
+      expect(lines[3]).toMatch(/^@a2uiverse\/marketplace: refused acme's unpublish of nope: /);
+      expect(lines).toHaveLength(4);
+    } finally {
+      log.mockRestore();
+    }
   });
 });
 
