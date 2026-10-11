@@ -90,6 +90,18 @@ The manual entry point opens the destination last open this session, the Store t
 
 Open the App Library gains an optional app, as open the Store has an optional query. Manage apps and the Planner's button land on that app's view. The address carries the app, so a link opens one app in the Store or the App Library. Amends phase decision 11; the optional app is task 14.5's.
 
+### 18. The entry point sits beneath Trail
+
+An icon button third in the gutter, after Back and Trail, named "Apps" on hover and to assistive technology.
+
+### 19. Publish is a mode at the header's right
+
+The Store and the App Library are the page's two tabs; Publish is a separate button at the header's right edge, filled while it is open.
+
+### 20. The canvas holds the final UI only
+
+The options not chosen are removed from the canvas.
+
 ## Open items
 
 - The Store ordered by number of installs, later.
