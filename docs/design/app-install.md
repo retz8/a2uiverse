@@ -4,6 +4,8 @@ This guide explains **app install**: how an app A2UIVerse has never seen becomes
 
 One example runs through the whole guide: **the GitHub app**, installed into an empty registry from its agent card and its packed catalog, then asked _"What pull requests need my review?"_. It's a real install, made by hand on the deterministic apps, and every id and hash below is a real one. You can repeat it yourself (see [Trying it without a model](#trying-it-without-a-model)).
 
+[`marketplace.md`](marketplace.md) is the chapter after this one: how a vendor publishes an app so that a registry can install it by its id alone, and how the orchestrator tells that an installed app is behind what its publisher ships. This guide covers what both share — the artifact, the gate, the registry — and names the two places the marketplace reaches into it, [install by id and the update check](#install-by-id-and-the-update-check).
+
 ## Problem it solves
 
 An app in A2UIVerse is an A2A agent running somewhere, which answers a question by painting A2UI in its own catalog: GitHub paints in a catalog of components built on Primer, GitHub's design system. To draw that paint, the canvas needs three things the protocol doesn't give it:
@@ -26,6 +28,7 @@ flowchart LR
     end
     A -->|"its card URL"| INS["install<br/>into the orchestrator's registry"]
     ART -->|"its files"| INS
+    MK["the marketplace"] -.->|"or the app id alone"| INS
     INS -->|"questions routed to"| A
     INS -->|"/registry"| C["the client<br/>loads the artifact at runtime"]
 ```
@@ -146,7 +149,7 @@ The vendor never writes code against this interface: Stellify rewrites the impor
 
 The **registry** is the orchestrator's persisted state: the installed apps and the catalog table, kept as files in its state directory. The orchestrator is its only writer, through three operations:
 
-- **Install** an app: its id, its card's URL, and an artifact for each catalog its card names other than the basic catalog.
+- **Install** an app: its id, its card's URL, and an artifact for each catalog its card names other than the basic catalog — or its id alone, the card URL and the artifacts resolved through the marketplace ([below](#install-by-id-and-the-update-check)).
 - **Uninstall** an app, by id.
 - **Install-over**: install an id that's already installed. Its card, its artifacts and its entitlement are replaced in place.
 
@@ -205,7 +208,7 @@ The command reads the artifact folder, base64-encodes every file, and posts `{ap
 - **coverage, both ways**: every catalog the card declares is handed or is the basic catalog, and every artifact handed is one the card declares;
 - each artifact passes the **static gate**, everything its files alone can prove;
 - no artifact is handed for the basic or the shell catalog;
-- no catalog another installed app holds is swapped for another version.
+- a new build for a catalog another installed app renders in is an additive evolution of the one it holds.
 
 [Checking an app at install](#checking-an-app-at-install) has the details.
 
@@ -218,11 +221,12 @@ The command reads the artifact folder, base64-encodes every file, and posts `{ap
   "card": {"name": "GitHub", "url": "http://localhost:11001", "version": "0.1.0", "…": "the card as fetched, verbatim"},
   "catalogs": {"https://github.com/…/github-catalog/catalogs/v0.9.1/catalog.json": "sha256-muNbmR5mKt8syNMd8F2CwoX3dD4io6xoVLEbHSB_GG8"},
   "entitlement": ["https://a2ui.org/…/basic/catalog.json", "https://github.com/…/github-catalog/catalogs/v0.9.1/catalog.json"],
-  "installedAt": "2026-10-03T00:49:11.509Z"
+  "installedAt": "2026-10-03T00:49:11.509Z",
+  "source": "local"
 }
 ```
 
-Install answers with one line saying what changed, `installed github · card 0.1.0 · catalog sha256-muNbmR5m…`, and the journal gets a line of kind `registry`. Nothing restarts: the Router ranks GitHub on the very next question, and the Planner's `installed_apps` reader lists it.
+`source` says where the install came by: `local` for a pack handed from disk, `marketplace` for an install by id. Install answers with one line saying what changed, `installed github · card 0.1.0 · catalog sha256-muNbmR5m…`, and the journal gets a line of kind `registry`. Nothing restarts: the Router ranks GitHub on the very next question, and the Planner's `installed_apps` reader lists it.
 
 **5. A question routes to GitHub.** You ask _"What pull requests need my review?"_. The Router ranks GitHub's card against it (one of its skills' examples is that very question), and the Planner dispatches to it. The AgentsPool reads GitHub's record once, as the dispatch starts, and sends the Planner's request with GitHub's entitlement as the message's `a2uiClientCapabilities`:
 
@@ -345,7 +349,7 @@ What only running code can show, like what the module exports and whether `CATAL
 
 Install doesn't look for credential inputs in a catalog. The orchestrator checks every paint instead, and refuses one that carries a password, code or card field, whatever catalog it's in: the credential bar, in [`authority.md`](authority.md#credential-bar-no-password-field-on-the-canvas). Install's part is the options each installed catalog's components declare, which the registry keeps when it installs or loads an artifact, for the bar to read.
 
-**One hash per catalog id.** The table holds one artifact per catalog id. An artifact for a held id at another hash is a new version of that catalog. It's accepted only when no other installed app names that id, and refused otherwise, naming the apps that hold it: `catalog "…/github-catalog/catalogs/v0.9.1/catalog.json" is held at another hash by github`. Two apps share a catalog by handing the same artifact: same id, same hash.
+**One build per catalog id, and the row moves with its followers.** The table holds one artifact per catalog id. An artifact for a held id at another hash is a new **build** of that catalog: the row moves to it, and every other installed app naming the id **follows** — its record pointed at the new build, nothing else about it changed — the install's line naming them. When the move would carry another app, the new build's schema must first be an additive evolution of the one they render in — nothing removed, no type changed, no constraint tightened — through the sdk's `checkAdditiveEvolution`; otherwise the whole install is refused: `catalog "…/linear-catalog/catalogs/v0.9.1/catalog.json" at its new build is not an additive evolution of the build linear-admin renders in: components/PriorityIcon: removed`. An app alone on its row moves it freely. Two apps share a catalog by handing the same artifact: same id, same hash. The old build's files go once no record names them. It's the same rule the marketplace applies at publish ([`marketplace.md`](marketplace.md#additive-evolution-what-a-build-may-change)).
 
 ### Store on disk
 
@@ -364,7 +368,7 @@ Install doesn't look for credential inputs in a catalog. The orchestrator checks
 
 ### Two cards per app
 
-The record keeps the card as it was fetched at install. At every startup the orchestrator fetches each card again from its stored URL, all in parallel, and that's the card the run uses: where questions are sent, the skills the Router ranks, the name the Planner reads. An agent that's down at startup stays installed, can't be routed to for the run, and is named in the boot log.
+The record keeps the card as it was fetched at install. At every startup the orchestrator fetches each card again from its stored URL, all in parallel, and that's the card the run uses: where questions are sent, the skills the Router ranks, the name the Planner reads. Each update check fetches them all again, so the run never judges on a card older than its last check. An agent that's down at startup stays installed, can't be routed to for the run, and is named in the boot log.
 
 The card on disk changes only by install-over, and a refreshed card never grows the entitlement. An agent that starts declaring a new catalog paints in it only once it's installed over with that catalog's artifact.
 
@@ -377,6 +381,7 @@ installed github · card 0.1.0 · catalog sha256-muNbmR5m…
 updated github · card 0.1.0 · catalog sha256-muNbmR5m… → sha256-bYxc_jOA…
 reinstalled github · nothing changed · card 0.1.0 · catalog sha256-muNbmR5m…
 updated github · card 0.1.0 · catalog …/catalogs/v0.9.1/catalog.json sha256-muNbmR5m… gone · catalog …/v2/catalogs/v0.9.1/catalog.json sha256-A9ZrhYLo… new
+updated linear · card 0.1.0 · catalog sha256-JvcQSoor… → sha256-zJbZyJNl… · linear-admin followed
 ```
 
 It's a small diff of the two records, written in parts joined by `·`:
@@ -384,9 +389,19 @@ It's a small diff of the two records, written in parts joined by `·`:
 1. The verb: `installed` when there was no record; `updated` when the card or the set of catalogs and their artifacts differs; otherwise `reinstalled`, followed by `nothing changed`.
 2. The card's version, `old → new` when it moved.
 3. Each catalog the old record had and the new one doesn't, named in full, `gone`.
-4. Each catalog of the new record: its artifact; `old → new` when the artifact moved; the id named in full and `new` when the catalog is new.
+4. Each catalog of the new record: its artifact; `old → new` when the artifact moved, then the other installed apps that followed the moved row; the id named in full and `new` when the catalog is new.
 
 An artifact id is shortened to `sha256-` and its next eight characters. (The catalog ids above are shortened for the page; the line prints them whole.)
+
+### Install by id and the update check
+
+Both came with the marketplace, and [`marketplace.md`](marketplace.md) is their record. What they add to the registry:
+
+**Install by id** (`Registry.installFromMarketplace`) is `POST /registry/install` with `{appId}` and nothing else. The registry reads the app's entry from the marketplace (`MARKETPLACE_URL`, `http://localhost:10002` by default), fetches the live card from the URL the entry names, and refuses in words that say the Store is behind the app when the card declares a catalog or a version the entry lacks. Then it resolves each artifact the entry names: one already held is read from disk; otherwise its descriptor is fetched and, file by file, a file whose hash some held artifact lists is copied from disk and the rest fetched. From there `#install` runs exactly as for a pack from disk, with `source: 'marketplace'`. An install by id of an app already installed is the install-over.
+
+**The update check** (`registry/updates.ts`, behind `GET /registry/updates.json` and the boot) fetches, for each installed app, its marketplace entry and its live card, and computes one of eight states: up to date, newer build, card update, major update, update required, ahead of the Store, not published, unknown. A newer build of an app installed from the marketplace, the card unchanged, is installed over on the spot through the install by id and journaled as `automatic` — unless the row's move would carry an app installed from a local pack, which is left for the person. The states and what each means are in [`marketplace.md`](marketplace.md#6-update-state-computed-by-the-orchestrator-from-three-things), the algorithm in [`orchestrator.md`](orchestrator.md#registry-whats-installed).
+
+The journal's `registry` line carries three fields from this: `source`, `followed` — the apps a moved row carried — and `automatic` when the check made the install.
 
 ### Routes shaped like static files
 
@@ -397,7 +412,8 @@ An artifact id is shortened to `sha256-` and its next eight characters. (The cat
 | `GET apps.json` | the installed records, `Cache-Control: no-cache` |
 | `GET catalogs.json` | the catalog table, `Cache-Control: no-cache` |
 | `GET artifacts/<id>/<path>` | an artifact's files, `Cache-Control: public, max-age=31536000, immutable` |
-| `POST install` | `{appId, cardUrl, catalogs: [{files: {<path>: <base64>}}]}`, with the write token |
+| `GET updates.json` | each installed app's update state, the check run first; `Cache-Control: no-cache` |
+| `POST install` | `{appId, cardUrl, catalogs: [{files: {<path>: <base64>}}]}` — or `{appId}` alone, the install by id — with the write token |
 | `POST uninstall` | `{appId}`, with the write token |
 
 The read routes are shaped like files on purpose: a folder with the same layout, served by any static server, stands in for the orchestrator. The [registry snapshot](#dev-harness-the-launcher-and-the-snapshot) the tests load is exactly that. A write answers `200` with what it did, `400` for a malformed request, `401` for a missing or wrong token, `404` to uninstall an app that isn't installed, and `422` with every finding of a refusal.
@@ -491,7 +507,7 @@ Two browser behaviours shape the third column:
 | `shop-a` | `mocks/shop-a` | mocks | 12001 |
 | `shop-b` | `mocks/shop-b` | mocks | 12002 |
 
-`pnpm dev:all` starts the default tier's agents and the platform. It builds each app's catalog package in the checkout, packs it in memory with Stellify's programmatic API (`stellify()`, then `artifactFiles()`), and installs each app once the orchestrator and the app's own card both answer, printing the install's line. Then it uninstalls every roster app it didn't launch, and leaves alone any app the roster doesn't name. An app that fails to build, pack, come up or install is named with its reason and left out; the rest run. `--tier mocks` runs the two mock shops instead, and `--no-install` starts the agents and nothing else, for installing by hand with the command. `--agent-state <dir>` starts each agent with `--state-dir <dir>/<app>`, so every agent keeps its sign-in store in that folder instead of in its own checkout; the client's live sign-in test passes a scratch folder it clears at its start, and the checkout's stores are never written. With `A2UIVERSE_PUBLIC_URL` set, a pattern with a `{port}` slot such as a tunnel address, the launcher gives each agent its `--public-url`: where the browser reaches its sign-in pages, its card and the rest staying on `localhost`. The orchestrator knows nothing about the apps checkout: only the launcher reads it.
+`pnpm dev:all` starts the default tier's agents and the platform. It builds each app's catalog package in the checkout, packs it in memory with Stellify's programmatic API (`stellify()`, then `artifactFiles()`), and installs each app once the orchestrator and the app's own card both answer, printing the install's line. Then it uninstalls every roster app it didn't launch, and leaves alone any app the roster doesn't name. An app that fails to build, pack, come up or install is named with its reason and left out; the rest run. `--tier mocks` runs the two mock shops instead, and `--no-install` starts the agents and nothing else, for installing by hand with the command. `--agent-state <dir>` starts each agent with `--state-dir <dir>/<app>`, so every agent keeps its sign-in store in that folder instead of in its own checkout; the client's live sign-in test passes a scratch folder it clears at its start, and the checkout's stores are never written. With `A2UIVERSE_PUBLIC_URL` set, a pattern with a `{port}` slot such as a tunnel address, the launcher gives each agent its `--public-url`: where the browser reaches its sign-in pages, its card and the rest staying on `localhost`. `--publish` sends every roster app through the marketplace instead — claimed, previewed where its card requires sign-in, published, and installed by id ([`marketplace.md`](marketplace.md#dev-harness-the-launcher-under---publish)). The orchestrator knows nothing about the apps checkout: only the launcher reads it.
 
 **The registry snapshot** (`packages/registry-snapshot`) is the table and the packed artifacts of all seven catalog packages, for the tests and for replays with no orchestrator:
 
@@ -530,7 +546,8 @@ Two browser behaviours shape the third column:
 | **The gate is static** | Nothing of a vendor's runs on the orchestrator | What only running code shows waits for the client's load |
 | **One writer, through operations over HTTP** | The command, the launcher and, later, the Store page all take one path | Writes need the token, which only the machine can read |
 | **The registry is files, every write a rename** | Nothing to run beside the orchestrator; a crash leaves the old state or the new | One orchestrator per state directory |
-| **One hash per catalog id while another app names it** | No app changes the code another app renders in | A publisher can't update a catalog two of its apps name without uninstalling one |
+| **One build per catalog id; a new build moves the row and the other apps follow, checked as an additive evolution** | Install is one operation on every path; a shared catalog upgrades in one install, and nothing another app renders in is removed or retyped under it | A hand install can move the build another hand-installed app renders in; the summary names it |
+| **The record keeps where its install came by** | Only an app from the marketplace is ever moved by the index; a pack handed from disk stays where the operator put it | A local-pack app on a shared row holds back the automatic update of the apps sharing it |
 | **Entitlement checked at the hub** | No app paints in another's catalog, whatever the client advertised | One check per relayed event |
 | **The first load of a catalog wins for the session** | Every answer renders a catalog the same way; two versions' stylesheets never meet | An install-over of a catalog shows only after a reload, which loses every answer on the page |
 | **Every request of a load bounded, then asked once more** | A request nothing answers fails its slot, with Retry, rather than leaving it loading for good | A load through a very slow link can fail where waiting longer would have worked |
@@ -541,7 +558,7 @@ Two browser behaviours shape the third column:
 - **One package packs to one artifact only within one install.** esbuild writes each bundled module's path from the package into the entry, in a comment over the module and as the key of a CommonJS module's wrapper. Pack GitHub's catalog in the apps checkout and again where the registry snapshot installs it, and some of Primer's dependencies sit at other paths: the same source gives another `index.js`, so another id. GitHub's and Linear's artifacts differ from the snapshot's this way; the other five agree. Two installs may also resolve different versions of a dependency.
 - **GitHub waits for 77 stylesheets before its first paint**, sheets for components the paint doesn't use among them: through the tunnel, about 80 requests. The artifact carries 97 sheets, and its entry loads 80 of them; 17 are copied and never loaded.
 - **Catalog version skew.** An install-over of a catalog shows only after a reload, which loses every answer on the page. An agent restarted with a new catalog id before it's installed over is refused at the hub with the `catalog` cause until it is. After an update to a new catalog id, the old and the new can both be on one page.
-- **One publisher can't update a catalog two of its apps name**, since a new hash for an id another app names is refused.
+- **A hand install can move a shared row.** Two apps installed from local packs on one catalog id: installing a new build for one moves the other with it. The summary names it, and the additive check keeps what it renders in; between publishers, the marketplace's owner-only rule is the protection.
 - **Through the tunnel, a reload loads every artifact again.** The tunnel adds its own `Cache-Control: no-cache,no-store` beside the orchestrator's `immutable`, so the browser keeps no artifact across reloads there. Within a page, each is loaded once.
 
 ## Trying it without a model
@@ -550,6 +567,7 @@ Installing needs no model. Questions do, since the Planner is a model call, but 
 
 - **Install by hand.** Start the deterministic apps and the platform without installing anything, on a fresh state directory for an empty registry: `STATE_DIR=.state-fresh pnpm dev:all --no-install`, and the same `STATE_DIR` for the command, which resolves it against `apps/orchestrator` as the orchestrator does. Copying the old state directory's `models/` in skips the embedding model's download. Then pack and install as in [One app, end to end](#one-app-end-to-end), `registry list` to see it, and `curl http://localhost:10001/registry/catalogs.json` for the table. Open the client and its network panel: the table, `artifact.json`, `index.js` and the stylesheets go by as the preload runs.
 - **Install over, and uninstall.** Pack again after a change to the catalog and install again over it to see `updated` and the new hash; install the same pack again to see `reinstalled … nothing changed`; `registry uninstall github` and watch `artifacts/` empty.
+- **Install from the marketplace.** With the marketplace running and the roster published, `registry install github` with no card URL installs by id, `registry list` shows its source as `marketplace`, and `registry updates` prints each app's state; [`marketplace.md`](marketplace.md#trying-it-without-a-model) walks the whole path.
 - **Replay GitHub.** `?beat=1` replays GitHub's pull request list through the canvas, drawn in the catalog the loader loaded, from the live orchestrator's registry or, with `preview:snapshot`, from the snapshot.
 - **The tests.** Stellify's (`pnpm --filter @a2uiverse/stellify test`) pack a small fixture catalog, `test/fixtures/star-catalog`, with a Provider, a lazy stylesheet, a font and a dependency that imports `react-dom/client`: both rewrites, every check, and the same bytes from two places. The orchestrator's `test/registry.test.ts`, `registryApi.test.ts` and `registryCommand.test.ts` install, refuse, install over and uninstall with no network. The client's `src/catalogs/loader.test.ts` loads every snapshot artifact through the real loader, and plays unanswered requests against the bounds.
 
@@ -561,7 +579,9 @@ Installing needs no model. Questions do, since the Planner is a model call, but 
 | The contracts' checks | `packages/sdk/js/src/catalog.ts` (host interface, coverage, entitlement, app id), `packages/sdk/js/src/artifact.ts` (descriptor, hashes, files, schema) |
 | Packing | `packages/stellify/src/` (`pack.ts`, `bundle.ts`, `layout.ts`, `stylesheets.ts`, `config.ts`, `manifest.ts`, `write.ts`, `cli.ts`) |
 | Install, uninstall, the summary | `apps/orchestrator/src/registry/registry.ts` |
+| Install by id, the marketplace client, the update check | `apps/orchestrator/src/registry/registry.ts` (`installFromMarketplace`), `marketplace.ts`, `updates.ts` |
 | The static gate over one artifact, shared with the marketplace | `packages/sdk/js/src/gate.ts` |
+| What a build may change, and the rows let go | `packages/sdk/js/src/evolution.ts`, `retirement.ts` |
 | Storage, routes, token, command | `apps/orchestrator/src/registry/store.ts`, `api.ts`, `token.ts`, `command.ts`, `cli.ts`, `types.ts` |
 | Routing an installed app | `packages/embedder/src/corpus.ts`, `apps/orchestrator/src/router/router.ts`, `planner/platformReaders.ts` |
 | Entitlement at the hub | `apps/orchestrator/src/agentsPool/agentsPool.ts` |
@@ -589,6 +609,10 @@ Installing needs no model. Questions do, since the Planner is a model call, but 
 | **Host-module interface** | The object on the page an artifact reads React, the A2UI runtime and zod from, and loads its stylesheets through |
 | **Registry** | The installed apps and the catalog table, the orchestrator's persisted state |
 | **Install-over** | An install of an app id already installed, replacing its card, artifacts and entitlement |
+| **Install by id** | An install with the app id alone, the card URL and the artifacts resolved through the marketplace |
+| **Source** | On a record, where its last install came by: `local`, a pack from disk, or `marketplace` |
+| **Build** | One artifact for a catalog id; a new one moves the row, and every app naming the id follows |
+| **Update state** | One of eight per installed app, computed from the record, the marketplace's entry and the live card |
 | **Coverage** | Every catalog a card declares is handed or public, and every artifact handed is declared |
 | **Static gate** | Install's checks over an artifact's files, with nothing run |
 | **Entitlement** | The catalogs an app may paint in: those handed at its install, plus the basic catalog |
