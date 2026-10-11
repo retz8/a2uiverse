@@ -103,6 +103,10 @@ This spec is the record. Each on-the-spot fix is added as a numbered decision as
 
 The launcher's `--tier` takes several tiers joined by commas, and one launch runs them together, the reconcile over what that launch ran. A launch ran one tier and its reconcile took out another tier's apps, so the five apps and the two stores could not stand installed from the marketplace at once. Replaced: a launch running one tier.
 
+### 22. A region never shrinks below what it holds
+
+An app's region on the canvas keeps at least the height of what it holds. In a column, a region taller than its share keeps its height and its neighbours take the rest; where everything fits, the shares stay equal. Replaced: a region shrinking to its share of the column, a taller fragment running over the region below it.
+
 ## Invariants
 
 - No credential reaches the marketplace.
