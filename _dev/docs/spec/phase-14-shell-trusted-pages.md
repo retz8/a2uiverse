@@ -37,6 +37,8 @@ A publisher can be a user of A2UIVerse. The publisher's page is not a page the m
 
 The orchestrator keeps the publisher's name and token in its state directory, with the protections the vault's accounts have, and relays every publisher call to the marketplace with the bearer attached. The client shows Publish; the orchestrator is the publisher's hands. One publisher per orchestrator: claimed from the page with the token shown once, or pasted from an earlier claim; forgotten on the page's sign-out.
 
+*Amended by task 14.4.* The publisher is held with the marketplace that issued the token, the only one it is sent to; one held for another Store is shown by its name alone. A pasted token comes with its name and is checked at once, through a marketplace route that answers whose a token is. A claim or a sign-in waits for sign-out while any publisher is held, and sign-out is the only way the token is forgotten.
+
 ### 6. What Publish covers
 
 Claim a name; sign in with the token; the listings as Stellify's `list` prints them — each app's card version, each catalog id at its build, the retired lines, the ahead-of-the-Store notice — each with its captured preview rendered live; unpublish; and publish from the page: the publisher picks the packed artifact directories Stellify wrote, gives the card URL and, for a sign-in app, the preview file Stellify captured; the page posts the same publish body the command line does and shows the gate's findings or the summary. Pack and preview capture stay in Stellify, on the publisher's terminal: pack runs in the catalog's checkout, and preview captures a paint with the publisher's own credential.
@@ -130,11 +132,7 @@ SPEC §7 (the third shell action), §9.3 (the one trusted page and its three des
 
 ## Invariants
 
-- The browser holds no secret: neither an account's credential nor the publisher's token.
+- The browser holds no secret: neither an account's credential nor the publisher's token, which passes through the claim's answer once, kept by no page and never read again.
 - The model authors neither the Store nor the App Library nor Publish, and never reads the marketplace index; it paints an affordance into them.
 - The canvas stays mounted beneath the page.
 - The client talks only to the orchestrator.
-
-## Open items
-
-- Whether the marketplace gains a route to confirm a pasted publisher token, or the token is tested at the first publisher call — decided in the orchestrator's marketplace-side sub-task.
