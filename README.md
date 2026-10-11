@@ -159,7 +159,7 @@ pnpm dev:client       # one platform process, in its own terminal
 pnpm dev:orch
 pnpm dev:marketplace
 pnpm verify           # build, typecheck, test, lint and format check
-pnpm sweep:secrets    # after a sitting: the journal and captured output searched for every token and key the vault and the agents hold, counts only: --state-dir, --agents-dir, --logs <dir>
+pnpm sweep:secrets    # after a sitting: the journal, the marketplace's state and captured output searched for every token and key the vault, the agents and the publisher files hold, counts only: --state-dir, --agents-dir, --marketplace-state, --dev-publisher, --publisher <file>, --logs <dir>
 ```
 
 Ports: client `5173`, orchestrator `10001`, marketplace `10002`. The apps take `11001` and up, the mock stores `12001` and up; the orchestrator reaches them, and the browser only their sign-in pages.

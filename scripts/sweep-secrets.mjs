@@ -1,28 +1,35 @@
 /**
  * The secret sweep (task-12.13 decision 6): every secret a sitting created — the vault file's
- * tokens and keys, and what each agent's sign-in store keeps: its ID-token signing key, the
- * vendor's tokens, its own registration's secret at its vendor — searched for in the journal and
- * in every file of the captured process output. It reports how many secrets each searched file
- * holds, never a secret, and exits non-zero when any file holds one. What reaches the browser is
- * not searched.
+ * tokens and keys, what each agent's sign-in store keeps: its ID-token signing key, the vendor's
+ * tokens, its own registration's secret at its vendor — and each publisher's token (task-13.8
+ * decision 7), searched for in the journal, in every file of the marketplace's state but its
+ * embedding model, and in every file of the captured process output. It reports how many secrets
+ * each searched file holds, never a secret, and exits non-zero when any file holds one. What
+ * reaches the browser is not searched.
  *
- *   pnpm sweep:secrets [--state-dir <dir>] [--agents-dir <dir>] [--logs <dir>]... [<file>]...
+ *   pnpm sweep:secrets [--state-dir <dir>] [--agents-dir <dir>] [--marketplace-state <dir>]
+ *                      [--dev-publisher <file>] [--publisher <file>]... [--logs <dir>]... [<file>]...
  *
  * The orchestrator's state directory resolves as its `registry` command resolves it; the apps
- * checkout as the launcher resolves it.
+ * checkout as the launcher resolves it; the marketplace's state directory as the marketplace
+ * resolves its own. The publisher files are the launcher's dev publisher's, at its own place unless
+ * given, and each one given — a second publisher's, the person's own.
  */
 import {existsSync, readdirSync, readFileSync, statSync} from 'node:fs';
-import {join, relative, resolve} from 'node:path';
+import {join, relative, resolve, sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {parseArgs} from 'node:util';
+import {parseArgs, parseEnv} from 'node:util';
 
 import {ROSTER} from './dev-roster.mjs';
+import {publisherFileOf} from './launch-marketplace.mjs';
 import {resolveAgentsDir} from './launch-plan.mjs';
 import {orchestratorOf} from './launch-registry.mjs';
 
 const VAULT_FILE = join('vault', 'vault.json');
 const JOURNAL_FILE = 'intent-journal.jsonl';
 const AGENT_STORE = join('agent', '.state', 'sign-in.json');
+/** The marketplace's embedding model cache: no file the marketplace writes. */
+const MARKETPLACE_MODELS = 'models';
 
 /** Shorter strings are not secrets the stores hold, and would match by chance. */
 const MIN_LENGTH = 16;
@@ -63,6 +70,31 @@ export function secretsOfAgentStore(data) {
   return keep(found);
 }
 
+/** A publisher file's secret: its token. */
+export function secretsOfPublisherFile(data) {
+  return keep([data?.token]);
+}
+
+/**
+ * The marketplace's state directory, as it resolves its own: `STATE_DIR` against its package,
+ * `.state` by default, over its `.env` with the shell's environment winning, as `tsx --env-file`
+ * gives it.
+ */
+export function marketplaceStateOf({env, marketplaceDir}) {
+  const envFile = join(marketplaceDir, '.env');
+  const merged = {
+    ...(existsSync(envFile) ? parseEnv(readFileSync(envFile, 'utf8')) : {}),
+    ...env,
+  };
+  return resolve(marketplaceDir, merged.STATE_DIR ?? '.state');
+}
+
+/** Every file of the marketplace's state — the index, the entries, the previews, the artifacts, the publishers — but its embedding model. */
+export function marketplaceFiles(dir) {
+  const models = join(dir, MARKETPLACE_MODELS) + sep;
+  return existsSync(dir) ? filesUnder(dir).filter(path => !path.startsWith(models)) : [];
+}
+
 function keep(values) {
   return [...new Set(values.filter(v => typeof v === 'string' && v.length >= MIN_LENGTH))];
 }
@@ -92,6 +124,9 @@ function main(argv) {
     options: {
       'state-dir': {type: 'string'},
       'agents-dir': {type: 'string'},
+      'marketplace-state': {type: 'string'},
+      'dev-publisher': {type: 'string'},
+      publisher: {type: 'string', multiple: true, default: []},
       logs: {type: 'string', multiple: true, default: []},
     },
     allowPositionals: true,
@@ -106,6 +141,15 @@ function main(argv) {
     env: process.env.A2UIVERSE_AGENTS_DIR,
     repoRoot,
   }).dir;
+  const marketplaceState = values['marketplace-state']
+    ? resolve(values['marketplace-state'])
+    : marketplaceStateOf({env: process.env, marketplaceDir: join(repoRoot, 'apps', 'marketplace')});
+  const publisherFiles = [
+    values['dev-publisher']
+      ? resolve(values['dev-publisher'])
+      : publisherFileOf(join(repoRoot, 'scripts')),
+    ...values.publisher.map(path => resolve(path)),
+  ];
 
   const sources = [];
   const vault = readJson(join(stateDir, VAULT_FILE));
@@ -114,15 +158,26 @@ function main(argv) {
     const store = readJson(join(agentsDir, folder, AGENT_STORE));
     if (store) sources.push({name: `${id}'s sign-in store`, secrets: secretsOfAgentStore(store)});
   }
+  for (const path of publisherFiles) {
+    const file = readJson(path);
+    if (file) {
+      sources.push({
+        name: `the publisher file ${relative(process.cwd(), path)}`,
+        secrets: secretsOfPublisherFile(file),
+      });
+    }
+  }
   const secrets = [...new Set(sources.flatMap(source => source.secrets))];
 
   const files = [
     join(stateDir, JOURNAL_FILE),
+    ...marketplaceFiles(marketplaceState),
     ...values.logs.flatMap(dir => filesUnder(resolve(dir))),
     ...positionals.map(path => resolve(path)),
   ].filter(path => existsSync(path));
 
   console.log(`state directory: ${stateDir}`);
+  console.log(`marketplace state: ${marketplaceState}`);
   for (const {name, secrets: held} of sources) console.log(`  ${name}: ${held.length} secrets`);
   const results = sweep(secrets, files);
   for (const {path, found} of results) {
