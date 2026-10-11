@@ -30,4 +30,4 @@ const [query] = await embedder.embed(['unread mail from today']);
 const ranked = rank(query, [{card, vector}]); // [{card, vector, score}], highest first
 ```
 
-How the Router uses it is in [`docs/design/orchestrator.md`](../../docs/design/orchestrator.md); the marketplace's index is in `docs/design/marketplace.md` once Phase 13 lands it.
+How the Router uses it is in [`docs/design/orchestrator.md`](../../docs/design/orchestrator.md); the marketplace's index and search, in [`docs/design/marketplace.md`](../../docs/design/marketplace.md).

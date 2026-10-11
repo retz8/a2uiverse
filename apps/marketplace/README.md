@@ -53,7 +53,7 @@ STATE_DIR/
     apps/<appId>/entry.json      one entry per published app
     apps/<appId>/preview.json    its preview
     artifacts/<artifactId>/...   each catalog artifact's files, content-addressed
-  publishers.json                owner-only: each publisher's name, token hash, claim time, and the app ids and catalog ids they own
+  publishers.json                owner-only: each publisher's name, token hash, claim time, the app ids and catalog ids they own, and for each app id they unpublished its published versions and its last card
   models/                        the embedding model's cache
 ```
 
@@ -76,7 +76,7 @@ On success the artifacts are written, the row for each handed id moves to the ne
 
 ## Ahead of the Store
 
-The live card is the only copy of the card that says what the agent does now. At boot, after the routes are up, every published app's card is refetched; a report from a registry is the same check on request, one fetch in flight per app id. A live card naming a catalog id the index has no artifact for, or carrying a version the index does not know, sets the entry's `aheadOfStore` — the ids, the version, when seen; a card back in line clears it; a card that cannot be fetched, or whose declaration is malformed, leaves the flag as it was. The listing waits for the publisher, who is told at their next Stellify contact.
+The live card is the only copy of the card that says what the agent does now. At boot, after the routes are up, every published app's card is refetched; a report from a registry is the same check on request, one fetch in flight per app id. A live card naming a catalog id the index has no artifact for, or carrying a version the index does not know, sets the entry's `aheadOfStore` — the ids, the version, when seen; a card back in line clears it; a card that cannot be fetched, or whose declaration is malformed, leaves the flag as it was. Each setting and each clearing is one line in the log: `shop-a is ahead of the Store: catalogs … and version 0.2.0`, `shop-a is no longer ahead of the Store: its live card is covered`. The listing waits for the publisher, who is told at their next Stellify contact.
 
 ## Trying it by hand
 
@@ -98,6 +98,6 @@ The tests stand up a scripted A2A agent in-process and drive every route and eve
 
 ## Further reading
 
-- [`docs/design/marketplace.md`](../../docs/design/marketplace.md) — the design record over one running example, publish to install (written with the phase's last task).
+- [`docs/design/marketplace.md`](../../docs/design/marketplace.md) — the design record over one running example, publish to install.
 - [`docs/design/app-install.md`](../../docs/design/app-install.md) — the registry's install, whose gate and static layout this process shares.
 - [`packages/sdk/README.md`](../../packages/sdk/README.md) — the contracts: the entry, the preview, the bodies, the checks both sides run.
