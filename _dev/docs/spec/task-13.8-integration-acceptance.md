@@ -179,7 +179,7 @@ The sweep's extension (`8c1ae71`) and the launcher's several tiers (`a40f223`, d
 
 ### After the sitting
 
-The regression pass after, all green: the platform's `pnpm verify` 22 of 22 tasks and 63 script tests; `a2uiverse-apps`' 31 of 31; the Playwright replay 75 passed, no baseline retaken; the live sign-in test 1 passed; the Python suites unchanged. What moved: the script tests 62 to 63 (decision 21); the shell catalog 448 to 450 (decisions 22 and 28); the client 592 to 593 (decision 28); the marketplace 73 to 75 (decisions 24 and 17), then 76 with decision 31's; the orchestrator 539 to 542 (decisions 12, 29 and 30). One orchestrator test, "a paint after a step back drops nothing…", failed once in a full run and passed alone three times and in the next full runs.
+The regression pass after, all green: the platform's `pnpm verify` 22 of 22 tasks and 63 script tests; `a2uiverse-apps`' 31 of 31; the Playwright replay 75 passed, no baseline retaken; the live sign-in test 1 passed; the Python suites unchanged. What moved: the script tests 62 to 63 (decision 21); the shell catalog 448 to 450 (decisions 22 and 28); the client 592 to 593 (decision 28); the marketplace 73 to 75 (decisions 24 and 17), then 76 with decision 31's; the orchestrator 539 to 542 (decisions 12, 29 and 30). One orchestrator test, "a paint after a step back drops nothing…", failed once in a full run during Shop A's cases; the orchestrator's full suite then run 30 times passed every time, 542 tests each.
 
 ### Findings
 
