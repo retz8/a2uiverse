@@ -139,6 +139,10 @@ Each update check fetches every installed app's live card beside its marketplace
 
 The update check reports an app whose entry the Store flags as ahead while the live card it fetched shows no drift, so the marketplace refetches the card and clears the flag. These reports are kept apart from the drift reports, and the boot says each one. Replaced: an app reported only when the orchestrator saw drift, a flag outliving an agent that moved back.
 
+### 31. The marketplace logs a flag it clears
+
+A report's refetch answers what it did to the app's flag — set, changed, cleared or left — and a clearing prints its line in the marketplace's log beside the setting's, at a report and at the boot's refetch alike. Replaced: a flag's setting logged and its clearing silent.
+
 ## Invariants
 
 - No credential reaches the marketplace.
@@ -175,10 +179,10 @@ The sweep's extension (`8c1ae71`) and the launcher's several tiers (`a40f223`, d
 
 ### After the sitting
 
-The regression pass after, all green: the platform's `pnpm verify` 22 of 22 tasks and 63 script tests; `a2uiverse-apps`' 31 of 31; the Playwright replay 75 passed, no baseline retaken; the live sign-in test 1 passed; the Python suites unchanged. What moved: the script tests 62 to 63 (decision 21); the shell catalog 448 to 450 (decisions 22 and 28); the client 592 to 593 (decision 28); the marketplace 73 to 75 (decisions 24 and 17); the orchestrator 539 to 542 (decisions 12, 29 and 30). One orchestrator test, "a paint after a step back drops nothing…", failed once in a full run and passed alone three times and in the next full runs.
+The regression pass after, all green: the platform's `pnpm verify` 22 of 22 tasks and 63 script tests; `a2uiverse-apps`' 31 of 31; the Playwright replay 75 passed, no baseline retaken; the live sign-in test 1 passed; the Python suites unchanged. What moved: the script tests 62 to 63 (decision 21); the shell catalog 448 to 450 (decisions 22 and 28); the client 592 to 593 (decision 28); the marketplace 73 to 75 (decisions 24 and 17), then 76 with decision 31's; the orchestrator 539 to 542 (decisions 12, 29 and 30). One orchestrator test, "a paint after a step back drops nothing…", failed once in a full run and passed alone three times and in the next full runs.
 
 ### Findings
 
 - Phase 15: the kit's one-id limit (decision 6); the canvas for an app ahead of the Store asking a new scope from the live card (decision 27).
-- Amendments for 13.9: decision 12 on phase decision 16, task 13.5's decision 9 and SPEC §10; decision 17 on phase decisions 7 and 15 and SPEC §9.3; decision 23 on task 13.6; decision 26 on decision 11; decision 27 on decision 13 and phase decision 16's ahead-of-the-Store window; decision 28 on SPEC §5.2's operators; decision 29 on the phase spec's "the card it fetched at boot" and task 13.5's live-card fetch; decision 30 on the phase spec's report.
-- The marketplace logs a flag it sets, and no line when its refetch clears one.
+- Amendments for 13.9: decision 12 on phase decision 16, task 13.5's decision 9 and SPEC §10; decision 17 on phase decisions 7 and 15 and SPEC §9.3; decision 23 on task 13.6; decision 26 on decision 11; decision 27 on decision 13 and phase decision 16's ahead-of-the-Store window; decision 28 on SPEC §5.2's operators; decision 29 on the phase spec's "the card it fetched at boot" and task 13.5's live-card fetch; decision 30 on the phase spec's report; decision 17 on the marketplace README's `publishers.json`; decision 31 on the marketplace README.
+- The marketplace logged a flag it set and no line when its refetch cleared one: decision 31, seen with Shop A's agent at 0.1.1 and back, `shop-a is no longer ahead of the Store: its live card is covered`.
