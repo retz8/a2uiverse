@@ -818,7 +818,7 @@ describe('ahead of the Store', () => {
     const agent = await agentOf();
     const url = cards.serve(agent.card);
     ok(await marketplace.publish('acme', body('shop', url, [await fixtureArtifact(CAT)])));
-    await marketplace.report('shop');
+    expect(await marketplace.report('shop')).toBe('unchanged');
     expect(marketplace.entry('shop')?.aheadOfStore).toBeUndefined();
     const ahead = {
       ...agent.card,
@@ -834,7 +834,7 @@ describe('ahead of the Store', () => {
       },
     };
     cards.cards.set(url, ahead);
-    await marketplace.report('shop');
+    expect(await marketplace.report('shop')).toBe('set');
     expect(marketplace.entry('shop')?.aheadOfStore).toEqual({
       catalogIds: [CAT2],
       version: '0.3.0',
@@ -845,12 +845,15 @@ describe('ahead of the Store', () => {
         .catalogIds,
     ).toEqual([CAT2]);
     cards.cards.delete(url);
-    await marketplace.report('shop');
+    expect(await marketplace.report('shop')).toBe('unchanged');
     expect(marketplace.entry('shop')?.aheadOfStore?.catalogIds).toEqual([CAT2]);
+    cards.cards.set(url, {...ahead, version: '0.4.0'});
+    expect(await marketplace.report('shop')).toBe('changed');
+    // The change each report made is answered, so a clearing is said (task-13.8 decision 31).
     cards.cards.set(url, agent.card);
-    await marketplace.report('shop');
+    expect(await marketplace.report('shop')).toBe('cleared');
     expect(marketplace.entry('shop')?.aheadOfStore).toBeUndefined();
-    await marketplace.report('nope');
+    expect(await marketplace.report('nope')).toBe('unchanged');
   });
 
   test('a burst of reports costs one fetch', async () => {

@@ -1,7 +1,7 @@
 import {buildMarketplace} from './app.js';
 import {loadConfig} from './config.js';
 import {APP_NAME, logLine} from './log.js';
-import {describeFlag} from './api.js';
+import {reportLine} from './api.js';
 
 const config = loadConfig();
 const {app, marketplace, init, refresh} = buildMarketplace({config});
@@ -20,11 +20,10 @@ app.listen(config.port, () => {
     `${APP_NAME} listening on http://localhost:${config.port} · state ${config.stateDir} · apps: ${apps}`,
   );
   // The refresh runs in the background (decision 9): a publisher's agent being down holds no read.
-  void refresh().then(() => {
-    for (const entry of marketplace.entries()) {
-      if (entry.aheadOfStore) {
-        logLine(`${entry.appId} is ahead of the Store: ${describeFlag(entry.aheadOfStore)}`);
-      }
+  void refresh().then(changes => {
+    for (const [appId, change] of changes) {
+      const line = reportLine(appId, marketplace.entry(appId)?.aheadOfStore, change);
+      if (line) logLine(line);
     }
   });
 });

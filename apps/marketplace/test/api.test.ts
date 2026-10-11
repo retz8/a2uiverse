@@ -6,6 +6,7 @@ import {join} from 'node:path';
 import {afterEach, describe, expect, test, vi} from 'vitest';
 import {ARTIFACT_DESCRIPTOR_FILE, MARKETPLACE_ROUTES} from '@a2uiverse/sdk';
 import {FakeEmbedder} from '@a2uiverse/embedder';
+import {reportLine} from '../src/api.js';
 import {buildMarketplace} from '../src/app.js';
 import {FAKE_CATALOG_ID, startFakeAgent, type FakeAgent} from './fakeAgent.js';
 import {base64, fixtureArtifact, idOf, previewFor} from './fixture.js';
@@ -264,6 +265,21 @@ describe('the log', () => {
     } finally {
       log.mockRestore();
     }
+  });
+});
+
+describe('the report line', () => {
+  test('the flag an app stands at, its clearing, or nothing for an app clear before and after (task-13.8 decision 31)', () => {
+    expect(reportLine('shop', {catalogIds: ['cat/v2'], version: '0.3.0'}, 'set')).toBe(
+      'shop is ahead of the Store: catalogs cat/v2 and version 0.3.0',
+    );
+    expect(reportLine('shop', {catalogIds: [], version: '0.3.0'}, 'unchanged')).toBe(
+      'shop is ahead of the Store: version 0.3.0',
+    );
+    expect(reportLine('shop', undefined, 'cleared')).toBe(
+      'shop is no longer ahead of the Store: its live card is covered',
+    );
+    expect(reportLine('shop', undefined, 'unchanged')).toBeUndefined();
   });
 });
 

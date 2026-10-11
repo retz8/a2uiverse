@@ -5,7 +5,7 @@ import {TransformersEmbedder, type Embedder} from '@a2uiverse/embedder';
 import {marketplaceRoutes} from './api.js';
 import {cardFetcher, type FetchCard} from './cardFetch.js';
 import type {Config} from './config.js';
-import {Marketplace} from './marketplace.js';
+import {Marketplace, type FlagChange} from './marketplace.js';
 import {a2aSmokeRunner, type SmokeRunner} from './smoke.js';
 
 /** localhost, 127.0.0.1 on any port, and VS Code dev tunnels (tunnel-environment.md). */
@@ -20,8 +20,8 @@ export interface MarketplaceApp {
    * verified — a damaged one throws — the index regenerated, every card embedded.
    */
   init(): Promise<void>;
-  /** The live-card refresh, run in the background after listen (decision 9). */
-  refresh(): Promise<void>;
+  /** The live-card refresh, run in the background after listen (decision 9): each app's flag change. */
+  refresh(): Promise<Map<string, FlagChange>>;
 }
 
 /** Injection seams so tests run with no model download and no network of their own. */

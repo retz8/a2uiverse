@@ -70,6 +70,9 @@ const CLIENT_CATALOG_IDS: readonly string[] = [...PUBLIC_CATALOG_IDS, SHELL_CATA
 
 const NEVER_FINISHED = 'the agent never finished: the stream ended without a final event';
 
+/** What a report's refetch did to an app's flag: set, changed, cleared, or left as it was. */
+export type FlagChange = 'set' | 'changed' | 'cleared' | 'unchanged';
+
 export class Marketplace {
   readonly #deps: MarketplaceDeps;
   readonly #store: MarketplaceStore;
@@ -79,7 +82,7 @@ export class Marketplace {
   #descriptors = new Map<string, ArtifactDescriptor>();
   #vectors = new Map<string, number[]>();
   #queue: Promise<unknown> = Promise.resolve();
-  #reports = new Map<string, Promise<void>>();
+  #reports = new Map<string, Promise<FlagChange>>();
 
   constructor(deps: MarketplaceDeps) {
     this.#deps = deps;
@@ -109,8 +112,10 @@ export class Marketplace {
   }
 
   /** Every published app's live card refetched and its flag set or cleared (decision 14). */
-  async refreshCards(): Promise<void> {
-    await Promise.all(this.entries().map(e => this.report(e.appId)));
+  async refreshCards(): Promise<Map<string, FlagChange>> {
+    const ids = this.entries().map(e => e.appId);
+    const changes = await Promise.all(ids.map(id => this.report(id)));
+    return new Map(ids.map((id, i) => [id, changes[i]]));
   }
 
   entries(): IndexEntry[] {
@@ -225,9 +230,10 @@ export class Marketplace {
   /**
    * A report (phase-13 decision 14; task-13.3 decisions 10, 20): a nudge the marketplace verifies
    * itself — the live card refetched, the flag set on drift, cleared when covered, left as it was
-   * when the card is unreachable or malformed. One refetch in flight per app id.
+   * when the card is unreachable or malformed. One refetch in flight per app id. Answers what it did
+   * to the flag, so a clearing is said as a setting is (task-13.8 decision 31).
    */
-  report(appId: string): Promise<void> {
+  report(appId: string): Promise<FlagChange> {
     let pending = this.#reports.get(appId);
     if (!pending) {
       pending = this.#verify(appId).finally(() => this.#reports.delete(appId));
@@ -236,21 +242,21 @@ export class Marketplace {
     return pending;
   }
 
-  async #verify(appId: string): Promise<void> {
+  async #verify(appId: string): Promise<FlagChange> {
     const entry = this.#entries.get(appId);
-    if (!entry) return;
+    if (!entry) return 'unchanged';
     let card: AgentCard;
     try {
       card = await this.#deps.fetchCard(entry.cardUrl);
     } catch {
-      return;
+      return 'unchanged';
     }
-    if (typeof card.version !== 'string') return;
+    if (typeof card.version !== 'string') return 'unchanged';
     const drift = aheadOfStore(entry, card);
-    if (!drift.ok) return;
-    await this.#serial(async () => {
+    if (!drift.ok) return 'unchanged';
+    return this.#serial(async (): Promise<FlagChange> => {
       const current = this.#entries.get(appId);
-      if (!current) return;
+      if (!current) return 'unchanged';
       const was = current.aheadOfStore;
       const now = drift.value;
       if (
@@ -260,13 +266,14 @@ export class Marketplace {
             was.catalogIds.length === now?.catalogIds.length &&
             was.catalogIds.every((id, i) => now?.catalogIds[i] === id)))
       ) {
-        return;
+        return 'unchanged';
       }
       const {aheadOfStore: _dropped, ...rest} = current;
       const next: IndexEntry = now ? {...rest, aheadOfStore: {...now, seenAt: this.#now()}} : rest;
       await this.#store.writeEntry(next);
       this.#entries.set(appId, next);
       await this.#store.writeIndex(this.entries());
+      return now === undefined ? 'cleared' : was === undefined ? 'set' : 'changed';
     });
   }
 

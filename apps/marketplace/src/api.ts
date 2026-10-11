@@ -16,7 +16,7 @@ import {
   SEARCH_QUERY_PARAM,
 } from '@a2uiverse/sdk';
 import {logLine} from './log.js';
-import type {Marketplace} from './marketplace.js';
+import type {FlagChange, Marketplace} from './marketplace.js';
 import {ARTIFACTS_DIR} from './store.js';
 
 /** An artifact's files never change under its id. */
@@ -145,14 +145,33 @@ export function marketplaceRoutes({marketplace}: {marketplace: Marketplace}): Ro
       return;
     }
     // Accepted at once (task-13.3 decision 10); the marketplace verifies the nudge itself after.
-    void marketplace.report(read.value.appId).then(() => {
-      const flag = marketplace.entry(read.value.appId)?.aheadOfStore;
-      if (flag) logLine(`${read.value.appId} is ahead of the Store: ${describeFlag(flag)}`);
+    void marketplace.report(read.value.appId).then(change => {
+      const line = reportLine(
+        read.value.appId,
+        marketplace.entry(read.value.appId)?.aheadOfStore,
+        change,
+      );
+      if (line) logLine(line);
     });
     res.status(202).end();
   });
 
   return router;
+}
+
+/**
+ * The line a report's refetch is logged with: the flag the app stands at, or its clearing (task-13.8
+ * decision 31); none for an app that was clear and stays clear.
+ */
+export function reportLine(
+  appId: string,
+  flag: {catalogIds: string[]; version?: string} | undefined,
+  change: FlagChange,
+): string | undefined {
+  if (flag) return `${appId} is ahead of the Store: ${describeFlag(flag)}`;
+  if (change === 'cleared')
+    return `${appId} is no longer ahead of the Store: its live card is covered`;
+  return undefined;
 }
 
 export function describeFlag(flag: {catalogIds: string[]; version?: string}): string {
