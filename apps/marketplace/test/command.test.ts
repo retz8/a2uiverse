@@ -1,6 +1,6 @@
 /** The `marketplace` script's one command (task-13.3 decision 12): `search <words>`. */
 import {createServer, type Server} from 'node:http';
-import {afterEach, describe, expect, test} from 'vitest';
+import {afterEach, describe, expect, test, vi} from 'vitest';
 import express from 'express';
 import {runMarketplaceCommand, USAGE, type CommandIo} from '../src/command.js';
 import {cardFor, entryFor} from './fixture.js';
@@ -56,12 +56,26 @@ describe('marketplace search', () => {
   });
 
   test('reaches the marketplace at MARKETPLACE_URL, else localhost on PORT, else 10002', async () => {
-    const {lines, err} = io({});
-    expect(await runMarketplaceCommand(['search', 'x'], lines)).toBe(1);
-    expect(err[0]).toContain('http://localhost:10002');
-    const {lines: onPort, err: portErr} = io({PORT: '1'});
-    expect(await runMarketplaceCommand(['search', 'x'], onPort)).toBe(1);
-    expect(portErr[0]).toContain('http://localhost:1');
+    // No request leaves the test: a marketplace running on its own port must not answer it.
+    const asked: string[] = [];
+    const fetch = vi.spyOn(globalThis, 'fetch').mockImplementation(async input => {
+      asked.push(String(input));
+      throw new TypeError('fetch failed');
+    });
+    try {
+      const {lines, err} = io({});
+      expect(await runMarketplaceCommand(['search', 'x'], lines)).toBe(1);
+      expect(err[0]).toContain('http://localhost:10002');
+      const {lines: onPort, err: portErr} = io({PORT: '1'});
+      expect(await runMarketplaceCommand(['search', 'x'], onPort)).toBe(1);
+      expect(portErr[0]).toContain('http://localhost:1');
+      expect(asked.map(url => new URL(url).origin)).toEqual([
+        'http://localhost:10002',
+        'http://localhost:1',
+      ]);
+    } finally {
+      fetch.mockRestore();
+    }
   });
 
   test('usage for anything else', async () => {
