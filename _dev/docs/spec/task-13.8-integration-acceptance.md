@@ -123,6 +123,10 @@ The `marketplace search` test of the default address answers its own request, so
 
 A schema change published at a catalog id is not taken back by a later publish at that id: the marketplace refuses the earlier schema as a removal. After the catalog shared by two apps, the marketplace's state is wiped, its embedding model kept, and both tiers launched again under `--publish` with the launcher's publisher file kept, so Linear's cases start from its committed build. Replaced: decision 11's published Linear build reverted by a later publish.
 
+### 27. Ahead of the Store with a scope added, the slot asks for it
+
+The orchestrator judges a slot's access against the live card it fetched. In Linear's ahead-of-the-Store window, its live card asking `issues.write` beside `issues.read`, Linear's slot takes the needs-more-access tile with no call to the agent, before the Store has the card. What the canvas says for an app ahead of the Store is recorded as a finding for Phase 15's pre-dispatch check. Replaced: decision 13's Linear still composing on its installed card in that window.
+
 ## Invariants
 
 - No credential reaches the marketplace.
