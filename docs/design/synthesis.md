@@ -111,6 +111,7 @@ The operators are functions declared in the shell catalog:
 | -------------------------- | ------------------------------------------------------- |
 | `value`                    | the one value it points at                              |
 | `min`, `max`, `sum`, `avg` | a number over the numbers that resolved                 |
+| `difference`               | the gap between exactly two numbers, never negative     |
 | `count`                    | how many refs resolved                                  |
 | `argmin`, `argmax`         | which app holds the smallest or largest value           |
 | `source`                   | which app the first resolving ref belongs to            |
@@ -270,7 +271,7 @@ The client draws the reserved slot right away, as the table to come: the planned
 - **A system prompt**, assembled once at boot: the Synthesizer's role, the rules for writing refs, formulas, joins and sorts, the shell catalog's guidance on which components make a merged view, the shell catalog pruned to exactly those components, the output schema, and one worked example.
 - **The turn**: your question, the Planner's brief, the planned columns with their apps, any app that isn't in this merge and why, and the live data model of every partition, each with its app's name.
 
-It never sees an app's component tree, only data. It answers with the JSON document inside a `<synthesize-data-model>` tag.
+It never sees an app's component tree, only data. It answers with the JSON document inside a `<synthesize-data-model>` tag. Each planned column is filled by the operator that computes what its words say: a "Difference" column by `difference`, which has no value where one side is absent. A column no operator computes is dropped or renamed, never filled by an operator that computes something else.
 
 **5. The orchestrator checks it, and hands it back once if needed.** The document goes through one validator. Anything wrong goes back to the model once, as a list of errors beside its own document. A second failure means the view couldn't be made. [Checking the model's work](#checking-the-models-work) lists the checks.
 

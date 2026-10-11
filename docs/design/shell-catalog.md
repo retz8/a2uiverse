@@ -168,7 +168,7 @@ flowchart TD
 
 A `Slot` holds **exactly one** of `source` (whose answer fills it), `gap` (a capability no installed app has; more on that below) or `chooseAccount` (an app with two accounts, for a command that named neither). `weight` is the basic catalog's flex share: three slots of weight 1 split their row equally. `content: "shell"` marks the merged view's slot as the shell's own content, `columns` are the view's planned headers, and `columnSources` the app each one shows.
 
-**2. The orchestrator wraps each app's slot.** The `Attribution` entries above aren't the Planner's: the orchestrator adds one around every app's `Slot`, copying the slot's `weight` onto it so wrapped and bare slots size by one rule. The merged view's slot stays bare, because the merged view is the shell's own page, not something an app painted.
+**2. The orchestrator wraps each app's slot.** The `Attribution` entries above aren't the Planner's: the orchestrator adds one around every app's `Slot`, copying the slot's `weight` onto it so wrapped and bare slots size by one rule. The wrapper never shrinks below what it holds: in a column, a region taller than its share keeps its height and its neighbours take the rest, so one app's fragment never runs over the next app's. The merged view's slot stays bare, because the merged view is the shell's own page, not something an app painted.
 
 **3. First paint.** The layout reaches the client before any app has answered, so every `Slot` is `pending`:
 
