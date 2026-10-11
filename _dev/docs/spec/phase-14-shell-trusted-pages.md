@@ -118,7 +118,9 @@ On the deterministic roster through the tunnel, the marketplace running under th
 
 ### 24. Docs
 
-SPEC §7 (the third shell action), §9.3 (the one trusted page and its three destinations; the publisher who is a user; Publish), §10 (browser writes origin-checked, the token for the rest; the Store's reads and the publisher's calls relayed; the publisher's secret held; the reader's update state), §11 (the trusted page as an addressable overlay over the canvas), §13 (Stellify beside the page), §15, §16 (the known consequences above). Phase 6's decision on the two shell actions and task 6.5's open item on addressability amended. The Phase 15 note in `_dev/TODO.md`. A design record for the trusted page; `marketplace.md`, `app-install.md`, `authority.md`, `client.md` and `orchestrator.md` keeping their parts; every README.
+SPEC §7 (the third shell action), §9.3 (the one trusted page and its three destinations; the publisher who is a user; Publish), §10 (browser writes origin-checked, the token for the rest; the Store's reads and the publisher's calls relayed; the publisher's secret held; the reader's update state), §11 (the trusted page as an addressable overlay over the canvas), §13 (Stellify beside the page), §15, §16 (the known consequences above). Phase 6's decision on the two shell actions and task 6.5's open item on addressability amended. The Phase 15 note in `_dev/TODO.md`.
+
+*Amended by task 14.1.* §4.2 (the action set), §5.6 (the reader's bullet) and §12 (the M10 line) as well, each carrying one of the decisions above. A design record for the trusted page; `marketplace.md`, `app-install.md`, `authority.md`, `client.md` and `orchestrator.md` keeping their parts; every README.
 
 ## Invariants
 

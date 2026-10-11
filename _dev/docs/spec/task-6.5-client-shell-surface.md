@@ -63,4 +63,4 @@ The phase spec's decision 7 and acceptance item 1 are amended from the notice to
 ## Open items
 
 - Whether `Slot` should draw its own attribution and `Attribution` leave the tree — carried from 6.4, still closed for this phase.
-- URL addressability of the overlay and one route or two — Phase 14.
+- URL addressability of the overlay and one route or two — decided in Phase 14 (decisions 10 and 11): one addressable page with three destinations, the Store, the App Library and Publish, its destination and the Store's query in the URL on the browser's history.
