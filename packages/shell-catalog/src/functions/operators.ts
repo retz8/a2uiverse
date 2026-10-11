@@ -12,7 +12,8 @@ import {z} from 'zod';
  * surface id. `argmin`/`argmax` return the *index* of the winning input for the same
  * reason — mapping it back to a source is the evaluator's. `source` (task-5.7) is the
  * degenerate selector: the index of the first input that resolved, so a merged row can name
- * the app its entry came from without copying anything.
+ * the app its entry came from without copying anything. `difference` takes exactly two numbers
+ * (task-13.8 decision 28): with one side absent it has no value, so the cell shows none.
  */
 export const OPERATORS = [
   'value',
@@ -20,6 +21,7 @@ export const OPERATORS = [
   'max',
   'sum',
   'avg',
+  'difference',
   'count',
   'argmin',
   'argmax',
@@ -50,6 +52,18 @@ export const operatorFunctions: readonly FunctionImplementation[] = [
   createFunctionImplementation(
     {name: 'avg', returnType: 'number', schema: numbers},
     ({values}) => values.reduce((a, b) => a + b, 0) / values.length,
+  ),
+  createFunctionImplementation(
+    {
+      name: 'difference',
+      returnType: 'number',
+      schema: z.object({values: z.array(z.number()).length(2)}),
+    },
+    ({values}) => {
+      // The evaluator calls an operator without its schema; one side absent is no difference.
+      if (values.length !== 2) throw new Error('difference takes exactly two numbers');
+      return Math.abs(values[0]! - values[1]!);
+    },
   ),
   createFunctionImplementation(
     {name: 'count', returnType: 'number', schema: anyValues},

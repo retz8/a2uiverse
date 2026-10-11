@@ -104,6 +104,22 @@ describe('evaluate over the example', () => {
     expect(rows(out)[0]!.best).toMatchObject({value: 1299, contributed: 1, of: 2, absent: [B]});
   });
 
+  test('difference: the gap between the two prices; one side absent leaves the cell with no value (task-13.8 decision 28)', () => {
+    const gap = (id: string) => ({
+      op: 'difference',
+      args: [
+        {surface: A, pointer: `/items[id="${id}"]/price`},
+        {surface: B, pointer: `/products[sku="${id}"]/price`},
+      ],
+    });
+    const payload = {...PAYLOAD, dataModel: {gaps: [gap('lumen-x100'), gap('verity-a7')]}};
+    const both = run(payload, stores()).gaps as CellObject[];
+    expect(both.map(c => c.value)).toEqual([50, 50]);
+    const oneSide = run(payload, {[A]: {items: SHOP_A_ITEMS}, [B]: {detail: {sku: 'lumen-x100'}}})
+      .gaps as CellObject[];
+    expect(oneSide[0]).toMatchObject({value: undefined, contributed: 0, of: 2, absent: [B]});
+  });
+
   test('absent: null is no value, a surface the client does not hold resolves nothing, and an ambiguous key is absent', () => {
     const out = run(PAYLOAD, {
       [A]: {items: SHOP_A_ITEMS.map(i => (i.id === 'lumen-x100' ? {...i, price: null} : i))},

@@ -1872,6 +1872,36 @@
       "required": ["call", "args"],
       "unevaluatedProperties": false
     },
+    "difference": {
+      "type": "object",
+      "description": "The gap between two numbers: the larger less the smaller, never negative. Exactly two numbers; with only one, there is no difference.",
+      "properties": {
+        "call": {
+          "const": "difference"
+        },
+        "args": {
+          "type": "object",
+          "properties": {
+            "values": {
+              "type": "array",
+              "description": "The two numbers to compare.",
+              "items": {
+                "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/DynamicNumber"
+              },
+              "minItems": 2,
+              "maxItems": 2
+            }
+          },
+          "required": ["values"],
+          "unevaluatedProperties": false
+        },
+        "returnType": {
+          "const": "number"
+        }
+      },
+      "required": ["call", "args"],
+      "unevaluatedProperties": false
+    },
     "count": {
       "type": "object",
       "description": "How many values were given.",
@@ -2257,6 +2287,9 @@
         },
         {
           "$ref": "#/functions/avg"
+        },
+        {
+          "$ref": "#/functions/difference"
         },
         {
           "$ref": "#/functions/count"

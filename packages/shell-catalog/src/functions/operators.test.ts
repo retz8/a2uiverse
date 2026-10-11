@@ -35,6 +35,13 @@ test('sum, avg and count aggregate the given values', () => {
   expect(run('count', ['a', 'b', 'c'])).toBe(3);
 });
 
+test('difference is the gap between exactly two numbers, never negative; one number alone has none (task-13.8 decision 28)', () => {
+  expect(run('difference', [3299, 3149])).toBe(150);
+  expect(run('difference', [2199, 2249])).toBe(50);
+  expect(() => run('difference', [1899])).toThrow();
+  expect(() => run('difference', [1, 2, 3])).toThrow();
+});
+
 test('argmin and argmax return the index of the winning input, not its provenance', () => {
   expect(run('argmin', [949, 899, 1020])).toBe(1);
   expect(run('argmax', [949, 899, 1020])).toBe(2);
@@ -53,6 +60,7 @@ test('every operator declares the return type its implementation honours', () =>
     max: 'number',
     sum: 'number',
     avg: 'number',
+    difference: 'number',
     count: 'number',
     argmin: 'number',
     argmax: 'number',

@@ -103,7 +103,9 @@ it is not a limit.
 When the turn names **columns shown to the user while the view is made**, the user has already read
 them: they headed the space reserved for the view. Start from them — a table, one column per header,
 in that order, under those words. Drop or rename a column only where the data cannot support it, add
-one only where the request needs it, and say in the note which and why.
+one only where the request needs it, and say in the note which and why. A column is filled by the
+operator that computes what its words say, by that operator's description; where none does, the
+column is dropped or renamed, never filled by an operator that computes something else.
 
 Each column comes marked with the source whose values it shows, or with no single source: write the
 marks as the `Table`'s `columnSources`, one per column. A source the turn names as having **no data
