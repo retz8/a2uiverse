@@ -144,7 +144,11 @@ describe('the Planner’s files and prompt', () => {
     expect(Object.keys(files.catalog.components!).sort()).toEqual(
       [...LAYOUT_SURFACE_KEEP_SET.components].sort(),
     );
-    expect(Object.keys(files.catalog.functions!).sort()).toEqual(['openAppLibrary', 'openStore']);
+    expect(Object.keys(files.catalog.functions!).sort()).toEqual([
+      'openAppLibrary',
+      'openPublish',
+      'openStore',
+    ]);
     expect(files.guidance).toContain('# Platform UI guidance');
     expect(files.rules).toContain('# The layout surface');
   });
@@ -163,11 +167,30 @@ describe('the Planner’s files and prompt', () => {
   });
 
   test.each(LAYOUT_EXAMPLES)('the worked example $name passes the whole validator', example => {
+    const shown = example.readers?.find(r => r.reader === 'installed_apps')?.result;
     const result = validateLayoutSurface(example.output, {
       tree,
       shortlist: example.agents.flatMap(a => a.sources?.map(({source}) => source) ?? [a.appId]),
+      installed: [
+        ...example.agents.map(a => a.appId),
+        ...((shown as {id: string}[] | undefined) ?? []).map(app => app.id),
+      ],
     });
     expect(result.ok ? [] : result.errors).toEqual([]);
+  });
+
+  test('the out-of-date answer is shown: the reader’s words, how long ago, and a button naming its app (task-14.5 decision 13)', () => {
+    const example = LAYOUT_EXAMPLES.find(e => e.name === 'out-of-date-answer')!;
+    expect(example.readers?.map(r => r.reader)).toEqual(['installed_apps']);
+    const calls = example.output.tree.components.flatMap(c => {
+      const action = (c as {action?: {functionCall?: {call: string; args: object}}}).action;
+      return action?.functionCall ? [action.functionCall] : [];
+    });
+    expect(calls).toEqual([
+      {call: 'openAppLibrary', args: {}},
+      {call: 'openAppLibrary', args: {app: 'linear'}},
+    ]);
+    expect(JSON.stringify(example.output)).toContain('checked 12 minutes ago');
   });
 
   test('the account choice is shown: a command over an app with two accounts naming neither (task-12.6 decision 3)', () => {

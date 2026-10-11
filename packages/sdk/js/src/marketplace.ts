@@ -550,6 +550,40 @@ export const UPDATE_STATES = [
 ] as const;
 export type UpdateStateKind = (typeof UPDATE_STATES)[number];
 
+/**
+ * Each state in the App Library's words (task-14.5 decision 6): what the App Library shows and
+ * what the Planner's installed-apps reader hands it, so the page and the canvas say one thing.
+ */
+export const UPDATE_WORDS: Readonly<Record<UpdateStateKind, string>> = {
+  'up-to-date': 'Up to date',
+  'newer-build': 'A small update is ready',
+  'major-update': 'A new version is available',
+  'card-update': 'An update that asks for more',
+  'update-required': 'Needs an update to keep working',
+  'ahead-of-store': 'A newer version is on its way from the publisher',
+  'not-published': 'No longer in the Store',
+  unknown: 'Couldn’t check for updates',
+};
+
+/** An app with no state held: installed, updated or uninstalled since the last check. */
+export const NOT_CHECKED_WORDS = 'Not checked yet';
+
+/** An app installed from a local copy that the Store does not list (task-14.5 decision 7). */
+export const LOCAL_COPY_WORDS = 'Installed from your computer';
+
+/**
+ * An installed app's update state in words, from its state as last computed — none when nothing is
+ * held for it — and where it was installed from.
+ */
+export function updateWords(
+  state: UpdateStateKind | undefined,
+  source: 'marketplace' | 'local',
+): string {
+  if (state === undefined) return NOT_CHECKED_WORDS;
+  if (state === 'not-published' && source === 'local') return LOCAL_COPY_WORDS;
+  return UPDATE_WORDS[state];
+}
+
 /** A catalog whose build moved: the installed artifact id and the published one. */
 export interface BuildMove {
   catalogId: string;

@@ -1,9 +1,10 @@
 /**
- * The trusted-page layer: the Store or the App Library, opened over the canvas by a shell
+ * The trusted-page layer: the Store, the App Library or Publish, opened over the canvas by a shell
  * action (SPEC §7, §9.3). The pages are an overlay, not a route — the canvas stays mounted
  * beneath, so Phase 15's resume after an install finds the composition that raised the gap.
- * Until Phase 14 builds them this is the placeholder: the page's name, the query it was opened
- * with, and a way back. Two actions, one component: the page is a value, not a second layer.
+ * Until Phase 14 builds them this is the placeholder: the page's name, the query or the app it was
+ * opened with, and a way back. Three actions, one component: the page is a value, not a second
+ * layer.
  *
  * Distinct from `CanvasOverlay`, which mounts a pending question surface.
  */
@@ -15,7 +16,7 @@ export interface TrustedPageOverlayProps {
   onClose: () => void;
 }
 
-const PAGE_TITLES = {store: 'Store', appLibrary: 'App Library'} as const;
+const PAGE_TITLES = {store: 'Store', appLibrary: 'App Library', publish: 'Publish'} as const;
 
 export function TrustedPageOverlay({page, onClose}: TrustedPageOverlayProps) {
   if (!page) return null;
@@ -26,6 +27,7 @@ export function TrustedPageOverlay({page, onClose}: TrustedPageOverlayProps) {
       data-testid="trusted-page-overlay"
       data-page={page.page}
       data-query={page.query}
+      data-app={page.app}
       role="dialog"
       aria-modal="false"
       aria-label={title}

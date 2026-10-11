@@ -1037,14 +1037,14 @@ test('through the catalog: Sign in hands the host the source, the surface and th
   expect(shell).toEqual([]);
 });
 
-test('through the catalog: Manage apps opens the App Library', () => {
+test("through the catalog: Manage apps opens the App Library on its app's view (task-14.5 decision 9)", () => {
   const shell: ShellAction[] = [];
   renderTree(
     [
       {
         id: 'root',
         component: 'Slot',
-        source: 'acme',
+        source: 'acme.2',
         state: 'authority',
         authority: {cause: 'unsupported'},
       },
@@ -1052,7 +1052,9 @@ test('through the catalog: Manage apps opens the App Library', () => {
     {onShellAction: action => shell.push(action)},
   );
   act(() => screen.getByRole('button', {name: 'Manage apps'}).click());
-  expect(shell).toEqual([{name: 'openAppLibrary', surfaceId: SURFACE_ID, componentId: 'root'}]);
+  expect(shell).toEqual([
+    {name: 'openAppLibrary', surfaceId: SURFACE_ID, componentId: 'root', app: 'acme'},
+  ]);
 });
 
 test('a paint refused for a credential field: one statement, Continue on the app to its own page, no Retry (task-12.3 decision 7)', () => {

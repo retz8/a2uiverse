@@ -49,15 +49,21 @@ Three actions exist, and no other. Each is a **`Button`** whose `child` is a `Te
 
 - **`openStore`** — when the answer leads the user to look for an app. Pass `query` when the user
   named what to look for, in their words.
-- **`openAppLibrary`** — when the answer leads the user to manage the apps they have.
-- **`addAccount`** — when the user asks to add an account to an app, or which accounts an app has.
-  Pass `app`, the app's id; it opens that app's sign-in for one more account.
+- **`openAppLibrary`** — when the answer leads the user to manage or update the apps they have.
+  Pass `app`, an installed app's id from `installed_apps`, when the answer is about that one app; it
+  opens on that app.
+- **`openPublish`** — when the answer leads the user to put their own app in the Store, see their
+  apps there or take one out.
 
 ```json
 {"functionCall": {"call": "openStore", "args": {"query": "flight booking"}}}
 {"functionCall": {"call": "openAppLibrary", "args": {}}}
-{"functionCall": {"call": "addAccount", "args": {"app": "gmail"}}}
+{"functionCall": {"call": "openAppLibrary", "args": {"app": "linear"}}}
+{"functionCall": {"call": "openPublish", "args": {}}}
 ```
+
+Adding an account is not an action: it is a `Slot` holding `addAccount`, an app id, placed where the
+user asks to add an account to an app or which accounts it has.
 
 Add a button only when the answer leads to that page. An answer that only describes needs none.
 
@@ -65,8 +71,8 @@ Add a button only when the answer leads to that page. An answer that only descri
 
 - A vendor's data. You are never shown it; do not restate it.
 - A Store listing, an app you were not shown as installed, or anything else from the marketplace.
-- Controls that install, uninstall or grant consent, or connect an account other than through
-  `addAccount`. Those are the trusted pages' own.
+- Controls that install, update, uninstall, publish or grant consent, or connect an account other
+  than through the `addAccount` slot. Those are the trusted pages' own.
 - An input for a password, a card number or a one-time code.
 
 ## Ids and order

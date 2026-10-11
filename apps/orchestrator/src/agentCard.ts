@@ -72,7 +72,7 @@ export function buildAgentCard(baseUrl: string): AgentCard {
         id: 'installed-apps',
         name: 'Installed apps',
         description:
-          'Lists and describes the apps installed on this platform: each app’s name, what it does, and the skills its own card declares. Answers which apps are available, what a given installed app can do, and whether an app is reachable right now.',
+          'Lists and describes the apps installed on this platform: each app’s name, what it does, and the skills its own card declares. Answers which apps are available, what a given installed app can do, whether an app is reachable right now, and whether each has an update, as of the last check.',
         tags: ['apps', 'installed', 'library'],
         examples: [
           'what apps do I have?',
@@ -80,6 +80,8 @@ export function buildAgentCard(baseUrl: string): AgentCard {
           'what can my apps do?',
           'list my apps',
           'do I have an app for mail?',
+          'is anything out of date?',
+          'do my apps need updating?',
         ],
       },
       {
@@ -95,6 +97,19 @@ export function buildAgentCard(baseUrl: string): AgentCard {
           'how do I remove an app?',
           'open the store',
           'manage my apps',
+        ],
+      },
+      {
+        id: 'publish',
+        name: 'Publishing an app',
+        description:
+          'Explains how a publisher puts their own app in the Store: pack the app with Stellify in its own folder; open Publish; claim a publisher name once; give it the folders Stellify wrote and the app’s address; an app that asks people to sign in also needs the sample answer Stellify captured with the publisher’s own account; before it is listed, the Store fetches the app, checks its files and asks it one question. Points the user to Publish, the platform’s own page, where a publisher also sees their apps in the Store and takes one out.',
+        tags: ['publish', 'publisher', 'store', 'stellify'],
+        examples: [
+          'how do I publish my app?',
+          'how do I put my own app in the Store?',
+          'how do I take my app out of the Store?',
+          'open Publish',
         ],
       },
     ],

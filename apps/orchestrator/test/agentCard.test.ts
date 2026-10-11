@@ -24,6 +24,7 @@ describe('buildAgentCard', () => {
       'canvas',
       'installed-apps',
       'find-and-install',
+      'publish',
     ]);
     expect(card.name).toBe('A2UIVerse Orchestrator');
     // Each platform skill carries examples: they are what the Router embeds and what lets the
@@ -34,5 +35,14 @@ describe('buildAgentCard', () => {
     }
     const text = JSON.stringify(card.skills);
     expect(text).not.toMatch(/github|gmail|calendar/i);
+  });
+
+  test('answers whether an app is out of date, and how an app is published (task-14.5 decision 12)', () => {
+    const skill = (id: string) => card.skills.find(s => s.id === id)!;
+    expect(skill('installed-apps').description).toMatch(/update/);
+    expect(skill('installed-apps').examples).toContain('is anything out of date?');
+    expect(skill('publish').description).toMatch(/Stellify/);
+    expect(skill('publish').description).toMatch(/Publish/);
+    expect(skill('publish').examples).toContain('how do I put my own app in the Store?');
   });
 });

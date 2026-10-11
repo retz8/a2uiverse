@@ -32,6 +32,16 @@ describe('TrustedPageOverlay', () => {
     expect(screen.queryByTestId('trusted-page-query')).toBeNull();
   });
 
+  it('names the App Library and the app it opened on', () => {
+    render(<TrustedPageOverlay page={{page: 'appLibrary', app: 'linear'}} onClose={() => {}} />);
+    expect(screen.getByRole('dialog', {name: 'App Library'})).toHaveAttribute('data-app', 'linear');
+  });
+
+  it('names Publish', () => {
+    render(<TrustedPageOverlay page={{page: 'publish'}} onClose={() => {}} />);
+    expect(screen.getByRole('dialog', {name: 'Publish'})).toHaveAttribute('data-page', 'publish');
+  });
+
   it('the way back closes it', async () => {
     const onClose = vi.fn();
     render(<TrustedPageOverlay page={{page: 'store'}} onClose={onClose} />);

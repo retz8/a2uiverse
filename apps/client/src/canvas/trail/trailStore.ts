@@ -25,17 +25,19 @@ export interface TrailEntry {
 }
 
 /** The trusted pages a shell action opens (SPEC §7, §9.3). */
-export type TrustedPage = 'store' | 'appLibrary';
+export type TrustedPage = 'store' | 'appLibrary' | 'publish';
 
 /**
- * The trusted page open over the canvas: the Store or the App Library, as an overlay — the
- * canvas stays mounted beneath it (task-6.5 decisions 2, 3). Until Phase 14 builds the pages
- * it is a placeholder naming the page and the query it was opened with.
+ * The trusted page open over the canvas: the Store, the App Library or Publish, as an overlay —
+ * the canvas stays mounted beneath it (task-6.5 decisions 2, 3). Until Phase 14 builds the pages
+ * it is a placeholder naming the page and what it was opened with.
  */
 export interface TrustedPageState {
   page: TrustedPage;
   /** The Store's search, when the action carried one — the capability the tile forwards. */
   query?: string;
+  /** The App Library's app, when the action named one (task-14.5 decision 9). */
+  app?: string;
 }
 
 export interface TrailState {

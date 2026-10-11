@@ -76,6 +76,15 @@ export interface RegistryJournalEntry {
   by?: WriteCaller;
 }
 
+/**
+ * The apps whose installed records one install, install-over or uninstall changed; `automatic` when
+ * it was the update check's own install of a newer build.
+ */
+export interface RecordsChanged {
+  appIds: string[];
+  automatic: boolean;
+}
+
 /** A held row moved to a new hash by an install, and the other apps that followed it. */
 export interface RowMove {
   catalogId: string;
@@ -159,6 +168,7 @@ export class Registry {
   readonly #uninstalled: ((
     appId: string,
   ) => Promise<readonly SignedOutAccount[] | void> | readonly SignedOutAccount[] | void)[] = [];
+  readonly #changed: ((change: RecordsChanged) => void)[] = [];
 
   constructor(deps: RegistryDeps) {
     this.#deps = deps;
@@ -188,6 +198,24 @@ export class Registry {
     ) => Promise<readonly SignedOutAccount[] | void> | readonly SignedOutAccount[] | void,
   ): void {
     this.#uninstalled.push(listener);
+  }
+
+  /**
+   * Called after an install, an install-over or an uninstall commits, with every app whose
+   * installed record it changed — the app and each app that followed a row it moved.
+   */
+  onChanged(listener: (change: RecordsChanged) => void): void {
+    this.#changed.push(listener);
+  }
+
+  #notifyChanged(change: RecordsChanged): void {
+    for (const listener of this.#changed) {
+      try {
+        listener(change);
+      } catch (err) {
+        console.error(`registry: a change listener failed for ${change.appIds.join(', ')}:`, err);
+      }
+    }
   }
 
   /** Where the artifacts' files are, each under its id — what the read routes serve. */
@@ -642,6 +670,7 @@ export class Registry {
     await this.#commit(next);
     this.#cards.set(appId, card);
     this.#vectors.set(appId, vector);
+    this.#notifyChanged({appIds: [appId, ...followed], automatic});
     await this.#journal({
       operation,
       appId,
@@ -681,6 +710,7 @@ export class Registry {
     await this.#commit(next);
     this.#cards.delete(appId);
     this.#vectors.delete(appId);
+    this.#notifyChanged({appIds: [appId], automatic: false});
     const catalogs = Object.entries(record.catalogs).map(([catalogId, artifact]) => ({
       catalogId,
       artifact,

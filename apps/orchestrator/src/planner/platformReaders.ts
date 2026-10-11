@@ -4,10 +4,12 @@
  * projection is a pure function of the state it reads, so the readers are testable without a
  * model and the executor is not involved.
  */
+import {updateWords} from '@a2uiverse/sdk';
 import {asksSignIn, Sources} from '../accounts/accounts.js';
 import type {HeldComposition} from '../composition/compositions.js';
 import type {CompositionState} from '../composition/state.js';
 import type {Registry} from '../registry/registry.js';
+import type {HeldUpdates} from '../registry/updates.js';
 import {SHELL_SOURCE_ID} from '../registry/types.js';
 import type {CompositionSlot, CompositionView, InstalledApp, PlatformReaders} from './readers.js';
 
@@ -15,6 +17,10 @@ export interface PlatformReaderDeps {
   registry: Registry;
   /** Each app's sources and accounts (task 12.4); none held when omitted. */
   sources?: Sources;
+  /** The update result as last computed (task-14.5 decision 1); every app not checked when omitted. */
+  updates?: {held(): HeldUpdates | undefined};
+  /** The clock, in epoch milliseconds; the system's when omitted. */
+  now?: () => number;
   /** The open composition in this context, when one exists. */
   composition(contextId: string): CompositionState | undefined;
   /** This composition and the ones it was asked from, oldest first, open or closed. */
@@ -24,7 +30,8 @@ export interface PlatformReaderDeps {
 export function platformReaders(deps: PlatformReaderDeps): PlatformReaders {
   const sources = deps.sources ?? new Sources(deps.registry);
   return {
-    installedApps: () => installedApps(deps.registry, sources),
+    installedApps: () =>
+      installedApps(deps.registry, sources, deps.updates?.held(), (deps.now ?? Date.now)()),
     thisComposition: askedFrom => {
       const state = askedFrom === undefined ? undefined : deps.composition(askedFrom);
       return state ? compositionView(state, sources) : undefined;
@@ -39,17 +46,23 @@ export const BASIC_CATALOG_WORDS = 'basic catalog';
 
 /**
  * Every installed app with its card's content — this run's card, the stored one when the agent was
- * down at startup — its catalogs, whether it is reachable this run, whether it asks sign-in, and
- * its accounts by source and label, never a credential (task-12.6 decision 9). The platform is not
- * one.
+ * down at startup — its catalogs, whether it is reachable this run, whether it asks sign-in, its
+ * accounts by source and label, never a credential (task-12.6 decision 9), and its update state as
+ * last computed in the App Library's words, with how long ago — never a check run (task-14.5
+ * decisions 5 to 7). The platform is not one.
  */
 export function installedApps(
   registry: Registry,
   sources: Sources = new Sources(registry),
+  held?: HeldUpdates,
+  now: number = Date.now(),
 ): InstalledApp[] {
+  const installed = new Map(registry.installed().map(record => [record.id, record]));
   return registry.list().map(record => {
     const fetched = registry.card(record.id);
     const card = fetched ?? registry.storedCard(record.id);
+    const state = held?.states.get(record.id);
+    const source = installed.get(record.id)?.source ?? 'local';
     return {
       id: record.id,
       displayName: record.displayName,
@@ -61,8 +74,23 @@ export function installedApps(
       accounts: sources
         .of(record.id)
         .flatMap(({source, label}) => (label === undefined ? [] : [{source, label}])),
+      update: updateWords(state?.state, source),
+      ...(state && held ? {checked: checkedAgo(held.checkedAt, now)} : {}),
     };
   });
+}
+
+/** How long before `now` a check that began at `at` ran, in words: "checked 12 minutes ago". */
+export function checkedAgo(at: number, now: number): string {
+  const minutes = Math.floor((now - at) / 60_000);
+  if (minutes < 1) return 'checked just now';
+  const [n, unit] =
+    minutes < 60
+      ? [minutes, 'minute']
+      : minutes < 24 * 60
+        ? [Math.floor(minutes / 60), 'hour']
+        : [Math.floor(minutes / (24 * 60)), 'day'];
+  return `checked ${n} ${unit}${n === 1 ? '' : 's'} ago`;
 }
 
 /**

@@ -8,11 +8,17 @@ import {beforeAll, describe, expect, test} from 'vitest';
 import {Compositions} from '../src/composition/compositions.js';
 import {Sources} from '../src/accounts/accounts.js';
 import {compositionFrom, type CompositionState} from '../src/composition/state.js';
-import {compositionLine, compositionView, platformReaders} from '../src/planner/platformReaders.js';
+import {
+  checkedAgo,
+  compositionLine,
+  compositionView,
+  platformReaders,
+} from '../src/planner/platformReaders.js';
 import {READER_NAMES, readerTools, type PlatformReaders} from '../src/planner/readers.js';
 import type {Registry} from '../src/registry/registry.js';
 import {cardUrlOf, fixtureArtifact, testRegistry} from './registryFixture.js';
 import {FakeEmbedder} from '@a2uiverse/embedder';
+import type {UpdateState} from '@a2uiverse/sdk';
 
 function cardFor(
   id: string,
@@ -110,6 +116,7 @@ describe('installed apps', () => {
         reachable: true,
         signIn: false,
         accounts: [],
+        update: 'Not checked yet',
       },
       {
         id: 'gmail',
@@ -121,8 +128,67 @@ describe('installed apps', () => {
         reachable: false,
         signIn: false,
         accounts: [],
+        update: 'Not checked yet',
       },
     ]);
+  });
+
+  test('each app’s update state as last computed, in the App Library’s words, with how long ago the check ran (task-14.5 decisions 5 to 7)', async () => {
+    const registry = await registryWith({
+      github: named('github', 'GitHub'),
+      gmail: named('gmail', 'Gmail'),
+      linear: named('linear', 'Linear'),
+    });
+    const checkedAt = Date.parse('2026-10-11T09:00:00Z');
+    const base = {installedVersion: '0.0.0'};
+    const updates = {
+      held: () => ({
+        checkedAt,
+        states: new Map<string, UpdateState>([
+          ['github', {...base, appId: 'github', state: 'not-published'}],
+          [
+            'linear',
+            {
+              ...base,
+              appId: 'linear',
+              state: 'update-required',
+              publishedVersion: '1.0.0',
+              retired: ['x'],
+            },
+          ],
+        ]),
+      }),
+    };
+    const readers = platformReaders({
+      registry,
+      updates,
+      now: () => checkedAt + 12 * 60_000,
+      composition: () => undefined,
+      ancestry: () => [],
+    });
+    const byId = new Map(readers.installedApps().map(app => [app.id, app]));
+    // Installed from a local pack and not in the Store: installed from your computer.
+    expect(byId.get('github')).toMatchObject({
+      update: 'Installed from your computer',
+      checked: 'checked 12 minutes ago',
+    });
+    expect(byId.get('linear')).toMatchObject({
+      update: 'Needs an update to keep working',
+      checked: 'checked 12 minutes ago',
+    });
+    expect(byId.get('gmail')?.update).toBe('Not checked yet');
+    expect(byId.get('gmail')).not.toHaveProperty('checked');
+  });
+
+  test('how long ago, in words', () => {
+    const at = 0;
+    expect(checkedAgo(at, 20_000)).toBe('checked just now');
+    expect(checkedAgo(at, 60_000)).toBe('checked 1 minute ago');
+    expect(checkedAgo(at, 59 * 60_000)).toBe('checked 59 minutes ago');
+    expect(checkedAgo(at, 60 * 60_000)).toBe('checked 1 hour ago');
+    expect(checkedAgo(at, 5 * 60 * 60_000)).toBe('checked 5 hours ago');
+    expect(checkedAgo(at, 24 * 60 * 60_000)).toBe('checked 1 day ago');
+    expect(checkedAgo(at, 3 * 24 * 60 * 60_000)).toBe('checked 3 days ago');
   });
 });
 

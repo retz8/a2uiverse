@@ -2,7 +2,7 @@ import {useContext, useRef, type CSSProperties, type MutableRefObject} from 'rea
 import {createComponentImplementation} from '@a2ui/react/v0_9';
 import {CheckIcon, ExternalLinkIcon, LockClosedIcon, UpdateIcon} from '@radix-ui/react-icons';
 import {Button, Flex, Link, Spinner, Table, Text} from '@radix-ui/themes';
-import type {CompositionOperation} from '@a2uiverse/sdk';
+import {parseSourceId, type CompositionOperation} from '@a2uiverse/sdk';
 import type {ShellActionHandler} from '../../functions/shell-actions.js';
 import type {SourceName} from '../derived-value/join.js';
 import {PressStateContext} from '../../press-state.js';
@@ -1203,13 +1203,16 @@ export function createSlotComponent(
                 })
             : undefined
         }
-        onOpenAppLibrary={() =>
+        onOpenAppLibrary={() => {
+          // Manage apps lands on the app's own view (task-14.5 decision 9).
+          const app = props.source === undefined ? undefined : parseSourceId(props.source)?.appId;
           onShellAction({
             name: 'openAppLibrary',
             surfaceId: context.dataContext.surface.id,
             componentId: context.componentModel.id,
-          })
-        }
+            ...(app ? {app} : {}),
+          });
+        }}
         nameOf={source => sourceName?.(source) ?? source}
       />
     );

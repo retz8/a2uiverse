@@ -25,6 +25,18 @@ import type {InstalledRecord} from './types.js';
 export interface UpdateCheckDeps {
   registry: Registry;
   marketplace: MarketplaceClient;
+  /** The clock, in epoch milliseconds; the system's when omitted. */
+  now?: () => number;
+}
+
+/**
+ * The result as last computed (task-14.5 decisions 1 to 4): each app's state from the last run, the
+ * boot's or the App Library's, with when that run began. An install, update or uninstall drops the
+ * apps whose records it changed, so they have none until the next run.
+ */
+export interface HeldUpdates {
+  checkedAt: number;
+  states: ReadonlyMap<string, UpdateState>;
 }
 
 /** What one run of the check did, beyond the states it answers. */
@@ -56,31 +68,52 @@ export interface CheckOutcome {
 export class UpdateCheck {
   readonly #deps: UpdateCheckDeps;
   #inFlight: Promise<CheckOutcome> | undefined;
-  /** Each app's state from the last run, the boot's or the App Library's: what a Store listing shows. */
-  #last = new Map<string, UpdateState>();
+  #held: {checkedAt: number; states: Map<string, UpdateState>} | undefined;
+  /** The apps acted on since the run in flight began: that run leaves them out (task-14.5 decision 3). */
+  #actedOn = new Set<string>();
 
   constructor(deps: UpdateCheckDeps) {
     this.#deps = deps;
+    deps.registry.onChanged(({appIds, automatic}) => {
+      if (!automatic) this.#forget(appIds);
+    });
   }
 
   /** Runs the check, or joins the one in flight (task-13.5 decision 8). */
   check(): Promise<CheckOutcome> {
     if (!this.#inFlight) {
+      const checkedAt = (this.#deps.now ?? Date.now)();
+      this.#actedOn = new Set();
       this.#inFlight = this.#check()
         .then(outcome => {
-          this.#last = new Map(outcome.states.map(state => [state.appId, state]));
+          const states = outcome.states.filter(state => !this.#actedOn.has(state.appId));
+          this.#held = {checkedAt, states: new Map(states.map(state => [state.appId, state]))};
           return outcome;
         })
         .finally(() => {
           this.#inFlight = undefined;
+          this.#actedOn = new Set();
         });
     }
     return this.#inFlight;
   }
 
+  /** The result as last computed, no check run; none before the first run ends. */
+  held(): HeldUpdates | undefined {
+    return this.#held;
+  }
+
   /** The app's state as last computed, no check run (task-14.4 decision 1); none before a run has seen it. */
   last(appId: string): UpdateState | undefined {
-    return this.#last.get(appId);
+    return this.#held?.states.get(appId);
+  }
+
+  /** The apps an install, update or uninstall changed: none held, and none from a run in flight. */
+  #forget(appIds: readonly string[]): void {
+    for (const appId of appIds) {
+      this.#held?.states.delete(appId);
+      if (this.#inFlight) this.#actedOn.add(appId);
+    }
   }
 
   async #check(): Promise<CheckOutcome> {

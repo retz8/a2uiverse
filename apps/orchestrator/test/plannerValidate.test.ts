@@ -20,9 +20,11 @@ const catalog = pruneCatalog(
 );
 const tree = createA2uiValidator({catalog});
 const shortlist = ['github', 'gmail', 'shell'];
+/** The apps the registry holds: GitHub, Gmail and Linear. */
+const installed = ['github', 'gmail', 'linear'];
 
 const check = (document: unknown, ids: readonly string[] = shortlist): string[] => {
-  const result = validateLayoutSurface(document, {tree, shortlist: ids});
+  const result = validateLayoutSurface(document, {tree, shortlist: ids, installed});
   return result.ok ? [] : result.errors;
 };
 
@@ -416,11 +418,37 @@ describe('the data model holds literals', () => {
   });
 });
 
+describe('open the App Library on one app (task-14.5 decision 11)', () => {
+  const opening = (args: Record<string, unknown>): LayoutSurface => {
+    const answer = platformAnswer();
+    const library = answer.tree.components.find(c => c.id === 'library')!;
+    (library as Record<string, unknown>).action = {functionCall: {call: 'openAppLibrary', args}};
+    return answer;
+  };
+
+  test('an installed app off the shortlist passes: the reader, not the shortlist, lists the apps', () => {
+    expect(check(opening({app: 'linear'}), ['shell'])).toEqual([]);
+  });
+
+  test('an app the registry does not hold is refused', () => {
+    expect(check(opening({app: 'jira'}))).toEqual([
+      "/tree (library): openAppLibrary names 'jira', which is not installed",
+    ]);
+  });
+
+  test('open Publish passes, with no argument', () => {
+    const answer = platformAnswer();
+    const library = answer.tree.components.find(c => c.id === 'library')!;
+    (library as Record<string, unknown>).action = {functionCall: {call: 'openPublish', args: {}}};
+    expect(check(answer)).toEqual([]);
+  });
+});
+
 describe('accounts (task 12.6)', () => {
   /** GitHub not signed in yet, Gmail with two accounts, Calendar asking no sign-in. */
   const sources = ['github.1', 'gmail.1', 'gmail.2', 'calendar'];
   const accepted = (document: unknown): LayoutSurface => {
-    const result = validateLayoutSurface(document, {tree, shortlist: sources});
+    const result = validateLayoutSurface(document, {tree, shortlist: sources, installed});
     if (!result.ok) throw new Error(result.errors.join('\n'));
     return result.document;
   };

@@ -139,6 +139,7 @@ export function buildOrchestrator({
   const readers = platformReaders({
     registry,
     sources,
+    updates,
     composition: contextId => compositions.get(contextId),
     ancestry: contextId => compositions.ancestry(contextId),
   });

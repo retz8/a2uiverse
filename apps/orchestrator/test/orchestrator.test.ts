@@ -295,6 +295,7 @@ describe('orchestrator', () => {
       'canvas',
       'installed-apps',
       'find-and-install',
+      'publish',
     ]);
   });
 

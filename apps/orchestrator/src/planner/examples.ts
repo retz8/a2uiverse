@@ -5,7 +5,8 @@
  * hypothesis over fixture cards (task-7.6 decision 2); a command over the same cards that one agent
  * answers alone, and a status question in one app's own noun merged over every agent holding a part
  * of it (task-7.8 decision 16); a platform answer that calls one reader and templates its
- * result; a capability gap; and an account choice (task 12.6). The examples teach form; the rules doc
+ * result; whether anything is out of date (task 14.5); a capability gap; and an account choice
+ * (task 12.6). The examples teach form; the rules doc
  * (`planner.md`) teaches the vocabulary and the rules. Their trees are authored against the
  * Planner's pruned shell catalog; its tests put each through the whole validator.
  */
@@ -67,10 +68,18 @@ const PLATFORM: ExampleAgent = {
       name: 'What the canvas can do',
       description: 'Describes what can be done here and what is on the canvas.',
     },
-    {name: 'Installed apps', description: 'Lists and describes the installed apps.'},
+    {
+      name: 'Installed apps',
+      description: 'Lists and describes the installed apps, and whether each has an update.',
+    },
     {
       name: 'Finding and installing apps',
       description: 'Explains the Store and the App Library and points the user to them.',
+    },
+    {
+      name: 'Publishing an app',
+      description:
+        'Explains how a publisher puts their own app in the Store and points them to Publish.',
     },
   ],
 };
@@ -364,6 +373,87 @@ export const INSTALLED_APPS_ANSWER: LayoutExample = {
   },
 };
 
+/**
+ * Whether anything is out of date (task-14.5 decision 13): the reader's update words and how long ago
+ * the check ran, written as the shell's own sentence; a button into the App Library, and one naming
+ * the app that needs its update, landing on that app.
+ */
+export const OUT_OF_DATE_ANSWER: LayoutExample = {
+  name: 'out-of-date-answer',
+  intent: 'Is anything out of date?',
+  agents: [PLATFORM],
+  readers: [
+    {
+      reader: 'installed_apps',
+      result: [
+        {
+          id: 'calendar',
+          displayName: 'Google Calendar',
+          name: 'Google Calendar',
+          description: 'Events and schedules for the signed-in account.',
+          skills: [{name: 'Agenda', description: 'Shows upcoming events.'}],
+          reachable: true,
+          update: 'A new version is available',
+          checked: 'checked 12 minutes ago',
+        },
+        {
+          id: 'github',
+          displayName: 'GitHub',
+          name: 'GitHub',
+          description: 'Repositories, pull requests and issues for the signed-in account.',
+          skills: [
+            {name: 'Pull requests', description: 'Lists, reviews and merges pull requests.'},
+          ],
+          reachable: true,
+          update: 'Up to date',
+          checked: 'checked 12 minutes ago',
+        },
+        {
+          id: 'linear',
+          displayName: 'Linear',
+          name: 'Linear',
+          description: 'Issues, projects and cycles for the signed-in workspace.',
+          skills: [{name: 'Issues', description: 'Lists and files issues.'}],
+          reachable: true,
+          update: 'Needs an update to keep working',
+          checked: 'checked 12 minutes ago',
+        },
+      ],
+    },
+  ],
+  output: {
+    title: 'App updates',
+    dispatch: [],
+    tree: {
+      components: [
+        {id: 'root', component: 'Column', children: ['answer', 'actions']},
+        {
+          id: 'answer',
+          component: 'Text',
+          variant: 'body',
+          text: 'Two of your apps have updates: Linear needs one to keep working, and a new version of Google Calendar is available. GitHub is up to date — checked 12 minutes ago.',
+        },
+        {id: 'actions', component: 'Row', children: ['library', 'linear']},
+        {
+          id: 'library',
+          component: 'Button',
+          child: 'library-label',
+          action: {functionCall: {call: 'openAppLibrary', args: {}}},
+        },
+        {id: 'library-label', component: 'Text', text: 'Open the App Library'},
+        {
+          id: 'linear',
+          component: 'Button',
+          child: 'linear-label',
+          action: {functionCall: {call: 'openAppLibrary', args: {app: 'linear'}}},
+        },
+        {id: 'linear-label', component: 'Text', text: 'See Linear’s update'},
+      ],
+    },
+    dataModel: {},
+  },
+};
+
 /** A capability gap: nothing installed serves it, so one gap slot and nothing else — the tile is the shell's. */
 export const CAPABILITY_GAP: LayoutExample = {
   name: 'capability-gap',
@@ -423,6 +513,7 @@ export const LAYOUT_EXAMPLES: readonly LayoutExample[] = [
   ORDER_OPEN,
   APPLICATIONS_JOIN,
   INSTALLED_APPS_ANSWER,
+  OUT_OF_DATE_ANSWER,
   CAPABILITY_GAP,
   ACCOUNT_CHOICE,
 ];

@@ -1626,10 +1626,34 @@
     },
     "openAppLibrary": {
       "type": "object",
-      "description": "Opens the App Library, where installed apps are managed. Use from a button when an answer leads the user to manage their apps. This function has no return value.",
+      "description": "Opens the App Library, where installed apps are managed and updated. Use from a button when an answer leads the user to manage or update their apps. This function has no return value.",
       "properties": {
         "call": {
           "const": "openAppLibrary"
+        },
+        "args": {
+          "type": "object",
+          "properties": {
+            "app": {
+              "type": "string",
+              "description": "The id of one installed app, to open on that app. Omit to open the list of every installed app."
+            }
+          },
+          "additionalProperties": false
+        },
+        "returnType": {
+          "const": "void"
+        }
+      },
+      "required": ["call", "args"],
+      "unevaluatedProperties": false
+    },
+    "openPublish": {
+      "type": "object",
+      "description": "Opens Publish, where a publisher puts their own app in the Store, sees their apps there and takes one out. Use from a button when an answer leads the user to publish an app. This function has no return value.",
+      "properties": {
+        "call": {
+          "const": "openPublish"
         },
         "args": {
           "type": "object",
@@ -2263,6 +2287,9 @@
         },
         {
           "$ref": "#/functions/openAppLibrary"
+        },
+        {
+          "$ref": "#/functions/openPublish"
         },
         {
           "$ref": "#/functions/and"

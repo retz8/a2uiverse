@@ -439,3 +439,99 @@ describe('the check (task-13.5 decisions 8, 9, 10)', () => {
     expect(marketplace.requests).toEqual(['/apps/shop-a/entry.json']);
   });
 });
+
+describe('the result as last computed (task-14.5 decisions 1 to 5)', () => {
+  test('held with when its check began, the whole result replaced by the next', async () => {
+    const {registry, cards, marketplace, client} = await setUp();
+    const shop = cardFor('http://127.0.0.1:12001');
+    await registry.install({appId: 'shop-a', cardUrl: cards.serve(shop), catalogs: []});
+    await marketplace.publish('shop-a', {card: shop, cardUrl: cards.serve(shop)});
+    let clock = 1_000;
+    const check = new UpdateCheck({registry, marketplace: client, now: () => clock++});
+    expect(check.held()).toBeUndefined();
+    await check.check();
+    expect(check.held()?.checkedAt).toBe(1_000);
+    expect(check.held()?.states.get('shop-a')).toMatchObject({state: 'up-to-date'});
+    await check.check();
+    expect(check.held()?.checkedAt).toBe(1_001);
+  });
+
+  test('a check that cannot reach the marketplace replaces it: every app unknown (decision 2)', async () => {
+    const {registry, cards, marketplace, check} = await setUp();
+    const shop = cardFor('http://127.0.0.1:12001');
+    await registry.install({appId: 'shop-a', cardUrl: cards.serve(shop), catalogs: []});
+    await marketplace.publish('shop-a', {card: shop, cardUrl: cards.serve(shop)});
+    await check.check();
+    expect(check.held()?.states.get('shop-a')).toMatchObject({state: 'up-to-date'});
+    await marketplace.close();
+    await check.check();
+    expect(check.held()?.states.get('shop-a')).toMatchObject({state: 'unknown'});
+  });
+
+  test('an install, an update or an uninstall drops the app from it, no check run (decision 4)', async () => {
+    const {registry, cards, marketplace, check} = await setUp();
+    const shop = cardFor('http://127.0.0.1:12001');
+    const inbox = cardFor('http://127.0.0.1:12002');
+    await marketplace.publish('shop-a', {card: shop, cardUrl: cards.serve(shop)});
+    await marketplace.publish('inbox', {card: inbox, cardUrl: cards.serve(inbox)});
+    await registry.installFromMarketplace('shop-a');
+    await registry.installFromMarketplace('inbox');
+    await check.check();
+    const requests = marketplace.requests.length;
+
+    await registry.installFromMarketplace('shop-a');
+    expect(check.held()?.states.has('shop-a')).toBe(false);
+    expect(check.held()?.states.get('inbox')).toMatchObject({state: 'up-to-date'});
+    await registry.uninstall('inbox');
+    expect(check.held()?.states.has('inbox')).toBe(false);
+    const entries = marketplace.requests.slice(requests).filter(r => r.endsWith('entry.json'));
+    expect(entries).toEqual(['/apps/shop-a/entry.json']); // the install's own read, no check
+  });
+
+  test('an install that moves a catalog drops every app that followed it (decision 4)', async () => {
+    const {registry, cards, marketplace, check} = await setUp();
+    const card = cardFor(AGENT, {catalogs: [GMAIL]});
+    const cardUrl = cards.serve(card);
+    const first = await fixtureArtifact(GMAIL);
+    await marketplace.publish('gmail-admin', {card, cardUrl, catalogs: [first]});
+    await registry.installFromMarketplace('gmail-admin');
+    await registry.install({appId: 'gmail', cardUrl, catalogs: [first]});
+    await check.check();
+    expect([...check.held()!.states.keys()].sort()).toEqual(['gmail', 'gmail-admin']);
+
+    const second = await fixtureArtifact(GMAIL, {version: '0.2.0'});
+    await marketplace.publish('gmail-admin', {card, cardUrl, catalogs: [second]});
+    await registry.installFromMarketplace('gmail-admin');
+    expect([...check.held()!.states.keys()]).toEqual([]);
+  });
+
+  test('an act while a check runs wins: that check leaves the app out (decision 3)', async () => {
+    const {registry, cards, marketplace, check} = await setUp();
+    const shop = cardFor('http://127.0.0.1:12001');
+    const inbox = cardFor('http://127.0.0.1:12002');
+    await marketplace.publish('shop-a', {card: shop, cardUrl: cards.serve(shop)});
+    await marketplace.publish('inbox', {card: inbox, cardUrl: cards.serve(inbox)});
+    await registry.installFromMarketplace('shop-a');
+    await registry.installFromMarketplace('inbox');
+
+    const running = check.check();
+    await registry.uninstall('inbox');
+    const outcome = await running;
+    expect(outcome.states.map(s => s.appId)).toContain('inbox');
+    expect(check.held()?.states.has('inbox')).toBe(false);
+    expect(check.held()?.states.get('shop-a')).toMatchObject({state: 'up-to-date'});
+  });
+
+  test("the check's own install of a newer build is no such act: its state stands (decision 3)", async () => {
+    const {registry, cards, marketplace, check} = await setUp();
+    const card = cardFor(AGENT, {catalogs: [GMAIL]});
+    const cardUrl = cards.serve(card);
+    await marketplace.publish('gmail', {card, cardUrl, catalogs: [await fixtureArtifact(GMAIL)]});
+    await registry.installFromMarketplace('gmail');
+    const second = await fixtureArtifact(GMAIL, {version: '0.2.0'});
+    await marketplace.publish('gmail', {card, cardUrl, catalogs: [second]});
+    const outcome = await check.check();
+    expect(outcome.updated.map(u => u.appId)).toEqual(['gmail']);
+    expect(check.held()?.states.get('gmail')).toMatchObject({state: 'up-to-date'});
+  });
+});

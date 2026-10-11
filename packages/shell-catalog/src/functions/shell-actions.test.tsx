@@ -38,6 +38,24 @@ test('a button calling openAppLibrary hands the host its surface', () => {
   expect(shell).toEqual([{name: 'openAppLibrary', surfaceId: SURFACE_ID}]);
 });
 
+test('a button calling openAppLibrary with an app hands the host that app', () => {
+  const shell: ShellAction[] = [];
+  renderTree(button({functionCall: {call: 'openAppLibrary', args: {app: 'linear'}}}), {
+    onShellAction: action => shell.push(action),
+  });
+  fireEvent.click(screen.getByRole('button', {name: 'Go'}));
+  expect(shell).toEqual([{name: 'openAppLibrary', surfaceId: SURFACE_ID, app: 'linear'}]);
+});
+
+test('a button calling openPublish hands the host its surface', () => {
+  const shell: ShellAction[] = [];
+  renderTree(button({functionCall: {call: 'openPublish', args: {}}}), {
+    onShellAction: action => shell.push(action),
+  });
+  fireEvent.click(screen.getByRole('button', {name: 'Go'}));
+  expect(shell).toEqual([{name: 'openPublish', surfaceId: SURFACE_ID}]);
+});
+
 test('the capability tile searches the Store for the missing capability', () => {
   const shell: ShellAction[] = [];
   const {container} = renderTree([{id: 'root', component: 'Slot', gap: 'flight booking'}], {

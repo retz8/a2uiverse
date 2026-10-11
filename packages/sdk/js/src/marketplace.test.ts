@@ -19,6 +19,7 @@ import {
   readUnpublishRequest,
   readUpdateState,
   searchPath,
+  updateWords,
   validateIndexEntry,
   validatePreview,
 } from './marketplace';
@@ -219,6 +220,38 @@ describe('the wire bodies', () => {
       expect(bad.errors[0]).toMatch(/^results\[0\]\.entry/);
       expect(bad.errors.at(-1)).toBe('results[0].score: expected a number');
     }
+  });
+});
+
+describe("the update state's words (task-14.5 decisions 6 and 7)", () => {
+  test('each state in the App Library words, and an app with none held not checked yet', () => {
+    const words = Object.fromEntries(
+      [...UPDATE_STATES, undefined].map(state => [
+        String(state),
+        updateWords(state, 'marketplace'),
+      ]),
+    );
+    expect(words).toEqual({
+      'up-to-date': 'Up to date',
+      'newer-build': 'A small update is ready',
+      'major-update': 'A new version is available',
+      'card-update': 'An update that asks for more',
+      'update-required': 'Needs an update to keep working',
+      'ahead-of-store': 'A newer version is on its way from the publisher',
+      'not-published': 'No longer in the Store',
+      unknown: 'Couldn’t check for updates',
+      undefined: 'Not checked yet',
+    });
+  });
+
+  test('an app from a local copy the Store does not list is installed from your computer', () => {
+    expect(updateWords('not-published', 'local')).toBe('Installed from your computer');
+  });
+
+  test('an app from a local copy the Store lists reads its state', () => {
+    expect(updateWords('major-update', 'local')).toBe('A new version is available');
+    expect(updateWords('up-to-date', 'local')).toBe('Up to date');
+    expect(updateWords(undefined, 'local')).toBe('Not checked yet');
   });
 });
 

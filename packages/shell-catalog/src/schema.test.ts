@@ -73,4 +73,5 @@ test('the two guidance docs ship beside the schema', () => {
   const platformUi = readFileSync('docs/platform-ui-guidance.md', 'utf8');
   expect(platformUi).toContain('openStore');
   expect(platformUi).toContain('openAppLibrary');
+  expect(platformUi).toContain('openPublish');
 });

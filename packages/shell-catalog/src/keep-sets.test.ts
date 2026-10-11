@@ -70,7 +70,7 @@ describe('the layout surface keep-set', () => {
 
   test('carries every shell action; adding an account is a Slot, not one (task-12.13 decision 27)', () => {
     expect([...LAYOUT_SURFACE_KEEP_SET.functions].sort()).toEqual(
-      ['openAppLibrary', 'openStore'].sort(),
+      ['openAppLibrary', 'openPublish', 'openStore'].sort(),
     );
   });
 

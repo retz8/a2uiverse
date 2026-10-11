@@ -20,7 +20,7 @@ import {
  * The Planner's one validator (task-6.4 decision 10), in order: the output schema; the tree as a
  * surface through the sdk's A2UI validator against the layout surface's pruned catalog — known
  * components and props, the root, dangling children, cycles, orphans, so `Frame`, `Attribution`
- * and any action but the shell's two are unknown; slot accounting — exactly one `Slot` per
+ * and any action but the shell's three are unknown; slot accounting — exactly one `Slot` per
  * dispatch entry matched by `source` or by the exact `gap`, none unmatched, a merged view only
  * with two or more vendor sources, every source on this turn's shortlist and none twice, no blank
  * request; the merged view's `columns`, `columnSources` and `join` on `shell` alone, the join's
@@ -28,7 +28,8 @@ import {
  * naming a dispatched vendor source or null (task-8.3 decision 12); what the Planner may write on
  * a `Slot` (`source`, `gap`, `chooseAccount` or `addAccount`, and a positive `weight`; the rest
  * are the painter's); the add-account tile on a shortlisted app that asks sign-in, once per app;
- * and a data model of literals. One line per finding, with its path, so the retry can
+ * open the App Library's app an installed one (task-14.5 decision 11); and a data model of
+ * literals. One line per finding, with its path, so the retry can
  * hand them back.
  *
  * Accounts (task 12.6): before the checks, a bare app id naming an app with one source is
@@ -45,6 +46,11 @@ export interface LayoutChecks {
    * decision 2) — the only sources the dispatch may name.
    */
   shortlist: readonly string[];
+  /**
+   * The installed apps' ids: the apps open the App Library may name, shortlisted or not — the
+   * installed-apps reader lists them all (task-14.5 decision 11).
+   */
+  installed: readonly string[];
 }
 
 export type LayoutValidation = {ok: true; document: LayoutSurface} | {ok: false; errors: string[]};
@@ -65,6 +71,7 @@ export function validateLayoutSurface(input: unknown, checks: LayoutChecks): Lay
     ...dispatchErrors(document, checks.shortlist),
     ...slotErrors(document),
     ...addAccountErrors(document, checks.shortlist),
+    ...appLibraryErrors(document, checks.installed),
     ...dataModelErrors(document.dataModel),
   ];
   return errors.length === 0 ? {ok: true, document} : {ok: false, errors};
@@ -417,6 +424,27 @@ function addAccountErrors(document: LayoutSurface, shortlist: readonly string[])
       errors.push(`/tree (${component.id}): Slot.addAccount names '${app}', which asks no sign-in`);
     }
   }
+  return errors;
+}
+
+/** Open the App Library's app, wherever a component's action names one, is an installed app. */
+function appLibraryErrors(document: LayoutSurface, installed: readonly string[]): string[] {
+  const errors: string[] = [];
+  const visit = (value: unknown, id: string) => {
+    if (Array.isArray(value)) {
+      for (const item of value) visit(item, id);
+      return;
+    }
+    if (!isRecord(value)) return;
+    if (value.call === 'openAppLibrary' && isRecord(value.args)) {
+      const app = value.args.app;
+      if (typeof app === 'string' && !installed.includes(app)) {
+        errors.push(`/tree (${id}): openAppLibrary names '${app}', which is not installed`);
+      }
+    }
+    for (const child of Object.values(value)) visit(child, id);
+  };
+  for (const component of document.tree.components) visit(component, component.id);
   return errors;
 }
 

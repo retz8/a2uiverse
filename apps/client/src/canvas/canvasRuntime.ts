@@ -468,8 +468,7 @@ export function createCanvasRuntime({
       // A functionCall runs with no component in scope; only the capability tile names itself.
       sourceComponentId: action.componentId ?? FUNCTION_CALL_SOURCE,
       timestamp: new Date().toISOString(),
-      context:
-        action.name === 'openStore' && action.query !== undefined ? {query: action.query} : {},
+      context: shellActionContext(action),
     };
     void (async () => {
       // The hub answers with nothing. Should it ever answer with a paint, it lands like the
@@ -581,8 +580,17 @@ export function trustedPageOf(action: ShellAction): TrustedPageState | undefined
     case 'openStore':
       return {page: 'store', ...(action.query !== undefined ? {query: action.query} : {})};
     case 'openAppLibrary':
-      return {page: 'appLibrary'};
+      return {page: 'appLibrary', ...(action.app !== undefined ? {app: action.app} : {})};
+    case 'openPublish':
+      return {page: 'publish'};
   }
+}
+
+/** What a shell action's report carries for the journal: the Store's query, the App Library's app. */
+export function shellActionContext(action: ShellAction): Record<string, string> {
+  if (action.name === 'openStore' && action.query !== undefined) return {query: action.query};
+  if (action.name === 'openAppLibrary' && action.app !== undefined) return {app: action.app};
+  return {};
 }
 
 export type {A2AMessageSender};

@@ -5,9 +5,9 @@ import {z} from 'zod';
  * The shell's closed action set (SPEC §4.2, §7; task-6.2 decisions 1–3): catalog functions a
  * shell surface's button invokes through `functionCall`, run on the client like the basic
  * catalog's `openUrl`. A function does nothing itself — it hands the action to the host, which
- * decides what opening the Store or the App Library looks like.
+ * decides what opening the Store, the App Library or Publish looks like (task-14.5 decision 8).
  */
-export const SHELL_ACTIONS = ['openStore', 'openAppLibrary'] as const;
+export const SHELL_ACTIONS = ['openStore', 'openAppLibrary', 'openPublish'] as const;
 export type ShellActionName = (typeof SHELL_ACTIONS)[number];
 
 /**
@@ -17,12 +17,13 @@ export type ShellActionName = (typeof SHELL_ACTIONS)[number];
  */
 export type ShellAction =
   | {name: 'openStore'; surfaceId: string; componentId?: string; query?: string}
-  | {name: 'openAppLibrary'; surfaceId: string; componentId?: string};
+  | {name: 'openAppLibrary'; surfaceId: string; componentId?: string; app?: string}
+  | {name: 'openPublish'; surfaceId: string; componentId?: string};
 
 export type ShellActionHandler = (action: ShellAction) => void;
 
 /**
- * The two functions, bound to the host's handler. Adding an account is not one: it is the shell's
+ * The three functions, bound to the host's handler. Adding an account is not one: it is the shell's
  * add-account tile, a `Slot` holding `addAccount` (task-12.13 decision 27).
  */
 export function shellActionFunctions(onShellAction: ShellActionHandler): FunctionImplementation[] {
@@ -37,9 +38,18 @@ export function shellActionFunctions(onShellAction: ShellActionHandler): Functio
       },
     ),
     createFunctionImplementation(
-      {name: 'openAppLibrary', returnType: 'void', schema: z.object({})},
+      {name: 'openAppLibrary', returnType: 'void', schema: z.object({app: z.string().optional()})},
+      ({app}, context) => {
+        const surfaceId = context.surface.id;
+        onShellAction(
+          app ? {name: 'openAppLibrary', surfaceId, app} : {name: 'openAppLibrary', surfaceId},
+        );
+      },
+    ),
+    createFunctionImplementation(
+      {name: 'openPublish', returnType: 'void', schema: z.object({})},
       (_args, context) => {
-        onShellAction({name: 'openAppLibrary', surfaceId: context.surface.id});
+        onShellAction({name: 'openPublish', surfaceId: context.surface.id});
       },
     ),
   ];

@@ -133,7 +133,8 @@ export class ModelPlanner implements Planner {
         ],
       };
     }
-    const validation = validateLayoutSurface(parsed, {tree: this.#tree, shortlist});
+    const installed = this.#readers.installedApps().map(app => app.id);
+    const validation = validateLayoutSurface(parsed, {tree: this.#tree, shortlist, installed});
     if (!validation.ok) return {ok: false, errors: validation.errors};
     return {ok: true, document: validation.document, errors: []};
   }
