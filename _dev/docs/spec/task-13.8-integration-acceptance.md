@@ -65,7 +65,7 @@ The dev publisher publishes `linear-admin` with Linear's card URL, installed by 
 
 ### 12. An automatic update never carries an app installed from a local pack
 
-The update check skips a marketplace app's automatic update when the row's move would carry an app installed from a local pack; the marketplace app stays at a newer build, reported, and the person's install by id moves both, naming the follower. With Linear from a local pack and `linear-admin` from the marketplace, the published Linear build of decision 11 is the probe, run before the fix and after it; the fix carries an orchestrator test.
+The update check skips a marketplace app's automatic update when the row's move would carry an app installed from a local pack; the marketplace app stays at a newer build, reported, and the person's install by id moves both, naming the follower. With Linear from a local pack and `linear-admin` from the marketplace, the published Linear build of decision 11 is the probe, run before the fix and after it; the fix carries an orchestrator test. The boot says each automatic update left undone and the apps it would have moved. Replaced: the automatic update moving the row, an app installed from a local pack carried with it.
 
 ### 13. Linear's cases
 
