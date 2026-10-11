@@ -227,6 +227,34 @@ export class Registry {
     carded.forEach(({id}, i) => this.#vectors.set(id, vectors[i]));
   }
 
+  /**
+   * The update check's fetch (task-13.8 decision 29): every installed app's live card again, so a
+   * check never judges on a card fetched at boot. A card that answers replaces the one held, its
+   * corpus vector recomputed when it changed; one that does not answer leaves the one held.
+   */
+  async refetchLiveCards(): Promise<void> {
+    const records = [...this.#records.values()];
+    const fetched = await Promise.all(
+      records.map(record => this.#fetchCard(record.cardUrl).catch(() => null)),
+    );
+    const changed: {id: string; card: AgentCard}[] = [];
+    records.forEach((record, i) => {
+      const card = fetched[i];
+      if (!card || !this.#records.has(record.id)) return;
+      const held = this.#cards.get(record.id);
+      if (held && JSON.stringify(held) === JSON.stringify(card)) return;
+      this.#cards.set(record.id, card);
+      changed.push({id: record.id, card});
+    });
+    if (changed.length === 0) return;
+    try {
+      const vectors = await this.#deps.embedder.embed(changed.map(({card}) => corpusDoc(card)));
+      changed.forEach(({id}, i) => this.#vectors.set(id, vectors[i]));
+    } catch (err) {
+      console.error('registry: embedding the refetched cards failed:', (err as Error).message);
+    }
+  }
+
   get(appId: string): AppRecord {
     const record = this.find(appId);
     if (!record) throw new Error(`Unknown app: ${appId}`);

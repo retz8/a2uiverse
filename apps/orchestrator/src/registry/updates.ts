@@ -2,7 +2,7 @@
  * The update check (SPEC §10; phase-13 decisions 10 and 16; task-13.5 decisions 7 to 10): for each
  * installed app, one of the sdk's eight states, decided in the sdk's order over three things — the
  * installed record, the marketplace's entry and the live card this run holds. One operation does
- * it all: the entries fetched one per app, the states computed, a newer build of an app installed
+ * it all: the entries and the live cards fetched one per app, the states computed, a newer build of an app installed
  * from the marketplace installed over at once unless its move would carry an app installed from a
  * local pack (task-13.8 decision 12), an app ahead of the Store reported, and the states answered as
  * they stand after. Behind `GET /registry/updates.json` and the boot.
@@ -68,7 +68,12 @@ export class UpdateCheck {
   async #check(): Promise<CheckOutcome> {
     const {registry, marketplace} = this.#deps;
     const records = registry.installed();
-    const lookups = await Promise.all(records.map(record => marketplace.entry(record.id)));
+    // Each app's live card is fetched beside its entry (task-13.8 decision 29), so the states are
+    // judged on the card the agent serves now, not the one fetched at boot.
+    const [lookups] = await Promise.all([
+      Promise.all(records.map(record => marketplace.entry(record.id))),
+      registry.refetchLiveCards(),
+    ]);
     const unreached = lookups.find(lookup => lookup.kind === 'unreached');
     if (unreached) {
       return {
