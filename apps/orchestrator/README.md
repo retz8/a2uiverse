@@ -80,8 +80,10 @@ The registry's, under `/registry`:
 | `GET catalogs.json`         | The catalog table: the client's own catalogs, then each installed artifact by its id                                          |
 | `GET artifacts/<id>/<path>` | An artifact's files, served as immutable content                                                                              |
 | `GET updates.json`          | Runs the update check — the newer builds of marketplace apps installing themselves on the way — and answers one state per app |
-| `POST install`              | `{appId, cardUrl, catalogs: [{files: {<path>: <base64>}}]}`, or `{appId}` alone for the marketplace, with the write token     |
-| `POST uninstall`            | `{appId}`, with the write token                                                                                               |
+| `POST install`              | `{appId, cardUrl, catalogs: [{files: {<path>: <base64>}}]}`, or `{appId}` alone for the marketplace                           |
+| `POST uninstall`            | `{appId}`; answers what became of each account's access                                                                       |
+
+Every write is JSON. It needs no token from the browser at an allowed origin — localhost on any port, or the orchestrator's own dev tunnel on any port, the same list CORS admits — and takes the write token from anywhere else: the launcher and the registry command.
 
 The sign-in's, under `/auth`, which the browser reaches with no write token. Each attempt is bound to the browser that started it by a cookie, beside `state`, PKCE and the `nonce`, and the token page's form is taken only from the orchestrator's own origins, its public one and `http://localhost:<PORT>`:
 
@@ -92,6 +94,11 @@ The sign-in's, under `/auth`, which the browser reaches with no write token. Eac
 | `GET key?attempt`, `POST key`     | The token page, where a key or token is pasted, and its form                                                                             |
 | `GET callback`                    | The authorization server's return                                                                                                        |
 | `GET attempts/<id>`               | The attempt's outcome, which the client polls                                                                                            |
+| `GET accounts.json`               | Every installed app's accounts: label, permissions in the card's words, whether it must sign in again                                    |
+| `POST rename`                     | `{source, label}`: the account's name, kept through every later sign-in; a write                                                         |
+| `POST sign-out`                   | `{source}`: the account signed out, answering what became of its access; a write                                                         |
+
+With no `canvas`, `start` is the App Library's: add an account, or sign in again on one that lapsed.
 
 ### Configuration
 

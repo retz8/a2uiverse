@@ -413,12 +413,12 @@ The journal's `registry` line carries three fields from this: `source`, `followe
 | `GET catalogs.json` | the catalog table, `Cache-Control: no-cache` |
 | `GET artifacts/<id>/<path>` | an artifact's files, `Cache-Control: public, max-age=31536000, immutable` |
 | `GET updates.json` | each installed app's update state, the check run first; `Cache-Control: no-cache` |
-| `POST install` | `{appId, cardUrl, catalogs: [{files: {<path>: <base64>}}]}` — or `{appId}` alone, the install by id — with the write token |
-| `POST uninstall` | `{appId}`, with the write token |
+| `POST install` | `{appId, cardUrl, catalogs: [{files: {<path>: <base64>}}]}` — or `{appId}` alone, the install by id |
+| `POST uninstall` | `{appId}`; answers what became of each account's access |
 
-The read routes are shaped like files on purpose: a folder with the same layout, served by any static server, stands in for the orchestrator. The [registry snapshot](#dev-harness-the-launcher-and-the-snapshot) the tests load is exactly that. A write answers `200` with what it did, `400` for a malformed request, `401` for a missing or wrong token, `404` to uninstall an app that isn't installed, and `422` with every finding of a refusal.
+The read routes are shaped like files on purpose: a folder with the same layout, served by any static server, stands in for the orchestrator. The [registry snapshot](#dev-harness-the-launcher-and-the-snapshot) the tests load is exactly that. A write answers `200` with what it did, `400` for a malformed request, `401` for a missing or wrong token, `403` from a browser origin outside the list, `404` to uninstall an app that isn't installed, `415` for a body that isn't JSON, and `422` with every finding of a refusal.
 
-**The write token.** The orchestrator's port is public through the dev tunnel, and an artifact is code that runs in your browser. So writes need a token: 32 random bytes, written into `.state/registry/write-token` at every startup, readable by the owner only, sent as `Authorization: Bearer <token>`, and compared in constant time. Only something on the machine with the state directory can read it: the command and the launcher.
+**Who may write.** The orchestrator's port is public through the dev tunnel, and an artifact is code that runs in your browser. Every write carries `Content-Type: application/json`: a page on another origin can't send that without the browser asking the orchestrator first and checking the answer against the page's real origin, and a form can't send it at all. From the browser, a write needs no token when its origin is `localhost` on any port or the orchestrator's own dev tunnel on any port, read from its base URL: that's the trusted page's Install, Update and Uninstall. Anything else takes the **write token**: 32 random bytes, written into `.state/registry/write-token` at every startup, readable by the owner only, sent as `Authorization: Bearer <token>`, and compared in constant time. Only something on the machine with the state directory can read it: the command and the launcher. Each write's journal line says which way it came, `by: "page"` or `by: "token"`.
 
 ### Entitlement at the hub
 
@@ -525,6 +525,7 @@ Two browser behaviours shape the third column:
 | Install fails any check | Nothing changes. Every finding is answered at once, `422`; the command prints `refused github:` and each finding, and exits 1 |
 | The card can't be fetched at install | Refused: `the card at … could not be fetched: …` |
 | No write token, or the wrong one | `401`; the command names the state directory it read the token from |
+| A browser write from an origin outside the list, or not JSON | `403` or `415`; nothing changes |
 | The registry on disk is damaged | The orchestrator doesn't start; the error names the file and the problem |
 | An agent is down at startup | It stays installed and unroutable for the run; the boot log names it |
 | An app paints outside its entitlement | The paint is dropped; the slot fails with the `catalog` cause, no Retry |
@@ -582,7 +583,7 @@ Installing needs no model. Questions do, since the Planner is a model call, but 
 | Install by id, the marketplace client, the update check | `apps/orchestrator/src/registry/registry.ts` (`installFromMarketplace`), `marketplace.ts`, `updates.ts` |
 | The static gate over one artifact, shared with the marketplace | `packages/sdk/js/src/gate.ts` |
 | What a build may change, and the rows let go | `packages/sdk/js/src/evolution.ts`, `retirement.ts` |
-| Storage, routes, token, command | `apps/orchestrator/src/registry/store.ts`, `api.ts`, `token.ts`, `command.ts`, `cli.ts`, `types.ts` |
+| Storage, routes, token, command | `apps/orchestrator/src/registry/store.ts`, `api.ts`, `token.ts`, `command.ts`, `cli.ts`, `types.ts`; who may write, `apps/orchestrator/src/writeGuard.ts` |
 | Routing an installed app | `packages/embedder/src/corpus.ts`, `apps/orchestrator/src/router/router.ts`, `planner/platformReaders.ts` |
 | Entitlement at the hub | `apps/orchestrator/src/agentsPool/agentsPool.ts` |
 | A failed click kept for Retry; the `load` cause | `apps/orchestrator/src/composition/state.ts`, `executor.ts` |

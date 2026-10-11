@@ -65,7 +65,7 @@ An app says what sign-in it needs in its A2A agent card, in two fields A2A alrea
 
 Once an app has accounts, everything the orchestrator keeps is keyed by **source**: the app and one of its accounts, written `<app>.<n>`. Gmail with two accounts is `gmail.1` and `gmail.2`, two slots, two conversations with the agent, two copies of the data. An app whose card asks no sign-in keeps its bare id. An app that asks sign-in but holds no account yet is planned as the account its next sign-in will create, `gmail.1`. [`orchestrator.md`](orchestrator.md#sources-an-app-and-its-account) has the keying.
 
-Each account has a **label**, taken from the sign-in itself: the email, user name or name the ID token carries, otherwise "Gmail account 2". When an app has more than one account, its fragments show the label beside the app's name: "Gmail · you@example.com".
+Each account has a **label**, taken from the sign-in itself: the email, user name or name the ID token carries, otherwise "Gmail account 2". When an app has more than one account, its fragments show the label beside the app's name: "Gmail · you@example.com". Renamed from the App Library, the label is yours from then on: "Personal", kept through every later sign-in.
 
 ### 3. The credential rides a header, and only the vault holds it
 
@@ -321,7 +321,7 @@ The callback exchanges the code, checks the ID token, and finds the account.
 - **More access:** the account stays bound. A different `sub` coming back fails the sign-in, "signed in as a different account".
 - **Signing in again:** the account stays bound. A different `sub` coming back means the agent lost the account, for example its store was emptied. The account is **re-bound** to the new identity: its tokens, `sub` and label replaced, and the journal record marked `rebound`. The client then says "Signed in to Linear as …" on the slot's canvas. If the new identity is one the app already holds as another account, the sign-in fails, "that account is already added".
 
-The label is the ID token's `email`, then `preferred_username`, then `name`; with none, "Gmail account 2". The granted scopes are the token response's `scope` when it has one, otherwise what was asked joined with what was held.
+The label is the ID token's `email`, then `preferred_username`, then `name`; with none, "Gmail account 2". A label the person chose is never replaced: the account carries `named`, and a sign-in again, a re-bind or the same identity added again keeps it. A rename is trimmed, never empty, and no other of the app's accounts' labels ignoring case, so the Planner's choice between "Personal" and "Work" is never ambiguous. The granted scopes are the token response's `scope` when it has one, otherwise what was asked joined with what was held.
 
 ### Window and the poll
 
@@ -371,7 +371,7 @@ The sign-in page's **upstream** is where the account comes from. In deterministi
 
 ### Journal and the secret sweep
 
-Every sign-in step is one journal line of kind `signIn`: `started`, `signedIn`, `failed`, `expired`, `refreshed`, `refreshFailed`, `revoked`, `escalationRequested` (with `valid`), `notNow` and `superseded`. Each line names the app, the source, the purpose and the scope keys, and never a token. `pnpm sweep:secrets` checks that for a whole sitting. It collects every secret the vault file and each agent's sign-in store hold, then searches the journal and every captured process log for them, and reports counts per file, never a secret. What reaches the browser isn't searched; the vault's own tests cover that.
+Every sign-in step is one journal line of kind `signIn`: `started`, `signedIn`, `failed`, `expired`, `refreshed`, `refreshFailed`, `revoked`, `escalationRequested` (with `valid`), `notNow`, `superseded`, and from the App Library `signedOut` (with what became of the access) and `renamed` (with the old label and the new). Each line names the app, the source, the purpose and the scope keys, and never a token; a write's line says who made it, `by: "page"` or `by: "token"`. `pnpm sweep:secrets` checks that for a whole sitting. It collects every secret the vault file and each agent's sign-in store hold, then searches the journal and every captured process log for them, and reports counts per file, never a secret. What reaches the browser isn't searched; the vault's own tests cover that.
 
 ## Beyond the example
 
@@ -397,9 +397,15 @@ A card whose `security` names only schemes the vault can't do, like `http` basic
 
 An access token past its expiry is refreshed before the dispatch, with nothing on screen. The journal says `refreshed`. When the refresh fails, or the agent refuses a token that was just refreshed, the account is marked `again`, and its slots take "Your Linear sign-in has run out." with **Sign in again**. Signing in again asks for what the account held and names it with `login_hint`. An agent that has forgotten the account (its store emptied) lets the person choose, and the vault re-binds the account, as in [Callback: who signed in](#callback-who-signed-in).
 
-### Uninstall and revocation
+### Uninstall, sign-out and revocation
 
 Uninstalling an app deletes its accounts from the vault file first. Then each account's token is revoked (RFC 7009) at the revocation endpoint its server advertised, best-effort; the journal says `revoked`, `failed` or `nowhere`. At a kit agent, revoking the agent's token ends that sign-in, and when an account's last sign-in ends, the agent revokes the vendor's token too. Installing over an app (a new version of the same app) keeps its accounts.
+
+The App Library signs one account out the same way: `POST /auth/sign-out` with its source drops it and revokes its token. Both answer what became of each account's access, `revoked`, `nowhere` (a key, or a server with no revocation) or `failed` (the server unreached), so the page can say when the vendor still holds access; the account is gone either way. A sign-in again still open for that account fails when its window comes back, "this account was signed out", rather than writing a new account. Its number is never handed to a new account: a canvas slot still holding `gmail.2` paints the sign-in tile on its next dispatch, and signing in there brings `gmail.2` back under whoever signs in, unless that identity is already another of Gmail's accounts.
+
+### App Library
+
+The App Library reads `GET /auth/accounts.json`: every installed app, whether it asks no sign-in, signs in, or asks one the vault can't run, and each account with its label, its permissions in the card's own words (never a scope's name; a key account has none), and whether it must sign in again. Add account and Sign in again open the same window with no canvas: the start route then admits only the app's next account or an account that lapsed, and nothing resumes when it ends.
 
 ## When things go wrong
 
@@ -437,7 +443,7 @@ Uninstalling an app deletes its accounts from the vault file first. Then each ac
 - **The example, on made-up accounts.** Run the roster in deterministic mode (`pnpm dev:all --mode deterministic`) with a fresh orchestrator state folder (`STATE_DIR`) and the agents' sign-in stores in a scratch folder (`--agent-state <dir>`), so nothing you keep is signed in. Then ask the example's questions in order. The apps answer from their recorded data and sign in on their choosers. The orchestrator's Planner and Synthesizer still call their model; only the apps run without one. In the tunnel, set `A2UIVERSE_PUBLIC_URL` so each agent's sign-in page has an address the browser can reach (`_dev/docs/tunnel-environment.md`).
 - **Read the journal.** `<state>/intent-journal.jsonl`: every `signIn` line beside the turns.
 - **Look in the vault.** `<state>/vault/vault.json` holds the accounts, labels and scopes, and the tokens, so treat it as a secret.
-- **The tests.** `apps/orchestrator/test/vault.test.ts` runs the orchestrator against `fakeAuthServer.ts`, an in-process authorization server, with no network: the tile at first paint, the resume, forged sign-ins refused, both registrations, refresh and a 401, re-binding, requests for more access, the merge, the token page, uninstall with revocation, and no secret in the journal or the logs. `apps/client/src/canvas/signIn.test.ts` covers the window and the poll. The shell catalog's slot and attribution tests draw every authority form. The kit's `tests/test_sign_in.py` and `tests/test_sign_in_vendor.py` cover the front door.
+- **The tests.** `apps/orchestrator/test/vault.test.ts` runs the orchestrator against `fakeAuthServer.ts`, an in-process authorization server, with no network: the tile at first paint, the resume, forged sign-ins refused, both registrations, refresh and a 401, re-binding, requests for more access, the merge, the token page, uninstall with revocation, the App Library's reads, rename, sign-out and sign-ins with no canvas, and no secret in the journal or the logs. `apps/client/src/canvas/signIn.test.ts` covers the window and the poll. The shell catalog's slot and attribution tests draw every authority form. The kit's `tests/test_sign_in.py` and `tests/test_sign_in_vendor.py` cover the front door.
 - **One sign-in through the real window.** `apps/client/e2e-live/sign-in.spec.ts` starts the stack and signs in through the real popup.
 - **The sweep.** `pnpm sweep:secrets` after a sitting.
 
