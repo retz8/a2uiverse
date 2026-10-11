@@ -38,9 +38,43 @@ test('the capability tile opens the Store over the canvas, the gap as its query'
   // The canvas stays mounted beneath: the composition that raised the gap is still there.
   await expect(tile).toBeAttached();
 
-  await overlay.getByRole('button', {name: 'Back to the canvas'}).click();
+  await overlay.getByRole('button', {name: 'Close, back to your canvas'}).click();
   await expect(overlay).toHaveCount(0);
   await expect(tile).toBeVisible();
+});
+
+test('the page lives in the address: browser Back closes it to the canvas beneath, a reload lands on it', async ({
+  page,
+}) => {
+  await settle(page, 'gap');
+  const tile = page.locator('[data-slot-gap="flight booking"]');
+  await tile.getByRole('button', {name: 'Search the Store'}).click();
+  const overlay = page.getByTestId('trusted-page-overlay');
+  await expect(overlay).toHaveAttribute('data-page', 'store');
+  await expect(page).toHaveURL(/[?&]page=store&q=flight\+booking/);
+
+  await page.goBack();
+  await expect(overlay).toHaveCount(0);
+  await expect(tile).toBeVisible();
+
+  await page.goto('/?page=library&app=gmail');
+  await expect(overlay).toHaveAttribute('data-page', 'appLibrary');
+  await expect(overlay).toHaveAttribute('data-app', 'gmail');
+});
+
+test('the entry point beneath Trail opens the page; Publish is a mode at the header’s right', async ({
+  page,
+}) => {
+  await settle(page, 'platform-answer');
+  await page.getByRole('button', {name: 'Apps', exact: true}).click();
+  const overlay = page.getByTestId('trusted-page-overlay');
+  await expect(overlay).toHaveAttribute('data-page', 'store');
+  await overlay.getByRole('link', {name: 'Publish'}).click();
+  await expect(overlay).toHaveAttribute('data-page', 'publish');
+  await expect(overlay.getByRole('link', {name: 'Publish'})).toHaveAttribute(
+    'aria-current',
+    'page',
+  );
 });
 
 test('visual: a platform answer', async ({page}) => {
@@ -53,7 +87,7 @@ test('visual: the capability tile', async ({page}) => {
   await expect(page).toHaveScreenshot('shell-surface-gap.png', {fullPage: true});
 });
 
-test('visual: the Store placeholder over the canvas', async ({page}) => {
+test('visual: the Store over the canvas', async ({page}) => {
   await settle(page, 'gap');
   await page.getByRole('button', {name: 'Search the Store'}).click();
   await expect(page.getByTestId('trusted-page-overlay')).toBeVisible();

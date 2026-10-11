@@ -2,8 +2,8 @@
  * The trail chrome (task-9.6 decisions 5–12), drawn to board F5 of the task 7.14 design canvas:
  *
  * - In the gutter, a sidebar down the left edge (task-9.9 decision 18), Back — to the canvas the one
- *   on screen was asked from, up its branch (task-9.9 decision 22) — and Trail beside it, which opens
- *   the rail.
+ *   on screen was asked from, up its branch (task-9.9 decision 22) — Trail beside it, which opens
+ *   the rail, and Apps beneath them, the trusted page's entry point (task-14.2 decision 18).
  * - The rail: the trail of the session's canvases, newest first under a day header, each entry
  *   its label — the Planner's title, the question until it arrives — its time, "Live" on the
  *   newest, "Viewing" on the one on screen, a quiet mark on one still loading, a branch glyph on
@@ -36,6 +36,8 @@ export interface TrailChromeProps {
   trail: TrailState;
   open: boolean;
   onToggle: () => void;
+  /** The entry point: opens the trusted page at the destination last open (task-14.2 decision 16). */
+  onOpenApps: () => void;
   onView: (id: string) => void;
   onReturnToLive: () => void;
   onClose: (id: string) => void;
@@ -54,6 +56,24 @@ const BackIcon = () => (
 const TrailIcon = () => (
   <svg aria-hidden="true" viewBox="0 0 16 16" width="16" height="16" fill="currentColor">
     <path d="M9.5 3.25a2.25 2.25 0 1 1 3 2.122V6A2.5 2.5 0 0 1 10 8.5H6a1 1 0 0 0-1 1v1.128a2.251 2.251 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.5 0v1.836A2.493 2.493 0 0 1 6 7h4a1 1 0 0 0 1-1v-.628A2.25 2.25 0 0 1 9.5 3.25Zm-6 0a.75.75 0 1 0 1.5 0 .75.75 0 0 0-1.5 0Zm8.25-.75a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5ZM4.25 12a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Z" />
+  </svg>
+);
+
+/** The Apps entry point: four tiles, the apps on the page it opens. */
+const AppsIcon = () => (
+  <svg
+    aria-hidden="true"
+    width="16"
+    height="16"
+    viewBox="0 0 16 16"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.4"
+  >
+    <rect x="2.5" y="2.5" width="4.5" height="4.5" rx="1.2" />
+    <rect x="9" y="2.5" width="4.5" height="4.5" rx="1.2" />
+    <rect x="2.5" y="9" width="4.5" height="4.5" rx="1.2" />
+    <rect x="9" y="9" width="4.5" height="4.5" rx="1.2" />
   </svg>
 );
 
@@ -269,6 +289,7 @@ export function TrailChrome({
   trail,
   open,
   onToggle,
+  onOpenApps,
   onView,
   onReturnToLive,
   onClose,
@@ -364,6 +385,15 @@ export function TrailChrome({
             onClick={onToggle}
           >
             <TrailIcon />
+          </button>
+          <button
+            type="button"
+            className="canvas-iconbtn canvas-apps"
+            aria-label="Apps"
+            title="Apps: Store, App Library and Publish"
+            onClick={onOpenApps}
+          >
+            <AppsIcon />
           </button>
         </div>
       )}

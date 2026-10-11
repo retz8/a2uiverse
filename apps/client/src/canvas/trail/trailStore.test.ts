@@ -26,6 +26,7 @@ describe('createTrailStore', () => {
       live: null,
       viewing: null,
       trustedPage: null,
+      lastPage: 'store',
     });
   });
 
@@ -177,5 +178,15 @@ describe('createTrailStore', () => {
     expect(store.getState().trustedPage).toEqual({page: 'appLibrary'});
     store.closeTrustedPage();
     expect(store.getState().trustedPage).toBeNull();
+  });
+
+  it('remembers the destination last open this session, the Store before any (task-14.2 decision 16)', () => {
+    const store = createTrailStore();
+    expect(store.getState().lastPage).toBe('store');
+    store.openTrustedPage({page: 'appLibrary', app: 'gmail'});
+    store.closeTrustedPage();
+    expect(store.getState().lastPage).toBe('appLibrary');
+    store.openTrustedPage({page: 'publish'});
+    expect(store.getState().lastPage).toBe('publish');
   });
 });

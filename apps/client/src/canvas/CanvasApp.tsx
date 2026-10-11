@@ -1,8 +1,8 @@
 /**
  * The canvas page: the canvas-first shell — the canvas on screen (`CanvasView`, keyed by the
  * canvas), a summonable command palette as the language control plane, the trail chrome (Back,
- * Trail, the rail, the band on a past canvas), the trusted page over the canvas, and the Ask
- * pill. It owns only layout and the page-level affordances (palette summon, beat replay); the
+ * Trail, the rail, the band on a past canvas), the trusted page over the canvas with its entry
+ * point and its address, and the Ask pill. It owns only layout and the page-level affordances (palette summon, beat replay); the
  * runtime graph and every dispatch handler live in `createCanvasWiring`, built once at mount.
  *
  * `?beat=N[,M…]` replays recorded beats in sequence (paced by the recorded offsets; `&instant`
@@ -25,6 +25,7 @@ import {TrailChrome} from './components/TrailChrome';
 import {TrustedPageOverlay} from './components/TrustedPageOverlay';
 import type {HostRelay} from './hostRelay';
 import {viewedCanvasId} from './trail/trailStore';
+import {bindTrustedPageHistory} from './trustedPage/history';
 import './CanvasApp.css';
 
 export interface CanvasAppProps extends A2ASenderOptions {
@@ -60,6 +61,14 @@ export function CanvasApp({serverUrl, client, catalogs, hostRelay}: CanvasAppPro
   // tile, a navigation from a merged cell, a press — lands in the canvas on screen for as long as
   // the page is mounted, and that canvas's roster names the apps.
   useEffect(() => hostRelay?.bind(wiring.host), [hostRelay, wiring]);
+
+  // The trusted page on the browser's history: opening it pushes its address, browser Back closes
+  // it, and an address carrying a page lands on it (phase-14 decision 11).
+  useEffect(() => bindTrustedPageHistory(wiring.trail), [wiring]);
+  const openApps = useCallback(
+    () => wiring.trail.openTrustedPage({page: wiring.trail.getState().lastPage}),
+    [wiring],
+  );
 
   // The ?beat= replay affordance, read once at mount. A comma-separated list runs in sequence.
   const [beatParams] = useState(() => {
@@ -145,11 +154,16 @@ export function CanvasApp({serverUrl, client, catalogs, hostRelay}: CanvasAppPro
             </div>
           </>
         )}
-        <TrustedPageOverlay page={trail.trustedPage} onClose={wiring.trail.closeTrustedPage} />
+        <TrustedPageOverlay
+          page={trail.trustedPage}
+          onClose={wiring.trail.closeTrustedPage}
+          onNavigate={wiring.trail.openTrustedPage}
+        />
         <TrailChrome
           trail={trail}
           open={trailOpen}
           onToggle={toggleTrail}
+          onOpenApps={openApps}
           onView={viewFromTrail}
           onReturnToLive={wiring.returnToLive}
           onClose={wiring.closeCanvas}

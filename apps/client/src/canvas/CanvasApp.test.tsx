@@ -721,9 +721,80 @@ describe('CanvasApp shell surface', () => {
       },
     });
 
-    await userEvent.click(screen.getByRole('button', {name: 'Back to the canvas'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Close, back to your canvas'}));
     expect(screen.queryByRole('dialog', {name: 'Store'})).toBeNull();
     expect(screen.getByRole('button', {name: 'Search the Store'})).toBeInTheDocument();
+  });
+
+  it('the page lives in the address: opening it pushes it, browser Back closes it to the canvas beneath (phase-14 decision 11)', async () => {
+    renderShellCanvas('gap');
+    await userEvent.click(await screen.findByRole('button', {name: 'Search the Store'}));
+    expect(await screen.findByRole('dialog', {name: 'Store'})).toBeInTheDocument();
+    expect(window.location.search).toBe('?beat=gap&instant=&page=store&q=flight+booking');
+
+    window.history.back();
+    await waitFor(() => expect(screen.queryByRole('dialog', {name: 'Store'})).toBeNull());
+    expect(window.location.search).toBe('?beat=gap&instant');
+    expect(screen.getByRole('button', {name: 'Search the Store'})).toBeInTheDocument();
+  });
+
+  it('the Planner’s button opens the App Library, the page in the address', async () => {
+    renderShellCanvas('platform-answer');
+    await userEvent.click(await screen.findByRole('button', {name: 'Manage apps'}));
+    expect(await screen.findByRole('dialog', {name: 'App Library'})).toBeInTheDocument();
+    expect(new URLSearchParams(window.location.search).get('page')).toBe('library');
+  });
+});
+
+describe('CanvasApp, the trusted page (task 14.6)', () => {
+  it('the entry point sits third in the gutter, after Back and Trail, named Apps (task-14.2 decision 18)', () => {
+    renderCanvas();
+    const gutter = screen.getByTestId('canvas-gutter');
+    expect(
+      within(gutter)
+        .getAllByRole('button')
+        .map(b => b.getAttribute('aria-label')),
+    ).toEqual(['Back', 'Trail', 'Apps']);
+  });
+
+  it('the entry point opens the Store the first time, then the destination last open (task-14.2 decision 16)', async () => {
+    renderCanvas();
+    await userEvent.click(screen.getByRole('button', {name: 'Apps'}));
+    expect(await screen.findByRole('dialog', {name: 'Store'})).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('link', {name: 'App Library'}));
+    expect(await screen.findByRole('dialog', {name: 'App Library'})).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Close, back to your canvas'}));
+    expect(screen.queryByRole('dialog')).toBeNull();
+    await userEvent.click(screen.getByRole('button', {name: 'Apps'}));
+    expect(await screen.findByRole('dialog', {name: 'App Library'})).toBeInTheDocument();
+  });
+
+  it('an address carrying a page lands on it over a fresh session', async () => {
+    window.history.replaceState(null, '', '/?page=library&app=gmail');
+    renderCanvas();
+    const page = await screen.findByRole('dialog', {name: 'App Library'});
+    expect(page).toHaveAttribute('data-app', 'gmail');
+    await userEvent.click(screen.getByRole('button', {name: 'Close, back to your canvas'}));
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(window.location.search).toBe('');
+  });
+
+  it('a link opens the Store on a query', async () => {
+    window.history.replaceState(null, '', '/?page=store&q=flight+booking');
+    renderCanvas();
+    expect(await screen.findByRole('dialog', {name: 'Store'})).toHaveAttribute(
+      'data-query',
+      'flight booking',
+    );
+  });
+
+  it('open Publish lands on Publish', async () => {
+    renderShellCanvas('platform-answer');
+    await screen.findByRole('button', {name: 'Manage apps'});
+    await userEvent.click(screen.getByRole('button', {name: 'Apps'}));
+    await userEvent.click(await screen.findByRole('link', {name: 'Publish'}));
+    expect(await screen.findByRole('dialog', {name: 'Publish'})).toBeInTheDocument();
+    expect(new URLSearchParams(window.location.search).get('page')).toBe('publish');
   });
 
   it('Retry on a failed slot sends the retry beside the turn and gives the tile way at once (task 8.5)', async () => {

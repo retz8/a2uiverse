@@ -24,19 +24,18 @@ export interface TrailEntry {
   loading: boolean;
 }
 
-/** The trusted pages a shell action opens (SPEC §7, §9.3). */
+/** The trusted page's three destinations (SPEC §7, §9.3). */
 export type TrustedPage = 'store' | 'appLibrary' | 'publish';
 
 /**
- * The trusted page open over the canvas: the Store, the App Library or Publish, as an overlay —
- * the canvas stays mounted beneath it (task-6.5 decisions 2, 3). Until Phase 14 builds the pages
- * it is a placeholder naming the page and what it was opened with.
+ * The trusted page open over the canvas — the canvas stays mounted beneath it (task-6.5 decisions
+ * 2, 3) — at one of its destinations, with what it was opened on.
  */
 export interface TrustedPageState {
   page: TrustedPage;
   /** The Store's search, when the action carried one — the capability the tile forwards. */
   query?: string;
-  /** The App Library's app, when the action named one (task-14.5 decision 9). */
+  /** The app whose view it opens on, in the Store or the App Library (task-14.2 decision 17). */
   app?: string;
 }
 
@@ -49,6 +48,8 @@ export interface TrailState {
   viewing: string | null;
   /** The trusted page open over the canvas; null when none is. Page-wide, not a canvas's. */
   trustedPage: TrustedPageState | null;
+  /** The destination last open this session — the Store before any — where the entry point opens. */
+  lastPage: TrustedPage;
 }
 
 export interface OpenCanvas {
@@ -122,7 +123,13 @@ export function isBranch(state: TrailState, entry: TrailEntry): boolean {
 }
 
 export function createTrailStore(): TrailStore {
-  let state: TrailState = {entries: [], live: null, viewing: null, trustedPage: null};
+  let state: TrailState = {
+    entries: [],
+    live: null,
+    viewing: null,
+    trustedPage: null,
+    lastPage: 'store',
+  };
   const listeners = new Set<() => void>();
   const set = (patch: Partial<TrailState>) => {
     state = {...state, ...patch};
@@ -174,7 +181,7 @@ export function createTrailStore(): TrailStore {
       const viewing = state.viewing === id || state.viewing === live ? null : state.viewing;
       set({entries, live, viewing});
     },
-    openTrustedPage: page => set({trustedPage: page}),
+    openTrustedPage: page => set({trustedPage: page, lastPage: page.page}),
     closeTrustedPage: () => {
       if (state.trustedPage) set({trustedPage: null});
     },
