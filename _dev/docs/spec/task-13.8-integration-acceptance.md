@@ -127,6 +127,10 @@ A schema change published at a catalog id is not taken back by a later publish a
 
 The orchestrator judges a slot's access against the live card it fetched. In Linear's ahead-of-the-Store window, its live card asking `issues.write` beside `issues.read`, Linear's slot takes the needs-more-access tile with no call to the agent, before the Store has the card. What the canvas says for an app ahead of the Store is recorded as a finding for Phase 15's pre-dispatch check. Replaced: decision 13's Linear still composing on its installed card in that window.
 
+### 28. A merged column is computed by the operator its words name
+
+The shell's formula operators gain `difference`: the gap between exactly two numbers, never negative, no value when either is absent. The Synthesizer fills a column with the operator that computes what its words say, by that operator's description; where none does, the column is dropped or renamed, never filled by an operator that computes something else. Replaced: a planned "Difference" column filled with `max`, the larger price shown as the difference.
+
 ## Invariants
 
 - No credential reaches the marketplace.
