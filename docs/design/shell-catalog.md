@@ -95,7 +95,7 @@ Two models write shell surfaces, and each is allowed a different part of the cat
 | Keep-set | Components | Functions | Author |
 | --- | --- | --- | --- |
 | `SYNTHESIS_SURFACE_KEEP_SET` | `DerivedValue`, `SortControl`, `Table`, `TableRow`, `DataList`, `DataListItem`, `Text`, `Column`, `Row`, `Card`, `Divider` | the formula operators and the relations | the Synthesizer, `shell:synthesis` |
-| `LAYOUT_SURFACE_KEEP_SET` | `Slot`, `Row`, `Column`, `Card`, `Text`, `Divider`, `DataList`, `DataListItem`, `Table`, `TableRow`, `Button` | `openStore`, `openAppLibrary`; adding an account is a `Slot` holding `addAccount`, the plan check validating the app it names | the Planner, `shell:main` |
+| `LAYOUT_SURFACE_KEEP_SET` | `Slot`, `Row`, `Column`, `Card`, `Text`, `Divider`, `DataList`, `DataListItem`, `Table`, `TableRow`, `Button` | `openStore`, `openAppLibrary`, `openPublish`; adding an account is a `Slot` holding `addAccount`, the plan check validating the app it names | the Planner, `shell:main` |
 
 The orchestrator shows each model `catalog.json` **pruned** to its keep-set, and validates that model's output against **the same pruned catalog**. So the Synthesizer has never heard of `Slot` or `Button`, and a `Slot` in its tree is a validation error, not a judgment call. Neither model gets `Attribution`: it's the orchestrator's alone. [Pruning a catalog](#pruning-a-catalog-graph-reachability) shows how the pruning works.
 
@@ -109,7 +109,7 @@ The catalog is a library; the **host** is the app that renders with it, here the
 
   | Option | Called when |
   | --- | --- |
-  | `onShellAction` | a shell button raises `openStore` or `openAppLibrary` |
+  | `onShellAction` | a shell button raises `openStore`, `openAppLibrary` or `openPublish` |
   | `onPress` | the reader presses Retry, Include or Try again on a `Slot`, or a back or forward arrow or Not now on an `Attribution` |
   | `onSignIn` | the reader presses Sign in, Connect, Sign in again, Allow, Open the sign-in again, Add account or Cancel: `{kind: "start", "addAccount" or "cancel", source, surfaceId, componentId}`, called inside the click so the host can open the sign-in window without the browser blocking it; `addAccount` names the bare app id |
   | `onNavigate` | the reader clicks a `DerivedValue`, to land on the element it came from |
@@ -320,7 +320,7 @@ When an app needs a sign-in, the orchestrator paints its `Slot` with `state: "au
 | `{cause: "more", scopes}` | the account is held, and asks only for more access before anything was painted: "Gmail needs more access to show it here.", "Gmail will be able to" over the missing scopes, **Allow**, and the new-window line |
 | `{cause: …, quiet: true}` | after the full tile has shown once this page load: one line, "Not signed in · Sign in", "Not connected · Connect" or "Needs more access · Allow". The name above it already says which app; the line's accessible name says "Gmail, not signed in" |
 | `{cause: "again"}` | the silent refresh failed: "Your Google Calendar sign-in has run out.", **Sign in again**, and the new-window line |
-| `{cause: "unsupported"}` | "Signing in to Acme Wiki isn't supported here.", "Acme Wiki asks for a kind of sign-in A2UIVerse can't do. The app stays installed.", and **Manage apps**, which raises `openAppLibrary` |
+| `{cause: "unsupported"}` | "Signing in to Acme Wiki isn't supported here.", "Acme Wiki asks for a kind of sign-in A2UIVerse can't do. The app stays installed.", and **Manage apps**, which raises `openAppLibrary` naming the app, so the App Library opens on it |
 
 The tile names the app, unlike the failure tile, because its sentence is about that app's sign-in. The name comes from the host's `sourceName`, looked up by the whole source id (`gmail.2`), so with two Gmail accounts it says which one.
 
@@ -342,7 +342,7 @@ A paint the orchestrator refused for a credential field fails its slot with `cau
 
 ### Shell actions
 
-The shell has exactly two actions of its own: **`openStore`**, with an optional `query`, and **`openAppLibrary`**. Adding an account is the add-account tile, not an action ([Authority surfaces](#authority-surfaces)). Each is a catalog function, like the basic catalog's `openUrl`, that a `Button` runs through a `functionCall`. The function does nothing itself: it hands the host one plain object, `{name, surfaceId, query?}`, through `onShellAction`, and the host decides what opening the Store looks like.
+The shell has exactly three actions of its own: **`openStore`**, with an optional `query`; **`openAppLibrary`**, with an optional `app`, an installed app's id, to open on that app; and **`openPublish`**, with nothing. Adding an account is the add-account tile, not an action ([Authority surfaces](#authority-surfaces)). Each is a catalog function, like the basic catalog's `openUrl`, that a `Button` runs through a `functionCall`. The function does nothing itself: it hands the host one plain object, `{name, surfaceId, query?, app?}`, through `onShellAction`, and the host decides what opening the Store, the App Library or Publish looks like. Manage apps on the "not supported here" tile names its slot's app the same way.
 
 The **account choice** is the capability tile's sibling. A `Slot` with `chooseAccount` draws "Which Gmail account should I use?" and one press per account, labelled from `accounts`, which the orchestrator paints from the vault, never the model. A press is a `useAccount` naming the account; the slot gives way to the loading line at once, and the repaint names the account the slot now waits on, wrapped in its `Attribution` like any app's.
 
@@ -443,4 +443,4 @@ In the client, the catalog is built in `apps/client/src/catalogs/clientCatalogs.
 | **Source** | An app and the account it paints under: `gmail.2`, or the bare app id when the app needs no sign-in |
 | **Press** | A reader's Retry, Include, Try again, or back or forward step |
 | **Reserved column** | A column whose app hasn't answered, drawn from that app's slot state |
-| **Shell action** | `openStore` or `openAppLibrary`: handed to the host, which opens the page |
+| **Shell action** | `openStore`, `openAppLibrary` or `openPublish`: handed to the host, which opens the page |

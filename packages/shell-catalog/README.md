@@ -12,7 +12,7 @@ The shell's own A2UI catalog: what the orchestrator paints with. It's the A2UI b
   - **`DerivedValue`**: a cell computed from a formula. It shows how sure it is by its contrast, says where it came from on hover, and takes you to the value in its app's fragment when clicked.
   - **`SortControl`**: the sort in force, which the reader can change.
   - **`Table`** / **`TableRow`** and **`DataList`** / **`DataListItem`**: the shapes a merged view is laid out in.
-- **Functions**: the formula operators (`value`, `min`, `max`, `sum`, `avg`, `difference`, `count`, `argmin`, `argmax`, `source`), the relations a match claim is written in (`equal`, `contains`, `judged`), and two shell actions, `openStore` and `openAppLibrary`. Adding an account is not an action: it's a `Slot` holding `addAccount`.
+- **Functions**: the formula operators (`value`, `min`, `max`, `sum`, `avg`, `difference`, `count`, `argmin`, `argmax`, `source`), the relations a match claim is written in (`equal`, `contains`, `judged`), and three shell actions: `openStore`, `openAppLibrary` (on one app, when it names one) and `openPublish`. Adding an account is not an action: it's a `Slot` holding `addAccount`.
 
 ## Using it
 
@@ -22,7 +22,7 @@ import {createCatalog, Provider} from '@a2uiverse/shell-catalog';
 const catalog = createCatalog({onShellAction, onPress, onSignIn, onNavigate, sourceName});
 ```
 
-- **`onShellAction`** opens the Store or the App Library, Manage apps among them.
+- **`onShellAction`** opens the Store, the App Library or Publish; Manage apps opens the App Library on its app.
 - **`onPress`** receives the reader's presses (Retry, Include, Try again, a step back or forward, Not now, an account chosen on the account choice) as a composition operation. Without it, no press button is drawn.
 - **`onSignIn`** receives Sign in, Connect, Sign in again, Allow, Open the sign-in again, Add account and Cancel for one source, the bare app id for Add account, inside the click, so the host can open the sign-in window. Without it, none of them is drawn.
 - **`onNavigate`** takes a merged cell's click to the value it came from. Without it, cells aren't clickable.
