@@ -3,8 +3,9 @@
  * installed app, one of the sdk's eight states, decided in the sdk's order over three things — the
  * installed record, the marketplace's entry and the live card this run holds. One operation does
  * it all: the entries fetched one per app, the states computed, a newer build of an app installed
- * from the marketplace installed over at once, an app ahead of the Store reported, and the states
- * answered as they stand after. Behind `GET /registry/updates.json` and the boot.
+ * from the marketplace installed over at once unless its move would carry an app installed from a
+ * local pack (task-13.8 decision 12), an app ahead of the Store reported, and the states answered as
+ * they stand after. Behind `GET /registry/updates.json` and the boot.
  */
 import type {AgentCard} from '@a2a-js/sdk';
 import {
@@ -36,6 +37,12 @@ export interface CheckOutcome {
   updated: {appId: string; summary: string}[];
   /** The automatic updates refused, each with the install's findings; tried again next check. */
   failed: {appId: string; findings: string[]}[];
+  /**
+   * The automatic updates left undone because the move of a catalog's row would carry an app
+   * installed from a local pack (task-13.8 decision 12), each with those apps: the app stays at the
+   * newer build until the person installs it by id, which moves them too and names them.
+   */
+  kept: {appId: string; carrying: string[]}[];
   /** The apps reported to the marketplace as ahead of the Store. */
   reported: string[];
 }
@@ -74,6 +81,7 @@ export class UpdateCheck {
         reason: unreached.reason,
         updated: [],
         failed: [],
+        kept: [],
         reported: [],
       };
     }
@@ -82,6 +90,7 @@ export class UpdateCheck {
       marketplace: 'reached',
       updated: [],
       failed: [],
+      kept: [],
       reported: [],
     };
     for (const [i, record] of records.entries()) {
@@ -95,7 +104,14 @@ export class UpdateCheck {
       }
       // A newer build, the card unchanged, installs itself for an app from the marketplace alone
       // (phase-13 decision 16); a failure leaves the build and the state (task-13.5 decision 9).
-      if (state.state === 'newer-build' && record.source === 'marketplace') {
+      // A move that would carry an app installed from a local pack is the person's to make.
+      const carrying =
+        state.state === 'newer-build' && lookup.kind === 'entry'
+          ? localFollowers(record, lookup.entry.catalogs, registry.installed())
+          : [];
+      if (state.state === 'newer-build' && record.source === 'marketplace' && carrying.length > 0) {
+        outcome.kept.push({appId: record.id, carrying});
+      } else if (state.state === 'newer-build' && record.source === 'marketplace') {
         const result = await registry.installFromMarketplace(record.id, {automatic: true});
         if (result.ok) {
           outcome.updated.push({appId: record.id, summary: result.summary});
@@ -110,6 +126,30 @@ export class UpdateCheck {
     outcome.states.sort((a, b) => (a.appId < b.appId ? -1 : a.appId > b.appId ? 1 : 0));
     return outcome;
   }
+}
+
+/**
+ * The apps installed from a local pack that a move of `record` to the published `catalogs` would
+ * carry: each other app holding a catalog whose build the move changes, every app on one catalog
+ * id sharing its row (task-13.5 decision 5).
+ */
+function localFollowers(
+  record: InstalledRecord,
+  catalogs: Record<string, string>,
+  installed: readonly InstalledRecord[],
+): string[] {
+  const moving = Object.keys(record.catalogs).filter(
+    id => catalogs[id] !== undefined && catalogs[id] !== record.catalogs[id],
+  );
+  return installed
+    .filter(
+      other =>
+        other.id !== record.id &&
+        other.source !== 'marketplace' &&
+        moving.some(id => other.catalogs[id] !== undefined),
+    )
+    .map(other => other.id)
+    .sort();
 }
 
 /**

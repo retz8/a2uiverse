@@ -42,6 +42,11 @@ for (const {summary} of checked?.updated ?? [])
 for (const {appId, findings} of checked?.failed ?? []) {
   console.warn(`${APP_NAME}: automatic update of ${appId} refused: ${findings.join('; ')}`);
 }
+for (const {appId, carrying} of checked?.kept ?? []) {
+  console.warn(
+    `${APP_NAME}: automatic update of ${appId} left undone: it would move ${carrying.join(', ')}, installed from a local pack — install ${appId} by id to move them together`,
+  );
+}
 for (const appId of checked?.reported ?? []) {
   console.warn(`${APP_NAME}: ${appId} is ahead of the Store — reported to the marketplace`);
 }

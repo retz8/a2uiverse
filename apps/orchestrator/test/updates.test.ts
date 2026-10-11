@@ -308,6 +308,35 @@ describe('the check (task-13.5 decisions 8, 9, 10)', () => {
     expect(registry.installed()[0]).toEqual(before);
   });
 
+  test('a newer build whose move would carry an app from a local pack is kept, never installed; the install by id moves both (task-13.8 decision 12)', async () => {
+    const {registry, cards, marketplace, check, journal} = await setUp();
+    const card = cardFor(AGENT, {catalogs: [GMAIL]});
+    const cardUrl = cards.serve(card);
+    const first = await fixtureArtifact(GMAIL);
+    await marketplace.publish('gmail-admin', {card, cardUrl, catalogs: [first]});
+    await registry.installFromMarketplace('gmail-admin');
+    await registry.install({appId: 'gmail', cardUrl, catalogs: [first]});
+    const second = await fixtureArtifact(GMAIL, {version: '0.2.0'});
+    const entry = await marketplace.publish('gmail-admin', {card, cardUrl, catalogs: [second]});
+    const before = registry.installed();
+    const lines = journal.entries.length;
+
+    const outcome = await check.check();
+    expect(outcome.updated).toEqual([]);
+    expect(outcome.failed).toEqual([]);
+    expect(outcome.kept).toEqual([{appId: 'gmail-admin', carrying: ['gmail']}]);
+    expect(outcome.states.find(s => s.appId === 'gmail-admin')).toMatchObject({
+      state: 'newer-build',
+    });
+    expect(registry.installed()).toEqual(before);
+    expect(journal.entries.length).toBe(lines);
+
+    const moved = await registry.installFromMarketplace('gmail-admin');
+    expect(moved).toMatchObject({ok: true, summary: expect.stringMatching(/gmail followed/)});
+    for (const app of registry.installed()) expect(app.catalogs).toEqual(entry.catalogs);
+    expect(registry.installed().find(app => app.id === 'gmail')?.source).toBe('local');
+  });
+
   test('a failed automatic update leaves the installed build, the state still the newer build, the refusal journaled', async () => {
     const {registry, cards, marketplace, check, journal} = await setUp();
     const card = cardFor(AGENT, {catalogs: [GMAIL]});
