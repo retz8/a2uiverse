@@ -112,6 +112,7 @@ The mock tier (synthesis acceptance) runs in place of the real roster:
 ```bash
 pnpm dev:all --tier mocks              # shop-a 12001 · shop-b 12002, deterministic
 pnpm dev:all --tier mocks --mode live  # the same, live
+pnpm dev:all --tier default,mocks      # the five apps and the two stores in one launch
 ```
 
 Live sign-in returns to each agent's finish address, so GitHub's OAuth App and the Google client register the tunnel finish address beside the `localhost` one (each agent's README). CircleCI's sign-in server takes only a loopback return address, so CircleCI runs with `A2UIVERSE_PUBLIC_URL` unset — a launcher of its own, `--only circleci --no-install`, beside one for the other apps, and the orchestrator restarted after to read its card — and a return the remote browser cannot reach is carried by hand: in the sign-in window, `http://localhost:<port>` is replaced by the port's tunnel URL, the rest kept, once for the agent's sign-in page and once for CircleCI's return to it. The beat driver's return to its `127.0.0.1` address is delivered on the Mac: the address the window ends on, run as `curl '<address>'` in a terminal there.

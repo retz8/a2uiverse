@@ -53,7 +53,7 @@ The marketplace's state wiped, its embedding model kept; the launcher's dev publ
 
 ### 9. The roster published
 
-Both tiers launched under `--publish`. Read: the launcher's first claim and its publisher file; each publish's summary; the preview captured for each app with sign-in or a key, and the marketplace's own smoke test for Shop A; `stellify list` as the dev publisher, seven apps at card 0.1.0 with each catalog at its build; `marketplace search` over three phrases — "pull requests waiting for my review", "camera prices", "failing builds" — each expected to rank its app first; `registry list`, every source `marketplace`; each install's summary, every file fetched into the empty registry; `registry updates`, all seven up to date. Then the three compositions, each sign-in app signed in from its tile the first time: "What needs my attention today?", "what's the status of what I'm working on?", and "Compare camera prices across both shops" with Shop B connected through its key page — each fragment in its catalog, attributed by its card's `name`, the merge landing, one merged value clicked onto its element.
+Both tiers launched together under `--publish` (decision 21). Read: the launcher's first claim and its publisher file; each publish's summary; the preview captured for each app with sign-in or a key, and the marketplace's own smoke test for Shop A; `stellify list` as the dev publisher, seven apps at card 0.1.0 with each catalog at its build; `marketplace search` over three phrases — "pull requests waiting for my review", "camera prices", "failing builds" — each expected to rank its app first; `registry list`, every source `marketplace`; each install's summary, every file fetched into the empty registry; `registry updates`, all seven up to date. Then the three compositions, each sign-in app signed in from its tile the first time: "What needs my attention today?", "what's the status of what I'm working on?", and "Compare camera prices across both shops" with Shop B connected through its key page — each fragment in its catalog, attributed by its card's `name`, the merge landing, one merged value clicked onto its element.
 
 ### 10. The second publisher
 
@@ -89,7 +89,7 @@ Unpublish takes an app out of the index and its search and keeps the versions it
 
 ### 18. The state the sitting leaves, and the closing launch
 
-Every temporary edit reverted, `a2uiverse-apps` holding only the committed fixes; the marketplace's state wiped again, its embedding model kept; the sitting's orchestrator state folder removed. Then both tiers launched under `--publish` on the reverted checkouts against the wiped marketplace, the launcher's publisher file kept, so it meets the 401 and claims its name again: all seven published and installed by id, `registry updates` all up to date.
+Every temporary edit reverted, `a2uiverse-apps` holding only the committed fixes; the marketplace's state wiped again, its embedding model kept; the sitting's orchestrator state folder removed. Then both tiers launched together under `--publish` on the reverted checkouts against the wiped marketplace, the launcher's publisher file kept, so it meets the 401 and claims its name again: all seven published and installed by id, `registry updates` all up to date.
 
 ### 19. The sitting's order
 
@@ -98,6 +98,10 @@ The sweep's extension; the regression pass before; the starting state; the roste
 ### 20. The record
 
 This spec is the record. Each on-the-spot fix is added as a numbered decision as it lands, with what it replaced. The write-up — before the sitting, the sitting case by case, after it, the findings — carries each case's terminal lines, the journal's registry lines, the screen for a canvas case, the sweeps' counts, and the regression runs before and after. Findings for later phases go into their phase's notes in `_dev/TODO.md` at the write-up. Every amendment to the phase spec, SPEC.md and earlier sub-task specs that 13.8 calls for — among them decision 12's on phase decision 16, task 13.5's decision 9 and SPEC §10, and decision 17's on phase decisions 7 and 15 and SPEC §9.3 — is made by 13.9.
+
+### 21. A launch runs several tiers
+
+The launcher's `--tier` takes several tiers joined by commas, and one launch runs them together, the reconcile over what that launch ran. A launch ran one tier and its reconcile took out another tier's apps, so the five apps and the two stores could not stand installed from the marketplace at once. Replaced: a launch running one tier.
 
 ## Invariants
 
