@@ -3,7 +3,7 @@
  * orchestrator listens, the check runs once, a newer build of a marketplace app landing before any
  * client preloads; a marketplace that cannot be reached is one outcome line, never a failed boot.
  */
-import {mkdtemp, rm} from 'node:fs/promises';
+import {mkdir, mkdtemp, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {afterEach, describe, expect, test} from 'vitest';
@@ -104,5 +104,24 @@ describe('the boot runs the check (task-13.5 decisions 8, 9)', () => {
       states: [{appId: 'shop-a', installedVersion: expect.any(String), state: 'unknown'}],
     });
     expect(again.registry.list().map(app => app.id)).toEqual(['shop-a']);
+  });
+});
+
+describe('the boot reads the publisher file (task 14.4)', () => {
+  test('a held publisher is read back; a file that is not a publisher file stops the boot, naming it', async () => {
+    dir = await mkdtemp(join(tmpdir(), 'a2uiverse-boot-'));
+    const url = await nowhere();
+    await mkdir(join(dir, 'publisher'), {recursive: true});
+    const record = {marketplace: url, publisher: 'acme', token: 'k'.repeat(43)};
+    await writeFile(join(dir, 'publisher', 'publisher.json'), JSON.stringify(record));
+    const built = build(url, dir);
+    await built.init();
+    expect(await built.publisher.status()).toEqual({
+      state: 'signed-in',
+      publisher: 'acme',
+      store: 'unreached',
+    });
+    await writeFile(join(dir, 'publisher', 'publisher.json'), '{"publisher": "acme"}');
+    await expect(build(url, dir).init()).rejects.toThrow(/is not a publisher file: no marketplace/);
   });
 });

@@ -17,6 +17,9 @@ import {getModel, plannerProviderOptions} from './planner/getModel.js';
 import {ModelPlanner, type Planner} from './planner/planner.js';
 import {platformReaders} from './planner/platformReaders.js';
 import {plannerSystemPrompt, readPlannerFiles} from './planner/prompt.js';
+import {ArtifactRelay} from './marketplace/artifacts.js';
+import {Publisher, PublisherStore} from './marketplace/publisher.js';
+import {MARKETPLACE_ROUTE_PREFIX, marketplaceRoutes} from './marketplace/routes.js';
 import type {PlatformReaders} from './planner/readers.js';
 import {registryRoutes, REGISTRY_ROUTE_PREFIX} from './registry/api.js';
 import {MarketplaceClient} from './registry/marketplace.js';
@@ -46,11 +49,13 @@ export interface Orchestrator {
   vault: AuthVault;
   /** The update check `updates.json` and the boot run (task-13.5 decision 8). */
   updates: UpdateCheck;
+  /** The publisher Publish holds (task 14.4). */
+  publisher: Publisher;
   /** What the boot's check did, for the boot log; set by `init()`. */
   bootCheck?: CheckOutcome;
   /**
    * Boot step, run before listen: the persisted registry read and verified — a damaged one throws
-   * (task-11.4 decision 9) — a fresh write token issued, every installed card fetched and the
+   * (task-11.4 decision 9) — the vault and the publisher file read, a fresh write token issued, every installed card fetched and the
    * Router corpus built, then the update check run once, so a newer build of a marketplace app
    * lands before any client preloads (task-13.5 decision 8). A marketplace that cannot be reached
    * never fails the boot.
@@ -102,6 +107,13 @@ export function buildOrchestrator({
     marketplace,
   });
   const updates = new UpdateCheck({registry, marketplace});
+  // The publisher Publish holds, its token sent to the marketplace that issued it alone (task 14.4).
+  const publisherStore = new PublisherStore(config.stateDir);
+  const publisher = new Publisher({
+    store: publisherStore,
+    marketplace,
+    journal: entry => void journal.publisher(entry),
+  });
   let writeToken: string | undefined;
   // The vault (task 12.5): the accounts seam, the card checked before dispatch, the header on the
   // wire, and the sign-ins on `orchestratorApi`. Its client is this orchestrator at its public
@@ -167,6 +179,17 @@ export function buildOrchestrator({
   );
   app.use(REGISTRY_ROUTE_PREFIX, registryRoutes({registry, guard, updates}));
   app.use(
+    MARKETPLACE_ROUTE_PREFIX,
+    marketplaceRoutes({
+      registry,
+      marketplace,
+      updates,
+      artifacts: new ArtifactRelay(marketplace),
+      publisher,
+      guard,
+    }),
+  );
+  app.use(
     AUTH_ROUTE_PREFIX,
     authRoutes({
       vault,
@@ -207,9 +230,11 @@ export function buildOrchestrator({
     journal,
     vault,
     updates,
+    publisher,
     init: async () => {
       await registry.load();
       await vaultStore.load();
+      await publisherStore.load();
       writeToken = await issueWriteToken(config.stateDir);
       await registry.refreshCards();
       orchestrator.bootCheck = await updates.check();

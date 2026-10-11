@@ -10,8 +10,8 @@
  * longer knows the file's token — its state wiped — has disowned it: the name is claimed again and
  * the file rewritten. A claim refused as taken means the name is held under a token the launcher no
  * longer has; a file naming another marketplace, or another publisher, holds a token that
- * marketplace may still know. Either stops the marketplace path: a token is overwritten only once
- * the marketplace has disowned it.
+ * marketplace may still know, and so does a token the marketplace says is another publisher's.
+ * Each stops the marketplace path: a token is overwritten only once the marketplace has disowned it.
  */
 import {mkdir, readFile, rename, writeFile} from 'node:fs/promises';
 import {dirname, join} from 'node:path';
@@ -26,11 +26,35 @@ export const DEV_PUBLISHER = 'a2uiverse-apps';
 export const publisherFileOf = scriptsDir =>
   join(scriptsDir, '.state', 'stellify', 'publisher.json');
 
+/** The marketplace's route answering whose a bearer token is: the sdk's `MARKETPLACE_ROUTES.publisher`. */
+const PUBLISHER_ROUTE = 'publisher';
+
 /**
- * An app id no publish can hold (SPEC §9.1, `shell` reserved): unpublishing it checks the token —
- * 401 when the marketplace does not know it — and changes nothing.
+ * Whose the token is, asked of the marketplace (task-14.4 decision 18): `{ok: true, publisher}`;
+ * `{ok: false, status, findings}` — 401 for a token it does not know; `{ok: false, findings}` with no
+ * status when it cannot be reached.
  */
-const PROBE_APP_ID = 'shell';
+export async function publisherOfToken({marketplace, token}, fetchImpl = fetch) {
+  let response;
+  try {
+    response = await fetchImpl(`${marketplace.replace(/\/$/, '')}/${PUBLISHER_ROUTE}`, {
+      headers: {authorization: `Bearer ${token}`},
+    });
+  } catch (err) {
+    return {
+      ok: false,
+      findings: [`cannot reach the marketplace at ${marketplace}: ${err.message}`],
+    };
+  }
+  const body = await response.json().catch(() => undefined);
+  if (response.ok && typeof body?.publisher === 'string') {
+    return {ok: true, publisher: body.publisher};
+  }
+  const findings = Array.isArray(body?.findings)
+    ? body.findings
+    : [`the marketplace answered ${response.status} to ${PUBLISHER_ROUTE}`];
+  return {ok: false, status: response.status, findings};
+}
 
 /** The file as read: `{record}`, `{none: true}` when there is none, `{damaged: reason}`. */
 export async function readPublisherFile(path) {
@@ -96,7 +120,7 @@ export function publisherState(read, marketplace, path) {
  * The dev publisher for this launch (decision 5), once, before any publish: `{ok: true, record,
  * claimed}` — `claimed` saying the name was claimed now, `'again'` when the marketplace had
  * disowned the file's token — or `{ok: false, words}`, the marketplace path stopped. `api` is
- * Stellify's `claim` and `unpublish`; `read` and `write` the file's.
+ * Stellify's `claim` and `publisherOfToken`; `read` and `write` the file's.
  */
 export async function establishPublisher({marketplace, path, api, read, write}) {
   const known = publisherState(await read(path), marketplace, path);
@@ -123,16 +147,18 @@ export async function establishPublisher({marketplace, path, api, read, write}) 
   if (known.state === 'none') return claimName(false);
   if (known.state !== 'held') return {ok: false, words: known.words};
 
-  const probe = await api.unpublish({
-    marketplace,
-    token: known.record.token,
-    appId: PROBE_APP_ID,
-  });
-  if (!probe.ok && probe.status === 401) return claimName(true);
-  if (!probe.ok && probe.status === undefined) {
+  const asked = await api.publisherOf({marketplace, token: known.record.token});
+  if (!asked.ok && asked.status === 401) return claimName(true);
+  if (!asked.ok) {
     return {
       ok: false,
-      words: `the marketplace at ${marketplace} could not be asked about ${DEV_PUBLISHER}'s token:${probe.findings.map(f => `\n    ${f}`).join('')}`,
+      words: `the marketplace at ${marketplace} could not be asked about ${DEV_PUBLISHER}'s token:${asked.findings.map(f => `\n    ${f}`).join('')}`,
+    };
+  }
+  if (asked.publisher !== DEV_PUBLISHER) {
+    return {
+      ok: false,
+      words: `the token in ${path} is ${asked.publisher}'s at ${marketplace}, not ${DEV_PUBLISHER}'s: move or delete it to publish as ${DEV_PUBLISHER}`,
     };
   }
   return {ok: true, record: known.record, claimed: false};

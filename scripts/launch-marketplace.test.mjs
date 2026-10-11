@@ -11,6 +11,7 @@ import {
   previewWords,
   publisherFileOf,
   publisherLine,
+  publisherOfToken,
   publisherState,
   readPublisherFile,
   writePublisherFile,
@@ -24,7 +25,11 @@ const HELD = {marketplace: MARKETPLACE, publisher: DEV_PUBLISHER, token: 'old-to
  * A scripted marketplace for `establishPublisher`: the claim and the token check answer as given,
  * every call recorded; the file read and written in memory.
  */
-function scripted({file = {none: true}, claim = {ok: true}, probe = {status: 404}} = {}) {
+function scripted({
+  file = {none: true},
+  claim = {ok: true},
+  asked = {ok: true, publisher: DEV_PUBLISHER},
+} = {}) {
   const calls = [];
   let written = null;
   const api = {
@@ -33,11 +38,12 @@ function scripted({file = {none: true}, claim = {ok: true}, probe = {status: 404
       if (claim.ok) return {ok: true, marketplace, publisher: name, token: 'new-token'};
       return {ok: false, status: claim.status, findings: claim.findings ?? ['refused']};
     },
-    async unpublish({token, appId}) {
-      calls.push(['unpublish', appId, token]);
+    async publisherOf({token}) {
+      calls.push(['publisherOf', token]);
+      if (asked.ok) return asked;
       return {
         ok: false,
-        ...(probe.status === undefined ? {} : {status: probe.status}),
+        ...(asked.status === undefined ? {} : {status: asked.status}),
         findings: ['no'],
       };
     },
@@ -103,20 +109,29 @@ test('no file and the name taken: the marketplace path stops, naming the state t
   assert.equal(run.written(), null);
 });
 
-test('a held token the marketplace knows: kept, the check changing nothing', async () => {
-  const run = scripted({file: {record: HELD}, probe: {status: 404}});
+test('a held token the marketplace knows as the dev publisher’s: kept, nothing written (task-14.4 decision 18)', async () => {
+  const run = scripted({file: {record: HELD}});
   assert.deepEqual(await run.run(), {ok: true, record: HELD, claimed: false});
-  assert.deepEqual(run.calls, [['unpublish', 'shell', 'old-token']]);
+  assert.deepEqual(run.calls, [['publisherOf', 'old-token']]);
+  assert.equal(run.written(), null);
+});
+
+test('a held token the marketplace says is another publisher’s: the path stops, nothing claimed or written', async () => {
+  const run = scripted({file: {record: HELD}, asked: {ok: true, publisher: 'acme'}});
+  const established = await run.run();
+  assert.equal(established.ok, false);
+  assert.match(established.words, /is acme's at http:\/\/localhost:10002, not a2uiverse-apps's/);
+  assert.deepEqual(run.calls, [['publisherOf', 'old-token']]);
   assert.equal(run.written(), null);
 });
 
 test('a held token the marketplace disowned: the name claimed again, the file rewritten', async () => {
-  const run = scripted({file: {record: HELD}, probe: {status: 401}});
+  const run = scripted({file: {record: HELD}, asked: {ok: false, status: 401}});
   const established = await run.run();
   assert.equal(established.claimed, 'again');
   assert.equal(established.record.token, 'new-token');
   assert.deepEqual(run.calls, [
-    ['unpublish', 'shell', 'old-token'],
+    ['publisherOf', 'old-token'],
     ['claim', DEV_PUBLISHER],
   ]);
   assert.equal(run.written().token, 'new-token');
@@ -125,7 +140,7 @@ test('a held token the marketplace disowned: the name claimed again, the file re
 test('a disowned token whose name is taken again: the path stops, the file untouched', async () => {
   const run = scripted({
     file: {record: HELD},
-    probe: {status: 401},
+    asked: {ok: false, status: 401},
     claim: {ok: false, status: 409},
   });
   const established = await run.run();
@@ -148,11 +163,43 @@ test('a file for another marketplace or publisher, or damaged, stops with no con
   }
 });
 
-test('a marketplace that cannot be asked about the token stops the path', async () => {
-  const run = scripted({file: {record: HELD}, probe: {status: undefined}});
-  const established = await run.run();
-  assert.equal(established.ok, false);
-  assert.match(established.words, /could not be asked/);
+test('a marketplace that cannot be asked about the token, or answers otherwise than 401, stops the path', async () => {
+  for (const status of [undefined, 500]) {
+    const run = scripted({file: {record: HELD}, asked: {ok: false, status}});
+    const established = await run.run();
+    assert.equal(established.ok, false);
+    assert.match(established.words, /could not be asked/);
+    assert.equal(run.written(), null);
+  }
+});
+
+test('whose the token is, over the marketplace’s route: the name, 401 with its findings, or unreached', async () => {
+  const seen = [];
+  const answering = (status, body) => async (url, init) => {
+    seen.push([url, init.headers.authorization]);
+    return new Response(JSON.stringify(body), {status});
+  };
+  assert.deepEqual(
+    await publisherOfToken(
+      {marketplace: `${MARKETPLACE}/`, token: 't'},
+      answering(200, {publisher: DEV_PUBLISHER}),
+    ),
+    {ok: true, publisher: DEV_PUBLISHER},
+  );
+  assert.deepEqual(seen[0], [`${MARKETPLACE}/publisher`, 'Bearer t']);
+  assert.deepEqual(
+    await publisherOfToken(
+      {marketplace: MARKETPLACE, token: 't'},
+      answering(401, {ok: false, findings: ['the publisher token is missing or wrong']}),
+    ),
+    {ok: false, status: 401, findings: ['the publisher token is missing or wrong']},
+  );
+  const unreached = await publisherOfToken({marketplace: MARKETPLACE, token: 't'}, async () => {
+    throw new Error('ECONNREFUSED');
+  });
+  assert.equal(unreached.ok, false);
+  assert.equal(unreached.status, undefined);
+  assert.match(unreached.findings[0], /cannot reach the marketplace/);
 });
 
 test('another refusal of the claim stops the path with the marketplace’s words', async () => {

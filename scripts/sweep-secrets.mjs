@@ -2,7 +2,7 @@
  * The secret sweep (task-12.13 decision 6): every secret a sitting created — the vault file's
  * tokens and keys, what each agent's sign-in store keeps: its ID-token signing key, the vendor's
  * tokens, its own registration's secret at its vendor — and each publisher's token (task-13.8
- * decision 7), searched for in the journal, in every file of the marketplace's state but its
+ * decision 7), the one the orchestrator holds for Publish among them (task 14.4), searched for in the journal, in every file of the marketplace's state but its
  * embedding model, and in every file of the captured process output. It reports how many secrets
  * each searched file holds, never a secret, and exits non-zero when any file holds one. What
  * reaches the browser is not searched.
@@ -12,8 +12,9 @@
  *
  * The orchestrator's state directory resolves as its `registry` command resolves it; the apps
  * checkout as the launcher resolves it; the marketplace's state directory as the marketplace
- * resolves its own. The publisher files are the launcher's dev publisher's, at its own place unless
- * given, and each one given — a second publisher's, the person's own.
+ * resolves its own. The publisher files are the orchestrator's, in its state directory, the
+ * launcher's dev publisher's, at its own place unless given, and each one given — a second
+ * publisher's, the person's own.
  */
 import {existsSync, readdirSync, readFileSync, statSync} from 'node:fs';
 import {join, relative, resolve, sep} from 'node:path';
@@ -26,6 +27,8 @@ import {resolveAgentsDir} from './launch-plan.mjs';
 import {orchestratorOf} from './launch-registry.mjs';
 
 const VAULT_FILE = join('vault', 'vault.json');
+/** The publisher the orchestrator holds for Publish (task 14.4). */
+const ORCHESTRATOR_PUBLISHER_FILE = join('publisher', 'publisher.json');
 const JOURNAL_FILE = 'intent-journal.jsonl';
 const AGENT_STORE = join('agent', '.state', 'sign-in.json');
 /** The marketplace's embedding model cache: no file the marketplace writes. */
@@ -145,6 +148,7 @@ function main(argv) {
     ? resolve(values['marketplace-state'])
     : marketplaceStateOf({env: process.env, marketplaceDir: join(repoRoot, 'apps', 'marketplace')});
   const publisherFiles = [
+    join(stateDir, ORCHESTRATOR_PUBLISHER_FILE),
     values['dev-publisher']
       ? resolve(values['dev-publisher'])
       : publisherFileOf(join(repoRoot, 'scripts')),

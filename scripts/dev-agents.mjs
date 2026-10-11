@@ -63,7 +63,6 @@ import {
   preview,
   publish,
   stellify,
-  unpublish,
 } from '@a2uiverse/stellify';
 
 import {DEFAULT_TIER, ROSTER} from './dev-roster.mjs';
@@ -83,6 +82,7 @@ import {
   previewWords,
   publisherFileOf,
   publisherLine,
+  publisherOfToken,
   publisherState,
   readPublisherFile,
   writePublisherFile,
@@ -405,7 +405,7 @@ async function devPublisher(marketplace) {
   const established = await establishPublisher({
     marketplace,
     path: PUBLISHER_FILE,
-    api: {claim, unpublish},
+    api: {claim, publisherOf: publisherOfToken},
     read: readPublisherFile,
     write: writePublisherFile,
   });

@@ -128,6 +128,31 @@ describe('claim', () => {
   });
 });
 
+describe('publisher (task-14.4 decision 9)', () => {
+  test('whose a bearer token is, never cached; 401 with no token, a wrong one, or one not in its form', async () => {
+    const {base} = await serve();
+    const acme = await claimed(base);
+    const rival = await claimed(base, 'rival');
+    const ask = (token?: string) =>
+      fetch(`${base}/${MARKETPLACE_ROUTES.publisher}`, {
+        headers: token ? {authorization: `Bearer ${token}`} : {},
+      });
+    const mine = await ask(acme);
+    expect(mine.status).toBe(200);
+    expect(mine.headers.get('cache-control')).toBe('no-store');
+    expect(await mine.json()).toEqual({publisher: 'acme'});
+    expect(await (await ask(rival)).json()).toEqual({publisher: 'rival'});
+    for (const token of [undefined, 'A'.repeat(43), 'not-a-token']) {
+      const refused = await ask(token);
+      expect(refused.status).toBe(401);
+      expect(await refused.json()).toEqual({
+        ok: false,
+        findings: ['the publisher token is missing or wrong'],
+      });
+    }
+  });
+});
+
 describe('publish', () => {
   test('401 with no token or a wrong one; 400 for a body that does not read', async () => {
     const {base} = await serve();

@@ -3,6 +3,7 @@ import {dirname} from 'node:path';
 import type {Message} from '@a2a-js/sdk';
 import type {DispatchOutcome, DispatchRecord} from '../agentsPool/types.js';
 import type {Embedder} from '@a2uiverse/embedder';
+import type {PublisherJournalEntry} from '../marketplace/publisher.js';
 import type {RegistryJournal, RegistryJournalEntry} from '../registry/registry.js';
 import type {SignInRecord} from '../vault/vault.js';
 import {describe} from './descriptor.js';
@@ -44,6 +45,9 @@ export type RegistryLine = {kind: 'registry'; at: string} & RegistryJournalEntry
 
 /** A sign-in fact as its journal line carries it (task-12.5 decision 11): never a secret. */
 export type SignInLine = {kind: 'signIn'; at: string} & SignInRecord;
+
+/** A publisher act as its journal line carries it (task-14.4 decision 17): never the token. */
+export type PublisherLine = {kind: 'publisher'; at: string} & PublisherJournalEntry;
 
 /** How many closed turns a composition's ring keeps. */
 export const RECENT_TURNS = 5;
@@ -144,6 +148,15 @@ export class IntentJournal implements RegistryJournal {
     await this.#append({kind: 'signIn', at: new Date().toISOString(), ...record});
   }
 
+  /**
+   * A publisher act from the trusted page's Publish (task-14.4 decision 17): one line of kind
+   * `publisher` — a claim, a sign-in (a refused one too), a sign-out, a publish, an unpublish — with
+   * its outcome, a refusal's findings and who made it; never the token. Never throws.
+   */
+  async publisher(entry: PublisherJournalEntry): Promise<void> {
+    await this.#append({kind: 'publisher', at: new Date().toISOString(), ...entry});
+  }
+
   /** The last closed turns of a composition, oldest first; at most `RECENT_TURNS`. */
   recent(clientContextId: string): readonly JournalEntry[] {
     return this.#recent.get(clientContextId) ?? [];
@@ -167,7 +180,7 @@ export class IntentJournal implements RegistryJournal {
     }
   }
 
-  async #append(entry: JournalEntry | RegistryLine | SignInLine): Promise<void> {
+  async #append(entry: JournalEntry | RegistryLine | SignInLine | PublisherLine): Promise<void> {
     try {
       await mkdir(dirname(this.#filePath), {recursive: true});
       await appendFile(this.#filePath, `${JSON.stringify(entry)}\n`);

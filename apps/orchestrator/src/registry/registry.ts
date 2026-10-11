@@ -195,6 +195,11 @@ export class Registry {
     return this.#store.artifactsDir;
   }
 
+  /** Whether the registry holds the artifact: the preview's relay serves it from here (task-14.4 decision 4). */
+  holdsArtifact(artifactId: string): boolean {
+    return this.#descriptors.has(artifactId);
+  }
+
   /** Reads the persisted registry, every artifact hashed again; throws on damage (task-11.4 decision 9). */
   async load(): Promise<void> {
     const {records, descriptors} = await this.#store.load();

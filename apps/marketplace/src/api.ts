@@ -2,9 +2,10 @@
  * The marketplace's HTTP surface (task-13.2 decision 11; task-13.3 decision 11), at the root of
  * its port. The reads are shaped like static files, so a directory of the same layout answers
  * them with no marketplace: `index.json`, `apps/<appId>/entry.json`, `apps/<appId>/preview.json`,
- * `artifacts/<artifactId>/<path>`. Search takes its words on `q`. The writes: `claim` with no
- * token; `publish` and `unpublish` with the publisher's token as a bearer token; `report`, a nudge
- * taken from anyone and answered at once. Every refusal body is the sdk's `{ok: false, findings}`.
+ * `artifacts/<artifactId>/<path>`. Search takes its words on `q`. `publisher` answers whose a
+ * bearer token is (task-14.4 decision 9). The writes: `claim` with no token; `publish` and
+ * `unpublish` with the publisher's token as a bearer token; `report`, a nudge taken from anyone and
+ * answered at once. Every refusal body is the sdk's `{ok: false, findings}`.
  */
 import {join} from 'node:path';
 import express, {type Request, type RequestHandler, type Response, type Router} from 'express';
@@ -99,6 +100,10 @@ export function marketplaceRoutes({marketplace}: {marketplace: Marketplace}): Ro
     res.locals.publisher = publisher.name;
     next();
   };
+
+  router.get('/publisher', guard, (_req: Request, res: Response) => {
+    res.set('Cache-Control', 'no-store').json({publisher: res.locals.publisher as string});
+  });
 
   router.post('/publish', guard, body, async (req: Request, res: Response) => {
     const read = readPublishRequest(req.body);

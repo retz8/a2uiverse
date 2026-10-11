@@ -35,6 +35,8 @@ export const MARKETPLACE_ROUTES = {
   search: 'search',
   /** `{publisher}` in; `{publisher, token}` once, or findings. No token. */
   claim: 'claim',
+  /** Bearer token; `{publisher}`, whose token it is; 401 for a token no publisher holds. */
+  publisher: 'publisher',
   /** Bearer token; the install body with a preview beside it. */
   publish: 'publish',
   /** Bearer token; `{appId}`. */
@@ -346,6 +348,14 @@ export const CLAIM_RESPONSE_FIELDS = [
   'publisher',
   'token',
 ] as const satisfies readonly (keyof ClaimResponse)[];
+
+/** `publisher`, out: the name of the publisher whose token the bearer is. */
+export interface PublisherResponse {
+  publisher: string;
+}
+export const PUBLISHER_RESPONSE_FIELDS = [
+  'publisher',
+] as const satisfies readonly (keyof PublisherResponse)[];
 
 export function readClaimRequest(body: unknown): Validation<ClaimRequest> {
   const b = bodyOf(body);

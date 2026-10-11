@@ -13,6 +13,7 @@ import {
   PUBLISH_CATALOG_FIELDS,
   PUBLISH_REQUEST_FIELDS,
   PUBLISH_RESPONSE_FIELDS,
+  PUBLISHER_RESPONSE_FIELDS,
   PUBLISHER_NAME_MAX_LENGTH,
   PUBLISHER_NAME_PATTERN,
   PUBLISHER_TOKEN_BYTES,
@@ -100,6 +101,7 @@ test('the wire bodies’ fields match the contract', () => {
   };
   expect([...CLAIM_REQUEST_FIELDS].sort()).toEqual(fields('claimRequest'));
   expect([...CLAIM_RESPONSE_FIELDS].sort()).toEqual(fields('claimResponse'));
+  expect([...PUBLISHER_RESPONSE_FIELDS].sort()).toEqual(fields('publisherResponse'));
   expect([...PUBLISH_REQUEST_FIELDS].sort()).toEqual(fields('publishRequest'));
   expect([...PUBLISH_CATALOG_FIELDS]).toEqual(contract.shapes.publishRequest!.catalog);
   expect([...PUBLISH_RESPONSE_FIELDS].sort()).toEqual(fields('publishOutcome'));

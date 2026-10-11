@@ -56,6 +56,8 @@ export interface CheckOutcome {
 export class UpdateCheck {
   readonly #deps: UpdateCheckDeps;
   #inFlight: Promise<CheckOutcome> | undefined;
+  /** Each app's state from the last run, the boot's or the App Library's: what a Store listing shows. */
+  #last = new Map<string, UpdateState>();
 
   constructor(deps: UpdateCheckDeps) {
     this.#deps = deps;
@@ -64,11 +66,21 @@ export class UpdateCheck {
   /** Runs the check, or joins the one in flight (task-13.5 decision 8). */
   check(): Promise<CheckOutcome> {
     if (!this.#inFlight) {
-      this.#inFlight = this.#check().finally(() => {
-        this.#inFlight = undefined;
-      });
+      this.#inFlight = this.#check()
+        .then(outcome => {
+          this.#last = new Map(outcome.states.map(state => [state.appId, state]));
+          return outcome;
+        })
+        .finally(() => {
+          this.#inFlight = undefined;
+        });
     }
     return this.#inFlight;
+  }
+
+  /** The app's state as last computed, no check run (task-14.4 decision 1); none before a run has seen it. */
+  last(appId: string): UpdateState | undefined {
+    return this.#last.get(appId);
   }
 
   async #check(): Promise<CheckOutcome> {

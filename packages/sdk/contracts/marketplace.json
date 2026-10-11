@@ -8,10 +8,11 @@
     "artifact": "artifacts/<artifactId>/<path>",
     "search": "search",
     "claim": "claim",
+    "publisher": "publisher",
     "publish": "publish",
     "unpublish": "unpublish",
     "report": "report",
-    "rule": "At the root of the marketplace's port, no prefix. The reads — index, entry, preview, artifact — are shaped like static files and take no token, so a directory of the same layout can stand in for the process and the served subtree can be part of the state directory; an artifact's files are served under its id, immutable, exactly as the registry serves them, so an install fetches only what the registry lacks; an entry answers 404 for an app not published. search takes the words in its query parameter and answers entries in rank order, each with its score; no token. claim takes a name and answers it with its token once, or findings when the name is taken; no token. publish and unpublish carry the publisher's token as a bearer token. report carries an app id and nothing about the person, and is accepted always, a nudge the marketplace verifies itself; no token. Transport is each caller's own."
+    "rule": "At the root of the marketplace's port, no prefix. The reads — index, entry, preview, artifact — are shaped like static files and take no token, so a directory of the same layout can stand in for the process and the served subtree can be part of the state directory; an artifact's files are served under its id, immutable, exactly as the registry serves them, so an install fetches only what the registry lacks; an entry answers 404 for an app not published. search takes the words in its query parameter and answers entries in rank order, each with its score; no token. claim takes a name and answers it with its token once, or findings when the name is taken; no token. publisher carries a token as a bearer token and answers whose it is, the publisher's name, or 401 for a token no publisher holds. publish and unpublish carry the publisher's token as a bearer token. report carries an app id and nothing about the person, and is accepted always, a nudge the marketplace verifies itself; no token. Transport is each caller's own."
   },
   "searchQueryParam": "q",
   "publisher": {
@@ -64,6 +65,7 @@
       "direction": "marketplace → publisher, once",
       "required": ["publisher", "token"]
     },
+    "publisherResponse": {"direction": "marketplace → bearer", "required": ["publisher"]},
     "publishRequest": {
       "direction": "publisher → marketplace",
       "required": ["appId", "cardUrl", "catalogs"],

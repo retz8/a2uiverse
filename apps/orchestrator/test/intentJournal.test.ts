@@ -239,3 +239,30 @@ describe('registry entries (task-11.4 decision 15)', () => {
     expect(journal.recent('gmail')).toEqual([]);
   });
 });
+
+describe('publisher entries (task-14.4 decision 17)', () => {
+  test('a publisher act is one line of its own kind, with no embedding', async () => {
+    const file = join(dir, 'intent-journal.jsonl');
+    const journal = new IntentJournal(file, new FakeEmbedder());
+    await journal.publisher({
+      act: 'publish',
+      publisher: 'acme',
+      appId: 'shop',
+      outcome: 'refused',
+      findings: ['a look can only grow'],
+      by: 'page',
+    });
+    expect(await lines(file)).toEqual([
+      {
+        kind: 'publisher',
+        at: expect.any(String),
+        act: 'publish',
+        publisher: 'acme',
+        appId: 'shop',
+        outcome: 'refused',
+        findings: ['a look can only grow'],
+        by: 'page',
+      },
+    ]);
+  });
+});
