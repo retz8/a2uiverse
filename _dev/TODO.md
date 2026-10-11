@@ -207,18 +207,22 @@ Spec: `_dev/docs/spec/phase-13-marketplace-publish.md`.
 - [x] **13.8** Integration + acceptance — on the deterministic roster through the tunnel, by hand: a fresh marketplace, the claim, every app published and installed from the marketplace by id alone, composition unchanged; each update state exercised — the newer build arriving automatically, the card update, the major, the required, ahead of the Store with the report, no longer published; a second publisher refused on an owned catalog id; a breaking schema refused; a clean regression pass; the write-up; from 13.5: `registry updates` is the tool for exercising each state by hand; from 13.6: `pnpm dev:all --publish` is the publish and the install by id; from 13.7: an app's card version moves through the `version` on its agent's config, how the card update, the major and the required states are made (after 13.6 and 13.7)
 - [x] **13.9** Design records + READMEs — `docs/design/marketplace.md` over one running example, publish to install; `app-install.md` gaining the install from the marketplace and the update check, pointing to it for the rest; every README in both repos; the amendments 13.8's decisions call for (after 13.8)
 
-## Phase 19 — Vendor-agent model trial
-The agent kit opened to models beyond Gemini through ADK's LiteLLM wrapper, and the fast models of the day tried on the vendor agents against `gemini-3.7-flash`. An experiment: worked in a worktree of `../a2uiverse-apps/`, not on its `main`.
-Notes: `_dev/docs/phase-19-model-trial-notes.md` — the candidate models with their sources, and the A2UI-unique prompts; this phase may run that prompt testing as well.
+## Phase 14 — Shell trusted pages [WIP]
+The one trusted page over the canvas (M10): the Store, the App Library and Publish as three destinations of one addressable overlay, the canvas never unmounted beneath, opened by the Planner's shell actions or by a manual entry point in the client shell. The Store reads the marketplace through the orchestrator, each listing annotated with the local state and carrying its publisher's name and its captured preview rendered live, and installs; the App Library shows each app's update state and takes the update, uninstalls, and manages each app's accounts — sign out, rename, permissions, add account, the sign-in run with no canvas; Publish is the publisher who is also a user — claim, sign-in, the listings with their notices, publish from packed directories, unpublish — the orchestrator holding the publisher's secret and relaying every call, the browser holding no secret. Browser writes are origin-checked, the token kept for the launcher and the registry command. A third shell action, open Publish; the installed-apps reader sees the update state as last computed. The design canvas is drawn before the client work.
+Spec: `_dev/docs/spec/phase-14-shell-trusted-pages.md`.
 
-- [ ] **19.1** `[apps]` The kit on LiteLLM — a non-Gemini model reachable by name through ADK's LiteLLM wrapper, the three modes and every app's tests unchanged
-- [ ] **19.2** `[apps]` The model trial — candidate models run on the vendor agents over the recorded live prompts and measured against `gemini-3.7-flash`; which models, which measures and where the write-up lives decided here (after 19.1)
-
-
-## Phase 14 — Shell trusted pages
-Store page, App Library, accounts (M10). Opening a trusted page must not unmount the canvas: the client holds its whole session in memory, created when the canvas mounts, and Phase 15's resume after install needs the canvas that raised the capability gap. The Store and the App Library are an overlay over the canvas (6.5); 6.5's placeholder overlay is the shell to fill. URL addressability, and whether one route with two tabs or two routes, are decided here.
-From Phase 12: the App Library's sign-out per account, renaming, the permissions view, and an "Add account" calling the same flow.
-From Phase 13: the App Library showing each app's update state from the orchestrator's check — a newer build quietly, a major update as a suggestion, a card update with its new scopes or catalogs named, an update required for a line the agent retired, ahead of the Store as waiting for the publisher, no longer published — and the update as the install from the marketplace; an app's listing in the Store carrying the publisher's name and the captured preview rendered live through the client's loader; the Store page showing a publisher their own listings, what Stellify's `list` prints (task 13.4 decision 10); whether the Planner's installed-apps reader sees the update state; from 13.5: `GET /registry/updates.json` runs the check and the automatic build update and answers the states as they stand, no token, so the App Library reads fresh states from the browser.
+- [WIP] **14.1** Doc edits — SPEC §7, §9.3, §10, §11, §13, §15, §16; Phase 6's decision on the two shell actions and task 6.5's open item on addressability amended; the Phase 15 note in this file
+- [ ] **14.2** Design canvas — the trusted page's boards: the entry point, the Store, the App Library with its accounts, Publish; attached to the phase heading (after 14.1; parallel with 14.3–14.5)
+- [ ] **14.3** Orchestrator, the App Library's side — origin-checked browser writes; the account routes: list with permissions, sign-out, rename; sign-in from the page with no canvas; the installed list and the update states as the page reads them; journal (after 14.1; parallel with 14.2, 14.4, 14.5)
+- [ ] **14.4** Orchestrator, the marketplace's side — the Store's reads relayed and annotated with the local state, the preview's artifact files for catalogs the registry lacks; the publisher held in the state directory, claim, sign-in by token, sign-out; publish and unpublish relayed, the listings with their notices; a marketplace route only if one is missing, the token's check (after 14.1; parallel with 14.2, 14.3, 14.5)
+- [ ] **14.5** Shell catalog and Planner — open Publish declared and handled beside the two; the Planner's vocabulary; the reader's update state as last computed, with when (after 14.1; parallel with 14.2–14.4)
+- [ ] **14.6** Client, the page — the addressable overlay on the browser's history with its three destinations, the manual entry point, the third action's landing (after 14.2 and 14.5)
+- [ ] **14.7** Client, the Store — search, listings with the publisher's name, the preview through the loader over the marketplace's artifacts, install and update, a publisher's listings by name (after 14.4 and 14.6; parallel with 14.8, 14.9)
+- [ ] **14.8** Client, the App Library — installed apps with their states in plain words, the update, uninstall, the accounts: sign out, rename, permissions, add account (after 14.3 and 14.6; parallel with 14.7, 14.9)
+- [ ] **14.9** Client, Publish — claim or sign in, the listings with notices, publish from packed directories with the preview file, the gate's findings, unpublish (after 14.4 and 14.6; parallel with 14.7, 14.8)
+- [ ] **14.10** Dev harness — e2e over the page with the marketplace under the launcher's publish flag, the visual specs, the snapshot (after 14.7–14.9)
+- [ ] **14.11** Integration + acceptance — spec decision 23's six items through the tunnel (after 14.10)
+- [ ] **14.12** Design records + READMEs — the trusted page's record, the five records that keep a part, every README, the amendments 14.11 calls for (after 14.11)
 
 ## Phase 15 — Store loop
 Capability gap → marketplace index → install → resume (M11).
@@ -227,6 +231,13 @@ From Phase 13: the pre-dispatch check for an app ahead of the Store — the live
 
 ## Phase 16 — Ecosystem run
 Publish a new app → discover → install → compose with an existing one → act inside it. One sitting, no code changes; the deliverable is the recording (M12). The new app is an upstream A2UI sample agent, installed unchanged through the Store: an A2UI agent built outside A2UIVerse composing as it is.
+
+## Phase 19 — Vendor-agent model trial
+The agent kit opened to models beyond Gemini through ADK's LiteLLM wrapper, and the fast models of the day tried on the vendor agents against `gemini-3.7-flash`. An experiment: worked in a worktree of `../a2uiverse-apps/`, not on its `main`.
+Notes: `_dev/docs/phase-19-model-trial-notes.md` — the candidate models with their sources, and the A2UI-unique prompts; this phase may run that prompt testing as well.
+
+- [ ] **19.1** `[apps]` The kit on LiteLLM — a non-Gemini model reachable by name through ADK's LiteLLM wrapper, the three modes and every app's tests unchanged
+- [ ] **19.2** `[apps]` The model trial — candidate models run on the vendor agents over the recorded live prompts and measured against `gemini-3.7-flash`; which models, which measures and where the write-up lives decided here (after 19.1)
 
 ## Phase 17 — v1.0 soft migration
 Only if the v1.0 migration has not landed by then. A2UIVerse supports both v1.0 and v0.9.1 at its agent-facing edge — a v1.0 agent accepted beside v0.9.1 ones, v1.0 possibly not fully functioning — the mark that A2UIVerse plans to migrate to v1.0 once upstream is ready. The delta register written in v1.0's vocabulary.
