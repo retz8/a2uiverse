@@ -135,6 +135,10 @@ The shell's formula operators gain `difference`: the gap between exactly two num
 
 Each update check fetches every installed app's live card beside its marketplace entry, in parallel. A card that answers replaces the one the orchestrator held, its search vector recomputed when it changed; one that does not answer leaves the one held. The states, and every sign-in judged on the live card after, read the card the agent serves now. Replaced: the live card fetched at boot and at install alone, an agent moved since judged on its old card until the orchestrator restarted.
 
+### 30. A Store flag the live card no longer bears out is reported again
+
+The update check reports an app whose entry the Store flags as ahead while the live card it fetched shows no drift, so the marketplace refetches the card and clears the flag. These reports are kept apart from the drift reports, and the boot says each one. Replaced: an app reported only when the orchestrator saw drift, a flag outliving an agent that moved back.
+
 ## Invariants
 
 - No credential reaches the marketplace.
