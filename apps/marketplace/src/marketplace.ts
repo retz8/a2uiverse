@@ -166,7 +166,10 @@ export class Marketplace {
     return this.#serial(() => this.#publish(publisher, body));
   }
 
-  /** Unpublish, the owner's (phase-13 decision 15): the app goes, the names stay. */
+  /**
+   * Unpublish, the owner's (phase-13 decision 15): the app goes, the names stay, and so do the
+   * versions its id published and its card at the last (task-13.8 decision 17).
+   */
   unpublish(publisher: string, appId: string): Promise<UnpublishAnswer> {
     return this.#serial(async () => {
       const entry = this.#entries.get(appId);
@@ -185,6 +188,19 @@ export class Marketplace {
             `app id ${JSON.stringify(appId)} belongs to publisher ${JSON.stringify(entry.publisher)}`,
           ],
         };
+      }
+      // The versions this id published and its last card stay with the owner (task-13.8
+      // decision 17), so a later publish of the id keeps to the card-version rule.
+      const owner = this.#publishers.get(publisher);
+      if (owner) {
+        const kept: PublisherRecord = {
+          ...owner,
+          unpublished: [
+            ...(owner.unpublished ?? []).filter(app => app.appId !== appId),
+            {appId, versions: entry.versions, card: entry.card},
+          ],
+        };
+        await this.#writePublishers(new Map(this.#publishers).set(publisher, kept));
       }
       await this.#store.removeApp(appId);
       this.#entries.delete(appId);
@@ -259,6 +275,12 @@ export class Marketplace {
     if (!publisher) throw new Error(`unknown publisher ${JSON.stringify(name)}`);
     const {appId, cardUrl, catalogs, preview} = body;
     const previous = this.#entries.get(appId);
+    // An unpublished id's versions and last card, read by the card-version rule in place of an
+    // entry (task-13.8 decision 17).
+    const unpublished = previous
+      ? undefined
+      : publisher.unpublished?.find(app => app.appId === appId);
+    const history = previous ?? unpublished;
     const findings = [...checkAppId(appId)];
     const forbidden = (finding: string): PublishAnswer => ({
       ok: false,
@@ -364,17 +386,17 @@ export class Marketplace {
       }
     }
 
-    // The card-version rule (task-13.3 decision 5).
-    if (card && previous && typeof card.version === 'string') {
-      if (card.version === previous.card.version) {
-        if (!sameCard(card, previous.card)) {
+    // The card-version rule (task-13.3 decision 5), over an unpublished id's history too.
+    if (card && history && typeof card.version === 'string') {
+      if (card.version === history.card.version) {
+        if (!sameCard(card, history.card)) {
           findings.push(
             `the card changed, but version ${JSON.stringify(card.version)} is already published: a changed card carries a version this app id has never published`,
           );
         }
-      } else if (previous.versions.includes(card.version)) {
+      } else if (history.versions.includes(card.version)) {
         findings.push(
-          `version ${JSON.stringify(card.version)} was published before and moved past: the published versions are ${previous.versions.join(', ')}`,
+          `version ${JSON.stringify(card.version)} was published before and moved past: the published versions are ${history.versions.join(', ')}`,
         );
       }
     }
@@ -456,6 +478,11 @@ export class Marketplace {
       owned.apps.push(appId);
       notes.push(`app id ${JSON.stringify(appId)} is now ${name}'s`);
     }
+    if (unpublished) {
+      owned.unpublished = (owned.unpublished ?? []).filter(app => app.appId !== appId);
+      if (owned.unpublished.length === 0) delete owned.unpublished;
+      notes.push(`${appId} is listed again`);
+    }
     for (const {artifact} of gated) {
       const id = artifact.descriptor.catalogId;
       if (!owned.catalogs.includes(id)) {
@@ -500,17 +527,16 @@ export class Marketplace {
     const retired = [...new Set([...(previous?.retired ?? []), ...retiredNow])].filter(
       id => !ids.includes(id),
     );
-    const cardChanged = previous !== undefined && card.version !== previous.card.version;
     const entry: IndexEntry = {
       appId,
       publisher: name,
       cardUrl,
       card: card as unknown as PublishedCard,
       catalogs: rows,
-      versions: previous
-        ? cardChanged
-          ? [...previous.versions, card.version]
-          : previous.versions
+      versions: history
+        ? card.version === history.card.version
+          ? history.versions
+          : [...history.versions, card.version]
         : [card.version],
       publishedAt: this.#now(),
       retired,

@@ -22,6 +22,7 @@ import {
   type ArtifactFiles,
   type IndexEntry,
   type PreviewDocument,
+  type PublishedCard,
 } from '@a2uiverse/sdk';
 
 /** The served subtree inside the state directory. */
@@ -45,6 +46,18 @@ export interface PublisherRecord {
   apps: string[];
   /** The catalog ids this publisher first published an artifact for. */
   catalogs: string[];
+  /**
+   * Each app id of this publisher's now unpublished: the versions it published and its card at the
+   * last (task-13.8 decision 17), so a later publish of the id keeps to the card-version rule.
+   */
+  unpublished?: UnpublishedApp[];
+}
+
+/** An unpublished app id's history: what the card-version rule reads in place of an entry. */
+export interface UnpublishedApp {
+  appId: string;
+  versions: string[];
+  card: PublishedCard;
 }
 
 export interface Loaded {
@@ -268,6 +281,17 @@ function publishersFileProblem(parsed: unknown): string | undefined {
     if (typeof r.claimedAt !== 'string') return `${at}.claimedAt: not a string`;
     if (!isStringList(r.apps)) return `${at}.apps: not a list of app ids`;
     if (!isStringList(r.catalogs)) return `${at}.catalogs: not a list of catalog ids`;
+    if (r.unpublished !== undefined) {
+      if (!Array.isArray(r.unpublished)) return `${at}.unpublished: not a list`;
+      for (const [j, u] of r.unpublished.entries()) {
+        const where = `${at}.unpublished[${j}]`;
+        if (typeof u !== 'object' || u === null) return `${where}: not an object`;
+        const app = u as Record<string, unknown>;
+        if (typeof app.appId !== 'string') return `${where}.appId: not a string`;
+        if (!isStringList(app.versions)) return `${where}.versions: not a list of versions`;
+        if (typeof app.card !== 'object' || app.card === null) return `${where}.card: not a card`;
+      }
+    }
   }
   return undefined;
 }

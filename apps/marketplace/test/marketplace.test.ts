@@ -718,6 +718,40 @@ describe('unpublish', () => {
     ok(await marketplace.publish('acme', body('shop', url, [files])));
   });
 
+  test('an unpublished id keeps its versions and its last card: a changed card at the last version and an earlier version refused, the same card listed again (task-13.8 decision 17)', async () => {
+    const first = await made();
+    const {marketplace, stateDir} = first;
+    let {cards} = first;
+    await claimed(marketplace, 'acme');
+    const agent = await agentOf();
+    const url = cards.serve(agent.card);
+    const files = await fixtureArtifact(CAT);
+    ok(await marketplace.publish('acme', body('shop', url, [files])));
+    cards.cards.set(url, {...agent.card, version: '0.2.0'});
+    ok(await marketplace.publish('acme', body('shop', url)));
+    ok(await marketplace.unpublish('acme', 'shop'));
+
+    // The history outlives a restart: it is the publisher's, beside the served subtree.
+    const reopened = await made(stateDir);
+    const again = reopened.marketplace;
+    cards = reopened.cards;
+    cards.cards.set(url, {...agent.card, version: '0.2.0', description: 'changed'});
+    expect(refused(await again.publish('acme', body('shop', url, [files]))).findings).toEqual([
+      'the card changed, but version "0.2.0" is already published: a changed card carries a version this app id has never published',
+    ]);
+    cards.cards.set(url, agent.card);
+    expect(refused(await again.publish('acme', body('shop', url, [files]))).findings).toEqual([
+      'version "0.1.0" was published before and moved past: the published versions are 0.1.0, 0.2.0',
+    ]);
+    cards.cards.set(url, {...agent.card, version: '0.2.0'});
+    const listed = ok(await again.publish('acme', body('shop', url, [files])));
+    expect(listed.notes).toContain('shop is listed again');
+    expect(again.entry('shop')?.versions).toEqual(['0.1.0', '0.2.0']);
+    cards.cards.set(url, {...agent.card, version: '0.3.0', description: 'changed'});
+    ok(await again.publish('acme', body('shop', url)));
+    expect(again.entry('shop')?.versions).toEqual(['0.1.0', '0.2.0', '0.3.0']);
+  });
+
   test("another publisher's app, and an app not published", async () => {
     const {marketplace, cards} = await made();
     await claimed(marketplace, 'acme');
