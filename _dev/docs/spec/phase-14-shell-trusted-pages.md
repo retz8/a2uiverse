@@ -49,6 +49,8 @@ As task 13.4's decision 10 has Stellify's `list` keep the index entries whose pu
 
 The orchestrator's write routes — install, update, uninstall, sign-out, rename, the publisher's calls — accept a request from an allowed browser origin without the write token: the origin list CORS already admits, the check the vault's key page already runs against forged requests, a JSON body required. The token stays for callers that are not a browser, the launcher and the registry command. SPEC §10's token sentence is amended.
 
+*Amended by task 14.3.* The allowed origins are localhost and 127.0.0.1 on any port and the hosts of the orchestrator's own dev tunnel on any port, read from its base URL — one list for CORS and the write check. Every write, with the token or without, carries the JSON content type.
+
 ### 9. Two ways in
 
 Asking opens a destination through the Planner's shell actions. A manual entry point in the client shell, beside Back and Trail, opens the page by hand. Where it sits and how it looks is the design canvas's.
@@ -82,6 +84,8 @@ Add account and sign in again open the same popup and poll the same way; nothing
 ### 16. Sign-out is per account
 
 An account's tokens are revoked where the server advertises revocation and dropped from the vault, the way uninstall does for a whole app. Canvases already composed keep what they hold; a later dispatch to that account asks for sign-in again.
+
+*Amended by task 14.3.* The sign-out answers with what became of the access — cancelled, nowhere to cancel, or failed to cancel — the account dropped in every case. Signing in on a slot bound to the signed-out account brings that account's number back.
 
 ### 17. Rename changes the label the vault holds
 
