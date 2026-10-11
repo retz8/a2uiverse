@@ -87,6 +87,18 @@ test('an unweighted wrapper takes one share: unweighted regions split their axis
   expect(wrapper.style.flex).toBe('1 1 0%');
 });
 
+test('the wrapper never shrinks below what it holds: a region taller than its share does not run over the next (task-13.8 decision 22)', () => {
+  const {container} = render(
+    <AttributionView displayName="Google Calendar" weight={1}>
+      <div>the slot</div>
+    </AttributionView>,
+  );
+  const wrapper = container.querySelector('[data-attribution]') as HTMLElement;
+  expect(wrapper.style.flex).toBe('1 1 0%');
+  expect(wrapper.style.minHeight).toBe('auto');
+  expect(wrapper.style.minWidth).toBe('0px');
+});
+
 test('without a child it is the bare marker, no wrapper box', () => {
   const {container} = render(<AttributionView displayName="Gmail" />);
   expect(container.querySelector('[data-attribution]')).toBeNull();

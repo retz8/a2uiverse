@@ -67,7 +67,9 @@ import {AttributionApi, type AttributionProps} from './attribution.schema.js';
  * With a child it is the wrapper of that region (task-6.4 decision 3): marker over content in
  * one flex column, 8px apart so the marker reads as its region's (task 7.14), the box's `weight` as its own flex share inside the parent `Row` or `Column`,
  * 1 when the painter copied none (task-6.4 decision 2) — so regions the Planner left unweighted
- * share their axis equally. The child's own weight is then measured against this box.
+ * share their axis equally. The child's own weight is then measured against this box. The box
+ * never shrinks below what it holds (task-13.8 decision 22): in a `Column`, a region taller than
+ * its share keeps its height and its neighbours take the rest, instead of running over them.
  */
 export function AttributionView({
   displayName,
@@ -212,7 +214,7 @@ export function AttributionView({
       data-attribution={displayName}
       direction="column"
       gap="2"
-      style={{minWidth: 0, ...weightStyle(weight ?? 1)}}
+      style={{minWidth: 0, ...weightStyle(weight ?? 1), minHeight: 'auto'}}
     >
       {row}
       {children}
