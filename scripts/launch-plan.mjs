@@ -158,19 +158,26 @@ function placeEntry(entry, agentsDir, exists) {
 }
 
 /**
- * The launch: the tier's entries placed against the checkout, narrowed by `only`, judged.
- * `entries` is every entry of the tier — what the listing prints; `selected` is what runs.
+ * The launch: the entries of the tier — or of several, joined by commas (task-13.8 decision 21) —
+ * placed against the checkout, narrowed by `only`, judged. `entries` is every entry of those tiers
+ * — what the listing prints; `selected` is what runs.
  */
 export function planLaunch({roster, tier, only, agentsDir, exists}) {
   const fatal = [];
   const tiers = tiersOf(roster);
-  if (!tiers.includes(tier)) {
-    fatal.push(`unknown --tier '${tier}' (expected ${tiers.join(' | ')})`);
+  const asked = tier
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean);
+  if (!asked.length || asked.some(t => !tiers.includes(t))) {
+    fatal.push(
+      `unknown --tier '${tier}' (expected ${tiers.join(' | ')}, or several joined by commas)`,
+    );
     return {tier, entries: [], selected: [], fatal};
   }
 
   const entries = roster
-    .filter(entry => entry.tier === tier)
+    .filter(entry => asked.includes(entry.tier))
     .map(entry => placeEntry(entry, agentsDir, exists));
   let selected = entries.filter(entry => entry.ok);
 

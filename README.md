@@ -153,8 +153,8 @@ Open **http://localhost:5173** and press `⌘K`. The apps start in `deterministi
 ```bash
 pnpm dev:all          # the apps and the platform, the apps installed
 pnpm dev              # the platform only: client, orchestrator, marketplace
-pnpm dev:agents       # the apps only, installed into the running orchestrator: --tier mocks, --only <ids>, --mode deterministic|stub|live, --agents-dir <path>, --no-install, --publish, --agent-state <dir>
-pnpm agents:list      # what a launch would run, and what would stop it: --tier mocks, --publish
+pnpm dev:agents       # the apps only, installed into the running orchestrator: --tier mocks (or default,mocks), --only <ids>, --mode deterministic|stub|live, --agents-dir <path>, --no-install, --publish, --agent-state <dir>
+pnpm agents:list      # what a launch would run, and what would stop it: --tier mocks (or default,mocks), --publish
 pnpm dev:client       # one platform process, in its own terminal
 pnpm dev:orch
 pnpm dev:marketplace
@@ -171,7 +171,7 @@ Ports: client `5173`, orchestrator `10001`, marketplace `10002`. The apps take `
 
 The launcher's roster, `scripts/dev-roster.mjs`, lists every app it starts from the `a2uiverse-apps` checkout: its id, its folder, its tier and its port. `--agents-dir <path>` or `A2UIVERSE_AGENTS_DIR` points it at a checkout other than the sibling one. A new app is added to the roster with the port its agent was scaffolded on.
 
-A launch runs one tier. The default tier is the five apps; the two mock stores, for testing the merged view, are a tier of their own and run in place of the apps:
+A launch runs one tier, or several joined by commas. The default tier is the five apps; the two mock stores, for testing the merged view, are a tier of their own and run in place of the apps, or beside them under `--tier default,mocks`:
 
 ```bash
 pnpm dev:all --tier mocks

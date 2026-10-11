@@ -2,8 +2,8 @@
 /**
  * Launch the apps of the dev roster from the sibling `a2uiverse-apps` checkout, and install them.
  *
- *   pnpm dev:agents [--tier mocks] [--only github,gmail] [--mode deterministic|stub|live] [--agents-dir <path>] [--no-install | --publish] [--agent-state <dir>]
- *   pnpm agents:list [--tier mocks] [--publish]
+ *   pnpm dev:agents [--tier mocks | --tier default,mocks] [--only github,gmail] [--mode deterministic|stub|live] [--agents-dir <path>] [--no-install | --publish] [--agent-state <dir>]
+ *   pnpm agents:list [--tier mocks | --tier default,mocks] [--publish]
  *
  * `A2UIVERSE_PUBLIC_URL`, a pattern with a `{port}` slot (a tunnel address), gives each agent the
  * public address the browser reaches its sign-in pages at (task-12.12 decision 2).
@@ -11,7 +11,7 @@
  * Apps are never built in this repo and never depend on it (SPEC §13), so this is the one place
  * that knows how to start them: the roster (`dev-roster.mjs`) names each app, its folder in the
  * checkout, its tier and its port. A launch runs one tier, the default one unless `--tier` says
- * otherwise (task-11.6 decisions 1 to 4).
+ * otherwise (task-11.6 decisions 1 to 4), or several joined by commas (task-13.8 decision 21).
  *
  * A launch starts every agent — and, under `--then` (what `dev:all` uses), the platform — at once,
  * builds the catalog packages through the checkout's own turbo, and packs each with this repo's

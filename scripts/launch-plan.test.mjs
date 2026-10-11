@@ -88,10 +88,33 @@ test('an entry is placed by the convention: its agent, its catalog package, its 
   assert.equal(cardUrlOf(11001), 'http://localhost:11001/.well-known/agent-card.json');
 });
 
+test('several tiers joined by commas launch together, --only narrowing across them', () => {
+  const both = plan({tier: 'default,mocks'});
+  assert.deepEqual(both.fatal, []);
+  assert.deepEqual(ids(both.selected), [
+    'github',
+    'gmail',
+    'calendar',
+    'circleci',
+    'linear',
+    'shop-a',
+    'shop-b',
+  ]);
+  assert.deepEqual(ids(plan({tier: 'mocks, default', only: ['linear', 'shop-a']}).selected), [
+    'linear',
+    'shop-a',
+  ]);
+});
+
 test('an unknown tier stops the launch, naming the tiers there are', () => {
+  const unknown =
+    "unknown --tier 'staging' (expected default | mocks, or several joined by commas)";
   const {fatal, selected} = plan({tier: 'staging'});
   assert.deepEqual(selected, []);
-  assert.deepEqual(fatal, ["unknown --tier 'staging' (expected default | mocks)"]);
+  assert.deepEqual(fatal, [unknown]);
+  assert.deepEqual(plan({tier: 'default,staging'}).fatal, [
+    "unknown --tier 'default,staging' (expected default | mocks, or several joined by commas)",
+  ]);
 });
 
 test('an entry missing from the checkout is skipped and named; the rest launch', () => {
@@ -146,6 +169,14 @@ test('two entries of the tier on one port stop the launch, even when --only pick
 
 test('the reconcile takes out the other tier, what --only left out, and what failed', () => {
   const installedIds = ['github', 'gmail', 'linear', 'shop-a', 'shop-b'];
+  assert.deepEqual(
+    appsToUninstall({
+      installedIds,
+      roster: ROSTER,
+      launchedIds: ['github', 'gmail', 'linear', 'shop-a', 'shop-b'],
+    }),
+    [],
+  );
   assert.deepEqual(
     appsToUninstall({installedIds, roster: ROSTER, launchedIds: ['shop-a', 'shop-b']}),
     ['github', 'gmail', 'linear'],

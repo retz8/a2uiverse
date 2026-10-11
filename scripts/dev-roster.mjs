@@ -1,6 +1,7 @@
 /**
  * The launcher's dev roster (task-11.6 decisions 1 to 3): every app the launcher starts from the
- * apps checkout — its id, its folder in the checkout, its tier and its port. A launch runs one tier.
+ * apps checkout — its id, its folder in the checkout, its tier and its port. A launch runs one tier,
+ * or several joined by commas.
  * The port is fixed here, the number the agent's own `default_port` carries, so the card URL the
  * registry stores stays right across restarts; a new app's author picks it at scaffold time and
  * adds the app here. The platform assigns no port: an app installed from outside the checkout is
