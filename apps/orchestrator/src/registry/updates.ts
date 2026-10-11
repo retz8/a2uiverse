@@ -45,6 +45,12 @@ export interface CheckOutcome {
   kept: {appId: string; carrying: string[]}[];
   /** The apps reported to the marketplace as ahead of the Store. */
   reported: string[];
+  /**
+   * The apps whose entry the Store flags as ahead while their live card shows no drift, reported
+   * so the marketplace refetches the card and clears a flag it no longer bears out (task-13.8
+   * decision 30).
+   */
+  rechecked: string[];
 }
 
 export class UpdateCheck {
@@ -88,6 +94,7 @@ export class UpdateCheck {
         failed: [],
         kept: [],
         reported: [],
+        rechecked: [],
       };
     }
     const outcome: CheckOutcome = {
@@ -97,15 +104,28 @@ export class UpdateCheck {
       failed: [],
       kept: [],
       reported: [],
+      rechecked: [],
+    };
+    const report = (appId: string) => {
+      void marketplace.report(appId).catch((err: unknown) => {
+        console.error(`registry: the report of ${appId} failed:`, (err as Error).message);
+      });
     };
     for (const [i, record] of records.entries()) {
       const lookup = lookups[i];
       let state = updateStateOf(record, lookup, registry.card(record.id));
       if (state.state === 'ahead-of-store') {
         outcome.reported.push(record.id);
-        void marketplace.report(record.id).catch((err: unknown) => {
-          console.error(`registry: the report of ${record.id} failed:`, (err as Error).message);
-        });
+        report(record.id);
+      } else if (
+        lookup.kind === 'entry' &&
+        lookup.entry.aheadOfStore !== undefined &&
+        registry.card(record.id)
+      ) {
+        // The Store still flags a drift this run's live card no longer shows: the report is the
+        // marketplace's nudge to look again, and it clears the flag when it sees none either.
+        outcome.rechecked.push(record.id);
+        report(record.id);
       }
       // A newer build, the card unchanged, installs itself for an app from the marketplace alone
       // (phase-13 decision 16); a failure leaves the build and the state (task-13.5 decision 9).

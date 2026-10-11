@@ -407,6 +407,28 @@ describe('the check (task-13.5 decisions 8, 9, 10)', () => {
     expect(registry.card('gmail')).toEqual(moved);
   });
 
+  test('a Store flag the live card no longer bears out is reported again, apart from the drift reports (task-13.8 decision 30)', async () => {
+    const {registry, cards, marketplace, check} = await setUp();
+    const published = cardFor(AGENT, {catalogs: [GMAIL]});
+    const cardUrl = cards.serve(published);
+    await marketplace.publish('gmail', {
+      card: published,
+      cardUrl,
+      catalogs: [await fixtureArtifact(GMAIL)],
+    });
+    await registry.installFromMarketplace('gmail');
+    marketplace.serveEntry('gmail', {
+      ...marketplace.entry('gmail'),
+      aheadOfStore: {catalogIds: [], version: '0.0.1', seenAt: '2026-10-11T00:00:00.000Z'},
+    });
+    const outcome = await check.check();
+    expect(outcome.states[0]).toMatchObject({state: 'up-to-date'});
+    expect(outcome.reported).toEqual([]);
+    expect(outcome.rechecked).toEqual(['gmail']);
+    await new Promise(resolve => setTimeout(resolve, 50));
+    expect(marketplace.reports).toEqual(['gmail']);
+  });
+
   test('concurrent checks coalesce onto the one in flight', async () => {
     const {registry, cards, marketplace, check} = await setUp();
     const shop = cardFor('http://127.0.0.1:12001');

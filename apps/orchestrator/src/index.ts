@@ -50,6 +50,11 @@ for (const {appId, carrying} of checked?.kept ?? []) {
 for (const appId of checked?.reported ?? []) {
   console.warn(`${APP_NAME}: ${appId} is ahead of the Store — reported to the marketplace`);
 }
+for (const appId of checked?.rechecked ?? []) {
+  console.log(
+    `${APP_NAME}: the Store flags ${appId} as ahead, its card no longer — reported to the marketplace to look again`,
+  );
+}
 
 const unroutable = registry.list().filter(r => !registry.card(r.id));
 if (unroutable.length > 0) {
