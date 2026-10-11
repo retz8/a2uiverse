@@ -119,6 +119,10 @@ A refused claim and a refused unpublish each print one line in the marketplace's
 
 The `marketplace search` test of the default address answers its own request, so a marketplace running on its port does not change it. Replaced: the test reaching `localhost:10002`, failing whenever the marketplace runs there.
 
+### 26. A published additive change stays at its catalog id
+
+A schema change published at a catalog id is not taken back by a later publish at that id: the marketplace refuses the earlier schema as a removal. After the catalog shared by two apps, the marketplace's state is wiped, its embedding model kept, and both tiers launched again under `--publish` with the launcher's publisher file kept, so Linear's cases start from its committed build. Replaced: decision 11's published Linear build reverted by a later publish.
+
 ## Invariants
 
 - No credential reaches the marketplace.
