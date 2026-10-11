@@ -51,6 +51,8 @@ For an app on the kit's sign-in, the launcher signs in straight at the agent thr
 
 *Amended by task 13.7 decisions 8 and 9.* Under `--mode live` each sign-in app, Shop B included, is previewed from a deterministic instance of the same checkout on a free port with a temporary state directory, the launcher's own sign-in made there; the instance is stopped and its state directory removed after the preview, and the live agent's sign-in store is untouched.
 
+*Amended by task 13.8 decision 23.* Each sign-in app's preview opens the agent's sign-in page at the address the agent gives, so with `A2UIVERSE_PUBLIC_URL` set the previews go through the tunnel, and the agents' ports are forwarded and Public before a publish.
+
 ### 9. A failure of one app
 
 A preview that fails, a publish the marketplace refuses — a card changed at a version already published among them — or an install by id the orchestrator refuses leaves that app out, named, with the marketplace's or the orchestrator's findings unchanged; the steps after the failed one are not attempted for it, and the reconcile uninstalls any install of it an earlier launch left. No app falls back to the install from the checkout.

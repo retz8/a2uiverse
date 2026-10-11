@@ -63,6 +63,8 @@ A second publisher, `someone-else`, under a home of its own: claiming `a2uiverse
 
 The dev publisher publishes `linear-admin` with Linear's card URL, installed by id: two apps on one Linear row in the index and the registry. A Linear build with an additive change installed from its local pack moves the row, `linear-admin` following, named in the summary and the journal's registry line. A published Linear build is listed on both entries, then reverted. A Linear build with a component removed, installed from its local pack, is refused for carrying `linear-admin`; with `linear-admin` uninstalled the same build moves the row alone. Linear is installed again by id at the committed build; `linear-admin` is unpublished.
 
+*Amended by decision 26.* The published Linear build is not reverted by a later publish; the marketplace's state is wiped and both tiers launched again instead.
+
 ### 12. An automatic update never carries an app installed from a local pack
 
 The update check skips a marketplace app's automatic update when the row's move would carry an app installed from a local pack; the marketplace app stays at a newer build, reported, and the person's install by id moves both, naming the follower. With Linear from a local pack and `linear-admin` from the marketplace, the published Linear build of decision 11 is the probe, run before the fix and after it; the fix carries an orchestrator test. The boot says each automatic update left undone and the apps it would have moved. Replaced: the automatic update moving the row, an app installed from a local pack carried with it.
@@ -70,6 +72,8 @@ The update check skips a marketplace app's automatic update when the row's move 
 ### 13. Linear's cases
 
 Linear installed again from its local pack, its source `local`. A visible change to its catalog's implementation alone, packed, previewed and published at card 0.1.0: `registry updates` reads a newer build for Linear and leaves it, no automatic line in the journal; installed by id, its source `marketplace`, a reload shows the new look. The change reverted, packed and published as a second build: the check installs it itself — up to date, the journal's line automatic, a reload shows the original look. Then the card moves: `version` 0.2.0 and the first sign-in asking `issues.write` too; Linear's agent restarted, then the orchestrator: `registry updates` reads ahead of the Store naming 0.2.0, the report sent; the marketplace's log and flag; `registry install linear` refused in the Store-behind words; `stellify list` printing the notice; Linear still composing on its installed card. Previewed and published at 0.2.0, the flag cleared: `registry updates` reads a card update naming `issues.write`; installed by id, Linear's slot takes the needs-more-access tile, and Allow signs in again and paints.
+
+*Amended by decision 27.* In the ahead-of-the-Store window Linear's slot takes the needs-more-access tile from the live card, with no call to the agent; it does not compose on its installed card.
 
 ### 14. The marketplace unreachable, and its own restart
 
@@ -184,5 +188,5 @@ The regression pass after, all green: the platform's `pnpm verify` 22 of 22 task
 ### Findings
 
 - Phase 15: the kit's one-id limit (decision 6); the canvas for an app ahead of the Store asking a new scope from the live card (decision 27).
-- Amendments for 13.9: decision 12 on phase decision 16, task 13.5's decision 9 and SPEC §10; decision 17 on phase decisions 7 and 15 and SPEC §9.3; decision 23 on task 13.6; decision 26 on decision 11; decision 27 on decision 13 and phase decision 16's ahead-of-the-Store window; decision 28 on SPEC §5.2's operators; decision 29 on the phase spec's "the card it fetched at boot" and task 13.5's live-card fetch; decision 30 on the phase spec's report; decision 17 on the marketplace README's `publishers.json`; decision 31 on the marketplace README.
+- Amendments for 13.9: decision 12 on phase decision 16, task 13.5's decision 9 and SPEC §10; decision 17 on phase decisions 7 and 15 and SPEC §9.3; decision 23 on task 13.6; decision 26 on decision 11; decision 27 on decision 13 and phase decision 14's ahead-of-the-Store window; decision 28 on SPEC §5.2's operators; decision 29 on the phase spec's "the card it fetched at boot" and task 13.5's live-card fetch; decision 30 on the phase spec's report; decision 17 on the marketplace README's `publishers.json`; decision 31 on the marketplace README.
 - The marketplace logged a flag it set and no line when its refetch cleared one: decision 31, seen with Shop A's agent at 0.1.1 and back, `shop-a is no longer ahead of the Store: its live card is covered`.

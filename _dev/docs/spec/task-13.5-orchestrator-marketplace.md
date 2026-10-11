@@ -45,6 +45,8 @@ A moved row is one event, one line each. The install summary's moved-catalog par
 
 The check reads one entry per installed app from the marketplace, in parallel under the timeout. A 404 is `not-published` for that app. A marketplace not reached — a network failure or a timeout on any read — makes every state `unknown`. An entry that answers but fails the sdk's entry validator makes that one app `unknown`, the cause logged, the others judged. The live card is the one the orchestrator holds for the run — fetched at boot, or at the app's latest install-over; an app with no live card this run has no drift computed and is judged on the other states. The eight states and their details are computed in the orchestrator over the sdk's vocabulary and served shape, decided in the sdk's order, the drift half through the sdk's ahead-of-the-Store function and the retirement half through its retired-lines function, with the installed card as the earlier and the published card as the later. A card update's new scopes are read from the card's `security` alternatives, as the vault reads them: for each scheme the published card's alternatives name, the scope keys the installed card's alternatives do not name for that scheme, every scope for a scheme the installed card never names.
 
+*Amended by task 13.8 decision 29.* The check fetches every installed app's live card beside its entry, in parallel; a card that answers replaces the one held, its search vector recomputed when it changed; one that does not answer leaves the one held.
+
 ### 8. One operation behind the route and the boot
 
 The check is one operation: fetch the entries, compute the states, perform the automatic update of decision 9, and answer the states as they stand after it — an app just moved reads `up-to-date`, one whose automatic update failed still reads `newer-build`. `GET /registry/updates.json`, no token, served with no caching, runs that operation and answers its result. The boot runs the same operation after the installed cards are fetched and before the orchestrator listens, so the automatic update lands before the client preloads. Concurrent calls coalesce onto the one in flight; the installs it performs queue behind the registry's one-at-a-time rule.
@@ -53,9 +55,13 @@ The check is one operation: fetch the entries, compute the states, perform the a
 
 An app installed from the marketplace whose state is `newer-build` — the card version unchanged, one or more held catalogs at an older build than the entry's — is installed over at once through the install by id, at boot and whenever the check runs, journaled as automatic. A failed automatic update is a journaled refusal that leaves the installed build in place, the state staying `newer-build`, tried again at the next check. An app installed from a local pack is never moved by the index; the check still reports the newer build for it. A card change or a new catalog id is never automatic.
 
+*Amended by task 13.8 decision 12.* An automatic update whose row move would carry an app installed from a local pack is left undone: the app stays at `newer-build`, the boot names the apps the move would carry, and an install by id moves them together.
+
 ### 10. The report
 
 The orchestrator posts a report to the marketplace for every installed app the check finds ahead of the Store, on every check that sees it, and for an install by id refused by decision 4. The report carries the app id and nothing else. It is sent and not waited on, under the timeout, a failure logged and nothing more; the marketplace coalesces the reports it receives.
+
+*Amended by task 13.8 decision 30.* A report goes as well for an app whose entry the Store flags as ahead while the live card the check fetched shows no drift, kept apart from the drift reports and said at the boot, so the marketplace clears a flag it no longer bears out.
 
 ### 11. The timeout
 

@@ -47,6 +47,8 @@ A catalog id is the catalog's only version. Within one id an artifact is a build
 
 *Amended by task 13.5 decision 5.* At install the check runs when the move would carry another installed app with it; an app alone on its row moves it freely. At publish it stays unconditional.
 
+*Amended by task 13.8 decisions 17 and 26.* An unpublished app id keeps the versions it published and its last card, so a later publish of the id keeps to the version rule: the same card at the last version is accepted, a changed card carries a version never published, an earlier version is refused as moved past. A schema change published at a catalog id is not taken back by a later publish at that id: the marketplace refuses the earlier schema as a removal.
+
 ### 8. Retirement is a publish whose card drops the id
 
 The publisher's obligation is the protocol's migration rule: the agent keeps painting in every catalog id it has published while the hub advertises it, until the publisher publishes a version whose card no longer names that id. That publish retires the line for that app; the marketplace records it, and the row goes once no published app names the id. There is no retire verb. Changing the live agent without publishing is the breach decision 14 detects.
@@ -58,6 +60,8 @@ Each artifact is hosted in the static layout the registry already serves and the
 ### 10. The orchestrator computes whether an update exists
 
 The marketplace serves each app's index entry: the card version and each catalog id at its build. The orchestrator fetches the entries for its installed apps at boot and whenever asked, reads three things — the installed record, the index entry and the live card it fetched at boot — and holds per installed app one state: up to date; a newer build of a catalog, the id held; a major update, suggested, the installed id still on the new card; an update required, the installed line retired; a card update, naming its new scopes or catalogs; ahead of the Store; no longer published; unknown, when the marketplace could not be reached. The state is exposed over `orchestratorApi` for Phase 14's App Library. Install from the marketplace of an app already installed is the update, the same install-over as today.
+
+*Amended by task 13.8 decision 29.* Each check fetches every installed app's live card beside its entry, in parallel; the states read the card the agent serves now, a card that does not answer leaving the one held.
 
 ### 11. The index holds and searches
 
@@ -79,6 +83,8 @@ The live card is the only copy of the card that says what the agent does now; th
 
 *Amended by task 13.5 decision 4.* The install by id is refused on either half of the drift — a catalog id the entry has no artifact for, or a version not among the published ones — through the sdk's drift function over the live card the orchestrator fetched, in the Store-behind words, the report posted; the marketplace's flag alone never refuses.
 
+*Amended by task 13.8 decisions 27, 29 and 30.* The orchestrator sees the drift from the live card it fetches at each check, not the boot's alone. It reports as well an app the Store flags as ahead while the live card it fetched shows no drift, so the marketplace refetches the card and clears a flag it no longer bears out, logging the clearing as it logs the setting. In the window before the publish, the slot of an app whose live card asks a scope its installed card did not takes the needs-more-access tile from the live card, with no call to the agent.
+
 ### 15. Unpublish, owner only
 
 A Stellify verb carrying the publisher's token removes an app from the index and its search; a catalog row goes when no published app names it. Registries that installed the app keep it, and the update check reports it as no longer published. One version alone cannot be unpublished.
@@ -86,6 +92,8 @@ A Stellify verb carrying the publisher's token removes an app from the index and
 ### 16. A newer build of a held catalog installs itself
 
 When the update check finds that the only difference between an installed app and the index is a newer build at a held catalog id, the card unchanged, the orchestrator installs it over at once — at boot before the client preloads, and whenever the check runs — journaled as an automatic update. Only apps installed from the marketplace are touched; the registry's record keeps where each app came from, and an app installed from a local pack is never moved by the index, the check still reporting the newer build for it. A card change or a new catalog id is never automatic. A failed automatic update leaves the installed build in place, the check reporting it, tried again next time.
+
+*Amended by task 13.8 decision 12.* The automatic update is left undone when the row's move would carry an app installed from a local pack: the marketplace app stays at the newer build, reported, the boot naming the apps the move would carry, and the person's install by id moves them together, naming the followers.
 
 ### 17. The launcher can publish the roster
 
