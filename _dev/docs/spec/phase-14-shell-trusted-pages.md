@@ -61,6 +61,8 @@ The Store, opened with or without a query; the App Library; Publish, behind its 
 
 The page, its destination and the Store's query live in the URL, pushed onto the browser's history when the page opens: browser Back closes the page to the canvas untouched beneath, a reload lands on that page over a fresh session, a link opens the Store on a query. The canvas itself stays unaddressed, since a reload starts fresh (SPEC §6).
 
+*Amended by task 14.2.* Open the App Library takes an optional app, as open the Store takes its query, and lands on that app's view. The URL carries the app too, so a link opens one app in the Store or the App Library.
+
 ### 12. A third shell action, open Publish
 
 The shell catalog declares open Publish beside open the Store and open the App Library; the Planner's vocabulary names it, and a question about publishing is answered from the platform's card with a button that lands on Publish.
