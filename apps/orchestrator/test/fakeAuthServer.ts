@@ -48,6 +48,8 @@ export interface FakeAuthServer {
    * under whatever account comes back.
    */
   forgets: boolean;
+  /** The revocation endpoint cannot be reached: it answers 503 and ends nothing. */
+  revocationFails: boolean;
   close(): Promise<void>;
 }
 
@@ -88,6 +90,7 @@ export async function startFakeAuthServer(
     },
     endAll: () => grants.forEach(grant => (grant.ended = true)),
     forgets: false,
+    revocationFails: false,
     close: () => new Promise<void>(resolve => server.close(() => resolve())),
   };
   const mint = (bytes = 24) => {
@@ -264,6 +267,10 @@ export async function startFakeAuthServer(
   });
 
   app.post('/revoke', (req, res) => {
+    if (fake.revocationFails) {
+      res.status(503).json({});
+      return;
+    }
     const token = (req.body as Record<string, string>).token ?? '';
     fake.revoked.push(token);
     const grant = refresh.get(token)?.grant ?? access.get(token);

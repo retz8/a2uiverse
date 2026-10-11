@@ -34,10 +34,7 @@ import {VaultStore} from './vault/store.js';
 import {AuthVault} from './vault/vault.js';
 import {readSynthesizerFiles, synthesizerSystemPrompt} from './synthesizer/prompt.js';
 import {AiSdkSynthesisModel, Synthesizer, type SynthesisModel} from './synthesizer/synthesizer.js';
-
-/** localhost, 127.0.0.1 on any port, and VS Code dev tunnels (tunnel-environment.md). */
-export const ORIGIN_RE =
-  /^(https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?|https:\/\/[a-z0-9-]+\.[a-z0-9-]+\.devtunnels\.ms)$/;
+import {originAllowed, writeGuard} from './writeGuard.js';
 
 export const JOURNAL_FILE = 'intent-journal.jsonl';
 
@@ -158,13 +155,17 @@ export function buildOrchestrator({
   const requestHandler = new DefaultRequestHandler(card, new InMemoryTaskStore(), executor);
 
   const app = express();
+  // One list for CORS and the browser's writes: localhost, and the orchestrator's own dev tunnel
+  // (task-14.3 decision 1).
+  const allowed = originAllowed(config.baseUrl);
+  const guard = writeGuard({token: () => writeToken, allowed});
   app.use(
     cors({
-      origin: (origin, callback) => callback(null, !origin || ORIGIN_RE.test(origin)),
+      origin: (origin, callback) => callback(null, !origin || allowed(origin)),
       credentials: true,
     }),
   );
-  app.use(REGISTRY_ROUTE_PREFIX, registryRoutes({registry, writeToken: () => writeToken, updates}));
+  app.use(REGISTRY_ROUTE_PREFIX, registryRoutes({registry, guard, updates}));
   app.use(
     AUTH_ROUTE_PREFIX,
     authRoutes({
@@ -192,6 +193,8 @@ export function buildOrchestrator({
           ...(card?.documentationUrl ? {documentationUrl: card.documentationUrl} : {}),
         };
       },
+      installed: () => registry.installed().map(record => record.id),
+      guard,
     }),
   );
   app.use(`/${AGENT_CARD_PATH}`, agentCardHandler({agentCardProvider: requestHandler}));

@@ -5,13 +5,15 @@
  * The read routes are shaped like static files, so a directory of the same layout — the registry
  * snapshot — answers them with no orchestrator: `apps.json`, the installed records; `catalogs.json`,
  * the catalog table; `artifacts/<id>/<path>`, each artifact's files under its id, served as
- * immutable content. The write routes take the write token as a bearer token: `install` — which is
- * install-over for a held id — with each catalog's files in the body as base64, or with the app id
- * alone, resolved through the marketplace (task-13.5 decision 2); and `uninstall`. `updates.json`
- * runs the update check and answers each installed app's state (task-13.5 decision 8), no token.
+ * immutable content. The write routes pass the write guard — from an allowed browser origin, or
+ * with the write token (task-14.3 decision 1): `install` — which is install-over for a held id —
+ * with each catalog's files in the body as base64, or with the app id alone, resolved through the
+ * marketplace (task-13.5 decision 2); and `uninstall`, answering what became of each account's
+ * access (task-14.3 decision 12). `updates.json` runs the update check and answers each installed
+ * app's state (task-13.5 decision 8), no token.
  */
-import {timingSafeEqual} from 'node:crypto';
 import express, {type Request, type RequestHandler, type Response, type Router} from 'express';
+import {callerOf} from '../writeGuard.js';
 import type {Registry} from './registry.js';
 import type {UpdateCheck} from './updates.js';
 
@@ -25,12 +27,12 @@ const BODY_LIMIT = '64mb';
 
 export function registryRoutes({
   registry,
-  writeToken,
+  guard,
   updates,
 }: {
   registry: Registry;
-  /** The token this run issued; no write is taken before there is one. */
-  writeToken: () => string | undefined;
+  /** The write guard: the JSON content type, then an allowed origin or the write token. */
+  guard: RequestHandler;
   /** The update check `updates.json` runs (task-13.5 decision 8). */
   updates: UpdateCheck;
 }): Router {
@@ -59,14 +61,6 @@ export function registryRoutes({
     }),
   );
 
-  const guard: RequestHandler = (req, res, next) => {
-    const token = writeToken();
-    if (token === undefined || !authorized(req, token)) {
-      res.status(401).json({ok: false, findings: ['the write token is missing or wrong']});
-      return;
-    }
-    next();
-  };
   const body = express.json({limit: BODY_LIMIT});
 
   router.post('/install', guard, body, async (req: Request, res: Response) => {
@@ -75,10 +69,11 @@ export function registryRoutes({
       res.status(400).json({ok: false, findings: parsed.findings});
       return;
     }
+    const by = callerOf(res);
     const result =
       parsed.kind === 'marketplace'
-        ? await registry.installFromMarketplace(parsed.appId)
-        : await registry.install(parsed.request);
+        ? await registry.installFromMarketplace(parsed.appId, {by})
+        : await registry.install({...parsed.request, by});
     res.status(result.ok ? 200 : 422).json(result);
   });
 
@@ -88,20 +83,11 @@ export function registryRoutes({
       res.status(400).json({ok: false, findings: ['appId: expected a string']});
       return;
     }
-    const result = await registry.uninstall(appId);
+    const result = await registry.uninstall(appId, {by: callerOf(res)});
     res.status(result.ok ? 200 : 404).json(result);
   });
 
   return router;
-}
-
-function authorized(req: Request, token: string): boolean {
-  const header = req.get('authorization') ?? '';
-  const match = /^Bearer (.+)$/.exec(header);
-  if (!match) return false;
-  const given = Buffer.from(match[1]);
-  const expected = Buffer.from(token);
-  return given.length === expected.length && timingSafeEqual(given, expected);
 }
 
 type InstallParse =

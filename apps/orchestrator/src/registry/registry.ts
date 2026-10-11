@@ -26,6 +26,7 @@ import {
 } from '@a2uiverse/sdk';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 import {corpusDoc, type Embedder} from '@a2uiverse/embedder';
+import type {WriteCaller} from '../writeGuard.js';
 import type {MarketplaceClient} from './marketplace.js';
 import {readTree, RegistryStore, type ArtifactFiles} from './store.js';
 import {
@@ -71,6 +72,8 @@ export interface RegistryJournalEntry {
   followed?: string[];
   /** The update check installed a newer build over the app by itself (task-13.5 decision 9). */
   automatic?: true;
+  /** Who made the write: the trusted page, or a caller with the token (task-14.3 decision 13). */
+  by?: WriteCaller;
 }
 
 /** A held row moved to a new hash by an install, and the other apps that followed it. */
@@ -97,13 +100,23 @@ export interface InstallRequest {
   card?: AgentCard;
   /** An install the update check runs by itself (task-13.5 decision 9), journaled as such. */
   automatic?: boolean;
+  /** Who made the write, journaled (task-14.3 decision 13). */
+  by?: WriteCaller;
 }
 
 export type InstallResult =
   | {ok: true; appId: string; replaced: boolean; summary: string; notes: string[]}
   | {ok: false; findings: string[]};
 
-export type UninstallResult = {ok: true; appId: string} | {ok: false; findings: string[]};
+/** One of an uninstalled app's accounts signed out: what became of its access (task-14.3 decision 12). */
+export interface SignedOutAccount {
+  source: string;
+  label: string;
+  revocation: 'revoked' | 'nowhere' | 'failed';
+}
+
+export type UninstallResult =
+  {ok: true; appId: string; accounts: SignedOutAccount[]} | {ok: false; findings: string[]};
 
 export interface RegistryDeps {
   stateDir: string;
@@ -143,7 +156,9 @@ export class Registry {
   readonly #vectors = new Map<string, number[]>();
   readonly #platform: {record: AppRecord; card: AgentCard} | undefined;
   #queue: Promise<unknown> = Promise.resolve();
-  readonly #uninstalled: ((appId: string) => Promise<void> | void)[] = [];
+  readonly #uninstalled: ((
+    appId: string,
+  ) => Promise<readonly SignedOutAccount[] | void> | readonly SignedOutAccount[] | void)[] = [];
 
   constructor(deps: RegistryDeps) {
     this.#deps = deps;
@@ -163,8 +178,15 @@ export class Registry {
       : undefined;
   }
 
-  /** Called after an app is uninstalled: the vault lets its accounts go (phase-12 decision 12). */
-  onUninstalled(listener: (appId: string) => Promise<void> | void): void {
+  /**
+   * Called after an app is uninstalled: the vault lets its accounts go (phase-12 decision 12),
+   * answering what became of each one's access.
+   */
+  onUninstalled(
+    listener: (
+      appId: string,
+    ) => Promise<readonly SignedOutAccount[] | void> | readonly SignedOutAccount[] | void,
+  ): void {
     this.#uninstalled.push(listener);
   }
 
@@ -337,14 +359,14 @@ export class Registry {
    */
   installFromMarketplace(
     appId: string,
-    options: {automatic?: boolean} = {},
+    options: {automatic?: boolean; by?: WriteCaller} = {},
   ): Promise<InstallResult> {
     return this.#serial(() => this.#installFromMarketplace(appId, options));
   }
 
   async #installFromMarketplace(
     appId: string,
-    {automatic = false}: {automatic?: boolean},
+    {automatic = false, by}: {automatic?: boolean; by?: WriteCaller},
   ): Promise<InstallResult> {
     const marketplace = this.#deps.marketplace;
     const operation = this.#records.has(appId) ? 'install-over' : 'install';
@@ -358,6 +380,7 @@ export class Registry {
         findings,
         source: 'marketplace',
         ...(automatic ? {automatic: true} : {}),
+        ...(by ? {by} : {}),
       });
       return {ok: false, findings};
     };
@@ -418,6 +441,7 @@ export class Registry {
       source: 'marketplace',
       card,
       automatic,
+      ...(by ? {by} : {}),
     });
   }
 
@@ -477,9 +501,12 @@ export class Registry {
     return held;
   }
 
-  /** Uninstall: the record goes, and each artifact no installed card names any more (decision 6). */
-  uninstall(appId: string): Promise<UninstallResult> {
-    return this.#serial(() => this.#uninstall(appId));
+  /**
+   * Uninstall: the record goes, and each artifact no installed card names any more (decision 6);
+   * the answer says what became of each account's access (task-14.3 decision 12).
+   */
+  uninstall(appId: string, options: {by?: WriteCaller} = {}): Promise<UninstallResult> {
+    return this.#serial(() => this.#uninstall(appId, options));
   }
 
   #serial<T>(operation: () => Promise<T>): Promise<T> {
@@ -495,11 +522,12 @@ export class Registry {
     source = 'local',
     card: fetched,
     automatic = false,
+    by,
   }: InstallRequest): Promise<InstallResult> {
     const previous = this.#records.get(appId);
     const operation = previous ? 'install-over' : 'install';
     const findings = [...checkAppId(appId)];
-    const journalExtra = automatic ? {automatic: true as const} : {};
+    const journalExtra = {...(automatic ? {automatic: true as const} : {}), ...(by ? {by} : {})};
 
     let card: AgentCard | undefined = fetched;
     if (!card) {
@@ -628,7 +656,7 @@ export class Registry {
     };
   }
 
-  async #uninstall(appId: string): Promise<UninstallResult> {
+  async #uninstall(appId: string, {by}: {by?: WriteCaller}): Promise<UninstallResult> {
     const record = this.#records.get(appId);
     if (!record) {
       const findings = [`app ${JSON.stringify(appId)} is not installed`];
@@ -639,6 +667,7 @@ export class Registry {
         outcome: 'refused',
         findings,
         source: 'local',
+        ...(by ? {by} : {}),
       });
       return {ok: false, findings};
     }
@@ -657,15 +686,17 @@ export class Registry {
       catalogs,
       outcome: 'uninstalled',
       source: record.source,
+      ...(by ? {by} : {}),
     });
+    const accounts: SignedOutAccount[] = [];
     for (const listener of this.#uninstalled) {
       try {
-        await listener(appId);
+        accounts.push(...((await listener(appId)) ?? []));
       } catch (err) {
         console.error(`registry: an uninstall listener failed for ${appId}:`, err);
       }
     }
-    return {ok: true, appId};
+    return {ok: true, appId, accounts};
   }
 
   /**

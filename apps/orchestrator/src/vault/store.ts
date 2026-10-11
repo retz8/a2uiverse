@@ -38,6 +38,8 @@ export interface VaultAccount {
   keyHash?: string;
   /** The silent refresh failed, or the server refused it: the account must sign in again. */
   again?: boolean;
+  /** The label is the person's own, from a rename: no sign-in replaces it (task-14.3 decision 3). */
+  named?: boolean;
 }
 
 export interface AppAccounts {

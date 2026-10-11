@@ -7,13 +7,20 @@
  *
  * - `GET  /auth/client.json` — the vault's client ID metadata document.
  * - `GET  /auth/start?attempt&canvas&source` — opened by the popup; redirects to the
- *   authorization server, or to the token page. The bare app id as the source is add-account's.
+ *   authorization server, or to the token page. The bare app id as the source is add-account's;
+ *   no canvas is the App Library's (task-14.3 decision 6).
  * - `GET  /auth/key?attempt` and `POST /auth/key` — the token page and its form.
  * - `GET  /auth/callback` — the authorization server's return.
  * - `GET  /auth/attempts/:id` — the outcome the client polls.
+ *
+ * The App Library's (task 14.3), its writes behind the write guard:
+ * - `GET  /auth/accounts.json` — every installed app's accounts, with their permissions.
+ * - `POST /auth/rename` `{source, label}` — the person's own label for the account.
+ * - `POST /auth/sign-out` `{source}` — the account signed out, saying what became of its access.
  */
-import express, {type Request, type Response, type Router} from 'express';
+import express, {type Request, type RequestHandler, type Response, type Router} from 'express';
 import {logLine} from '../log.js';
+import {callerOf} from '../writeGuard.js';
 import {endPage, keyPage, refusedPage} from './pages.js';
 import {clientDocument, isSecureOrLocal, type ClientIdentity} from './oauth.js';
 import type {Attempt, AuthVault, SlotAsk} from './vault.js';
@@ -36,6 +43,10 @@ export interface AuthRoutesDeps {
   ask(canvas: string, source: string): SlotAsk | undefined;
   /** An app's display name and its card's help page, for the token page. */
   app(appId: string): {name: string; documentationUrl?: string};
+  /** The installed apps' ids, the accounts read's order. */
+  installed(): readonly string[];
+  /** The write guard: the JSON content type, then an allowed origin or the write token. */
+  guard: RequestHandler;
 }
 
 export function authRoutes(deps: AuthRoutesDeps): Router {
@@ -75,10 +86,19 @@ export function authRoutes(deps: AuthRoutesDeps): Router {
 
   router.get('/start', async (req, res) => {
     const {attempt, canvas, source} = req.query;
-    if (typeof attempt !== 'string' || typeof canvas !== 'string' || typeof source !== 'string') {
+    if (
+      typeof attempt !== 'string' ||
+      (canvas !== undefined && typeof canvas !== 'string') ||
+      typeof source !== 'string'
+    ) {
       return html(res, 400, refusedPage());
     }
-    const started = await deps.vault.start({attempt, canvas, source, ask: deps.ask});
+    const started = await deps.vault.start({
+      attempt,
+      ...(canvas !== undefined ? {canvas} : {}),
+      source,
+      ask: deps.ask,
+    });
     if (started.kind === 'refused') {
       logLine(`🔑 sign-in refused for ${source} (${started.reason})`);
       return html(res, 400, refusedPage());
@@ -155,6 +175,40 @@ export function authRoutes(deps: AuthRoutesDeps): Router {
     const outcome = deps.vault.outcome(req.params.id);
     if (!outcome) return res.status(404).set('Cache-Control', 'no-store').json({state: 'unknown'});
     return res.set('Cache-Control', 'no-store').json(outcome);
+  });
+
+  router.get('/accounts.json', (_req, res) => {
+    res.set('Cache-Control', 'no-store').json(deps.vault.library(deps.installed()));
+  });
+
+  const body = express.json({limit: '16kb'});
+  const field = (req: Request, name: string): string | undefined => {
+    const value = (req.body as Record<string, unknown> | undefined)?.[name];
+    return typeof value === 'string' ? value : undefined;
+  };
+
+  router.post('/rename', deps.guard, body, async (req, res) => {
+    const source = field(req, 'source');
+    const label = field(req, 'label');
+    if (source === undefined || label === undefined) {
+      return res.status(400).json({ok: false, findings: ['expected a source and a label']});
+    }
+    const renamed = await deps.vault.rename(source, label, callerOf(res));
+    if (!renamed.ok) {
+      return res
+        .status(renamed.kind === 'unknown' ? 404 : 422)
+        .json({ok: false, findings: [renamed.reason]});
+    }
+    return res.json(renamed);
+  });
+
+  router.post('/sign-out', deps.guard, body, async (req, res) => {
+    const source = field(req, 'source');
+    if (source === undefined)
+      return res.status(400).json({ok: false, findings: ['expected a source']});
+    const signedOut = await deps.vault.signOut(source, callerOf(res));
+    if (!signedOut.ok) return res.status(404).json({ok: false, findings: [signedOut.reason]});
+    return res.json(signedOut);
   });
 
   return router;

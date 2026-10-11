@@ -10,6 +10,7 @@ import {runRegistryCommand} from '../src/registry/command.js';
 import {MarketplaceClient} from '../src/registry/marketplace.js';
 import {issueWriteToken} from '../src/registry/token.js';
 import {UpdateCheck} from '../src/registry/updates.js';
+import {originAllowed, writeGuard} from '../src/writeGuard.js';
 import {startFakeMarketplace, type FakeMarketplace} from './fakeMarketplace.js';
 import {cardFor, fixtureArtifact, testRegistry, type TestRegistry} from './registryFixture.js';
 
@@ -40,7 +41,7 @@ async function orchestrator() {
     REGISTRY_ROUTE_PREFIX,
     registryRoutes({
       registry: made.registry,
-      writeToken: () => token,
+      guard: writeGuard({token: () => token, allowed: originAllowed('http://localhost:10001')}),
       updates: new UpdateCheck({registry: made.registry, marketplace: client}),
     }),
   );

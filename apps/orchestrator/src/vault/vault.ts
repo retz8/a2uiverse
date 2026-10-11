@@ -11,6 +11,8 @@ import type {AgentCard} from '@a2a-js/sdk';
 import {parseSourceId, sourceId, type AuthRequired} from '@a2uiverse/sdk';
 import type {Account, AccountStore} from '../accounts/accounts.js';
 import {logLine} from '../log.js';
+import type {SignedOutAccount} from '../registry/registry.js';
+import type {WriteCaller} from '../writeGuard.js';
 import {
   authorizationUrl,
   discover,
@@ -33,6 +35,8 @@ import {
 import {cardNeed, schemeOf, wordsFor, type SupportedScheme} from './schemes.js';
 import type {VaultAccount, VaultStore} from './store.js';
 
+/** Why a sign-in bound to an account fails once that account was signed out (task-14.3 decision 11). */
+export const SIGNED_OUT = 'this account was signed out';
 /** A refresh is due when the token has less than this left (task-12.5 decision 8). */
 export const REFRESH_MARGIN_MS = 60_000;
 /** A sign-in attempt lives this long (task-12.5 decision 5). */
@@ -96,7 +100,11 @@ export interface SignInRecord {
     | 'escalationRequested'
     | 'notNow'
     /** A request for more access dropped by a later press in its fragment (task-12.13 decision 39). */
-    | 'superseded';
+    | 'superseded'
+    /** An account signed out from the App Library, with what became of its access (task 14.3). */
+    | 'signedOut'
+    /** An account renamed from the App Library, from its old label to its new (task 14.3). */
+    | 'renamed';
   appId: string;
   source?: string;
   canvas?: string;
@@ -110,6 +118,11 @@ export interface SignInRecord {
   rebound?: boolean;
   /** An escalation request: whether its keys are the installed card's (phase-12 decision 6). */
   valid?: boolean;
+  /** A rename's labels. */
+  from?: string;
+  to?: string;
+  /** Who made the write: the trusted page, or a caller with the token (task-14.3 decision 13). */
+  by?: WriteCaller;
 }
 
 export interface VaultDeps {
@@ -125,7 +138,8 @@ export interface Attempt {
   id: string;
   /** The cookie's value: binds the browser that started it. */
   binding: string;
-  canvas: string;
+  /** The canvas it was pressed on; none from the App Library (task-14.3 decision 6). */
+  canvas?: string;
   source: string;
   appId: string;
   n: number;
@@ -140,6 +154,11 @@ export interface Attempt {
   existing?: boolean;
   /** Signed in again as another identity, the account re-bound to it. */
   rebound?: boolean;
+  /**
+   * A slot's sign-in to an account signed out since: the account comes back under its own number
+   * (task-14.3 decision 5).
+   */
+  restore?: boolean;
   reason?: string;
   oauth?: {
     metadata: ServerMetadata;
@@ -171,6 +190,32 @@ export type Outcome = {
   existing?: boolean;
   rebound?: boolean;
 };
+
+export type Revocation = SignedOutAccount['revocation'];
+
+const NO_SUCH_ACCOUNT = 'there is no such account';
+
+/** An app as the App Library reads it (task-14.3 decision 9). */
+export interface LibraryApp {
+  appId: string;
+  /** Whether it asks no sign-in, signs in, or asks one the vault cannot run. */
+  signIn: 'none' | 'supported' | 'unsupported';
+  accounts: {
+    source: string;
+    label: string;
+    kind: 'oauth' | 'key';
+    /** The scopes it holds in the card's words; none for a key, or a card that gives none. */
+    permissions: string[];
+    /** It must sign in again. */
+    lapsed: boolean;
+  }[];
+}
+
+export type Renamed =
+  | {ok: true; source: string; label: string}
+  | {ok: false; kind: 'unknown' | 'refused'; reason: string};
+
+export type SignedOut = ({ok: true} & SignedOutAccount) | {ok: false; reason: string};
 
 export class AuthVault implements AccountStore {
   readonly #deps: VaultDeps;
@@ -421,10 +466,13 @@ export class AuthVault implements AccountStore {
 
   // ---- signing in (task-12.5 decisions 5, 9, 10) ----------------------------------------------
 
-  /** A sign-in started from the popup; what the browser is sent to. */
+  /**
+   * A sign-in started from the popup; what the browser is sent to. With no canvas it is the App
+   * Library's (task-14.3 decision 6): add account, or sign in again on a lapsed account, alone.
+   */
   async start(params: {
     attempt: string;
-    canvas: string;
+    canvas?: string;
     source: string;
     ask: (canvas: string, source: string) => SlotAsk | undefined;
   }): Promise<Started> {
@@ -440,8 +488,8 @@ export class AuthVault implements AccountStore {
     const {appId} = named;
     const n = named.account ?? this.nextAccount(appId);
     const source = sourceId(appId, n);
-    const slot = params.ask(canvas, source);
-    if (!slot) return {kind: 'refused', reason: 'there is no such canvas'};
+    const slot = canvas === undefined ? undefined : params.ask(canvas, source);
+    if (canvas !== undefined && !slot) return {kind: 'refused', reason: 'there is no such canvas'};
     const card = this.#deps.cardOf(appId);
     const need = cardNeed(card);
     if (need.kind === 'none') return {kind: 'refused', reason: 'this app needs no sign-in'};
@@ -459,6 +507,7 @@ export class AuthVault implements AccountStore {
         need.alternatives.find(a => a.scheme.key === scheme.key)?.requirement[scheme.key] ?? [];
       keys = union(account.scheme === scheme.key ? account.scopes : [], required);
     } else if (account) {
+      if (!slot) return {kind: 'refused', reason: 'this account is signed in'};
       const asked = slot.ask;
       const standing = this.standing(source);
       const own =
@@ -471,8 +520,8 @@ export class AuthVault implements AccountStore {
       if (keys.length === 0)
         return this.#alreadySignedIn({id, canvas, source, appId, scheme}, account);
       purpose = 'escalation';
-    } else if (n === this.nextAccount(appId)) {
-      purpose = slot.slot ? 'first' : 'addAccount';
+    } else if (n === this.nextAccount(appId) || (n < this.nextAccount(appId) && slot?.slot)) {
+      purpose = slot?.slot ? 'first' : 'addAccount';
       scheme = first.scheme;
       keys = first.requirement[first.scheme.key] ?? [];
     } else {
@@ -481,13 +530,15 @@ export class AuthVault implements AccountStore {
     const attempt: Attempt = {
       id,
       binding: randomBytes(24).toString('base64url'),
-      canvas,
+      ...(canvas !== undefined ? {canvas} : {}),
       source,
       appId,
       n,
       purpose,
       scheme,
       keys,
+      // A number held before and signed out since, signed in from a slot that holds it.
+      ...(n < this.nextAccount(appId) && !account ? {restore: true} : {}),
       expiresAt: Date.now() + ATTEMPT_LIFETIME_MS,
       state: 'pending',
     };
@@ -625,22 +676,29 @@ export class AuthVault implements AccountStore {
       }
       const bound = attempt.purpose === 'again' || attempt.purpose === 'escalation';
       let account = bound ? this.#account(attempt.appId, attempt.n) : undefined;
-      if (!bound && claims) account = apps.accounts.find(held => held.sub === claims!.sub);
+      if (bound && !account) return this.#fail(attempt, SIGNED_OUT);
+      if (!bound && claims) {
+        const held = apps.accounts.find(other => other.sub === claims!.sub);
+        // A signed-out number comes back as itself, never onto another account (decision 5).
+        if (attempt.restore && held && held.n !== attempt.n) {
+          return this.#fail(attempt, 'that account is already added');
+        }
+        account = held ?? (attempt.restore ? this.#account(attempt.appId, attempt.n) : undefined);
+      }
       const existing = account !== undefined;
       const granted = tokens.scope
         ? tokens.scope.split(' ').filter(scope => scope !== '' && scope !== 'openid')
         : union(account?.scheme === attempt.scheme.key ? account.scopes : [], attempt.keys);
       if (!account) {
         account = {
-          n: apps.next,
+          n: 0,
           label: '',
           scheme: attempt.scheme.key,
           kind: 'oauth',
           secret: '',
           scopes: [],
         };
-        apps.next += 1;
-        apps.accounts.push(account);
+        this.#add(attempt, account);
       }
       account.scheme = attempt.scheme.key;
       account.kind = 'oauth';
@@ -651,10 +709,13 @@ export class AuthVault implements AccountStore {
         account.revocationEndpoint = oauth.metadata.revocation_endpoint;
       applyTokens(account, tokens, granted);
       if (claims) account.sub = claims.sub;
-      account.label =
-        labelFrom(claims) ||
-        account.label ||
-        `${this.#deps.displayName(attempt.appId)} account ${account.n}`;
+      // A label the person chose stays theirs, whatever the identity says (task-14.3 decision 3).
+      if (!account.named) {
+        account.label =
+          labelFrom(claims) ||
+          account.label ||
+          `${this.#deps.displayName(attempt.appId)} account ${account.n}`;
+      }
       delete account.again;
       await this.#deps.store.save();
       if (rebound) attempt.rebound = true;
@@ -683,22 +744,29 @@ export class AuthVault implements AccountStore {
     if (secret === '') return this.#fail(attempt, 'no key was pasted');
     const keyHash = hashKey(secret);
     const apps = this.#deps.store.app(attempt.appId);
-    let account =
-      attempt.purpose === 'again'
-        ? this.#account(attempt.appId, attempt.n)
-        : apps.accounts.find(held => held.keyHash === keyHash);
+    let account: VaultAccount | undefined;
+    if (attempt.purpose === 'again') {
+      account = this.#account(attempt.appId, attempt.n);
+      if (!account) return this.#fail(attempt, SIGNED_OUT);
+    } else {
+      account = apps.accounts.find(held => held.keyHash === keyHash);
+      if (attempt.restore && account && account.n !== attempt.n) {
+        return this.#fail(attempt, 'that account is already added');
+      }
+      if (!account && attempt.restore) account = this.#account(attempt.appId, attempt.n);
+    }
     const existing = account !== undefined;
     if (!account) {
       account = {
-        n: apps.next,
-        label: `${this.#deps.displayName(attempt.appId)} account ${apps.next}`,
+        n: 0,
+        label: '',
         scheme: attempt.scheme.key,
         kind: attempt.scheme.kind,
         secret: '',
         scopes: [],
       };
-      apps.next += 1;
-      apps.accounts.push(account);
+      this.#add(attempt, account);
+      account.label = `${this.#deps.displayName(attempt.appId)} account ${account.n}`;
     }
     account.scheme = attempt.scheme.key;
     account.kind = attempt.scheme.kind;
@@ -709,6 +777,22 @@ export class AuthVault implements AccountStore {
     delete account.again;
     await this.#deps.store.save();
     return this.#signedIn(attempt, account, existing);
+  }
+
+  /**
+   * A new account into the app's list, in number order: the next number, or for a slot's sign-in
+   * to a signed-out account its own (task-14.3 decision 5).
+   */
+  #add(attempt: Attempt, account: VaultAccount): void {
+    const apps = this.#deps.store.app(attempt.appId);
+    if (attempt.restore) {
+      account.n = attempt.n;
+    } else {
+      account.n = apps.next;
+      apps.next += 1;
+    }
+    const at = apps.accounts.findIndex(held => held.n > account.n);
+    apps.accounts.splice(at < 0 ? apps.accounts.length : at, 0, account);
   }
 
   #signedIn(attempt: Attempt, account: VaultAccount, existing: boolean): Attempt {
@@ -778,36 +862,135 @@ export class AuthVault implements AccountStore {
 
   // ---- uninstall (phase-12 decision 12) -------------------------------------------------------
 
-  /** The app's accounts deleted, each revoked where its server advertises it, best-effort. */
-  async forgetApp(appId: string): Promise<void> {
+  /**
+   * The app's accounts deleted, each revoked where its server advertises it, best-effort; what
+   * became of each one's access is the answer (task-14.3 decision 12).
+   */
+  async forgetApp(appId: string): Promise<SignedOutAccount[]> {
     const app = this.#deps.store.data.apps[appId];
-    if (!app || app.accounts.length === 0) return;
+    if (!app || app.accounts.length === 0) return [];
     const accounts = app.accounts;
     app.accounts = [];
     await this.#deps.store.save();
+    const signedOut: SignedOutAccount[] = [];
     for (const account of accounts) {
       const source = sourceId(appId, account.n);
-      if (account.kind !== 'oauth' || !account.revocationEndpoint || !account.clientId) {
-        this.#deps.journal({event: 'revoked', appId, source, revocation: 'nowhere'});
-        continue;
-      }
-      const token = account.refresh ?? account.secret;
-      const hint = account.refresh ? 'refresh_token' : 'access_token';
-      let revocation: SignInRecord['revocation'] = 'failed';
-      try {
-        if (
-          await revoke(this.#fetch, account.revocationEndpoint, {
-            token,
-            hint,
-            clientId: account.clientId,
-          })
-        ) {
-          revocation = 'revoked';
-        }
-      } catch {
-        revocation = 'failed';
-      }
+      this.#endAttempts(appId, account.n);
+      const revocation = await this.#revoke(account);
       this.#deps.journal({event: 'revoked', appId, source, revocation});
+      signedOut.push({source, label: account.label, revocation});
+    }
+    return signedOut;
+  }
+
+  // ---- the App Library (task 14.3) ----------------------------------------------------------
+
+  /**
+   * Every app named, with whether it signs in, and each account: its label, its permissions in
+   * the card's own words — never a scope's name — and whether it must sign in again (decision 9).
+   */
+  library(appIds: readonly string[]): LibraryApp[] {
+    return appIds.map(appId => {
+      const card = this.#deps.cardOf(appId);
+      const need = cardNeed(card);
+      const signIn =
+        need.kind === 'none' ? 'none' : need.kind === 'unsupported' ? 'unsupported' : 'supported';
+      const accounts = (this.#deps.store.data.apps[appId]?.accounts ?? []).map(account => {
+        const scheme = account.kind === 'oauth' ? schemeOf(card, account.scheme) : undefined;
+        return {
+          source: sourceId(appId, account.n),
+          label: account.label,
+          kind: account.kind === 'oauth' ? ('oauth' as const) : ('key' as const),
+          permissions: scheme ? wordsFor(scheme, account.scopes) : [],
+          lapsed: account.again === true,
+        };
+      });
+      return {appId, signIn, accounts};
+    });
+  }
+
+  /**
+   * The person's own label for an account (decisions 3, 4): trimmed, not empty, no other of the
+   * app's accounts' labels ignoring case; kept through every later sign-in.
+   */
+  async rename(source: string, label: string, by?: WriteCaller): Promise<Renamed> {
+    const named = parseSourceId(source);
+    const account = named ? this.#account(named.appId, named.account) : undefined;
+    if (!named || !account) return {ok: false, kind: 'unknown', reason: NO_SUCH_ACCOUNT};
+    const next = label.trim();
+    if (next === '') return {ok: false, kind: 'refused', reason: 'a name cannot be empty'};
+    const others = this.#deps.store.app(named.appId).accounts.filter(held => held !== account);
+    if (others.some(held => held.label.toLowerCase() === next.toLowerCase())) {
+      const app = this.#deps.displayName(named.appId);
+      return {ok: false, kind: 'refused', reason: `another ${app} account already has that name`};
+    }
+    if (next !== account.label) {
+      const from = account.label;
+      account.label = next;
+      account.named = true;
+      await this.#deps.store.save();
+      this.#deps.journal({
+        event: 'renamed',
+        appId: named.appId,
+        source,
+        from,
+        to: next,
+        ...(by ? {by} : {}),
+      });
+    }
+    return {ok: true, source, label: next};
+  }
+
+  /**
+   * One account signed out (phase-14 decision 16): dropped, its access revoked where the server
+   * advertises it, and the answer saying what became of it (decision 11). A sign-in still open
+   * for it fails on its return.
+   */
+  async signOut(source: string, by?: WriteCaller): Promise<SignedOut> {
+    const named = parseSourceId(source);
+    const account = named ? this.#account(named.appId, named.account) : undefined;
+    if (!named || !account) return {ok: false, reason: NO_SUCH_ACCOUNT};
+    const apps = this.#deps.store.app(named.appId);
+    apps.accounts = apps.accounts.filter(held => held !== account);
+    await this.#deps.store.save();
+    this.#endAttempts(named.appId, account.n);
+    const revocation = await this.#revoke(account);
+    this.#deps.journal({
+      event: 'signedOut',
+      appId: named.appId,
+      source,
+      revocation,
+      ...(by ? {by} : {}),
+    });
+    logLine(`🔑 ${source} signed out (${revocation})`);
+    return {ok: true, source, label: account.label, revocation};
+  }
+
+  /** Every sign-in still open for the account fails: it was signed out. */
+  #endAttempts(appId: string, n: number): void {
+    for (const attempt of this.#attempts.values()) {
+      const bound = attempt.purpose === 'again' || attempt.purpose === 'escalation';
+      if (attempt.state === 'pending' && bound && attempt.appId === appId && attempt.n === n) {
+        if (attempt.oauth) this.#byState.delete(attempt.oauth.state);
+        this.#fail(attempt, SIGNED_OUT);
+      }
+    }
+  }
+
+  /** RFC 7009 where the account's server advertises it, best-effort. */
+  async #revoke(account: VaultAccount): Promise<Revocation> {
+    if (account.kind !== 'oauth' || !account.revocationEndpoint || !account.clientId) {
+      return 'nowhere';
+    }
+    try {
+      const revoked = await revoke(this.#fetch, account.revocationEndpoint, {
+        token: account.refresh ?? account.secret,
+        hint: account.refresh ? 'refresh_token' : 'access_token',
+        clientId: account.clientId,
+      });
+      return revoked ? 'revoked' : 'failed';
+    } catch {
+      return 'failed';
     }
   }
 }

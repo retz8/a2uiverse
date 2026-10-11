@@ -425,7 +425,7 @@ describe('uninstall', () => {
         catalogs: [artifact],
       },
     ]);
-    expect(await registry.uninstall('gmail')).toEqual({ok: true, appId: 'gmail'});
+    expect(await registry.uninstall('gmail')).toEqual({ok: true, appId: 'gmail', accounts: []});
     expect(registry.find('gmail')).toBeUndefined();
     expect(registry.routable().map(app => app.record.id)).toEqual(['inbox']);
     expect(await artifactIds(stateDir)).toEqual([await idOf(artifact)]);

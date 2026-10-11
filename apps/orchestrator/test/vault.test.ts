@@ -245,16 +245,20 @@ const slotOf = (events: AnyEvent[], source: string) =>
 const attributionOf = (events: AnyEvent[], source: string) =>
   lastShell(events).find(c => c.component === 'Attribution' && c.source === source);
 
-/** The browser's side of a sign-in: the popup's start, the server, the callback, the poll. */
+/**
+ * The browser's side of a sign-in: the popup's start, the server, the callback, the poll. No
+ * canvas is the App Library's (task-14.3 decision 6).
+ */
 async function signIn(
   base: string,
-  canvas: string,
+  canvas: string | undefined,
   source: string,
   options: {attempt?: string; dropCookie?: boolean; extra?: string} = {},
 ) {
   const attempt = options.attempt ?? randomBytes(16).toString('base64url');
+  const onCanvas = canvas === undefined ? '' : `&canvas=${encodeURIComponent(canvas)}`;
   const start = await fetch(
-    `${base}/auth/start?attempt=${attempt}&canvas=${encodeURIComponent(canvas)}&source=${source}${options.extra ?? ''}`,
+    `${base}/auth/start?attempt=${attempt}${onCanvas}&source=${source}${options.extra ?? ''}`,
     {redirect: 'manual'},
   );
   if (start.status !== 302) return {attempt, start, outcome: undefined};
@@ -957,7 +961,12 @@ describe('the merge, key accounts, uninstall, secrets', () => {
     const signedIn = await signIn(base, canvas, 'shop.1');
     await collect(client, press('retry', 'shop.1', canvas));
     const uninstalled = await orchestrator.registry.uninstall('shop');
-    expect(uninstalled.ok).toBe(true);
+    // The answer says what became of each account's access (task-14.3 decision 12).
+    expect(uninstalled).toEqual({
+      ok: true,
+      appId: 'shop',
+      accounts: [{source: 'shop.1', label: 'ada@example.com', revocation: 'revoked'}],
+    });
     expect(auth.revoked).toHaveLength(1);
     expect(orchestrator.vault.accountsOf('shop')).toEqual([]);
 
@@ -978,5 +987,280 @@ describe('the merge, key accounts, uninstall, secrets', () => {
       expect(journal).not.toContain(secret);
       expect(logged.join('\n')).not.toContain(secret);
     }
+  });
+});
+
+/** A write from the trusted page: an allowed origin, a JSON body, no token (task-14.3 decision 1). */
+const fromPage = (base: string, path: string, body: unknown) =>
+  fetch(`${base}${path}`, {
+    method: 'POST',
+    headers: {'content-type': 'application/json', origin: 'http://localhost:5173'},
+    body: JSON.stringify(body),
+  });
+
+const accountsRead = async (base: string) =>
+  (await (await fetch(`${base}/auth/accounts.json`)).json()) as Array<{
+    appId: string;
+    signIn: string;
+    accounts: unknown[];
+  }>;
+
+describe("the App Library's side (task 14.3)", () => {
+  test('the accounts read: every installed app, whether it signs in, and each account with its label, its permissions in the card’s words and whether it lapsed', async () => {
+    const {base, client, orchestrator} = await boot({
+      apps: {
+        shop: {card: oauthCard(), admit: admitsTokens()},
+        plain: {},
+        odd: {
+          card: {
+            securitySchemes: {basic: {type: 'http', scheme: 'basic'}},
+            security: [{basic: []}],
+          },
+        },
+      },
+      plan: shopOnly,
+    });
+    const canvas = contextOf(await collect(client, utterance('my orders')));
+    await signIn(base, canvas, 'shop.1');
+    const read = await accountsRead(base);
+    expect(read).toHaveLength(3);
+    expect(read).toEqual(
+      expect.arrayContaining([
+        {appId: 'plain', signIn: 'none', accounts: []},
+        {appId: 'odd', signIn: 'unsupported', accounts: []},
+        {
+          appId: 'shop',
+          signIn: 'supported',
+          accounts: [
+            {
+              source: 'shop.1',
+              label: 'ada@example.com',
+              kind: 'oauth',
+              permissions: ['See your orders'],
+              lapsed: false,
+            },
+          ],
+        },
+      ]),
+    );
+    await orchestrator.vault.markAgain('shop.1', 'refused');
+    const lapsed = (await accountsRead(base)).find(app => app.appId === 'shop')!;
+    expect(lapsed.accounts).toEqual([expect.objectContaining({source: 'shop.1', lapsed: true})]);
+  });
+
+  test('rename: trimmed, unique within the app ignoring case, journaled with both labels as the page’s; a renamed label kept through a sign-in again (decisions 3, 4, 13)', async () => {
+    const {base, client, orchestrator} = await boot({
+      apps: {shop: {card: oauthCard(), admit: admitsTokens()}},
+      plan: shopOnly,
+    });
+    const canvas = contextOf(await collect(client, utterance('my orders')));
+    await signIn(base, canvas, 'shop.1');
+    auth.account = {sub: 'sub-bob', email: 'bob@example.com'};
+    await signIn(base, canvas, 'shop');
+
+    const renamed = await fromPage(base, '/auth/rename', {source: 'shop.1', label: '  Personal '});
+    expect(renamed.status).toBe(200);
+    expect(await renamed.json()).toEqual({ok: true, source: 'shop.1', label: 'Personal'});
+    const taken = await fromPage(base, '/auth/rename', {source: 'shop.2', label: 'personal'});
+    expect(taken.status).toBe(422);
+    expect(await taken.json()).toEqual({
+      ok: false,
+      findings: ['another Shop account already has that name'],
+    });
+    const empty = await fromPage(base, '/auth/rename', {source: 'shop.2', label: '   '});
+    expect(await empty.json()).toEqual({ok: false, findings: ['a name cannot be empty']});
+    expect((await fromPage(base, '/auth/rename', {source: 'shop.9', label: 'x'})).status).toBe(404);
+    // The same label changes nothing; a change of case is a change.
+    expect(
+      (await fromPage(base, '/auth/rename', {source: 'shop.1', label: 'Personal'})).status,
+    ).toBe(200);
+    await fromPage(base, '/auth/rename', {source: 'shop.1', label: 'personal'});
+    expect(orchestrator.vault.accountsOf('shop')).toEqual([
+      {n: 1, label: 'personal'},
+      {n: 2, label: 'bob@example.com'},
+    ]);
+    const lines = await signInLinesWith({event: 'renamed', from: 'Personal', to: 'personal'});
+    expect(lines.filter(line => line.event === 'renamed')).toEqual([
+      expect.objectContaining({
+        appId: 'shop',
+        source: 'shop.1',
+        from: 'ada@example.com',
+        to: 'Personal',
+        by: 'page',
+      }),
+      expect.objectContaining({from: 'Personal', to: 'personal'}),
+    ]);
+
+    // Signing in again, or adding the same identity, keeps the person's label.
+    auth.account = {sub: 'sub-ada', email: 'ada@example.com'};
+    await orchestrator.vault.markAgain('shop.1', 'refused');
+    expect((await signIn(base, canvas, 'shop.1')).outcome).toMatchObject({
+      state: 'signedIn',
+      label: 'personal',
+    });
+    expect((await signIn(base, canvas, 'shop')).outcome).toMatchObject({
+      source: 'shop.1',
+      label: 'personal',
+      existing: true,
+    });
+    expect(orchestrator.vault.accountsOf('shop')[0]).toEqual({n: 1, label: 'personal'});
+  });
+
+  test('sign-out: the account dropped, the answer and the journal saying what became of its access — cancelled, or failed to cancel (decisions 11, 13)', async () => {
+    const {base, client, orchestrator} = await boot({
+      apps: {shop: {card: oauthCard(), admit: admitsTokens()}},
+      plan: shopOnly,
+    });
+    const canvas = contextOf(await collect(client, utterance('my orders')));
+    await signIn(base, canvas, 'shop.1');
+    auth.account = {sub: 'sub-bob', email: 'bob@example.com'};
+    await signIn(base, canvas, 'shop');
+
+    const out = await fromPage(base, '/auth/sign-out', {source: 'shop.1'});
+    expect(out.status).toBe(200);
+    expect(await out.json()).toEqual({
+      ok: true,
+      source: 'shop.1',
+      label: 'ada@example.com',
+      revocation: 'revoked',
+    });
+    expect(auth.revoked).toHaveLength(1);
+    auth.revocationFails = true;
+    expect(await (await fromPage(base, '/auth/sign-out', {source: 'shop.2'})).json()).toEqual({
+      ok: true,
+      source: 'shop.2',
+      label: 'bob@example.com',
+      revocation: 'failed',
+    });
+    expect(orchestrator.vault.accountsOf('shop')).toEqual([]);
+    expect((await fromPage(base, '/auth/sign-out', {source: 'shop.2'})).status).toBe(404);
+    const lines = await signInLinesWith({event: 'signedOut', source: 'shop.2'});
+    expect(lines.filter(line => line.event === 'signedOut')).toEqual([
+      expect.objectContaining({source: 'shop.1', revocation: 'revoked', by: 'page'}),
+      expect.objectContaining({source: 'shop.2', revocation: 'failed', by: 'page'}),
+    ]);
+  });
+
+  test('a sign in again still open when its account is signed out fails on its return, adding no account (decision 11)', async () => {
+    const {base, client, orchestrator} = await boot({
+      apps: {shop: {card: oauthCard(), admit: admitsTokens()}},
+      plan: shopOnly,
+    });
+    const canvas = contextOf(await collect(client, utterance('my orders')));
+    await signIn(base, canvas, 'shop.1');
+    await orchestrator.vault.markAgain('shop.1', 'refused');
+    const attempt = randomBytes(16).toString('base64url');
+    const start = await fetch(`${base}/auth/start?attempt=${attempt}&source=shop.1`, {
+      redirect: 'manual',
+    });
+    expect(start.status).toBe(302);
+    const cookie = (start.headers.get('set-cookie') ?? '').split(';')[0]!;
+    await fromPage(base, '/auth/sign-out', {source: 'shop.1'});
+    const authorize = await fetch(start.headers.get('location')!, {redirect: 'manual'});
+    const back = await fetch(authorize.headers.get('location')!, {
+      redirect: 'manual',
+      headers: {cookie},
+    });
+    expect(await back.text()).toContain("didn't finish");
+    expect(await (await fetch(`${base}/auth/attempts/${attempt}`)).json()).toMatchObject({
+      state: 'failed',
+      reason: 'this account was signed out',
+    });
+    expect(orchestrator.vault.accountsOf('shop')).toEqual([]);
+  });
+
+  test('a slot whose account was signed out signs it back in under its own number; an identity held by another account is refused (decision 5)', async () => {
+    const {base, client, orchestrator} = await boot({
+      apps: {shop: {card: oauthCard(), admit: admitsTokens()}},
+      plan: shopOnly,
+    });
+    const canvas = contextOf(await collect(client, utterance('my orders')));
+    await signIn(base, canvas, 'shop.1');
+    auth.account = {sub: 'sub-bob', email: 'bob@example.com'};
+    await signIn(base, canvas, 'shop');
+    await fromPage(base, '/auth/sign-out', {source: 'shop.1'});
+
+    const events = await collect(client, press('retry', 'shop.1', canvas));
+    expect(slotOf(events, 'shop.1')).toMatchObject({state: 'authority'});
+    const held = await signIn(base, canvas, 'shop.1');
+    expect(held.outcome).toMatchObject({state: 'failed', reason: 'that account is already added'});
+    auth.account = {sub: 'sub-cy', email: 'cy@example.com'};
+    const back = await signIn(base, canvas, 'shop.1');
+    expect(back.outcome).toMatchObject({
+      state: 'signedIn',
+      source: 'shop.1',
+      label: 'cy@example.com',
+      existing: false,
+    });
+    expect(orchestrator.vault.accountsOf('shop')).toEqual([
+      {n: 1, label: 'cy@example.com'},
+      {n: 2, label: 'bob@example.com'},
+    ]);
+    // The next account is still the one after every number held before.
+    auth.account = {sub: 'sub-dee', email: 'dee@example.com'};
+    expect((await signIn(base, canvas, 'shop')).outcome).toMatchObject({source: 'shop.3'});
+  });
+
+  test('from the App Library, with no canvas: add account and sign in again on a lapsed account run; nothing else starts (decisions 6, 7)', async () => {
+    const {base, orchestrator} = await boot({
+      apps: {shop: {card: oauthCard(), admit: admitsTokens()}},
+      plan: shopOnly,
+    });
+    const added = await signIn(base, undefined, 'shop');
+    expect(added.outcome).toMatchObject({
+      state: 'signedIn',
+      source: 'shop.1',
+      label: 'ada@example.com',
+      existing: false,
+    });
+    const lines = await signInLinesWith({event: 'signedIn', source: 'shop.1'});
+    expect(lines.find(line => line.event === 'signedIn')).not.toHaveProperty('canvas');
+    expect((await signIn(base, undefined, 'shop')).outcome).toMatchObject({
+      source: 'shop.1',
+      existing: true,
+    });
+    // An account signed in and not lapsed: nothing to start from the page.
+    expect((await signIn(base, undefined, 'shop.1')).start.status).toBe(400);
+    await orchestrator.vault.markAgain('shop.1', 'refused');
+    const again = await signIn(base, undefined, 'shop.1');
+    expect(again.outcome).toMatchObject({state: 'signedIn', source: 'shop.1'});
+    expect(auth.authorizations.at(-1)!.get('login_hint')).toBe('sub-ada');
+    // A signed-out account comes back only through a slot that holds it.
+    await fromPage(base, '/auth/sign-out', {source: 'shop.1'});
+    expect((await signIn(base, undefined, 'shop.1')).start.status).toBe(400);
+  });
+
+  test('a key account from the App Library: connected with a key, no permissions, nowhere to cancel on sign-out', async () => {
+    const keyCard: Partial<AgentCard> = {
+      securitySchemes: {key: {type: 'apiKey', in: 'header', name: 'X-Api-Key'}},
+      security: [{key: []}],
+    };
+    const {base} = await boot({apps: {shop: {card: keyCard}}, plan: shopOnly});
+    const attempt = randomBytes(16).toString('base64url');
+    const start = await fetch(`${base}/auth/start?attempt=${attempt}&source=shop`, {
+      redirect: 'manual',
+    });
+    const cookie = (start.headers.get('set-cookie') ?? '').split(';')[0]!;
+    await fetch(`${base}/auth/key`, {
+      method: 'POST',
+      headers: {
+        cookie,
+        origin: new URL(base).origin,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({attempt, key: 'demo-key'}).toString(),
+    });
+    expect((await accountsRead(base))[0]).toEqual({
+      appId: 'shop',
+      signIn: 'supported',
+      accounts: [
+        {source: 'shop.1', label: 'Shop account 1', kind: 'key', permissions: [], lapsed: false},
+      ],
+    });
+    expect(await (await fromPage(base, '/auth/sign-out', {source: 'shop.1'})).json()).toMatchObject(
+      {
+        revocation: 'nowhere',
+      },
+    );
   });
 });

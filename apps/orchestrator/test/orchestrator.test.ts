@@ -829,16 +829,18 @@ describe('orchestrator', () => {
     ]);
   });
 
-  test('CORS allows a devtunnels origin and localhost', async () => {
+  test('CORS admits localhost, and a dev tunnel only when it is the orchestrator’s own (task-14.3 decision 1)', async () => {
     const {url} = await boot();
-    for (const origin of ['https://x-5173.asse.devtunnels.ms', 'http://localhost:5173']) {
-      const res = await fetch(`${url}/.well-known/agent-card.json`, {headers: {Origin: origin}});
-      expect(res.headers.get('access-control-allow-origin')).toBe(origin);
-    }
     const res = await fetch(`${url}/.well-known/agent-card.json`, {
-      headers: {Origin: 'https://evil.example'},
+      headers: {Origin: 'http://localhost:5173'},
     });
-    expect(res.headers.get('access-control-allow-origin')).toBeNull();
+    expect(res.headers.get('access-control-allow-origin')).toBe('http://localhost:5173');
+    for (const origin of ['https://x-5173.asse.devtunnels.ms', 'https://evil.example']) {
+      const foreign = await fetch(`${url}/.well-known/agent-card.json`, {
+        headers: {Origin: origin},
+      });
+      expect(foreign.headers.get('access-control-allow-origin')).toBeNull();
+    }
   });
 });
 
@@ -3143,7 +3145,11 @@ describe('the registry on the running orchestrator (task 11.4)', () => {
   test('an action inside the fragment of an app uninstalled since fails its slot as not installed', async () => {
     const {client, orchestrator} = await boot({planner: onlyGithub()});
     const [first] = await collect(client, utterance('my pull requests'));
-    expect(await orchestrator.registry.uninstall('github')).toEqual({ok: true, appId: 'github'});
+    expect(await orchestrator.registry.uninstall('github')).toEqual({
+      ok: true,
+      appId: 'github',
+      accounts: [],
+    });
     const events = await collect(client, actionOn('github:s1', first.contextId!));
     expect(slotsOf(shellPaints(events).at(-1)!)['github']).toMatchObject({
       state: 'failed',

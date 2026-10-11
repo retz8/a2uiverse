@@ -14,6 +14,7 @@ import {registryRoutes, REGISTRY_ROUTE_PREFIX} from '../src/registry/api.js';
 import {MarketplaceClient} from '../src/registry/marketplace.js';
 import {issueWriteToken, readWriteToken} from '../src/registry/token.js';
 import {UpdateCheck} from '../src/registry/updates.js';
+import {originAllowed, writeGuard} from '../src/writeGuard.js';
 import {startFakeMarketplace, type FakeMarketplace} from './fakeMarketplace.js';
 import {cardFor, fixtureArtifact, testRegistry, type TestRegistry} from './registryFixture.js';
 
@@ -41,7 +42,10 @@ async function serve() {
     REGISTRY_ROUTE_PREFIX,
     registryRoutes({
       registry: made.registry,
-      writeToken: () => token,
+      guard: writeGuard({
+        token: () => token,
+        allowed: originAllowed('https://vnw20xbg-10001.asse.devtunnels.ms'),
+      }),
       updates: new UpdateCheck({registry: made.registry, marketplace: client}),
     }),
   );
@@ -56,6 +60,7 @@ async function serve() {
     registry: made.registry,
     cards: made.cards,
     stateDir: made.stateDir,
+    journal: made.journal,
     marketplace,
   };
 }
@@ -214,7 +219,7 @@ describe('install and uninstall over HTTP', () => {
     await post(`${base}/install`, {appId: 'gmail', cardUrl, catalogs: []}, token);
     const gone = await post(`${base}/uninstall`, {appId: 'gmail'}, token);
     expect(gone.status).toBe(200);
-    expect(await gone.json()).toEqual({ok: true, appId: 'gmail'});
+    expect(await gone.json()).toEqual({ok: true, appId: 'gmail', accounts: []});
     expect(registry.list()).toEqual([]);
     const again = await post(`${base}/uninstall`, {appId: 'gmail'}, token);
     expect(again.status).toBe(404);
@@ -223,6 +228,59 @@ describe('install and uninstall over HTTP', () => {
         apps: [],
       },
     );
+  });
+});
+
+describe('writes from the trusted page (task-14.3 decisions 1, 2, 10)', () => {
+  const PAGE = 'https://vnw20xbg-5173.asse.devtunnels.ms';
+  const fromPage = (url: string, body: unknown, origin = PAGE) =>
+    fetch(url, {
+      method: 'POST',
+      headers: {'content-type': 'application/json', origin},
+      body: JSON.stringify(body),
+    });
+
+  test('install and uninstall from an allowed origin need no token, journaled as the page’s', async () => {
+    const {base, cards, registry, journal} = await serve();
+    const cardUrl = cards.serve(cardFor('http://127.0.0.1:11002'));
+    const installed = await fromPage(`${base}/install`, {appId: 'gmail', cardUrl, catalogs: []});
+    expect(installed.status).toBe(200);
+    const gone = await fromPage(`${base}/uninstall`, {appId: 'gmail'});
+    expect(gone.status).toBe(200);
+    expect(registry.list()).toEqual([]);
+    expect(journal.entries.map(entry => [entry.operation, entry.by])).toEqual([
+      ['install', 'page'],
+      ['uninstall', 'page'],
+    ]);
+  });
+
+  test('the token’s writes are journaled as the token caller’s', async () => {
+    const {base, token, cards, journal} = await serve();
+    const cardUrl = cards.serve(cardFor('http://127.0.0.1:11002'));
+    await post(`${base}/install`, {appId: 'gmail', cardUrl, catalogs: []}, token);
+    expect(journal.entries.at(-1)).toMatchObject({operation: 'install', by: 'token'});
+  });
+
+  test('a write from an origin outside the list, or not JSON, is refused and changes nothing', async () => {
+    const {base, cards, registry, journal} = await serve();
+    const cardUrl = cards.serve(cardFor('http://127.0.0.1:11002'));
+    const foreign = await fromPage(
+      `${base}/install`,
+      {appId: 'gmail', cardUrl, catalogs: []},
+      'https://other123-5173.asse.devtunnels.ms',
+    );
+    expect(foreign.status).toBe(403);
+    const form = await fetch(`${base}/uninstall`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/x-www-form-urlencoded',
+        origin: 'http://localhost:10001',
+      },
+      body: 'appId=gmail',
+    });
+    expect(form.status).toBe(415);
+    expect(registry.list()).toEqual([]);
+    expect(journal.entries).toEqual([]);
   });
 });
 
