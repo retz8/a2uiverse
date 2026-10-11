@@ -1,36 +1,26 @@
 # @a2uiverse/sdk
 
-The contracts A2UIVerse's platform shares, and generic A2UI tools: what the orchestrator adds around the A2UI it relays to the client, and what a catalog package, Stellify, the registry and the client agree a catalog artifact is. The orchestrator, the client, the shell catalog, Stellify, the marketplace and the registry snapshot use it.
+The contracts A2UIVerse's parts agree on — what the orchestrator adds around the A2UI it relays to the client, what a catalog artifact is, what the marketplace serves and takes — and the checks every side runs over them, plus generic A2UI tools. The orchestrator, the client, the shell catalog, Stellify, the marketplace and the registry snapshot all build on it; no vendor app needs to.
 
-## What's in it
+## Install
 
-- **Composition**: what the orchestrator adds around the A2UI it relays. A stamp on every event says which source painted it — the app and the account it painted under, `gmail.2`, or the bare app id for an app that needs no sign-in — and marks where a source's stream ends. Surface ids are namespaced by source (`gmail.2:inbox`). A paint can carry a short title, and the Planner's title names the canvas. The client sends back the reader's presses: Retry — also the resume after sign-in — Include, Try again, a step back or forward in a fragment, Not now on a request for more access, an account chosen on the account choice, and closing a canvas; and a fragment whose catalog it could not load, as a catalog load failure the orchestrator fails the slot with.
-- **Authority**: what an agent sends when it needs more access mid-task — an `auth-required` task carrying a data part in its card's own `security` requirement shape, naming the scheme and the missing scopes by their keys on the card.
-- **Contexts**: each question's answer is an A2A context. The orchestrator gives it its id when the question is asked, every later message carries that id, and a question asked from an earlier answer names that answer's context as its parent.
-- **Client session**: every client message names its page load's session, and, when the browser gives them, the person's local time, RFC 3339 with its offset, and IANA time zone, read whole or not at all.
-- **Synthesis**: the merged view's wiring, with its schema and validator. The wiring is formulas over refs into each app's data, match claims that say which entries are one thing, and sorts.
-- **Resolution**: pointers with key predicates, like `/threads[id="1a06f2"]/time`, resolved against a data model.
-- **A2UI tools**: an A2UI v0.9.1 validator that follows upstream's, and catalog pruning.
-- **Catalogs**: what a catalog package exposes (`CATALOG`, an optional `Provider`), what the client lends a loaded catalog (the host-module interface keyed by A2UI version — `0.9.1`, seven specifiers and `loadStylesheet` — and which versions the platform supplies), which imports Stellify leaves to the host, bundles or refuses, and the checks over an app at install: the catalog ids a card declares, read in both of the shapes the A2UI extension's params are written in, two-directional coverage against the artifacts handed, each app's catalog entitlement, the app id's grammar and its claim. The marketplace runs the same checks at publish. The app itself is its A2A AgentCard; nothing here describes one.
-- **The credential bar**: the terms no painted component type, property name or declared option value may carry, the options a catalog's components declare, and the check over a paint's components the hub runs before it relays a paint.
-- **Artifacts**: the catalog artifact's descriptor, `artifact.json`, with its validator; the file hash and the artifact id, the descriptor's own hash spelled URL-safe; the checks that every listed file is there with its hash and nothing else is, that the schema's `catalogId` is the descriptor's, and that the schema compiles as an A2UI catalog.
-- **Marketplace**: what the marketplace serves and takes, so the orchestrator, Stellify and the Store page agree with it without importing it — the route layout at the root of its port, the reads shaped like static files; the index entry, one per app id, with its JSON Schema; the captured preview, the smoke test's paint, with its JSON Schema; the publisher's name grammar, the token's form, its minting and its hash; the wire bodies of claim, publish, unpublish, report and search with their readers; and the update state the orchestrator serves, eight exclusive states each with its own details. Transport stays with each caller.
-- **The rules both sides run**: the additive-evolution check within a catalog id, run at publish and at install — a fixed structural walk refusing a component, function, `$defs` entry, property or enum value removed, a property becoming required, a changed `type`, `$ref` or `const`, or a constraint tightened; the retirement rule, the lines a card change retires and the rows no record names; ahead-of-the-Store detection over an entry and a live card; and the smoke test's checks — the words, the A2UI messages out of an answer, the paint check over entitlement, schema and the credential bar, and the sign-in answer check.
+Inside this monorepo:
 
+```json
+"@a2uiverse/sdk": "workspace:*"
 ```
-contracts/a2uiverse.v0.9.json           the A2UIVerse extension — the platform's one A2A extension, versioned in its URI; the package is tested against it
-contracts/catalog.json                  the catalog contracts' terms, versioned with the package; tested against
-contracts/catalog-artifact.schema.json  the artifact descriptor's JSON Schema, versioned with the package; the package compiles its mirror
-contracts/marketplace.json              the marketplace contracts' terms — routes, publisher, ownership, versions, evolution, retirement, ahead of the Store, the smoke test, the wire bodies; tested against
-contracts/marketplace-entry.schema.json the index entry's JSON Schema; the package compiles its mirror
-contracts/marketplace-preview.schema.json the captured preview's JSON Schema; the package compiles its mirror
-a2ui-spec/                              a pinned copy of the A2UI v0.9.1 schemas, capabilities, basic catalog and validator cases
-js/                                     the TypeScript package
+
+Outside it, as a git dependency:
+
+```json
+"@a2uiverse/sdk": "github:retz8/a2uiverse#path:packages/sdk/js"
 ```
+
+One entry point, `@a2uiverse/sdk`. ESM, runs in Node and the browser.
 
 ## Quick start
 
-### Stamp an event, read the stamp back
+**Stamp an event, read the stamp back**
 
 ```ts
 import {STAMP_KEY, namespaceSurfaceId, readStamp} from '@a2uiverse/sdk';
@@ -43,7 +33,7 @@ namespaceSurfaceId('gmail', 'inbox'); // "gmail:inbox"
 const stamp = readStamp(event.metadata); // {source: 'gmail', role: 'fragment'} | undefined
 ```
 
-### Validate an A2UI tree against a pruned catalog
+**Validate an A2UI tree against a pruned catalog**
 
 ```ts
 import {createA2uiValidator, formatA2uiFinding, pruneCatalog} from '@a2uiverse/sdk';
@@ -61,7 +51,7 @@ const findings = validator.validate([
 console.log(findings.map(formatA2uiFinding));
 ```
 
-### Read and check a synthesis payload
+**Read and check a synthesis payload**
 
 ```ts
 import {readSynthesis, validateSynthesisPayload, walkModel} from '@a2uiverse/sdk';
@@ -74,7 +64,7 @@ if (checked.ok) {
 }
 ```
 
-### Check an app's catalogs at install
+**Check an app's catalogs at install**
 
 ```ts
 import {
@@ -93,7 +83,7 @@ if (declared.ok) {
 }
 ```
 
-### Verify a catalog artifact's files
+**Verify a catalog artifact's files**
 
 ```ts
 import {artifactIdOf, validateArtifactDescriptor, verifyArtifactFiles} from '@a2uiverse/sdk';
@@ -107,7 +97,7 @@ if (descriptor.ok) {
 }
 ```
 
-### Resolve a pointer
+**Resolve a pointer**
 
 ```ts
 import {locatePointer, resolvePointer} from '@a2uiverse/sdk';
@@ -119,9 +109,36 @@ locatePointer(model, '/threads[id="1a06f2"]/time');
 // the same, plus `path`: the concrete path with positions, e.g. "/threads/3/time"
 ```
 
-## Exports
+## What's in it
 
-One entry point, `@a2uiverse/sdk`.
+| Area                         | What it is                                                                                                                                                                                                                                                                                                                                                            |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Composition**              | The stamp on every relayed event — which source painted it, the app and its account (`gmail.2`), and where a source's stream ends; surface ids namespaced by source (`gmail.2:inbox`); a paint's title; the reader's presses the client sends back — Retry, Include, Try again, a step, Not now, an account chosen, a canvas closed — and a catalog load failure      |
+| **Authority**                | What an agent sends when it needs more access mid-task: an `auth-required` task carrying the scheme and the missing scopes by their keys on its card                                                                                                                                                                                                                  |
+| **Contexts and session**     | Each question's answer is an A2A context, its id minted by the orchestrator and carried by every later message, a child naming its parent; every client message names its page load's session and, when the browser gives them, the person's local time and time zone                                                                                                 |
+| **Synthesis**                | The merged view's wiring — formulas over refs into each app's data, match claims that say which entries are one thing, sorts — with its schema and validator                                                                                                                                                                                                          |
+| **Resolution**               | Pointers with key predicates, like `/threads[id="1a06f2"]/time`, resolved against a data model                                                                                                                                                                                                                                                                        |
+| **A2UI tools**               | An A2UI v0.9.1 validator that follows upstream's, and catalog pruning                                                                                                                                                                                                                                                                                                 |
+| **Catalogs**                 | What a catalog package exposes (`CATALOG`, an optional `Provider`); the host-module interface the client lends (`0.9.1`: seven specifiers and `loadStylesheet`); which imports Stellify leaves to the host, bundles or refuses; the checks over an app at install — the catalog ids a card declares, coverage both ways, each app's entitlement, the app id's grammar |
+| **Credential bar**           | The terms no painted component, property or declared option may carry, and the check over a paint the hub runs before it relays                                                                                                                                                                                                                                       |
+| **Artifacts and the gate**   | The artifact descriptor, `artifact.json`, with its validator; the file hash and the artifact id; the static gate over one handed artifact, run by the registry at install and the marketplace at publish                                                                                                                                                              |
+| **Marketplace**              | What the marketplace serves and takes, so the orchestrator, Stellify and the Store page agree without importing it: the routes, the index entry and the preview with their JSON Schemas, the publisher's name and token, the wire bodies, and the eight update states                                                                                                 |
+| **The rules both sides run** | The additive-evolution check within a catalog id; the retirement rule; ahead-of-the-Store detection over an entry and a live card; the smoke test's checks — the words, the paint, the sign-in answer                                                                                                                                                                 |
+
+The normative definitions are the JSON files beside the code, which the package is tested against:
+
+```
+contracts/a2uiverse.v0.9.json             the A2UIVerse extension — the platform's one A2A extension, versioned in its URI
+contracts/catalog.json                    the catalog contracts' terms
+contracts/catalog-artifact.schema.json    the artifact descriptor's JSON Schema; the package compiles its mirror
+contracts/marketplace.json                the marketplace contracts' terms — routes, publisher, ownership, versions, evolution, retirement, ahead of the Store, the smoke test, the wire bodies
+contracts/marketplace-entry.schema.json   the index entry's JSON Schema; the package compiles its mirror
+contracts/marketplace-preview.schema.json the captured preview's JSON Schema; the package compiles its mirror
+a2ui-spec/                                a pinned copy of the A2UI v0.9.1 schemas, capabilities, basic catalog and validator cases
+js/                                       the TypeScript package
+```
+
+## Exports
 
 | Area           | Main exports                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | In                                   |
 | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
@@ -137,18 +154,18 @@ One entry point, `@a2uiverse/sdk`.
 | Catalogs       | `CATALOG_EXPORTS`, `checkCatalogExports`, `HOST_INTERFACE_VERSION`, `SUPPORTED_HOST_INTERFACES`, `checkHostInterface`, `HOST_INTERFACE_GLOBAL`, `HOST_SPECIFIERS`, `HOST_STYLESHEET_LOADER`, `HostInterface`, `classifySpecifier`, `BASIC_CATALOG_ID`, `PUBLIC_CATALOG_IDS`, `readSupportedCatalogIds`, `clientCapabilities`, `checkCoverage`, `coverageErrors`, `entitlementOf`, `checkAppId`, `claimAppId`                                                                                                                        | `js/src/catalog.ts`                  |
 | Credential bar | `CREDENTIAL_TERMS`, `wordsOf`, `credentialTermIn`, `CatalogOptions`, `catalogOptions`, `basicCatalogOptions`, `mergeCatalogOptions`, `CredentialFinding`, `credentialInputIn`, `describeCredentialFinding`                                                                                                                                                                                                                                                                                                                          | `js/src/credential.ts`               |
 | Artifacts      | `ArtifactDescriptor`, `ARTIFACT_DESCRIPTOR_FILE`, `ARTIFACT_DESCRIPTOR_SCHEMA`, `validateArtifactDescriptor`, `hashArtifactFile`, `artifactIdOf`, `verifyArtifactFiles`, `checkArtifactSchema`, `checkCatalogSchemaCompiles`                                                                                                                                                                                                                                                                                                        | `js/src/artifact.ts`                 |
-| Gate           | `gateArtifact`, `GateResult`, `GatedArtifact`, `ArtifactFiles` — the static gate over one handed artifact, run by the registry at install and by the marketplace at publish                                                                                                                                                                                                                                                                                                                                                         | `js/src/gate.ts`                     |
+| Gate           | `gateArtifact`, `GateResult`, `GatedArtifact`, `ArtifactFiles` — the static gate over one handed artifact                                                                                                                                                                                                                                                                                                                                                                                                                           | `js/src/gate.ts`                     |
 | Marketplace    | `MARKETPLACE_ROUTES`, `entryPath`, `previewPath`, `artifactPath`, `searchPath`, `SEARCH_QUERY_PARAM`; `checkPublisherName`, `mintPublisherToken`, `checkPublisherToken`, `hashPublisherToken`; `IndexEntry`, `INDEX_ENTRY_SCHEMA`, `validateIndexEntry`; `PreviewDocument`, `PREVIEW_SCHEMA`, `validatePreview`; `readClaimRequest`, `readPublishRequest`, `readUnpublishRequest`, `readReportRequest`, `readSearchResponse` and the bodies' field lists; `UpdateState`, `UPDATE_STATES`, `UPDATE_STATE_DETAILS`, `readUpdateState` | `js/src/marketplace.ts`              |
 | Evolution      | `checkAdditiveEvolution`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | `js/src/evolution.ts`                |
 | Retirement     | `retiredLines`, `unnamedRows`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | `js/src/retirement.ts`               |
 | Ahead of Store | `aheadOfStore`, `Drift`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | `js/src/drift.ts`                    |
 | Smoke test     | `SMOKE_GREETING`, `smokeWords`, `a2uiMessagesIn`, `a2uiMessagesOf`, `checkPaint`, `checkSignInAnswer`                                                                                                                                                                                                                                                                                                                                                                                                                               | `js/src/smoke.ts`                    |
 
-`validateSynthesisPayload` checks the payload's shape: every leaf is a formula, every match claim relates two refs in two different sources, and every sort is well formed. Whether a relation actually holds is left to the caller.
+Three things worth knowing about the checks:
 
-`checkAdditiveEvolution` compares the two schema files as the gate reads them, a `$ref` as a string, never resolved; a keyword it does not know is ignored, never refused. `checkPaint` groups an answer's messages by surface and validates each against its own catalog, so one call serves a paint across catalogs and a captured preview alike. It judges each surface's tree as it stands when the answer ends — each component's last copy, as `updateComponents` replaces a component by its id, and only what the root reaches — so an agent streaming its tree as the model writes it, every update sending it again with components half-written until a later copy completes them, passes when the finished tree does. The credential check reads every message.
-
-`credentialInputIn` matches the terms as whole words, case-insensitively, against painted components' types, property names, and the literal property values their catalog declares as options of that component — `enum` and `const` strings, never descriptions; free text and the data model are not read. `pin` alone is allowed, `pin code` is not.
+- `validateSynthesisPayload` checks the payload's shape — every leaf a formula, every match claim relating two refs in two different sources, every sort well formed. Whether a relation actually holds is the caller's.
+- `checkAdditiveEvolution` compares the two schema files as the gate reads them, a `$ref` as a string, never resolved; a keyword it doesn't know is ignored, never refused. `checkPaint` groups an answer's messages by surface and validates each against its own catalog, judging each tree as it stands when the answer ends — each component's last copy, only what the root reaches — so an agent streaming its tree as it's written passes when the finished tree does.
+- `credentialInputIn` matches the terms as whole words, case-insensitively, against painted components' types, property names, and the literal values their catalog declares as options — `enum` and `const` strings, never descriptions; free text and the data model are not read. `pin` alone is allowed, `pin code` is not.
 
 ## Commands
 
@@ -159,25 +176,9 @@ pnpm --filter @a2uiverse/sdk sync-a2ui-spec    # refresh a2ui-spec/ from the A2U
 
 `a2ui-spec/` is never edited by hand; `a2ui-spec/UPSTREAM.json` records the commit it was copied from.
 
-## Installing
-
-Inside this monorepo:
-
-```json
-"@a2uiverse/sdk": "workspace:*"
-```
-
-Outside it, as a git dependency:
-
-```json
-"@a2uiverse/sdk": "github:retz8/a2uiverse#path:packages/sdk/js"
-```
-
-ESM, runs in Node and the browser.
-
 ## Further reading
 
-- [`docs/design/synthesis.md`](../../docs/design/synthesis.md): the merged view end to end.
-- [`docs/design/app-install.md`](../../docs/design/app-install.md): the catalog contracts in use, from Stellify's pack to the client's load.
-- [`docs/design/orchestrator.md`](../../docs/design/orchestrator.md) and [`docs/design/client.md`](../../docs/design/client.md): how each side uses the contract.
-- [`docs/design/authority.md`](../../docs/design/authority.md): the request for more access and the credential bar in use.
+- [`docs/design/synthesis.md`](../../docs/design/synthesis.md) — the merged view end to end.
+- [`docs/design/app-install.md`](../../docs/design/app-install.md) and [`docs/design/marketplace.md`](../../docs/design/marketplace.md) — the catalog and marketplace contracts in use, from Stellify's pack to the client's load, and from publish to install.
+- [`docs/design/orchestrator.md`](../../docs/design/orchestrator.md) and [`docs/design/client.md`](../../docs/design/client.md) — how each side uses the contract.
+- [`docs/design/authority.md`](../../docs/design/authority.md) — the request for more access and the credential bar in use.
