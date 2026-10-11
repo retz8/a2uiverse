@@ -111,6 +111,14 @@ An app's region on the canvas keeps at least the height of what it holds. In a c
 
 Under `--publish` each sign-in app's preview opens the agent's sign-in page at the address the agent gives, so with `A2UIVERSE_PUBLIC_URL` set the deterministic launch's previews go through the tunnel, and the agents' ports are forwarded and Public before it. The tunnel document says so. Replaced: the tunnel document saying a publish needs nothing of the tunnel.
 
+### 24. The marketplace logs every refusal
+
+A refused claim and a refused unpublish each print one line in the marketplace's log, as a refused publish does: the name or the app id, who asked, and the findings. Replaced: only a refused publish logged, a claim of a taken name and another publisher's unpublish leaving no line.
+
+### 25. The marketplace's command tests reach no running marketplace
+
+The `marketplace search` test of the default address answers its own request, so a marketplace running on its port does not change it. Replaced: the test reaching `localhost:10002`, failing whenever the marketplace runs there.
+
 ## Invariants
 
 - No credential reaches the marketplace.
