@@ -107,6 +107,10 @@ The launcher's `--tier` takes several tiers joined by commas, and one launch run
 
 An app's region on the canvas keeps at least the height of what it holds. In a column, a region taller than its share keeps its height and its neighbours take the rest; where everything fits, the shares stay equal. Replaced: a region shrinking to its share of the column, a taller fragment running over the region below it.
 
+### 23. A publish's previews sign in where each agent says
+
+Under `--publish` each sign-in app's preview opens the agent's sign-in page at the address the agent gives, so with `A2UIVERSE_PUBLIC_URL` set the deterministic launch's previews go through the tunnel, and the agents' ports are forwarded and Public before it. The tunnel document says so. Replaced: the tunnel document saying a publish needs nothing of the tunnel.
+
 ## Invariants
 
 - No credential reaches the marketplace.
