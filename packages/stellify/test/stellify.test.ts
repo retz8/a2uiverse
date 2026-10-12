@@ -105,15 +105,18 @@ describe('packing the fixture catalog', () => {
       unknown
     >;
     expect(checkCatalogExports(module, CATALOG_ID)).toEqual([]);
-    // The dependency's static stylesheet import ran at evaluation, awaited.
+    // The dependency's static stylesheet import ran at evaluation, awaited, and so did the
+    // Provider's lazy theme, after it: no surface renders before its styles apply.
     expect(loaded).toEqual([
       pathToFileURL(join(out, 'node_modules/star-dialog/lib/dialog.css')).href,
+      pathToFileURL(join(out, 'lib/theme.css')).href,
     ]);
+    // The lazy import finds its sheet loaded: no second load.
     await (module.loadTheme as () => Promise<unknown>)();
-    expect(loaded[1]).toBe(pathToFileURL(join(out, 'lib/theme.css')).href);
+    expect(loaded).toHaveLength(2);
   });
 
-  test('the loads made as the entry evaluates start together, in import order; a later one waits for its own sheet', async () => {
+  test('every sheet loads as the entry evaluates — a lazy one after the entry’s own — started together, in import order', async () => {
     const dir = copyFixture();
     write(dir, 'lib/base.css', '.star-base { color: black; }\n');
     edit(dir, 'lib/index.js', text => `import './base.css';\n${text}`);
@@ -147,26 +150,24 @@ describe('packing the fixture catalog', () => {
       return module as Record<string, unknown>;
     });
     await settle();
-    // Both started before either finished, the cascade's order kept.
+    // All three started before any finished, the cascade's order kept: the entry's own sheets,
+    // then the one the Provider imports only later.
     expect(asked).toEqual([
       sheet('lib/base.css'),
       sheet('node_modules/star-dialog/lib/dialog.css'),
+      sheet('lib/theme.css'),
     ]);
     finish.get(sheet('node_modules/star-dialog/lib/dialog.css'))!();
-    await settle();
-    expect(evaluated).toBe(false);
     finish.get(sheet('lib/base.css'))!();
+    await settle();
+    // The entry waits for the lazy sheet too.
+    expect(evaluated).toBe(false);
+    finish.get(sheet('lib/theme.css'))!();
     const module = await importing;
     expect(checkCatalogExports(module, CATALOG_ID)).toEqual([]);
-    // After the entry, a lazy sheet's import resolves only once its sheet has loaded.
-    let themed = false;
-    const theming = (module.loadTheme as () => Promise<unknown>)().then(() => (themed = true));
-    await settle();
-    expect(asked.at(-1)).toBe(sheet('lib/theme.css'));
-    expect(themed).toBe(false);
-    finish.get(sheet('lib/theme.css'))!();
-    await theming;
-    expect(themed).toBe(true);
+    // The lazy import resolves at once, its sheet already loaded, asking for nothing more.
+    await (module.loadTheme as () => Promise<unknown>)();
+    expect(asked).toHaveLength(3);
   });
 
   test('deterministic: two copies at two paths pack to the same bytes', async () => {

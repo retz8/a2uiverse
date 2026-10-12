@@ -7,10 +7,11 @@
  * artifact's files. Any other specifier under a host package is refused with the list.
  *
  * The loads a stylesheet import makes while the entry evaluates start at once, each `<link>`
- * appended in import order, and the entry waits for all of them before it finishes; a load after
- * that — a Provider's lazy theme — waits for its own sheet (the 11.5 follow-up to task-11.3
- * decision 11). The cascade is the import order either way; the wait is the slowest sheet's, not
- * the sum of every sheet's.
+ * appended in import order, and the entry waits for all of them before it finishes (the 11.5
+ * follow-up to task-11.3 decision 11). A sheet the package imports only later — a Provider's lazy
+ * theme — is started there too: the entry imports it after its own, so a surface never renders
+ * before its catalog's styles apply, and the later import finds it loaded. The cascade is the
+ * import order; the wait is the slowest sheet's, not the sum of every sheet's.
  */
 import {
   classifySpecifier,
@@ -40,6 +41,8 @@ const LOADS_NAMESPACE = 'a2uiverse-stylesheet-loads';
 /** The module the entry's stylesheet loads are kept in until it finishes evaluating. */
 const LOADS = 'a2uiverse:stylesheet-loads';
 const STYLESHEET = /\.css(\?.*)?$/i;
+/** The entry's own import of a sheet the package imports only later, by its artifact path. */
+const EAGER = 'a2uiverse:stylesheet-eager:';
 
 const lent = (): string =>
   `the host lends ${HOST_SPECIFIERS.map(s => JSON.stringify(s)).join(', ')}`;
@@ -73,8 +76,17 @@ function stylesheetPlugin(layout: Layout, copied: CopiedFiles): Plugin {
   return {
     name: 'a2uiverse-stylesheet',
     setup(api) {
+      // The same module the later import reaches: one load, one `<link>`.
+      api.onResolve({filter: /^a2uiverse:stylesheet-eager:/}, args => ({
+        path: args.path.slice(EAGER.length),
+        namespace: STYLESHEET_NAMESPACE,
+      }));
       api.onResolve({filter: STYLESHEET}, async args => {
-        if (args.namespace === STYLESHEET_NAMESPACE || args.pluginData === STYLESHEET_NAMESPACE) {
+        if (
+          args.namespace === STYLESHEET_NAMESPACE ||
+          args.pluginData === STYLESHEET_NAMESPACE ||
+          args.path.startsWith(EAGER)
+        ) {
           return undefined;
         }
         const resolved = await api.resolve(args.path, {
@@ -128,17 +140,45 @@ function findingOf(packageDir: string, entryRel: string, message: Message): Find
   };
 }
 
+/** The sheets some module imports dynamically, by artifact path, in path order. */
+function lazySheets(inputs: Record<string, {imports: {path: string; kind: string}[]}>): string[] {
+  const prefix = `${STYLESHEET_NAMESPACE}:`;
+  const lazy = new Set<string>();
+  for (const input of Object.values(inputs)) {
+    for (const {path, kind} of input.imports) {
+      if (kind === 'dynamic-import' && path.startsWith(prefix)) lazy.add(path.slice(prefix.length));
+    }
+  }
+  return [...lazy].sort();
+}
+
+/**
+ * The entry bundled: once to learn which sheets the package imports only later, and again with
+ * the entry importing each of them, so they load before it finishes.
+ */
 export async function bundleEntry(packageDir: string, entryRel: string): Promise<Bundle> {
+  const first = await bundleOnce(packageDir, entryRel, []);
+  if (first.code === undefined || first.lazy.length === 0) return first;
+  return bundleOnce(packageDir, entryRel, first.lazy);
+}
+
+async function bundleOnce(
+  packageDir: string,
+  entryRel: string,
+  eager: readonly string[],
+): Promise<Bundle & {lazy: string[]}> {
   const layout = new Layout(packageDir);
   const copied: CopiedFiles = {files: new Map(), findings: []};
   try {
     const result = await build({
       absWorkingDir: packageDir,
-      // The entry, then the wait for every stylesheet load it started (the module header). Its
-      // named exports pass through; a default export is no part of the catalog export contract.
+      // The entry, the sheets it imports only later, then the wait for every stylesheet load
+      // they started (the module header). Its named exports pass through; a default export is no
+      // part of the catalog export contract.
       stdin: {
         contents: [
           `export * from ${JSON.stringify(`./${posix(entryRel)}`)};`,
+          ...eager.map(path => `import ${JSON.stringify(`${EAGER}${path}`)};`),
           `import {loads} from ${JSON.stringify(LOADS)};`,
           'await Promise.all(loads.early);',
           'loads.done = true;',
@@ -169,6 +209,7 @@ export async function bundleEntry(packageDir: string, entryRel: string): Promise
       exports: output?.exports ?? [],
       copied: copied.files,
       findings: [...copied.findings, ...result.errors.map(m => findingOf(packageDir, entryRel, m))],
+      lazy: lazySheets(result.metafile.inputs),
     };
   } catch (error) {
     const messages = (error as {errors?: Message[]}).errors;
@@ -176,6 +217,11 @@ export async function bundleEntry(packageDir: string, entryRel: string): Promise
       messages === undefined
         ? [{file: entryRel, reason: (error as Error).message}]
         : messages.map(m => findingOf(packageDir, entryRel, m));
-    return {exports: [], copied: copied.files, findings: [...copied.findings, ...findings]};
+    return {
+      exports: [],
+      copied: copied.files,
+      findings: [...copied.findings, ...findings],
+      lazy: [],
+    };
   }
 }

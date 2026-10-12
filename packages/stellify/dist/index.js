@@ -8913,6 +8913,7 @@ var STYLESHEET_NAMESPACE = "a2uiverse-stylesheet";
 var LOADS_NAMESPACE = "a2uiverse-stylesheet-loads";
 var LOADS = "a2uiverse:stylesheet-loads";
 var STYLESHEET = /\.css(\?.*)?$/i;
+var EAGER = "a2uiverse:stylesheet-eager:";
 var lent = () => `the host lends ${HOST_SPECIFIERS.map((s) => JSON.stringify(s)).join(", ")}`;
 function hostPlugin() {
   return {
@@ -8942,8 +8943,12 @@ function stylesheetPlugin(layout, copied) {
   return {
     name: "a2uiverse-stylesheet",
     setup(api) {
+      api.onResolve({ filter: /^a2uiverse:stylesheet-eager:/ }, (args) => ({
+        path: args.path.slice(EAGER.length),
+        namespace: STYLESHEET_NAMESPACE
+      }));
       api.onResolve({ filter: STYLESHEET }, async (args) => {
-        if (args.namespace === STYLESHEET_NAMESPACE || args.pluginData === STYLESHEET_NAMESPACE) {
+        if (args.namespace === STYLESHEET_NAMESPACE || args.pluginData === STYLESHEET_NAMESPACE || args.path.startsWith(EAGER)) {
           return void 0;
         }
         const resolved = await api.resolve(args.path, {
@@ -8994,17 +8999,34 @@ function findingOf(packageDir, entryRel, message) {
     reason: message.text
   };
 }
+function lazySheets(inputs) {
+  const prefix = `${STYLESHEET_NAMESPACE}:`;
+  const lazy = /* @__PURE__ */ new Set();
+  for (const input of Object.values(inputs)) {
+    for (const { path, kind } of input.imports) {
+      if (kind === "dynamic-import" && path.startsWith(prefix)) lazy.add(path.slice(prefix.length));
+    }
+  }
+  return [...lazy].sort();
+}
 async function bundleEntry(packageDir, entryRel) {
+  const first = await bundleOnce(packageDir, entryRel, []);
+  if (first.code === void 0 || first.lazy.length === 0) return first;
+  return bundleOnce(packageDir, entryRel, first.lazy);
+}
+async function bundleOnce(packageDir, entryRel, eager) {
   const layout = new Layout(packageDir);
   const copied = { files: /* @__PURE__ */ new Map(), findings: [] };
   try {
     const result = await build2({
       absWorkingDir: packageDir,
-      // The entry, then the wait for every stylesheet load it started (the module header). Its
-      // named exports pass through; a default export is no part of the catalog export contract.
+      // The entry, the sheets it imports only later, then the wait for every stylesheet load
+      // they started (the module header). Its named exports pass through; a default export is no
+      // part of the catalog export contract.
       stdin: {
         contents: [
           `export * from ${JSON.stringify(`./${posix3(entryRel)}`)};`,
+          ...eager.map((path) => `import ${JSON.stringify(`${EAGER}${path}`)};`),
           `import {loads} from ${JSON.stringify(LOADS)};`,
           "await Promise.all(loads.early);",
           "loads.done = true;"
@@ -9034,12 +9056,18 @@ async function bundleEntry(packageDir, entryRel) {
       code: result.outputFiles[0].text,
       exports: output?.exports ?? [],
       copied: copied.files,
-      findings: [...copied.findings, ...result.errors.map((m) => findingOf(packageDir, entryRel, m))]
+      findings: [...copied.findings, ...result.errors.map((m) => findingOf(packageDir, entryRel, m))],
+      lazy: lazySheets(result.metafile.inputs)
     };
   } catch (error) {
     const messages = error.errors;
     const findings = messages === void 0 ? [{ file: entryRel, reason: error.message }] : messages.map((m) => findingOf(packageDir, entryRel, m));
-    return { exports: [], copied: copied.files, findings: [...copied.findings, ...findings] };
+    return {
+      exports: [],
+      copied: copied.files,
+      findings: [...copied.findings, ...findings],
+      lazy: []
+    };
   }
 }
 

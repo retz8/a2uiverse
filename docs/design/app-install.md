@@ -302,7 +302,7 @@ await Promise.all(loads.early);
 loads.done = true;
 ```
 
-The entry finishes once the slowest sheet has loaded. A load made later, like the three sheets GitHub's Provider loads lazily (Primer's light and dark tokens and its own scoped sheet), sees `loads.done` and awaits its own sheet. The host appends each `<link>` synchronously as it's called, so the cascade follows import order whatever order the sheets arrive in.
+The entry finishes once the slowest sheet has loaded. A sheet the package imports only later, like the three GitHub's Provider loads lazily (Primer's light and dark tokens and its own scoped sheet), is started there too: Stellify finds each sheet a module imports dynamically and has the entry import it after its own, so it lands in `loads.early` with the rest. The Provider's own import then finds the sheet loaded. The host appends each `<link>` synchronously as it's called, so the cascade follows import order whatever order the sheets arrive in.
 
 **Where each file goes.** The artifact mirrors the package, so a relative `url()` or `@import` inside a copied sheet keeps resolving, and no CSS needs rewriting:
 
@@ -541,7 +541,7 @@ Two browser behaviours shape the third column:
 | **No vendor catalog compiled into the client** | Installing an app needs no client build, and no client code names an app | Every vendor catalog is a network load, on every page |
 | **A host-module interface** | One React and one A2UI runtime on the page; an artifact carries only its own code | The interface is a contract: lending one more module is a new version |
 | **Imports rewritten in the bundle, never the source** | A vendor writes React and CSS as usual, with no wrapper and no config | The code that runs is a rewrite of what the vendor tested |
-| **Stylesheets started together, awaited once** | GitHub's 77 sheets cost the slowest sheet, not their sum | The entry waits for every sheet it imports, ones no paint uses among them |
+| **Stylesheets started together, awaited once** | GitHub's 77 sheets cost the slowest sheet, not their sum; no fragment paints before its styles apply | The entry waits for every sheet it reaches, a Provider's lazy ones and ones no paint uses among them |
 | **An artifact is files under its descriptor's hash** | Immutable content: one id checks every file, and a static server can serve it | Any byte changes the id, so a rebuild against a dependency at another path is another artifact |
 | **Install refuses the whole app, every finding at once** | An app is never half installed; the publisher sees every problem in one go | One bad file keeps out the whole app |
 | **The gate is static** | Nothing of a vendor's runs on the orchestrator | What only running code shows waits for the client's load |
