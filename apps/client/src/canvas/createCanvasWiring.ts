@@ -60,10 +60,13 @@ export interface CanvasWiring {
 }
 
 export interface CanvasWiringOptions extends A2ASenderOptions {
-  /** The held catalogs — the loader's own array, under the loader; every processor is built over them. */
+  /** The held catalogs, for a canvas with no set of its own: every such processor is built over them. */
   catalogs: Catalog<ReactComponentImplementation>[];
-  /** Where a catalog a canvas does not hold yet is loaded from (task 11.5). */
-  loader?: Pick<CatalogLoader, 'has' | 'load'>;
+  /**
+   * Where a catalog a canvas does not hold yet is loaded from (task 11.5); the page's loader gives
+   * each canvas a set of its own (task-14.7 decision 1).
+   */
+  loader?: Pick<CatalogLoader, 'has' | 'load'> & Partial<Pick<CatalogLoader, 'forCanvas'>>;
   /** Mints a canvas id; the default is a UUID. Tests pass a counter. */
   mintId?: () => string;
   /** The sign-in's window, poll and page; tests pass fakes. */
@@ -109,10 +112,13 @@ export function createCanvasWiring({
   const openCanvas = (question: string): {runtime: CanvasRuntime; parent?: CanvasRuntime} => {
     const parent = viewed();
     const id = mintId();
+    // Each canvas holds its own builds: one opened after an install moved a catalog takes the
+    // new build, and a canvas already open keeps what it shows (task-14.7 decision 1).
+    const held = loader?.forCanvas?.();
     const runtime = createCanvasRuntime({
       id,
-      catalogs,
-      ...(loader ? {loader} : {}),
+      catalogs: held ? held.catalogs : catalogs,
+      ...(held ? {loader: held, held} : loader ? {loader} : {}),
       getSender,
       getSideSender,
       onContext: contextId => trail.setContext(id, contextId),

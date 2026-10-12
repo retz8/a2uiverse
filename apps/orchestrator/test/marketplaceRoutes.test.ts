@@ -91,7 +91,9 @@ async function published(
   catalogId: string,
   port: number,
 ) {
-  const artifact = await fixtureArtifact(catalogId);
+  const artifact = await fixtureArtifact(catalogId, {
+    files: {'dist/theme.css': '.shop { color: #222; }\n'},
+  });
   const card = cardFor(`http://127.0.0.1:${port}`, {name: appId, catalogs: [catalogId]});
   const cardUrl = cards.serve(card);
   await m.publish(appId, {card, cardUrl, catalogs: [artifact], publisher: 'acme'});
@@ -190,6 +192,10 @@ describe('the preview’s artifact files (task-14.4 decisions 4, 5)', () => {
     expect(index.headers.get('cache-control')).toBe('public, max-age=31536000, immutable');
     expect(index.headers.get('content-type')).toMatch(/javascript/);
     expect(new Uint8Array(await index.arrayBuffer())).toEqual(artifact.get('index.js'));
+    // A file in a folder is typed by its extension, so the browser takes the stylesheet.
+    const theme = await fetch(`${base}/artifacts/${artifactId}/dist/theme.css`);
+    expect(theme.status).toBe(200);
+    expect(theme.headers.get('content-type')).toMatch(/^text\/css/);
     const descriptor = await fetch(`${base}/artifacts/${artifactId}/${ARTIFACT_DESCRIPTOR_FILE}`);
     expect(new Uint8Array(await descriptor.arrayBuffer())).toEqual(
       artifact.get(ARTIFACT_DESCRIPTOR_FILE),

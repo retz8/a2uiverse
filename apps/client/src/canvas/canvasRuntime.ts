@@ -34,7 +34,7 @@ import {createA2ASession} from '../a2a/session';
 import {streamUserMessage} from '../a2a/streamUserMessage';
 import {describeError} from '../shared/describeError';
 import {createCatalogGate, gateRunner, type CatalogLoadFailure} from '../catalogs/catalogGate';
-import type {CatalogLoader} from '../catalogs/loader';
+import type {CatalogLoader, HeldCatalogSet} from '../catalogs/loader';
 import {createCanvasStore, type CanvasStore, type RosterEntry} from './canvasStore';
 import {pressBusy} from './turnProgress';
 import type {FragmentFailure, TurnRunner} from './turn/canvasTurn';
@@ -72,6 +72,8 @@ export interface CanvasRuntime {
   history: FragmentHistory;
   /** What this canvas's vendor components register in: the reverse index navigation lands by. */
   bindingIndex: BindingIndex;
+  /** The canvas's own catalogs (task-14.7 decision 1), when the page's loader gave it a set. */
+  held?: HeldCatalogSet;
   navigator: Navigator;
   /** The A2A context the orchestrator minted for the canvas; undefined until its first event. */
   contextId(): string | undefined;
@@ -103,12 +105,14 @@ export const SUPPORTED_CATALOG_IDS: string[] = [BASIC_CATALOG_ID, SHELL_CATALOG_
 export interface CanvasRuntimeOptions {
   id: string;
   /**
-   * The catalogs the processor is built over — the loader's own array, which grows as catalogs
-   * load, so a surface in a catalog loaded after the canvas opened still finds it.
+   * The catalogs the processor is built over — the canvas's own set's array, which grows as
+   * catalogs load, so a surface in a catalog loaded after the canvas opened still finds it.
    */
   catalogs: Catalog<ReactComponentImplementation>[];
   /** Where a catalog the canvas does not hold yet is loaded from; without one, none is. */
   loader?: Pick<CatalogLoader, 'has' | 'load'>;
+  /** The canvas's own set, rendered through by its frames; `catalogs` and `loader` are its own. */
+  held?: HeldCatalogSet;
   /** The orchestrator, for the turns. */
   getSender: GetSender;
   /** Where the streams beside the turn go: the orchestrator, or a replay's transport while attached. */
@@ -125,6 +129,7 @@ export function createCanvasRuntime({
   id,
   catalogs,
   loader,
+  held,
   getSender,
   getSideSender,
   onContext,
@@ -561,6 +566,7 @@ export function createCanvasRuntime({
     synthesis,
     history,
     bindingIndex,
+    ...(held ? {held} : {}),
     navigator,
     contextId: () => session.get(),
     open,

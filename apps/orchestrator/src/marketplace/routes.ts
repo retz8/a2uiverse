@@ -21,7 +21,7 @@
  * `publish` and `unpublish`, the bodies and the marketplace's answers relayed as the publisher
  * module says.
  */
-import {join} from 'node:path';
+import {extname, join} from 'node:path';
 import express, {type Request, type RequestHandler, type Response, type Router} from 'express';
 import {SEARCH_QUERY_PARAM, type IndexEntry, type UpdateState} from '@a2uiverse/sdk';
 import {logLine} from '../log.js';
@@ -163,7 +163,11 @@ export function marketplaceRoutes({
     const relayed = await artifacts.file(artifactId, path);
     switch (relayed.kind) {
       case 'file':
-        res.set('Cache-Control', IMMUTABLE).type(path).send(Buffer.from(relayed.bytes));
+        // Typed by the file's extension: a path with a folder in it is no media type of its own.
+        res
+          .set('Cache-Control', IMMUTABLE)
+          .type(extname(path) || 'application/octet-stream')
+          .send(Buffer.from(relayed.bytes));
         return;
       case 'not-found':
         res.status(404).end();

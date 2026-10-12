@@ -55,6 +55,7 @@ describe('install', () => {
       replaced: false,
       summary: 'installed shop-a · card 0.0.0',
       notes: ['the card declares no catalogs: it paints in the basic catalog only'],
+      followed: [],
     });
     expect(registry.get('shop-a')).toEqual({
       id: 'shop-a',
@@ -300,6 +301,7 @@ describe('a held catalog id', () => {
       replaced: false,
       summary: `installed inbox · card 0.0.0 · catalog ${short(oldId)} → ${short(nextId)} · gmail followed`,
       notes: [],
+      followed: ['gmail'],
     });
     const gmail = registry.installed().find(r => r.id === 'gmail')!;
     expect(gmail).toEqual({...before, catalogs: {[GMAIL]: nextId}});
@@ -331,6 +333,7 @@ describe('a held catalog id', () => {
     });
     expect(result.ok).toBe(false);
     if (result.ok) return;
+    expect(result.cause).toBe('checks');
     expect(result.findings).toHaveLength(1);
     expect(result.findings[0]).toMatch(/gmail/);
     expect(result.findings[0]).toMatch(/Text/);

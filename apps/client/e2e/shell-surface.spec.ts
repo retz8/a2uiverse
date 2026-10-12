@@ -34,7 +34,9 @@ test('the capability tile opens the Store over the canvas, the gap as its query'
   const overlay = page.getByTestId('trusted-page-overlay');
   await expect(overlay).toHaveAttribute('data-page', 'store');
   await expect(overlay).toHaveAttribute('data-query', 'flight booking');
-  await expect(overlay).toContainText('flight booking');
+  await expect(overlay.getByRole('searchbox', {name: 'Search the Store'})).toHaveValue(
+    'flight booking',
+  );
   // The canvas stays mounted beneath: the composition that raised the gap is still there.
   await expect(tile).toBeAttached();
 
@@ -91,5 +93,7 @@ test('visual: the Store over the canvas', async ({page}) => {
   await settle(page, 'gap');
   await page.getByRole('button', {name: 'Search the Store'}).click();
   await expect(page.getByTestId('trusted-page-overlay')).toBeVisible();
+  // The snapshot serves no marketplace: the Store settles on saying it can't be reached.
+  await expect(page.getByTestId('store-unreached')).toBeVisible();
   await expect(page).toHaveScreenshot('shell-surface-store-overlay.png', {fullPage: true});
 });

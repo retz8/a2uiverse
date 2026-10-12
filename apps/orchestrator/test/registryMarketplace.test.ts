@@ -121,6 +121,7 @@ describe('install by id', () => {
     expect(result).toEqual({
       ok: false,
       findings: [`app "gmail" is not published on the marketplace at ${marketplace.url}`],
+      cause: 'store-unreached',
     });
     expect(journal.entries.at(-1)).toMatchObject({
       operation: 'install',
@@ -137,6 +138,7 @@ describe('install by id', () => {
     expect(result).toEqual({
       ok: false,
       findings: [`the marketplace at ${url} could not be reached: ECONNREFUSED`],
+      cause: 'store-unreached',
     });
   });
 });
@@ -155,6 +157,7 @@ describe('the Store behind the app (task-13.5 decision 4)', () => {
     const result = await registry.installFromMarketplace('gmail');
     expect(result.ok).toBe(false);
     if (result.ok) return;
+    expect(result.cause).toBe('store-behind');
     expect(result.findings).toHaveLength(1);
     expect(result.findings[0]).toMatch(/^the Store is behind gmail/);
     expect(result.findings[0]).toContain(CALENDAR);
@@ -210,6 +213,7 @@ describe('the Store behind the app (task-13.5 decision 4)', () => {
     const result = await registry.installFromMarketplace('gmail');
     expect(result.ok).toBe(false);
     if (result.ok) return;
+    expect(result.cause).toBe('app-unreached');
     expect(result.findings[0]).toMatch(/could not be fetched/);
     expect(marketplace.reports).toEqual([]);
   });

@@ -2,7 +2,8 @@
  * A canvas meeting a catalog it does not hold yet (task-11.5 decisions 1 to 4): the fragment waits
  * for the load and then claims its slot; a catalog that fails to load is reported to the hub as
  * the A2UIVerse extension's catalog load failure, and the fragment never claims its slot. The
- * canvas advertises the client's own two catalogs, whatever it holds (decision 8).
+ * canvas advertises the client's own two catalogs, whatever it holds (decision 8). Each canvas
+ * holds a set of its own (task-14.7 decision 1).
  */
 import {describe, expect, it, vi} from 'vitest';
 import type {MessageSendParams, TaskStatusUpdateEvent} from '@a2a-js/sdk';
@@ -13,6 +14,7 @@ import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 import type {A2AMessageSender} from '../a2a/client';
 import {COMPOSED_BEAT} from '../beats/syntheticBeats';
 import {clientCatalogs} from '../catalogs/clientCatalogs';
+import type {HeldCatalogSet} from '../catalogs/loader';
 import {createCanvasWiring} from './createCanvasWiring';
 
 const LATE = 'urn:catalog:late';
@@ -134,5 +136,34 @@ describe('a fragment in a catalog the canvas does not hold yet', () => {
     expect(sent[0]!.message.metadata?.a2uiClientCapabilities).toEqual({
       'v0.9': {supportedCatalogIds: [BASIC_CATALOG_ID, SHELL_CATALOG_ID]},
     });
+  });
+});
+
+describe('each canvas’s own catalogs (task-14.7 decision 1)', () => {
+  it('builds each canvas over a set of its own from the page’s loader, its frames reading it', () => {
+    const sets: HeldCatalogSet[] = [];
+    const forCanvas = (): HeldCatalogSet => {
+      const held = clientCatalogs();
+      const set: HeldCatalogSet = {
+        catalogs: held.map(c => c.catalog),
+        resolved: () => new Map(held.map(c => [c.id, c])),
+        subscribe: () => () => {},
+        has: catalogId => held.some(c => c.id === catalogId),
+        load: () => Promise.resolve(),
+      };
+      sets.push(set);
+      return set;
+    };
+    const client: A2AMessageSender = {sendMessageStream: () => (async function* () {})()};
+    const wiring = createCanvasWiring({
+      client,
+      catalogs: [],
+      loader: {has: () => false, load: () => Promise.resolve(), forCanvas},
+    });
+    const first = wiring.openReplayCanvas('first');
+    const second = wiring.openReplayCanvas('second');
+    expect(sets).toHaveLength(2);
+    expect(first.held).toBe(sets[0]);
+    expect(second.held).toBe(sets[1]);
   });
 });

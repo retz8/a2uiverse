@@ -15,7 +15,7 @@ import {Button, Kbd} from '@radix-ui/themes';
 import type {A2ASenderOptions} from '../a2a/client';
 import {getBeatFixture} from '../beats/beatFixtures';
 import {syntheticBeat} from '../beats/syntheticBeats';
-import {CatalogProvider, isLoader, type HeldCatalogs} from '../catalogs/CatalogContext';
+import {CatalogProvider, isLoader, type PageCatalogs} from '../catalogs/CatalogContext';
 import {createCanvasWiring} from './createCanvasWiring';
 import {replayBeatOnCanvas} from './replayBeat';
 import {CanvasView} from './components/CanvasView';
@@ -24,13 +24,14 @@ import {Palette} from './components/Palette';
 import {TrailChrome} from './components/TrailChrome';
 import {TrustedPageOverlay} from './components/TrustedPageOverlay';
 import type {HostRelay} from './hostRelay';
+import {agentUrl} from '../orchestratorApi';
 import {viewedCanvasId} from './trail/trailStore';
 import {bindTrustedPageHistory} from './trustedPage/history';
 import './CanvasApp.css';
 
 export interface CanvasAppProps extends A2ASenderOptions {
   /** The loader the entry built over `orchestratorApi`, or a fixed set of catalogs. */
-  catalogs: HeldCatalogs;
+  catalogs: PageCatalogs;
   /** The relay the shell catalog was built with; the canvas binds its host while mounted. */
   hostRelay?: HostRelay;
 }
@@ -158,6 +159,8 @@ export function CanvasApp({serverUrl, client, catalogs, hostRelay}: CanvasAppPro
           page={trail.trustedPage}
           onClose={wiring.trail.closeTrustedPage}
           onNavigate={wiring.trail.openTrustedPage}
+          catalogs={catalogs}
+          orchestrator={serverUrl ?? agentUrl()}
         />
         <TrailChrome
           trail={trail}

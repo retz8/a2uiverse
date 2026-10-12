@@ -584,6 +584,22 @@ export function updateWords(
   return UPDATE_WORDS[state];
 }
 
+// --- The install's refusal --------------------------------------------------------------------
+
+/**
+ * Why an install was refused (task-14.7 decision 6), beside its findings: the Store behind the
+ * app's live card, the app's card unreached, the checks failed, or the Store unreached. The
+ * trusted page words each and chooses its press from it; the findings stay for the journal and the
+ * terminal.
+ */
+export const INSTALL_REFUSALS = [
+  'store-behind',
+  'app-unreached',
+  'checks',
+  'store-unreached',
+] as const;
+export type InstallRefusal = (typeof INSTALL_REFUSALS)[number];
+
 /** A catalog whose build moved: the installed artifact id and the published one. */
 export interface BuildMove {
   catalogId: string;

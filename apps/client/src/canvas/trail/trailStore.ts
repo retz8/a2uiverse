@@ -37,6 +37,8 @@ export interface TrustedPageState {
   query?: string;
   /** The app whose view it opens on, in the Store or the App Library (task-14.2 decision 17). */
   app?: string;
+  /** The Store filtered on one publisher's apps (task-14.7 decision 4). */
+  publisher?: string;
 }
 
 export interface TrailState {

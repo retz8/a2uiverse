@@ -22,6 +22,7 @@ import {
   type ArtifactDescriptor,
   gateArtifact,
   type GatedArtifact,
+  type InstallRefusal,
   unnamedRows,
 } from '@a2uiverse/sdk';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
@@ -113,9 +114,20 @@ export interface InstallRequest {
   by?: WriteCaller;
 }
 
+/**
+ * An install's answer: done, with the installed apps that followed it onto a new catalog build
+ * (task-14.7 decision 2) — or refused, with its cause beside the findings (decision 6).
+ */
 export type InstallResult =
-  | {ok: true; appId: string; replaced: boolean; summary: string; notes: string[]}
-  | {ok: false; findings: string[]};
+  | {
+      ok: true;
+      appId: string;
+      replaced: boolean;
+      summary: string;
+      notes: string[];
+      followed: string[];
+    }
+  | {ok: false; findings: string[]; cause: InstallRefusal};
 
 /** One of an uninstalled app's accounts signed out: what became of its access (task-14.3 decision 12). */
 export interface SignedOutAccount {
@@ -403,7 +415,11 @@ export class Registry {
   ): Promise<InstallResult> {
     const marketplace = this.#deps.marketplace;
     const operation = this.#records.has(appId) ? 'install-over' : 'install';
-    const refuse = async (findings: string[], cardUrl?: string): Promise<InstallResult> => {
+    const refuse = async (
+      cause: InstallRefusal,
+      findings: string[],
+      cardUrl?: string,
+    ): Promise<InstallResult> => {
       await this.#journal({
         operation,
         appId,
@@ -415,24 +431,26 @@ export class Registry {
         ...(automatic ? {automatic: true} : {}),
         ...(by ? {by} : {}),
       });
-      return {ok: false, findings};
+      return {ok: false, findings, cause};
     };
     const idFindings = checkAppId(appId);
-    if (idFindings.length > 0) return refuse(idFindings);
-    if (!marketplace) return refuse(['no marketplace is configured']);
+    if (idFindings.length > 0) return refuse('checks', idFindings);
+    // An app the Store cannot hand — unreached, not published, its entry unreadable — is the
+    // Store's to answer: nothing of the app was reached.
+    if (!marketplace) return refuse('store-unreached', ['no marketplace is configured']);
     const looked = await marketplace.entry(appId);
     if (looked.kind === 'unreached') {
-      return refuse([
+      return refuse('store-unreached', [
         `the marketplace at ${marketplace.url} could not be reached: ${looked.reason}`,
       ]);
     }
     if (looked.kind === 'not-published') {
-      return refuse([
+      return refuse('store-unreached', [
         `app ${JSON.stringify(appId)} is not published on the marketplace at ${marketplace.url}`,
       ]);
     }
     if (looked.kind === 'malformed') {
-      return refuse([
+      return refuse('store-unreached', [
         `the marketplace's entry for ${JSON.stringify(appId)} is malformed: ${looked.errors.join('; ')}`,
       ]);
     }
@@ -442,6 +460,7 @@ export class Registry {
       card = await this.#fetchCard(entry.cardUrl);
     } catch (err) {
       return refuse(
+        'app-unreached',
         [`the card at ${entry.cardUrl} could not be fetched: ${(err as Error).message}`],
         entry.cardUrl,
       );
@@ -449,6 +468,7 @@ export class Registry {
     const drift = aheadOfStore(entry, card as CardWithExtensions & {version: string});
     if (!drift.ok)
       return refuse(
+        'checks',
         drift.errors.map(e => `the card's ${e}`),
         entry.cardUrl,
       );
@@ -457,7 +477,7 @@ export class Registry {
       void marketplace.report(appId).catch((err: unknown) => {
         console.error(`registry: the report of ${appId} failed:`, (err as Error).message);
       });
-      return refuse([storeBehind(appId, drift.value)], entry.cardUrl);
+      return refuse('store-behind', [storeBehind(appId, drift.value)], entry.cardUrl);
     }
     const catalogs: ArtifactFiles[] = [];
     try {
@@ -465,7 +485,9 @@ export class Registry {
         catalogs.push(await this.#resolveArtifact(marketplace, artifactId));
       }
     } catch (err) {
-      return refuse([(err as Error).message], entry.cardUrl);
+      // A descriptor that does not read failed the checks; any other failure is the Store's.
+      const cause = err instanceof UnreadableArtifact ? 'checks' : 'store-unreached';
+      return refuse(cause, [(err as Error).message], entry.cardUrl);
     }
     return this.#install({
       appId,
@@ -495,13 +517,13 @@ export class Registry {
     try {
       parsed = JSON.parse(new TextDecoder().decode(descriptorBytes));
     } catch (err) {
-      throw new Error(
+      throw new UnreadableArtifact(
         `the marketplace's artifact ${artifactId} has no readable descriptor: not JSON (${(err as Error).message})`,
       );
     }
     const descriptor = validateArtifactDescriptor(parsed);
     if (!descriptor.ok) {
-      throw new Error(
+      throw new UnreadableArtifact(
         `the marketplace's artifact ${artifactId} has no readable descriptor: ${descriptor.errors.join('; ')}`,
       );
     }
@@ -570,6 +592,8 @@ export class Registry {
         findings.push(`the card at ${cardUrl} could not be fetched: ${(err as Error).message}`);
       }
     }
+    // A card that could not be fetched is the app unreached, whatever else the gate found.
+    const cause: InstallRefusal = card ? 'checks' : 'app-unreached';
 
     const gated: GatedArtifact[] = [];
     const handed: string[] = [];
@@ -640,7 +664,7 @@ export class Registry {
         source,
         ...journalExtra,
       });
-      return {ok: false, findings};
+      return {ok: false, findings, cause};
     }
 
     const [vector] = await this.#deps.embedder.embed([corpusDoc(card)]);
@@ -687,6 +711,7 @@ export class Registry {
       replaced: operation === 'install-over',
       summary: installSummary(previous, record, moves),
       notes: declared.length === 0 ? [BASIC_ONLY_NOTE] : [],
+      followed,
     };
   }
 
@@ -796,6 +821,9 @@ export class Registry {
     };
   }
 }
+
+/** A marketplace artifact whose descriptor does not read: an install refused as failing the checks. */
+class UnreadableArtifact extends Error {}
 
 /**
  * The refusal of an install by id when the live card is ahead of the Store (phase-13 decision 14,

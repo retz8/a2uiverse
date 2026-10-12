@@ -1,6 +1,7 @@
 /**
- * The trusted page in the address (phase-14 decision 11, task-14.2 decision 17): its destination,
- * the Store's query and an app, beside whatever else the address carries.
+ * The trusted page in the address (phase-14 decision 11, task-14.2 decision 17, task-14.7
+ * decision 4): its destination, the Store's query, its publisher filter and an app, beside whatever
+ * else the address carries.
  */
 import {describe, expect, it} from 'vitest';
 import {addressOf, pageOfAddress} from './address';
@@ -26,6 +27,20 @@ describe('pageOfAddress', () => {
     });
   });
 
+  it('reads the Store filtered on one publisher, with a query and an app beside it', () => {
+    expect(pageOfAddress(at('?page=store&publisher=a2uiverse-apps'))).toEqual({
+      page: 'store',
+      publisher: 'a2uiverse-apps',
+    });
+    expect(pageOfAddress(at('?page=store&q=mail&publisher=acme&app=gmail'))).toEqual({
+      page: 'store',
+      query: 'mail',
+      publisher: 'acme',
+      app: 'gmail',
+    });
+    expect(pageOfAddress(at('?page=library&publisher=acme'))).toEqual({page: 'appLibrary'});
+  });
+
   it('is no page with none in the address, or one it does not know', () => {
     expect(pageOfAddress(at(''))).toBeNull();
     expect(pageOfAddress(at('?beat=27'))).toBeNull();
@@ -49,6 +64,7 @@ describe('addressOf', () => {
 
   it('replaces the page already there', () => {
     expect(addressOf({page: 'publish'}, at('?page=store&q=x&app=y'))).toBe('/?page=publish');
+    expect(addressOf({page: 'store'}, at('?page=store&publisher=acme'))).toBe('/?page=store');
   });
 
   it('takes the page out for none, leaving the rest', () => {
@@ -61,6 +77,7 @@ describe('addressOf', () => {
       {page: 'store' as const},
       {page: 'store' as const, query: 'a & b'},
       {page: 'store' as const, app: 'shop-a'},
+      {page: 'store' as const, publisher: 'acme', query: 'mail', app: 'gmail'},
       {page: 'appLibrary' as const, app: 'gmail'},
       {page: 'publish' as const},
     ]) {

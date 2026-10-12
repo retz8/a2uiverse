@@ -1,8 +1,9 @@
 /**
  * The catalog loader (task 11.5): a catalog not held is loaded from the registry — the table, the
- * descriptor, the entry from its served URL — checked, and added to the one array every processor
- * reads; one load in flight per catalog; a miss sends it back to the table once; a failed load is
- * not kept; the first load wins for the session.
+ * descriptor, the entry from its served URL — checked, and added to the set's array its processor
+ * reads; one load in flight per build; a miss sends it back to the table once; a failed load is not
+ * kept; the first load into a set wins for that set, each canvas a set of its own, a build loaded
+ * once for the page by its artifact id (task-14.7 decision 1).
  */
 import {describe, expect, it, vi} from 'vitest';
 import {Catalog} from '@a2ui/web_core/v0_9';
@@ -40,7 +41,7 @@ function fakeRegistry({
   let reads = 0;
   const fetchJson = vi.fn(async (url: string, _fresh?: boolean) => {
     if (url === `${REGISTRY}catalogs.json`) return tables[Math.min(reads++, tables.length - 1)];
-    if (url === `${REGISTRY}artifacts/sha256-demo/artifact.json`) return descriptor;
+    if (/\/artifacts\/sha256-[a-z]+\/artifact\.json$/.test(url)) return descriptor;
     throw new Error(`no route ${url}`);
   });
   const importModule = vi.fn((_url: string) => module());
@@ -165,7 +166,7 @@ describe('loading a catalog', () => {
     ]);
   });
 
-  it('keeps the first load of a catalog for the session (task-11.5 decision 6)', async () => {
+  it('keeps the first load of a catalog for the page’s own set (task-11.5 decision 6)', async () => {
     const {loader, importModule} = fakeRegistry({
       tables: [
         [...CLIENT_ROWS, DEMO_ROW],
@@ -257,5 +258,86 @@ describe('a request that gets no answer (task-11.8 decision 20)', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe('a canvas’s own set (task-14.7 decision 1)', () => {
+  const NEWER_ROW: CatalogRow = {...DEMO_ROW, artifact: 'sha256-newer'};
+
+  it('starts with the builds the table names, loaded, and loads the rest into itself alone', async () => {
+    const {loader, importModule} = fakeRegistry();
+    const before = loader.forCanvas();
+    expect(before.has(DEMO)).toBe(false);
+    await loader.preload();
+    const after = loader.forCanvas();
+    expect(after.has(DEMO)).toBe(true);
+    expect(after.catalogs.map(c => c.id)).toEqual([SHELL_CATALOG_ID, BASIC_CATALOG_ID, DEMO]);
+    expect(before.has(DEMO)).toBe(false);
+    await before.load(DEMO);
+    expect(before.resolved().get(DEMO)).toBe(after.resolved().get(DEMO));
+    expect(importModule).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps its build when an install moves the catalog; a canvas opened after takes the new one', async () => {
+    const modules = new Map([
+      [`${REGISTRY}artifacts/sha256-demo/index.js`, demoModule()],
+      [`${REGISTRY}artifacts/sha256-newer/index.js`, demoModule()],
+    ]);
+    const {loader, importModule} = fakeRegistry({
+      tables: [
+        [...CLIENT_ROWS, DEMO_ROW],
+        [...CLIENT_ROWS, NEWER_ROW],
+      ],
+    });
+    importModule.mockImplementation(url => Promise.resolve(modules.get(url)!));
+    await loader.preload();
+    const open = loader.forCanvas();
+    const held = open.resolved().get(DEMO);
+    await loader.refresh();
+    expect(importModule).toHaveBeenLastCalledWith(`${REGISTRY}artifacts/sha256-newer/index.js`);
+    expect(open.resolved().get(DEMO)).toBe(held);
+    const later = loader.forCanvas();
+    expect(later.has(DEMO)).toBe(true);
+    expect(later.resolved().get(DEMO)).not.toBe(held);
+  });
+
+  it('a canvas opened before the new build loaded loads it on its first surface', async () => {
+    const {loader, importModule} = fakeRegistry({
+      tables: [
+        [...CLIENT_ROWS, DEMO_ROW],
+        [...CLIENT_ROWS, NEWER_ROW],
+      ],
+    });
+    await loader.preload();
+    const held = loader.forCanvas().resolved().get(DEMO);
+    const refreshed = loader.refresh();
+    const opened = loader.forCanvas();
+    await refreshed;
+    await opened.load(DEMO);
+    expect(importModule).toHaveBeenCalledTimes(2);
+    expect(opened.resolved().get(DEMO)).not.toBe(held);
+  });
+});
+
+describe('a Store sample’s build (task-14.7 decision 1)', () => {
+  const MARKETPLACE = 'http://hub.test/marketplace/';
+
+  it('reads the build from the marketplace’s artifacts and changes no set', async () => {
+    const {loader, importModule} = fakeRegistry();
+    const canvas = loader.forCanvas();
+    const build = await loader.loadBuild(DEMO, 'sha256-other', MARKETPLACE);
+    expect(build.id).toBe(DEMO);
+    expect(importModule).toHaveBeenCalledWith(`${MARKETPLACE}artifacts/sha256-other/index.js`);
+    expect(loader.has(DEMO)).toBe(false);
+    expect(canvas.has(DEMO)).toBe(false);
+  });
+
+  it('shares one load with the registry’s when it is the same build', async () => {
+    const {loader, importModule} = fakeRegistry();
+    const build = await loader.loadBuild(DEMO, 'sha256-demo', MARKETPLACE);
+    const canvas = loader.forCanvas();
+    await canvas.load(DEMO);
+    expect(canvas.resolved().get(DEMO)).toBe(build);
+    expect(importModule).toHaveBeenCalledTimes(1);
   });
 });

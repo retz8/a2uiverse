@@ -17,6 +17,7 @@ import {
   SlotContentContext,
   SlotStateContext,
 } from '@a2uiverse/shell-catalog';
+import {CanvasCatalogs} from '../../catalogs/CatalogContext';
 import type {CanvasRuntime} from '../canvasRuntime';
 import {orderedNotices} from '../canvasStore';
 import {columnState, sourceBusy} from '../composition/columnState';
@@ -100,45 +101,47 @@ export function CanvasView({runtime, onEdit, past = false}: CanvasViewProps) {
   const showProgress = question !== null || state.inFlight !== null || state.error !== null;
 
   return (
-    <BindingIndexContext.Provider value={runtime.bindingIndex}>
-      <SlotContentContext.Provider value={slotContent}>
-        {/* The header scrolls with the page it heads; once it has left, the condensed bar
+    <CanvasCatalogs held={runtime.held}>
+      <BindingIndexContext.Provider value={runtime.bindingIndex}>
+        <SlotContentContext.Provider value={slotContent}>
+          {/* The header scrolls with the page it heads; once it has left, the condensed bar
             holds the top edge (CompactHead). */}
-        <div className="canvas-scroll" data-testid="canvas-scroll" ref={scrollRef}>
-          <CompactHead
-            scroller={scrollRef}
-            head={headRef}
-            question={question}
-            state={state}
-            showProgress={showProgress}
-            onEdit={onEdit}
-            past={past}
-          />
-          {(question || showProgress) && (
-            <header className="canvas-head" data-testid="canvas-head" ref={headRef}>
-              {question && (
-                // Keyed by the question, so a new one starts over at display size, measured.
-                <QuestionHeader
-                  key={`${question.askedAt}:${question.text}`}
-                  question={question}
-                  onEdit={onEdit}
-                />
-              )}
-              {showProgress && <ProgressLine state={state} since={question?.askedAt ?? null} />}
-            </header>
-          )}
-          <SlotStateContext.Provider value={slotStateOf}>
-            <PressStateContext.Provider value={pressState}>
-              <SignInContext.Provider value={signingInOf}>
-                <FragmentHistoryContext.Provider value={historyOf}>
-                  <CanvasStage processor={runtime.processor} state={state} />
-                </FragmentHistoryContext.Provider>
-              </SignInContext.Provider>
-            </PressStateContext.Provider>
-          </SlotStateContext.Provider>
-        </div>
-        <AmbientNotice notices={orderedNotices(state)} onDismiss={runtime.store.dismissNotice} />
-      </SlotContentContext.Provider>
-    </BindingIndexContext.Provider>
+          <div className="canvas-scroll" data-testid="canvas-scroll" ref={scrollRef}>
+            <CompactHead
+              scroller={scrollRef}
+              head={headRef}
+              question={question}
+              state={state}
+              showProgress={showProgress}
+              onEdit={onEdit}
+              past={past}
+            />
+            {(question || showProgress) && (
+              <header className="canvas-head" data-testid="canvas-head" ref={headRef}>
+                {question && (
+                  // Keyed by the question, so a new one starts over at display size, measured.
+                  <QuestionHeader
+                    key={`${question.askedAt}:${question.text}`}
+                    question={question}
+                    onEdit={onEdit}
+                  />
+                )}
+                {showProgress && <ProgressLine state={state} since={question?.askedAt ?? null} />}
+              </header>
+            )}
+            <SlotStateContext.Provider value={slotStateOf}>
+              <PressStateContext.Provider value={pressState}>
+                <SignInContext.Provider value={signingInOf}>
+                  <FragmentHistoryContext.Provider value={historyOf}>
+                    <CanvasStage processor={runtime.processor} state={state} />
+                  </FragmentHistoryContext.Provider>
+                </SignInContext.Provider>
+              </PressStateContext.Provider>
+            </SlotStateContext.Provider>
+          </div>
+          <AmbientNotice notices={orderedNotices(state)} onDismiss={runtime.store.dismissNotice} />
+        </SlotContentContext.Provider>
+      </BindingIndexContext.Provider>
+    </CanvasCatalogs>
   );
 }

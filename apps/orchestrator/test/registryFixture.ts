@@ -64,6 +64,8 @@ export interface ArtifactOptions {
   hostInterface?: string;
   /** Changes the descriptor, and so the artifact's id, without changing the catalog. */
   version?: string;
+  /** More files, by path, as a pack writes its stylesheets beside the entry. */
+  files?: Record<string, string>;
 }
 
 /** A catalog artifact as Stellify writes one: the entry, the schema, the descriptor listing both. */
@@ -80,6 +82,7 @@ export async function fixtureArtifact(
   const files: ArtifactFiles = new Map([
     ['index.js', encode(`export const CATALOG = {id: ${JSON.stringify(catalogId)}};\n`)],
     ['catalog.json', encode(`${JSON.stringify(schema, null, 2)}\n`)],
+    ...Object.entries(options.files ?? {}).map(([path, text]) => [path, encode(text)] as const),
   ]);
   const hashed: Record<string, string> = {};
   for (const [path, bytes] of files) hashed[path] = await hashArtifactFile(bytes);

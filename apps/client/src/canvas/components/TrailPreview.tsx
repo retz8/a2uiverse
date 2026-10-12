@@ -13,7 +13,7 @@ import {
   SlotContentContext,
   SlotStateContext,
 } from '@a2uiverse/shell-catalog';
-import {SurfaceFrame} from '../../catalogs/CatalogContext';
+import {CanvasCatalogs, SurfaceFrame} from '../../catalogs/CatalogContext';
 import {SurfaceErrorBoundary} from '../../shared/SurfaceErrorBoundary';
 import type {CanvasRuntime} from '../canvasRuntime';
 import {columnState} from '../composition/columnState';
@@ -93,7 +93,9 @@ export function TrailPreview({runtime, label, top, railColumn}: TrailPreviewProp
                     <PressStateContext.Provider value={NO_PRESSES}>
                       <SignInContext.Provider value={signingInOf}>
                         <SurfaceErrorBoundary surfaceId={state.stageId} resetKey={state.appliedSeq}>
-                          <SurfaceFrame surface={surface} />
+                          <CanvasCatalogs held={runtime.held}>
+                            <SurfaceFrame surface={surface} />
+                          </CanvasCatalogs>
                         </SurfaceErrorBoundary>
                       </SignInContext.Provider>
                     </PressStateContext.Provider>

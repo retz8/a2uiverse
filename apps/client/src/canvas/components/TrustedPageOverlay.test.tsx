@@ -15,7 +15,7 @@ describe('TrustedPageOverlay', () => {
     expect(screen.queryByTestId('trusted-page-overlay')).toBeNull();
   });
 
-  it('names the Store and shows the query it was opened with', () => {
+  it('names the Store and holds the query it was opened with in its search box', () => {
     render(
       <TrustedPageOverlay
         page={{page: 'store', query: 'flight booking'}}
@@ -26,7 +26,7 @@ describe('TrustedPageOverlay', () => {
     const overlay = screen.getByRole('dialog', {name: 'Store'});
     expect(overlay).toHaveAttribute('data-page', 'store');
     expect(overlay).toHaveAttribute('data-query', 'flight booking');
-    expect(screen.getByTestId('trusted-page-query')).toHaveTextContent('flight booking');
+    expect(screen.getByRole('searchbox', {name: 'Search the Store'})).toHaveValue('flight booking');
   });
 
   it('names the App Library and the app it opened on', () => {
@@ -38,7 +38,7 @@ describe('TrustedPageOverlay', () => {
       />,
     );
     expect(screen.getByRole('dialog', {name: 'App Library'})).toHaveAttribute('data-app', 'linear');
-    expect(screen.queryByTestId('trusted-page-query')).toBeNull();
+    expect(screen.queryByRole('searchbox')).toBeNull();
   });
 
   it('marks the tab of the destination open; Publish is no tab', () => {
