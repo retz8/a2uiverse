@@ -7,7 +7,7 @@ Sub-task 14.8 of Phase 14 (`_dev/docs/spec/phase-14-shell-trusted-pages.md`, dec
 - The App Library in place of 14.6's placeholder: the list of installed apps with their update states, and an app's view with its state, its accounts and Uninstall.
 - The update from the list and from an app's view, through 14.7's consent card and Update press.
 - The accounts: sign out, rename, permissions, add account and sign in again, with no canvas.
-- The installed list saying whether each app was reached when A2UIVerse started.
+- The installed list saying whether each app was reached.
 - The SPEC amendment this makes; the page's unit tests.
 - Out: the Store (task 14.7); Publish (task 14.9); the end-to-end coverage and the snapshot (task 14.10); the design record (task 14.12).
 
@@ -17,9 +17,9 @@ Sub-task 14.8 of Phase 14 (`_dev/docs/spec/phase-14-shell-trusted-pages.md`, dec
 
 The update check runs every time the App Library is entered — from a closed page, from the Store, from Publish — and not when moving between the list and an app's view inside it. Check again runs it again. The header's time is when that check began.
 
-### 2. An app not reached at startup
+### 2. An app not reached
 
-The installed list says whether each app was reached when A2UIVerse started. On the list, an app that was not reads "Couldn't be reached when A2UIVerse started" in place of its update state. Its view keeps the update state and adds a notice saying it can't answer this time and will be tried again the next time A2UIVerse starts. Its accounts and Uninstall work as for any app.
+The installed list says whether each app was reached — at startup, or by an update check since, which fetches every app's card again. On the list, an app that was not reads "Couldn't be reached" in place of its update state. Its view keeps the update state and adds a notice saying it can't answer right now and Check again tries it once more, with Check again. Its accounts and Uninstall work as for any app.
 
 ### 3. The check runs again after an update
 
@@ -59,4 +59,4 @@ The same Add account press. Its note says it opens a page to connect the app wit
 
 ### 12. Docs and tests
 
-SPEC §10 is amended in this task: the installed list says whether each app was reached at startup. The page is covered by unit tests here; the end-to-end coverage and the snapshot are task 14.10's, the design record task 14.12's.
+SPEC §10 is amended in this task: the installed list says whether each app was reached, and an app not reached at startup stays unroutable until a check reaches it. The page is covered by unit tests here; the end-to-end coverage and the snapshot are task 14.10's, the design record task 14.12's.
