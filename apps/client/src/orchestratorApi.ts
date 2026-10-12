@@ -3,7 +3,8 @@
  * the orchestrator's own address and the registry's read routes — the catalog table and the
  * artifacts, served as static files under `/registry` (task-11.4 decision 10); the Store's reads,
  * relayed from the marketplace under `/marketplace` and annotated with what the registry holds,
- * and the install (task 14.7). HTTP from M7; IPC in Electron swaps the transport only. Runtime
+ * and the install (task 14.7); the App Library's update check, accounts read, rename, sign-out
+ * and uninstall (task 14.8). HTTP from M7; IPC in Electron swaps the transport only. Runtime
  * objects (catalogs, providers) never cross this boundary; `catalogs/loader` turns what it serves
  * into them.
  */
@@ -49,15 +50,16 @@ export async function fetchJson(url: string, init?: RequestInit): Promise<unknow
 /**
  * Where a sign-in window opens (task-12.5 decision 5): the orchestrator's start route, naming the
  * attempt the client made, the canvas — its A2A context — and the source, or the bare app id for
- * add-account (task-12.8 decision 5).
+ * add-account (task-12.8 decision 5). The App Library's sign-in names no canvas (task-14.3
+ * decision 6).
  */
 export function signInStartUrl(
   base: string,
-  params: {attempt: string; canvas: string; source: string},
+  params: {attempt: string; canvas?: string; source: string},
 ): string {
   const url = new URL('auth/start', base.endsWith('/') ? base : `${base}/`);
   url.searchParams.set('attempt', params.attempt);
-  url.searchParams.set('canvas', params.canvas);
+  if (params.canvas !== undefined) url.searchParams.set('canvas', params.canvas);
   url.searchParams.set('source', params.source);
   return url.href;
 }
@@ -166,19 +168,30 @@ export function readStorePreview(base: string, appId: string): Promise<StoreRead
   );
 }
 
-/** An installed app as the registry lists it: what the page names it by. */
+/**
+ * An installed app as the registry lists it: its card as installed, where it came from, and
+ * whether this run holds its card — reached at startup or by a check since (task-14.8 decision 2);
+ * a snapshot that does not say is read as reached.
+ */
 export interface InstalledApp {
   id: string;
-  card: Pick<PublishedCard, 'name'>;
+  card: PublishedCard;
+  source?: 'marketplace' | 'local';
+  reachable?: boolean;
 }
 
 /** The installed apps; none when the registry cannot be read. */
 export async function readInstalledApps(base: string): Promise<InstalledApp[]> {
+  return (await readInstalled(base)) ?? [];
+}
+
+/** The installed apps; null when the registry cannot be read. */
+export async function readInstalled(base: string): Promise<InstalledApp[] | null> {
   try {
     const apps = await fetchJson(new URL('apps.json', registryUrl(base)).href, {cache: 'no-store'});
-    return Array.isArray(apps) ? (apps as InstalledApp[]) : [];
+    return Array.isArray(apps) ? (apps as InstalledApp[]) : null;
   } catch {
-    return [];
+    return null;
   }
 }
 
@@ -221,3 +234,135 @@ export async function installApp(base: string, appId: string): Promise<InstallAn
   // A refusal with no cause the page knows still failed the install: the checks are its words.
   return {ok: false, cause: cause ?? 'checks'};
 }
+
+// --- The App Library (task 14.8) ----------------------------------------------------------------
+
+/** The orchestrator's sign-in routes: the accounts read, rename and sign-out. */
+function authUrl(base: string, path: string): string {
+  return new URL(`auth/${path}`, base.endsWith('/') ? base : `${base}/`).href;
+}
+
+/**
+ * Runs the update check and answers every installed app's state (SPEC §10); null when the
+ * orchestrator could not be asked. The check also replaces the state the Planner's reader holds.
+ */
+export async function checkUpdates(base: string): Promise<UpdateState[] | null> {
+  try {
+    const states = await fetchJson(new URL('updates.json', registryUrl(base)).href, {
+      cache: 'no-store',
+    });
+    return Array.isArray(states) ? (states as UpdateState[]) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** An account as the App Library reads it (task-14.3 decision 9). */
+export interface LibraryAccount {
+  source: string;
+  label: string;
+  kind: 'oauth' | 'key';
+  /** The permissions it holds in the card's own words; none for a key, or a card that gives none. */
+  permissions: string[];
+  /** It must sign in again. */
+  lapsed: boolean;
+}
+
+/** An app's accounts, and whether it asks no sign-in, signs in, or asks one A2UIVerse can't run. */
+export interface LibraryApp {
+  appId: string;
+  signIn: 'none' | 'supported' | 'unsupported';
+  accounts: LibraryAccount[];
+}
+
+/** Every installed app's accounts; null when the orchestrator could not be asked. */
+export async function readAccounts(base: string): Promise<LibraryApp[] | null> {
+  try {
+    const apps = await fetchJson(authUrl(base, 'accounts.json'), {cache: 'no-store'});
+    return Array.isArray(apps) ? (apps as LibraryApp[]) : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * A write from the browser: the JSON content type and the page's own origin, no token (SPEC §10).
+ * Null when the orchestrator could not be reached.
+ */
+async function write(url: string, body: unknown): Promise<{status: number; body: unknown} | null> {
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(body),
+    });
+    return {status: response.status, body: await response.json().catch(() => undefined)};
+  } catch {
+    return null;
+  }
+}
+
+/** A write refused: the orchestrator's first finding, or none when it could not be reached. */
+export interface Refused {
+  ok: false;
+  reason?: string;
+}
+
+const refusedOf = (answer: {body: unknown} | null): Refused => {
+  const findings = (answer?.body as {findings?: unknown} | undefined)?.findings;
+  const first = Array.isArray(findings) ? findings[0] : undefined;
+  return typeof first === 'string' ? {ok: false, reason: first} : {ok: false};
+};
+
+/** What became of an account's access: cancelled, nowhere to cancel, or failed to cancel. */
+export type Revocation = 'revoked' | 'nowhere' | 'failed';
+
+/** Renames an account: the label the vault now holds, or why not (task-14.3 decision 4). */
+export async function renameAccount(
+  base: string,
+  source: string,
+  label: string,
+): Promise<{ok: true; label: string} | Refused> {
+  const answer = await write(authUrl(base, 'rename'), {source, label});
+  const body = answer?.body as {ok?: unknown; label?: unknown} | undefined;
+  if (answer?.status === 200 && body?.ok === true) return {ok: true, label: String(body.label)};
+  return refusedOf(answer);
+}
+
+/** Signs an account out: dropped in every case, with what became of its access. */
+export async function signOutAccount(
+  base: string,
+  source: string,
+): Promise<{ok: true; label: string; revocation: Revocation} | Refused> {
+  const answer = await write(authUrl(base, 'sign-out'), {source});
+  const body = answer?.body as {ok?: unknown; label?: unknown; revocation?: unknown} | undefined;
+  if (answer?.status === 200 && body?.ok === true) {
+    return {ok: true, label: String(body.label), revocation: revocationOf(body.revocation)};
+  }
+  return refusedOf(answer);
+}
+
+/** Uninstalls an app, its accounts signed out — each with what became of its access. */
+export async function uninstallApp(
+  base: string,
+  appId: string,
+): Promise<{ok: true; accounts: {label: string; revocation: Revocation}[]} | Refused> {
+  const answer = await write(new URL('uninstall', registryUrl(base)).href, {appId});
+  const body = answer?.body as {ok?: unknown; accounts?: unknown} | undefined;
+  if (answer?.status === 200 && body?.ok === true) {
+    const accounts = Array.isArray(body.accounts)
+      ? (body.accounts as Record<string, unknown>[])
+      : [];
+    return {
+      ok: true,
+      accounts: accounts.map(account => ({
+        label: String(account.label),
+        revocation: revocationOf(account.revocation),
+      })),
+    };
+  }
+  return refusedOf(answer);
+}
+
+const revocationOf = (value: unknown): Revocation =>
+  value === 'revoked' || value === 'nowhere' ? value : 'failed';

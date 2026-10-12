@@ -5,7 +5,8 @@
  * 14.2: a header with the way back, the Store and the App Library as its two tabs and Publish a mode
  * at its right edge, filled while open (decision 19); under it, the destination's own body. Each tab
  * is a link to its own address, so it opens in a new tab too; a press moves the page to that
- * destination's front. The Store is task 14.7's; the App Library and Publish are their own tasks'.
+ * destination's front. The Store is task 14.7's, the App Library task 14.8's; Publish is its own
+ * task's.
  *
  * Distinct from `CanvasOverlay`, which mounts a pending question surface.
  */
@@ -13,6 +14,7 @@ import {useEffect, useRef, useState} from 'react';
 import type {PageCatalogs} from '../../catalogs/CatalogContext';
 import {agentUrl} from '../../orchestratorApi';
 import type {TrustedPage, TrustedPageState} from '../trail/trailStore';
+import {LibraryPage} from '../trustedPage/library/LibraryPage';
 import {pageLink} from '../trustedPage/pageLink';
 import {StorePage} from '../trustedPage/store/StorePage';
 import '../trustedPage/trustedPage.css';
@@ -144,6 +146,14 @@ export function TrustedPageOverlay({
       <main className="trusted-page__main" ref={main}>
         {page.page === 'store' ? (
           <StorePage
+            page={page}
+            onNavigate={onNavigate}
+            orchestrator={orchestrator}
+            catalogs={catalogs}
+            container={container}
+          />
+        ) : page.page === 'appLibrary' ? (
+          <LibraryPage
             page={page}
             onNavigate={onNavigate}
             orchestrator={orchestrator}

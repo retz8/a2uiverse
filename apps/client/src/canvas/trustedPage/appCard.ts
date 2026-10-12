@@ -1,16 +1,19 @@
 /**
  * What the trusted page says of an app, read off its card and its listing (task 14.7): its tile,
- * the questions to try, what signing in will be, the press its listing carries, and the sample's
- * caption. Every word is the person's — never a scheme, a scope key or a catalog.
+ * the questions to try, what signing in will be, the press its listing or its update state carries,
+ * what a refused install or update says, and the sample's caption — for the Store and the App
+ * Library alike. Every word is the person's — never a scheme, a scope key or a catalog.
  */
 import {
   UPDATE_WORDS,
+  type InstallRefusal,
   type NewScopes,
   type PreviewDocument,
   type PublishedCard,
   type UpdateState,
 } from '@a2uiverse/sdk';
 import type {StoreListing} from '../../orchestratorApi';
+import type {AppAct} from './useAppAct';
 
 /** The app's tile: the first letter of its card's name (task-14.7 decision 9). */
 export function tileLetter(name: string): string {
@@ -112,7 +115,17 @@ export type ListingAct =
 
 export function listingAct({installed, update}: StoreListing): ListingAct {
   if (!installed) return {kind: 'install'};
-  if (!update) return {kind: 'installed'};
+  return (update && updateAct(update)) ?? {kind: 'installed'};
+}
+
+/**
+ * What an installed app's update state carries, in the Store and the App Library alike: an Update
+ * — through the consent card for the update that asks for more — or the wait for the publisher;
+ * nothing for every other state.
+ */
+export function updateAct(
+  update: UpdateState,
+): Extract<ListingAct, {kind: 'update'} | {kind: 'waiting'}> | undefined {
   if (update.state === 'ahead-of-store') {
     return {kind: 'waiting', words: UPDATE_WORDS['ahead-of-store']};
   }
@@ -124,7 +137,48 @@ export function listingAct({installed, update}: StoreListing): ListingAct {
       consent: update.state === 'card-update',
     };
   }
-  return {kind: 'installed'};
+  return undefined;
+}
+
+/** Names in a line: "A", "A and B", "A, B and C". */
+export const listed = (names: readonly string[]) =>
+  names.length <= 1
+    ? (names[0] ?? '')
+    : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+
+/** What a refused install or update says (task-14.7 decision 6), and the press it leaves. */
+export function refusalOf(cause: InstallRefusal, name: string, act: AppAct) {
+  const verb = act === 'install' ? 'installed' : 'updated';
+  switch (cause) {
+    case 'store-behind':
+      return {
+        tone: 'warn' as const,
+        lead: `${name} can’t be ${verb} yet.`,
+        rest: 'Its publisher has changed the app, and the Store hasn’t caught up. Try again later.',
+        press: 'again' as const,
+      };
+    case 'app-unreached':
+      return {
+        tone: 'bad' as const,
+        lead: `${name} couldn’t be reached,`,
+        rest: act === 'install' ? 'so nothing was installed.' : 'so nothing changed.',
+        press: 'retry' as const,
+      };
+    case 'checks':
+      return {
+        tone: 'bad' as const,
+        lead: `${name} can’t be ${verb}.`,
+        rest: 'Its files didn’t pass the checks on this computer, so nothing changed.',
+        press: 'none' as const,
+      };
+    case 'store-unreached':
+      return {
+        tone: 'bad' as const,
+        lead: 'The Store can’t be reached right now,',
+        rest: act === 'install' ? 'so nothing was installed.' : 'so nothing changed.',
+        press: 'retry' as const,
+      };
+  }
 }
 
 /** Whether a card update brings a new look: a catalog it paints in moves to a new build. */

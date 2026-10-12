@@ -53,5 +53,10 @@ export function useAppAct({orchestrator, onChanged}: UseAppActOptions) {
     [orchestrator, onChanged],
   );
 
-  return {outcome, run};
+  /** A press that could not reach the install: refused with its cause, nothing sent. */
+  const refuse = useCallback((appId: string, act: AppAct, cause: InstallRefusal) => {
+    setOutcome({kind: 'refused', appId, act, cause});
+  }, []);
+
+  return {outcome, run, refuse};
 }

@@ -26,6 +26,14 @@ export {PortalRootContext, Provider} from './provider.js';
 export {SlotContentContext, type SlotContentResolver} from './slot-content.js';
 export {SlotStateContext, type SlotStateResolver, type SourceSlotState} from './slot-state.js';
 export {SignInContext, type SignInResolver} from './sign-in.js';
+// The sign-in waiting form, for the App Library's sign-in with no canvas (task-14.2 decision 11).
+export {
+  CONNECT_AGAIN_WORDS,
+  CONNECT_WAITING_WORDS,
+  OPEN_AGAIN_WORDS,
+  SignInWaiting,
+  WAITING_WORDS,
+} from './components/shared/SignInWaiting.js';
 export {
   FragmentHistoryContext,
   type FragmentHistory,

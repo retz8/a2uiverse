@@ -13,12 +13,12 @@
  */
 import {useCallback, useState, type FormEvent} from 'react';
 import {Button} from '@radix-ui/themes';
-import type {InstallRefusal} from '@a2uiverse/sdk';
 import {isLoader, type PageCatalogs} from '../../../catalogs/CatalogContext';
 import type {StoreListing} from '../../../orchestratorApi';
 import type {TrustedPageState} from '../../trail/trailStore';
-import {listingAct, signInOf, tileLetter, tryAsking} from '../appCard';
+import {listed, listingAct, refusalOf, signInOf, tileLetter, tryAsking} from '../appCard';
 import {ConsentCard, type ConsentAsk} from '../ConsentCard';
+import {BackIcon, DoneIcon, TickIcon} from '../icons';
 import {pageLink} from '../pageLink';
 import {useAppAct, type AppAct, type AppActOutcome} from '../useAppAct';
 import {SampleFrame} from './SampleFrame';
@@ -136,55 +136,6 @@ const CrossIcon = () => (
     strokeLinecap="round"
   >
     <path d="M4 4l8 8M12 4l-8 8" />
-  </svg>
-);
-
-const TickIcon = ({size = 12}: {size?: number}) => (
-  <svg
-    aria-hidden="true"
-    width={size}
-    height={size}
-    viewBox="0 0 12 12"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.6"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M2.5 6.2l2.2 2.1L9.5 3.5" />
-  </svg>
-);
-
-const BackIcon = () => (
-  <svg
-    aria-hidden="true"
-    width="14"
-    height="14"
-    viewBox="0 0 14 14"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.5"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M8.5 3L4.5 7l4 4" />
-  </svg>
-);
-
-const DoneIcon = () => (
-  <svg
-    aria-hidden="true"
-    width="16"
-    height="16"
-    viewBox="0 0 16 16"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.6"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <circle cx="8" cy="8" r="6.2" />
-    <path d="M5.2 8.2l2 1.9 3.6-3.8" />
   </svg>
 );
 
@@ -460,47 +411,6 @@ function ListingEnd({
 }
 
 // --- An app's view -----------------------------------------------------------------------------
-
-/** Names in a line: "A", "A and B", "A, B and C". */
-const listed = (names: readonly string[]) =>
-  names.length <= 1
-    ? (names[0] ?? '')
-    : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
-
-/** What a refusal says (task-14.7 decision 6), and the press it leaves. */
-function refusalOf(cause: InstallRefusal, name: string, act: AppAct) {
-  const verb = act === 'install' ? 'installed' : 'updated';
-  switch (cause) {
-    case 'store-behind':
-      return {
-        tone: 'warn' as const,
-        lead: `${name} can’t be ${verb} yet.`,
-        rest: 'Its publisher has changed the app, and the Store hasn’t caught up. Try again later.',
-        press: 'again' as const,
-      };
-    case 'app-unreached':
-      return {
-        tone: 'bad' as const,
-        lead: `${name} couldn’t be reached,`,
-        rest: act === 'install' ? 'so nothing was installed.' : 'so nothing changed.',
-        press: 'retry' as const,
-      };
-    case 'checks':
-      return {
-        tone: 'bad' as const,
-        lead: `${name} can’t be ${verb}.`,
-        rest: 'Its files didn’t pass the checks on this computer, so nothing changed.',
-        press: 'none' as const,
-      };
-    case 'store-unreached':
-      return {
-        tone: 'bad' as const,
-        lead: 'The Store can’t be reached right now,',
-        rest: act === 'install' ? 'so nothing was installed.' : 'so nothing changed.',
-        press: 'retry' as const,
-      };
-  }
-}
 
 function StoreAppView({
   appId,

@@ -3,7 +3,8 @@
  * the orchestrator's own port under one prefix.
  *
  * The read routes are shaped like static files, so a directory of the same layout — the registry
- * snapshot — answers them with no orchestrator: `apps.json`, the installed records; `catalogs.json`,
+ * snapshot — answers them with no orchestrator: `apps.json`, the installed records, each with
+ * whether this run holds its card (task-14.8 decision 2); `catalogs.json`,
  * the catalog table; `artifacts/<id>/<path>`, each artifact's files under its id, served as
  * immutable content. The write routes pass the write guard — from an allowed browser origin, or
  * with the write token (task-14.3 decision 1): `install` — which is install-over for a held id —
@@ -38,8 +39,16 @@ export function registryRoutes({
 }): Router {
   const router = express.Router();
 
+  // Each record says whether this run holds its app's card — reached at startup, or by a check
+  // since — so the App Library can say an app couldn't be reached (task-14.8 decision 2).
   router.get('/apps.json', (_req, res) => {
-    res.set('Cache-Control', 'no-cache').json(registry.installed());
+    res
+      .set('Cache-Control', 'no-cache')
+      .json(
+        registry
+          .installed()
+          .map(record => ({...record, reachable: registry.card(record.id) !== null})),
+      );
   });
   router.get('/catalogs.json', (_req, res) => {
     res.set('Cache-Control', 'no-cache').json(registry.table());

@@ -109,6 +109,26 @@ describe('the read routes', () => {
     const {base} = await serve();
     expect((await fetch(`${base}/artifacts/sha256-nothing/index.js`)).status).toBe(404);
   });
+
+  test('each installed app says whether this run holds its card (task-14.8 decision 2)', async () => {
+    const {base, token, cards, registry} = await serve();
+    const card = cardFor('http://127.0.0.1:11002', {name: 'Gmail'});
+    const cardUrl = cards.serve(card);
+    await post(`${base}/install`, {appId: 'gmail', cardUrl, catalogs: []}, token);
+    const reachable = async () =>
+      ((await (await fetch(`${base}/apps.json`)).json()) as {reachable: boolean}[])[0]?.reachable;
+    expect(await reachable()).toBe(true);
+
+    // Down when the run started: not reached.
+    cards.cards.delete(cardUrl);
+    await registry.refreshCards();
+    expect(await reachable()).toBe(false);
+
+    // Back, and reached by a check since.
+    cards.serve(card);
+    await registry.refetchLiveCards();
+    expect(await reachable()).toBe(true);
+  });
 });
 
 describe('install and uninstall over HTTP', () => {
