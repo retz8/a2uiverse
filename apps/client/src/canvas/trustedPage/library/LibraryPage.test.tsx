@@ -9,6 +9,7 @@ import {useState} from 'react';
 import {screen, waitFor, within} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type {IndexEntry, PublishedCard, UpdateState} from '@a2uiverse/sdk';
+import type {CatalogLoader} from '../../../catalogs/loader';
 import type {InstalledApp, LibraryApp} from '../../../orchestratorApi';
 import type {TrustedPageState} from '../../trail/trailStore';
 import {CATALOGS, renderWithShell} from '../../../../tests/helpers';
@@ -283,6 +284,24 @@ describe('the list of your apps', () => {
     ).toBeInTheDocument();
     expect(row('calendar')).toHaveTextContent('A new version is available');
     expect(row('shop-b')).toHaveTextContent('Installed from your computer');
+  });
+
+  it('a check that lands reads the table again for the canvases opened after: it may have installed a newer build itself', async () => {
+    const refresh = vi.fn(async () => {});
+    const loader = {refresh} as unknown as CatalogLoader;
+    renderWithShell(
+      <LibraryPage
+        page={{page: 'appLibrary'}}
+        onNavigate={() => {}}
+        orchestrator={BASE}
+        catalogs={loader}
+        container={null}
+        pollMs={5}
+        openWindow={() => {}}
+      />,
+    );
+    await waitFor(() => expect(refresh).toHaveBeenCalledTimes(1));
+    expect(fake.checks).toBe(1);
   });
 
   it('says an app not reached in place of its state (decision 2)', async () => {

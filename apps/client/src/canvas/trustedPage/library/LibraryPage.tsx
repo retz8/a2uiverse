@@ -10,7 +10,7 @@
  * app lives in the address, each move replacing the page's entry on the history; after an
  * uninstall the page returns to the list.
  */
-import {useCallback, useState, type ReactNode} from 'react';
+import {useCallback, useEffect, useState, type ReactNode} from 'react';
 import {AlertDialog, Button, Flex} from '@radix-ui/themes';
 import type {UpdateState} from '@a2uiverse/sdk';
 import {isLoader, type PageCatalogs} from '../../../catalogs/CatalogContext';
@@ -97,6 +97,12 @@ export function LibraryPage({
     void runCheck();
     void readAccounts();
   }, [catalogs, runCheck, readAccounts]);
+  // A check that lands may have moved the registry itself — a newer build installs at the check
+  // (phase-13 decision 16): new canvases take the builds it now names, as after an update here.
+  const landed = library.check.running || library.check.failed ? undefined : library.check.at;
+  useEffect(() => {
+    if (landed && isLoader(catalogs)) void catalogs.refresh();
+  }, [landed, catalogs]);
   const {outcome, run, refuse} = useAppAct({orchestrator, onChanged});
   const [ask, setAsk] = useState<ConsentAsk | null>(null);
   const [uninstall, setUninstall] = useState<UninstallOutcome>({kind: 'idle'});
