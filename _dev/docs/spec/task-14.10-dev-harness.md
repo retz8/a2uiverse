@@ -65,7 +65,7 @@ New beats recorded over the deterministic roster with the marketplace up: "is an
 
 ### 14. One fixed world in the snapshot, writes answered per test
 
-The preview server answers every read the page makes from a stand-in shipped with the registry snapshot, as it answers `/registry`: the snapshot's apps listed in the Store under their publisher with their samples; each installed app in a different update state; GitHub with two accounts and their permissions; Shop B on a key; a publisher signed in, with listings and the ahead-of-the-Store notice. Each write's answer — installed, refused by cause, published, the gate's findings, the token shown once, sign-out's outcome — is served per test.
+The preview server answers every read the page makes from a stand-in shipped with the registry snapshot, as it answers `/registry`: the snapshot's apps listed in the Store under their publisher with their samples; each installed app in a different update state; Gmail with the two accounts its sign-in window offers and their permissions; Shop B on a key; a publisher signed in, with listings and the ahead-of-the-Store notice. Each write's answer — installed, refused by cause, published, the gate's findings, the token shown once, sign-out's outcome — is served per test.
 
 ### 15. Where the world's content comes from
 
