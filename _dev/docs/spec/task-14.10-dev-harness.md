@@ -21,7 +21,7 @@ The live suite proves each flow once end to end. Every update state's wording, t
 
 ### 3. The live roster
 
-GitHub and Shop A, published by the dev publisher `a2uiverse-apps` and installed from the marketplace. Shop B's agent runs, neither published nor installed: it is the app the publisher claimed on the page publishes. Shop A carries the Store and the update, GitHub the accounts, Shop B Publish.
+GitHub, Gmail and Shop A, published by the dev publisher `a2uiverse-apps` and installed from the marketplace. Shop B's agent runs, neither published nor installed: it is the app the publisher claimed on the page publishes. Shop A carries the Store and the update, Gmail the accounts, Shop B Publish; GitHub keeps the sign-in through the real window.
 
 ### 4. The live suite's marketplace and dev publisher are its own
 
@@ -37,7 +37,7 @@ A newer build of Shop A — the card unchanged — is published behind the page,
 
 ### 7. The accounts, live
 
-On GitHub: signed in, renamed, its permissions read, a second account added through the real sign-in window, each signed out.
+On Gmail, the one app whose sign-in window offers two accounts: signed in, renamed, its permissions read, the second account added through the real sign-in window, each signed out.
 
 ### 8. Publish, live
 
@@ -53,7 +53,7 @@ Shop A's newer build and Shop B's breaking pack are each copied from the checkou
 
 ### 11. One live stack, each story leaving it as found
 
-The existing sign-in spec moves onto the new stack. Each story undoes what it changed — GitHub's accounts signed out, Shop A installed again, the claimed publisher signed out — so no story depends on the order they run in. The stack starts once.
+The existing sign-in spec moves onto the new stack. Each story undoes what it changed — GitHub's and Gmail's accounts signed out, Shop A installed again, the claimed publisher signed out — so no story depends on the order they run in. The stack starts once.
 
 ### 12. The live suite asserts no journal lines
 
@@ -77,7 +77,7 @@ One baseline per board of the UI reference canvas (https://claude.ai/artifact/QS
 
 ### 17. Left to the acceptance pass
 
-The ahead-of-the-Store notice live and one pressable update live, each produced with a card edit as task 13.8 did; the two Gmail accounts — task 14.11's, by hand through the tunnel.
+The ahead-of-the-Store notice live and one pressable update live, each produced with a card edit as task 13.8 did — task 14.11's, by hand through the tunnel.
 
 ## Invariants
 
