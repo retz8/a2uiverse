@@ -1,7 +1,7 @@
 /**
  * The App Library over the fixed world (task-14.10 decisions 14, 16): one baseline per App Library
  * board of the UI reference canvas, each board's other states driven and asserted in the page's
- * text. Six apps installed, each in a different update state; GitHub on two accounts, Gmail on one,
+ * text. Six apps installed, each in a different update state; Gmail on two accounts, GitHub on one,
  * Google Calendar's lapsed, Shop B's a key. A state the world doesn't hold is the one read
  * overridden in that test.
  */
@@ -322,20 +322,21 @@ test('L4 · updating, updated, waiting on the publisher, gone, and an update ref
 test('L5 · an app’s view: its state, its two accounts, Add account, Uninstall at the bottom', async ({
   page,
 }) => {
-  const view = await openApp(page, 'github');
-  await expect(view.getByRole('heading', {name: 'GitHub'})).toBeVisible();
+  const view = await openApp(page, 'gmail');
+  await expect(view.getByRole('heading', {name: 'Gmail'})).toBeVisible();
   await expect(view).toContainText('by a2uiverse-apps');
-  await expect(view.getByTestId('library-state')).toContainText('Up to date');
+  await expect(view.getByTestId('library-state')).toContainText('A small update is ready');
+  await expect(view.getByRole('button', {name: 'Update Gmail'})).toBeVisible();
   for (const [source, label] of [
-    ['github.1', 'me@example.com'],
-    ['github.2', 'work@example.com'],
+    ['gmail.1', 'you@example.com'],
+    ['gmail.2', 'you.personal@example.net'],
   ] as const) {
     await expect(account(page, source)).toContainText(label);
     await expect(account(page, source)).toContainText('Signed in');
   }
   await expect(view.getByRole('button', {name: 'Add account'})).toBeVisible();
-  await expect(view).toContainText('Opens GitHub’s sign-in in a new window');
-  await expect(view.getByRole('button', {name: 'Uninstall GitHub'})).toBeVisible();
+  await expect(view).toContainText('Opens Gmail’s sign-in in a new window');
+  await expect(view.getByRole('button', {name: 'Uninstall Gmail'})).toBeVisible();
   await expect(view).toContainText('Also signs out both accounts');
   await expect(page).toHaveScreenshot('library-l5-app-view.png');
 });
@@ -346,10 +347,10 @@ test('L6 · permissions read, an account renamed, a key account', async ({page})
   await page.route('**/auth/rename', route => {
     const body = route.request().postDataJSON() as {source: string; label: string};
     renames.push(body);
-    if (body.source === 'github.1') {
+    if (body.source === 'gmail.1') {
       return route.fulfill({
         status: 422,
-        json: {ok: false, findings: ['another GitHub account already has that name']},
+        json: {ok: false, findings: ['another Gmail account already has that name']},
       });
     }
     renamed = true;
@@ -360,39 +361,36 @@ test('L6 · permissions read, an account renamed, a key account', async ({page})
     '**/auth/accounts.json',
     () => renamed,
     apps =>
-      withAccounts(apps, 'github', app => ({
+      withAccounts(apps, 'gmail', app => ({
         ...app,
-        accounts: app.accounts.map(a => (a.source === 'github.2' ? {...a, label: 'Work'} : a)),
+        accounts: app.accounts.map(a => (a.source === 'gmail.2' ? {...a, label: 'Personal'} : a)),
       })),
   );
-  await openApp(page, 'github');
+  await openApp(page, 'gmail');
 
   // Permissions, read only, in the app's own words.
-  await account(page, 'github.1').getByRole('button', {name: 'Permissions'}).click();
-  const permissions = account(page, 'github.1').locator('.library-perm');
-  await expect(permissions).toContainText('GitHub can');
-  await expect(permissions.locator('li')).toHaveText([
-    'See your repositories, pull requests, issues and notifications',
-    'Comment, review, merge, and open issues and pull requests as you',
-  ]);
+  await account(page, 'gmail.1').getByRole('button', {name: 'Permissions'}).click();
+  const permissions = account(page, 'gmail.1').locator('.library-perm');
+  await expect(permissions).toContainText('Gmail can');
+  await expect(permissions.locator('li')).toHaveText(['See your inbox', 'Read your email']);
   await expect(permissions).toContainText('To take a permission away, sign out and sign in again.');
 
   // The other account being renamed, in place.
-  await page.getByRole('button', {name: 'Rename work@example.com'}).click();
-  const name = account(page, 'github.2').getByRole('textbox', {name: 'Account name'});
-  await name.fill('Work');
+  await page.getByRole('button', {name: 'Rename you.personal@example.net'}).click();
+  const name = account(page, 'gmail.2').getByRole('textbox', {name: 'Account name'});
+  await name.fill('Personal');
   await expect(page).toHaveScreenshot('library-l6-permissions-rename.png');
 
-  await account(page, 'github.2').getByRole('button', {name: 'Save'}).click();
-  await expect(account(page, 'github.2')).toContainText('Work');
-  expect(renames).toEqual([{source: 'github.2', label: 'Work'}]);
+  await account(page, 'gmail.2').getByRole('button', {name: 'Save'}).click();
+  await expect(account(page, 'gmail.2')).toContainText('Personal');
+  expect(renames).toEqual([{source: 'gmail.2', label: 'Personal'}]);
 
   // A name another of its accounts has: said under the field.
-  await page.getByRole('button', {name: 'Rename me@example.com'}).click();
-  await account(page, 'github.1').getByRole('textbox', {name: 'Account name'}).fill('work');
-  await account(page, 'github.1').getByRole('button', {name: 'Save'}).click();
-  await expect(account(page, 'github.1').getByRole('alert')).toHaveText(
-    'Another GitHub account already has that name.',
+  await page.getByRole('button', {name: 'Rename you@example.com'}).click();
+  await account(page, 'gmail.1').getByRole('textbox', {name: 'Account name'}).fill('personal');
+  await account(page, 'gmail.1').getByRole('button', {name: 'Save'}).click();
+  await expect(account(page, 'gmail.1').getByRole('alert')).toHaveText(
+    'Another Gmail account already has that name.',
   );
 
   // A key account names no permissions.
@@ -413,9 +411,9 @@ test('L7 · sign out asks once; a key account says the key is needed again', asy
     signedOut.add(source);
     return route.fulfill({
       json:
-        source === 'github.2'
-          ? {ok: true, source, label: 'work@example.com', revocation: 'revoked'}
-          : {ok: true, source, label: 'me@example.com', revocation: 'failed'},
+        source === 'gmail.2'
+          ? {ok: true, source, label: 'you.personal@example.net', revocation: 'revoked'}
+          : {ok: true, source, label: 'you@example.com', revocation: 'failed'},
     });
   });
   await patchRead<LibraryApp[]>(
@@ -423,34 +421,34 @@ test('L7 · sign out asks once; a key account says the key is needed again', asy
     '**/auth/accounts.json',
     () => signedOut.size > 0,
     apps =>
-      withAccounts(apps, 'github', app => ({
+      withAccounts(apps, 'gmail', app => ({
         ...app,
         accounts: app.accounts.filter(a => !signedOut.has(a.source)),
       })),
   );
-  await openApp(page, 'github');
-  await page.getByRole('button', {name: 'Sign out of work@example.com'}).click();
+  await openApp(page, 'gmail');
+  await page.getByRole('button', {name: 'Sign out of you.personal@example.net'}).click();
   const question = page.getByTestId('library-sign-out');
   await expect(
-    question.getByRole('heading', {name: 'Sign out of work@example.com?'}),
+    question.getByRole('heading', {name: 'Sign out of you.personal@example.net?'}),
   ).toBeVisible();
   await expect(question).toContainText(
-    'GitHub will ask this account to sign in again the next time it’s used. Answers already on your canvases stay as they are.',
+    'Gmail will ask this account to sign in again the next time it’s used. Answers already on your canvases stay as they are.',
   );
   await expect(page).toHaveScreenshot('library-l7-sign-out.png');
 
   // Signed out, its access cancelled.
   await question.getByRole('button', {name: 'Sign out'}).click();
   await expect(page.getByTestId('library-signed-out')).toHaveText(
-    'Signed out of work@example.com.',
+    'Signed out of you.personal@example.net.',
   );
-  await expect(account(page, 'github.2')).toHaveCount(0);
+  await expect(account(page, 'gmail.2')).toHaveCount(0);
 
   // Signed out here, the app unreached to cancel its access.
-  await page.getByRole('button', {name: 'Sign out of me@example.com'}).click();
+  await page.getByRole('button', {name: 'Sign out of you@example.com'}).click();
   await page.getByTestId('library-sign-out').getByRole('button', {name: 'Sign out'}).click();
   await expect(page.getByTestId('library-signed-out')).toHaveText(
-    'Signed out of me@example.com here, but GitHub couldn’t be reached to cancel its access. You can remove that access from your GitHub account’s settings.',
+    'Signed out of you@example.com here, but Gmail couldn’t be reached to cancel its access. You can remove that access from your Gmail account’s settings.',
   );
   await expect(page.getByTestId('library-app-view')).toContainText('No accounts.');
 
@@ -471,7 +469,8 @@ test('L7 · sign out asks once; a key account says the key is needed again', asy
 test('L8 · Add account waits in place while its window is open', async ({page, context}) => {
   const windows = await signInWindows(context, page);
   const view = await openApp(page, 'gmail');
-  await expect(account(page, 'gmail.1')).toContainText('me@example.com');
+  await expect(account(page, 'gmail.1')).toContainText('you@example.com');
+  await expect(account(page, 'gmail.2')).toContainText('you.personal@example.net');
   await windows.open(() => view.getByRole('button', {name: 'Add account'}).click());
   await expect(view).toContainText('Finish signing in to Gmail in the window that opened.');
   await expect(view).toContainText('Waiting for you to finish signing in');
@@ -487,27 +486,19 @@ test('L9 · added, cancelled, expired, already here, failed; a lapsed account si
   context,
 }) => {
   const windows = await signInWindows(context, page);
+  // Gmail on its first account until the second, the other its sign-in offers, is added.
   let added = false;
   let again = false;
   await patchRead<LibraryApp[]>(
     page,
     '**/auth/accounts.json',
-    () => added || again,
+    () => true,
     apps => {
       let next = apps;
-      if (added) {
+      if (!added) {
         next = withAccounts(next, 'gmail', app => ({
           ...app,
-          accounts: [
-            ...app.accounts,
-            {
-              source: 'gmail.2',
-              label: 'work@example.com',
-              kind: 'oauth',
-              permissions: ['See your inbox'],
-              lapsed: false,
-            },
-          ],
+          accounts: app.accounts.filter(a => a.source !== 'gmail.2'),
         }));
       }
       if (again) {
@@ -529,10 +520,10 @@ test('L9 · added, cancelled, expired, already here, failed; a lapsed account si
   windows.end({
     state: 'signedIn',
     source: 'gmail.2',
-    label: 'work@example.com',
+    label: 'you.personal@example.net',
     app: 'Gmail',
   });
-  await expect(account(page, 'gmail.2')).toContainText('work@example.com');
+  await expect(account(page, 'gmail.2')).toContainText('you.personal@example.net');
   await expect(account(page, 'gmail.2').locator('.library-tag')).toHaveText('Added');
   await expect(page).toHaveScreenshot('library-l9-add-outcomes.png');
 
@@ -551,12 +542,12 @@ test('L9 · added, cancelled, expired, already here, failed; a lapsed account si
   windows.end({
     state: 'signedIn',
     source: 'gmail.1',
-    label: 'me@example.com',
+    label: 'you@example.com',
     app: 'Gmail',
     existing: true,
   });
   await expect(end).toContainText(
-    'You signed in as me@example.com, which is already one of Gmail’s accounts here.',
+    'You signed in as you@example.com, which is already one of Gmail’s accounts here.',
   );
   await expect(end).toContainText('To add another, sign in as a different account.');
 
@@ -588,7 +579,7 @@ test('L10 · uninstall asks once, naming the accounts it signs out', async ({pag
   const uninstalled = new Set<string>();
   await page.route('**/registry/uninstall', route => {
     const {appId} = route.request().postDataJSON() as {appId: string};
-    if (appId !== 'github') {
+    if (appId !== 'gmail') {
       return route.fulfill({
         status: 404,
         json: {ok: false, findings: [`${appId} is not installed`]},
@@ -600,8 +591,8 @@ test('L10 · uninstall asks once, naming the accounts it signs out', async ({pag
         ok: true,
         appId,
         accounts: [
-          {label: 'me@example.com', revocation: 'revoked'},
-          {label: 'work@example.com', revocation: 'failed'},
+          {label: 'you@example.com', revocation: 'revoked'},
+          {label: 'you.personal@example.net', revocation: 'failed'},
         ],
       },
     });
@@ -612,25 +603,25 @@ test('L10 · uninstall asks once, naming the accounts it signs out', async ({pag
     () => uninstalled.size > 0,
     apps => apps.filter(app => !uninstalled.has(app.id)),
   );
-  const view = await openApp(page, 'github');
-  await view.getByRole('button', {name: 'Uninstall GitHub'}).click();
+  const view = await openApp(page, 'gmail');
+  await view.getByRole('button', {name: 'Uninstall Gmail'}).click();
   const question = page.getByTestId('library-uninstall');
-  await expect(question.getByRole('heading', {name: 'Uninstall GitHub?'})).toBeVisible();
+  await expect(question.getByRole('heading', {name: 'Uninstall Gmail?'})).toBeVisible();
   await expect(question).toContainText('by a2uiverse-apps');
   await expect(question).toContainText(
-    'This also signs out its two accounts, me@example.com and work@example.com. Answers already on your canvases stay as they are.',
+    'This also signs out its two accounts, you@example.com and you.personal@example.net. Answers already on your canvases stay as they are.',
   );
   await expect(page).toHaveScreenshot('library-l10-uninstall.png');
 
   // After: back on the list, the app gone, each account whose access stayed named.
   await question.getByRole('button', {name: 'Uninstall'}).click();
   const notice = page.getByTestId('library-uninstalled');
-  await expect(notice).toContainText('GitHub is uninstalled and its accounts are signed out.');
+  await expect(notice).toContainText('Gmail is uninstalled and its accounts are signed out.');
   await expect(notice).toContainText(
-    'GitHub couldn’t be reached to cancel the access of work@example.com. You can remove that access from your GitHub account’s settings.',
+    'Gmail couldn’t be reached to cancel the access of you.personal@example.net. You can remove that access from your Gmail account’s settings.',
   );
   await expect(page.getByTestId('library-list')).toBeVisible();
-  await expect(row(page, 'github')).toHaveCount(0);
+  await expect(row(page, 'gmail')).toHaveCount(0);
   await expect(page.getByTestId('library-label')).toContainText('Your apps · 5');
 
   // Refused: nothing changed, said atop the list.

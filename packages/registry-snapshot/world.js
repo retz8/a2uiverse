@@ -2,7 +2,7 @@
  * The fixed world the replay suite's preview server answers the trusted page's reads from
  * (task-14.10 decision 14), shipped with the snapshot as `/registry` is: the snapshot's seven apps
  * listed in the Store under their publisher, each with its sample; six installed, each in a
- * different update state, and Linear left for the Store to install; GitHub with two accounts, Shop B
+ * different update state, and Linear left for the Store to install; Gmail with two accounts, Shop B
  * on a key; the publisher signed in to Publish, Shop A's listing ahead of the Store.
  *
  * Where it comes from (decision 15): each card and sample is the recorded one, each build the
@@ -63,17 +63,14 @@ const APPS = {
     }),
     accounts: [],
   },
-  // Up to date, with two accounts.
+  // Up to date, on one account.
   github: {
     installed: entry => ({card: entry.card, catalogs: entry.catalogs}),
     state: entry => ({state: 'up-to-date', publishedVersion: entry.card.version}),
-    accounts: [
-      {label: 'me@example.com', scopes: ['github.read', 'github.write']},
-      {label: 'work@example.com', scopes: ['github.read']},
-    ],
+    accounts: [{label: 'me@example.com', scopes: ['github.read', 'github.write']}],
   },
   // A small update: a newer build, the card unchanged, held because the app came from a local
-  // copy, which the check never updates by itself.
+  // copy, which the check never updates by itself. Two accounts, the two its sign-in offers.
   gmail: {
     source: 'local',
     installed: entry => ({card: entry.card, catalogs: olderBuilds(entry.catalogs)}),
@@ -82,7 +79,10 @@ const APPS = {
       publishedVersion: entry.card.version,
       builds: buildMoves(record.catalogs, entry.catalogs),
     }),
-    accounts: [{label: 'me@example.com', scopes: ['inbox', 'messages']}],
+    accounts: [
+      {label: 'you@example.com', scopes: ['inbox', 'messages']},
+      {label: 'you.personal@example.net', scopes: ['inbox']},
+    ],
   },
   // In the Store, not installed: the app the Store installs.
   linear: {},
