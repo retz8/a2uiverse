@@ -39,7 +39,7 @@ The read of who is signed in, and the listings with it, run every time Publish i
 
 ### 7. Publish's form is in the address
 
-The publish form is an entry on the browser's history, as an app's view is: the address names the form, and the app for an update. Browser Back from the form returns to the listings. A reload lands on the form with the app id and the app's address filled in again from the listing; the dropped folders and the sample answer file are gone.
+The address names the publish form, and the app for an update. Moving to and from the form replaces the page's entry on the history, as every move inside the page does, so browser Back closes the page from the form as from anywhere on it; the form's way back to the listings is its link above it and Cancel. A reload lands on the form with the app id and the app's address filled in again from the listing; the dropped folders and the sample answer file are gone.
 
 ### 8. A publish belongs to Publish, not to the form
 
