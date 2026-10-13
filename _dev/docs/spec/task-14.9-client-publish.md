@@ -71,7 +71,7 @@ The field is always on the publish form. Its hint: for an update to an app that 
 
 ### 15. What the page checks before a publish
 
-Each dropped folder must hold the descriptor at its top; a folder without one is refused on the spot, saying it wasn't packed by Stellify and to drop the folder it wrote. A folder is labelled from its descriptor: the package name and the number of files. The sample answer file passes the sdk's preview check, and its app must be the form's app id. Everything else is left to the Store's checks.
+Each dropped folder must hold the descriptor at its top; a folder without one is refused on the spot, saying it wasn't packed by Stellify and to drop the folder it wrote. A folder is labelled from its descriptor: the package name and the number of files. The sample answer file passes the sdk's preview check, and its app must be the form's app id. The app's address must read, through the browser's own address parser, as an address starting with `http://` or `https://`; one that doesn't is said under its field and nothing is sent. Everything else is left to the Store's checks.
 
 ### 16. The publisher name checked before a claim
 
