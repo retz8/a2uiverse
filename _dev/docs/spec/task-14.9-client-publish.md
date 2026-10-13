@@ -85,6 +85,18 @@ The plain lead — the app and its version are in the Store — and one plain li
 
 The Store unreachable, the orchestrator unreachable, or an answer the page can't read: "The Store didn't answer, so this version may or may not be in the Store.", then that the person's apps show what the Store has now, the listings read again. The form keeps its fields and files behind Back to the form.
 
-### 19. Docs and tests
+### 19. Publish and Cancel are the same size
+
+The form's Publish is the size of its Cancel.
+
+### 20. Every Cancel follows Sign out's styling
+
+Every Cancel on Publish — the form's and each confirm's — is the quiet press Sign out is.
+
+### 21. A press waits for its fields
+
+Claim, Sign in and the form's Publish stay disabled until their fields are filled.
+
+### 22. Docs and tests
 
 SPEC §11 is amended in this task: the page's address carries Publish's form, and the app it updates. The page is covered by unit tests here, and 14.6's tests asserting the placeholder are updated; the end-to-end coverage and the snapshot are task 14.10's, the design record task 14.12's.
