@@ -1,0 +1,657 @@
+{
+  "entry": {
+    "appId": "linear",
+    "publisher": "a2uiverse-apps",
+    "cardUrl": "http://localhost:11005/.well-known/agent-card.json",
+    "card": {
+      "capabilities": {
+        "extensions": [
+          {
+            "description": "Provides agent driven UI using the A2UI JSON format.",
+            "params": {
+              "supportedCatalogIds": [
+                "https://github.com/retz8/a2uiverse-apps/blob/main/linear/linear-catalog/catalogs/v0.9.1/catalog.json"
+              ]
+            },
+            "uri": "https://a2ui.org/a2a-extension/a2ui/v0.9.1"
+          }
+        ],
+        "streaming": true
+      },
+      "defaultInputModes": [
+        "text",
+        "text/plain"
+      ],
+      "defaultOutputModes": [
+        "text",
+        "text/plain"
+      ],
+      "description": "Shows the user's Linear issues: what is assigned to them or in a team's queue, by status and priority; an issue's description, comments and linked pull requests. Creates an issue, updates its status, priority, assignee or labels, or comments on it once the user confirms.",
+      "documentationUrl": "https://github.com/retz8/a2uiverse-apps/blob/main/linear/agent/README.md",
+      "name": "Linear",
+      "preferredTransport": "JSONRPC",
+      "protocolVersion": "0.3.0",
+      "provider": {
+        "organization": "Linear",
+        "url": "https://linear.app"
+      },
+      "security": [
+        {
+          "signIn": [
+            "issues.read"
+          ]
+        }
+      ],
+      "securitySchemes": {
+        "signIn": {
+          "flows": {
+            "authorizationCode": {
+              "authorizationUrl": "http://localhost:11005/oauth/authorize",
+              "refreshUrl": "http://localhost:11005/oauth/token",
+              "scopes": {
+                "issues.read": "See your issues",
+                "issues.write": "Create, change and comment on your issues"
+              },
+              "tokenUrl": "http://localhost:11005/oauth/token"
+            }
+          },
+          "oauth2MetadataUrl": "http://localhost:11005/.well-known/oauth-authorization-server",
+          "type": "oauth2"
+        }
+      },
+      "skills": [
+        {
+          "description": "Lists the user's Linear issues or a team's, with each issue's identifier, title, status and priority — what is in progress, what is up next, what is urgent.",
+          "examples": [
+            "What's assigned to me in Linear?",
+            "What am I working on?",
+            "Show my open issues",
+            "Anything urgent on my plate?",
+            "What's in the team's backlog?",
+            "Which issues are in progress?"
+          ],
+          "id": "my_issues",
+          "name": "Issues",
+          "tags": [
+            "a2ui",
+            "linear",
+            "issues",
+            "tickets",
+            "tasks"
+          ]
+        },
+        {
+          "description": "Opens one issue: its description, status, priority, assignee and labels, its comments, and the pull requests and branch linked to it.",
+          "examples": [
+            "Open A2U-5",
+            "Show me the issue about the login bug",
+            "What's the discussion on that issue?",
+            "Is there a pull request for this issue?"
+          ],
+          "id": "issue_detail",
+          "name": "An issue's detail",
+          "tags": [
+            "a2ui",
+            "linear",
+            "issue",
+            "comments"
+          ]
+        },
+        {
+          "description": "Changes an issue's status, priority, assignee or labels, after the user confirms.",
+          "examples": [
+            "Move A2U-5 to In Progress",
+            "Mark it done",
+            "Set its priority to high",
+            "Assign that issue to me"
+          ],
+          "id": "issue_updates",
+          "name": "Updating an issue",
+          "tags": [
+            "a2ui",
+            "linear",
+            "status",
+            "priority",
+            "assign"
+          ]
+        },
+        {
+          "description": "Files a new issue in a team, or adds a comment to an issue, after the user confirms.",
+          "examples": [
+            "File an issue for the flaky test",
+            "Create a bug: the sort order is wrong",
+            "Comment on A2U-5 that the fix is up",
+            "Add a note to that issue"
+          ],
+          "id": "create_and_comment",
+          "name": "Filing an issue and commenting",
+          "tags": [
+            "a2ui",
+            "linear",
+            "create",
+            "comment"
+          ]
+        }
+      ],
+      "url": "http://localhost:11005",
+      "version": "0.1.0"
+    },
+    "catalogs": {
+      "https://github.com/retz8/a2uiverse-apps/blob/main/linear/linear-catalog/catalogs/v0.9.1/catalog.json": "sha256-tBGe6Sb474HVDC026lJ8vmeZfTc0MKH9i7ZSXjHv7e0"
+    },
+    "versions": [
+      "0.1.0"
+    ],
+    "publishedAt": "2026-10-13T11:21:14.261Z",
+    "retired": []
+  },
+  "preview": {
+    "appId": "linear",
+    "version": "0.1.0",
+    "words": "What's assigned to me in Linear?",
+    "messages": [
+      {
+        "version": "v0.9",
+        "createSurface": {
+          "surfaceId": "linear-1",
+          "catalogId": "https://github.com/retz8/a2uiverse-apps/blob/main/linear/linear-catalog/catalogs/v0.9.1/catalog.json",
+          "sendDataModel": true
+        }
+      },
+      {
+        "version": "v0.9",
+        "updateDataModel": {
+          "surfaceId": "linear-1",
+          "value": {
+            "team": "A2uiverse"
+          }
+        }
+      },
+      {
+        "version": "v0.9",
+        "updateDataModel": {
+          "surfaceId": "linear-1",
+          "value": {
+            "issues": [
+              {
+                "id": "A2U-5",
+                "title": "Say on the canvas when an utterance fails",
+                "status": "In Review",
+                "statusType": "started",
+                "priority": "High",
+                "labels": "Bug"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "version": "v0.9",
+        "updateDataModel": {
+          "surfaceId": "linear-1",
+          "value": {
+            "issues": [
+              {
+                "id": "A2U-5",
+                "title": "Say on the canvas when an utterance fails",
+                "status": "In Review",
+                "statusType": "started",
+                "priority": "High",
+                "labels": "Bug",
+                "link": "#6"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "version": "v0.9",
+        "updateDataModel": {
+          "surfaceId": "linear-1",
+          "value": {
+            "issues": [
+              {
+                "id": "A2U-5",
+                "title": "Say on the canvas when an utterance fails",
+                "status": "In Review",
+                "statusType": "started",
+                "priority": "High",
+                "labels": "Bug",
+                "link": "#6",
+                "updated": "Sep 19, 2026, 11:00 AM UTC"
+              },
+              {
+                "id": "A2U-7"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "version": "v0.9",
+        "updateDataModel": {
+          "surfaceId": "linear-1",
+          "value": {
+            "issues": [
+              {
+                "id": "A2U-5",
+                "title": "Say on the canvas when an utterance fails",
+                "status": "In Review",
+                "statusType": "started",
+                "priority": "High",
+                "labels": "Bug",
+                "link": "#6",
+                "updated": "Sep 19, 2026, 11:00 AM UTC"
+              },
+              {
+                "id": "A2U-7",
+                "title": "Shell-action report hangs through the tunnel",
+                "status": "In Progress"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "version": "v0.9",
+        "updateDataModel": {
+          "surfaceId": "linear-1",
+          "value": {
+            "issues": [
+              {
+                "id": "A2U-5",
+                "title": "Say on the canvas when an utterance fails",
+                "status": "In Review",
+                "statusType": "started",
+                "priority": "High",
+                "labels": "Bug",
+                "link": "#6",
+                "updated": "Sep 19, 2026, 11:00 AM UTC"
+              },
+              {
+                "id": "A2U-7",
+                "title": "Shell-action report hangs through the tunnel",
+                "status": "In Progress",
+                "statusType": "started",
+                "priority": "Low",
+                "labels": "Bug"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "version": "v0.9",
+        "updateDataModel": {
+          "surfaceId": "linear-1",
+          "value": {
+            "issues": [
+              {
+                "id": "A2U-5",
+                "title": "Say on the canvas when an utterance fails",
+                "status": "In Review",
+                "statusType": "started",
+                "priority": "High",
+                "labels": "Bug",
+                "link": "#6",
+                "updated": "Sep 19, 2026, 11:00 AM UTC"
+              },
+              {
+                "id": "A2U-7",
+                "title": "Shell-action report hangs through the tunnel",
+                "status": "In Progress",
+                "statusType": "started",
+                "priority": "Low",
+                "labels": "Bug",
+                "link": "ekkicb71/a2u-7-shell-action-report-hangs-through-the-tunnel"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "version": "v0.9",
+        "updateDataModel": {
+          "surfaceId": "linear-1",
+          "value": {
+            "issues": [
+              {
+                "id": "A2U-5",
+                "title": "Say on the canvas when an utterance fails",
+                "status": "In Review",
+                "statusType": "started",
+                "priority": "High",
+                "labels": "Bug",
+                "link": "#6",
+                "updated": "Sep 19, 2026, 11:00 AM UTC"
+              },
+              {
+                "id": "A2U-7",
+                "title": "Shell-action report hangs through the tunnel",
+                "status": "In Progress",
+                "statusType": "started",
+                "priority": "Low",
+                "labels": "Bug",
+                "link": "ekkicb71/a2u-7-shell-action-report-hangs-through-the-tunnel",
+                "updated": "Sep 19, 2026, 10:53 AM UTC"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "version": "v0.9",
+        "updateDataModel": {
+          "surfaceId": "linear-1",
+          "value": {
+            "issues": [
+              {
+                "id": "A2U-5",
+                "title": "Say on the canvas when an utterance fails",
+                "status": "In Review",
+                "statusType": "started",
+                "priority": "High",
+                "labels": "Bug",
+                "link": "#6",
+                "updated": "Sep 19, 2026, 11:00 AM UTC"
+              },
+              {
+                "id": "A2U-7",
+                "title": "Shell-action report hangs through the tunnel",
+                "status": "In Progress",
+                "statusType": "started",
+                "priority": "Low",
+                "labels": "Bug",
+                "link": "ekkicb71/a2u-7-shell-action-report-hangs-through-the-tunnel",
+                "updated": "Sep 19, 2026, 10:53 AM UTC"
+              },
+              {
+                "id": "A2U-6"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "version": "v0.9",
+        "updateDataModel": {
+          "surfaceId": "linear-1",
+          "value": {
+            "issues": [
+              {
+                "id": "A2U-5",
+                "title": "Say on the canvas when an utterance fails",
+                "status": "In Review",
+                "statusType": "started",
+                "priority": "High",
+                "labels": "Bug",
+                "link": "#6",
+                "updated": "Sep 19, 2026, 11:00 AM UTC"
+              },
+              {
+                "id": "A2U-7",
+                "title": "Shell-action report hangs through the tunnel",
+                "status": "In Progress",
+                "statusType": "started",
+                "priority": "Low",
+                "labels": "Bug",
+                "link": "ekkicb71/a2u-7-shell-action-report-hangs-through-the-tunnel",
+                "updated": "Sep 19, 2026, 10:53 AM UTC"
+              },
+              {
+                "id": "A2U-6",
+                "title": "Name the workflow, not its id, in the confirm status line",
+                "status": "In Progress",
+                "statusType": "started",
+                "priority": "Medium"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "version": "v0.9",
+        "updateDataModel": {
+          "surfaceId": "linear-1",
+          "value": {
+            "issues": [
+              {
+                "id": "A2U-5",
+                "title": "Say on the canvas when an utterance fails",
+                "status": "In Review",
+                "statusType": "started",
+                "priority": "High",
+                "labels": "Bug",
+                "link": "#6",
+                "updated": "Sep 19, 2026, 11:00 AM UTC"
+              },
+              {
+                "id": "A2U-7",
+                "title": "Shell-action report hangs through the tunnel",
+                "status": "In Progress",
+                "statusType": "started",
+                "priority": "Low",
+                "labels": "Bug",
+                "link": "ekkicb71/a2u-7-shell-action-report-hangs-through-the-tunnel",
+                "updated": "Sep 19, 2026, 10:53 AM UTC"
+              },
+              {
+                "id": "A2U-6",
+                "title": "Name the workflow, not its id, in the confirm status line",
+                "status": "In Progress",
+                "statusType": "started",
+                "priority": "Medium",
+                "labels": "Improvement",
+                "link": "#7"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "version": "v0.9",
+        "updateDataModel": {
+          "surfaceId": "linear-1",
+          "value": {
+            "issues": [
+              {
+                "id": "A2U-5",
+                "title": "Say on the canvas when an utterance fails",
+                "status": "In Review",
+                "statusType": "started",
+                "priority": "High",
+                "labels": "Bug",
+                "link": "#6",
+                "updated": "Sep 19, 2026, 11:00 AM UTC"
+              },
+              {
+                "id": "A2U-7",
+                "title": "Shell-action report hangs through the tunnel",
+                "status": "In Progress",
+                "statusType": "started",
+                "priority": "Low",
+                "labels": "Bug",
+                "link": "ekkicb71/a2u-7-shell-action-report-hangs-through-the-tunnel",
+                "updated": "Sep 19, 2026, 10:53 AM UTC"
+              },
+              {
+                "id": "A2U-6",
+                "title": "Name the workflow, not its id, in the confirm status line",
+                "status": "In Progress",
+                "statusType": "started",
+                "priority": "Medium",
+                "labels": "Improvement",
+                "link": "#7",
+                "updated": "Sep 18, 2026, 11:53 AM UTC"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "version": "v0.9",
+        "updateDataModel": {
+          "surfaceId": "linear-1",
+          "path": "/",
+          "value": {
+            "team": "A2uiverse",
+            "issues": [
+              {
+                "id": "A2U-5",
+                "title": "Say on the canvas when an utterance fails",
+                "status": "In Review",
+                "statusType": "started",
+                "priority": "High",
+                "labels": "Bug",
+                "link": "#6",
+                "updated": "Sep 19, 2026, 11:00 AM UTC"
+              },
+              {
+                "id": "A2U-7",
+                "title": "Shell-action report hangs through the tunnel",
+                "status": "In Progress",
+                "statusType": "started",
+                "priority": "Low",
+                "labels": "Bug",
+                "link": "ekkicb71/a2u-7-shell-action-report-hangs-through-the-tunnel",
+                "updated": "Sep 19, 2026, 10:53 AM UTC"
+              },
+              {
+                "id": "A2U-6",
+                "title": "Name the workflow, not its id, in the confirm status line",
+                "status": "In Progress",
+                "statusType": "started",
+                "priority": "Medium",
+                "labels": "Improvement",
+                "link": "#7",
+                "updated": "Sep 18, 2026, 11:53 AM UTC"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "version": "v0.9",
+        "updateComponents": {
+          "components": [
+            {
+              "id": "body",
+              "component": "Stack",
+              "gap": "none",
+              "children": [
+                "header",
+                "list"
+              ]
+            },
+            {
+              "id": "root",
+              "component": "Panel",
+              "padding": "none",
+              "child": "body"
+            },
+            {
+              "id": "header",
+              "component": "ViewHeader",
+              "context": {
+                "path": "/team"
+              },
+              "title": "My issues"
+            },
+            {
+              "id": "list",
+              "component": "List",
+              "children": {
+                "path": "/issues",
+                "componentId": "issue-row"
+              }
+            },
+            {
+              "id": "issue-row",
+              "component": "ListItem",
+              "child": "row-title",
+              "leading": [
+                "row-priority",
+                "row-id",
+                "row-status"
+              ],
+              "trailing": [
+                "row-labels",
+                "row-link",
+                "row-when"
+              ],
+              "action": {
+                "event": {
+                  "name": "open-issue",
+                  "context": {
+                    "issueId": {
+                      "path": "id"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "id": "row-priority",
+              "component": "PriorityIcon",
+              "priority": {
+                "path": "priority"
+              }
+            },
+            {
+              "id": "row-id",
+              "component": "Text",
+              "text": {
+                "path": "id"
+              },
+              "variant": "secondary"
+            },
+            {
+              "id": "row-status",
+              "component": "StatusIcon",
+              "status": {
+                "path": "status"
+              },
+              "type": {
+                "path": "statusType"
+              }
+            },
+            {
+              "id": "row-title",
+              "component": "Text",
+              "text": {
+                "path": "title"
+              },
+              "weight": "medium"
+            },
+            {
+              "id": "row-labels",
+              "component": "Chip",
+              "label": {
+                "path": "labels"
+              }
+            },
+            {
+              "id": "row-link",
+              "component": "Text",
+              "text": {
+                "path": "link"
+              },
+              "variant": "caption"
+            },
+            {
+              "id": "row-when",
+              "component": "Text",
+              "text": {
+                "path": "updated"
+              },
+              "variant": "caption"
+            }
+          ],
+          "surfaceId": "linear-1"
+        }
+      }
+    ],
+    "capturedBy": "publisher",
+    "capturedAt": "2026-10-13T11:21:13.785Z"
+  }
+}

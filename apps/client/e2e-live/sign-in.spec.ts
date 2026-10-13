@@ -5,6 +5,7 @@
  * place once the orchestrator says the sign-in finished.
  */
 import {expect, test} from '@playwright/test';
+import {signOutAll} from './orchestrator';
 import {ORCHESTRATOR} from './stack';
 
 const QUESTION = 'Show me the open pull requests on GitHub in a2ui-project/a2ui.';
@@ -21,6 +22,11 @@ test.beforeAll(async () => {
       {timeout: 180_000, intervals: [1_000]},
     )
     .toContain('github');
+});
+
+// The story leaves GitHub with no account, as it found it (task-14.10 decision 11).
+test.afterAll(async () => {
+  await signOutAll('github');
 });
 
 test('a sign-in through the real popup paints the slot in place', async ({page, context}) => {

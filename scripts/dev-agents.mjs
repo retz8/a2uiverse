@@ -2,7 +2,7 @@
 /**
  * Launch the apps of the dev roster from the sibling `a2uiverse-apps` checkout, and install them.
  *
- *   pnpm dev:agents [--tier mocks | --tier default,mocks] [--only github,gmail] [--mode deterministic|stub|live] [--agents-dir <path>] [--no-install | --publish] [--agent-state <dir>]
+ *   pnpm dev:agents [--tier mocks | --tier default,mocks] [--only github,gmail] [--mode deterministic|stub|live] [--agents-dir <path>] [--no-install | --publish] [--agent-state <dir>] [--publisher-file <path>]
  *   pnpm agents:list [--tier mocks | --tier default,mocks] [--publish]
  *
  * `A2UIVERSE_PUBLIC_URL`, a pattern with a `{port}` slot (a tunnel address), gives each agent the
@@ -28,7 +28,8 @@
  * (`launch-marketplace.mjs`); then each app, once its card answers, is previewed when its card
  * requires sign-in, with a credential the launcher obtains (`launch-preview.mjs`), published, and
  * installed from the marketplace by its id alone, so every app the launch installs counts as
- * installed from the marketplace. Under `--mode live`, whose agents refuse the fake accounts, each
+ * installed from the marketplace. `--publisher-file` keeps the dev publisher in that file instead
+ * (task-14.10 decision 4). Under `--mode live`, whose agents refuse the fake accounts, each
  * sign-in app's preview is taken from a deterministic instance of the same checkout on a free port,
  * its sign-in store in a temporary folder, stopped once the preview is captured; the app is then
  * published against the live agent's card (task-13.7 decision 8). A marketplace that does not
@@ -99,7 +100,7 @@ import {
 
 const SCRIPTS_DIR = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(SCRIPTS_DIR, '..');
-/** The dev publisher's file under `--publish` (task-13.6 decision 4). */
+/** The dev publisher's file under `--publish` (task-13.6 decision 4), unless `--publisher-file` names one. */
 const PUBLISHER_FILE = publisherFileOf(SCRIPTS_DIR);
 const ORCHESTRATOR_DIR = resolve(REPO_ROOT, 'apps', 'orchestrator');
 
@@ -401,10 +402,10 @@ async function publishApp(entry, files, {marketplace, publisher, token}, mode) {
 }
 
 /** The dev publisher, established before any publish; null when the marketplace path cannot run. */
-async function devPublisher(marketplace) {
+async function devPublisher(marketplace, publisherFile) {
   const established = await establishPublisher({
     marketplace,
-    path: PUBLISHER_FILE,
+    path: publisherFile,
     api: {claim, publisherOf: publisherOfToken},
     read: readPublisherFile,
     write: writePublisherFile,
@@ -415,9 +416,9 @@ async function devPublisher(marketplace) {
   }
   log(
     established.claimed === 'again'
-      ? `claimed ${DEV_PUBLISHER} again at ${marketplace}: it no longer knew the token in ${PUBLISHER_FILE}`
+      ? `claimed ${DEV_PUBLISHER} again at ${marketplace}: it no longer knew the token in ${publisherFile}`
       : established.claimed
-        ? `claimed ${DEV_PUBLISHER} at ${marketplace}, its token kept in ${PUBLISHER_FILE}`
+        ? `claimed ${DEV_PUBLISHER} at ${marketplace}, its token kept in ${publisherFile}`
         : `publishing as ${DEV_PUBLISHER} to ${marketplace}`,
   );
   return established.record;
@@ -427,9 +428,16 @@ async function devPublisher(marketplace) {
  * Build, pack, install and reconcile (decisions 5 to 9). Every failure is reported by name with its
  * reason and leaves that app out; the reconcile then takes out any install of it an earlier launch
  * left behind. `marketplace`, under `--publish`, is where each app is published before it is
- * installed from there by id (task-13.6).
+ * installed from there by id (task-13.6), as the dev publisher held in `publisherFile`.
  */
-async function installLaunch(selected, running, registry, agentsDir, marketplace, mode) {
+async function installLaunch(
+  selected,
+  running,
+  registry,
+  agentsDir,
+  {marketplace, publisherFile},
+  mode,
+) {
   const failed = new Map();
   const report = (id, reason) => {
     failed.set(id, reason);
@@ -468,7 +476,7 @@ async function installLaunch(selected, running, registry, agentsDir, marketplace
       );
       return;
     }
-    publisher = await devPublisher(marketplace);
+    publisher = await devPublisher(marketplace, publisherFile);
     if (!publisher) return;
   }
 
@@ -549,7 +557,7 @@ function printListing({dir, source}, {tier, entries, fatal}, publishing, mode) {
   console.log(`tier: ${tier}`);
   if (publishing) {
     console.log(`marketplace: ${publishing.marketplace}`);
-    console.log(publisherLine(publishing.known, PUBLISHER_FILE));
+    console.log(publisherLine(publishing.known, publishing.publisherFile));
   }
   const rows = entries.map(e => [
     e.id,
@@ -580,6 +588,7 @@ async function main() {
     install,
     publish: toMarketplace,
     agentState,
+    publisherFile = PUBLISHER_FILE,
   } = parse();
   const orchestrator = orchestratorOf({env: process.env, orchestratorDir: ORCHESTRATOR_DIR});
   const marketplace = toMarketplace ? orchestrator.marketplaceUrl : null;
@@ -610,7 +619,8 @@ async function main() {
   if (list) {
     const publishing = marketplace && {
       marketplace,
-      known: publisherState(await readPublisherFile(PUBLISHER_FILE), marketplace, PUBLISHER_FILE),
+      publisherFile,
+      known: publisherState(await readPublisherFile(publisherFile), marketplace, publisherFile),
     };
     printListing(resolved, plan, publishing, mode);
     process.exit(plan.fatal.length ? 2 : 0);
@@ -630,6 +640,8 @@ async function main() {
   if (agentState) log(`sign-in stores under ${agentState} (--agent-state)`);
   if (marketplace)
     log(`publishing to ${marketplace} as ${DEV_PUBLISHER}, installing from there (--publish)`);
+  if (marketplace && publisherFile !== PUBLISHER_FILE)
+    log(`the dev publisher kept in ${publisherFile} (--publisher-file)`);
   const running = new Map(
     selected.map((entry, i) => [
       entry.id,
@@ -668,7 +680,14 @@ async function main() {
 
   const registry = new Registry(orchestrator);
   try {
-    await installLaunch(selected, running, registry, resolved.dir, marketplace, mode);
+    await installLaunch(
+      selected,
+      running,
+      registry,
+      resolved.dir,
+      {marketplace, publisherFile},
+      mode,
+    );
   } catch (err) {
     log(err instanceof CannotWrite ? err.message : `installing stopped: ${err.message}`);
   }

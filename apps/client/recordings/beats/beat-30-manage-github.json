@@ -1,0 +1,92 @@
+{
+  "name": "beat-30-manage-github",
+  "beat": 30,
+  "title": "Manage my GitHub accounts",
+  "prompt": "Where do I manage my GitHub accounts?",
+  "model": "gemini-3.7-flash",
+  "recordedAt": "2026-10-13T11:22:56Z",
+  "contextId": "8f269266-2b3a-4147-8aed-11f4e79016cf",
+  "chainedFrom": null,
+  "turns": [
+    {
+      "taskId": "c81abd9e-6b35-4ced-b275-6572e8434a36",
+      "kind": "utterance",
+      "prompt": "Where do I manage my GitHub accounts?",
+      "action": null,
+      "batches": [
+        {
+          "offsetMs": 16732,
+          "messages": [
+            {
+              "paintMeta": {
+                "surfaceId": "shell:main",
+                "title": "GitHub accounts"
+              }
+            },
+            {
+              "version": "v0.9",
+              "createSurface": {
+                "surfaceId": "shell:main",
+                "catalogId": "https://github.com/retz8/a2uiverse/blob/main/packages/shell-catalog/catalogs/v0.9.1/catalog.json"
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "surfaceId": "shell:main",
+                "components": [
+                  {
+                    "id": "root",
+                    "component": "Column",
+                    "children": [
+                      "heading",
+                      "explanation",
+                      "manage-button"
+                    ]
+                  },
+                  {
+                    "id": "heading",
+                    "component": "Text",
+                    "variant": "h3",
+                    "text": "Manage GitHub accounts"
+                  },
+                  {
+                    "id": "explanation",
+                    "component": "Text",
+                    "variant": "body",
+                    "text": "You can manage your GitHub accounts in the App Library. That is where installed apps are configured — accounts can be added or removed, and permissions changed. GitHub currently has one account connected (retz8)."
+                  },
+                  {
+                    "id": "manage-button",
+                    "component": "Button",
+                    "child": "manage-button-label",
+                    "action": {
+                      "functionCall": {
+                        "call": "openAppLibrary",
+                        "args": {
+                          "app": "github"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "manage-button-label",
+                    "component": "Text",
+                    "text": "Open GitHub in App Library"
+                  }
+                ]
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "shell",
+            "role": "shell"
+          }
+        }
+      ],
+      "outcome": "completed",
+      "durationMs": 16732
+    }
+  ]
+}

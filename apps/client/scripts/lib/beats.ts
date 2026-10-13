@@ -656,4 +656,27 @@ export const BEATS: BeatSpec[] = [
     title: 'Inbox, pull requests and issues on one timeline',
     prompt: 'What needs my attention today in my inbox, GitHub and Linear?',
   },
+  {
+    // The trusted page's ways in (task-14.10 decision 13): the Planner answering from the
+    // installed-apps reader with a button into the App Library (board G2).
+    beat: 28,
+    slug: 'out-of-date',
+    title: 'Is anything out of date?',
+    prompt: 'Is anything out of date?',
+  },
+  {
+    // A question about publishing, answered from the platform's card with a button landing on
+    // Publish (board G3).
+    beat: 29,
+    slug: 'publish-question',
+    title: 'How do I publish my app?',
+    prompt: 'How do I publish my own app in the Store?',
+  },
+  {
+    // Open the App Library naming its app: the button lands on that app's view.
+    beat: 30,
+    slug: 'manage-github',
+    title: 'Manage my GitHub accounts',
+    prompt: 'Where do I manage my GitHub accounts?',
+  },
 ];

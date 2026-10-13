@@ -1,8 +1,8 @@
 /**
- * Fixture privacy gate (task 2.9 decision 9): refuse to ship a recorded beat that carries real
- * account data.
+ * Fixture privacy gate (task 2.9 decision 9): refuse to ship a recorded beat, or a recorded Store
+ * capture (task-14.10 decision 15), that carries real account data.
  *
- *   pnpm --filter @a2uiverse/client check:fixtures [-- --dir recordings/beats]
+ *   pnpm --filter @a2uiverse/client check:fixtures [-- --dir recordings/beats [--dir …]]
  *
  * Why this exists. A beat recorded through the hub over live MCP is captured **client-side**,
  * and the only thing standing between a real mailbox and a tracked file in this repo is the
@@ -18,13 +18,17 @@
  * This cannot prove a recording is clean. It proves a specific, known leak is absent.
  */
 import {readdir, readFile} from 'node:fs/promises';
-import {resolve} from 'node:path';
+import {relative, resolve} from 'node:path';
 import {parseArgs} from 'node:util';
 
 const FORBIDDEN_ENV = 'A2UI_FIXTURE_FORBIDDEN';
 
 async function main() {
-  const {values} = parseArgs({options: {dir: {type: 'string', default: 'recordings/beats'}}});
+  const {values} = parseArgs({
+    options: {
+      dir: {type: 'string', multiple: true, default: ['recordings/beats', 'recordings/store']},
+    },
+  });
 
   const raw = process.env[FORBIDDEN_ENV];
   const needles = (raw ?? '')
@@ -39,17 +43,21 @@ async function main() {
     process.exit(2);
   }
 
-  const dir = resolve(values.dir);
-  const files = (await readdir(dir)).filter(f => f.endsWith('.json'));
+  const files: string[] = [];
+  for (const dir of values.dir.map(d => resolve(d))) {
+    files.push(...(await readdir(dir)).filter(f => f.endsWith('.json')).map(f => resolve(dir, f)));
+  }
   let failed = false;
 
   for (const file of files) {
-    const text = (await readFile(resolve(dir, file), 'utf8')).toLowerCase();
+    const text = (await readFile(file, 'utf8')).toLowerCase();
     const hits = needles.filter(needle => text.includes(needle.toLowerCase()));
     if (hits.length) {
       failed = true;
       // The needle itself is not printed back — this output can land in a log or a CI page.
-      console.error(`✗ ${file}: ${hits.length} forbidden string(s) present`);
+      console.error(
+        `✗ ${relative(process.cwd(), file)}: ${hits.length} forbidden string(s) present`,
+      );
     }
   }
 

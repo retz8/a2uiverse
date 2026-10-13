@@ -4,6 +4,7 @@
  */
 import {test, expect} from '@playwright/test';
 import type {Page} from '@playwright/test';
+import {storeUnreached} from './trusted-page';
 
 async function settle(page: Page, beat: string) {
   await page.goto(`/?beat=${beat}&instant`);
@@ -90,10 +91,12 @@ test('visual: the capability tile', async ({page}) => {
 });
 
 test('visual: the Store over the canvas', async ({page}) => {
+  // The Store that can't be reached, a state of its own (task-14.10 decision 16): the fixed world
+  // answers the Store's reads, so this test refuses them.
+  await storeUnreached(page);
   await settle(page, 'gap');
   await page.getByRole('button', {name: 'Search the Store'}).click();
   await expect(page.getByTestId('trusted-page-overlay')).toBeVisible();
-  // The snapshot serves no marketplace: the Store settles on saying it can't be reached.
   await expect(page.getByTestId('store-unreached')).toBeVisible();
   await expect(page).toHaveScreenshot('shell-surface-store-overlay.png', {fullPage: true});
 });

@@ -1,0 +1,90 @@
+{
+  "name": "beat-28-out-of-date",
+  "beat": 28,
+  "title": "Is anything out of date?",
+  "prompt": "Is anything out of date?",
+  "model": "gemini-3.7-flash",
+  "recordedAt": "2026-10-13T11:23:26Z",
+  "contextId": "1734cff5-a4f4-4088-898b-751c79684d0c",
+  "chainedFrom": null,
+  "turns": [
+    {
+      "taskId": "1250245f-e6f9-4054-bc5b-887d47b4c89e",
+      "kind": "utterance",
+      "prompt": "Is anything out of date?",
+      "action": null,
+      "batches": [
+        {
+          "offsetMs": 11154,
+          "messages": [
+            {
+              "paintMeta": {
+                "surfaceId": "shell:main",
+                "title": "App updates"
+              }
+            },
+            {
+              "version": "v0.9",
+              "createSurface": {
+                "surfaceId": "shell:main",
+                "catalogId": "https://github.com/retz8/a2uiverse/blob/main/packages/shell-catalog/catalogs/v0.9.1/catalog.json"
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "surfaceId": "shell:main",
+                "components": [
+                  {
+                    "id": "root",
+                    "component": "Column",
+                    "children": [
+                      "answer",
+                      "actions"
+                    ]
+                  },
+                  {
+                    "id": "answer",
+                    "component": "Text",
+                    "variant": "body",
+                    "text": "All of your apps are up to date — checked just now."
+                  },
+                  {
+                    "id": "actions",
+                    "component": "Row",
+                    "children": [
+                      "library"
+                    ]
+                  },
+                  {
+                    "id": "library",
+                    "component": "Button",
+                    "child": "library-label",
+                    "action": {
+                      "functionCall": {
+                        "call": "openAppLibrary",
+                        "args": {}
+                      }
+                    }
+                  },
+                  {
+                    "id": "library-label",
+                    "component": "Text",
+                    "text": "Open the App Library"
+                  }
+                ]
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "shell",
+            "role": "shell"
+          }
+        }
+      ],
+      "outcome": "completed",
+      "durationMs": 11155
+    }
+  ]
+}

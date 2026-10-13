@@ -1,0 +1,91 @@
+{
+  "name": "beat-29-publish-question",
+  "beat": 29,
+  "title": "How do I publish my app?",
+  "prompt": "How do I publish my own app in the Store?",
+  "model": "gemini-3.7-flash",
+  "recordedAt": "2026-10-13T11:22:40Z",
+  "contextId": "13b0b491-ca5a-4300-a80c-24cd2f2dbd2e",
+  "chainedFrom": null,
+  "turns": [
+    {
+      "taskId": "e0899d89-ee04-48f4-a946-50ca6cde0e2c",
+      "kind": "utterance",
+      "prompt": "How do I publish my own app in the Store?",
+      "action": null,
+      "batches": [
+        {
+          "offsetMs": 10343,
+          "messages": [
+            {
+              "paintMeta": {
+                "surfaceId": "shell:main",
+                "title": "Publishing an app"
+              }
+            },
+            {
+              "version": "v0.9",
+              "createSurface": {
+                "surfaceId": "shell:main",
+                "catalogId": "https://github.com/retz8/a2uiverse/blob/main/packages/shell-catalog/catalogs/v0.9.1/catalog.json"
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "surfaceId": "shell:main",
+                "components": [
+                  {
+                    "id": "root",
+                    "component": "Column",
+                    "children": [
+                      "heading",
+                      "explanation",
+                      "publish-button"
+                    ]
+                  },
+                  {
+                    "id": "heading",
+                    "component": "Text",
+                    "variant": "h3",
+                    "text": "Publishing an app"
+                  },
+                  {
+                    "id": "explanation",
+                    "component": "Text",
+                    "variant": "body",
+                    "text": "To publish your app in the Store:\n\n1. Pack your app with Stellify in its own folder.\n2. Open Publish and claim a publisher name.\n3. Provide the folders Stellify wrote along with your app's address. If your app asks users to sign in, also provide the sample answer Stellify captured using your account.\n4. Before listing, the Store fetches the app, verifies its files, and tests it with one question."
+                  },
+                  {
+                    "id": "publish-button",
+                    "component": "Button",
+                    "variant": "primary",
+                    "child": "button-label",
+                    "action": {
+                      "functionCall": {
+                        "call": "openPublish",
+                        "args": {}
+                      }
+                    }
+                  },
+                  {
+                    "id": "button-label",
+                    "component": "Text",
+                    "text": "Open Publish"
+                  }
+                ]
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "shell",
+            "role": "shell"
+          }
+        }
+      ],
+      "outcome": "completed",
+      "durationMs": 10344
+    }
+  ]
+}

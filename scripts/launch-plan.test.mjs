@@ -268,6 +268,17 @@ test('publicUrlsOf refuses a pattern with no port slot, or not on http(s)', () =
   assert.match(publicUrlsOf('abc-{port}.devtunnels.ms').error, /http/);
 });
 
+test('--publisher-file keeps the dev publisher in that file; unset, the launcher keeps its own (task-14.10 decision 4)', () => {
+  const parsed = parseLaunchArgs(['--publish', '--publisher-file', 'scratch/publisher.json'], {
+    defaultTier: DEFAULT_TIER,
+  });
+  assert.equal(parsed.publisherFile, join(process.cwd(), 'scratch/publisher.json'));
+  assert.equal(
+    parseLaunchArgs(['--publish'], {defaultTier: DEFAULT_TIER}).publisherFile,
+    undefined,
+  );
+});
+
 test('--agent-state gives each agent a sign-in store of its own under the folder; unset, the agent keeps its own (task-12.13 decision 55)', () => {
   const parsed = parseLaunchArgs(['--agent-state', 'scratch/agents'], {defaultTier: DEFAULT_TIER});
   assert.equal(parsed.agentState, join(process.cwd(), 'scratch/agents'));

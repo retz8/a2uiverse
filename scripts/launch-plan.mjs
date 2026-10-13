@@ -21,7 +21,9 @@ export const MODES = ['deterministic', 'stub', 'live'];
  * `--publish` publishes each app to the marketplace and installs it from there by id (task-13.6
  * decision 1): a usage error beside `--no-install`. Beside `--mode live`, whose agents refuse the
  * fake accounts a preview signs in as, each sign-in app is previewed from a deterministic instance
- * (task-13.7 decision 8).
+ * (task-13.7 decision 8). `--publisher-file` keeps the dev publisher in a file of the caller's in
+ * place of the launcher's own, so a run on a marketplace of its own never touches it (task-14.10
+ * decision 4).
  */
 export function parseLaunchArgs(args, {defaultTier}) {
   const {values} = parseArgs({
@@ -36,6 +38,7 @@ export function parseLaunchArgs(args, {defaultTier}) {
       'no-install': {type: 'boolean', default: false},
       publish: {type: 'boolean', default: false},
       'agent-state': {type: 'string'},
+      'publisher-file': {type: 'string'},
     },
     allowPositionals: false,
   });
@@ -66,6 +69,7 @@ export function parseLaunchArgs(args, {defaultTier}) {
     publish: values.publish,
     // Each agent's sign-in store under this folder, not its own (task-12.13 decision 55).
     ...(values['agent-state'] ? {agentState: resolve(values['agent-state'])} : {}),
+    ...(values['publisher-file'] ? {publisherFile: resolve(values['publisher-file'])} : {}),
   };
 }
 

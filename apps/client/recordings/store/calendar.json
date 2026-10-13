@@ -1,0 +1,574 @@
+{
+  "entry": {
+    "appId": "calendar",
+    "publisher": "a2uiverse-apps",
+    "cardUrl": "http://localhost:11003/.well-known/agent-card.json",
+    "card": {
+      "capabilities": {
+        "extensions": [
+          {
+            "description": "Provides agent driven UI using the A2UI JSON format.",
+            "params": {
+              "supportedCatalogIds": [
+                "https://github.com/retz8/a2uiverse-apps/blob/main/calendar/calendar-catalog/catalogs/v0.9.1/catalog.json"
+              ]
+            },
+            "uri": "https://a2ui.org/a2a-extension/a2ui/v0.9.1"
+          }
+        ],
+        "streaming": true
+      },
+      "defaultInputModes": [
+        "text",
+        "text/plain"
+      ],
+      "defaultOutputModes": [
+        "text",
+        "text/plain"
+      ],
+      "description": "Reads and acts on the user's Google Calendar: shows what is coming up and what is still unanswered, opens a single event with its attendees, proposes a new event for the user to confirm, and answers invitations on their behalf.",
+      "documentationUrl": "https://github.com/retz8/a2uiverse-apps/blob/main/calendar/agent/README.md",
+      "name": "Google Calendar",
+      "preferredTransport": "JSONRPC",
+      "protocolVersion": "0.3.0",
+      "provider": {
+        "organization": "Google",
+        "url": "https://calendar.google.com"
+      },
+      "security": [
+        {
+          "signIn": [
+            "calendar.read"
+          ]
+        }
+      ],
+      "securitySchemes": {
+        "signIn": {
+          "flows": {
+            "authorizationCode": {
+              "authorizationUrl": "http://localhost:11003/oauth/authorize",
+              "refreshUrl": "http://localhost:11003/oauth/token",
+              "scopes": {
+                "calendar.read": "See your calendar",
+                "calendar.write": "Add events and answer invitations on your calendar"
+              },
+              "tokenUrl": "http://localhost:11003/oauth/token"
+            }
+          },
+          "oauth2MetadataUrl": "http://localhost:11003/.well-known/oauth-authorization-server",
+          "type": "oauth2"
+        }
+      },
+      "skills": [
+        {
+          "description": "Finds what the user's calendar needs from them: what is on today and next, invitations still waiting on an answer, and where the day is double-booked.",
+          "examples": [
+            "What needs my attention today?",
+            "What's on my plate?",
+            "Anything I need to deal with this morning?",
+            "What's on my calendar today?",
+            "What does the rest of my week look like?",
+            "Do I have anything I haven't replied to?",
+            "Am I double-booked at any point tomorrow?",
+            "When is my next meeting?"
+          ],
+          "id": "agenda_triage",
+          "name": "What is coming up",
+          "tags": [
+            "a2ui",
+            "calendar",
+            "schedule",
+            "agenda",
+            "triage"
+          ]
+        },
+        {
+          "description": "Opens a single event and shows what it is: when and where, who is invited, who has accepted, and the notes that came with it.",
+          "examples": [
+            "What's the standup about?",
+            "Who's coming to the review?",
+            "Where is that meeting?",
+            "Show me the details of my 2pm",
+            "Has anyone declined the planning session?"
+          ],
+          "id": "event_detail",
+          "name": "Looking at one event",
+          "tags": [
+            "a2ui",
+            "calendar",
+            "event",
+            "attendees"
+          ]
+        },
+        {
+          "description": "Proposes a new event — time, title, attendees — and creates it once the user confirms the proposal.",
+          "examples": [
+            "Put a half hour with the design team on Thursday",
+            "Block out Friday afternoon for writing",
+            "Schedule a call with them next week",
+            "Add lunch tomorrow at noon"
+          ],
+          "id": "event_creation",
+          "name": "Putting something on the calendar",
+          "tags": [
+            "a2ui",
+            "calendar",
+            "event",
+            "scheduling",
+            "create"
+          ]
+        },
+        {
+          "description": "Answers an invitation on the user's behalf: accept, decline, or mark it tentative.",
+          "examples": [
+            "Accept the invite for Thursday",
+            "Decline the all-hands",
+            "Mark me as tentative for that one",
+            "Say yes to the design review"
+          ],
+          "id": "invitation_response",
+          "name": "Answering an invitation",
+          "tags": [
+            "a2ui",
+            "calendar",
+            "rsvp",
+            "invitation"
+          ]
+        }
+      ],
+      "url": "http://localhost:11003",
+      "version": "0.1.0"
+    },
+    "catalogs": {
+      "https://github.com/retz8/a2uiverse-apps/blob/main/calendar/calendar-catalog/catalogs/v0.9.1/catalog.json": "sha256-BBmTI37kkTjrPvTFvCiKgaCJHx0apej_2CTC5hkvYgY"
+    },
+    "versions": [
+      "0.1.0"
+    ],
+    "publishedAt": "2026-10-13T11:21:14.185Z",
+    "retired": []
+  },
+  "preview": {
+    "appId": "calendar",
+    "version": "0.1.0",
+    "words": "What needs my attention today?",
+    "messages": [
+      {
+        "version": "v0.9",
+        "createSurface": {
+          "surfaceId": "calendar-1",
+          "catalogId": "https://github.com/retz8/a2uiverse-apps/blob/main/calendar/calendar-catalog/catalogs/v0.9.1/catalog.json",
+          "sendDataModel": true
+        }
+      },
+      {
+        "version": "v0.9",
+        "updateDataModel": {
+          "surfaceId": "calendar-1",
+          "value": {
+            "waiting": [
+              {
+                "id": "7nuujj9h9ru89blofii3m5otlo",
+                "when": "11:00",
+                "summary": "Design review — agenda surface"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "version": "v0.9",
+        "updateDataModel": {
+          "surfaceId": "calendar-1",
+          "value": {
+            "waiting": [
+              {
+                "id": "7nuujj9h9ru89blofii3m5otlo",
+                "when": "11:00",
+                "summary": "Design review — agenda surface",
+                "note": "ID: 7nuujj9h9ru89blofii3m5otlo • Unanswered invitation • Walk through the three fragment layouts."
+              }
+            ]
+          }
+        }
+      },
+      {
+        "version": "v0.9",
+        "updateDataModel": {
+          "surfaceId": "calendar-1",
+          "value": {
+            "clashes": [
+              {
+                "id": "7nuujj9h9ru89blofii3m5otlo",
+                "when": "11:00 – 12:00",
+                "summary": "Design review — agenda surface"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "version": "v0.9",
+        "updateDataModel": {
+          "surfaceId": "calendar-1",
+          "value": {
+            "clashes": [
+              {
+                "id": "7nuujj9h9ru89blofii3m5otlo",
+                "when": "11:00 – 12:00",
+                "summary": "Design review — agenda surface",
+                "note": "ID: 7nuujj9h9ru89blofii3m5otlo • Overlaps Budget sync • Walk through the three fragment layouts."
+              }
+            ]
+          }
+        }
+      },
+      {
+        "version": "v0.9",
+        "updateDataModel": {
+          "surfaceId": "calendar-1",
+          "value": {
+            "clashes": [
+              {
+                "id": "7nuujj9h9ru89blofii3m5otlo",
+                "when": "11:00 – 12:00",
+                "summary": "Design review — agenda surface",
+                "note": "ID: 7nuujj9h9ru89blofii3m5otlo • Overlaps Budget sync • Walk through the three fragment layouts."
+              },
+              {
+                "id": "ev1fmp1rmvhhb260fbebvd7o9o"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "version": "v0.9",
+        "updateDataModel": {
+          "surfaceId": "calendar-1",
+          "value": {
+            "clashes": [
+              {
+                "id": "7nuujj9h9ru89blofii3m5otlo",
+                "when": "11:00 – 12:00",
+                "summary": "Design review — agenda surface",
+                "note": "ID: 7nuujj9h9ru89blofii3m5otlo • Overlaps Budget sync • Walk through the three fragment layouts."
+              },
+              {
+                "id": "ev1fmp1rmvhhb260fbebvd7o9o",
+                "when": "11:30 – 12:15"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "version": "v0.9",
+        "updateDataModel": {
+          "surfaceId": "calendar-1",
+          "value": {
+            "clashes": [
+              {
+                "id": "7nuujj9h9ru89blofii3m5otlo",
+                "when": "11:00 – 12:00",
+                "summary": "Design review — agenda surface",
+                "note": "ID: 7nuujj9h9ru89blofii3m5otlo • Overlaps Budget sync • Walk through the three fragment layouts."
+              },
+              {
+                "id": "ev1fmp1rmvhhb260fbebvd7o9o",
+                "when": "11:30 – 12:15",
+                "summary": "Budget sync"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "version": "v0.9",
+        "updateDataModel": {
+          "surfaceId": "calendar-1",
+          "value": {
+            "clashes": [
+              {
+                "id": "7nuujj9h9ru89blofii3m5otlo",
+                "when": "11:00 – 12:00",
+                "summary": "Design review — agenda surface",
+                "note": "ID: 7nuujj9h9ru89blofii3m5otlo • Overlaps Budget sync • Walk through the three fragment layouts."
+              },
+              {
+                "id": "ev1fmp1rmvhhb260fbebvd7o9o",
+                "when": "11:30 – 12:15",
+                "summary": "Budget sync",
+                "note": "ID: ev1fmp1rmvhhb260fbebvd7o9o • Overlaps Design review • Two line items still do not reconcile against the estimate."
+              }
+            ]
+          }
+        }
+      },
+      {
+        "version": "v0.9",
+        "updateDataModel": {
+          "surfaceId": "calendar-1",
+          "path": "/",
+          "value": {
+            "waiting": [
+              {
+                "id": "7nuujj9h9ru89blofii3m5otlo",
+                "when": "11:00",
+                "summary": "Design review — agenda surface",
+                "note": "ID: 7nuujj9h9ru89blofii3m5otlo • Unanswered invitation • Walk through the three fragment layouts."
+              }
+            ],
+            "clashes": [
+              {
+                "id": "7nuujj9h9ru89blofii3m5otlo",
+                "when": "11:00 – 12:00",
+                "summary": "Design review — agenda surface",
+                "note": "ID: 7nuujj9h9ru89blofii3m5otlo • Overlaps Budget sync • Walk through the three fragment layouts."
+              },
+              {
+                "id": "ev1fmp1rmvhhb260fbebvd7o9o",
+                "when": "11:30 – 12:15",
+                "summary": "Budget sync",
+                "note": "ID: ev1fmp1rmvhhb260fbebvd7o9o • Overlaps Design review • Two line items still do not reconcile against the estimate."
+              }
+            ]
+          }
+        }
+      },
+      {
+        "version": "v0.9",
+        "updateComponents": {
+          "components": [
+            {
+              "id": "root",
+              "component": "Surface",
+              "child": "body",
+              "container": "low",
+              "shape": "large",
+              "padding": "small"
+            },
+            {
+              "id": "body",
+              "component": "Stack",
+              "children": [
+                "header",
+                "sheet"
+              ],
+              "gap": "xs"
+            },
+            {
+              "id": "header",
+              "component": "Stack",
+              "children": [
+                "heading"
+              ],
+              "padding": "sm"
+            },
+            {
+              "id": "heading",
+              "component": "Text",
+              "text": "Needs attention today",
+              "variant": "titleLarge"
+            },
+            {
+              "id": "sheet",
+              "component": "Surface",
+              "child": "sections",
+              "container": "lowest",
+              "shape": "large",
+              "padding": "none"
+            },
+            {
+              "id": "sections",
+              "component": "Stack",
+              "children": [
+                "waiting-label",
+                "waiting-list",
+                "divider",
+                "clash-label",
+                "clash-list"
+              ],
+              "gap": "none"
+            },
+            {
+              "id": "waiting-label",
+              "component": "Stack",
+              "children": [
+                "waiting-title"
+              ],
+              "padding": "sm"
+            },
+            {
+              "id": "waiting-title",
+              "component": "Text",
+              "text": "Unanswered invitations",
+              "variant": "titleSmall",
+              "color": "primary"
+            },
+            {
+              "id": "waiting-list",
+              "component": "List",
+              "children": {
+                "path": "/waiting",
+                "componentId": "waiting-row"
+              },
+              "layout": "inline"
+            },
+            {
+              "id": "waiting-row",
+              "component": "ListItem",
+              "headline": "waiting-when",
+              "supporting": "waiting-body",
+              "leading": [
+                "waiting-swatch"
+              ],
+              "action": {
+                "event": {
+                  "name": "open-event",
+                  "context": {
+                    "eventId": {
+                      "path": "id"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "id": "waiting-swatch",
+              "component": "ColorSwatch",
+              "color": "peacock",
+              "shape": "dot"
+            },
+            {
+              "id": "waiting-when",
+              "component": "Text",
+              "text": {
+                "path": "when"
+              },
+              "variant": "labelLarge"
+            },
+            {
+              "id": "waiting-body",
+              "component": "Stack",
+              "children": [
+                "waiting-summary",
+                "waiting-note"
+              ],
+              "gap": "none"
+            },
+            {
+              "id": "waiting-summary",
+              "component": "Text",
+              "text": {
+                "path": "summary"
+              },
+              "maxLines": 1
+            },
+            {
+              "id": "waiting-note",
+              "component": "Text",
+              "text": {
+                "path": "note"
+              },
+              "variant": "bodySmall",
+              "color": "onSurfaceVariant",
+              "maxLines": 1
+            },
+            {
+              "id": "divider",
+              "component": "Divider"
+            },
+            {
+              "id": "clash-label",
+              "component": "Stack",
+              "children": [
+                "clash-title"
+              ],
+              "padding": "sm"
+            },
+            {
+              "id": "clash-title",
+              "component": "Text",
+              "text": "Double-booked today",
+              "variant": "titleSmall",
+              "color": "primary"
+            },
+            {
+              "id": "clash-list",
+              "component": "List",
+              "children": {
+                "path": "/clashes",
+                "componentId": "clash-row"
+              },
+              "layout": "inline"
+            },
+            {
+              "id": "clash-row",
+              "component": "ListItem",
+              "headline": "clash-when",
+              "supporting": "clash-body",
+              "leading": [
+                "clash-swatch"
+              ],
+              "action": {
+                "event": {
+                  "name": "open-event",
+                  "context": {
+                    "eventId": {
+                      "path": "id"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "id": "clash-swatch",
+              "component": "ColorSwatch",
+              "color": "peacock",
+              "shape": "dot"
+            },
+            {
+              "id": "clash-when",
+              "component": "Text",
+              "text": {
+                "path": "when"
+              },
+              "variant": "labelLarge"
+            },
+            {
+              "id": "clash-body",
+              "component": "Stack",
+              "children": [
+                "clash-summary",
+                "clash-note"
+              ],
+              "gap": "none"
+            },
+            {
+              "id": "clash-summary",
+              "component": "Text",
+              "text": {
+                "path": "summary"
+              },
+              "maxLines": 1
+            },
+            {
+              "id": "clash-note",
+              "component": "Text",
+              "text": {
+                "path": "note"
+              },
+              "variant": "bodySmall",
+              "color": "onSurfaceVariant",
+              "maxLines": 1
+            }
+          ],
+          "surfaceId": "calendar-1"
+        }
+      }
+    ],
+    "capturedBy": "publisher",
+    "capturedAt": "2026-10-13T11:21:13.762Z"
+  }
+}

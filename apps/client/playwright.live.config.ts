@@ -1,42 +1,80 @@
-import {tmpdir} from 'node:os';
-import {join} from 'node:path';
 import {defineConfig, devices} from '@playwright/test';
-import {AGENT_CARD, CLIENT_PORT, ORCHESTRATOR, ORCHESTRATOR_PORT} from './e2e-live/stack';
+import {
+  AGENT_CARD,
+  AGENT_STATE,
+  CLIENT_PORT,
+  MARKETPLACE,
+  MARKETPLACE_PORT,
+  MARKETPLACE_STATE,
+  ORCHESTRATOR,
+  ORCHESTRATOR_PORT,
+  PUBLISHER_FILE,
+  SCRATCH,
+  SHOP_B_CARD,
+  STATE_DIR,
+} from './e2e-live/stack';
 
 /**
  * The e2e suite on the real stack on `localhost` (task-12.12 decision 8), beside the replay suite
- * (`playwright.config.ts`): an orchestrator on a scratch state directory, one deterministic agent
- * on the kit's sign-in from the sibling `a2uiverse-apps` checkout started and installed by the
- * launcher, and the client pointed at that orchestrator. The Planner runs live — the orchestrator's
- * `.env` brings its key. On demand only, outside `pnpm verify`; the agent's roster port must be
- * free. The agent keeps its sign-in store in a scratch folder too, never the checkout's own
- * (task-12.13 decision 55).
+ * (`playwright.config.ts`), one stack for every story (task-14.10 decision 11): a marketplace and an
+ * orchestrator of the suite's own on scratch state, the marketplace on a port of its own (decision
+ * 4); the launcher under `--publish` publishing GitHub, Gmail and Shop A as the dev publisher, kept in a
+ * scratch file, and installing both from that marketplace; Shop B started by a second launcher,
+ * neither published nor installed — the app the publisher claimed on the page publishes (decision
+ * 3); and the client pointed at that orchestrator. Each scratch folder is wiped at the start but
+ * the two model caches. The Planner runs live — the orchestrator's `.env` brings its key. On demand
+ * only, outside `pnpm verify`; the apps' roster ports must be free. The agents keep their sign-in
+ * stores in a scratch folder too, never the checkout's own (task-12.13 decision 55).
  */
-const STATE_DIR = join(tmpdir(), 'a2uiverse-e2e-live-state');
-const AGENT_STATE = join(tmpdir(), 'a2uiverse-e2e-live-agents');
+const LAUNCHER = 'node ../../scripts/dev-agents.mjs --mode deterministic';
 
 export default defineConfig({
   testDir: './e2e-live',
-  // One stack, one orchestrator's session: the tests run in turn.
+  // One stack, one orchestrator's session: the tests run in turn, each leaving it as it found it.
   workers: 1,
-  timeout: 240_000,
+  timeout: 300_000,
   use: {baseURL: `http://localhost:${CLIENT_PORT}`, timezoneId: 'UTC'},
   projects: [
     {name: 'chromium', use: {...devices['Desktop Chrome'], viewport: {width: 1280, height: 900}}},
   ],
+  // Started in order, each once the one before it answers.
   webServer: [
     {
-      command: `rm -rf ${STATE_DIR} && pnpm --filter @a2uiverse/orchestrator dev`,
-      url: `${ORCHESTRATOR}/.well-known/agent-card.json`,
-      env: {PORT: String(ORCHESTRATOR_PORT), BASE_URL: ORCHESTRATOR, STATE_DIR},
+      command: `pnpm exec tsx e2e-live/fresh-state.ts ${SCRATCH} && pnpm --filter @a2uiverse/marketplace dev`,
+      url: `${MARKETPLACE}/index.json`,
+      env: {PORT: String(MARKETPLACE_PORT), STATE_DIR: MARKETPLACE_STATE},
       reuseExistingServer: false,
       timeout: 180_000,
     },
     {
-      // Installs the app into the orchestrator above once both answer; every address on localhost.
-      command: `rm -rf ${AGENT_STATE} && node ../../scripts/dev-agents.mjs --only github --mode deterministic --agent-state ${AGENT_STATE}`,
+      command: 'pnpm --filter @a2uiverse/orchestrator dev',
+      url: `${ORCHESTRATOR}/.well-known/agent-card.json`,
+      env: {
+        PORT: String(ORCHESTRATOR_PORT),
+        BASE_URL: ORCHESTRATOR,
+        STATE_DIR,
+        MARKETPLACE_URL: MARKETPLACE,
+      },
+      reuseExistingServer: false,
+      timeout: 180_000,
+    },
+    {
+      // Publishes and installs the three once the orchestrator and the marketplace answer.
+      command: `${LAUNCHER} --tier default,mocks --only github,gmail,shop-a --publish --publisher-file ${PUBLISHER_FILE} --agent-state ${AGENT_STATE}`,
       url: AGENT_CARD,
-      env: {ORCHESTRATOR_URL: ORCHESTRATOR, STATE_DIR, A2UIVERSE_PUBLIC_URL: ''},
+      env: {
+        ORCHESTRATOR_URL: ORCHESTRATOR,
+        STATE_DIR,
+        MARKETPLACE_URL: MARKETPLACE,
+        A2UIVERSE_PUBLIC_URL: '',
+      },
+      reuseExistingServer: false,
+      timeout: 300_000,
+    },
+    {
+      command: `${LAUNCHER} --tier mocks --only shop-b --no-install --agent-state ${AGENT_STATE}`,
+      url: SHOP_B_CARD,
+      env: {A2UIVERSE_PUBLIC_URL: ''},
       reuseExistingServer: false,
       timeout: 300_000,
     },

@@ -1,0 +1,279 @@
+{
+  "entry": {
+    "appId": "shop-b",
+    "publisher": "a2uiverse-apps",
+    "cardUrl": "http://localhost:12002/.well-known/agent-card.json",
+    "card": {
+      "capabilities": {
+        "extensions": [
+          {
+            "description": "Provides agent driven UI using the A2UI JSON format.",
+            "params": {
+              "supportedCatalogIds": [
+                "https://github.com/retz8/a2uiverse-apps/blob/main/mocks/shop-b/shop-b-catalog/catalogs/v0.9.1/catalog.json"
+              ]
+            },
+            "uri": "https://a2ui.org/a2a-extension/a2ui/v0.9.1"
+          }
+        ],
+        "streaming": true
+      },
+      "defaultInputModes": [
+        "text",
+        "text/plain"
+      ],
+      "defaultOutputModes": [
+        "text",
+        "text/plain"
+      ],
+      "description": "Northlight Cameras, a high-volume online retailer listing current stock with live pricing and next-day dispatch.",
+      "documentationUrl": "https://github.com/retz8/a2uiverse-apps/blob/main/mocks/shop-b/agent/README.md",
+      "name": "Shop B",
+      "preferredTransport": "JSONRPC",
+      "protocolVersion": "0.3.0",
+      "provider": {
+        "organization": "Northlight",
+        "url": "https://northlight.example"
+      },
+      "security": [
+        {
+          "apiKey": []
+        }
+      ],
+      "securitySchemes": {
+        "apiKey": {
+          "description": "Your Northlight key. You'll find it on your Northlight account page.",
+          "in": "header",
+          "name": "X-Northlight-Key",
+          "type": "apiKey"
+        }
+      },
+      "skills": [
+        {
+          "description": "Lists everything Northlight has in stock right now with its live price and its customer rating, and opens any single line in full. Prices track supplier feeds, so the list is what the warehouse holds today rather than a curated selection.",
+          "examples": [
+            "What cameras do you have?",
+            "Show me your camera stock",
+            "How much is the Orbit GM3 at Northlight?",
+            "Which of your cameras is rated best?"
+          ],
+          "id": "browse-cameras",
+          "name": "Browse cameras",
+          "tags": [
+            "cameras",
+            "shopping",
+            "prices",
+            "shop-b"
+          ]
+        },
+        {
+          "description": "Answers questions about Northlight's next-day dispatch cutoff, free delivery threshold, and the fourteen-day returns window for unopened stock.",
+          "examples": [
+            "What is your returns policy?",
+            "How fast do you ship?",
+            "Do your cameras come with a warranty?"
+          ],
+          "id": "store-policy",
+          "name": "Shipping and returns",
+          "tags": [
+            "shipping",
+            "returns",
+            "warranty",
+            "shop-b"
+          ]
+        }
+      ],
+      "url": "http://localhost:12002",
+      "version": "0.1.0"
+    },
+    "catalogs": {
+      "https://github.com/retz8/a2uiverse-apps/blob/main/mocks/shop-b/shop-b-catalog/catalogs/v0.9.1/catalog.json": "sha256-HZguEEJZFF8jNpZb6DQaQaEIIR9JkMgI3WpFohZ3KMQ"
+    },
+    "versions": [
+      "0.1.0"
+    ],
+    "publishedAt": "2026-10-13T11:21:14.006Z",
+    "retired": []
+  },
+  "preview": {
+    "appId": "shop-b",
+    "version": "0.1.0",
+    "words": "What cameras do you have?",
+    "messages": [
+      {
+        "version": "v0.9",
+        "createSurface": {
+          "surfaceId": "list",
+          "catalogId": "https://github.com/retz8/a2uiverse-apps/blob/main/mocks/shop-b/shop-b-catalog/catalogs/v0.9.1/catalog.json",
+          "sendDataModel": true
+        }
+      },
+      {
+        "version": "v0.9",
+        "updateDataModel": {
+          "surfaceId": "list",
+          "path": "/",
+          "value": {
+            "items": [
+              {
+                "id": "verity-a7",
+                "name": "Verity A7",
+                "price": 2249,
+                "rating": 4.7
+              },
+              {
+                "id": "lumen-x100",
+                "name": "Lumen X100",
+                "price": 1379,
+                "rating": 4.5
+              },
+              {
+                "id": "orbit-gm3",
+                "name": "Orbit GM3",
+                "price": 899,
+                "rating": 4.2
+              },
+              {
+                "id": "kestrel-r5",
+                "name": "Kestrel R5",
+                "price": 3149,
+                "rating": 4.3
+              }
+            ]
+          }
+        }
+      },
+      {
+        "version": "v0.9",
+        "updateComponents": {
+          "surfaceId": "list",
+          "components": [
+            {
+              "id": "root",
+              "component": "Card",
+              "child": "body"
+            },
+            {
+              "id": "body",
+              "component": "Column",
+              "children": [
+                "title",
+                "controls",
+                "rows"
+              ]
+            },
+            {
+              "id": "title",
+              "component": "Text",
+              "variant": "h3",
+              "text": "Northlight"
+            },
+            {
+              "id": "controls",
+              "component": "Row",
+              "children": [
+                "sort-price",
+                "sort-rating"
+              ]
+            },
+            {
+              "id": "sort-price",
+              "component": "Button",
+              "variant": "borderless",
+              "child": "sort-price-label",
+              "action": {
+                "event": {
+                  "name": "sort-by",
+                  "context": {
+                    "key": "price"
+                  }
+                }
+              }
+            },
+            {
+              "id": "sort-price-label",
+              "component": "Text",
+              "text": "Price"
+            },
+            {
+              "id": "sort-rating",
+              "component": "Button",
+              "variant": "borderless",
+              "child": "sort-rating-label",
+              "action": {
+                "event": {
+                  "name": "sort-by",
+                  "context": {
+                    "key": "rating"
+                  }
+                }
+              }
+            },
+            {
+              "id": "sort-rating-label",
+              "component": "Text",
+              "text": "Rating"
+            },
+            {
+              "id": "rows",
+              "component": "List",
+              "children": {
+                "path": "/items",
+                "componentId": "row"
+              }
+            },
+            {
+              "id": "row",
+              "component": "Button",
+              "variant": "borderless",
+              "child": "row-body",
+              "action": {
+                "event": {
+                  "name": "open-camera",
+                  "context": {
+                    "cameraId": {
+                      "path": "id"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "id": "row-body",
+              "component": "Row",
+              "children": [
+                "row-name",
+                "row-price",
+                "row-rating"
+              ]
+            },
+            {
+              "id": "row-name",
+              "component": "Text",
+              "text": {
+                "path": "name"
+              }
+            },
+            {
+              "id": "row-price",
+              "component": "Text",
+              "text": {
+                "path": "price"
+              }
+            },
+            {
+              "id": "row-rating",
+              "component": "Text",
+              "variant": "caption",
+              "text": {
+                "path": "rating"
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "capturedBy": "publisher",
+    "capturedAt": "2026-10-13T11:21:13.584Z"
+  }
+}

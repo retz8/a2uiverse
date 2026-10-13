@@ -1,0 +1,266 @@
+{
+  "entry": {
+    "appId": "shop-a",
+    "publisher": "a2uiverse-apps",
+    "cardUrl": "http://localhost:12001/.well-known/agent-card.json",
+    "card": {
+      "capabilities": {
+        "extensions": [
+          {
+            "description": "Provides agent driven UI using the A2UI JSON format.",
+            "params": {
+              "supportedCatalogIds": [
+                "https://github.com/retz8/a2uiverse-apps/blob/main/mocks/shop-a/shop-a-catalog/catalogs/v0.9.1/catalog.json"
+              ]
+            },
+            "uri": "https://a2ui.org/a2a-extension/a2ui/v0.9.1"
+          }
+        ],
+        "streaming": true
+      },
+      "defaultInputModes": [
+        "text",
+        "text/plain"
+      ],
+      "defaultOutputModes": [
+        "text",
+        "text/plain"
+      ],
+      "description": "Aperture & Co, a boutique camera dealer stocking hand-picked bodies with condition notes and staff ratings.",
+      "documentationUrl": "https://github.com/retz8/a2uiverse-apps/blob/main/mocks/shop-a/agent/README.md",
+      "name": "Shop A",
+      "preferredTransport": "JSONRPC",
+      "protocolVersion": "0.3.0",
+      "provider": {
+        "organization": "Aperture & Co",
+        "url": "https://aperture.example"
+      },
+      "skills": [
+        {
+          "description": "Lists the camera bodies Aperture & Co currently has on the shelf, each with its price and the rating its staff gave it after inspection, and opens any one of them in full. The shelf is small and hand-picked rather than a full-range catalogue.",
+          "examples": [
+            "What cameras do you have?",
+            "Show me your camera stock",
+            "What does the Lumen X100 cost at Aperture?",
+            "Which of your cameras is rated best?"
+          ],
+          "id": "browse-cameras",
+          "name": "Browse cameras",
+          "tags": [
+            "cameras",
+            "shopping",
+            "prices",
+            "shop-a"
+          ]
+        },
+        {
+          "description": "Answers questions about Aperture & Co's dispatch times, its thirty-day returns window, and the twelve-month workshop warranty every graded body carries.",
+          "examples": [
+            "What is your returns policy?",
+            "How fast do you ship?",
+            "Do your cameras come with a warranty?"
+          ],
+          "id": "store-policy",
+          "name": "Shipping and returns",
+          "tags": [
+            "shipping",
+            "returns",
+            "warranty",
+            "shop-a"
+          ]
+        }
+      ],
+      "url": "http://localhost:12001",
+      "version": "0.1.0"
+    },
+    "catalogs": {
+      "https://github.com/retz8/a2uiverse-apps/blob/main/mocks/shop-a/shop-a-catalog/catalogs/v0.9.1/catalog.json": "sha256-nnzw-NQHDz-DY2UPvsVm0hLMKv-E927yrmCuEYLIh24"
+    },
+    "versions": [
+      "0.1.0"
+    ],
+    "publishedAt": "2026-10-13T11:21:13.875Z",
+    "retired": []
+  },
+  "preview": {
+    "appId": "shop-a",
+    "version": "0.1.0",
+    "words": "What cameras do you have?",
+    "messages": [
+      {
+        "version": "v0.9",
+        "createSurface": {
+          "surfaceId": "list",
+          "catalogId": "https://github.com/retz8/a2uiverse-apps/blob/main/mocks/shop-a/shop-a-catalog/catalogs/v0.9.1/catalog.json",
+          "sendDataModel": true
+        }
+      },
+      {
+        "version": "v0.9",
+        "updateDataModel": {
+          "surfaceId": "list",
+          "path": "/",
+          "value": {
+            "items": [
+              {
+                "id": "lumen-z6",
+                "name": "Lumen Z6",
+                "price": 1899,
+                "rating": 4.4
+              },
+              {
+                "id": "kestrel-r5",
+                "name": "Kestrel R5",
+                "price": 3299,
+                "rating": 4.9
+              },
+              {
+                "id": "lumen-x100",
+                "name": "Lumen X100",
+                "price": 1449,
+                "rating": 4.8
+              },
+              {
+                "id": "verity-a7",
+                "name": "Verity A7",
+                "price": 2199,
+                "rating": 4.6
+              }
+            ]
+          }
+        }
+      },
+      {
+        "version": "v0.9",
+        "updateComponents": {
+          "surfaceId": "list",
+          "components": [
+            {
+              "id": "root",
+              "component": "Card",
+              "child": "body"
+            },
+            {
+              "id": "body",
+              "component": "Column",
+              "children": [
+                "title",
+                "controls",
+                "rows"
+              ]
+            },
+            {
+              "id": "title",
+              "component": "Text",
+              "variant": "h3",
+              "text": "Aperture & Co"
+            },
+            {
+              "id": "controls",
+              "component": "Row",
+              "children": [
+                "sort-price",
+                "sort-rating"
+              ]
+            },
+            {
+              "id": "sort-price",
+              "component": "Button",
+              "variant": "borderless",
+              "child": "sort-price-label",
+              "action": {
+                "event": {
+                  "name": "sort-by",
+                  "context": {
+                    "key": "price"
+                  }
+                }
+              }
+            },
+            {
+              "id": "sort-price-label",
+              "component": "Text",
+              "text": "Price"
+            },
+            {
+              "id": "sort-rating",
+              "component": "Button",
+              "variant": "borderless",
+              "child": "sort-rating-label",
+              "action": {
+                "event": {
+                  "name": "sort-by",
+                  "context": {
+                    "key": "rating"
+                  }
+                }
+              }
+            },
+            {
+              "id": "sort-rating-label",
+              "component": "Text",
+              "text": "Rating"
+            },
+            {
+              "id": "rows",
+              "component": "List",
+              "children": {
+                "path": "/items",
+                "componentId": "row"
+              }
+            },
+            {
+              "id": "row",
+              "component": "Button",
+              "variant": "borderless",
+              "child": "row-body",
+              "action": {
+                "event": {
+                  "name": "open-camera",
+                  "context": {
+                    "cameraId": {
+                      "path": "id"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "id": "row-body",
+              "component": "Row",
+              "children": [
+                "row-name",
+                "row-price",
+                "row-rating"
+              ]
+            },
+            {
+              "id": "row-name",
+              "component": "Text",
+              "text": {
+                "path": "name"
+              }
+            },
+            {
+              "id": "row-price",
+              "component": "Text",
+              "text": {
+                "path": "price"
+              }
+            },
+            {
+              "id": "row-rating",
+              "component": "Text",
+              "variant": "caption",
+              "text": {
+                "path": "rating"
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "capturedBy": "marketplace",
+    "capturedAt": "2026-10-13T11:21:13.553Z"
+  }
+}
