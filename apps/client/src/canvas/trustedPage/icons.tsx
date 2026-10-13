@@ -107,3 +107,65 @@ export const KeyIcon = () => (
     <path d="M6.3 7.7L11.5 2.5M9.5 4.5l1.5 1.5" />
   </svg>
 );
+
+/** A packed folder. */
+export const FolderIcon = ({size = 16}: {size?: number}) => (
+  <svg
+    aria-hidden="true"
+    width={size}
+    height={size}
+    viewBox="0 0 20 20"
+    {...stroke}
+    strokeWidth="1.4"
+  >
+    <path d="M2.5 6.5a1.5 1.5 0 0 1 1.5-1.5h3.6l1.6 1.8H16a1.5 1.5 0 0 1 1.5 1.5v6.7A1.5 1.5 0 0 1 16 16.5H4A1.5 1.5 0 0 1 2.5 15z" />
+  </svg>
+);
+
+/** A file. */
+export const FileIcon = ({size = 16}: {size?: number}) => (
+  <svg
+    aria-hidden="true"
+    width={size}
+    height={size}
+    viewBox="0 0 20 20"
+    {...stroke}
+    strokeWidth="1.4"
+  >
+    <path d="M5 2.5h6.5L15 6v11.5H5z" />
+    <path d="M11.5 2.5V6H15" />
+  </svg>
+);
+
+/** Copy to the clipboard. */
+export const CopyIcon = () => (
+  <svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" {...stroke} strokeWidth="1.3">
+    <rect x="4.5" y="4.5" width="7" height="7" rx="1.4" />
+    <path d="M9.5 4.5V3.2a.7.7 0 0 0-.7-.7H3.2a.7.7 0 0 0-.7.7v5.6c0 .4.3.7.7.7h1.3" />
+  </svg>
+);
+
+/** Take it off the list. */
+export const RemoveIcon = () => (
+  <svg aria-hidden="true" width="12" height="12" viewBox="0 0 16 16" {...stroke} strokeWidth="1.8">
+    <path d="M4 4l8 8M12 4l-8 8" />
+  </svg>
+);
+
+/** What is wrong with a field. */
+export const ErrorIcon = () => (
+  <svg aria-hidden="true" width="12" height="12" viewBox="0 0 12 12" {...stroke} strokeWidth="1.4">
+    <circle cx="6" cy="6" r="4.8" />
+    <path d="M6 3.8v2.6" />
+    <circle cx="6" cy="8.4" r=".4" fill="currentColor" stroke="none" />
+  </svg>
+);
+
+/** Something refused or failed. */
+export const BadIcon = () => (
+  <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" {...stroke} strokeWidth="1.5">
+    <circle cx="8" cy="8" r="6.2" />
+    <path d="M8 4.8v3.8" />
+    <circle cx="8" cy="11" r=".6" fill="currentColor" stroke="none" />
+  </svg>
+);

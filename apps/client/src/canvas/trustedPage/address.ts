@@ -2,7 +2,8 @@
  * The trusted page in the address (phase-14 decision 11, task-14.2 decision 17): its destination
  * under `page`, the Store's query under `q`, the Store filtered on one publisher's apps under
  * `publisher` (task-14.7 decision 4), and an app — one app's view in the Store or the App Library —
- * under `app`, beside whatever else the address carries (`?beat=` among them). The canvas itself is
+ * under `app`; Publish's form under `form`, `new` or an `update` to the app under `app` (task-14.9
+ * decision 7); beside whatever else the address carries (`?beat=` among them). The canvas itself is
  * never in the address: a reload starts a fresh session (SPEC §6, §11).
  */
 import type {TrustedPage, TrustedPageState} from '../trail/trailStore';
@@ -11,6 +12,7 @@ const PAGE = 'page';
 const QUERY = 'q';
 const APP = 'app';
 const PUBLISHER = 'publisher';
+const FORM = 'form';
 
 /** Each destination's word in the address. */
 const WORDS: Record<TrustedPage, string> = {
@@ -20,14 +22,22 @@ const WORDS: Record<TrustedPage, string> = {
 };
 const PAGES = new Map(Object.entries(WORDS).map(([page, word]) => [word, page as TrustedPage]));
 
+/** Publish's form in the address: a new app's, or an update's to the app named beside it. */
+const FORM_NEW = 'new';
+const FORM_UPDATE = 'update';
+
 /** The page an address opens; none when it names none, or one this client does not know. */
 export function pageOfAddress(url: URL): TrustedPageState | null {
   const page = PAGES.get(url.searchParams.get(PAGE) ?? '');
   if (!page) return null;
-  if (page === 'publish') return {page};
+  const app = url.searchParams.get(APP);
+  if (page === 'publish') {
+    const form = url.searchParams.get(FORM);
+    if (form === FORM_UPDATE && app) return {page, form: true, app};
+    return form === FORM_NEW || form === FORM_UPDATE ? {page, form: true} : {page};
+  }
   const query = page === 'store' ? url.searchParams.get(QUERY) : null;
   const publisher = page === 'store' ? url.searchParams.get(PUBLISHER) : null;
-  const app = url.searchParams.get(APP);
   return {
     page,
     ...(query ? {query} : {}),
@@ -39,8 +49,14 @@ export function pageOfAddress(url: URL): TrustedPageState | null {
 /** `url` with `page` in its address — or none, taken out — as a path, query and hash. */
 export function addressOf(page: TrustedPageState | null, url: URL): string {
   const params = new URLSearchParams(url.search);
-  for (const key of [PAGE, QUERY, PUBLISHER, APP]) params.delete(key);
-  if (page) {
+  for (const key of [PAGE, QUERY, PUBLISHER, APP, FORM]) params.delete(key);
+  if (page?.page === 'publish') {
+    params.set(PAGE, WORDS.publish);
+    if (page.form) {
+      params.set(FORM, page.app ? FORM_UPDATE : FORM_NEW);
+      if (page.app) params.set(APP, page.app);
+    }
+  } else if (page) {
     params.set(PAGE, WORDS[page.page]);
     if (page.query) params.set(QUERY, page.query);
     if (page.publisher) params.set(PUBLISHER, page.publisher);

@@ -4,7 +4,9 @@
  * artifacts, served as static files under `/registry` (task-11.4 decision 10); the Store's reads,
  * relayed from the marketplace under `/marketplace` and annotated with what the registry holds,
  * and the install (task 14.7); the App Library's update check, accounts read, rename, sign-out
- * and uninstall (task 14.8). HTTP from M7; IPC in Electron swaps the transport only. Runtime
+ * and uninstall (task 14.8); Publish's read of who is signed in, the claim, sign-in, sign-out,
+ * publish and unpublish, relayed to the marketplace with the publisher's secret the orchestrator
+ * holds (task 14.9). HTTP from M7; IPC in Electron swaps the transport only. Runtime
  * objects (catalogs, providers) never cross this boundary; `catalogs/loader` turns what it serves
  * into them.
  */
@@ -13,6 +15,8 @@ import {
   type IndexEntry,
   type InstallRefusal,
   type PreviewDocument,
+  type PublishOutcome,
+  type PublishRequest,
   type PublishedCard,
   type UpdateState,
 } from '@a2uiverse/sdk';
@@ -366,3 +370,154 @@ export async function uninstallApp(
 
 const revocationOf = (value: unknown): Revocation =>
   value === 'revoked' || value === 'nowhere' ? value : 'failed';
+
+// --- Publish (task 14.9) ------------------------------------------------------------------------
+
+/** Who is signed in to Publish, as the orchestrator reads it at each entry (task-14.4 decision 13). */
+export type PublisherStatus =
+  | {state: 'signed-out'}
+  | {state: 'signed-in'; publisher: string; store: 'accepted' | 'not-accepted' | 'unreached'}
+  /** Held for a Store other than the one the orchestrator reaches: by its name alone (decision 12). */
+  | {state: 'another-store'; publisher: string};
+
+/** Who is signed in; null when the orchestrator could not be asked. */
+export async function readPublisher(base: string): Promise<PublisherStatus | null> {
+  try {
+    const status = (await fetchJson(new URL('publisher.json', marketplaceUrl(base)).href, {
+      cache: 'no-store',
+    })) as {state?: unknown} | null;
+    return typeof status?.state === 'string' ? (status as PublisherStatus) : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Why a publisher's call was refused, read off the orchestrator's reason and status (task-14.9
+ * decision 10): a publisher already held, none, one held for another Store, the secret no longer
+ * accepted; the name taken or not allowed; the app or a look another publisher's; the Store's
+ * checks; the app not published; this computer unable to keep or forget the secret; or no answer
+ * the page can read — the Store or the orchestrator unreached, or a body it cannot read.
+ */
+export type PublisherRefusal =
+  | 'held'
+  | 'signed-out'
+  | 'another-store'
+  | 'not-accepted'
+  | 'taken'
+  | 'name'
+  | 'owned'
+  | 'checks'
+  | 'not-published'
+  | 'unkept'
+  | 'unreached';
+
+/** A publisher's call refused, with the findings as the orchestrator or the Store worded them. */
+export interface PublisherRefused {
+  ok: false;
+  refusal: PublisherRefusal;
+  findings: string[];
+}
+
+const PUBLISHER_REASONS: ReadonlySet<string> = new Set([
+  'held',
+  'signed-out',
+  'another-store',
+  'not-accepted',
+  'unreached',
+]);
+
+/**
+ * A refused call: the reason the orchestrator named, else what its status means for this route;
+ * an answer with no findings to read is no answer at all.
+ */
+function publisherRefused(
+  answer: {status: number; body: unknown} | null,
+  byStatus: Partial<Record<number, PublisherRefusal>>,
+): PublisherRefused {
+  const body = answer?.body as {reason?: unknown; findings?: unknown} | undefined;
+  const findings = Array.isArray(body?.findings)
+    ? body.findings.filter((f): f is string => typeof f === 'string')
+    : [];
+  const named =
+    typeof body?.reason === 'string' && PUBLISHER_REASONS.has(body.reason)
+      ? (body.reason as PublisherRefusal)
+      : undefined;
+  const byIt = answer && findings.length > 0 ? byStatus[answer.status] : undefined;
+  return {ok: false, refusal: named ?? byIt ?? 'unreached', findings};
+}
+
+/** The orchestrator's publisher routes, under the marketplace's. */
+const publisherUrl = (base: string, path: string) => new URL(path, marketplaceUrl(base)).href;
+
+/** A claim's answer: the secret, shown once, and whether this computer kept it (task-14.4 decision 8). */
+export type ClaimAnswer =
+  {ok: true; publisher: string; token: string; kept: boolean} | PublisherRefused;
+
+/** Claims a publisher name. */
+export async function claimPublisher(base: string, publisher: string): Promise<ClaimAnswer> {
+  const answer = await write(publisherUrl(base, 'claim'), {publisher});
+  const body = answer?.body as {publisher?: unknown; token?: unknown; kept?: unknown} | undefined;
+  if (answer?.status === 201 && typeof body?.token === 'string') {
+    return {
+      ok: true,
+      publisher: typeof body.publisher === 'string' ? body.publisher : publisher,
+      token: body.token,
+      kept: body.kept !== false,
+    };
+  }
+  return publisherRefused(answer, {400: 'name', 409: 'taken', 422: 'name'});
+}
+
+/** Signs in with a name and its secret, checked at the Store before they are kept (decision 10). */
+export async function signInPublisher(
+  base: string,
+  publisher: string,
+  token: string,
+): Promise<{ok: true; publisher: string} | PublisherRefused> {
+  const answer = await write(publisherUrl(base, 'sign-in'), {publisher, token});
+  const body = answer?.body as {ok?: unknown} | undefined;
+  if (answer?.status === 200 && body?.ok === true) return {ok: true, publisher};
+  return publisherRefused(answer, {500: 'unkept'});
+}
+
+/** Signs out of Publish: the orchestrator forgets the secret (decision 11). */
+export async function signOutPublisher(base: string): Promise<{ok: true} | PublisherRefused> {
+  const answer = await write(publisherUrl(base, 'sign-out'), {});
+  const body = answer?.body as {ok?: unknown} | undefined;
+  if (answer?.status === 200 && body?.ok === true) return {ok: true};
+  return publisherRefused(answer, {404: 'signed-out', 500: 'unkept'});
+}
+
+/**
+ * Publishes: the body Stellify's `publish` posts, relayed with the held secret, the Store's
+ * outcome or its findings returned as it worded them (task-14.4 decision 15).
+ */
+export async function publishApp(
+  base: string,
+  request: PublishRequest,
+): Promise<PublishOutcome | PublisherRefused> {
+  const answer = await write(publisherUrl(base, 'publish'), request);
+  const body = answer?.body as Partial<PublishOutcome> | undefined;
+  if (answer?.status === 200 && body?.ok === true) {
+    return {
+      ok: true,
+      appId: String(body.appId),
+      version: String(body.version),
+      summary: typeof body.summary === 'string' ? body.summary : '',
+      notes: Array.isArray(body.notes) ? body.notes.map(String) : [],
+    };
+  }
+  return publisherRefused(answer, {400: 'checks', 403: 'owned', 422: 'checks'});
+}
+
+/** Unpublishes a whole app. */
+export async function unpublishApp(
+  base: string,
+  appId: string,
+): Promise<{ok: true} | PublisherRefused> {
+  const answer = await write(publisherUrl(base, 'unpublish'), {appId});
+  const body = answer?.body as {ok?: unknown} | undefined;
+  if (answer?.status === 200 && body?.ok === true) return {ok: true};
+  return publisherRefused(answer, {400: 'checks', 403: 'owned', 404: 'not-published'});
+}

@@ -35,10 +35,15 @@ export interface TrustedPageState {
   page: TrustedPage;
   /** The Store's search, when the action carried one — the capability the tile forwards. */
   query?: string;
-  /** The app whose view it opens on, in the Store or the App Library (task-14.2 decision 17). */
+  /**
+   * The app whose view it opens on, in the Store or the App Library (task-14.2 decision 17); on
+   * Publish's form, the app it publishes an update to.
+   */
   app?: string;
   /** The Store filtered on one publisher's apps (task-14.7 decision 4). */
   publisher?: string;
+  /** Publish at its publish form — for an update to `app`, else for a new app (task-14.9 decision 7). */
+  form?: boolean;
 }
 
 export interface TrailState {

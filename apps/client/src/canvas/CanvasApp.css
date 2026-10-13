@@ -691,21 +691,6 @@ body {
   padding: 28px 40px 40px;
 }
 
-.trusted-page__col {
-  max-width: 880px;
-  margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.trusted-page__note {
-  margin: 0;
-  font-size: 13px;
-  line-height: 20px;
-  color: var(--a2v-muted);
-}
-
 @media (max-width: 640px) {
   .trusted-page__head {
     padding: 0 12px;

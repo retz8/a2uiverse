@@ -1,7 +1,7 @@
 /**
  * The trusted page in the address (phase-14 decision 11, task-14.2 decision 17, task-14.7
- * decision 4): its destination, the Store's query, its publisher filter and an app, beside whatever
- * else the address carries.
+ * decision 4, task-14.9 decision 7): its destination, the Store's query, its publisher filter, an
+ * app and Publish's form, beside whatever else the address carries.
  */
 import {describe, expect, it} from 'vitest';
 import {addressOf, pageOfAddress} from './address';
@@ -50,6 +50,22 @@ describe('pageOfAddress', () => {
   it('keeps Publish bare: a query or an app on it is not read', () => {
     expect(pageOfAddress(at('?page=publish&q=x&app=y'))).toEqual({page: 'publish'});
   });
+
+  it("reads Publish's form: a new app's, or an update's to the app beside it", () => {
+    expect(pageOfAddress(at('?page=publish&form=new'))).toEqual({page: 'publish', form: true});
+    expect(pageOfAddress(at('?page=publish&form=update&app=linear'))).toEqual({
+      page: 'publish',
+      form: true,
+      app: 'linear',
+    });
+    expect(pageOfAddress(at('?page=publish&form=new&app=linear'))).toEqual({
+      page: 'publish',
+      form: true,
+    });
+    expect(pageOfAddress(at('?page=publish&form=update'))).toEqual({page: 'publish', form: true});
+    expect(pageOfAddress(at('?page=publish&form=other'))).toEqual({page: 'publish'});
+    expect(pageOfAddress(at('?page=store&form=new'))).toEqual({page: 'store'});
+  });
 });
 
 describe('addressOf', () => {
@@ -62,8 +78,18 @@ describe('addressOf', () => {
     );
   });
 
+  it("writes Publish's form, and the app for an update", () => {
+    expect(addressOf({page: 'publish', form: true}, at(''))).toBe('/?page=publish&form=new');
+    expect(addressOf({page: 'publish', form: true, app: 'linear'}, at(''))).toBe(
+      '/?page=publish&form=update&app=linear',
+    );
+    expect(addressOf({page: 'publish', app: 'linear'}, at(''))).toBe('/?page=publish');
+    expect(addressOf({page: 'store', form: true}, at(''))).toBe('/?page=store');
+  });
+
   it('replaces the page already there', () => {
     expect(addressOf({page: 'publish'}, at('?page=store&q=x&app=y'))).toBe('/?page=publish');
+    expect(addressOf({page: 'store'}, at('?page=publish&form=update&app=x'))).toBe('/?page=store');
     expect(addressOf({page: 'store'}, at('?page=store&publisher=acme'))).toBe('/?page=store');
   });
 
@@ -80,6 +106,8 @@ describe('addressOf', () => {
       {page: 'store' as const, publisher: 'acme', query: 'mail', app: 'gmail'},
       {page: 'appLibrary' as const, app: 'gmail'},
       {page: 'publish' as const},
+      {page: 'publish' as const, form: true},
+      {page: 'publish' as const, form: true, app: 'linear'},
     ]) {
       expect(pageOfAddress(new URL(addressOf(page, at('')), 'https://x.example'))).toEqual(page);
     }
