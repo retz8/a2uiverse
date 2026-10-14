@@ -303,6 +303,17 @@
   border-radius: 6px;
 }
 
+/* A loading app tile keeps the tile's square. */
+.store-tile--40.store-sk {
+  height: 40px;
+  border-radius: 10px;
+}
+
+.store-tile--56.store-sk {
+  height: 56px;
+  border-radius: 14px;
+}
+
 .store-skeleton {
   display: flex;
   flex-direction: column;

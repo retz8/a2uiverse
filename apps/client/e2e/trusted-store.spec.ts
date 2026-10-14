@@ -70,6 +70,13 @@ test('S3 · loading, no results, the Store unreached, an app not in the Store', 
   });
   await openPage(page, '/?page=store');
   await expect(page.getByLabel('Loading the Store')).toBeVisible();
+  // Each loading row's app tile is the board's square, as a listing's tile.
+  const tile = await page
+    .getByLabel('Loading the Store')
+    .locator('.store-tile')
+    .first()
+    .boundingBox();
+  expect(tile).toMatchObject({width: 40, height: 40});
   await expect(page).toHaveScreenshot('store-s3-browse-states.png');
   held.open();
   await expect(page.getByTestId('store-row')).toHaveCount(7);
