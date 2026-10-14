@@ -624,7 +624,7 @@ test('L10 · uninstall asks once, naming the accounts it signs out', async ({pag
   await expect(row(page, 'gmail')).toHaveCount(0);
   await expect(page.getByTestId('library-label')).toContainText('Your apps · 5');
 
-  // Refused: nothing changed, said atop the list.
+  // Refused: nothing changed, said on the app's view where it was asked, and atop the list.
   const shopA = await openApp(page, 'shop-a');
   await shopA.getByRole('button', {name: 'Uninstall Shop A'}).click();
   await expect(page.getByTestId('library-uninstall')).toHaveText(
@@ -632,6 +632,9 @@ test('L10 · uninstall asks once, naming the accounts it signs out', async ({pag
   );
   await page.getByTestId('library-uninstall').getByRole('button', {name: 'Uninstall'}).click();
   await expect(shopA.getByRole('button', {name: 'Uninstall Shop A'})).toBeEnabled();
+  await expect(shopA.getByRole('alert')).toContainText(
+    'Shop A couldn’t be uninstalled, so nothing changed.',
+  );
   await shopA.getByRole('link', {name: 'Your apps'}).click();
   await expect(page.getByTestId('library-list').getByRole('alert')).toContainText(
     'Shop A couldn’t be uninstalled, so nothing changed.',

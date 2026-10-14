@@ -225,15 +225,7 @@ function LibraryList({
         <RefusedNotice name={nameOf(acts.outcome.appId)} outcome={acts.outcome} />
       )}
       {uninstall.kind === 'done' && <UninstalledNotice outcome={uninstall} />}
-      {uninstall.kind === 'refused' && (
-        <div className="store-notice store-notice--bad" role="alert">
-          <div className="store-notice__grow">
-            <span>
-              <b>{uninstall.name} couldn’t be uninstalled,</b> so nothing changed.
-            </span>
-          </div>
-        </div>
-      )}
+      {uninstall.kind === 'refused' && <UninstallRefusedNotice name={uninstall.name} />}
 
       {installed.status === 'loading' && <ListSkeleton />}
       {installed.status === 'unreached' && (
@@ -580,6 +572,19 @@ function AppView({
   );
 }
 
+/** An uninstall refused: said on the app's view, where it was asked, and atop the list. */
+function UninstallRefusedNotice({name}: {name: string}) {
+  return (
+    <div className="store-notice store-notice--bad" role="alert">
+      <div className="store-notice__grow">
+        <span>
+          <b>{name} couldn’t be uninstalled,</b> so nothing changed.
+        </span>
+      </div>
+    </div>
+  );
+}
+
 function AppSkeleton() {
   return (
     <div className="store-app" aria-busy="true" aria-label="Loading the app">
@@ -658,6 +663,9 @@ function AppBody({
 
       {mine?.kind === 'done' && <UpdatedNotice name={name} followed={mine.followed} />}
       {mine?.kind === 'refused' && <RefusedNotice name={name} outcome={mine} />}
+      {uninstall.kind === 'refused' && uninstall.appId === app.id && (
+        <UninstallRefusedNotice name={name} />
+      )}
       {app.reachable === false && (
         <UnreachedNotice name={name} checking={library.check.running} onCheck={acts.onCheck} />
       )}

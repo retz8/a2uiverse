@@ -85,6 +85,8 @@ interface Fake {
   renamed: {source: string; label: string}[];
   rename: Record<string, unknown>;
   revocation: string;
+  /** Whether the uninstall is refused. */
+  uninstallRefused?: boolean;
   uninstalled: string[];
   attempts: Map<string, Record<string, unknown>>;
   /** What every attempt answers. */
@@ -196,6 +198,7 @@ beforeEach(() => {
       }
       if (path === '/registry/uninstall') {
         fake.uninstalled.push(body.appId!);
+        if (fake.uninstallRefused) return json({ok: false, reason: 'failed'}, 500);
         const held = fake.accounts.find(a => a.appId === body.appId)?.accounts ?? [];
         fake.installed = fake.installed.filter(a => a.id !== body.appId);
         return json({
@@ -616,5 +619,22 @@ describe('uninstall', () => {
     expect(where()).toEqual({page: 'appLibrary'});
     expect(fake.uninstalled).toEqual(['gmail']);
     await waitFor(() => expect(screen.getAllByTestId('library-row')).toHaveLength(3));
+  });
+
+  it('says a refused uninstall on the app’s view, where it was asked, as on the list', async () => {
+    fake.uninstallRefused = true;
+    renderWithShell(<Library initial={{page: 'appLibrary', app: 'gmail'}} />);
+    await userEvent.click(await screen.findByRole('button', {name: 'Uninstall Gmail'}));
+    const question = await screen.findByTestId('library-uninstall');
+    await userEvent.click(within(question).getByRole('button', {name: 'Uninstall'}));
+    const view = screen.getByTestId('library-app-view');
+    expect(await within(view).findByRole('alert')).toHaveTextContent(
+      'Gmail couldn’t be uninstalled, so nothing changed.',
+    );
+    expect(where()).toEqual({page: 'appLibrary', app: 'gmail'});
+    await userEvent.click(within(view).getByRole('link', {name: 'Your apps'}));
+    expect(within(await screen.findByTestId('library-list')).getByRole('alert')).toHaveTextContent(
+      'Gmail couldn’t be uninstalled, so nothing changed.',
+    );
   });
 });
