@@ -1,0 +1,216 @@
+# Task 14.11 — Integration + acceptance
+
+Spec for sub-task 14.11 of Phase 14 (`_dev/docs/spec/phase-14-shell-trusted-pages.md`, decision 23): the phase's acceptance run on the deterministic roster through the tunnel, the marketplace under the launcher's publish flag. It covers the page opened every way its address allows; browser writes probed through the tunnel; the App Library's accounts followed onto the canvas; Publish under a name claimed on the page; the Store; every update state live; the Planner's reader; the browser holding no secret; a dark pass; and a regression pass before and after. It also takes the two faults found in task 14.10, and what task 14.10's decision 17 left to this pass: the ahead-of-the-Store notice live and one pressable update live.
+
+## Scope
+
+- The two faults found in task 14.10, fixed before the sitting.
+- The two checks: the regression pass, and one sitting by hand through the tunnel.
+- How the sitting is driven, how points found in it are handled, and where the code is worked.
+- The starting state, and the state the sitting leaves.
+- The publisher on the page.
+- The ways in and the address.
+- Browser writes probed through the tunnel.
+- Gmail's accounts on the page and on the canvas.
+- GitHub uninstalled and installed again from the Store.
+- Publish, the Store with Shop B, and Shop B's chain.
+- Every update state live: Linear's, Shop A's, Shop B's.
+- The Planner's reader.
+- The browser holding no secret.
+- The dark pass.
+- What stays on the replay suite.
+- The sitting's order and the record.
+- Out: the amendments the sitting calls for (task 14.12).
+
+## Locked decisions
+
+### 1. Two checks
+
+The regression pass:
+- `pnpm verify` in both repos;
+- the client's replay suite against the baselines on disk;
+- task 14.10's live suite, whole, run while the sitting's stack is down;
+- each Python agent's tests, run apart.
+
+It runs before the sitting, every failure and diff named and anything unexplained fixed before going on. It runs again after the sitting, the baselines retaken on disk and what changed named. Then there is one sitting by hand on the deterministic roster through the tunnel.
+
+### 2. The sitting is driven case by case
+
+Before each case Claude gives a brief of what it tests. On the reader's go, Claude drives the page in the reader's browser through Claude in Chrome on the tunnel's addresses, and runs every terminal command on the Mac. After each case the reader gives UX and design feedback, fixed on the spot before the next case.
+
+### 3. Nothing is deferred
+
+Every point the reader raises or the sitting finds is handled the same way:
+- fixed on the spot, one at a time, agent side included;
+- seen again;
+- added to this spec as a numbered decision with what it replaced.
+
+A point asking for something a later phase builds is recorded as a finding for that phase.
+
+### 4. Worked directly on `main`
+
+The platform's code goes on `main`. The agents', the kit's and the catalogs' code goes on `a2uiverse-apps`' `main`. There is no worktree. Each fix is committed as it lands. The cases' temporary edits are never committed and are reverted by the end of the sitting.
+
+### 5. The two faults found in task 14.10 are fixed before the sitting
+
+The two faults:
+- An uninstall refused on an app's view is said on that view, as on the list.
+- The Store's loading skeleton draws its app tile as the board's square.
+
+Each is fixed with its test and committed before the regression pass before. A baseline either moves is retaken and named.
+
+### 6. The starting state
+
+- The marketplace's state is wiped, its embedding model kept.
+- The orchestrator runs on a fresh state folder holding only the embedding model's cache. Every app is installed by id into an empty registry, and every account is signed in from its tile. The existing orchestrator state folder is left as it is.
+- The tunnel's addresses are set for the agents' sign-in pages for the whole sitting.
+- The launcher publishes and installs the roster but Shop B. Shop B's agent runs, neither published nor installed.
+
+### 7. The publisher on the page owns Shop B
+
+A name claimed on the page owns Shop B, and Shop B's cases run through Publish as that name. The update states of the roster's other apps are made on the terminal with Stellify as the dev publisher.
+
+### 8. The ways in and the address
+
+This case runs with a canvas composed beneath: "What needs my attention today?", GitHub and Gmail signed in from their tiles. It covers:
+- the Planner's buttons that open the Store and open the App Library on an app (open Publish's button lands at the start of decision 12);
+- the manual entry point;
+- a typed address carrying a query, and one carrying an app;
+- browser Back closing the page to the canvas untouched beneath, its regions and scroll as left;
+- Back and Forward between destinations;
+- a reload landing on the page over a fresh session.
+
+### 9. Browser writes probed through the tunnel
+
+Against the orchestrator's tunnel address, four writes are each refused:
+- a JSON write from a foreign origin;
+- one with no origin and no token;
+- a form-encoded post;
+- a JSON write to the uninstall route from a tab on a foreign site, stopped at the browser's preflight, the app still installed.
+
+A write from the page itself is the control.
+
+### 10. Gmail's accounts, on the page and on the canvas
+
+Gmail is signed in from its tile the first time it composes. On the App Library, each act is followed onto the canvas:
+- **Permissions:** read in the card's own words.
+- **Rename:** the canvas beneath keeps the old label, and a new question names the new one.
+- **The second account:** added through the sign-in window with no canvas. A question over mail merges both under their labels. A Gmail slot left waiting on an open canvas loads on its own press.
+- **Sign-out:** each account signed out with its outcome line. The next question to that account asks for sign-in again.
+
+### 11. GitHub out and back
+
+GitHub is uninstalled from the App Library, the confirm saying it signs its accounts out, and its access is cancelled. It is found again in the Store by search, installed through the consent card naming its scopes, signed in from its tile and composed, all without a reload.
+
+### 12. Publish
+
+- "How do I publish my app?" is answered with a button landing on Publish.
+- A name is claimed on the page, its token shown once. Then it is signed out, and signed in with the pasted token.
+- On the terminal, Shop B's sample is captured with Stellify on its demo key and its catalog packed.
+- Shop B is published from the page, from its packed folders with that preview file, and listed.
+
+### 13. The Store, with Shop B
+
+- Every roster listing shows its state in place of Install.
+- A search finds Shop B under the claimed name, its sample drawn live, and the publisher's name is followed to its apps.
+- Shop B is installed through the consent card saying it asks to connect with a key, and connected through its key page.
+- "Compare camera prices across both shops" composes beside Shop A in the same session without a reload.
+- Shop B's permissions view says it is connected with a key.
+
+### 14. Shop B's chain
+
+- **Ahead of the Store:** Shop B's card moves to 0.2.0 and its agent restarts. The ahead-of-the-Store notice shows on its Publish listing, and waiting for the publisher in the App Library.
+- **Card update:** 0.2.0 is published from the page. A card update with nothing new to ask follows, and its Update is pressed in the App Library.
+- **Breaking pack:** a pack of Shop B's catalog with a component removed is refused, with the gate's findings.
+
+### 15. Every update state live
+
+Each of the six update states is made on a real app, read on the App Library in plain words, and every pressable one taken from the page. Linear's are in decision 16 and Shop A's in decision 17. Shop B's are decision 14's card update and decision 19's no longer published.
+
+### 16. Linear's cases
+
+- **The quiet newer build:** a visible change to Linear's catalog is published at the same card. The check, run on opening the App Library, installs it itself, and the next canvas draws the new build without a reload.
+- **Waiting for the publisher:** its card moves to 0.2.0, asking `issues.write` beside its read scope.
+- **The card update asking for more:** 0.2.0 is published, and the Update goes through the consent card asking for more. Linear is signed in again and paints.
+
+### 17. Shop A's cases
+
+With task 13.8's recipes:
+- The major update, made by a temporary patch naming a second catalog id, is pressed.
+- Then the update required, made by retiring the old id, is pressed.
+
+The camera comparison merges after each.
+
+### 18. The Planner's reader
+
+"Is anything out of date?" is asked three times:
+- at the start, all up to date;
+- after Linear's 0.2.0 is published and before anything runs the check again, the answer giving the old state with the time of the last check, the plan not waiting on the marketplace;
+- after the App Library has run the check, the answer naming the card update.
+
+Its button lands on the App Library at that app.
+
+### 19. No longer published
+
+Shop B is unpublished from the page. The App Library says no longer published, the Store's search no longer finds it, and the camera comparison still merges it.
+
+### 20. The browser holds no secret
+
+The secret sweep runs after the roster is published and over the whole sitting.
+
+At three moments the token is searched for in the browser's local storage, session storage, IndexedDB, every history entry's address and state, and the page:
+- after the claim;
+- after the token's screen is dismissed;
+- after a sign-in by pasted token.
+
+No read's answer after the claim carries the token.
+
+### 21. The dark pass
+
+After the cases, the reader switches the browser to dark, and each destination is walked once: the Store with a listing and an app's view, the App Library with an app's accounts, Publish with its listings. Each point is fixed as any other. If the unit computer's setting cannot be switched, dark is recorded as not seen.
+
+### 22. Left to the replay suite
+
+The uninstall refused on an app's view, and the sign-in the platform does not support, are not produced live.
+
+### 23. The state the sitting leaves, and the closing launch
+
+- Every temporary edit is reverted, `a2uiverse-apps` holding only the committed fixes.
+- The marketplace's state is wiped again, its embedding model kept.
+- The sitting's orchestrator state folder is removed.
+
+Then a closing launch runs under the publish flag with all seven apps, published and installed by id.
+
+### 24. The sitting's order
+
+1. The two faults' fixes.
+2. The regression pass before.
+3. The starting state.
+4. The roster published, then the sweep.
+5. The ways in.
+6. The write-check probe.
+7. Gmail's accounts.
+8. GitHub out and back.
+9. Publish.
+10. The Store with Shop B.
+11. Shop B's chain.
+12. Linear's cases, with the Planner's second and third answers.
+13. Shop A's cases.
+14. No longer published.
+15. The dark pass.
+16. The sweep over the whole sitting.
+17. The cleanup and the closing launch.
+18. The regression pass after.
+19. The write-up.
+
+### 25. The record
+
+This spec is the record. Each on-the-spot fix is added as a numbered decision as it lands, with what it replaced.
+
+The write-up has four parts: before the sitting, the sitting case by case, after it, and the findings. Findings for later phases go into their phase's notes in `_dev/TODO.md` at the write-up. Every amendment to the phase spec, SPEC.md and earlier sub-task specs that 14.11 calls for is made by 14.12.
+
+## Invariants
+
+- The browser holds no secret.
+- The canvas stays mounted beneath the page.
+- The developer's own orchestrator state folder is never touched by the sitting.
