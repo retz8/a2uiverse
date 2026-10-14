@@ -214,3 +214,19 @@ The write-up has four parts: before the sitting, the sitting case by case, after
 - The browser holds no secret.
 - The canvas stays mounted beneath the page.
 - The developer's own orchestrator state folder is never touched by the sitting.
+
+## Write-up
+
+### Before the sitting
+
+**The two faults found in task 14.10** were fixed and committed.
+- **The uninstall refusal** (`e69e0b1`). A refused uninstall is said on the app's view, the same notice as atop the list. Its unit test and the replay suite's L10 check the view.
+- **The loading tile** (`77bf046`). A loading app tile keeps the tile's square, 40 and 56 alike, so the Store's and the App Library's skeletons both draw it.
+  - The replay suite's S3 checks the loading row's tile at 40 × 40. Its baseline `store-s3-browse-states` passed both before the fix and after it: the skeleton's grey sits within the screenshot comparison's per-pixel tolerance of the page's white. It was retaken on disk.
+
+**The regression pass before**, all green:
+- The platform's `pnpm verify`: 22 of 22 tasks and 66 script tests. The suites: shell catalog 452, client 743, orchestrator 596, marketplace 77, Stellify 111, sdk 275, embedder 13.
+- `a2uiverse-apps`' `pnpm verify`: 31 of 31.
+- The replay suite: 112 passed.
+- The live suite: 5 passed — accounts, publish, sign-in, store, update.
+- The Python suites: the kit 323, GitHub 144, Gmail 131, Calendar 123, CircleCI 82, Linear 77, Shop A 98, Shop B 99.
