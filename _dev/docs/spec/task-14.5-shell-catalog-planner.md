@@ -52,6 +52,8 @@ One phrase per app, the design canvas's App Library words:
 
 The words live in one place the App Library's page reads too.
 
+*Amended by task 14.11 decision 37.* A card update naming a new permission reads "An update that asks for more"; one naming none reads "A new version is available", in the Store, the App Library and the reader alike.
+
 ### 7. An app installed from a local copy
 
 An app installed from a local copy that the Store does not list reads "Installed from your computer". When the Store lists its app id, the computed state's words stand. The rule lives with the words of decision 6.
@@ -76,9 +78,13 @@ Open the App Library's app is checked against the installed apps, not the shortl
 
 A new publishing skill, in the design canvas's words for the publishing answer: pack the app with Stellify in its own folder; open Publish; claim a publisher name once; give it the folders Stellify wrote and the app's address; an app that asks people to sign in also needs the sample answer Stellify captured with the publisher's own account; before it is listed, the Store fetches the app, checks its files and asks it one question. The installed-apps skill gains whether each app has an update, as of the last check, with examples such as "is anything out of date?".
 
+*Amended by task 14.11 decision 35.* The publishing skill names its four steps, numbered: pack the app with Stellify in its own folder; open Publish and claim a publisher name, once; give Publish the folders Stellify wrote and the app's address, an app that asks people to sign in also needing the sample answer Stellify captured with the publisher's own account; before it is listed, the Store fetches the app, checks its files and asks it one question. Steps a person takes in order are a vertical list on the canvas, one numbered line each, under a sentence saying what they get done — the platform-UI guidance's rule.
+
 ### 13. The Planner's prompt and examples
 
 The prompt names the three actions. One worked example is added: the out-of-date answer, with Open the App Library and a button naming an app. The publishing answer has no example.
+
+*Amended by task 14.11 decision 41.* The out-of-date example shows every update state the reader hands it, an update that asks for more and one on its way from the publisher among them, each written into the answer's sentence: "Gmail has one that asks for more access", "A newer version of CircleCI is on its way from its publisher".
 
 ### 14. Docs
 

@@ -33,6 +33,8 @@ A row's Update turns to Updating, and the outcome shows as a notice at the top o
 
 An address naming an app that isn't installed says "This app isn't installed.", with Find it in the Store — the Store's view of that app — and Your apps. After an uninstall, the address drops the app by replacing its history entry, so Back doesn't land on the removed app's view.
 
+*Amended by task 14.11 decision 28.* An app's view opened from "Your apps" is pushed onto the history over the list, so an uninstall there returns to the list by going back over the view's entry, as the view's own way back does; a view opened with no list behind it is replaced by the list. Either way Back doesn't land on the removed app's view.
+
 ### 6. The publisher on an app's view
 
 An app's view reads the app's Store listing and shows "by" its publisher, linking to the Store filtered to that publisher. With no listing, the line is left out.

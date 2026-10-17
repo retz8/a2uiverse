@@ -62,6 +62,8 @@ One refresh at a time per account: every dispatch needing it waits on the same r
 
 A key already held for the app — matched by its hash — signs in as that account rather than adding one. A 401 marks a key account to sign in again, and its sign-in reopens the token page to replace that account's key, its label and number kept. A request for scopes from an agent whose card offers only keys is invalid.
 
+*Amended by task 14.11 decision 36.* A key account is labelled by the name decision 12's amendment gives it, never by its number. Signing it in again keeps its name, and the token page asks none.
+
 ### 10. Add-account
 
 The start route also takes an app's next account source, `<appId>.<next n>`, with no `login_hint`; the sign-in creates the account, or signs in as one already held by its `sub` or its key. The outcome names the source the sign-in ended as; there is nothing to resume.
@@ -77,6 +79,8 @@ Sign-in records of facts only: a sign-in started (canvas, source, first / again 
 ### 12. The label
 
 The ID token's `email`, otherwise `preferred_username`, otherwise `name`; otherwise "<App> account N".
+
+*Amended by task 14.11 decision 36.* A key account is named when it is connected. The token page asks, below the key, for an optional name for the account, its hint the name the account gets left blank. Left blank, the first key account takes the app's name ("Shop B"); a later one adds the day it was connected ("Shop B · connected Oct 17"), and its number only if that is taken too. A name the person typed stays theirs, as a rename does; one another of the app's accounts holds, ignoring case, falls back to the default. An account connected again keeps its name, and its page asks none.
 
 ### 13. The proof
 

@@ -66,6 +66,8 @@ The reads — `index.json`, the entry, the preview — are GET with `no-cache`, 
 
 The marketplace package gains a `marketplace` script with one command, `search <words>`, a thin client over the running process's search route as the registry command is over the registry's, printing each result's app id, name and score in rank order. It is what the phase's proof of the search route runs against the published roster.
 
+*Amended by task 14.11 decisions 27 and 30.* It prints the apps the search answers, in the order it answers them: an app the words name first, then the matches in rank order.
+
 ### 13. The process and its configuration
 
 Express 5 with the orchestrator's CORS rule, at the root of its port, which `PORT` sets and defaults to 10002; `STATE_DIR` defaults to `.state` under the package; the embedder's cache lives at `models` under the state directory. The package depends on `@a2uiverse/embedder`, `@a2a-js/sdk` pinned at the orchestrator's 0.3.14, `express`, `cors`, and `@a2uiverse/shell-catalog` for its catalog id alone, so an artifact handed for the basic or the shell catalog is refused as the registry refuses it.
@@ -89,6 +91,8 @@ The marketplace's own A2A client is built from the fetched card and sends one st
 ### 18. Search
 
 The words are embedded through the same embedder, ranked through the shared rank function over every entry's vector, and every entry is returned with its score in rank order, with no cap.
+
+*Amended by task 14.11 decisions 27 and 30.* Only the entries that match are returned, each with its score. An app whose name every searched word starts — in any case, "goog" for Google Calendar — is a match, listed first; then the entries scoring at least 0.15 and within 0.095 of the best score, in rank order. A search no app reaches answers none. The labelled searches the two numbers were fitted on, and a live test holding the cut and the names, sit beside the marketplace's tests.
 
 ### 19. Unpublish
 

@@ -47,6 +47,8 @@ Claim a name; sign in with the token; the listings as Stellify's `list` prints t
 
 As task 13.4's decision 10 has Stellify's `list` keep the index entries whose publisher is the file's name, the Store shows a publisher's listings by filtering the public index on the name. No secret is needed to see them.
 
+*Amended by task 14.11 decision 38.* Publish's listings are read through the orchestrator's `listings.json?publisher=<name>`: each of the publisher's apps has its live card fetched again, given five seconds, and the sdk's drift test run. The listing shows the drift the card shows now, and where it differs from the Store's flag the marketplace is sent the report. A card that does not answer in time leaves the Store's flag. The Store's listings of one publisher stay the index filtered on the name.
+
 ### 8. Browser writes are origin-checked
 
 The orchestrator's write routes — install, update, uninstall, sign-out, rename, the publisher's calls — accept a request from an allowed browser origin without the write token: the origin list CORS already admits, the check the vault's key page already runs against forged requests, a JSON body required. The token stays for callers that are not a browser, the launcher and the registry command. SPEC §10's token sentence is amended.
@@ -67,6 +69,8 @@ The page, its destination and the Store's query live in the URL, pushed onto the
 
 *Amended by task 14.2.* Open the App Library takes an optional app, as open the Store takes its query, and lands on that app's view. The URL carries the app too, so a link opens one app in the Store or the App Library.
 
+*Amended by task 14.11 decision 28.* Opening an app's view from its list — the Store's results or apps, the App Library's "Your apps" — pushes the view onto the browser's history, so browser Back returns to that list, as the view's own way back does, and that way back goes back over the view's entry. Tabs, searches, Publish and a view opened with no list behind it replace the entry on screen, so Back from a list closes the page. Closing the page goes back over every entry it pushed.
+
 ### 12. A third shell action, open Publish
 
 The shell catalog declares open Publish beside open the Store and open the App Library; the Planner's vocabulary names it, and a question about publishing is answered from the platform's card with a button that lands on Publish.
@@ -78,6 +82,8 @@ The reader hands the Planner each app's update state as last computed — one pl
 ### 14. The App Library's update states
 
 Carried from Phase 13: each installed app's state from the orchestrator's check, in plain words — a newer build quietly, a major update as a suggestion, a card update with its new scopes or catalogs named, an update required for a line the agent retired, ahead of the Store as waiting for the publisher, no longer published — and the update as the install from the marketplace by id. The App Library reads fresh states from the browser.
+
+*Amended by task 14.11 decision 37.* A card update naming a new permission reads "An update that asks for more" and its Update passes the consent card. One naming none reads "A new version is available" and its Update goes straight through, in the Store, the App Library and the Planner's reader alike.
 
 ### 15. Sign-in from the App Library runs with no canvas
 

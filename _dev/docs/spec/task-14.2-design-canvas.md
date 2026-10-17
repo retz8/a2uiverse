@@ -54,6 +54,8 @@ Each row carries the app's name and its update state in plain words. Pressing a 
 
 The same Update press stands in the Store wherever an installed app's listing shows a waiting update. The card update's Update passes the consent card, which shows only the new permissions or the new look the update brings; every other Update goes straight through.
 
+*Amended by task 14.11 decision 37.* A card update naming a new permission reads "An update that asks for more" and its Update passes the consent card. One naming none reads "A new version is available" and its Update goes straight through, in the Store, the App Library and the Planner's reader alike.
+
 ### 9. An app installed from a local copy
 
 Its row reads "Installed from your computer" in place of an update state. When the Store lists the app, its state shows as any other app's does, and Update replaces the local copy with the Store's version. It is one row state, not a board of its own.

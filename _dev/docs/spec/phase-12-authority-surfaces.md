@@ -118,6 +118,8 @@ An account's label comes from the sign-in: the ID token's display claims. Its st
 
 *Amended by task 12.13 decision 24.* On signing in again only, an account that comes back as another identity is re-bound to it — its tokens, its `sub` and its label replaced, the journal's sign-in record marked re-bound — and the client says it on the progress line of the slot's canvas, "Signed in to Linear as …"; one the app already holds as another account is refused, "that account is already added".
 
+*Amended by task 14.11 decision 36.* A key account is named when it is connected. The token page asks, below the key, for an optional name for the account, its hint the name the account gets left blank. Left blank, the first key account takes the app's name ("Shop B"); a later one adds the day it was connected ("Shop B · connected Oct 17"), and its number only if that is taken too. A name the person typed stays theirs, as a rename does; one another of the app's accounts holds, ignoring case, falls back to the default. An account connected again keeps its name, and its page asks none.
+
 ### 22. Attribution shows the account
 
 Attribution shows the account's label on every fragment of an app that has more than one account in the vault.

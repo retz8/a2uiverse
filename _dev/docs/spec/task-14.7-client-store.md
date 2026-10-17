@@ -19,6 +19,8 @@ Sub-task 14.7 of Phase 14 (`_dev/docs/spec/phase-14-shell-trusted-pages.md`, dec
 
 A preview draws apart from every canvas, with its own renderer and its own lookup of the catalog's provider, and never changes what a canvas holds. Builds are told apart by their artifact id, so a preview and a canvas on the same build share one load. Each canvas keeps the builds it loaded; a canvas started after an install or update moved a catalog to a new build loads the new one. Canvases already on screen keep what they show.
 
+*Amended by task 14.11 decision 39.* A canvas keeps its build's look as well as its components. Each surface of a loaded build is marked with its artifact id, on a box-less element around the catalog's Provider. A stylesheet inside an artifact is read as text, its relative addresses made whole against its own, and its rules wrapped as written in an `@scope` rooted at that build's mark, then adopted onto the page in the order the artifact asked for them. Fonts, keyframes, a layer order and rules aimed at `:root`, `html` or `body` stay page-wide. A browser without `@scope` takes a link per sheet.
+
 ### 2. The install answer names the apps that followed
 
 The orchestrator's install answer carries the installed apps that followed the install onto a new catalog build. The page names them by their card names on the line after an install.
@@ -26,6 +28,8 @@ The orchestrator's install answer carries the installed apps that followed the i
 ### 3. A search runs on Enter
 
 Typing changes nothing until Enter; then the search runs and the address takes the query. Clear, or emptying the box, returns to every app by name. A query that arrives from the capability tile, a Planner's button or a link searches at once.
+
+*Amended by task 14.11 decisions 29 and 31.* The search box clears with a 28px ✕ icon button, inset from the box's edges so its hover never meets them. While the Store is open, each list it has shown — every app, a search's matches — is held. Shown again — the search cleared, back from an app's view, the same search again — it is not read again until the registry changes (an install, update or uninstall from the Store), or on Try again. Another tab or closing the page lets go of them.
 
 ### 4. A publisher's apps live in the address
 
@@ -70,6 +74,8 @@ A link to an app the Store does not list says the app isn't in the Store, with S
 ### 14. Order
 
 With no query, by the card's name; with a query, by the search's rank.
+
+*Amended by task 14.11 decisions 27 and 30.* With a query, the Store lists the apps the search answers, in its order: an app whose name every searched word starts, in any case, first, then the apps scoring at least 0.15 and within 0.095 of the best score, in rank order. A search no app reaches answers none, and the Store says so.
 
 ### 15. Docs and tests
 

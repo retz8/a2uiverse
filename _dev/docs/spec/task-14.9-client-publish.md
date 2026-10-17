@@ -37,17 +37,25 @@ Nothing stops leaving the secret's board before Continue; once left, it is gone.
 
 The read of who is signed in, and the listings with it, run every time Publish is entered, and not when moving between the listings and the publish form. After a publish or an unpublish, only the listings are read again.
 
+*Amended by task 14.11 decision 38.* The listings are read through the orchestrator's `listings.json?publisher=<name>`: each of the publisher's apps has its live card fetched again, given five seconds, and the sdk's drift test run. The listing shows the drift the card shows now, so the ahead-of-the-Store notice appears at once; where it differs from the Store's flag the marketplace is sent the report. A card that does not answer in time leaves the Store's flag.
+
 ### 7. Publish's form is in the address
 
 The address names the publish form, and the app for an update. Moving to and from the form replaces the page's entry on the history, as every move inside the page does, so browser Back closes the page from the form as from anywhere on it; the form's way back to the listings is its link above it and Cancel. A reload lands on the form with the app id and the app's address filled in again from the listing; the dropped folders and the sample answer file are gone.
+
+*Amended by task 14.11 decisions 28 and 34.* Moving to and from the form replaces the page's entry, as tabs, searches and Publish do; opening an app's view from its list is the one move inside the page that pushes. A publish the Store takes moves the address to the listings.
 
 ### 8. A publish belongs to Publish, not to the form
 
 Once sent, a publish is followed across Publish: if the person went back to the listings, its outcome shows as a notice at the top of them, and the listings are read again. While one runs, Publish an app, Publish an update and Unpublish are held — one act at a time across Publish. Leaving Publish drops the outcome; the next entry's listings show what landed.
 
+*Amended by task 14.11 decision 34.* A publish the Store takes moves Publish to its listings, the address theirs, the outcome atop them with the Store's own summary folded under Details. A publish running or refused stays in the form's place.
+
 ### 9. Unpublish
 
 After its confirm, the listing's Unpublish turns to Unpublishing…; the outcome is a notice at the top of the listings — the app left the Store — and the listings are read again. A refusal is a notice, and the listing stays.
+
+*Amended by task 14.11 decision 42.* Publish's empty listing reads "Nothing of yours in the Store right now.", true before a first publish and after the last unpublish.
 
 ### 10. How a refusal reads
 
@@ -80,6 +88,8 @@ On Claim, the page checks the name against the sdk's grammar before sending: a n
 ### 17. The published outcome
 
 The plain lead — the app and its version are in the Store — and one plain line for the case: a first publish, that people can now find it in the Store; an update, the canvas's App Library line; an app back after an unpublish, that it is back in the Store. Beneath, the summary and each note verbatim under "Summary (publish summary)". The same words serve decision 8's notice.
+
+*Amended by task 14.11 decision 34.* The outcome stands atop the listings, the summary and each note folded under Details.
 
 ### 18. A publish with no clear answer
 

@@ -70,6 +70,8 @@ The read of who is signed in asks the marketplace whose token it is: accepted, n
 
 Filtered in the client, as the Store's listings of one publisher are. No listings route on the orchestrator.
 
+*Amended by task 14.11 decision 38.* Publish's listings are read through the orchestrator's `listings.json?publisher=<name>`: each of the publisher's apps in the index has its live card fetched again, given five seconds, and the sdk's drift test run. The listing shows the drift the card shows now, and where it differs from the Store's flag the marketplace is sent the report. A card that does not answer in time leaves the Store's flag. The Store's listings of one publisher stay filtered in the client.
+
 ### 15. Publish and unpublish relayed untouched
 
 The page's body is forwarded as it is with the bearer attached, and the marketplace's answer — its findings, or its summary and notes — returned as it is; a refused token is answered as the Store no longer accepting the secret. With no publisher held, both are refused, saying to sign in.

@@ -34,6 +34,8 @@ A new label is trimmed and must not be empty or match another of the app's accou
 
 A slot on an open canvas bound to an account signed out from the App Library paints the sign-in tile, and signing in there brings that account's number back, under whatever identity signs in, its label fresh from that identity. Only a slot that holds the number can. An identity that is already another of the app's accounts is refused, as today.
 
+*Amended by task 14.11 decision 36.* A key account signed back in on its slot takes the name a key account left blank gets — the app's name, the day it was connected added if that is taken, its number only if that is taken too — and its token page asks none.
+
 ### 6. The page signs in to add an account or sign in again
 
 With no canvas, a sign-in starts only for add account — the app's next account — or for sign in again on a lapsed account; anything else is refused. An account short of access the card now asks reads as signed in; the canvas asks for more when a question needs it.
