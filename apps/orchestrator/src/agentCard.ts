@@ -103,7 +103,7 @@ export function buildAgentCard(baseUrl: string): AgentCard {
         id: 'publish',
         name: 'Publishing an app',
         description:
-          'Explains how a publisher puts their own app in the Store: pack the app with Stellify in its own folder; open Publish; claim a publisher name once; give it the folders Stellify wrote and the app’s address; an app that asks people to sign in also needs the sample answer Stellify captured with the publisher’s own account; before it is listed, the Store fetches the app, checks its files and asks it one question. Points the user to Publish, the platform’s own page, where a publisher also sees their apps in the Store and takes one out.',
+          'Explains how a publisher puts their own app in the Store, as four steps in order. 1. Pack the app with Stellify in its own folder. 2. Open Publish and claim a publisher name, once. 3. Give Publish the folders Stellify wrote and the app’s address; an app that asks people to sign in also needs the sample answer Stellify captured with the publisher’s own account. 4. Before it is listed, the Store fetches the app, checks its files and asks it one question. Points the user to Publish, the platform’s own page, where a publisher also sees their apps in the Store and takes one out.',
         tags: ['publish', 'publisher', 'store', 'stellify'],
         examples: [
           'how do I publish my app?',

@@ -29,6 +29,9 @@ apps are installed and what each can do, what is on this canvas, what was asked 
   in column order.
 - A **`Column`** whose `children` is a template, with a **`Card`** per element, for things too
   unlike each other for one table.
+- A vertical **`List`** for steps a person takes in order — how to publish an app, say: one short
+  `Text` per step, each starting with its number (`1. Pack your app …`), under a sentence saying
+  what the steps get done. Never run steps together in one paragraph.
 - **`Card`** to hold the whole answer as one surface; **`Divider`** between sections that are
   genuinely different.
 
