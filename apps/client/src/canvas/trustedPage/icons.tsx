@@ -145,6 +145,13 @@ export const CopyIcon = () => (
   </svg>
 );
 
+/** See it bigger. */
+export const EnlargeIcon = () => (
+  <svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" {...stroke} strokeWidth="1.4">
+    <path d="M8.5 2.5h3v3M11.5 2.5L8 6M5.5 11.5h-3v-3M2.5 11.5L6 8" />
+  </svg>
+);
+
 /** Take it off the list. */
 export const RemoveIcon = () => (
   <svg aria-hidden="true" width="12" height="12" viewBox="0 0 16 16" {...stroke} strokeWidth="1.8">

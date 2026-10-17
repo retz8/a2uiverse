@@ -8,10 +8,11 @@
  * the client's own catalogs and the builds the listing names, each loaded from the marketplace's
  * artifacts through the orchestrator by its artifact id — so a canvas never meets a build it did not
  * load, and a build the registry already holds is loaded once for both. It is a picture of an
- * answer (decision 5): nothing in it takes focus or a press.
+ * answer (decision 5): nothing in it takes focus or a press. Enlarge draws the same picture at full
+ * width in a dialog of its own (task-14.11 decision 33).
  */
 import {useEffect, useMemo, useState} from 'react';
-import {Button} from '@radix-ui/themes';
+import {Button, Dialog} from '@radix-ui/themes';
 import {MessageProcessor} from '@a2ui/web_core/v0_9';
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
 import type {ReactComponentImplementation} from '@a2ui/react/v0_9';
@@ -28,6 +29,7 @@ import type {ResolvedCatalog} from '../../../catalogs/clientCatalogs';
 import {marketplaceUrl, readStorePreview, type StoreListing} from '../../../orchestratorApi';
 import {SurfaceErrorBoundary} from '../../../shared/SurfaceErrorBoundary';
 import {sampleCaption} from '../appCard';
+import {EnlargeIcon, RemoveIcon} from '../icons';
 
 type Sample =
   | {status: 'loading'}
@@ -113,15 +115,30 @@ export interface SampleFrameProps {
   listing: StoreListing;
   catalogs: PageCatalogs;
   orchestrator: string;
+  /** Where the enlarged sample's dialog is drawn: inside the page. */
+  container?: HTMLElement | null;
 }
 
-export function SampleFrame({listing, catalogs, orchestrator}: SampleFrameProps) {
-  const {sample, retry} = useSample(listing, catalogs, orchestrator);
-  const name = listing.entry.card.name;
-  const surfaces = useMemo(
-    () => (sample.status === 'ready' ? [...sample.processor.model.surfacesMap.values()] : []),
-    [sample],
+/** The sample's surfaces in its own catalogs, as a picture: nothing in it takes focus or a press. */
+function SamplePaint({sample}: {sample: Extract<Sample, {status: 'ready'}>}) {
+  const surfaces = useMemo(() => [...sample.processor.model.surfacesMap.values()], [sample]);
+  return (
+    <div className="store-sample__paint" inert>
+      <CatalogProvider catalogs={sample.catalogs}>
+        {surfaces.map(surface => (
+          <SurfaceErrorBoundary key={surface.id} surfaceId={surface.id}>
+            <SurfaceFrame surface={surface} />
+          </SurfaceErrorBoundary>
+        ))}
+      </CatalogProvider>
+    </div>
   );
+}
+
+export function SampleFrame({listing, catalogs, orchestrator, container}: SampleFrameProps) {
+  const {sample, retry} = useSample(listing, catalogs, orchestrator);
+  const [enlarged, setEnlarged] = useState(false);
+  const name = listing.entry.card.name;
   return (
     <figure
       className="store-sample"
@@ -130,7 +147,20 @@ export function SampleFrame({listing, catalogs, orchestrator}: SampleFrameProps)
       data-status={sample.status}
     >
       <div className="store-sample__head">
-        <span className="store-sample__kicker">Sample answer</span>
+        <div className="store-sample__top">
+          <span className="store-sample__kicker">Sample answer</span>
+          {sample.status === 'ready' && (
+            <button
+              type="button"
+              className="canvas-iconbtn store-sample__enlarge"
+              aria-label="Enlarge the sample"
+              title="Enlarge"
+              onClick={() => setEnlarged(true)}
+            >
+              <EnlargeIcon />
+            </button>
+          )}
+        </div>
         {sample.status === 'ready' && (
           <span className="store-sample__question">“{sample.preview.words}”</span>
         )}
@@ -152,23 +182,40 @@ export function SampleFrame({listing, catalogs, orchestrator}: SampleFrameProps)
             </Button>
           </div>
         )}
-        {sample.status === 'ready' && (
-          // A picture of an answer (task-14.7 decision 5): nothing in it takes focus or a press.
-          <div className="store-sample__paint" inert>
-            <CatalogProvider catalogs={sample.catalogs}>
-              {surfaces.map(surface => (
-                <SurfaceErrorBoundary key={surface.id} surfaceId={surface.id}>
-                  <SurfaceFrame surface={surface} />
-                </SurfaceErrorBoundary>
-              ))}
-            </CatalogProvider>
-          </div>
-        )}
+        {sample.status === 'ready' && <SamplePaint sample={sample} />}
       </div>
       {sample.status === 'ready' && (
         <figcaption className="store-sample__foot">
           {sampleCaption(sample.preview, name)}
         </figcaption>
+      )}
+      {sample.status === 'ready' && (
+        <Dialog.Root open={enlarged} onOpenChange={setEnlarged}>
+          <Dialog.Content
+            container={container ?? undefined}
+            className="store-sample-dialog"
+            maxWidth="960px"
+            aria-describedby={undefined}
+          >
+            <div className="store-sample-dialog__head">
+              <div className="store-sample__words">
+                <Dialog.Title className="store-sample__kicker">
+                  Sample answer from {name}
+                </Dialog.Title>
+                <span className="store-sample__question">“{sample.preview.words}”</span>
+              </div>
+              <Dialog.Close>
+                <button type="button" className="canvas-iconbtn" aria-label="Close" title="Close">
+                  <RemoveIcon />
+                </button>
+              </Dialog.Close>
+            </div>
+            <div className="store-sample-dialog__body">
+              <SamplePaint sample={sample} />
+            </div>
+            <p className="store-sample__foot">{sampleCaption(sample.preview, name)}</p>
+          </Dialog.Content>
+        </Dialog.Root>
       )}
     </figure>
   );

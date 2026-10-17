@@ -5,9 +5,9 @@
  * and posts the body Stellify posts (phase-14 decision 6), after its own checks (task-14.9
  * decisions 15, 16).
  *
- * While its publish runs, and once it lands, the form's place shows how it stands: publishing,
- * published with the Store's summary and notes, or refused with what the Store found — the form
- * kept behind Back to the form (decisions 10, 17, 18).
+ * While its publish runs the form's place shows it publishing; refused, what the Store found — the
+ * form kept behind Back to the form (decisions 10, 18). In the Store, the page lands on the
+ * listings with the outcome atop them (task-14.11 decision 34).
  */
 import {useRef, useState, type FormEvent, type ReactNode} from 'react';
 import {Spinner} from '@radix-ui/themes';
@@ -28,7 +28,6 @@ import {
   otherAppPreviewWords,
   previewHint,
   publishRefusedWords,
-  publishedWords,
 } from './publishWords';
 import type {Draft} from './draft';
 import type {PublishAct} from './PublishPage';
@@ -46,7 +45,7 @@ export interface PublishFormProps {
   nameOf: (appId: string) => string;
   onChange: (change: (draft: Draft) => Draft) => void;
   onPublish: (draft: Draft) => void;
-  /** The outcome on the form's place seen: the form, or the listings, back. */
+  /** A refusal on the form's place seen: the form back. */
   onDismiss: () => void;
   onCancel: () => void;
   onNavigate: (page: TrustedPageState) => void;
@@ -55,7 +54,7 @@ export interface PublishFormProps {
 export function PublishForm(props: PublishFormProps) {
   const {draft, act, nameOf, onDismiss, onNavigate} = props;
   const mine =
-    (act.kind === 'publishing' || act.kind === 'published' || act.kind === 'publish-refused') &&
+    (act.kind === 'publishing' || act.kind === 'publish-refused') &&
     act.target === draft.target &&
     !(act.kind === 'publish-refused' && changesWho(act.refusal))
       ? act
@@ -94,30 +93,6 @@ export function PublishForm(props: PublishFormProps) {
         <div className="publish-acts">
           <PageButton height="small" onClick={onDismiss}>
             Back to the form
-          </PageButton>
-        </div>
-      </div>
-    );
-  } else if (mine?.kind === 'published') {
-    const words = publishedWords(mine.outcome, name);
-    body = (
-      <div className="publish-card publish-card--outcome" data-testid="publish-published">
-        <Notice tone="done" role="status" words={{lead: words.lead}} />
-        <Findings
-          label="Summary"
-          term="publish summary"
-          lines={[mine.outcome.summary, ...mine.outcome.notes].filter(Boolean)}
-        />
-        <p>{words.rest}</p>
-        <div className="publish-acts">
-          <PageButton
-            height="small"
-            onClick={() => {
-              onDismiss();
-              onNavigate(PUBLISH);
-            }}
-          >
-            Back to your apps
           </PageButton>
         </div>
       </div>

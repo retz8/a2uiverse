@@ -443,16 +443,18 @@ test('P7 · publishing, refused by the checks, published', async ({page}) => {
   );
   await refused.getByRole('button', {name: 'Back to the form'}).click();
 
-  // Published: the summary as the Store words it.
+  // Published: on the listings, the outcome atop them, the summary as the Store words it folded
+  // under Details (task-14.11 decision 34).
   await form.getByRole('button', {name: 'Publish'}).click();
-  const published = view.getByTestId('publish-published');
+  const published = page.getByTestId('publish-act');
   await expect(published).toContainText('Linear 0.2.0 is in the Store.');
-  await expect(published.locator('li')).toHaveText([answers[3].json.summary]);
   await expect(published).toContainText(
     'People who have Linear installed see the update in their App Library.',
   );
-  await published.getByRole('button', {name: 'Back to your apps'}).click();
+  await expect(page).toHaveURL(/[?&]page=publish$/);
   await expect(page.getByTestId('publish-listings')).toBeVisible();
+  await published.getByText('Details').click();
+  await expect(published.locator('li')).toHaveText([answers[3].json.summary]);
 
   // The secret no longer accepted mid-publish: who is signed in read again, the form left behind.
   await listing(page, 'linear').getByRole('button', {name: 'Publish an update'}).click();

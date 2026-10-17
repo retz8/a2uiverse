@@ -158,6 +158,7 @@ export function Listings({
           onUnpublish={() => setAsking(listing)}
           orchestrator={orchestrator}
           catalogs={catalogs}
+          container={container}
         />
       ))}
 
@@ -236,6 +237,7 @@ function Listing({
   onUnpublish,
   orchestrator,
   catalogs,
+  container,
 }: {
   listing: StoreListing;
   busy: boolean;
@@ -244,6 +246,8 @@ function Listing({
   onUnpublish: () => void;
   orchestrator: string;
   catalogs: PageCatalogs;
+  /** Where the enlarged sample is drawn: inside the page. */
+  container: HTMLElement | null;
 }) {
   const {entry} = listing;
   const looks = Object.entries(entry.catalogs);
@@ -297,7 +301,12 @@ function Listing({
         </div>
       </div>
       <div className="publish-mini">
-        <SampleFrame listing={listing} catalogs={catalogs} orchestrator={orchestrator} />
+        <SampleFrame
+          listing={listing}
+          catalogs={catalogs}
+          orchestrator={orchestrator}
+          container={container}
+        />
       </div>
     </article>
   );

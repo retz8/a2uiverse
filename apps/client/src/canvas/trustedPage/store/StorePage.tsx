@@ -79,6 +79,7 @@ export function StorePage({page, onNavigate, orchestrator, catalogs, container}:
           onNavigate={onNavigate}
           orchestrator={orchestrator}
           catalogs={catalogs}
+          container={container}
           refresh={registryVersion}
           outcome={outcome.kind !== 'idle' && outcome.appId === page.app ? outcome : {kind: 'idle'}}
           onPress={press}
@@ -434,6 +435,7 @@ function StoreAppView({
   onNavigate,
   orchestrator,
   catalogs,
+  container,
   refresh,
   outcome,
   onPress,
@@ -444,6 +446,8 @@ function StoreAppView({
   onNavigate: (page: TrustedPageState) => void;
   orchestrator: string;
   catalogs: PageCatalogs;
+  /** Where the enlarged sample is drawn: inside the page. */
+  container: HTMLElement | null;
   /** Moves when the registry changed: the listing is read again, staying on screen meanwhile. */
   refresh: number;
   outcome: AppActOutcome;
@@ -487,6 +491,7 @@ function StoreAppView({
           onRetry={onRetry}
           orchestrator={orchestrator}
           catalogs={catalogs}
+          container={container}
         />
       )}
     </div>
@@ -513,6 +518,7 @@ function AppBody({
   onRetry,
   orchestrator,
   catalogs,
+  container,
 }: {
   listing: StoreListing;
   outcome: AppActOutcome;
@@ -521,6 +527,7 @@ function AppBody({
   onRetry: (act: AppAct) => void;
   orchestrator: string;
   catalogs: PageCatalogs;
+  container: HTMLElement | null;
 }) {
   const {entry} = listing;
   const name = entry.card.name;
@@ -622,7 +629,12 @@ function AppBody({
           )}
           {!listing.installed && <SigningIn listing={listing} />}
         </div>
-        <SampleFrame listing={listing} catalogs={catalogs} orchestrator={orchestrator} />
+        <SampleFrame
+          listing={listing}
+          catalogs={catalogs}
+          orchestrator={orchestrator}
+          container={container}
+        />
       </div>
     </>
   );

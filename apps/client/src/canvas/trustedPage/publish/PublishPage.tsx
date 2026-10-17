@@ -6,8 +6,10 @@
  * publisher's hands; the page holds none, the secret passing through the claim's answer once.
  *
  * Entering Publish reads who is signed in and the listings (decision 6). A publish belongs to
- * Publish, not to its form (decision 8): its outcome shows in the form's place, or atop the
- * listings when the person went back to them, and one act runs at a time. A refusal saying who is
+ * Publish, not to its form (decision 8): while it runs, and when it is refused, it shows in the
+ * form's place, or atop the listings when the person went back to them; once it is in the Store
+ * the page lands on the listings, the outcome atop them (task-14.11 decision 34). One act runs at
+ * a time. A refusal saying who is
  * signed in has changed reads it again and lands on what it says (decision 11). The form lives in
  * the address (decision 7). Leaving Publish drops what it holds.
  */
@@ -108,6 +110,11 @@ export function PublishPage({
       live.current = false;
     };
   }, []);
+  /** Where the page is now: a publish that lands finds whether its form is still on screen. */
+  const where = useRef(page);
+  useEffect(() => {
+    where.current = page;
+  }, [page]);
 
   const mine = listings.status === 'ready' ? listings.value : [];
   const listingOf = (appId: string): StoreListing | undefined =>
@@ -204,6 +211,8 @@ export function PublishPage({
       setAct({kind: 'published', target: form.target, appId: form.appId, isNew, outcome: answer});
       setDraft(null);
       refreshListings();
+      // In the Store: the listings, the outcome atop them, and the address theirs (decision 34).
+      if (where.current.form) onNavigate(PUBLISH);
       return;
     }
     setAct({
@@ -374,11 +383,14 @@ function ActNotice({act, nameOf}: {act: PublishAct; nameOf: (appId: string) => s
       const words = publishedWords(act.outcome, nameOf(act.appId));
       return (
         <Notice tone="done" role="status" testId="publish-act" words={words}>
-          <Findings
-            label="Summary"
-            term="publish summary"
-            lines={[act.outcome.summary, ...act.outcome.notes].filter(Boolean)}
-          />
+          <details className="publish-details">
+            <summary>Details</summary>
+            <Findings
+              label="Summary"
+              term="publish summary"
+              lines={[act.outcome.summary, ...act.outcome.notes].filter(Boolean)}
+            />
+          </details>
         </Notice>
       );
     }

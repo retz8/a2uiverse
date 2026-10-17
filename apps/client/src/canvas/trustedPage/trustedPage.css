@@ -97,8 +97,9 @@
   display: none;
 }
 
-/* Clear: an icon button inset from the box's edges, its hover never meeting them. */
-.store-search__clear {
+/* Clear: an icon button inset from the box's edges, its hover never meeting them — on the page, so
+   the canvas's own icon button gives way. */
+.trusted-page .store-search__clear {
   flex: none;
   width: 28px;
   height: 28px;
@@ -451,6 +452,72 @@
   padding: 10px 14px;
   background: var(--a2v-surface);
   border-bottom: 1px solid var(--a2v-line);
+}
+
+/* The kicker's line, Enlarge at its end: the question keeps the head's whole width. */
+.store-sample__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.store-sample__words {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+/* As tall as the kicker's line: the head stays the height it was. */
+.trusted-page .store-sample__enlarge {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  margin: -4px -6px -4px 0;
+  border-radius: 6px;
+}
+
+/* The sample enlarged: the same picture at full width, its head and caption as the frame's — on
+   the page, so Radix's own dialog padding gives way. */
+.trusted-page .store-sample-dialog {
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  max-height: 85vh;
+}
+
+.store-sample-dialog__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: var(--a2v-surface);
+  border-bottom: 1px solid var(--a2v-line);
+}
+
+/* The dialog's title in the kicker's type, over Radix's heading. */
+.trusted-page .store-sample-dialog .store-sample__kicker {
+  margin: 0;
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--a2v-muted);
+}
+
+.store-sample-dialog__body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 20px;
+}
+
+.trusted-page .store-sample-dialog .store-sample__foot {
+  margin: 0;
 }
 
 .store-sample__kicker {
@@ -866,6 +933,27 @@
 }
 
 /* ——— Publish ——— */
+
+/* A publish's outcome atop the listings: the Store's own words folded under Details. */
+.publish-details {
+  margin-top: 6px;
+}
+
+.publish-details > summary {
+  width: fit-content;
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--a2v-muted);
+}
+
+.publish-details > summary:hover {
+  color: var(--a2v-ink);
+}
+
+.publish-details[open] > summary {
+  margin-bottom: 6px;
+}
 
 /* The canvas's buttons on Radix's: its small one 28px and its large one 36px beside Radix's 32px,
    and its quiet one a borderless press as tall as the rest, with none of a ghost's negative margin. */

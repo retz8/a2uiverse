@@ -293,6 +293,19 @@ describe('an app’s view', () => {
     expect(within(sample).getByText('Buy').closest('[inert]')).not.toBeNull();
   });
 
+  it('enlarges the sample in a dialog of its own, closed by its ✕ (task-14.11 decision 33)', async () => {
+    renderWithShell(<Store initial={{page: 'store', app: 'linear'}} />);
+    const sample = await screen.findByRole('figure', {name: 'Sample answer from Linear'});
+    await waitFor(() => expect(sample).toHaveAttribute('data-status', 'ready'));
+    await userEvent.click(within(sample).getByRole('button', {name: 'Enlarge the sample'}));
+    const dialog = await screen.findByRole('dialog', {name: 'Sample answer from Linear'});
+    expect(within(dialog).getByText('“What cameras do you have?”')).toBeInTheDocument();
+    expect(within(dialog).getByText('Linear: Lumen X100 · $1,449')).toBeInTheDocument();
+    expect(dialog.querySelector('[inert]')).not.toBeNull();
+    await userEvent.click(within(dialog).getByRole('button', {name: 'Close'}));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  });
+
   it('goes back to the list it came from, named for it (task-14.7 decision 12)', async () => {
     renderWithShell(<Store initial={{page: 'store', query: 'camera', app: 'shop-a'}} />);
     await userEvent.click(await screen.findByRole('link', {name: 'Back to results'}));

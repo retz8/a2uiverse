@@ -509,14 +509,17 @@ describe('the publish form', () => {
     ).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', {name: 'Publish'}));
-    const published = await screen.findByTestId('publish-published');
-    expect(published).toHaveTextContent('Linear 0.4.0 is in the Store.');
-    expect(published).toHaveTextContent('Summary (publish summary)');
-    expect(published).toHaveTextContent('republished linear · card 0.3.0 → 0.4.0');
-    expect(published).toHaveTextContent('catalog "x" moved to a new build');
-    expect(published).toHaveTextContent(
+    // In the Store: the listings, the outcome atop them, the address theirs (task-14.11 decision 34).
+    const notice = await screen.findByTestId('publish-act');
+    await waitFor(() => expect(where()).toEqual({page: 'publish'}));
+    expect(notice).toHaveTextContent('Linear 0.4.0 is in the Store.');
+    expect(notice).toHaveTextContent(
       'People who have Linear installed see the update in their App Library.',
     );
+    expect(within(notice).getByText('Details')).toBeInTheDocument();
+    expect(notice).toHaveTextContent('Summary (publish summary)');
+    expect(notice).toHaveTextContent('republished linear · card 0.3.0 → 0.4.0');
+    expect(notice).toHaveTextContent('catalog "x" moved to a new build');
 
     const [sent] = fake.published as [PublishRequest];
     expect(sent.appId).toBe('linear');
@@ -529,10 +532,7 @@ describe('the publish form', () => {
     expect(atob(sent.catalogs[0]!.files['index.js']!)).toBe('export const CATALOG = {};');
     expect(sent.preview).toEqual(preview('linear'));
 
-    await user.click(within(published).getByRole('button', {name: 'Back to your apps'}));
-    expect(where()).toEqual({page: 'publish'});
     expect(await screen.findByRole('article', {name: 'Linear'})).toBeInTheDocument();
-    expect(screen.queryByTestId('publish-act')).not.toBeInTheDocument();
   });
 
   it('refuses a folder with no descriptor on the spot, and a file that is no sample', async () => {
@@ -739,7 +739,7 @@ describe('the publish form', () => {
     expect(fake.published[0]!.cardUrl).toBe('http://localhost:11003/.well-known/agent-card.json');
   });
 
-  it('a new app published keeps its outcome in the form’s place; a new form starts fresh', async () => {
+  it('a new app published lands on the listings with its outcome; a new form starts fresh', async () => {
     fake.publish = {
       status: 200,
       body: {
@@ -758,19 +758,16 @@ describe('the publish form', () => {
     fake.index.push(entry('shop-c', 'Shop C', {versions: ['1.0.0']}));
     await user.click(screen.getByRole('button', {name: 'Publish'}));
 
-    const published = await screen.findByTestId('publish-published');
-    await waitFor(() => expect(published).toHaveTextContent('Shop C 1.0.0 is in the Store.'));
-    expect(published).toHaveTextContent('People can now find Shop C in the Store.');
+    const notice = await screen.findByTestId('publish-act');
+    await waitFor(() => expect(notice).toHaveTextContent('Shop C 1.0.0 is in the Store.'));
+    expect(notice).toHaveTextContent('People can now find Shop C in the Store.');
+    expect(where()).toEqual({page: 'publish'});
     expect(fake.published[0]).toEqual({
       appId: 'shop-c',
       cardUrl: 'http://127.0.0.1:11003/',
       catalogs: [],
     });
 
-    await user.click(screen.getByRole('link', {name: 'Your apps in the Store'}));
-    expect(await screen.findByTestId('publish-act')).toHaveTextContent(
-      'Shop C 1.0.0 is in the Store.',
-    );
     await user.click(screen.getByTestId('publish-new'));
     expect(await screen.findByRole('heading', {name: 'Publish an app'})).toBeInTheDocument();
     expect(screen.getByLabelText(/App name in the Store/)).toHaveValue('');
