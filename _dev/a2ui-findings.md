@@ -915,7 +915,9 @@ and from the agent SDK's `schema_to_prompt`
 **Severity:** functional bug — a processor that holds a catalog with such a function and any other
 catalog cannot be built: `TypeError: 'NoneType' object is not iterable`.
 
-**Reported:** not yet filed. Issue draft: `A2UI/drafts/ISSUE_DRAFT_python_function_without_schema.md`.
+**Reported:** `a2ui-project/a2ui` issue
+[#3305](https://github.com/a2ui-project/a2ui/issues/3305), PR
+[#3306](https://github.com/a2ui-project/a2ui/pull/3306) (in review).
 
 ### Issue
 
@@ -967,6 +969,11 @@ works on every path above: `validation_schema` records `{}`, and `to_json` write
 may be any object (`"args": {"type": "object"}`), which `from_json` reads back unchanged. Or reject
 a missing schema at construction, as web_core and Dart do by type, which breaks the eight test
 functions above and any caller that omits it.
+
+#3306 takes the first: where `validation_schema` is assembled, a function whose schema is `None` is
+recorded as `{}`. `FunctionApi.schema` and `resolved_function_schema` still return `None`, and the
+`FunctionApi` docstring says that `None` means the function takes any args. Strict validation and
+renderer function calls accept any args for such a function before and after the change.
 
 ### Prior art
 
