@@ -97,6 +97,14 @@
   display: none;
 }
 
+/* Clear: an icon button inset from the box's edges, its hover never meeting them. */
+.store-search__clear {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+}
+
 .store-filter {
   display: inline-flex;
   align-items: center;

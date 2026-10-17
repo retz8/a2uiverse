@@ -230,6 +230,15 @@ describe('browsing the Store', () => {
     expect(where()).toEqual({page: 'store'});
   });
 
+  it('clears the search with its icon button, back to every app', async () => {
+    renderWithShell(<Store initial={{page: 'store', query: 'notes'}} />);
+    const box = screen.getByRole('searchbox', {name: 'Search the Store'});
+    await userEvent.click(await screen.findByRole('button', {name: 'Clear the search'}));
+    expect(box).toHaveValue('');
+    expect(where()).toEqual({page: 'store'});
+    expect(screen.queryByRole('button', {name: 'Clear the search'})).not.toBeInTheDocument();
+  });
+
   it('says when nothing matches, with Show every app', async () => {
     renderWithShell(<Store initial={{page: 'store', query: 'flight tracker'}} />);
     expect(await screen.findByText('No apps match “flight tracker”.')).toBeInTheDocument();

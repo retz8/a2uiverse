@@ -18,7 +18,7 @@ import type {StoreListing} from '../../../orchestratorApi';
 import type {TrustedPageState} from '../../trail/trailStore';
 import {listed, listingAct, refusalOf, signInOf, tileLetter, tryAsking} from '../appCard';
 import {ConsentCard, type ConsentAsk} from '../ConsentCard';
-import {BackIcon, DoneIcon, TickIcon} from '../icons';
+import {BackIcon, DoneIcon, RemoveIcon, TickIcon} from '../icons';
 import {pageLink} from '../pageLink';
 import {useAppAct, type AppAct, type AppActOutcome} from '../useAppAct';
 import {SampleFrame} from './SampleFrame';
@@ -216,9 +216,15 @@ function StoreBrowse({
           }}
         />
         {draft && (
-          <Button type="button" variant="ghost" color="gray" size="1" onClick={clear}>
-            Clear
-          </Button>
+          <button
+            type="button"
+            className="canvas-iconbtn store-search__clear"
+            aria-label="Clear the search"
+            title="Clear"
+            onClick={clear}
+          >
+            <RemoveIcon />
+          </button>
         )}
       </form>
 
