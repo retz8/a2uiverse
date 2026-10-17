@@ -286,6 +286,10 @@ What only the lost answer knew stays unsaid: the apps that followed an update, w
 
 The Planner's worked example for "Is anything out of date?" shows every update state the reader hands it, an update that asks for more and one on its way from the publisher among them, each written into the answer's sentence: "Gmail has one that asks for more access", "A newer version of CircleCI is on its way from its publisher". Replaced: an example of three states, the Planner pasting a state it had not seen after a colon — "Linear has an update: An update that asks for more."
 
+### 42. An empty Publish says nothing of yours is in the Store
+
+Publish's empty listing reads "Nothing of yours in the Store right now.", true before a first publish and after the last unpublish. Replaced: "Nothing published yet.", read after Shop B was unpublished.
+
 ## Invariants
 
 - The browser holds no secret.
