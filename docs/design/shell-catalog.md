@@ -99,7 +99,7 @@ Two models write shell surfaces, and each is allowed a different part of the cat
 
 The orchestrator shows each model `catalog.json` **pruned** to its keep-set, and validates that model's output against **the same pruned catalog**. So the Synthesizer has never heard of `Slot` or `Button`, and a `Slot` in its tree is a validation error, not a judgment call. Neither model gets `Attribution`: it's the orchestrator's alone. [Pruning a catalog](#pruning-a-catalog-graph-reachability) shows how the pruning works.
 
-Beside its pruned catalog, each model reads one guidance doc from `docs/`: `synthesis-guidance.md` (how a merged view is built from these components) for the Synthesizer, and `platform-ui-guidance.md` (how the shell answers a question about A2UIVerse itself) for the Planner.
+Beside its pruned catalog, each model reads one guidance doc from `docs/`: `synthesis-guidance.md` (how a merged view is built from these components) for the Synthesizer, and `platform-ui-guidance.md` (how the shell answers a question about A2UIVerse itself) for the Planner. Among its rules, steps a person takes in order, such as how to publish an app, are a vertical `List`, one `Text` per step starting with its number, under a sentence saying what they get done.
 
 ### 5. Host fills in what changes
 
@@ -342,7 +342,7 @@ A paint the orchestrator refused for a credential field fails its slot with `cau
 
 ### Shell actions
 
-The shell has exactly three actions of its own: **`openStore`**, with an optional `query`; **`openAppLibrary`**, with an optional `app`, an installed app's id, to open on that app; and **`openPublish`**, with nothing. Adding an account is the add-account tile, not an action ([Authority surfaces](#authority-surfaces)). Each is a catalog function, like the basic catalog's `openUrl`, that a `Button` runs through a `functionCall`. The function does nothing itself: it hands the host one plain object, `{name, surfaceId, query?, app?}`, through `onShellAction`, and the host decides what opening the Store, the App Library or Publish looks like. Manage apps on the "not supported here" tile names its slot's app the same way.
+The shell has exactly three actions of its own: **`openStore`**, with an optional `query`; **`openAppLibrary`**, with an optional `app`, an installed app's id, to open on that app; and **`openPublish`**, with nothing. Adding an account is the add-account tile, not an action ([Authority surfaces](#authority-surfaces)). Each is a catalog function, like the basic catalog's `openUrl`, that a `Button` runs through a `functionCall`. The function does nothing itself: it hands the host one plain object, `{name, surfaceId, query?, app?}`, through `onShellAction`, and the host decides what opening the Store, the App Library or Publish looks like: in the client, a destination of the trusted page ([`trusted-page.md`](trusted-page.md)). Manage apps on the "not supported here" tile names its slot's app the same way.
 
 The **account choice** is the capability tile's sibling. A `Slot` with `chooseAccount` draws "Which Gmail account should I use?" and one press per account, labelled from `accounts`, which the orchestrator paints from the vault, never the model. A press is a `useAccount` naming the account; the slot gives way to the loading line at once, and the repaint names the account the slot now waits on, wrapped in its `Attribution` like any app's.
 

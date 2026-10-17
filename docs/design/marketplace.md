@@ -4,7 +4,7 @@ This guide explains the **marketplace**: the process where a vendor publishes an
 
 One example runs through the whole guide: **Shop A**, a mock camera dealer called Aperture & Co, published under the publisher name `a2uiverse-apps` and installed from the marketplace into an empty registry. It's a real publish on the deterministic apps, and every id, hash and line below is a real one. Where the guide reaches a state Shop A never showed, it borrows from **Linear**, which was pushed through the others in the same sitting. You can repeat all of it yourself (see [Trying it without a model](#trying-it-without-a-model)).
 
-[`app-install.md`](app-install.md) is the chapter before this one: what a catalog artifact is, how Stellify packs it, and every check the orchestrator's **install** runs over a card and an artifact handed from disk. This guide assumes that and adds what comes after: who may publish what, how an app is checked before anyone sees it, how a registry installs it by id, and what "update" means when a catalog id is a version.
+[`app-install.md`](app-install.md) is the chapter before this one: what a catalog artifact is, how Stellify packs it, and every check the orchestrator's **install** runs over a card and an artifact handed from disk. This guide assumes that and adds what comes after: who may publish what, how an app is checked before anyone sees it, how a registry installs it by id, and what "update" means when a catalog id is a version. [`trusted-page.md`](trusted-page.md) is the chapter after: the Store, the App Library and Publish, the page where a person finds and looks after apps, and where a publisher who uses A2UIVerse publishes them.
 
 ## Problem it solves
 
@@ -170,7 +170,7 @@ Then it judges the answer as the hub judges a paint: the task reached a terminal
 }
 ```
 
-It's plain A2UI, kept so the Store page can render it through the client's ordinary loader. No render and no screenshot happen at publish.
+It's plain A2UI, kept so the Store can draw it through the client's ordinary loader. No render and no screenshot happen at publish.
 
 **An agent that needs sign-in** can't be tried this way: the marketplace holds no credential, and never will. So its publish is in two halves. The marketplace still sends the request, with no credential, and the agent passes by answering as the contract says — **HTTP 401**, or a task in `auth-required` naming a scheme its card declares. The paint comes from the publisher instead: `stellify preview` runs the same smoke test on their machine, against their running agent, with a credential they supply in `STELLIFY_CREDENTIAL`, and writes a preview document marked `capturedBy: "publisher"`. Publish sends it beside the artifacts, and the marketplace checks it exactly as it checks a live paint — entitlement, schema, credential bar — before storing it. Linear's, GitHub's and the others' previews in the sitting were captured this way; Shop A's and Shop B's, which need no sign-in, by the marketplace itself.
 
@@ -215,7 +215,7 @@ Nothing pushes updates. The orchestrator **computes** each installed app's state
 | `newer-build` | only a build moved | `linear  newer build  0.1.0  catalog …/linear-catalog/catalogs/v0.9.1/catalog.json sha256-JvcQSoor… → sha256-zJbZyJNl…` |
 | `up-to-date` | nothing differs | `shop-a  up to date  0.1.0` |
 
-One state installs itself. A **newer build** of a held catalog, the card unchanged, is the publisher fixing their own code under the same contract, so the orchestrator installs it over at once — at boot before the client preloads, and whenever the check runs — journaled as `automatic`. It touches only apps whose `source` is `marketplace`, and never when the row's move would carry along an app installed from a local pack; that move is the person's, by an install by id, which carries the followers and names them. Every other state — a new catalog, a changed card, a retired line — is reported and waits for the person. (Phase 14's App Library is what shows them; until then `registry updates` prints them.)
+One state installs itself. A **newer build** of a held catalog, the card unchanged, is the publisher fixing their own code under the same contract, so the orchestrator installs it over at once — at boot before the client preloads, and whenever the check runs — journaled as `automatic`. It touches only apps whose `source` is `marketplace`, and never when the row's move would carry along an app installed from a local pack; that move is the person's, by an install by id, which carries the followers and names them. Every other state — a new catalog, a changed card, a retired line — is reported and waits for the person: the App Library shows each in plain words with its Update ([`trusted-page.md`](trusted-page.md#update-states-shop-b-never-showed)), and `registry updates` prints them.
 
 ### 7. Ahead of the Store: the live card is the only one that's true
 
@@ -274,7 +274,7 @@ pnpm --filter @a2uiverse/marketplace marketplace search "camera prices"
 # shop-a  Shop A  0.379
 ```
 
-Every entry comes back with its score, in rank order. Phase 14's Store page and Phase 15's Router miss will call this route; today the command proves it.
+The apps that match come back with their scores, an app the words name first. The Store calls this route through the orchestrator ([`trusted-page.md`](trusted-page.md#search-and-the-lists-the-store-holds)); Phase 15's Router miss will call it too.
 
 **5. Install by id.** From any machine running an orchestrator pointed at this marketplace:
 
@@ -388,7 +388,8 @@ Searching the marketplace and routing a question on the orchestrator are **one m
 
 - **The corpus document** (`corpusDoc`) turns a card into one text: its name, its description, then each skill's name, description, tags and examples, one per line. The Router embeds an installed card this way; the marketplace embeds a published one the same way, so a question ranks the same against both.
 - **The embedder** is a small sentence-transformer (`Xenova/all-MiniLM-L6-v2`, about 23 MB) run in-process; the first boot downloads it into `STATE_DIR/models`. The orchestrator keeps its own copy.
-- **Ranking** is cosine similarity against every entry's vector, highest first, every entry returned with its score. There's no threshold: `"failing builds"` ranks CircleCI first at 0.371 and still lists the other six.
+- **Ranking** is cosine similarity against every entry's vector, highest first. The search answers only the apps that match: first an app whose name every searched word starts, in any case (`"goog"` finds Google Calendar); then the apps scoring at least 0.15 (`SEARCH_FLOOR`) and within 0.095 of the best score (`SEARCH_MARGIN`), in rank order. A search no app reaches answers none. `"failing builds"` answers CircleCI alone, at 0.371.
+- **The two numbers are fitted**, with the same model, on labelled searches over the seven cards the Store's recordings hold (`test/fixtures/store-searches.json`, 56 searches): for each, the apps whose card says they do what it asks are expected, the apps whose card only touches it allowed, and twelve expect none. The floor and the margin are the pair that misses the fewest expected apps and shows the fewest unexpected ones. At the cut one expected app is missed, Linear for `"tickets"`, which the model ranks below Calendar. `test/search.live.test.ts` holds the cut against the real model.
 
 Vectors live in memory only. The marketplace embeds every card at boot and each one again at its publish; nothing on disk holds an embedding, so a change of model is a restart, not a migration.
 
@@ -477,6 +478,10 @@ Stellify's four marketplace verbs and `list` are plain functions (`packages/stel
 
 `preview` (`preview.ts`) is the smoke test moved to the publisher's machine: it fetches the live card, picks the header the credential rides in from the card's `security` and `securitySchemes` as the orchestrator will after install (a bearer `Authorization` header for OAuth, OpenID Connect and `http` bearer; the named header for `apiKey`), gates each handed artifact so a folder that would fail at publish fails here first, fetches from the marketplace the schema of any declared catalog it already holds for this publisher, sends the same request through the same kind of transport, judges it as the marketplace judges a live paint — a 401 or an `auth-required` with the credential sent is a finding — and runs `checkPaint`. The document it writes is the one `publish` hands over, `capturedBy: "publisher"`. For a card that needs no sign-in it still runs, with no credential, so a developer sees the screen the Store will show.
 
+### Publish on the page
+
+A publisher who also runs A2UIVerse publishes from the trusted page's Publish instead of the command line. The orchestrator holds the publisher's name and token in its state directory and relays the claim, the sign-in check, publish and unpublish to the marketplace with the token attached; the page sends Stellify's own publish body, read from the folders `pack` wrote and the file `preview` captured, so the marketplace can't tell the two apart. Publish's listings read each app's live card again, so an app ahead of the Store says so the first time they're opened. [`trusted-page.md`](trusted-page.md) follows Shop B through it.
+
 ### Dev harness: the launcher under `--publish`
 
 `scripts/dev-agents.mjs` with `launch-marketplace.mjs` and `launch-preview.mjs`. `pnpm dev:all --publish` (`--tier default,mocks` to run both tiers in one launch) puts every roster app through the marketplace instead of installing from the checkout:
@@ -531,9 +536,10 @@ Stellify's four marketplace verbs and `list` are plain functions (`packages/stel
 - **An agent on the kit can't keep an old line beside a new one.** The kit's card names one catalog id, from its one `catalog.json`, so every catalog-id change on the kit retires the line at once; the sitting's major update needed a temporary patch to name both. Recorded for Phase 15's migration window.
 - **A published addition can't be undone at the same id**: the marketplace reads the earlier schema as a removal. The way back is a new catalog id, or a reset marketplace.
 - **The flag can lag the agent.** The marketplace sees drift at its boot and on reports; an agent that moves while no registry checks is flagged only at the next check or boot.
-- **No pagination, no threshold.** `index.json` lists every entry, and search returns all of them with their scores; fine for a roster, not for a thousand apps.
+- **No pagination.** `index.json` lists every entry; fine for a roster, not for a thousand apps.
+- **The search's cut is fitted to one model and seven cards.** A new embedding model, or a roster unlike this one, wants the labelled searches run again; `"tickets"` already misses Linear.
 - **Unpublish takes the whole app.** One version alone can't be unpublished (SPEC §17).
-- **The Store page and the canvas's part are later phases.** Today the states are read with `registry updates`, the notices with Stellify, the search with the `marketplace` command; Phase 14 draws the Store page and the App Library over them, Phase 15 the tile for an app ahead of the Store.
+- **The canvas's part is a later phase.** The Store, the App Library and Publish draw the search, the update states and the notices ([`trusted-page.md`](trusted-page.md)); Phase 15 adds the tile for an app ahead of the Store, and the install from the canvas.
 
 ## Trying it without a model
 
@@ -569,7 +575,7 @@ Publishing and installing need no model; the roster's deterministic mode answers
 | Word | Meaning |
 | --- | --- |
 | **Marketplace** | The process that keeps the index, hosts the artifacts and runs the publish step; port 10002 |
-| **Store** | What the person will browse (Phase 14); in the words the platform prints, the marketplace as seen from a registry |
+| **Store** | What the person browses on the trusted page; in the words the platform prints, the marketplace as seen from a registry |
 | **Publisher** | A name plus a secret: the token minted at the claim, kept in the publisher's home directory |
 | **Claim** | Registering a publisher name once; the token is returned once and stored as its hash |
 | **Ledger** | `publishers.json`: each publisher's token hash and the app ids and catalog ids they own |
@@ -582,7 +588,7 @@ Publishing and installing need no model; the roster's deterministic mode answers
 | **Retired line** | A catalog id an app once published and its current card no longer names |
 | **Row** | The marketplace's one build per catalog id; moved by its owner, followed by every app naming the id |
 | **Smoke test** | The one A2A request sent at publish, with the app's entitlement and the card's own words, judged like a paint |
-| **Preview** | The smoke test's paint, kept beside the entry for the Store page; captured by the marketplace or by the publisher |
+| **Preview** | The smoke test's paint, kept beside the entry for the Store; captured by the marketplace or by the publisher |
 | **Coverage** | Every catalog the card declares is handed, public or already held for this publisher; every artifact handed is declared |
 | **Install by id** | The registry's install with the card URL and the files resolved through the marketplace |
 | **Source** | On an installed record, where its last install came by: `marketplace` or `local` |

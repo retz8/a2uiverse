@@ -395,7 +395,7 @@ An artifact id is shortened to `sha256-` and its next eight characters. (The cat
 
 ### Install by id and the update check
 
-Both came with the marketplace, and [`marketplace.md`](marketplace.md) is their record. What they add to the registry:
+Both came with the marketplace, and [`marketplace.md`](marketplace.md) is their record. The trusted page's Install and Update are this same install by id, sent from the browser ([`trusted-page.md`](trusted-page.md#install-and-update-one-press)). What they add to the registry:
 
 **Install by id** (`Registry.installFromMarketplace`) is `POST /registry/install` with `{appId}` and nothing else. The registry reads the app's entry from the marketplace (`MARKETPLACE_URL`, `http://localhost:10002` by default), fetches the live card from the URL the entry names, and refuses in words that say the Store is behind the app when the card declares a catalog or a version the entry lacks. Then it resolves each artifact the entry names: one already held is read from disk; otherwise its descriptor is fetched and, file by file, a file whose hash some held artifact lists is copied from disk and the rest fetched. From there `#install` runs exactly as for a pack from disk, with `source: 'marketplace'`. An install by id of an app already installed is the install-over.
 
@@ -418,7 +418,7 @@ The journal's `registry` line carries three fields from this: `source`, `followe
 
 The read routes are shaped like files on purpose: a folder with the same layout, served by any static server, stands in for the orchestrator. The [registry snapshot](#dev-harness-the-launcher-and-the-snapshot) the tests load is exactly that. A write answers `200` with what it did, `400` for a malformed request, `401` for a missing or wrong token, `403` from a browser origin outside the list, `404` to uninstall an app that isn't installed, `415` for a body that isn't JSON, and `422` with every finding of a refusal.
 
-**Who may write.** The orchestrator's port is public through the dev tunnel, and an artifact is code that runs in your browser. Every write carries `Content-Type: application/json`: a page on another origin can't send that without the browser asking the orchestrator first and checking the answer against the page's real origin, and a form can't send it at all. From the browser, a write needs no token when its origin is `localhost` on any port or the orchestrator's own dev tunnel on any port, read from its base URL: that's the trusted page's Install, Update and Uninstall. Anything else takes the **write token**: 32 random bytes, written into `.state/registry/write-token` at every startup, readable by the owner only, sent as `Authorization: Bearer <token>`, and compared in constant time. Only something on the machine with the state directory can read it: the command and the launcher. Each write's journal line says which way it came, `by: "page"` or `by: "token"`.
+**Who may write.** The orchestrator's port is public through the dev tunnel, and an artifact is code that runs in your browser. Every write carries `Content-Type: application/json`: a page on another origin can't send that without the browser asking the orchestrator first and checking the answer against the page's real origin, and a form can't send it at all. From the browser, a write needs no token when its origin is `localhost` or `127.0.0.1` on any port, or the orchestrator's own dev tunnel on any port, read from its base URL: that's the trusted page's Install, Update and Uninstall. Anything else takes the **write token**: 32 random bytes, written into `.state/registry/write-token` at every startup, readable by the owner only, sent as `Authorization: Bearer <token>`, and compared in constant time. Only something on the machine with the state directory can read it: the command and the launcher. Each write's journal line says which way it came, `by: "page"` or `by: "token"`.
 
 ### Entitlement at the hub
 
@@ -456,8 +456,8 @@ flowchart TD
 
 The structures behind it:
 
-- **`loading: Map<catalogId, Promise>`** keeps one load in flight per catalog, so the preload and a paint arriving in that catalog share one. An entry goes when its load settles.
-- **`resolved: Map<catalogId, ResolvedCatalog>`** holds the catalogs loaded. The first load of a catalog id wins for the session, so every answer renders a catalog the same way.
+- **`builds: Map<artifactId, ResolvedCatalog>`** holds every build loaded, by its artifact id, once for the page, shared by every canvas that holds it and by a Store sample drawn in it ([`trusted-page.md`](trusted-page.md#sample-one-build-per-artifact-id-drawn-apart)). **`loadingBuilds`** keeps one load in flight per build, so the preload and a paint arriving in that catalog share one; an entry goes when its load settles.
+- **A set per canvas.** Each canvas holds its own `Map<catalogId, ResolvedCatalog>`, started from the builds the table names when it opens, and the first build of a catalog id loaded into a set wins for that set. A canvas on screen keeps the build it shows when an update moves the catalog; a canvas opened after takes the new build, with no reload.
 - **One catalog array.** Every answer's `MessageProcessor` is built over the loader's `catalogs` array, and a loaded catalog is pushed into it. web_core looks a catalog up in that array when a surface is created, so an answer opened before an install still finds the new catalog. web_core doesn't promise to hold the array by reference; a test pins that it does.
 - **A failed load isn't kept**, so the next paint in that catalog, or a Retry, tries again.
 
@@ -488,7 +488,7 @@ Two browser behaviours shape the third column:
 | Change | The registry | An answer already drawn | The next paint |
 | --- | --- | --- | --- |
 | Uninstall | the record goes; each artifact goes once no record names it | keeps what it drew | a dispatch to the app fails `uninstalled`: "This app isn't installed anymore.", with Retry |
-| Install-over, same catalog, a new hash | the row moves to the new artifact; the old one's files go | keeps what it drew | the open page keeps the catalog it loaded first; a reload shows the new one |
+| Install-over, same catalog, a new hash | the row moves to the new artifact; the old one's files go | keeps what it drew | a canvas on screen keeps the build it drew in; a canvas opened after loads the new one, with no reload |
 | Install-over, a new catalog id | the old id's row goes, the new id's comes | keeps what it drew | the new catalog loads as the paint arrives, with no reload |
 
 **Retry sends again what failed.** Say an answer drawn before GitHub was uninstalled is still open, and you click a pull request in GitHub's slot. The click fails `uninstalled`. GitHub is installed again, and you press Retry on its slot. Retry sends the click again, so the slot shows the pull request it opened, not GitHub's list from the plan. The orchestrator keeps a click that failed on its slot (`failedPress` in `composition/state.ts`) until a click or a Retry there completes. A slot whose question's dispatch failed retries the plan's request.
@@ -545,7 +545,7 @@ Two browser behaviours shape the third column:
 | **An artifact is files under its descriptor's hash** | Immutable content: one id checks every file, and a static server can serve it | Any byte changes the id, so a rebuild against a dependency at another path is another artifact |
 | **Install refuses the whole app, every finding at once** | An app is never half installed; the publisher sees every problem in one go | One bad file keeps out the whole app |
 | **The gate is static** | Nothing of a vendor's runs on the orchestrator | What only running code shows waits for the client's load |
-| **One writer, through operations over HTTP** | The command, the launcher and, later, the Store page all take one path | Writes need the token, which only the machine can read |
+| **One writer, through operations over HTTP** | The command, the launcher and the trusted page all take one path | Writes need the token, which only the machine can read |
 | **The registry is files, every write a rename** | Nothing to run beside the orchestrator; a crash leaves the old state or the new | One orchestrator per state directory |
 | **One build per catalog id; a new build moves the row and the other apps follow, checked as an additive evolution** | Install is one operation on every path; a shared catalog upgrades in one install, and nothing another app renders in is removed or retyped under it | A hand install can move the build another hand-installed app renders in; the summary names it |
 | **The record keeps where its install came by** | Only an app from the marketplace is ever moved by the index; a pack handed from disk stays where the operator put it | A local-pack app on a shared row holds back the automatic update of the apps sharing it |
@@ -558,7 +558,7 @@ Two browser behaviours shape the third column:
 
 - **One package packs to one artifact only within one install.** esbuild writes each bundled module's path from the package into the entry, in a comment over the module and as the key of a CommonJS module's wrapper. Pack GitHub's catalog in the apps checkout and again where the registry snapshot installs it, and some of Primer's dependencies sit at other paths: the same source gives another `index.js`, so another id. GitHub's and Linear's artifacts differ from the snapshot's this way; the other five agree. Two installs may also resolve different versions of a dependency.
 - **GitHub waits for 77 stylesheets before its first paint**, sheets for components the paint doesn't use among them: through the tunnel, about 80 requests. The artifact carries 97 sheets, and its entry loads 80 of them; 17 are copied and never loaded.
-- **Catalog version skew.** An install-over of a catalog shows only after a reload, which loses every answer on the page. An agent restarted with a new catalog id before it's installed over is refused at the hub with the `catalog` cause until it is. After an update to a new catalog id, the old and the new can both be on one page.
+- **Catalog version skew.** A canvas already on screen keeps the build it was drawn in after an install-over; only a canvas opened after shows the new one. An agent restarted with a new catalog id before it's installed over is refused at the hub with the `catalog` cause until it is. After an update to a new catalog id, the old and the new can both be on one page.
 - **A hand install can move a shared row.** Two apps installed from local packs on one catalog id: installing a new build for one moves the other with it. The summary names it, and the additive check keeps what it renders in; between publishers, the marketplace's owner-only rule is the protection.
 - **Through the tunnel, a reload loads every artifact again.** The tunnel adds its own `Cache-Control: no-cache,no-store` beside the orchestrator's `immutable`, so the browser keeps no artifact across reloads there. Within a page, each is loaded once.
 

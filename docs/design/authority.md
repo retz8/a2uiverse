@@ -65,7 +65,7 @@ An app says what sign-in it needs in its A2A agent card, in two fields A2A alrea
 
 Once an app has accounts, everything the orchestrator keeps is keyed by **source**: the app and one of its accounts, written `<app>.<n>`. Gmail with two accounts is `gmail.1` and `gmail.2`, two slots, two conversations with the agent, two copies of the data. An app whose card asks no sign-in keeps its bare id. An app that asks sign-in but holds no account yet is planned as the account its next sign-in will create, `gmail.1`. [`orchestrator.md`](orchestrator.md#sources-an-app-and-its-account) has the keying.
 
-Each account has a **label**, taken from the sign-in itself: the email, user name or name the ID token carries, otherwise "Gmail account 2". When an app has more than one account, its fragments show the label beside the app's name: "Gmail · you@example.com". Renamed from the App Library, the label is yours from then on: "Personal", kept through every later sign-in.
+Each account has a **label**, taken from the sign-in itself: the email, user name or name the ID token carries, otherwise "Gmail account 2". A key account is named when it's connected, on the token page ([Connect](#connect-a-pasted-key)). When an app has more than one account, its fragments show the label beside the app's name: "Gmail · you@example.com". Renamed from the App Library, the label is yours from then on: "Personal", kept through every later sign-in.
 
 ### 3. The credential rides a header, and only the vault holds it
 
@@ -387,7 +387,7 @@ Every text request the orchestrator writes to an app ends with the same advice, 
 
 ### Connect: a pasted key
 
-Shop B, one of the mock stores, signs in with an API key: its card declares an `apiKey` scheme in a header, with a `description` in its customer's words. The slot says **Connect** instead of Sign in: "Connect Shop B to show it here.", and "Opens a page to paste your Shop B key". The quiet line says "Not connected · Connect", and the merged view's reserved column "· not connected". Connect opens the start route, which sends the window to the orchestrator's own **token page**: "Connect Shop B", "From Shop B:" over the scheme's description, a link to the card's help page, "Paste your key", and **Connect**. The key is posted to the orchestrator and kept as the account's secret; an account gets the label "Shop B account 1". The window says "You're connected to Shop B".
+Shop B, one of the mock stores, signs in with an API key: its card declares an `apiKey` scheme in a header, with a `description` in its customer's words. The slot says **Connect** instead of Sign in: "Connect Shop B to show it here.", and "Opens a page to paste your Shop B key". The quiet line says "Not connected · Connect", and the merged view's reserved column "· not connected". Connect opens the start route, which sends the window to the orchestrator's own **token page**: "Connect Shop B", "From Shop B:" over the scheme's description, a link to the card's help page, "Paste your key", "Name this account (optional)", and **Connect**. The key is posted to the orchestrator and kept as the account's secret. The account takes the name typed, or, left blank, the name the field's hint shows: the app's name for the first key account ("Shop B"), the day it was connected added for a later one ("Shop B · connected Oct 17"), and its number only if that is taken too. A typed name another of the app's accounts holds, ignoring case, falls back to that default. An account connected again keeps its name, and its page asks none. The window says "You're connected to Shop B".
 
 ### Not supported here
 
@@ -405,7 +405,7 @@ The App Library signs one account out the same way: `POST /auth/sign-out` with i
 
 ### App Library
 
-The App Library reads `GET /auth/accounts.json`: every installed app, whether it asks no sign-in, signs in, or asks one the vault can't run, and each account with its label, its permissions in the card's own words (never a scope's name; a key account has none), and whether it must sign in again. Add account and Sign in again open the same window with no canvas: the start route then admits only the app's next account or an account that lapsed, and nothing resumes when it ends.
+The App Library ([`trusted-page.md`](trusted-page.md#gmails-accounts) has the page) reads `GET /auth/accounts.json`: every installed app, whether it asks no sign-in, signs in, or asks one the vault can't run, and each account with its label, its permissions in the card's own words (never a scope's name; a key account has none), and whether it must sign in again. Add account and Sign in again open the same window with no canvas: the start route then admits only the app's next account or an account that lapsed, and nothing resumes when it ends.
 
 ## When things go wrong
 
