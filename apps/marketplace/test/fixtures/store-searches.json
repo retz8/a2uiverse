@@ -49,5 +49,14 @@
   {"words": "news", "expected": []},
   {"words": "banking", "expected": []},
   {"words": "photo editing", "expected": []},
-  {"words": "video calls", "expected": [], "allowed": ["calendar"]}
+  {"words": "video calls", "expected": [], "allowed": ["calendar"]},
+  {"words": "google", "expected": ["calendar"]},
+  {"words": "goog", "expected": ["calendar"]},
+  {"words": "google calendar", "expected": ["calendar"]},
+  {"words": "gmail", "expected": ["gmail"]},
+  {"words": "linear", "expected": ["linear"]},
+  {"words": "circleci", "expected": ["circleci"]},
+  {"words": "shop a", "expected": ["shop-a"], "allowed": ["shop-b"]},
+  {"words": "northlight", "expected": ["shop-b"]},
+  {"words": "aperture", "expected": ["shop-a"]}
 ]

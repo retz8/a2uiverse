@@ -1,5 +1,5 @@
 /**
- * The Store's search cut against the real model (task-14.11 decision 27): the labelled searches in
+ * The Store's search against the real model (task-14.11 decisions 27 and 30): the labelled searches in
  * `fixtures/store-searches.json` over the seven cards the Store recordings hold. Each search's
  * expected apps are the ones whose card says they do what it asks; `allowed` ones are neither
  * expected nor counted against it; `modelMisses` are the expected apps the model ranks out. Gated
@@ -13,7 +13,7 @@ import {join} from 'node:path';
 import {corpusDoc, rank, TransformersEmbedder} from '@a2uiverse/embedder';
 import type {IndexEntry} from '@a2uiverse/sdk';
 import {afterAll, describe, expect, test} from 'vitest';
-import {matches} from '../src/marketplace.js';
+import {searchMatches} from '../src/marketplace.js';
 
 interface LabelledSearch {
   words: string;
@@ -46,11 +46,17 @@ describe.runIf(live)('the Store’s search cut (live model)', () => {
     async () => {
       const embedder = new TransformersEmbedder({cacheDir});
       const vectors = await embedder.embed(entries.map(entry => corpusDoc(entry.card)));
-      const candidates = entries.map((entry, i) => ({appId: entry.appId, vector: vectors[i]}));
+      const candidates = entries.map((entry, i) => ({
+        appId: entry.appId,
+        name: entry.card.name,
+        vector: vectors[i],
+      }));
       const queries = await embedder.embed(searches.map(search => search.words));
       let unexpected = 0;
       for (const [i, search] of searches.entries()) {
-        const shown = new Set(matches(rank(queries[i], candidates)).map(match => match.appId));
+        const shown = new Set(
+          searchMatches(search.words, rank(queries[i], candidates)).map(match => match.appId),
+        );
         const missed = search.expected.filter(appId => !shown.has(appId));
         expect(missed, search.words).toEqual(search.modelMisses ?? []);
         const ok = new Set([...search.expected, ...(search.allowed ?? [])]);

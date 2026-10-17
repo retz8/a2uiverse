@@ -18,6 +18,7 @@ import {FakeEmbedder} from '@a2uiverse/embedder';
 import {
   Marketplace,
   matches,
+  nameMatches,
   SEARCH_FLOOR,
   SEARCH_MARGIN,
   type PublishAnswer,
@@ -816,6 +817,45 @@ describe('search', () => {
     expect(
       (await marketplace.search('orders and deliveries')).results.map(r => r.entry.appId),
     ).toEqual(['shop']);
+  });
+
+  test('an app whose name the words start is a match, listed first (task-14.11 decision 30)', async () => {
+    const {marketplace, cards} = await made();
+    await claimed(marketplace);
+    const calendar = await agentOf({
+      name: 'Google Calendar',
+      skills: [{id: 'c', name: 'Agenda', description: 'what is on today', tags: ['agenda']}],
+    });
+    const weather = await agentOf({
+      name: 'Sky',
+      skills: [{id: 'w', name: 'Forecast', description: 'the weather forecast', tags: ['weather']}],
+    });
+    ok(
+      await marketplace.publish(
+        'acme',
+        body('calendar', cards.serve(calendar.card), [await fixtureArtifact(CAT)]),
+      ),
+    );
+    ok(await marketplace.publish('acme', body('sky', cards.serve(weather.card))));
+    for (const words of ['google', 'Goog', 'calendar google']) {
+      const {results} = await marketplace.search(words);
+      expect(
+        results.map(r => r.entry.appId),
+        words,
+      ).toEqual(['calendar']);
+    }
+    const {results} = await marketplace.search('sky weather');
+    expect(results.map(r => r.entry.appId)).toEqual(['sky']);
+  });
+
+  test('a name matches when every word searched starts a word of it, in any case', () => {
+    expect(nameMatches('goog', 'Google Calendar')).toBe(true);
+    expect(nameMatches('CALENDAR goo', 'Google Calendar')).toBe(true);
+    expect(nameMatches('shop a', 'Shop A')).toBe(true);
+    expect(nameMatches('shop a', 'Shop B')).toBe(false);
+    expect(nameMatches('google mail', 'Google Calendar')).toBe(false);
+    expect(nameMatches('circle', 'CircleCI')).toBe(true);
+    expect(nameMatches(' ', 'Gmail')).toBe(false);
   });
 
   test('a match scores at least the floor and within the margin of the best (task-14.11 decision 27)', () => {

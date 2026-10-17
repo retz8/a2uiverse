@@ -85,6 +85,31 @@ export function matches<T extends {score: number}>(ranked: readonly T[]): T[] {
   return ranked.filter(({score}) => score >= SEARCH_FLOOR && score >= best - SEARCH_MARGIN);
 }
 
+const wordsOf = (text: string) =>
+  text
+    .toLowerCase()
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter(Boolean);
+
+/**
+ * A search naming an app (task-14.11 decision 30): every word searched starts a word of its name,
+ * in any case — "goog" names Google Calendar.
+ */
+export function nameMatches(words: string, name: string): boolean {
+  const searched = wordsOf(words);
+  const named = wordsOf(name);
+  return searched.length > 0 && searched.every(word => named.some(part => part.startsWith(word)));
+}
+
+/** The search's answer over the ranked entries: the ones its words name, then the cut's matches. */
+export function searchMatches<T extends {score: number; name: string}>(
+  words: string,
+  ranked: readonly T[],
+): T[] {
+  const named = ranked.filter(entry => nameMatches(words, entry.name));
+  return [...named, ...matches(ranked).filter(entry => !named.includes(entry))];
+}
+
 /** What a report's refetch did to an app's flag: set, changed, cleared, or left as it was. */
 export type FlagChange = 'set' | 'changed' | 'cleared' | 'unchanged';
 
@@ -233,8 +258,8 @@ export class Marketplace {
   }
 
   /**
-   * Search (phase-13 decision 11; task-14.11 decision 27): words in, the entries that match out with
-   * their scores, in rank order.
+   * Search (phase-13 decision 11; task-14.11 decisions 27 and 30): words in, the entries that match
+   * out with their scores — the ones the words name first, then the rest in rank order.
    */
   async search(words: string): Promise<SearchResponse> {
     const [query] = await this.#deps.embedder.embed([words]);
@@ -242,7 +267,12 @@ export class Marketplace {
       const vector = this.#vectors.get(entry.appId);
       return vector ? [{entry, vector}] : [];
     });
-    return {results: matches(rank(query, candidates)).map(({entry, score}) => ({entry, score}))};
+    const ranked = rank(query, candidates).map(({entry, score}) => ({
+      entry,
+      score,
+      name: entry.card.name,
+    }));
+    return {results: searchMatches(words, ranked).map(({entry, score}) => ({entry, score}))};
   }
 
   /**
