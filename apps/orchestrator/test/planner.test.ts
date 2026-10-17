@@ -191,6 +191,21 @@ describe('the Planner’s files and prompt', () => {
       {call: 'openAppLibrary', args: {app: 'linear'}},
     ]);
     expect(JSON.stringify(example.output)).toContain('checked 12 minutes ago');
+    // Every state woven into the sentence, none quoted after a colon (task-14.11 decision 41).
+    const shown = example.readers![0]!.result as {update: string}[];
+    expect(new Set(shown.map(app => app.update))).toEqual(
+      new Set([
+        'A new version is available',
+        'A newer version is on its way from the publisher',
+        'Up to date',
+        'An update that asks for more',
+        'Needs an update to keep working',
+      ]),
+    );
+    const answer = example.output.tree.components.find(c => c.id === 'answer') as {text: string};
+    expect(answer.text).toContain('Gmail has one that asks for more access');
+    expect(answer.text).toContain('A newer version of CircleCI is on its way from its publisher');
+    for (const {update} of shown) expect(answer.text).not.toContain(`: ${update}`);
   });
 
   test('the account choice is shown: a command over an app with two accounts naming neither (task-12.6 decision 3)', () => {

@@ -375,8 +375,9 @@ export const INSTALLED_APPS_ANSWER: LayoutExample = {
 
 /**
  * Whether anything is out of date (task-14.5 decision 13): the reader's update words and how long ago
- * the check ran, written as the shell's own sentence; a button into the App Library, and one naming
- * the app that needs its update, landing on that app.
+ * the check ran, written as the shell's own sentence — every state woven in, never quoted after a
+ * colon (task-14.11 decision 41); a button into the App Library, and one naming the app that needs
+ * its update, landing on that app.
  */
 export const OUT_OF_DATE_ANSWER: LayoutExample = {
   name: 'out-of-date-answer',
@@ -397,6 +398,16 @@ export const OUT_OF_DATE_ANSWER: LayoutExample = {
           checked: 'checked 12 minutes ago',
         },
         {
+          id: 'circleci',
+          displayName: 'CircleCI',
+          name: 'CircleCI',
+          description: 'Pipelines, workflows and jobs for the signed-in account.',
+          skills: [{name: 'Pipelines', description: 'Shows recent runs and their outcome.'}],
+          reachable: true,
+          update: 'A newer version is on its way from the publisher',
+          checked: 'checked 12 minutes ago',
+        },
+        {
           id: 'github',
           displayName: 'GitHub',
           name: 'GitHub',
@@ -406,6 +417,16 @@ export const OUT_OF_DATE_ANSWER: LayoutExample = {
           ],
           reachable: true,
           update: 'Up to date',
+          checked: 'checked 12 minutes ago',
+        },
+        {
+          id: 'gmail',
+          displayName: 'Gmail',
+          name: 'Gmail',
+          description: 'Mail and threads for the signed-in account.',
+          skills: [{name: 'Inbox', description: 'Finds the threads that need you.'}],
+          reachable: true,
+          update: 'An update that asks for more',
           checked: 'checked 12 minutes ago',
         },
         {
@@ -431,7 +452,7 @@ export const OUT_OF_DATE_ANSWER: LayoutExample = {
           id: 'answer',
           component: 'Text',
           variant: 'body',
-          text: 'Two of your apps have updates: Linear needs one to keep working, and a new version of Google Calendar is available. GitHub is up to date — checked 12 minutes ago.',
+          text: 'Three of your apps have updates: Linear needs one to keep working, Gmail has one that asks for more access, and a new version of Google Calendar is available. A newer version of CircleCI is on its way from its publisher. GitHub is up to date — checked 12 minutes ago.',
         },
         {id: 'actions', component: 'Row', children: ['library', 'linear']},
         {
