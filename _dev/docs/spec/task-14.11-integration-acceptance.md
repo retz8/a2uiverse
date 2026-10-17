@@ -272,6 +272,16 @@ Publish's listings are read through the orchestrator's `listings.json?publisher=
 
 Each surface of a loaded build is marked with its artifact id, on a box-less element around the catalog's Provider. A stylesheet inside an artifact is read as text, its relative addresses made whole against its own, and its rules wrapped as written in an `@scope` rooted at that build's mark, then adopted onto the page in the order the artifact asked for them. Fonts, keyframes, a layer order and rules aimed at `:root`, `html` or `body` stay page-wide. A browser without `@scope` takes a link per sheet, as before. Replaced: every artifact sheet a page-wide link, so a newer build's look restyled a canvas still drawn in the older one, a Store sample's build restyled the canvases, and GitHub's `*{box-sizing:border-box}` reached every other catalog. The replay baselines showing Linear, Shop A and Shop B were retaken: those catalogs now draw as their own sheets say, a few pixels taller where GitHub's reset had sized them.
 
+### 40. A write the tunnel swallows is read back
+
+Every write the page makes gets 60 s to answer, a publish 190 s: above the orchestrator's own limits, 10 s for each request to the Store and each account's access cancelled at its app, and 180 s for relaying a publish. With no answer the write is never sent again: the page reads back what it was changing and answers as the write would have.
+- An install or an update is done when the app is installed at the card version and builds the Store lists now; an uninstall, when the app is gone.
+- A rename is done when the account holds the new name; a sign-out, when the account is gone.
+- A claim, a publisher's sign-in or sign-out is read from who is signed in to Publish. A claim held here has no secret to show: the board says the name is theirs and kept on this computer, and that the secret didn't reach the page.
+- A publish is done when the publisher's listing carries the builds it handed and is no longer ahead of the Store; an unpublish, when the listing is gone.
+
+What only the lost answer knew stays unsaid: the apps that followed an update, whether an account's access was cancelled at its app. A read-back that cannot reach the orchestrator either answers as not reached. Replaced: a write with no time limit, the page saying "Updating" until reloaded when the tunnel left the request unanswered.
+
 ## Invariants
 
 - The browser holds no secret.
