@@ -256,6 +256,10 @@ A publish the Store takes moves Publish to its listings, the address theirs, the
 
 Steps a person takes in order are a vertical list on the canvas, one numbered line each, under a sentence saying what they get done — the platform-UI guidance's rule — and the platform card's publishing skill names its four steps, numbered. Replaced: the four steps run together in one paragraph.
 
+### 36. A key account is named when it is connected
+
+The token page asks, below the key, for an optional name for the account, its hint the name the account gets left blank. Left blank, the first key account takes the app's name ("Shop B"); a later one adds the day it was connected ("Shop B · connected Oct 17"), and its number only if that is taken too. A name the person typed stays theirs, as a rename does; one another of the app's accounts holds, ignoring case, falls back to the default. An account connected again keeps its name, and its page asks none. Replaced: every key account labelled by its number — "Shop B account 1".
+
 ## Invariants
 
 - The browser holds no secret.
