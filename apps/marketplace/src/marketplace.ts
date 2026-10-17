@@ -70,6 +70,21 @@ const CLIENT_CATALOG_IDS: readonly string[] = [...PUBLIC_CATALOG_IDS, SHELL_CATA
 
 const NEVER_FINISHED = 'the agent never finished: the stream ended without a final event';
 
+/**
+ * The Store's search cut (task-14.11 decision 27): a match scores at least `SEARCH_FLOOR` and within
+ * `SEARCH_MARGIN` of the best score. Fitted with the platform's embedding model on the labelled
+ * searches in `test/fixtures/store-searches.json` over the seven cards the Store recordings hold;
+ * `test/search.live.test.ts` holds it.
+ */
+export const SEARCH_FLOOR = 0.15;
+export const SEARCH_MARGIN = 0.095;
+
+/** The ranked entries that match: the floor, and the margin under the best. */
+export function matches<T extends {score: number}>(ranked: readonly T[]): T[] {
+  const best = ranked[0]?.score ?? 0;
+  return ranked.filter(({score}) => score >= SEARCH_FLOOR && score >= best - SEARCH_MARGIN);
+}
+
 /** What a report's refetch did to an app's flag: set, changed, cleared, or left as it was. */
 export type FlagChange = 'set' | 'changed' | 'cleared' | 'unchanged';
 
@@ -217,14 +232,17 @@ export class Marketplace {
     });
   }
 
-  /** Search (phase-13 decision 11): words in, every entry out with its score, in rank order. */
+  /**
+   * Search (phase-13 decision 11; task-14.11 decision 27): words in, the entries that match out with
+   * their scores, in rank order.
+   */
   async search(words: string): Promise<SearchResponse> {
     const [query] = await this.#deps.embedder.embed([words]);
     const candidates = this.entries().flatMap(entry => {
       const vector = this.#vectors.get(entry.appId);
       return vector ? [{entry, vector}] : [];
     });
-    return {results: rank(query, candidates).map(({entry, score}) => ({entry, score}))};
+    return {results: matches(rank(query, candidates)).map(({entry, score}) => ({entry, score}))};
   }
 
   /**

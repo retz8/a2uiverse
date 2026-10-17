@@ -15,7 +15,13 @@ import {
   type PublishBody,
 } from '@a2uiverse/sdk';
 import {FakeEmbedder} from '@a2uiverse/embedder';
-import {Marketplace, type PublishAnswer} from '../src/marketplace.js';
+import {
+  Marketplace,
+  matches,
+  SEARCH_FLOOR,
+  SEARCH_MARGIN,
+  type PublishAnswer,
+} from '../src/marketplace.js';
 import {a2aSmokeRunner} from '../src/smoke.js';
 import {
   APPS_DIR,
@@ -777,7 +783,7 @@ describe('unpublish', () => {
 });
 
 describe('search', () => {
-  test('words in, every entry out with its score, in rank order', async () => {
+  test('words in, the entries that match out with their scores, in rank order', async () => {
     const {marketplace, cards} = await made();
     await claimed(marketplace);
     const orders = await agentOf({
@@ -805,9 +811,23 @@ describe('search', () => {
     );
     ok(await marketplace.publish('acme', body('sky', cards.serve(weather.card))));
     const {results} = await marketplace.search('weather forecast');
-    expect(results.map(r => r.entry.appId)).toEqual(['sky', 'shop']);
-    expect(results[0].score).toBeGreaterThan(results[1].score);
+    expect(results.map(r => r.entry.appId)).toEqual(['sky']);
     expect(results[0].entry.card.name).toBe('Sky');
+    expect(
+      (await marketplace.search('orders and deliveries')).results.map(r => r.entry.appId),
+    ).toEqual(['shop']);
+  });
+
+  test('a match scores at least the floor and within the margin of the best (task-14.11 decision 27)', () => {
+    const ranked = [0.5, 0.5 - SEARCH_MARGIN, 0.5 - SEARCH_MARGIN - 0.001, 0.1].map(score => ({
+      score,
+    }));
+    expect(matches(ranked).map(r => r.score)).toEqual([0.5, 0.5 - SEARCH_MARGIN]);
+    expect(matches([{score: SEARCH_FLOOR}, {score: SEARCH_FLOOR - 0.001}])).toEqual([
+      {score: SEARCH_FLOOR},
+    ]);
+    expect(matches([{score: SEARCH_FLOOR - 0.001}])).toEqual([]);
+    expect(matches([])).toEqual([]);
   });
 });
 
