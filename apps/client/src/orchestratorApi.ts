@@ -12,6 +12,7 @@
  */
 import {
   INSTALL_REFUSALS,
+  artifactIdOf,
   type IndexEntry,
   type InstallRefusal,
   type PreviewDocument,
@@ -84,6 +85,44 @@ async function readJson(url: string): Promise<unknown> {
   const response = await fetchRead(url);
   if (!response.ok) throw new Error(`${url} answered ${response.status}`);
   return response.json();
+}
+
+/**
+ * A write gets this long to answer before the page reads back what it was changing (task-14.11
+ * decision 40): above the orchestrator's own limits for every write but a publish — 10 s for each
+ * request to the Store, of which an install asks several, and 10 s for each account's access
+ * cancelled at its app.
+ */
+export const WRITE_TIMEOUT_MS = 60_000;
+
+/** A publish gets the orchestrator's own limit for relaying it to the Store, 180 s, and 10 s more. */
+export const PUBLISH_TIMEOUT_MS = 190_000;
+
+/**
+ * A write from the browser: the JSON content type and the page's own origin, no token (SPEC §10).
+ * Its answer; `unheard` when none came in `timeoutMs`, so whether it landed is read back and it is
+ * never sent again; null when the orchestrator could not be reached.
+ */
+async function write(
+  url: string,
+  body: unknown,
+  timeoutMs = WRITE_TIMEOUT_MS,
+): Promise<{status: number; body: unknown} | 'unheard' | null> {
+  const ask = new AbortController();
+  const timer = setTimeout(() => ask.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(body),
+      signal: ask.signal,
+    });
+    return {status: response.status, body: await response.json().catch(() => undefined)};
+  } catch {
+    return ask.signal.aborted ? 'unheard' : null;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 /**
@@ -228,6 +267,8 @@ export function readStorePreview(base: string, appId: string): Promise<StoreRead
 export interface InstalledApp {
   id: string;
   card: PublishedCard;
+  /** Each catalog id it holds, at its build's artifact id. */
+  catalogs?: Record<string, string>;
   source?: 'marketplace' | 'local';
   reachable?: boolean;
 }
@@ -257,24 +298,22 @@ export type InstallAnswer =
 
 /**
  * Installs an app from the Store by its id — an update is the same install over the held app.
- * A write from the browser: the JSON content type and the page's own origin, no token (SPEC §10).
- * An orchestrator that cannot be reached answers as the Store unreached.
+ * An orchestrator that cannot be reached answers as the Store unreached; an install that got no
+ * answer is done when the app is installed as the Store lists it now (task-14.11 decision 40), the
+ * apps that followed it unknown.
  */
 export async function installApp(base: string, appId: string): Promise<InstallAnswer> {
-  let response: Response;
-  try {
-    response = await fetch(new URL('install', registryUrl(base)), {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({appId}),
-    });
-  } catch {
-    return {ok: false, cause: 'store-unreached'};
+  const answer = await write(new URL('install', registryUrl(base)).href, {appId});
+  if (answer === 'unheard') {
+    return (await installedAsListed(base, appId))
+      ? {ok: true, appId, replaced: true, followed: []}
+      : {ok: false, cause: 'store-unreached'};
   }
-  const body = (await response.json().catch(() => undefined)) as
+  if (answer === null) return {ok: false, cause: 'store-unreached'};
+  const body = answer.body as
     | {ok?: unknown; appId?: unknown; replaced?: unknown; followed?: unknown; cause?: unknown}
     | undefined;
-  if (response.ok && body?.ok === true) {
+  if (answer.status >= 200 && answer.status < 300 && body?.ok === true) {
     return {
       ok: true,
       appId: String(body.appId),
@@ -285,6 +324,18 @@ export async function installApp(base: string, appId: string): Promise<InstallAn
   const cause = INSTALL_REFUSALS.find(known => known === body?.cause);
   // A refusal with no cause the page knows still failed the install: the checks are its words.
   return {ok: false, cause: cause ?? 'checks'};
+}
+
+/** Whether `appId` is installed at the card version and builds the Store lists for it now. */
+async function installedAsListed(base: string, appId: string): Promise<boolean> {
+  const [installed, listed] = await Promise.all([readInstalled(base), readStoreEntry(base, appId)]);
+  const record = installed?.find(app => app.id === appId);
+  if (!record || !listed.ok) return false;
+  const {entry} = listed.value;
+  return (
+    record.card.version === entry.card.version &&
+    Object.entries(entry.catalogs).every(([id, artifact]) => record.catalogs?.[id] === artifact)
+  );
 }
 
 // --- The App Library (task 14.8) ----------------------------------------------------------------
@@ -335,23 +386,6 @@ export async function readAccounts(base: string): Promise<LibraryApp[] | null> {
   }
 }
 
-/**
- * A write from the browser: the JSON content type and the page's own origin, no token (SPEC §10).
- * Null when the orchestrator could not be reached.
- */
-async function write(url: string, body: unknown): Promise<{status: number; body: unknown} | null> {
-  try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify(body),
-    });
-    return {status: response.status, body: await response.json().catch(() => undefined)};
-  } catch {
-    return null;
-  }
-}
-
 /** A write refused: the orchestrator's first finding, or none when it could not be reached. */
 export interface Refused {
   ok: false;
@@ -364,8 +398,19 @@ const refusedOf = (answer: {body: unknown} | null): Refused => {
   return typeof first === 'string' ? {ok: false, reason: first} : {ok: false};
 };
 
-/** What became of an account's access: cancelled, nowhere to cancel, or failed to cancel. */
-export type Revocation = 'revoked' | 'nowhere' | 'failed';
+/**
+ * What became of an account's access: cancelled, nowhere to cancel, failed to cancel, or unknown —
+ * a sign-out whose answer never came, read back as done.
+ */
+export type Revocation = 'revoked' | 'nowhere' | 'failed' | 'unknown';
+
+/** Where `source`'s account stands now: its label, gone, or unread. */
+async function accountNow(base: string, source: string): Promise<string | 'gone' | null> {
+  const apps = await readAccounts(base);
+  if (!apps) return null;
+  const account = apps.flatMap(app => app.accounts).find(a => a.source === source);
+  return account ? account.label : 'gone';
+}
 
 /** Renames an account: the label the vault now holds, or why not (task-14.3 decision 4). */
 export async function renameAccount(
@@ -374,17 +419,31 @@ export async function renameAccount(
   label: string,
 ): Promise<{ok: true; label: string} | Refused> {
   const answer = await write(authUrl(base, 'rename'), {source, label});
+  if (answer === 'unheard') {
+    const now = await accountNow(base, source);
+    return now === label.trim() ? {ok: true, label: now} : {ok: false};
+  }
   const body = answer?.body as {ok?: unknown; label?: unknown} | undefined;
   if (answer?.status === 200 && body?.ok === true) return {ok: true, label: String(body.label)};
   return refusedOf(answer);
 }
 
-/** Signs an account out: dropped in every case, with what became of its access. */
+/**
+ * Signs an account out: dropped in every case, with what became of its access. `label` is the
+ * account's as the page shows it, said when the answer never came and the account is read back
+ * gone.
+ */
 export async function signOutAccount(
   base: string,
   source: string,
+  label: string,
 ): Promise<{ok: true; label: string; revocation: Revocation} | Refused> {
   const answer = await write(authUrl(base, 'sign-out'), {source});
+  if (answer === 'unheard') {
+    return (await accountNow(base, source)) === 'gone'
+      ? {ok: true, label, revocation: 'unknown'}
+      : {ok: false};
+  }
   const body = answer?.body as {ok?: unknown; label?: unknown; revocation?: unknown} | undefined;
   if (answer?.status === 200 && body?.ok === true) {
     return {ok: true, label: String(body.label), revocation: revocationOf(body.revocation)};
@@ -398,6 +457,12 @@ export async function uninstallApp(
   appId: string,
 ): Promise<{ok: true; accounts: {label: string; revocation: Revocation}[]} | Refused> {
   const answer = await write(new URL('uninstall', registryUrl(base)).href, {appId});
+  if (answer === 'unheard') {
+    const installed = await readInstalled(base);
+    return installed && !installed.some(app => app.id === appId)
+      ? {ok: true, accounts: []}
+      : {ok: false};
+  }
   const body = answer?.body as {ok?: unknown; accounts?: unknown} | undefined;
   if (answer?.status === 200 && body?.ok === true) {
     const accounts = Array.isArray(body.accounts)
@@ -496,13 +561,31 @@ function publisherRefused(
 /** The orchestrator's publisher routes, under the marketplace's. */
 const publisherUrl = (base: string, path: string) => new URL(path, marketplaceUrl(base)).href;
 
-/** A claim's answer: the secret, shown once, and whether this computer kept it (task-14.4 decision 8). */
+/**
+ * A claim's answer: the secret, shown once, and whether this computer kept it (task-14.4 decision
+ * 8); no secret for a claim whose answer never came, read back as held here.
+ */
 export type ClaimAnswer =
-  {ok: true; publisher: string; token: string; kept: boolean} | PublisherRefused;
+  {ok: true; publisher: string; token: string | null; kept: boolean} | PublisherRefused;
+
+/** Who is signed in to Publish now, read back after a publisher's call got no answer. */
+async function signedInNow(base: string): Promise<string | 'signed-out' | null> {
+  const status = await readPublisher(base);
+  if (!status) return null;
+  return status.state === 'signed-out' ? 'signed-out' : status.publisher;
+}
+
+/** A publisher's call unanswered and not read back as done: the Store unreached. */
+const UNHEARD: PublisherRefused = {ok: false, refusal: 'unreached', findings: []};
 
 /** Claims a publisher name. */
 export async function claimPublisher(base: string, publisher: string): Promise<ClaimAnswer> {
   const answer = await write(publisherUrl(base, 'claim'), {publisher});
+  if (answer === 'unheard') {
+    return (await signedInNow(base)) === publisher
+      ? {ok: true, publisher, token: null, kept: true}
+      : UNHEARD;
+  }
   const body = answer?.body as {publisher?: unknown; token?: unknown; kept?: unknown} | undefined;
   if (answer?.status === 201 && typeof body?.token === 'string') {
     return {
@@ -522,6 +605,9 @@ export async function signInPublisher(
   token: string,
 ): Promise<{ok: true; publisher: string} | PublisherRefused> {
   const answer = await write(publisherUrl(base, 'sign-in'), {publisher, token});
+  if (answer === 'unheard') {
+    return (await signedInNow(base)) === publisher ? {ok: true, publisher} : UNHEARD;
+  }
   const body = answer?.body as {ok?: unknown} | undefined;
   if (answer?.status === 200 && body?.ok === true) return {ok: true, publisher};
   return publisherRefused(answer, {500: 'unkept'});
@@ -530,6 +616,9 @@ export async function signInPublisher(
 /** Signs out of Publish: the orchestrator forgets the secret (decision 11). */
 export async function signOutPublisher(base: string): Promise<{ok: true} | PublisherRefused> {
   const answer = await write(publisherUrl(base, 'sign-out'), {});
+  if (answer === 'unheard') {
+    return (await signedInNow(base)) === 'signed-out' ? {ok: true} : UNHEARD;
+  }
   const body = answer?.body as {ok?: unknown} | undefined;
   if (answer?.status === 200 && body?.ok === true) return {ok: true};
   return publisherRefused(answer, {404: 'signed-out', 500: 'unkept'});
@@ -543,7 +632,13 @@ export async function publishApp(
   base: string,
   request: PublishRequest,
 ): Promise<PublishOutcome | PublisherRefused> {
-  const answer = await write(publisherUrl(base, 'publish'), request);
+  const answer = await write(publisherUrl(base, 'publish'), request, PUBLISH_TIMEOUT_MS);
+  if (answer === 'unheard') {
+    const entry = await listedAsPublished(base, request);
+    return entry
+      ? {ok: true, appId: request.appId, version: entry.card.version, summary: '', notes: []}
+      : UNHEARD;
+  }
   const body = answer?.body as Partial<PublishOutcome> | undefined;
   if (answer?.status === 200 && body?.ok === true) {
     return {
@@ -563,7 +658,41 @@ export async function unpublishApp(
   appId: string,
 ): Promise<{ok: true} | PublisherRefused> {
   const answer = await write(publisherUrl(base, 'unpublish'), {appId});
+  if (answer === 'unheard') {
+    const listed = await listingNow(base, appId);
+    return listed === 'gone' ? {ok: true} : UNHEARD;
+  }
   const body = answer?.body as {ok?: unknown} | undefined;
   if (answer?.status === 200 && body?.ok === true) return {ok: true};
   return publisherRefused(answer, {400: 'checks', 403: 'owned', 404: 'not-published'});
+}
+
+/** The signed-in publisher's listing of `appId` now, its live card read first: gone, or unread. */
+async function listingNow(base: string, appId: string): Promise<IndexEntry | 'gone' | null> {
+  const publisher = await signedInNow(base);
+  if (publisher === null || publisher === 'signed-out') return null;
+  const listings = await readPublisherListings(base, publisher);
+  if (!listings.ok) return null;
+  return listings.value.find(l => l.entry.appId === appId)?.entry ?? 'gone';
+}
+
+/**
+ * The listing a publish whose answer never came made: the app listed at the builds it handed, its
+ * live card covered — no longer ahead of the Store. None when it is not so.
+ */
+async function listedAsPublished(
+  base: string,
+  request: PublishRequest,
+): Promise<IndexEntry | undefined> {
+  const entry = await listingNow(base, request.appId);
+  if (entry === null || entry === 'gone' || entry.aheadOfStore) return undefined;
+  const handed = await Promise.all(
+    request.catalogs.map(async ({files}) => {
+      const descriptor = files['artifact.json'];
+      if (descriptor === undefined) return undefined;
+      return artifactIdOf(Uint8Array.from(atob(descriptor), char => char.charCodeAt(0)));
+    }),
+  );
+  const listed = new Set(Object.values(entry.catalogs));
+  return handed.every(id => id !== undefined && listed.has(id)) ? entry : undefined;
 }

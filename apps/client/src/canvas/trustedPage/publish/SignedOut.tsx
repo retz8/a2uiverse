@@ -176,13 +176,38 @@ export function SignedOut({signInName, onClaim, onSignIn}: SignedOutProps) {
   );
 }
 
-/** The secret, shown once after a claim (task-14.2 decision 13, task-14.9 decisions 4 and 5). */
+/**
+ * The secret, shown once after a claim (task-14.2 decision 13, task-14.9 decisions 4 and 5); a
+ * claim whose answer never came, read back as kept here, has none to show (task-14.11 decision 40).
+ */
 export function TokenBoard({claimed, onContinue}: {claimed: Claimed; onContinue: () => void}) {
   const [saved, setSaved] = useState(false);
   const [copied, setCopied] = useState(false);
+  const token = claimed.token;
+  if (token === null) {
+    return (
+      <div className="store-col publish-narrow">
+        <div className="publish-card publish-card--token" data-testid="publish-token">
+          <span className="store-state store-state--ok">
+            <TickIcon size={14} />
+            Name claimed
+          </span>
+          <h2>“{claimed.publisher}” is yours</h2>
+          <p>
+            This computer keeps your publisher secret <Term>(token)</Term>, so you can publish from
+            here. The connection dropped before the secret reached this page, so it can’t be shown,
+            and it won’t be shown again.
+          </p>
+          <PageButton look="primary" height="large" onClick={onContinue}>
+            Continue
+          </PageButton>
+        </div>
+      </div>
+    );
+  }
   const copy = async () => {
     try {
-      await navigator.clipboard.writeText(claimed.token);
+      await navigator.clipboard.writeText(token);
       setCopied(true);
     } catch {
       setCopied(false);
@@ -209,7 +234,7 @@ export function TokenBoard({claimed, onContinue}: {claimed: Claimed; onContinue:
           </p>
         )}
         <div className="publish-tokenbox">
-          <code>{claimed.token}</code>
+          <code>{token}</code>
           <PageButton height="small" onClick={() => void copy()}>
             <CopyIcon />
             {copied ? 'Copied' : 'Copy'}

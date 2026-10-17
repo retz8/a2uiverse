@@ -292,7 +292,7 @@ function AccountRow({
         container={container}
         onClose={() => setConfirming(false)}
         onConfirm={async () => {
-          const answer = await signOutAccount(orchestrator, account.source);
+          const answer = await signOutAccount(orchestrator, account.source, account.label);
           if (answer.ok) onSignedOut(answer.label, answer.revocation);
           else onChanged();
         }}
