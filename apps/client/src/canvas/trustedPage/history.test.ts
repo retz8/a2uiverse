@@ -56,6 +56,66 @@ describe('bindTrustedPageHistory', () => {
     expect(window.history.length).toBe(length);
   });
 
+  it('opening an app’s view from its list pushes the view: Back returns to the list, then closes the page (task-14.11 decision 28)', async () => {
+    const trail = createTrailStore();
+    unbind = bindTrustedPageHistory(trail);
+    trail.openTrustedPage({page: 'store', query: 'camera'});
+    trail.openTrustedPage({page: 'store', query: 'camera', app: 'shop-a'});
+    expect(here()).toBe('/?beat=gap&page=store&q=camera&app=shop-a');
+    window.history.back();
+    await waitFor(() =>
+      expect(trail.getState().trustedPage).toEqual({page: 'store', query: 'camera'}),
+    );
+    expect(here()).toBe('/?beat=gap&page=store&q=camera');
+    window.history.back();
+    await waitFor(() => expect(trail.getState().trustedPage).toBeNull());
+    expect(here()).toBe('/?beat=gap');
+  });
+
+  it('the view’s own way back to its list goes back over the view’s entry', async () => {
+    const trail = createTrailStore();
+    unbind = bindTrustedPageHistory(trail);
+    trail.openTrustedPage({page: 'appLibrary'});
+    trail.openTrustedPage({page: 'appLibrary', app: 'gmail'});
+    trail.openTrustedPage({page: 'appLibrary'});
+    await waitFor(() => expect(here()).toBe('/?beat=gap&page=library'));
+    window.history.back();
+    await waitFor(() => expect(trail.getState().trustedPage).toBeNull());
+    expect(here()).toBe('/?beat=gap');
+  });
+
+  it('an app’s view opened with no list behind it, or reached by a tab, replaces: Back closes the page', async () => {
+    const trail = createTrailStore();
+    unbind = bindTrustedPageHistory(trail);
+    trail.openTrustedPage({page: 'appLibrary', app: 'gmail'});
+    trail.openTrustedPage({page: 'store'});
+    trail.openTrustedPage({page: 'appLibrary', app: 'linear'});
+    expect(here()).toBe('/?beat=gap&page=library&app=linear');
+    window.history.back();
+    await waitFor(() => expect(trail.getState().trustedPage).toBeNull());
+  });
+
+  it('closing the page from a pushed view goes back over both entries', async () => {
+    const trail = createTrailStore();
+    unbind = bindTrustedPageHistory(trail);
+    trail.openTrustedPage({page: 'store'});
+    trail.openTrustedPage({page: 'store', app: 'shop-a'});
+    trail.closeTrustedPage();
+    await waitFor(() => expect(here()).toBe('/?beat=gap'));
+    expect(trail.getState().trustedPage).toBeNull();
+  });
+
+  it('a list the address landed on, a view pushed over it: closing takes the page out of the landed entry', async () => {
+    window.history.replaceState(null, '', '/?page=library');
+    const trail = createTrailStore();
+    unbind = bindTrustedPageHistory(trail);
+    trail.openTrustedPage({page: 'appLibrary', app: 'gmail'});
+    expect(here()).toBe('/?page=library&app=gmail');
+    trail.closeTrustedPage();
+    await waitFor(() => expect(here()).toBe('/'));
+    expect(trail.getState().trustedPage).toBeNull();
+  });
+
   it('browser Forward opens the page again', async () => {
     const trail = createTrailStore();
     unbind = bindTrustedPageHistory(trail);

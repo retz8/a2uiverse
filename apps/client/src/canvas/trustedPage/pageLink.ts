@@ -1,7 +1,7 @@
 /**
  * A link inside the trusted page: its own address, so it opens in a new tab too, and a plain press
- * that moves the page in place — replacing the page's entry on the history, as every move inside
- * it does (phase-14 decision 11).
+ * that moves the page in place — on the history as `history.ts` keeps it (phase-14 decision 11;
+ * task-14.11 decision 28).
  */
 import type {MouseEvent} from 'react';
 import type {TrustedPageState} from '../trail/trailStore';
