@@ -1,14 +1,15 @@
 /**
  * Publish's reads (task-14.9 decision 6): who is signed in — the orchestrator asking the Store
  * whether the held secret is still accepted — and, for a publisher it accepts, the listings: the
- * Store's index filtered on the name (phase-14 decision 7), by the app's name. Both run when
+ * Store's index filtered on the name (phase-14 decision 7), each app's live card read again first
+ * (task-14.11 decision 38), by the app's name. Both run when
  * Publish is entered and on Try again; after a publish or an unpublish only the listings are read
  * again.
  */
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {
   readPublisher,
-  readStoreIndex,
+  readPublisherListings,
   type PublisherStatus,
   type StoreListing,
 } from '../../../orchestratorApi';
@@ -43,18 +44,13 @@ export function usePublisher(orchestrator: string) {
     };
   }, []);
 
-  /** The listings of `publisher`: the index filtered on the name, by the app's name. */
+  /** The listings of `publisher`, by the app's name. */
   const readListings = useCallback(
     async (publisher: string) => {
-      const read = await readStoreIndex(orchestrator);
+      const read = await readPublisherListings(orchestrator, publisher);
       if (!live.current) return;
       setListings(
-        read.ok
-          ? {
-              status: 'ready',
-              value: read.value.filter(l => l.entry.publisher === publisher).sort(byName),
-            }
-          : {status: 'unreached'},
+        read.ok ? {status: 'ready', value: [...read.value].sort(byName)} : {status: 'unreached'},
       );
     },
     [orchestrator],

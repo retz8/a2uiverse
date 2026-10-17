@@ -11,6 +11,9 @@
  * - `GET  artifacts/<artifactId>/<path>` — an artifact's files: from the registry when it holds the
  *   artifact, else from the marketplace, checked as install checks them; immutable either way.
  * - `GET  publisher.json` — who is signed in to Publish, the held token asked about each time.
+ * - `GET  listings.json?publisher=<name>` — that publisher's listings, each app's live card read
+ *   again first, its drift from the Store shown at once and reported where the Store's flag
+ *   differs (task-14.11 decision 38).
  *
  * `installed` is the registry's at the read; `update` is the app's state as last computed, never a
  * check run here (decision 1). A read the marketplace cannot answer says why: the marketplace
@@ -23,10 +26,17 @@
  */
 import {extname, join} from 'node:path';
 import express, {type Request, type RequestHandler, type Response, type Router} from 'express';
-import {SEARCH_QUERY_PARAM, type IndexEntry, type UpdateState} from '@a2uiverse/sdk';
+import {
+  aheadOfStore,
+  SEARCH_QUERY_PARAM,
+  type CardWithExtensions,
+  type Drift,
+  type IndexEntry,
+  type UpdateState,
+} from '@a2uiverse/sdk';
 import {logLine} from '../log.js';
 import type {DroppedEntry, MarketplaceClient} from '../registry/marketplace.js';
-import type {Registry} from '../registry/registry.js';
+import type {Registry, ResolveCard} from '../registry/registry.js';
 import {IMMUTABLE} from '../registry/api.js';
 import type {UpdateCheck} from '../registry/updates.js';
 import {callerOf} from '../writeGuard.js';
@@ -38,6 +48,13 @@ export const MARKETPLACE_ROUTE_PREFIX = '/marketplace';
 /** The largest publish body: every catalog's files, base64, and the captured preview. */
 const PUBLISH_BODY_LIMIT = '64mb';
 const BODY_LIMIT = '16kb';
+
+/**
+ * How long a publisher's listings wait on one app's live card: half the page's read bound
+ * (task-14.11 decision 26), so an app that does not answer leaves the Store's flag and the listings
+ * still answer inside it.
+ */
+export const LIVE_CARD_TIMEOUT_MS = 5_000;
 
 /** One listing as the Store reads it: the entry, whether the app is installed, its state as last computed. */
 export interface StoreListing {
@@ -61,6 +78,7 @@ export function marketplaceRoutes({
   updates,
   artifacts,
   publisher,
+  resolveCard,
   guard,
 }: {
   registry: Registry;
@@ -68,6 +86,8 @@ export function marketplaceRoutes({
   updates: UpdateCheck;
   artifacts: ArtifactRelay;
   publisher: Publisher;
+  /** Fetches an app's live card, as the registry does. */
+  resolveCard: ResolveCard;
   /** The write guard: the JSON content type, then an allowed origin or the write token. */
   guard: RequestHandler;
 }): Router {
@@ -184,6 +204,47 @@ export function marketplaceRoutes({
     res.set('Cache-Control', 'no-store').json(await publisher.status());
   });
 
+  /**
+   * An entry with its app's drift as the live card shows it now, through the sdk's drift function
+   * the marketplace runs; where that differs from the Store's flag the marketplace is sent the
+   * report, so its own flag catches up for every reader. A card that does not answer in time or
+   * does not read leaves the Store's flag.
+   */
+  const withLiveDrift = async (entry: IndexEntry): Promise<IndexEntry> => {
+    let card: CardWithExtensions & {version?: unknown};
+    try {
+      card = (await withTimeout(resolveCard(entry.cardUrl), LIVE_CARD_TIMEOUT_MS)) as typeof card;
+    } catch {
+      return entry;
+    }
+    if (typeof card.version !== 'string') return entry;
+    const drift = aheadOfStore(entry, card as CardWithExtensions & {version: string});
+    if (!drift.ok) return entry;
+    const {aheadOfStore: flagged, ...rest} = entry;
+    if (sameDrift(flagged, drift.value)) return entry;
+    void marketplace.report(entry.appId).catch((err: unknown) => {
+      console.error(`marketplace: the report of ${entry.appId} failed:`, (err as Error).message);
+    });
+    return drift.value
+      ? {...rest, aheadOfStore: {...drift.value, seenAt: new Date().toISOString()}}
+      : rest;
+  };
+
+  router.get('/listings.json', async (req, res) => {
+    const name = req.query.publisher;
+    if (typeof name !== 'string' || name === '') {
+      res.status(400).json({ok: false, findings: ['publisher: expected the publisher’s name']});
+      return;
+    }
+    const read = await marketplace.index();
+    if (read.kind === 'unreached') return unreached(res, read.reason);
+    if (read.kind === 'malformed') return refuse(res, 'malformed', read.errors);
+    logDropped(read.dropped);
+    const mine = read.entries.filter(entry => entry.publisher === name);
+    const checked = await Promise.all(mine.map(withLiveDrift));
+    res.set('Cache-Control', 'no-cache').json(checked.map(listing));
+  });
+
   const small = express.json({limit: BODY_LIMIT});
   const answer = (res: Response, {status, body}: PublisherAnswer) => {
     if (body === undefined) res.status(status).end();
@@ -212,6 +273,25 @@ export function marketplaceRoutes({
   });
 
   return router;
+}
+
+/** Whether the Store's flag says what the live card shows: both none, or the same version and ids. */
+function sameDrift(flagged: Drift | undefined, now: Drift | undefined): boolean {
+  if (flagged === undefined || now === undefined) return flagged === now;
+  return (
+    flagged.version === now.version &&
+    flagged.catalogIds.length === now.catalogIds.length &&
+    flagged.catalogIds.every((id, i) => now.catalogIds[i] === id)
+  );
+}
+
+/** A promise that rejects once `ms` pass without it settling. */
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  let timer: NodeJS.Timeout | undefined;
+  const late = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`no answer in ${ms} ms`)), ms);
+  });
+  return Promise.race([promise, late]).finally(() => clearTimeout(timer));
 }
 
 /** A path inside the artifact: relative, `/`-separated, no `.` or `..` segment. */

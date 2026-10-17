@@ -102,18 +102,19 @@ With no `canvas`, `start` is the App Library's: add an account, or sign in again
 
 The marketplace's, under `/marketplace`: the Store's reads and the publisher's calls, relayed so the browser knows one address.
 
-| Route                            | What it is                                                                                                                      |
-| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `GET index.json`                 | Every published app: `[{entry, installed, update?}]`, `update` the state as last computed                                       |
-| `GET search?q=<words>`           | `{results: [{entry, score, installed, update?}]}` in rank order                                                                 |
-| `GET apps/<appId>/entry.json`    | One app, annotated the same way                                                                                                 |
-| `GET apps/<appId>/preview.json`  | Its captured preview                                                                                                            |
-| `GET artifacts/<id>/<path>`      | A preview's artifact files: from the registry when it holds them, else from the marketplace, checked against their hashes first |
-| `GET publisher.json`             | Who is signed in to Publish, and whether the marketplace still takes the token                                                  |
-| `POST claim`                     | `{publisher}`; the token shown once and kept                                                                                    |
-| `POST sign-in`                   | `{publisher, token}`, checked at the marketplace before it is kept                                                              |
-| `POST sign-out`                  | Forgets the publisher here; the token stays the marketplace's                                                                   |
-| `POST publish`, `POST unpublish` | Stellify's bodies, relayed with the held token; the marketplace's answer as it came                                             |
+| Route                                | What it is                                                                                                                      |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
+| `GET index.json`                     | Every published app: `[{entry, installed, update?}]`, `update` the state as last computed                                       |
+| `GET search?q=<words>`               | `{results: [{entry, score, installed, update?}]}` in rank order                                                                 |
+| `GET apps/<appId>/entry.json`        | One app, annotated the same way                                                                                                 |
+| `GET apps/<appId>/preview.json`      | Its captured preview                                                                                                            |
+| `GET artifacts/<id>/<path>`          | A preview's artifact files: from the registry when it holds them, else from the marketplace, checked against their hashes first |
+| `GET publisher.json`                 | Who is signed in to Publish, and whether the marketplace still takes the token                                                  |
+| `GET listings.json?publisher=<name>` | That publisher's apps, annotated the same way, each one's live card read first so an app ahead of the Store says so at once     |
+| `POST claim`                         | `{publisher}`; the token shown once and kept                                                                                    |
+| `POST sign-in`                       | `{publisher, token}`, checked at the marketplace before it is kept                                                              |
+| `POST sign-out`                      | Forgets the publisher here; the token stays the marketplace's                                                                   |
+| `POST publish`, `POST unpublish`     | Stellify's bodies, relayed with the held token; the marketplace's answer as it came                                             |
 
 A read the marketplace can't answer says why: `503` unreached, `404` not published, `502` an answer that doesn't read. The writes pass the same guard as the registry's. One publisher at a time: a claim or a sign-in waits for sign-out.
 

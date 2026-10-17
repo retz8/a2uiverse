@@ -4,7 +4,7 @@ import {readFile, rm, stat, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {afterEach, describe, expect, test, vi} from 'vitest';
 import express from 'express';
-import {ARTIFACT_DESCRIPTOR_FILE, artifactIdOf} from '@a2uiverse/sdk';
+import {ARTIFACT_DESCRIPTOR_FILE, artifactIdOf, type IndexEntry} from '@a2uiverse/sdk';
 import {ArtifactRelay} from '../src/marketplace/artifacts.js';
 import {
   PUBLISHER_FILE,
@@ -55,6 +55,7 @@ async function serve({marketplaceUrl}: {marketplaceUrl?: string} = {}) {
       updates,
       artifacts: new ArtifactRelay(client),
       publisher,
+      resolveCard: made.cards.resolve,
       guard: writeGuard({token: () => WRITE_TOKEN, allowed: originAllowed(PAGE)}),
     }),
   );
@@ -180,6 +181,52 @@ describe('the Store’s reads (task-14.4 decisions 1, 3)', () => {
       const [status, body] = await json(await fetch(`${base}/${path}`));
       expect([path, status, body.reason]).toEqual([path, 503, 'unreached']);
     }
+  });
+});
+
+describe('a publisher’s listings (task-14.11 decision 38)', () => {
+  test('each app’s live card read again: its drift shown at once and reported; one covered says none', async () => {
+    const {base, marketplace, cards} = await serve();
+    const shop = await published(marketplace, cards, 'shop', SHOP, 11003);
+    await published(marketplace, cards, 'gmail', GMAIL, 11002);
+    await marketplace.publish('other', {
+      card: cardFor('http://127.0.0.1:11009', {name: 'other'}),
+      cardUrl: cards.serve(cardFor('http://127.0.0.1:11009', {name: 'other'})),
+      catalogs: [],
+      publisher: 'someone-else',
+    });
+    cards.cards.set(shop.cardUrl, {...cards.cards.get(shop.cardUrl)!, version: '0.2.0'});
+
+    const [status, listings] = await json(await fetch(`${base}/listings.json?publisher=acme`));
+    expect(status).toBe(200);
+    expect(listings.map((l: {entry: {appId: string}}) => l.entry.appId).sort()).toEqual([
+      'gmail',
+      'shop',
+    ]);
+    const byId = Object.fromEntries(
+      listings.map((l: {entry: IndexEntry}) => [l.entry.appId, l.entry]),
+    );
+    expect(byId.shop.aheadOfStore).toEqual({
+      catalogIds: [],
+      version: '0.2.0',
+      seenAt: expect.any(String),
+    });
+    expect(byId.gmail).not.toHaveProperty('aheadOfStore');
+    await vi.waitFor(() => expect(marketplace.reports).toEqual(['shop']));
+  });
+
+  test('a card that cannot be read leaves the Store’s flag, nothing reported; no name is 400', async () => {
+    const {base, marketplace, cards} = await serve();
+    const shop = await published(marketplace, cards, 'shop', SHOP, 11003);
+    const flagged = {catalogIds: [], version: '0.2.0', seenAt: '2026-10-17T04:00:00.000Z'};
+    marketplace.serveEntry('shop', {...marketplace.entry('shop'), aheadOfStore: flagged});
+    cards.cards.delete(shop.cardUrl);
+    const [, listings] = await json(await fetch(`${base}/listings.json?publisher=acme`));
+    expect(listings).toEqual([
+      {entry: expect.objectContaining({appId: 'shop', aheadOfStore: flagged}), installed: false},
+    ]);
+    expect(marketplace.reports).toEqual([]);
+    expect((await fetch(`${base}/listings.json`)).status).toBe(400);
   });
 });
 

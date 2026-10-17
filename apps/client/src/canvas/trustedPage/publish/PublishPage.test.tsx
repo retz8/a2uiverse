@@ -123,14 +123,19 @@ beforeEach(() => {
   vi.stubGlobal(
     'fetch',
     vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-      const path = new URL(String(input)).pathname;
+      const url = new URL(String(input));
+      const path = url.pathname;
       const body = init?.body ? (JSON.parse(String(init.body)) as Record<string, unknown>) : {};
       if (path === '/marketplace/publisher.json') {
         fake.reads += 1;
         return json(fake.status);
       }
-      if (path === '/marketplace/index.json')
-        return json(fake.index.map(e => ({entry: e, installed: false})));
+      if (path === '/marketplace/listings.json')
+        return json(
+          fake.index
+            .filter(e => e.publisher === url.searchParams.get('publisher'))
+            .map(e => ({entry: e, installed: false})),
+        );
       if (path.endsWith('/preview.json')) return json({ok: false, reason: 'not-published'}, 404);
       if (path === '/marketplace/claim') {
         fake.claims.push(String(body.publisher));

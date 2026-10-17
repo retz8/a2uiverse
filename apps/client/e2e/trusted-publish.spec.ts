@@ -260,7 +260,7 @@ test('P3 · a name taken, a name not allowed, the wrong secret, the Store unreac
 });
 
 test('P4 · signed in, nothing published yet', async ({page}) => {
-  await answer(page, '**/marketplace/index.json', []);
+  await answer(page, '**/marketplace/listings.json**', []);
   await openPage(page, '/?page=publish');
   await expect(page.getByTestId('publish-bar')).toContainText(
     'Publishing as a2uiverse-apps · 0 apps',
@@ -484,7 +484,7 @@ test('P8 · unpublish and sign out each ask once', async ({page}) => {
   });
   await patchRead<{entry: {appId: string}}[]>(
     page,
-    '**/marketplace/index.json',
+    '**/marketplace/listings.json**',
     () => unpublished.size > 0,
     listings => listings.filter(l => !unpublished.has(l.entry.appId)),
   );

@@ -185,6 +185,7 @@ export function buildOrchestrator({
       registry,
       marketplace,
       updates,
+      resolveCard,
       artifacts: new ArtifactRelay(marketplace),
       publisher,
       guard,

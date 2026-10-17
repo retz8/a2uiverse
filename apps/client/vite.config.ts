@@ -58,7 +58,7 @@ function readWorld(): StoreWorld {
  * The trusted page's reads answered from the fixed world (task-14.10 decision 14), each as the
  * orchestrator answers it: the installed apps and their update states, every app's accounts, the
  * Store's listings — its index, its search, an app's entry and sample — and who is signed in to
- * Publish. Writes are no read: each test answers its own.
+ * Publish with their listings. Writes are no read: each test answers its own.
  */
 function worldRoutes(world: StoreWorld) {
   const reads: Record<string, (url: URL) => {status: number; body: unknown}> = {
@@ -71,6 +71,10 @@ function worldRoutes(world: StoreWorld) {
       body: {results: searchWorld(world, url.searchParams.get('q') ?? '')},
     }),
     '/marketplace/publisher.json': () => ({status: 200, body: world.publisher}),
+    '/marketplace/listings.json': url => ({
+      status: 200,
+      body: world.index.filter(l => l.entry.publisher === url.searchParams.get('publisher')),
+    }),
   };
   const notPublished = (appId: string) => ({
     status: 404,

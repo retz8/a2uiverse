@@ -185,6 +185,19 @@ export function readStoreIndex(base: string): Promise<StoreRead<StoreListing[]>>
   return readStore(new URL('index.json', marketplaceUrl(base)).href);
 }
 
+/**
+ * One publisher's listings, each app's live card read again first, so an app ahead of the Store
+ * says so the first time Publish is opened (task-14.11 decision 38).
+ */
+export function readPublisherListings(
+  base: string,
+  publisher: string,
+): Promise<StoreRead<StoreListing[]>> {
+  const url = new URL('listings.json', marketplaceUrl(base));
+  url.searchParams.set('publisher', publisher);
+  return readStore(url.href);
+}
+
 /** The Store's search over the words: listings in rank order. */
 export async function searchStore(base: string, words: string): Promise<StoreRead<StoreListing[]>> {
   const url = new URL('search', marketplaceUrl(base));
