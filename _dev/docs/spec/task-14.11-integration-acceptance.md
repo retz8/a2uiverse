@@ -282,6 +282,10 @@ Every write the page makes gets 60 s to answer, a publish 190 s: above the orche
 
 What only the lost answer knew stays unsaid: the apps that followed an update, whether an account's access was cancelled at its app. A read-back that cannot reach the orchestrator either answers as not reached. Replaced: a write with no time limit, the page saying "Updating" until reloaded when the tunnel left the request unanswered.
 
+### 41. The Planner writes every update state into its sentence
+
+The Planner's worked example for "Is anything out of date?" shows every update state the reader hands it, an update that asks for more and one on its way from the publisher among them, each written into the answer's sentence: "Gmail has one that asks for more access", "A newer version of CircleCI is on its way from its publisher". Replaced: an example of three states, the Planner pasting a state it had not seen after a colon — "Linear has an update: An update that asks for more."
+
 ## Invariants
 
 - The browser holds no secret.
