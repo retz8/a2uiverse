@@ -236,6 +236,14 @@ While the Store is open, each list it has shown — every app, a search's matche
 
 An app whose name every searched word starts — in any case, "goog" for Google Calendar — is a match, listed first, ahead of decision 27's matches in rank order. The labelled searches gain nine naming an app, and the live test holds both. Replaced: a name found only through the model's score — "google" finding nothing, Google Calendar scoring under three other apps, below the floor.
 
+### 31. The Store's search clears with an icon
+
+The search box clears with an ✕ icon button, inset from the box's edges so its hover never meets them. Replaced: a "Clear" text button whose hover ran to the box's edge.
+
+### 32. An account's buttons keep apart
+
+An account's Permissions, Rename and Sign out each keep their hover apart from the next, 4px between them, with none of a ghost button's negative margin. Replaced: the three overlapping on hover.
+
 ## Invariants
 
 - The browser holds no secret.
