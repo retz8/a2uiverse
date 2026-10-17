@@ -242,7 +242,7 @@ The search box clears with an ✕ icon button, inset from the box's edges so its
 
 ### 32. An account's buttons keep apart
 
-An account's Permissions, Rename and Sign out each keep their hover apart from the next, 4px between them, with none of a ghost button's negative margin. Replaced: the three overlapping on hover.
+An account's Permissions, Rename and Sign out each keep their hover apart from the next, 4px between them, and the rename's Cancel 8px from Save — none with a ghost button's negative margin, each as tall as a button beside it, 24px. Replaced: the three overlapping on hover, and Cancel's hover touching Save.
 
 ## Invariants
 
