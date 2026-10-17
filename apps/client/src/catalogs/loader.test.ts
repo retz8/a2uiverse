@@ -299,6 +299,9 @@ describe('a canvas’s own set (task-14.7 decision 1)', () => {
     const later = loader.forCanvas();
     expect(later.has(DEMO)).toBe(true);
     expect(later.resolved().get(DEMO)).not.toBe(held);
+    // Each carries its build, the root its stylesheets are held to (task-14.11 decision 39).
+    expect(held?.build).toBe('sha256-demo');
+    expect(later.resolved().get(DEMO)?.build).toBe('sha256-newer');
   });
 
   it('a canvas opened before the new build loaded loads it on its first surface', async () => {

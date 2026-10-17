@@ -137,7 +137,7 @@ GitHub's catalog imports React, the A2UI runtime and zod. If its bundle carried 
 interface HostInterface {
   version: string;                             // "0.9.1": the A2UI version it lends
   modules: Record<HostSpecifier, unknown>;     // the client's own module for each specifier lent
-  loadStylesheet(url: string): Promise<void>;  // one <link> per URL, resolved once it has loaded
+  loadStylesheet(url: string): Promise<void>;  // the sheet held to its build's surfaces, resolved once applied
 }
 ```
 
@@ -244,7 +244,7 @@ That's A2UI's own handshake: a client says which catalogs it can render, and the
 
 1. finds no row for GitHub's catalog in the table it read at boot, so it reads the table again, past the browser's cache, and finds it;
 2. reads `artifact.json`, and checks that it's for this catalog and built against an interface version the client lends;
-3. imports `index.js` from its served URL, `…/registry/artifacts/sha256-muNbmR5m…/index.js`. As it evaluates, the entry reads React and the rest from the host interface and starts 77 stylesheet loads at once, each a `<link>` the host appends in import order. The import settles once all 77 have loaded;
+3. imports `index.js` from its served URL, `…/registry/artifacts/sha256-muNbmR5m…/index.js`. As it evaluates, the entry reads React and the rest from the host interface and starts 77 stylesheet loads at once, each a sheet the host adopts in import order, scoped to the surfaces of this build. The import settles once all 77 have loaded;
 4. checks the module: it exports `CATALOG`, a catalog whose id is GitHub's, and its `Provider` is a component;
 5. pushes the catalog into the one array every answer's processor reads, and records its Provider for its surfaces.
 
@@ -302,9 +302,9 @@ await Promise.all(loads.early);
 loads.done = true;
 ```
 
-The entry finishes once the slowest sheet has loaded. A sheet the package imports only later, like the three GitHub's Provider loads lazily (Primer's light and dark tokens and its own scoped sheet), is started there too: Stellify finds each sheet a module imports dynamically and has the entry import it after its own, so it lands in `loads.early` with the rest. The Provider's own import then finds the sheet loaded. The host appends each `<link>` synchronously as it's called, so the cascade follows import order whatever order the sheets arrive in.
+The entry finishes once the slowest sheet has loaded. A sheet the package imports only later, like the three GitHub's Provider loads lazily (Primer's light and dark tokens and its own scoped sheet), is started there too: Stellify finds each sheet a module imports dynamically and has the entry import it after its own, so it lands in `loads.early` with the rest. The Provider's own import then finds the sheet loaded. The host takes each sheet's place synchronously as it's called — an empty adopted sheet, filled when the text arrives — so the cascade follows import order whatever order the sheets arrive in. Each sheet's rules are wrapped, as written, in `@scope ([data-catalog-build="sha256-muNbmR5m…"])`, the mark `SurfaceFrame` puts around each surface of that build, so GitHub's reset (`*{box-sizing:border-box}`) reaches GitHub's surfaces and nothing else, and a newer build's sheets never restyle a canvas still showing the older one. A font face, keyframes and a rule aimed at `body` stay page-wide. The sheet is wrapped as text, not parsed and written back: Chromium writes back a `border` shorthand holding a variable without its width.
 
-**Where each file goes.** The artifact mirrors the package, so a relative `url()` or `@import` inside a copied sheet keeps resolving, and no CSS needs rewriting:
+**Where each file goes.** The artifact mirrors the package, so a relative `url()` inside a copied sheet keeps resolving and Stellify rewrites no CSS; the host makes each relative address whole against the sheet's own URL as it loads it, since a font face in an adopted sheet resolves against the page:
 
 - A file of the package keeps its path from the package root, `dist/primer-scoped.css`, wherever the package sits: in its own checkout, or installed in a `node_modules`.
 - A dependency's file goes under the name its `package.json` gives, `node_modules/@primer/react/dist/…`, never pnpm's real path inside its store.
@@ -550,7 +550,7 @@ Two browser behaviours shape the third column:
 | **One build per catalog id; a new build moves the row and the other apps follow, checked as an additive evolution** | Install is one operation on every path; a shared catalog upgrades in one install, and nothing another app renders in is removed or retyped under it | A hand install can move the build another hand-installed app renders in; the summary names it |
 | **The record keeps where its install came by** | Only an app from the marketplace is ever moved by the index; a pack handed from disk stays where the operator put it | A local-pack app on a shared row holds back the automatic update of the apps sharing it |
 | **Entitlement checked at the hub** | No app paints in another's catalog, whatever the client advertised | One check per relayed event |
-| **The first load of a catalog wins for the session** | Every answer renders a catalog the same way; two versions' stylesheets never meet | An install-over of a catalog shows only after a reload, which loses every answer on the page |
+| **The first build a canvas loads wins for that canvas, each build's stylesheets scoped to its own surfaces** | A canvas on screen keeps its look when an update moves the catalog, and a canvas opened after takes the new build with no reload; no catalog's sheet styles another's | Every artifact sheet is read as text and adopted; a rule a sheet aims at the whole page reaches only its own surfaces; an `@import` inside a sheet is not followed, an adopted sheet having none |
 | **Every request of a load bounded, then asked once more** | A request nothing answers fails its slot, with Retry, rather than leaving it loading for good | A load through a very slow link can fail where waiting longer would have worked |
 | **Retry sends again what failed** | Retry after a failed click shows what the click opened | A slot keeps the failed click until something there completes |
 

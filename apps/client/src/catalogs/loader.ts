@@ -223,6 +223,7 @@ export function createCatalogLoader({
     return resolveCatalog(
       module.CATALOG as Catalog<ReactComponentImplementation>,
       module.Provider as ComponentType<{children: ReactNode}> | undefined,
+      artifactId,
     );
   };
 

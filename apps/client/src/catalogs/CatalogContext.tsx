@@ -10,6 +10,7 @@ import type {SurfaceModel} from '@a2ui/web_core/v0_9';
 import {A2uiSurface} from '@a2ui/react/v0_9';
 import type {ReactComponentImplementation} from '@a2ui/react/v0_9';
 import type {ResolvedCatalog} from './clientCatalogs';
+import {BUILD_ATTRIBUTE} from './host';
 import type {CatalogLoader, HeldCatalogSet} from './loader';
 
 const CatalogContext = createContext<ReadonlyMap<string, ResolvedCatalog>>(new Map());
@@ -55,9 +56,24 @@ export function CanvasCatalogs({held, children}: {held?: HeldCatalogSet; childre
   return held ? <CatalogProvider catalogs={held}>{children}</CatalogProvider> : <>{children}</>;
 }
 
-/** Render a surface inside its catalog's provider; an unresolved catalog renders bare. */
+/** A frame's mark: no box of its own, so the surface lays out as if it were not there. */
+const MARK_STYLE = {display: 'contents'} as const;
+
+/**
+ * Render a surface inside its catalog's provider; an unresolved catalog renders bare. A loaded
+ * build's surface is marked with the build, the root its stylesheets are scoped to (task-14.11
+ * decision 39), so a surface keeps its own build's look beside another build of the same catalog.
+ */
 export function SurfaceFrame({surface}: {surface: SurfaceModel<ReactComponentImplementation>}) {
   const resolved = useContext(CatalogContext).get(surface.catalog.id);
   const content = <A2uiSurface surface={surface} />;
-  return resolved ? <resolved.Provider>{content}</resolved.Provider> : content;
+  if (!resolved) return content;
+  const framed = <resolved.Provider>{content}</resolved.Provider>;
+  return resolved.build ? (
+    <div {...{[BUILD_ATTRIBUTE]: resolved.build}} style={MARK_STYLE}>
+      {framed}
+    </div>
+  ) : (
+    framed
+  );
 }

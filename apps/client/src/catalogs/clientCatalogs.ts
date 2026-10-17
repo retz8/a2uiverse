@@ -20,6 +20,8 @@ export interface ResolvedCatalog {
   catalog: Catalog<ReactComponentImplementation>;
   /** Wraps every surface of this catalog: the vendor design system's own provider + styles. */
   Provider: ComponentType<{children: ReactNode}>;
+  /** The build it was loaded from, its artifact id; none for a catalog the client provides. */
+  build?: string;
 }
 
 /**
@@ -40,8 +42,14 @@ const BARE = Fragment as ComponentType<{children: ReactNode}>;
 export function resolveCatalog(
   catalog: Catalog<ReactComponentImplementation>,
   Provider?: ComponentType<{children: ReactNode}>,
+  build?: string,
 ): ResolvedCatalog {
-  return {id: catalog.id, catalog: decorateCatalog(catalog), Provider: Provider ?? BARE};
+  return {
+    id: catalog.id,
+    catalog: decorateCatalog(catalog),
+    Provider: Provider ?? BARE,
+    ...(build ? {build} : {}),
+  };
 }
 
 /**

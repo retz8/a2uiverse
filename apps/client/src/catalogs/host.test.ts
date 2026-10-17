@@ -2,7 +2,7 @@
  * The host-module interface (phase-11 decision 8) and the web_core behaviour a runtime-loaded
  * catalog relies on (task-11.5 decision 3).
  */
-import {afterEach, describe, expect, it, vi} from 'vitest';
+import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 import * as React from 'react';
 import * as A2uiWebCore from '@a2ui/web_core/v0_9';
 import {Catalog, MessageProcessor} from '@a2ui/web_core/v0_9';
@@ -13,7 +13,16 @@ import {
   HOST_SPECIFIERS,
   type HostInterface,
 } from '@a2uiverse/sdk';
-import {HOST_MODULES, linkStylesheetLoader, registerHost} from './host';
+import {
+  HOST_MODULES,
+  absoluteUrls,
+  buildOfStylesheet,
+  linkStylesheetLoader,
+  registerHost,
+  scopeToBuild,
+  scopedStylesheetLoader,
+  topLevelRules,
+} from './host';
 
 describe('the host-module interface', () => {
   it('is registered under its global with the version the client lends and every specifier', () => {
@@ -93,6 +102,157 @@ describe('a stylesheet that gets no answer (task-11.8 decision 20)', () => {
     await expect(failed).rejects.toThrow('no answer in 10 s, twice');
     expect(linksTo(url)).toHaveLength(0);
     expect(load(url)).not.toBe(failed);
+  });
+});
+
+describe('a build’s stylesheet held to its own surfaces (task-14.11 decision 39)', () => {
+  it('scopes every rule to the build’s frames; what names a thing for the page stays at the top', () => {
+    const rules = [
+      '@font-face { font-family: inter; src: url("fonts/inter.woff2"); }',
+      '@keyframes spin { to { rotate: 1turn; } }',
+      '@layer base, theme;',
+      'body { margin: 0px; }',
+      'body[data-dialog-scroll-disabled] { overflow: hidden !important; }',
+      ':root { --gap: 4px; }',
+      '* { box-sizing: border-box; }',
+      'html, .x { color: red; }',
+      '.a:is(.b, .c) { color: blue; }',
+      '@media (min-width: 480px) { .t { display: grid; } }',
+      '@layer theme { .u { color: green; } }',
+    ];
+    expect(scopeToBuild(rules, 'sha256-abc').split('\n')).toEqual([
+      ...rules.slice(0, 6),
+      '@scope ([data-catalog-build="sha256-abc"]) {',
+      ...rules.slice(6),
+      '}',
+    ]);
+  });
+
+  it('cuts a sheet into its rules as written: comments, strings and addresses stepped over', () => {
+    const sheet = [
+      '@charset "utf-8";',
+      '/* a } in a comment */ .a{content:"}{;";border:var(--w,.0625rem) solid;border-color:red}',
+      '.b{background:url(data:image/svg+xml;utf8,<svg/>)}',
+      "@media (min-width:1px){.c{content:'}'}}",
+      '@layer x,y;',
+    ];
+    expect(topLevelRules(sheet.join(''))).toEqual(sheet);
+    expect(scopeToBuild(topLevelRules(sheet.join('\n')), 'sha256-abc').split('\n')).toEqual([
+      sheet[0],
+      sheet[4],
+      '@scope ([data-catalog-build="sha256-abc"]) {',
+      sheet[1],
+      sheet[2],
+      sheet[3],
+      '}',
+    ]);
+  });
+
+  it('reads the build off the sheet’s address, the registry’s or the marketplace’s', () => {
+    expect(buildOfStylesheet('http://o.test/registry/artifacts/sha256-Ab_c-1/dist/theme.css')).toBe(
+      'sha256-Ab_c-1',
+    );
+    expect(
+      buildOfStylesheet('http://o.test/marketplace/artifacts/sha256-Zz9/node_modules/x/a.css'),
+    ).toBe('sha256-Zz9');
+    expect(buildOfStylesheet('http://o.test/assets/index.css')).toBeUndefined();
+  });
+
+  /** A constructed sheet as the page holds one: the text it was given. */
+  class Sheet {
+    readonly baseURL: string;
+    text = '';
+    constructor(options?: {baseURL?: string}) {
+      this.baseURL = options?.baseURL ?? '';
+    }
+    replaceSync(text: string) {
+      this.text = text;
+    }
+  }
+  const adopted = () => (document as unknown as {adoptedStyleSheets: Sheet[]}).adoptedStyleSheets;
+  const OLD = 'http://o.test/registry/artifacts/sha256-old/dist/theme.css';
+  const NEW = 'http://o.test/registry/artifacts/sha256-new/dist/theme.css';
+
+  beforeEach(() => {
+    vi.stubGlobal('CSSStyleSheet', Sheet);
+    vi.stubGlobal('CSSScopeRule', class {});
+    Object.defineProperty(document, 'adoptedStyleSheets', {
+      value: [],
+      writable: true,
+      configurable: true,
+    });
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    delete (document as unknown as {adoptedStyleSheets?: unknown}).adoptedStyleSheets;
+  });
+
+  it('adopts each build’s sheet scoped, in the order asked, based at its own address', async () => {
+    const texts: Record<string, string> = {
+      [OLD]: '.lc-panel { border: 1px solid grey; }',
+      [NEW]: '.lc-panel { border: 2px solid indigo; }',
+    };
+    const load = scopedStylesheetLoader(document, {read: async url => texts[url]!});
+    const later = load(NEW);
+    await Promise.all([load(OLD), later]);
+    expect(adopted().map(sheet => [sheet.baseURL, sheet.text])).toEqual([
+      [NEW, scopeToBuild([texts[NEW]!], 'sha256-new')],
+      [OLD, scopeToBuild([texts[OLD]!], 'sha256-old')],
+    ]);
+    expect(load(OLD)).toBe(load(OLD));
+  });
+
+  it('makes every relative address whole against the sheet’s own, data and fragments kept', async () => {
+    expect(
+      absoluteUrls(
+        `src: url("./fonts/inter.woff2") url(../img/a.png) url('data:image/png;base64,AA') url(#clip)`,
+        OLD,
+      ),
+    ).toBe(
+      'src: url("http://o.test/registry/artifacts/sha256-old/dist/fonts/inter.woff2") ' +
+        'url(http://o.test/registry/artifacts/sha256-old/img/a.png) ' +
+        `url('data:image/png;base64,AA') url(#clip)`,
+    );
+    const load = scopedStylesheetLoader(document, {
+      read: async () => '@font-face { font-family: x; src: url("fonts/x.woff2"); }',
+    });
+    await load(OLD);
+    expect(adopted()[0]!.text).toContain(
+      'url("http://o.test/registry/artifacts/sha256-old/dist/fonts/x.woff2")',
+    );
+  });
+
+  it('takes a link for a sheet outside an artifact', async () => {
+    const read = vi.fn();
+    const load = scopedStylesheetLoader(document, {read});
+    const url = 'http://hub.test/own.css';
+    const loaded = load(url);
+    const link = document.head.querySelector(`link[href="${url}"]`)!;
+    link.dispatchEvent(new Event('load'));
+    await expect(loaded).resolves.toBeUndefined();
+    expect(read).not.toHaveBeenCalled();
+    expect(adopted()).toEqual([]);
+  });
+
+  it('asks once more under an address of its own when the first read gets no answer', async () => {
+    const read = vi
+      .fn()
+      .mockRejectedValueOnce(new DOMException('timed out', 'TimeoutError'))
+      .mockResolvedValueOnce('.a { color: red; }');
+    await scopedStylesheetLoader(document, {read})(OLD);
+    expect(read.mock.calls.map(([url]) => url)).toEqual([OLD, `${OLD}?attempt=2`]);
+    expect(adopted()[0]!.text).toContain('.a { color: red; }');
+  });
+
+  it('a failed read rejects, its place given back, and the next call tries again', async () => {
+    const read = vi.fn().mockRejectedValue(new Error('HTTP 404'));
+    const load = scopedStylesheetLoader(document, {read});
+    const failed = load(OLD);
+    await expect(failed).rejects.toThrow(`the stylesheet ${OLD} did not load: its request failed`);
+    expect(adopted()).toEqual([]);
+    const again = load(OLD);
+    expect(again).not.toBe(failed);
+    await expect(again).rejects.toThrow('its request failed');
   });
 });
 
