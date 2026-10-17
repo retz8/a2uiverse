@@ -232,6 +232,10 @@ Opening an app's view from its list — the Store's results or apps, the App Lib
 
 While the Store is open, each list it has shown — every app, a search's matches — is held. Shown again — the search cleared, back from an app's view, the same search again — it is not read again until the registry changes (an install, update or uninstall from the Store), or on Try again. Another tab or closing the page lets go of them. Replaced: every list read again each time it was shown, clearing a search reading every app afresh.
 
+### 30. A search naming an app finds it
+
+An app whose name every searched word starts — in any case, "goog" for Google Calendar — is a match, listed first, ahead of decision 27's matches in rank order. The labelled searches gain nine naming an app, and the live test holds both. Replaced: a name found only through the model's score — "google" finding nothing, Google Calendar scoring under three other apps, below the floor.
+
 ## Invariants
 
 - The browser holds no secret.
