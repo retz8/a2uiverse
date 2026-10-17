@@ -52,6 +52,41 @@ export async function fetchJson(url: string, init?: RequestInit): Promise<unknow
 }
 
 /**
+ * A read on the trusted page gets this long to answer, then is asked once more, as the loader's
+ * JSON reads are (task-11.8): the tunnel sometimes leaves a request unanswered for minutes
+ * (task-14.11 decision 26).
+ */
+export const READ_TIMEOUT_MS = 10_000;
+
+/**
+ * A page's read past the browser's cache, bounded: the answer and its body within
+ * `READ_TIMEOUT_MS`, else asked once more; no answer to that either throws, as an orchestrator
+ * that cannot be reached does.
+ */
+async function fetchRead(url: string): Promise<Response> {
+  for (let attempt = 1; ; attempt += 1) {
+    const ask = new AbortController();
+    const timer = setTimeout(() => ask.abort(), READ_TIMEOUT_MS);
+    try {
+      const response = await fetch(url, {cache: 'no-store', signal: ask.signal});
+      const body = await response.text();
+      return new Response(body, {status: response.status, headers: response.headers});
+    } catch (err) {
+      if (attempt === 2 || !ask.signal.aborted) throw err;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+}
+
+/** A page's JSON read, bounded; a refusal throws. */
+async function readJson(url: string): Promise<unknown> {
+  const response = await fetchRead(url);
+  if (!response.ok) throw new Error(`${url} answered ${response.status}`);
+  return response.json();
+}
+
+/**
  * Where a sign-in window opens (task-12.5 decision 5): the orchestrator's start route, naming the
  * attempt the client made, the canvas — its A2A context — and the source, or the bare app id for
  * add-account (task-12.8 decision 5). The App Library's sign-in names no canvas (task-14.3
@@ -126,7 +161,7 @@ const STORE_REASONS = new Set(['unreached', 'not-published', 'malformed']);
 async function readStore<T>(url: string): Promise<StoreRead<T>> {
   let response: Response;
   try {
-    response = await fetch(url, {cache: 'no-store'});
+    response = await fetchRead(url);
   } catch {
     return {ok: false, reason: 'unreached'};
   }
@@ -192,7 +227,7 @@ export async function readInstalledApps(base: string): Promise<InstalledApp[]> {
 /** The installed apps; null when the registry cannot be read. */
 export async function readInstalled(base: string): Promise<InstalledApp[] | null> {
   try {
-    const apps = await fetchJson(new URL('apps.json', registryUrl(base)).href, {cache: 'no-store'});
+    const apps = await readJson(new URL('apps.json', registryUrl(base)).href);
     return Array.isArray(apps) ? (apps as InstalledApp[]) : null;
   } catch {
     return null;
@@ -252,9 +287,7 @@ function authUrl(base: string, path: string): string {
  */
 export async function checkUpdates(base: string): Promise<UpdateState[] | null> {
   try {
-    const states = await fetchJson(new URL('updates.json', registryUrl(base)).href, {
-      cache: 'no-store',
-    });
+    const states = await readJson(new URL('updates.json', registryUrl(base)).href);
     return Array.isArray(states) ? (states as UpdateState[]) : null;
   } catch {
     return null;
@@ -282,7 +315,7 @@ export interface LibraryApp {
 /** Every installed app's accounts; null when the orchestrator could not be asked. */
 export async function readAccounts(base: string): Promise<LibraryApp[] | null> {
   try {
-    const apps = await fetchJson(authUrl(base, 'accounts.json'), {cache: 'no-store'});
+    const apps = await readJson(authUrl(base, 'accounts.json'));
     return Array.isArray(apps) ? (apps as LibraryApp[]) : null;
   } catch {
     return null;
@@ -383,9 +416,9 @@ export type PublisherStatus =
 /** Who is signed in; null when the orchestrator could not be asked. */
 export async function readPublisher(base: string): Promise<PublisherStatus | null> {
   try {
-    const status = (await fetchJson(new URL('publisher.json', marketplaceUrl(base)).href, {
-      cache: 'no-store',
-    })) as {state?: unknown} | null;
+    const status = (await readJson(new URL('publisher.json', marketplaceUrl(base)).href)) as {
+      state?: unknown;
+    } | null;
     return typeof status?.state === 'string' ? (status as PublisherStatus) : null;
   } catch {
     return null;
