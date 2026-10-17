@@ -40,6 +40,8 @@ The host also fills five React contexts the components read:
 | `PressStateContext`      | presses on their way, and whether a press can be made at all           |
 | `SignInContext`          | which sources have a sign-in window open, for the waiting form         |
 
+`SignInWaiting`, the waiting form the tile draws while a sign-in window is open, is exported on its own for a host page that starts a sign-in with no slot: the App Library's add account and sign in again.
+
 ## For the orchestrator
 
 The orchestrator writes shell surfaces without rendering them, so the package also ships:

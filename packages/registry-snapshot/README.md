@@ -18,8 +18,8 @@ To move the snapshot to a newer commit of the apps repo, re-point every dependen
 
 Beside the snapshot ships the world the trusted page reads on the preview server — the Store, the App Library and Publish: the seven apps listed under their publisher with their samples, six installed in six different update states and Linear left to install, Gmail on two accounts, Shop B on a key, the publisher signed in with Shop A's listing ahead of the Store.
 
-- `storeWorld({recordings, table})` builds it from the client's recorded Store captures (`apps/client/recordings/store`) and the snapshot's `catalogs.json`: each card and sample recorded, each build the snapshot's, each state written in `world.js`. It throws when the two have moved apart — record the Store again when the pin moves.
-- `searchWorld(world, words)` is the Store's search over it: the apps naming every word.
+- `storeWorld({recordings, table})` builds it from the client's recorded Store captures (`apps/client/recordings/store`) and the snapshot's `catalogs.json`: each card and sample recorded, each build the snapshot's, each state written in `world.js`. It throws when the two have moved apart — record the Store again (`record:store`, in the client's README) when the pin moves.
+- `searchWorld(world, words)` is the Store's search over it: the apps whose card carries every word of three letters or more.
 
 The client's preview server serves it with the snapshot; each e2e test answers its own writes.
 

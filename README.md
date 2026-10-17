@@ -24,7 +24,7 @@ pnpm install
 pnpm --filter @a2uiverse/client preview:snapshot
 ```
 
-Open **http://localhost:4173/?beat=27** for the session in the GIF above, replayed from a recording with no orchestrator, no apps and no model; the apps' catalogs come from the registry snapshot the command builds. `?beat=trail` replays four questions on two branches, `?beat=26` the way back inside an app.
+Open **http://localhost:4173/?beat=27** for the session in the GIF above, replayed from a recording with no orchestrator, no apps and no model; the apps' catalogs come from the registry snapshot the command builds. `?beat=trail` replays four questions on two branches, `?beat=26` the way back inside an app, and `?page=store` opens the Store over a fixed world of the seven apps.
 
 **For real**, with **Node 22** or newer (Corepack resolves the pinned pnpm), [uv](https://docs.astral.sh/uv/), a [Gemini API key](https://aistudio.google.com/apikey), and [`a2uiverse-apps`](https://github.com/retz8/a2uiverse-apps) checked out beside this repo:
 
@@ -43,7 +43,7 @@ Open **http://localhost:5173** and press `⌘K`. The apps start in `deterministi
 ```bash
 pnpm dev:all          # the apps and the platform, the apps installed
 pnpm dev              # the platform only: client, orchestrator, marketplace
-pnpm dev:agents       # the apps only, installed into the running orchestrator: --tier mocks (or default,mocks), --only <ids>, --mode deterministic|stub|live, --agents-dir <path>, --no-install, --publish, --agent-state <dir>
+pnpm dev:agents       # the apps only, installed into the running orchestrator: --tier mocks (or default,mocks), --only <ids>, --mode deterministic|stub|live, --agents-dir <path>, --no-install, --publish, --agent-state <dir>, --publisher-file <path>
 pnpm agents:list      # what a launch would run, and what would stop it: --tier mocks (or default,mocks), --publish
 pnpm dev:client       # one platform process, in its own terminal
 pnpm dev:orch
@@ -63,7 +63,7 @@ The launcher's roster, `scripts/dev-roster.mjs`, lists every app it starts from 
 
 - **A launch runs one tier, or several** joined by commas. The default tier is the five apps; the two mock stores, for testing the merged view, run in place of them under `--tier mocks`, or beside them under `--tier default,mocks`.
 - **It installs what it runs.** It starts the agents and the platform together, builds each app's catalog package in the checkout, packs it with Stellify and, once the orchestrator answers, installs each app as its agent comes up. Then it uninstalls every roster app it did not launch; an app you installed by hand that the roster doesn't name is left alone. `dev:agents` does the same against an orchestrator you started yourself; `--no-install` starts the agents only, for installing by hand with the orchestrator's `registry` command.
-- **`--publish` takes every app through the marketplace instead**, so each counts as installed from it. It publishes to the marketplace the orchestrator installs from — `MARKETPLACE_URL`, `http://localhost:10002` by default — as the dev publisher `a2uiverse-apps`, claimed on the first launch, its token kept in `scripts/.state/stellify/publisher.json` and never in your own Stellify publisher file; a marketplace whose state was wiped no longer knows the token, and the launcher claims the name again. `STELLIFY_HOME=scripts/.state/stellify` gives Stellify's command line the dev publisher by hand. Each app, once up: an app whose card requires sign-in is previewed first, signed in as the fake account its roster entry names, or with Shop B's demo key; then published; then installed by its id alone. Under `--mode live` the preview comes from a second copy of the agent in deterministic mode on a free port, stopped once it's taken, and the app is published with the live agent's card. When the marketplace never answers, holds the name under a token the launcher no longer has, or the publisher file names another marketplace, nothing is installed and the line says what to do. The launcher never unpublishes; the notices for the dev publisher's apps that are ahead of the Store and weren't published this launch print at the end. Publish with the same `A2UIVERSE_PUBLIC_URL` every time against one marketplace state: an app's card carries its addresses, and the marketplace refuses a changed card at a version it has already published — switching means wiping the marketplace's state, or moving the `version` in the agent's `app/config.py`. `--publish` is refused beside `--no-install`; with it, `agents:list` also names the marketplace, the publisher file's state and each preview's account.
+- **`--publish` takes every app through the marketplace instead**, so each counts as installed from it. It publishes to the marketplace the orchestrator installs from — `MARKETPLACE_URL`, `http://localhost:10002` by default — as the dev publisher `a2uiverse-apps`, claimed on the first launch, its token kept in `scripts/.state/stellify/publisher.json`, or the file `--publisher-file <path>` names, and never in your own Stellify publisher file; a marketplace whose state was wiped no longer knows the token, and the launcher claims the name again. `STELLIFY_HOME=scripts/.state/stellify` gives Stellify's command line the dev publisher by hand. Each app, once up: an app whose card requires sign-in is previewed first, signed in as the fake account its roster entry names, or with Shop B's demo key; then published; then installed by its id alone. Under `--mode live` the preview comes from a second copy of the agent in deterministic mode on a free port, stopped once it's taken, and the app is published with the live agent's card. When the marketplace never answers, holds the name under a token the launcher no longer has, or the publisher file names another marketplace, nothing is installed and the line says what to do. The launcher never unpublishes; the notices for the dev publisher's apps that are ahead of the Store and weren't published this launch print at the end. Publish with the same `A2UIVERSE_PUBLIC_URL` every time against one marketplace state: an app's card carries its addresses, and the marketplace refuses a changed card at a version it has already published — switching means wiping the marketplace's state, or moving the `version` in the agent's `app/config.py`. `--publish` is refused beside `--no-install`; with it, `agents:list` also names the marketplace, the publisher file's state and each preview's account.
 - **Agents' addresses and state.** Each agent starts with `--host localhost` and its roster port. `A2UIVERSE_PUBLIC_URL`, a pattern with a `{port}` slot such as `https://<tunnel-id>-{port}.asse.devtunnels.ms`, gives each agent as `--public-url` the address the browser reaches its sign-in pages at; `--agent-state <dir>` keeps each agent's sign-in store in `<dir>/<app id>` instead of its own `.state/`. The launcher hands no credential to an agent — each reads its own `agent/.env` — and under `--publish` holds only the dev publisher's token and each preview's credential, for that one preview.
 - **Failures are named, never papered over.** An app that doesn't build, pack or come up, or is refused at preview, publish or install, is named with its reason and left out, uninstalled if an earlier launch installed it; the rest run. A roster app missing from the checkout is skipped. An unknown tier, an unknown `--only` id, or two apps of a tier on one port stop the launch. Stopping the launcher uninstalls nothing: the next launch sets the registry right.
 
@@ -120,7 +120,9 @@ The full design, from its axioms to its milestones, is in **[SPEC.md](SPEC.md)**
 
 **Any A2UI agent can join.** **App = MCP server + Agentic BFF + A2UI catalog.** Five apps — GitHub, Gmail, Google Calendar, CircleCI and Linear — live in [`a2uiverse-apps`](https://github.com/retz8/a2uiverse-apps), with a kit to build agents on and a scaffolder for new apps. On the way to the screen an app's A2UI is changed only where two apps could collide, so an A2UI agent takes part with no changes to its code. An app is installed from its agent card and its catalog, packed by Stellify; the client loads the catalog when it's first needed, and nothing in A2UIVerse's code names an app. Sign-in is read from the card too: A2UIVerse signs in to an app by the scheme its card declares, as any OAuth client would.
 
-**Published once, installed by name.** A vendor claims a publisher name, packs their catalog and publishes from its own checkout; the marketplace fetches the agent's card, checks the catalog as install would, asks the agent its first screen, and lists the app. Any A2UIVerse then installs it by its id alone, and tells when a newer version is waiting — a fixed build of a catalog installs itself; a new catalog, a changed card or a retired one waits for the person. [More in the marketplace design record](docs/design/marketplace.md).
+**A Store, an App Library and Publish.** Apps, under Back and Trail, opens one page over the canvas, leaving the canvas as it was: the Store, to search the marketplace, see an app's sample answer drawn live in its own look and install it; the App Library, for each installed app's updates in plain words, its accounts — permissions, rename, sign out, add account — and uninstall; and Publish, for a publisher who uses A2UIVerse too. Asking opens them as well, from a button in the answer. [More in the trusted page design record](docs/design/trusted-page.md).
+
+**Published once, installed by name.** A vendor claims a publisher name, packs their catalog and publishes from its own checkout, or from Publish; the marketplace fetches the agent's card, checks the catalog as install would, asks the agent its first screen, and lists the app. Any A2UIVerse then installs it by its id alone, and tells when a newer version is waiting — a fixed build of a catalog installs itself; a new catalog, a changed card or a retired one waits for the person. [More in the marketplace design record](docs/design/marketplace.md).
 
 ## How it works
 
@@ -131,7 +133,7 @@ flowchart LR
     O <-->|A2A| G["GitHub agent"]
     O <-->|A2A| CI["CircleCI agent"]
     O -.->|model calls| M["Gemini<br/>Planner and Synthesizer"]
-    O -.->|install by id,<br/>the update check| MK["Marketplace"]
+    O -.->|install by id, the update check,<br/>the Store and Publish relayed| MK["Marketplace"]
 ```
 
 The client talks only to the orchestrator, and the orchestrator to the apps. One question goes like this:
@@ -144,26 +146,26 @@ The client talks only to the orchestrator, and the orchestrator to the apps. One
 
 Before an app is asked, the orchestrator's **AuthVault** checks the app's card against the accounts it holds, and the request carries the account's credential as an HTTP header. An app you aren't signed in to isn't asked: its slot takes the sign-in tile, and signing in sends the request then.
 
-| Part                                                        | What it is                                                                                                                                             |
-| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| [`apps/client`](apps/client/)                               | The canvas: the palette, the composed screen, the merged view, the trail. Vite and React                                                               |
-| [`apps/orchestrator`](apps/orchestrator/)                   | The hub: an A2A agent server that picks the apps, plans the screen, relays the answers and writes the merge, and keeps the apps' sign-ins in its vault |
-| [`apps/marketplace`](apps/marketplace/)                     | Where apps are published and found: the index of published apps with its search, their catalogs hosted, and the publish step with its smoke test       |
-| [`packages/sdk`](packages/sdk/)                             | The contracts the parts agree on — the composition, the catalog artifact, the marketplace — and generic A2UI tools                                     |
-| [`packages/shell-catalog`](packages/shell-catalog/)         | The shell's own A2UI catalog: the basic catalog on Radix Themes, plus the components that compose a screen                                             |
-| [`packages/stellify`](packages/stellify/)                   | Stellify, the pack and publish tool: turns a catalog package into the catalog artifact the registry installs, and takes an app to the marketplace      |
-| [`packages/embedder`](packages/embedder/)                   | The one embedding model the Router and the marketplace rank with                                                                                       |
-| [`packages/registry-snapshot`](packages/registry-snapshot/) | The catalog table and the seven catalog packages, packed, at one pinned commit, for the tests and replays                                              |
-| [`a2uiverse-apps`](https://github.com/retz8/a2uiverse-apps) | The apps, their agent kit and the scaffolder, in their own repo                                                                                        |
+| Part                                                        | What it is                                                                                                                                                                                                 |
+| ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`apps/client`](apps/client/)                               | The canvas: the palette, the composed screen, the merged view, the trail; and the page over it: the Store, the App Library, Publish. Vite and React                                                        |
+| [`apps/orchestrator`](apps/orchestrator/)                   | The hub: an A2A agent server that picks the apps, plans the screen, relays the answers and writes the merge, and keeps the apps' sign-ins in its vault; it relays the Store and Publish to the marketplace |
+| [`apps/marketplace`](apps/marketplace/)                     | Where apps are published and found: the index of published apps with its search, their catalogs hosted, and the publish step with its smoke test                                                           |
+| [`packages/sdk`](packages/sdk/)                             | The contracts the parts agree on — the composition, the catalog artifact, the marketplace — and generic A2UI tools                                                                                         |
+| [`packages/shell-catalog`](packages/shell-catalog/)         | The shell's own A2UI catalog: the basic catalog on Radix Themes, plus the components that compose a screen                                                                                                 |
+| [`packages/stellify`](packages/stellify/)                   | Stellify, the pack and publish tool: turns a catalog package into the catalog artifact the registry installs, and takes an app to the marketplace                                                          |
+| [`packages/embedder`](packages/embedder/)                   | The one embedding model the Router and the marketplace rank with                                                                                                                                           |
+| [`packages/registry-snapshot`](packages/registry-snapshot/) | The catalog table and the seven catalog packages, packed, at one pinned commit, for the tests and replays                                                                                                  |
+| [`a2uiverse-apps`](https://github.com/retz8/a2uiverse-apps) | The apps, their agent kit and the scaffolder, in their own repo                                                                                                                                            |
 
-Going deeper: **[SPEC.md](SPEC.md)** is the full design, and [`docs/design/`](docs/design/) has a guide to each part — the [synthesis](docs/design/synthesis.md) behind the merged view, the [client](docs/design/client.md), the [orchestrator](docs/design/orchestrator.md), the [shell catalog](docs/design/shell-catalog.md), the [agent kit](docs/design/agent-kit.md), [app install](docs/design/app-install.md), the [marketplace](docs/design/marketplace.md), and [authority](docs/design/authority.md): sign-in, accounts and the credential bar.
+Going deeper: **[SPEC.md](SPEC.md)** is the full design, and [`docs/design/`](docs/design/) has a guide to each part — the [synthesis](docs/design/synthesis.md) behind the merged view, the [client](docs/design/client.md), the [orchestrator](docs/design/orchestrator.md), the [shell catalog](docs/design/shell-catalog.md), the [agent kit](docs/design/agent-kit.md), [app install](docs/design/app-install.md), the [marketplace](docs/design/marketplace.md), [authority](docs/design/authority.md): sign-in, accounts and the credential bar, and the [trusted page](docs/design/trusted-page.md): the Store, the App Library and Publish.
 
 <details>
 <summary><b>Repository layout</b></summary>
 
 ```
 apps/
-  client/          the canvas (Vite + React)
+  client/          the canvas and the page over it (Vite + React)
   orchestrator/    the A2A agent server: routing, planning, composition, the registry, the vault
   marketplace/     where apps are published and found: the index, the hosted catalogs, the publish step
 packages/
@@ -184,9 +186,8 @@ A pnpm workspace with Turborepo over it. Each package's README has its own comma
 
 ## Where it's headed
 
-What's built so far is the composed screen; installing an app from its card and its packed catalog, or from the marketplace by its id alone; signing in to apps, with several accounts each; the marketplace an app is published to — its index with search, its hosted catalogs, the publish step that tries a new app by asking it to paint its first screen — and the orchestrator telling when a published update is waiting. Next comes the rest of the ecosystem around it:
+What's built so far is the composed screen; installing an app from its card and its packed catalog, or from the marketplace by its id alone; signing in to apps, with several accounts each; the marketplace an app is published to — its index with search, its hosted catalogs, the publish step that tries a new app by asking it to paint its first screen — and the orchestrator telling when a published update is waiting; and the one page over the canvas — the Store, the App Library and Publish. Next comes the rest of the ecosystem around it:
 
-- **Store and App Library pages**: trusted pages to browse and install apps, and to manage installed ones, their updates and their accounts.
 - **Installing mid-question**: a question no installed app can answer finds one in the marketplace, installs it, and carries on.
 - **One sitting, end to end**: publish a new app, discover it, install it, compose it with an existing one, and act inside it, with no code changes.
 

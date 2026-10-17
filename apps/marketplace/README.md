@@ -1,8 +1,8 @@
 # @a2uiverse/marketplace
 
-Where A2UIVerse apps are published and found. The marketplace keeps the index of every published app's agent card, with the card's skills embedded so words can find an app the person hasn't installed yet; hosts each app's catalog artifacts in the same static layout the orchestrator's registry serves, so an install fetches only the files it lacks; and runs the publish step, which tries a new app by asking it to paint its first screen before it is listed. The Store page in the client will browse it; the orchestrator installs from it by app id alone.
+Where A2UIVerse apps are published and found. The marketplace keeps the index of every published app's agent card, with the card's skills embedded so words can find an app the person hasn't installed yet; hosts each app's catalog artifacts in the same static layout the orchestrator's registry serves, so an install fetches only the files it lacks; and runs the publish step, which tries a new app by asking it to paint its first screen before it is listed. The client's Store browses it through the orchestrator, which installs from it by app id alone.
 
-A **publisher** is a name plus a secret: claimed once, the token kept in the publisher's own home directory by Stellify, never in a checkout. An app id and a catalog id belong to the publisher who first published them, and only that token may publish over them — unpublishing the app does not release them. Who a publisher is is not verified.
+A **publisher** is a name plus a secret: claimed once, the token kept by Stellify in the publisher's own home directory, or by the orchestrator for Publish on the client's trusted page — never in a checkout. An app id and a catalog id belong to the publisher who first published them, and only that token may publish over them — unpublishing the app does not release them. Who a publisher is is not verified.
 
 Everything runs locally. Port **10002**.
 
@@ -12,6 +12,7 @@ Everything runs locally. Port **10002**.
 pnpm dev:marketplace                                            # from the repo root
 pnpm --filter @a2uiverse/marketplace build | typecheck | test | lint
 pnpm --filter @a2uiverse/marketplace marketplace search <words...>   # the search route, by hand
+A2UIVERSE_EMBEDDER_LIVE=1 pnpm --filter @a2uiverse/marketplace test search.live   # the search's cut, against the real model
 ```
 
 ## Configuration
@@ -30,18 +31,18 @@ pnpm --filter @a2uiverse/marketplace marketplace search <words...>   # the searc
 
 At the root of the port, no prefix. The reads take no token and are shaped like static files, so a directory of the same layout — `STATE_DIR/public/` — answers them with no marketplace running.
 
-| Route                           | Method | Token  | Answers                                                                                                                                                                                                                                       |
-| ------------------------------- | ------ | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `index.json`                    | GET    | —      | Every entry, as a list; `no-cache`                                                                                                                                                                                                            |
-| `apps/<appId>/entry.json`       | GET    | —      | One entry: the card as published, each catalog id at its build, every version published, the lines retired, the ahead-of-the-Store flag; `404` when not published                                                                             |
-| `apps/<appId>/preview.json`     | GET    | —      | The app's preview: the smoke test's paint as A2UI messages, with the words it was asked; `404` when not published                                                                                                                             |
-| `artifacts/<artifactId>/<path>` | GET    | —      | An artifact's files, exactly as the registry serves them; immutable                                                                                                                                                                           |
-| `search?q=<words>`              | GET    | —      | `{results: [{entry, score}]}` in rank order, every entry with its score; `400` with no words                                                                                                                                                  |
-| `claim`                         | POST   | —      | `{publisher}` in; `201` with `{publisher, token}` once; `409` for a taken name; `422` for one the grammar refuses                                                                                                                             |
-| `publisher`                     | GET    | bearer | `{publisher}`: whose the token is; `401` for one no publisher holds                                                                                                                                                                           |
-| `publish`                       | POST   | bearer | The registry's install body with a captured preview beside it — `{appId, cardUrl, catalogs: [{files}], preview?}`; `200` with `{ok, appId, version, summary, notes}`; `401`, `403` for another publisher's names, `422` listing every finding |
-| `unpublish`                     | POST   | bearer | `{appId}`; `200` with `{ok, appId}`; `401`, `403` for another's app, `404` when not published                                                                                                                                                 |
-| `report`                        | POST   | —      | `{appId}`, a nudge that the app may be ahead of the Store; `202` at once, the live card refetched after                                                                                                                                       |
+| Route                           | Method | Token  | Answers                                                                                                                                                                                                                                                          |
+| ------------------------------- | ------ | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `index.json`                    | GET    | —      | Every entry, as a list; `no-cache`                                                                                                                                                                                                                               |
+| `apps/<appId>/entry.json`       | GET    | —      | One entry: the card as published, each catalog id at its build, every version published, the lines retired, the ahead-of-the-Store flag; `404` when not published                                                                                                |
+| `apps/<appId>/preview.json`     | GET    | —      | The app's preview: the smoke test's paint as A2UI messages, with the words it was asked; `404` when not published                                                                                                                                                |
+| `artifacts/<artifactId>/<path>` | GET    | —      | An artifact's files, exactly as the registry serves them; immutable                                                                                                                                                                                              |
+| `search?q=<words>`              | GET    | —      | `{results: [{entry, score}]}`: first the apps whose name has a word starting with each word searched (`goog` finds Google Calendar), then those scoring at least 0.15 and within 0.095 of the best, in rank order; none when no app matches; `400` with no words |
+| `claim`                         | POST   | —      | `{publisher}` in; `201` with `{publisher, token}` once; `409` for a taken name; `422` for one the grammar refuses                                                                                                                                                |
+| `publisher`                     | GET    | bearer | `{publisher}`: whose the token is; `401` for one no publisher holds                                                                                                                                                                                              |
+| `publish`                       | POST   | bearer | The registry's install body with a captured preview beside it — `{appId, cardUrl, catalogs: [{files}], preview?}`; `200` with `{ok, appId, version, summary, notes}`; `401`, `403` for another publisher's names, `422` listing every finding                    |
+| `unpublish`                     | POST   | bearer | `{appId}`; `200` with `{ok, appId}`; `401`, `403` for another's app, `404` when not published                                                                                                                                                                    |
+| `report`                        | POST   | —      | `{appId}`, a nudge that the app may be ahead of the Store; `202` at once, the live card refetched after                                                                                                                                                          |
 
 Every refusal body is `{ok: false, findings: [...]}`. The shapes, the readers and the route constants are the sdk's (`@a2uiverse/sdk`, `marketplace.ts`).
 
@@ -77,7 +78,7 @@ On success the artifacts are written, the row for each handed id moves to the ne
 
 ## Ahead of the Store
 
-The live card is the only copy of the card that says what the agent does now. At boot, after the routes are up, every published app's card is refetched; a report from a registry is the same check on request, one fetch in flight per app id. A live card naming a catalog id the index has no artifact for, or carrying a version the index does not know, sets the entry's `aheadOfStore` — the ids, the version, when seen; a card back in line clears it; a card that cannot be fetched, or whose declaration is malformed, leaves the flag as it was. Each setting and each clearing is one line in the log: `shop-a is ahead of the Store: catalogs … and version 0.2.0`, `shop-a is no longer ahead of the Store: its live card is covered`. The listing waits for the publisher, who is told at their next Stellify contact.
+The live card is the only copy of the card that says what the agent does now. At boot, after the routes are up, every published app's card is refetched; a report — from a registry's update check, or from an orchestrator reading a publisher's listings for Publish — is the same check on request, one fetch in flight per app id. A live card naming a catalog id the index has no artifact for, or carrying a version the index does not know, sets the entry's `aheadOfStore` — the ids, the version, when seen; a card back in line clears it; a card that cannot be fetched, or whose declaration is malformed, leaves the flag as it was. Each setting and each clearing is one line in the log: `shop-a is ahead of the Store: catalogs … and version 0.2.0`, `shop-a is no longer ahead of the Store: its live card is covered`. The listing waits for the publisher, who is told at their next Stellify contact, or on Publish.
 
 ## Trying it by hand
 
@@ -100,5 +101,6 @@ The tests stand up a scripted A2A agent in-process and drive every route and eve
 ## Further reading
 
 - [`docs/design/marketplace.md`](../../docs/design/marketplace.md) — the design record over one running example, publish to install.
+- [`docs/design/trusted-page.md`](../../docs/design/trusted-page.md) — the Store and Publish, the client's side of the marketplace.
 - [`docs/design/app-install.md`](../../docs/design/app-install.md) — the registry's install, whose gate and static layout this process shares.
 - [`packages/sdk/README.md`](../../packages/sdk/README.md) — the contracts: the entry, the preview, the bodies, the checks both sides run.

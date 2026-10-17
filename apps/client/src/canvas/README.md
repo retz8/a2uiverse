@@ -9,11 +9,12 @@ The canvas's code. What the canvas does for the user is in the [client README](.
 - **Only `kind: "question"` in a paint's `paintMeta` marks a paint that asks the reader something**, and it's said only on the progress line: the paint lands in its slot or on the stage like any other. Nothing is inferred from a surface's shape.
 - **Every sign-in window is opened by `signIn.ts`**, synchronously inside the click, with `noopener,noreferrer` and only to https, localhost exempt. The window hands nothing back: the outcome is learned by polling the attempt over `orchestratorApi`.
 - **An app's history is counted at the wire.** Every `createSurface` from an app is a step the moment it arrives, before anything is drawn, so the step the client reports is the one the orchestrator counted.
+- **The trusted page is an overlay, never a route.** The canvas stays mounted beneath it. Where it stands lives in the trail store and in the address (`trustedPage/address.ts`), and only `trustedPage/history.ts` moves the browser's history for it. Every read and write it makes goes through `orchestratorApi`, bounded there; a sample's builds load through the catalog loader.
 
 ## Module map
 
 ```
-CanvasApp.tsx           the page: palette, ?beat= replay, the trail chrome
+CanvasApp.tsx           the page: palette, ?beat= replay, the trail chrome, the trusted page over the canvas
 createCanvasWiring.ts   the page's runtime, built once: the trail, the answers, asking, viewing, closing
 canvasRuntime.ts        one answer: its A2A session, store, processor, turn runner, merged view, close
 canvasStore.ts          one answer's state: the stage, the question, the composition's facts, the slots
@@ -24,12 +25,14 @@ turnProgress.ts         what the progress line says
 replayBeat.ts           drives a beat through the turn runner
 replayTransport.ts      answers a replayed beat's presses from the beat
 turn/                   the turn runner, a paint's cause, message inspection
-trail/                  the trail's store, and the branch lines the drawer draws
+trail/                  the trail's store, the trusted page's place in it, and the branch lines the drawer draws
 history/                each app's paint stack, and a paint's copy
 synthesis/              the merged view: its session, the binding evaluator, the payload check
 navigation/             from a merged cell to the element it came from
 composition/            what a slot renders, the fragment boundary, the roster, reserved columns,
                         the CSS collision rules
 components/             the view, stage, palette, header, progress line, notices, the trusted
-                        page's placeholder, trail chrome and preview
+                        page's overlay, trail chrome and preview
+trustedPage/            the trusted page: its address and history, the consent card, the install
+                        and update; store/, library/ and publish/, one folder per destination
 ```

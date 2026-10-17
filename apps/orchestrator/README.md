@@ -1,6 +1,6 @@
 # @a2uiverse/orchestrator
 
-The hub: an A2A agent server, and the only server the client talks to. It finds the apps that can answer a question, plans where their answers will sit, asks them in parallel, and relays what comes back as one composed screen; when the answers can be merged, a second model call writes the merged view. It keeps the registry of installed apps, their sign-ins and the journal.
+The hub: an A2A agent server, and the only server the client talks to. It finds the apps that can answer a question, plans where their answers will sit, asks them in parallel, and relays what comes back as one composed screen; when the answers can be merged, a second model call writes the merged view. It keeps the registry of installed apps, their sign-ins and the journal, and relays the client's Store and Publish to the marketplace, holding the publisher's secret.
 
 <p align="center">
   <img src="../../docs/images/composed-join.png" width="640" alt="One question answered by Linear, GitHub and CircleCI on one screen">
@@ -76,14 +76,14 @@ The registry's, under `/registry`:
 
 | Route                       | What it is                                                                                                                    |
 | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `GET apps.json`             | The installed apps, as the registry stores them                                                                               |
+| `GET apps.json`             | The installed apps, as the registry stores them, each saying whether this run reached its card                                |
 | `GET catalogs.json`         | The catalog table: the client's own catalogs, then each installed artifact by its id                                          |
 | `GET artifacts/<id>/<path>` | An artifact's files, served as immutable content                                                                              |
 | `GET updates.json`          | Runs the update check — the newer builds of marketplace apps installing themselves on the way — and answers one state per app |
 | `POST install`              | `{appId, cardUrl, catalogs: [{files: {<path>: <base64>}}]}`, or `{appId}` alone for the marketplace                           |
 | `POST uninstall`            | `{appId}`; answers what became of each account's access                                                                       |
 
-Every write is JSON. It needs no token from the browser at an allowed origin — localhost on any port, or the orchestrator's own dev tunnel on any port, the same list CORS admits — and takes the write token from anywhere else: the launcher and the registry command.
+Every write is JSON. It needs no token from the browser at an allowed origin — localhost or 127.0.0.1 on any port, or the orchestrator's own dev tunnel on any port, the same list CORS admits — and takes the write token from anywhere else: the launcher and the registry command.
 
 The sign-in's, under `/auth`, which the browser reaches with no write token. Each attempt is bound to the browser that started it by a cookie, beside `state`, PKCE and the `nonce`, and the token page's form is taken only from the orchestrator's own origins, its public one and `http://localhost:<PORT>`:
 
@@ -91,7 +91,7 @@ The sign-in's, under `/auth`, which the browser reaches with no write token. Eac
 | --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
 | `GET client.json`                 | The vault's client ID metadata document                                                                                                  |
 | `GET start?attempt&canvas&source` | Opened in the sign-in window: redirects to the authorization server, or to the token page; the bare app id as the source adds an account |
-| `GET key?attempt`, `POST key`     | The token page, where a key or token is pasted, and its form                                                                             |
+| `GET key?attempt`, `POST key`     | The token page, where a key or token is pasted with an optional name for a new account, and its form                                     |
 | `GET callback`                    | The authorization server's return                                                                                                        |
 | `GET attempts/<id>`               | The attempt's outcome, which the client polls                                                                                            |
 | `GET accounts.json`               | Every installed app's accounts: label, permissions in the card's words, whether it must sign in again                                    |
@@ -102,19 +102,19 @@ With no `canvas`, `start` is the App Library's: add an account, or sign in again
 
 The marketplace's, under `/marketplace`: the Store's reads and the publisher's calls, relayed so the browser knows one address.
 
-| Route                                | What it is                                                                                                                      |
-| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
-| `GET index.json`                     | Every published app: `[{entry, installed, update?}]`, `update` the state as last computed                                       |
-| `GET search?q=<words>`               | `{results: [{entry, score, installed, update?}]}` in rank order                                                                 |
-| `GET apps/<appId>/entry.json`        | One app, annotated the same way                                                                                                 |
-| `GET apps/<appId>/preview.json`      | Its captured preview                                                                                                            |
-| `GET artifacts/<id>/<path>`          | A preview's artifact files: from the registry when it holds them, else from the marketplace, checked against their hashes first |
-| `GET publisher.json`                 | Who is signed in to Publish, and whether the marketplace still takes the token                                                  |
-| `GET listings.json?publisher=<name>` | That publisher's apps, annotated the same way, each one's live card read first so an app ahead of the Store says so at once     |
-| `POST claim`                         | `{publisher}`; the token shown once and kept                                                                                    |
-| `POST sign-in`                       | `{publisher, token}`, checked at the marketplace before it is kept                                                              |
-| `POST sign-out`                      | Forgets the publisher here; the token stays the marketplace's                                                                   |
-| `POST publish`, `POST unpublish`     | Stellify's bodies, relayed with the held token; the marketplace's answer as it came                                             |
+| Route                                | What it is                                                                                                                             |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET index.json`                     | Every published app: `[{entry, installed, update?}]`, `update` the state as last computed                                              |
+| `GET search?q=<words>`               | `{results: [{entry, score, installed, update?}]}`: the marketplace's matches, in its order                                             |
+| `GET apps/<appId>/entry.json`        | One app, annotated the same way                                                                                                        |
+| `GET apps/<appId>/preview.json`      | Its captured preview                                                                                                                   |
+| `GET artifacts/<id>/<path>`          | A preview's artifact files: from the registry when it holds them, else from the marketplace, checked against their hashes first        |
+| `GET publisher.json`                 | Who is signed in to Publish, and whether the marketplace still takes the token                                                         |
+| `GET listings.json?publisher=<name>` | That publisher's apps, annotated the same way, each one's live card read first, 5 s each, so an app ahead of the Store says so at once |
+| `POST claim`                         | `{publisher}`; the token shown once and kept                                                                                           |
+| `POST sign-in`                       | `{publisher, token}`, checked at the marketplace before it is kept                                                                     |
+| `POST sign-out`                      | Forgets the publisher here; the token stays the marketplace's                                                                          |
+| `POST publish`, `POST unpublish`     | Stellify's bodies, relayed with the held token; the marketplace's answer as it came                                                    |
 
 A read the marketplace can't answer says why: `503` unreached, `404` not published, `502` an answer that doesn't read. The writes pass the same guard as the registry's. One publisher at a time: a claim or a sign-in waits for sign-out.
 
@@ -135,7 +135,7 @@ A read the marketplace can't answer says why: `503` unreached, `404` not publish
 | `A2UIVERSE_HARD_CAP_SECONDS`            | `300`                                         | How long before an app's slot fails                                                                                                                                                     |
 | `A2UIVERSE_HEARTBEAT_SECONDS`           | `30`                                          | How often a quiet stream sends an empty event, so a proxy's idle timeout never cuts it                                                                                                  |
 | `MARKETPLACE_URL`                       | `http://localhost:10002`                      | The marketplace installs by id resolve through, the update check reads and reports to. Unreached: one boot line, every state unknown                                                    |
-| `A2UIVERSE_MARKETPLACE_TIMEOUT_SECONDS` | `10`                                          | How long each request to the marketplace gets                                                                                                                                           |
+| `A2UIVERSE_MARKETPLACE_TIMEOUT_SECONDS` | `10`                                          | How long each request to the marketplace gets; a relayed publish gets 180                                                                                                               |
 | `A2UIVERSE_DEBUG_IDS`                   | off                                           | `1` adds each app's own task and context ids to what it relays                                                                                                                          |
 | `A2UIVERSE_FAULTS`                      | none                                          | Dev only: JSON making a source's answers slow, hang, break, refused, failed, invalid or carry a credential field, to test failures; a bare app id hits every account of the app         |
 
@@ -190,7 +190,7 @@ The orchestrator runs each fact against the apps' data before accepting the row;
 
 ### Answers about itself
 
-A question about A2UIVerse itself — which apps you have, what the screen can do — is answered by the Planner in the layout, with no app asked. It reads the platform's state through a small fixed set of readers, never an app's data: the installed apps list each app's accounts by label, never a credential. A need no installed app can meet gets a slot of its own: a tile that searches the Store for it.
+A question about A2UIVerse itself — which apps you have, what the screen can do — is answered by the Planner in the layout, with no app asked. It reads the platform's state through a small fixed set of readers, never an app's data: the installed apps list each app's accounts by label, never a credential, and its update state as last computed, in the App Library's words with how long ago — never a check run inside a plan. An answer can carry a button that opens the Store, the App Library on an app, or Publish. A need no installed app can meet gets a slot of its own: a tile that searches the Store for it.
 
 ### Signs in to apps
 
@@ -198,10 +198,10 @@ The **AuthVault** holds the apps' sign-ins, one entry per app and account, in an
 
 - **The card is checked before every dispatch.** When no alternative of its `security` can be met from the vault, the slot takes the authority tile and the app isn't asked. The full tile shows once per app per page load; after that the app's slots are one quiet line.
 - **Sign-in runs in a window the client opens** on the `/auth` routes. For OAuth or OpenID Connect the vault is a generic OAuth client — authorization code with PKCE at the server the card names, registering itself by its client ID metadata document where the server takes one, otherwise by dynamic registration. An `http` bearer or `apiKey` scheme is pasted on a token page the orchestrator serves, with the scheme's `description` and the card's `documentationUrl`. Any other scheme fills the slot with "not supported here" and Manage apps; the app stays installed. The client polls the attempt and, once signed in, sends a Retry for the slot whose Sign in was pressed.
-- **Accounts.** An account's label comes from the ID token's display claims and its `sub` keeps one account signed in twice as one entry; without them it's the app's name and a number, "Gmail account 2". A source is the app id and the number, `gmail.2`. The add-account tile, placed when you ask to add an account, starts a sign-in for the next one.
+- **Accounts.** An account's label comes from the ID token's display claims and its `sub` keeps one account signed in twice as one entry; without them it's the app's name and a number, "Gmail account 2". A key account takes the name typed on the token page, else the app's name, "Shop B", else that with the day it was connected, "Shop B · connected Oct 17". A source is the app id and the number, `gmail.2`. The add-account tile, placed when you ask to add an account, starts a sign-in for the next one.
 - **Expiry is silent.** A token within a minute of expiry is refreshed before the dispatch, and once after a 401 the vault didn't predict; only a failed refresh asks to sign in again.
 - **More access mid-task.** An app ending its task in `auth-required`, naming a scheme on its card and the missing scopes by their keys there, puts a request on its name row — before it has painted, its slot takes the tile asking for more access. Allow opens the sign-in for the missing scopes and sends again the press that needed them; Not now drops that press and later presses in the same fragment. A key the installed card doesn't declare makes the request invalid.
-- **Uninstall** deletes the app's accounts and revokes their tokens where the server advertises revocation, best-effort. Installing over keeps them.
+- **Sign-out and uninstall.** Signing an account out from the App Library drops it and revokes its tokens where the server advertises revocation, best-effort, answering what became of its access; uninstall does the same for every account of the app. Installing over keeps them.
 
 **The credential bar.** No paint with a credential input reaches the screen: a paint whose components name a password, one-time code, PIN or card number — by their names or the option values their catalog declares — is refused whole, and what it had shown is taken down. The app is sent the reason once; if it doesn't repair, its slot fails with no Retry and a "Continue on" link to the card's `provider.url` or `documentationUrl`.
 
@@ -218,20 +218,20 @@ Every app's UI passes through the orchestrator on its way to the screen, and eve
 <details>
 <summary><b>Modules</b></summary>
 
-| Module        | Where                 | What it does                                                                                                                                                                                                                                                                                     |
-| ------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Registry      | `src/registry/`       | The installed apps, their cards and the catalog table, persisted in the state directory; install — from a pack or from the marketplace by id — uninstall and their routes; the update check and the automatic build update; A2UIVerse's own card beside the apps                                 |
-| Embedder      | `@a2uiverse/embedder` | One small embedding model, in-process, no API key — the workspace package the marketplace's index ranks with too, so a question ranks the same against both                                                                                                                                      |
-| Router        | `src/router/`         | Ranks the apps against the question and returns a shortlist                                                                                                                                                                                                                                      |
-| Planner       | `src/planner/`        | The first model call: the layout, which apps to ask, a title for the answer. On demand it reads the installed apps, the composition the question was asked from and the questions before it, never app data                                                                                      |
-| Synthesizer   | `src/synthesizer/`    | The second model call: the merged view's wiring, validated, with one retry                                                                                                                                                                                                                       |
-| AuthVault     | `src/vault/`          | The sign-ins: the vault file, the generic OAuth client, the schemes it can do, the card checked before a dispatch, the header a dispatch carries, refresh, revocation, the sign-in routes and their pages                                                                                        |
-| Marketplace   | `src/marketplace/`    | The Store's reads relayed and annotated, the preview's artifact files checked on the way through, and the publisher Publish holds: its file, claim, sign-in, sign-out, publish and unpublish relayed with its token                                                                              |
-| Accounts      | `src/accounts/`       | Each app's sources, one per account, and what each is called                                                                                                                                                                                                                                     |
-| Composition   | `src/composition/`    | One composition per context, the shell's own paints, the relay, each app's data, when to merge, the presses, the fragment histories, and which refs still hold                                                                                                                                   |
-| AgentsPool    | `src/agentsPool/`     | The connections to the apps: requests, time limits, cancel; the credential header, a 401 and an `auth-required`, and the credential bar over what they paint                                                                                                                                     |
-| IntentJournal | `src/journal/`        | One line per turn, one per install, uninstall or refusal, one per sign-in fact (started, signed in, failed, expired, refreshed, revoked, a request for more access, Not now, superseded), and one per publisher act, never a credential or a token, appended to `STATE_DIR/intent-journal.jsonl` |
-| Executor      | `src/executor.ts`     | The A2A entry point that runs it all                                                                                                                                                                                                                                                             |
+| Module        | Where                 | What it does                                                                                                                                                                                                                                                                                                          |
+| ------------- | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Registry      | `src/registry/`       | The installed apps, their cards and the catalog table, persisted in the state directory; install — from a pack or from the marketplace by id — uninstall and their routes; the update check and the automatic build update; A2UIVerse's own card beside the apps                                                      |
+| Embedder      | `@a2uiverse/embedder` | One small embedding model, in-process, no API key — the workspace package the marketplace's index ranks with too, so a question ranks the same against both                                                                                                                                                           |
+| Router        | `src/router/`         | Ranks the apps against the question and returns a shortlist                                                                                                                                                                                                                                                           |
+| Planner       | `src/planner/`        | The first model call: the layout, which apps to ask, a title for the answer. On demand it reads the installed apps, the composition the question was asked from and the questions before it, never app data                                                                                                           |
+| Synthesizer   | `src/synthesizer/`    | The second model call: the merged view's wiring, validated, with one retry                                                                                                                                                                                                                                            |
+| AuthVault     | `src/vault/`          | The sign-ins: the vault file, the generic OAuth client, the schemes it can do, the card checked before a dispatch, the header a dispatch carries, refresh, revocation, the sign-in routes and their pages                                                                                                             |
+| Marketplace   | `src/marketplace/`    | The Store's reads relayed and annotated, the preview's artifact files checked on the way through, and the publisher Publish holds: its file, claim, sign-in, sign-out, publish and unpublish relayed with its token                                                                                                   |
+| Accounts      | `src/accounts/`       | Each app's sources, one per account, and what each is called                                                                                                                                                                                                                                                          |
+| Composition   | `src/composition/`    | One composition per context, the shell's own paints, the relay, each app's data, when to merge, the presses, the fragment histories, and which refs still hold                                                                                                                                                        |
+| AgentsPool    | `src/agentsPool/`     | The connections to the apps: requests, time limits, cancel; the credential header, a 401 and an `auth-required`, and the credential bar over what they paint                                                                                                                                                          |
+| IntentJournal | `src/journal/`        | One line per turn, one per install, uninstall or refusal, one per sign-in fact (started, signed in, failed, expired, refreshed, revoked, a request for more access, Not now, superseded, signed out, renamed), and one per publisher act, never a credential or a token, appended to `STATE_DIR/intent-journal.jsonl` |
+| Executor      | `src/executor.ts`     | The A2A entry point that runs it all                                                                                                                                                                                                                                                                                  |
 
 The Planner and the Synthesizer run on Gemini through the Vercel AI SDK.
 
@@ -243,3 +243,4 @@ The Planner and the Synthesizer run on Gemini through the Vercel AI SDK.
 - [`docs/design/synthesis.md`](../../docs/design/synthesis.md) — the merged view.
 - [`docs/design/authority.md`](../../docs/design/authority.md) — sign-in, accounts and the credential bar.
 - [`docs/design/app-install.md`](../../docs/design/app-install.md) and [`docs/design/marketplace.md`](../../docs/design/marketplace.md) — install, from Stellify's pack to the client's load, and from the marketplace by id.
+- [`docs/design/trusted-page.md`](../../docs/design/trusted-page.md) — the Store, the App Library and Publish over these routes.
