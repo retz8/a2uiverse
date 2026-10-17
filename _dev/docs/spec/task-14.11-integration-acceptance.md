@@ -209,6 +209,10 @@ This spec is the record. Each on-the-spot fix is added as a numbered decision as
 
 The write-up has four parts: before the sitting, the sitting case by case, after it, and the findings. Findings for later phases go into their phase's notes in `_dev/TODO.md` at the write-up. Every amendment to the phase spec, SPEC.md and earlier sub-task specs that 14.11 calls for is made by 14.12.
 
+### 26. The page's reads are bounded
+
+Every read the trusted page makes of the orchestrator — the installed apps, the accounts, the update check, the publisher, the Store's reads — gets 10 s to answer and is asked once more, as the catalog loader's JSON reads are (task 11.8). No answer to that either is the orchestrator unreached, each read in the page's own state for it. Replaced: a read with no bound — one the tunnel left unanswered held the App Library on "Checking for updates", the Store's search on its loading rows and an app's view without its publisher's name, until the page was left.
+
 ## Invariants
 
 - The browser holds no secret.
