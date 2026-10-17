@@ -132,7 +132,7 @@ export function Listings({
       {apps?.length === 0 && (
         <div className="publish-empty" data-testid="publish-empty">
           <p>
-            <b>Nothing published yet.</b>
+            <b>Nothing of yours in the Store right now.</b>
           </p>
           <p className="publish-note">
             Pack your app with Stellify in its own folder, then publish it here with the folders it

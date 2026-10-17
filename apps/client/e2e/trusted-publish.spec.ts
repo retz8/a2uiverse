@@ -130,7 +130,9 @@ test('P2 · the secret shown once after a claim, Continue behind the tick', asyn
   await board.getByLabel('I’ve saved it somewhere safe').check();
   await board.getByRole('button', {name: 'Continue'}).click();
   await expect(page.getByTestId('publish-bar')).toContainText('Publishing as northlight · 0 apps');
-  await expect(page.getByTestId('publish-empty')).toContainText('Nothing published yet.');
+  await expect(page.getByTestId('publish-empty')).toContainText(
+    'Nothing of yours in the Store right now.',
+  );
 
   // A claim this computer couldn't keep: said so, and Continue leads to the sign-in, named.
   claimed = undefined;
@@ -259,14 +261,14 @@ test('P3 · a name taken, a name not allowed, the wrong secret, the Store unreac
   await expect(page.getByTestId('publish-bar')).toContainText('Publishing as a2uiverse-apps');
 });
 
-test('P4 · signed in, nothing published yet', async ({page}) => {
+test('P4 · signed in, nothing of yours in the Store', async ({page}) => {
   await answer(page, '**/marketplace/listings.json**', []);
   await openPage(page, '/?page=publish');
   await expect(page.getByTestId('publish-bar')).toContainText(
     'Publishing as a2uiverse-apps · 0 apps',
   );
   const empty = page.getByTestId('publish-empty');
-  await expect(empty).toContainText('Nothing published yet.');
+  await expect(empty).toContainText('Nothing of yours in the Store right now.');
   await expect(empty).toContainText(
     'Pack your app with Stellify in its own folder, then publish it here with the folders it wrote.',
   );

@@ -268,7 +268,9 @@ describe('signed out', () => {
     expect(screen.getByTestId('publish-bar')).toHaveTextContent(
       'Publishing as northlight · 0 apps',
     );
-    expect(screen.getByTestId('publish-empty')).toHaveTextContent('Nothing published yet.');
+    expect(screen.getByTestId('publish-empty')).toHaveTextContent(
+      'Nothing of yours in the Store right now.',
+    );
     expect(screen.queryByText(TOKEN)).not.toBeInTheDocument();
   });
 
