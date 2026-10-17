@@ -311,3 +311,59 @@ Publish's empty listing reads "Nothing of yours in the Store right now.", true b
 - The replay suite: 112 passed.
 - The live suite: 5 passed — accounts, publish, sign-in, store, update.
 - The Python suites: the kit 323, GitHub 144, Gmail 131, Calendar 123, CircleCI 82, Linear 77, Shop A 98, Shop B 99.
+
+### The sitting, case by case
+
+**The starting state and the roster published.** The marketplace booted with no app published. The launcher claimed `a2uiverse-apps` again, the wiped marketplace no longer knowing its token, and published and installed GitHub, Gmail, Calendar, CircleCI, Linear and Shop A by id, each at card 0.1.0 at one build in the marketplace and the registry; Shop B's agent ran with nothing published. `registry list`: six apps, every source `marketplace`; `registry updates`: six up to date; "camera prices" found Shop A first at 0.379. The sweep: 13 secrets collected, none in 148 files.
+
+**The ways in.** The entry point opened the Store, one history entry pushed; Back closed it to the canvas, mounted, its scroll unchanged. The Planner's first answer: "All of your installed apps are up to date — checked 11 minutes ago", its button landing on the App Library; "Search the Store" and "Open Gmail in App Library" landed where they named. A typed address on a search and on an app's view opened it, a reload landed on the same page, and ✕ there left `/`. Found and fixed: the page's reads with no time bound (decision 26), every app a best match (27), Back from an app's view (28), the Store reading its list again (29), an app not found by its name (30), the search's Clear (31).
+
+**Browser writes probed.** Through the tunnel: a JSON write from a foreign origin 403; with no origin and no token 401; form-encoded posts 415, twice; a foreign tab's fetch blocked at the preflight, Shop A still installed; the page's own write past the guard and refused for an app not installed, 404.
+
+**Gmail's accounts.** Run by the reader by hand: permissions, rename, sign-out, add account from the App Library, a second account, each signed out. Found and fixed: an account's buttons overlapping on hover, and the rename's Save and Cancel touching and sized apart (32).
+
+**GitHub out and back.** Uninstalled from the App Library, its account signed out; found in the Store by "pull requests waiting for my review", installed through the consent card naming its access, signed in from its tile and composed beside Gmail · Work, all without a reload.
+
+**Publish.** "How do I publish my app?" landed on Publish. `sitting-publisher` claimed, its token shown once; signed out, and in again with the pasted token, the orchestrator holding, forgetting and holding it again in its owner-only file. Shop B's sample captured on its demo key and its catalog packed on the terminal; published from the page with them, and listed with its sample drawn live. The browser held no secret after the token's screen was dismissed and after the sign-in by token; the check after the claim was missed at its moment. Found and fixed: a sample too narrow to read (33), a publish leaving the address on the form (34), the Planner's publishing steps run together (35).
+
+**The Store with Shop B.** Found by search under `sitting-publisher`, its sample live; the publisher's name filtering the Store; installed through the consent card saying it connects with a key, and connected through its key page; "Compare camera prices across both shops" merged both shops without a reload; its permissions saying it is connected with a key. Found and fixed: a key account named by its number (36).
+
+**Shop B's chain.** At 0.2.0 the App Library said "A newer version is on its way from the publisher", and Publish showed the ahead-of-the-Store notice. 0.2.0 published from the page, its sample captured again at that version; the card update pressed; the pack with `Slider` removed refused, `components/Slider: removed`. Found and fixed: a card update asking nothing new read as asking for more, its consent card empty (37); Publish showing the drift only once an update check had reported it (38).
+
+**Linear's cases and the Planner's reader.** A visible change to Linear's look published at the same card installed itself at the App Library's check, and the next canvas drew it without a reload. At 0.2.0 asking `issues.write`, the App Library said "A newer version is on its way from the publisher". Published from the terminal, the Planner answered from the state last computed, not waiting on the marketplace: "For Linear, a newer version is on its way from the publisher… checked just now". After the App Library's check it named the update, its button landing on Linear's view, and Update passed the consent card naming "Create, change and comment on your issues". Linear painted with no sign-in asked: its account already held that scope, so the needs-more-access tile was not produced live; the vault's test holds it. Found and fixed: a canvas already open restyled by a newer build's sheet (39), an update the tunnel left unanswered saying "Updating" until a reload (40), "Linear has an update: An update that asks for more" (41).
+
+**Shop A's cases.** A copy of its catalog packed under `…/catalogs/v2/catalog.json`, a patch naming both ids, 0.2.0 published with both packs: "A new version is available", Update straight through, both lines held, the camera comparison merged. Moved to the new id at 0.3.0, the old line retired: "Needs an update to keep working" with "Shop A no longer answers in the look you have. Update it to keep seeing its answers.", Update pressed; the old line gone, the comparison merged with Shop A drawn in its v2 build.
+
+**No longer published.** Shop B unpublished from Publish, asked once. The App Library: "No longer in the Store", "Its publisher took Shop B out of the Store. It stays installed here until you uninstall it."; the Store's search finding it under neither its name nor "Northlight"; the camera comparison still merging it. Found and fixed: an empty Publish saying "Nothing published yet." after an unpublish (42).
+
+**The dark pass.** The reader switched the browser to dark. Walked: the Store with Linear's view and its sample enlarged; the App Library with Gmail's two accounts and one's permissions; Publish empty, its form, Shop B published again and listed. Nothing found; the pressed Permissions button reads at 5.87:1.
+
+**The sweep over the whole sitting.** 25 secrets collected — the vault's 11, the agents' sign-in stores' 12, the two publishers' tokens — none in 182 files: the journal, the marketplace's state, every captured process output. In the browser: local and session storage empty, no IndexedDB, and nothing hashing to the publisher's token in the current history entry, in any address fetched, or on the page. The tab's other 41 history entries are not readable from the page.
+
+### After the sitting
+
+**The cleanup.** Every temporary edit reverted, `a2uiverse-apps` at `ac28dd7` with nothing from the sitting; the marketplace's state wiped, its embedding model kept; the sitting's orchestrator state folder removed; `STATE_DIR` out of `apps/orchestrator/.env`.
+
+**The closing launch.** `pnpm dev:all --mode deterministic --tier default,mocks --publish` through the tunnel: `a2uiverse-apps` claimed again, all seven apps published and installed by id at card 0.1.0, every source `marketplace`, every state up to date.
+
+**The regression pass after**, all green:
+- The platform's `pnpm verify`: 22 of 22 tasks and 66 script tests. The suites: shell catalog 452, client 771, orchestrator 599, marketplace 80, Stellify 111, sdk 276, embedder 13.
+- `a2uiverse-apps`' `pnpm verify`: 31 of 31.
+- The replay suite: 112 passed. Baselines retaken on disk in the sitting: decisions 31, 33, 39 and 42.
+- The live suite: 5 passed, its publish test moved onto decision 34's landing (`c01f230`).
+- The Python suites unchanged.
+
+### Findings
+
+For later phases, in `_dev/TODO.md`'s backlog:
+- The collision detector does not flag a catalog's unscoped element rules. GitHub's base styles — `*{box-sizing:border-box}`, `body`, `table` — reached every catalog until decision 39.
+- A sheet loaded through the scoped loader does not follow `@import`; no catalog uses one.
+- A card update newly asking for a key, or for a sign-in with no named scope, passes a consent card with nothing in it.
+- The platform card's publishing skill says its sample is "captured with the publisher's own account", and the Planner repeats the third person to the publisher.
+
+For 14.12, the amendments:
+- SPEC §10: Publish's listings read each app's live card (38); a build's stylesheets held to its own surfaces (39); the page's writes bounded and read back (40); a card update asking nothing new worded and pressed as a new version (37).
+- Task 14.2 decision 8: the card update's words and press by what it asks (37).
+- Task 14.4: the orchestrator's `listings.json` (38).
+- Task 14.7 decision 1: a canvas keeps its build's look as well as its components (39).
+- Task 14.9: Publish's listings through `listings.json` (38), a publish landing on the listings (34), the empty listing's words (42).
