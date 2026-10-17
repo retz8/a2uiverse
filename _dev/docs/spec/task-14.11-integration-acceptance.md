@@ -260,6 +260,10 @@ Steps a person takes in order are a vertical list on the canvas, one numbered li
 
 The token page asks, below the key, for an optional name for the account, its hint the name the account gets left blank. Left blank, the first key account takes the app's name ("Shop B"); a later one adds the day it was connected ("Shop B · connected Oct 17"), and its number only if that is taken too. A name the person typed stays theirs, as a rename does; one another of the app's accounts holds, ignoring case, falls back to the default. An account connected again keeps its name, and its page asks none. Replaced: every key account labelled by its number — "Shop B account 1".
 
+### 37. A card update asks for more only when it does
+
+A card update naming a new permission reads "An update that asks for more" and its Update passes the consent card. One naming none reads "A new version is available" and its Update goes straight through, in the Store, the App Library and the Planner's reader alike. Replaced: every card update read as asking for more and passed the consent card, empty when it asked nothing new.
+
 ## Invariants
 
 - The browser holds no secret.
