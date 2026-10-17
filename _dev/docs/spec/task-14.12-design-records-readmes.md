@@ -67,3 +67,19 @@ A fault the fresh run or the check against the code finds is fixed on `main` wit
 ### 9. Worked on `main`
 
 The work is done directly on `main`, with no worktree; the `a2uiverse-apps` READMEs on that repo's `main`.
+
+### 10. An empty search says no app matches
+
+The marketplace's `search` command prints "no app matches" when the search answers none. Replaced: "no apps published", which since task-14.11 decision 27 also stood for a search nothing matched.
+
+### 11. The search's contract says it answers the matches
+
+The marketplace contract's route rule and the sdk's search comments say the search answers the entries that match, each with its score, an app the words name first; Stellify's committed build carries the comment. Replaced: "entries in rank order".
+
+### 12. The code's comments say what task 14.11 made
+
+The Store's and the App Library's header comments say an app's view opened from its list is pushed onto the history, and the uninstall's goes back over the view's entry when the list is under it; the orchestrator's marketplace routes say the search relays the marketplace's matches; Publish's reads name `listings.json`; the shell catalog's `onShellAction` names `openPublish` beside the other two. Replaced: every move replacing the page's entry, the search in rank order, two shell actions.
+
+### 13. SPEC says a rename sticks
+
+SPEC §9.5 carries task-14.3 decision 3: no later sign-in on an account replaces the name the person chose, a re-bind's label replaced only for an account not renamed. Replaced: a re-bind replacing the label whatever it was.
