@@ -44,7 +44,7 @@ export async function runMarketplaceCommand(
       io.err(`the marketplace's answer is not a search response: ${read.errors.join('; ')}`);
       return 1;
     }
-    if (read.value.results.length === 0) io.out('no apps published');
+    if (read.value.results.length === 0) io.out('no app matches');
     for (const {entry, score} of read.value.results) {
       io.out(`${entry.appId}  ${entry.card.name}  ${score.toFixed(3)}`);
     }

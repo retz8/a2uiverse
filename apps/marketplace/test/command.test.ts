@@ -52,7 +52,7 @@ describe('marketplace search', () => {
     const {url} = await serveSearch([]);
     const {lines, out} = io({MARKETPLACE_URL: url});
     expect(await runMarketplaceCommand(['search', 'x'], lines)).toBe(0);
-    expect(out).toEqual(['no apps published']);
+    expect(out).toEqual(['no app matches']);
   });
 
   test('reaches the marketplace at MARKETPLACE_URL, else localhost on PORT, else 10002', async () => {
