@@ -264,6 +264,10 @@ The token page asks, below the key, for an optional name for the account, its hi
 
 A card update naming a new permission reads "An update that asks for more" and its Update passes the consent card. One naming none reads "A new version is available" and its Update goes straight through, in the Store, the App Library and the Planner's reader alike. Replaced: every card update read as asking for more and passed the consent card, empty when it asked nothing new.
 
+### 38. Publish sees an app ahead of the Store at once
+
+Publish's listings are read through the orchestrator's `listings.json?publisher=<name>`: each of the publisher's apps has its live card fetched again, given five seconds, and the sdk's drift test run. The listing shows the drift the card shows now, and where it differs from the Store's flag the marketplace is sent the report. A card that does not answer in time leaves the Store's flag. Replaced: the listings were the Store's index filtered on the name, the notice appearing only once an orchestrator with the app installed had run its update check and reported.
+
 ## Invariants
 
 - The browser holds no secret.
