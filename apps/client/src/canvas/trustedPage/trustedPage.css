@@ -745,7 +745,14 @@
 .library-acts {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
+}
+
+/* An account's presses: ghosts with none of a ghost's negative margin, so each one's hover sits
+   apart from the next. */
+.trusted-page .library-act {
+  margin: 0;
+  padding: 0 8px;
 }
 
 .library-perm,

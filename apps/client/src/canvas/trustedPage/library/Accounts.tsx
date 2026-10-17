@@ -240,6 +240,7 @@ function AccountRow({
               size="1"
               variant={open === 'permissions' ? 'soft' : 'ghost'}
               color={open === 'permissions' ? undefined : 'gray'}
+              className="library-act"
               aria-expanded={open === 'permissions'}
               onClick={() => setOpen(open === 'permissions' ? null : 'permissions')}
             >
@@ -249,6 +250,7 @@ function AccountRow({
               size="1"
               variant="ghost"
               color="gray"
+              className="library-act"
               aria-label={`Rename ${account.label}`}
               onClick={() => setOpen('rename')}
             >
@@ -258,6 +260,7 @@ function AccountRow({
               size="1"
               variant="ghost"
               color="red"
+              className="library-act"
               aria-label={`Sign out of ${account.label}`}
               onClick={() => setConfirming(true)}
             >
