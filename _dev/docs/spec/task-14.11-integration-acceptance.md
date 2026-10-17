@@ -228,6 +228,10 @@ The labelled searches and a live test holding the cut sit beside the marketplace
 
 Opening an app's view from its list — the Store's results or apps, the App Library's "Your apps" — pushes the view onto the browser's history, so browser Back returns to that list, as the view's own way back does, and that way back goes back over the view's entry. Tabs, searches, Publish and a view opened with no list behind it still replace the entry on screen, so Back from a list closes the page. Closing the page goes back over every entry it pushed. Replaced: every move inside the page replacing its one entry, Back from an app's view closing the page — phase-14 decision 11 and task 14.6's history rule amended for that move.
 
+### 29. The Store holds the lists it has shown
+
+While the Store is open, each list it has shown — every app, a search's matches — is held. Shown again — the search cleared, back from an app's view, the same search again — it is not read again until the registry changes (an install, update or uninstall from the Store), or on Try again. Another tab or closing the page lets go of them. Replaced: every list read again each time it was shown, clearing a search reading every app afresh.
+
 ## Invariants
 
 - The browser holds no secret.
