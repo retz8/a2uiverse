@@ -885,9 +885,12 @@ Dart core (PR #3304):
 `createSurface` and `getRendererCapabilities` read the list each time, so they see the catalog from
 the next call on. Surfaces created before the call keep the catalogs they were created with, left as
 an open question in the issue. Dart's processor cached validators, child-reference fields and
-composition rules by catalog id; they are keyed by catalog instance, since a linked copy replaces a
-held catalog of the same id. The shared conformance suite `conformance/core/add_catalog.yaml` runs in
-the web_core, Python and Dart harnesses; Swift core has no `addCatalog` and does not load it.
+composition rules by catalog id; since a linked copy replaces a held catalog of the same id while
+earlier surfaces keep the old one, they now belong to the catalog instance, held in `Expando`s that
+do not keep a catalog alive, so a copy no surface uses any more is collected with its entries. The
+shared conformance suite `conformance/core/add_catalog.yaml` runs in the web_core, Python and Dart
+harnesses. Swift core has no `addCatalog` and no cross-catalog linking, and does not load the suite;
+the PR leaves Swift as an open question.
 
 ### Prior art
 
