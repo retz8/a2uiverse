@@ -305,6 +305,45 @@ describe('an app’s view', () => {
   });
 });
 
+describe('holding what it read (task-14.11 decision 29)', () => {
+  const reads = (path: string) =>
+    vi.mocked(fetch).mock.calls.filter(([input]) => new URL(String(input)).pathname === path)
+      .length;
+
+  it('clearing a search shows every app again without reading the Store again', async () => {
+    fake.search = [{entry: SHOP_A, installed: false}];
+    renderWithShell(<Store initial={{page: 'store'}} />);
+    await waitFor(() => expect(rows()).toHaveLength(4));
+    const box = screen.getByRole('searchbox', {name: 'Search the Store'});
+    await userEvent.type(box, 'camera{Enter}');
+    await waitFor(() => expect(rows()).toEqual(['shop-a']));
+    await userEvent.click(screen.getByRole('button', {name: 'Clear the search'}));
+    expect(rows()).toHaveLength(4);
+    expect(reads('/marketplace/index.json')).toBe(1);
+    await userEvent.type(box, 'camera{Enter}');
+    expect(rows()).toEqual(['shop-a']);
+    expect(reads('/marketplace/search')).toBe(1);
+  });
+
+  it('back from an app’s view the list is not read again; after an install it is', async () => {
+    renderWithShell(<Store initial={{page: 'store'}} />);
+    await waitFor(() => expect(rows()).toHaveLength(4));
+    await userEvent.click(screen.getByRole('link', {name: 'Shop A'}));
+    await userEvent.click(await screen.findByRole('link', {name: 'All apps'}));
+    expect(rows()).toHaveLength(4);
+    expect(reads('/marketplace/index.json')).toBe(1);
+    await userEvent.click(screen.getByRole('link', {name: 'Linear'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Install Linear'}));
+    const card = await screen.findByRole('alertdialog', {name: 'Install Linear?'});
+    await userEvent.click(within(card).getByRole('button', {name: 'Install'}));
+    await screen.findByTestId('store-done');
+    await userEvent.click(screen.getByRole('link', {name: 'All apps'}));
+    await waitFor(() => expect(reads('/marketplace/index.json')).toBe(2));
+    const linear = screen.getAllByTestId('store-row').find(row => row.dataset.app === 'linear')!;
+    await waitFor(() => expect(linear).toHaveTextContent('Installed'));
+  });
+});
+
 describe('installing', () => {
   it('asks once on the consent card, installs, and stays in place saying so', async () => {
     fake.install = {ok: true, appId: 'linear', replaced: false, followed: ['gmail', 'calendar']};

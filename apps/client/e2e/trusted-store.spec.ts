@@ -89,9 +89,14 @@ test('S3 · loading, no results, the Store unreached, an app not in the Store', 
   await expect(empty).toContainText('No apps match “flight tracker”.');
   await expect(empty).toContainText('Try other words, or look through everything in the Store.');
 
-  // The Store unreached: its index refused from here on.
+  // Every app again is the list the Store holds, not read again (task-14.11 decision 29) — so a
+  // Store refusing its index from here on still shows it.
   await answer(page, '**/marketplace/index.json', {ok: false, reason: 'unreached'}, 502);
   await empty.getByRole('link', {name: 'Show every app'}).click();
+  await expect(page.getByTestId('store-row')).toHaveCount(7);
+
+  // The Store unreached: opened afresh, its index refused.
+  await openPage(page, '/?page=store');
   const unreached = page.getByTestId('store-unreached');
   await expect(unreached).toContainText('The Store can’t be reached right now.');
   await expect(unreached).toContainText('Your installed apps still work. Try again in a moment.');

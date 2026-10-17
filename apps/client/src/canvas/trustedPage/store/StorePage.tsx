@@ -22,7 +22,7 @@ import {BackIcon, DoneIcon, RemoveIcon, TickIcon} from '../icons';
 import {pageLink} from '../pageLink';
 import {useAppAct, type AppAct, type AppActOutcome} from '../useAppAct';
 import {SampleFrame} from './SampleFrame';
-import {useStoreListing, useStoreListings} from './useStoreReads';
+import {useStoreListing, useStoreListings, type HeldReads} from './useStoreReads';
 
 export interface StorePageProps {
   /** The page at the Store: its query, its publisher, the app whose view it shows. */
@@ -53,6 +53,8 @@ export function StorePage({page, onNavigate, orchestrator, catalogs, container}:
   }, [catalogs]);
   const {outcome, run} = useAppAct({orchestrator, onChanged});
   const [ask, setAsk] = useState<ConsentAsk | null>(null);
+  /** The lists shown while the Store is open, each read again only once the registry changed. */
+  const [held] = useState<HeldReads>(() => new Map());
 
   /** A press: the consent card where it asks, else straight through (task-14.2 decision 8). */
   const press = (listing: StoreListing, act: AppAct) => {
@@ -87,6 +89,8 @@ export function StorePage({page, onNavigate, orchestrator, catalogs, container}:
           page={page}
           onNavigate={onNavigate}
           orchestrator={orchestrator}
+          held={held}
+          refresh={registryVersion}
           onPress={(listing, act) => {
             // A press on a row opens the app's view, where its outcome is drawn.
             onNavigate({...storeAt(page), app: listing.entry.appId});
@@ -149,15 +153,21 @@ function StoreBrowse({
   page,
   onNavigate,
   orchestrator,
+  held,
+  refresh,
   onPress,
 }: {
   page: TrustedPageState;
   onNavigate: (page: TrustedPageState) => void;
   orchestrator: string;
+  /** The lists the Store holds while it is open. */
+  held: HeldReads;
+  /** Moves each time the registry changes: a held list is read again. */
+  refresh: number;
   onPress: (listing: StoreListing, act: AppAct) => void;
 }) {
   const {query, publisher} = page;
-  const {loaded, retry} = useStoreListings(orchestrator, query);
+  const {loaded, retry} = useStoreListings(orchestrator, query, held, refresh);
   // The box holds the words being typed; the query is what Enter searched (task-14.7 decision 3).
   const [draft, setDraft] = useState(query ?? '');
   const [searched, setSearched] = useState(query);
