@@ -1,8 +1,8 @@
 /**
  * Publish's reads (task-14.9 decision 6): who is signed in — the orchestrator asking the Store
- * whether the held secret is still accepted — and, for a publisher it accepts, the listings: the
- * Store's index filtered on the name (phase-14 decision 7), each app's live card read again first
- * (task-14.11 decision 38), by the app's name. Both run when
+ * whether the held secret is still accepted — and, for a publisher it accepts, the listings through
+ * the orchestrator's `listings.json`: the Store's index filtered on the name (phase-14 decision 7),
+ * each app's live card read again first (task-14.11 decision 38), by the app's name. Both run when
  * Publish is entered and on Try again; after a publish or an unpublish only the listings are read
  * again.
  */

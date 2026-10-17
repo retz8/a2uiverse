@@ -215,7 +215,7 @@ describe('the wire bodies', () => {
     });
   });
 
-  test('search answers entries in rank order, each with its score', () => {
+  test('search answers the entries that match, each with its score', () => {
     const response = {results: [{entry, score: 0.5}]};
     expect(readSearchResponse(response)).toEqual({ok: true, value: response});
     const bad = readSearchResponse({results: [{entry: {...entry, appId: 1}, score: 'x'}]});

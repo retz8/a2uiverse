@@ -107,7 +107,7 @@ function shellImplementations({
 }
 
 export interface CreateCatalogOptions {
-  /** What the host does when a shell surface raises `openStore` or `openAppLibrary`. */
+  /** What the host does on a shell action: `openStore`, `openAppLibrary` or `openPublish`. */
   onShellAction: ShellActionHandler;
   /**
    * What the host does when the reader presses Retry, Include or Try again, or a fragment's back

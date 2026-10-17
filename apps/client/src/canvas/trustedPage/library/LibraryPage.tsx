@@ -7,8 +7,8 @@
  * (decision 3). Update passes the consent card for the update that asks for more and goes straight
  * through otherwise (task-14.2 decision 8); pressed on a list row, its outcome is a notice at the
  * top of the list (decision 4). An update or an uninstall runs one at a time across the page. The
- * app lives in the address, each move replacing the page's entry on the history; after an
- * uninstall the page returns to the list.
+ * app lives in the address, its view opened from the list pushed onto the history over it
+ * (task-14.11 decision 28); after an uninstall the page returns to the list.
  */
 import {useCallback, useEffect, useState, type ReactNode} from 'react';
 import {AlertDialog, Button, Flex} from '@radix-ui/themes';
@@ -128,7 +128,8 @@ export function LibraryPage({
     const answer = await uninstallApp(orchestrator, app.id);
     if (answer.ok) {
       setUninstall({kind: 'done', appId: app.id, name: app.card.name, accounts: answer.accounts});
-      // Back to the list, the entry replaced: Back never lands on the removed app's view.
+      // Back to the list, over the view's entry when the list is under it: Back never lands on the
+      // removed app's view.
       onNavigate(LIBRARY);
     } else {
       setUninstall({kind: 'refused', appId: app.id, name: app.card.name});

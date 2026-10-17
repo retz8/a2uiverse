@@ -5,7 +5,8 @@
  * orchestrator holds:
  *
  * - `GET  index.json` — every published app, `[{entry, installed, update?}]`.
- * - `GET  search?q=<words>` — `{results: [{entry, score, installed, update?}]}` in rank order.
+ * - `GET  search?q=<words>` — `{results: [{entry, score, installed, update?}]}`, the marketplace's
+ *   matches in its order.
  * - `GET  apps/<appId>/entry.json` — one app, `{entry, installed, update?}`.
  * - `GET  apps/<appId>/preview.json` — its captured preview.
  * - `GET  artifacts/<artifactId>/<path>` — an artifact's files: from the registry when it holds the

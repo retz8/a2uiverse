@@ -31,7 +31,7 @@ export const MARKETPLACE_ROUTES = {
   preview: 'apps/<appId>/preview.json',
   /** An artifact's files under its id, immutable, exactly as the registry serves them. */
   artifact: 'artifacts/<artifactId>/<path>',
-  /** `?q=<words>`: entries in rank order, each with its score. */
+  /** `?q=<words>`: the entries that match, each with its score, an app the words name first. */
   search: 'search',
   /** `{publisher}` in; `{publisher, token}` once, or findings. No token. */
   claim: 'claim',
@@ -501,7 +501,7 @@ export const readUnpublishRequest = (body: unknown): Validation<UnpublishRequest
   readAppIdBody(body);
 export const readReportRequest = (body: unknown): Validation<ReportRequest> => readAppIdBody(body);
 
-/** `search`, out: entries in rank order, each with its score. */
+/** `search`, out: the entries that match, each with its score, an app the words name first. */
 export interface SearchResult {
   entry: IndexEntry;
   score: number;

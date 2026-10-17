@@ -6,7 +6,8 @@
  * once installed and the Update an update waiting carries.
  *
  * A search runs on Enter (task-14.7 decision 3); the query, the publisher and the app live in the
- * address, each move replacing the page's entry on the history. Install and Update pass through
+ * address, an app's view opened from a list pushed onto the history over it and every other move
+ * replacing the page's entry (task-14.11 decision 28). Install and Update pass through
  * the consent card where it asks (task-14.2 decisions 4, 8); a press on a list row opens that app's
  * view and asks there, so every outcome lands where the boards draw it. Nothing opens an app from
  * the Store: asking does.
