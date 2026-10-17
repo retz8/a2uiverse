@@ -268,6 +268,10 @@ A card update naming a new permission reads "An update that asks for more" and i
 
 Publish's listings are read through the orchestrator's `listings.json?publisher=<name>`: each of the publisher's apps has its live card fetched again, given five seconds, and the sdk's drift test run. The listing shows the drift the card shows now, and where it differs from the Store's flag the marketplace is sent the report. A card that does not answer in time leaves the Store's flag. Replaced: the listings were the Store's index filtered on the name, the notice appearing only once an orchestrator with the app installed had run its update check and reported.
 
+### 39. A build's look stays on its own surfaces
+
+Each surface of a loaded build is marked with its artifact id, on a box-less element around the catalog's Provider. A stylesheet inside an artifact is read as text, its relative addresses made whole against its own, and its rules wrapped as written in an `@scope` rooted at that build's mark, then adopted onto the page in the order the artifact asked for them. Fonts, keyframes, a layer order and rules aimed at `:root`, `html` or `body` stay page-wide. A browser without `@scope` takes a link per sheet, as before. Replaced: every artifact sheet a page-wide link, so a newer build's look restyled a canvas still drawn in the older one, a Store sample's build restyled the canvases, and GitHub's `*{box-sizing:border-box}` reached every other catalog. The replay baselines showing Linear, Shop A and Shop B were retaken: those catalogs now draw as their own sheets say, a few pixels taller where GitHub's reset had sized them.
+
 ## Invariants
 
 - The browser holds no secret.
