@@ -252,6 +252,10 @@ Every sample — on an app's view in the Store and on Publish's listings — car
 
 A publish the Store takes moves Publish to its listings, the address theirs, the outcome atop them with the Store's own summary folded under Details. A publish running or refused stays in the form's place. Replaced: the outcome in the form's place, the address still the form's, behind Back to your apps.
 
+### 35. Steps are drawn as steps
+
+Steps a person takes in order are a vertical list on the canvas, one numbered line each, under a sentence saying what they get done — the platform-UI guidance's rule — and the platform card's publishing skill names its four steps, numbered. Replaced: the four steps run together in one paragraph.
+
 ## Invariants
 
 - The browser holds no secret.
