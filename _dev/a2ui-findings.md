@@ -907,32 +907,45 @@ before the app starts, so its catalog is fixed for the session.
 `45633b97` — `Catalog._derive_model_entries` (line 2462, `unbundled(assembled_functions.get(name, {}))`)
 and `_function_document` (line 737, `document = dict(schema)`); reached from `Catalog.to_json`, from
 `Catalog._has_cross_document_refs` (line 1364) and so from `link_catalogs` (line 2889), which the
-`MessageProcessor` constructor calls (`python/a2ui_core/src/a2ui/core/processing/message_processor.py`).
+`MessageProcessor` constructor calls (`python/a2ui_core/src/a2ui/core/processing/message_processor.py`),
+and from the agent SDK's `schema_to_prompt`
+(`python/a2ui_agent/src/a2ui/inference_formats/direct_json/schema_prompt.py`) and `validate_payload`
+(`python/a2ui_agent/src/a2ui/utils/validation.py`).
 
 **Severity:** functional bug — a processor that holds a catalog with such a function and any other
 catalog cannot be built: `TypeError: 'NoneType' object is not iterable`.
 
+**Reported:** not yet filed. Issue draft: `A2UI/drafts/ISSUE_DRAFT_python_function_without_schema.md`.
+
 ### Issue
 
-`FunctionImplementation` takes its argument schema as optional (`schema: Any = None`), and a
-function without one works: a single-catalog processor runs a call to it. But `validation_schema`
-records the function as `None` (`{'functions': {'greet': None}}`), and `to_json` passes that entry
-on: `assembled_functions.get(name, {})` returns the `None`, and `_function_document` calls
-`dict(None)`.
+`FunctionApi` and `FunctionImplementation` take their argument schema as optional
+(`schema: Any = None`), and a function without one works: a single-catalog processor runs a call to
+it. But `validation_schema` records the function as `None` (`{'functions': {'greet': None}}`), and
+`to_json` passes that entry on: `assembled_functions.get(name, {})` returns the `None`, and
+`_function_document` calls `dict(None)`.
 
 `to_json` is called on more paths than serialization:
 
 - `link_catalogs` checks each catalog for cross-catalog `$ref`s through `to_json` whenever it is given
   two or more catalogs, so since #3230 (2026-10-15) the `MessageProcessor` constructor raises for any
-  two catalogs one of which has such a function. `add_catalog` (#3304) raises the same way.
+  two catalogs one of which has such a function, in v0.9 and v1.0. At `9facb99a`, the parent of
+  #3230, the same processor builds. `add_catalog` (#3304) raises the same way.
 - `get_renderer_capabilities` with `include_inline_catalogs` for v1.0 serializes each catalog with
   `to_json`, so it raises even for one catalog.
+- In the agent SDK, `schema_to_prompt`, which writes the Direct JSON prompt, serializes each catalog
+  with `to_json`, so it raises even for one catalog. `validate_payload` raises for two or more
+  catalogs, through `link_catalogs`.
+
+Validation is not affected: a processor with `STRICT_VALIDATION` accepts a `Text` whose `text` calls
+the function, and rejects one that calls a function the catalog lacks.
 
 `to_json` itself has failed for such a catalog since #3130 (2026-10-13). Python core is the only SDK
 that allows the omission: web_core's `FunctionApi.schema` is a required `z.ZodTypeAny`, and Dart's
-`FunctionImplementation` requires `argumentSchema`. In the repository, six `FunctionImplementation`s
-in `python/a2ui_core/tests/test_processing.py` and `test_rpc.py` omit the schema, and the suite
-passes, so none of those tests reaches the failure.
+`FunctionImplementation` requires `argumentSchema`. In the repository, eight functions in
+`python/a2ui_core/tests` omit the schema: six `FunctionImplementation`s in `test_processing.py` and
+`test_rpc.py`, and two `FunctionApi`s in `test_catalog.py` and `test_rpc.py`. The suite passes, so
+none of those tests reaches the failure.
 
 ### Reproduction
 
@@ -949,10 +962,14 @@ MessageProcessor([a, b])  # TypeError, from link_catalogs; the same for v0.9 cat
 
 ### Fix
 
-Give a function without an argument schema one definition in both views: a call whose `args` are
-unconstrained, written by `validation_schema` instead of `None` and by `to_json` from it. Or reject a
-missing schema at construction, as web_core and Dart do by type.
+Treat a missing schema as `{}` where `validation_schema` records it. A function given `schema={}`
+works on every path above: `validation_schema` records `{}`, and `to_json` writes a call whose `args`
+may be any object (`"args": {"type": "object"}`), which `from_json` reads back unchanged. Or reject
+a missing schema at construction, as web_core and Dart do by type, which breaks the eight test
+functions above and any caller that omits it.
 
 ### Prior art
 
-No issue or PR reports it. Found writing the `add_catalog` tests for #3304.
+No issue, PR or discussion reports it (searched 2026-10-17). Of the open PRs, only #2724, which
+relaxes the v1.0 catalog schema rules, touches the Python catalog package, and only
+`_spec_shape.py`. Found writing the `add_catalog` tests for #3304.
