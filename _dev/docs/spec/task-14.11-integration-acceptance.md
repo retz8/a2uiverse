@@ -213,6 +213,17 @@ The write-up has four parts: before the sitting, the sitting case by case, after
 
 Every read the trusted page makes of the orchestrator — the installed apps, the accounts, the update check, the publisher, the Store's reads — gets 10 s to answer and is asked once more, as the catalog loader's JSON reads are (task 11.8). No answer to that either is the orchestrator unreached, each read in the page's own state for it. Replaced: a read with no bound — one the tunnel left unanswered held the App Library on "Checking for updates", the Store's search on its loading rows and an app's view without its publisher's name, until the page was left.
 
+### 27. The Store's search shows the apps that match
+
+The marketplace's search answers the apps scoring at least 0.15 and within 0.095 of the best score, in rank order. A search no app reaches answers none, and the Store says so.
+
+The two numbers are fitted with the platform's embedding model on 47 labelled searches over the seven cards the Store recordings hold:
+- **The labels:** an app is expected where its card says it does what the search asks; allowed where its card only touches it; 12 searches expect none.
+- **The fit:** the floor and the margin missing the fewest expected apps and showing the fewest unexpected, the floor 0.017 under the weakest expected score kept — "continuous integration", CircleCI at 0.167.
+- **At the cut:** one expected app missed, Linear for "tickets", which the model ranks below Calendar; 16 unexpected apps across the set; 7 of the 12 searches that expect none answering none.
+
+The labelled searches and a live test holding the cut sit beside the marketplace's tests. The Router is untouched. Replaced: the search answering every published app ranked, the Store listing each one as a best match — 276 unexpected apps across the same set.
+
 ## Invariants
 
 - The browser holds no secret.
