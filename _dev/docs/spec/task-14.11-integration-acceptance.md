@@ -238,11 +238,19 @@ An app whose name every searched word starts — in any case, "goog" for Google 
 
 ### 31. The Store's search clears with an icon
 
-The search box clears with an ✕ icon button, inset from the box's edges so its hover never meets them. Replaced: a "Clear" text button whose hover ran to the box's edge.
+The search box clears with a 28px ✕ icon button, inset from the box's edges so its hover never meets them. Replaced: a "Clear" text button whose hover ran to the box's edge.
 
 ### 32. An account's buttons keep apart
 
 An account's Permissions, Rename and Sign out each keep their hover apart from the next, 4px between them, and the rename's Cancel 8px from Save — none with a ghost button's negative margin, each as tall as a button beside it, 24px. Replaced: the three overlapping on hover, and Cancel's hover touching Save.
+
+### 33. A sample enlarges
+
+Every sample — on an app's view in the Store and on Publish's listings — carries Enlarge at the end of its "Sample answer" line, opening the same picture at full width in a dialog of its own, up to 960px wide, scrolling past 85% of the window's height, its question and caption as the frame's, closed by its ✕ or Esc. Replaced: a listing's sample only as a narrow thumbnail cut at its frame.
+
+### 34. A publish in the Store lands on the listings
+
+A publish the Store takes moves Publish to its listings, the address theirs, the outcome atop them with the Store's own summary folded under Details. A publish running or refused stays in the form's place. Replaced: the outcome in the form's place, the address still the form's, behind Back to your apps.
 
 ## Invariants
 
