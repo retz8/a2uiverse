@@ -748,10 +748,11 @@
   gap: 4px;
 }
 
-/* An account's presses: ghosts with none of a ghost's negative margin, so each one's hover sits
-   apart from the next. */
+/* An account's presses and the rename's Cancel: ghosts with none of a ghost's negative margin, so
+   each one's hover sits apart from the next, as tall as the button beside them. */
 .trusted-page .library-act {
   margin: 0;
+  height: var(--base-button-height);
   padding: 0 8px;
 }
 

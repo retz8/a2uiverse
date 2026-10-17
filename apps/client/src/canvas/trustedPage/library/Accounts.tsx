@@ -388,7 +388,14 @@ function RenameForm({
         <Button size="1" type="submit" disabled={saving}>
           Save
         </Button>
-        <Button size="1" type="button" variant="ghost" color="gray" onClick={() => onDone(false)}>
+        <Button
+          size="1"
+          type="button"
+          variant="ghost"
+          color="gray"
+          className="library-act"
+          onClick={() => onDone(false)}
+        >
           Cancel
         </Button>
       </Flex>
