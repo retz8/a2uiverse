@@ -898,3 +898,61 @@ No issue or PR proposed adding a catalog to a processor after it is built. Discu
 [#3160](https://github.com/a2ui-project/a2ui/discussions/3160) ("Federated Agentic UI: a component
 catalog assembled at runtime from micro frontends") has the same need; its demo loads every remote
 before the app starts, so its catalog is fixed for the session.
+
+---
+
+## 15. A function without an argument schema breaks `to_json`, and with it any processor of two or more catalogs (Python core)
+
+**Component:** Python core `python/a2ui_core/src/a2ui/core/catalog/catalog.py` on `upstream/main`
+`45633b97` — `Catalog._derive_model_entries` (line 2462, `unbundled(assembled_functions.get(name, {}))`)
+and `_function_document` (line 737, `document = dict(schema)`); reached from `Catalog.to_json`, from
+`Catalog._has_cross_document_refs` (line 1364) and so from `link_catalogs` (line 2889), which the
+`MessageProcessor` constructor calls (`python/a2ui_core/src/a2ui/core/processing/message_processor.py`).
+
+**Severity:** functional bug — a processor that holds a catalog with such a function and any other
+catalog cannot be built: `TypeError: 'NoneType' object is not iterable`.
+
+### Issue
+
+`FunctionImplementation` takes its argument schema as optional (`schema: Any = None`), and a
+function without one works: a single-catalog processor runs a call to it. But `validation_schema`
+records the function as `None` (`{'functions': {'greet': None}}`), and `to_json` passes that entry
+on: `assembled_functions.get(name, {})` returns the `None`, and `_function_document` calls
+`dict(None)`.
+
+`to_json` is called on more paths than serialization:
+
+- `link_catalogs` checks each catalog for cross-catalog `$ref`s through `to_json` whenever it is given
+  two or more catalogs, so since #3230 (2026-10-15) the `MessageProcessor` constructor raises for any
+  two catalogs one of which has such a function. `add_catalog` (#3304) raises the same way.
+- `get_renderer_capabilities` with `include_inline_catalogs` for v1.0 serializes each catalog with
+  `to_json`, so it raises even for one catalog.
+
+`to_json` itself has failed for such a catalog since #3130 (2026-10-13). Python core is the only SDK
+that allows the omission: web_core's `FunctionApi.schema` is a required `z.ZodTypeAny`, and Dart's
+`FunctionImplementation` requires `argumentSchema`. In the repository, six `FunctionImplementation`s
+in `python/a2ui_core/tests/test_processing.py` and `test_rpc.py` omit the schema, and the suite
+passes, so none of those tests reaches the failure.
+
+### Reproduction
+
+```python
+fn = FunctionImplementation(name="greet", execute=lambda a, c=None, s=None: "hi",
+                            allowed_callers="rendererOrAgent")
+a = Catalog(catalog_id="a", protocol_version="v1.0", components=[], functions=[fn])
+b = Catalog(catalog_id="b", protocol_version="v1.0", components=[])
+
+MessageProcessor([a])     # builds; a call to greet runs
+a.to_json()               # TypeError: 'NoneType' object is not iterable
+MessageProcessor([a, b])  # TypeError, from link_catalogs; the same for v0.9 catalogs
+```
+
+### Fix
+
+Give a function without an argument schema one definition in both views: a call whose `args` are
+unconstrained, written by `validation_schema` instead of `None` and by `to_json` from it. Or reject a
+missing schema at construction, as web_core and Dart do by type.
+
+### Prior art
+
+No issue or PR reports it. Found writing the `add_catalog` tests for #3304.
