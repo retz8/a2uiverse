@@ -20,6 +20,8 @@ are numbered per `a2ui-findings.md`.
 | Finding | What | Issue | PR |
 | --- | --- | --- | --- |
 | 3 | Basic catalog's CSS-module class maps are dead code (React renderer) | [#1307](https://github.com/a2ui-project/a2ui/issues/1307) (filed by another user) | [#2639](https://github.com/a2ui-project/a2ui/pull/2639) — ditman's review of 2026-09-28 addressed 2026-09-29; awaiting his second round |
+| 12 | v0.9.1 capabilities keyed `v0.9` by the schemas and Python agent SDK, `v0.9.1` by the guide and web_core | [#3134](https://github.com/a2ui-project/a2ui/issues/3134) | [#3135](https://github.com/a2ui-project/a2ui/pull/3135) — Varun-S10 verified the changes 2026-10-14 and asked for a rebase onto `main` to resolve a merge conflict; rebased 2026-10-17, awaiting review |
+| 14 | No way to add a catalog to a `MessageProcessor` after it is built (web_core, Python core, Dart core) | [#3303](https://github.com/a2ui-project/a2ui/issues/3303) | [#3304](https://github.com/a2ui-project/a2ui/pull/3304) — opened 2026-10-17, awaiting review |
 
 ## Closed
 

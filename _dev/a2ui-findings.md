@@ -182,9 +182,8 @@ carry classes at runtime.
 
 ### Fix
 
-Restore the class maps in the build (or inline literal class names), and export
-
-- import `v0_9/index.css` so the rules ship. Until then, downstream catalogs can
+Restore the class maps in the build (or inline literal class names), and export `v0_9/index.css`
+from `package.json` and import it so the rules ship. Until then, downstream catalogs can
   only style the basic components through element and structural selectors.
 
 ---
@@ -561,7 +560,9 @@ catalog that has no `Row`, every update carrying a placeholder is dropped instea
 
 **Reported:** `a2ui-project/a2ui` issue
 [#2924](https://github.com/a2ui-project/a2ui/issues/2924), PR
-[#2925](https://github.com/a2ui-project/a2ui/pull/2925) (in review).
+[#2925](https://github.com/a2ui-project/a2ui/pull/2925).
+
+**Resolved:** #2925 merged 2026-10-05.
 
 ### Issue
 
@@ -626,7 +627,9 @@ and `properties` apart.
 
 **Reported:** `a2ui-project/a2ui` issue
 [#2929](https://github.com/a2ui-project/a2ui/issues/2929), PR
-[#2930](https://github.com/a2ui-project/a2ui/pull/2930) (in review).
+[#2930](https://github.com/a2ui-project/a2ui/pull/2930).
+
+**Resolved:** #2930 merged 2026-10-05.
 
 ### Issue
 
@@ -693,8 +696,8 @@ serving a v0.9.1 catalog cannot negotiate: the agent raises on the renderer's ca
 v0.9.1 guide's own `a2uiClientCapabilities` example fails its schema.
 
 **Reported:** `a2ui-project/a2ui` issue
-[#3134](https://github.com/a2ui-project/a2ui/issues/3134); fix on `retz8:fix/v0_9_1-capabilities-key`,
-PR not opened yet.
+[#3134](https://github.com/a2ui-project/a2ui/issues/3134), PR
+[#3135](https://github.com/a2ui-project/a2ui/pull/3135) (in review).
 
 ### Issue
 
@@ -824,30 +827,39 @@ an empty container the catalog declares — instead of assuming `Row`.
 
 ---
 
-## 14. No way to add a catalog to a processor after it is built (web_core, Python core)
+## 14. No way to add a catalog to a processor after it is built (web_core, Python core, Dart core)
 
-**Component:** web_core `typescript/web_core/src/processing/message-processor.ts` on `upstream/main`
-`102ec1a0` — the constructor (`constructor(private catalogs: Catalog<any>[], …)`, the array handed on
-to `RpcHandler` as `catalogs: this.catalogs`) and `processCreateSurfaceOp`
-(`this.catalogs.find(c => c.id === catalogId)`, else `Catalog not found`); the same in the published
-`@a2ui/web_core` 0.10.6 (`v0_9/processing/message-processor.js`, `this.catalogs = catalogs`). Python
-core `python/a2ui_core/src/a2ui/core/processing/message_processor.py` (`self.catalogs = catalogs`).
+**Component:** `MessageProcessor` in web_core `typescript/core/web_core/src/processing/message-processor.ts`,
+Python core `python/a2ui_core/src/a2ui/core/processing/message_processor.py` and Dart core
+`dart/a2ui_core/lib/src/processing/processor.dart` on `upstream/main` `45633b97`. Each takes its
+catalogs in the constructor, links them there (`linkCatalogs` / `link_catalogs`), and hands the same
+list to its `RpcHandler`; `createSurface` looks a catalog up in that list, else `Catalog not found`.
 
 **Severity:** missing capability. Nothing breaks for a client that knows every catalog when it
 starts; a client that learns of one later has no supported way to render it.
 
+**Reported:** `a2ui-project/a2ui` issue
+[#3303](https://github.com/a2ui-project/a2ui/issues/3303), PR
+[#3304](https://github.com/a2ui-project/a2ui/pull/3304) (in review).
+
 ### Issue
 
 A `MessageProcessor` takes its catalogs once, in its constructor, and exposes nothing to add one: no
-method on the processor, none on `RpcHandler`, and the field is private. A catalog is looked up only
-when a `createSurface` names it, so the processor could take one later; the API gives it no way in.
+method on the processor, none on `RpcHandler`. A catalog is looked up only when a `createSurface`
+names it, so the processor could take one later; the API gives it no way in.
 
-A client whose catalogs arrive at runtime — one that installs an app, or loads a catalog the first
-time a surface needs it — is left with two options. It can build a new processor, which drops every
-surface the old one holds, or it can push into the array it handed the constructor, which works only
-because web_core keeps that array by reference rather than copying it. The second is what a client
-loading catalogs at runtime does today, and it depends on an implementation detail the type marks
-private.
+The catalogs a client can render are not always known when it builds its processor: a catalog loaded
+the first time a surface needs it, components that depend on the user's permissions, device, license
+or feature flags (Discussion #3160), or multi agent composition, where a session gains a catalog each
+time an agent joins. The protocol already lets the advertised set change, since the renderer attaches
+its capabilities to every message it sends. Building a new processor drops every surface the old one
+holds.
+
+Until `@a2ui/web_core` 0.13.0, a client could push into the array it handed the constructor, because
+web_core kept that array by reference. Since 0.14.0 (#3230, cross-catalog `$ref` resolution) the
+constructor links copies of the catalogs (`linkCatalogs` starts from `Array.from(catalogs)`), so that
+no longer works. The only way left is to push into the processor's `catalogs` field, which the type
+marks private and which skips the linking.
 
 Found building A2UIVerse's client, which loads every vendor catalog at runtime from its registry:
 each canvas's processor is built before the catalogs it will need are known.
@@ -855,14 +867,31 @@ each canvas's processor is built before the catalogs it will need are known.
 ### Reproduction
 
 Build a processor over an empty array, push a catalog into that same array, and send a
-`createSurface` naming it: the surface is created. Build it over a copy instead, or over a fresh array
-each time, and the same message throws `Catalog not found`. Nothing in the public API reaches the
-array the processor holds.
+`createSurface` naming it: with `@a2ui/web_core` 0.13.0 the surface is created; with 0.14.0 the same
+message throws `A2uiCatalogError: Catalog not found`. Pushing into `processor.catalogs` instead still
+creates the surface on 0.14.0.
 
 ### Fix
 
-Let a processor take a catalog after it is built: an `addCatalog(catalog)` on `MessageProcessor`
-that also reaches `RpcHandler`, or a resolver — `(catalogId) => Catalog | undefined` — accepted in
-place of the array, so a client can resolve catalogs as it loads them. Either keeps the processor's
-surfaces, and `getClientCapabilities`, which reads the catalogs when it is called, then lists the
-added catalogs too. A search of the repository's issues and pull requests found no prior proposal.
+`addCatalog(catalog)` on `MessageProcessor` (`add_catalog` in Python), in web_core, Python core and
+Dart core (PR #3304):
+
+- it rejects a catalog whose id the processor already holds with `A2uiCatalogError`;
+- it links the new catalog and the held catalogs to each other with `linkCatalogs`, as the
+  constructor does, so cross-catalog `$ref`s resolve in both directions; the catalog passed in is not
+  changed;
+- it writes the result into the processor's list in place, which the `RpcHandler` shares.
+
+`createSurface` and `getRendererCapabilities` read the list each time, so they see the catalog from
+the next call on. Surfaces created before the call keep the catalogs they were created with, left as
+an open question in the issue. Dart's processor cached validators, child-reference fields and
+composition rules by catalog id; they are keyed by catalog instance, since a linked copy replaces a
+held catalog of the same id. The shared conformance suite `conformance/core/add_catalog.yaml` runs in
+the web_core, Python and Dart harnesses; Swift core has no `addCatalog` and does not load it.
+
+### Prior art
+
+No issue or PR proposed adding a catalog to a processor after it is built. Discussion
+[#3160](https://github.com/a2ui-project/a2ui/discussions/3160) ("Federated Agentic UI: a component
+catalog assembled at runtime from micro frontends") has the same need; its demo loads every remote
+before the app starts, so its catalog is fixed for the session.
