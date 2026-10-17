@@ -370,7 +370,7 @@ describe('the list of your apps', () => {
     fake.states[1] = at('calendar', {
       state: 'card-update',
       publishedVersion: '1.1.0',
-      newScopes: [],
+      newScopes: [{scheme: 'google', scopes: ['read']}],
       builds: [{catalogId: 'x', installed: 'a', published: 'b'}],
     });
     renderWithShell(<Library initial={{page: 'appLibrary'}} />);
@@ -380,6 +380,20 @@ describe('the list of your apps', () => {
     expect(consent).toHaveTextContent('It also brings a new look for its answers.');
     expect(fake.installs).toEqual([]);
     await userEvent.click(within(consent).getByRole('button', {name: 'Update'}));
+    await waitFor(() => expect(fake.installs).toEqual(['calendar']));
+  });
+
+  it('a card update asking nothing new reads as a new version and goes straight through (task-14.11 decision 37)', async () => {
+    fake.states[1] = at('calendar', {
+      state: 'card-update',
+      publishedVersion: '1.1.0',
+      newScopes: [],
+      builds: [],
+    });
+    renderWithShell(<Library initial={{page: 'appLibrary'}} />);
+    await userEvent.click(await screen.findByRole('button', {name: 'Update Google Calendar'}));
+    expect(row('calendar')).toHaveTextContent('A new version is available');
+    expect(screen.queryByTestId('consent-card')).toBeNull();
     await waitFor(() => expect(fake.installs).toEqual(['calendar']));
   });
 

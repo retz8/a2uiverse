@@ -42,7 +42,7 @@ export function appStateView(
   const source = app.source ?? 'local';
   if (!update)
     return {kind: 'state', words: NOT_CHECKED_WORDS, tone: 'quiet', press: {kind: 'none'}};
-  const words = updateWords(update.state, source);
+  const words = updateWords(update, source);
   const act = updateAct(update);
   if (act?.kind === 'update') {
     const required = update.state === 'update-required';

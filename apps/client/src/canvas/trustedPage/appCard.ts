@@ -6,6 +6,8 @@
  */
 import {
   UPDATE_WORDS,
+  asksForMore,
+  stateWords,
   type InstallRefusal,
   type NewScopes,
   type PreviewDocument,
@@ -120,8 +122,8 @@ export function listingAct({installed, update}: StoreListing): ListingAct {
 
 /**
  * What an installed app's update state carries, in the Store and the App Library alike: an Update
- * — through the consent card for the update that asks for more — or the wait for the publisher;
- * nothing for every other state.
+ * — through the consent card for the update that asks for more (task-14.11 decision 37) — or the
+ * wait for the publisher; nothing for every other state.
  */
 export function updateAct(
   update: UpdateState,
@@ -130,12 +132,7 @@ export function updateAct(
     return {kind: 'waiting', words: UPDATE_WORDS['ahead-of-store']};
   }
   if (UPDATABLE.has(update.state)) {
-    return {
-      kind: 'update',
-      words: UPDATE_WORDS[update.state],
-      state: update,
-      consent: update.state === 'card-update',
-    };
+    return {kind: 'update', words: stateWords(update), state: update, consent: asksForMore(update)};
   }
   return undefined;
 }

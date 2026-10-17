@@ -58,9 +58,10 @@ describe('an app’s state as the App Library shows it', () => {
       ...base,
       state: 'card-update',
       publishedVersion: '1.1.0',
-      newScopes: [],
+      newScopes: [{scheme: 'google', scopes: ['write']}],
       builds: [],
     };
+    const nothingNew: UpdateState = {...card, newScopes: []};
     const required: UpdateState = {
       ...base,
       state: 'update-required',
@@ -71,6 +72,11 @@ describe('an app’s state as the App Library shows it', () => {
       words: 'An update that asks for more',
       tone: 'new',
       press: {kind: 'update', consent: true, primary: false},
+    });
+    expect(appStateView(app(), nothingNew, false)).toMatchObject({
+      words: 'A new version is available',
+      tone: 'new',
+      press: {kind: 'update', consent: false, primary: false},
     });
     expect(appStateView(app(), required, false)).toMatchObject({
       words: 'Needs an update to keep working',

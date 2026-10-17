@@ -6,6 +6,7 @@ import {
   SEARCH_QUERY_PARAM,
   UPDATE_STATES,
   artifactPath,
+  asksForMore,
   checkPublisherName,
   checkPublisherToken,
   entryPath,
@@ -22,6 +23,9 @@ import {
   updateWords,
   validateIndexEntry,
   validatePreview,
+  type NewScopes,
+  type UpdateState,
+  type UpdateStateKind,
 } from './marketplace';
 
 const card = {
@@ -224,11 +228,28 @@ describe('the wire bodies', () => {
 });
 
 describe("the update state's words (task-14.5 decisions 6 and 7)", () => {
+  /** A state of each kind with every detail it could carry; a card update asking for a scope. */
+  const of = (
+    state: UpdateStateKind,
+    newScopes: NewScopes[] = [{scheme: 'oauth', scopes: ['mail.read']}],
+  ) =>
+    ({
+      appId: 'shop-a',
+      installedVersion: '1.0.0',
+      state,
+      publishedVersion: '1.1.0',
+      catalogIds: [],
+      retired: [],
+      newCatalogIds: [],
+      newScopes,
+      builds: [],
+    }) as UpdateState;
+
   test('each state in the App Library words, and an app with none held not checked yet', () => {
     const words = Object.fromEntries(
       [...UPDATE_STATES, undefined].map(state => [
         String(state),
-        updateWords(state, 'marketplace'),
+        updateWords(state && of(state), 'marketplace'),
       ]),
     );
     expect(words).toEqual({
@@ -244,13 +265,21 @@ describe("the update state's words (task-14.5 decisions 6 and 7)", () => {
     });
   });
 
+  test('a card update asking nothing new reads as a new version, past no consent card (task-14.11 decision 37)', () => {
+    expect(updateWords(of('card-update', []), 'marketplace')).toBe('A new version is available');
+    expect(asksForMore(of('card-update', []))).toBe(false);
+    expect(asksForMore(of('card-update'))).toBe(true);
+    expect(asksForMore(of('card-update', [{scheme: 'apiKey', scopes: []}]))).toBe(true);
+    expect(asksForMore(of('major-update'))).toBe(false);
+  });
+
   test('an app from a local copy the Store does not list is installed from your computer', () => {
-    expect(updateWords('not-published', 'local')).toBe('Installed from your computer');
+    expect(updateWords(of('not-published'), 'local')).toBe('Installed from your computer');
   });
 
   test('an app from a local copy the Store lists reads its state', () => {
-    expect(updateWords('major-update', 'local')).toBe('A new version is available');
-    expect(updateWords('up-to-date', 'local')).toBe('Up to date');
+    expect(updateWords(of('major-update'), 'local')).toBe('A new version is available');
+    expect(updateWords(of('up-to-date'), 'local')).toBe('Up to date');
     expect(updateWords(undefined, 'local')).toBe('Not checked yet');
   });
 });

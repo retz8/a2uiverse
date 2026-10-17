@@ -572,16 +572,31 @@ export const NOT_CHECKED_WORDS = 'Not checked yet';
 export const LOCAL_COPY_WORDS = 'Installed from your computer';
 
 /**
+ * Whether an update asks for access the installed app does not have (task-14.11 decision 37): a
+ * card update naming a new scheme or scope. Only that update passes the consent card.
+ */
+export function asksForMore(update: UpdateState): boolean {
+  return update.state === 'card-update' && update.newScopes.length > 0;
+}
+
+/** An update state in words, a card update asking nothing new read as a new version. */
+export function stateWords(update: UpdateState): string {
+  return update.state === 'card-update' && !asksForMore(update)
+    ? UPDATE_WORDS['major-update']
+    : UPDATE_WORDS[update.state];
+}
+
+/**
  * An installed app's update state in words, from its state as last computed — none when nothing is
  * held for it — and where it was installed from.
  */
 export function updateWords(
-  state: UpdateStateKind | undefined,
+  update: UpdateState | undefined,
   source: 'marketplace' | 'local',
 ): string {
-  if (state === undefined) return NOT_CHECKED_WORDS;
-  if (state === 'not-published' && source === 'local') return LOCAL_COPY_WORDS;
-  return UPDATE_WORDS[state];
+  if (update === undefined) return NOT_CHECKED_WORDS;
+  if (update.state === 'not-published' && source === 'local') return LOCAL_COPY_WORDS;
+  return stateWords(update);
 }
 
 // --- The install's refusal --------------------------------------------------------------------

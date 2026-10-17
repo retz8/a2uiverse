@@ -74,7 +74,7 @@ export function installedApps(
       accounts: sources
         .of(record.id)
         .flatMap(({source, label}) => (label === undefined ? [] : [{source, label}])),
-      update: updateWords(state?.state, source),
+      update: updateWords(state, source),
       ...(state && held ? {checked: checkedAgo(held.checkedAt, now)} : {}),
     };
   });
