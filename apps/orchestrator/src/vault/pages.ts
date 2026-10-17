@@ -27,6 +27,7 @@ button.link { justify-self: start; padding: 0; border: 0; background: none; colo
 a.help { justify-self: start; color: var(--accent); }
 form { display: grid; gap: 16px; }
 label { display: grid; gap: 6px; font-weight: 500; }
+.opt { font-weight: 400; color: #6b6b72; }
 input { font: inherit; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px;
   background: var(--page); color: var(--ink); }
 button.go { font: inherit; padding: 10px 14px; border: 0; border-radius: 8px;
@@ -114,6 +115,8 @@ export function keyPage(params: {
   action: string;
   description?: string;
   helpUrl?: string;
+  /** A new account's name field, its hint the name it gets left blank (task-14.11 decision 36). */
+  name?: {placeholder: string; maxLength: number};
 }): string {
   const app = escapeHtml(params.app);
   const from = params.description
@@ -129,6 +132,9 @@ export function keyPage(params: {
     `<form method="post" action="${escapeHtml(params.action)}">` +
     `<input type="hidden" name="attempt" value="${escapeHtml(params.attempt)}">` +
     '<label>Paste your key<input name="key" type="password" autocomplete="off" spellcheck="false" required></label>' +
+    (params.name
+      ? `<label>Name this account <span class="opt">(optional)</span><input name="name" type="text" maxlength="${params.name.maxLength}" autocomplete="off" spellcheck="false" placeholder="${escapeHtml(params.name.placeholder)}"></label>`
+      : '') +
     '<button class="go" type="submit">Connect</button></form>';
   const script =
     "const w=document.getElementById('words'),b=document.getElementById('all');" +

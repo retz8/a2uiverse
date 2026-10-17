@@ -944,10 +944,58 @@ describe('the merge, key accounts, uninstall, secrets', () => {
     expect(ended).toContain("You're connected to Shop");
     expect(ended).toContain('This window closes in');
     expect(ended).toContain('Close now');
-    expect(orchestrator.vault.accountsOf('shop')).toEqual([{n: 1, label: 'Shop account 1'}]);
+    expect(orchestrator.vault.accountsOf('shop')).toEqual([{n: 1, label: 'Shop'}]);
 
     await collect(client, press('retry', 'shop.1', canvas));
     expect(vendors[0]!.requests.at(-1)!.apiKey).toBe('demo-key');
+  });
+
+  test('a key account is named on the token page, else after its app, else with the day it was connected (task-14.11 decision 36)', async () => {
+    const keyCard: Partial<AgentCard> = {
+      securitySchemes: {key: {type: 'apiKey', in: 'header', name: 'X-Api-Key'}},
+      security: [{key: []}],
+    };
+    const {base, client, orchestrator} = await boot({
+      apps: {shop: {card: keyCard, admit: () => true}},
+      plan: shopOnly,
+    });
+    const canvas = contextOf(await collect(client, utterance('my orders')));
+    const origin = new URL(base).origin;
+    const connect = async (key: string, name?: string) => {
+      const attempt = randomBytes(16).toString('base64url');
+      const start = await fetch(
+        `${base}/auth/start?attempt=${attempt}&canvas=${canvas}&source=shop`,
+        {
+          redirect: 'manual',
+        },
+      );
+      const cookie = (start.headers.get('set-cookie') ?? '').split(';')[0]!;
+      const page = await (
+        await fetch(new URL(start.headers.get('location')!, base), {headers: {cookie}})
+      ).text();
+      await fetch(`${base}/auth/key`, {
+        method: 'POST',
+        headers: {cookie, origin, 'Content-Type': 'application/x-www-form-urlencoded'},
+        body: new URLSearchParams({attempt, key, ...(name === undefined ? {} : {name})}).toString(),
+      });
+      return page;
+    };
+    const day = new Intl.DateTimeFormat('en-US', {month: 'short', day: 'numeric'}).format(
+      new Date(),
+    );
+
+    const first = await connect('key-one', '  ');
+    expect(first).toContain('Name this account');
+    expect(first).toContain('placeholder="Shop"');
+    expect(await connect('key-two')).toContain(`placeholder="Shop · connected ${day}"`);
+    await connect('key-three', 'Work');
+    await connect('key-four', 'work');
+    expect(orchestrator.vault.accountsOf('shop')).toEqual([
+      {n: 1, label: 'Shop'},
+      {n: 2, label: `Shop · connected ${day}`},
+      {n: 3, label: 'Work'},
+      {n: 4, label: `Shop · connected ${day} (4)`},
+    ]);
   });
 
   test('uninstall revokes each account where the server advertises it; the journal and the logs hold no secret', async () => {
@@ -1253,9 +1301,7 @@ describe("the App Library's side (task 14.3)", () => {
     expect((await accountsRead(base))[0]).toEqual({
       appId: 'shop',
       signIn: 'supported',
-      accounts: [
-        {source: 'shop.1', label: 'Shop account 1', kind: 'key', permissions: [], lapsed: false},
-      ],
+      accounts: [{source: 'shop.1', label: 'Shop', kind: 'key', permissions: [], lapsed: false}],
     });
     expect(await (await fromPage(base, '/auth/sign-out', {source: 'shop.1'})).json()).toMatchObject(
       {

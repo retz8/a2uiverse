@@ -23,7 +23,7 @@ import {logLine} from '../log.js';
 import {callerOf} from '../writeGuard.js';
 import {endPage, keyPage, refusedPage} from './pages.js';
 import {clientDocument, isSecureOrLocal, type ClientIdentity} from './oauth.js';
-import type {Attempt, AuthVault, SlotAsk} from './vault.js';
+import {KEY_NAME_MAX, type Attempt, type AuthVault, type SlotAsk} from './vault.js';
 
 export const AUTH_ROUTE_PREFIX = '/auth';
 export const CLIENT_DOCUMENT_PATH = '/client.json';
@@ -142,6 +142,10 @@ export function authRoutes(deps: AuthRoutesDeps): Router {
           ? {description: attempt.scheme.description}
           : {}),
         ...(help ? {helpUrl: help} : {}),
+        // A new account is named here; one connected again keeps its name (task-14.11 decision 36).
+        ...(attempt.purpose !== 'again' && !attempt.restore
+          ? {name: {placeholder: deps.vault.newKeyLabel(attempt.appId), maxLength: KEY_NAME_MAX}}
+          : {}),
       }),
     );
   });
@@ -155,7 +159,8 @@ export function authRoutes(deps: AuthRoutesDeps): Router {
     const id = typeof req.body?.attempt === 'string' ? req.body.attempt : '';
     const attempt = bound(req, deps.vault.attempt(id));
     if (!attempt || typeof req.body?.key !== 'string') return html(res, 400, refusedPage());
-    const ended = await deps.vault.submitKey(attempt, req.body.key);
+    const name = typeof req.body.name === 'string' ? req.body.name : undefined;
+    const ended = await deps.vault.submitKey(attempt, req.body.key, name);
     return html(res, 200, endPage(ended.state === 'signedIn', about(attempt)));
   });
 

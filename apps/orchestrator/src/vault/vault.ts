@@ -36,6 +36,11 @@ import {cardNeed, schemeOf, wordsFor, type SupportedScheme} from './schemes.js';
 import type {VaultAccount, VaultStore} from './store.js';
 
 /** Why a sign-in bound to an account fails once that account was signed out (task-14.3 decision 11). */
+
+/** The day a key account was connected, in its default label: "Oct 17" (task-14.11 decision 36). */
+const CONNECTED_DAY = new Intl.DateTimeFormat('en-US', {month: 'short', day: 'numeric'});
+/** The longest name the token page takes for a key account. */
+export const KEY_NAME_MAX = 60;
 export const SIGNED_OUT = 'this account was signed out';
 /** A refresh is due when the token has less than this left (task-12.5 decision 8). */
 export const REFRESH_MARGIN_MS = 60_000;
@@ -737,8 +742,32 @@ export class AuthVault implements AccountStore {
     await this.#deps.store.save();
   }
 
-  /** A key pasted on the token page (task-12.5 decision 9). */
-  async submitKey(attempt: Attempt, key: string): Promise<Attempt> {
+  /**
+   * The label a new key account of `appId` gets (task-14.11 decision 36): the name the person
+   * typed on the token page, else the app's name, else with the day it was connected, else with its
+   * number too — the first of them no other of the app's accounts holds, ignoring case.
+   */
+  #keyLabel(appId: string, n: number, typed?: string, account?: VaultAccount): string {
+    const taken = new Set(
+      this.#deps.store
+        .app(appId)
+        .accounts.filter(held => held !== account)
+        .map(held => held.label.toLowerCase()),
+    );
+    const app = this.#deps.displayName(appId);
+    const day = `${app} · connected ${CONNECTED_DAY.format(new Date())}`;
+    return (
+      [typed, app, day].find(label => label && !taken.has(label.toLowerCase())) ?? `${day} (${n})`
+    );
+  }
+
+  /** What a key account connected now would be called, with no name of the person's: the token page's hint. */
+  newKeyLabel(appId: string): string {
+    return this.#keyLabel(appId, this.nextAccount(appId));
+  }
+
+  /** A key pasted on the token page (task-12.5 decision 9), with the name the person gave it, if any. */
+  async submitKey(attempt: Attempt, key: string, name?: string): Promise<Attempt> {
     if (attempt.state !== 'pending' || attempt.scheme.kind === 'oauth') return attempt;
     const secret = key.trim();
     if (secret === '') return this.#fail(attempt, 'no key was pasted');
@@ -766,7 +795,10 @@ export class AuthVault implements AccountStore {
         scopes: [],
       };
       this.#add(attempt, account);
-      account.label = `${this.#deps.displayName(attempt.appId)} account ${account.n}`;
+      const typed = name?.trim().slice(0, KEY_NAME_MAX) || undefined;
+      account.label = this.#keyLabel(attempt.appId, account.n, typed, account);
+      // The person's own name stays theirs, as a rename does (task-14.3 decision 3).
+      if (typed && account.label === typed) account.named = true;
     }
     account.scheme = attempt.scheme.key;
     account.kind = attempt.scheme.kind;
