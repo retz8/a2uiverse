@@ -98,7 +98,7 @@ The modes differ in exactly one place. `deterministic` uses a different executor
 
 That includes the **agent card**. One card describes the agent in every mode, because the mode is a launch detail. A card describing "the no-model demo harness" would describe something no user asks for, and A2UIVerse's Router, which ranks agents by their cards, would rank it against nothing.
 
-The model defaults to `gemini-3.7-flash`. The `MODEL_NAME` environment variable wins over the config's `model`, which wins over that default.
+The model defaults to `gemini-3.8-flash`. The `MODEL_NAME` environment variable wins over the config's `model`, which wins over that default.
 
 ### 3. Model writes A2UI as text, streamed, then checked
 
@@ -128,7 +128,7 @@ Setting `A2UI_RECORD_DIR` arms two recorders at once: one keeps every MCP result
 
 ```bash
 A2UI_RECORD_DIR=.recordings uv run python -m app --mode live --host localhost
-uv run python scripts/record_beats.py --model gemini-3.7-flash
+uv run python scripts/record_beats.py --model gemini-3.8-flash
 uv run python scripts/derive_corpus.py
 ```
 

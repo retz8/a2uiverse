@@ -250,7 +250,7 @@ Strategy: v1 implements with the small wrapper package and is proposed to the co
   - `samples/community/agent/adk/`: seven ADK agents.
   - `samples/community/mcp/`: four samples using MCP as the transport.
   - Sample clients: Lit, Angular, React, Flutter.
-- **The A2UIVerse agent kit:** Python, on upstream's `a2ui-agent-sdk` (schema manager, parser, streaming parser, validator), ADK, `a2a-sdk`, and MCP through ADK's MCP toolset, defaulting to `gemini-3.7-flash`. It calls upstream's parsing functions directly, not only the inference-format classes.
+- **The A2UIVerse agent kit:** Python, on upstream's `a2ui-agent-sdk` (schema manager, parser, streaming parser, validator), ADK, `a2a-sdk`, and MCP through ADK's MCP toolset, defaulting to `gemini-3.8-flash`. It calls upstream's parsing functions directly, not only the inference-format classes.
 
 ## v1 coverage
 

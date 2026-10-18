@@ -6,7 +6,7 @@ Research gathered on 2026-10-09 for Phase 17, the vendor-agent model trial. Two 
 
 ## 1. Where the time goes today
 
-Every model call runs on `gemini-3.7-flash`. The orchestrator's Planner and Synthesizer run at low effort, thinking budget zero. The agent kit's vendor agents run with thinking on.
+Every model call runs on `gemini-3.8-flash`. The orchestrator's Planner and Synthesizer run at low effort, thinking budget zero. The agent kit's vendor agents run with thinking on.
 
 | Measurement | Value | Where recorded |
 | --- | --- | --- |
