@@ -19,11 +19,11 @@ A2UIVerse is a professional project, not done, and takes feedback from any devel
 
 ### 2. The community proposal is the last phase
 
-A2UIVerse is not proposed to the A2UI community now. The proposal is Phase 18, the last phase, carrying the one short live demo of independent agents composed into one application, the guide to bringing your own agent, and the proposal itself from the upstream candidates in SPEC's protocol delta register.
+A2UIVerse is not proposed to the A2UI community now. The proposal is Phase 20, the last phase, carrying the one short live demo of independent agents composed into one application, the guide to bringing your own agent, and the proposal itself from the upstream candidates in SPEC's protocol delta register.
 
 ### 3. The outside agent composes in the ecosystem run
 
-An A2UI agent built outside A2UIVerse composing as it is belongs to Phase 16: the new app of the ecosystem run is an upstream A2UI sample agent, installed unchanged through the Store.
+An A2UI agent built outside A2UIVerse composing as it is belongs to Phase 18: the new app of the ecosystem run is an upstream A2UI sample agent, installed unchanged through the Store.
 
 ### 4. The v1.0 migration is gated on upstream's renderers
 
@@ -31,7 +31,7 @@ The migration fires when `@a2ui/react` and `@a2ui/web_core` ship v1.0 support, n
 
 ### 5. v1.0 soft migration before the proposal
 
-Phase 17, the v1.0 soft migration, runs only if the v1.0 migration has not landed by then. A2UIVerse supports both v1.0 and v0.9.1 at its agent-facing edge: a v1.0 agent is accepted beside v0.9.1 ones, v1.0 possibly not fully functioning, as the mark that A2UIVerse plans to migrate to v1.0 once upstream is ready. The delta register and the proposal are written in v1.0's vocabulary.
+Phase 19, the v1.0 soft migration, runs only if the v1.0 migration has not landed by then. A2UIVerse supports both v1.0 and v0.9.1 at its agent-facing edge: a v1.0 agent is accepted beside v0.9.1 ones, v1.0 possibly not fully functioning, as the mark that A2UIVerse plans to migrate to v1.0 once upstream is ready. The delta register and the proposal are written in v1.0's vocabulary.
 
 ### 6. The gated migration sits outside the numbered ladder
 
@@ -80,4 +80,4 @@ GitHub Discussions is turned on for `a2uiverse` only; `a2uiverse-apps` points th
 ## Open items
 
 - Whether Gmail and Calendar share one catalog or get one each — the Gmail and Calendar sub-task's grill.
-- What the community proposal phase does with its demo, guide and proposal, and whether the ecosystem run's recording is re-shot after a late migration — Phase 18's grill.
+- What the community proposal phase does with its demo, guide and proposal, and whether the ecosystem run's recording is re-shot after a late migration — Phase 20's grill.

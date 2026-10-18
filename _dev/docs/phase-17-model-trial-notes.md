@@ -1,6 +1,6 @@
-# Phase 19 notes — vendor-agent model candidates and A2UI-unique prompts
+# Phase 17 notes — vendor-agent model candidates and A2UI-unique prompts
 
-Research gathered on 2026-10-09 for Phase 19, the vendor-agent model trial. Two parts: the candidate models for the trial, with their sources, and the prompts that exercise what only a composition across independent agents can answer.
+Research gathered on 2026-10-09 for Phase 17, the vendor-agent model trial. Two parts: the candidate models for the trial, with their sources, and the prompts that exercise what only a composition across independent agents can answer.
 
 ---
 

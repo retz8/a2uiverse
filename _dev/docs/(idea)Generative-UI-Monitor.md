@@ -90,7 +90,7 @@ Signature features are marked ★. Each group names the part that owns it.
 
 ## Where to start
 
-Spectra first: the two taps and the four-pane turn view beside an agent in development, with one-click fixture and counterfactual replay as its two signature features. It can begin the moment the Phase 19 model-trial harness is written as a reusable module rather than a script, since that trial is counterfactual replay done by hand. Observatory follows at Phase 17 of A2UIVerse, in parallel with the ladder, when v1.0's extensions give the renderer tap a conformant home and the Phase 18 proposal has a second exhibit: not only a host that composes A2UI agents, but how an A2UI agent is operated.
+Spectra first: the two taps and the four-pane turn view beside an agent in development, with one-click fixture and counterfactual replay as its two signature features. It can begin the moment the Phase 17 model-trial harness is written as a reusable module rather than a script, since that trial is counterfactual replay done by hand. Observatory follows at Phase 17 of A2UIVerse, in parallel with the ladder, when v1.0's extensions give the renderer tap a conformant home and the Phase 18 proposal has a second exhibit: not only a host that composes A2UI agents, but how an A2UI agent is operated.
 
 ## Raw material in hand
 
@@ -109,4 +109,4 @@ Spectra first: the two taps and the four-pane turn view beside an agent in devel
 ## Related
 
 - `_dev/docs/(idea)A2UI-Agent-Widget-Layer.md` — the widget library Observatory maintains: authored by the vendor's designers in upstream's macro format; retrieval, fill and coverage telemetry derived from recordings.
-- `_dev/docs/phase-19-model-trial-notes.md` — the model trial, an instance of counterfactual replay done by hand; the upstream threads; the A2UI-unique prompts.
+- `_dev/docs/phase-17-model-trial-notes.md` — the model trial, an instance of counterfactual replay done by hand; the upstream threads; the A2UI-unique prompts.

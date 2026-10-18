@@ -76,4 +76,4 @@ Absent from all of them: selection by retrieval over recorded requests, the fill
 ## Related
 
 - `_dev/docs/(idea)Generative-UI-Monitor.md` — A2UIVerse Spectra and Observatory, the DevTool and Monitor that maintain the library: fall-through, misfit, the intent by shape matrix, the review queue, goldens.
-- `_dev/docs/phase-19-model-trial-notes.md` — where the time goes today, the model candidates, the upstream threads on generation versus deterministic UI, the A2UI-unique prompts.
+- `_dev/docs/phase-17-model-trial-notes.md` — where the time goes today, the model candidates, the upstream threads on generation versus deterministic UI, the A2UI-unique prompts.

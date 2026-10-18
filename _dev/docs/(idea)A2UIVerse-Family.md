@@ -82,11 +82,11 @@ SPEC §13: a vendor's agent depends on the protocols and the agent kit alone; it
 
 ## The cold start
 
-The family is worth nothing until agents exist. Today's five agents are built on other companies' MCP servers: reference apps, not products. The first real vendor is the early game. The Phase 18 proposal is for that, and Spectra exists before it: a vendor who can see their agent will build one, and the platform where it composes with others is then the obvious place to list it.
+The family is worth nothing until agents exist. Today's five agents are built on other companies' MCP servers: reference apps, not products. The first real vendor is the early game. The Phase 20 proposal is for that, and Spectra exists before it: a vendor who can see their agent will build one, and the platform where it composes with others is then the obvious place to list it.
 
 ## Order of appearance
 
-Stellify exists. Spectra starts when the Phase 19 model-trial harness is written as a module rather than a script. Observatory starts at Phase 17, in parallel with the ladder. The Electron shell is Phase 18's milestone; the marketplace index and publish step are Phases 13 to 15.
+Stellify exists. Spectra starts when the Phase 17 model-trial harness is written as a module rather than a script. Observatory starts at Phase 19, in parallel with the ladder. The Electron shell is Phase 20's milestone; the marketplace index and publish step are Phases 13 to 15.
 
 ## The metaphor: today's software stack, mapped
 
@@ -124,5 +124,5 @@ A browser company that also sells the devtools, which nobody has done, because b
 
 - `_dev/docs/(idea)Generative-UI-Monitor.md` — A2UIVerse Spectra and Observatory.
 - `_dev/docs/(idea)A2UI-Agent-Widget-Layer.md` — the authored widget library and the agent's choose-and-fill inference.
-- `_dev/docs/phase-19-model-trial-notes.md` — the model trial, the upstream threads, the A2UI-unique prompts.
+- `_dev/docs/phase-17-model-trial-notes.md` — the model trial, the upstream threads, the A2UI-unique prompts.
 - `SPEC.md` §1 and §13 — the differentiator and the repositories' dependency rule.
