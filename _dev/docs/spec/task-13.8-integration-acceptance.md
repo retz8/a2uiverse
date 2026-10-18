@@ -43,6 +43,8 @@ Linear carries the catalog shared by two apps, the newer builds and the card upd
 
 The kit's card names one catalog id, from its one `catalog.json`. For the major update, a temporary patch in Shop A's entry point makes its card name the old catalog id and a new one while the agent keeps painting in the old; a copy of its catalog packed under the new id is handed at publish. The kit's one-id limit — a kit app cannot keep an old line beside a new one, so every catalog-id change on the kit retires the line — is recorded as a finding under Phase 15's migration window.
 
+*Amended by Phase 15 decision 14.* The kit's card can name an old catalog id beside a new one, and the kit paints each answer in whichever of them the hub advertises, so a kit app ships a breaking catalog change as a suggested update; the one-id limit is lifted.
+
 ### 7. The secret sweep covers the marketplace
 
 The sweep collects every publisher file's token it finds — the launcher's, and any given to it — beside the vault's and the agents' secrets, and searches the marketplace's state folder and its output by default, the folder resolved as the marketplace resolves its own. Committed and tested before the sitting. It runs after the publish of the roster and again at the end.
@@ -130,6 +132,8 @@ A schema change published at a catalog id is not taken back by a later publish a
 ### 27. Ahead of the Store with a scope added, the slot asks for it
 
 The orchestrator judges a slot's access against the live card it fetched. In Linear's ahead-of-the-Store window, its live card asking `issues.write` beside `issues.read`, Linear's slot takes the needs-more-access tile with no call to the agent, before the Store has the card. What the canvas says for an app ahead of the Store is recorded as a finding for Phase 15's pre-dispatch check. Replaced: decision 13's Linear still composing on its installed card in that window.
+
+*Replaced by Phase 15 decision 12.* A slot's access is judged against the card as installed; the live card is read only to see that the app has changed. An app ahead of the Store whose live card asks a new permission takes the update tile's waiting line, "has changed, and the Store is waiting on its publisher", and the permission is asked only through the update's consent card once the Store has the card.
 
 ### 28. A merged column is computed by the operator its words name
 

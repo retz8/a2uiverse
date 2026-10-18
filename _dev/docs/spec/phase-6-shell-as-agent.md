@@ -47,6 +47,8 @@ The shell answers what A2UIVerse is and what is there. Every *how* that changes 
 
 When the Planner judges that nothing installed serves the utterance — the platform's card included — it names the gap as a prose entry in the dispatch list, beside the sources, and places a `Slot` for it in the tree. The painter fills a gap slot with the fixed capability tile, no model wording in it, no model call; the tile's action is decision 7's "open the Store" carrying the capability as query. A platform question ("how do I add apps here?") is not a gap: the platform's card matches it and the Planner answers. The Planner chooses where a gap sits; the shell chooses what it looks like and says.
 
+*Amended by Phase 15 decisions 1–6.* The Planner searches the marketplace through the tool set it provides and names, beside the gap's words, the apps it offers, each with the request written to it; the painter fills the gap slot with the offer — each app by name and publisher with Install, drawn from the marketplace's entries, More in the Store opening the Store on the words — installed there through the consent card and resumed in place. With nothing to offer, one quiet line in the shell's words, with Search the Store.
+
 ### 7. The shell's actions are a closed set, declared in the shell catalog, journaled
 
 Two actions: **open the Store**, with an optional query, and **open the App Library**. They are declared in the shell catalog's schema as the actions a shell surface may raise, so the validator rejects any other name in the Planner's tree. A shell-source action is handled by the client locally, no turn. The Store and the App Library are an overlay over the canvas; until Phase 14 builds them, the client opens a placeholder overlay naming the page and the query and reports the action to the orchestrator as an action turn so the journal records the intent. The capability tile and the model's button share the one action and the one landing.
@@ -84,5 +86,5 @@ Not in the list: tile wording beyond a minimal line (Phase 15), the pages themse
 
 ## Open items
 
-- What the capability tile says beyond a minimal line, and whether a gap slot collapses or stands — Phase 15's grill, as the backlog records.
+- What the capability tile says beyond a minimal line, and whether a gap slot collapses or stands — decided in Phase 15 (decisions 1–6): the slot holds the offer, and with nothing to offer it stands as one quiet line in the shell's words, with Search the Store.
 - The streaming sub-task, conditional on the first-paint measurement (decision 9).

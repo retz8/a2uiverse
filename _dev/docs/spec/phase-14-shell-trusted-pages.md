@@ -111,6 +111,8 @@ The App Library's uninstall asks once, saying it also signs the app's accounts o
 
 Installed, or the update waiting, in place of Install. Nothing opens the app from the Store; asking does.
 
+*Amended by Phase 15 decision 5.* An install on the Store page opened from an offer's More in the Store fills that offer's slot, beneath the page; the question that raised the gap is the asking.
+
 ### 21. Every act on the page is journaled
 
 Install, update, uninstall, sign-out, rename, publish, unpublish.

@@ -41,6 +41,8 @@ The client keeps the artifact it first loaded for a catalog id. An install-over 
 
 *Amended by task 14.7 decision 1 and task 14.11 decision 39.* A build is loaded once for the page, by its artifact id, and each canvas keeps the first build of each catalog id it loaded, its components and its look: a canvas started after an install or update moved a catalog to a new build loads the new one, and canvases already on screen keep what they show. Each surface of a loaded build is marked with its artifact id, and a stylesheet inside an artifact is held to that build's surfaces — read as text, its relative addresses made whole against its own, its rules wrapped as written in an `@scope` rooted at the build's mark and adopted onto the page in the order the artifact asked for them; fonts, keyframes, a layer order and rules aimed at `:root`, `html` or `body` stay page-wide. A browser without `@scope` takes a link per sheet.
 
+*Amended by Phase 15 decision 13.* A paint is drawn in the build of its catalog the registry holds when the paint arrives; a surface already on screen keeps the build it was drawn in, and so does a paint the way back returns to. A canvas no longer holds the first build of each catalog id it loaded: one open across an install that moved a catalog to a new build keeps what it shows and draws every later paint in the new build.
+
 ### 7. The cache is the session's
 
 Loaded artifacts are held in memory by artifact id, beside the browser's own module map, for the session. Nothing persists across reloads beyond what the HTTP cache keeps; through the tunnel, whose `Cache-Control: no-cache,no-store` rides beside the orchestrator's immutable header, a reload fetches every artifact again, as the tunnel document records.
