@@ -93,6 +93,11 @@ export class Sources {
   name(source: string): string {
     return sourceName(this.displayName(source), this.account(source));
   }
+
+  /** The app's card as installed; none when the app is not installed (task-15.4 decision 10). */
+  installedCard(appId: string): AgentCard | undefined {
+    return this.#registry.storedCard(appId);
+  }
 }
 
 /**

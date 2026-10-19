@@ -4,6 +4,7 @@ import {clipPaintMetaTitle, type OperationKind, type SynthesisPayload} from '@a2
 import type {
   AuthorityCause,
   FailureCause,
+  OfferNoneCause,
   SlotCallFailed,
   SlotCollapse,
 } from '@a2uiverse/shell-catalog/schema';
@@ -21,6 +22,7 @@ import {
   type LayoutSurface,
 } from '../planner/document.js';
 import type {Sources} from '../accounts/accounts.js';
+import type {SearchRecord} from '../planner/storeSearch.js';
 import {SHELL_SOURCE_ID} from '../registry/types.js';
 import {SYNTHESIS_DISPLAY_NAME} from './constants.js';
 import {History} from './history.js';
@@ -150,6 +152,40 @@ export interface AddingAccount {
   scopes: string[];
 }
 
+/**
+ * An app a gap offers (task-15.4 decision 8): as its row shows it, from the entry this plan's
+ * search returned, and the request the Planner wrote to it — none for an install asked with
+ * nothing else, kept on the orchestrator.
+ */
+export interface OfferedApp {
+  appId: string;
+  name: string;
+  publisher: string;
+  description: string;
+  request?: string;
+}
+
+/** What a gap's slot became once `useApp` filled it (task-15.4 decisions 11, 12). */
+export type GapFill =
+  /** The app's slot, under its source: dispatched, or taking its sign-in. */
+  | {kind: 'source'; appId: string; source: string}
+  /** The account choice, the app holding two or more accounts by the press. */
+  | {kind: 'choice'; appId: string}
+  /** An offer with no request: the app installed, one of its card's example questions. */
+  | {kind: 'installed'; appId: string; name: string; example?: string};
+
+/**
+ * A capability gap (phase-15 decisions 3, 6): its words, the apps it offers in the Planner's
+ * order — or, offering none, why, from the record of the search its words name — and, once
+ * filled, what its slot became.
+ */
+export interface GapEntry {
+  words: string;
+  offers: OfferedApp[];
+  none?: OfferNoneCause;
+  filled?: GapFill;
+}
+
 /** The app's accounts already added, by label, as the tile lists them. */
 export function addedAccounts(sources: Sources, appId: string): AddingAccount['accounts'] {
   return sources
@@ -180,9 +216,10 @@ export interface OwedPress {
   /**
    * The presses that owe the merge a call, the walk after a press inside a fragment, and a step
    * in a fragment’s history (task 9.4) — a walk with the step’s name on it; a close (task 9.3),
-   * a dismiss (task 12.2) and an account chosen (task 12.6) owe none.
+   * a dismiss (task 12.2), an account chosen (task 12.6) and an app used on an offer (task 15.4),
+   * whose arrival a Retry's owes, owe none.
    */
-  kind: Exclude<OperationKind, 'close' | 'dismiss' | 'useAccount'> | 'walk';
+  kind: Exclude<OperationKind, 'close' | 'dismiss' | 'useAccount' | 'useApp'> | 'walk';
   sink: Sink;
   /** Settles with what became of the call it was made in. */
   resolve(end: SynthesisEnd): void;
@@ -242,8 +279,8 @@ export interface CompositionState {
   requestMetadata?: Message['metadata'];
   /** Keyed by source (task-6.3 decision 6), in dispatch order. */
   slots: Map<string, SlotEntry>;
-  /** The capability gaps the Planner named, in dispatch order; each has a `Slot` in the tree. */
-  gaps: string[];
+  /** The capability gaps the Planner named, by their words, in dispatch order; each has a `Slot` in the tree. */
+  gaps: Map<string, GapEntry>;
   /** The account choices the Planner asked, by app; each has a `Slot` in the tree (task 12.6). */
   choices: Map<string, AccountChoice>;
   /** The add-account tiles the Planner placed, by app; each is a `Slot` in the tree (task-12.13 decision 27). */
@@ -330,9 +367,10 @@ export function compositionFrom(
     parent?: string;
     openedAt?: number;
   } = {turnId: ''},
+  searches: readonly SearchRecord[] = [],
 ): CompositionState {
   const slots = new Map<string, SlotEntry>();
-  const gaps: string[] = [];
+  const gaps = new Map<string, GapEntry>();
   const choices = new Map<string, AccountChoice>();
   const adding = new Map<string, AddingAccount>();
   for (const component of layout.tree.components) {
@@ -350,7 +388,7 @@ export function compositionFrom(
   const join = merged && isSourceDispatch(merged) ? merged.join : undefined;
   for (const entry of layout.dispatch) {
     if (isGap(entry)) {
-      gaps.push(entry.gap);
+      gaps.set(entry.gap, gapEntry(entry.gap, entry.offers, searches));
       continue;
     }
     if (isAccountChoice(entry)) {
@@ -403,6 +441,76 @@ export function compositionFrom(
     operations: new Set(),
     retired: new AbortController(),
   };
+}
+
+/**
+ * A gap as its slot shows it (task-15.4 decisions 3, 8): each app offered drawn from the entry
+ * this plan's searches returned for it, the request beside it; offering none, the line's cause
+ * from the record of the search its words name — unreached, or nothing found.
+ */
+function gapEntry(
+  words: string,
+  offers: readonly {app: string; request?: string}[],
+  searches: readonly SearchRecord[],
+): GapEntry {
+  const found = (appId: string) =>
+    searches
+      .findLast(({apps}) => apps.some(app => app.appId === appId))
+      ?.apps.find(app => app.appId === appId);
+  const offered = offers.flatMap(({app, request}): OfferedApp[] => {
+    const entry = found(app);
+    if (!entry) return [];
+    const {name, publisher, description} = entry;
+    return [{appId: app, name, publisher, description, ...(request ? {request} : {})}];
+  });
+  if (offered.length > 0) return {words, offers: offered};
+  const search = searches.findLast(record => record.words === words);
+  return {words, offers: [], none: search && !search.reached ? 'unreached' : 'nothing'};
+}
+
+/**
+ * An app pressed on a gap's offer, installed by then (task-15.4 decisions 10–12): what the gap's
+ * slot becomes — the app's slot under the source a dispatch would take, pending, its request the
+ * offer's; the account choice holding that request, for an app with two or more accounts; or, for
+ * an offer with no request, the installed line. Undefined when the gap is not here, is filled, or
+ * did not offer the app.
+ */
+export function fillGap(
+  state: CompositionState,
+  sources: Sources,
+  words: string,
+  appId: string,
+  installedCard: {name: string; example?: string},
+): GapFill | undefined {
+  const gap = state.gaps.get(words);
+  if (!gap || gap.filled) return undefined;
+  const offer = gap.offers.find(app => app.appId === appId);
+  if (!offer) return undefined;
+  if (offer.request === undefined) {
+    gap.filled = {
+      kind: 'installed',
+      appId,
+      name: installedCard.name,
+      ...(installedCard.example !== undefined ? {example: installedCard.example} : {}),
+    };
+    return gap.filled;
+  }
+  const held = sources.of(appId).filter(({notSignedIn}) => !notSignedIn);
+  if (held.length >= 2) {
+    state.choices.set(appId, {
+      request: offer.request,
+      displayName: sources.displayName(appId),
+      accounts: held.map(({source, label}) => ({source, label: label ?? source})),
+    });
+    gap.filled = {kind: 'choice', appId};
+    return gap.filled;
+  }
+  // The account a dispatch takes: the one held, the bare app id, or the next one, not signed in.
+  const source = held[0]?.source ?? sources.of(appId)[0]?.source ?? appId;
+  if (state.slots.has(source)) return undefined;
+  state.slots.set(source, {plan: slotPlan(sources, source, offer.request), state: 'pending'});
+  gap.filled = {kind: 'source', appId, source};
+  return gap.filled;
 }
 
 /** A slot's plan: the source's names, its request, and what the merged view's entry carries. */

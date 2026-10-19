@@ -34,9 +34,11 @@ export function describe(message: Message, source?: string): Description {
     const named = operation.kind === 'tryAgain' ? 'try again' : operation.kind;
     const sources = operation.sources.join(', ');
     const step = operation.kind === 'step' ? ` to ${operation.step}` : '';
+    // The gap a useApp fills (task-15.4 decision 15): "useApp shop-b on gap 'camera prices'".
+    const gap = operation.kind === 'useApp' ? ` on gap '${operation.gap}'` : '';
     return {
       kind: 'operation',
-      descriptor: sources ? `${named} ${sources}${step}` : named,
+      descriptor: sources ? `${named} ${sources}${step}${gap}` : named,
       payload: operation,
     };
   }

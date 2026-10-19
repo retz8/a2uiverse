@@ -5,12 +5,14 @@
  * hypothesis over fixture cards (task-7.6 decision 2); a command over the same cards that one agent
  * answers alone, and a status question in one app's own noun merged over every agent holding a part
  * of it (task-7.8 decision 16); a platform answer that calls one reader and templates its
- * result; whether anything is out of date (task 14.5); a capability gap; and an account choice
+ * result; whether anything is out of date (task 14.5); a capability gap offered from the Store, a
+ * merged view beside an offer and an install asked for (task 15.4); and an account choice
  * (task 12.6). The examples teach form; the rules doc
  * (`planner.md`) teaches the vocabulary and the rules. Their trees are authored against the
  * Planner's pruned shell catalog; its tests put each through the whole validator.
  */
 import type {LayoutSurface} from './document.js';
+import {SEARCH_TOOL, type StoreApp} from './storeSearch.js';
 
 export interface ExampleAgent {
   appId: string;
@@ -23,6 +25,8 @@ export interface ExampleAgent {
 
 export interface ReaderCall {
   reader: string;
+  /** What the call was given: the words, for the Store's search. */
+  args?: unknown;
   result: unknown;
 }
 
@@ -32,7 +36,7 @@ export interface LayoutExample {
   intent: string;
   /** The cards shown for the turn; `shell` is the platform's own. */
   agents: ExampleAgent[];
-  /** The readers the example consulted, and what they returned. */
+  /** The readers — and the Store's search — the example consulted, and what they returned. */
   readers?: ReaderCall[];
   output: LayoutSurface;
 }
@@ -475,17 +479,141 @@ export const OUT_OF_DATE_ANSWER: LayoutExample = {
   },
 };
 
-/** A capability gap: nothing installed serves it, so one gap slot and nothing else — the tile is the shell's. */
+const SKYWAY: StoreApp = {
+  appId: 'skyway',
+  name: 'Skyway',
+  publisher: 'skyway-travel',
+  description: 'Searches flights across airlines and books the one you choose.',
+  skills: [
+    {
+      name: 'Find flights',
+      description: 'Finds flights between two cities on a date, with times and fares.',
+      examples: ['Find me a flight to Tokyo on Monday'],
+    },
+  ],
+};
+
+/**
+ * A capability gap (task-15.4 decisions 1–3): nothing installed serves it, so the Store is
+ * searched, the gap named by the words searched, and the app found offered with the request it
+ * will receive once installed — the offer is the shell's to draw.
+ */
 export const CAPABILITY_GAP: LayoutExample = {
   name: 'capability-gap',
   intent: 'Book me a flight to Seoul next Friday.',
   agents: [PLATFORM, GMAIL],
+  readers: [{reader: SEARCH_TOOL, args: {words: 'flight booking'}, result: {apps: [SKYWAY]}}],
   output: {
-    dispatch: [{gap: 'flight booking'}],
+    title: 'Flight to Seoul',
+    dispatch: [
+      {
+        gap: 'flight booking',
+        offers: [
+          {
+            app: 'skyway',
+            request:
+              'Find flights to Seoul next Friday, with their departure and arrival times and fares, for me to choose one to book.',
+          },
+        ],
+      },
+    ],
     tree: {
       components: [
         {id: 'root', component: 'Column', children: ['flights']},
         {id: 'flights', component: 'Slot', gap: 'flight booking'},
+      ],
+    },
+    dataModel: {},
+  },
+};
+
+const BREWHAUS: ExampleAgent = {
+  appId: 'brewhaus',
+  name: 'Brewhaus',
+  description: 'A coffee equipment shop: espresso machines and grinders in stock, with prices.',
+  skills: [{name: 'Catalog', description: 'Lists the machines in stock with their prices.'}],
+};
+
+const CREMA: StoreApp = {
+  appId: 'crema-co',
+  name: 'Crema & Co',
+  publisher: 'crema',
+  description: 'An espresso specialist listing the machines it stocks, with live prices.',
+  skills: [
+    {
+      name: 'Machines in stock',
+      description: 'Lists espresso machines in stock with model names and prices.',
+      examples: ['Which espresso machines do you have under $800?'],
+    },
+  ],
+};
+
+/**
+ * A merged view beside an offer (task-15.4 decisions 6, 7): one installed shop holds part of the
+ * answer and the Store offers another. The gap counts toward the merged view's two sources; its
+ * columns and its join name only the dispatched shop, and the offered one joins once installed.
+ */
+export const MERGE_BESIDE_OFFER: LayoutExample = {
+  name: 'merge-beside-offer',
+  intent: 'Compare espresso machine prices across the shops.',
+  agents: [BREWHAUS],
+  readers: [{reader: SEARCH_TOOL, args: {words: 'espresso machine shop'}, result: {apps: [CREMA]}}],
+  output: {
+    title: 'Espresso machine prices',
+    dispatch: [
+      {
+        source: 'brewhaus',
+        request:
+          'Show the espresso machines you have in stock with their prices; for each, its full model name and its price.',
+      },
+      {
+        source: 'shell',
+        request:
+          'One row per espresso machine across the shops, the same model at two shops merged into one row, with each shop’s price and the lowest of them.',
+        columns: ['Machine', 'Brewhaus', 'Lowest price'],
+        columnSources: [null, 'brewhaus', null],
+        join: {home: null, entity: 'espresso machines', nouns: {brewhaus: 'machines'}},
+      },
+      {
+        gap: 'espresso machine shop',
+        offers: [
+          {
+            app: 'crema-co',
+            request:
+              'Show the espresso machines you have in stock with their prices; for each, its full model name and its price.',
+          },
+        ],
+      },
+    ],
+    tree: {
+      components: [
+        {id: 'root', component: 'Column', children: ['merged', 'shops']},
+        {id: 'merged', component: 'Slot', source: 'shell'},
+        {id: 'shops', component: 'Row', children: ['brewhaus', 'more']},
+        {id: 'brewhaus', component: 'Slot', source: 'brewhaus'},
+        {id: 'more', component: 'Slot', gap: 'espresso machine shop'},
+      ],
+    },
+    dataModel: {},
+  },
+};
+
+/**
+ * An install asked for (phase-15 decision 9): the Store searched for the app by its name, the app
+ * offered with no request — the utterance asks nothing of it.
+ */
+export const INSTALL_ASK: LayoutExample = {
+  name: 'install-ask',
+  intent: 'Install Skyway.',
+  agents: [PLATFORM],
+  readers: [{reader: SEARCH_TOOL, args: {words: 'Skyway'}, result: {apps: [SKYWAY]}}],
+  output: {
+    title: 'Install Skyway',
+    dispatch: [{gap: 'Skyway', offers: [{app: 'skyway'}]}],
+    tree: {
+      components: [
+        {id: 'root', component: 'Column', children: ['install']},
+        {id: 'install', component: 'Slot', gap: 'Skyway'},
       ],
     },
     dataModel: {},
@@ -536,5 +664,7 @@ export const LAYOUT_EXAMPLES: readonly LayoutExample[] = [
   INSTALLED_APPS_ANSWER,
   OUT_OF_DATE_ANSWER,
   CAPABILITY_GAP,
+  MERGE_BESIDE_OFFER,
+  INSTALL_ASK,
   ACCOUNT_CHOICE,
 ];

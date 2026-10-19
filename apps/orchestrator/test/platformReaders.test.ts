@@ -79,7 +79,7 @@ const layout = {
     {source: 'github', request: 'PRs'},
     {source: 'gmail', request: 'mail'},
     {source: 'shell', request: 'timeline'},
-    {gap: 'flight booking'},
+    {gap: 'flight booking', offers: []},
   ],
   tree: {
     components: [
@@ -214,6 +214,12 @@ describe('this composition', () => {
       mergedView: {state: 'pending'},
       gaps: ['flight booking'],
     });
+  });
+
+  test('a gap an install filled is no longer a gap: it reads as its slot (task-15.4 decision 11)', () => {
+    const state = compositionFrom(layout, new Sources(registry), 'x');
+    state.gaps.get('flight booking')!.filled = {kind: 'installed', appId: 'skyway', name: 'Skyway'};
+    expect(compositionView(state).gaps).toEqual([]);
   });
 
   test('says whether the merged view is live, collapsed or declined, and why', () => {
@@ -392,7 +398,7 @@ describe('the composition’s slots are keyed by source (task-6.3 decision 6)', 
       name: 'Synthesis',
       request: 'timeline',
     });
-    expect(state.gaps).toEqual(['flight booking']);
+    expect([...state.gaps.keys()]).toEqual(['flight booking']);
     expect(state.utterance).toBe('u');
   });
 });

@@ -1,7 +1,8 @@
 /**
  * The Planner (task-6.4 decisions 5, 6, 8): the prompt's assembly, the worked examples through the
  * whole validator, and the loop — text out, readers as tools, one retry in the same conversation,
- * a four-step budget per attempt — driven by the AI SDK's mock model.
+ * a five-step budget per attempt, the Store's search beside the readers (task 15.4) — driven by
+ * the AI SDK's mock model.
  */
 import type {AgentCard} from '@a2a-js/sdk';
 import {createA2uiValidator} from '@a2uiverse/sdk';
@@ -20,6 +21,7 @@ import {
   readPlannerFiles,
 } from '../src/planner/prompt.js';
 import type {PlatformReaders} from '../src/planner/readers.js';
+import {searchesOf, type StoreAnswer, type StoreSearch} from '../src/planner/storeSearch.js';
 import {validateLayoutSurface} from '../src/planner/validate.js';
 import type {ShortlistEntry} from '../src/router/router.js';
 
@@ -95,13 +97,17 @@ const text = (t: string): LanguageModelV3GenerateResult => ({
   warnings: [],
 });
 
-const toolCall = (toolName: string, id = 'call-1'): LanguageModelV3GenerateResult => ({
+const toolCall = (
+  toolName: string,
+  id = 'call-1',
+  input: object = {},
+): LanguageModelV3GenerateResult => ({
   finishReason: {unified: 'tool-calls', raw: undefined},
   usage: {
     inputTokens: {total: 1, noCache: 1, cacheRead: undefined, cacheWrite: undefined},
     outputTokens: {total: 1, text: 1, reasoning: undefined},
   },
-  content: [{type: 'tool-call', toolCallId: id, toolName, input: '{}'}],
+  content: [{type: 'tool-call', toolCallId: id, toolName, input: JSON.stringify(input)}],
   warnings: [],
 });
 
@@ -175,6 +181,9 @@ describe('the Planner’s files and prompt', () => {
         ...example.agents.map(a => a.appId),
         ...((shown as {id: string}[] | undefined) ?? []).map(app => app.id),
       ],
+      searches: searchesOf(
+        (example.readers ?? []).map(r => ({name: r.reader, args: r.args, result: r.result})),
+      ),
     });
     expect(result.ok ? [] : result.errors).toEqual([]);
   });
@@ -451,5 +460,129 @@ describe('ModelPlanner — the loop', () => {
       sourcesOf,
     }).plan(input);
     expect(outcome.kind).toBe('planned');
+  });
+});
+
+describe('ModelPlanner — the Store’s search (task 15.4)', () => {
+  const skyway = {
+    appId: 'skyway',
+    name: 'Skyway',
+    publisher: 'skyway-travel',
+    description: 'Books flights.',
+    skills: [{name: 'Find flights', description: 'Finds flights.', examples: ['To Tokyo']}],
+  };
+  const flights: LayoutSurface = {
+    dispatch: [
+      {gap: 'flight booking', offers: [{app: 'skyway', request: 'Flights to Seoul next Friday.'}]},
+    ],
+    tree: {
+      components: [
+        {id: 'root', component: 'Column', children: ['f']},
+        {id: 'f', component: 'Slot', gap: 'flight booking'},
+      ],
+    },
+    dataModel: {},
+  };
+  const store = (answer: StoreAnswer): StoreSearch & {asked: string[]} => {
+    const asked: string[] = [];
+    return {
+      asked,
+      search: async words => {
+        asked.push(words);
+        return answer;
+      },
+    };
+  };
+  const withStore = (model: MockLanguageModelV3, search: StoreSearch) =>
+    new ModelPlanner({
+      model,
+      systemPrompt: 'SYSTEM',
+      catalog: files.catalog,
+      readers,
+      store: search,
+    });
+
+  test('the search is a tool beside the readers; its answer reaches the model and is recorded, and a gap named by its words is planned (decisions 1, 3, 15)', async () => {
+    const search = store({apps: [skyway]});
+    const {model, calls} = scripted([
+      toolCall('search_store', 'call-1', {words: 'flight booking'}),
+      text(tagged(flights)),
+    ]);
+    const outcome = await withStore(model, search).plan(input);
+    expect(outcome.kind).toBe('planned');
+    expect(calls[0]!.tools?.map(t => t.name).sort()).toEqual([
+      'installed_apps',
+      'recent_turns',
+      'search_store',
+      'this_canvas',
+    ]);
+    expect(search.asked).toEqual(['flight booking']);
+    expect(outcome.toolCalls).toEqual([
+      {name: 'search_store', args: {words: 'flight booking'}, result: {apps: [skyway]}},
+    ]);
+    expect(messagesOf(calls[1]!, 'tool').join('\n')).toContain('"publisher":"skyway-travel"');
+  });
+
+  test('without the Store wired there is no search to call', async () => {
+    const {model, calls} = scripted([text(tagged(good))]);
+    await planner(model).plan(input);
+    expect(calls[0]!.tools?.map(t => t.name)).not.toContain('search_store');
+  });
+
+  test('a gap never searched for is refused, and the retry may search (decision 3)', async () => {
+    const {model} = scripted([
+      text(tagged(flights)),
+      toolCall('search_store', 'call-1', {words: 'flight booking'}),
+      text(tagged(flights)),
+    ]);
+    const outcome = await withStore(model, store({apps: [skyway]})).plan(input);
+    expect(outcome.kind).toBe('planned');
+    expect(outcome.attempts[0]!.errors).toEqual([
+      "/dispatch/0/gap: 'flight booking' was never searched for; call search_store with the words a gap names",
+      "/dispatch/0/offers/0/app: 'skyway' was not returned by a search this turn made",
+    ]);
+    expect(outcome.attempts[1]!.errors).toEqual([]);
+  });
+
+  test('a search in the first attempt still counts on the retry: this plan’s searches are both attempts’ (decision 3)', async () => {
+    const wrongSlot: LayoutSurface = {
+      ...flights,
+      tree: {
+        components: [
+          {id: 'root', component: 'Column', children: ['f']},
+          {id: 'f', component: 'Slot', gap: 'Flight booking'},
+        ],
+      },
+    };
+    const search = store({apps: [skyway]});
+    const {model} = scripted([
+      toolCall('search_store', 'call-1', {words: 'flight booking'}),
+      text(tagged(wrongSlot)),
+      text(tagged(flights)),
+    ]);
+    const outcome = await withStore(model, search).plan(input);
+    expect(outcome.kind).toBe('planned');
+    expect(outcome.attempts).toHaveLength(2);
+    expect(search.asked).toEqual(['flight booking']);
+  });
+
+  test('an unreached search is recorded with its cause; its gap offers nothing (decision 3)', async () => {
+    const none: LayoutSurface = {...flights, dispatch: [{gap: 'flight booking', offers: []}]};
+    const {model} = scripted([
+      toolCall('search_store', 'call-1', {words: 'flight booking'}),
+      text(tagged(none)),
+    ]);
+    const outcome = await withStore(model, store({unreached: 'fetch failed'})).plan(input);
+    expect(outcome.kind).toBe('planned');
+    expect(outcome.toolCalls).toEqual([
+      {name: 'search_store', args: {words: 'flight booking'}, result: {unreached: 'fetch failed'}},
+    ]);
+    expect(searchesOf(outcome.toolCalls)).toEqual([
+      {words: 'flight booking', reached: false, apps: []},
+    ]);
+  });
+
+  test('the step budget is one per tool and one for the answer (decision 5)', () => {
+    expect(MAX_STEPS).toBe(5);
   });
 });

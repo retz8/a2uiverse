@@ -48,7 +48,7 @@ export function readPlannerFiles(): PlannerFiles {
 }
 
 const EXAMPLES_FRAMING =
-  'The examples below show the form of a layout surface for the kinds of turn: agents dispatched with a merged view over them — a timeline across their entries, and a merged view over one kind of thing with its join hypothesis — a command over the same cards that one agent answers alone, a status question in one app’s own noun merged over every agent that holds a part of it, a question about the platform answered from a reader, a capability gap, and an account choice for a command over an app with two accounts that names neither. Their agents and reader results are fixtures chosen to make the form legible; they are not the agents of the current turn and never a document to reuse.';
+  'The examples below show the form of a layout surface for the kinds of turn: agents dispatched with a merged view over them — a timeline across their entries, and a merged view over one kind of thing with its join hypothesis — a command over the same cards that one agent answers alone, a status question in one app’s own noun merged over every agent that holds a part of it, a question about the platform answered from a reader, a capability gap offered from the Store, a merged view beside an offer, an install asked for, and an account choice for a command over an app with two accounts that names neither. Their agents and reader results are fixtures chosen to make the form legible; they are not the agents of the current turn and never a document to reuse.';
 
 function renderExample(example: LayoutExample): string {
   const body = JSON.stringify(

@@ -299,8 +299,9 @@ export function readPaintMeta(data: unknown): PaintMeta | undefined {
 
 /**
  * The reader's presses on the composition (task-8.4 decisions 9, 14), from task 9.2 a fragment's
- * step in its own history and the canvas closed, from task 12.2 a scope request dismissed, and
- * from task 12.6 an account chosen on the account choice.
+ * step in its own history and the canvas closed, from task 12.2 a scope request dismissed, from
+ * task 12.6 an account chosen on the account choice, and from task 15.4 a capability gap's slot
+ * filled with an app it offered.
  */
 export const OPERATION_KINDS = [
   'retry',
@@ -310,6 +311,7 @@ export const OPERATION_KINDS = [
   'dismiss',
   'close',
   'useAccount',
+  'useApp',
 ] as const;
 export type OperationKind = (typeof OPERATION_KINDS)[number];
 
@@ -319,7 +321,9 @@ export type OperationKind = (typeof OPERATION_KINDS)[number];
  * source whose slot sends again what it keeps — also the resume after sign-in (task-12.2 decision
  * 9) — `include` the late sources it folds in, `tryAgain` none; `dismiss` the one source whose
  * scope request Not now drops (task-12.2 decision 10); `useAccount` the one account the account
- * choice's request goes to, painting in that slot (task-12.6 decision 6); `step`
+ * choice's request goes to, painting in that slot (task-12.6 decision 6); `useApp` the one app
+ * a capability gap offered and, in `gap`, the gap's words — the slot it fills, the app installed
+ * by then, the offer's request going to it (task-15.4 decision 9); `step`
  * names the one agent whose fragment stepped and, in `step`, the paint id it now shows — one paint
  * per `createSurface`, from 0, never reused (task-10.9 decision 6) — the paint's data model riding
  * `a2uiClientDataModel` as on an action; `close` names nothing.
@@ -329,6 +333,8 @@ export interface CompositionOperation {
   sources: string[];
   /** With `step` only: the paint id the fragment now shows. */
   step?: number;
+  /** With `useApp` only: the gap's words, as the plan names them — the slot the press fills. */
+  gap?: string;
 }
 
 /** Wire field names, typechecked against the interface; the contract test compares them to the contract. */
@@ -336,6 +342,7 @@ export const OPERATION_FIELDS = [
   'kind',
   'sources',
   'step',
+  'gap',
 ] as const satisfies readonly (keyof CompositionOperation)[];
 
 const _operationComplete: Exclude<
@@ -355,6 +362,7 @@ const SOURCES_BY_KIND: Record<OperationKind, {exactly: number} | {atLeast: numbe
   dismiss: {exactly: 1},
   close: {exactly: 0},
   useAccount: {exactly: 1},
+  useApp: {exactly: 1},
 };
 
 /** The data part's body carrying a press: `{version, operation}`. */
@@ -368,20 +376,21 @@ export function operationData(
       kind: operation.kind,
       sources: [...operation.sources],
       ...(operation.kind === 'step' ? {step: operation.step} : {}),
+      ...(operation.kind === 'useApp' ? {gap: operation.gap} : {}),
     },
   };
 }
 
 /**
  * The press a data part's body carries, if it is one and well formed: a known kind, a list of
- * distinct source ids as many as the kind names, and `step` — a non-negative integer — with
- * `step` alone.
+ * distinct source ids as many as the kind names, `step` — a non-negative integer — with `step`
+ * alone, and `gap` — words, not blank — with `useApp` alone.
  */
 export function readOperation(data: Record<string, unknown>): CompositionOperation | undefined {
   if (typeof data.version !== 'string') return undefined;
   const raw = data.operation;
   if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return undefined;
-  const {kind, sources, step} = raw as Record<string, unknown>;
+  const {kind, sources, step, gap} = raw as Record<string, unknown>;
   if (!OPERATION_KINDS.includes(kind as OperationKind)) return undefined;
   if (!Array.isArray(sources) || !sources.every(s => typeof s === 'string' && s !== '')) {
     return undefined;
@@ -390,6 +399,11 @@ export function readOperation(data: Record<string, unknown>): CompositionOperati
   const rule = SOURCES_BY_KIND[kind as OperationKind];
   const fits = 'exactly' in rule ? count === rule.exactly : count >= rule.atLeast;
   if (!fits || new Set(sources).size !== count) return undefined;
+  if (kind === 'useApp') {
+    if (typeof gap !== 'string' || gap.trim() === '' || step !== undefined) return undefined;
+    return {kind, sources: sources as string[], gap};
+  }
+  if (gap !== undefined) return undefined;
   if (kind === 'step') {
     if (typeof step !== 'number' || !Number.isInteger(step) || step < 0) return undefined;
     return {kind, sources: sources as string[], step};

@@ -5,7 +5,13 @@ import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 import {PAINTER_ID_PREFIX} from '../planner/validate.js';
 import {SHELL_SOURCE_ID} from '../registry/types.js';
 import {shellSurfaceId, SYNTHESIS_DISPLAY_NAME} from './constants.js';
-import {inSlotOrder, lateSources, type CompositionState, type SlotAuthorityState} from './state.js';
+import {
+  inSlotOrder,
+  lateSources,
+  type CompositionState,
+  type GapEntry,
+  type SlotAuthorityState,
+} from './state.js';
 
 /** The client's extractor keys off this inline version field. */
 export const A2UI_VERSION = 'v0.9';
@@ -78,8 +84,11 @@ function updateComponentsPart(state: CompositionState): Part {
  * marker over the fragment, one box of the layout — that names the source, the account's label
  * beside the app's name when its app has more than one account (phase-12 decision 22), holds the
  * slot as its child and carries the slot's weight; its parent names the wrapper where it named the
- * slot. The synthesis slot is shell content, bare, and a gap slot is left as authored: the catalog
- * draws the tile. `state` and `label` — the source's name — (and `content`, `columns`, `columnSources` and `join` on the synthesis
+ * slot. The synthesis slot is shell content, bare, and so is a gap slot, painted with its offer —
+ * each app offered as the entry this plan's search returned draws it, or the cause of none
+ * (task-15.4 decision 8). A gap `useApp` filled is painted as what it became, its id kept: the
+ * app's slot under its source, the account choice, or — an offer with no request — the
+ * installed line, still bare (decisions 11, 12). `state` and `label` — the source's name — (and `content`, `columns`, `columnSources` and `join` on the synthesis
  * slot) are the painter's, so a repaint flips a slot by its source and every id stays put. So are
  * the facts a state carries (task-8.3 decisions 6, 9, 10): a vendor slot's `noun` under a join
  * and its `failure` once failed; the merge slot's `declined` reason or `collapse` cause once
@@ -89,7 +98,7 @@ function updateComponentsPart(state: CompositionState): Part {
  * waits on.
  */
 export function paintLayout(state: CompositionState): ShellComponent[] {
-  const {components} = state.layout.tree;
+  const components = state.layout.tree.components.map(component => filledGap(state, component));
   // An account choice is its chosen account's slot once pressed (task-12.6 decision 6).
   const sourceOf = (component: ShellComponent): string | undefined =>
     typeof component.source === 'string'
@@ -121,7 +130,22 @@ export function paintLayout(state: CompositionState): ShellComponent[] {
       continue;
     }
     if (typeof component.gap === 'string') {
-      painted.push({...component});
+      const gap = state.gaps.get(component.gap);
+      const fill = gap?.filled;
+      painted.push({
+        ...component,
+        ...(fill?.kind === 'installed'
+          ? {
+              installed: {
+                appId: fill.appId,
+                name: fill.name,
+                ...(fill.example !== undefined ? {example: fill.example} : {}),
+              },
+            }
+          : gap
+            ? {offer: paintedOffer(gap)}
+            : {}),
+      });
       continue;
     }
     const adding =
@@ -223,6 +247,34 @@ export function paintLayout(state: CompositionState): ShellComponent[] {
     );
   }
   return painted;
+}
+
+/**
+ * A gap `useApp` filled with a source or the account choice, as the slot it became (task-15.4
+ * decision 11): the same id and weight, holding that source or that app's choice; any other
+ * component as authored.
+ */
+function filledGap(state: CompositionState, component: ShellComponent): ShellComponent {
+  if (component.component !== 'Slot' || typeof component.gap !== 'string') return component;
+  const fill = state.gaps.get(component.gap)?.filled;
+  if (!fill || fill.kind === 'installed') return component;
+  const {gap: _gap, ...slot} = component;
+  return fill.kind === 'source'
+    ? {...slot, source: fill.source}
+    : {...slot, chooseAccount: fill.appId};
+}
+
+/** The offer as painted: every app offered, in the Planner's order, or why there is none. */
+function paintedOffer(gap: GapEntry): Record<string, unknown> {
+  return {
+    apps: gap.offers.map(({appId, name, publisher, description}) => ({
+      appId,
+      name,
+      publisher,
+      description,
+    })),
+    ...(gap.offers.length === 0 ? {none: gap.none ?? 'nothing'} : {}),
+  };
 }
 
 /**

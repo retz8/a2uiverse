@@ -4,6 +4,7 @@
  * on the wire, refresh, the agent's requests for more access, the merge, key accounts, uninstall,
  * and no secret in the journal or the logs.
  */
+import type {ToolCallRecord} from '../src/journal/types.js';
 import {createServer, type Server} from 'node:http';
 import {mkdtemp, readFile, rm, stat} from 'node:fs/promises';
 import {randomBytes} from 'node:crypto';
@@ -103,6 +104,8 @@ async function boot(options: {
     {script?: Script; card?: Partial<AgentCard>; admit?: (req: Request) => boolean}
   >;
   plan: () => ReturnType<typeof layoutFor>;
+  /** The Planner's tool calls: the Store's searches a gap's offer is drawn from (task 15.4). */
+  toolCalls?: ToolCallRecord[];
 }): Promise<Boot> {
   const urls: Record<string, string> = {};
   for (const [appId, app] of Object.entries(options.apps)) {
@@ -143,7 +146,7 @@ async function boot(options: {
     },
     overrides: {
       embedder: new FakeEmbedder(),
-      planner: new FakePlanner(options.plan),
+      planner: new FakePlanner(options.plan, {toolCalls: options.toolCalls ?? []}),
       stepQuietMs: 0,
     },
   });
@@ -582,6 +585,62 @@ describe('the account choice (task 12.6)', () => {
     });
     expect(vendors[0]!.requests).toHaveLength(1);
     expect(vendors[0]!.requests[0]!.authorization).toMatch(/^Bearer /);
+  });
+});
+
+describe('the store loop (task 15.4)', () => {
+  test('an app needing sign-in, pressed on a gap’s offer, takes the sign-in tile in the gap’s slot — the install’s consent and the sign-in two steps — its agent not called; the sign-in’s resume sends the offer’s request (decision 11)', async () => {
+    const offer = () => ({
+      dispatch: [{gap: 'orders', offers: [{app: 'shop', request: 'Show my orders.'}]}],
+      tree: {
+        components: [
+          {id: 'root', component: 'Column', children: ['g']},
+          {id: 'g', component: 'Slot', gap: 'orders'},
+        ],
+      },
+      dataModel: {},
+    });
+    const {base, client} = await boot({
+      apps: {shop: {card: oauthCard(), admit: admitsTokens()}},
+      plan: offer,
+      toolCalls: [
+        {
+          name: 'search_store',
+          args: {words: 'orders'},
+          result: {
+            apps: [
+              {appId: 'shop', name: 'Shop', publisher: 'acme', description: 'Orders.', skills: []},
+            ],
+          },
+        },
+      ],
+    });
+    const canvas = contextOf(await collect(client, utterance('my orders')));
+    const pressed = await collect(client, {
+      kind: 'message',
+      messageId: crypto.randomUUID(),
+      role: 'user',
+      contextId: canvas,
+      parts: [
+        {
+          kind: 'data',
+          data: operationData({kind: 'useApp', sources: ['shop'], gap: 'orders'}, 'v0.9'),
+        },
+      ],
+      metadata: clientSessionMetadata('page-1'),
+    });
+    expect(slotOf(pressed, 'shop.1')).toMatchObject({
+      id: 'g',
+      state: 'authority',
+      authority: {cause: 'signIn', scopes: ['See your orders']},
+    });
+    expect(vendors[0]!.requests).toHaveLength(0);
+
+    await signIn(base, canvas, 'shop.1');
+    const resumed = await collect(client, press('retry', 'shop.1', canvas));
+    expect(slotOf(resumed, 'shop.1')).toMatchObject({id: 'g', state: 'pending'});
+    expect(vendors[0]!.requests).toHaveLength(1);
+    expect(JSON.stringify(vendors[0]!.requests[0]!.message.parts)).toContain('Show my orders.');
   });
 });
 

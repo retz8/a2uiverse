@@ -784,7 +784,7 @@ describe('orchestrator', () => {
     expect((line.plan as PlanRecord).layoutSurface).toEqual(answer);
   });
 
-  test('a capability gap dispatches nothing and paints the gap slot as authored (phase-6 decision 6)', async () => {
+  test('a capability gap dispatches nothing and paints the gap slot with its offer (phase-6 decision 6, task-15.4 decision 8)', async () => {
     const {client} = await boot({
       planner: new FakePlanner(layoutFor([], {gaps: ['flight booking']})),
     });
@@ -798,7 +798,7 @@ describe('orchestrator', () => {
     ).components;
     expect(components).toEqual([
       {id: 'root', component: 'Column', children: ['gap-0']},
-      {id: 'gap-0', component: 'Slot', gap: 'flight booking'},
+      {id: 'gap-0', component: 'Slot', gap: 'flight booking', offer: {apps: [], none: 'nothing'}},
     ]);
     expect((events.at(-1) as TaskStatusUpdateEvent).status.state).toBe('completed');
   });
@@ -3350,5 +3350,193 @@ describe('the account choice (task 12.6)', () => {
     const again = await collect(client, press('useAccount', ['gmail.2'], contextId));
     expect(textsIn(again)).toContain('No account choice here offers gmail.2.');
     expect(vendors.gmail!.requests).toHaveLength(1);
+  });
+});
+
+describe('the store loop (task 15.4)', () => {
+  /** The press that fills a gap's slot with an app it offered, as the client sends it. */
+  const useApp = (appId: string, gap: string, contextId: string): Message => ({
+    kind: 'message',
+    messageId: crypto.randomUUID(),
+    role: 'user',
+    contextId,
+    parts: [{kind: 'data', data: operationData({kind: 'useApp', sources: [appId], gap}, 'v0.9')}],
+  });
+  const REQUEST = 'Show my calendar for today.';
+  /** This plan's search, as the Planner's tool call recorded it: Google Calendar found in the Store. */
+  const searched = (words: string) => [
+    {
+      name: 'search_store',
+      args: {words},
+      result: {
+        apps: [
+          {
+            appId: 'calendar',
+            name: 'Google Calendar',
+            publisher: 'acme',
+            description: 'Your calendar.',
+            skills: [],
+          },
+        ],
+      },
+    },
+  ];
+  const offering = (request: string | undefined, merged?: string) =>
+    new FakePlanner(
+      () =>
+        layoutFor(['github'], {
+          ...(merged ? {merged} : {}),
+          gaps: [{gap: 'calendar', offers: [{app: 'calendar', ...(request ? {request} : {})}]}],
+        }),
+      {toolCalls: searched('calendar')},
+    );
+  /** Installs the offered app the way the Store's install does: through the registry. */
+  const install = async (orchestrator: Awaited<ReturnType<typeof boot>>['orchestrator']) => {
+    const installed = await orchestrator.registry.install({
+      appId: 'calendar',
+      cardUrl: `${vendors.calendar!.url}/.well-known/agent-card.json`,
+      catalogs: [await fixtureArtifact(FAKE_CATALOG_ID)],
+    });
+    if (!installed.ok) throw new Error(installed.findings.join('; '));
+  };
+  const gapSlot = (events: AnyEvent[]) =>
+    (
+      shellPaints(events)
+        .at(-1)!
+        .find(d => d.updateComponents)!.updateComponents as {
+        components: Array<Record<string, unknown>>;
+      }
+    ).components.find(c => c.id === 'gap-0')!;
+
+  test('the offer is painted at first paint from this plan’s search; the offered app is not called (decision 8)', async () => {
+    const {client} = await boot({planner: offering(REQUEST), installed: ['github', 'gmail']});
+    const turn = await collect(client, utterance('what is on my calendar?'));
+    expect(gapSlot(turn)).toEqual({
+      id: 'gap-0',
+      component: 'Slot',
+      gap: 'calendar',
+      offer: {
+        apps: [
+          {
+            appId: 'calendar',
+            name: 'Google Calendar',
+            publisher: 'acme',
+            description: 'Your calendar.',
+          },
+        ],
+      },
+    });
+    expect(vendors.calendar!.requests).toHaveLength(0);
+  });
+
+  test('useApp before the install is refused; once installed it fills the gap’s slot — the request the Planner wrote sent to the app, painted under its source there, no second plan (decisions 9–11)', async () => {
+    const planner = offering(REQUEST);
+    const {client, orchestrator} = await boot({planner, installed: ['github', 'gmail']});
+    const contextId = crypto.randomUUID();
+    await collect(client, utterance('what is on my calendar?', contextId));
+
+    const early = await collect(client, useApp('calendar', 'calendar', contextId));
+    expect(finalOf(early).status.state).toBe('failed');
+    expect(textsIn(early)).toContain('calendar is not installed.');
+
+    await install(orchestrator);
+    const pressed = await collect(client, useApp('calendar', 'calendar', contextId));
+    expect(finalOf(pressed).status.state).toBe('completed');
+    expect(planner.calls).toHaveLength(1);
+    expect(vendors.calendar!.requests).toHaveLength(1);
+    expect(vendors.calendar!.requests[0]!.message.parts).toEqual([
+      {kind: 'text', text: withGuidance(REQUEST)},
+    ]);
+    const [first] = shellPaints(pressed);
+    const components = (
+      first!.find(d => d.updateComponents)!.updateComponents as {
+        components: Array<Record<string, unknown>>;
+      }
+    ).components;
+    expect(components.find(c => c.id === 'attribution-gap-0')).toMatchObject({
+      component: 'Attribution',
+      source: 'calendar',
+      child: 'gap-0',
+    });
+    expect(components.find(c => c.id === 'gap-0')).toEqual({
+      id: 'gap-0',
+      component: 'Slot',
+      source: 'calendar',
+      state: 'pending',
+      label: 'Google Calendar',
+    });
+    const stamped = new Set(
+      pressed.filter(e => stampOf(e)?.role === 'fragment').map(e => stampOf(e)!.source),
+    );
+    expect(stamped).toEqual(new Set(['calendar']));
+
+    // Filled once: a second press finds the gap showing its app.
+    const again = await collect(client, useApp('calendar', 'calendar', contextId));
+    expect(textsIn(again)).toContain("'calendar' already shows an app.");
+    expect(vendors.calendar!.requests).toHaveLength(1);
+
+    const lines = await journalLines(4);
+    expect(lines.map(l => l.descriptor)).toEqual(
+      expect.arrayContaining(["useApp calendar on gap 'calendar'"]),
+    );
+    const refused = lines.filter(l => l.descriptor === "useApp calendar on gap 'calendar'");
+    expect(refused.map(l => l.outcome)).toEqual(['failed', 'completed', 'failed']);
+  });
+
+  test('a gap the canvas does not have, or an app it did not offer, is refused (decision 10)', async () => {
+    const {client} = await boot({planner: offering(REQUEST)});
+    const contextId = crypto.randomUUID();
+    await collect(client, utterance('what is on my calendar?', contextId));
+    const missing = await collect(client, useApp('calendar', 'flights', contextId));
+    expect(textsIn(missing)).toContain("No gap here is 'flights'.");
+    const other = await collect(client, useApp('gmail', 'calendar', contextId));
+    expect(textsIn(other)).toContain("'calendar' does not offer gmail.");
+  });
+
+  test('beside an offer the merge collapses with one source; the installed app’s first answer makes it, the press its Retry (decision 6)', async () => {
+    const synthesizer = new FakeSynthesizer();
+    const {client, orchestrator} = await boot({
+      planner: offering(REQUEST, 'Compare.'),
+      synthesizer,
+      installed: ['github', 'gmail'],
+      scripts: {github: shopScript(camerasA), calendar: shopScript(camerasB)},
+    });
+    const contextId = crypto.randomUUID();
+    const turn = await collect(client, utterance('compare', contextId));
+    expect(shellSlotOf(turn)).toMatchObject({state: 'collapsed', collapse: {cause: 'few'}});
+    expect(synthesizer.calls).toHaveLength(0);
+
+    await install(orchestrator);
+    const pressed = await collect(client, useApp('calendar', 'calendar', contextId));
+    expect(slotsOf(shellPaints(pressed)[0]!)['shell']).toMatchObject({
+      state: 'collapsed',
+      retrying: ['calendar'],
+    });
+    expect(synthesizer.calls).toHaveLength(1);
+    expect(synthesizer.calls[0]!.input.sources.map(s => s.source).sort()).toEqual([
+      'calendar',
+      'github',
+    ]);
+    expect(synthesisEvents(pressed)).toHaveLength(1);
+    expect(shellSlotOf(pressed)).toMatchObject({merged: ['github', 'calendar']});
+  });
+
+  test('an offer with no request: nothing dispatched, the slot repaints to the installed line, bare (decision 12)', async () => {
+    const {client, orchestrator} = await boot({
+      planner: offering(undefined),
+      installed: ['github', 'gmail'],
+    });
+    const contextId = crypto.randomUUID();
+    await collect(client, utterance('install Google Calendar', contextId));
+    await install(orchestrator);
+    const pressed = await collect(client, useApp('calendar', 'calendar', contextId));
+    expect(finalOf(pressed).status.state).toBe('completed');
+    expect(vendors.calendar!.requests).toHaveLength(0);
+    expect(gapSlot(pressed)).toEqual({
+      id: 'gap-0',
+      component: 'Slot',
+      gap: 'calendar',
+      installed: {appId: 'calendar', name: 'Google Calendar'},
+    });
   });
 });

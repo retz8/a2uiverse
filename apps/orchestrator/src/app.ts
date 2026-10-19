@@ -21,6 +21,7 @@ import {ArtifactRelay} from './marketplace/artifacts.js';
 import {Publisher, PublisherStore} from './marketplace/publisher.js';
 import {MARKETPLACE_ROUTE_PREFIX, marketplaceRoutes} from './marketplace/routes.js';
 import type {PlatformReaders} from './planner/readers.js';
+import {storeSearch, type StoreSearch} from './planner/storeSearch.js';
 import {registryRoutes, REGISTRY_ROUTE_PREFIX} from './registry/api.js';
 import {MarketplaceClient} from './registry/marketplace.js';
 import {Registry, type ResolveCard} from './registry/registry.js';
@@ -143,7 +144,12 @@ export function buildOrchestrator({
     composition: contextId => compositions.get(contextId),
     ancestry: contextId => compositions.ancestry(contextId),
   });
-  const planner = overrides?.planner ?? plannerFrom(config, readers, sources);
+  // The marketplace's tool set (task-15.4 decision 1): its search, installed apps left out.
+  const store = storeSearch({
+    search: words => marketplace.search(words),
+    installed: () => registry.installed().map(record => record.id),
+  });
+  const planner = overrides?.planner ?? plannerFrom(config, readers, sources, store);
   const synthesizer = synthesizerFrom(config, overrides?.synthesisModel);
   const router = new Router(registry, embedder, {shortlistCap: config.shortlistCap});
   const pool = new AgentsPool(registry, {
@@ -247,9 +253,15 @@ export function buildOrchestrator({
 
 /**
  * The turn's one model call, authored here: its prompt from the files read at boot, its pruned
- * catalog, and the readers as its tools. Without a key it is a broken turn.
+ * catalog, and the readers and the marketplace's search as its tools. Without a key it is a broken
+ * turn.
  */
-function plannerFrom(config: Config, readers: PlatformReaders, sources: Sources): Planner {
+function plannerFrom(
+  config: Config,
+  readers: PlatformReaders,
+  sources: Sources,
+  store: StoreSearch,
+): Planner {
   const {googleApiKey} = config;
   if (!googleApiKey) {
     // Booting without a key is fine (actions still route); a palette turn is then a broken turn.
@@ -268,6 +280,7 @@ function plannerFrom(config: Config, readers: PlatformReaders, sources: Sources)
     catalog: files.catalog,
     readers,
     sourcesOf: appId => sources.of(appId),
+    store,
   });
 }
 

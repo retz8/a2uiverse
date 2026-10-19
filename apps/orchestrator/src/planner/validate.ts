@@ -15,6 +15,7 @@ import {
   LAYOUT_SURFACE_SCHEMA,
   type LayoutSurface,
 } from './document.js';
+import type {SearchRecord} from './storeSearch.js';
 
 /**
  * The Planner's one validator (task-6.4 decision 10), in order: the output schema; the tree as a
@@ -22,8 +23,11 @@ import {
  * components and props, the root, dangling children, cycles, orphans, so `Frame`, `Attribution`
  * and any action but the shell's three are unknown; slot accounting — exactly one `Slot` per
  * dispatch entry matched by `source` or by the exact `gap`, none unmatched, a merged view only
- * with two or more vendor sources, every source on this turn's shortlist and none twice, no blank
- * request; the merged view's `columns`, `columnSources` and `join` on `shell` alone, the join's
+ * with two or more sources — the dispatched vendor sources and the gaps offering an app, at least
+ * one of them dispatched (task-15.4 decision 6) — every source on this turn's shortlist and none
+ * twice, no blank request; each gap's words the words of one of this plan's searches, each app it
+ * offers one those searches returned and not installed, offered once, under one gap of the plan,
+ * its request not blank (task-15.4 decisions 3, 4); the merged view's `columns`, `columnSources` and `join` on `shell` alone, the join's
  * home and nouns naming exactly the dispatched vendor sources, a column mark beside every column
  * naming a dispatched vendor source or null (task-8.3 decision 12); what the Planner may write on
  * a `Slot` (`source`, `gap`, `chooseAccount` or `addAccount`, and a positive `weight`; the rest
@@ -51,6 +55,11 @@ export interface LayoutChecks {
    * installed-apps reader lists them all (task-14.5 decision 11).
    */
   installed: readonly string[];
+  /**
+   * This plan's searches of the Store, both attempts' (task-15.4 decision 3): the words a gap
+   * may name, and the apps it may offer. None when the plan searched nothing.
+   */
+  searches?: readonly SearchRecord[];
 }
 
 export type LayoutValidation = {ok: true; document: LayoutSurface} | {ok: false; errors: string[]};
@@ -69,6 +78,7 @@ export function validateLayoutSurface(input: unknown, checks: LayoutChecks): Lay
   const errors = [
     ...treeErrors(document, checks.tree),
     ...dispatchErrors(document, checks.shortlist),
+    ...offerErrors(document, checks.searches ?? [], checks.installed),
     ...slotErrors(document),
     ...addAccountErrors(document, checks.shortlist),
     ...appLibraryErrors(document, checks.installed),
@@ -229,13 +239,61 @@ function dispatchErrors(document: LayoutSurface, shortlist: readonly string[]): 
       );
     }
   }
-  if (merged && vendorSources.length < 2) {
+  // A gap offering an app counts toward the merged view's sources (task-15.4 decision 6).
+  const offering = document.dispatch.filter(entry => isGap(entry) && entry.offers.length > 0);
+  if (merged && (vendorSources.length < 1 || vendorSources.length + offering.length < 2)) {
     errors.push(
-      `/dispatch: a merged view (source ${SHELL_SOURCE_ID}) needs two or more vendor sources; ${vendorSources.length} dispatched`,
+      `/dispatch: a merged view (source ${SHELL_SOURCE_ID}) needs two or more sources — dispatched vendor sources and gaps offering an app, at least one of them dispatched; ${vendorSources.length} dispatched, ${offering.length} gap(s) offering`,
     );
   }
   errors.push(...joinErrors(document, vendorSources));
   errors.push(...columnMarkErrors(document, vendorSources));
+  return errors;
+}
+
+/**
+ * Each gap names one of this plan's searches by its exact words, and offers only apps those
+ * searches returned that are not installed — each once, under one gap of the plan, a request
+ * written to it not blank (task-15.4 decisions 3, 4).
+ */
+function offerErrors(
+  document: LayoutSurface,
+  searches: readonly SearchRecord[],
+  installed: readonly string[],
+): string[] {
+  const errors: string[] = [];
+  const returned = new Set(searches.flatMap(({apps}) => apps.map(app => app.appId)));
+  const offeredUnder = new Map<string, string>();
+  document.dispatch.forEach((entry, i) => {
+    if (!isGap(entry)) return;
+    if (!searches.some(({words}) => words === entry.gap)) {
+      errors.push(
+        searches.length === 0
+          ? `/dispatch/${i}/gap: '${entry.gap}' was never searched for; call search_store with the words a gap names`
+          : `/dispatch/${i}/gap: '${entry.gap}' is not the words of a search this turn made (${searches.map(({words}) => `'${words}'`).join(', ')}); name the gap by the words you searched`,
+      );
+    }
+    const inThisGap = new Set<string>();
+    entry.offers.forEach(({app, request}, j) => {
+      const at = `/dispatch/${i}/offers/${j}`;
+      if (inThisGap.has(app)) errors.push(`${at}/app: '${app}' is offered twice`);
+      else if (offeredUnder.has(app)) {
+        errors.push(
+          `${at}/app: '${app}' is offered under two gaps, '${offeredUnder.get(app)}' and '${entry.gap}'; offer it under the one it fits`,
+        );
+      }
+      inThisGap.add(app);
+      if (!offeredUnder.has(app)) offeredUnder.set(app, entry.gap);
+      if (installed.includes(app)) {
+        errors.push(`${at}/app: '${app}' is installed; dispatch to it, never offer it`);
+      } else if (!returned.has(app)) {
+        errors.push(`${at}/app: '${app}' was not returned by a search this turn made`);
+      }
+      if (request !== undefined && request.trim() === '') {
+        errors.push(`${at}/request: the request for '${app}' is blank; write one, or leave it out`);
+      }
+    });
+  });
   return errors;
 }
 

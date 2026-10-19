@@ -24,6 +24,7 @@ import {
   CALL_FAILED_KINDS,
   COLLAPSE_CAUSES,
   FAILURE_CAUSES,
+  OFFER_NONE_CAUSES,
   SlotApi,
   type AuthorityCause,
   type SlotAuthority,
@@ -33,6 +34,10 @@ import {
   type SlotCallFailed,
   type SlotCollapse,
   type SlotFailure,
+  type OfferNoneCause,
+  type SlotInstalled,
+  type SlotOffer,
+  type SlotOfferedApp,
 } from './components/slot/slot.schema.js';
 import {SortControlApi} from './components/sort-control/sort-control.schema.js';
 import {TableApi, TableRowApi} from './components/table/table.schema.js';
@@ -53,6 +58,7 @@ export {
   CALL_FAILED_KINDS,
   COLLAPSE_CAUSES,
   FAILURE_CAUSES,
+  OFFER_NONE_CAUSES,
   OPERATORS,
   RELATIONS,
   relationFunctions,
@@ -69,6 +75,10 @@ export {
   type SlotCallFailed,
   type SlotCollapse,
   type SlotFailure,
+  type OfferNoneCause,
+  type SlotInstalled,
+  type SlotOffer,
+  type SlotOfferedApp,
 };
 export {LAYOUT_SURFACE_KEEP_SET, SYNTHESIS_SURFACE_KEEP_SET} from './keep-sets.js';
 export {

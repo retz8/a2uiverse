@@ -813,7 +813,7 @@
         },
         "gap": {
           "type": "string",
-          "description": "A capability no installed app serves, in words. The region is drawn as a fixed tile offering to search the Store for it. A slot holds exactly one of `source`, `gap`, `chooseAccount` or `addAccount`."
+          "description": "A capability no installed app serves, in words — the words this plan searched the Store for. The region is the offer, drawn as fixed shell UI: the apps the plan offered from the Store, each with Install, or one line when there is nothing to offer. Once an offered app is installed there, the region becomes that app's. A slot holds exactly one of `source`, `gap`, `chooseAccount` or `addAccount`."
         },
         "chooseAccount": {
           "type": "string",
@@ -1015,6 +1015,45 @@
           "type": "array",
           "items": {"type": "string"},
           "description": "Shell content only, on a collapsed merge: the retried source ids whose arrival brings the merge back. Painted by the runtime and never written by an author."
+        },
+        "offer": {
+          "type": "object",
+          "description": "With `gap` only: the offer, from the marketplace's entries. Painted by the runtime and never written by an author.",
+          "properties": {
+            "apps": {
+              "type": "array",
+              "description": "Every app the plan offered, in its order: its app id, its name, its publisher and its short description.",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "appId": {"type": "string"},
+                  "name": {"type": "string"},
+                  "publisher": {"type": "string"},
+                  "description": {"type": "string"}
+                },
+                "required": ["appId", "name", "publisher", "description"],
+                "additionalProperties": false
+              }
+            },
+            "none": {
+              "type": "string",
+              "enum": ["nothing", "unreached"],
+              "description": "With no app offered, required there: why. `nothing`: nothing in the Store can do this; `unreached`: the Store could not be reached."
+            }
+          },
+          "required": ["apps"],
+          "additionalProperties": false
+        },
+        "installed": {
+          "type": "object",
+          "description": "With `gap` only, once an app the gap offered with nothing asked of it is installed: the app's id and name, and one of its card's example questions when it has one. Painted by the runtime and never written by an author.",
+          "properties": {
+            "appId": {"type": "string"},
+            "name": {"type": "string"},
+            "example": {"type": "string"}
+          },
+          "required": ["appId", "name"],
+          "additionalProperties": false
         }
       },
       "required": ["component"],

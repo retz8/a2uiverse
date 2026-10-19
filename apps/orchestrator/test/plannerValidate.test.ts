@@ -9,6 +9,7 @@ import {createA2uiValidator, pruneCatalog, type A2uiCatalogSchema} from '@a2uive
 import {LAYOUT_SURFACE_KEEP_SET} from '@a2uiverse/shell-catalog/schema';
 import {describe, expect, test} from 'vitest';
 import type {LayoutSurface} from '../src/planner/document.js';
+import type {SearchRecord, StoreApp} from '../src/planner/storeSearch.js';
 import {validateLayoutSurface} from '../src/planner/validate.js';
 
 const require = createRequire(import.meta.url);
@@ -23,8 +24,29 @@ const shortlist = ['github', 'gmail', 'shell'];
 /** The apps the registry holds: GitHub, Gmail and Linear. */
 const installed = ['github', 'gmail', 'linear'];
 
-const check = (document: unknown, ids: readonly string[] = shortlist): string[] => {
-  const result = validateLayoutSurface(document, {tree, shortlist: ids, installed});
+const storeApp = (appId: string, name: string): StoreApp => ({
+  appId,
+  name,
+  publisher: `${appId}-publisher`,
+  description: `${name}, from the Store.`,
+  skills: [],
+});
+/** This plan's searches: one for flights, one for camera shops. */
+const searched: SearchRecord[] = [
+  {words: 'flight booking', reached: true, apps: [storeApp('skyway', 'Skyway')]},
+  {
+    words: 'camera shop',
+    reached: true,
+    apps: [storeApp('shop-b', 'Shop B'), storeApp('shop-c', 'Shop C')],
+  },
+];
+
+const check = (
+  document: unknown,
+  ids: readonly string[] = shortlist,
+  searches: readonly SearchRecord[] = searched,
+): string[] => {
+  const result = validateLayoutSurface(document, {tree, shortlist: ids, installed, searches});
   return result.ok ? [] : result.errors;
 };
 
@@ -82,7 +104,9 @@ const platformAnswer = (): LayoutSurface => ({
 });
 
 const gap = (): LayoutSurface => ({
-  dispatch: [{gap: 'flight booking'}],
+  dispatch: [
+    {gap: 'flight booking', offers: [{app: 'skyway', request: 'Flights to Seoul next Friday.'}]},
+  ],
   tree: {
     components: [
       {id: 'root', component: 'Column', children: ['flights']},
@@ -185,7 +209,7 @@ describe('slot accounting', () => {
     doc.tree.components[3] = {id: 'sources', component: 'Row', children: ['gh']};
     doc.tree.components.splice(5, 1);
     expect(check(doc)).toEqual([
-      '/dispatch: a merged view (source shell) needs two or more vendor sources; 1 dispatched',
+      '/dispatch: a merged view (source shell) needs two or more sources — dispatched vendor sources and gaps offering an app, at least one of them dispatched; 1 dispatched, 0 gap(s) offering',
     ]);
   });
 
@@ -194,7 +218,7 @@ describe('slot accounting', () => {
     // An off-shortlist source is not a vendor source, so the merged view loses its second one too.
     expect(check(off, ['github', 'shell'])).toEqual([
       "/dispatch/1/source: 'gmail' is not on this turn's shortlist",
-      '/dispatch: a merged view (source shell) needs two or more vendor sources; 1 dispatched',
+      '/dispatch: a merged view (source shell) needs two or more sources — dispatched vendor sources and gaps offering an app, at least one of them dispatched; 1 dispatched, 0 gap(s) offering',
     ]);
     const twice = fanOut();
     twice.dispatch[1] = {source: 'github', request: 'again'};
@@ -572,7 +596,7 @@ describe('accounts (task 12.6)', () => {
       dataModel: {},
     };
     expect(errors(merged)).toEqual([
-      '/dispatch: a merged view (source shell) needs two or more vendor sources; 1 dispatched',
+      '/dispatch: a merged view (source shell) needs two or more sources — dispatched vendor sources and gaps offering an app, at least one of them dispatched; 1 dispatched, 0 gap(s) offering',
     ]);
   });
 
@@ -642,5 +666,147 @@ describe('accounts (task 12.6)', () => {
     expect(errors(doc)).toEqual([
       "/tree (root): Slot.accounts is written by the shell; write only source, gap, chooseAccount or addAccount, and weight — the merged view's columns, column marks and join go on its dispatch entry",
     ]);
+  });
+});
+
+/** A merged view over one installed shop, the Store offering two more for the gap beside it. */
+const mergeBesideOffer = (): LayoutSurface => ({
+  dispatch: [
+    {source: 'github', request: 'Cameras in stock with their prices.'},
+    {
+      source: 'shell',
+      request: 'One row per camera across the shops, each shop’s price.',
+      columns: ['Camera', 'GitHub', 'Lowest price'],
+      columnSources: [null, 'github', null],
+      join: {home: null, entity: 'cameras', nouns: {github: 'cameras'}},
+    },
+    {
+      gap: 'camera shop',
+      offers: [
+        {app: 'shop-b', request: 'Cameras in stock with their prices.'},
+        {app: 'shop-c', request: 'Cameras in stock with their prices.'},
+      ],
+    },
+  ],
+  tree: {
+    components: [
+      {id: 'root', component: 'Column', children: ['merged', 'shops']},
+      {id: 'merged', component: 'Slot', source: 'shell'},
+      {id: 'shops', component: 'Row', children: ['gh', 'more']},
+      {id: 'gh', component: 'Slot', source: 'github'},
+      {id: 'more', component: 'Slot', gap: 'camera shop'},
+    ],
+  },
+  dataModel: {},
+});
+
+describe('the offer (task 15.4)', () => {
+  test('a gap offering an app counts toward the merged view, one dispatched source beside it (decision 6)', () => {
+    expect(check(mergeBesideOffer())).toEqual([]);
+    const none = mergeBesideOffer();
+    none.dispatch[2] = {gap: 'camera shop', offers: []};
+    expect(check(none)).toEqual([
+      '/dispatch: a merged view (source shell) needs two or more sources — dispatched vendor sources and gaps offering an app, at least one of them dispatched; 1 dispatched, 0 gap(s) offering',
+    ]);
+  });
+
+  test('a merged view over offers alone, with no dispatched source, is refused (decision 6)', () => {
+    const doc: LayoutSurface = {
+      dispatch: [
+        {source: 'shell', request: 'Each shop’s price.'},
+        {gap: 'camera shop', offers: [{app: 'shop-b', request: 'Cameras.'}]},
+        {gap: 'flight booking', offers: [{app: 'skyway', request: 'Flights.'}]},
+      ],
+      tree: {
+        components: [
+          {id: 'root', component: 'Column', children: ['merged', 'b', 'f']},
+          {id: 'merged', component: 'Slot', source: 'shell'},
+          {id: 'b', component: 'Slot', gap: 'camera shop'},
+          {id: 'f', component: 'Slot', gap: 'flight booking'},
+        ],
+      },
+      dataModel: {},
+    };
+    expect(check(doc)).toEqual([
+      '/dispatch: a merged view (source shell) needs two or more sources — dispatched vendor sources and gaps offering an app, at least one of them dispatched; 0 dispatched, 2 gap(s) offering',
+    ]);
+  });
+
+  test('a column or a join noun marked to an offered app is refused (decision 7)', () => {
+    const doc = mergeBesideOffer();
+    const shell = doc.dispatch[1] as {columnSources: (string | null)[]; join: {nouns: object}};
+    shell.columnSources = [null, 'github', 'shop-b'];
+    shell.join.nouns = {github: 'cameras', 'shop-b': 'cameras'};
+    expect(check(doc)).toEqual([
+      "/dispatch/1/join/nouns/shop-b: 'shop-b' is not a dispatched source",
+      "/dispatch/1/columnSources/2: 'shop-b' is not a dispatched agent",
+    ]);
+  });
+
+  test('a gap names the exact words of one of this plan’s searches (decision 3)', () => {
+    const doc = gap();
+    doc.dispatch[0] = {gap: 'flights', offers: [{app: 'skyway', request: 'Flights.'}]};
+    doc.tree.components[1] = {id: 'flights', component: 'Slot', gap: 'flights'};
+    expect(check(doc)).toEqual([
+      "/dispatch/0/gap: 'flights' is not the words of a search this turn made ('flight booking', 'camera shop'); name the gap by the words you searched",
+    ]);
+    expect(check(gap(), shortlist, [])).toEqual([
+      "/dispatch/0/gap: 'flight booking' was never searched for; call search_store with the words a gap names",
+      "/dispatch/0/offers/0/app: 'skyway' was not returned by a search this turn made",
+    ]);
+  });
+
+  test('an unreached search still names a gap, which offers nothing (decision 3)', () => {
+    const doc = gap();
+    doc.dispatch[0] = {gap: 'flight booking', offers: []};
+    expect(check(doc, shortlist, [{words: 'flight booking', reached: false, apps: []}])).toEqual(
+      [],
+    );
+  });
+
+  test('an offered app is one this plan’s searches returned, not installed, offered once under one gap, its request not blank (decision 4)', () => {
+    const doc = mergeBesideOffer();
+    doc.dispatch[2] = {
+      gap: 'camera shop',
+      offers: [
+        {app: 'shop-b', request: 'Cameras.'},
+        {app: 'shop-b', request: 'Cameras again.'},
+        {app: 'linear', request: 'Issues.'},
+        {app: 'shop-z', request: 'Cameras.'},
+        {app: 'shop-c', request: '  '},
+      ],
+    };
+    expect(check(doc)).toEqual([
+      "/dispatch/2/offers/1/app: 'shop-b' is offered twice",
+      "/dispatch/2/offers/2/app: 'linear' is installed; dispatch to it, never offer it",
+      "/dispatch/2/offers/3/app: 'shop-z' was not returned by a search this turn made",
+      "/dispatch/2/offers/4/request: the request for 'shop-c' is blank; write one, or leave it out",
+    ]);
+  });
+
+  test('one app offered under two gaps of the same plan is refused (decision 4)', () => {
+    const doc: LayoutSurface = {
+      dispatch: [
+        {gap: 'camera shop', offers: [{app: 'shop-b', request: 'Cameras.'}]},
+        {gap: 'flight booking', offers: [{app: 'shop-b', request: 'Flights.'}]},
+      ],
+      tree: {
+        components: [
+          {id: 'root', component: 'Column', children: ['b', 'f']},
+          {id: 'b', component: 'Slot', gap: 'camera shop'},
+          {id: 'f', component: 'Slot', gap: 'flight booking'},
+        ],
+      },
+      dataModel: {},
+    };
+    expect(check(doc)).toEqual([
+      "/dispatch/1/offers/0/app: 'shop-b' is offered under two gaps, 'camera shop' and 'flight booking'; offer it under the one it fits",
+    ]);
+  });
+
+  test('an install asked for offers the app with no request (phase-15 decision 9)', () => {
+    const doc = gap();
+    doc.dispatch[0] = {gap: 'flight booking', offers: [{app: 'skyway'}]};
+    expect(check(doc)).toEqual([]);
   });
 });

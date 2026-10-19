@@ -4,9 +4,10 @@
  * deterministic projection — never a partition's contents, never the synthesis document. One
  * interface; the AI SDK adapter below is the only tool-shaped code, so a new projection is a new
  * reader here and the Planner does not change if the platform's state ever moves behind a real
- * MCP server.
+ * MCP server. Beside the readers, the marketplace's tool set — its one search (`storeSearch.ts`).
  */
 import {jsonSchema, tool, type ToolSet} from 'ai';
+import {SEARCH_TOOL, type StoreSearch} from './storeSearch.js';
 
 export interface InstalledApp {
   id: string;
@@ -47,6 +48,7 @@ export interface CompositionView {
   slots: CompositionSlot[];
   /** Present when the plan reserved a merged view; its state and, when it did not stand, why. */
   mergedView?: {state: 'pending' | 'live' | 'collapsed' | 'declined'; reason?: string};
+  /** The capability gaps no app fills yet; one an install filled reads as its slot (task-15.4 decision 11). */
   gaps: string[];
 }
 
@@ -71,12 +73,41 @@ const NO_INPUT = jsonSchema<Record<string, never>>({
   additionalProperties: false,
 });
 
+const SEARCH_INPUT = jsonSchema<{words: string}>({
+  type: 'object',
+  properties: {
+    words: {
+      type: 'string',
+      minLength: 1,
+      description:
+        'A few plain words naming the capability the utterance needs — or the name of the app it asks to install. A gap you name carries these words exactly.',
+    },
+  },
+  required: ['words'],
+  additionalProperties: false,
+});
+
 /**
  * The readers as the AI SDK's tools, bound to the composition the question was asked from; results as
- * JSON, recent turns as lines.
+ * JSON, recent turns as lines. Beside them, when the marketplace is wired, its one tool: the search
+ * (task-15.4 decision 1).
  */
-export function readerTools(readers: PlatformReaders, askedFrom: string | undefined): ToolSet {
+export function readerTools(
+  readers: PlatformReaders,
+  askedFrom: string | undefined,
+  store?: StoreSearch,
+): ToolSet {
   return {
+    ...(store
+      ? {
+          [SEARCH_TOOL]: tool({
+            description:
+              'The Store: the apps published there that are not installed here, searched by words. Each app found comes with its app id, its card’s name, description and skills with their examples, and its publisher. An empty list means nothing in the Store matches the words; `unreached` means the Store could not be reached. Call it when the utterance needs what no installed app serves, or asks to install an app — never to answer what the Store lists.',
+            inputSchema: SEARCH_INPUT,
+            execute: async ({words}) => store.search(words),
+          }),
+        }
+      : {}),
     installed_apps: tool({
       description:
         'The apps installed on this platform: each one’s id, display name, its card’s name, description and skills, the catalogs it paints in, whether it was reachable at boot, whether it asks the user to sign in, the accounts signed in to it — each its source id and its label; none listed means not signed in — and whether it has an update: its state in the words the App Library shows, with how long ago the last check ran. Call it to answer which apps there are, what an installed app can do, which accounts an app has, or whether anything is out of date. The platform itself is not an app.',

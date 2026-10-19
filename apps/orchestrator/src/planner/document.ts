@@ -35,9 +35,23 @@ export interface JoinNouns {
   nouns: Record<string, string>;
 }
 
-/** A capability no installed app serves, in words: the Store query of the tile that fills its Slot. */
+/**
+ * A capability no installed app serves, in words — the words of one of this plan's searches
+ * (task-15.4 decision 3) — and the apps it offers from the Store (phase-15 decision 3).
+ */
 export interface GapDispatch {
   gap: string;
+  /** In the order the slot shows them; none when nothing found fits. */
+  offers: GapOffer[];
+}
+
+/**
+ * An app a gap offers, by app id, and the request the Planner wrote to it — none when the
+ * utterance asks nothing of the app (phase-15 decision 9).
+ */
+export interface GapOffer {
+  app: string;
+  request?: string;
 }
 
 /**
@@ -120,7 +134,7 @@ export const LAYOUT_SURFACE_SCHEMA = {
     dispatch: {
       type: 'array',
       description:
-        'Who answers this turn. One entry per source to dispatch, each with the prose request it receives; `shell` is the merged view over two or more of the others, its request the brief for that view. One entry per capability gap, naming the capability in words. One entry per account choice: an app with two or more accounts whose command named none. Empty when the shell answers alone.',
+        'Who answers this turn. One entry per source to dispatch, each with the prose request it receives; `shell` is the merged view over two or more of the others, its request the brief for that view. One entry per capability gap, naming the capability in the words searched for it, with the apps it offers from the Store. One entry per account choice: an app with two or more accounts whose command named none. Empty when the shell answers alone.',
       items: {
         oneOf: [
           {
@@ -186,13 +200,36 @@ export const LAYOUT_SURFACE_SCHEMA = {
           {
             type: 'object',
             additionalProperties: false,
-            required: ['gap'],
+            required: ['gap', 'offers'],
             properties: {
               gap: {
                 type: 'string',
                 minLength: 1,
                 description:
-                  'A capability the utterance needs that no installed app serves, in words — the query the Store will be searched for.',
+                  'A capability the utterance needs that no installed app serves, in words — exactly the words of one of your `search_store` calls this turn. Also an app the utterance asks to install, by the words you searched for it.',
+              },
+              offers: {
+                type: 'array',
+                description:
+                  'The apps you offer for it, chosen from what your searches returned, in the order the user sees them: as many as fit, none when nothing found fits. The user picks one to install, and its slot then shows the app answering the request you wrote it.',
+                items: {
+                  type: 'object',
+                  additionalProperties: false,
+                  required: ['app'],
+                  properties: {
+                    app: {
+                      type: 'string',
+                      minLength: 1,
+                      description: 'The app id, as a search returned it.',
+                    },
+                    request: {
+                      type: 'string',
+                      minLength: 1,
+                      description:
+                        'The message the app receives once installed, as for a source: the only thing it sees, in plain language. Leave it out when the utterance asks nothing of the app — only to install it.',
+                    },
+                  },
+                },
               },
             },
           },

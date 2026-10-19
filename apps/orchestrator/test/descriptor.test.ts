@@ -49,6 +49,15 @@ describe('describe', () => {
         ]),
       ).descriptor,
     ).toBe('step github to 0');
+    // The gap a useApp fills (task-15.4 decision 15).
+    const use = {kind: 'useApp', sources: ['shop-b'], gap: 'camera prices'};
+    expect(describeMessage(msg([{kind: 'data', data: {version: 'v0.9', operation: use}}]))).toEqual(
+      {
+        kind: 'operation',
+        descriptor: "useApp shop-b on gap 'camera prices'",
+        payload: use,
+      },
+    );
   });
 
   test('unknown shape: JSON of the parts', () => {

@@ -7,7 +7,7 @@ import {clipPaintMetaTitle, PAINT_META_MIME_TYPE} from '@a2uiverse/sdk';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 import {describe, expect, test} from 'vitest';
 import {Sources} from '../src/accounts/accounts.js';
-import {chooseAccount, compositionFrom} from '../src/composition/state.js';
+import {chooseAccount, compositionFrom, fillGap} from '../src/composition/state.js';
 import {
   paintLayout,
   shellCreateParts,
@@ -31,7 +31,7 @@ const layout: LayoutSurface = {
     {source: 'gmail', request: 'b'},
     {source: 'calendar', request: 'c'},
     {source: 'shell', request: 'merge'},
-    {gap: 'flight booking'},
+    {gap: 'flight booking', offers: []},
   ],
   tree: {
     components: [
@@ -229,8 +229,13 @@ describe('paintLayout', () => {
     for (const prop of ['merged', 'late', 'callFailed']) expect(merge()).not.toHaveProperty(prop);
   });
 
-  test('a gap slot is painted as authored: the catalog’s tile, no wrapper, no state', () => {
-    expect(byId.get('flights')).toEqual({id: 'flights', component: 'Slot', gap: 'flight booking'});
+  test('a gap slot offering nothing is bare, painted with why: no wrapper, no state (task-15.4 decision 8)', () => {
+    expect(byId.get('flights')).toEqual({
+      id: 'flights',
+      component: 'Slot',
+      gap: 'flight booking',
+      offer: {apps: [], none: 'nothing'},
+    });
     expect(byId.has('attribution-flights')).toBe(false);
   });
 });
@@ -528,5 +533,192 @@ describe('the add-account tile (task-12.13 decision 27)', () => {
       ],
       scopes: ['See your inbox'],
     });
+  });
+});
+
+describe('the offer (task 15.4)', () => {
+  const store = (appId: string, name: string, publisher: string) => ({
+    appId,
+    name,
+    publisher,
+    description: `${name}, a camera shop.`,
+    skills: [],
+  });
+  const searches = [
+    {words: 'camera shop', reached: true, apps: [store('shop-c', 'Shop C', 'fieldstone')]},
+    {
+      words: 'camera shop',
+      reached: true,
+      apps: [store('shop-b', 'Shop B', 'northlight'), store('shop-c', 'Shop C', 'fieldstone')],
+    },
+    {words: 'camera rental', reached: false, apps: []},
+  ];
+  const offering: LayoutSurface = {
+    dispatch: [
+      {source: 'github', request: 'a'},
+      {
+        gap: 'camera shop',
+        offers: [
+          {app: 'shop-c', request: 'Cameras in stock with their prices.'},
+          {app: 'shop-b', request: 'Cameras in stock with their prices.'},
+        ],
+      },
+      {gap: 'camera rental', offers: []},
+      {gap: 'install shop-b', offers: [{app: 'shop-b'}]},
+    ],
+    tree: {
+      components: [
+        {id: 'root', component: 'Column', children: ['shops', 'rental', 'install']},
+        {id: 'shops', component: 'Row', children: ['gh', 'more']},
+        {id: 'gh', component: 'Slot', source: 'github'},
+        {id: 'more', component: 'Slot', gap: 'camera shop', weight: 2},
+        {id: 'rental', component: 'Slot', gap: 'camera rental'},
+        {id: 'install', component: 'Slot', gap: 'install shop-b'},
+      ],
+    },
+    dataModel: {},
+  };
+  const searchesFor = [...searches, {words: 'install shop-b', reached: true, apps: []}];
+  const fresh = async (accounts?: {
+    accountsOf: (appId: string) => {n: number; label: string}[];
+    nextAccount: () => number;
+  }) => {
+    const {registry: installed} = await testRegistry([
+      {id: 'github', card: cardFor('http://127.0.0.1/github', {name: 'GitHub'})},
+      {id: 'shop-b', card: cardFor('http://127.0.0.1/shop-b', {name: 'Shop B'})},
+    ]);
+    const sources = new Sources(installed, accounts);
+    return {
+      sources,
+      state: compositionFrom(offering, sources, 'camera prices', {turnId: 't'}, searchesFor),
+    };
+  };
+  const painted = (state: ReturnType<typeof compositionFrom>) =>
+    new Map(paintLayout(state).map(c => [c.id, c]));
+
+  test('each app offered drawn from the entry this plan’s searches returned, in the Planner’s order, no request on the wire (decision 8)', async () => {
+    const {state} = await fresh();
+    expect(painted(state).get('more')).toEqual({
+      id: 'more',
+      component: 'Slot',
+      gap: 'camera shop',
+      weight: 2,
+      offer: {
+        apps: [
+          {
+            appId: 'shop-c',
+            name: 'Shop C',
+            publisher: 'fieldstone',
+            description: 'Shop C, a camera shop.',
+          },
+          {
+            appId: 'shop-b',
+            name: 'Shop B',
+            publisher: 'northlight',
+            description: 'Shop B, a camera shop.',
+          },
+        ],
+      },
+    });
+    expect(JSON.stringify(paintLayout(state))).not.toContain('Cameras in stock');
+    expect(painted(state).has('attribution-more')).toBe(false);
+  });
+
+  test('a gap offering nothing whose search was not reached says so (decision 3)', async () => {
+    const {state} = await fresh();
+    expect(painted(state).get('rental')).toMatchObject({offer: {apps: [], none: 'unreached'}});
+  });
+
+  test('filled with an app needing no sign-in: the app’s slot under its marker, its id and weight kept, pending (decision 11)', async () => {
+    const {sources, state} = await fresh();
+    expect(fillGap(state, sources, 'camera shop', 'shop-b', {name: 'Shop B'})).toEqual({
+      kind: 'source',
+      appId: 'shop-b',
+      source: 'shop-b',
+    });
+    expect(state.slots.get('shop-b')).toMatchObject({
+      plan: {source: 'shop-b', request: 'Cameras in stock with their prices.'},
+      state: 'pending',
+    });
+    const byId = painted(state);
+    expect(byId.get('shops')!.children).toEqual(['attribution-gh', 'attribution-more']);
+    expect(byId.get('attribution-more')).toEqual({
+      id: 'attribution-more',
+      component: 'Attribution',
+      displayName: 'Shop B',
+      source: 'shop-b',
+      child: 'more',
+      weight: 2,
+    });
+    expect(byId.get('more')).toEqual({
+      id: 'more',
+      component: 'Slot',
+      source: 'shop-b',
+      weight: 2,
+      state: 'pending',
+      label: 'Shop B',
+    });
+    // Filled once: a second press on the same gap fills nothing.
+    expect(fillGap(state, sources, 'camera shop', 'shop-c', {name: 'Shop C'})).toBeUndefined();
+  });
+
+  test('an offer with no request, filled: the installed line, bare, with an example question (decision 12)', async () => {
+    const {sources, state} = await fresh();
+    const fill = fillGap(state, sources, 'install shop-b', 'shop-b', {
+      name: 'Shop B',
+      example: 'Any Z6 in stock?',
+    });
+    expect(fill).toEqual({
+      kind: 'installed',
+      appId: 'shop-b',
+      name: 'Shop B',
+      example: 'Any Z6 in stock?',
+    });
+    expect(state.slots.has('shop-b')).toBe(false);
+    expect(painted(state).get('install')).toEqual({
+      id: 'install',
+      component: 'Slot',
+      gap: 'install shop-b',
+      installed: {appId: 'shop-b', name: 'Shop B', example: 'Any Z6 in stock?'},
+    });
+    expect(painted(state).has('attribution-install')).toBe(false);
+  });
+
+  test('an app holding two accounts by the press: the account choice holding the offer’s request, then the account’s slot (decision 11)', async () => {
+    const {sources, state} = await fresh({
+      accountsOf: appId =>
+        appId === 'shop-b'
+          ? [
+              {n: 1, label: 'work'},
+              {n: 2, label: 'home'},
+            ]
+          : [],
+      nextAccount: () => 3,
+    });
+    expect(fillGap(state, sources, 'camera shop', 'shop-b', {name: 'Shop B'})).toEqual({
+      kind: 'choice',
+      appId: 'shop-b',
+    });
+    expect(painted(state).get('more')).toEqual({
+      id: 'more',
+      component: 'Slot',
+      chooseAccount: 'shop-b',
+      weight: 2,
+      label: 'Shop B',
+      accounts: [
+        {source: 'shop-b.1', label: 'work'},
+        {source: 'shop-b.2', label: 'home'},
+      ],
+    });
+    expect(chooseAccount(state, sources, 'shop-b.2')?.plan.request).toBe(
+      'Cameras in stock with their prices.',
+    );
+    expect(painted(state).get('more')).toMatchObject({source: 'shop-b.2', state: 'pending'});
+  });
+
+  test('a gap not here, or an app it did not offer, fills nothing (decision 10)', async () => {
+    const {sources, state} = await fresh();
+    expect(fillGap(state, sources, 'flights', 'shop-b', {name: 'Shop B'})).toBeUndefined();
+    expect(fillGap(state, sources, 'camera rental', 'shop-b', {name: 'Shop B'})).toBeUndefined();
   });
 });

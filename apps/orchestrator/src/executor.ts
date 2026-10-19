@@ -27,11 +27,13 @@ import {
   addedAccounts,
   chooseAccount,
   compositionFrom,
+  fillGap,
   inSlotOrder,
   lateSources,
   outcomeToSlotState,
   synthesisSlot,
   type CompositionState,
+  type GapFill,
   type HeldAnswer,
   type Operation,
   type Owed,
@@ -47,6 +49,7 @@ import type {SynthesisRecord, SynthesisRelease} from './journal/types.js';
 import {elapsedMs, logLine} from './log.js';
 import {emptyTouches, mergeTouches, touchesOf, type SurfaceTouches} from './journal/surfaces.js';
 import type {Planner} from './planner/planner.js';
+import {searchesOf} from './planner/storeSearch.js';
 import {SHELL_SOURCE_ID} from './registry/types.js';
 import type {Router} from './router/router.js';
 import type {ChangeAccount, MissingSource} from './synthesizer/prompt.js';
@@ -455,12 +458,19 @@ export class OrchestratorExecutor implements AgentExecutor {
       );
     }
 
-    const state = compositionFrom(outcome.document, this.#deps.sources, text, {
-      turnId: ctx.taskId,
-      metadata: ctx.userMessage.metadata,
-      ...(parent !== undefined ? {parent} : {}),
-      openedAt,
-    });
+    // Each gap's offer drawn from this plan's searches (task-15.4 decisions 3, 8).
+    const state = compositionFrom(
+      outcome.document,
+      this.#deps.sources,
+      text,
+      {
+        turnId: ctx.taskId,
+        metadata: ctx.userMessage.metadata,
+        ...(parent !== undefined ? {parent} : {}),
+        openedAt,
+      },
+      searchesOf(outcome.toolCalls),
+    );
     // The title as emitted, clipped to the contract's cap (task-9.3 decision 4), on the journal.
     const titleClipped = state.title !== undefined && state.title !== outcome.document.title;
     if (titleClipped)
@@ -852,6 +862,29 @@ export class OrchestratorExecutor implements AgentExecutor {
           return refuse(`No account choice here offers ${source}.`);
         }
         work = signal => this.#useAccount(sink, state, source, signal);
+        break;
+      }
+      case 'useApp': {
+        // An app pressed on a gap's offer — Install, Show it here, or an install on the Store
+        // page opened from the slot (task-15.4 decisions 9, 10): the gap becomes what the app
+        // takes there, the offer's request going to it — no second plan.
+        const appId = operation.sources[0]!;
+        const words = operation.gap!;
+        const gap = state.gaps.get(words);
+        if (!gap) return refuse(`No gap here is '${words}'.`);
+        if (gap.filled) return refuse(`'${words}' already shows an app.`);
+        if (!gap.offers.some(offer => offer.appId === appId)) {
+          return refuse(`'${words}' does not offer ${appId}.`);
+        }
+        const card = this.#deps.sources.installedCard(appId);
+        if (!card) return refuse(`${appId} is not installed.`);
+        const example = card.skills?.[0]?.examples?.[0];
+        const fill = fillGap(state, this.#deps.sources, words, appId, {
+          name: card.name,
+          ...(example !== undefined ? {example} : {}),
+        });
+        if (!fill) return refuse(`${appId} already holds a slot here.`);
+        work = signal => this.#useApp(sink, state, fill, signal);
         break;
       }
       case 'dismiss': {
@@ -1739,6 +1772,26 @@ export class OrchestratorExecutor implements AgentExecutor {
     const run = this.#pump(sink, state, handle, source, {collapse: true, signal});
     sink.drains?.push(run.drained);
     await run.settled.finally(() => signal.removeEventListener('abort', abort));
+  }
+
+  /**
+   * A gap filled with an app it offered (task-15.4 decisions 6, 11, 12): the installed line or the
+   * account choice painted in its place; otherwise the app's slot, pending, sent the offer's
+   * request as a Retry sends it — the press's own clock, a Retry's deadline and hard cap, the
+   * pool's check taking the slot to its sign-in when the app needs one — its first answer
+   * included in the merge on arrival, the Install press its Retry.
+   */
+  async #useApp(
+    sink: Sink,
+    state: CompositionState,
+    fill: GapFill,
+    signal: AbortSignal,
+  ): Promise<void> {
+    if (fill.kind !== 'source') {
+      this.#repaint([sink], state);
+      return;
+    }
+    await this.#retry(sink, state, fill.source, signal);
   }
 
   /**

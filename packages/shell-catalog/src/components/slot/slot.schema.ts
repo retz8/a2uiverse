@@ -10,8 +10,15 @@ import {z} from 'zod';
  * - `source` is the dispatched source whose content fills the region: a source id — the app and
  *   the account it paints under, `<appId>.<n>`, the bare app id for an app needing no sign-in
  *   (task-12.2 decision 3) — or `shell` for the merged view. It is the slot's identity within the layout; the host resolves content by it.
- * - `gap` is a capability no installed app serves, in words (task-6.3 decision 6): the region is
- *   the capability tile, and the gap is its Store query.
+ * - `gap` is a capability no installed app serves, in words (task-6.3 decision 6) — the words the
+ *   plan searched the Store for (task-15.4 decision 3): the region is the offer. `offer` —
+ *   painted by the runtime from the marketplace's entries (task-15.4 decision 8) — lists every app
+ *   the plan offered, in its order, by app id, name, publisher and short description, or, with
+ *   none, why: `nothing` in the Store fits, or the Store `unreached`. Once an app offered with
+ *   nothing asked of it is installed there, `installed` carries its id, its name and one of its
+ *   card's example questions when it has one (task-15.4 decision 12). An app offered with a
+ *   request, once installed there, makes the region its own: the slot is painted holding its
+ *   source.
  * - `chooseAccount` is an app with two or more accounts whose command named none (task-12.6
  *   decisions 3, 5): the region is the account choice, and `accounts` — painted by the runtime,
  *   from the vault — are its presses, each an account's source and its label. A press sends the
@@ -156,6 +163,37 @@ const CallFailedSchema = z
   })
   .strict();
 
+/** Why an offer has no app: nothing in the Store fits, or the Store was not reached (task-15.4 decision 3). */
+export const OFFER_NONE_CAUSES = ['nothing', 'unreached'] as const;
+export type OfferNoneCause = (typeof OFFER_NONE_CAUSES)[number];
+
+const OfferedAppSchema = z
+  .object({
+    appId: z.string(),
+    name: z.string(),
+    publisher: z.string(),
+    description: z.string(),
+  })
+  .strict();
+
+const OfferSchema = z
+  .object({
+    apps: z.array(OfferedAppSchema),
+    none: z.enum(OFFER_NONE_CAUSES).optional(),
+  })
+  .strict()
+  .refine(offer => (offer.none !== undefined) === (offer.apps.length === 0), {
+    message: 'an offer says why it has no app exactly when it offers none',
+  });
+
+const InstalledSchema = z
+  .object({
+    appId: z.string(),
+    name: z.string(),
+    example: z.string().optional(),
+  })
+  .strict();
+
 export const SlotApi = {
   name: 'Slot',
   schema: z
@@ -193,6 +231,8 @@ export const SlotApi = {
         .optional(),
       callFailed: CallFailedSchema.optional(),
       retrying: z.array(z.string()).optional(),
+      offer: OfferSchema.optional(),
+      installed: InstalledSchema.optional(),
     })
     .strict()
     .refine(
@@ -212,6 +252,14 @@ export const SlotApi = {
     .refine(props => props.scopes === undefined || props.addAccount !== undefined, {
       message: 'a Slot carries scopes only when it is add-account',
     })
+    .refine(
+      props =>
+        (props.offer === undefined && props.installed === undefined) || props.gap !== undefined,
+      {message: 'a Slot carries an offer or an installed app only when it holds a gap'},
+    )
+    .refine(props => props.offer === undefined || props.installed === undefined, {
+      message: 'a gap Slot carries its offer or the app installed there, not both',
+    })
     .refine(props => props.authority === undefined || props.state === 'authority', {
       message: 'a Slot carries an authority only when its state is `authority`',
     })
@@ -229,3 +277,6 @@ export type SlotAuthority = z.infer<typeof AuthoritySchema>;
 export type SlotCollapse = z.infer<typeof CollapseSchema>;
 export type SlotCallFailed = z.infer<typeof CallFailedSchema>;
 export type SlotAccount = NonNullable<SlotProps['accounts']>[number];
+export type SlotOffer = z.infer<typeof OfferSchema>;
+export type SlotOfferedApp = z.infer<typeof OfferedAppSchema>;
+export type SlotInstalled = z.infer<typeof InstalledSchema>;

@@ -7,6 +7,7 @@ import type {ShortlistEntry} from '../router/router.js';
 import type {LayoutSurface} from './document.js';
 import {buildPlannerTurn, buildRetryTurn, LAYOUT_SURFACE_TAG, type SourcesOf} from './prompt.js';
 import {readerTools, type PlatformReaders} from './readers.js';
+import {searchesOf, type StoreSearch} from './storeSearch.js';
 import {validateLayoutSurface} from './validate.js';
 
 export interface PlanInput {
@@ -38,8 +39,8 @@ export interface Planner {
 
 /** The number of model calls a plan may spend: one, and one retry (task-6.4 decision 6). */
 export const MAX_ATTEMPTS = 2;
-/** Steps per attempt: the three readers and the answer (task-6.4 decision 5). */
-export const MAX_STEPS = 4;
+/** Steps per attempt: one per tool — the three readers and the search — and the answer (task-15.4 decision 5). */
+export const MAX_STEPS = 5;
 
 /**
  * The Planner (SPEC §5.6, task-6.4): text out, validated after, the Synthesizer's loop with the
@@ -47,8 +48,10 @@ export const MAX_STEPS = 4;
  * parsed and validated — the output schema, the tree against the Planner's pruned catalog, slot
  * accounting, the painter-owned props, the literal-only data model. A failure goes back to the
  * model once, in the same conversation — its failed answer and the reader results in place, the
- * findings appended — and a second failure is `malformed`. Each attempt has a four-step budget;
- * running out of it without a block is a failed attempt like any other.
+ * findings appended — and a second failure is `malformed`. Each attempt has a five-step budget;
+ * running out of it without a block is a failed attempt like any other. Beside the readers, the
+ * marketplace's search when it is wired (task-15.4 decision 1); a gap is checked against this
+ * plan's searches, both attempts' (decision 3).
  */
 export class ModelPlanner implements Planner {
   readonly #model: LanguageModel;
@@ -57,6 +60,7 @@ export class ModelPlanner implements Planner {
   readonly #tree: A2uiValidator;
   readonly #readers: PlatformReaders;
   readonly #sourcesOf: SourcesOf;
+  readonly #store: StoreSearch | undefined;
 
   constructor(options: {
     model: LanguageModel;
@@ -70,6 +74,8 @@ export class ModelPlanner implements Planner {
      * 1); the bare app id alone when omitted.
      */
     sourcesOf?: SourcesOf;
+    /** The marketplace's search (task-15.4 decision 1); none, and the Planner cannot search. */
+    store?: StoreSearch;
   }) {
     this.#model = options.model;
     this.#providerOptions = options.providerOptions;
@@ -77,13 +83,14 @@ export class ModelPlanner implements Planner {
     this.#tree = createA2uiValidator({catalog: options.catalog});
     this.#readers = options.readers;
     this.#sourcesOf = options.sourcesOf ?? (appId => [{source: appId}]);
+    this.#store = options.store;
   }
 
   async plan(input: PlanInput): Promise<PlanOutcome> {
     const shortlist = input.shortlist.flatMap(entry =>
       this.#sourcesOf(entry.record.id).map(({source}) => source),
     );
-    const tools = readerTools(this.#readers, input.askedFrom);
+    const tools = readerTools(this.#readers, input.askedFrom, this.#store);
     const attempts: PlanAttempt[] = [];
     const toolCalls: ToolCallRecord[] = [];
     let messages: ModelMessage[] = [
@@ -108,7 +115,7 @@ export class ModelPlanner implements Planner {
         }
         messages = [...messages, ...step.response.messages];
       }
-      const accepted = this.#accept(result.text, shortlist);
+      const accepted = this.#accept(result.text, shortlist, toolCalls);
       attempts.push({text: result.text, errors: accepted.errors});
       if (accepted.ok) return {kind: 'planned', document: accepted.document, attempts, toolCalls};
       messages.push({role: 'user', content: buildRetryTurn(accepted.errors)});
@@ -119,6 +126,7 @@ export class ModelPlanner implements Planner {
   #accept(
     text: string,
     shortlist: readonly string[],
+    toolCalls: readonly ToolCallRecord[],
   ): {ok: true; document: LayoutSurface; errors: string[]} | {ok: false; errors: string[]} {
     const block = extractTaggedBlock(text, LAYOUT_SURFACE_TAG);
     if (!block.ok) return {ok: false, errors: [block.error]};
@@ -134,7 +142,12 @@ export class ModelPlanner implements Planner {
       };
     }
     const installed = this.#readers.installedApps().map(app => app.id);
-    const validation = validateLayoutSurface(parsed, {tree: this.#tree, shortlist, installed});
+    const validation = validateLayoutSurface(parsed, {
+      tree: this.#tree,
+      shortlist,
+      installed,
+      searches: searchesOf(toolCalls),
+    });
     if (!validation.ok) return {ok: false, errors: validation.errors};
     return {ok: true, document: validation.document, errors: []};
   }

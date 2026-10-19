@@ -259,6 +259,31 @@ test('a useAccount names the one account the account choice sends to', () => {
   expect(
     readOperation({version: 'v0.9', operation: {kind: 'useAccount', sources: ['a.1', 'a.2']}}),
   ).toBeUndefined();
+  expect(
+    readOperation({
+      version: 'v0.9',
+      operation: {kind: 'useAccount', sources: ['gmail.2'], gap: 'mail'},
+    }),
+  ).toBeUndefined();
+});
+
+test('a useApp names the one app a gap offered and the gap’s words (task-15.4 decision 9)', () => {
+  const use = operationData({kind: 'useApp', sources: ['shop-b'], gap: 'camera prices'}, 'v0.9');
+  expect(use).toEqual({
+    version: 'v0.9',
+    operation: {kind: 'useApp', sources: ['shop-b'], gap: 'camera prices'},
+  });
+  expect(readOperation(use)).toEqual({kind: 'useApp', sources: ['shop-b'], gap: 'camera prices'});
+  for (const operation of [
+    {kind: 'useApp', sources: ['shop-b']},
+    {kind: 'useApp', sources: ['shop-b'], gap: '  '},
+    {kind: 'useApp', sources: ['shop-b'], gap: 7},
+    {kind: 'useApp', sources: [], gap: 'camera prices'},
+    {kind: 'useApp', sources: ['shop-a', 'shop-b'], gap: 'camera prices'},
+    {kind: 'useApp', sources: ['shop-b'], gap: 'camera prices', step: 0},
+  ]) {
+    expect(readOperation({version: 'v0.9', operation})).toBeUndefined();
+  }
 });
 
 test('a step names one agent and the step it shows; a close names nothing', () => {

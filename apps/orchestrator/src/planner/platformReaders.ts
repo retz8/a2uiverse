@@ -96,7 +96,7 @@ export function checkedAgo(at: number, now: number): string {
 /**
  * The composition as structure only: never a partition's contents, never the synthesis document.
  * An account's slot carries its label; an account choice still waiting is listed by its app
- * (task-12.6 decision 9).
+ * (task-12.6 decision 9); a gap, until an install fills it.
  */
 export function compositionView(state: CompositionState, sources?: Sources): CompositionView {
   const slots = [...state.slots.values()]
@@ -114,7 +114,9 @@ export function compositionView(state: CompositionState, sources?: Sources): Com
     if (choice.chosen !== undefined) continue;
     slots.push({source: appId, displayName: choice.displayName, state: 'choosing-account'});
   }
-  const view: CompositionView = {utterance: state.utterance, slots, gaps: [...state.gaps]};
+  // A gap an install filled reads as its slot (task-15.4 decision 11); the installed line, as done.
+  const gaps = [...state.gaps.values()].filter(gap => !gap.filled).map(gap => gap.words);
+  const view: CompositionView = {utterance: state.utterance, slots, gaps};
   if (state.slots.has(SHELL_SOURCE_ID)) view.mergedView = mergedViewOf(state);
   return view;
 }
