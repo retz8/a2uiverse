@@ -91,7 +91,7 @@ On a Store page opened from a slot, an install that fills that slot reads "**Sho
 
 ### 20. The roster's real apps
 
-The boards use the deterministic roster's apps. The main story is "camera prices" with Shop A installed and Shop B, from Northlight, offered beside a merged view: Install, the consent card, the key connect as the second step, the merge taking Shop B in. The offer of several apps is the same question with neither shop installed, both offered. The update tile's boards use Shop B and Northlight.
+The boards use the deterministic roster's apps. The main story is "camera prices" with Shop A installed and Shop B, from Northlight, offered beside a merged view: Install, the consent card, the key connect as the second step, the merge taking Shop B in. The offer of several apps is the same question with neither shop installed, both offered. The update tile's boards use Shop B and Northlight; the update that asks for more, and the needs-more-access tile after it, use CircleCI.
 
 ### 21. Phase 14's form
 
