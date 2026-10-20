@@ -21,7 +21,7 @@ A turn answering an action on a surface on screen is written whole in that surfa
 
 ### 3. A surface's id the kit cannot paint in falls to the newer advertised id
 
-When the kit cannot paint in the pressed surface's id — the old line retired, the surface's id unknown to the kit, or the id not advertised — the turn is painted in the newer advertised id, as a fresh surface.
+When the kit knows the pressed surface's id and cannot paint in it — no line held for it, or the id not advertised — the turn is painted in the newer advertised id, as a fresh surface in the model's modes; the deterministic answers stay the app's own, in place or not. A surface whose id the kit does not know — painted before the agent last started — is answered in the newer advertised id as today, a change in place allowed.
 
 ### 4. No capabilities: the newer id
 
