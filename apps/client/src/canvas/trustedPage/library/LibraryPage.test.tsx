@@ -112,6 +112,7 @@ beforeEach(() => {
         state: 'major-update',
         publishedVersion: '2.0.0',
         newCatalogIds: [],
+        newScopes: [],
         builds: [],
       }),
       at('linear', {state: 'up-to-date', publishedVersion: '1.0.0'}),
@@ -359,6 +360,7 @@ describe('the list of your apps', () => {
       state: 'major-update',
       publishedVersion: '2.0.0',
       newCatalogIds: [],
+      newScopes: [],
       builds: [],
     });
     renderWithShell(<Library initial={{page: 'appLibrary'}} />);
@@ -381,6 +383,24 @@ describe('the list of your apps', () => {
     expect(fake.installs).toEqual([]);
     await userEvent.click(within(consent).getByRole('button', {name: 'Update'}));
     await waitFor(() => expect(fake.installs).toEqual(['calendar']));
+  });
+
+  it('a forced update asking for more passes the consent card first, naming what it newly asks (task-15.5 decision 7)', async () => {
+    fake.states[1] = at('calendar', {
+      state: 'update-required',
+      publishedVersion: '2.0.0',
+      retired: ['x'],
+      newScopes: [{scheme: 'google', scopes: ['read']}],
+    });
+    fake.listings = [
+      {...entry('calendar', 'Google Calendar'), card: card('Google Calendar', OAUTH)},
+    ];
+    renderWithShell(<Library initial={{page: 'appLibrary'}} />);
+    await userEvent.click(await screen.findByRole('button', {name: 'Update Google Calendar'}));
+    const consent = await screen.findByTestId('consent-card');
+    expect(consent).toHaveTextContent('This version asks for more.');
+    expect(consent).toHaveTextContent('Read your email and its labels');
+    expect(fake.installs).toEqual([]);
   });
 
   it('a card update asking nothing new reads as a new version and goes straight through (task-14.11 decision 37)', async () => {

@@ -6,7 +6,7 @@
  * in moves (task-14.2 decision 8). One press confirms. Built once, for the Store and the App Library.
  */
 import {AlertDialog, Button, Flex} from '@radix-ui/themes';
-import type {IndexEntry, UpdateState} from '@a2uiverse/sdk';
+import {asksForMore, type IndexEntry, type UpdateState} from '@a2uiverse/sdk';
 import {bringsNewLook, newScopeWords, signInOf, tileLetter} from './appCard';
 
 /** What the card asks: an install, or an update that asks for more. */
@@ -107,7 +107,9 @@ function InstallSignIn({entry}: {entry: IndexEntry}) {
 /** What updating brings that the installed app did not ask for. */
 function UpdateNews({entry, update}: {entry: IndexEntry; update: UpdateState}) {
   const name = entry.card.name;
-  const words = update.state === 'card-update' ? newScopeWords(entry.card, update.newScopes) : [];
+  // Every update that asks for more names what it newly asks (task-15.5 decision 7).
+  const words =
+    asksForMore(update) && 'newScopes' in update ? newScopeWords(entry.card, update.newScopes) : [];
   return (
     <>
       {words.length > 0 && (

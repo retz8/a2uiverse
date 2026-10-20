@@ -270,7 +270,15 @@ describe("the update state's words (task-14.5 decisions 6 and 7)", () => {
     expect(asksForMore(of('card-update', []))).toBe(false);
     expect(asksForMore(of('card-update'))).toBe(true);
     expect(asksForMore(of('card-update', [{scheme: 'apiKey', scopes: []}]))).toBe(true);
-    expect(asksForMore(of('major-update'))).toBe(false);
+  });
+
+  test('every updatable state naming a new permission asks for more (task-15.5 decision 7)', () => {
+    expect(asksForMore(of('update-required'))).toBe(true);
+    expect(asksForMore(of('major-update'))).toBe(true);
+    expect(asksForMore(of('update-required', []))).toBe(false);
+    expect(asksForMore(of('major-update', []))).toBe(false);
+    expect(asksForMore(of('newer-build'))).toBe(false);
+    expect(asksForMore(of('ahead-of-store'))).toBe(false);
   });
 
   test('an app from a local copy the Store does not list is installed from your computer', () => {
@@ -312,12 +320,19 @@ describe('the update state', () => {
         catalogIds: [],
         version: '2.0.0',
       },
-      {...base, state: 'update-required', publishedVersion: '2.0.0', retired: ['cat/v1']},
+      {
+        ...base,
+        state: 'update-required',
+        publishedVersion: '2.0.0',
+        retired: ['cat/v1'],
+        newScopes: [],
+      },
       {
         ...base,
         state: 'major-update',
         publishedVersion: '2.0.0',
         newCatalogIds: ['cat/v2'],
+        newScopes: [{scheme: 'oauth', scopes: ['mail.send']}],
         builds: [],
       },
       {
@@ -352,5 +367,21 @@ describe('the update state', () => {
       }),
     ).toBeUndefined();
     expect(readUpdateState({state: 'unknown', installedVersion: '1.0.0'})).toBeUndefined();
+  });
+
+  test('a forced or major update without its new permissions is not read (task-15.5 decision 7)', () => {
+    const base = {appId: 'shop-a', installedVersion: '1.0.0'};
+    expect(
+      readUpdateState({...base, state: 'update-required', publishedVersion: '2.0.0', retired: []}),
+    ).toBeUndefined();
+    expect(
+      readUpdateState({
+        ...base,
+        state: 'major-update',
+        publishedVersion: '2.0.0',
+        newCatalogIds: ['cat/v2'],
+        builds: [],
+      }),
+    ).toBeUndefined();
   });
 });

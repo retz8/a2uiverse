@@ -49,16 +49,16 @@ export class Sources {
   }
 
   /**
-   * An app's sources: one per account the vault holds; the bare app id when its card asks no
-   * sign-in; otherwise the one named for the account its sign-in will create (task-12.2
-   * decision 4).
+   * An app's sources: one per account the vault holds; the bare app id when its card as installed
+   * asks no sign-in (task-15.5 decision 3); otherwise the one named for the account its sign-in
+   * will create (task-12.2 decision 4).
    */
   of(appId: string): AppSource[] {
     const held = this.#accounts.accountsOf(appId);
     if (held.length > 0) {
       return held.map(({n, label}) => ({source: sourceId(appId, n), label}));
     }
-    const card = this.#registry.card(appId) ?? this.#registry.storedCard(appId);
+    const card = this.#registry.storedCard(appId);
     if (!asksSignIn(card)) return [{source: appId}];
     return [{source: sourceId(appId, this.#accounts.nextAccount(appId)), notSignedIn: true}];
   }

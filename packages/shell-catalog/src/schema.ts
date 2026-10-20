@@ -26,6 +26,7 @@ import {
   FAILURE_CAUSES,
   OFFER_NONE_CAUSES,
   SlotApi,
+  updateLineOf,
   type AuthorityCause,
   type SlotAuthority,
   type CollapseCause,
@@ -38,6 +39,8 @@ import {
   type SlotInstalled,
   type SlotOffer,
   type SlotOfferedApp,
+  type SlotUpdate,
+  type UpdateLine,
 } from './components/slot/slot.schema.js';
 import {SortControlApi} from './components/sort-control/sort-control.schema.js';
 import {TableApi, TableRowApi} from './components/table/table.schema.js';
@@ -64,6 +67,7 @@ export {
   relationFunctions,
   relationKind,
   SHELL_ACTIONS,
+  updateLineOf,
   type AuthorityCause,
   type CollapseCause,
   type FailureCause,
@@ -79,6 +83,8 @@ export {
   type SlotInstalled,
   type SlotOffer,
   type SlotOfferedApp,
+  type SlotUpdate,
+  type UpdateLine,
 };
 export {LAYOUT_SURFACE_KEEP_SET, SYNTHESIS_SURFACE_KEEP_SET} from './keep-sets.js';
 export {

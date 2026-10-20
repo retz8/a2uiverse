@@ -572,11 +572,17 @@ export const NOT_CHECKED_WORDS = 'Not checked yet';
 export const LOCAL_COPY_WORDS = 'Installed from your computer';
 
 /**
- * Whether an update asks for access the installed app does not have (task-14.11 decision 37): a
- * card update naming a new scheme or scope. Only that update passes the consent card.
+ * Whether an update asks for access the installed app does not have (task-14.11 decision 37): an
+ * update naming a new scheme or scope — the installed line retired, a major update or a card
+ * update alike (task-15.5 decision 7). Only that update passes the consent card.
  */
 export function asksForMore(update: UpdateState): boolean {
-  return update.state === 'card-update' && update.newScopes.length > 0;
+  return (
+    (update.state === 'update-required' ||
+      update.state === 'major-update' ||
+      update.state === 'card-update') &&
+    update.newScopes.length > 0
+  );
 }
 
 /** An update state in words, a card update asking nothing new read as a new version. */
@@ -647,11 +653,17 @@ export type UpdateState = StateBase &
     | {state: 'unknown'}
     | {state: 'not-published'}
     | {state: 'ahead-of-store'; publishedVersion: string; catalogIds: string[]; version?: string}
-    | {state: 'update-required'; publishedVersion: string; retired: string[]}
+    | {
+        state: 'update-required';
+        publishedVersion: string;
+        retired: string[];
+        newScopes: NewScopes[];
+      }
     | {
         state: 'major-update';
         publishedVersion: string;
         newCatalogIds: string[];
+        newScopes: NewScopes[];
         builds: BuildMove[];
       }
     | {state: 'card-update'; publishedVersion: string; newScopes: NewScopes[]; builds: BuildMove[]}
@@ -670,8 +682,11 @@ export const UPDATE_STATE_DETAILS: Record<
   unknown: {required: [], optional: []},
   'not-published': {required: [], optional: []},
   'ahead-of-store': {required: ['publishedVersion', 'catalogIds'], optional: ['version']},
-  'update-required': {required: ['publishedVersion', 'retired'], optional: []},
-  'major-update': {required: ['publishedVersion', 'newCatalogIds', 'builds'], optional: []},
+  'update-required': {required: ['publishedVersion', 'retired', 'newScopes'], optional: []},
+  'major-update': {
+    required: ['publishedVersion', 'newCatalogIds', 'newScopes', 'builds'],
+    optional: [],
+  },
   'card-update': {required: ['publishedVersion', 'newScopes', 'builds'], optional: []},
   'newer-build': {required: ['publishedVersion', 'builds'], optional: []},
   'up-to-date': {required: ['publishedVersion'], optional: []},

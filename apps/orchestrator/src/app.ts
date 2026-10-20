@@ -26,6 +26,7 @@ import {registryRoutes, REGISTRY_ROUTE_PREFIX} from './registry/api.js';
 import {MarketplaceClient} from './registry/marketplace.js';
 import {Registry, type ResolveCard} from './registry/registry.js';
 import {issueWriteToken} from './registry/token.js';
+import {UpdateTile} from './registry/updateTile.js';
 import {UpdateCheck, type CheckOutcome} from './registry/updates.js';
 import {Router} from './router/router.js';
 import {
@@ -128,7 +129,8 @@ export function buildOrchestrator({
   const vaultStore = new VaultStore(config.stateDir);
   const vault = new AuthVault({
     store: vaultStore,
-    cardOf: appId => registry.card(appId) ?? registry.storedCard(appId),
+    cardOf: appId => registry.storedCard(appId),
+    liveCardOf: appId => registry.card(appId),
     displayName: appId => registry.displayName(appId),
     identity,
     journal: record => void journal.signIn(record),
@@ -152,11 +154,19 @@ export function buildOrchestrator({
   const planner = overrides?.planner ?? plannerFrom(config, readers, sources, store);
   const synthesizer = synthesizerFrom(config, overrides?.synthesisModel);
   const router = new Router(registry, embedder, {shortlistCap: config.shortlistCap});
+  // The update on the canvas (task 15.5): the check before every dispatch, the catch after a
+  // refused paint, the finding a slot's update tile is drawn from.
+  const updateTile = new UpdateTile({
+    registry,
+    updates,
+    liveShort: source => vault.liveShort(source),
+  });
   const pool = new AgentsPool(registry, {
     hardCapMs: config.hardCapMs,
     debugIds: config.debugIds,
     faults: config.faults,
     credentials: vault,
+    updates: updateTile,
   });
   const executor = new OrchestratorExecutor({
     sources,
@@ -170,6 +180,7 @@ export function buildOrchestrator({
     heartbeatMs: config.heartbeatMs,
     stepQuietMs: overrides?.stepQuietMs ?? STEP_QUIET_MS,
     gate: vault,
+    updates: updateTile,
   });
   const requestHandler = new DefaultRequestHandler(card, new InMemoryTaskStore(), executor);
 

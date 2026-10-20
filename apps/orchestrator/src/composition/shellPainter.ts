@@ -4,6 +4,7 @@ import {PAINT_META_MIME_TYPE, paintMetaData, STAMP_KEY, type A2uiComponent} from
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 import {PAINTER_ID_PREFIX} from '../planner/validate.js';
 import {SHELL_SOURCE_ID} from '../registry/types.js';
+import type {UpdateFinding} from '../registry/updateTile.js';
 import {shellSurfaceId, SYNTHESIS_DISPLAY_NAME} from './constants.js';
 import {
   inSlotOrder,
@@ -243,6 +244,7 @@ export function paintLayout(state: CompositionState): ShellComponent[] {
         ...(slotState === 'authority' && entry?.authority
           ? {authority: paintedAuthority(entry.authority)}
           : {}),
+        ...(slotState === 'update' && entry?.update ? {update: paintedUpdate(entry.update)} : {}),
       },
     );
   }
@@ -289,6 +291,22 @@ function paintedAuthority(authority: SlotAuthorityState): Record<string, unknown
     cause: authority.connect ? 'connect' : authority.more ? 'more' : 'signIn',
     ...(authority.quiet ? {quiet: true} : {}),
     scopes: authority.words ?? [],
+  };
+}
+
+/**
+ * The slot's update as painted (task-15.5 decision 8): the update state its line was computed from —
+ * the state, the versions and the new permissions where the state carries them — and the publisher
+ * whenever the Store has the entry. The state's other details stay on the orchestrator.
+ */
+function paintedUpdate(update: UpdateFinding): Record<string, unknown> {
+  const {state} = update;
+  return {
+    state: state.state,
+    installedVersion: state.installedVersion,
+    ...('publishedVersion' in state ? {publishedVersion: state.publishedVersion} : {}),
+    ...('newScopes' in state ? {newScopes: state.newScopes} : {}),
+    ...(update.publisher !== undefined ? {publisher: update.publisher} : {}),
   };
 }
 

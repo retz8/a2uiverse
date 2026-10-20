@@ -1,4 +1,5 @@
 import {z} from 'zod';
+import {UPDATE_STATES, type UpdateStateKind} from '@a2uiverse/sdk';
 
 /**
  * Runtime (zod) representation of Slot, props-only.
@@ -46,6 +47,12 @@ import {z} from 'zod';
  *   from the card, possibly none, and `quiet` for the one-line form after the first full tile for
  *   that app this session; `again` — the silent refresh failed; `unsupported` — a scheme the vault
  *   cannot do.
+ * - `update` (fragment content) is the slot's update tile, painted by the runtime with `state:
+ *   "update"` (task-15.5 decision 8): the app cannot paint in what it is installed with, or its
+ *   live card asks a permission the installed one does not, and `update` is the update state its
+ *   line was computed from — the state, the installed version, the published version and the new
+ *   permissions where the state carries them — with the publisher's name whenever the Store has
+ *   the app's entry. The line follows the state (`updateLineOf`).
  * - `content` says whose content fills the region (task-5.5 decision 1): an agent's
  *   fragment (default), or the shell's own — the merged view — which keeps its reserved
  *   position but is painted like the shell's own UI, no tile: while pending, reserved as the
@@ -131,6 +138,54 @@ const AuthoritySchema = z
     message: 'an authority carries the scopes exactly when it asks to sign in',
   });
 
+/**
+ * The update tile's line (task-15.5 decision 6), by the update state it was computed from:
+ * `update` — the Store has a version the app can paint in, with Update; `waiting` — the Store is
+ * waiting on its publisher, no press; `unreached` — the Store could not be reached, with Retry;
+ * `none` — the Store has no update for it, no press.
+ */
+export type UpdateLine = 'update' | 'waiting' | 'unreached' | 'none';
+
+export function updateLineOf(state: UpdateStateKind): UpdateLine {
+  switch (state) {
+    case 'update-required':
+    case 'major-update':
+    case 'card-update':
+      return 'update';
+    case 'unknown':
+      return 'unreached';
+    case 'not-published':
+      return 'none';
+    default:
+      return 'waiting';
+  }
+}
+
+/** The states with no entry behind them: no published version, no publisher. */
+const entryKnown = (state: UpdateStateKind) => state !== 'unknown' && state !== 'not-published';
+
+const UpdateSchema = z
+  .object({
+    state: z.enum(UPDATE_STATES),
+    installedVersion: z.string(),
+    publishedVersion: z.string().optional(),
+    newScopes: z
+      .array(z.object({scheme: z.string(), scopes: z.array(z.string())}).strict())
+      .optional(),
+    publisher: z.string().optional(),
+  })
+  .strict()
+  .refine(update => (update.publishedVersion !== undefined) === entryKnown(update.state), {
+    message: 'an update carries the published version exactly when the Store has the entry',
+  })
+  .refine(update => (update.publisher !== undefined) === entryKnown(update.state), {
+    message: 'an update names the publisher exactly when the Store has the entry',
+  })
+  .refine(
+    update => (update.newScopes !== undefined) === (updateLineOf(update.state) === 'update'),
+    {message: 'an update carries the new permissions exactly when it can be updated'},
+  );
+
 export const COLLAPSE_CAUSES = ['home', 'few', 'unmade'] as const;
 export type CollapseCause = (typeof COLLAPSE_CAUSES)[number];
 
@@ -204,11 +259,12 @@ export const SlotApi = {
       addAccount: z.string().optional(),
       accounts: z.array(z.object({source: z.string(), label: z.string()}).strict()).optional(),
       weight: z.number().optional(),
-      state: z.enum(['pending', 'failed', 'collapsed', 'authority']).optional(),
+      state: z.enum(['pending', 'failed', 'collapsed', 'authority', 'update']).optional(),
       label: z.string().optional(),
       noun: z.string().optional(),
       failure: FailureSchema.optional(),
       authority: AuthoritySchema.optional(),
+      update: UpdateSchema.optional(),
       scopes: z.array(z.string()).optional(),
       content: z.enum(['fragment', 'shell']).optional(),
       columns: z.array(z.string()).optional(),
@@ -263,6 +319,9 @@ export const SlotApi = {
     .refine(props => props.authority === undefined || props.state === 'authority', {
       message: 'a Slot carries an authority only when its state is `authority`',
     })
+    .refine(props => props.update === undefined || props.state === 'update', {
+      message: 'a Slot carries an update only when its state is `update`',
+    })
     .refine(
       props =>
         props.columnSources === undefined ||
@@ -274,6 +333,7 @@ export const SlotApi = {
 export type SlotProps = z.infer<typeof SlotApi.schema>;
 export type SlotFailure = z.infer<typeof FailureSchema>;
 export type SlotAuthority = z.infer<typeof AuthoritySchema>;
+export type SlotUpdate = z.infer<typeof UpdateSchema>;
 export type SlotCollapse = z.infer<typeof CollapseSchema>;
 export type SlotCallFailed = z.infer<typeof CallFailedSchema>;
 export type SlotAccount = NonNullable<SlotProps['accounts']>[number];

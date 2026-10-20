@@ -202,6 +202,7 @@ describe('browsing the Store', () => {
       state: 'major-update',
       publishedVersion: '2.0.0',
       newCatalogIds: [],
+      newScopes: [],
       builds: [],
     };
     fake.listings[2] = {entry: GMAIL, installed: true, update: major};

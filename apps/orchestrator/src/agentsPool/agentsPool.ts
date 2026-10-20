@@ -21,6 +21,7 @@ import {
 } from '@a2uiverse/sdk';
 import {A2UI_EXTENSION_URI_V09, A2UI_EXTENSION_URI_V091} from '../agentCard.js';
 import type {Registry} from '../registry/registry.js';
+import type {Refetched, UpdateCase, UpdateFinding} from '../registry/updateTile.js';
 import type {AppRecord} from '../registry/types.js';
 import type {Prepared, Request as AuthorityRequest} from '../vault/vault.js';
 import {InMemoryVendorContextMap, type VendorContextMap} from './contextMap.js';
@@ -47,6 +48,20 @@ export interface AgentsPoolOptions {
   fetchImpl?: typeof fetch;
   /** The vault (task 12.5): the header a dispatch carries, and what a refusal asks. */
   credentials?: Credentials;
+  /** The update check (task 15.5): whether the app can paint in what it is installed with. */
+  updates?: UpdateGate;
+}
+
+/** The update on the canvas as the AgentsPool reaches it (task 15.5). */
+export interface UpdateGate {
+  /** The live card held names nothing in the entitlement: judged before the sign-in. */
+  catalogsChanged(appId: string): boolean;
+  /** The account falls short of the live card where the installed one is met: after the sign-in. */
+  permissionChanged(source: string): boolean;
+  /** What the slot's update tile is drawn from; none when the app is not installed. */
+  finding(appId: string, why: UpdateCase): Promise<UpdateFinding | undefined>;
+  /** After a paint refused outside the entitlement: the live card fetched again. */
+  refetched(appId: string): Promise<Refetched>;
 }
 
 /** The vault as the AgentsPool reaches it. */
@@ -232,6 +247,17 @@ export class AgentsPool {
         finalMessage = fault.message;
         yield relayEvent(event, relayCtx);
       } else {
+        // The update check before dispatch (task-15.5 decisions 1 to 3): an app whose live card
+        // names nothing it is installed with is not called, before any sign-in is judged.
+        const updates = this.#options.updates;
+        const stopped = async (why: UpdateCase) => {
+          const finding = await updates!.finding(app.id, why);
+          if (!finding) return false;
+          record.update = finding;
+          finish('failed', {error: 'the app needs an update'});
+          return true;
+        };
+        if (updates?.catalogsChanged(app.id) && (await stopped('catalogs'))) return;
         // The header the card's scheme names, from the vault (phase-12 decision 4); a card the
         // vault cannot meet is not called (decision 5).
         const credentials = this.#options.credentials;
@@ -241,6 +267,8 @@ export class AgentsPool {
           finish('failed', {error: 'the app needs sign-in'});
           return;
         }
+        // A live card asking more than the account meets, once the installed card is met.
+        if (updates?.permissionChanged(source) && (await stopped('permission'))) return;
         let headers = prepared?.headers ?? {};
         const client = await this.#connect(app);
         // The catalog each of the source's surfaces was created in: its options are what a
@@ -396,6 +424,16 @@ export class AgentsPool {
       } else if (outside !== undefined) {
         record.catalogId = outside;
         this.#cancelVendor(source, record);
+        // The catch after the call (task-15.5 decision 4): the live card fetched again; one that
+        // names the change brings the update tile, its finding on the catalog record.
+        const updates = this.#options.updates;
+        if (updates) {
+          record.refetched = await updates.refetched(app.id);
+          if (record.refetched === 'changed') {
+            const finding = await updates.finding(app.id, 'catalogs');
+            if (finding) record.update = finding;
+          }
+        }
         finish('failed', {
           error: `painted in catalog ${JSON.stringify(outside)}, outside its entitlement`,
           cause: 'catalog',

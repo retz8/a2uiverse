@@ -92,9 +92,12 @@
         "unknown": {"required": [], "optional": []},
         "not-published": {"required": [], "optional": []},
         "ahead-of-store": {"required": ["publishedVersion", "catalogIds"], "optional": ["version"]},
-        "update-required": {"required": ["publishedVersion", "retired"], "optional": []},
+        "update-required": {
+          "required": ["publishedVersion", "retired", "newScopes"],
+          "optional": []
+        },
         "major-update": {
-          "required": ["publishedVersion", "newCatalogIds", "builds"],
+          "required": ["publishedVersion", "newCatalogIds", "newScopes", "builds"],
           "optional": []
         },
         "card-update": {"required": ["publishedVersion", "newScopes", "builds"], "optional": []},
@@ -103,7 +106,7 @@
       },
       "buildMove": ["catalogId", "installed", "published"],
       "newScopes": ["scheme", "scopes"],
-      "rule": "One state per installed app, the first match in the states' order: unknown, the marketplace unreached; not-published, no entry for the app id; ahead-of-store, from the live card; update-required, an installed catalog id not on the published card, that line retired; major-update, the published card naming a catalog id the installed card does not while every installed id is still there, suggested; card-update, the published version differing from the installed one with no catalog id added or dropped, its new scopes named; newer-build, the card version unchanged and an installed catalog at an older artifact id than the entry's, automatic for apps installed from the marketplace; up-to-date. Card changed is decided by version alone. A build riding with a card change is named under that state, never installed silently."
+      "rule": "One state per installed app, the first match in the states' order: unknown, the marketplace unreached; not-published, no entry for the app id; ahead-of-store, from the live card; update-required, an installed catalog id not on the published card, that line retired; major-update, the published card naming a catalog id the installed card does not while every installed id is still there, suggested; card-update, the published version differing from the installed one with no catalog id added or dropped; each of the three naming its new scopes, and asking for more when it names one; newer-build, the card version unchanged and an installed catalog at an older artifact id than the entry's, automatic for apps installed from the marketplace; up-to-date. Card changed is decided by version alone. A build riding with a card change is named under that state, never installed silently."
     }
   }
 }

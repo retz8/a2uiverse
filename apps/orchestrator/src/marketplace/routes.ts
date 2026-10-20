@@ -36,6 +36,7 @@ import {
   type UpdateState,
 } from '@a2uiverse/sdk';
 import {logLine} from '../log.js';
+import {LIVE_CARD_TIMEOUT_MS, withTimeout} from '../timeout.js';
 import type {DroppedEntry, MarketplaceClient} from '../registry/marketplace.js';
 import type {Registry, ResolveCard} from '../registry/registry.js';
 import {IMMUTABLE} from '../registry/api.js';
@@ -49,13 +50,6 @@ export const MARKETPLACE_ROUTE_PREFIX = '/marketplace';
 /** The largest publish body: every catalog's files, base64, and the captured preview. */
 const PUBLISH_BODY_LIMIT = '64mb';
 const BODY_LIMIT = '16kb';
-
-/**
- * How long a publisher's listings wait on one app's live card: half the page's read bound
- * (task-14.11 decision 26), so an app that does not answer leaves the Store's flag and the listings
- * still answer inside it.
- */
-export const LIVE_CARD_TIMEOUT_MS = 5_000;
 
 /** One listing as the Store reads it: the entry, whether the app is installed, its state as last computed. */
 export interface StoreListing {
@@ -284,15 +278,6 @@ function sameDrift(flagged: Drift | undefined, now: Drift | undefined): boolean 
     flagged.catalogIds.length === now.catalogIds.length &&
     flagged.catalogIds.every((id, i) => now.catalogIds[i] === id)
   );
-}
-
-/** A promise that rejects once `ms` pass without it settling. */
-function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
-  let timer: NodeJS.Timeout | undefined;
-  const late = new Promise<never>((_, reject) => {
-    timer = setTimeout(() => reject(new Error(`no answer in ${ms} ms`)), ms);
-  });
-  return Promise.race([promise, late]).finally(() => clearTimeout(timer));
 }
 
 /** A path inside the artifact: relative, `/`-separated, no `.` or `..` segment. */

@@ -55,6 +55,15 @@ describe('the accounts seam (task-12.4 decision 3)', () => {
     ]);
   });
 
+  test('whether an app asks sign-in is read from its card as installed, never a live card that changed (task-15.5 decision 3)', async () => {
+    const {registry, cards} = await testRegistry([
+      {id: 'github', card: cardFor('http://127.0.0.1:1/github', {name: 'GitHub'})},
+    ]);
+    cards.serve(signingIn('http://127.0.0.1:1/github', 'GitHub'));
+    await registry.refreshCards();
+    expect(new Sources(registry, NO_ACCOUNTS).of('github')).toEqual([{source: 'github'}]);
+  });
+
   test('an app with accounts held is one source per account, each with its label', async () => {
     const two = await sources(held);
     expect(two.of('gmail')).toEqual([

@@ -43,6 +43,7 @@ describe('an app’s state as the App Library shows it', () => {
       state: 'major-update',
       publishedVersion: '2.0.0',
       newCatalogIds: [],
+      newScopes: [],
       builds: [],
     };
     expect(appStateView(app({reachable: false}), update, false)).toEqual({
@@ -67,6 +68,7 @@ describe('an app’s state as the App Library shows it', () => {
       state: 'update-required',
       publishedVersion: '2.0.0',
       retired: [],
+      newScopes: [],
     };
     expect(appStateView(app(), card, false)).toMatchObject({
       words: 'An update that asks for more',
@@ -118,6 +120,7 @@ describe('the notes under an app’s head', () => {
         state: 'update-required',
         publishedVersion: '2.0.0',
         retired: [],
+        newScopes: [],
       }),
     ).toEqual({
       tone: 'warn',

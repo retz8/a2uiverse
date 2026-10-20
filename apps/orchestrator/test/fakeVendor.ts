@@ -40,6 +40,8 @@ export interface ReceivedRequest {
 
 export interface FakeVendor {
   url: string;
+  /** The card it serves, live: a test changes it to move the agent ahead of its install. */
+  card: AgentCard;
   requests: ReceivedRequest[];
   /** Every JSON-RPC method called on it, in order — `message/stream`, `tasks/cancel`, … */
   methods: string[];
@@ -196,6 +198,7 @@ export async function startFakeVendor(options: FakeVendorOptions = {}): Promise<
 
   return {
     url,
+    card,
     requests,
     methods,
     contextIds,

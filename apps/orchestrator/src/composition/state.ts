@@ -23,6 +23,7 @@ import {
 } from '../planner/document.js';
 import type {Sources} from '../accounts/accounts.js';
 import type {SearchRecord} from '../planner/storeSearch.js';
+import type {UpdateFinding} from '../registry/updateTile.js';
 import {SHELL_SOURCE_ID} from '../registry/types.js';
 import {SYNTHESIS_DISPLAY_NAME} from './constants.js';
 import {History} from './history.js';
@@ -33,8 +34,9 @@ import {Presses} from './presses.js';
  * The orchestrator-side slot states. `filled` is deliberately absent — a slot
  * renders its fragment when a surface claims it, which is inherently the
  * client's (phase decision 12). `authority`: the slot needs a sign-in (task 12.5).
+ * `update`: the slot's app needs an update to paint here (task 15.5).
  */
-export type SlotState = 'pending' | 'failed' | 'collapsed' | 'authority';
+export type SlotState = 'pending' | 'failed' | 'collapsed' | 'authority' | 'update';
 
 export interface SlotPlan {
   /**
@@ -123,6 +125,8 @@ export interface SlotEntry {
   failedPress?: Message;
   /** The authority the slot takes, with `authority`. */
   authority?: SlotAuthorityState;
+  /** What the slot's update tile is drawn from, with `update` (task-15.5 decision 8). */
+  update?: UpdateFinding;
   /** A request for more access the fragment waits on. */
   escalation?: SlotEscalation;
   /** The press the request held: what Allow sends again; the plan's request when absent. */

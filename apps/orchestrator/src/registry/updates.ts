@@ -39,6 +39,12 @@ export interface HeldUpdates {
   states: ReadonlyMap<string, UpdateState>;
 }
 
+/** One app's state from a check of that app alone, with its publisher when the Store has its entry. */
+export interface AppCheck {
+  state: UpdateState;
+  publisher?: string;
+}
+
 /** What one run of the check did, beyond the states it answers. */
 export interface CheckOutcome {
   states: UpdateState[];
@@ -108,6 +114,50 @@ export class UpdateCheck {
     return this.#held?.states.get(appId);
   }
 
+  /**
+   * One app's state (task-15.5 decisions 5, 6, 11): its entry read now, judged against the live card
+   * this run holds, held for that app as the full check's are, and reported by the full check's
+   * rule. None when the app is not installed.
+   */
+  async forApp(appId: string): Promise<AppCheck | undefined> {
+    const {registry, marketplace} = this.#deps;
+    const record = registry.installed().find(installed => installed.id === appId);
+    if (!record) return undefined;
+    const lookup = await marketplace.entry(appId);
+    const state = updateStateOf(record, lookup, registry.card(appId));
+    this.#report(state, lookup);
+    if (this.#held) this.#held.states.set(appId, state);
+    else {
+      const checkedAt = (this.#deps.now ?? Date.now)();
+      this.#held = {checkedAt, states: new Map([[appId, state]])};
+    }
+    return lookup.kind === 'entry' ? {state, publisher: lookup.entry.publisher} : {state};
+  }
+
+  /**
+   * The report to the marketplace (phase-13 decision 14): an app ahead of the Store; and one whose
+   * entry the Store flags as ahead while this run's live card shows no drift — the marketplace's
+   * nudge to look again, clearing the flag when it sees none either (task-13.8 decision 30). Which
+   * of the two was sent, if either.
+   */
+  #report(state: UpdateState, lookup: EntryLookup): 'reported' | 'rechecked' | undefined {
+    const {registry, marketplace} = this.#deps;
+    const sent =
+      state.state === 'ahead-of-store'
+        ? 'reported'
+        : lookup.kind === 'entry' &&
+            lookup.entry.aheadOfStore !== undefined &&
+            registry.card(state.appId)
+          ? 'rechecked'
+          : undefined;
+    if (sent) {
+      void marketplace.report(state.appId).catch((err: unknown) => {
+        console.error(`registry: the report of ${state.appId} failed:`, (err as Error).message);
+      });
+    }
+    return sent;
+  }
+
   /** The apps an install, update or uninstall changed: none held, and none from a run in flight. */
   #forget(appIds: readonly string[]): void {
     for (const appId of appIds) {
@@ -151,27 +201,11 @@ export class UpdateCheck {
       reported: [],
       rechecked: [],
     };
-    const report = (appId: string) => {
-      void marketplace.report(appId).catch((err: unknown) => {
-        console.error(`registry: the report of ${appId} failed:`, (err as Error).message);
-      });
-    };
     for (const [i, record] of records.entries()) {
       const lookup = lookups[i];
       let state = updateStateOf(record, lookup, registry.card(record.id));
-      if (state.state === 'ahead-of-store') {
-        outcome.reported.push(record.id);
-        report(record.id);
-      } else if (
-        lookup.kind === 'entry' &&
-        lookup.entry.aheadOfStore !== undefined &&
-        registry.card(record.id)
-      ) {
-        // The Store still flags a drift this run's live card no longer shows: the report is the
-        // marketplace's nudge to look again, and it clears the flag when it sees none either.
-        outcome.rechecked.push(record.id);
-        report(record.id);
-      }
+      const sent = this.#report(state, lookup);
+      if (sent) outcome[sent].push(record.id);
       // A newer build, the card unchanged, installs itself for an app from the marketplace alone
       // (phase-13 decision 16); a failure leaves the build and the state (task-13.5 decision 9).
       // A move that would carry an app installed from a local pack is the person's to make.
@@ -228,8 +262,8 @@ function localFollowers(
  * the sdk's drift function, skipped when this run has no live card; update required, an installed
  * line retired, through the sdk's retired-lines function with the installed card as the earlier
  * and the published as the later; a major update, an id added while every installed one stays; a
- * card update, the version moved with no id added or dropped, its new scopes from `security`; a
- * newer build; up to date.
+ * card update, the version moved with no id added or dropped; each of the three naming its new
+ * scopes from `security` (task-15.5 decision 7); a newer build; up to date.
  */
 export function updateStateOf(
   record: InstalledRecord,
@@ -256,21 +290,19 @@ export function updateStateOf(
   }
   const installedIds = declaredIds(record.card, Object.keys(record.catalogs));
   const publishedIds = declaredIds(entry.card, Object.keys(entry.catalogs));
+  // What the published card newly asks, named on every updatable state (task-15.5 decision 7).
+  const newScopes = newScopesOf(record.card, entry.card);
   const retired = retiredLines(installedIds, publishedIds);
-  if (retired.length > 0) return {...base, state: 'update-required', publishedVersion, retired};
+  if (retired.length > 0) {
+    return {...base, state: 'update-required', publishedVersion, retired, newScopes};
+  }
   const builds = buildMoves(record.catalogs, entry.catalogs);
   const newCatalogIds = publishedIds.filter(id => !installedIds.includes(id));
   if (newCatalogIds.length > 0) {
-    return {...base, state: 'major-update', publishedVersion, newCatalogIds, builds};
+    return {...base, state: 'major-update', publishedVersion, newCatalogIds, newScopes, builds};
   }
   if (publishedVersion !== base.installedVersion) {
-    return {
-      ...base,
-      state: 'card-update',
-      publishedVersion,
-      newScopes: newScopesOf(record.card, entry.card),
-      builds,
-    };
+    return {...base, state: 'card-update', publishedVersion, newScopes, builds};
   }
   if (builds.length > 0) return {...base, state: 'newer-build', publishedVersion, builds};
   return {...base, state: 'up-to-date', publishedVersion};

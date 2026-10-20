@@ -109,6 +109,37 @@ describe('updateStateOf: the eight states in order (task-13.2 decision 8, task-1
       state: 'update-required',
       publishedVersion: '1.0.0',
       retired: [GMAIL],
+      newScopes: [],
+    });
+  });
+
+  test('a forced or a major update names the new scopes its published card asks (task-15.5 decision 7)', () => {
+    const asking = (card: AgentCard): AgentCard => ({
+      ...card,
+      securitySchemes: {google: {type: 'oauth2', flows: {}}},
+      security: [{google: ['mail.read', 'mail.send']}],
+    });
+    const was = record(
+      {
+        ...installedCard,
+        securitySchemes: {google: {type: 'oauth2', flows: {}}},
+        security: [{google: ['mail.read']}],
+      },
+      {[GMAIL]: 'sha256-old'},
+    );
+    const retiring = asking(v(cardFor(AGENT, {catalogs: [GMAIL_2]}), '1.0.0'));
+    expect(
+      updateStateOf(was, entryOf(retiring, {[GMAIL_2]: 'sha256-two'}), retiring),
+    ).toMatchObject({
+      state: 'update-required',
+      newScopes: [{scheme: 'google', scopes: ['mail.send']}],
+    });
+    const adding = asking(v(cardFor(AGENT, {catalogs: [GMAIL, GMAIL_2]}), '1.0.0'));
+    expect(
+      updateStateOf(was, entryOf(adding, {[GMAIL]: 'sha256-old', [GMAIL_2]: 'sha256-two'}), adding),
+    ).toMatchObject({
+      state: 'major-update',
+      newScopes: [{scheme: 'google', scopes: ['mail.send']}],
     });
   });
 
@@ -125,6 +156,7 @@ describe('updateStateOf: the eight states in order (task-13.2 decision 8, task-1
       state: 'major-update',
       publishedVersion: '1.0.0',
       newCatalogIds: [GMAIL_2],
+      newScopes: [],
       builds: [{catalogId: GMAIL, installed: 'sha256-old', published: 'sha256-new'}],
     });
   });
@@ -437,6 +469,75 @@ describe('the check (task-13.5 decisions 8, 9, 10)', () => {
     const [a, b] = await Promise.all([check.check(), check.check()]);
     expect(a).toBe(b);
     expect(marketplace.requests).toEqual(['/apps/shop-a/entry.json']);
+  });
+});
+
+describe('the check of one app (task-15.5 decisions 5, 6, 11)', () => {
+  test('its state over a fresh entry and the live card held, held for that app, the publisher named, an app ahead of the Store reported', async () => {
+    const {registry, cards, marketplace, check} = await setUp();
+    const published = cardFor(AGENT, {catalogs: [GMAIL]});
+    const cardUrl = cards.serve(published);
+    await marketplace.publish('gmail', {
+      card: published,
+      cardUrl,
+      publisher: 'Acme',
+      catalogs: [await fixtureArtifact(GMAIL)],
+    });
+    await registry.installFromMarketplace('gmail');
+    cards.cards.set(cardUrl, cardFor(AGENT, {catalogs: [GMAIL_2]}));
+    await registry.refreshCards();
+    const requests = marketplace.requests.length;
+
+    const found = await check.forApp('gmail');
+    expect(found).toEqual({
+      state: {
+        appId: 'gmail',
+        installedVersion: '0.0.0',
+        state: 'ahead-of-store',
+        publishedVersion: '0.0.0',
+        catalogIds: [GMAIL_2],
+      },
+      publisher: 'Acme',
+    });
+    expect(check.last('gmail')).toEqual(found?.state);
+    expect(marketplace.requests.slice(requests)).toEqual(['/apps/gmail/entry.json']);
+    await new Promise(resolve => setTimeout(resolve, 50));
+    expect(marketplace.reports).toEqual(['gmail']);
+  });
+
+  test('a Store flag the live card no longer bears out is reported again', async () => {
+    const {registry, cards, marketplace, check} = await setUp();
+    const published = cardFor(AGENT, {catalogs: [GMAIL]});
+    const cardUrl = cards.serve(published);
+    await marketplace.publish('gmail', {
+      card: published,
+      cardUrl,
+      catalogs: [await fixtureArtifact(GMAIL)],
+      aheadOfStore: {catalogIds: [], version: '0.0.1', seenAt: '2026-10-11T00:00:00.000Z'},
+    });
+    await registry.installFromMarketplace('gmail');
+    expect((await check.forApp('gmail'))?.state).toMatchObject({state: 'up-to-date'});
+    await new Promise(resolve => setTimeout(resolve, 50));
+    expect(marketplace.reports).toEqual(['gmail']);
+  });
+
+  test('the Store unreached: unknown, no publisher, nothing reported', async () => {
+    const {registry, cards, check, marketplace} = await setUp({marketplaceUrl: await nowhere()});
+    await registry.install({
+      appId: 'shop-a',
+      cardUrl: cards.serve(cardFor('http://127.0.0.1:12001')),
+      catalogs: [],
+    });
+    expect(await check.forApp('shop-a')).toEqual({
+      state: {appId: 'shop-a', installedVersion: '0.0.0', state: 'unknown'},
+    });
+    expect(check.last('shop-a')).toMatchObject({state: 'unknown'});
+    expect(marketplace.reports).toEqual([]);
+  });
+
+  test('an app not installed has none', async () => {
+    const {check} = await setUp();
+    expect(await check.forApp('nobody')).toBeUndefined();
   });
 });
 

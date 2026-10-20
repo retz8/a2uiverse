@@ -55,6 +55,7 @@ import type {Router} from './router/router.js';
 import type {ChangeAccount, MissingSource} from './synthesizer/prompt.js';
 import type {Synthesis} from './synthesizer/document.js';
 import type {Synthesizer} from './synthesizer/synthesizer.js';
+import type {UpdateFinding} from './registry/updateTile.js';
 import type {AuthorityNeed, Standing} from './vault/vault.js';
 
 /** The vault as the executor reaches it (task 12.5): the card checked, the quiet line kept. */
@@ -90,6 +91,11 @@ export interface OrchestratorDeps {
   stepQuietMs: number;
   /** The vault's check before dispatch (task 12.5); none checks nothing. */
   gate?: SignInGate;
+  /**
+   * The update check (task 15.5), as first paint reads it: an app whose live card names nothing it
+   * is installed with is dispatched for its update tile, never shown its sign-in first.
+   */
+  updates?: {catalogsChanged(appId: string): boolean};
 }
 
 /** An utterance turn from its arrival until its last dispatch ends: what closing the composition ends. */
@@ -488,9 +494,14 @@ export class OrchestratorExecutor implements AgentExecutor {
     const session = readClientSession(ctx.userMessage.metadata)?.session;
     if (session !== undefined) state.session = session;
     // The card checked before dispatch (phase-12 decision 5): a slot whose app the vault cannot
-    // meet takes its authority at first paint and its agent is not called.
+    // meet takes its authority at first paint and its agent is not called — unless the app cannot
+    // paint in what it is installed with, whose update comes before its sign-in (task-15.5
+    // decision 2): the pool's check stops that dispatch and the slot takes the update tile.
     for (const {plan} of state.slots.values()) {
       if (plan.source === SHELL_SOURCE_ID) continue;
+      if (this.#deps.updates?.catalogsChanged(parseSourceId(plan.source)?.appId ?? plan.source)) {
+        continue;
+      }
       const standing = this.#deps.gate?.standing(plan.source);
       if (standing?.kind === 'need') this.#takeAuthority(state, plan.source, standing.need);
     }
@@ -788,9 +799,10 @@ export class OrchestratorExecutor implements AgentExecutor {
     switch (operation.kind) {
       case 'retry': {
         // Retry, and the resume press after a sign-in (task-12.2 decision 9): a failed slot, one
-        // needing sign-in, or one that answered in words alone — the merge's line offers Retry
-        // to every source that did not arrive (task-12.13 decision 35) — goes again; a request
-        // for more access sends its press again.
+        // needing sign-in or an update — Update ends in it (task-15.5 decision 9) — or one that
+        // answered in words alone — the merge's line offers Retry to every source that did not
+        // arrive (task-12.13 decision 35) — goes again; a request for more access sends its press
+        // again.
         const source = operation.sources[0]!;
         const adding = state.adding.get(source);
         if (adding) {
@@ -809,7 +821,10 @@ export class OrchestratorExecutor implements AgentExecutor {
         if (
           !slot ||
           source === SHELL_SOURCE_ID ||
-          (slot.state !== 'failed' && slot.state !== 'authority' && slot.state !== 'collapsed')
+          (slot.state !== 'failed' &&
+            slot.state !== 'authority' &&
+            slot.state !== 'update' &&
+            slot.state !== 'collapsed')
         ) {
           return refuse(`${slot?.plan.name ?? source} has not failed.`);
         }
@@ -1020,6 +1035,7 @@ export class OrchestratorExecutor implements AgentExecutor {
     slot.state = 'pending';
     delete slot.failure;
     delete slot.authority;
+    delete slot.update;
     if (pack) state.trigger!.unsettle(source);
     // A collapsed merge this arrival can bring back waits on it, in the client's words.
     const bringsBack =
@@ -1539,9 +1555,11 @@ export class OrchestratorExecutor implements AgentExecutor {
             ? 'failed'
             : slotState === 'authority'
               ? 'signedOut'
-              : state.arrived.has(plan.source)
-                ? 'arrived'
-                : 'loading',
+              : slotState === 'update'
+                ? 'needsUpdate'
+                : state.arrived.has(plan.source)
+                  ? 'arrived'
+                  : 'loading',
       }));
   }
 
@@ -1709,6 +1727,34 @@ export class OrchestratorExecutor implements AgentExecutor {
   }
 
   /**
+   * A dispatch that needs an update (task-15.5 decisions 8, 10): the slot takes the update tile,
+   * drawn from the finding, out of the merge like a slot waiting on sign-in — the merge collapsed
+   * at once when it was the home source — Update, then its Retry, bringing it back.
+   */
+  #settleUpdate(sink: Sink, state: CompositionState, source: string, update: UpdateFinding): void {
+    const slot = state.slots.get(source);
+    if (!slot) return;
+    state.arrived.delete(source);
+    state.merged.delete(source);
+    slot.state = 'update';
+    slot.update = update;
+    delete slot.failure;
+    delete slot.authority;
+    delete slot.escalation;
+    delete slot.keptPress;
+    this.#repaint([sink], state);
+    const merge = synthesisSlot(state);
+    if (merge && merge.state !== 'collapsed' && merge.plan.join?.home === source) {
+      this.#collapseMerge(
+        [sink],
+        state,
+        {collapse: homeCollapse(state, source)},
+        {outcome: 'home', collapse: 'home', attempts: []},
+      );
+    }
+  }
+
+  /**
    * The slot takes its authority (phase-12 decisions 13, 17): asking to sign in, the full tile
    * once per app per session, the quiet line after it.
    */
@@ -1851,6 +1897,7 @@ export class OrchestratorExecutor implements AgentExecutor {
     record: DispatchRecord,
     options: PumpOptions,
   ): void {
+    if (record.update) return this.#settleUpdate(sink, state, source, record.update);
     if (record.authority) return this.#settleAuthority(sink, state, source, record.authority);
     const next = outcomeToSlotState(record.outcome, state.partitions.holdsSurfaceOf(source));
     if (next === 'failed') {
@@ -1978,9 +2025,12 @@ export class OrchestratorExecutor implements AgentExecutor {
   }
 }
 
-/** A slot whose data is out of the merge: failed, or needing sign-in (phase-12 decision 18). */
+/**
+ * A slot whose data is out of the merge: failed, needing sign-in (phase-12 decision 18), or an
+ * update (task-15.5 decision 10).
+ */
 function outOfTheMerge(state: string | undefined): boolean {
-  return state === 'failed' || state === 'authority';
+  return state === 'failed' || state === 'authority' || state === 'update';
 }
 
 /** The home source failed: the line names its entries as the join calls them. */

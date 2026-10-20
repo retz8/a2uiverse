@@ -1,5 +1,6 @@
 import type {Message} from '@a2a-js/sdk';
 import type {FailureCause} from '@a2uiverse/shell-catalog/schema';
+import type {Refetched, UpdateFinding} from '../registry/updateTile.js';
 import type {AuthorityNeed} from '../vault/vault.js';
 import type {FaultKind} from './faults.js';
 import type {VendorEvent} from './relay.js';
@@ -52,6 +53,14 @@ export interface DispatchRecord {
    * a failed outcome and no cause; the slot takes the authority, or the fragment the request.
    */
   authority?: AuthorityNeed & {escalation?: boolean};
+  /**
+   * The dispatch needs an update (task 15.5): the update check before dispatch stopped it, the agent
+   * not called — set with a failed outcome and no cause — or the catch after a refused paint found
+   * the live card changed, beside the `catalog` cause. The slot takes the update tile.
+   */
+  update?: UpdateFinding;
+  /** After a paint refused outside the entitlement: what fetching the live card again found. */
+  refetched?: Refetched;
 }
 
 export interface DispatchTurn {

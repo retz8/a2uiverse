@@ -142,6 +142,7 @@ describe('the press a listing carries (task-14.2 decision 8)', () => {
         state: 'major-update',
         publishedVersion: '2.0.0',
         newCatalogIds: [],
+        newScopes: [],
         builds: [],
       }),
     });

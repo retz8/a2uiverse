@@ -1,6 +1,7 @@
 import {act, render, screen} from '@testing-library/react';
 import type {ReactNode} from 'react';
 import {expect, test} from 'vitest';
+import {UPDATE_STATES} from '@a2uiverse/sdk';
 import type {ShellAction} from '../../functions/shell-actions';
 import {PressStateContext, type PressRecord} from '../../press-state';
 import {SignInContext, type SignInRequest} from '../../sign-in';
@@ -9,7 +10,7 @@ import {SlotStateContext} from '../../slot-state';
 import {renderTree, SURFACE_ID} from '../../testing/render';
 import {collapsedLines, landedLines, LOST_WORDS, UNREACHED_WORDS} from './press-lines';
 import {collapseLine, continueHref, SlotView} from './slot';
-import {SlotApi} from './slot.schema';
+import {SlotApi, updateLineOf} from './slot.schema';
 
 test('pending renders a loading line naming nobody — the marker above names the source', () => {
   render(<SlotView source="gmail" label="Gmail" />);
@@ -89,6 +90,78 @@ test('the authority state: a cause, the quiet line only asking to sign in, the s
   expect(ok({cause: 'expired'})).toBe(false);
   expect(ok({cause: 'signIn', scopes: [], domain: 'github.com'})).toBe(false);
   expect(ok({cause: 'again'}, 'failed')).toBe(false);
+});
+
+test('the update state: the update state its line was computed from and the publisher, only with `update` (task-15.5 decision 8)', () => {
+  const ok = (update: unknown, state = 'update') =>
+    SlotApi.schema.safeParse({source: 'shop-b', state, update}).success;
+  const scopes = [{scheme: 'signIn', scopes: ['write']}];
+  expect(
+    ok({
+      state: 'update-required',
+      installedVersion: '1.0.0',
+      publishedVersion: '2.0.0',
+      newScopes: [],
+      publisher: 'Northlight',
+    }),
+  ).toBe(true);
+  expect(
+    ok({
+      state: 'card-update',
+      installedVersion: '1.0.0',
+      publishedVersion: '1.1.0',
+      newScopes: scopes,
+      publisher: 'Northlight',
+    }),
+  ).toBe(true);
+  expect(
+    ok({
+      state: 'ahead-of-store',
+      installedVersion: '1.0.0',
+      publishedVersion: '1.0.0',
+      publisher: 'Northlight',
+    }),
+  ).toBe(true);
+  expect(ok({state: 'unknown', installedVersion: '1.0.0'})).toBe(true);
+  expect(ok({state: 'not-published', installedVersion: '1.0.0'})).toBe(true);
+  // The waiting line names its publisher; an updatable state names its new permissions.
+  expect(ok({state: 'ahead-of-store', installedVersion: '1.0.0', publishedVersion: '1.0.0'})).toBe(
+    false,
+  );
+  expect(
+    ok({
+      state: 'major-update',
+      installedVersion: '1.0.0',
+      publishedVersion: '2.0.0',
+      publisher: 'Northlight',
+    }),
+  ).toBe(false);
+  expect(
+    ok({
+      state: 'up-to-date',
+      installedVersion: '1.0.0',
+      publishedVersion: '1.0.0',
+      newScopes: [],
+      publisher: 'Northlight',
+    }),
+  ).toBe(false);
+  expect(ok({state: 'unknown', installedVersion: '1.0.0', publisher: 'Northlight'})).toBe(false);
+  expect(ok({state: 'unknown', installedVersion: '1.0.0', publishedVersion: '1.0.0'})).toBe(false);
+  expect(ok({state: 'stale', installedVersion: '1.0.0'})).toBe(false);
+  expect(ok({state: 'unknown', installedVersion: '1.0.0'}, 'failed')).toBe(false);
+});
+
+test("the update tile's line follows the update state (task-15.5 decision 6)", () => {
+  expect(Object.fromEntries(UPDATE_STATES.map(state => [state, updateLineOf(state)]))).toEqual({
+    'update-required': 'update',
+    'major-update': 'update',
+    'card-update': 'update',
+    'ahead-of-store': 'waiting',
+    'up-to-date': 'waiting',
+    'newer-build': 'waiting',
+    unknown: 'unreached',
+    'not-published': 'none',
+  });
 });
 
 test('a paint refused for a credential field: the `credential` cause, a continue URL only with it (task 12.2)', () => {

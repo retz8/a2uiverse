@@ -753,6 +753,62 @@ describe('on the wire', () => {
   });
 });
 
+describe('access judged on the card as installed (task-15.5 decision 3)', () => {
+  test('a live card asking more leaves the account ready on the installed card, and short on the live one', async () => {
+    const card = oauthCard();
+    const {base, client, orchestrator} = await boot({
+      apps: {shop: {card, admit: admitsTokens()}},
+      plan: shopOnly,
+    });
+    const canvas = contextOf(await collect(client, utterance('my orders')));
+    await signIn(base, canvas, 'shop.1');
+    expect(orchestrator.vault.liveShort('shop.1')).toBe(false);
+    // The agent now asks write beside read, ahead of any install.
+    (card.security![0]!.signIn as string[]).push('write');
+    await orchestrator.registry.refreshCards();
+    expect(orchestrator.vault.standing('shop.1')).toEqual({kind: 'ready'});
+    expect(orchestrator.vault.liveShort('shop.1')).toBe(true);
+  });
+
+  test('a slot whose live card asks more takes the update tile, not the needs-more-access tile, its agent not called', async () => {
+    const card = oauthCard();
+    const {base, client, orchestrator} = await boot({
+      apps: {shop: {card, admit: admitsTokens()}},
+      plan: shopOnly,
+    });
+    const canvas = contextOf(await collect(client, utterance('my orders')));
+    await signIn(base, canvas, 'shop.1');
+    (card.security![0]!.signIn as string[]).push('write');
+    await orchestrator.registry.refreshCards();
+    const sent = vendors[0]!.requests.length;
+
+    const events = await collect(client, utterance('my orders', 'page-2'));
+    // No Store in these sign-ins: the tile's line is the Store unreached.
+    expect(slotOf(events, 'shop.1')).toMatchObject({
+      state: 'update',
+      update: {state: 'unknown', installedVersion: '0.0.0'},
+    });
+    expect(slotOf(events, 'shop.1')!.authority).toBeUndefined();
+    expect(vendors[0]!.requests).toHaveLength(sent);
+  });
+
+  test('the live card is judged only once the installed card is met, and never when none is held', async () => {
+    const card = oauthCard();
+    const {orchestrator} = await boot({
+      apps: {shop: {card, admit: admitsTokens()}},
+      plan: shopOnly,
+    });
+    (card.security![0]!.signIn as string[]).push('write');
+    await orchestrator.registry.refreshCards();
+    expect(orchestrator.vault.standing('shop.1')).toMatchObject({kind: 'need'});
+    expect(orchestrator.vault.liveShort('shop.1')).toBe(false);
+    await vendors[0]!.close();
+    await orchestrator.registry.refreshCards();
+    expect(orchestrator.registry.card('shop')).toBeNull();
+    expect(orchestrator.vault.liveShort('shop.1')).toBe(false);
+  });
+});
+
 describe("the agent's requests for more access", () => {
   test('before any paint: the tile asks for more access, with only the missing scopes (task-12.13 decision 50)', async () => {
     const {base, client} = await boot({

@@ -38,9 +38,11 @@ export interface CompositionSlot {
   label?: string;
   /**
    * The orchestrator's view: pending, arrived (painted), failed, collapsed, needing sign-in
-   * (`authority`), or an account choice waiting on the user's press (`choosing-account`).
+   * (`authority`) or an update (`update`, task 15.5), or an account choice waiting on the user's
+   * press (`choosing-account`).
    */
-  state: 'pending' | 'arrived' | 'failed' | 'collapsed' | 'authority' | 'choosing-account';
+  state:
+    'pending' | 'arrived' | 'failed' | 'collapsed' | 'authority' | 'update' | 'choosing-account';
 }
 
 export interface CompositionView {

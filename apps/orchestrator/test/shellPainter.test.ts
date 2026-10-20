@@ -5,6 +5,7 @@
  */
 import {clipPaintMetaTitle, PAINT_META_MIME_TYPE} from '@a2uiverse/sdk';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
+import {SlotApi} from '@a2uiverse/shell-catalog/schema';
 import {describe, expect, test} from 'vitest';
 import {Sources} from '../src/accounts/accounts.js';
 import {chooseAccount, compositionFrom, fillGap} from '../src/composition/state.js';
@@ -15,6 +16,7 @@ import {
   shellRepaintParts,
 } from '../src/composition/shellPainter.js';
 import type {LayoutSurface} from '../src/planner/document.js';
+import type {UpdateFinding} from '../src/registry/updateTile.js';
 import {cardFor, testRegistry} from './registryFixture.js';
 
 /** The three sources, installed through the registry: their display names are their cards' names. */
@@ -720,5 +722,77 @@ describe('the offer (task 15.4)', () => {
     const {sources, state} = await fresh();
     expect(fillGap(state, sources, 'flights', 'shop-b', {name: 'Shop B'})).toBeUndefined();
     expect(fillGap(state, sources, 'camera rental', 'shop-b', {name: 'Shop B'})).toBeUndefined();
+  });
+});
+
+describe('the update tile (task-15.5 decision 8)', () => {
+  const stateWith = (update: UpdateFinding) => {
+    const state = compositionFrom(layout, new Sources(registry), 'my day');
+    const slot = state.slots.get('github')!;
+    slot.state = 'update';
+    slot.update = update;
+    return state;
+  };
+  const githubSlot = (update: UpdateFinding) =>
+    paintLayout(stateWith(update)).find(c => c.id === 'gh')!;
+
+  test('painted from the update state its line was computed from and the publisher, the Slot schema holding it', () => {
+    const forced: UpdateFinding = {
+      case: 'catalogs',
+      state: {
+        appId: 'github',
+        installedVersion: '1.0.0',
+        state: 'update-required',
+        publishedVersion: '2.0.0',
+        retired: ['https://example.com/github/catalog.json'],
+        newScopes: [{scheme: 'oauth', scopes: ['repo']}],
+      },
+      publisher: 'Octo',
+      line: 'update',
+    };
+    const waiting: UpdateFinding = {
+      case: 'permission',
+      state: {
+        appId: 'github',
+        installedVersion: '1.0.0',
+        state: 'ahead-of-store',
+        publishedVersion: '1.0.0',
+        catalogIds: [],
+        version: '1.1.0',
+      },
+      publisher: 'Octo',
+      line: 'waiting',
+    };
+    const unreached: UpdateFinding = {
+      case: 'catalogs',
+      state: {appId: 'github', installedVersion: '1.0.0', state: 'unknown'},
+      line: 'unreached',
+    };
+    expect(githubSlot(forced)).toEqual({
+      id: 'gh',
+      component: 'Slot',
+      source: 'github',
+      weight: 2,
+      state: 'update',
+      label: 'GitHub',
+      update: {
+        state: 'update-required',
+        installedVersion: '1.0.0',
+        publishedVersion: '2.0.0',
+        newScopes: [{scheme: 'oauth', scopes: ['repo']}],
+        publisher: 'Octo',
+      },
+    });
+    expect(githubSlot(waiting).update).toEqual({
+      state: 'ahead-of-store',
+      installedVersion: '1.0.0',
+      publishedVersion: '1.0.0',
+      publisher: 'Octo',
+    });
+    expect(githubSlot(unreached).update).toEqual({state: 'unknown', installedVersion: '1.0.0'});
+    for (const update of [forced, waiting, unreached]) {
+      const {id: _id, component: _component, ...props} = githubSlot(update);
+      expect(SlotApi.schema.safeParse(props).success).toBe(true);
+    }
   });
 });

@@ -466,6 +466,31 @@ describe('startup', () => {
     expect(next.installed()[0].card).toEqual(installed);
   });
 
+  test("one app's live card fetched again replaces the one held (task-15.5 decision 4)", async () => {
+    const installed = cardFor('http://127.0.0.1:11002', {name: 'Gmail'});
+    const {registry, cards} = await fresh([{id: 'gmail', card: installed}]);
+    const moved = cardFor('http://127.0.0.1:11002', {name: 'Gmail, moved', catalogs: [GMAIL]});
+    cards.cards.set('http://127.0.0.1:11002/.well-known/agent-card.json', moved);
+    expect(await registry.refetchLiveCard('gmail', 1_000)).toEqual(moved);
+    expect(registry.card('gmail')).toEqual(moved);
+    expect(registry.get('gmail').displayName).toBe('Gmail, moved');
+    expect(registry.installed()[0].card).toEqual(installed);
+  });
+
+  test('a live card that does not answer in time, or at all, leaves the one held (task-15.5 decision 4)', async () => {
+    const installed = cardFor('http://127.0.0.1:11002', {name: 'Gmail'});
+    const {registry, cards} = await fresh([{id: 'gmail', card: installed}]);
+    const url = 'http://127.0.0.1:11002/.well-known/agent-card.json';
+    cards.hanging.add(url);
+    expect(await registry.refetchLiveCard('gmail', 20)).toBeUndefined();
+    expect(registry.card('gmail')).toEqual(installed);
+    cards.hanging.delete(url);
+    cards.cards.delete(url);
+    expect(await registry.refetchLiveCard('gmail', 1_000)).toBeUndefined();
+    expect(registry.card('gmail')).toEqual(installed);
+    expect(await registry.refetchLiveCard('nobody', 1_000)).toBeUndefined();
+  });
+
   test('an agent down at startup stays installed, unroutable, named by its stored card', async () => {
     const installed = cardFor('http://127.0.0.1:11002', {name: 'Gmail'});
     const {cards, stateDir} = await fresh([{id: 'gmail', card: installed}]);

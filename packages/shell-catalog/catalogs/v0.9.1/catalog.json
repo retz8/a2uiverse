@@ -802,7 +802,7 @@
     },
     "Slot": {
       "type": "object",
-      "description": "A named region of a composed screen whose content is mounted by the client. Paint one per planned fragment; later repaints may change its state but never its position. While no content has arrived it renders a pending placeholder. A slot whose content is the shell's own \u2014 the merged view \u2014 is declared `content: \"shell\"`: it keeps its reserved position but is painted like the shell's own UI, with no tile: while pending it is reserved as the merged view's label, its planned column headers and a few skeleton rows, and the view takes its own height when it lands. A source that fails shows the failure tile in its region: the failure said in the shell's words, Retry, and the vendor's own words beneath. A source that needs sign-in shows the authority tile in its region. An app with two or more accounts, for a command that named none, shows the account choice in its region. A collapsed merge leaves its slot as one line saying why: the Synthesizer's reason when it declined, the shell's own words otherwise.",
+      "description": "A named region of a composed screen whose content is mounted by the client. Paint one per planned fragment; later repaints may change its state but never its position. While no content has arrived it renders a pending placeholder. A slot whose content is the shell's own \u2014 the merged view \u2014 is declared `content: \"shell\"`: it keeps its reserved position but is painted like the shell's own UI, with no tile: while pending it is reserved as the merged view's label, its planned column headers and a few skeleton rows, and the view takes its own height when it lands. A source that fails shows the failure tile in its region: the failure said in the shell's words, Retry, and the vendor's own words beneath. A source that needs sign-in shows the authority tile in its region. A source whose app needs an update to show its answer shows the update tile in its region. An app with two or more accounts, for a command that named none, shows the account choice in its region. A collapsed merge leaves its slot as one line saying why: the Synthesizer's reason when it declined, the shell's own words otherwise.",
       "properties": {
         "component": {
           "const": "Slot"
@@ -842,9 +842,9 @@
         },
         "state": {
           "type": "string",
-          "enum": ["pending", "failed", "collapsed", "authority"],
+          "enum": ["pending", "failed", "collapsed", "authority", "update"],
           "default": "pending",
-          "description": "The region\u2019s lifecycle state, painted by the runtime and never written by an author. `pending` shows a placeholder until content arrives; `failed` shows the failure tile; `collapsed` removes the region from view without moving its neighbours; `authority` shows the authority tile."
+          "description": "The region\u2019s lifecycle state, painted by the runtime and never written by an author. `pending` shows a placeholder until content arrives; `failed` shows the failure tile; `collapsed` removes the region from view without moving its neighbours; `authority` shows the authority tile; `update` shows the update tile."
         },
         "content": {
           "type": "string",
@@ -914,6 +914,53 @@
             }
           },
           "required": ["cause"],
+          "additionalProperties": false
+        },
+        "update": {
+          "type": "object",
+          "description": "Fragment content only: the slot's update tile — the app cannot show its answer in what it is installed with, or now asks for access it was not installed with. Painted by the runtime with `state: \"update\"` and never written by an author.",
+          "properties": {
+            "state": {
+              "type": "string",
+              "enum": [
+                "unknown",
+                "not-published",
+                "ahead-of-store",
+                "update-required",
+                "major-update",
+                "card-update",
+                "newer-build",
+                "up-to-date"
+              ],
+              "description": "The app's update state, which the tile's line follows: `update-required`, `major-update` and `card-update` — the Store has a version the app can show its answer in, with Update; `ahead-of-store`, `up-to-date` and `newer-build` — the Store is waiting on the publisher; `unknown` — the Store could not be reached, with Retry; `not-published` — the Store has no update for it."
+            },
+            "installedVersion": {
+              "type": "string",
+              "description": "The app's version as installed."
+            },
+            "publishedVersion": {
+              "type": "string",
+              "description": "The Store's version of the app, whenever the Store has its entry."
+            },
+            "newScopes": {
+              "type": "array",
+              "description": "With `update-required`, `major-update` or `card-update`, required there: what the Store's version newly asks, by scheme and scope keys; any at all and its Update asks for consent first.",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "scheme": {"type": "string"},
+                  "scopes": {"type": "array", "items": {"type": "string"}}
+                },
+                "required": ["scheme", "scopes"],
+                "additionalProperties": false
+              }
+            },
+            "publisher": {
+              "type": "string",
+              "description": "The app's publisher, whenever the Store has its entry."
+            }
+          },
+          "required": ["state", "installedVersion"],
           "additionalProperties": false
         },
         "columns": {

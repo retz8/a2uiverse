@@ -132,7 +132,10 @@ export interface SignInRecord {
 
 export interface VaultDeps {
   store: VaultStore;
+  /** The app's card as installed: what access is judged against (task-15.5 decision 3). */
   cardOf(appId: string): AgentCard | null | undefined;
+  /** This run's live card, read only to see that the app has changed; none when not held. */
+  liveCardOf?(appId: string): AgentCard | null | undefined;
   displayName(appId: string): string;
   identity: ClientIdentity;
   journal(record: SignInRecord): void;
@@ -255,12 +258,31 @@ export class AuthVault implements AccountStore {
   // ---- before dispatch (phase-12 decision 5) ------------------------------------------------
 
   /**
-   * The card checked against the vault for the source, with no network: open when the card asks
-   * nothing; ready when the account meets an alternative; otherwise what the slot needs.
+   * The card as installed checked against the vault for the source, with no network: open when the
+   * card asks nothing; ready when the account meets an alternative; otherwise what the slot needs.
    */
   standing(source: string): Standing {
+    const appId = parseSourceId(source)?.appId ?? source;
+    return this.#standingOn(this.#deps.cardOf(appId), source);
+  }
+
+  /**
+   * Whether the app's live card asks more than the account meets where the card as installed asks
+   * nothing more (task-15.5 decision 3): judged only once the installed card is met, never when no
+   * live card is held — the slot's update, not its sign-in.
+   */
+  liveShort(source: string): boolean {
+    const appId = parseSourceId(source)?.appId ?? source;
+    const live = this.#deps.liveCardOf?.(appId);
+    if (!live) return false;
+    const installed = this.standing(source).kind;
+    if (installed !== 'open' && installed !== 'ready') return false;
+    return this.#standingOn(live, source).kind === 'need';
+  }
+
+  #standingOn(card: AgentCard | null | undefined, source: string): Standing {
     const {appId, account: n} = parseSourceId(source) ?? {appId: source};
-    const need = cardNeed(this.#deps.cardOf(appId));
+    const need = cardNeed(card);
     if (need.kind === 'none') return {kind: 'open'};
     if (need.kind === 'unsupported') return {kind: 'need', need: {cause: 'unsupported'}};
     const account = this.#account(appId, n);

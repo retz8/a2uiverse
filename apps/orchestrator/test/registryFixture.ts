@@ -99,9 +99,13 @@ export async function fixtureArtifact(
   return files;
 }
 
-/** Cards served by URL; a URL with no card is unreachable. Mutable, so a test can move an agent. */
+/**
+ * Cards served by URL; a URL with no card is unreachable, and one marked hanging never answers.
+ * Mutable, so a test can move an agent.
+ */
 export class CardServer {
   readonly cards = new Map<string, AgentCard>();
+  readonly hanging = new Set<string>();
   readonly fetched: string[] = [];
 
   serve(card: AgentCard): string {
@@ -112,6 +116,7 @@ export class CardServer {
 
   resolve = async (url: string): Promise<AgentCard> => {
     this.fetched.push(url);
+    if (this.hanging.has(url)) return new Promise<AgentCard>(() => {});
     const card = this.cards.get(url);
     if (!card) throw new Error(`fetch failed: ${url}`);
     return card;

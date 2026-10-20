@@ -27,6 +27,7 @@ import {
 } from '@a2uiverse/sdk';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
 import {corpusDoc, type Embedder} from '@a2uiverse/embedder';
+import {withTimeout} from '../timeout.js';
 import type {WriteCaller} from '../writeGuard.js';
 import type {MarketplaceClient} from './marketplace.js';
 import {readTree, RegistryStore, type ArtifactFiles} from './store.js';
@@ -320,6 +321,33 @@ export class Registry {
     } catch (err) {
       console.error('registry: embedding the refetched cards failed:', (err as Error).message);
     }
+  }
+
+  /**
+   * One app's live card fetched again, given `timeoutMs` (task-15.5 decision 4): a card that answers
+   * replaces the one held, its corpus vector recomputed when it changed, and is returned; one that
+   * does not answer in time, or at all, leaves the one held and returns none.
+   */
+  async refetchLiveCard(appId: string, timeoutMs: number): Promise<AgentCard | undefined> {
+    const record = this.#records.get(appId);
+    if (!record) return undefined;
+    let card: AgentCard;
+    try {
+      card = await withTimeout(this.#fetchCard(record.cardUrl), timeoutMs);
+    } catch {
+      return undefined;
+    }
+    if (!this.#records.has(appId)) return undefined;
+    const held = this.#cards.get(appId);
+    if (held && JSON.stringify(held) === JSON.stringify(card)) return card;
+    this.#cards.set(appId, card);
+    try {
+      const [vector] = await this.#deps.embedder.embed([corpusDoc(card)]);
+      this.#vectors.set(appId, vector);
+    } catch (err) {
+      console.error('registry: embedding the refetched card failed:', (err as Error).message);
+    }
+    return card;
   }
 
   get(appId: string): AppRecord {

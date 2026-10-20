@@ -1,8 +1,15 @@
 import {afterEach, describe, expect, test, vi} from 'vitest';
 import type {Message, Task, TaskStatusUpdateEvent} from '@a2a-js/sdk';
-import {AgentsPool, type AgentsPoolOptions, REJECTED_VALUE} from '../src/agentsPool/agentsPool.js';
+import {
+  AgentsPool,
+  type AgentsPoolOptions,
+  type Credentials,
+  REJECTED_VALUE,
+  type UpdateGate,
+} from '../src/agentsPool/agentsPool.js';
 import type {Fault} from '../src/agentsPool/faults.js';
 import type {DispatchTurn} from '../src/agentsPool/types.js';
+import type {Refetched, UpdateCase, UpdateFinding} from '../src/registry/updateTile.js';
 import {BASIC_CATALOG_ID} from '@a2uiverse/sdk';
 import {
   A2UI_PART,
@@ -578,6 +585,130 @@ describe('AgentsPool — catalog entitlement and the installed set (task-11.4 de
     const record = await handle.done;
     expect(record.outcome).toBe('completed');
     expect(JSON.stringify(events)).toContain(FAKE_CATALOG_ID);
+  });
+});
+
+describe('AgentsPool — the update check (task-15.5 decisions 1 to 4)', () => {
+  const finding = (why: UpdateCase): UpdateFinding => ({
+    case: why,
+    state: {appId: 'github', installedVersion: '1.0.0', state: 'unknown'},
+    line: 'unreached',
+  });
+  /** A gate answering as told, and a vault asking nothing, each saying what it was asked in order. */
+  function checks(
+    answers: {
+      catalogs?: boolean;
+      permission?: boolean;
+      refetched?: Refetched;
+      signIn?: boolean;
+    } = {},
+  ) {
+    const calls: string[] = [];
+    const updates: UpdateGate = {
+      catalogsChanged: appId => (calls.push(`catalogs ${appId}`), answers.catalogs ?? false),
+      permissionChanged: source => (
+        calls.push(`permission ${source}`),
+        answers.permission ?? false
+      ),
+      finding: async (appId, why) => (calls.push(`finding ${appId} ${why}`), finding(why)),
+      refetched: async appId => (
+        calls.push(`refetched ${appId}`),
+        answers.refetched ?? 'unchanged'
+      ),
+    };
+    const credentials: Credentials = {
+      prepare: async () => {
+        calls.push('prepare');
+        return answers.signIn ? {need: {cause: 'again'}} : undefined;
+      },
+      unauthorized: async () => ({need: {cause: 'again'}}),
+      markAgain: async () => {},
+      requested: () => ({kind: 'unsigned'}),
+    };
+    return {calls, extra: {updates, credentials}};
+  }
+
+  test('an app that cannot paint in what it is installed with is stopped before the sign-in, its agent never called', async () => {
+    const {calls, extra} = checks({catalogs: true, signIn: true});
+    const {pool, vendor} = await poolFor({}, extra);
+    const {events, record} = await drain(pool.dispatch('github', turn()));
+    expect(events).toEqual([]);
+    expect(vendor.requests).toEqual([]);
+    expect(record).toMatchObject({outcome: 'failed', update: finding('catalogs')});
+    expect(record.authority).toBeUndefined();
+    expect(calls).toEqual(['catalogs github', 'finding github catalogs']);
+  });
+
+  test('a new permission on the live card is judged after the sign-in, and only once it is met', async () => {
+    const asking = checks({permission: true, signIn: true});
+    const first = await poolFor({}, asking.extra);
+    const signingIn = await drain(first.pool.dispatch('github', turn()));
+    expect(signingIn.record.authority).toEqual({cause: 'again'});
+    expect(signingIn.record.update).toBeUndefined();
+    expect(asking.calls).toEqual(['catalogs github', 'prepare']);
+
+    const met = checks({permission: true});
+    const second = await poolFor({}, met.extra);
+    const {record} = await drain(second.pool.dispatch('github', turn()));
+    expect(second.vendor.requests).toEqual([]);
+    expect(record).toMatchObject({outcome: 'failed', update: finding('permission')});
+    expect(met.calls).toEqual([
+      'catalogs github',
+      'prepare',
+      'permission github',
+      'finding github permission',
+    ]);
+  });
+
+  test('an app that can paint is dispatched as before', async () => {
+    const {calls, extra} = checks();
+    const {pool, vendor} = await poolFor({}, extra);
+    const {record} = await drain(pool.dispatch('github', turn()));
+    expect(record.outcome).toBe('completed');
+    expect(record.update).toBeUndefined();
+    expect(vendor.requests).toHaveLength(1);
+    expect(calls).toEqual(['catalogs github', 'prepare', 'permission github']);
+  });
+
+  const outside: Script = ({ctx, vendorContextId}) => [
+    {
+      kind: 'message',
+      messageId: crypto.randomUUID(),
+      role: 'agent',
+      parts: [
+        {
+          kind: 'data',
+          data: {version: 'v0.9', createSurface: {surfaceId: 's1', catalogId: 'urn:v2'}},
+        },
+      ],
+      contextId: vendorContextId,
+      taskId: ctx.taskId,
+    },
+  ];
+
+  test('a paint refused outside the entitlement fetches the live card again: changed, the finding on the catalog record', async () => {
+    const {calls, extra} = checks({refetched: 'changed'});
+    const {pool} = await poolFor({script: outside}, extra);
+    const {record} = await drain(pool.dispatch('github', turn()));
+    expect(record).toMatchObject({
+      outcome: 'failed',
+      cause: 'catalog',
+      catalogId: 'urn:v2',
+      refetched: 'changed',
+      update: finding('catalogs'),
+    });
+    expect(calls.slice(-2)).toEqual(['refetched github', 'finding github catalogs']);
+  });
+
+  test('unchanged or unanswered, the catalog record says so and carries no finding', async () => {
+    for (const refetched of ['unchanged', 'unanswered'] as const) {
+      const {calls, extra} = checks({refetched});
+      const {pool} = await poolFor({script: outside}, extra);
+      const {record} = await drain(pool.dispatch('github', turn()));
+      expect(record).toMatchObject({outcome: 'failed', cause: 'catalog', refetched});
+      expect(record.update).toBeUndefined();
+      expect(calls.at(-1)).toBe('refetched github');
+    }
   });
 });
 
