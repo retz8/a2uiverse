@@ -42,6 +42,8 @@ export interface PaintCopy {
   /** Flat component-id → component-tree node — the A2UI wire shape. */
   tree: Readonly<Record<string, unknown>>;
   dataModel: unknown;
+  /** The build it was drawn in, by artifact id, and is restored in (task-15.6); none for the client's own. */
+  build?: string;
 }
 
 /** Where a source stands in its history: the paint ids it visited, and the position reported. */

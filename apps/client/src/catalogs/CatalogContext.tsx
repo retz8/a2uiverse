@@ -1,15 +1,16 @@
 /**
  * The held catalogs, reachable from the render layer, and `SurfaceFrame` — the one place a surface
  * meets its catalog's provider. The shell renders every surface through this frame and never
- * imports a vendor design system itself. Under the loader a set grows as catalogs load, and every
- * frame reads the newest; a canvas, and a Store sample, provide a set of their own (task-14.7
- * decision 1), so a frame finds the build its own renderer was built over.
+ * imports a vendor design system itself. A frame finds the build its surface was drawn in from the
+ * surface itself (task 15.6), so a surface keeps its own build beside a newer one of its catalog;
+ * the held set, which grows as catalogs load — the page's, or a Store sample's (task-14.7 decision
+ * 1) — answers a catalog the client did not resolve.
  */
 import {createContext, useContext, useMemo, useSyncExternalStore, type ReactNode} from 'react';
 import type {SurfaceModel} from '@a2ui/web_core/v0_9';
 import {A2uiSurface} from '@a2ui/react/v0_9';
 import type {ReactComponentImplementation} from '@a2ui/react/v0_9';
-import type {ResolvedCatalog} from './clientCatalogs';
+import {resolvedOf, type ResolvedCatalog} from './clientCatalogs';
 import {BUILD_ATTRIBUTE} from './host';
 import type {CatalogLoader, HeldCatalogSet} from './loader';
 
@@ -51,11 +52,6 @@ export function CatalogProvider({
   return <CatalogContext.Provider value={loaded}>{children}</CatalogContext.Provider>;
 }
 
-/** A canvas's own set around what it renders, when it has one; else the page's, from above. */
-export function CanvasCatalogs({held, children}: {held?: HeldCatalogSet; children: ReactNode}) {
-  return held ? <CatalogProvider catalogs={held}>{children}</CatalogProvider> : <>{children}</>;
-}
-
 /** A frame's mark: no box of its own, so the surface lays out as if it were not there. */
 const MARK_STYLE = {display: 'contents'} as const;
 
@@ -65,7 +61,8 @@ const MARK_STYLE = {display: 'contents'} as const;
  * decision 39), so a surface keeps its own build's look beside another build of the same catalog.
  */
 export function SurfaceFrame({surface}: {surface: SurfaceModel<ReactComponentImplementation>}) {
-  const resolved = useContext(CatalogContext).get(surface.catalog.id);
+  const held = useContext(CatalogContext).get(surface.catalog.id);
+  const resolved = resolvedOf(surface.catalog) ?? held;
   const content = <A2uiSurface surface={surface} />;
   if (!resolved) return content;
   const framed = <resolved.Provider>{content}</resolved.Provider>;

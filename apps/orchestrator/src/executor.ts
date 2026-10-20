@@ -96,6 +96,11 @@ export interface OrchestratorDeps {
    * is installed with is dispatched for its update tile, never shown its sign-in first.
    */
   updates?: {catalogsChanged(appId: string): boolean};
+  /**
+   * The build of each of an app's catalogs the registry holds now, named on each event of it the
+   * hub relays (task-15.6 decision 2); none names no build.
+   */
+  builds?: (appId: string) => Readonly<Record<string, string>> | undefined;
 }
 
 /** An utterance turn from its arrival until its last dispatch ends: what closing the composition ends. */
@@ -1984,7 +1989,11 @@ export class OrchestratorExecutor implements AgentExecutor {
         sink.bus.publish(composed);
       };
       for await (const event of handle.events) {
-        const composed = composeFragment(withoutFailureWords(event), {source});
+        const builds = this.#deps.builds?.(parseSourceId(source)?.appId ?? source);
+        const composed = composeFragment(withoutFailureWords(event), {
+          source,
+          ...(builds ? {builds} : {}),
+        });
         if (capped) held.push(composed);
         else if (options.buffer) buffered.push(composed);
         else relay(composed);

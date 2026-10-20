@@ -17,8 +17,12 @@
  */
 import {BASIC_CATALOG_ID, CATALOG_LOAD_FAILED} from '@a2uiverse/sdk';
 import type {CompositionOperation, CompositionStamp, PaintMeta} from '@a2uiverse/sdk';
-import {MessageProcessor} from '@a2ui/web_core/v0_9';
-import type {ActionListener, A2uiClientAction, Catalog} from '@a2ui/web_core/v0_9';
+import type {
+  ActionListener,
+  A2uiClientAction,
+  Catalog,
+  MessageProcessor,
+} from '@a2ui/web_core/v0_9';
 import type {ReactComponentImplementation} from '@a2ui/react/v0_9';
 import {OPERATORS, RELATIONS, type ShellAction} from '@a2uiverse/shell-catalog';
 import {CATALOG_ID as SHELL_CATALOG_ID} from '@a2uiverse/shell-catalog/id';
@@ -34,7 +38,9 @@ import {createA2ASession} from '../a2a/session';
 import {streamUserMessage} from '../a2a/streamUserMessage';
 import {describeError} from '../shared/describeError';
 import {createCatalogGate, gateRunner, type CatalogLoadFailure} from '../catalogs/catalogGate';
-import type {CatalogLoader, HeldCatalogSet} from '../catalogs/loader';
+import type {ResolvedCatalog} from '../catalogs/clientCatalogs';
+import type {BuildSource} from '../catalogs/loader';
+import {BuildProcessor, createPaintBuilds} from '../catalogs/paintBuilds';
 import {createCanvasStore, type CanvasStore, type RosterEntry} from './canvasStore';
 import {pressBusy} from './turnProgress';
 import type {FragmentFailure, TurnRunner} from './turn/canvasTurn';
@@ -72,8 +78,6 @@ export interface CanvasRuntime {
   history: FragmentHistory;
   /** What this canvas's vendor components register in: the reverse index navigation lands by. */
   bindingIndex: BindingIndex;
-  /** The canvas's own catalogs (task-14.7 decision 1), when the page's loader gave it a set. */
-  held?: HeldCatalogSet;
   navigator: Navigator;
   /** The A2A context the orchestrator minted for the canvas; undefined until its first event. */
   contextId(): string | undefined;
@@ -105,14 +109,15 @@ export const SUPPORTED_CATALOG_IDS: string[] = [BASIC_CATALOG_ID, SHELL_CATALOG_
 export interface CanvasRuntimeOptions {
   id: string;
   /**
-   * The catalogs the processor is built over — the canvas's own set's array, which grows as
-   * catalogs load, so a surface in a catalog loaded after the canvas opened still finds it.
+   * The catalogs the canvas's processors are built over — the canvas's own array, each build a
+   * paint is drawn in put in it at its create (task 15.6).
    */
   catalogs: Catalog<ReactComponentImplementation>[];
-  /** Where a catalog the canvas does not hold yet is loaded from; without one, none is. */
-  loader?: Pick<CatalogLoader, 'has' | 'load'>;
-  /** The canvas's own set, rendered through by its frames; `catalogs` and `loader` are its own. */
-  held?: HeldCatalogSet;
+  /**
+   * Where the build each paint is drawn in is found, and loaded when it is not held (task 15.6);
+   * without one, a paint is drawn in what `catalogs` holds and no catalog is loaded.
+   */
+  builds?: BuildSource;
   /** The orchestrator, for the turns. */
   getSender: GetSender;
   /** Where the streams beside the turn go: the orchestrator, or a replay's transport while attached. */
@@ -128,8 +133,7 @@ export interface CanvasRuntimeOptions {
 export function createCanvasRuntime({
   id,
   catalogs,
-  loader,
-  held,
+  builds,
   getSender,
   getSideSender,
   onContext,
@@ -147,7 +151,10 @@ export function createCanvasRuntime({
     },
   };
   const supportedCatalogIds = SUPPORTED_CATALOG_IDS;
-  const processor = new MessageProcessor(catalogs, action => actionHandler(action));
+  const source = builds ?? fixedBuilds(catalogs);
+  // The build each message is drawn in, assigned by the gate and read by the processors.
+  const book = createPaintBuilds(artifactId => source.build(artifactId));
+  const processor = new BuildProcessor(catalogs, book, action => actionHandler(action));
   // The evaluator dispatches to the shell catalog's operators; the synthesis surface is painted
   // against that catalog, so it is always among the installed ones.
   const shellCatalog = catalogs.find(c => c.id === SHELL_CATALOG_ID);
@@ -168,16 +175,15 @@ export function createCanvasRuntime({
     },
   });
   const gate = createCatalogGate({
-    has: loader?.has ?? (catalogId => catalogs.some(c => c.id === catalogId)),
-    load:
-      loader?.load ??
-      (catalogId => Promise.reject(new Error(`the client holds no catalog ${catalogId}`))),
+    builds: source,
+    book,
     onLoadFailure: failure => void reportLoadFailure(failure),
   });
   const ungated = createTurnRunner({
     processor,
     store,
-    createStaging: () => new MessageProcessor(catalogs),
+    createStaging: () => new BuildProcessor(catalogs, book),
+    rebuild: book.rebuild,
     onFragmentFailure: failure => void reportFragmentFailure(failure),
     synthesis,
     history,
@@ -566,7 +572,6 @@ export function createCanvasRuntime({
     synthesis,
     history,
     bindingIndex,
-    ...(held ? {held} : {}),
     navigator,
     contextId: () => session.get(),
     open,
@@ -600,3 +605,30 @@ export function shellActionContext(action: ShellAction): Record<string, string> 
 }
 
 export type {A2AMessageSender};
+
+/**
+ * The builds of a canvas with no loader: the catalogs it was handed, each its only build, and none
+ * loaded.
+ */
+function fixedBuilds(catalogs: readonly Catalog<ReactComponentImplementation>[]): BuildSource {
+  const resolved = new WeakMap<object, ResolvedCatalog>();
+  const of = (catalog: Catalog<ReactComponentImplementation>) => {
+    if (!resolved.has(catalog))
+      resolved.set(catalog, {id: catalog.id, catalog, Provider: ({children}) => children});
+    return resolved.get(catalog)!;
+  };
+  const held = (catalogId: string) => {
+    const catalog = catalogs.find(c => c.id === catalogId);
+    return catalog ? of(catalog) : undefined;
+  };
+  return {
+    held,
+    load: catalogId => {
+      const found = held(catalogId);
+      return found
+        ? Promise.resolve(found)
+        : Promise.reject(new Error(`the client holds no catalog ${catalogId}`));
+    },
+    build: () => undefined,
+  };
+}

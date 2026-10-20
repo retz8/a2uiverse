@@ -6,6 +6,7 @@
  * action dispatch — never a second surface constructor.
  */
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
+import {resolvedOf} from '../../catalogs/clientCatalogs';
 import type {PaintCopy} from './fragmentHistory';
 
 /** The slice of SurfaceModel a copy reads; SurfaceModel satisfies it structurally. */
@@ -45,12 +46,14 @@ export function capturePaint(processor: CopySource, surfaceId: string): PaintCop
   for (const [id, component] of surface.componentsModel.entries) {
     tree[id] = jsonCopy({...component.properties, id, component: component.type});
   }
+  const build = resolvedOf(surface.catalog)?.build;
   return {
     surfaceId,
     catalogId: surface.catalog.id,
     sendDataModel: surface.sendDataModel,
     tree,
     dataModel: jsonCopy(surface.dataModel.get('/')) ?? {},
+    ...(build ? {build} : {}),
   };
 }
 

@@ -1,6 +1,7 @@
 import type {Message, Part, Task, TaskState, TaskStatusUpdateEvent} from '@a2a-js/sdk';
 import {namespaceSurfaceId, STAMP_KEY} from '@a2uiverse/sdk';
 import type {VendorEvent} from '../agentsPool/relay.js';
+import {touchesOf} from '../journal/surfaces.js';
 
 const TERMINAL: ReadonlySet<TaskState> = new Set(['completed', 'failed', 'canceled', 'rejected']);
 const FAILED: ReadonlySet<TaskState> = new Set(['failed', 'canceled', 'rejected']);
@@ -12,10 +13,14 @@ const A2UI_OPS = ['createSurface', 'updateComponents', 'updateDataModel', 'delet
  * are namespaced on the four A2UI ops and on the vendor's `paintMeta` — the
  * surface it titles, as the client will see it (SPEC §14) — and vendor finals
  * are demoted — under fan-out several vendors end on one orchestrator task, so
- * the executor owns the single turn-final. The original event is never mutated.
+ * the executor owns the single turn-final. An event that carries A2UI names on
+ * its stamp the build the registry holds of each of the app's catalogs
+ * (task-15.6 decision 2). The original event is never mutated.
  */
 export interface ComposeContext {
   source: string;
+  /** The build of each of the source's app's catalogs the registry holds now, by catalog id. */
+  builds?: Readonly<Record<string, string>>;
 }
 
 export function composeFragment(event: VendorEvent, ctx: ComposeContext): VendorEvent {
@@ -48,6 +53,7 @@ export function composeFragment(event: VendorEvent, ctx: ComposeContext): Vendor
 
 function withStamp<E extends VendorEvent>(event: E, ctx: ComposeContext): E {
   const existing = event.metadata?.[STAMP_KEY];
+  const builds = ctx.builds && Object.keys(ctx.builds).length > 0 ? ctx.builds : undefined;
   return {
     ...event,
     metadata: {
@@ -56,9 +62,16 @@ function withStamp<E extends VendorEvent>(event: E, ctx: ComposeContext): E {
         ...(typeof existing === 'object' && existing !== null ? existing : {}),
         source: ctx.source,
         role: 'fragment',
+        ...(builds && carriesA2ui(event) ? {builds: {...builds}} : {}),
       },
     },
   };
+}
+
+/** Whether the event creates, changes or deletes a surface. */
+function carriesA2ui(event: VendorEvent): boolean {
+  const {created, updated, deleted} = touchesOf(event);
+  return created.length + updated.length + deleted.length > 0;
 }
 
 function demoteStatusUpdate(event: TaskStatusUpdateEvent): TaskStatusUpdateEvent {

@@ -11,11 +11,19 @@
  * fails to load fails its fragment: the create and every later message for that surface are
  * dropped, and the failure is reported for the hub to fail the slot under `load`; a fresh create
  * of the surface — a Retry's answer — loads again.
+ *
+ * The gate also says which build each paint is drawn in (task-15.6 decisions 2 to 5): a create in
+ * the build its stamp names for the catalog, else the one the table names; a change to the
+ * components of a surface it saw created, in the build its stamp names for that surface's catalog
+ * — a move, when it is newer than the surface's own. A move whose build fails to load is delivered
+ * with no build, the surface staying in its own, the failure logged and not reported.
  */
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
 import type {CompositionStamp, PaintMeta, SynthesisPayload} from '@a2uiverse/sdk';
 import type {SideStream, TurnHandle, TurnRunner} from '../canvas/turn/canvasTurn';
 import {targetOf} from '../canvas/turn/turnMessages';
+import type {BuildSource} from './loader';
+import type {PaintBuilds} from './paintBuilds';
 
 /** A fragment whose catalog did not load. */
 export interface CatalogLoadFailure {
@@ -29,8 +37,10 @@ export interface CatalogLoadFailure {
 }
 
 export interface CatalogGateOptions {
-  has(catalogId: string): boolean;
-  load(catalogId: string): Promise<void>;
+  /** Where the build a paint is drawn in is found, and loaded when it is not held. */
+  builds: Pick<BuildSource, 'held' | 'load'>;
+  /** Where the build each message is drawn in is assigned. */
+  book: PaintBuilds;
   onLoadFailure(failure: CatalogLoadFailure): void;
 }
 
@@ -60,11 +70,41 @@ function createdIn(message: A2uiMessage): string | undefined {
   return typeof catalogId === 'string' ? catalogId : undefined;
 }
 
-export function createCatalogGate({has, load, onLoadFailure}: CatalogGateOptions): CatalogGate {
+/** The surface whose components a message changes. */
+function componentsOf(message: A2uiMessage): string | undefined {
+  const surfaceId = (message as {updateComponents?: {surfaceId?: unknown}}).updateComponents
+    ?.surfaceId;
+  return typeof surfaceId === 'string' ? surfaceId : undefined;
+}
+
+/** The build a message needs: a create's, or the one a change in place may move its surface to. */
+interface Need {
+  kind: 'create' | 'move';
+  catalogId: string;
+  named?: string;
+}
+
+const keyOf = ({catalogId, named}: Need) => `${catalogId} ${named ?? ''}`;
+
+export function createCatalogGate({builds, book, onLoadFailure}: CatalogGateOptions): CatalogGate {
   const queue: (() => void | Promise<void>)[] = [];
   let draining = false;
   /** Surfaces whose catalog failed to load: their later messages have nowhere to land. */
   const failed = new Set<string>();
+  /** Each surface created through the gate, by the catalog it was created in. */
+  const surfaces = new Map<string, string>();
+
+  const needOf = (message: A2uiMessage, stamp?: CompositionStamp): Need | undefined => {
+    const created = createdIn(message);
+    if (created !== undefined) {
+      const named = stamp?.builds?.[created];
+      return {kind: 'create', catalogId: created, ...(named ? {named} : {})};
+    }
+    const changed = componentsOf(message);
+    const catalogId = changed === undefined ? undefined : surfaces.get(changed);
+    const named = catalogId === undefined ? undefined : stamp?.builds?.[catalogId];
+    return catalogId !== undefined && named ? {kind: 'move', catalogId, named} : undefined;
+  };
 
   const drain = async () => {
     draining = true;
@@ -84,9 +124,15 @@ export function createCatalogGate({has, load, onLoadFailure}: CatalogGateOptions
   };
   const idle = () => !draining && queue.length === 0;
 
-  const missingIn = (messages: A2uiMessage[]) => [
-    ...new Set(messages.map(createdIn).filter((id): id is string => id !== undefined && !has(id))),
-  ];
+  /** The builds the batch needs that are not held, one per build. */
+  const missingIn = (messages: A2uiMessage[], stamp?: CompositionStamp) => {
+    const missing = new Map<string, Need>();
+    for (const message of messages) {
+      const need = needOf(message, stamp);
+      if (need && !builds.held(need.catalogId, need.named)) missing.set(keyOf(need), need);
+    }
+    return [...missing.values()];
+  };
 
   const deliverKept = (
     deliver: Deliver,
@@ -98,16 +144,24 @@ export function createCatalogGate({has, load, onLoadFailure}: CatalogGateOptions
     const kept: A2uiMessage[] = [];
     for (const message of messages) {
       const {kind, surfaceId} = targetOf(message);
-      const catalogId = createdIn(message);
-      if (kind === 'create' && surfaceId !== undefined && catalogId !== undefined) {
-        const reason = unloaded.get(catalogId);
+      const need = needOf(message, stamp);
+      if (kind === 'create' && surfaceId !== undefined && need?.kind === 'create') {
+        const reason = unloaded.get(keyOf(need));
         if (reason !== undefined) {
           failed.add(surfaceId);
-          onLoadFailure({surfaceId, catalogId, message: reason, ...(stamp ? {stamp} : {})});
+          onLoadFailure({
+            surfaceId,
+            catalogId: need.catalogId,
+            message: reason,
+            ...(stamp ? {stamp} : {}),
+          });
           continue;
         }
         failed.delete(surfaceId);
+        surfaces.set(surfaceId, need.catalogId);
       } else if (surfaceId !== undefined && failed.has(surfaceId)) continue;
+      const build = need && builds.held(need.catalogId, need.named);
+      if (build) book.assign(message, build);
       kept.push(message);
     }
     deliver(kept, stamp, synthesis);
@@ -117,15 +171,22 @@ export function createCatalogGate({has, load, onLoadFailure}: CatalogGateOptions
 
   return {
     apply: (deliver, messages, stamp, synthesis) => {
-      if (idle() && missingIn(messages).length === 0) {
+      if (idle() && missingIn(messages, stamp).length === 0) {
         deliverKept(deliver, messages, stamp, synthesis, NONE);
         return;
       }
       enqueue(async () => {
         const unloaded = new Map<string, string>();
         await Promise.all(
-          missingIn(messages).map(catalogId =>
-            load(catalogId).catch(err => void unloaded.set(catalogId, describe(err))),
+          missingIn(messages, stamp).map(need =>
+            builds.load(need.catalogId, need.named).catch(err => {
+              if (need.kind === 'create') unloaded.set(keyOf(need), describe(err));
+              else
+                console.warn(
+                  `[A2UI:catalogs] ${need.catalogId} at ${need.named} did not load; its surfaces stay in their build`,
+                  err,
+                );
+            }),
           ),
         );
         deliverKept(deliver, messages, stamp, synthesis, unloaded);

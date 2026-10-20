@@ -181,6 +181,7 @@ export function buildOrchestrator({
     stepQuietMs: overrides?.stepQuietMs ?? STEP_QUIET_MS,
     gate: vault,
     updates: updateTile,
+    builds: appId => registry.builds(appId),
   });
   const requestHandler = new DefaultRequestHandler(card, new InMemoryTaskStore(), executor);
 

@@ -71,7 +71,7 @@ import {describeError} from '../../shared/describeError';
 import type {CanvasStore} from '../canvasStore';
 import type {PaintCause} from './cause';
 import type {SynthesisIntake} from '../synthesis/synthesisSession';
-import type {FragmentHistory, RestorableStep} from '../history/fragmentHistory';
+import type {FragmentHistory, PaintCopy, RestorableStep} from '../history/fragmentHistory';
 import {rebuildMessages} from '../history/paintCopy';
 import type {TurnProcessor} from './turnMessages';
 import {ROOT_COMPONENT_ID, invalidComponentsOf, targetOf} from './turnMessages';
@@ -138,6 +138,11 @@ export interface TurnRunnerOptions {
   history?: FragmentHistory;
   /** The sources a shell paint just drew the authority tile or line for (task-12.8 decision 4). */
   onAuthority?: (sources: readonly string[]) => void;
+  /**
+   * A copy's messages, its create drawn in the build the paint was drawn in (phase-15 decision 13;
+   * task 15.6); the copy's plain messages when none.
+   */
+  rebuild?: (copy: PaintCopy) => A2uiMessage[];
 }
 
 /** A stream beside the turn: a press's, or a side report's answer (module header). */
@@ -178,6 +183,7 @@ export function createTurnRunner({
   onPaintMeta,
   history,
   onAuthority,
+  rebuild = rebuildMessages,
 }: TurnRunnerOptions): TurnRunner {
   let current: TurnHandle | null = null;
 
@@ -993,7 +999,7 @@ export function createTurnRunner({
     }
     // The copy takes the identical path a live paint takes.
     dropped.delete(paint.surfaceId);
-    applyA2uiMessages(processor, rebuildMessages(paint), {onMessageError: reportMessageError});
+    applyA2uiMessages(processor, rebuild(paint), {onMessageError: reportMessageError});
     store.placeFragment(source, {surfaceId: paint.surfaceId, source});
     store.answerSlot(source);
     store.bumpApplied();

@@ -15,6 +15,8 @@ import {createTurnRunner} from './canvasTurn';
 import {createFragmentHistory} from '../history/fragmentHistory';
 import {capturePaint} from '../history/paintCopy';
 import {snapshotCatalog} from '../../../tests/snapshot';
+import {resolveCatalog, type ResolvedCatalog} from '../../catalogs/clientCatalogs';
+import {BuildProcessor, createPaintBuilds} from '../../catalogs/paintBuilds';
 
 const {catalog: CATALOG, id: CATALOG_ID} = await snapshotCatalog('github-catalog');
 
@@ -174,6 +176,33 @@ describe('progressive mode (empty canvas)', () => {
     expect(state.stageId).toBeNull();
     expect(state.inFlight).toBeNull();
     expect(processor.model.getSurface('partial')).toBeFalsy();
+  });
+});
+
+describe('the build a held paint is drawn in (task-15.6 decision 6)', () => {
+  it('replays a held paint in the build it arrived in, whatever the canvas drew since', () => {
+    const first = resolveCatalog(CATALOG, undefined, 'sha256-first');
+    const second = resolveCatalog(CATALOG, undefined, 'sha256-second');
+    const catalogs = [first.catalog];
+    const book = createPaintBuilds(() => undefined);
+    const processor = new BuildProcessor(catalogs, book);
+    const runner = createTurnRunner({
+      processor,
+      store: createCanvasStore(),
+      createStaging: () => new BuildProcessor(catalogs, book),
+    });
+    const drawnIn = (build: ResolvedCatalog, ...messages: A2uiMessage[]) => {
+      for (const message of messages) book.assign(message, build);
+      return messages;
+    };
+    paintStage(runner, 'old-stage', 'old content');
+
+    const turn = runner.begin(utterance('now the issues'));
+    turn.apply([...drawnIn(second, create('issue-list')), textRoot('issue-list', 'Issues')]);
+    // Meanwhile the canvas draws another paint in the first build.
+    processor.processMessages(drawnIn(first, create('elsewhere'), textRoot('elsewhere', 'x')));
+    turn.end();
+    expect(processor.model.getSurface('issue-list')!.catalog).toBe(second.catalog);
   });
 });
 

@@ -400,6 +400,15 @@ export class Registry {
     return apps;
   }
 
+  /**
+   * The build of each of the app's catalogs the registry holds now, by catalog id — what the hub
+   * names on each event of the app it relays (task-15.6 decision 2); none when it is not installed.
+   */
+  builds(appId: string): Record<string, string> | undefined {
+    const record = this.#records.get(appId);
+    return record ? {...record.catalogs} : undefined;
+  }
+
   /** The catalog table: the client's catalogs, then each installed artifact once. */
   table(): CatalogRow[] {
     const rows: CatalogRow[] = CLIENT_CATALOG_IDS.map(catalogId => ({

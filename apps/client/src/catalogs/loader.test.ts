@@ -2,8 +2,9 @@
  * The catalog loader (task 11.5): a catalog not held is loaded from the registry — the table, the
  * descriptor, the entry from its served URL — checked, and added to the set's array its processor
  * reads; one load in flight per build; a miss sends it back to the table once; a failed load is not
- * kept; the first load into a set wins for that set, each canvas a set of its own, a build loaded
- * once for the page by its artifact id (task-14.7 decision 1).
+ * kept; the first load into the page's own set wins for it, a build loaded once for the page by its
+ * artifact id (task-14.7 decision 1); a paint is drawn in the build its stamp names, else the one
+ * the table names as last read (task-15.6 decisions 1, 5).
  */
 import {describe, expect, it, vi} from 'vitest';
 import {Catalog} from '@a2ui/web_core/v0_9';
@@ -261,86 +262,89 @@ describe('a request that gets no answer (task-11.8 decision 20)', () => {
   });
 });
 
-describe('a canvas’s own set (task-14.7 decision 1)', () => {
+describe('the build a paint is drawn in (task-15.6 decisions 1, 5)', () => {
   const NEWER_ROW: CatalogRow = {...DEMO_ROW, artifact: 'sha256-newer'};
 
-  it('starts with the builds the table names, loaded, and loads the rest into itself alone', async () => {
+  it('loads the build the stamp names by its artifact id, whatever the table names', async () => {
     const {loader, importModule} = fakeRegistry();
-    const before = loader.forCanvas();
-    expect(before.has(DEMO)).toBe(false);
+    expect(loader.builds.held(DEMO, 'sha256-newer')).toBeUndefined();
+    const build = await loader.builds.load(DEMO, 'sha256-newer');
+    expect(build.build).toBe('sha256-newer');
+    expect(importModule).toHaveBeenCalledWith(`${REGISTRY}artifacts/sha256-newer/index.js`);
+    expect(loader.builds.held(DEMO, 'sha256-newer')).toBe(build);
+    expect(loader.builds.build('sha256-newer')).toBe(build);
+  });
+
+  it('with no build named, takes the one the table names as last read; a build loaded before stays held', async () => {
+    const {loader} = fakeRegistry({
+      tables: [
+        [...CLIENT_ROWS, DEMO_ROW],
+        [...CLIENT_ROWS, NEWER_ROW],
+      ],
+    });
     await loader.preload();
-    const after = loader.forCanvas();
-    expect(after.has(DEMO)).toBe(true);
-    expect(after.catalogs.map(c => c.id)).toEqual([SHELL_CATALOG_ID, BASIC_CATALOG_ID, DEMO]);
-    expect(before.has(DEMO)).toBe(false);
-    await before.load(DEMO);
-    expect(before.resolved().get(DEMO)).toBe(after.resolved().get(DEMO));
+    const first = loader.builds.held(DEMO);
+    expect(first?.build).toBe('sha256-demo');
+    await loader.refresh();
+    expect(loader.builds.held(DEMO)?.build).toBe('sha256-newer');
+    expect(loader.builds.build('sha256-demo')).toBe(first);
+  });
+
+  it('reads the table for a catalog it names no build for, then loads that build', async () => {
+    const {loader, importModule} = fakeRegistry();
+    expect(loader.builds.held(DEMO)).toBeUndefined();
+    const build = await loader.builds.load(DEMO);
+    expect(build.build).toBe('sha256-demo');
+    expect(importModule).toHaveBeenCalledWith(`${REGISTRY}artifacts/sha256-demo/index.js`);
+  });
+
+  it('answers the client’s own catalog for one it provides, whatever is named', async () => {
+    const {loader, importModule} = fakeRegistry();
+    const own = loader.resolved().get(BASIC_CATALOG_ID);
+    expect(loader.builds.held(BASIC_CATALOG_ID, 'sha256-demo')).toBe(own);
+    expect(await loader.builds.load(BASIC_CATALOG_ID, 'sha256-demo')).toBe(own);
+    expect(importModule).not.toHaveBeenCalled();
+  });
+
+  it('loads a build once for the page, whoever names it', async () => {
+    const {loader, importModule} = fakeRegistry();
+    await loader.preload();
+    const [a, b] = await Promise.all([
+      loader.builds.load(DEMO, 'sha256-demo'),
+      loader.builds.load(DEMO, 'sha256-demo'),
+    ]);
+    expect(a).toBe(b);
+    expect(a).toBe(loader.resolved().get(DEMO));
     expect(importModule).toHaveBeenCalledTimes(1);
   });
 
-  it('keeps its build when an install moves the catalog; a canvas opened after takes the new one', async () => {
-    const modules = new Map([
-      [`${REGISTRY}artifacts/sha256-demo/index.js`, demoModule()],
-      [`${REGISTRY}artifacts/sha256-newer/index.js`, demoModule()],
-    ]);
-    const {loader, importModule} = fakeRegistry({
-      tables: [
-        [...CLIENT_ROWS, DEMO_ROW],
-        [...CLIENT_ROWS, NEWER_ROW],
-      ],
+  it('fails a build whose load fails, and keeps no failure', async () => {
+    let fail = true;
+    const {loader} = fakeRegistry({
+      module: () => (fail ? Promise.reject(new Error('boom')) : Promise.resolve(demoModule())),
     });
-    importModule.mockImplementation(url => Promise.resolve(modules.get(url)!));
-    await loader.preload();
-    const open = loader.forCanvas();
-    const held = open.resolved().get(DEMO);
-    await loader.refresh();
-    expect(importModule).toHaveBeenLastCalledWith(`${REGISTRY}artifacts/sha256-newer/index.js`);
-    expect(open.resolved().get(DEMO)).toBe(held);
-    const later = loader.forCanvas();
-    expect(later.has(DEMO)).toBe(true);
-    expect(later.resolved().get(DEMO)).not.toBe(held);
-    // Each carries its build, the root its stylesheets are held to (task-14.11 decision 39).
-    expect(held?.build).toBe('sha256-demo');
-    expect(later.resolved().get(DEMO)?.build).toBe('sha256-newer');
-  });
-
-  it('a canvas opened before the new build loaded loads it on its first surface', async () => {
-    const {loader, importModule} = fakeRegistry({
-      tables: [
-        [...CLIENT_ROWS, DEMO_ROW],
-        [...CLIENT_ROWS, NEWER_ROW],
-      ],
-    });
-    await loader.preload();
-    const held = loader.forCanvas().resolved().get(DEMO);
-    const refreshed = loader.refresh();
-    const opened = loader.forCanvas();
-    await refreshed;
-    await opened.load(DEMO);
-    expect(importModule).toHaveBeenCalledTimes(2);
-    expect(opened.resolved().get(DEMO)).not.toBe(held);
+    await expect(loader.builds.load(DEMO, 'sha256-newer')).rejects.toThrow('boom');
+    fail = false;
+    expect((await loader.builds.load(DEMO, 'sha256-newer')).build).toBe('sha256-newer');
   });
 });
 
 describe('a Store sample’s build (task-14.7 decision 1)', () => {
   const MARKETPLACE = 'http://hub.test/marketplace/';
 
-  it('reads the build from the marketplace’s artifacts and changes no set', async () => {
+  it('reads the build from the marketplace’s artifacts and changes nothing a paint is drawn in', async () => {
     const {loader, importModule} = fakeRegistry();
-    const canvas = loader.forCanvas();
     const build = await loader.loadBuild(DEMO, 'sha256-other', MARKETPLACE);
     expect(build.id).toBe(DEMO);
     expect(importModule).toHaveBeenCalledWith(`${MARKETPLACE}artifacts/sha256-other/index.js`);
     expect(loader.has(DEMO)).toBe(false);
-    expect(canvas.has(DEMO)).toBe(false);
+    expect(loader.builds.held(DEMO)).toBeUndefined();
   });
 
   it('shares one load with the registry’s when it is the same build', async () => {
     const {loader, importModule} = fakeRegistry();
     const build = await loader.loadBuild(DEMO, 'sha256-demo', MARKETPLACE);
-    const canvas = loader.forCanvas();
-    await canvas.load(DEMO);
-    expect(canvas.resolved().get(DEMO)).toBe(build);
+    expect(await loader.builds.load(DEMO)).toBe(build);
     expect(importModule).toHaveBeenCalledTimes(1);
   });
 });

@@ -5,11 +5,11 @@
  * imported from its served URL, never a blob, so its stylesheet loads resolve against the
  * artifact's base URL — and checks the running code (the exports, the catalog id).
  *
- * A build is kept by its artifact id, loaded once for the page and shared by every set that holds
- * it, whether it was read from the registry or, for a Store sample, from the marketplace's
- * artifacts (task-14.7 decision 1). A set is what one renderer reads: each canvas has its own, and
- * the first build loaded into a set wins for that set — so a canvas keeps what it shows, and a
- * canvas opened after an install moved a catalog to a new build loads the new one.
+ * A build is kept by its artifact id, loaded once for the page and shared by everything that draws
+ * in it, whether it was read from the registry or, for a Store sample, from the marketplace's
+ * artifacts (task-14.7 decision 1). A paint is drawn in the build its stamp names, else the one the
+ * table names as last read (task-15.6 decisions 1, 5): `builds` answers which, and a canvas draws
+ * each surface in the build it was handed, so a surface on screen keeps its own.
  *
  * Nothing waits on it (task-11.5 decision 1): the preload runs in the background from boot, and a
  * surface arriving in a catalog not yet held waits on the same load (one in flight per build). A
@@ -75,9 +75,9 @@ function bounded<T>(ask: () => Promise<T>, ms: number, what: string): Promise<T>
 const NO_ANSWER = Symbol('no answer');
 
 /**
- * A set of held catalogs one renderer reads (task-14.7 decision 1): the array its processor is
- * built over and the map its frames look a Provider up in, each id held at one build, the first
- * one loaded into this set — never replaced.
+ * The set of held catalogs the page reads outside any canvas: the array a processor is built over
+ * and the map a frame looks a Provider up in, each id held at one build, the first one loaded —
+ * never replaced.
  */
 export interface HeldCatalogSet {
   /** The array a processor is built over: the client's own catalogs, then each one loaded. */
@@ -94,21 +94,37 @@ export interface HeldCatalogSet {
 }
 
 /**
+ * Where a canvas's paints find their builds (task-15.6 decisions 1, 5): the build a surface is
+ * drawn in, loaded when it is not held, and a build loaded for the page by its artifact id.
+ */
+export interface BuildSource {
+  /**
+   * The build a surface of the catalog is drawn in, when it is loaded: the one `named`, else the
+   * one the table names as last read; the client's own catalog for one it provides.
+   */
+  held(catalogId: string, named?: string): ResolvedCatalog | undefined;
+  /**
+   * Loads that build — the table read first when it names none for the catalog; rejects with the
+   * client's reason it could not be.
+   */
+  load(catalogId: string, named?: string): Promise<ResolvedCatalog>;
+  /** A build loaded for the page, by its artifact id: the one a paint the way back returns to keeps. */
+  build(artifactId: string): ResolvedCatalog | undefined;
+}
+
+/**
  * The page's loader: itself the set the page holds outside any canvas, every build it loads kept
- * by its artifact id and shared by every set that names it.
+ * by its artifact id and shared by everything that draws in it.
  */
 export interface CatalogLoader extends HeldCatalogSet {
   /** Reads the table and loads every artifact it lists; failures are logged, never thrown. */
   preload(): Promise<void>;
-  /**
-   * A canvas's own set (task-14.7 decision 1): the builds the table names now, as far as they are
-   * loaded; a catalog it loads later is the build the table names then, and stays.
-   */
-  forCanvas(): HeldCatalogSet;
+  /** What every canvas's paints are drawn through (task-15.6). */
+  readonly builds: BuildSource;
   /**
    * Reads the table again after the registry changed — an install, an update, an uninstall from
-   * the trusted page — and loads the builds it now names, for the canvases opened after. Failures
-   * are logged, never thrown.
+   * the trusted page — and loads the builds it now names, so the next paint that names one does
+   * not wait on its load (task-15.6 decision 7). Failures are logged, never thrown.
    */
   refresh(): Promise<void>;
   /**
@@ -261,15 +277,23 @@ export function createCatalogLoader({
     return loadBuild(catalogId, row.artifact, artifactUrl(registry, row.artifact), row.entry);
   };
 
-  /** The builds the table names now, as far as they are loaded: what a new canvas starts with. */
-  const named = (): Map<string, ResolvedCatalog> => {
-    const held = new Map(own);
-    for (const row of rows) {
-      if (!('artifact' in row)) continue;
-      const build = builds.get(row.artifact);
-      if (build) held.set(row.catalogId, build);
-    }
-    return held;
+  /** The build a paint is drawn in (task-15.6 decisions 1, 5): the one named, else the table's. */
+  const paintBuilds: BuildSource = {
+    held: (catalogId, named) => {
+      const provided = own.get(catalogId);
+      if (provided) return provided;
+      const row = rows.find(row => row.catalogId === catalogId);
+      const artifact = named ?? (row && 'artifact' in row ? row.artifact : undefined);
+      const build = artifact === undefined ? undefined : builds.get(artifact);
+      return build?.id === catalogId ? build : undefined;
+    },
+    load: (catalogId, named) => {
+      const provided = own.get(catalogId);
+      if (provided) return Promise.resolve(provided);
+      if (named === undefined) return loadNamed(catalogId);
+      return loadBuild(catalogId, named, artifactUrl(registry, named));
+    },
+    build: artifactId => builds.get(artifactId),
   };
 
   /** A set: each catalog id at the first build loaded into it, kept. */
@@ -332,8 +356,8 @@ export function createCatalogLoader({
   };
 
   const refresh = async () => {
-    // Until the table answers, which build a catalog id names is not known: a canvas opened in
-    // the meantime starts with the client's own catalogs and loads each from the answer.
+    // Until the table answers, which build a catalog id names is not known: a paint that names
+    // none in the meantime loads it from the answer.
     rows = [];
     let read: CatalogRow[];
     try {
@@ -348,7 +372,7 @@ export function createCatalogLoader({
   return {
     ...page,
     preload,
-    forCanvas: () => heldSet(named()),
+    builds: paintBuilds,
     refresh,
     loadBuild: (catalogId, artifactId, from) =>
       loadBuild(

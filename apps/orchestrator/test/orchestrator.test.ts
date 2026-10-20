@@ -393,7 +393,7 @@ describe('orchestrator', () => {
   });
 
   test('fan-out: shell paint precedes every vendor event; fragments stamped and namespaced; one final', async () => {
-    const {client} = await boot();
+    const {client, orchestrator} = await boot();
     const events = await collect(client, utterance('my day at a glance'));
 
     // Synthetic task first, stamped as the shell.
@@ -447,6 +447,15 @@ describe('orchestrator', () => {
       }
     }
     expect(createdSurfaces).toEqual(new Set(['github:s1', 'gmail:s1', 'calendar:s1']));
+    // Each event carrying A2UI names the build the registry holds of the app's catalog
+    // (task-15.6 decision 2); the settled marker carries none.
+    const build = orchestrator.registry.builds('github')![FAKE_CATALOG_ID];
+    expect(build).toBeDefined();
+    for (const event of fragmentEvents) {
+      const builds = stampOf(event)!.builds;
+      if (a2uiDatas(event).length > 0) expect(builds).toEqual({[FAKE_CATALOG_ID]: build});
+      else expect(builds).toBeUndefined();
+    }
     // Each source's stream ends with one marker event: the stamp says settled, no parts ride it
     // (task-8.7 decision 25).
     for (const appId of APPS) {

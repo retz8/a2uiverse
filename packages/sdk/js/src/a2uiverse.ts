@@ -82,6 +82,15 @@ export interface CompositionStamp {
    * out of staging — and none of them is a paint the way back returns to.
    */
   refused?: boolean;
+  /**
+   * The build of each of the source's catalogs the registry holds as the event is relayed
+   * (task-15.6 decisions 1, 2): catalog id → artifact id, for every catalog the app's entitlement
+   * holds that has one, set on every relayed event of a fragment source that carries A2UI. The
+   * client draws a surface created in a catalog in the build named for it, and moves a surface on
+   * screen to it when its agent changes the surface's components; a catalog named nothing is
+   * drawn in the build the client's own table names.
+   */
+  builds?: Record<string, string>;
   /** Debug only, gated by orchestrator config. */
   vendorContextId?: string;
   vendorTaskId?: string;
@@ -93,6 +102,7 @@ export const STAMP_FIELDS = [
   'role',
   'settled',
   'refused',
+  'builds',
   'vendorContextId',
   'vendorTaskId',
 ] as const satisfies readonly (keyof CompositionStamp)[];

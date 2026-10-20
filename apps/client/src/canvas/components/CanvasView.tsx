@@ -17,7 +17,6 @@ import {
   SlotContentContext,
   SlotStateContext,
 } from '@a2uiverse/shell-catalog';
-import {CanvasCatalogs} from '../../catalogs/CatalogContext';
 import type {CanvasRuntime} from '../canvasRuntime';
 import {orderedNotices} from '../canvasStore';
 import {columnState, sourceBusy} from '../composition/columnState';
@@ -101,7 +100,7 @@ export function CanvasView({runtime, onEdit, past = false}: CanvasViewProps) {
   const showProgress = question !== null || state.inFlight !== null || state.error !== null;
 
   return (
-    <CanvasCatalogs held={runtime.held}>
+    <>
       <BindingIndexContext.Provider value={runtime.bindingIndex}>
         <SlotContentContext.Provider value={slotContent}>
           {/* The header scrolls with the page it heads; once it has left, the condensed bar
@@ -142,6 +141,6 @@ export function CanvasView({runtime, onEdit, past = false}: CanvasViewProps) {
           <AmbientNotice notices={orderedNotices(state)} onDismiss={runtime.store.dismissNotice} />
         </SlotContentContext.Provider>
       </BindingIndexContext.Provider>
-    </CanvasCatalogs>
+    </>
   );
 }

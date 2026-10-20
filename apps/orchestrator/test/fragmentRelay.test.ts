@@ -136,6 +136,40 @@ test('the stamp carries source and role, and no generations', () => {
   expect(out.metadata?.a2uiverse).toEqual({source: 'shop-a', role: 'fragment'});
 });
 
+describe('the builds on the stamp (task-15.6 decision 2)', () => {
+  const builds = {'https://shop.example/catalog/v1': 'a1b2'};
+
+  test('an event carrying A2UI names the build of each of the app’s catalogs', () => {
+    const create = statusUpdate([
+      a2uiPart({createSurface: {surfaceId: 's1', catalogId: 'https://shop.example/catalog/v1'}}),
+    ]);
+    const change = statusUpdate([a2uiPart({updateComponents: {surfaceId: 's1', components: []}})]);
+    for (const event of [create, change]) {
+      expect(composeFragment(event, {source: 'shop-a', builds}).metadata?.a2uiverse).toEqual({
+        source: 'shop-a',
+        role: 'fragment',
+        builds,
+      });
+    }
+  });
+
+  test('an event with no A2UI names none', () => {
+    const prose = statusUpdate([{kind: 'text', text: 'Looking…'}], false);
+    expect(composeFragment(prose, {source: 'shop-a', builds}).metadata?.a2uiverse).toEqual({
+      source: 'shop-a',
+      role: 'fragment',
+    });
+  });
+
+  test('an app with no catalog of its own names none', () => {
+    const event = statusUpdate([a2uiPart({deleteSurface: {surfaceId: 's1'}})]);
+    expect(composeFragment(event, {source: 'shop-a', builds: {}}).metadata?.a2uiverse).toEqual({
+      source: 'shop-a',
+      role: 'fragment',
+    });
+  });
+});
+
 describe('retask', () => {
   test('moves an event onto another task, its parts and stamp untouched (task-8.4 decision 15)', () => {
     const event: TaskStatusUpdateEvent = {

@@ -60,13 +60,13 @@ export interface CanvasWiring {
 }
 
 export interface CanvasWiringOptions extends A2ASenderOptions {
-  /** The held catalogs, for a canvas with no set of its own: every such processor is built over them. */
+  /** The held catalogs: each canvas's processors are built over an array of its own copied from them. */
   catalogs: Catalog<ReactComponentImplementation>[];
   /**
-   * Where a catalog a canvas does not hold yet is loaded from (task 11.5); the page's loader gives
-   * each canvas a set of its own (task-14.7 decision 1).
+   * Where the build each paint is drawn in is found, and loaded when the canvas does not hold it
+   * (task 11.5, task 15.6): the page's loader. Without one, a canvas draws in `catalogs` alone.
    */
-  loader?: Pick<CatalogLoader, 'has' | 'load'> & Partial<Pick<CatalogLoader, 'forCanvas'>>;
+  loader?: Pick<CatalogLoader, 'builds'>;
   /** Mints a canvas id; the default is a UUID. Tests pass a counter. */
   mintId?: () => string;
   /** The sign-in's window, poll and page; tests pass fakes. */
@@ -112,13 +112,12 @@ export function createCanvasWiring({
   const openCanvas = (question: string): {runtime: CanvasRuntime; parent?: CanvasRuntime} => {
     const parent = viewed();
     const id = mintId();
-    // Each canvas holds its own builds: one opened after an install moved a catalog takes the
-    // new build, and a canvas already open keeps what it shows (task-14.7 decision 1).
-    const held = loader?.forCanvas?.();
+    // Each paint is drawn in the build the registry holds when it arrives, and a surface on screen
+    // keeps its own (task 15.6): the canvas's array holds the build of each create in turn.
     const runtime = createCanvasRuntime({
       id,
-      catalogs: held ? held.catalogs : catalogs,
-      ...(held ? {loader: held, held} : loader ? {loader} : {}),
+      catalogs: [...catalogs],
+      ...(loader ? {builds: loader.builds} : {}),
       getSender,
       getSideSender,
       onContext: contextId => trail.setContext(id, contextId),

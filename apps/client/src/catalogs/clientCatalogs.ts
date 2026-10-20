@@ -35,6 +35,22 @@ export type ClientCatalogOptions = Partial<CreateCatalogOptions>;
 /** A catalog with no Provider renders its surfaces bare. */
 const BARE = Fragment as ComponentType<{children: ReactNode}>;
 
+/** Each runtime catalog the client made, by the object a surface holds (task 15.6). */
+const RESOLVED = new WeakMap<object, ResolvedCatalog>();
+
+/**
+ * The catalog a surface was drawn in, as the client resolved it — its Provider and its build:
+ * whichever other build of its catalog the page holds beside it, a surface keeps its own.
+ */
+export function resolvedOf(catalog: object): ResolvedCatalog | undefined {
+  return RESOLVED.get(catalog);
+}
+
+function remember(resolved: ResolvedCatalog): ResolvedCatalog {
+  RESOLVED.set(resolved.catalog, resolved);
+  return resolved;
+}
+
 /**
  * A catalog other than the shell's, as the render layer takes it: its components inside the
  * markers navigation lands by (task-7.7 decision 2), under its Provider when it has one.
@@ -44,12 +60,12 @@ export function resolveCatalog(
   Provider?: ComponentType<{children: ReactNode}>,
   build?: string,
 ): ResolvedCatalog {
-  return {
+  return remember({
     id: catalog.id,
     catalog: decorateCatalog(catalog),
     Provider: Provider ?? BARE,
     ...(build ? {build} : {}),
-  };
+  });
 }
 
 /**
@@ -62,11 +78,11 @@ export function clientCatalogs({
   ...host
 }: ClientCatalogOptions = {}): ResolvedCatalog[] {
   return [
-    {
+    remember({
       id: SHELL_CATALOG_ID,
       catalog: createShellCatalog({onShellAction, ...host}),
       Provider: ShellProvider,
-    },
+    }),
     resolveCatalog(basicCatalog),
   ];
 }

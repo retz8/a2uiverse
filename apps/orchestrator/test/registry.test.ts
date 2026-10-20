@@ -317,6 +317,24 @@ describe('a held catalog id', () => {
     });
   });
 
+  test('an app’s builds are the ones the registry holds now: a row moved by another app’s install moves them (task-15.6 decision 2)', async () => {
+    const old = await fixtureArtifact(GMAIL);
+    const {registry, cards} = await fresh([
+      {id: 'gmail', card: cardFor('http://127.0.0.1:11002', {catalogs: [GMAIL]}), catalogs: [old]},
+      {id: 'shop-a', card: cardFor('http://127.0.0.1:12001')},
+    ]);
+    expect(registry.builds('gmail')).toEqual({[GMAIL]: await idOf(old)});
+    const next = await fixtureArtifact(GMAIL, {version: '0.2.0'});
+    await registry.install({
+      appId: 'inbox',
+      cardUrl: cards.serve(cardFor('http://127.0.0.1:11009', {catalogs: [GMAIL]})),
+      catalogs: [next],
+    });
+    expect(registry.builds('gmail')).toEqual({[GMAIL]: await idOf(next)});
+    expect(registry.builds('shop-a')).toEqual({});
+    expect(registry.builds('linear')).toBeUndefined();
+  });
+
   test('a breaking schema at a held id another app renders in is refused, naming the component and the apps (task-13.5 decision 5)', async () => {
     const old = await fixtureArtifact(GMAIL);
     const {registry, cards, stateDir} = await fresh([
