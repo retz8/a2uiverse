@@ -18,6 +18,8 @@ import {z} from 'zod';
  *   the marker and its fragment move as one box of the layout. Absent, the marker stands alone.
  * - `weight` is the box's flex-grow share inside a `Row` or `Column`, copied by the painter from
  *   the wrapped `Slot` so wrapped and bare slots size by one rule.
+ * - `fromOffer` says the wrapped slot still shows the offer its app was installed from, painted by
+ *   the runtime until the app's first answer (task-15.8 decision 2): the marker waits for it.
  */
 export const AttributionApi = {
   name: 'Attribution',
@@ -32,6 +34,7 @@ export const AttributionApi = {
         .optional(),
       child: z.string().optional(),
       weight: z.number().optional(),
+      fromOffer: z.boolean().optional(),
     })
     .strict(),
 } as const;

@@ -130,41 +130,49 @@ const oneQuestion = (fixture: BeatFixture) =>
     i === 0 ? turn.kind === 'utterance' : turn.kind === 'press' || turn.kind === 'failure-report',
   );
 
+/**
+ * Recordings whose paint the shell catalog now refuses, kept as the record of their run: beat 7
+ * painted a bare capability gap before the offer, and a gap carries its offer or the app installed
+ * there (task-15.8 decision 7). Re-recorded on today's Planner by the dev harness (15.10).
+ */
+const PREDATES_THE_OFFER = new Set(['beat-7-capability-gap']);
+
+const replayed = BEAT_FIXTURES.filter(
+  fixture => oneQuestion(fixture) && !PREDATES_THE_OFFER.has(fixture.name),
+);
+
 describe('canvas shell over the recorded beats', () => {
-  describe.each(BEAT_FIXTURES.filter(oneQuestion).map(f => [f.name, f] as const))(
-    '%s',
-    (_name, fixture) => {
-      it('replays through the canvas turn runner and lands the paint on the stage', async () => {
-        const {viewed, replay} = setup();
+  describe.each(replayed.map(f => [f.name, f] as const))('%s', (_name, fixture) => {
+    it('replays through the canvas turn runner and lands the paint on the stage', async () => {
+      const {viewed, replay} = setup();
 
-        await replay(fixture);
+      await replay(fixture);
 
-        const {processor, store} = viewed();
-        const state = store.getState();
-        // The whole stream applied: any per-message failure lands in the sticky error — except a
-        // paint the canvas reported, whose failure is its tile's to say (task-8.7 decision 26).
-        expect(state.error).toBeNull();
-        // The stage holds the shell for a composition, the paint itself otherwise.
-        expect(state.stageId).toBe(stageSurfaceIdOf(fixture));
-        // The live registry is exactly canvas occupancy: a lone paint, or the shell plus the
-        // fragments filling its slots — a failed source's taken off.
-        expect([...processor.model.surfacesMap.keys()].sort()).toEqual(
-          standingSurfaceIds(fixture).sort(),
-        );
-        // Every press the beat made was answered and caught up with.
-        expect(state.presses).toEqual([]);
-        // The turn settled back to idle.
-        expect(state.inFlight).toBeNull();
+      const {processor, store} = viewed();
+      const state = store.getState();
+      // The whole stream applied: any per-message failure lands in the sticky error — except a
+      // paint the canvas reported, whose failure is its tile's to say (task-8.7 decision 26).
+      expect(state.error).toBeNull();
+      // The stage holds the shell for a composition, the paint itself otherwise.
+      expect(state.stageId).toBe(stageSurfaceIdOf(fixture));
+      // The live registry is exactly canvas occupancy: a lone paint, or the shell plus the
+      // fragments filling its slots — a failed source's taken off.
+      expect([...processor.model.surfacesMap.keys()].sort()).toEqual(
+        standingSurfaceIds(fixture).sort(),
+      );
+      // Every press the beat made was answered and caught up with.
+      expect(state.presses).toEqual([]);
+      // The turn settled back to idle.
+      expect(state.inFlight).toBeNull();
 
-        // And the stage actually renders it.
-        renderWithShell(<CanvasStage processor={processor} state={state} />);
-        expect(screen.getByTestId('canvas-stage')).not.toBeEmptyDOMElement();
-      });
-    },
-  );
+      // And the stage actually renders it.
+      renderWithShell(<CanvasStage processor={processor} state={state} />);
+      expect(screen.getByTestId('canvas-stage')).not.toBeEmptyDOMElement();
+    });
+  });
 
   it('a second beat opens a canvas of its own; the first stands as it was (task-9.6 decision 1)', async () => {
-    const [first, second] = BEAT_FIXTURES.filter(oneQuestion);
+    const [first, second] = replayed;
     const {wiring, viewed, replay} = setup();
 
     await replay(first);

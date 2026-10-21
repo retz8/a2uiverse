@@ -994,10 +994,11 @@ export const PLATFORM_ANSWER_BEAT: BeatFixture = {
 };
 
 /**
- * A capability gap (phase-6 decision 6): nothing installed serves "book me a flight", so the
- * Planner names the gap and places a `Slot` for it; the catalog draws the capability tile, whose
- * one action opens the Store with the gap as the query. No vendor is dispatched, no prose is
- * painted, and the turn closes at first paint.
+ * A capability gap (phase-6 decision 6) with nothing to offer (phase-15 decision 6): nothing
+ * installed serves "book me a flight" and nothing in the Store does, so the Planner names the gap
+ * and places a `Slot` for it, and the painter stamps why there is no app; the catalog draws the
+ * quiet line, whose Search the Store opens the Store with the gap as the query. No vendor is
+ * dispatched, no prose is painted, and the turn closes at first paint.
  */
 export const GAP_BEAT: BeatFixture = {
   ...base,
@@ -1024,7 +1025,12 @@ export const GAP_BEAT: BeatFixture = {
                 surfaceId: 'shell:main',
                 components: [
                   {id: 'root', component: 'Column', children: ['flight']},
-                  {id: 'flight', component: 'Slot', gap: 'flight booking'},
+                  {
+                    id: 'flight',
+                    component: 'Slot',
+                    gap: 'flight booking',
+                    offer: {apps: [], none: 'nothing'},
+                  },
                 ],
               },
             }),

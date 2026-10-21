@@ -16,6 +16,7 @@ import {
   type ShellActionHandler,
   type SignInHandler,
 } from '../catalog.js';
+import type {AppActHandler} from '../app-act.js';
 import {CATALOG_ID} from '../catalog-id.js';
 import {Provider} from '../provider.js';
 
@@ -34,6 +35,8 @@ export interface TreeOptions {
   onPress?: PressHandler;
   /** Receives every sign-in an authority tile or an escalation card raises. */
   onSignIn?: SignInHandler;
+  /** Receives every Install, Update and Show it here an offer or an update tile raises. */
+  onAppAct?: AppActHandler;
   /** Receives every navigation a derived-value cell raises. */
   onNavigate?: NavigationHandler;
   /** The host's display names for apps. */
@@ -56,6 +59,7 @@ export function surfaceFor(
         onShellAction: options.onShellAction ?? (() => {}),
         onPress: options.onPress,
         onSignIn: options.onSignIn,
+        onAppAct: options.onAppAct,
         onNavigate: options.onNavigate,
         sourceName: options.sourceName,
       }),

@@ -27,6 +27,7 @@ import {
 } from '../../fragment-history.js';
 import {PressStateContext} from '../../press-state.js';
 import {SignInContext, type SignInHandler} from '../../sign-in.js';
+import {SlotContentContext} from '../../slot-content.js';
 import {weightStyle} from '../shared/layout.js';
 import {OPEN_AGAIN_WORDS, WAITING_WORDS} from '../shared/SignInWaiting.js';
 import type {PressHandler} from '../slot/slot.js';
@@ -70,6 +71,10 @@ import {AttributionApi, type AttributionProps} from './attribution.schema.js';
  * share their axis equally. The child's own weight is then measured against this box. The box
  * never shrinks below what it holds (task-13.8 decision 22): in a `Column`, a region taller than
  * its share keeps its height and its neighbours take the rest, instead of running over them.
+ *
+ * While the slot still shows the offer its app was installed from (`fromOffer`) and nothing of the
+ * app's has arrived in it, the marker waits: the region is the offer alone, and the marker comes
+ * with the app's first answer or its sign-in tile, the slot changing once (task-15.8 decision 2).
  */
 export function AttributionView({
   displayName,
@@ -77,11 +82,15 @@ export function AttributionView({
   account,
   escalation,
   weight,
+  fromOffer,
   history,
   onPress,
   onSignIn,
   children,
-}: Pick<AttributionProps, 'displayName' | 'source' | 'account' | 'escalation' | 'weight'> & {
+}: Pick<
+  AttributionProps,
+  'displayName' | 'source' | 'account' | 'escalation' | 'weight' | 'fromOffer'
+> & {
   /** Where the fragment stands in its history; read from the host's context when not given. */
   history?: FragmentHistory;
   /** What an arrow and Not now raise: the step and `dismiss`. Without it neither is drawn. */
@@ -97,6 +106,7 @@ export function AttributionView({
   const resolveHistory = useContext(FragmentHistoryContext);
   const {enabled, presses} = useContext(PressStateContext);
   const signingIn = useContext(SignInContext);
+  const resolveContent = useContext(SlotContentContext);
   const detail = sourceName(displayName, account);
   // A request answered at the press: a sent `retry` (Allow, signed in) or `dismiss` (Not now)
   // hides it before the repaint drops it (task-12.3 decision 10).
@@ -209,6 +219,7 @@ export function AttributionView({
     );
 
   if (children === undefined) return row;
+  const waits = fromOffer === true && (source === undefined || resolveContent(source) == null);
   return (
     <Flex
       data-attribution={displayName}
@@ -216,7 +227,7 @@ export function AttributionView({
       gap="2"
       style={{minWidth: 0, ...weightStyle(weight ?? 1), minHeight: 'auto'}}
     >
-      {row}
+      {!waits && row}
       {children}
     </Flex>
   );
@@ -503,6 +514,7 @@ export function createAttributionComponent({
         account={props.account}
         escalation={props.escalation}
         weight={props.weight}
+        fromOffer={props.fromOffer}
         onSignIn={
           onSignIn && props.source !== undefined
             ? kind =>

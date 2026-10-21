@@ -1,7 +1,13 @@
 import {createComponentImplementation} from '@a2ui/react/v0_9';
 import {Flex, Table} from '@radix-ui/themes';
 import {createContext, useContext, type CSSProperties, type ReactNode} from 'react';
-import {SlotStateContext, type SlotStateResolver} from '../../slot-state.js';
+import {
+  SlotStateContext,
+  UPDATE_SLOT_STATES,
+  type SlotStateResolver,
+  type SourceSlotState,
+  type UpdateSlotState,
+} from '../../slot-state.js';
 import {mapChildList, renderChildList, type BuildChild} from '../shared/child-list.js';
 import {SkeletonBar} from '../shared/skeleton.js';
 import {TableApi, TableRowApi} from './table.schema.js';
@@ -17,10 +23,22 @@ const InTableContext = createContext<{reserved: (ReservedState | undefined)[]} |
  * the source is in flight or being included, `failed` once it failed, `late` while it waits for
  * Include, `authority` while it needs sign-in (task-12.3 decision 8), `connect` while it needs a
  * pasted key or token (task-12.13 decision 32), `more` while its account is asked for more access
- * (task-12.13 decision 50). Filled, collapsed, unmarked, or unknown to the host — the column draws
+ * (task-12.13 decision 50), and each of the update tile's lines while it is on the update tile
+ * (task-15.8 decision 4). Filled, collapsed, unmarked, or unknown to the host — the column draws
  * what was authored.
  */
-export type ReservedState = 'pending' | 'failed' | 'late' | 'authority' | 'connect' | 'more';
+export type ReservedState =
+  'pending' | 'failed' | 'late' | 'authority' | 'connect' | 'more' | UpdateSlotState;
+
+const RESERVED_STATES: readonly SourceSlotState[] = [
+  'pending',
+  'failed',
+  'late',
+  'authority',
+  'connect',
+  'more',
+  ...UPDATE_SLOT_STATES,
+];
 
 export function reservedColumnState(
   resolve: SlotStateResolver,
@@ -28,13 +46,8 @@ export function reservedColumnState(
 ): ReservedState | undefined {
   if (!source) return undefined;
   const state = resolve(source);
-  return state === 'pending' ||
-    state === 'failed' ||
-    state === 'late' ||
-    state === 'authority' ||
-    state === 'connect' ||
-    state === 'more'
-    ? state
+  return state !== undefined && RESERVED_STATES.includes(state)
+    ? (state as ReservedState)
     : undefined;
 }
 
@@ -46,6 +59,10 @@ const RESERVED_WORDS: Record<ReservedState, string> = {
   authority: 'not signed in',
   connect: 'not connected',
   more: 'needs more access',
+  update: 'needs an update',
+  'update-waiting': 'waiting on its publisher',
+  'update-unreached': 'couldn’t check for updates',
+  'update-none': 'no update available',
 };
 
 /**
@@ -142,7 +159,10 @@ export function bodyCellStyle(index: number): CSSProperties {
   };
 }
 
-/** The reserved cell's content: a skeleton bar while loading, the empty dash once failed or while it needs sign-in. */
+/**
+ * The reserved cell's content: a skeleton bar while loading, the empty dash once failed, while it
+ * needs sign-in and while it is on the update tile.
+ */
 function ReservedCell({state}: {state: Exclude<ReservedState, 'late'>}) {
   if (state === 'pending') return <SkeletonBar width="56%" height={8} />;
   return <span style={{color: 'var(--a2v-muted, var(--gray-11))'}}>—</span>;

@@ -644,6 +644,8 @@ describe('the offer (task 15.4)', () => {
     });
     const byId = painted(state);
     expect(byId.get('shops')!.children).toEqual(['attribution-gh', 'attribution-more']);
+    // Until the app's first answer the slot keeps the offer it came from, the marker waiting
+    // (task-15.8 decision 2).
     expect(byId.get('attribution-more')).toEqual({
       id: 'attribution-more',
       component: 'Attribution',
@@ -651,6 +653,7 @@ describe('the offer (task 15.4)', () => {
       source: 'shop-b',
       child: 'more',
       weight: 2,
+      fromOffer: true,
     });
     expect(byId.get('more')).toEqual({
       id: 'more',
@@ -659,9 +662,44 @@ describe('the offer (task 15.4)', () => {
       weight: 2,
       state: 'pending',
       label: 'Shop B',
+      offered: {
+        gap: 'camera shop',
+        apps: [
+          {
+            appId: 'shop-c',
+            name: 'Shop C',
+            publisher: 'fieldstone',
+            description: 'Shop C, a camera shop.',
+          },
+          {
+            appId: 'shop-b',
+            name: 'Shop B',
+            publisher: 'northlight',
+            description: 'Shop B, a camera shop.',
+          },
+        ],
+        appId: 'shop-b',
+      },
     });
+    const {id: _id, component: _component, ...props} = byId.get('more')!;
+    expect(SlotApi.schema.safeParse(props).success).toBe(true);
     // Filled once: a second press on the same gap fills nothing.
     expect(fillGap(state, sources, 'camera shop', 'shop-c', {name: 'Shop C'})).toBeUndefined();
+  });
+
+  test('the offer it came from goes once the app has answered, or once the slot leaves pending (task-15.8 decision 2)', async () => {
+    const answered = await fresh();
+    fillGap(answered.state, answered.sources, 'camera shop', 'shop-b', {name: 'Shop B'});
+    answered.state.arrived.add('shop-b');
+    expect(painted(answered.state).get('more')).not.toHaveProperty('offered');
+    expect(painted(answered.state).get('attribution-more')).not.toHaveProperty('fromOffer');
+
+    const signIn = await fresh();
+    fillGap(signIn.state, signIn.sources, 'camera shop', 'shop-b', {name: 'Shop B'});
+    signIn.state.slots.get('shop-b')!.state = 'authority';
+    signIn.state.slots.get('shop-b')!.authority = {cause: 'signIn', words: []};
+    expect(painted(signIn.state).get('more')).not.toHaveProperty('offered');
+    expect(painted(signIn.state).get('attribution-more')).not.toHaveProperty('fromOffer');
   });
 
   test('an offer with no request, filled: the installed line, bare, with an example question (decision 12)', async () => {

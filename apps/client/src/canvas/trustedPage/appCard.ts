@@ -8,14 +8,12 @@ import {
   UPDATE_WORDS,
   asksForMore,
   stateWords,
-  type InstallRefusal,
   type NewScopes,
   type PreviewDocument,
   type PublishedCard,
   type UpdateState,
 } from '@a2uiverse/sdk';
 import type {StoreListing} from '../../orchestratorApi';
-import type {AppAct} from './useAppAct';
 
 /** The app's tile: the first letter of its card's name (task-14.7 decision 9). */
 export function tileLetter(name: string): string {
@@ -142,41 +140,6 @@ export const listed = (names: readonly string[]) =>
   names.length <= 1
     ? (names[0] ?? '')
     : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
-
-/** What a refused install or update says (task-14.7 decision 6), and the press it leaves. */
-export function refusalOf(cause: InstallRefusal, name: string, act: AppAct) {
-  const verb = act === 'install' ? 'installed' : 'updated';
-  switch (cause) {
-    case 'store-behind':
-      return {
-        tone: 'warn' as const,
-        lead: `${name} can’t be ${verb} yet.`,
-        rest: 'Its publisher has changed the app, and the Store hasn’t caught up. Try again later.',
-        press: 'again' as const,
-      };
-    case 'app-unreached':
-      return {
-        tone: 'bad' as const,
-        lead: `${name} couldn’t be reached,`,
-        rest: act === 'install' ? 'so nothing was installed.' : 'so nothing changed.',
-        press: 'retry' as const,
-      };
-    case 'checks':
-      return {
-        tone: 'bad' as const,
-        lead: `${name} can’t be ${verb}.`,
-        rest: 'Its files didn’t pass the checks on this computer, so nothing changed.',
-        press: 'none' as const,
-      };
-    case 'store-unreached':
-      return {
-        tone: 'bad' as const,
-        lead: 'The Store can’t be reached right now,',
-        rest: act === 'install' ? 'so nothing was installed.' : 'so nothing changed.',
-        press: 'retry' as const,
-      };
-  }
-}
 
 /** Whether a card update brings a new look: a catalog it paints in moves to a new build. */
 export function bringsNewLook(update: UpdateState): boolean {

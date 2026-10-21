@@ -1,6 +1,8 @@
 import {render, screen} from '@testing-library/react';
+import type {ReactNode} from 'react';
 import userEvent from '@testing-library/user-event';
 import {expect, test} from 'vitest';
+import {SlotContentContext} from '../../slot-content';
 import {AttributionView} from './attribution';
 import {AttributionApi} from './attribution.schema';
 
@@ -496,4 +498,30 @@ test('a repaint that drops the request takes the chip and its card away (_dev/a2
   );
   expect(screen.queryByRole('button', {name: 'Needs access'})).not.toBeInTheDocument();
   expect(screen.queryByText('you@example.com')).not.toBeInTheDocument();
+});
+
+test('schema carries the slot still showing the offer its app was installed from (task-15.8 decision 2)', () => {
+  expect(
+    AttributionApi.schema.safeParse({displayName: 'Shop B', source: 'shop-b', fromOffer: true})
+      .success,
+  ).toBe(true);
+  expect(
+    AttributionApi.schema.safeParse({displayName: 'Shop B', source: 'shop-b', fromOffer: 'yes'})
+      .success,
+  ).toBe(false);
+});
+
+test('while its slot still shows the offer, the marker waits; it is drawn once the answer lands (task-15.8 decision 2)', () => {
+  const view = (content: ReactNode) => (
+    <SlotContentContext.Provider value={source => (source === 'shop-b' ? content : null)}>
+      <AttributionView displayName="Shop B" source="shop-b" fromOffer>
+        <em>the slot</em>
+      </AttributionView>
+    </SlotContentContext.Provider>
+  );
+  const {rerender} = render(view(null));
+  expect(screen.getByText('the slot')).toBeInTheDocument();
+  expect(screen.queryByLabelText('Shop B')).not.toBeInTheDocument();
+  rerender(view(<em>Shop B’s answer</em>));
+  expect(screen.getByLabelText('Shop B')).toBeInTheDocument();
 });

@@ -251,39 +251,20 @@ test('schema accepts content and refuses other values', () => {
 });
 
 test('schema holds exactly one of source or gap, and a numeric weight', () => {
-  expect(SlotApi.schema.safeParse({gap: 'flight booking'}).success).toBe(true);
-  expect(SlotApi.schema.safeParse({source: 'gmail', gap: 'flight booking'}).success).toBe(false);
+  const offer = {apps: [], none: 'nothing'};
+  expect(SlotApi.schema.safeParse({gap: 'flight booking', offer}).success).toBe(true);
+  expect(SlotApi.schema.safeParse({source: 'gmail', gap: 'flight booking', offer}).success).toBe(
+    false,
+  );
   expect(SlotApi.schema.safeParse({}).success).toBe(false);
   expect(SlotApi.schema.safeParse({source: 'gmail', weight: 2}).success).toBe(true);
   expect(SlotApi.schema.safeParse({source: 'gmail', weight: 'wide'}).success).toBe(false);
-  expect(SlotApi.schema.safeParse({gap: 'x', state: 'gap'}).success).toBe(false);
+  expect(SlotApi.schema.safeParse({gap: 'x', offer, state: 'gap'}).success).toBe(false);
 });
 
 test('weight is the region’s flex share, as the basic layout components apply it', () => {
   const {container} = render(<SlotView source="gmail" label="Gmail" weight={2} />);
   expect((container.querySelector('[data-slot="gmail"]') as HTMLElement).style.flexGrow).toBe('2');
-});
-
-test('a gap slot is the capability tile, resolving no content', () => {
-  const {container} = render(
-    <SlotContentContext.Provider value={() => <em>content</em>}>
-      <SlotView gap="flight booking" />
-    </SlotContentContext.Provider>,
-  );
-  const tile = container.querySelector('[data-slot-gap="flight booking"]')!;
-  expect(tile).toHaveAttribute('data-slot-state', 'gap');
-  expect(screen.queryByText('content')).not.toBeInTheDocument();
-});
-
-test('the capability tile’s box hugs its line and its button, side by side, at the slot’s leading edge (task-11.8 decision 21)', () => {
-  const {container} = render(<SlotView gap="pull requests" />);
-  const box = container.querySelector('[data-slot-gap-tile]') as HTMLElement;
-  expect(box.style.width).toBe('fit-content');
-  expect(box.style.maxWidth).toBe('100%');
-  const line = screen.getByText('No installed app can do this.');
-  const button = screen.getByRole('button', {name: 'Search the Store'});
-  expect(line.parentElement).toBe(button.parentElement);
-  expect(line.parentElement!.className).not.toMatch(/rt-r-fd-column/);
 });
 
 /* ── Task 8.2: the failure tile (board F6), the noun, Retry ─────────────────── */
@@ -1510,4 +1491,58 @@ test('a home source asking for more access: the collapse line says so (task-12.1
   expect(collapseLine({cause: 'home', home: 'Gmail threads'}, {app: 'Gmail', more: true})).toBe(
     'The merged view needs Gmail threads, and Gmail needs more access. Allowing Gmail more access brings it back.',
   );
+});
+
+/* ── Task 15.8: a source on the update tile in the merge ──────────────────── */
+
+test('a home source on the update tile: the collapse line says so, naming its app, with no press', () => {
+  expect(
+    collapseLine({cause: 'home', home: 'Shop B prices'}, {app: 'Shop B', update: 'update'}),
+  ).toBe(
+    'The merged view needs Shop B prices, and Shop B needs an update. Updating Shop B brings it back.',
+  );
+  for (const update of ['waiting', 'unreached', 'none'] as const) {
+    expect(collapseLine({cause: 'home', home: 'Shop B prices'}, {app: 'Shop B', update})).toBe(
+      'The merged view needs Shop B prices, and Shop B has changed.',
+    );
+  }
+  render(
+    <SlotStateContext.Provider value={source => (source === 'shop-b' ? 'update' : 'filled')}>
+      <SlotView
+        source="shell"
+        content="shell"
+        state="collapsed"
+        join={{home: 'shop-b', nouns: {}}}
+        collapse={{cause: 'home', home: 'Shop B prices'}}
+        nameOf={source => (source === 'shop-b' ? 'Shop B' : source)}
+        onPress={() => {}}
+      />
+    </SlotStateContext.Provider>,
+  );
+  expect(
+    screen.getByText(
+      'The merged view needs Shop B prices, and Shop B needs an update. Updating Shop B brings it back.',
+    ),
+  ).toBeInTheDocument();
+  expect(screen.queryByRole('button')).toBeNull();
+});
+
+test('too few arrived: the line’s Retry leaves out a source on the update tile', () => {
+  const {container} = render(
+    <SlotStateContext.Provider
+      value={source => (source === 'shop-b' ? 'update-waiting' : undefined)}
+    >
+      <SlotView
+        source="shell"
+        content="shell"
+        state="collapsed"
+        collapse={{cause: 'few', answered: ['Shop A'], failed: ['shop-b']}}
+        onPress={() => {}}
+      />
+    </SlotStateContext.Provider>,
+  );
+  expect(container.textContent).toContain(
+    'The merged view needs at least two sources, and only Shop A answered.',
+  );
+  expect(screen.queryByRole('button')).toBeNull();
 });

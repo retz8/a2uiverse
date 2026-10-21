@@ -312,13 +312,16 @@ describe('the update check before the call (task-15.5 decisions 1, 2, 5, 6, 8, 1
     painting.shop!.catalog = CAT_2;
     await publish('shop', [CAT_2], ['0.0.0', '1.0.0']);
     await orchestrator.registry.refreshCards();
-    const canvas = contextOf(await collect(client, utterance('camera prices')));
+    const turn = await collect(client, utterance('camera prices'));
+    const canvas = contextOf(turn);
+    const tile = lastSlot(turn, 'shop')!;
+    expect(tile).toMatchObject({state: 'update'});
 
     const updated = await orchestrator.registry.installFromMarketplace('shop');
     expect(updated.ok).toBe(true);
     const events = await collect(client, retry('shop', canvas));
-    expect(slotPaints(events)[0]!.shop).toMatchObject({state: 'pending'});
-    expect(slotPaints(events)[0]!.shop!.update).toBeUndefined();
+    // The pending repaint keeps the update line until the answer lands (task-15.8 decision 2).
+    expect(slotPaints(events)[0]!.shop).toMatchObject({state: 'pending', update: tile.update});
     expect(vendors.shop!.requests).toHaveLength(1);
     expect(JSON.stringify(events)).toContain(CAT_2);
   });

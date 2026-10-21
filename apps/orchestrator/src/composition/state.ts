@@ -127,6 +127,11 @@ export interface SlotEntry {
   authority?: SlotAuthorityState;
   /** What the slot's update tile is drawn from, with `update` (task-15.5 decision 8). */
   update?: UpdateFinding;
+  /**
+   * What the slot keeps on screen while pending, until its app's first answer (task-15.8 decision
+   * 2): the offer it came from, by the gap's words, or the update tile it was resent from.
+   */
+  keeps?: {gap: string} | {update: UpdateFinding};
   /** A request for more access the fragment waits on. */
   escalation?: SlotEscalation;
   /** The press the request held: what Allow sends again; the plan's request when absent. */
@@ -512,7 +517,11 @@ export function fillGap(
   // The account a dispatch takes: the one held, the bare app id, or the next one, not signed in.
   const source = held[0]?.source ?? sources.of(appId)[0]?.source ?? appId;
   if (state.slots.has(source)) return undefined;
-  state.slots.set(source, {plan: slotPlan(sources, source, offer.request), state: 'pending'});
+  state.slots.set(source, {
+    plan: slotPlan(sources, source, offer.request),
+    state: 'pending',
+    keeps: {gap: words},
+  });
   gap.filled = {kind: 'source', appId, source};
   return gap.filled;
 }

@@ -621,6 +621,46 @@ export const INSTALL_REFUSALS = [
 ] as const;
 export type InstallRefusal = (typeof INSTALL_REFUSALS)[number];
 
+/**
+ * What a refused install or update says (task-14.7 decision 6), and the press it leaves: `again`,
+ * the same press; `retry`, Try again; `none`. The Store's words, read by the Store, the App Library
+ * and a slot's offer or update tile alike, so the page and the canvas say one thing (task-15.8
+ * decision 3).
+ */
+export function refusalOf(cause: InstallRefusal, name: string, act: 'install' | 'update') {
+  const verb = act === 'install' ? 'installed' : 'updated';
+  switch (cause) {
+    case 'store-behind':
+      return {
+        tone: 'warn' as const,
+        lead: `${name} can’t be ${verb} yet.`,
+        rest: 'Its publisher has changed the app, and the Store hasn’t caught up. Try again later.',
+        press: 'again' as const,
+      };
+    case 'app-unreached':
+      return {
+        tone: 'bad' as const,
+        lead: `${name} couldn’t be reached,`,
+        rest: act === 'install' ? 'so nothing was installed.' : 'so nothing changed.',
+        press: 'retry' as const,
+      };
+    case 'checks':
+      return {
+        tone: 'bad' as const,
+        lead: `${name} can’t be ${verb}.`,
+        rest: 'Its files didn’t pass the checks on this computer, so nothing changed.',
+        press: 'none' as const,
+      };
+    case 'store-unreached':
+      return {
+        tone: 'bad' as const,
+        lead: 'The Store can’t be reached right now,',
+        rest: act === 'install' ? 'so nothing was installed.' : 'so nothing changed.',
+        press: 'retry' as const,
+      };
+  }
+}
+
 /** A catalog whose build moved: the installed artifact id and the published one. */
 export interface BuildMove {
   catalogId: string;

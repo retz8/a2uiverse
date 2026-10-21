@@ -1,6 +1,7 @@
 import {describe, expect, test} from 'vitest';
 import {
   CLAIM_REQUEST_FIELDS,
+  INSTALL_REFUSALS,
   MARKETPLACE_ROUTES,
   PUBLISHER_TOKEN_PATTERN,
   SEARCH_QUERY_PARAM,
@@ -19,6 +20,7 @@ import {
   readSearchResponse,
   readUnpublishRequest,
   readUpdateState,
+  refusalOf,
   searchPath,
   updateWords,
   validateIndexEntry,
@@ -289,6 +291,47 @@ describe("the update state's words (task-14.5 decisions 6 and 7)", () => {
     expect(updateWords(of('major-update'), 'local')).toBe('A new version is available');
     expect(updateWords(of('up-to-date'), 'local')).toBe('Up to date');
     expect(updateWords(undefined, 'local')).toBe('Not checked yet');
+  });
+});
+
+describe('the words of a refused install or update (task-14.7 decision 6, task-15.8 decision 3)', () => {
+  test('each cause in the Store’s words, with the press it leaves', () => {
+    const said = Object.fromEntries(
+      INSTALL_REFUSALS.map(cause => [cause, refusalOf(cause, 'Shop B', 'install')]),
+    );
+    expect(said).toEqual({
+      'store-behind': {
+        tone: 'warn',
+        lead: 'Shop B can’t be installed yet.',
+        rest: 'Its publisher has changed the app, and the Store hasn’t caught up. Try again later.',
+        press: 'again',
+      },
+      'app-unreached': {
+        tone: 'bad',
+        lead: 'Shop B couldn’t be reached,',
+        rest: 'so nothing was installed.',
+        press: 'retry',
+      },
+      checks: {
+        tone: 'bad',
+        lead: 'Shop B can’t be installed.',
+        rest: 'Its files didn’t pass the checks on this computer, so nothing changed.',
+        press: 'none',
+      },
+      'store-unreached': {
+        tone: 'bad',
+        lead: 'The Store can’t be reached right now,',
+        rest: 'so nothing was installed.',
+        press: 'retry',
+      },
+    });
+  });
+
+  test('an update says updated, and nothing changed where an install says nothing was installed', () => {
+    expect(refusalOf('store-behind', 'Shop B', 'update').lead).toBe('Shop B can’t be updated yet.');
+    expect(refusalOf('checks', 'Shop B', 'update').lead).toBe('Shop B can’t be updated.');
+    expect(refusalOf('app-unreached', 'Shop B', 'update').rest).toBe('so nothing changed.');
+    expect(refusalOf('store-unreached', 'Shop B', 'update').rest).toBe('so nothing changed.');
   });
 });
 

@@ -384,6 +384,9 @@ const PAINTER_PROPS = [
   'retrying',
   'accounts',
   'scopes',
+  'authority',
+  'update',
+  'offered',
 ] as const;
 
 /** Slot accounting against the dispatch list, and what the Planner may write on a `Slot`. */

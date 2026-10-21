@@ -33,6 +33,7 @@ import {operatorFunctions} from './functions/operators.js';
 import {relationFunctions} from './functions/relations.js';
 import {shellActionFunctions, type ShellActionHandler} from './functions/shell-actions.js';
 import type {SignInHandler} from './sign-in.js';
+import type {AppActHandler} from './app-act.js';
 
 export {OPERATORS, type Operator} from './functions/operators.js';
 export {
@@ -45,6 +46,7 @@ export {
 export type {SourceName, NavigationHandler} from './components/derived-value/index.js';
 export type {PressHandler} from './components/slot/index.js';
 export type {SignInHandler, SignInRequest} from './sign-in.js';
+export type {AppActHandler, AppActKind, AppActRequest} from './app-act.js';
 export {
   SHELL_ACTIONS,
   type ShellAction,
@@ -81,8 +83,9 @@ export const BASIC_IMPLEMENTATIONS: readonly ReactComponentImplementation[] = [
 /**
  * The shell's own primitives — composition, synthesis and the merged view's shapes — also on
  * Radix Themes. `Slot` is bound to the host's shell-action and press handlers and its app names:
- * its capability tile raises `openStore`, its failure tile and the merged view's lines the reader's
- * presses, its authority tile the sign-in handler (task 12.3). `Attribution` is bound to the press
+ * its offer raises `openStore` and the app act — Install, Update, Show it here (task 15.8) — its
+ * failure tile and the merged view's lines the reader's presses, its authority tile the sign-in
+ * handler (task 12.3). `Attribution` is bound to the press
  * handler too — its arrows raise the step (task 9.5), its escalation card's Not now `dismiss` —
  * and to the sign-in handler for Allow (task 12.3). `DerivedValue` is bound to the host's navigation handler and source names (task-7.5
  * decisions 11, 13). Layout is the basic catalog's `Row` and `Column` (task-6.4 decision 4).
@@ -91,11 +94,12 @@ function shellImplementations({
   onShellAction,
   onPress,
   onSignIn,
+  onAppAct,
   onNavigate,
   sourceName,
 }: CreateCatalogOptions): ReactComponentImplementation[] {
   return [
-    createSlotComponent(onShellAction, {onPress, onSignIn, sourceName}),
+    createSlotComponent(onShellAction, {onPress, onSignIn, onAppAct, sourceName}),
     createAttributionComponent({onPress, onSignIn}),
     createDerivedValueComponent({onNavigate, sourceName}),
     SortControlComponent,
@@ -122,6 +126,13 @@ export interface CreateCatalogOptions {
    * window. Without it, no Sign in and no Allow is drawn.
    */
   onSignIn?: SignInHandler;
+  /**
+   * What the host does when the reader presses Install, Update or Show it here on a slot's offer or
+   * update tile (task-15.8 decision 1): show the consent card from the button pressed where the
+   * install or update asks for it, make it, and send the press that fills the slot — called inside
+   * the click. Without it, none of the three is drawn.
+   */
+  onAppAct?: AppActHandler;
   /**
    * What the host does when a derived-value cell is activated: land on the element its target
    * names. Without it, cells are not interactive.

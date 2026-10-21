@@ -14,10 +14,11 @@
  */
 import {useCallback, useState, type FormEvent} from 'react';
 import {Button} from '@radix-ui/themes';
+import {refusalOf} from '@a2uiverse/sdk';
 import {isLoader, type PageCatalogs} from '../../../catalogs/CatalogContext';
 import type {StoreListing} from '../../../orchestratorApi';
 import type {TrustedPageState} from '../../trail/trailStore';
-import {listed, listingAct, refusalOf, signInOf, tileLetter, tryAsking} from '../appCard';
+import {listed, listingAct, signInOf, tileLetter, tryAsking} from '../appCard';
 import {ConsentCard, type ConsentAsk} from '../ConsentCard';
 import {BackIcon, DoneIcon, RemoveIcon, TickIcon} from '../icons';
 import {pageLink} from '../pageLink';

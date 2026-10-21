@@ -17,9 +17,11 @@ import {UPDATE_STATES, type UpdateStateKind} from '@a2uiverse/sdk';
  *   the plan offered, in its order, by app id, name, publisher and short description, or, with
  *   none, why: `nothing` in the Store fits, or the Store `unreached`. Once an app offered with
  *   nothing asked of it is installed there, `installed` carries its id, its name and one of its
- *   card's example questions when it has one (task-15.4 decision 12). An app offered with a
- *   request, once installed there, makes the region its own: the slot is painted holding its
- *   source.
+ *   card's example questions when it has one (task-15.4 decision 12). A gap carries one or the
+ *   other (task-15.8 decision 7). An app offered with a request, once installed there, makes the
+ *   region its own: the slot is painted holding its source, and `offered` — the gap's words, the
+ *   offer's apps as painted and the app installed there — until the app's first answer, so the
+ *   offer stays on screen and the slot changes once (task-15.8 decision 2).
  * - `chooseAccount` is an app with two or more accounts whose command named none (task-12.6
  *   decisions 3, 5): the region is the account choice, and `accounts` — painted by the runtime,
  *   from the vault — are its presses, each an account's source and its label. A press sends the
@@ -52,7 +54,8 @@ import {UPDATE_STATES, type UpdateStateKind} from '@a2uiverse/sdk';
  *   live card asks a permission the installed one does not, and `update` is the update state its
  *   line was computed from — the state, the installed version, the published version and the new
  *   permissions where the state carries them — with the publisher's name whenever the Store has
- *   the app's entry. The line follows the state (`updateLineOf`).
+ *   the app's entry. The line follows the state (`updateLineOf`). A slot retried from the update
+ *   tile keeps `update` while `pending`, until the app's first answer (task-15.8 decision 2).
  * - `content` says whose content fills the region (task-5.5 decision 1): an agent's
  *   fragment (default), or the shell's own — the merged view — which keeps its reserved
  *   position but is painted like the shell's own UI, no tile: while pending, reserved as the
@@ -241,6 +244,17 @@ const OfferSchema = z
     message: 'an offer says why it has no app exactly when it offers none',
   });
 
+const OfferedSchema = z
+  .object({
+    gap: z.string(),
+    apps: z.array(OfferedAppSchema),
+    appId: z.string(),
+  })
+  .strict()
+  .refine(offered => offered.apps.some(app => app.appId === offered.appId), {
+    message: 'the app installed there is one the offer offered',
+  });
+
 const InstalledSchema = z
   .object({
     appId: z.string(),
@@ -289,6 +303,7 @@ export const SlotApi = {
       retrying: z.array(z.string()).optional(),
       offer: OfferSchema.optional(),
       installed: InstalledSchema.optional(),
+      offered: OfferedSchema.optional(),
     })
     .strict()
     .refine(
@@ -313,15 +328,28 @@ export const SlotApi = {
         (props.offer === undefined && props.installed === undefined) || props.gap !== undefined,
       {message: 'a Slot carries an offer or an installed app only when it holds a gap'},
     )
-    .refine(props => props.offer === undefined || props.installed === undefined, {
-      message: 'a gap Slot carries its offer or the app installed there, not both',
-    })
+    .refine(
+      props =>
+        props.gap === undefined || (props.offer === undefined) !== (props.installed === undefined),
+      {message: 'a gap Slot carries its offer or the app installed there, one of the two'},
+    )
+    .refine(
+      props =>
+        props.offered === undefined ||
+        (props.source !== undefined && (props.state ?? 'pending') === 'pending'),
+      {message: 'a Slot keeps the offer it came from only while its source is pending'},
+    )
     .refine(props => props.authority === undefined || props.state === 'authority', {
       message: 'a Slot carries an authority only when its state is `authority`',
     })
-    .refine(props => props.update === undefined || props.state === 'update', {
-      message: 'a Slot carries an update only when its state is `update`',
-    })
+    .refine(
+      props =>
+        props.update === undefined || ['update', 'pending'].includes(props.state ?? 'pending'),
+      {
+        message:
+          'a Slot carries an update only when its state is `update`, or kept while `pending`',
+      },
+    )
     .refine(
       props =>
         props.columnSources === undefined ||
@@ -340,3 +368,4 @@ export type SlotAccount = NonNullable<SlotProps['accounts']>[number];
 export type SlotOffer = z.infer<typeof OfferSchema>;
 export type SlotOfferedApp = z.infer<typeof OfferedAppSchema>;
 export type SlotInstalled = z.infer<typeof InstalledSchema>;
+export type SlotOffered = z.infer<typeof OfferedSchema>;

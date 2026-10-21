@@ -12,11 +12,13 @@ export type ShellActionName = (typeof SHELL_ACTIONS)[number];
 
 /**
  * One shell action as the host receives it, with the surface whose button raised it. A
- * component that raises it directly — the capability tile — names itself in `componentId`; a
- * `functionCall` runs with no component in scope, so a button's raise carries none.
+ * component that raises it directly — an offer's More in the Store, Search the Store or an app's
+ * name — names itself in `componentId`, the slot the Store is opened from (task-15.8 decision 8),
+ * and only it names an `app`, whose view the Store opens on; a `functionCall` runs with no
+ * component in scope, so a button's raise carries none.
  */
 export type ShellAction =
-  | {name: 'openStore'; surfaceId: string; componentId?: string; query?: string}
+  | {name: 'openStore'; surfaceId: string; componentId?: string; query?: string; app?: string}
   | {name: 'openAppLibrary'; surfaceId: string; componentId?: string; app?: string}
   | {name: 'openPublish'; surfaceId: string; componentId?: string};
 

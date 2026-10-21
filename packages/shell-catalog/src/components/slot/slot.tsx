@@ -3,13 +3,15 @@ import {createComponentImplementation} from '@a2ui/react/v0_9';
 import {CheckIcon, ExternalLinkIcon, LockClosedIcon, UpdateIcon} from '@radix-ui/react-icons';
 import {Button, Flex, Link, Spinner, Table, Text} from '@radix-ui/themes';
 import {parseSourceId, type CompositionOperation} from '@a2uiverse/sdk';
+import {AppActContext, type AppActHandler, type AppActKind} from '../../app-act.js';
 import type {ShellActionHandler} from '../../functions/shell-actions.js';
 import type {SourceName} from '../derived-value/join.js';
 import {PressStateContext} from '../../press-state.js';
 import {SignInContext, type SignInHandler, type SignInKind} from '../../sign-in.js';
 import {SlotContentContext} from '../../slot-content.js';
-import {SlotStateContext} from '../../slot-state.js';
+import {SlotStateContext, UPDATE_SLOT_STATES, type SourceSlotState} from '../../slot-state.js';
 import {weightStyle} from '../shared/layout.js';
+import {dotStyle, linkButtonStyle} from '../shared/quiet-line.js';
 import {
   CONNECT_AGAIN_WORDS,
   CONNECT_WAITING_WORDS,
@@ -32,14 +34,17 @@ import {
   UNREACHED_WORDS,
   type PressLine,
 } from './press-lines.js';
+import {InstalledLine, NothingLine, offerRows, OfferView} from './offer.js';
 import {
   SlotApi,
+  type UpdateLine,
   type SlotAccount,
   type SlotAuthority,
   type SlotCollapse,
   type SlotFailure,
   type SlotProps,
 } from './slot.schema.js';
+import {updateEnd, UpdateTile} from './update-tile.js';
 
 /**
  * What the host does when the reader presses Retry, Include or Try again (task-8.5 decision 5):
@@ -101,8 +106,17 @@ export type PressHandler = (press: {
  * the failure tile's does (decision 10). A paint refused for a credential field is a failure tile
  * with Continue on the app, opening its own page, and no Retry (decision 7).
  *
- * A slot holding a `gap` is the capability tile (task-6.2 decision 6): fixed shell UI, no model
- * wording — a minimal line and a button searching the Store for the missing capability, the gap.
+ * A slot holding a `gap` is the offer (phase-15 decision 1, task 15.8): fixed shell UI, no model
+ * wording — the fixed line, each app the plan offered as a row with Install, and More in the Store;
+ * the two quiet lines when there is nothing to offer, with Search the Store; the installed line once
+ * an app offered with nothing asked of it is installed. A row's press and where it stands — the
+ * consent card, installing, refused, Show it here — are the host's, through `AppActContext`, as a
+ * sign-in window is (task-15.8 decision 1). The slot the offer became keeps the offer, its app's
+ * row Installed with Loading…, until the app's first answer (decision 2).
+ *
+ * A slot in state `update` is the update tile (phase-15 decision 11, task 15.8): one line under
+ * the marker, over a fragment on screen as the failure tile is, and kept through the pending
+ * repaint after its resend until the answer lands.
  *
  * A slot holding `addAccount` is the add-account tile (task-12.13 decision 27): fixed shell UI,
  * the authority tile's sibling — the app's accounts already added, what a new one lets the app do,
@@ -141,13 +155,21 @@ export function SlotView({
   working,
   callFailed,
   retrying,
-  onSearchStore,
+  offer,
+  installed,
+  offered,
+  update,
+  onOpenStore,
+  onAppAct,
   onPress,
   onSignIn,
   onOpenAppLibrary,
   nameOf = source => source,
 }: SlotProps & {
-  onSearchStore?: (query: string | undefined) => void;
+  /** Opens the Store from this slot: on words, or on one app's view (task-15.8 decision 8). */
+  onOpenStore?: (open: {query?: string; app?: string}) => void;
+  /** Install, Update or Show it here pressed here, inside the click; without it none is drawn. */
+  onAppAct?: (act: {kind: AppActKind; appId: string; anchor: HTMLElement}) => void;
   /** The reader's press, as the operation the wire carries; without it no press button is drawn. */
   onPress?: (operation: CompositionOperation) => void;
   /** Start or cancel this slot's sign-in, inside the click; without it no Sign in is drawn. */
@@ -161,6 +183,7 @@ export function SlotView({
   const resolveState = useContext(SlotStateContext);
   const signingIn = useContext(SignInContext);
   const {enabled, presses} = useContext(PressStateContext);
+  const acts = useContext(AppActContext);
   // Set by a press whose button held focus: the line that replaces the button takes it (task-8.5
   // decision 15), so a keyboard reader's place is not dropped to the page.
   const focusLine = useRef(false);
@@ -171,10 +194,11 @@ export function SlotView({
     onPress?.(operation);
   };
   const home = join?.home ?? undefined;
-  // The merge's sources that need sign-in, as the host's slot states say (task-12.3 decision 8).
+  // The merge's sources that need sign-in, as the host's slot states say (task-12.3 decision 8),
+  // and those on the update tile, which behave alike (task-15.8 decision 4).
   const signIn = shell
     ? [...(home === undefined ? [] : [home]), ...(collapse?.failed ?? [])].filter(s =>
-        ['authority', 'connect', 'more'].includes(resolveState(s) ?? ''),
+        WAITS_ON_ITS_OWN_PRESS.includes(resolveState(s) as SourceSlotState),
       )
     : [];
   const facts = {
@@ -197,20 +221,86 @@ export function SlotView({
     return lines;
   };
 
+  // The update tile's Retry, when the Store could not be reached: the slot's own Retry.
+  const retryHere =
+    onPress && source !== undefined
+      ? (button: HTMLElement) => press({kind: 'retry', sources: [source]}, button)
+      : undefined;
+  const appAct =
+    onAppAct &&
+    ((kind: AppActKind, appId: string, anchor: HTMLElement) => onAppAct({kind, appId, anchor}));
+  // Each returns the view and what the slot says politely of it: a refusal, or a press not through.
+  const offerView = (words: string, apps: NonNullable<typeof offer>['apps'], filling?: string) => {
+    const {rows, held} = offerRows(words, apps, {filling, acts, presses});
+    const refused = rows.find(row => row.kind === 'refused');
+    const noted = rows.find(row => row.kind === 'show' && row.note);
+    const said =
+      refused?.kind === 'refused'
+        ? `${refused.refusal.lead} ${refused.refusal.rest}`
+        : noted?.kind === 'show'
+          ? (noted.note ?? '')
+          : '';
+    const node = (
+      <OfferView
+        gap={words}
+        apps={apps}
+        rows={rows}
+        held={held}
+        enabled={enabled}
+        onAppAct={appAct}
+        onOpenStore={onOpenStore}
+      />
+    );
+    return {node, said};
+  };
+  const updateView = (waiting: boolean) => {
+    const app = nameOf(source!);
+    const appId = parseSourceId(source!)?.appId ?? source!;
+    const end = updateEnd(appId, source!, update!, {acts, retry, waiting, app});
+    const said =
+      end.kind === 'refused'
+        ? `${end.refusal.lead} ${end.refusal.rest}`
+        : end.kind === 'press'
+          ? (end.note ?? '')
+          : '';
+    const node = (
+      <UpdateTile
+        app={app}
+        update={update!}
+        end={end}
+        enabled={enabled}
+        onAppAct={appAct && ((kind, anchor) => appAct(kind, appId, anchor))}
+        onRetry={retryHere}
+      />
+    );
+    return {node, said};
+  };
+
   const body = (() => {
     if (gap !== undefined) {
-      return (
-        <div data-slot-gap={gap} data-slot-state="gap" style={weighted}>
-          <div data-slot-gap-tile="" style={panelStyle}>
-            <Flex align="center" gap="3" wrap="wrap">
-              <Text as="span" size="2">
-                No installed app can do this.
-              </Text>
-              <Button size="1" variant="soft" onClick={() => onSearchStore?.(gap)}>
-                Search the Store
-              </Button>
-            </Flex>
+      if (installed) {
+        return (
+          <div data-slot-gap={gap} data-slot-state="installed" style={weighted}>
+            <InstalledLine installed={installed} />
           </div>
+        );
+      }
+      if (offer?.none !== undefined) {
+        return (
+          <div data-slot-gap={gap} data-slot-state="nothing" style={weighted}>
+            <NothingLine
+              none={offer.none}
+              onSearch={onOpenStore && (() => onOpenStore({query: gap}))}
+            />
+          </div>
+        );
+      }
+      if (offer === undefined) return null;
+      const {node, said} = offerView(gap, offer.apps);
+      announcement = said;
+      return (
+        <div data-slot-gap={gap} data-slot-state="offer" style={weighted}>
+          {node}
         </div>
       );
     }
@@ -318,6 +408,7 @@ export function SlotView({
               app: nameOf(home),
               connect: resolveState(home) === 'connect',
               more: resolveState(home) === 'more',
+              update: UPDATE_LINE_OF_STATE[resolveState(home) as string],
             }
           : undefined;
       const line = shell
@@ -356,6 +447,16 @@ export function SlotView({
           style={{...weighted, ...reservedStyle, minHeight: 0}}
         >
           {resolved}
+        </div>
+      );
+    }
+
+    if (state === 'update' && !shell && source !== undefined && update !== undefined) {
+      const {node, said} = updateView(false);
+      announcement = said;
+      return (
+        <div data-slot={source} data-slot-state="update" style={{...weighted, ...reservedStyle}}>
+          {node}
         </div>
       );
     }
@@ -471,6 +572,34 @@ export function SlotView({
       );
     }
 
+    // The slot an offer became, or an update tile resent, keeps what it showed until the app's
+    // first answer: the slot changes once (task-15.8 decision 2).
+    if (!shell && source !== undefined && state === 'pending' && resolved == null) {
+      if (offered !== undefined) {
+        const {node, said} = offerView(offered.gap, offered.apps, offered.appId);
+        announcement = said;
+        return (
+          <div
+            data-slot={source}
+            data-slot-state="pending"
+            data-slot-gap={offered.gap}
+            style={weighted}
+          >
+            {node}
+          </div>
+        );
+      }
+      if (update !== undefined) {
+        const {node, said} = updateView(true);
+        announcement = said;
+        return (
+          <div data-slot={source} data-slot-state="pending" style={{...weighted, ...reservedStyle}}>
+            {node}
+          </div>
+        );
+      }
+    }
+
     if (shell) {
       return (
         <div
@@ -514,12 +643,12 @@ export function SlotView({
     );
   })();
 
-  // A slot that draws nothing, or the capability tile, has no press to speak of.
-  if (body === null || gap !== undefined) return body;
+  // A slot that draws nothing has no press to speak of.
+  if (body === null) return body;
   return (
     <>
       {body}
-      <span role="status" style={visuallyHidden} data-slot-announce={source}>
+      <span role="status" style={visuallyHidden} data-slot-announce={source ?? gap}>
         {announcement}
       </span>
     </>
@@ -660,13 +789,18 @@ export function failureRetries(failure: SlotFailure | undefined): boolean {
  */
 export function collapseLine(
   collapse: SlotCollapse,
-  homeSignIn?: {app: string; connect?: boolean; more?: boolean},
+  homeSignIn?: {app: string; connect?: boolean; more?: boolean; update?: UpdateLine},
 ): string {
   switch (collapse.cause) {
     case 'home':
       if (homeSignIn) {
         const {app} = homeSignIn;
         const needs = `The merged view needs ${collapse.home ?? 'the home source'}`;
+        // A home source on the update tile: Update brings it back, the other lines say it changed
+        // (task-15.8 decision 4).
+        if (homeSignIn.update === 'update')
+          return `${needs}, and ${app} needs an update. Updating ${app} brings it back.`;
+        if (homeSignIn.update) return `${needs}, and ${app} has changed.`;
         // A pasted key or token says connect (task-12.13 decision 32); an account held, more
         // access (task-12.13 decision 50).
         if (homeSignIn.connect)
@@ -1064,23 +1198,6 @@ function AddAccountTile({
   );
 }
 
-/** A button drawn as a link: the quiet line's Sign in and Cancel. */
-const linkButtonStyle: CSSProperties = {
-  background: 'none',
-  border: 0,
-  padding: 0,
-  font: 'inherit',
-  cursor: 'pointer',
-};
-
-const dotStyle: CSSProperties = {
-  width: 3,
-  height: 3,
-  borderRadius: 2,
-  background: 'var(--gray-8)',
-  flex: 'none',
-};
-
 const scopeListStyle: CSSProperties = {
   listStyle: 'none',
   margin: 0,
@@ -1101,19 +1218,20 @@ function quietLine(text: string) {
   );
 }
 
-/**
- * The capability tile's look. SPEC §8 calls it a tile and it is the shell's own deterministic UI
- * with an action in it — not a placeholder for a vendor's pixels — so it keeps its box: one that
- * hugs its line and its button at the slot's leading edge, as the failure tile's line sits there,
- * never stretched across the slot (task-11.8 decision 21).
- */
-const panelStyle: CSSProperties = {
-  background: 'var(--color-panel-solid)',
-  border: '1px solid var(--gray-6)',
-  borderRadius: 'var(--radius-3)',
-  padding: 'var(--space-2) var(--space-3)',
-  width: 'fit-content',
-  maxWidth: '100%',
+/** The slot states whose own press brings a source back, so no merge line's Retry carries it. */
+const WAITS_ON_ITS_OWN_PRESS: readonly SourceSlotState[] = [
+  'authority',
+  'connect',
+  'more',
+  ...UPDATE_SLOT_STATES,
+];
+
+/** A home source's update line, by the slot state the host reads for it. */
+const UPDATE_LINE_OF_STATE: Record<string, UpdateLine | undefined> = {
+  update: 'update',
+  'update-waiting': 'waiting',
+  'update-unreached': 'unreached',
+  'update-none': 'none',
 };
 
 /**
@@ -1133,7 +1251,9 @@ const reservedStyle: CSSProperties = {
 
 /**
  * Catalog entry, bound to the host's handlers: the generic binder resolves props, then renders
- * SlotView, whose capability tile raises `openStore` and whose presses — Retry on the failure tile,
+ * SlotView, whose offer raises `openStore` — on an app's view from its name, on the gap's words
+ * from More in the Store and Search the Store, naming the slot (task-15.8 decision 8) — and the
+ * host's app act for Install, Update and Show it here, and whose presses — Retry on the failure tile,
  * Include and Try again on the merged view's lines — raise the host's press from this slot's
  * surface. The authority tile's Sign in and Cancel raise the host's sign-in handler, its Manage
  * apps `openAppLibrary`. Without a press handler no press button is drawn, without a sign-in
@@ -1144,8 +1264,14 @@ export function createSlotComponent(
   {
     onPress,
     onSignIn,
+    onAppAct,
     sourceName,
-  }: {onPress?: PressHandler; onSignIn?: SignInHandler; sourceName?: SourceName} = {},
+  }: {
+    onPress?: PressHandler;
+    onSignIn?: SignInHandler;
+    onAppAct?: AppActHandler;
+    sourceName?: SourceName;
+  } = {},
 ) {
   return createComponentImplementation(SlotApi, ({context}) => {
     // Read from the component's own model, not the binder's resolved props: upstream's binder
@@ -1177,11 +1303,35 @@ export function createSlotComponent(
         working={props.working}
         callFailed={props.callFailed}
         retrying={props.retrying}
-        onSearchStore={query => {
+        offer={props.offer}
+        installed={props.installed}
+        offered={props.offered}
+        update={props.update}
+        onOpenStore={({query, app}) => {
           const surfaceId = context.dataContext.surface.id;
           const componentId = context.componentModel.id;
-          onShellAction({name: 'openStore', surfaceId, componentId, ...(query ? {query} : {})});
+          onShellAction({
+            name: 'openStore',
+            surfaceId,
+            componentId,
+            ...(query ? {query} : {}),
+            ...(app ? {app} : {}),
+          });
         }}
+        onAppAct={
+          onAppAct &&
+          (({kind, appId, anchor}) => {
+            const gap = props.gap ?? props.offered?.gap;
+            onAppAct({
+              kind,
+              appId,
+              ...(gap !== undefined ? {gap} : {source: props.source!}),
+              surfaceId: context.dataContext.surface.id,
+              componentId: context.componentModel.id,
+              anchor,
+            });
+          })
+        }
         onPress={
           onPress &&
           (operation =>

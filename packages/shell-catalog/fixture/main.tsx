@@ -5,7 +5,9 @@
  * example as one merged view; the Slot/Attribution states; the failure tile, the reserved column
  * and the reader's presses (tasks 8.2–8.5); the authority surfaces — the authority tile, the
  * quiet line, waiting, the refused paint, the account label and the escalation (task 12.3); the
- * DerivedValue join states (task 7.5); and the
+ * DerivedValue join states (task 7.5); the store loop's slot states — the offer and its rows, the
+ * two lines with nothing to offer, the installed line, the update tile's four lines and what
+ * follows Update, the columns reserved for a source on the update tile (task 15.8); and the
  * scoping proof (two Providers under different host Themes, one document).
  */
 import {StrictMode, useEffect, useMemo, useState, type ReactNode} from 'react';
@@ -15,6 +17,8 @@ import {A2uiSurface, type ReactComponentImplementation} from '@a2ui/react/v0_9';
 import {MessageProcessor, type SurfaceModel} from '@a2ui/web_core/v0_9';
 import {resolvePointer, type SortDeclaration} from '@a2uiverse/sdk';
 import {
+  AppActContext,
+  type AppActState,
   AttributionView,
   CATALOG_ID,
   type CellObject,
@@ -314,12 +318,6 @@ function SlotMatrix() {
         <hr />
         <SlotView source="shell" content="shell" state="collapsed" collapse={{cause: 'unmade'}} />
         <hr />
-      </div>
-      <div>
-        <SlotView
-          gap="flight booking"
-          onSearchStore={query => console.log('[fixture capability tile]', query)}
-        />
       </div>
       <div>
         collapsed (nothing should render between the rules):
@@ -893,6 +891,261 @@ function JoinMatrix() {
 
 /* ── Columns and the scoping proof ──────────────────────────────────────────── */
 
+/* ── The store loop (task 15.8, the design canvas Store loop — UI reference) ───── */
+
+const SHOP_B = {
+  appId: 'shop-b',
+  name: 'Shop B',
+  publisher: 'northlight',
+  description:
+    'Northlight Cameras, a high-volume online retailer listing current stock with live pricing and next-day dispatch.',
+};
+const SHOP_A = {
+  appId: 'shop-a',
+  name: 'Shop A',
+  publisher: 'a2uiverse-apps',
+  description:
+    'Aperture & Co, a boutique camera dealer stocking hand-picked bodies with condition notes and staff ratings.',
+};
+const GAP = 'camera prices';
+const NEEDS_UPDATE = {
+  state: 'major-update' as const,
+  installedVersion: '1.0.0',
+  publishedVersion: '2.0.0',
+  newScopes: [],
+  publisher: 'northlight',
+};
+
+/** The host's app acts for one cell: the press made in its slot, and the apps it holds installed. */
+function acts(
+  status?: ReturnType<AppActState['act']>,
+  installed: Record<string, string> = {},
+): AppActState {
+  return {act: () => status, installed: appId => installed[appId]};
+}
+
+const logAct = (act: unknown) => console.log('[fixture app act]', act);
+const logStore = (open: unknown) => console.log('[fixture open store]', open);
+
+/** One state of the loop, with the host's facts it is drawn from. */
+function LoopCell({
+  label,
+  act = acts(),
+  presses = [],
+  enabled = true,
+  marker,
+  fromOffer,
+  children,
+}: {
+  label: string;
+  act?: AppActState;
+  presses?: PressRecord[];
+  enabled?: boolean;
+  /** The app's marker above the slot, as the painter wraps a vendor slot. */
+  marker?: string;
+  fromOffer?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <Cell label={label}>
+      <PressStateContext.Provider value={{enabled, presses}}>
+        <AppActContext.Provider value={act}>
+          {marker ? (
+            <AttributionView displayName={marker} source="shop-b" fromOffer={fromOffer}>
+              {children}
+            </AttributionView>
+          ) : (
+            children
+          )}
+        </AppActContext.Provider>
+      </PressStateContext.Provider>
+    </Cell>
+  );
+}
+
+const offer = (apps = [SHOP_B, SHOP_A]) => (
+  <SlotView gap={GAP} offer={{apps}} onAppAct={logAct} onOpenStore={logStore} />
+);
+
+const updateTile = (
+  update: Parameters<typeof SlotView>[0]['update'],
+  state: 'update' | 'pending' = 'update',
+) => (
+  <SlotView
+    source="shop-b"
+    state={state}
+    update={update}
+    nameOf={() => 'Shop B'}
+    onAppAct={logAct}
+    onPress={logPress}
+  />
+);
+
+const useAppSent: PressRecord = {
+  operation: {kind: 'useApp', sources: ['shop-b'], gap: GAP},
+  status: 'sent',
+};
+const retrySent: PressRecord = {operation: {kind: 'retry', sources: ['shop-b']}, status: 'sent'};
+
+const REFUSALS = ['store-behind', 'app-unreached', 'checks', 'store-unreached'] as const;
+
+const UPDATE_STATES_FOR_COLUMNS: Record<
+  string,
+  'filled' | 'update' | 'update-waiting' | 'update-unreached' | 'update-none'
+> = {
+  'shop-a': 'filled',
+  'shop-b': 'update',
+  'shop-c': 'update-waiting',
+  'shop-d': 'update-unreached',
+  'shop-e': 'update-none',
+};
+
+function StoreLoopMatrix() {
+  return (
+    <section style={{display: 'grid', gap: 12}}>
+      <h3 style={{font: '600 12px sans-serif', opacity: 0.8, margin: '12px 0 0'}}>
+        Slot · the offer (O1–O8, E3, E4)
+      </h3>
+      <LoopCell label="O1 · one app offered">{offer([SHOP_B])}</LoopCell>
+      <LoopCell label="O2 · both shops offered, in the Planner's order">{offer()}</LoopCell>
+      <LoopCell
+        label="O4 · installing — the other Install held"
+        act={acts({appId: 'shop-b', status: 'running'})}
+      >
+        {offer()}
+      </LoopCell>
+      <LoopCell
+        label="O4 · installed, its request sent — Installed with Loading…"
+        act={acts(undefined, {'shop-b': '1.0.0'})}
+        presses={[useAppSent]}
+      >
+        {offer()}
+      </LoopCell>
+      <LoopCell
+        label="O4 · the slot it became, pending — the offer kept, the marker waiting"
+        act={acts(undefined, {'shop-b': '1.0.0'})}
+        marker="Shop B"
+        fromOffer
+      >
+        <SlotView
+          source="shop-b"
+          offered={{gap: GAP, apps: [SHOP_B, SHOP_A], appId: 'shop-b'}}
+          onAppAct={logAct}
+          onOpenStore={logStore}
+        />
+      </LoopCell>
+      {REFUSALS.map(cause => (
+        <LoopCell
+          key={cause}
+          label={`O7 · refused, ${cause}`}
+          act={acts({appId: 'shop-b', status: 'refused', cause})}
+        >
+          {offer()}
+        </LoopCell>
+      ))}
+      <LoopCell
+        label="E3 · installed elsewhere — Show it here"
+        act={acts(undefined, {'shop-b': '1.0.0'})}
+      >
+        {offer()}
+      </LoopCell>
+      <LoopCell label="no press can be made here" enabled={false}>
+        {offer()}
+      </LoopCell>
+      <LoopCell label="O8 · nothing in the Store fits">
+        <SlotView gap={GAP} offer={{apps: [], none: 'nothing'}} onOpenStore={logStore} />
+      </LoopCell>
+      <LoopCell label="O8 · the Store not reached">
+        <SlotView gap={GAP} offer={{apps: [], none: 'unreached'}} onOpenStore={logStore} />
+      </LoopCell>
+      <LoopCell label="E4 · the installed line, an example question">
+        <SlotView
+          gap="install shop b"
+          installed={{appId: 'shop-b', name: 'Shop B', example: 'What cameras do you have?'}}
+        />
+      </LoopCell>
+      <LoopCell label="E4 · the installed line, no example">
+        <SlotView gap="install shop b" installed={{appId: 'shop-b', name: 'Shop B'}} />
+      </LoopCell>
+
+      <h3 style={{font: '600 12px sans-serif', opacity: 0.8, margin: '12px 0 0'}}>
+        Slot · the update tile (U1–U6)
+      </h3>
+      <LoopCell
+        label="U1 · needs an update"
+        act={acts(undefined, {'shop-b': '1.0.0'})}
+        marker="Shop B"
+      >
+        {updateTile(NEEDS_UPDATE)}
+      </LoopCell>
+      <LoopCell label="U2 · the Store waiting on its publisher" marker="Shop B">
+        {updateTile({
+          state: 'ahead-of-store',
+          installedVersion: '1.0.0',
+          publishedVersion: '1.0.0',
+          publisher: 'northlight',
+        })}
+      </LoopCell>
+      <LoopCell label="the Store couldn't be reached — Retry" marker="Shop B">
+        {updateTile({state: 'unknown', installedVersion: '1.0.0'})}
+      </LoopCell>
+      <LoopCell label="the Store has no update for it" marker="Shop B">
+        {updateTile({state: 'not-published', installedVersion: '1.0.0'})}
+      </LoopCell>
+      <LoopCell
+        label="U4 · updating"
+        act={acts({appId: 'shop-b', status: 'running'})}
+        marker="Shop B"
+      >
+        {updateTile(NEEDS_UPDATE)}
+      </LoopCell>
+      <LoopCell
+        label="U4 · updated, its request sent again — Updated with Loading…"
+        act={acts(undefined, {'shop-b': '2.0.0'})}
+        presses={[retrySent]}
+        marker="Shop B"
+      >
+        {updateTile(NEEDS_UPDATE)}
+      </LoopCell>
+      <LoopCell
+        label="U4 · the pending repaint, the line kept"
+        act={acts(undefined, {'shop-b': '2.0.0'})}
+        marker="Shop B"
+      >
+        {updateTile(NEEDS_UPDATE, 'pending')}
+      </LoopCell>
+      {REFUSALS.map(cause => (
+        <LoopCell
+          key={cause}
+          label={`U4 · refused, ${cause}`}
+          act={acts({appId: 'shop-b', status: 'refused', cause}, {'shop-b': '1.0.0'})}
+          marker="Shop B"
+        >
+          {updateTile(NEEDS_UPDATE)}
+        </LoopCell>
+      ))}
+      <LoopCell
+        label="U6 · the update landed from another slot — Show it here"
+        act={acts(undefined, {'shop-b': '2.0.0'})}
+        marker="Shop B"
+      >
+        {updateTile(NEEDS_UPDATE)}
+      </LoopCell>
+      <LoopCell label="the reserved columns of sources on the update tile">
+        <SlotStateContext.Provider value={source => UPDATE_STATES_FOR_COLUMNS[source]}>
+          <SlotView
+            source="shell"
+            content="shell"
+            label="Synthesis"
+            columns={['Camera', 'Shop A', 'Shop B', 'Shop C', 'Shop D', 'Shop E']}
+            columnSources={[null, 'shop-a', 'shop-b', 'shop-c', 'shop-d', 'shop-e']}
+          />
+        </SlotStateContext.Provider>
+      </LoopCell>
+    </section>
+  );
+}
+
 function Column({title, children}: {title: string; children: ReactNode}) {
   return (
     <section style={{flex: 1, minWidth: 360, padding: 16}}>
@@ -905,6 +1158,7 @@ function Column({title, children}: {title: string; children: ReactNode}) {
 function Everything() {
   return (
     <div style={{display: 'grid', gap: 16}}>
+      <StoreLoopMatrix />
       <Timeline />
       <JoinMatrix />
       <SlotMatrix />

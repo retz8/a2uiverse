@@ -390,6 +390,10 @@ describe('what the Planner may write on a Slot', () => {
       ['working', {sources: []}],
       ['callFailed', {kind: 'update', sources: []}],
       ['retrying', ['github']],
+      // What the slot an offer became and an update tile keep are the shell's (task-15.8 decision 2).
+      ['offered', {gap: 'x', apps: [], appId: 'shop-b'}],
+      ['update', {state: 'unknown', installedVersion: '1.0.0'}],
+      ['authority', {cause: 'signIn', scopes: []}],
     ] as const) {
       const painted = fanOut();
       painted.tree.components[4] = {id: 'gh', component: 'Slot', source: 'github', [prop]: value};

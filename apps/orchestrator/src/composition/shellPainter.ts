@@ -89,7 +89,10 @@ function updateComponentsPart(state: CompositionState): Part {
  * each app offered as the entry this plan's search returned draws it, or the cause of none
  * (task-15.4 decision 8). A gap `useApp` filled is painted as what it became, its id kept: the
  * app's slot under its source, the account choice, or — an offer with no request — the
- * installed line, still bare (decisions 11, 12). `state` and `label` — the source's name — (and `content`, `columns`, `columnSources` and `join` on the synthesis
+ * installed line, still bare (decisions 11, 12). Until the app's first answer, the slot a gap became
+ * keeps the offer — the gap's words, its apps as painted and the app installed there — its marker
+ * marked to wait, and a slot resent from the update tile keeps its update, while either is pending
+ * (task-15.8 decision 2). `state` and `label` — the source's name — (and `content`, `columns`, `columnSources` and `join` on the synthesis
  * slot) are the painter's, so a repaint flips a slot by its source and every id stays put. So are
  * the facts a state carries (task-8.3 decisions 6, 9, 10): a vendor slot's `noun` under a join
  * and its `failure` once failed; the merge slot's `declined` reason or `collapse` cause once
@@ -223,6 +226,8 @@ export function paintLayout(state: CompositionState): ShellComponent[] {
       continue;
     }
     const displayName = entry?.plan.displayName ?? source;
+    const kept = slotState === 'pending' && !state.arrived.has(source) ? entry?.keeps : undefined;
+    const offered = kept && 'gap' in kept ? keptOffer(state, kept.gap) : undefined;
     painted.push(
       {
         id: wrapperOf.get(component.id)!,
@@ -233,6 +238,7 @@ export function paintLayout(state: CompositionState): ShellComponent[] {
         ...(entry?.escalation ? {escalation: {scopes: entry.escalation.words}} : {}),
         child: component.id,
         ...(typeof component.weight === 'number' ? {weight: component.weight} : {}),
+        ...(offered ? {fromOffer: true} : {}),
       },
       {
         ...authored,
@@ -245,6 +251,8 @@ export function paintLayout(state: CompositionState): ShellComponent[] {
           ? {authority: paintedAuthority(entry.authority)}
           : {}),
         ...(slotState === 'update' && entry?.update ? {update: paintedUpdate(entry.update)} : {}),
+        ...(kept && 'update' in kept ? {update: paintedUpdate(kept.update)} : {}),
+        ...(offered ? {offered} : {}),
       },
     );
   }
@@ -264,6 +272,13 @@ function filledGap(state: CompositionState, component: ShellComponent): ShellCom
   return fill.kind === 'source'
     ? {...slot, source: fill.source}
     : {...slot, chooseAccount: fill.appId};
+}
+
+/** The offer a gap's slot came from, as kept on it: the gap's words, its apps, the app installed. */
+function keptOffer(state: CompositionState, words: string): Record<string, unknown> | undefined {
+  const gap = state.gaps.get(words);
+  if (gap?.filled?.kind !== 'source') return undefined;
+  return {gap: words, apps: paintedOffer(gap).apps, appId: gap.filled.appId};
 }
 
 /** The offer as painted: every app offered, in the Planner's order, or why there is none. */

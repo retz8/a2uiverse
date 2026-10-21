@@ -225,3 +225,25 @@ test('a column whose source asks for more access says so (task-12.13 decision 50
   );
   expect(headings[2]).toBe('CI build · needs more access');
 });
+
+test.each([
+  ['update', 'needs an update'],
+  ['update-waiting', 'waiting on its publisher'],
+  ['update-unreached', 'couldn’t check for updates'],
+  ['update-none', 'no update available'],
+] as const)(
+  'a column whose source is on the update tile (%s) says so, its cells the empty dash (task-15.8 decision 4)',
+  (state, words) => {
+    const {container} = renderTree(RESERVED_TREE, {
+      wrap: withStates({linear: 'filled', github: 'filled', circleci: state}),
+    });
+    const headings = [...container.querySelectorAll('thead th')].map(th =>
+      th.textContent?.replace(/\s+/g, ' '),
+    );
+    expect(headings[2]).toBe(`CI build · ${words}`);
+    const cell = container.querySelectorAll('tbody td')[2]!;
+    expect(cell.textContent).toBe('—');
+    expect(cell).toHaveAttribute('data-column-reserved', state);
+    expect(consoleError.mock.calls).toEqual([]);
+  },
+);

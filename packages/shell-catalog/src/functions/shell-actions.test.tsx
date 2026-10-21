@@ -56,17 +56,18 @@ test('a button calling openPublish hands the host its surface', () => {
   expect(shell).toEqual([{name: 'openPublish', surfaceId: SURFACE_ID}]);
 });
 
-test('the capability tile searches the Store for the missing capability', () => {
+test('an offer with nothing in it searches the Store for the missing capability, its words never drawn (task-15.8 decision 8)', () => {
   const shell: ShellAction[] = [];
-  const {container} = renderTree([{id: 'root', component: 'Slot', gap: 'flight booking'}], {
-    onShellAction: action => shell.push(action),
-  });
+  const {container} = renderTree(
+    [{id: 'root', component: 'Slot', gap: 'flight booking', offer: {apps: [], none: 'nothing'}}],
+    {onShellAction: action => shell.push(action)},
+  );
   const slot = container.querySelector('[data-slot-gap="flight booking"]')!;
-  expect(slot).toHaveAttribute('data-slot-state', 'gap');
-  expect(slot.textContent).toContain('No installed app can do this.');
+  expect(slot).toHaveAttribute('data-slot-state', 'nothing');
+  expect(slot.textContent).toContain('Nothing in the Store can do this yet.');
   expect(slot.textContent).not.toContain('flight booking');
   fireEvent.click(screen.getByRole('button', {name: 'Search the Store'}));
-  // The tile raises as a component, so it names itself; a functionCall (above) has none to name.
+  // The slot raises as a component, so it names itself; a functionCall (above) has none to name.
   expect(shell).toEqual([
     {name: 'openStore', surfaceId: SURFACE_ID, componentId: 'root', query: 'flight booking'},
   ]);

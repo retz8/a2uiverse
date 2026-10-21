@@ -696,7 +696,7 @@ describe('CanvasApp shell surface', () => {
     });
   });
 
-  it('the capability tile opens the Store over the canvas with the gap as the query, and reports the action on the side (task-6.5 decisions 3, 4, 6)', async () => {
+  it('a gap with nothing to offer opens the Store over the canvas with the gap as the query, and reports the action on the side (task-6.5 decisions 3, 4, 6; task-15.8 decision 7)', async () => {
     const {sent} = renderShellCanvas('gap');
     await userEvent.click(await screen.findByRole('button', {name: 'Search the Store'}));
 

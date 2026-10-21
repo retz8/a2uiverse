@@ -12,7 +12,7 @@
  */
 import {useCallback, useEffect, useState, type ReactNode} from 'react';
 import {AlertDialog, Button, Flex} from '@radix-ui/themes';
-import type {UpdateState} from '@a2uiverse/sdk';
+import {refusalOf, type UpdateState} from '@a2uiverse/sdk';
 import {isLoader, type PageCatalogs} from '../../../catalogs/CatalogContext';
 import {
   readStoreEntry,
@@ -21,7 +21,7 @@ import {
   type Revocation,
 } from '../../../orchestratorApi';
 import type {TrustedPageState} from '../../trail/trailStore';
-import {listed, refusalOf, signInOf, tileLetter} from '../appCard';
+import {listed, signInOf, tileLetter} from '../appCard';
 import {ConsentCard, type ConsentAsk} from '../ConsentCard';
 import {
   BackIcon,
