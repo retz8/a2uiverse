@@ -48,7 +48,7 @@ Platform processes are `1000x`; vendor agents are `11001+` and mock agents `1200
 | client (canvas shell) | 5173 | yes | `a2uiverse` |
 | orchestrator | 10001 | yes | `a2uiverse` |
 | marketplace | 10002 | yes | `a2uiverse` |
-| shell-catalog fixture (dev-only) | 5174 | when in use | `a2uiverse` |
+| shell-catalog fixture (dev-only) | 5174 locally; 5173 through the tunnel, while the client is down | on 5173 | `a2uiverse` |
 | vendor agents | 11001–11005 | sign-in pages | `a2uiverse-apps` (table there) |
 | mock agents | 12001+ | no | `a2uiverse-apps` (`mocks/`, the launcher's mock tier) |
 
@@ -71,6 +71,12 @@ BASE_URL=https://<tunnel-id>-10001.asse.devtunnels.ms pnpm --filter @a2uiverse/o
 
 # client — .env.local: VITE_ORCHESTRATOR_URL=https://<tunnel-id>-10001.asse.devtunnels.ms
 pnpm --filter @a2uiverse/client dev
+```
+
+The tunnel forwards at most eight ports — the client, the orchestrator, the marketplace and the five vendor agents — so the shell catalog's design-check page runs on the client's port while the client is down:
+
+```bash
+pnpm --filter @a2uiverse/shell-catalog dev --port 5173
 ```
 
 When the dev server's module requests stall in the tunnel, serve a production build on the same port instead: `pnpm --filter @a2uiverse/client build`, then `pnpm exec vite preview --port 5173 --strictPort` in `apps/client`.
