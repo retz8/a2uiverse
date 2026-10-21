@@ -8,7 +8,8 @@
  * its entry enters the trail as live and on screen, and its opening utterance names the canvas it
  * was asked from as its parent. Nothing else changes: the canvas the user was looking at runs on.
  * A press, an action, a shell action or a navigation lands in the canvas on screen — past or
- * live — through the host relay.
+ * live — through the host relay. Beside the canvases the page holds its installed apps, and the
+ * slot's Install, Update and Show it here with the consent card over the slot (task 15.9).
  */
 import type {CompositionOperation} from '@a2uiverse/sdk';
 import type {Catalog} from '@a2ui/web_core/v0_9';
@@ -17,11 +18,13 @@ import type {PressHandler, ShellAction, SignInHandler} from '@a2uiverse/shell-ca
 import type {A2AMessageSender, A2ASenderOptions} from '../a2a/client';
 import {createSenderResolver} from '../a2a/client';
 import type {CatalogLoader} from '../catalogs/loader';
-import {agentUrl} from '../orchestratorApi';
+import {agentUrl, installApp, readInstalled, readStoreEntry} from '../orchestratorApi';
 import type {CanvasRuntime} from './canvasRuntime';
 import {createCanvasRuntime, trustedPageOf} from './canvasRuntime';
 import type {ShellHost} from './hostRelay';
+import {createInstalledApps, type InstalledApps} from './installedApps';
 import {createSignIn, type SignIn, type SignInOptions} from './signIn';
+import {createSlotActs, type SlotActs} from './slotActs';
 import type {TrailStore} from './trail/trailStore';
 import {createTrailStore, entryOf, viewedCanvasId} from './trail/trailStore';
 import {running} from './turnProgress';
@@ -57,6 +60,10 @@ export interface CanvasWiring {
   host: ShellHost;
   /** The page's sign-in (task 12.8). */
   signIn: SignIn;
+  /** The page's installed apps, and the apps a press holds (task-15.9 decision 1). */
+  apps: InstalledApps;
+  /** The slot's Install, Update and Show it here, and the consent card over the slot (task 15.9). */
+  slotActs: SlotActs;
 }
 
 export interface CanvasWiringOptions extends A2ASenderOptions {
@@ -71,6 +78,8 @@ export interface CanvasWiringOptions extends A2ASenderOptions {
   mintId?: () => string;
   /** The sign-in's window, poll and page; tests pass fakes. */
   signIn?: Partial<Omit<SignInOptions, 'runtimeOf'>>;
+  /** The catalog table read again after a slot's Install or Update (task-15.6 decision 7). */
+  refreshCatalogs?: () => void;
 }
 
 export function createCanvasWiring({
@@ -80,13 +89,24 @@ export function createCanvasWiring({
   loader,
   mintId = () => crypto.randomUUID(),
   signIn: signInOptions,
+  refreshCatalogs = () => {},
 }: CanvasWiringOptions): CanvasWiring {
   const trail = createTrailStore();
   const runtimes = new Map<string, CanvasRuntime>();
+  const orchestrator = serverUrl ?? agentUrl();
   const signIn = createSignIn({
-    serverUrl: serverUrl ?? agentUrl(),
+    serverUrl: orchestrator,
     ...signInOptions,
     runtimeOf: id => runtimes.get(id),
+  });
+  const apps = createInstalledApps({read: () => readInstalled(orchestrator)});
+  const slotActs = createSlotActs({
+    apps,
+    trail,
+    runtimeOf: id => runtimes.get(id),
+    install: appId => installApp(orchestrator, appId),
+    readEntry: appId => readStoreEntry(orchestrator, appId),
+    refreshCatalogs,
   });
   const getSender = createSenderResolver({serverUrl, client});
   /** A beat replay's transport, while one is attached: where the streams beside the turn go. */
@@ -157,7 +177,8 @@ export function createCanvasWiring({
 
   const onShellAction = (action: ShellAction) => {
     const page = trustedPageOf(action);
-    if (page) trail.openTrustedPage(page);
+    // A Store page opened from an offer stays tied to its slot (task-15.9 decision 3).
+    if (page) trail.openTrustedPage(page, slotActs.originOf(action));
     const runtime = viewed();
     runtime?.reportShellAction(action);
   };
@@ -198,7 +219,10 @@ export function createCanvasWiring({
       sourceName: source => viewed()?.sourceName(source),
       onPress,
       onSignIn,
+      onAppAct: slotActs.onAppAct,
     },
     signIn,
+    apps,
+    slotActs,
   };
 }

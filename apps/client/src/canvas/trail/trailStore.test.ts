@@ -27,6 +27,7 @@ describe('createTrailStore', () => {
       viewing: null,
       trustedPage: null,
       lastPage: 'store',
+      openedFrom: null,
     });
   });
 
@@ -178,6 +179,31 @@ describe('createTrailStore', () => {
     expect(store.getState().trustedPage).toEqual({page: 'appLibrary'});
     store.closeTrustedPage();
     expect(store.getState().trustedPage).toBeNull();
+  });
+
+  it('a page opened from a slot stays tied to it while it stays open, wherever it goes; closing ends the tie (task-15.9 decision 3)', () => {
+    const store = createTrailStore();
+    const slot = {canvas: 'a', surfaceId: 'shell:main', componentId: 'gap', gap: 'camera prices'};
+    store.openTrustedPage({page: 'store', query: 'camera prices'}, slot);
+    expect(store.getState().openedFrom).toEqual(slot);
+    store.openTrustedPage({page: 'store', query: 'lenses'});
+    store.openTrustedPage({page: 'appLibrary'});
+    expect(store.getState().openedFrom).toEqual(slot);
+    store.closeTrustedPage();
+    expect(store.getState().openedFrom).toBeNull();
+    store.openTrustedPage({page: 'store'});
+    expect(store.getState().openedFrom).toBeNull();
+  });
+
+  it('a tie ends once the install it was for has filled the slot (task-15.9 decision 3)', () => {
+    const store = createTrailStore();
+    store.openTrustedPage(
+      {page: 'store', app: 'shop-b'},
+      {canvas: 'a', surfaceId: 'shell:main', componentId: 'gap', gap: 'camera prices'},
+    );
+    store.untie();
+    expect(store.getState().openedFrom).toBeNull();
+    expect(store.getState().trustedPage).toEqual({page: 'store', app: 'shop-b'});
   });
 
   it('remembers the destination last open this session, the Store before any (task-14.2 decision 16)', () => {

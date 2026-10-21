@@ -18,12 +18,12 @@
  * The synthesis slot is shell content (task-5.5 decision 1): painted with no attribution
  * around it, its `Slot` declares `content: "shell"`, and the roster reads it as the reserved
  * shell source — the one the merged view's own stamp names — with the join's nouns the painter
- * wrote on it (task-7.15), when the merge is over an entity. A gap slot is the capability tile,
- * the catalog's own: it names no source and enters no roster.
+ * wrote on it (task-7.15), when the merge is over an entity. A gap slot is the offer, the
+ * catalog's own: it names no source and enters no roster until an install makes it an app's slot.
  */
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
 import {sourceName} from '@a2uiverse/sdk';
-import {AUTHORITY_CAUSES, type AuthorityCause} from '@a2uiverse/shell-catalog';
+import {AUTHORITY_CAUSES, type AuthorityCause, type SlotUpdate} from '@a2uiverse/shell-catalog';
 import type {JoinNouns, PaintedMerge, PaintedSlotState, RosterEntry} from '../canvasStore';
 
 /** The reserved source id the hub stamps its own content with — the shell speaking as itself. */
@@ -55,6 +55,7 @@ interface ShellComponent {
   collapse?: unknown;
   authority?: unknown;
   escalation?: unknown;
+  update?: unknown;
 }
 
 /** What one shell paint says about its slots: the roster, and the vendor slots painted bare. */
@@ -143,7 +144,7 @@ function joinNouns(raw: unknown): JoinNouns | undefined {
   };
 }
 
-const PAINTED_STATES: readonly string[] = ['pending', 'failed', 'collapsed', 'authority'];
+const PAINTED_STATES: readonly string[] = ['pending', 'failed', 'collapsed', 'authority', 'update'];
 
 /**
  * The state each `Slot` in a shell paint declares, by source — the synthesis slot under
@@ -192,6 +193,28 @@ export function authorityOf(messages: readonly A2uiMessage[]): Map<string, Autho
     );
   }
   return causes;
+}
+
+/**
+ * What each vendor `Slot` in a shell paint says of its update (task-15.9): the facts the update
+ * tile's line was drawn from — on the tile, and kept through the pending repaint after its resend
+ * (task-15.8 decision 2) — or null when the slot carries none. The shell catalog validated them
+ * on apply. Sources the paint does not carry are absent.
+ */
+export function updatesOf(messages: readonly A2uiMessage[]): Map<string, SlotUpdate | null> {
+  const updates = new Map<string, SlotUpdate | null>();
+  for (const raw of shellComponents(messages)) {
+    if (raw.component !== SLOT || typeof raw.source !== 'string' || raw.content === 'shell')
+      continue;
+    const update = raw.update as SlotUpdate | undefined;
+    updates.set(
+      raw.source,
+      typeof update === 'object' && update !== null && typeof update.state === 'string'
+        ? update
+        : null,
+    );
+  }
+  return updates;
 }
 
 /**

@@ -24,6 +24,9 @@ import {Palette} from './components/Palette';
 import {TrailChrome} from './components/TrailChrome';
 import {TrustedPageOverlay} from './components/TrustedPageOverlay';
 import type {HostRelay} from './hostRelay';
+import {InstalledAppsContext} from './installedApps';
+import type {SlotActs} from './slotActs';
+import {SlotConsentCard} from './trustedPage/ConsentCard';
 import {agentUrl} from '../orchestratorApi';
 import {viewedCanvasId} from './trail/trailStore';
 import {bindTrustedPageHistory} from './trustedPage/history';
@@ -48,19 +51,28 @@ export function CanvasApp({serverUrl, client, catalogs, hostRelay}: CanvasAppPro
       serverUrl,
       client,
       ...(isLoader(catalogs)
-        ? {catalogs: catalogs.catalogs, loader: catalogs}
+        ? {
+            catalogs: catalogs.catalogs,
+            loader: catalogs,
+            refreshCatalogs: () => void catalogs.refresh(),
+          }
         : {catalogs: catalogs.map(c => c.catalog)}),
     }),
   );
+  // The installed apps, read at boot: every slot's offer and update tile reads them (task-15.4
+  // decision 14).
+  useEffect(() => {
+    void wiring.apps.read();
+  }, [wiring]);
 
   const trail = useSyncExternalStore(wiring.trail.subscribe, wiring.trail.getState);
   const viewedId = viewedCanvasId(trail);
   const runtime = viewedId === null ? undefined : wiring.runtimeOf(viewedId);
   const past = trail.viewing !== null;
 
-  // What the shell's surfaces raise — a shell action from the model's button or the capability
-  // tile, a navigation from a merged cell, a press — lands in the canvas on screen for as long as
-  // the page is mounted, and that canvas's roster names the apps.
+  // What the shell's surfaces raise — a shell action from the model's button or a slot, a
+  // navigation from a merged cell, a press, an app's Install, Update or Show it here — lands in the
+  // canvas on screen for as long as the page is mounted, and that canvas's roster names the apps.
   useEffect(() => hostRelay?.bind(wiring.host), [hostRelay, wiring]);
 
   // The trusted page on the browser's history: opening it pushes its address, browser Back closes
@@ -145,59 +157,76 @@ export function CanvasApp({serverUrl, client, catalogs, hostRelay}: CanvasAppPro
 
   return (
     <CatalogProvider catalogs={catalogs}>
-      <main className={className} data-replay={replayDone ? 'done' : undefined}>
-        {runtime ? (
-          <CanvasView key={runtime.id} runtime={runtime} onEdit={openPalette} past={past} />
-        ) : (
-          <>
-            <div className="canvas-scroll" data-testid="canvas-scroll">
-              <EmptyCanvas error={replayError} />
-            </div>
-          </>
-        )}
-        <TrustedPageOverlay
-          page={trail.trustedPage}
-          onClose={wiring.trail.closeTrustedPage}
-          onNavigate={wiring.trail.openTrustedPage}
-          catalogs={catalogs}
-          orchestrator={serverUrl ?? agentUrl()}
-        />
-        <TrailChrome
-          trail={trail}
-          open={trailOpen}
-          onToggle={toggleTrail}
-          onOpenApps={openApps}
-          onView={viewFromTrail}
-          onReturnToLive={wiring.returnToLive}
-          onClose={wiring.closeCanvas}
-          onAskAgain={() => void wiring.askAgain()}
-          runtimeOf={wiring.runtimeOf}
-        />
-        <Palette
-          key={paletteSeed.key}
-          open={paletteOpen}
-          initialText={paletteSeed.text}
-          onDismiss={() => setPaletteOpen(false)}
-          onSubmit={utterance => {
-            setPaletteOpen(false);
-            void wiring.sendUtterance(utterance);
-          }}
-        />
-        {/* The canvas's one call-to-action; yields to the palette while it is open. On a past
+      <InstalledAppsContext.Provider value={wiring.apps}>
+        <main className={className} data-replay={replayDone ? 'done' : undefined}>
+          {runtime ? (
+            <CanvasView key={runtime.id} runtime={runtime} onEdit={openPalette} past={past} />
+          ) : (
+            <>
+              <div className="canvas-scroll" data-testid="canvas-scroll">
+                <EmptyCanvas error={replayError} />
+              </div>
+            </>
+          )}
+          <SlotConsent slotActs={wiring.slotActs} />
+          <TrustedPageOverlay
+            page={trail.trustedPage}
+            onClose={wiring.trail.closeTrustedPage}
+            onNavigate={wiring.trail.openTrustedPage}
+            onInstalled={wiring.slotActs.fillFromPage}
+            catalogs={catalogs}
+            orchestrator={serverUrl ?? agentUrl()}
+          />
+          <TrailChrome
+            trail={trail}
+            open={trailOpen}
+            onToggle={toggleTrail}
+            onOpenApps={openApps}
+            onView={viewFromTrail}
+            onReturnToLive={wiring.returnToLive}
+            onClose={wiring.closeCanvas}
+            onAskAgain={() => void wiring.askAgain()}
+            runtimeOf={wiring.runtimeOf}
+          />
+          <Palette
+            key={paletteSeed.key}
+            open={paletteOpen}
+            initialText={paletteSeed.text}
+            onDismiss={() => setPaletteOpen(false)}
+            onSubmit={utterance => {
+              setPaletteOpen(false);
+              void wiring.sendUtterance(utterance);
+            }}
+          />
+          {/* The canvas's one call-to-action; yields to the palette while it is open. On a past
             canvas it says so: the question starts a branch from this view (board F5). */}
-        {!paletteOpen && (
-          <Button
-            variant="solid"
-            size="3"
-            className="canvas-ask-pill"
-            aria-label={past ? 'Ask from this view' : 'Ask'}
-            title={past ? 'Starts a branch from this view' : undefined}
-            onClick={() => openPalette()}
-          >
-            {past ? 'Ask from this view' : 'Ask'} <Kbd className="canvas-ask-kbd">⌘K</Kbd>
-          </Button>
-        )}
-      </main>
+          {!paletteOpen && (
+            <Button
+              variant="solid"
+              size="3"
+              className="canvas-ask-pill"
+              aria-label={past ? 'Ask from this view' : 'Ask'}
+              title={past ? 'Starts a branch from this view' : undefined}
+              onClick={() => openPalette()}
+            >
+              {past ? 'Ask from this view' : 'Ask'} <Kbd className="canvas-ask-kbd">⌘K</Kbd>
+            </Button>
+          )}
+        </main>
+      </InstalledAppsContext.Provider>
     </CatalogProvider>
+  );
+}
+
+/** The consent card open over a slot, if any (task-15.9 decision 2). */
+function SlotConsent({slotActs}: {slotActs: SlotActs}) {
+  const consent = useSyncExternalStore(slotActs.subscribe, slotActs.getState);
+  return (
+    <SlotConsentCard
+      ask={consent?.ask ?? null}
+      anchor={consent?.anchor ?? null}
+      onConfirm={slotActs.confirm}
+      onCancel={slotActs.cancel}
+    />
   );
 }

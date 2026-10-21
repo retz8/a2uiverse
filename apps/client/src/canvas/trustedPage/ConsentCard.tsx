@@ -3,15 +3,18 @@
  * shape, trusted shell UI, before an install or an update that asks for more. Installing, it says
  * what the app is, who publishes it, and what it will ask to sign in to, in its own words; updating,
  * only what is new — the new permissions in the app's words, and a new look when a catalog it paints
- * in moves (task-14.2 decision 8). One press confirms. Built once, for the Store and the App Library.
+ * in moves (task-14.2 decision 8). One press confirms. One body in two frames: centred on the
+ * Store and the App Library, and floating over a slot from the press made there, nothing on the
+ * canvas moving (task-15.9 decision 2).
  */
-import {AlertDialog, Button, Flex} from '@radix-ui/themes';
-import {asksForMore, type IndexEntry, type UpdateState} from '@a2uiverse/sdk';
-import {bringsNewLook, newScopeWords, signInOf, tileLetter} from './appCard';
+import {useId, useMemo} from 'react';
+import {AlertDialog, Button, Flex, Heading, Popover, Text} from '@radix-ui/themes';
+import type {IndexEntry} from '@a2uiverse/sdk';
+import {newScopeWords, signInOf, tileLetter, type UpdateNewsFacts} from './appCard';
 
 /** What the card asks: an install, or an update that asks for more. */
 export type ConsentAsk =
-  {kind: 'install'; entry: IndexEntry} | {kind: 'update'; entry: IndexEntry; update: UpdateState};
+  {kind: 'install'; entry: IndexEntry} | {kind: 'update'; entry: IndexEntry; news: UpdateNewsFacts};
 
 export interface ConsentCardProps {
   ask: ConsentAsk | null;
@@ -105,11 +108,9 @@ function InstallSignIn({entry}: {entry: IndexEntry}) {
 }
 
 /** What updating brings that the installed app did not ask for. */
-function UpdateNews({entry, update}: {entry: IndexEntry; update: UpdateState}) {
+function UpdateNews({entry, news}: {entry: IndexEntry; news: UpdateNewsFacts}) {
   const name = entry.card.name;
-  // Every update that asks for more names what it newly asks (task-15.5 decision 7).
-  const words =
-    asksForMore(update) && 'newScopes' in update ? newScopeWords(entry.card, update.newScopes) : [];
+  const words = newScopeWords(entry.card, news.newScopes);
   return (
     <>
       {words.length > 0 && (
@@ -119,11 +120,42 @@ function UpdateNews({entry, update}: {entry: IndexEntry; update: UpdateState}) {
           icon="plus"
         />
       )}
-      {bringsNewLook(update) && <p>It also brings a new look for its answers.</p>}
+      {news.newLook && <p>It also brings a new look for its answers.</p>}
     </>
   );
 }
 
+/** The app the card is about: its letter, its name, its publisher. */
+function Who({entry}: {entry: IndexEntry}) {
+  return (
+    <div className="store-consent__who">
+      <span className="store-tile store-tile--40" aria-hidden="true">
+        {tileLetter(entry.card.name)}
+      </span>
+      <div className="store-txt">
+        <span className="store-name">{entry.card.name}</span>
+        <span className="store-by">by {entry.publisher}</span>
+      </div>
+    </div>
+  );
+}
+
+/** The card's question, and its two presses' words. */
+const title = (ask: ConsentAsk) =>
+  ask.kind === 'install' ? `Install ${ask.entry.card.name}?` : `Update ${ask.entry.card.name}?`;
+const cancelWords = (ask: ConsentAsk) => (ask.kind === 'install' ? 'Cancel' : 'Not now');
+const confirmWords = (ask: ConsentAsk) => (ask.kind === 'install' ? 'Install' : 'Update');
+
+/** What the card says below its question: the app's description and its sign-in, or the news. */
+function Detail({ask}: {ask: ConsentAsk}) {
+  return ask.kind === 'install' ? (
+    <InstallSignIn entry={ask.entry} />
+  ) : (
+    <UpdateNews entry={ask.entry} news={ask.news} />
+  );
+}
+
+/** The card on the trusted page: centred, over the page. */
 export function ConsentCard({ask, onConfirm, onClose, container}: ConsentCardProps) {
   const entry = ask?.entry;
   return (
@@ -140,43 +172,92 @@ export function ConsentCard({ask, onConfirm, onClose, container}: ConsentCardPro
           className="store-consent"
           data-testid="consent-card"
         >
-          <div className="store-consent__who">
-            <span className="store-tile store-tile--40" aria-hidden="true">
-              {tileLetter(entry.card.name)}
-            </span>
-            <div className="store-txt">
-              <span className="store-name">{entry.card.name}</span>
-              <span className="store-by">by {entry.publisher}</span>
-            </div>
-          </div>
+          <Who entry={entry} />
           <AlertDialog.Title size="5" mb="0">
-            {ask.kind === 'install' ? `Install ${entry.card.name}?` : `Update ${entry.card.name}?`}
+            {title(ask)}
           </AlertDialog.Title>
           {ask.kind === 'install' ? (
-            <>
-              <AlertDialog.Description size="2">{entry.card.description}</AlertDialog.Description>
-              <InstallSignIn entry={entry} />
-            </>
+            <AlertDialog.Description size="2">{entry.card.description}</AlertDialog.Description>
           ) : (
-            <>
-              <AlertDialog.Description size="2" className="store-visually-hidden">
-                What this update to {entry.card.name} brings
-              </AlertDialog.Description>
-              <UpdateNews entry={entry} update={ask.update} />
-            </>
+            <AlertDialog.Description size="2" className="store-visually-hidden">
+              What this update to {entry.card.name} brings
+            </AlertDialog.Description>
           )}
+          <Detail ask={ask} />
           <Flex gap="3" justify="end">
             <AlertDialog.Cancel>
               <Button variant="soft" color="gray">
-                {ask.kind === 'install' ? 'Cancel' : 'Not now'}
+                {cancelWords(ask)}
               </Button>
             </AlertDialog.Cancel>
             <AlertDialog.Action>
-              <Button onClick={onConfirm}>{ask.kind === 'install' ? 'Install' : 'Update'}</Button>
+              <Button onClick={onConfirm}>{confirmWords(ask)}</Button>
             </AlertDialog.Action>
           </Flex>
         </AlertDialog.Content>
       )}
     </AlertDialog.Root>
+  );
+}
+
+export interface SlotConsentCardProps {
+  ask: ConsentAsk | null;
+  /** The Install or Update pressed in the slot: the card floats from it. */
+  anchor: HTMLElement | null;
+  /** The card's one press: install, or update. */
+  onConfirm: () => void;
+  /** Cancel or Not now, Escape, or a press outside the card. */
+  onCancel: () => void;
+}
+
+/**
+ * The card over a slot (task-15.9 decision 2, the design canvas's O3 and U3): the same body,
+ * floating from the press with no scrim, so the offer or the update tile stays behind it and
+ * nothing on the canvas moves. Focus stays inside while it is open; Escape and a press outside
+ * cancel it.
+ */
+export function SlotConsentCard({ask, anchor, onConfirm, onCancel}: SlotConsentCardProps) {
+  const titleId = useId();
+  const anchorRef = useMemo(() => ({current: anchor}), [anchor]);
+  const open = ask !== null && anchor !== null;
+  return (
+    <Popover.Root
+      modal
+      open={open}
+      onOpenChange={next => {
+        if (!next) onCancel();
+      }}
+    >
+      {anchor && <Popover.Anchor virtualRef={anchorRef as {current: HTMLElement}} />}
+      {open && (
+        <Popover.Content
+          side="bottom"
+          align="end"
+          maxWidth="420px"
+          className="store-consent store-consent--slot"
+          data-testid="slot-consent-card"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={titleId}
+        >
+          <Who entry={ask.entry} />
+          <Heading as="h2" id={titleId} size="5" mb="0">
+            {title(ask)}
+          </Heading>
+          {ask.kind === 'install' && (
+            <Text as="p" size="2">
+              {ask.entry.card.description}
+            </Text>
+          )}
+          <Detail ask={ask} />
+          <Flex gap="3" justify="end">
+            <Button variant="soft" color="gray" onClick={onCancel}>
+              {cancelWords(ask)}
+            </Button>
+            <Button onClick={onConfirm}>{confirmWords(ask)}</Button>
+          </Flex>
+        </Popover.Content>
+      )}
+    </Popover.Root>
   );
 }

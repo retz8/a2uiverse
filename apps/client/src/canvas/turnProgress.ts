@@ -5,15 +5,17 @@
  * the presses the reader made, the sign-in windows open. The one model word in it is the entity's
  * noun in each source, from the Planner's join hypothesis (task-7.15).
  */
-import type {CanvasState, JoinNouns, RosterEntry} from './canvasStore';
+import {UPDATE_SHORT_WORDS, updateLineOf} from '@a2uiverse/shell-catalog';
+import {appActOf, type CanvasState, type JoinNouns, type RosterEntry} from './canvasStore';
 import {retrying} from './composition/columnState';
 import {SHELL_SOURCE} from './composition/roster';
 
 /**
- * Where one step of the turn stands; `locked` is a source waiting on a sign-in, `asking` one
- * whose fragment asks a question (task-12.13 decision 37).
+ * Where one step of the turn stands; `locked` is a source waiting on a sign-in, `update` one on
+ * the update tile (task-15.3 decision 17), `asking` one whose fragment asks a question (task-12.13
+ * decision 37).
  */
-export type StepStatus = 'done' | 'working' | 'failed' | 'idle' | 'locked' | 'asking';
+export type StepStatus = 'done' | 'working' | 'failed' | 'idle' | 'locked' | 'update' | 'asking';
 
 export interface SourceStep {
   source: string;
@@ -75,6 +77,19 @@ export function signInWords(state: CanvasState, source: string): string | undefi
 }
 
 /**
+ * A source on the update tile in the progress line's words (task-15.8 decision 4): the line's
+ * short form — needs an update, waiting on its publisher, couldn't check for updates, no update
+ * available — or "updating" while its Update runs (task-15.3 decision 17). None once its resend is
+ * pressed.
+ */
+export function updateWords(state: CanvasState, source: string): string | undefined {
+  if (state.slotStates.get(source) !== 'update' || retrying(state, source)) return undefined;
+  if (appActOf(state, {source})?.status === 'running') return 'updating';
+  const update = state.updates.get(source);
+  return update && UPDATE_SHORT_WORDS[updateLineOf(update.state)];
+}
+
+/**
  * The source of the fragment holding `surfaceId`, while a press the reader made on that source —
  * Allow's resume, a Retry — still runs: a press inside the fragment then would send its write a
  * second time (task-12.13 decision 46).
@@ -90,9 +105,14 @@ export function pressBusy(state: CanvasState, surfaceId: string): string | undef
   return busy ? source : undefined;
 }
 
-/** A source whose slot waits on a sign-in: resolved at once, never awaited by the merge. */
-const needsSignIn = (state: CanvasState, source: string) =>
-  state.slotStates.get(source) === 'authority' && !retrying(state, source);
+/**
+ * A source whose slot waits on its own press — a sign-in, or an update (task-15.5 decision 10):
+ * resolved at once, never awaited by the merge.
+ */
+const waitsOnItsPress = (state: CanvasState, source: string) => {
+  const painted = state.slotStates.get(source);
+  return (painted === 'authority' || painted === 'update') && !retrying(state, source);
+};
 
 /** A press the reader made inside the source's fragment, its stream not yet ended. */
 const pressRunning = (state: CanvasState, source: string) =>
@@ -101,16 +121,25 @@ const pressRunning = (state: CanvasState, source: string) =>
 /**
  * What the source waits on the reader for, in the progress line's words: a sign-in window open;
  * otherwise nothing while a press made in its fragment runs, that press being the latest fact
- * (task-12.13 decision 38); then its sign-in, or the question its fragment asks.
+ * (task-12.13 decision 38); then its sign-in, its update, or the question its fragment asks.
  */
 function waitingWords(state: CanvasState, source: string): string | undefined {
   if (state.signingIn.has(source)) return signInWords(state, source);
   if (pressRunning(state, source)) return undefined;
-  return signInWords(state, source) ?? (state.asking.has(source) ? 'needs your answer' : undefined);
+  return (
+    signInWords(state, source) ??
+    updateWords(state, source) ??
+    (state.asking.has(source) ? 'needs your answer' : undefined)
+  );
 }
 
 const sourceStatus = (state: CanvasState, source: string, busy: boolean): StepStatus => {
-  if (waitingWords(state, source)) return signInWords(state, source) ? 'locked' : 'asking';
+  if (waitingWords(state, source)) {
+    if (signInWords(state, source)) return 'locked';
+    const update = updateWords(state, source);
+    if (update !== undefined) return update === 'updating' ? 'working' : 'update';
+    return 'asking';
+  }
   // The reader's Retry is drawn from the press, before the paint says so.
   const retried = retrying(state, source);
   const painted = state.slotStates.get(source);
@@ -260,7 +289,7 @@ function mergeStep(
         if (failedInclude.includes(id)) return [`couldn’t include ${phrase(entry)}`];
         if (facts.late?.includes(id)) return [`${phrase(entry)} not in this view yet`];
         // The merge names only what it merged; the source's own step says it needs sign-in.
-        if (needsSignIn(state, id)) return [];
+        if (waitsOnItsPress(state, id)) return [];
         if (state.slotStates.get(id) === 'failed' && !retrying(state, id))
           return [noun(entry) ? `no ${phrase(entry)} to join` : `without ${entry.name}`];
         if (!state.placement.has(id) && state.slotStates.get(id) !== 'collapsed')
@@ -282,7 +311,7 @@ function mergeStep(
     entry =>
       !state.placement.has(entry.source) &&
       !state.prose.has(entry.source) &&
-      !needsSignIn(state, entry.source),
+      !waitsOnItsPress(state, entry.source),
   );
   const awaited = out.filter(entry => !failed(entry.source));
   const possible = arrived.length >= 2 && (!home || arrived.includes(home));

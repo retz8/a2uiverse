@@ -13,6 +13,7 @@ import type {CatalogLoader} from '../../../catalogs/loader';
 import type {InstalledApp, LibraryApp} from '../../../orchestratorApi';
 import type {TrustedPageState} from '../../trail/trailStore';
 import {CATALOGS, renderWithShell} from '../../../../tests/helpers';
+import {createInstalledApps, InstalledAppsContext} from '../../installedApps';
 import {LibraryPage} from './LibraryPage';
 
 /** Over https: a sign-in window opens only there, localhost exempt. */
@@ -670,5 +671,50 @@ describe('uninstall', () => {
     expect(within(await screen.findByTestId('library-list')).getByRole('alert')).toHaveTextContent(
       'Gmail couldn’t be uninstalled, so nothing changed.',
     );
+  });
+});
+
+describe('beside the canvas’s slots (task 15.9)', () => {
+  it('an app held by a press elsewhere draws its Update disabled (decision 1)', async () => {
+    const apps = createInstalledApps({read: async () => []});
+    apps.hold('calendar');
+    renderWithShell(
+      <InstalledAppsContext.Provider value={apps}>
+        <Library initial={{page: 'appLibrary'}} />
+      </InstalledAppsContext.Provider>,
+    );
+    expect(
+      await within(await waitFor(() => row('calendar'))).findByRole('button', {
+        name: 'Update Google Calendar',
+      }),
+    ).toBeDisabled();
+  });
+
+  it('an uninstall reads the catalog table and the installed apps again (decision 6)', async () => {
+    const refresh = vi.fn(async () => {});
+    const loader = {refresh} as unknown as CatalogLoader;
+    const read = vi.fn(async () => []);
+    const apps = createInstalledApps({read});
+    renderWithShell(
+      <InstalledAppsContext.Provider value={apps}>
+        <LibraryPage
+          page={{page: 'appLibrary', app: 'gmail'}}
+          onNavigate={() => {}}
+          orchestrator={BASE}
+          catalogs={loader}
+          container={null}
+          pollMs={5}
+          openWindow={() => {}}
+        />
+      </InstalledAppsContext.Provider>,
+    );
+    // Entering runs the check, whose landing reads the table once.
+    await waitFor(() => expect(refresh).toHaveBeenCalledTimes(1));
+    await userEvent.click(await screen.findByRole('button', {name: 'Uninstall Gmail'}));
+    const question = await screen.findByTestId('library-uninstall');
+    await userEvent.click(within(question).getByRole('button', {name: 'Uninstall'}));
+    await waitFor(() => expect(fake.uninstalled).toEqual(['gmail']));
+    await waitFor(() => expect(refresh).toHaveBeenCalledTimes(2));
+    expect(read).toHaveBeenCalled();
   });
 });

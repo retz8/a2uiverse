@@ -146,6 +146,21 @@ export function bringsNewLook(update: UpdateState): boolean {
   return 'builds' in update && update.builds.length > 0;
 }
 
+/** What an update brings that the consent card says: the permissions it newly asks, and a new look. */
+export interface UpdateNewsFacts {
+  newScopes: readonly NewScopes[];
+  newLook: boolean;
+}
+
+/** What an update state brings, as the consent card says it. */
+export function newsOf(update: UpdateState): UpdateNewsFacts {
+  return {
+    // Every update that asks for more names what it newly asks (task-15.5 decision 7).
+    newScopes: asksForMore(update) && 'newScopes' in update ? update.newScopes : [],
+    newLook: bringsNewLook(update),
+  };
+}
+
 const DAY = new Intl.DateTimeFormat('en-US', {month: 'short', day: 'numeric'});
 const DAY_YEAR = new Intl.DateTimeFormat('en-US', {
   month: 'short',

@@ -34,21 +34,31 @@ export type AppActHandler = (request: AppActRequest) => void;
 export type AppActSlot = {gap: string} | {source: string};
 
 /**
- * An Install or Update pressed in a slot, as the host knows it: running, or refused with the
- * Store's cause. None once it lands — the slot's fill press then carries it — or when cancelled.
+ * An Install or Update pressed in a slot, as the host knows it: asking — the app's entry read again,
+ * or its consent card open — running, or refused with the Store's cause. None once it lands — the
+ * slot's fill press then carries it — or when cancelled.
  */
 export type AppActStatus =
-  {appId: string; status: 'running'} | {appId: string; status: 'refused'; cause: InstallRefusal};
+  | {appId: string; status: 'asking'}
+  | {appId: string; status: 'running'}
+  | {appId: string; status: 'refused'; cause: InstallRefusal};
 
 export interface AppActState {
-  /** The press made in a slot, if one is running or was refused. */
+  /** The press made in a slot, if one is asking, running or was refused. */
   act: (slot: AppActSlot) => AppActStatus | undefined;
   /** The version the host holds an app installed at — its card's as installed — none when it is not installed. */
   installed: (appId: string) => string | undefined;
+  /**
+   * Whether an install or update of the app is under way anywhere — any slot, on any canvas, or the
+   * trusted page: every Install, Update and Show it here for it is held until it ends (task-15.9
+   * decision 1).
+   */
+  busy: (appId: string) => boolean;
 }
 
-/** Default: no press made, no app known installed — every slot draws what was painted. */
+/** Default: no press made, no app known installed or held — every slot draws what was painted. */
 export const AppActContext = createContext<AppActState>({
   act: () => undefined,
   installed: () => undefined,
+  busy: () => false,
 });

@@ -12,6 +12,7 @@ import {
   SHELL_SOURCE,
   shellPaintSlots,
   slotStatesOf,
+  updatesOf,
 } from './roster';
 
 const msg = (m: Record<string, unknown>): A2uiMessage =>
@@ -418,6 +419,47 @@ describe('the sign-in a shell paint carries (task-12.8 decision 7)', () => {
       new Map([
         ['gmail.1', false],
         ['github.1', true],
+      ]),
+    );
+  });
+});
+
+describe('the update tile a shell paint carries (task-15.9)', () => {
+  const NEEDS = {
+    state: 'major-update',
+    installedVersion: '1.0.0',
+    publishedVersion: '2.0.0',
+    newScopes: [{scheme: 'oauth', scopes: ['write']}],
+    publisher: 'northlight',
+  };
+  const paint = msg({
+    updateComponents: {
+      surfaceId: 'shell:main',
+      components: [
+        {id: 'a-shop', component: 'Attribution', source: 'shop-b', child: 's-shop'},
+        {id: 's-shop', component: 'Slot', source: 'shop-b', state: 'update', update: NEEDS},
+        {id: 's-github', component: 'Slot', source: 'github.1'},
+        {
+          id: 's-kept',
+          component: 'Slot',
+          source: 'circleci',
+          state: 'pending',
+          update: {state: 'unknown', installedVersion: '1.0.0'},
+        },
+      ],
+    },
+  });
+
+  it('a slot on the update tile keeps its state', () => {
+    expect(slotStatesOf([paint]).get('shop-b')).toBe('update');
+  });
+
+  it('each vendor slot’s update facts — kept through its pending repaint — null when it carries none', () => {
+    expect(updatesOf([paint])).toEqual(
+      new Map<string, unknown>([
+        ['shop-b', NEEDS],
+        ['github.1', null],
+        ['circleci', {state: 'unknown', installedVersion: '1.0.0'}],
       ]),
     );
   });

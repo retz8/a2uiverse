@@ -17,22 +17,27 @@ export const NOTHING_WORDS: Record<OfferNoneCause, string> = {
   unreached: 'Couldn’t reach the Store.',
 };
 
-/** Where an offered app's row stands, read from the slot's facts and the host's. */
+/**
+ * Where an offered app's row stands, read from the slot's facts and the host's. `busy` is an
+ * install or update of the app under way elsewhere: the row's press is held (task-15.9 decision 1).
+ */
 export type OfferRow =
   /** Its request sent, the offer kept until the answer: Installed with Loading…. */
   | {kind: 'filling'}
   | {kind: 'installing'}
   /** Installed elsewhere, or here with its fill press not through: Show it here. */
-  | {kind: 'show'; note?: string}
-  | {kind: 'refused'; refusal: ReturnType<typeof refusalOf>}
-  | {kind: 'install'};
+  | {kind: 'show'; note?: string; busy?: true}
+  | {kind: 'refused'; refusal: ReturnType<typeof refusalOf>; busy?: true}
+  | {kind: 'install'; busy?: true};
 
 /**
  * Each offered app's row (task-15.3 decisions 8–11): the app installed in this slot, its request
  * sent — painted on the slot the offer became, or its fill press on its way — reads Installed with
  * Loading…; the app installing reads Installing; an app the host holds installed reads Show it
  * here, saying so when its fill press never reached or its stream broke; a refused install says why
- * in the Store's words. `held` is true while one row installs or fills: every other row waits.
+ * in the Store's words. `held` is true while one row asks — its entry read again, its consent card
+ * open — installs or fills: every other row waits (task-15.9 decision 7). A row whose app is busy
+ * elsewhere holds its own press (decision 1).
  */
 export function offerRows(
   gap: string,
@@ -51,18 +56,19 @@ export function offerRows(
   const rows = apps.map((app): OfferRow => {
     if (app.appId === filled) return {kind: 'filling'};
     if (act?.appId === app.appId && act.status === 'running') return {kind: 'installing'};
+    const busy = acts.busy(app.appId) ? {busy: true as const} : {};
     if (acts.installed(app.appId) !== undefined) {
       const status = fill(app.appId);
       const note =
         status === 'unreached' ? UNREACHED_WORDS : status === 'lost' ? LOST_WORDS : undefined;
-      return note ? {kind: 'show', note} : {kind: 'show'};
+      return note ? {kind: 'show', note, ...busy} : {kind: 'show', ...busy};
     }
     if (act?.appId === app.appId && act.status === 'refused') {
-      return {kind: 'refused', refusal: refusalOf(act.cause, app.name, 'install')};
+      return {kind: 'refused', refusal: refusalOf(act.cause, app.name, 'install'), ...busy};
     }
-    return {kind: 'install'};
+    return {kind: 'install', ...busy};
   });
-  const held = filled !== undefined || (act?.status === 'running' && act.appId !== undefined);
+  const held = filled !== undefined || act?.status === 'running' || act?.status === 'asking';
   return {rows, held};
 }
 
@@ -196,7 +202,7 @@ function RowEnd({
             <Button
               size="1"
               variant="soft"
-              disabled={!pressable}
+              disabled={!pressable || row.busy}
               onClick={event => onPress('show', event.currentTarget)}
             >
               Show it here
@@ -212,7 +218,7 @@ function RowEnd({
         <Button
           size="1"
           variant="soft"
-          disabled={!enabled || row.refusal.press === 'none'}
+          disabled={!enabled || row.busy || row.refusal.press === 'none'}
           onClick={event => onPress('install', event.currentTarget)}
         >
           {row.refusal.press === 'retry' ? 'Try again' : 'Install'}
@@ -223,7 +229,7 @@ function RowEnd({
         <Button
           size="1"
           variant="soft"
-          disabled={!pressable}
+          disabled={!pressable || row.busy}
           onClick={event => onPress('install', event.currentTarget)}
         >
           Install

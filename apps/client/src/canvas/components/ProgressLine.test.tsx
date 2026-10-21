@@ -129,6 +129,19 @@ describe('ProgressLine', () => {
     expect(step.querySelector('[data-icon="asking"]')).not.toBeNull();
   });
 
+  it('a source on the update tile carries the tile’s circled up-arrow and its line’s short words (task-15.3 decision 17)', () => {
+    const store = createCanvasStore();
+    store.setRoster([{source: 'shop-b', name: 'Shop B'}]);
+    store.mergeSlotStates(new Map([['shop-b', 'update' as const]]));
+    store.mergeUpdates(
+      new Map([['shop-b', {state: 'unknown' as const, installedVersion: '1.0.0'}]]),
+    );
+    renderWithShell(<ProgressLine state={store.getState()} since={null} />);
+    const step = screen.getByText('Shop B couldn’t check for updates').closest('[data-status]')!;
+    expect(step).toHaveAttribute('data-status', 'update');
+    expect(step.querySelector('[data-icon="update"]')).not.toBeNull();
+  });
+
   it('an account added from this canvas is said on the line, even with nothing else to say (task-12.8 decision 6)', () => {
     const store = createCanvasStore();
     store.showAccountNotice('Added work@example.com to Gmail.');

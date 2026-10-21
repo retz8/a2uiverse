@@ -476,7 +476,7 @@ export function createCanvasRuntime({
     const clientAction: A2uiClientAction = {
       name: action.name,
       surfaceId: action.surfaceId,
-      // A functionCall runs with no component in scope; only the capability tile names itself.
+      // A functionCall runs with no component in scope; a slot's own press names its slot.
       sourceComponentId: action.componentId ?? FUNCTION_CALL_SOURCE,
       timestamp: new Date().toISOString(),
       context: shellActionContext(action),
@@ -589,7 +589,12 @@ export function createCanvasRuntime({
 export function trustedPageOf(action: ShellAction): TrustedPageState | undefined {
   switch (action.name) {
     case 'openStore':
-      return {page: 'store', ...(action.query !== undefined ? {query: action.query} : {})};
+      // An offered app's name opens its view in the Store (task-15.8 decision 8).
+      return {
+        page: 'store',
+        ...(action.query !== undefined ? {query: action.query} : {}),
+        ...(action.app !== undefined ? {app: action.app} : {}),
+      };
     case 'openAppLibrary':
       return {page: 'appLibrary', ...(action.app !== undefined ? {app: action.app} : {})};
     case 'openPublish':
@@ -597,9 +602,14 @@ export function trustedPageOf(action: ShellAction): TrustedPageState | undefined
   }
 }
 
-/** What a shell action's report carries for the journal: the Store's query, the App Library's app. */
+/** What a shell action's report carries for the journal: the Store's query or app, the App Library's app. */
 export function shellActionContext(action: ShellAction): Record<string, string> {
-  if (action.name === 'openStore' && action.query !== undefined) return {query: action.query};
+  if (action.name === 'openStore') {
+    return {
+      ...(action.query !== undefined ? {query: action.query} : {}),
+      ...(action.app !== undefined ? {app: action.app} : {}),
+    };
+  }
   if (action.name === 'openAppLibrary' && action.app !== undefined) return {app: action.app};
   return {};
 }

@@ -1037,6 +1037,18 @@ describe('streams beside the turn (task 8.5)', () => {
     expect(store.getState().error).toBeNull();
   });
 
+  it('a slot painted on the update tile carries its update facts into the store, on any stream (task 15.9)', () => {
+    const {store, runner} = composed();
+    const update = {state: 'unknown', installedVersion: '1.0.0'};
+    runner
+      .beginSideStream()
+      .apply([slotRepaint([{source: 'gmail', state: 'update', update}])], SHELL);
+    expect(store.getState().slotStates.get('gmail')).toBe('update');
+    expect(store.getState().updates.get('gmail')).toEqual(update);
+    runner.beginSideStream().apply([slotRepaint([{source: 'gmail', state: 'pending'}])], SHELL);
+    expect(store.getState().updates.has('gmail')).toBe(false);
+  });
+
   it('a Retry’s answer fills its slot in the live composition, touching nothing of the turn', () => {
     const {processor, store, runner} = composed();
     runner.beginSideStream().apply([slotRepaint([{source: 'gmail', state: 'failed'}])], SHELL);

@@ -66,6 +66,7 @@ import {
   SHELL_SOURCE,
   shellPaintSlots,
   slotStatesOf,
+  updatesOf,
 } from '../composition/roster';
 import {describeError} from '../../shared/describeError';
 import type {CanvasStore} from '../canvasStore';
@@ -261,6 +262,7 @@ export function createTurnRunner({
     const authority = authorityOf(messages);
     store.mergeAuthority(authority);
     store.mergeEscalations(escalationsOf(messages));
+    store.mergeUpdates(updatesOf(messages));
     const tiles = [...authority].flatMap(([source, cause]) => (cause ? [source] : []));
     if (tiles.length > 0) onAuthority?.(tiles);
     const merge = mergeFactsOf(messages);

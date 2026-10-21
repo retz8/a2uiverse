@@ -2,16 +2,17 @@
  * A reserved column's state, by the source the column is marked to (task-8.5 decision 12): what the
  * client tells the shell catalog's `Table` through `SlotStateContext`. The authored cells once the
  * source is in the merge; unavailable once it failed; not signed in while it waits on a sign-in
- * (task-12.8 decision 7); loading while it loads, while its Retry runs — its resume after a
- * sign-in among them — and while it is being included; not included while it waits for Include. A source that answered in
+ * (task-12.8 decision 7); as its line says while it waits on an update (task-15.8 decision 4);
+ * loading while it loads, while its Retry runs — its resume after a sign-in or an update among
+ * them — and while it is being included; not included while it waits for Include. A source that answered in
  * words with no screen keeps the authored cells too. Every word is the shell catalog's; the client
  * only says which.
  */
-import type {SourceSlotState} from '@a2uiverse/shell-catalog';
+import {type SourceSlotState, updateSlotState} from '@a2uiverse/shell-catalog';
 import type {CanvasState} from '../canvasStore';
 
 type ColumnInputs = Pick<CanvasState, 'merge' | 'slotStates' | 'placement' | 'presses'> &
-  Partial<Pick<CanvasState, 'authority'>>;
+  Partial<Pick<CanvasState, 'authority' | 'updates'>>;
 
 /** Whether the reader's Retry of this source is pressed or still running. */
 export function retrying({presses}: Pick<CanvasState, 'presses'>, source: string): boolean {
@@ -38,7 +39,7 @@ export function sourceBusy(
 }
 
 export function columnState(state: ColumnInputs, source: string): SourceSlotState {
-  const {merge, slotStates, placement, presses, authority} = state;
+  const {merge, slotStates, placement, presses, authority, updates} = state;
   if (merge?.merged?.includes(source)) return 'filled';
   const painted = slotStates.get(source);
   if (painted === 'failed' && !retrying(state, source)) return 'failed';
@@ -47,6 +48,11 @@ export function columnState(state: ColumnInputs, source: string): SourceSlotStat
     // asked for more access, so (task-12.13 decision 50).
     const cause = authority?.get(source);
     return cause === 'connect' || cause === 'more' ? cause : 'authority';
+  }
+  if (painted === 'update' && !retrying(state, source)) {
+    // As its line says (task-15.8 decision 4).
+    const update = updates?.get(source);
+    return update ? updateSlotState(update) : 'update';
   }
   const including = presses.some(
     press =>

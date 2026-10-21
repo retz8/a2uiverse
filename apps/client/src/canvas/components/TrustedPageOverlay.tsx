@@ -28,6 +28,11 @@ export interface TrustedPageOverlayProps {
   catalogs?: PageCatalogs;
   /** The orchestrator's base URL, which every read and write of the page goes through. */
   orchestrator?: string;
+  /**
+   * An install on the Store landed: whether it filled the slot the page was opened from (task-15.9
+   * decision 3).
+   */
+  onInstalled?: (appId: string) => boolean;
 }
 
 const PAGE_TITLES: Record<TrustedPage, string> = {
@@ -70,6 +75,7 @@ export function TrustedPageOverlay({
   onNavigate,
   catalogs = NO_CATALOGS,
   orchestrator = agentUrl(),
+  onInstalled,
 }: TrustedPageOverlayProps) {
   const root = useRef<HTMLDivElement | null>(null);
   /** The page's own element, where a dialog inside it is drawn. */
@@ -151,6 +157,8 @@ export function TrustedPageOverlay({
             orchestrator={orchestrator}
             catalogs={catalogs}
             container={container}
+            onInstalled={onInstalled}
+            onClose={onClose}
           />
         ) : page.page === 'appLibrary' ? (
           <LibraryPage

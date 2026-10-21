@@ -413,8 +413,10 @@ body {
 }
 
 /* A source waiting on a sign-in (task-12.8 decision 7): a lock, in the line's own ink. A source
-   whose fragment asks a question (task-12.13 decision 37): a question mark, the same ink. */
+   on the update tile (task-15.3 decision 17): its up-arrow, the same ink. A source whose fragment
+   asks a question (task-12.13 decision 37): a question mark, the same ink. */
 .canvas-progress-step--locked svg,
+.canvas-progress-step--update svg,
 .canvas-progress-step--asking svg {
   color: var(--a2v-ink-2);
 }

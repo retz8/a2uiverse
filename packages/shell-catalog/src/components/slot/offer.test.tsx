@@ -28,12 +28,16 @@ const SHOP_A = {
 const GAP = 'camera prices';
 const OFFER = {apps: [SHOP_B, SHOP_A]};
 
-/** The host's app acts: the press made in each slot, and the apps it holds installed by version. */
+/**
+ * The host's app acts: the press made in each slot, the apps it holds installed by version, and the
+ * apps held by an install or update running anywhere.
+ */
 function acts(
   act: AppActState['act'] = () => undefined,
   installed: Record<string, string> = {},
+  busy: readonly string[] = [],
 ): AppActState {
-  return {act, installed: appId => installed[appId]};
+  return {act, installed: appId => installed[appId], busy: appId => busy.includes(appId)};
 }
 
 function withHost(
@@ -207,6 +211,44 @@ test('the slot an offer became keeps the offer, Installed with Loading… on its
   );
   expect(screen.getByText('Shop B’s answer')).toBeInTheDocument();
   expect(container.querySelector('[data-offer-app]')).toBeNull();
+});
+
+test('an app held elsewhere — its install or update running from another slot or the page — draws its row’s Install disabled, its words unchanged; the other rows keep theirs (task-15.9 decision 1)', () => {
+  const {container} = render(
+    withHost(<SlotView gap={GAP} offer={OFFER} onAppAct={() => {}} />, {
+      act: acts(undefined, {}, ['shop-b']),
+    }),
+  );
+  expect(within(rowOf(container, 'shop-b')).getByRole('button', {name: 'Install'})).toBeDisabled();
+  expect(within(rowOf(container, 'shop-a')).getByRole('button', {name: 'Install'})).toBeEnabled();
+});
+
+test('an app installed elsewhere and held there draws Show it here disabled', () => {
+  const {container} = render(
+    withHost(<SlotView gap={GAP} offer={OFFER} onAppAct={() => {}} />, {
+      act: acts(undefined, {'shop-b': '1.0.0'}, ['shop-b']),
+    }),
+  );
+  expect(
+    within(rowOf(container, 'shop-b')).getByRole('button', {name: 'Show it here'}),
+  ).toBeDisabled();
+});
+
+test('a press asking — its entry read again, its consent card open — holds every row, the pressed one’s words unchanged (task-15.9 decision 7)', () => {
+  const {container} = render(
+    withHost(<SlotView gap={GAP} offer={OFFER} onAppAct={() => {}} />, {
+      act: acts(
+        where =>
+          'gap' in where && where.gap === GAP ? {appId: 'shop-b', status: 'asking'} : undefined,
+        {},
+        ['shop-b'],
+      ),
+    }),
+  );
+  const b = within(rowOf(container, 'shop-b'));
+  expect(b.getByRole('button', {name: 'Install'})).toBeDisabled();
+  expect(b.queryByText('Installing')).not.toBeInTheDocument();
+  expect(within(rowOf(container, 'shop-a')).getByRole('button', {name: 'Install'})).toBeDisabled();
 });
 
 test('an app installed elsewhere turns its row to Show it here, a quiet Installed beside it; the other rows keep Install', () => {

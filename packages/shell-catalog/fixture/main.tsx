@@ -916,12 +916,20 @@ const NEEDS_UPDATE = {
   publisher: 'northlight',
 };
 
-/** The host's app acts for one cell: the press made in its slot, and the apps it holds installed. */
+/**
+ * The host's app acts for one cell: the press made in its slot, the apps it holds installed, and
+ * the apps an install or update under way elsewhere holds.
+ */
 function acts(
   status?: ReturnType<AppActState['act']>,
   installed: Record<string, string> = {},
+  busy: readonly string[] = [],
 ): AppActState {
-  return {act: () => status, installed: appId => installed[appId]};
+  return {
+    act: () => status,
+    installed: appId => installed[appId],
+    busy: appId => busy.includes(appId),
+  };
 }
 
 const logAct = (act: unknown) => console.log('[fixture app act]', act);
@@ -1009,6 +1017,18 @@ function StoreLoopMatrix() {
       <LoopCell label="O1 · one app offered">{offer([SHOP_B])}</LoopCell>
       <LoopCell label="O2 · both shops offered, in the Planner's order">{offer()}</LoopCell>
       <LoopCell
+        label="asking — the entry read again, the consent card open — every row held"
+        act={acts({appId: 'shop-b', status: 'asking'}, {}, ['shop-b'])}
+      >
+        {offer()}
+      </LoopCell>
+      <LoopCell
+        label="held elsewhere — Shop B installing from another slot or the page"
+        act={acts(undefined, {}, ['shop-b'])}
+      >
+        {offer()}
+      </LoopCell>
+      <LoopCell
         label="O4 · installing — the other Install held"
         act={acts({appId: 'shop-b', status: 'running'})}
       >
@@ -1091,6 +1111,20 @@ function StoreLoopMatrix() {
       </LoopCell>
       <LoopCell label="the Store has no update for it" marker="Shop B">
         {updateTile({state: 'not-published', installedVersion: '1.0.0'})}
+      </LoopCell>
+      <LoopCell
+        label="asking — the entry read again, the consent card open — Update held"
+        act={acts({appId: 'shop-b', status: 'asking'}, {'shop-b': '1.0.0'}, ['shop-b'])}
+        marker="Shop B"
+      >
+        {updateTile(NEEDS_UPDATE)}
+      </LoopCell>
+      <LoopCell
+        label="held elsewhere — Shop B updating from another slot or the page"
+        act={acts(undefined, {'shop-b': '1.0.0'}, ['shop-b'])}
+        marker="Shop B"
+      >
+        {updateTile(NEEDS_UPDATE)}
       </LoopCell>
       <LoopCell
         label="U4 · updating"

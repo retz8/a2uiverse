@@ -30,8 +30,9 @@ const NONE: SlotUpdate = {state: 'not-published', installedVersion: '1.0.0'};
 function acts(
   act: AppActState['act'] = () => undefined,
   installed: Record<string, string> = {'shop-b': '1.0.0'},
+  busy: readonly string[] = [],
 ): AppActState {
-  return {act, installed: appId => installed[appId]};
+  return {act, installed: appId => installed[appId], busy: appId => busy.includes(appId)};
 }
 
 function withHost(
@@ -163,6 +164,37 @@ test('updating: the press reads Updating, the line as it was', () => {
   expect(screen.getByText('Shop B needs an update to show this.')).toBeInTheDocument();
   expect(screen.getByText('Updating')).toBeInTheDocument();
   expect(screen.queryByRole('button', {name: 'Update'})).not.toBeInTheDocument();
+});
+
+test('held elsewhere — the app’s install or update running from another slot or the page — Update draws disabled, the line as it was (task-15.9 decision 1)', () => {
+  render(
+    withHost(tile(NEEDS, {onAppAct: () => {}}), {act: acts(undefined, undefined, ['shop-b'])}),
+  );
+  expect(screen.getByText('Shop B needs an update to show this.')).toBeInTheDocument();
+  expect(screen.getByRole('button', {name: 'Update'})).toBeDisabled();
+});
+
+test('asking — the entry read again, the consent card open — Update is held, its words unchanged (task-15.9 decision 7)', () => {
+  render(
+    withHost(tile(NEEDS, {onAppAct: () => {}}), {
+      act: acts(
+        where => ('source' in where ? {appId: 'shop-b', status: 'asking'} : undefined),
+        undefined,
+        ['shop-b'],
+      ),
+    }),
+  );
+  expect(screen.getByRole('button', {name: 'Update'})).toBeDisabled();
+  expect(screen.queryByText('Updating')).not.toBeInTheDocument();
+});
+
+test('Show it here draws disabled while the app is held elsewhere', () => {
+  render(
+    withHost(tile(WAITING, {onAppAct: () => {}}), {
+      act: acts(undefined, {'shop-b': '2.0.0'}, ['shop-b']),
+    }),
+  );
+  expect(screen.getByRole('button', {name: 'Show it here'})).toBeDisabled();
 });
 
 test('updated, its request sent again: Updated with Loading…, the line as it was', () => {

@@ -3,7 +3,7 @@
  * composition facts (task-9.6 decision 2).
  */
 import {describe, it, expect, vi} from 'vitest';
-import {createCanvasStore, orderedNotices} from './canvasStore';
+import {appActOf, createCanvasStore, orderedNotices} from './canvasStore';
 
 describe('createCanvasStore', () => {
   it('starts empty and idle', () => {
@@ -29,6 +29,8 @@ describe('createCanvasStore', () => {
       appliedSeq: 0,
       placement: new Map(),
       asking: new Set(),
+      updates: new Map(),
+      appActs: new Map(),
     });
   });
 
@@ -249,5 +251,39 @@ describe('settleInFlight', () => {
     store.endPaint();
     store.settleInFlight('circleci');
     expect(store.getState().inFlight).toBeNull();
+  });
+});
+
+describe('the slot’s install and update (task 15.9)', () => {
+  const NEEDS = {state: 'major-update' as const, installedVersion: '1.0.0', newScopes: []};
+
+  it('merges the update facts a shell paint carried; null clears a source’s', () => {
+    const store = createCanvasStore();
+    store.mergeUpdates(new Map([['shop-b', NEEDS]]));
+    expect(store.getState().updates.get('shop-b')).toEqual(NEEDS);
+    store.mergeUpdates(new Map([['shop-b', null]]));
+    expect(store.getState().updates.has('shop-b')).toBe(false);
+  });
+
+  it('holds each slot’s press by the slot — an offer’s by its gap, an update tile’s by its source', () => {
+    const store = createCanvasStore();
+    store.setAppAct({gap: 'camera prices'}, {appId: 'shop-b', status: 'running'});
+    store.setAppAct({source: 'shop-b'}, {appId: 'shop-b', status: 'asking'});
+    expect(appActOf(store.getState(), {gap: 'camera prices'})).toEqual({
+      appId: 'shop-b',
+      status: 'running',
+    });
+    expect(appActOf(store.getState(), {source: 'shop-b'})?.status).toBe('asking');
+    store.setAppAct({gap: 'camera prices'}, null);
+    expect(appActOf(store.getState(), {gap: 'camera prices'})).toBeUndefined();
+  });
+
+  it('the composition retiring takes the update facts and the slots’ presses with it', () => {
+    const store = createCanvasStore();
+    store.mergeUpdates(new Map([['shop-b', NEEDS]]));
+    store.setAppAct({source: 'shop-b'}, {appId: 'shop-b', status: 'running'});
+    store.resetComposition();
+    expect(store.getState().updates.size).toBe(0);
+    expect(store.getState().appActs.size).toBe(0);
   });
 });

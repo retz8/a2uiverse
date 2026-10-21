@@ -18,10 +18,11 @@ import {refusalOf} from '@a2uiverse/sdk';
 import {isLoader, type PageCatalogs} from '../../../catalogs/CatalogContext';
 import type {StoreListing} from '../../../orchestratorApi';
 import type {TrustedPageState} from '../../trail/trailStore';
-import {listed, listingAct, signInOf, tileLetter, tryAsking} from '../appCard';
+import {listed, listingAct, newsOf, signInOf, tileLetter, tryAsking} from '../appCard';
 import {ConsentCard, type ConsentAsk} from '../ConsentCard';
 import {BackIcon, DoneIcon, RemoveIcon, TickIcon} from '../icons';
 import {pageLink} from '../pageLink';
+import {useInstalledApps} from '../../installedApps';
 import {useAppAct, type AppAct, type AppActOutcome} from '../useAppAct';
 import {SampleFrame} from './SampleFrame';
 import {useStoreListing, useStoreListings, type HeldReads} from './useStoreReads';
@@ -36,6 +37,10 @@ export interface StorePageProps {
   catalogs: PageCatalogs;
   /** Where the consent card is drawn: inside the page. */
   container: HTMLElement | null;
+  /** An install landed: whether it filled the slot the page was opened from (task-15.9 decision 3). */
+  onInstalled?: (appId: string) => boolean;
+  /** Closes the page to the canvas beneath. */
+  onClose?: () => void;
 }
 
 /** The Store at a list: its query and its publisher, no app. */
@@ -45,7 +50,15 @@ const storeAt = ({query, publisher}: {query?: string; publisher?: string}): Trus
   ...(publisher ? {publisher} : {}),
 });
 
-export function StorePage({page, onNavigate, orchestrator, catalogs, container}: StorePageProps) {
+export function StorePage({
+  page,
+  onNavigate,
+  orchestrator,
+  catalogs,
+  container,
+  onInstalled,
+  onClose,
+}: StorePageProps) {
   /** Moves each time the registry changes, so the app on screen is read again in place. */
   const [registryVersion, setRegistryVersion] = useState(0);
   // The registry changed: canvases opened from now on take the builds it now names (decision 1).
@@ -53,7 +66,11 @@ export function StorePage({page, onNavigate, orchestrator, catalogs, container}:
     if (isLoader(catalogs)) void catalogs.refresh();
     setRegistryVersion(n => n + 1);
   }, [catalogs]);
-  const {outcome, run} = useAppAct({orchestrator, onChanged});
+  const {outcome, run} = useAppAct({orchestrator, onChanged, onInstalled});
+  // An app a press holds elsewhere — a slot, another page — waits (task-15.9 decision 1).
+  const {state: holds} = useInstalledApps();
+  const heldElsewhere = (appId: string) =>
+    holds.held.has(appId) && !(outcome.kind === 'running' && outcome.appId === appId);
   const [ask, setAsk] = useState<ConsentAsk | null>(null);
   /** The lists shown while the Store is open, each read again only once the registry changed. */
   const [held] = useState<HeldReads>(() => new Map());
@@ -67,7 +84,7 @@ export function StorePage({page, onNavigate, orchestrator, catalogs, container}:
     }
     const state = listingAct(listing);
     if (state.kind !== 'update') return;
-    if (state.consent) setAsk({kind: 'update', entry, update: state.state});
+    if (state.consent) setAsk({kind: 'update', entry, news: newsOf(state.state)});
     else void run(entry.appId, 'update');
   };
 
@@ -84,8 +101,10 @@ export function StorePage({page, onNavigate, orchestrator, catalogs, container}:
           container={container}
           refresh={registryVersion}
           outcome={outcome.kind !== 'idle' && outcome.appId === page.app ? outcome : {kind: 'idle'}}
+          held={heldElsewhere(page.app)}
           onPress={press}
           onRetry={act => void run(page.app!, act)}
+          onClose={onClose}
         />
       ) : (
         <StoreBrowse
@@ -93,6 +112,7 @@ export function StorePage({page, onNavigate, orchestrator, catalogs, container}:
           onNavigate={onNavigate}
           orchestrator={orchestrator}
           held={held}
+          heldElsewhere={heldElsewhere}
           refresh={registryVersion}
           onPress={(listing, act) => {
             // A press on a row opens the app's view, where its outcome is drawn.
@@ -157,6 +177,7 @@ function StoreBrowse({
   onNavigate,
   orchestrator,
   held,
+  heldElsewhere,
   refresh,
   onPress,
 }: {
@@ -165,6 +186,8 @@ function StoreBrowse({
   orchestrator: string;
   /** The lists the Store holds while it is open. */
   held: HeldReads;
+  /** Whether a press elsewhere holds the app. */
+  heldElsewhere: (appId: string) => boolean;
   /** Moves each time the registry changes: a held list is read again. */
   refresh: number;
   onPress: (listing: StoreListing, act: AppAct) => void;
@@ -292,6 +315,7 @@ function StoreBrowse({
                 key={listing.entry.appId}
                 listing={listing}
                 page={page}
+                held={heldElsewhere(listing.entry.appId)}
                 onNavigate={onNavigate}
                 onPress={onPress}
               />
@@ -337,11 +361,13 @@ function StoreUnreached({onRetry}: {onRetry: () => void}) {
 function StoreRow({
   listing,
   page,
+  held,
   onNavigate,
   onPress,
 }: {
   listing: StoreListing;
   page: TrustedPageState;
+  held: boolean;
   onNavigate: (page: TrustedPageState) => void;
   onPress: (listing: StoreListing, act: AppAct) => void;
 }) {
@@ -370,6 +396,7 @@ function StoreRow({
         <ListingEnd
           listing={listing}
           size="1"
+          held={held}
           onInstall={() => onPress(listing, 'install')}
           onUpdate={() => onPress(listing, 'update')}
         />
@@ -378,15 +405,20 @@ function StoreRow({
   );
 }
 
-/** Install, or the app's state in place of it (phase-14 decision 20). */
+/**
+ * Install, or the app's state in place of it (phase-14 decision 20); held while a press elsewhere
+ * holds the app (task-15.9 decision 1).
+ */
 function ListingEnd({
   listing,
   size,
+  held = false,
   onInstall,
   onUpdate,
 }: {
   listing: StoreListing;
   size: '1' | '2';
+  held?: boolean;
   onInstall: () => void;
   onUpdate: () => void;
 }) {
@@ -396,7 +428,13 @@ function ListingEnd({
   switch (act.kind) {
     case 'install':
       return (
-        <Button size={size} variant={variant} onClick={onInstall} aria-label={`Install ${name}`}>
+        <Button
+          size={size}
+          variant={variant}
+          disabled={held}
+          onClick={onInstall}
+          aria-label={`Install ${name}`}
+        >
           Install
         </Button>
       );
@@ -419,7 +457,13 @@ function ListingEnd({
           >
             {act.words}
           </span>
-          <Button size={size} variant={variant} onClick={onUpdate} aria-label={`Update ${name}`}>
+          <Button
+            size={size}
+            variant={variant}
+            disabled={held}
+            onClick={onUpdate}
+            aria-label={`Update ${name}`}
+          >
             Update
           </Button>
         </>
@@ -440,8 +484,10 @@ function StoreAppView({
   container,
   refresh,
   outcome,
+  held,
   onPress,
   onRetry,
+  onClose,
 }: {
   appId: string;
   page: TrustedPageState;
@@ -453,8 +499,11 @@ function StoreAppView({
   /** Moves when the registry changed: the listing is read again, staying on screen meanwhile. */
   refresh: number;
   outcome: AppActOutcome;
+  /** Whether a press elsewhere holds the app. */
+  held: boolean;
   onPress: (listing: StoreListing, act: AppAct) => void;
   onRetry: (act: AppAct) => void;
+  onClose?: () => void;
 }) {
   const {loaded, retry} = useStoreListing(orchestrator, appId, refresh);
   const listing = loaded.status === 'ready' ? loaded.value : undefined;
@@ -488,9 +537,11 @@ function StoreAppView({
         <AppBody
           listing={listing}
           outcome={outcome}
+          held={held}
           onNavigate={onNavigate}
           onStart={act => onPress(listing, act)}
           onRetry={onRetry}
+          onClose={onClose}
           orchestrator={orchestrator}
           catalogs={catalogs}
           container={container}
@@ -515,18 +566,22 @@ function AppSkeleton() {
 function AppBody({
   listing,
   outcome,
+  held,
   onNavigate,
   onStart,
   onRetry,
+  onClose,
   orchestrator,
   catalogs,
   container,
 }: {
   listing: StoreListing;
   outcome: AppActOutcome;
+  held: boolean;
   onNavigate: (page: TrustedPageState) => void;
   onStart: (act: AppAct) => void;
   onRetry: (act: AppAct) => void;
+  onClose?: () => void;
   orchestrator: string;
   catalogs: PageCatalogs;
   container: HTMLElement | null;
@@ -545,7 +600,7 @@ function AppBody({
     );
   } else if (refusal && outcome.kind === 'refused' && refusal.press === 'retry') {
     press = (
-      <Button size="2" onClick={() => onRetry(outcome.act)}>
+      <Button size="2" disabled={held} onClick={() => onRetry(outcome.act)}>
         Try again
       </Button>
     );
@@ -560,6 +615,7 @@ function AppBody({
       <ListingEnd
         listing={listing}
         size="2"
+        held={held}
         onInstall={() => onStart('install')}
         onUpdate={() => onStart('update')}
       />
@@ -594,8 +650,19 @@ function AppBody({
               </b>
               {outcome.followed.length > 0 &&
                 ` Also updated along with it: ${listed(outcome.followed)}.`}
+              {/* An install that filled the slot the page was opened from says where its answer
+                  went (task-15.3 decision 19). */}
+              {outcome.fills && ' It’s answering on your canvas.'}
             </span>
-            {tries[0] && <span>Try asking “{tries[0]}” on your canvas.</span>}
+            {outcome.fills ? (
+              <div className="store-notice__acts">
+                <Button size="1" variant="soft" onClick={onClose}>
+                  Back to your canvas
+                </Button>
+              </div>
+            ) : (
+              tries[0] && <span>Try asking “{tries[0]}” on your canvas.</span>
+            )}
           </div>
         </div>
       )}

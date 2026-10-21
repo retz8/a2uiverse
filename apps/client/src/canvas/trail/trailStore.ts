@@ -46,6 +46,19 @@ export interface TrustedPageState {
   form?: boolean;
 }
 
+/**
+ * The slot a Store page was opened from — by More in the Store or an offered app's name (task-15.9
+ * decision 3): its canvas, its component on the shell surface, and the gap's words. Held beside
+ * the page, never in its address.
+ */
+export interface SlotOrigin {
+  /** The canvas's trail id. */
+  canvas: string;
+  surfaceId: string;
+  componentId: string;
+  gap: string;
+}
+
 export interface TrailState {
   /** Every canvas of the session in the order asked, oldest first. */
   entries: readonly TrailEntry[];
@@ -57,6 +70,11 @@ export interface TrailState {
   trustedPage: TrustedPageState | null;
   /** The destination last open this session — the Store before any — where the entry point opens. */
   lastPage: TrustedPage;
+  /**
+   * The slot the open page was opened from, for as long as it stays open — wherever the person goes
+   * in it — until an install there fills it (task-15.9 decision 3); null otherwise.
+   */
+  openedFrom: SlotOrigin | null;
 }
 
 export interface OpenCanvas {
@@ -85,9 +103,14 @@ export interface TrailStore {
    * it take its parent, so Back still follows the branch (task-9.9 decision 22).
    */
   close(id: string): void;
-  /** A shell action landed: open its page over the canvas, or retarget the one already open. */
-  openTrustedPage(page: TrustedPageState): void;
+  /**
+   * A shell action landed: open its page over the canvas, or retarget the one already open. A page
+   * opened from a slot carries it; a move inside the open page keeps the slot it was opened from.
+   */
+  openTrustedPage(page: TrustedPageState, from?: SlotOrigin): void;
   closeTrustedPage(): void;
+  /** The install the page was opened for has filled its slot: the page is tied to it no more. */
+  untie(): void;
 }
 
 /** The entries newest first — the trail's order; asked in the same instant, the later opened first. */
@@ -136,6 +159,7 @@ export function createTrailStore(): TrailStore {
     viewing: null,
     trustedPage: null,
     lastPage: 'store',
+    openedFrom: null,
   };
   const listeners = new Set<() => void>();
   const set = (patch: Partial<TrailState>) => {
@@ -188,9 +212,17 @@ export function createTrailStore(): TrailStore {
       const viewing = state.viewing === id || state.viewing === live ? null : state.viewing;
       set({entries, live, viewing});
     },
-    openTrustedPage: page => set({trustedPage: page, lastPage: page.page}),
+    openTrustedPage: (page, from) =>
+      set({
+        trustedPage: page,
+        lastPage: page.page,
+        openedFrom: from ?? (state.trustedPage ? state.openedFrom : null),
+      }),
     closeTrustedPage: () => {
-      if (state.trustedPage) set({trustedPage: null});
+      if (state.trustedPage) set({trustedPage: null, openedFrom: null});
+    },
+    untie: () => {
+      if (state.openedFrom) set({openedFrom: null});
     },
   };
 }

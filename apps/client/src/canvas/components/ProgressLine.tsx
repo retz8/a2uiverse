@@ -3,7 +3,8 @@
  * then the merge in computed words. It stays after the turn lands, the ticks and the merge in the
  * past tense, and follows the reader's presses on the composition (task 8.5). The step that is
  * working carries the in-flight marker (`canvas-pending`); a source waiting on a sign-in carries a
- * lock and says so (task-12.8 decision 7). An account added from this canvas is said after the
+ * lock and says so (task-12.8 decision 7), one on the update tile the tile's up-arrow and its line's
+ * short words (task-15.3 decision 17). An account added from this canvas is said after the
  * merge (task-12.8 decision 6), and while its window is open, the working step saying so at once
  * (task-12.13 decision 21). The canvas's sticky error — a message of its own that failed or
  * never arrived, cleared by its next dispatch — closes the line in the danger tone, an alert on the
@@ -80,6 +81,25 @@ const AskingIcon = () => (
   </svg>
 );
 
+/** A source on the update tile: the tile's own circled up-arrow (task-15.3 decision 17). */
+const UpdateIcon = () => (
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 14 14"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.4"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+    data-icon="update"
+  >
+    <circle cx="7" cy="7" r="5.5" />
+    <path d="M7 9.8V4.4M4.8 6.4L7 4.2l2.2 2.2" />
+  </svg>
+);
+
 export const WorkingIcon = () => (
   <svg
     className="canvas-spin"
@@ -118,6 +138,7 @@ function Step({
       {status === 'done' && <CheckIcon />}
       {status === 'failed' && <FailedIcon />}
       {status === 'locked' && <LockIcon />}
+      {status === 'update' && <UpdateIcon />}
       {status === 'asking' && <AskingIcon />}
       {working && <WorkingIcon />}
       <span>{children}</span>

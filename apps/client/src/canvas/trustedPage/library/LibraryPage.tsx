@@ -21,7 +21,7 @@ import {
   type Revocation,
 } from '../../../orchestratorApi';
 import type {TrustedPageState} from '../../trail/trailStore';
-import {listed, signInOf, tileLetter} from '../appCard';
+import {listed, newsOf, signInOf, tileLetter} from '../appCard';
 import {ConsentCard, type ConsentAsk} from '../ConsentCard';
 import {
   BackIcon,
@@ -34,6 +34,7 @@ import {
   WarnIcon,
 } from '../icons';
 import {pageLink} from '../pageLink';
+import {useInstalledApps} from '../../installedApps';
 import {useAppAct, type AppActOutcome} from '../useAppAct';
 import {Accounts} from './Accounts';
 import {
@@ -107,6 +108,10 @@ export function LibraryPage({
   const [ask, setAsk] = useState<ConsentAsk | null>(null);
   const [uninstall, setUninstall] = useState<UninstallOutcome>({kind: 'idle'});
   const busy = outcome.kind === 'running' || uninstall.kind === 'running';
+  // An app a press holds elsewhere — a slot, the Store — waits (task-15.9 decision 1).
+  const {apps, state: holds} = useInstalledApps();
+  const held = (appId: string) =>
+    holds.held.has(appId) && !(outcome.kind === 'running' && outcome.appId === appId);
 
   /** Update: the consent card for the update that asks for more, else straight through. */
   const update = async (appId: string, press: UpdatePress) => {
@@ -119,7 +124,7 @@ export function LibraryPage({
       if (read.ok) entry = read.value.entry;
     }
     if (!entry) return refuse(appId, 'update', 'store-unreached');
-    setAsk({kind: 'update', entry, update: press.state});
+    setAsk({kind: 'update', entry, news: newsOf(press.state)});
   };
 
   const remove = async (app: InstalledApp) => {
@@ -127,6 +132,10 @@ export function LibraryPage({
     setUninstall({kind: 'running', appId: app.id});
     const answer = await uninstallApp(orchestrator, app.id);
     if (answer.ok) {
+      // The registry changed: canvases take the builds it now names, and every slot reads the
+      // installed apps again (task-15.9 decision 6).
+      if (isLoader(catalogs)) void catalogs.refresh();
+      void apps?.read();
       setUninstall({kind: 'done', appId: app.id, name: app.card.name, accounts: answer.accounts});
       // Back to the list, over the view's entry when the list is under it: Back never lands on the
       // removed app's view.
@@ -140,6 +149,7 @@ export function LibraryPage({
 
   const acts: Acts = {
     busy,
+    held,
     outcome,
     onUpdate: (appId, press) => void update(appId, press),
     onRetry: appId => void run(appId, 'update'),
@@ -181,6 +191,8 @@ export function LibraryPage({
 interface Acts {
   /** An update or an uninstall is running: every other one waits. */
   busy: boolean;
+  /** Whether a press elsewhere holds the app. */
+  held: (appId: string) => boolean;
   outcome: AppActOutcome;
   onUpdate: (appId: string, press: UpdatePress) => void;
   onRetry: (appId: string) => void;
@@ -376,7 +388,11 @@ function StatePressButton({
     refusalOf(outcome.cause, name, 'update').press === 'retry'
   ) {
     return (
-      <Button size={size} disabled={acts.busy} onClick={() => acts.onRetry(app.id)}>
+      <Button
+        size={size}
+        disabled={acts.busy || acts.held(app.id)}
+        onClick={() => acts.onRetry(app.id)}
+      >
         Try again
       </Button>
     );
@@ -385,7 +401,7 @@ function StatePressButton({
     <Button
       size={size}
       variant={press.primary || size === '2' ? 'solid' : 'soft'}
-      disabled={acts.busy}
+      disabled={acts.busy || acts.held(app.id)}
       aria-label={`Update ${name}`}
       onClick={() => acts.onUpdate(app.id, press)}
     >

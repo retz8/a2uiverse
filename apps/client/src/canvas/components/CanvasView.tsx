@@ -9,6 +9,8 @@
  */
 import {useCallback, useMemo, useRef, useSyncExternalStore} from 'react';
 import {
+  AppActContext,
+  type AppActState,
   FragmentHistoryContext,
   type FragmentHistoryResolver,
   type PressState,
@@ -19,6 +21,8 @@ import {
 } from '@a2uiverse/shell-catalog';
 import type {CanvasRuntime} from '../canvasRuntime';
 import {orderedNotices} from '../canvasStore';
+import {useInstalledApps} from '../installedApps';
+import {slotActState} from '../slotActs';
 import {columnState, sourceBusy} from '../composition/columnState';
 import {useSlotContent} from '../composition/slotContent';
 import {BindingIndexContext} from '../navigation/decorateCatalog';
@@ -51,10 +55,11 @@ export function CanvasView({runtime, onEdit, past = false}: CanvasViewProps) {
   );
 
   // What a reserved column in the merged view says of its source (task-8.5 decision 12).
-  const {merge, slotStates, placement, presses, authority} = state;
+  const {merge, slotStates, placement, presses, authority, updates} = state;
   const slotStateOf = useCallback(
-    (source: string) => columnState({merge, slotStates, placement, presses, authority}, source),
-    [merge, slotStates, placement, presses, authority],
+    (source: string) =>
+      columnState({merge, slotStates, placement, presses, authority, updates}, source),
+    [merge, slotStates, placement, presses, authority, updates],
   );
   // The sources a sign-in window is open for, pressed on this canvas (task 12.8).
   const {signingIn} = state;
@@ -70,6 +75,13 @@ export function CanvasView({runtime, onEdit, past = false}: CanvasViewProps) {
     }),
     [presses],
   );
+
+  // Each slot's Install or Update as this canvas holds it, and the page's installed apps and the
+  // apps a press holds anywhere (task-15.9 decisions 1, 5): a refusal gives way once the app is
+  // installed or updated elsewhere.
+  const {state: holds} = useInstalledApps();
+  const {appActs} = state;
+  const appActState = useMemo<AppActState>(() => slotActState({appActs}, holds), [appActs, holds]);
 
   // Where each source's fragment stands in its history (task-9.7 decision 6): the neighbours the
   // canvas's stacks give, busy while the source's repaint is in flight.
@@ -131,9 +143,11 @@ export function CanvasView({runtime, onEdit, past = false}: CanvasViewProps) {
             <SlotStateContext.Provider value={slotStateOf}>
               <PressStateContext.Provider value={pressState}>
                 <SignInContext.Provider value={signingInOf}>
-                  <FragmentHistoryContext.Provider value={historyOf}>
-                    <CanvasStage processor={runtime.processor} state={state} />
-                  </FragmentHistoryContext.Provider>
+                  <AppActContext.Provider value={appActState}>
+                    <FragmentHistoryContext.Provider value={historyOf}>
+                      <CanvasStage processor={runtime.processor} state={state} />
+                    </FragmentHistoryContext.Provider>
+                  </AppActContext.Provider>
                 </SignInContext.Provider>
               </PressStateContext.Provider>
             </SlotStateContext.Provider>

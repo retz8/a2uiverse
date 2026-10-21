@@ -74,3 +74,25 @@ describe('columnState', () => {
     expect(columnState(store.getState(), 'shop-b.1')).toBe('connect');
   });
 });
+
+describe('a column reserved for a source on the update tile (task-15.8 decision 4)', () => {
+  const onUpdate = (state: 'major-update' | 'ahead-of-store' | 'unknown' | 'not-published') => {
+    const store = createCanvasStore();
+    store.mergeSlotStates(new Map([['shop-b', 'update' as const]]));
+    store.mergeUpdates(new Map([['shop-b', {state, installedVersion: '1.0.0'}]]));
+    return store;
+  };
+
+  it('reads as its line says', () => {
+    expect(columnState(onUpdate('major-update').getState(), 'shop-b')).toBe('update');
+    expect(columnState(onUpdate('ahead-of-store').getState(), 'shop-b')).toBe('update-waiting');
+    expect(columnState(onUpdate('unknown').getState(), 'shop-b')).toBe('update-unreached');
+    expect(columnState(onUpdate('not-published').getState(), 'shop-b')).toBe('update-none');
+  });
+
+  it('reads loading from its resend', () => {
+    const store = onUpdate('major-update');
+    store.addPress({kind: 'retry', sources: ['shop-b']});
+    expect(columnState(store.getState(), 'shop-b')).toBe('pending');
+  });
+});

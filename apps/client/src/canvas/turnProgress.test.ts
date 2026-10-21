@@ -4,6 +4,7 @@
  * merge's states from what the orchestrator painted and the reader pressed (task 8.5).
  */
 import {describe, it, expect} from 'vitest';
+import type {SlotUpdate} from '@a2uiverse/shell-catalog';
 import {createCanvasStore, type RosterEntry} from './canvasStore';
 import {listed, pressBusy, turnProgress} from './turnProgress';
 
@@ -525,6 +526,75 @@ describe('the merge step on a step back (task-9.7 decision 4)', () => {
         text: 'Joining Linear and GitHub',
         status: 'working',
       });
+    });
+  });
+});
+
+describe('the update tile (task-15.3 decision 17, task-15.8 decision 4)', () => {
+  const NEEDS: SlotUpdate = {
+    state: 'major-update',
+    installedVersion: '1.0.0',
+    publishedVersion: '2.0.0',
+    newScopes: [],
+    publisher: 'northlight',
+  };
+  function onUpdate(update: SlotUpdate = NEEDS) {
+    const store = createCanvasStore();
+    store.setRoster([
+      {source: 'shell', name: 'Synthesis'},
+      {source: 'shop-a', name: 'Shop A'},
+      {source: 'shop-b', name: 'Shop B'},
+      {source: 'calendar', name: 'Calendar'},
+    ]);
+    store.beginPaint('utterance');
+    store.placeFragment('shop-a', {surfaceId: 'shop-a:s', source: 'shop-a'});
+    store.placeFragment('calendar', {surfaceId: 'calendar:s', source: 'calendar'});
+    store.mergeSlotStates(new Map([['shop-b', 'update' as const]]));
+    store.mergeUpdates(new Map([['shop-b', update]]));
+    return store;
+  }
+  const shopB = (store: ReturnType<typeof onUpdate>) =>
+    turnProgress(store.getState()).sources.find(step => step.source === 'shop-b')!;
+
+  it('the step reads like the sign-in’s, the line’s short words after the name', () => {
+    expect(shopB(onUpdate())).toMatchObject({status: 'update', text: 'Shop B needs an update'});
+    expect(
+      shopB(
+        onUpdate({
+          state: 'ahead-of-store',
+          installedVersion: '1.0.0',
+          publishedVersion: '1.0.0',
+          publisher: 'northlight',
+        }),
+      ).text,
+    ).toBe('Shop B waiting on its publisher');
+    expect(shopB(onUpdate({state: 'unknown', installedVersion: '1.0.0'})).text).toBe(
+      'Shop B couldn’t check for updates',
+    );
+    expect(shopB(onUpdate({state: 'not-published', installedVersion: '1.0.0'})).text).toBe(
+      'Shop B no update available',
+    );
+  });
+
+  it('Shop B updating while its update runs, then the bare name working on its resend', () => {
+    const store = onUpdate();
+    store.setAppAct({source: 'shop-b'}, {appId: 'shop-b', status: 'running'});
+    expect(shopB(store)).toMatchObject({status: 'working', text: 'Shop B updating'});
+    store.setAppAct({source: 'shop-b'}, null);
+    store.addPress({kind: 'retry', sources: ['shop-b']});
+    expect(shopB(store)).toMatchObject({status: 'working', text: 'Shop B'});
+  });
+
+  it('a press asking — the entry read again, the consent card open — leaves the step as it was', () => {
+    const store = onUpdate();
+    store.setAppAct({source: 'shop-b'}, {appId: 'shop-b', status: 'asking'});
+    expect(shopB(store)).toMatchObject({status: 'update', text: 'Shop B needs an update'});
+  });
+
+  it('the merge does not wait on a slot on the update tile, as on a sign-in', () => {
+    expect(turnProgress(onUpdate().getState()).merge).toEqual({
+      text: 'Joining Shop A and Calendar',
+      status: 'working',
     });
   });
 });

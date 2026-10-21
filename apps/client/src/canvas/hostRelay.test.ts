@@ -13,6 +13,7 @@ test('the relay forwards to the bound canvas, and to nothing once it unbinds', (
     sourceName: source => (source === 'github' ? 'GitHub' : undefined),
     onPress: vi.fn(),
     onSignIn: vi.fn(),
+    onAppAct: vi.fn(),
   };
 
   relay.host.onNavigate(TARGET);
@@ -37,6 +38,16 @@ test('the relay forwards to the bound canvas, and to nothing once it unbinds', (
   };
   relay.host.onSignIn(signIn);
   expect(canvas.onSignIn).toHaveBeenCalledWith(signIn);
+  const appAct = {
+    kind: 'install' as const,
+    appId: 'shop-b',
+    gap: 'camera prices',
+    surfaceId: 'shell:main',
+    componentId: 'gap',
+    anchor: document.createElement('button'),
+  };
+  relay.host.onAppAct(appAct);
+  expect(canvas.onAppAct).toHaveBeenCalledWith(appAct);
   expect(canvas.onNavigate).toHaveBeenCalledWith(TARGET);
   expect(canvas.onShellAction).toHaveBeenCalledOnce();
   expect(relay.host.sourceName('github')).toBe('GitHub');

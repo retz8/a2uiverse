@@ -15,6 +15,12 @@ describe('trustedPageOf', () => {
     });
   });
 
+  it('opens the Store on the app an offered app’s name names (task-15.8 decision 8)', () => {
+    expect(
+      trustedPageOf({name: 'openStore', surfaceId, componentId: 'gap', app: 'shop-b'}),
+    ).toEqual({page: 'store', app: 'shop-b'});
+  });
+
   it('opens the App Library on the app it names, or on the list', () => {
     expect(trustedPageOf({name: 'openAppLibrary', surfaceId, app: 'linear'})).toEqual({
       page: 'appLibrary',
@@ -37,6 +43,9 @@ describe('shellActionContext', () => {
       app: 'linear',
     });
     expect(shellActionContext({name: 'openAppLibrary', surfaceId})).toEqual({});
+    expect(shellActionContext({name: 'openStore', surfaceId, app: 'shop-b'})).toEqual({
+      app: 'shop-b',
+    });
     expect(shellActionContext({name: 'openPublish', surfaceId})).toEqual({});
   });
 });

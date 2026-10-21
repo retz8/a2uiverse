@@ -7,7 +7,13 @@
  * why it is a closure module and not component state.
  */
 import type {CompositionOperation} from '@a2uiverse/sdk';
-import type {AuthorityCause, MergeFacts} from '@a2uiverse/shell-catalog';
+import type {
+  AppActSlot,
+  AppActStatus,
+  AuthorityCause,
+  MergeFacts,
+  SlotUpdate,
+} from '@a2uiverse/shell-catalog';
 import type {PaintCause} from './turn/cause';
 
 /** A fragment mounted into a slot: which surface, and which source painted it. */
@@ -72,7 +78,26 @@ export interface Question {
 }
 
 /** A slot state the orchestrator painted on the shell surface; filled is never on the wire. */
-export type PaintedSlotState = 'pending' | 'failed' | 'collapsed' | 'authority';
+export type PaintedSlotState = 'pending' | 'failed' | 'collapsed' | 'authority' | 'update';
+
+/**
+ * An Install or Update pressed in a slot on this canvas (task-15.9): asking, running, or refused
+ * — a refusal remembering the version the app was installed at then, so it gives way once the app
+ * is installed or updated elsewhere (decision 5).
+ */
+export type SlotAppAct = AppActStatus & {version?: string};
+
+/** A slot's key among the presses: an offer's by its gap's words, an update tile's by its source. */
+export const appActKey = (slot: AppActSlot): string =>
+  'gap' in slot ? `gap:${slot.gap}` : `source:${slot.source}`;
+
+/** The press made in a slot, if one is asking, running or was refused. */
+export function appActOf(
+  state: Pick<CanvasState, 'appActs'>,
+  slot: AppActSlot,
+): SlotAppAct | undefined {
+  return state.appActs.get(appActKey(slot));
+}
 
 /**
  * What the orchestrator painted on the merged view's slot (task-8.4 decision 13): the merge's own
@@ -186,6 +211,13 @@ export interface CanvasState {
    * fragment left as it painted itself (task-12.13 decision 37).
    */
   asking: ReadonlySet<string>;
+  /**
+   * Each vendor slot's update facts as the shell paint last said them, by source (task 15.9): the
+   * update tile's line, its progress step, its column, and its Update's consent card.
+   */
+  updates: ReadonlyMap<string, SlotUpdate>;
+  /** The Install or Update pressed in each slot, by `appActKey` (task 15.9). */
+  appActs: ReadonlyMap<string, SlotAppAct>;
 }
 
 export interface CanvasStore {
@@ -202,6 +234,10 @@ export interface CanvasStore {
   mergeAuthority(causes: ReadonlyMap<string, AuthorityCause | null>): void;
   /** Merge which attribution rows a shell paint carried ask for more access. */
   mergeEscalations(asks: ReadonlyMap<string, boolean>): void;
+  /** Merge the update facts a shell paint carried; `null` clears a source's. */
+  mergeUpdates(updates: ReadonlyMap<string, SlotUpdate | null>): void;
+  /** The press made in a slot, or `null` once it has nothing left to say. */
+  setAppAct(slot: AppActSlot, act: SlotAppAct | null): void;
   /** A sign-in window opened for a source on this canvas, or the tile put back. */
   setSigningIn(source: string, open: boolean): void;
   /** An account added from this canvas, said on the progress line. */
@@ -294,6 +330,8 @@ export function createCanvasStore(): CanvasStore {
     appliedSeq: 0,
     placement: new Map(),
     asking: new Set(),
+    updates: new Map(),
+    appActs: new Map(),
   };
   let noticeKey = 0;
   let pressKey = 0;
@@ -344,6 +382,23 @@ export function createCanvasStore(): CanvasStore {
         else next.delete(source);
       }
       set({escalations: next});
+    },
+    mergeUpdates: updates => {
+      if (updates.size === 0) return;
+      const next = new Map(state.updates);
+      for (const [source, update] of updates) {
+        if (update === null) next.delete(source);
+        else next.set(source, update);
+      }
+      set({updates: next});
+    },
+    setAppAct: (slot, act) => {
+      const key = appActKey(slot);
+      if (act === null && !state.appActs.has(key)) return;
+      const next = new Map(state.appActs);
+      if (act === null) next.delete(key);
+      else next.set(key, act);
+      set({appActs: next});
     },
     setSigningIn: (source, open) => {
       if (state.signingIn.has(source) === open) return;
@@ -399,6 +454,8 @@ export function createCanvasStore(): CanvasStore {
         presses: [],
         mergeFollowingStep: false,
         mergeHeld: false,
+        updates: new Map(),
+        appActs: new Map(),
       }),
     reportError: text => set({error: text}),
     setStage: stageId => set({stageId}),

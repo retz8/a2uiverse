@@ -257,6 +257,9 @@ export function SlotView({
     const app = nameOf(source!);
     const appId = parseSourceId(source!)?.appId ?? source!;
     const end = updateEnd(appId, source!, update!, {acts, retry, waiting, app});
+    // An install or update of the app under way anywhere, or this line's own press asking, holds
+    // the line's presses (task-15.9 decisions 1, 7).
+    const held = acts.busy(appId) || acts.act({source: source!})?.status === 'asking';
     const said =
       end.kind === 'refused'
         ? `${end.refusal.lead} ${end.refusal.rest}`
@@ -268,7 +271,7 @@ export function SlotView({
         app={app}
         update={update!}
         end={end}
-        enabled={enabled}
+        enabled={enabled && !held}
         onAppAct={appAct && ((kind, anchor) => appAct(kind, appId, anchor))}
         onRetry={retryHere}
       />

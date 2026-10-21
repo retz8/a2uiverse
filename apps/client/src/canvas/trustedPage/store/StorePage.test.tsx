@@ -17,6 +17,7 @@ import {
 import type {StoreListing} from '../../../orchestratorApi';
 import type {TrustedPageState} from '../../trail/trailStore';
 import {CATALOGS, renderWithShell} from '../../../../tests/helpers';
+import {createInstalledApps, InstalledAppsContext} from '../../installedApps';
 import {StorePage} from './StorePage';
 
 const BASE = 'http://hub.test';
@@ -96,6 +97,8 @@ interface Fake {
   install: Record<string, unknown>;
   unreached: boolean;
   installs: string[];
+  /** What an install waits on before it answers. */
+  gate?: Promise<void>;
 }
 
 let fake: Fake;
@@ -140,6 +143,7 @@ beforeEach(() => {
       if (path === '/registry/install' && init?.method === 'POST') {
         const {appId} = JSON.parse(String(init.body)) as {appId: string};
         fake.installs.push(appId);
+        await fake.gate;
         if (fake.install.ok === true) {
           fake.listings = fake.listings.map(l =>
             l.entry.appId === appId ? {entry: l.entry, installed: true} : l,
@@ -163,7 +167,15 @@ afterEach(() => {
 });
 
 /** The Store with the page's moves kept, as the history would keep them. */
-function Store({initial}: {initial: TrustedPageState}) {
+function Store({
+  initial,
+  onInstalled,
+  onClose,
+}: {
+  initial: TrustedPageState;
+  onInstalled?: (appId: string) => boolean;
+  onClose?: () => void;
+}) {
   const [page, setPage] = useState(initial);
   return (
     <>
@@ -173,6 +185,8 @@ function Store({initial}: {initial: TrustedPageState}) {
         orchestrator={BASE}
         catalogs={CATALOGS}
         container={null}
+        {...(onInstalled ? {onInstalled} : {})}
+        {...(onClose ? {onClose} : {})}
       />
       <output data-testid="where">{JSON.stringify(page)}</output>
     </>
@@ -463,5 +477,76 @@ describe('updating', () => {
     expect(screen.queryByRole('alertdialog')).toBeNull();
     expect(await screen.findByTestId('store-done')).toHaveTextContent('Gmail is updated.');
     expect(fake.installs).toEqual(['gmail']);
+  });
+});
+
+describe('beside the canvas’s slots (task 15.9)', () => {
+  const holder = () =>
+    createInstalledApps({
+      read: async () => [{id: 'linear', card: {name: 'Linear', version: '1.0.0'}}] as never,
+    });
+
+  it('an app held by a press elsewhere draws its Install disabled, on its view and its row (decision 1)', async () => {
+    const apps = holder();
+    apps.hold('linear');
+    renderWithShell(
+      <InstalledAppsContext.Provider value={apps}>
+        <Store initial={{page: 'store'}} />
+      </InstalledAppsContext.Provider>,
+    );
+    expect(await screen.findByRole('button', {name: 'Install Linear'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Install Shop A'})).toBeEnabled();
+  });
+
+  it('an install holds its app until it lands, then reads the installed apps again', async () => {
+    let open = () => {};
+    fake.gate = new Promise(resolve => {
+      open = resolve;
+    });
+    const apps = holder();
+    renderWithShell(
+      <InstalledAppsContext.Provider value={apps}>
+        <Store initial={{page: 'store', app: 'linear'}} />
+      </InstalledAppsContext.Provider>,
+    );
+    await userEvent.click(await screen.findByRole('button', {name: 'Install Linear'}));
+    const card = await screen.findByRole('alertdialog', {name: 'Install Linear?'});
+    await userEvent.click(within(card).getByRole('button', {name: 'Install'}));
+    expect(apps.getState().held.has('linear')).toBe(true);
+    open();
+    await screen.findByTestId('store-done');
+    expect(apps.getState().held.has('linear')).toBe(false);
+    expect(apps.getState().versions.get('linear')).toBe('1.0.0');
+  });
+
+  it('an install on a page opened from a slot that fills it says it is answering on the canvas, with Back to your canvas (decision 3)', async () => {
+    const onInstalled = vi.fn(() => true);
+    const onClose = vi.fn();
+    renderWithShell(
+      <Store
+        initial={{page: 'store', app: 'linear'}}
+        onInstalled={onInstalled}
+        onClose={onClose}
+      />,
+    );
+    await userEvent.click(await screen.findByRole('button', {name: 'Install Linear'}));
+    const card = await screen.findByRole('alertdialog', {name: 'Install Linear?'});
+    await userEvent.click(within(card).getByRole('button', {name: 'Install'}));
+    const done = await screen.findByTestId('store-done');
+    expect(onInstalled).toHaveBeenCalledWith('linear');
+    expect(done).toHaveTextContent('Linear is installed. It’s answering on your canvas.');
+    expect(done).not.toHaveTextContent('Try asking');
+    await userEvent.click(within(done).getByRole('button', {name: 'Back to your canvas'}));
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it('an install that fills no slot keeps today’s line', async () => {
+    renderWithShell(<Store initial={{page: 'store', app: 'linear'}} onInstalled={() => false} />);
+    await userEvent.click(await screen.findByRole('button', {name: 'Install Linear'}));
+    const card = await screen.findByRole('alertdialog', {name: 'Install Linear?'});
+    await userEvent.click(within(card).getByRole('button', {name: 'Install'}));
+    const done = await screen.findByTestId('store-done');
+    expect(done).toHaveTextContent('Try asking “What’s assigned to me in Linear?” on your canvas.');
+    expect(within(done).queryByRole('button', {name: 'Back to your canvas'})).toBeNull();
   });
 });

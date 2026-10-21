@@ -593,6 +593,13 @@
   gap: 6px;
 }
 
+/* A notice's own press: "Back to your canvas" after an install that filled a slot (task-15.3
+   decision 19). */
+.store-notice__acts {
+  display: flex;
+  gap: 8px;
+}
+
 .store-notice b {
   font-weight: 600;
 }
