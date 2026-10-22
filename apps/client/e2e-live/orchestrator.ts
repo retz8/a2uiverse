@@ -4,7 +4,9 @@
  * decision 11). A write goes as the page's does — the JSON body and the page's origin, no token.
  */
 import {expect} from '@playwright/test';
-import {CLIENT, ORCHESTRATOR} from './stack';
+import {createSender, supportedCatalogIds} from '../scripts/lib/drive';
+import {openCanvas, SIGN_IN_AS, signInSource} from '../scripts/lib/signIn';
+import {CLIENT, MARKETPLACE, ORCHESTRATOR} from './stack';
 
 async function read<T>(path: string): Promise<T> {
   const response = await fetch(`${ORCHESTRATOR}${path}`, {cache: 'no-store'});
@@ -32,6 +34,37 @@ export async function waitInstalled(ids: string[]): Promise<void> {
   await expect
     .poll(installedIds, {timeout: 240_000, intervals: [1_000]})
     .toEqual(expect.arrayContaining(ids));
+}
+
+/** Waits for the launcher to have published `appId` to the suite's marketplace. */
+export async function waitPublished(appId: string): Promise<void> {
+  await expect
+    .poll(
+      async () => {
+        const res = await fetch(`${MARKETPLACE}/index.json`).catch(() => undefined);
+        const index = res?.ok ? ((await res.json()) as {appId: string}[]) : [];
+        return index.map(entry => entry.appId);
+      },
+      {timeout: 240_000, intervals: [1_000]},
+    )
+    .toContain(appId);
+}
+
+/** Uninstalls `appId` when it is installed: its accounts go with it. */
+export async function ensureUninstalled(appId: string): Promise<void> {
+  if (!(await installedIds()).includes(appId)) return;
+  await write('/registry/uninstall', {appId});
+}
+
+/**
+ * `apps` signed in as each one's fake account, outside the page, as the beat recorder signs an
+ * orchestrator in: what a story needs answering before it starts. Each as the app's next account —
+ * its bare id — since an account number signed out before is never taken again.
+ */
+export async function signInApps(apps: readonly string[]): Promise<void> {
+  const catalogIds = await supportedCatalogIds();
+  const canvas = await openCanvas(await createSender(ORCHESTRATOR), catalogIds);
+  for (const app of apps) await signInSource(ORCHESTRATOR, canvas, app, SIGN_IN_AS[app]!);
 }
 
 /** Installs `appId` from the marketplace by its id when it is not installed. */

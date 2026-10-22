@@ -41,13 +41,13 @@ test('Shop A uninstalled, found in the Store, installed and composed without a r
   await expect(row).toContainText('by a2uiverse-apps');
   await expect(row.getByRole('button', {name: 'Install Shop A'})).toBeVisible();
 
-  // The publisher's name leads to that publisher's apps: the three the launcher published, not
+  // The publisher's name leads to that publisher's apps: the four the launcher published, not
   // Shop B, which it left for the publisher the Publish story claims.
   await row.getByRole('link', {name: 'a2uiverse-apps'}).click();
   await expect(page).toHaveURL(/[?&]publisher=a2uiverse-apps/);
   const rows = overlay.getByTestId('store-row');
-  await expect(rows).toHaveCount(3);
-  for (const app of ['github', 'gmail', 'shop-a']) {
+  await expect(rows).toHaveCount(4);
+  for (const app of ['github', 'gmail', 'shop-a', 'calendar']) {
     await expect(overlay.locator(`[data-testid="store-row"][data-app="${app}"]`)).toBeVisible();
   }
 

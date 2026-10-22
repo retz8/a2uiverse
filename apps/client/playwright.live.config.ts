@@ -19,7 +19,8 @@ import {
  * (`playwright.config.ts`), one stack for every story (task-14.10 decision 11): a marketplace and an
  * orchestrator of the suite's own on scratch state, the marketplace on a port of its own (decision
  * 4); the launcher under `--publish` publishing GitHub, Gmail and Shop A as the dev publisher, kept in a
- * scratch file, and installing both from that marketplace; Shop B started by a second launcher,
+ * scratch file, and installing them from that marketplace, beside Calendar, published and left
+ * uninstalled for the store loop to offer (task-15.10 decisions 2, 3); Shop B started by a second launcher,
  * neither published nor installed — the app the publisher claimed on the page publishes (decision
  * 3); and the client pointed at that orchestrator. Each scratch folder is wiped at the start but
  * the two model caches. The Planner runs live — the orchestrator's `.env` brings its key. On demand
@@ -59,8 +60,9 @@ export default defineConfig({
       timeout: 180_000,
     },
     {
-      // Publishes and installs the three once the orchestrator and the marketplace answer.
-      command: `${LAUNCHER} --tier default,mocks --only github,gmail,shop-a --publish --publisher-file ${PUBLISHER_FILE} --agent-state ${AGENT_STATE}`,
+      // Publishes the four once the orchestrator and the marketplace answer, installing all but
+      // Calendar.
+      command: `${LAUNCHER} --tier default,mocks --only github,gmail,shop-a,calendar --publish --leave-uninstalled calendar --publisher-file ${PUBLISHER_FILE} --agent-state ${AGENT_STATE}`,
       url: AGENT_CARD,
       env: {
         ORCHESTRATOR_URL: ORCHESTRATOR,

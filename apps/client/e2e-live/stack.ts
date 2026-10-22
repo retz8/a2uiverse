@@ -27,7 +27,7 @@ export const SCRATCH = join(tmpdir(), 'a2uiverse-e2e-live');
 export const STATE_DIR = join(SCRATCH, 'orchestrator');
 export const MARKETPLACE_STATE = join(SCRATCH, 'marketplace');
 export const AGENT_STATE = join(SCRATCH, 'agents');
-/** The dev publisher the launcher publishes GitHub, Gmail and Shop A as, kept here for this run alone. */
+/** The dev publisher the launcher publishes GitHub, Gmail, Shop A and Calendar as, kept here for this run alone. */
 export const PUBLISHER_FILE = join(SCRATCH, 'publisher.json');
 /** Where a story packs what it publishes. */
 export const PACKS = join(SCRATCH, 'packs');
