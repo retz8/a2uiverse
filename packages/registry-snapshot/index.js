@@ -15,3 +15,6 @@ export const REGISTRY_SNAPSHOT_DIR = join(
   'dist',
   'registry',
 );
+
+/** Shop A's two builds — the table's and the second, packed beside it (task-15.10 decision 11). */
+export const SECOND_BUILD_FILE = join(REGISTRY_SNAPSHOT_DIR, 'second-build.json');

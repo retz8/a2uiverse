@@ -17,6 +17,7 @@ import {getBeatFixture, type BeatFixture, type BeatTurn} from './beatFixtures';
 import {JOIN_DOCUMENT, JOIN_ITEMS, JOIN_PRODUCTS, JOIN_PRODUCTS_RETITLED} from './joinFixture';
 import {DURABLE_BEATS, DURABLE_RESTING} from './durableBeats';
 import {LATE_FAILURE_BEATS, LATE_FAILURE_RESTING} from './lateFailureBeats';
+import {storeLoopBeat} from './storeLoopBeats';
 import {
   DOCUMENT,
   PAYLOAD,
@@ -813,14 +814,15 @@ export function syntheticBeat(name: string): BeatFixture | undefined {
     case 'trail':
       return trailBeat();
     default:
+      // The store loop's (task-15.10 decision 6), then
       // Phase 8's and Phase 9's cases by the name less its prefix — `?beat=fast-failure` — and
       // each resting mid-way: `?beat=fast-failure-offered`, `?beat=step-unseen-working`.
-      return [
-        ...LATE_FAILURE_BEATS,
-        ...LATE_FAILURE_RESTING,
-        ...DURABLE_BEATS,
-        ...DURABLE_RESTING,
-      ].find(fixture => fixture.name === `synthetic-${name}`);
+      return (
+        storeLoopBeat(name) ??
+        [...LATE_FAILURE_BEATS, ...LATE_FAILURE_RESTING, ...DURABLE_BEATS, ...DURABLE_RESTING].find(
+          fixture => fixture.name === `synthetic-${name}`,
+        )
+      );
   }
 }
 

@@ -3,6 +3,16 @@ import type {IndexEntry, PreviewDocument, PublishedCard, UpdateState} from '@a2u
 /** The snapshot's root: what the orchestrator serves under `/registry`. */
 export declare const REGISTRY_SNAPSHOT_DIR: string;
 
+/** Shop A's two builds — the table's and the second, packed beside it (task-15.10 decision 11). */
+export declare const SECOND_BUILD_FILE: string;
+
+/** What `SECOND_BUILD_FILE` holds: the catalog, the table's build and the second, by artifact id. */
+export interface SecondBuild {
+  catalogId: string;
+  first: string;
+  second: string;
+}
+
 /** One app as the Store recording holds it: its entry and its sample (task-14.10 decision 15). */
 export interface RecordedStoreApp {
   entry: IndexEntry;

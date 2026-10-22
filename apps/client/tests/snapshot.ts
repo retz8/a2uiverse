@@ -5,7 +5,7 @@
  * which its stylesheet loads resolve against. jsdom applies no stylesheet, as it applied none of
  * the compiled-in catalogs' either: the host records each URL it is asked for and resolves.
  */
-import {readdirSync, readFileSync} from 'node:fs';
+import {readFileSync} from 'node:fs';
 import {join} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {REGISTRY_SNAPSHOT_DIR} from '@a2uiverse/registry-snapshot';
@@ -41,16 +41,23 @@ export function snapshotLoader(host?: ClientCatalogOptions): CatalogLoader {
   });
 }
 
-/** Each artifact in the snapshot: the package it was packed from, its catalog id, its directory. */
-export const SNAPSHOT_ARTIFACTS: {package: string; catalogId: string; dir: string}[] = readdirSync(
-  join(REGISTRY_SNAPSHOT_DIR, 'artifacts'),
-).map(id => {
+/**
+ * Each artifact the snapshot's table names — the package it was packed from, its catalog id, its
+ * directory — and not the second build packed beside one of them for the replay suite (task-15.10
+ * decision 11).
+ */
+export const SNAPSHOT_ARTIFACTS: {package: string; catalogId: string; dir: string}[] = (
+  JSON.parse(readFileSync(join(REGISTRY_SNAPSHOT_DIR, 'catalogs.json'), 'utf8')) as {
+    artifact?: string;
+  }[]
+).flatMap(({artifact: id}) => {
+  if (id === undefined) return [];
   const dir = join(REGISTRY_SNAPSHOT_DIR, 'artifacts', id);
   const descriptor = JSON.parse(readFileSync(join(dir, 'artifact.json'), 'utf8')) as {
     catalogId: string;
     package: {name: string};
   };
-  return {package: descriptor.package.name, catalogId: descriptor.catalogId, dir};
+  return [{package: descriptor.package.name, catalogId: descriptor.catalogId, dir}];
 });
 
 /** The catalog id the snapshot holds for a catalog package, by the package's name. */
