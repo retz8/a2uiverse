@@ -25,6 +25,12 @@
  * Beat 26 is task 10.9's, a session of the same kind: CircleCI's history branching after a Back,
  * every step landing on a combination seen and every drill-down titled.
  *
+ * Beats 31–34 are the store loop's (task-15.10 decision 7), sessions of the same kind whose
+ * orchestrator gets only the daily apps the beat names, its marketplace offering the rest: the
+ * daily orchestrator launched on the mock roster with `--publish --leave-uninstalled shop-b`, the
+ * marketplace up. Each installs from the offer by id, sends `useApp`, connects Shop B's key and
+ * sends the slot's resume press.
+ *
  * Every orchestrator a beat runs through is signed in first, through the real flow (task-12.12
  * decision 5): a canvas opened with a question about the platform, then each app that asks sign-in
  * signed in from it as the fake accounts the beat names, or as its one account. An account the
@@ -37,7 +43,14 @@ import type {A2AMessageSender} from '../src/a2a/client';
 import {VALIDATION_FAILED} from '../src/a2a/messages';
 import type {BeatBatch, BeatFixture, BeatTurn} from '../src/beats/beatFixtures';
 import {batchOf} from './lib/batch';
-import type {BeatSpec, FaultCase, JournalLine, RecordedCase, SessionCase} from './lib/beats';
+import type {
+  BeatSpec,
+  FaultCase,
+  JournalLine,
+  RecordedCase,
+  SessionCase,
+  SessionPlatform,
+} from './lib/beats';
 import {BEATS} from './lib/beats';
 import {
   createSender,
@@ -51,7 +64,7 @@ import {
 } from './lib/drive';
 import {startOrchestrator} from './lib/orchestrator';
 import {Session} from './lib/session';
-import {openCanvas, signIn, type Accounts} from './lib/signIn';
+import {openCanvas, signIn, signInSource, type Accounts} from './lib/signIn';
 
 /** The orchestrator's own defaults (`apps/orchestrator/src/config.ts`), unless a case shortens one. */
 const SOFT_DEADLINE_SECONDS = 10;
@@ -362,21 +375,34 @@ async function main() {
         faults,
         model: values.model,
         installFrom: values.url,
+        ...(session.installs ? {installs: session.installs} : {}),
         ...deadlines,
       },
       name,
     );
     console.log(
-      `  orchestrator on ${orchestrator.url} · ${orchestrator.apps.join(', ')} · log ${orchestrator.log}`,
+      `  orchestrator on ${orchestrator.url} · ${orchestrator.apps.join(', ') || 'no app'} · log ${orchestrator.log}`,
     );
     try {
       const sender = await createSender(orchestrator.url);
       await signedIn(orchestrator.url, sender, catalogIds, spec.accounts);
+      // A take tried again starts where the first did: what a take installed is uninstalled.
+      const installed = new Set<string>();
+      const platform: SessionPlatform = {
+        install: appId => {
+          installed.add(appId);
+          return orchestrator.install(appId);
+        },
+        signIn: (canvas, source, as) =>
+          signInSource(orchestrator.url, canvas.context(), source, as),
+      };
       let take!: Awaited<ReturnType<typeof takeSession>>;
       let problem: string | undefined;
       for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
+        for (const appId of installed) await orchestrator.uninstall(appId);
+        installed.clear();
         try {
-          take = await takeSession(sender, session, catalogIds, orchestrator.journal);
+          take = await takeSession(sender, session, catalogIds, orchestrator.journal, platform);
           problem = session.shows(take);
         } catch (err) {
           problem = err instanceof Error ? err.message : String(err);
@@ -418,13 +444,14 @@ async function takeSession(
   session: SessionCase,
   catalogIds: string[],
   journal: string,
+  platform: SessionPlatform,
 ) {
   const from = await stat(journal).then(
     s => s.size,
     () => 0,
   );
   const driven = new Session(sender, catalogIds);
-  await session.run(driven);
+  await session.run(driven, platform);
   await new Promise(r => setTimeout(r, JOURNAL_SETTLE_MS));
   const text = await readFile(journal).then(
     b => b.subarray(from).toString('utf8'),

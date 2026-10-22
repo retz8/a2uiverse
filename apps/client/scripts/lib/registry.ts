@@ -46,16 +46,30 @@ async function artifactFiles(from: string, artifact: string): Promise<Record<str
   return files;
 }
 
+const writeToken = async (stateDir: string) =>
+  (await readFile(join(stateDir, 'registry', 'write-token'), 'utf8')).trim();
+
 /**
  * Install into the orchestrator at `to` — its write token in `stateDir` — every app the one at
- * `from` has installed, each from its card URL with its artifacts' files. Returns the ids.
+ * `from` has installed, or those of them `only` names, each from its card URL with its artifacts'
+ * files. Returns the ids.
  */
-export async function copyInstalls(from: string, to: string, stateDir: string): Promise<string[]> {
-  const apps = await installedApps(from);
-  if (apps.length === 0) {
+export async function copyInstalls(
+  from: string,
+  to: string,
+  stateDir: string,
+  only?: readonly string[],
+): Promise<string[]> {
+  const installed = await installedApps(from);
+  if (installed.length === 0) {
     throw new Error(`the orchestrator at ${from} has no app installed — launch the apps first`);
   }
-  const token = (await readFile(join(stateDir, 'registry', 'write-token'), 'utf8')).trim();
+  const apps = only ? installed.filter(app => only.includes(app.id)) : installed;
+  const missing = (only ?? []).filter(id => !installed.some(app => app.id === id));
+  if (missing.length) {
+    throw new Error(`the orchestrator at ${from} has not installed ${missing.join(', ')}`);
+  }
+  const token = await writeToken(stateDir);
   for (const app of apps) {
     const catalogs = [];
     for (const artifact of Object.values(app.catalogs)) {
@@ -72,4 +86,33 @@ export async function copyInstalls(from: string, to: string, stateDir: string): 
     }
   }
   return apps.map(app => app.id);
+}
+
+/** What an install answers: done with its summary, or refused with its findings. */
+export interface InstallAnswer {
+  ok: boolean;
+  summary?: string;
+  findings?: string[];
+}
+
+/**
+ * Install `appId` into the orchestrator at `to` — its write token in `stateDir` — from its
+ * marketplace by id alone, as the Store and the slot's Install do (task-15.10 decision 7); or
+ * uninstall it, so a take tried again starts where the first one did.
+ */
+export async function installById(
+  to: string,
+  stateDir: string,
+  appId: string,
+  write: 'install' | 'uninstall' = 'install',
+): Promise<InstallAnswer> {
+  const res = await fetch(`${to}${ROUTE_PREFIX}/${write}`, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      authorization: `Bearer ${await writeToken(stateDir)}`,
+    },
+    body: JSON.stringify({appId}),
+  });
+  return (await res.json()) as InstallAnswer;
 }

@@ -3,20 +3,26 @@
   "beat": 7,
   "title": "Capability gap",
   "prompt": "Book me a flight to Tokyo next Friday.",
-  "model": "gemini-3.7-flash",
-  "recordedAt": "2026-09-13T07:25:29Z",
-  "contextId": "9e42459e-103e-4a2a-83a7-22f1f9bff6dd",
+  "model": "gemini-3.8-flash",
+  "recordedAt": "2026-10-22T10:16:17Z",
+  "contextId": "1c43e9e5-5ddc-4cff-b6f6-950217654565",
   "chainedFrom": null,
   "turns": [
     {
-      "taskId": "54d49891-54d2-4114-97e6-08c483d0838f",
+      "taskId": "d5dcf865-ccb4-4c6b-9856-a8b587f2f2fc",
       "kind": "utterance",
       "prompt": "Book me a flight to Tokyo next Friday.",
       "action": null,
       "batches": [
         {
-          "offsetMs": 1471,
+          "offsetMs": 17155,
           "messages": [
+            {
+              "paintMeta": {
+                "surfaceId": "shell:main",
+                "title": "Flight to Tokyo"
+              }
+            },
             {
               "version": "v0.9",
               "createSurface": {
@@ -39,7 +45,11 @@
                   {
                     "id": "flights",
                     "component": "Slot",
-                    "gap": "flight booking"
+                    "gap": "flight booking",
+                    "offer": {
+                      "apps": [],
+                      "none": "nothing"
+                    }
                   }
                 ]
               }
@@ -53,7 +63,7 @@
         }
       ],
       "outcome": "completed",
-      "durationMs": 1471
+      "durationMs": 17156
     }
   ]
 }

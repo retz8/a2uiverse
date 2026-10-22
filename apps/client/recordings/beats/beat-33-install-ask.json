@@ -1,0 +1,133 @@
+{
+  "name": "beat-33-install-ask",
+  "beat": 33,
+  "title": "Install Shop B",
+  "prompt": "Install Shop B.",
+  "model": "gemini-3.8-flash",
+  "recordedAt": "2026-10-22T10:17:53Z",
+  "contextId": "75874eb2-838d-4132-b7b9-55e16e4cc572",
+  "chainedFrom": null,
+  "deadlines": {
+    "softDeadlineSeconds": 10,
+    "hardCapSeconds": 300
+  },
+  "turns": [
+    {
+      "taskId": "70b0b73f-7dbb-497d-b661-c50d48dc70cc",
+      "kind": "utterance",
+      "prompt": "Install Shop B.",
+      "action": null,
+      "batches": [
+        {
+          "offsetMs": 10304,
+          "messages": [
+            {
+              "paintMeta": {
+                "surfaceId": "shell:main",
+                "title": "Install Shop B"
+              }
+            },
+            {
+              "version": "v0.9",
+              "createSurface": {
+                "surfaceId": "shell:main",
+                "catalogId": "https://github.com/retz8/a2uiverse/blob/main/packages/shell-catalog/catalogs/v0.9.1/catalog.json"
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "surfaceId": "shell:main",
+                "components": [
+                  {
+                    "id": "root",
+                    "component": "Column",
+                    "children": [
+                      "install"
+                    ]
+                  },
+                  {
+                    "id": "install",
+                    "component": "Slot",
+                    "gap": "Shop B",
+                    "offer": {
+                      "apps": [
+                        {
+                          "appId": "shop-b",
+                          "name": "Shop B",
+                          "publisher": "a2uiverse-apps",
+                          "description": "Northlight Cameras, a high-volume online retailer listing current stock with live pricing and next-day dispatch."
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "shell",
+            "role": "shell"
+          }
+        }
+      ],
+      "outcome": "completed",
+      "durationMs": 10304
+    },
+    {
+      "taskId": "c6d235f9-6b70-442a-96a4-b49ea3372586",
+      "kind": "press",
+      "prompt": "",
+      "action": null,
+      "operation": {
+        "kind": "useApp",
+        "sources": [
+          "shop-b"
+        ],
+        "gap": "Shop B"
+      },
+      "canvas": 0,
+      "batches": [
+        {
+          "offsetMs": 3,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "surfaceId": "shell:main",
+                "components": [
+                  {
+                    "id": "root",
+                    "component": "Column",
+                    "children": [
+                      "install"
+                    ]
+                  },
+                  {
+                    "id": "install",
+                    "component": "Slot",
+                    "gap": "Shop B",
+                    "installed": {
+                      "appId": "shop-b",
+                      "name": "Shop B",
+                      "example": "What cameras do you have?"
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "shell",
+            "role": "shell"
+          }
+        }
+      ],
+      "outcome": "apology",
+      "durationMs": 4,
+      "atMs": 10373
+    }
+  ]
+}

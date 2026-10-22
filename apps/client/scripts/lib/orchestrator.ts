@@ -7,7 +7,9 @@
  * holds only its own takes, and the daily one's write token and journal are left alone. Everything
  * else — the Gemini key — comes from the orchestrator's own `.env`; the environment set here wins
  * over it. The card URL is pinned to the port, or the `.env`'s tunnel URL would send the recorder
- * to the orchestrator in daily use.
+ * to the orchestrator in daily use. A store-loop beat names which of the daily apps it gets — the
+ * rest left for its marketplace to offer — and installs from that marketplace by id as it runs
+ * (task-15.10 decision 7).
  */
 import {spawn, type ChildProcess} from 'node:child_process';
 import {createWriteStream} from 'node:fs';
@@ -15,7 +17,7 @@ import {mkdtemp, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {dirname, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {copyInstalls} from './registry';
+import {copyInstalls, installById, type InstallAnswer} from './registry';
 
 const ORCHESTRATOR_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '../../../orchestrator');
 /** Boot embeds every card before it listens. */
@@ -31,6 +33,8 @@ export interface OrchestratorEnv {
   model: string;
   /** The orchestrator in daily use, whose installed apps this one gets. */
   installFrom: string;
+  /** Which of them it gets, when not every one. */
+  installs?: readonly string[];
 }
 
 export interface StartedOrchestrator {
@@ -40,6 +44,9 @@ export interface StartedOrchestrator {
   journal: string;
   /** The apps installed into it. */
   apps: string[];
+  /** Install an app into it from its marketplace by id, or uninstall it. */
+  install(appId: string): Promise<InstallAnswer>;
+  uninstall(appId: string): Promise<InstallAnswer>;
   stop(): Promise<void>;
 }
 
@@ -104,12 +111,20 @@ export async function startOrchestrator(
   }
   let apps: string[];
   try {
-    apps = await copyInstalls(env.installFrom, url, stateDir);
+    apps = await copyInstalls(env.installFrom, url, stateDir, env.installs);
   } catch (err) {
     await stop();
     throw new Error(`installing into the recorder's orchestrator: ${(err as Error).message}`);
   }
-  return {url, log, journal: resolve(stateDir, 'intent-journal.jsonl'), apps, stop};
+  return {
+    url,
+    log,
+    journal: resolve(stateDir, 'intent-journal.jsonl'),
+    apps,
+    install: appId => installById(url, stateDir, appId),
+    uninstall: appId => installById(url, stateDir, appId, 'uninstall'),
+    stop,
+  };
 }
 
 async function answers(url: string): Promise<boolean> {

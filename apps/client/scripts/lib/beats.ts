@@ -10,11 +10,17 @@
  *
  * Beats 19–25 are Phase 9's cases (task-9.8 decisions 3–5): sessions of several canvases over the
  * deterministic roster, each checked against the orchestrator's journal as well as its streams.
+ *
+ * Beats 31–34 are the store loop's (task-15.10 decision 7): sessions over the mock roster with the
+ * marketplace up, Shop B — and for one, Shop A — published and left uninstalled, each driven through
+ * the slot's Install, `useApp`, Shop B's key and the fill. Beat 7 is recorded again on the Planner
+ * that searches the marketplace before it names a gap: nothing in the Store books a flight.
  */
 import type {CompositionOperation} from '@a2uiverse/sdk';
 import type {BeatBatch, BeatTurn} from '../../src/beats/beatFixtures';
+import type {InstallAnswer} from './registry';
 import {sleep, type Session, type SessionCanvas} from './session';
-import type {Accounts} from './signIn';
+import {DEMO_KEYS, type Accounts, type SignedIn} from './signIn';
 
 export interface BeatSpec {
   beat: number;
@@ -42,8 +48,19 @@ export interface SessionCase {
   faults?: FaultCase['faults'];
   /** Raised for a case that must merge over a source the fault map holds back. */
   softDeadlineSeconds?: number;
-  run(session: Session): Promise<void>;
+  /** Which of the daily orchestrator's apps the session's gets, when not every one. */
+  installs?: readonly string[];
+  run(session: Session, platform: SessionPlatform): Promise<void>;
   shows(recorded: RecordedSession): string | undefined;
+}
+
+/**
+ * What a session does on the platform beside its streams, as the canvas does it over
+ * `orchestratorApi`: an install from the marketplace by id, and one source's sign-in from a canvas.
+ */
+export interface SessionPlatform {
+  install(appId: string): Promise<InstallAnswer>;
+  signIn(canvas: SessionCanvas, source: string, as: string): Promise<SignedIn>;
 }
 
 /** A session as recorded: its turns, its canvases, and the journal lines it wrote. */
@@ -139,6 +156,7 @@ const need = (...checks: Array<[boolean, string]>) => checks.find(([ok]) => !ok)
 const TODAY = 'What needs my attention today?';
 const WORKING_ON = "what's the status of what I'm working on?";
 const SIDE_BY_SIDE = 'Put my inbox and my calendar side by side.';
+const COMPARE_SHOPS = 'Compare camera prices at Shop A and Shop B.';
 
 /** Whether the canvas's layout surface has arrived: its plan landed, its dispatches out. */
 const planned = (turn: BeatTurn) =>
@@ -159,6 +177,55 @@ async function until(test: () => boolean, what: string, timeoutMs = 60_000) {
 /** The recorded utterance of the `n`th canvas. */
 const questionOf = (turns: readonly BeatTurn[], n: number) =>
   turns.filter(t => t.kind === 'utterance')[n]!;
+
+/** The offer the shell painted in `batches` for a gap, with the gap's words. */
+const offerOf = (batches: readonly BeatBatch[]) => {
+  const slot = slotsPainted(batches).find(s => s.gap !== undefined && s.offer !== undefined);
+  return (
+    slot && {
+      gap: slot.gap as string,
+      apps: ((slot.offer as {apps: Array<{appId: string}>}).apps ?? []).map(a => a.appId),
+      none: (slot.offer as {none?: string}).none,
+    }
+  );
+};
+
+/** Whether `app`'s slot is painted on its sign-in tile in `batches`: its source, when it is. */
+const signInSlotOf = (batches: readonly BeatBatch[], app: string) =>
+  slotsPainted(batches).find(
+    s => typeof s.source === 'string' && s.source.startsWith(`${app}.`) && s.state === 'authority',
+  )?.source as string | undefined;
+
+/** Whether the gap's slot turned to the installed line for `app` in `batches`. */
+const installedLine = (batches: readonly BeatBatch[], app: string) =>
+  slotsPainted(batches).some(
+    s => s.gap !== undefined && (s.installed as {appId?: string} | undefined)?.appId === app,
+  );
+
+/** The store loop's press turns, in the order they were made. */
+const pressesOf = (turns: readonly BeatTurn[]) => turns.filter(t => t.kind === 'press');
+
+/**
+ * Install `app` from the offer on `canvas` as the slot's Install does — the install, then
+ * `useApp` naming the gap — and, when the slot then asks for its key, connect it and send the
+ * slot's resume press.
+ */
+async function installFromOffer(
+  s: Session,
+  platform: SessionPlatform,
+  canvas: SessionCanvas,
+  app: string,
+): Promise<void> {
+  const offer = offerOf(questionOf(s.turns, canvas.ordinal).batches);
+  if (!offer?.apps.includes(app)) throw new Error(`the plan offered no ${app}`);
+  const installed = await platform.install(app);
+  if (!installed.ok) throw new Error(`${app} did not install: ${installed.findings?.join('; ')}`);
+  await s.press(canvas, {kind: 'useApp', sources: [app], gap: offer.gap});
+  const source = signInSlotOf(pressesOf(s.turns).at(-1)!.batches, app);
+  if (!source) return;
+  await platform.signIn(canvas, source, DEMO_KEYS[app]!);
+  await s.press(canvas, {kind: 'retry', sources: [source]});
+}
 
 /** The journal lines of a canvas. */
 const linesOf = (recorded: RecordedSession, canvas: number) =>
@@ -678,5 +745,100 @@ export const BEATS: BeatSpec[] = [
     slug: 'manage-github',
     title: 'Manage my GitHub accounts',
     prompt: 'Where do I manage my GitHub accounts?',
+  },
+  {
+    // The store loop (task-15.10 decision 7): Shop B offered beside Shop A, installed in the slot,
+    // its key connected as the second step, the slot filling and the merge taking it in.
+    beat: 31,
+    slug: 'shop-b-offered',
+    title: 'Shop B offered beside Shop A',
+    prompt: COMPARE_SHOPS,
+    session: {
+      installs: ['shop-a'],
+      run: async (s, platform) => {
+        const compare = s.ask(COMPARE_SHOPS);
+        await compare.done;
+        await installFromOffer(s, platform, compare, 'shop-b');
+      },
+      shows: ({turns}) => {
+        const offer = offerOf(questionOf(turns, 0).batches);
+        const [useApp, resume] = pressesOf(turns);
+        return need(
+          [offer?.apps.includes('shop-b') === true, 'Shop B was not offered'],
+          [paints(questionOf(turns, 0).batches, 'shop-a'), 'Shop A never painted'],
+          [!!useApp && !!signInSlotOf(useApp.batches, 'shop-b'), 'Shop B never asked its key'],
+          [!!resume && paints(resume.batches, 'shop-b.1'), 'Shop B never filled its slot'],
+          [!!resume && merges(resume.batches), 'the merge never took Shop B in'],
+        );
+      },
+    },
+  },
+  {
+    // Both shops offered, neither installed: the offer of two, stopping there.
+    beat: 32,
+    slug: 'both-shops-offered',
+    title: 'Both shops offered',
+    prompt: 'Which cameras can I buy, and where?',
+    session: {
+      installs: [],
+      run: async s => {
+        await s.ask('Which cameras can I buy, and where?').done;
+      },
+      shows: ({turns}) => {
+        const offer = offerOf(questionOf(turns, 0).batches);
+        return need([
+          !!offer && offer.apps.includes('shop-a') && offer.apps.includes('shop-b'),
+          'the two shops were not offered together',
+        ]);
+      },
+    },
+  },
+  {
+    // The install ask with nothing asked of the app: installed, the slot says so.
+    beat: 33,
+    slug: 'install-ask',
+    title: 'Install Shop B',
+    prompt: 'Install Shop B.',
+    session: {
+      installs: ['shop-a'],
+      run: async (s, platform) => {
+        const ask = s.ask('Install Shop B.');
+        await ask.done;
+        await installFromOffer(s, platform, ask, 'shop-b');
+      },
+      shows: ({turns}) => {
+        const offer = offerOf(questionOf(turns, 0).batches);
+        const [useApp] = pressesOf(turns);
+        return need(
+          [offer?.apps.includes('shop-b') === true, 'Shop B was not offered'],
+          [!!useApp && installedLine(useApp.batches, 'shop-b'), 'no installed line'],
+          [pressesOf(turns).length === 1, 'the install ask dispatched a request'],
+        );
+      },
+    },
+  },
+  {
+    // The install ask with a request: installed, its key connected, the slot filling.
+    beat: 34,
+    slug: 'install-ask-request',
+    title: 'Install Shop B and show its cameras',
+    prompt: 'Install Shop B and show me its cameras.',
+    session: {
+      installs: ['shop-a'],
+      run: async (s, platform) => {
+        const ask = s.ask('Install Shop B and show me its cameras.');
+        await ask.done;
+        await installFromOffer(s, platform, ask, 'shop-b');
+      },
+      shows: ({turns}) => {
+        const offer = offerOf(questionOf(turns, 0).batches);
+        const [useApp, resume] = pressesOf(turns);
+        return need(
+          [offer?.apps.includes('shop-b') === true, 'Shop B was not offered'],
+          [!!useApp && !!signInSlotOf(useApp.batches, 'shop-b'), 'Shop B never asked its key'],
+          [!!resume && paints(resume.batches, 'shop-b.1'), 'Shop B never filled its slot'],
+        );
+      },
+    },
   },
 ];

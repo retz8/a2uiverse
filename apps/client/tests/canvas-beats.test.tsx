@@ -130,16 +130,7 @@ const oneQuestion = (fixture: BeatFixture) =>
     i === 0 ? turn.kind === 'utterance' : turn.kind === 'press' || turn.kind === 'failure-report',
   );
 
-/**
- * Recordings whose paint the shell catalog now refuses, kept as the record of their run: beat 7
- * painted a bare capability gap before the offer, and a gap carries its offer or the app installed
- * there (task-15.8 decision 7). Re-recorded on today's Planner by the dev harness (15.10).
- */
-const PREDATES_THE_OFFER = new Set(['beat-7-capability-gap']);
-
-const replayed = BEAT_FIXTURES.filter(
-  fixture => oneQuestion(fixture) && !PREDATES_THE_OFFER.has(fixture.name),
-);
+const replayed = BEAT_FIXTURES.filter(oneQuestion);
 
 describe('canvas shell over the recorded beats', () => {
   describe.each(replayed.map(f => [f.name, f] as const))('%s', (_name, fixture) => {

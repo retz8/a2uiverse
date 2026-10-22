@@ -1,0 +1,85 @@
+{
+  "name": "beat-32-both-shops-offered",
+  "beat": 32,
+  "title": "Both shops offered",
+  "prompt": "Which cameras can I buy, and where?",
+  "model": "gemini-3.8-flash",
+  "recordedAt": "2026-10-22T10:09:16Z",
+  "contextId": "2f3dc59a-c120-405d-8225-ce6c1e459fa3",
+  "chainedFrom": null,
+  "deadlines": {
+    "softDeadlineSeconds": 10,
+    "hardCapSeconds": 300
+  },
+  "turns": [
+    {
+      "taskId": "6662b3bf-3e98-4cb3-b363-0ee153c521df",
+      "kind": "utterance",
+      "prompt": "Which cameras can I buy, and where?",
+      "action": null,
+      "batches": [
+        {
+          "offsetMs": 14841,
+          "messages": [
+            {
+              "paintMeta": {
+                "surfaceId": "shell:main",
+                "title": "Available cameras"
+              }
+            },
+            {
+              "version": "v0.9",
+              "createSurface": {
+                "surfaceId": "shell:main",
+                "catalogId": "https://github.com/retz8/a2uiverse/blob/main/packages/shell-catalog/catalogs/v0.9.1/catalog.json"
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "surfaceId": "shell:main",
+                "components": [
+                  {
+                    "id": "root",
+                    "component": "Column",
+                    "children": [
+                      "cameras-slot"
+                    ]
+                  },
+                  {
+                    "id": "cameras-slot",
+                    "component": "Slot",
+                    "gap": "camera shop",
+                    "offer": {
+                      "apps": [
+                        {
+                          "appId": "shop-b",
+                          "name": "Shop B",
+                          "publisher": "a2uiverse-apps",
+                          "description": "Northlight Cameras, a high-volume online retailer listing current stock with live pricing and next-day dispatch."
+                        },
+                        {
+                          "appId": "shop-a",
+                          "name": "Shop A",
+                          "publisher": "a2uiverse-apps",
+                          "description": "Aperture & Co, a boutique camera dealer stocking hand-picked bodies with condition notes and staff ratings."
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "shell",
+            "role": "shell"
+          }
+        }
+      ],
+      "outcome": "completed",
+      "durationMs": 14842
+    }
+  ]
+}

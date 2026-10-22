@@ -130,6 +130,20 @@ export async function signIn(
   return signedIn;
 }
 
+/**
+ * Sign one source in from `canvas`, as `as`: the sign-in a slot's tile opens, for an app installed
+ * once the session runs (task-15.10 decision 7).
+ */
+export async function signInSource(
+  orchestrator: string,
+  canvas: string,
+  source: string,
+  as: string,
+): Promise<SignedIn> {
+  const origin = new URL((await cardOf(`${orchestrator}/.well-known/agent-card.json`)).url).origin;
+  return signInOne(orchestrator, origin, canvas, source, as);
+}
+
 async function signInOne(
   orchestrator: string,
   origin: string,

@@ -1,0 +1,435 @@
+{
+  "name": "beat-34-install-ask-request",
+  "beat": 34,
+  "title": "Install Shop B and show its cameras",
+  "prompt": "Install Shop B and show me its cameras.",
+  "model": "gemini-3.8-flash",
+  "recordedAt": "2026-10-22T10:18:23Z",
+  "contextId": "a1d554c8-c910-44b7-b418-eb9988e00a85",
+  "chainedFrom": null,
+  "deadlines": {
+    "softDeadlineSeconds": 10,
+    "hardCapSeconds": 300
+  },
+  "turns": [
+    {
+      "taskId": "54370b78-3fe6-49ba-95cf-879957f7adbe",
+      "kind": "utterance",
+      "prompt": "Install Shop B and show me its cameras.",
+      "action": null,
+      "batches": [
+        {
+          "offsetMs": 13103,
+          "messages": [
+            {
+              "paintMeta": {
+                "surfaceId": "shell:main",
+                "title": "Install Shop B · Cameras"
+              }
+            },
+            {
+              "version": "v0.9",
+              "createSurface": {
+                "surfaceId": "shell:main",
+                "catalogId": "https://github.com/retz8/a2uiverse/blob/main/packages/shell-catalog/catalogs/v0.9.1/catalog.json"
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "surfaceId": "shell:main",
+                "components": [
+                  {
+                    "id": "root",
+                    "component": "Column",
+                    "children": [
+                      "shop-b-slot"
+                    ]
+                  },
+                  {
+                    "id": "shop-b-slot",
+                    "component": "Slot",
+                    "gap": "Shop B",
+                    "offer": {
+                      "apps": [
+                        {
+                          "appId": "shop-b",
+                          "name": "Shop B",
+                          "publisher": "a2uiverse-apps",
+                          "description": "Northlight Cameras, a high-volume online retailer listing current stock with live pricing and next-day dispatch."
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "shell",
+            "role": "shell"
+          }
+        }
+      ],
+      "outcome": "completed",
+      "durationMs": 13103
+    },
+    {
+      "taskId": "3f35ea5e-f159-4a92-bd74-1f1819c00fb7",
+      "kind": "press",
+      "prompt": "",
+      "action": null,
+      "operation": {
+        "kind": "useApp",
+        "sources": [
+          "shop-b"
+        ],
+        "gap": "Shop B"
+      },
+      "canvas": 0,
+      "batches": [
+        {
+          "offsetMs": 5,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "surfaceId": "shell:main",
+                "components": [
+                  {
+                    "id": "root",
+                    "component": "Column",
+                    "children": [
+                      "attribution-shop-b-slot"
+                    ]
+                  },
+                  {
+                    "id": "attribution-shop-b-slot",
+                    "component": "Attribution",
+                    "displayName": "Shop B",
+                    "source": "shop-b.1",
+                    "child": "shop-b-slot",
+                    "fromOffer": true
+                  },
+                  {
+                    "id": "shop-b-slot",
+                    "component": "Slot",
+                    "source": "shop-b.1",
+                    "state": "pending",
+                    "label": "Shop B",
+                    "offered": {
+                      "gap": "Shop B",
+                      "apps": [
+                        {
+                          "appId": "shop-b",
+                          "name": "Shop B",
+                          "publisher": "a2uiverse-apps",
+                          "description": "Northlight Cameras, a high-volume online retailer listing current stock with live pricing and next-day dispatch."
+                        }
+                      ],
+                      "appId": "shop-b"
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "shell",
+            "role": "shell"
+          }
+        },
+        {
+          "offsetMs": 5,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "surfaceId": "shell:main",
+                "components": [
+                  {
+                    "id": "root",
+                    "component": "Column",
+                    "children": [
+                      "attribution-shop-b-slot"
+                    ]
+                  },
+                  {
+                    "id": "attribution-shop-b-slot",
+                    "component": "Attribution",
+                    "displayName": "Shop B",
+                    "source": "shop-b.1",
+                    "child": "shop-b-slot"
+                  },
+                  {
+                    "id": "shop-b-slot",
+                    "component": "Slot",
+                    "source": "shop-b.1",
+                    "state": "authority",
+                    "label": "Shop B",
+                    "authority": {
+                      "cause": "connect",
+                      "scopes": []
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "shell",
+            "role": "shell"
+          }
+        }
+      ],
+      "outcome": "apology",
+      "durationMs": 5,
+      "atMs": 13178
+    },
+    {
+      "taskId": "31ece938-37e9-4a07-87bb-dfc490d283bf",
+      "kind": "press",
+      "prompt": "",
+      "action": null,
+      "operation": {
+        "kind": "retry",
+        "sources": [
+          "shop-b.1"
+        ]
+      },
+      "canvas": 0,
+      "batches": [
+        {
+          "offsetMs": 2,
+          "messages": [
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "surfaceId": "shell:main",
+                "components": [
+                  {
+                    "id": "root",
+                    "component": "Column",
+                    "children": [
+                      "attribution-shop-b-slot"
+                    ]
+                  },
+                  {
+                    "id": "attribution-shop-b-slot",
+                    "component": "Attribution",
+                    "displayName": "Shop B",
+                    "source": "shop-b.1",
+                    "child": "shop-b-slot"
+                  },
+                  {
+                    "id": "shop-b-slot",
+                    "component": "Slot",
+                    "source": "shop-b.1",
+                    "state": "pending",
+                    "label": "Shop B"
+                  }
+                ]
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "shell",
+            "role": "shell"
+          }
+        },
+        {
+          "offsetMs": 6,
+          "messages": [
+            {
+              "version": "v0.9",
+              "createSurface": {
+                "surfaceId": "shop-b.1:list",
+                "catalogId": "https://github.com/retz8/a2uiverse-apps/blob/main/mocks/shop-b/shop-b-catalog/catalogs/v0.9.1/catalog.json",
+                "sendDataModel": true
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateDataModel": {
+                "surfaceId": "shop-b.1:list",
+                "path": "/",
+                "value": {
+                  "items": [
+                    {
+                      "id": "verity-a7",
+                      "name": "Verity A7",
+                      "price": 2249,
+                      "rating": 4.7
+                    },
+                    {
+                      "id": "lumen-x100",
+                      "name": "Lumen X100",
+                      "price": 1379,
+                      "rating": 4.5
+                    },
+                    {
+                      "id": "orbit-gm3",
+                      "name": "Orbit GM3",
+                      "price": 899,
+                      "rating": 4.2
+                    },
+                    {
+                      "id": "kestrel-r5",
+                      "name": "Kestrel R5",
+                      "price": 3149,
+                      "rating": 4.3
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "version": "v0.9",
+              "updateComponents": {
+                "surfaceId": "shop-b.1:list",
+                "components": [
+                  {
+                    "id": "root",
+                    "component": "Card",
+                    "child": "body"
+                  },
+                  {
+                    "id": "body",
+                    "component": "Column",
+                    "children": [
+                      "title",
+                      "controls",
+                      "rows"
+                    ]
+                  },
+                  {
+                    "id": "title",
+                    "component": "Text",
+                    "variant": "h3",
+                    "text": "Northlight"
+                  },
+                  {
+                    "id": "controls",
+                    "component": "Row",
+                    "children": [
+                      "sort-price",
+                      "sort-rating"
+                    ]
+                  },
+                  {
+                    "id": "sort-price",
+                    "component": "Button",
+                    "variant": "borderless",
+                    "child": "sort-price-label",
+                    "action": {
+                      "event": {
+                        "name": "sort-by",
+                        "context": {
+                          "key": "price"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "sort-price-label",
+                    "component": "Text",
+                    "text": "Price"
+                  },
+                  {
+                    "id": "sort-rating",
+                    "component": "Button",
+                    "variant": "borderless",
+                    "child": "sort-rating-label",
+                    "action": {
+                      "event": {
+                        "name": "sort-by",
+                        "context": {
+                          "key": "rating"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "sort-rating-label",
+                    "component": "Text",
+                    "text": "Rating"
+                  },
+                  {
+                    "id": "rows",
+                    "component": "List",
+                    "children": {
+                      "path": "/items",
+                      "componentId": "row"
+                    }
+                  },
+                  {
+                    "id": "row",
+                    "component": "Button",
+                    "variant": "borderless",
+                    "child": "row-body",
+                    "action": {
+                      "event": {
+                        "name": "open-camera",
+                        "context": {
+                          "cameraId": {
+                            "path": "id"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "id": "row-body",
+                    "component": "Row",
+                    "children": [
+                      "row-name",
+                      "row-price",
+                      "row-rating"
+                    ]
+                  },
+                  {
+                    "id": "row-name",
+                    "component": "Text",
+                    "text": {
+                      "path": "name"
+                    }
+                  },
+                  {
+                    "id": "row-price",
+                    "component": "Text",
+                    "text": {
+                      "path": "price"
+                    }
+                  },
+                  {
+                    "id": "row-rating",
+                    "component": "Text",
+                    "variant": "caption",
+                    "text": {
+                      "path": "rating"
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "texts": [],
+          "stamp": {
+            "source": "shop-b.1",
+            "role": "fragment",
+            "builds": {
+              "https://github.com/retz8/a2uiverse-apps/blob/main/mocks/shop-b/shop-b-catalog/catalogs/v0.9.1/catalog.json": "sha256-HZguEEJZFF8jNpZb6DQaQaEIIR9JkMgI3WpFohZ3KMQ"
+            }
+          }
+        }
+      ],
+      "outcome": "completed",
+      "durationMs": 7,
+      "atMs": 13191
+    }
+  ]
+}
