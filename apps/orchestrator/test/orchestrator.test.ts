@@ -3462,10 +3462,13 @@ describe('the store loop (task 15.4)', () => {
         components: Array<Record<string, unknown>>;
       }
     ).components;
+    // Until its first answer the slot keeps the offer it came from, its marker waiting (task-15.8
+    // decision 2).
     expect(components.find(c => c.id === 'attribution-gap-0')).toMatchObject({
       component: 'Attribution',
       source: 'calendar',
       child: 'gap-0',
+      fromOffer: true,
     });
     expect(components.find(c => c.id === 'gap-0')).toEqual({
       id: 'gap-0',
@@ -3473,6 +3476,18 @@ describe('the store loop (task 15.4)', () => {
       source: 'calendar',
       state: 'pending',
       label: 'Google Calendar',
+      offered: {
+        gap: 'calendar',
+        apps: [
+          {
+            appId: 'calendar',
+            name: 'Google Calendar',
+            publisher: 'acme',
+            description: 'Your calendar.',
+          },
+        ],
+        appId: 'calendar',
+      },
     });
     const stamped = new Set(
       pressed.filter(e => stampOf(e)?.role === 'fragment').map(e => stampOf(e)!.source),

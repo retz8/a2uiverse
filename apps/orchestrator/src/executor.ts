@@ -1037,10 +1037,11 @@ export class OrchestratorExecutor implements AgentExecutor {
     const slot = state.slots.get(source)!;
     const merge = synthesisSlot(state);
     const pack = !state.mergeDecided && state.trigger !== undefined;
-    // Resent from the update tile, the slot keeps its line until the answer lands; from any other
-    // state, nothing (task-15.8 decision 2).
+    // Resent from the update tile, the slot keeps its line until the answer lands; filled from an
+    // offer by `useApp`, the offer it came from; from any other state, nothing (task-15.8 decision
+    // 2).
     if (slot.state === 'update' && slot.update) slot.keeps = {update: slot.update};
-    else delete slot.keeps;
+    else if (!(slot.state === 'pending' && slot.keeps && 'gap' in slot.keeps)) delete slot.keeps;
     slot.state = 'pending';
     delete slot.failure;
     delete slot.authority;
