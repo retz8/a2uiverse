@@ -122,13 +122,13 @@ Made for the run: Shop A's current catalog moved to the kit's old line as publis
 From phase decision 19's sixth item: the new-permission variant (phase decisions 12 and 15).
 
 1. CircleCI, signed in with read access, answers "How are my builds doing?".
-2. CircleCI's card goes to 0.2.0, requiring `pipelines.write` beside read access, restarted and not published. A Retry gives "CircleCI has changed, and the Store is waiting on its publisher, a2uiverse-apps.", with no press, not the needs-more-access tile.
+2. CircleCI's card goes to 0.2.0, requiring `pipelines.write` beside read access, restarted and not published. The App Library is opened, its check fetching the live card again, and closed. A Retry then gives "CircleCI has changed, and the Store is waiting on its publisher, a2uiverse-apps.", with no press, not the needs-more-access tile.
 3. 0.2.0 is published, a card update. A Retry gives "CircleCI needs an update to show this.". Update opens the consent card in the slot, asking for more in the card's words, and is allowed.
 4. The slot sends again. The account lacks the new permission, so the slot takes the needs-more-access tile. The account is signed in again through the window, granting it, and the slot fills.
 
 ### 14. The update tile's two lines with no Store answer
 
-- "…and the Store couldn't be reached." with Retry: within CircleCI's chain, the marketplace is stopped between step 2's restart and its Retry. Once the marketplace is restarted, a second Retry moves the slot on to the waiting line.
+- "…and the Store couldn't be reached." with Retry: within CircleCI's chain, the marketplace is stopped between step 2's App Library and its Retry. Once the marketplace is restarted, a second Retry moves the slot on to the waiting line.
 - "…and the Store has no update for it.": the sitting's last case. Shop B's catalog moves to a new id with no old line, Shop B is restarted, and the dev publisher unpublishes it. The camera comparison's Shop B slot shows the line.
 
 ### 15. Linear's newer build
