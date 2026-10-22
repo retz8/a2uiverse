@@ -53,7 +53,7 @@ The platform's code goes on `main`. The agents', the kit's and the catalogs' cod
 
 Found while grilling. The orchestrator holds each app's live card from boot or install, and fetches it again only on the App Library's check, a refused paint, an install or an update, and a restart. A kit app offered no catalog id it still holds paints nothing and answers "Shop A has changed and can't show this here." An app that changed while the orchestrator runs therefore passes the check before dispatch on the card held, its call ends with no surface, and the slot rests on that sentence with no press.
 
-The catch after the call widens. A call that ends with no surface also has the app's live card fetched again, given five seconds. A fetched card naming a catalog id beyond the entitlement takes the update tile, as a paint refused outside the entitlement does. This amends phase decision 11 and task 15.5's decision 4. It is fixed with its tests and committed before the regression pass before.
+The catch after the call widens. A call that ends with no surface also has the app's live card fetched again, given five seconds. A fetched card naming no catalog id in the entitlement takes the update tile, as a paint refused outside the entitlement does. This amends phase decision 11 and task 15.5's decision 4. It is fixed with its tests and committed before the regression pass before.
 
 ### 6. The starting state
 
