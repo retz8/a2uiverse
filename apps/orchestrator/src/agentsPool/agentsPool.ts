@@ -60,7 +60,7 @@ export interface UpdateGate {
   permissionChanged(source: string): boolean;
   /** What the slot's update tile is drawn from; none when the app is not installed. */
   finding(appId: string, why: UpdateCase): Promise<UpdateFinding | undefined>;
-  /** After a paint refused outside the entitlement: the live card fetched again. */
+  /** After a paint refused outside the entitlement, or a call ended with no UI: the live card fetched again. */
   refetched(appId: string): Promise<Refetched>;
 }
 
@@ -235,6 +235,7 @@ export class AgentsPool {
     this.#sentTo.set(record, app);
     const entitlement = new Set(app.entitlement);
     let outside: string | undefined;
+    let painted = false;
     let credentialRefused = false;
     try {
       if (fault?.seconds) await sleep(fault.seconds * 1000, controller.signal);
@@ -317,6 +318,7 @@ export class AgentsPool {
                 // (task-11.4 decision 12): the dispatch ends failed on the catalog's id.
                 outside = catalogOutside(event, entitlement);
                 if (outside !== undefined) break;
+                if (carriesA2ui(event)) painted = true;
                 // The agent asks for authority mid-task (phase-12 decisions 4, 6): read against
                 // the installed card, never relayed.
                 const asked = authRequiredOf(event);
@@ -455,6 +457,10 @@ export class AgentsPool {
       } else if (endState && FAILED_STATES.has(endState)) {
         if (finalMessage) record.vendorMessage = finalMessage;
         finish('failed', {error: `vendor ended the task as ${endState}`, cause: 'vendor'});
+      } else if (!painted && (await this.#caughtWithNoUi(app.id, record))) {
+        finish('failed', {
+          error: 'answered with no UI, its live card naming nothing it is installed with',
+        });
       } else {
         finish('completed');
       }
@@ -466,6 +472,22 @@ export class AgentsPool {
           cause: 'unreachable',
         });
     }
+  }
+
+  /**
+   * The catch after a call that ended with no UI (task-15.11 decision 5): an agent offered no
+   * catalog it still holds paints nothing, so its live card is fetched again as after a refused
+   * paint; one naming nothing in the entitlement brings the update tile, the outcome on the record.
+   */
+  async #caughtWithNoUi(appId: string, record: DispatchRecord): Promise<boolean> {
+    const updates = this.#options.updates;
+    if (!updates) return false;
+    record.refetched = await updates.refetched(appId);
+    if (record.refetched !== 'changed' || !updates.catalogsChanged(appId)) return false;
+    const finding = await updates.finding(appId, 'catalogs');
+    if (!finding) return false;
+    record.update = finding;
+    return true;
   }
 
   /**

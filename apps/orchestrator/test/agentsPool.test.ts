@@ -598,14 +598,20 @@ describe('AgentsPool — the update check (task-15.5 decisions 1 to 4)', () => {
   function checks(
     answers: {
       catalogs?: boolean;
+      /** What the catalog case judges once the live card is fetched again; `catalogs` before. */
+      catalogsRefetched?: boolean;
       permission?: boolean;
       refetched?: Refetched;
       signIn?: boolean;
     } = {},
   ) {
     const calls: string[] = [];
+    let fetchedAgain = false;
     const updates: UpdateGate = {
-      catalogsChanged: appId => (calls.push(`catalogs ${appId}`), answers.catalogs ?? false),
+      catalogsChanged: appId => (
+        calls.push(`catalogs ${appId}`),
+        (fetchedAgain ? answers.catalogsRefetched : answers.catalogs) ?? false
+      ),
       permissionChanged: source => (
         calls.push(`permission ${source}`),
         answers.permission ?? false
@@ -613,6 +619,7 @@ describe('AgentsPool — the update check (task-15.5 decisions 1 to 4)', () => {
       finding: async (appId, why) => (calls.push(`finding ${appId} ${why}`), finding(why)),
       refetched: async appId => (
         calls.push(`refetched ${appId}`),
+        (fetchedAgain = true),
         answers.refetched ?? 'unchanged'
       ),
     };
@@ -708,6 +715,59 @@ describe('AgentsPool — the update check (task-15.5 decisions 1 to 4)', () => {
       expect(record).toMatchObject({outcome: 'failed', cause: 'catalog', refetched});
       expect(record.update).toBeUndefined();
       expect(calls.at(-1)).toBe('refetched github');
+    }
+  });
+
+  const noUi: Script = ({ctx, vendorContextId}) => [
+    {
+      kind: 'status-update',
+      taskId: ctx.taskId,
+      contextId: vendorContextId,
+      final: true,
+      status: {
+        state: 'completed',
+        message: {
+          kind: 'message',
+          messageId: crypto.randomUUID(),
+          role: 'agent',
+          parts: [{kind: 'text', text: "GitHub has changed and can't show this here."}],
+          contextId: vendorContextId,
+          taskId: ctx.taskId,
+        },
+      },
+    },
+  ];
+
+  test('a call that ends with no UI fetches the live card again: one naming nothing installed brings the update tile (task-15.11 decision 5)', async () => {
+    const {calls, extra} = checks({refetched: 'changed', catalogsRefetched: true});
+    const {pool} = await poolFor({script: noUi}, extra);
+    const {record} = await drain(pool.dispatch('github', turn()));
+    expect(record).toMatchObject({
+      outcome: 'failed',
+      refetched: 'changed',
+      update: finding('catalogs'),
+    });
+    expect(record.cause).toBeUndefined();
+    expect(calls.slice(-3)).toEqual([
+      'refetched github',
+      'catalogs github',
+      'finding github catalogs',
+    ]);
+  });
+
+  test('with no UI and a card still naming something installed, unchanged or unanswered, the call completes, the outcome on the record', async () => {
+    const cases = [
+      {refetched: 'changed', catalogsRefetched: false},
+      {refetched: 'unchanged'},
+      {refetched: 'unanswered'},
+    ] as const;
+    for (const answers of cases) {
+      const {calls, extra} = checks(answers);
+      const {pool} = await poolFor({script: noUi}, extra);
+      const {record} = await drain(pool.dispatch('github', turn()));
+      expect(record).toMatchObject({outcome: 'completed', refetched: answers.refetched});
+      expect(record.update).toBeUndefined();
+      expect(calls).not.toContain('finding github catalogs');
     }
   });
 });

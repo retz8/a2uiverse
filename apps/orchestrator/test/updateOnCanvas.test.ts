@@ -50,9 +50,14 @@ afterEach(async () => {
 /** What a vendor paints in: changed by the test as the agent moves. */
 interface Painting {
   catalog: string;
+  /** Words alone in place of the paint, as an agent offered no catalog it holds answers. */
+  noUi?: string;
 }
 
-/** A vendor painting one surface in whatever catalog `painting` names, every request alike. */
+/**
+ * A vendor painting one surface in whatever catalog `painting` names, every request alike — or
+ * answering in words alone when `painting` says so.
+ */
 function paintsIn(painting: Painting): Script {
   return ({ctx, vendorContextId}) => [
     {
@@ -66,15 +71,18 @@ function paintsIn(painting: Painting): Script {
           kind: 'message',
           messageId: randomUUID(),
           role: 'agent',
-          parts: [
-            {
-              kind: 'data',
-              data: {
-                version: 'v0.9',
-                createSurface: {surfaceId: 's1', catalogId: painting.catalog},
-              },
-            },
-          ],
+          parts:
+            painting.noUi !== undefined
+              ? [{kind: 'text', text: painting.noUi}]
+              : [
+                  {
+                    kind: 'data',
+                    data: {
+                      version: 'v0.9',
+                      createSurface: {surfaceId: 's1', catalogId: painting.catalog},
+                    },
+                  },
+                ],
           contextId: vendorContextId,
           taskId: ctx.taskId,
         },
@@ -414,6 +422,42 @@ describe('the catch after the call (task-15.5 decisions 4, 12)', () => {
     });
     const [record] = await dispatchRecords('shop', 1);
     expect(record).toMatchObject({cause: 'catalog', refetched: 'unchanged'});
+    expect(record.update).toBeUndefined();
+  });
+
+  test('the agent moved and answers with no UI: the card fetched again names the change, the update tile; a Retry stopped before the call (task-15.11 decision 5)', async () => {
+    const {client, orchestrator, painting} = await boot({apps: {shop: {}}, plan: shopOnly});
+    move(vendors.shop!, [CAT_2], '1.1.0');
+    painting.shop!.noUi = "Shop B has changed and can't show this here.";
+
+    const turn = await collect(client, utterance('camera prices'));
+    expect(vendors.shop!.requests).toHaveLength(1);
+    expect(lastSlot(turn, 'shop')).toMatchObject({
+      state: 'update',
+      update: {state: 'ahead-of-store', publisher: 'Northlight'},
+    });
+    expect(orchestrator.registry.card('shop')).toMatchObject({version: '1.1.0'});
+    const [record] = await dispatchRecords('shop', 1);
+    expect(record).toMatchObject({
+      outcome: 'failed',
+      refetched: 'changed',
+      update: {case: 'catalogs', line: 'waiting'},
+    });
+    expect(record.cause).toBeUndefined();
+
+    const pressed = await collect(client, retry('shop', contextOf(turn)));
+    expect(vendors.shop!.requests).toHaveLength(1);
+    expect(lastSlot(pressed, 'shop')).toMatchObject({state: 'update'});
+  });
+
+  test('an answer with no UI from an app that has not changed rests on its words, as before', async () => {
+    const {client, painting} = await boot({apps: {shop: {}}, plan: shopOnly});
+    painting.shop!.noUi = 'Nothing to show for that.';
+
+    const events = await collect(client, utterance('camera prices'));
+    expect(lastSlot(events, 'shop')).toMatchObject({state: 'collapsed'});
+    const [record] = await dispatchRecords('shop', 1);
+    expect(record).toMatchObject({outcome: 'completed', refetched: 'unchanged'});
     expect(record.update).toBeUndefined();
   });
 });

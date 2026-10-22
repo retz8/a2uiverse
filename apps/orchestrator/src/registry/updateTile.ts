@@ -1,7 +1,7 @@
 /**
  * The update on the canvas (SPEC §10's update tile; task 15.5): whether an app can paint in what it
- * is installed with — before the call from the live card this run holds, after a refused paint from
- * the card fetched again — and the finding a slot's update tile is drawn from: the update state of
+ * is installed with — before the call from the live card this run holds, after a refused paint or a
+ * call that ended with no UI from the card fetched again — and the finding a slot's update tile is drawn from: the update state of
  * a check of that one app, its publisher and the line it chooses.
  */
 import {readSupportedCatalogIds, type UpdateState} from '@a2uiverse/sdk';
@@ -22,7 +22,10 @@ export interface UpdateFinding {
   line: UpdateLine;
 }
 
-/** What fetching the live card again after a refused paint found (task-15.5 decision 4). */
+/**
+ * What fetching the live card again after a refused paint, or a call that ended with no UI, found
+ * (task-15.5 decision 4; task-15.11 decision 5).
+ */
 export type Refetched = 'changed' | 'unchanged' | 'unanswered';
 
 export interface UpdateTileDeps {
@@ -80,9 +83,9 @@ export class UpdateTile {
   }
 
   /**
-   * The catch after the call (task-15.5 decisions 4, 14): the live card fetched again, given five
-   * seconds, the run holding what answers; changed when it names a catalog id beyond the app's
-   * entitlement.
+   * The catch after the call (task-15.5 decisions 4, 14; task-15.11 decision 5): the live card
+   * fetched again, given five seconds, the run holding what answers; changed when it names a
+   * catalog id beyond the app's entitlement.
    */
   async refetched(appId: string): Promise<Refetched> {
     const {registry} = this.#deps;

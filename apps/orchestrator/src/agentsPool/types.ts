@@ -55,11 +55,15 @@ export interface DispatchRecord {
   authority?: AuthorityNeed & {escalation?: boolean};
   /**
    * The dispatch needs an update (task 15.5): the update check before dispatch stopped it, the agent
-   * not called — set with a failed outcome and no cause — or the catch after a refused paint found
-   * the live card changed, beside the `catalog` cause. The slot takes the update tile.
+   * not called — set with a failed outcome and no cause — or the catch after the call found the
+   * live card changed: after a refused paint, beside the `catalog` cause; after a call that ended
+   * with no UI, with no cause (task-15.11 decision 5). The slot takes the update tile.
    */
   update?: UpdateFinding;
-  /** After a paint refused outside the entitlement: what fetching the live card again found. */
+  /**
+   * After a paint refused outside the entitlement, or a call that ended with no UI: what fetching
+   * the live card again found.
+   */
   refetched?: Refetched;
 }
 
