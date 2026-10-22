@@ -190,3 +190,18 @@ Then a closing launch runs under the publish with all seven apps, published and 
 This spec is the record. Each on-the-spot fix is added as a numbered decision as it lands, with what it replaced.
 
 The write-up has four parts: before the sitting, the sitting case by case, after it, and the findings. Findings for later phases go into their phase's notes in `_dev/TODO.md` at the write-up. Every amendment to the phase spec, SPEC.md and earlier sub-task specs that 15.11 calls for is made by 15.12. Decision 5's are among them: phase decision 11, task 15.5's decision 4, SPEC §10's update tile, and §14's update tile row.
+
+## Write-up
+
+### Before the sitting
+
+**Decision 5's fix** (`b5f5b8e`). A call that ends with no UI has the app's live card fetched again, given five seconds; a card naming nothing the app is installed with takes the update tile, the outcome on the dispatch record with no cause. A card still naming something installed, unchanged or unanswered, leaves the call completed as before, the outcome on the record. A call that paints fetches nothing. Four tests, each failing without the fix: two over the agents pool, two over the canvas — the agent moved and answering with no UI taking the waiting line, a Retry then stopped before the call; an app that has not changed resting on its words.
+
+**The regression pass before**, all green:
+- The platform's `pnpm verify`: 22 of 22 tasks and 68 script tests. The suites: shell catalog 510, client 857, orchestrator 674, marketplace 80, Stellify 111, sdk 281, embedder 13.
+- `a2uiverse-apps`' `pnpm verify`, at `0cf9ada`: 31 of 31.
+- The replay suite: 133 passed.
+- The live suite: 7 passed — accounts, publish, sign-in, the loop on Calendar, More in the Store, store, update.
+- The Python suites: the kit 350, GitHub 144, Gmail 131, Calendar 123, CircleCI 82, Linear 77, Shop A 98, Shop B 99.
+
+**The marketplace stopped alone** (decision 11). Under the platform's `pnpm dev`, the marketplace's process stopped took the client and the orchestrator down with it, turbo ending the run on the marketplace's exit. The marketplace runs in its own terminal for the sitting.
