@@ -200,6 +200,9 @@ export function ConsentCard({ask, onConfirm, onClose, container}: ConsentCardPro
   );
 }
 
+/** The canvas's column, which the card over a slot stays inside. */
+const STAGE = '[data-testid="canvas-stage-content"]';
+
 export interface SlotConsentCardProps {
   ask: ConsentAsk | null;
   /** The Install or Update pressed in the slot: the card floats from it. */
@@ -233,6 +236,8 @@ export function SlotConsentCard({ask, anchor, onConfirm, onCancel}: SlotConsentC
         <Popover.Content
           side="bottom"
           align="end"
+          // Kept inside the canvas's column, never over the gutter beside it (the canvas's U3).
+          collisionBoundary={anchor?.closest<HTMLElement>(STAGE) ?? undefined}
           maxWidth="420px"
           className="store-consent store-consent--slot"
           data-testid="slot-consent-card"
