@@ -1,6 +1,7 @@
 /**
  * The shell's own surface in a real browser (task 6.5): a platform answer bound to the data
- * model the hub sent, and a capability gap whose tile opens the Store over the canvas.
+ * model the hub sent, and a capability gap with nothing to offer, whose quiet line opens the Store
+ * over the canvas (task-15.10 decision 8).
  */
 import {test, expect} from '@playwright/test';
 import type {Page} from '@playwright/test';
@@ -23,12 +24,13 @@ test('a platform answer renders the rows of its literal data model', async ({pag
   await expect(page.locator('[data-attribution]')).toHaveCount(0);
 });
 
-test('the capability tile opens the Store over the canvas, the gap as its query', async ({
+test('the nothing-to-offer line opens the Store over the canvas, the gap as its query', async ({
   page,
 }) => {
   await settle(page, 'gap');
   const tile = page.locator('[data-slot-gap="flight booking"]');
-  await expect(tile).toHaveAttribute('data-slot-state', 'gap');
+  await expect(tile).toHaveAttribute('data-slot-state', 'nothing');
+  await expect(tile).toContainText('Nothing in the Store can do this yet.');
   await expect(tile).not.toContainText('flight booking'); // no model wording, no gap wording
 
   await tile.getByRole('button', {name: 'Search the Store'}).click();
@@ -85,9 +87,9 @@ test('visual: a platform answer', async ({page}) => {
   await expect(page).toHaveScreenshot('shell-surface-platform-answer.png', {fullPage: true});
 });
 
-test('visual: the capability tile', async ({page}) => {
+test('visual: the nothing-to-offer line', async ({page}) => {
   await settle(page, 'gap');
-  await expect(page).toHaveScreenshot('shell-surface-gap.png', {fullPage: true});
+  await expect(page).toHaveScreenshot('shell-surface-nothing.png', {fullPage: true});
 });
 
 test('visual: the Store over the canvas', async ({page}) => {

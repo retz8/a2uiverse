@@ -173,16 +173,17 @@ test("beat 8: a mixed utterance carries the reader's words and the one vendor sl
   await expect(page.locator('[data-slot-resting="prose"]')).toHaveCount(1);
 });
 
-test('beat 7: a capability gap is the tile, and the tile opens the Store with the gap', async ({
+test('beat 7: nothing in the Store books a flight — the quiet line, and its Search the Store opens the Store with the gap', async ({
   page,
 }) => {
   await settle(page, '7');
   await expect(page.locator('[data-a2ui-fragment]')).toHaveCount(0);
-  const tile = page.locator('[data-slot-state="gap"]');
-  await expect(tile).toHaveCount(1);
-  const gap = await tile.getAttribute('data-slot-gap');
+  const line = page.locator('[data-slot-state="nothing"]');
+  await expect(line).toHaveCount(1);
+  await expect(line).toContainText('Nothing in the Store can do this yet.');
+  const gap = await line.getAttribute('data-slot-gap');
   expect(gap).toBeTruthy();
-  await tile.getByRole('button', {name: 'Search the Store'}).click();
+  await line.getByRole('button', {name: 'Search the Store'}).click();
   const overlay = page.getByTestId('trusted-page-overlay');
   await expect(overlay).toHaveAttribute('data-page', 'store');
   await expect(overlay).toHaveAttribute('data-query', gap!);
