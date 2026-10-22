@@ -1,0 +1,192 @@
+# Task 15.11 — Integration + acceptance
+
+Spec for sub-task 15.11 of Phase 15 (`_dev/docs/spec/phase-15-store-loop.md`, decision 19): the phase's acceptance run through the tunnel, on the deterministic roster and the two shops, with the marketplace running and the Planner on `gemini-3.8-flash`. It covers phase decision 19's nine items. Shop A's breaking catalog change is made for the run through the kit's old line, in place of task 13.8's temporary patch, and the run is set up on the launcher's option that publishes apps and leaves them uninstalled. It also covers the fault found while grilling: a call that ends with no surface.
+
+## Scope
+
+- The fault found while grilling, fixed before the sitting.
+- The two checks: the regression pass, and one sitting by hand through the tunnel.
+- How the sitting is driven, how points found in it are handled, and where the code is worked.
+- The starting state, and the state the sitting leaves.
+- The loop on Shop B, the sign-in app on Calendar, "More in the Store" with the uninstalled slot, the install ask, and nothing to offer.
+- Shop A's chain: the kit's two catalog ids and the forced update.
+- CircleCI's chain: the new-permission variant.
+- The update tile's two lines with no Store answer.
+- Linear's newer build: per-paint builds.
+- The install refused.
+- The journal after each case.
+- The dark walk over the replay.
+- What stays with the automated tests.
+- The sitting's order and the record.
+- Out: the amendments the sitting calls for (task 15.12).
+
+## Locked decisions
+
+### 1. Two checks
+
+The regression pass:
+- `pnpm verify` in both repos;
+- the client's replay suite against the baselines on disk;
+- task 15.10's live suite, whole, run while the sitting's stack is down;
+- each Python agent's tests, run apart.
+
+It runs before the sitting, every failure and diff named and anything unexplained fixed before going on. It runs again after the sitting, the baselines retaken on disk and what changed named. It is phase decision 19's ninth item. Then there is one sitting by hand through the tunnel.
+
+### 2. The sitting is driven case by case
+
+Before each case Claude gives a brief of what it tests. On the reader's go, Claude drives the page in the reader's browser through Claude in Chrome on the tunnel's addresses, and runs every terminal command on the Mac. After each case the reader gives UX and design feedback, fixed on the spot before the next case.
+
+### 3. Nothing is deferred
+
+Every point the reader raises or the sitting finds is handled the same way:
+- fixed on the spot, one at a time, agent side included;
+- seen again;
+- added to this spec as a numbered decision with what it replaced.
+
+A point asking for something a later phase builds is recorded as a finding for that phase.
+
+### 4. Worked directly on `main`
+
+The platform's code goes on `main`. The agents', the kit's and the catalogs' code goes on `a2uiverse-apps`' `main`. There is no worktree. Each fix is committed as it lands. The edits made for the run are never committed and are reverted by the end of the sitting.
+
+### 5. A call that ends with no surface is caught after the call
+
+Found while grilling. The orchestrator holds each app's live card from boot or install, and fetches it again only on the App Library's check, a refused paint, an install or an update, and a restart. A kit app offered no catalog id it still holds paints nothing and answers "Shop A has changed and can't show this here." An app that changed while the orchestrator runs therefore passes the check before dispatch on the card held, its call ends with no surface, and the slot rests on that sentence with no press.
+
+The catch after the call widens. A call that ends with no surface also has the app's live card fetched again, given five seconds. A fetched card naming a catalog id beyond the entitlement takes the update tile, as a paint refused outside the entitlement does. This amends phase decision 11 and task 15.5's decision 4. It is fixed with its tests and committed before the regression pass before.
+
+### 6. The starting state
+
+- The marketplace's state is wiped, its embedding model kept.
+- The orchestrator runs on a fresh state folder holding only the embedding model's cache. The existing orchestrator state folder is left as it is.
+- The tunnel's addresses are set for the agents' sign-in pages for the whole sitting.
+- The launcher runs the deterministic roster and the two shops under its publish. The dev publisher publishes all seven apps. Each is installed from the marketplace by id, except Shop B and Calendar, which are published and left uninstalled through task 15.10's option.
+- Every account is signed in from its tile the first time its app composes.
+- The Planner and the Synthesizer run on `gemini-3.8-flash`.
+
+### 7. The loop on Shop B
+
+Phase decision 19's first item. "Compare camera prices at Shop A and Shop B.", asked with Shop A installed and Shop B not:
+- the merge reserved over Shop A, and Shop B offered in its slot;
+- Install through the consent card in the slot;
+- Shop B's key connected as the second step;
+- the slot filling, and the merge taking Shop B in.
+
+Then "What's on this canvas?": the this-canvas reader names Shop B as a source like Shop A. The progress line reads Shop B as any source (phase decision 10).
+
+### 8. The sign-in app on Calendar
+
+Phase decision 19's second item. A question gathering from Gmail and GitHub that also needs a calendar:
+- Calendar offered in its slot beside the merge reserved over them;
+- Install through the consent card in the slot;
+- Calendar's sign-in tile, and its sign-in window through the tunnel;
+- the slot filling, and the merge taking Calendar in.
+
+### 9. "More in the Store" on Shop B, with the uninstalled slot
+
+Phase decision 19's third item.
+- Shop B is uninstalled from the App Library. On decision 7's canvas, still showing Shop B's filled slot, a press inside Shop B's fragment gives "This app isn't installed anymore." with Retry and no reinstall (phase decision 15).
+- Canvas 1 asks "Compare camera prices at Shop A and Shop B." and canvas 2 asks "Which cameras can I buy, and where?". Each offers Shop B.
+- On canvas 2, Shop B's name opens its view in the Store, and Back closes it.
+- Then canvas 2's "More in the Store" opens the Store page on the search words. Shop B is installed there through the consent card and its key connected. The page says "Shop B is installed. It's answering on your canvas." with "Back to your canvas", and canvas 2's slot has filled beneath it.
+- On canvas 1, Shop B's row reads "Show it here" with "Installed" beside it. Pressed, the slot fills with no second consent.
+
+### 10. The install ask
+
+Phase decision 19's fifth item. Shop B is uninstalled from the App Library before each half.
+- "Install Shop B.": Shop B offered, Install through the consent card, the installed line.
+- "Install Shop B and show me its cameras.": asked on a new canvas, the reader switching away and back, and Shop B installed from that past canvas's offer (phase decision 10). Its key is connected and the slot fills with Shop B's cameras.
+- Then "Install Shop A.", asked with Shop A installed.
+
+### 11. Nothing to offer
+
+Phase decision 19's fourth item.
+- "Book me a flight to Tokyo next Friday." gives "Nothing in the Store can do this yet.", and "Search the Store" opens the Store page on the words.
+- The marketplace is stopped and the same question asked on a new canvas: "Couldn't reach the Store.". Its "Search the Store" is pressed with the Store down.
+- The marketplace is restarted on the same state folder and the page reloaded.
+
+Before the sitting, Claude checks that the launch keeps the client and the orchestrator up when the marketplace alone is stopped. If it does not, the marketplace runs in its own terminal for the sitting.
+
+### 12. Shop A's chain
+
+Phase decision 19's seventh item, and from its sixth: the Store having the update and the repaint, ahead of the Store, the forced update, and the catch after the call.
+
+Made for the run: Shop A's current catalog moved to the kit's old line as published, and a new line holding a copy of its catalog under a new catalog id, with Video removed and one visible theme change.
+
+1. **Suggested, not forced.** Shop A goes to 0.2.0 with both lines, restarted and published. The App Library reads a major update. The camera comparison composes, Shop A painting in the old id, with no tile. The App Library's Update is not pressed.
+2. **Ahead of the Store.** The old line is deleted and Shop A goes to 0.3.0, restarted and not published. A Retry reaches the agent, the call ends with no surface, and the card is fetched again (decision 5): "Shop A has changed, and the Store is waiting on its publisher, a2uiverse-apps.". A second Retry is stopped before the call, on the card fetched.
+3. **The forced update and the repaint.** 0.3.0 is published, retiring the old line. A Retry gives "Shop A needs an update to show this.", and Update goes straight through. The slot sends its request again, and Shop A repaints in the new id with the new look while the other surfaces on screen keep the old. An older canvas's Shop A slot waiting on the same update turns to "Show it here".
+
+### 13. CircleCI's chain
+
+From phase decision 19's sixth item: the new-permission variant (phase decisions 12 and 15).
+
+1. CircleCI, signed in with read access, answers "How are my builds doing?".
+2. CircleCI's card goes to 0.2.0, requiring `pipelines.write` beside read access, restarted and not published. A Retry gives "CircleCI has changed, and the Store is waiting on its publisher, a2uiverse-apps.", with no press, not the needs-more-access tile.
+3. 0.2.0 is published, a card update. A Retry gives "CircleCI needs an update to show this.". Update opens the consent card in the slot, asking for more in the card's words, and is allowed.
+4. The slot sends again. The account lacks the new permission, so the slot takes the needs-more-access tile. The account is signed in again through the window, granting it, and the slot fills.
+
+### 14. The update tile's two lines with no Store answer
+
+- "…and the Store couldn't be reached." with Retry: within CircleCI's chain, the marketplace is stopped between step 2's restart and its Retry. Once the marketplace is restarted, a second Retry moves the slot on to the waiting line.
+- "…and the Store has no update for it.": the sitting's last case. Shop B's catalog moves to a new id with no old line, Shop B is restarted, and the dev publisher unpublishes it. The camera comparison's Shop B slot shows the line.
+
+### 15. Linear's newer build
+
+Phase decision 19's eighth item (phase decision 13).
+- A canvas has Linear's surfaces on screen. A second canvas showing Linear is left as a past canvas.
+- A visible change to Linear's catalog is published at the same card. The App Library, opened over the canvas, has its check install the newer build.
+- On the open canvas, a press inside Linear's fragment painting a new surface is drawn in the new build. The surfaces on screen keep the old look, and the fragment's back arrow returns to a paint keeping the old look.
+- On the past canvas, an action pressed is answered in the new build.
+
+### 16. The install refused
+
+Phase decision 10. Calendar is uninstalled from the App Library and offered on a canvas. The dev publisher unpublishes Calendar, and Install is pressed: the refusal is said on its row, in the Store's words. Calendar is then published again.
+
+### 17. The journal after each case
+
+After each case, Claude reads the case's journal entries on the Mac and says whether everything the case did is there. A missing or wrong entry is a point like any other.
+
+### 18. The dark walk over the replay
+
+After the live cases, with the stack down, the built client is served through the tunnel and the reader switches the browser to dark. Each store-loop beat is opened with its presses left to the reader's hand: beats 31 to 34 and beat 7, and the update tile's synthetic beats. Points are fixed like any other, before the regression pass after.
+
+### 19. Left to the automated tests
+
+Not produced live, each named in the write-up:
+- the catch after the call's refused paint, made by the orchestrator's tests' fake agent;
+- the no-update line for an app installed from your computer;
+- an update refused.
+
+### 20. The state the sitting leaves, and the closing launch
+
+- Every temporary edit is reverted, `a2uiverse-apps` holding only the committed fixes.
+- The marketplace's state is wiped again, its embedding model kept.
+- The sitting's orchestrator state folder is removed.
+
+Then a closing launch runs under the publish with all seven apps, published and installed by id, none left uninstalled.
+
+### 21. The sitting's order
+
+1. Decision 5's fix.
+2. The regression pass before.
+3. The starting state.
+4. The loop on Shop B.
+5. The sign-in app on Calendar.
+6. "More in the Store", with the uninstalled slot.
+7. The install ask.
+8. Nothing to offer.
+9. Shop A's chain.
+10. CircleCI's chain.
+11. Linear's newer build.
+12. The install refused.
+13. The no-update line.
+14. The stack down, then the dark walk.
+15. The regression pass after.
+16. The state left, and the closing launch.
+
+### 22. The record
+
+This spec is the record. Each on-the-spot fix is added as a numbered decision as it lands, with what it replaced.
+
+The write-up has four parts: before the sitting, the sitting case by case, after it, and the findings. Findings for later phases go into their phase's notes in `_dev/TODO.md` at the write-up. Every amendment to the phase spec, SPEC.md and earlier sub-task specs that 15.11 calls for is made by 15.12. Decision 5's are among them: phase decision 11, task 15.5's decision 4, SPEC §10's update tile, and §14's update tile row.
