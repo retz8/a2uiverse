@@ -8,6 +8,7 @@ import type {A2uiMessage} from '@a2ui/web_core/v0_9';
 import {createCanvasStore} from './canvasStore';
 import type {TurnHandle} from './turn/canvasTurn';
 import type {PaintCause} from './turn/cause';
+import {createReplayTransport} from './replayTransport';
 import {replayBeatOnCanvas, type ReplaySides} from './replayBeat';
 import type {BeatFixture, BeatTurn} from '../beats/beatFixtures';
 import type {A2AMessageSender} from '../a2a/client';
@@ -423,6 +424,28 @@ describe('replayBeatOnCanvas', () => {
       await expect(
         replayBeatOnCanvas(beat, {runner: mockRunner(store), store, paced: false}),
       ).rejects.toThrow(/beside its turns/);
+    });
+
+    it('for the reader’s hand, the replay plays no press; the press the reader makes is answered by the recorded one, any other by nothing (task-15.10 decision 6)', async () => {
+      const store = createCanvasStore();
+      const runner = mockRunner(store);
+      const log: A2uiMessage[][] = [];
+      const {value, pressed} = sides(log);
+      const byHand = createReplayTransport();
+      value.attachReplay(byHand.sender);
+      const beat = fixture();
+      beat.turns = [...beat.turns, pressTurn(50, [0, 10])];
+      await replayBeatOnCanvas(beat, {runner, store, paced: false, sides: value, byHand});
+      expect(pressed).toEqual([]);
+      expect(runner.applied).toEqual([[msg(1)], [msg(2)]]);
+
+      await value.press({kind: 'retry', sources: ['gmail']});
+      expect(log).toEqual([]);
+      await value.press(include);
+      expect(log).toEqual([[msg(100)], [msg(101)]]);
+      // Taken once: the same press again says nothing.
+      await value.press(include);
+      expect(log).toHaveLength(2);
     });
 
     it('a press the handler never sends leaves nothing waiting', async () => {

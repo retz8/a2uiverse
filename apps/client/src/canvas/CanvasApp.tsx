@@ -8,7 +8,8 @@
  * `?beat=N[,M…]` replays recorded beats in sequence (paced by the recorded offsets; `&instant`
  * collapses the waits) — the zero-LLM verification path. Every utterance of a beat opens a canvas
  * of its own in the trail (task-9.6 decision 14). A beat's presses fire through the same handler
- * the buttons call, answered by the beat's own recording, never the orchestrator.
+ * the buttons call, answered by the beat's own recording, never the orchestrator; `&byhand` leaves
+ * them to the reader, each press they make answered by the recorded one (task-15.10 decision 6).
  */
 import {useCallback, useEffect, useRef, useState, useSyncExternalStore} from 'react';
 import {Button, Kbd} from '@radix-ui/themes';
@@ -18,6 +19,7 @@ import {syntheticBeat} from '../beats/syntheticBeats';
 import {CatalogProvider, isLoader, type PageCatalogs} from '../catalogs/CatalogContext';
 import {createCanvasWiring} from './createCanvasWiring';
 import {replayBeatOnCanvas} from './replayBeat';
+import {createReplayTransport} from './replayTransport';
 import {CanvasView} from './components/CanvasView';
 import {EmptyCanvas} from './components/CanvasStage';
 import {Palette} from './components/Palette';
@@ -87,7 +89,9 @@ export function CanvasApp({serverUrl, client, catalogs, hostRelay}: CanvasAppPro
   const [beatParams] = useState(() => {
     const params = new URLSearchParams(window.location.search);
     const beat = params.get('beat');
-    return beat === null ? null : {beats: beat.split(','), instant: params.has('instant')};
+    return beat === null
+      ? null
+      : {beats: beat.split(','), instant: params.has('instant'), byHand: params.has('byhand')};
   });
 
   // The palette auto-opens on an empty idle canvas (nothing else to do there) — unless a
@@ -125,6 +129,9 @@ export function CanvasApp({serverUrl, client, catalogs, hostRelay}: CanvasAppPro
       // A replay is a verification path: it starts once every catalog the registry lists has
       // loaded, so its fragments land as they were recorded rather than pending on a load.
       if (isLoader(catalogs)) await catalogs.preload();
+      // The reader's hand: one transport for the page, never detached, answering each press.
+      const byHand = beatParams.byHand ? createReplayTransport() : undefined;
+      if (byHand) wiring.attachReplay(byHand.sender);
       for (const beat of beatParams.beats) {
         const fixture = beatFixtureFor(beat);
         if (!fixture) {
@@ -135,6 +142,7 @@ export function CanvasApp({serverUrl, client, catalogs, hostRelay}: CanvasAppPro
           canvases: wiring,
           paced: !beatParams.instant,
           sides: wiring,
+          ...(byHand ? {byHand} : {}),
         });
       }
       setReplayDone(true);

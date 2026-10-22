@@ -26,13 +26,18 @@
  * instant mode applies the turn's and the press's batches in the order they arrived. A failure
  * report is the client's own doing: the transport answers it with the next recorded answer when
  * the client sends it.
+ *
+ * Replayed for the reader's hand (task-15.10 decision 6), a beat plays no press: the page's
+ * transport, attached for as long as the page stands, holds each recorded press for the reader to
+ * make — the slot's Install through its consent card, Connect, Update — and answers the press they
+ * make with it.
  */
 import type {A2uiClientAction} from '@a2ui/web_core/v0_9';
 import type {CompositionOperation} from '@a2uiverse/sdk';
 import type {A2AMessageSender} from '../a2a/client';
 import {isBesideTurn, type BeatFixture, type BeatTurn} from '../beats/beatFixtures';
 import type {CanvasStore} from './canvasStore';
-import {createReplayTransport} from './replayTransport';
+import {createReplayTransport, type ReplayTransport} from './replayTransport';
 import type {TurnHandle} from './turn/canvasTurn';
 import type {PaintCause} from './turn/cause';
 
@@ -68,6 +73,11 @@ export interface ReplayBeatOptions extends Partial<ReplayRuntime> {
   paced?: boolean;
   /** Required by a beat that carries a press or a failure report's answer. */
   sides?: ReplaySides;
+  /**
+   * The page's transport, attached for as long as the page stands: given, the beat's presses are
+   * left to the reader's hand, each answering the press they make, and its reports answered there.
+   */
+  byHand?: ReplayTransport;
 }
 
 const sleep = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));
@@ -99,10 +109,11 @@ interface Step {
 
 export async function replayBeatOnCanvas(
   fixture: BeatFixture,
-  {runner, store, canvases, paced = true, sides}: ReplayBeatOptions,
+  {runner, store, canvases, paced = true, sides, byHand}: ReplayBeatOptions,
 ): Promise<void> {
   const groups = groupsOf(fixture);
-  const needsSides = fixture.turns.some(t => t.kind === 'press' || t.kind === 'failure-report');
+  const needsSides =
+    !byHand && fixture.turns.some(t => t.kind === 'press' || t.kind === 'failure-report');
   if (needsSides && !sides) {
     throw new Error(`${fixture.name} carries streams beside its turns; replay it with the wiring`);
   }
@@ -112,11 +123,11 @@ export async function replayBeatOnCanvas(
   if (!canvases && fixture.turns.some(spansCanvases)) {
     throw new Error(`${fixture.name} spans several canvases; replay it with the page's canvases`);
   }
-  const transport = needsSides ? createReplayTransport(fixture.contextId) : undefined;
-  const detach = transport && sides ? sides.attachReplay(transport.sender) : undefined;
+  const transport = byHand ?? (needsSides ? createReplayTransport(fixture.contextId) : undefined);
+  const detach = transport && sides && !byHand ? sides.attachReplay(transport.sender) : undefined;
   /** The canvases the beat's utterances opened, in order — what `askedFrom` and `canvas` index. */
   const opened: OpenedCanvas[] = [];
-  const page: Page = {canvases, opened, fixture: fixture.name};
+  const page: Page = {canvases, opened, fixture: fixture.name, contextId: fixture.contextId};
   let current: OpenedCanvas | undefined = runner && store ? {runner, store} : undefined;
   try {
     for (const group of groups) {
@@ -124,7 +135,7 @@ export async function replayBeatOnCanvas(
       else if (group.turn.canvas !== undefined) current = canvasAt(page, group.turn.canvas);
       else if (opened.length > 0) current = opened.at(-1);
       if (!current) throw new Error(`${fixture.name}: a ${group.turn.kind} before any question`);
-      await replayGroup(group, current, {page, paced, sides, transport});
+      await replayGroup(group, current, {page, paced, sides, transport, byHand: !!byHand});
     }
   } finally {
     detach?.();
@@ -143,6 +154,8 @@ interface Page {
   canvases?: ReplayCanvases;
   opened: OpenedCanvas[];
   fixture: string;
+  /** The context the beat was recorded in. */
+  contextId: string;
 }
 
 /** An utterance opens a canvas of its own, a child of the one `askedFrom` names when it names one. */
@@ -209,17 +222,26 @@ async function replayGroup(
     paced,
     sides,
     transport,
+    byHand,
   }: {
     page: Page;
     paced: boolean;
     sides?: ReplaySides;
-    transport?: ReturnType<typeof createReplayTransport>;
+    transport?: ReplayTransport;
+    byHand: boolean;
   },
 ): Promise<void> {
   transport?.queueReports(
     beside.filter(t => t.kind === 'failure-report'),
     paced,
   );
+  if (byHand) {
+    transport?.answerPresses(
+      beside.filter(t => t.kind === 'press'),
+      paced,
+      page.contextId,
+    );
+  }
   const steps: Step[] = [];
   const pressing: Promise<void>[] = [];
   const own = turnSteps(turn, runtime, 0, 0, steps);
@@ -249,7 +271,7 @@ async function replayGroup(
   });
 
   beside.forEach((press, i) => {
-    if (press.kind !== 'press' || !press.operation || !sides || !transport) return;
+    if (byHand || press.kind !== 'press' || !press.operation || !sides || !transport) return;
     const at = press.atMs ?? lastAt;
     const operation = press.operation;
     let channel: ReturnType<typeof transport.armPress> | undefined;

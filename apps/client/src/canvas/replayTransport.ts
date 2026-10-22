@@ -10,9 +10,14 @@
  * runs, so the handler takes the request for arrived however late the first paint comes. A press's
  * batches are pushed by the replay at their place on the beat's clock; a report's answer paces
  * itself from its own send, since the client decides when it reports.
+ *
+ * A beat replayed for the reader's hand (task-15.10 decision 6) leaves its presses to the reader:
+ * each recorded press waits for the first press sent with its operation — its kind, its sources,
+ * its gap — and answers it as a report's answer does, from its own send. A press nothing recorded
+ * answers says nothing, as any other send.
  */
 import type {MessageSendParams, Task, TaskStatusUpdateEvent} from '@a2a-js/sdk';
-import {STAMP_KEY, SYNTHESIS_KEY} from '@a2uiverse/sdk';
+import {STAMP_KEY, SYNTHESIS_KEY, type CompositionOperation} from '@a2uiverse/sdk';
 import type {A2AMessageSender} from '../a2a/client';
 import type {A2AStreamEventData} from '../a2a/messages';
 import type {BeatBatch, BeatTurn} from '../beats/beatFixtures';
@@ -33,6 +38,11 @@ export interface ReplayTransport {
   armPress(): ReplayChannel;
   /** The recorded answers to the client's failure reports, taken in order as the client reports. */
   queueReports(turns: readonly BeatTurn[], paced: boolean): void;
+  /**
+   * The recorded answers to presses the reader makes by hand, each taken by the first press sent
+   * with its operation, on the context of the beat it was recorded in.
+   */
+  answerPresses(turns: readonly BeatTurn[], paced: boolean, contextId: string): void;
   /** Settles once every report's answer has played out. */
   settled(): Promise<void>;
 }
@@ -149,9 +159,27 @@ function sentKind(params: MessageSendParams): 'press' | 'report' | 'other' {
   return 'other';
 }
 
+/** The operation a sent press carries. */
+function sentOperation(params: MessageSendParams): CompositionOperation | undefined {
+  for (const part of params.message.parts) {
+    if (part.kind === 'data' && 'operation' in part.data) {
+      return part.data.operation as CompositionOperation;
+    }
+  }
+  return undefined;
+}
+
+/** Whether two presses are the same: their kind, their sources in order, their gap. */
+const samePress = (a: CompositionOperation, b: CompositionOperation) =>
+  a.kind === b.kind &&
+  a.sources.length === b.sources.length &&
+  a.sources.every((source, i) => source === b.sources[i]) &&
+  (a.gap ?? null) === (b.gap ?? null);
+
 export function createReplayTransport(contextId = 'ctx-replay'): ReplayTransport {
   let armed: ReturnType<typeof createChannel> | null = null;
   const reports: Array<{turn: BeatTurn; paced: boolean}> = [];
+  const byHand: Array<{turn: BeatTurn; paced: boolean; contextId: string}> = [];
   const playing = new Set<Promise<void>>();
 
   /** A report's recorded answer, played from its own send. */
@@ -175,16 +203,23 @@ export function createReplayTransport(contextId = 'ctx-replay'): ReplayTransport
     sendMessageStream(params, options) {
       const kind = sentKind(params);
       let channel: ReturnType<typeof createChannel>;
+      let on = contextId;
       if (kind === 'press' && armed) {
         channel = armed;
         armed = null;
       } else {
         channel = createChannel();
-        const next = kind === 'report' ? reports.shift() : undefined;
+        const operation = kind === 'press' ? sentOperation(params) : undefined;
+        const at = operation
+          ? byHand.findIndex(({turn}) => turn.operation && samePress(turn.operation, operation))
+          : -1;
+        const pressed = at >= 0 ? byHand.splice(at, 1)[0] : undefined;
+        const next = kind === 'report' ? reports.shift() : pressed;
+        if (pressed) on = pressed.contextId;
         if (next) playReport(channel, next.turn, next.paced);
         else channel.close();
       }
-      return channel.stream(options?.signal, contextId);
+      return channel.stream(options?.signal, on);
     },
   };
 
@@ -196,6 +231,9 @@ export function createReplayTransport(contextId = 'ctx-replay'): ReplayTransport
     },
     queueReports(turns, paced) {
       for (const turn of turns) reports.push({turn, paced});
+    },
+    answerPresses(turns, paced, onContext) {
+      for (const turn of turns) byHand.push({turn, paced, contextId: onContext});
     },
     async settled() {
       while (playing.size > 0) await Promise.all([...playing]);
