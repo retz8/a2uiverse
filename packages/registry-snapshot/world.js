@@ -45,6 +45,7 @@ const APPS = {
       state: 'major-update',
       publishedVersion: entry.card.version,
       newCatalogIds: declaredIds(entry.card).filter(id => !declaredIds(record.card).includes(id)),
+      newScopes: newScopes(record.card, entry.card),
       builds: buildMoves(record.catalogs, entry.catalogs),
     }),
     accounts: [{label: 'me@example.com', scopes: ['calendar.read'], lapsed: true}],
@@ -58,7 +59,7 @@ const APPS = {
     state: (entry, record) => ({
       state: 'card-update',
       publishedVersion: entry.card.version,
-      newScopes: [...scopesAsked(entry.card)].map(([scheme, scopes]) => ({scheme, scopes})),
+      newScopes: newScopes(record.card, entry.card),
       builds: buildMoves(record.catalogs, entry.catalogs),
     }),
     accounts: [],
@@ -108,6 +109,7 @@ const APPS = {
       state: 'update-required',
       publishedVersion: entry.card.version,
       retired: retiredLines(record.card, entry.card),
+      newScopes: newScopes(record.card, entry.card),
     }),
     accounts: [{key: true}],
   },
@@ -151,6 +153,22 @@ function scopesAsked(card) {
     }
   }
   return schemes;
+}
+
+/**
+ * What the published card newly asks over the installed one, as the orchestrator's check reads it:
+ * for each scheme the published card names, the scopes the installed card does not ask of it —
+ * every scope for a scheme the installed card never names.
+ */
+function newScopes(installed, published) {
+  const was = scopesAsked(installed);
+  return [...scopesAsked(published)]
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .flatMap(([scheme, scopes]) => {
+      const had = was.get(scheme);
+      const added = scopes.filter(scope => !had?.includes(scope));
+      return !had || added.length > 0 ? [{scheme, scopes: added}] : [];
+    });
 }
 
 /** The next minor version: what a live card ahead of the Store says it is. */
