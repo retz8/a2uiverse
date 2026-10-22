@@ -36,7 +36,7 @@ One baseline per board of the UI reference canvas *Store loop — UI reference* 
 
 ### 6. Recorded where the Planner writes, synthetic where the orchestrator paints
 
-What the Planner writes reaches the replay suite through recorded beats, recorded through the Install and `useApp` presses so the fill replays. What the orchestrator paints on its own — the update tile's lines and states, "Couldn't reach the Store." — reaches it through synthetic beats. The update tile's synthetic beats are Shop B's: Update straight through on the world's own state; the update that asks for more naming a permission on Shop B's update state for that test alone; the slot's Retry after Update a press the beat answers.
+What the Planner writes reaches the replay suite through recorded beats, recorded through the Install and `useApp` presses so the fill replays. What the orchestrator paints on its own — the update tile's lines and states, "Couldn't reach the Store." — reaches it through synthetic beats. The update tile's synthetic beats follow the boards: Shop B's, Update straight through on the world's own state; CircleCI's for the update that asks for more and the needs-more-access tile after it, as boards U3 and U5 draw them; the slot's Retry after Update a press the beat answers.
 
 ### 7. The recorded beats
 
