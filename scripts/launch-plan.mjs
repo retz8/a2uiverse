@@ -23,7 +23,8 @@ export const MODES = ['deterministic', 'stub', 'live'];
  * fake accounts a preview signs in as, each sign-in app is previewed from a deterministic instance
  * (task-13.7 decision 8). `--publisher-file` keeps the dev publisher in a file of the caller's in
  * place of the launcher's own, so a run on a marketplace of its own never touches it (task-14.10
- * decision 4).
+ * decision 4). `--leave-uninstalled` names apps `--publish` publishes and leaves uninstalled, for the
+ * store loop to offer (task-15.10 decision 2): a usage error without `--publish`.
  */
 export function parseLaunchArgs(args, {defaultTier}) {
   const {values} = parseArgs({
@@ -39,6 +40,7 @@ export function parseLaunchArgs(args, {defaultTier}) {
       publish: {type: 'boolean', default: false},
       'agent-state': {type: 'string'},
       'publisher-file': {type: 'string'},
+      'leave-uninstalled': {type: 'string'},
     },
     allowPositionals: false,
   });
@@ -53,15 +55,15 @@ export function parseLaunchArgs(args, {defaultTier}) {
         '--publish installs every app from the marketplace and --no-install installs nothing: pass one',
     };
   }
+  if (values['leave-uninstalled'] && !values.publish) {
+    return {
+      error: '--leave-uninstalled names apps published and left uninstalled: it needs --publish',
+    };
+  }
   return {
     tier: values.tier,
     mode: values.mode,
-    only: values.only
-      ? values.only
-          .split(',')
-          .map(s => s.trim())
-          .filter(Boolean)
-      : null,
+    only: idsOf(values.only),
     then: values.then,
     agentsDir: values['agents-dir'],
     list: values.list,
@@ -70,8 +72,18 @@ export function parseLaunchArgs(args, {defaultTier}) {
     // Each agent's sign-in store under this folder, not its own (task-12.13 decision 55).
     ...(values['agent-state'] ? {agentState: resolve(values['agent-state'])} : {}),
     ...(values['publisher-file'] ? {publisherFile: resolve(values['publisher-file'])} : {}),
+    ...(values['leave-uninstalled'] ? {leaveUninstalled: idsOf(values['leave-uninstalled'])} : {}),
   };
 }
+
+/** A comma-joined list of app ids, or null when there is none. */
+const idsOf = list =>
+  list
+    ? list
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean)
+    : null;
 
 /**
  * The command that starts one agent on its roster port: `publicUrl`, when set, is where the browser
@@ -164,9 +176,10 @@ function placeEntry(entry, agentsDir, exists) {
 /**
  * The launch: the entries of the tier — or of several, joined by commas (task-13.8 decision 21) —
  * placed against the checkout, narrowed by `only`, judged. `entries` is every entry of those tiers
- * — what the listing prints; `selected` is what runs.
+ * — what the listing prints; `selected` is what runs. `leaveUninstalled` must name apps that run:
+ * an app the launch does not run cannot be published by it (task-15.10 decision 2).
  */
-export function planLaunch({roster, tier, only, agentsDir, exists}) {
+export function planLaunch({roster, tier, only, leaveUninstalled, agentsDir, exists}) {
   const fatal = [];
   const tiers = tiersOf(roster);
   const asked = tier
@@ -197,6 +210,11 @@ export function planLaunch({roster, tier, only, agentsDir, exists}) {
       fatal.push(`--only names ${skipped.id}, which cannot be launched: ${skipped.reason}`);
     }
     selected = selected.filter(entry => only.includes(entry.id));
+  }
+
+  const notRun = (leaveUninstalled ?? []).filter(id => !selected.some(entry => entry.id === id));
+  if (notRun.length) {
+    fatal.push(`--leave-uninstalled names ${notRun.join(', ')}, which this launch does not run`);
   }
 
   const byPort = new Map();

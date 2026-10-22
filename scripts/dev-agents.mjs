@@ -2,7 +2,7 @@
 /**
  * Launch the apps of the dev roster from the sibling `a2uiverse-apps` checkout, and install them.
  *
- *   pnpm dev:agents [--tier mocks | --tier default,mocks] [--only github,gmail] [--mode deterministic|stub|live] [--agents-dir <path>] [--no-install | --publish] [--agent-state <dir>] [--publisher-file <path>]
+ *   pnpm dev:agents [--tier mocks | --tier default,mocks] [--only github,gmail] [--mode deterministic|stub|live] [--agents-dir <path>] [--no-install | --publish [--leave-uninstalled shop-b]] [--agent-state <dir>] [--publisher-file <path>]
  *   pnpm agents:list [--tier mocks | --tier default,mocks] [--publish]
  *
  * `A2UIVERSE_PUBLIC_URL`, a pattern with a `{port}` slot (a tunnel address), gives each agent the
@@ -29,7 +29,9 @@
  * requires sign-in, with a credential the launcher obtains (`launch-preview.mjs`), published, and
  * installed from the marketplace by its id alone, so every app the launch installs counts as
  * installed from the marketplace. `--publisher-file` keeps the dev publisher in that file instead
- * (task-14.10 decision 4). Under `--mode live`, whose agents refuse the fake accounts, each
+ * (task-14.10 decision 4). `--leave-uninstalled` names apps published and left uninstalled — in the
+ * Store, not on the canvas, for the store loop to offer (task-15.10 decision 2); the reconcile takes
+ * out an install of one an earlier launch left. Under `--mode live`, whose agents refuse the fake accounts, each
  * sign-in app's preview is taken from a deterministic instance of the same checkout on a free port,
  * its sign-in store in a temporary folder, stopped once the preview is captured; the app is then
  * published against the live agent's card (task-13.7 decision 8). A marketplace that does not
@@ -435,10 +437,11 @@ async function installLaunch(
   running,
   registry,
   agentsDir,
-  {marketplace, publisherFile},
+  {marketplace, publisherFile, leaveUninstalled},
   mode,
 ) {
   const failed = new Map();
+  const leftUninstalled = [];
   const report = (id, reason) => {
     failed.set(id, reason);
     log(`${id} left out — ${reason}`);
@@ -491,6 +494,10 @@ async function installLaunch(
         const notPublished = await publishApp(entry, files, publisher, mode);
         if (notPublished) return report(id, notPublished);
         published.push(id);
+        if (leaveUninstalled.includes(id)) {
+          leftUninstalled.push(id);
+          return log(`${id} published, left uninstalled (--leave-uninstalled)`);
+        }
       }
       let answer;
       try {
@@ -526,7 +533,15 @@ async function installLaunch(
       continue;
     }
     uninstalled.push(id);
-    log(`uninstalled ${id} — ${failed.has(id) ? 'it failed this launch' : 'not in this launch'}`);
+    log(
+      `uninstalled ${id} — ${
+        failed.has(id)
+          ? 'it failed this launch'
+          : leftUninstalled.includes(id)
+            ? 'left uninstalled this launch'
+            : 'not in this launch'
+      }`,
+    );
   }
 
   if (publisher) {
@@ -541,6 +556,7 @@ async function installLaunch(
   const parts = [`installed ${installed.length ? installed.sort().join(', ') : 'nothing'}`];
   if (publisher)
     parts.unshift(`published ${published.length ? published.sort().join(', ') : 'nothing'}`);
+  if (leftUninstalled.length) parts.push(`left uninstalled ${leftUninstalled.sort().join(', ')}`);
   if (failed.size) parts.push(`left out ${[...failed.keys()].sort().join(', ')}`);
   if (uninstalled.length) parts.push(`uninstalled ${uninstalled.sort().join(', ')}`);
   log(parts.join(' · '));
@@ -558,6 +574,8 @@ function printListing({dir, source}, {tier, entries, fatal}, publishing, mode) {
   if (publishing) {
     console.log(`marketplace: ${publishing.marketplace}`);
     console.log(publisherLine(publishing.known, publishing.publisherFile));
+    if (publishing.leaveUninstalled.length)
+      console.log(`left uninstalled: ${publishing.leaveUninstalled.join(', ')}`);
   }
   const rows = entries.map(e => [
     e.id,
@@ -589,6 +607,7 @@ async function main() {
     publish: toMarketplace,
     agentState,
     publisherFile = PUBLISHER_FILE,
+    leaveUninstalled = [],
   } = parse();
   const orchestrator = orchestratorOf({env: process.env, orchestratorDir: ORCHESTRATOR_DIR});
   const marketplace = toMarketplace ? orchestrator.marketplaceUrl : null;
@@ -612,6 +631,7 @@ async function main() {
     roster: ROSTER,
     tier,
     only,
+    leaveUninstalled,
     agentsDir: resolved.dir,
     exists: existsSync,
   });
@@ -621,6 +641,7 @@ async function main() {
       marketplace,
       publisherFile,
       known: publisherState(await readPublisherFile(publisherFile), marketplace, publisherFile),
+      leaveUninstalled,
     };
     printListing(resolved, plan, publishing, mode);
     process.exit(plan.fatal.length ? 2 : 0);
@@ -642,6 +663,8 @@ async function main() {
     log(`publishing to ${marketplace} as ${DEV_PUBLISHER}, installing from there (--publish)`);
   if (marketplace && publisherFile !== PUBLISHER_FILE)
     log(`the dev publisher kept in ${publisherFile} (--publisher-file)`);
+  if (leaveUninstalled.length)
+    log(`${leaveUninstalled.join(', ')} published and left uninstalled (--leave-uninstalled)`);
   const running = new Map(
     selected.map((entry, i) => [
       entry.id,
@@ -685,7 +708,7 @@ async function main() {
       running,
       registry,
       resolved.dir,
-      {marketplace, publisherFile},
+      {marketplace, publisherFile, leaveUninstalled},
       mode,
     );
   } catch (err) {

@@ -313,3 +313,35 @@ test('--agent-state gives each agent a sign-in store of its own under the folder
     'https://tunnel-11001.example',
   ]);
 });
+
+test('--leave-uninstalled names apps --publish publishes and leaves uninstalled; without --publish it is a usage error (task-15.10 decision 2)', () => {
+  assert.deepEqual(
+    parseArgsOf(['--publish', '--leave-uninstalled', 'calendar, shop-b,']).leaveUninstalled,
+    ['calendar', 'shop-b'],
+  );
+  assert.equal(parseArgsOf(['--publish']).leaveUninstalled, undefined);
+  assert.match(parseArgsOf(['--leave-uninstalled', 'shop-b']).error, /needs --publish/);
+});
+
+test('--leave-uninstalled naming an app the launch does not run stops it (task-15.10 decision 2)', () => {
+  const ok = planLaunch({
+    roster: ROSTER,
+    tier: 'default,mocks',
+    only: ['github', 'shop-b'],
+    leaveUninstalled: ['shop-b'],
+    agentsDir: CHECKOUT,
+    exists: checkout(),
+  });
+  assert.deepEqual(ok.fatal, []);
+  const stopped = planLaunch({
+    roster: ROSTER,
+    tier: 'default,mocks',
+    only: ['github'],
+    leaveUninstalled: ['shop-b', 'nowhere'],
+    agentsDir: CHECKOUT,
+    exists: checkout(),
+  });
+  assert.deepEqual(stopped.fatal, [
+    '--leave-uninstalled names shop-b, nowhere, which this launch does not run',
+  ]);
+});
