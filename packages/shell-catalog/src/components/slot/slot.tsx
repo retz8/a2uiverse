@@ -798,7 +798,7 @@ export function collapseLine(
     case 'home':
       if (homeSignIn) {
         const {app} = homeSignIn;
-        const needs = `The merged view needs ${collapse.home ?? 'the home source'}`;
+        const needs = `The merged view needs ${collapse.home ?? app}`;
         // A home source on the update tile: Update brings it back, the other lines say it changed
         // (task-15.8 decision 4).
         if (homeSignIn.update === 'update')
@@ -813,13 +813,16 @@ export function collapseLine(
         return `${needs}, and ${app} isn’t signed in. Signing in to ${app} brings it back.`;
       }
       // Said for the reader (task-8.7 decision 23): what the view needs and what happened to it.
-      return `The merged view needs ${collapse.home ?? 'the home source'}, which didn’t load.`;
+      return collapse.home
+        ? `The merged view needs ${collapse.home}, which didn’t load.`
+        : 'The merged view needs an app that didn’t load.';
     case 'few': {
-      // Said for the reader (task-8.7 decision 24): what the view needs and who answered.
+      // Said for the reader in plain words (task-8.7 decision 24; task-15.11 decision 25): who
+      // answered, and that there is nothing to combine.
       const answered = collapse.answered ?? [];
       return answered.length === 0
-        ? 'The merged view needs at least two sources, and none answered.'
-        : `The merged view needs at least two sources, and only ${listed(answered)} answered.`;
+        ? 'No app answered, so there’s nothing to combine.'
+        : `Only ${listed(answered)} answered, so there’s nothing to combine.`;
     }
     case 'unmade':
       return 'The merged view couldn’t be made.';

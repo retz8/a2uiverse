@@ -560,7 +560,7 @@ A merged view that can't be shown collapses to **one line** where its label woul
 | ----------------------------------- | ----------------------------------------------------------------------------- | ----------- |
 | The Synthesizer declined            | its reason, in the model's words                                              | none        |
 | The home source failed              | "The merged view needs Linear issues, which didn't load."                     | Retry Linear |
-| Fewer than two apps answered        | "The merged view needs at least two sources, and only GitHub answered.", or "…and none answered." | Retry over each app that didn't arrive: "Retry Linear", or "Retry all" |
+| Fewer than two apps answered        | "Only GitHub answered, so there’s nothing to combine.", or "No app answered, so there’s nothing to combine." | Retry over each app that didn't arrive: "Retry Linear", or "Retry all" |
 | The model's document failed twice, or the call failed | "The merged view couldn't be made."                         | Try again   |
 
 A too-few line is written afresh whenever an app arrives over it, through Retry or the resume after a sign-in, and the merge still can't be made. Say none answered, and GitHub comes back: the line becomes "…and only GitHub answered.", the progress line "Only GitHub answered, nothing to join", and the line's Retry covers only the apps still missing, never GitHub.

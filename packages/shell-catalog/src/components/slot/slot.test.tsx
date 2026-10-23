@@ -502,11 +502,16 @@ test('the collapse line says why in the shell’s words, per cause', () => {
   expect(collapseLine({cause: 'home', home: 'Linear issues'})).toBe(
     'The merged view needs Linear issues, which didn’t load.',
   );
+  // An unnamed home is an app, never "the home source" (task-15.11 decision 25).
+  expect(collapseLine({cause: 'home'})).toBe('The merged view needs an app that didn’t load.');
+  expect(collapseLine({cause: 'home'}, {app: 'Linear'})).toBe(
+    'The merged view needs Linear, and Linear isn’t signed in. Signing in to Linear brings it back.',
+  );
   expect(collapseLine({cause: 'few', answered: ['GitHub']})).toBe(
-    'The merged view needs at least two sources, and only GitHub answered.',
+    'Only GitHub answered, so there’s nothing to combine.',
   );
   expect(collapseLine({cause: 'few', answered: []})).toBe(
-    'The merged view needs at least two sources, and none answered.',
+    'No app answered, so there’s nothing to combine.',
   );
   expect(collapseLine({cause: 'unmade'})).toBe('The merged view couldn’t be made.');
 });
@@ -670,7 +675,7 @@ test('a collapse on the home source carries that source’s Retry on the line; p
 });
 
 test('too few arrived: the line carries Retry all over the sources that did not, one by name (task-8.7 decision 24)', () => {
-  const line = 'The merged view needs at least two sources, and only GitHub answered.';
+  const line = 'Only GitHub answered, so there’s nothing to combine.';
   const two = {
     collapse: {cause: 'few' as const, answered: ['GitHub'], failed: ['gmail', 'circleci']},
   };
@@ -1188,7 +1193,7 @@ test('too few arrived: the line’s Retry leaves out a source that needs sign-in
     facts,
     [],
     gmailName,
-    'The merged view needs at least two sources, and only GitHub answered.',
+    'Only GitHub answered, so there’s nothing to combine.',
   );
   expect(line!.press).toEqual({
     label: 'Retry calendar',
@@ -1198,7 +1203,7 @@ test('too few arrived: the line’s Retry leaves out a source that needs sign-in
     {...facts, collapse: {...facts.collapse, failed: ['gmail.1']}},
     [],
     gmailName,
-    'The merged view needs at least two sources, and only GitHub answered.',
+    'Only GitHub answered, so there’s nothing to combine.',
   );
   expect(alone!.press).toBeUndefined();
 });
@@ -1541,8 +1546,6 @@ test('too few arrived: the line’s Retry leaves out a source on the update tile
       />
     </SlotStateContext.Provider>,
   );
-  expect(container.textContent).toContain(
-    'The merged view needs at least two sources, and only Shop A answered.',
-  );
+  expect(container.textContent).toContain('Only Shop A answered, so there’s nothing to combine.');
   expect(screen.queryByRole('button')).toBeNull();
 });

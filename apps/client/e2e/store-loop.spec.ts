@@ -54,7 +54,7 @@ test('O1 · first paint: Shop B offered beside Shop A, bare, the fixed line and 
   await expect(offer.getByRole('button', {name: 'Install'})).toBeEnabled();
   await expect(offer.getByRole('button', {name: 'More in the Store'})).toBeVisible();
   await expect(page.getByTestId('canvas-stage-content')).toContainText(
-    'The merged view needs at least two sources, and only Shop A answered.',
+    'Only Shop A answered, so there’s nothing to combine.',
   );
   await boardShot(page, 'store-loop-o1-offer.png');
 });
@@ -134,7 +134,7 @@ test('O6 · filled: Shop B’s first answer in the slot the install came from, t
   windows.end({state: 'signedIn', source: 'shop-b.1', label: 'Shop B'});
   await expect(stage).not.toContainText('Connect Shop B to show it here.');
   await expect(stage.getByRole('columnheader', {name: 'Shop B'})).toBeVisible();
-  await expect(stage).not.toContainText('The merged view needs at least two sources');
+  await expect(stage).not.toContainText('so there’s nothing to combine');
   await boardShot(page, 'store-loop-o6-filled.png');
 });
 

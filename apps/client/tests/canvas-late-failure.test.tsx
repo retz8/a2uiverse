@@ -111,7 +111,7 @@ describe('Phase 8’s synthetic beats, played to their ends', () => {
     const view = slot('shell')!;
     expect(stateOf(view)).toBe('collapsed');
     expect(view.querySelector('[data-slot-collapse="few"]')).toHaveTextContent(
-      'The merged view needs at least two sources, and only Aperture & Co answered.',
+      'Only Aperture & Co answered, so there’s nothing to combine.',
     );
     await userEvent.click(within(view).getByRole('button', {name: 'Retry all'}));
     await waitFor(() => expect(sent).toHaveLength(2));
