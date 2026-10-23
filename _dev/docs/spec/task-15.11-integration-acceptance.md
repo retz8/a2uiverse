@@ -215,6 +215,10 @@ A slot that takes its sign-in at first paint is journaled as a dispatch failed n
 
 An install or update whose request got no answer, and that reading back finds not done, says "That didn't go through, so nothing was installed." with Try again. Replaced: "The Store can't be reached right now, so nothing was installed." for a request the tunnel dropped (task-14.11 decision 40's read-back).
 
+### 29. The canvas a question was asked from, in the person's words
+
+The this-canvas and recent-turns readers speak the person's words: what was asked, each app and how its answer stands ("answered", "waiting for you to sign in", "couldn't answer"), an account by its name only when it isn't the app's, the merged view showing or not shown and why ("only Shop A answered"). The Planner writes a reader's facts so, never a field's name or the platform's terms, and names the canvas a reader describes by what was asked on it, its title and heading too, its answer opening a canvas of its own; a worked example shows it. Replaced: "Current canvas", "Utterance", "Active sources: Shop A (arrived) and Shop B (Shop B · arrived)", "Merged view: Live".
+
 ## Write-up
 
 ### Before the sitting
@@ -240,6 +244,9 @@ An install or update whose request got no answer, and that reading back finds no
 
 **The state reset, and Case 2 again.** With decisions 23 to 28 committed, the marketplace's state wiped again, the orchestrator's state folder emptied but its model cache, the client rebuilt, and the launch run again; Calendar's published card read in the second person. Case 2 again: the collapse line "No app answered, so there's nothing to combine." (decision 25); the offer and the consent card in the second person (decision 26); Install pressed while the merged view was being made, the view landing above the open card and the card's Install moving 4 px (decision 23); Calendar's slot listing each event once with no id (decision 24); the merged view one list, "Today's timeline & items needing attention", Calendar's events among Gmail's and GitHub's by time (decision 24); the journal's first paint naming Gmail and GitHub stopped for sign-in with their access (decision 27). Decision 28 is the unit tests' until a request is dropped again.
 
+**Case 1, the loop on Shop B.** "Compare camera prices at Shop A and Shop B." planned with its Store search; "Only Shop A answered, so there's nothing to combine." (decision 25); Install through the consent card, installed on the first press this time; the key connected by the reader on Shop B's key page, its window blank for some seconds in the tunnel and opened twice; Shop B's slot filling and the merge coming back on its arrival, "Camera prices" over Camera, Shop A, Shop B and Lowest price. "What's on this canvas?" answered on a canvas of its own as "Current canvas", "Utterance", "Active sources" and "arrived" (decision 29); seen again after the fix: "Where you asked "Compare camera prices at Shop A and Shop B."", "Shop A and Shop B both answered, and the merged view is showing.", You asked, Shop A, Shop B, Merged view. The journal: the search, the gap and its request, the install by the page, the dispatch stopped for the key, two sign-in starts and the sign-in, the resend and the merge made. The answer on a canvas of its own leaves "what is on the canvas I'm looking at" undesigned: to the Backlog.
+
 ### Findings
 
 - A plan that searches the Store takes about 30 s: 28 s for the camera comparison, 33 s for the day's agenda.
+- A question that changes only part of the canvas on screen is undesigned: every question opens a canvas of its own, so "What's on this canvas?" answers about the canvas it was asked from. In the Backlog, worth discussing before Phase 20.
