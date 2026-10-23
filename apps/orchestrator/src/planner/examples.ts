@@ -5,7 +5,8 @@
  * hypothesis over fixture cards (task-7.6 decision 2); a command over the same cards that one agent
  * answers alone, and a status question in one app's own noun merged over every agent holding a part
  * of it (task-7.8 decision 16); a platform answer that calls one reader and templates its
- * result; whether anything is out of date (task 14.5); a capability gap offered from the Store, a
+ * result; what is on the canvas a question was asked from, named by what was asked there (task
+ * 15.11); whether anything is out of date (task 14.5); a capability gap offered from the Store, a
  * merged view beside an offer and an install asked for (task 15.4); and an account choice
  * (task 12.6). The examples teach form; the rules doc
  * (`planner.md`) teaches the vocabulary and the rules. Their trees are authored against the
@@ -378,6 +379,67 @@ export const INSTALLED_APPS_ANSWER: LayoutExample = {
 };
 
 /**
+ * What is on the canvas a question was asked from (task-15.11 decision 29): the reader's facts in
+ * the person's words, and the canvas named by what was asked on it — the title and heading too —
+ * since the answer opens a canvas of its own; never "this canvas".
+ */
+export const THIS_CANVAS_ANSWER: LayoutExample = {
+  name: 'this-canvas-answer',
+  intent: 'What’s on this canvas?',
+  agents: [PLATFORM],
+  readers: [
+    {
+      reader: 'this_canvas',
+      result: {
+        question: 'What needs my attention today?',
+        apps: [
+          {app: 'GitHub', state: 'answered'},
+          {app: 'Gmail', account: 'Work', state: 'waiting for you to sign in'},
+        ],
+        mergedView: {state: 'not shown', why: 'only GitHub answered'},
+        nothingInstalledFor: [],
+      },
+    },
+  ],
+  output: {
+    title: 'What was on “What needs my attention today?”',
+    dispatch: [],
+    tree: {
+      components: [
+        {id: 'root', component: 'Column', children: ['heading', 'summary', 'facts']},
+        {
+          id: 'heading',
+          component: 'Text',
+          variant: 'h3',
+          text: 'Where you asked “What needs my attention today?”',
+        },
+        {
+          id: 'summary',
+          component: 'Text',
+          variant: 'body',
+          text: 'GitHub answered. Gmail is waiting for you to sign in to your Work account, so the merged view isn’t showing yet.',
+        },
+        {
+          id: 'facts',
+          component: 'DataList',
+          orientation: 'horizontal',
+          children: ['asked', 'github', 'gmail', 'merged'],
+        },
+        {id: 'asked', component: 'DataListItem', label: 'You asked', child: 'asked-text'},
+        {id: 'asked-text', component: 'Text', text: 'What needs my attention today?'},
+        {id: 'github', component: 'DataListItem', label: 'GitHub', child: 'github-text'},
+        {id: 'github-text', component: 'Text', text: 'Answered'},
+        {id: 'gmail', component: 'DataListItem', label: 'Gmail (Work)', child: 'gmail-text'},
+        {id: 'gmail-text', component: 'Text', text: 'Waiting for you to sign in'},
+        {id: 'merged', component: 'DataListItem', label: 'Merged view', child: 'merged-text'},
+        {id: 'merged-text', component: 'Text', text: 'Not showing: only GitHub answered'},
+      ],
+    },
+    dataModel: {},
+  },
+};
+
+/**
  * Whether anything is out of date (task-14.5 decision 13): the reader's update words and how long ago
  * the check ran, written as the shell's own sentence — every state woven in, never quoted after a
  * colon (task-14.11 decision 41); a button into the App Library, and one naming the app that needs
@@ -662,6 +724,7 @@ export const LAYOUT_EXAMPLES: readonly LayoutExample[] = [
   ORDER_OPEN,
   APPLICATIONS_JOIN,
   INSTALLED_APPS_ANSWER,
+  THIS_CANVAS_ANSWER,
   OUT_OF_DATE_ANSWER,
   CAPABILITY_GAP,
   MERGE_BESIDE_OFFER,
