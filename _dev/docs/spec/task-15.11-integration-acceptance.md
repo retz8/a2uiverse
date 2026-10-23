@@ -223,6 +223,22 @@ The this-canvas and recent-turns readers speak the person's words: what was aske
 
 The this-canvas reader carries what each app was asked for, what to do about an answer that isn't there ("Sign in to Linear from its slot", "Update Shop B from its slot"), and what the merged view puts together, its planned columns and the order it was made in. The Planner's guidance and worked example say where each part comes from, how the merged view was made, what isn't right and what to do, and what could be asked next, never listing what the screen already shows: when everything answered, one line says so. Replaced: an answer of statuses restating the screen — "Shop A: Answered", "Shop B: Answered", "Merged view: Showing" (decision 29's first form).
 
+### 31. A failed press says so on its slot alone
+
+A press that fails ends with no words of the shell's: its slot says what happened ("This app isn't installed anymore." with Retry), and the journal keeps the outcome. Replaced: "dispatch failed" at the foot of the canvas, the orchestrator's own words on every failed press since task 2.4.
+
+### 32. An offer whose app is installed opens with "From the Store:"
+
+Once an app the offer offered is installed, here or elsewhere, the offer's line reads "From the Store:" alone above its rows. Replaced: "None of your apps can do this. From the Store:" above a row reading "Installed" with "Show it here" (task-15.3 decision 2's line, the same every time).
+
+### 33. A whole amount of money is written without cents
+
+A value the merged view formats as money is written without cents when it is a whole amount, in the browser's language: "US$1,449" in a Korean browser, "$1,449" in an American one; an amount with cents keeps them. Replaced: "US$1,449.00".
+
+### 34. A merge too few names who answered now
+
+An app that answered leaves the merge's answers, its slot failed, waiting on sign-in or needing an update, under a merge already collapsed because too few answered: the line is written afresh, no longer naming it, and its Retry covers it. Replaced: "Only Shop A answered, so there's nothing to combine." beside Shop A's slot reading "This app isn't installed anymore.".
+
 ## Write-up
 
 ### Before the sitting
@@ -252,7 +268,9 @@ The this-canvas reader carries what each app was asked for, what to do about an 
 
 **Decision 30, seen.** On the camera canvas: "Both Shop A and Shop B answered, and the merged view is showing cameras joined across both shops, ordered by lowest price ascending.", each shop with what it was asked for, the merged view with its columns; each app's line still ends "— answered". On a canvas of Linear and CircleCI not signed in: "Both Linear and CircleCI are waiting for you to sign in. Once you sign in to both from their slots, the merged view can join Linear issues to CircleCI builds.", each app with what it was asked for and "sign in to … from its slot", the merged view not shown with what it was planned to join and its columns.
 
+**Case 3, "More in the Store" on Shop B, with the uninstalled slot.** Shop B uninstalled from the App Library, its key signed out; on the camera canvas a press on a row of Shop B's answer gave "This app isn't installed anymore." with Retry and no reinstall, the merged view collapsing to "Only Shop A answered, so there's nothing to combine." with "Retry Shop B", and "dispatch failed" at the foot of the canvas (decision 31). "Compare camera prices at Shop A and Shop B." planned in 28 s and "Which cameras can I buy, and where?" in 41 s, each offering Shop B with Install and More in the Store. On canvas 2 Shop B's name opened its view in the Store, and Back closed it; More in the Store opened the Store on "camera shop", Shop B to install and Shop A installed. The reader installed Shop B there through the consent card and connected its key; canvas 2's slot filled, "Cameras" over Shop A, Shop B and Lowest price, its prices "US$1,449.00" (decision 33). On canvas 1 Shop B's row read "Installed" with "Show it here" under "None of your apps can do this." (decision 32); pressed, the slot filled in 2 s with no consent and "Camera comparison" came back. The journal: the uninstall by the page and the key revoked, the press failed `uninstalled`, the two questions, the Store opened on Shop B and on "camera shop", the install by the page, canvas 2's slot taking Shop B and stopping for the key, the key connected and its Retry, canvas 1's Show it here completing. Seen again after the fixes: a merged view's prices "US$1,449" (decision 33); a press on a row of Shop A's answer after Shop A was uninstalled, its slot "This app isn't installed anymore." with nothing at the foot of the canvas (decision 31), the line left "Only Shop A answered" (decision 34); Shop B installed from the Store with an offer of it open, the offer's line "From the Store:" (decision 32); after the fix, the same press under a merge already too few, the line "No app answered, so there's nothing to combine." with "Retry Shop A" (decision 34). Shop A installed again; Shop B left installed with no key.
+
 ### Findings
 
-- A plan that searches the Store takes about 30 s: 28 s for the camera comparison, 33 s for the day's agenda.
+- A plan that searches the Store takes about 30 s and up to 41 s: 28 s for the camera comparison, 33 s for the day's agenda, 41 s for "Which cameras can I buy, and where?".
 - A question that changes only part of the canvas on screen is undesigned: every question opens a canvas of its own, so "What's on this canvas?" answers about the canvas it was asked from. In the Backlog, worth discussing before Phase 20.
