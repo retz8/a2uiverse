@@ -520,6 +520,7 @@ Set `A2UIVERSE_DEBUG_IDS=1` to see the app's own ids under the stamp while debug
 | A press the answer can't take (Retry on an app whose answer is on screen or still coming, nothing to Include) | Refused with a `failed` final saying why |
 | A click inside an app's fragment while an earlier click there, or Allow's resume of one, still runs | Refused, and journaled as refused: "Google Calendar is still working on that. Try again once it has finished." The app is sent nothing. The client holds such a click back itself and says the same |
 | An app arrives, through Retry or the resume after a sign-in, over a merge that collapsed because too few answered, and the merge still can't be made | The collapse is painted afresh from the apps arrived: its line names who answered now, and its Retry covers only the apps still missing |
+| An app that answered leaves, its slot failed, waiting on sign-in or needing an update, under a merge that collapsed because too few answered | The collapse is painted afresh from the apps still arrived: its line no longer names that app, and its Retry covers it |
 | An unknown message or shell action | A broken turn |
 
 **One app failing never fails a turn.** Only a turn whose every dispatch was cancelled, or whose answer was closed, ends `canceled`.

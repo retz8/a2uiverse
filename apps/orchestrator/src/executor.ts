@@ -1605,6 +1605,17 @@ export class OrchestratorExecutor implements AgentExecutor {
   }
 
   /**
+   * A source leaves what arrived under a merge already too few: the line names who answered now
+   * (task-15.11 decision 34).
+   */
+  #recountFew(state: CompositionState): void {
+    const merge = synthesisSlot(state);
+    if (merge?.state === 'collapsed' && merge.collapse?.cause === 'few') {
+      merge.collapse = this.#fewCollapse(state, state.arrived);
+    }
+  }
+
+  /**
    * The merge slot collapses (task-8.3 decisions 8, 9): its one line — the decline's reason, or
    * the cause the shell words — painted on it, the journal told why. A declined merge, or one
    * that couldn't be made, keeps the sources it was made over: a source arriving after it waits
@@ -1698,6 +1709,7 @@ export class OrchestratorExecutor implements AgentExecutor {
     if (!slot) return;
     slot.state = 'failed';
     slot.failure = failure;
+    this.#recountFew(state);
     this.#repaint([sink], state);
     const merge = synthesisSlot(state);
     if (merge && merge.state !== 'collapsed' && merge.plan.join?.home === source) {
@@ -1742,6 +1754,7 @@ export class OrchestratorExecutor implements AgentExecutor {
       source,
       authority.escalation && authority.cause === 'signIn' ? {...authority, more: true} : authority,
     );
+    this.#recountFew(state);
     this.#repaint([sink], state);
     const merge = synthesisSlot(state);
     if (merge && merge.state !== 'collapsed' && merge.plan.join?.home === source) {
@@ -1770,6 +1783,7 @@ export class OrchestratorExecutor implements AgentExecutor {
     delete slot.authority;
     delete slot.escalation;
     delete slot.keptPress;
+    this.#recountFew(state);
     this.#repaint([sink], state);
     const merge = synthesisSlot(state);
     if (merge && merge.state !== 'collapsed' && merge.plan.join?.home === source) {

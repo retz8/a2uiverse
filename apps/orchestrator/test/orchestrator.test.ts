@@ -2555,6 +2555,28 @@ describe('Include, Retry and Try again (task 8.4)', () => {
     });
   });
 
+  test('a press that fails under a merge already too few takes its source off the line: the line written afresh (task-15.11 decision 34)', async () => {
+    const {client, orchestrator} = await boot({
+      planner: new FakePlanner(() => planWithSynthesis(['github', 'gmail'])),
+      scripts: {github: shopScript(camerasA)},
+      closeAfterInit: ['gmail'],
+    });
+    const contextId = crypto.randomUUID();
+    const plan = await collect(client, utterance('compare', contextId));
+    expect(shellSlotOf(plan)).toMatchObject({
+      state: 'collapsed',
+      collapse: {cause: 'few', answered: ['GitHub'], failed: ['gmail']},
+    });
+
+    await orchestrator.registry.uninstall('github');
+    const events = await collect(client, actionOn('github:s1', contextId));
+    expect(slotsOf(shellPaints(events).at(-1)!)['github']).toMatchObject({state: 'failed'});
+    expect(shellSlotOf(events)).toMatchObject({
+      state: 'collapsed',
+      collapse: {cause: 'few', answered: [], failed: ['github', 'gmail']},
+    });
+  });
+
   test('Retry on the merge’s line takes a source that answered in words alone: its request goes again (task-12.13 decision 35)', async () => {
     const {client} = await boot({
       planner: new FakePlanner(() => planWithSynthesis(['github', 'gmail'])),
