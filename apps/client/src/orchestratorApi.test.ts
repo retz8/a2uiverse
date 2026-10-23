@@ -115,7 +115,7 @@ describe('a write that gets no answer is read back, never sent again (task-14.11
       followed: [],
     });
     held = installed('0.1.0', 'sha256-b');
-    expect(await settle(installApp(BASE, 'linear'))).toEqual({ok: false, cause: 'store-unreached'});
+    expect(await settle(installApp(BASE, 'linear'))).toEqual({ok: false, cause: 'unheard'});
     expect(sent.posts()).toBe(2);
   });
 

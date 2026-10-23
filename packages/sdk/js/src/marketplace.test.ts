@@ -324,6 +324,12 @@ describe('the words of a refused install or update (task-14.7 decision 6, task-1
         rest: 'so nothing was installed.',
         press: 'retry',
       },
+      unheard: {
+        tone: 'bad',
+        lead: 'That didn’t go through,',
+        rest: 'so nothing was installed.',
+        press: 'retry',
+      },
     });
   });
 
@@ -332,6 +338,7 @@ describe('the words of a refused install or update (task-14.7 decision 6, task-1
     expect(refusalOf('checks', 'Shop B', 'update').lead).toBe('Shop B can’t be updated.');
     expect(refusalOf('app-unreached', 'Shop B', 'update').rest).toBe('so nothing changed.');
     expect(refusalOf('store-unreached', 'Shop B', 'update').rest).toBe('so nothing changed.');
+    expect(refusalOf('unheard', 'Shop B', 'update').rest).toBe('so nothing changed.');
   });
 });
 

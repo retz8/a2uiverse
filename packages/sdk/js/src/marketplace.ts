@@ -618,6 +618,7 @@ export const INSTALL_REFUSALS = [
   'app-unreached',
   'checks',
   'store-unreached',
+  'unheard',
 ] as const;
 export type InstallRefusal = (typeof INSTALL_REFUSALS)[number];
 
@@ -655,6 +656,15 @@ export function refusalOf(cause: InstallRefusal, name: string, act: 'install' | 
       return {
         tone: 'bad' as const,
         lead: 'The Store can’t be reached right now,',
+        rest: act === 'install' ? 'so nothing was installed.' : 'so nothing changed.',
+        press: 'retry' as const,
+      };
+    // The page's request got no answer and reading back finds nothing done: the connection, not
+    // the Store (task-15.11 decision 28).
+    case 'unheard':
+      return {
+        tone: 'bad' as const,
+        lead: 'That didn’t go through,',
         rest: act === 'install' ? 'so nothing was installed.' : 'so nothing changed.',
         press: 'retry' as const,
       };

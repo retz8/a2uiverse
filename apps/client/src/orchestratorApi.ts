@@ -300,14 +300,14 @@ export type InstallAnswer =
  * Installs an app from the Store by its id — an update is the same install over the held app.
  * An orchestrator that cannot be reached answers as the Store unreached; an install that got no
  * answer is done when the app is installed as the Store lists it now (task-14.11 decision 40), the
- * apps that followed it unknown.
+ * apps that followed it unknown, and otherwise did not go through (task-15.11 decision 28).
  */
 export async function installApp(base: string, appId: string): Promise<InstallAnswer> {
   const answer = await write(new URL('install', registryUrl(base)).href, {appId});
   if (answer === 'unheard') {
     return (await installedAsListed(base, appId))
       ? {ok: true, appId, replaced: true, followed: []}
-      : {ok: false, cause: 'store-unreached'};
+      : {ok: false, cause: 'unheard'};
   }
   if (answer === null) return {ok: false, cause: 'store-unreached'};
   const body = answer.body as

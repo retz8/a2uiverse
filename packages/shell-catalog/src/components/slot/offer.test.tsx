@@ -308,6 +308,12 @@ test.each([
     'so nothing was installed.',
     {name: 'Try again', enabled: true},
   ],
+  [
+    'unheard',
+    'That didn’t go through,',
+    'so nothing was installed.',
+    {name: 'Try again', enabled: true},
+  ],
 ] as const)(
   'a refused install (%s) says why on its row in the Store’s words, with the Store’s press; every other row’s Install back',
   (cause, lead, rest, press) => {
@@ -338,6 +344,7 @@ test('every refusal the Store words has its row’s line', () => {
     'app-unreached',
     'checks',
     'store-unreached',
+    'unheard',
   ]);
 });
 
