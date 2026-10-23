@@ -229,7 +229,7 @@ describe('browsing the Store', () => {
     fake.search = [{entry: SHOP_A, installed: false}];
     renderWithShell(<Store initial={{page: 'store', query: 'camera shops'}} />);
     await waitFor(() => expect(rows()).toEqual(['shop-a']));
-    expect(screen.getByTestId('store-label')).toHaveTextContent('Best matches · 1');
+    expect(screen.getByTestId('store-label')).toHaveTextContent('Closest matches · 1');
     expect(screen.getByRole('searchbox', {name: 'Search the Store'})).toHaveValue('camera shops');
   });
 

@@ -48,12 +48,12 @@ test('S1 · opened with no query: every app by name, an installed one its state 
   await expect(page).toHaveScreenshot('store-s1-store-front.png');
 });
 
-test('S2 · opened on a query: the best matches, the query in the box and the address', async ({
+test('S2 · opened on a query: the closest matches, the query in the box and the address', async ({
   page,
 }) => {
   await openPage(page, '/?page=store&q=camera+shop');
   await expect(page.getByRole('searchbox', {name: 'Search the Store'})).toHaveValue('camera shop');
-  await expect(page.getByTestId('store-label')).toContainText('Best matches · 2');
+  await expect(page.getByTestId('store-label')).toContainText('Closest matches · 2');
   await expect(page.getByTestId('store-row')).toHaveCount(2);
   await expect(row(page, 'shop-a')).toBeVisible();
   await expect(row(page, 'shop-b')).toBeVisible();

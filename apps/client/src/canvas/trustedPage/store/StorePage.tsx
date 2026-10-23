@@ -1,6 +1,6 @@
 /**
  * The Store (SPEC §9.3; phase-14 decisions 2, 3, 7, 20; task 14.7), drawn to the design canvas's
- * Store boards: every published app by name, or the search's best matches for a query; one
+ * Store boards: every published app by name, or the search's closest matches for a query; one
  * publisher's apps, the index filtered on the name; and an app's view — what it does, the
  * questions to try, what signing in will be, its sample rendered live — with Install, or its state
  * once installed and the Update an update waiting carries.
@@ -217,7 +217,9 @@ function StoreBrowse({
       ? loaded.value.filter(listing => !publisher || listing.entry.publisher === publisher)
       : [];
   if (!query) listings.sort(byName);
-  const label = query ? 'Best matches' : publisher ? `Apps by ${publisher}` : 'All apps';
+  // The search can rank apps that don't do what was searched: closest, never best (task-15.11
+  // decision 38).
+  const label = query ? 'Closest matches' : publisher ? `Apps by ${publisher}` : 'All apps';
 
   return (
     <div className="store-col" data-testid="store-browse">
