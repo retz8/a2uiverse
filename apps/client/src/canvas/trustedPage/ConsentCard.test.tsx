@@ -107,6 +107,47 @@ describe('the consent card over a slot (task-15.9 decision 2)', () => {
     expect(onCancel).toHaveBeenCalledOnce();
   });
 
+  it('keeps its press where it is on screen while a paint above moves it (task-15.11 decision 23)', () => {
+    const watching = new Map<Element, ResizeObserverCallback>();
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        constructor(private readonly callback: ResizeObserverCallback) {}
+        observe(target: Element) {
+          watching.set(target, this.callback);
+        }
+        unobserve() {}
+        disconnect() {}
+      },
+    );
+    const scroll = document.createElement('div');
+    scroll.dataset.testid = 'canvas-scroll';
+    const stage = document.createElement('div');
+    stage.dataset.testid = 'canvas-stage-content';
+    const press = document.createElement('button');
+    scroll.append(stage);
+    stage.append(press);
+    document.body.append(scroll);
+    let top = 200;
+    press.getBoundingClientRect = () => ({top}) as DOMRect;
+    renderWithShell(
+      <SlotConsentCard
+        ask={{kind: 'install', entry: SHOP_B}}
+        anchor={press}
+        onConfirm={() => {}}
+        onCancel={() => {}}
+      />,
+    );
+    // The merged view lands above: the press drops 320 px, the scroll follows it back.
+    top = 520;
+    press.getBoundingClientRect = () => ({top: top - scroll.scrollTop}) as DOMRect;
+    watching.get(stage)!([], {} as ResizeObserver);
+    expect(scroll.scrollTop).toBe(320);
+    expect(press.getBoundingClientRect().top).toBe(200);
+    vi.unstubAllGlobals();
+    scroll.remove();
+  });
+
   it('draws nothing with nothing asked', () => {
     renderWithShell(
       <SlotConsentCard ask={null} anchor={null} onConfirm={() => {}} onCancel={() => {}} />,

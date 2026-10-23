@@ -7,7 +7,7 @@
  * Store and the App Library, and floating over a slot from the press made there, nothing on the
  * canvas moving (task-15.9 decision 2).
  */
-import {useId, useMemo} from 'react';
+import {useId, useLayoutEffect, useMemo} from 'react';
 import {AlertDialog, Button, Flex, Heading, Popover, Text} from '@radix-ui/themes';
 import type {IndexEntry} from '@a2uiverse/sdk';
 import {newScopeWords, signInOf, tileLetter, type UpdateNewsFacts} from './appCard';
@@ -203,6 +203,32 @@ export function ConsentCard({ask, onConfirm, onClose, container}: ConsentCardPro
 /** The canvas's column, which the card over a slot stays inside. */
 const STAGE = '[data-testid="canvas-stage-content"]';
 
+/** The canvas's scroll, which keeps the press the card floats from in place. */
+const SCROLL = '[data-testid="canvas-scroll"]';
+
+/**
+ * While the card is open, the press it floats from stays where it is on screen (task-15.11
+ * decision 23): a paint that moves it — the merged view landing above — is scrolled back by the
+ * same distance, so the card's presses stay under the reader's pointer.
+ */
+function useHeldInPlace(anchor: HTMLElement | null, open: boolean) {
+  useLayoutEffect(() => {
+    if (!open || !anchor || typeof ResizeObserver === 'undefined') return;
+    const scroll = anchor.closest<HTMLElement>(SCROLL);
+    const stage = anchor.closest<HTMLElement>(STAGE);
+    if (!scroll || !stage) return;
+    let top = anchor.getBoundingClientRect().top;
+    const observer = new ResizeObserver(() => {
+      if (!anchor.isConnected) return;
+      const moved = anchor.getBoundingClientRect().top - top;
+      if (moved !== 0) scroll.scrollTop += moved;
+      top = anchor.getBoundingClientRect().top;
+    });
+    observer.observe(stage);
+    return () => observer.disconnect();
+  }, [anchor, open]);
+}
+
 export interface SlotConsentCardProps {
   ask: ConsentAsk | null;
   /** The Install or Update pressed in the slot: the card floats from it. */
@@ -223,6 +249,7 @@ export function SlotConsentCard({ask, anchor, onConfirm, onCancel}: SlotConsentC
   const titleId = useId();
   const anchorRef = useMemo(() => ({current: anchor}), [anchor]);
   const open = ask !== null && anchor !== null;
+  useHeldInPlace(anchor, open);
   return (
     <Popover.Root
       modal
