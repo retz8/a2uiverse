@@ -110,7 +110,7 @@ flowchart TD
 
 **1. The starting state.** The vault holds two accounts: `github.1`, signed in as GitHub's made-up account `retz8`, and `linear.1`, as `me@example.com`. Gmail and Calendar hold none. You ask _"what needs my attention today?"_. The Planner chooses the apps whose cards show something waiting on you (mail to answer, a meeting, a review asked of you, an issue assigned to you) and a merged view over them. It plans Gmail and Calendar as `gmail.1` and `calendar.1`: the accounts their first sign-ins will create.
 
-**2. The first paint.** Before anything is dispatched, the executor asks the vault for each slot's **standing**. `github.1` and `linear.1` are **ready**: their accounts meet their cards. `gmail.1` and `calendar.1` **need sign-in**: Gmail's card asks for `signIn` with `inbox`, and the vault holds nothing for Gmail. Those two slots take the authority tile in the very first paint, and their agents are never called. The orchestrator paints the slot `state: "authority"` with what it asks:
+**2. The first paint.** Before anything is dispatched, the executor asks the vault for each slot's **standing**. `github.1` and `linear.1` are **ready**: their accounts meet their cards. `gmail.1` and `calendar.1` **need sign-in**: Gmail's card asks for `signIn` with `inbox`, and the vault holds nothing for Gmail. Those two slots take the authority tile in the very first paint, and their agents are never called; the journal keeps each as a dispatch that failed needing sign-in, the authority it asks beside it. The orchestrator paints the slot `state: "authority"` with what it asks:
 
 ```jsonc
 // gmail.1's Slot in the first paint (trimmed)

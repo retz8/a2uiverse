@@ -508,7 +508,23 @@ export class OrchestratorExecutor implements AgentExecutor {
         continue;
       }
       const standing = this.#deps.gate?.standing(plan.source);
-      if (standing?.kind === 'need') this.#takeAuthority(state, plan.source, standing.need);
+      if (standing?.kind !== 'need') continue;
+      this.#takeAuthority(state, plan.source, standing.need);
+      // Journaled as the pool journals a dispatch it stops for sign-in: failed, the agent not
+      // called, the authority it needs (task-15.11 decision 27).
+      const at = new Date().toISOString();
+      turn.dispatched({
+        source: plan.source,
+        clientContextId: ctx.contextId,
+        clientTaskId: ctx.taskId,
+        startedAt: at,
+        endedAt: at,
+        outcome: 'failed',
+        error: 'the app needs sign-in',
+        authority: standing.need,
+        sawFinal: false,
+        deadlineMs: this.#deps.deadlines.capMs,
+      });
     }
     // The add-account tile's scopes: what a new account's first sign-in asks, in the card's
     // words (task-12.13 decision 27).

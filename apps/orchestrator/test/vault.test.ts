@@ -342,6 +342,23 @@ describe('before dispatch and the sign-in', () => {
     });
     expect(slotOf(events, 'shop.1')!.authority).not.toHaveProperty('quiet');
     expect(vendors[0]!.requests).toHaveLength(0);
+    // Journaled as a dispatch stopped for sign-in, the agent not called (task-15.11 decision 27).
+    let dispatched: Record<string, unknown>[] = [];
+    await vi.waitFor(async () => {
+      const lines = (await readFile(join(dir, 'intent-journal.jsonl'), 'utf8')).split('\n');
+      const turn = lines
+        .filter(Boolean)
+        .map(line => JSON.parse(line) as {kind: string; dispatch?: Record<string, unknown>[]})
+        .find(entry => entry.kind === 'utterance');
+      dispatched = turn?.dispatch ?? [];
+      expect(dispatched).toHaveLength(1);
+    });
+    expect(dispatched[0]).toMatchObject({
+      source: 'shop.1',
+      outcome: 'failed',
+      error: 'the app needs sign-in',
+      authority: {cause: 'signIn', words: ['See your orders']},
+    });
   });
 
   test('signed in, the resume press dispatches with the header, the account labelled from the ID token', async () => {
