@@ -201,41 +201,55 @@ describe('this composition', () => {
     });
   });
 
-  test('is the composition’s structure: the utterance, each slot and its state, the merged view, the gaps', () => {
+  test('is the composition in the person’s words: what was asked, each app and how it stands, the merged view, what nothing installed does (task-15.11 decision 29)', () => {
     const state = compositionFrom(layout, new Sources(registry), 'what needs my attention today?');
     state.arrived.add('github');
     state.slots.get('gmail')!.state = 'failed';
     expect(compositionView(state)).toEqual({
-      utterance: 'what needs my attention today?',
-      slots: [
-        {source: 'github', displayName: 'GitHub', state: 'arrived'},
-        {source: 'gmail', displayName: 'Gmail', state: 'failed'},
+      question: 'what needs my attention today?',
+      apps: [
+        {app: 'GitHub', state: 'answered'},
+        {app: 'Gmail', state: 'couldn’t answer'},
       ],
-      mergedView: {state: 'pending'},
-      gaps: ['flight booking'],
+      mergedView: {state: 'being made'},
+      nothingInstalledFor: ['flight booking'],
     });
+    for (const [slotState, said] of [
+      ['collapsed', 'answered with nothing to show'],
+      ['authority', 'waiting for you to sign in'],
+      ['update', 'needs an update'],
+    ] as const) {
+      state.slots.get('gmail')!.state = slotState;
+      expect(compositionView(state).apps[1]!.state).toBe(said);
+    }
   });
 
   test('a gap an install filled is no longer a gap: it reads as its slot (task-15.4 decision 11)', () => {
     const state = compositionFrom(layout, new Sources(registry), 'x');
     state.gaps.get('flight booking')!.filled = {kind: 'installed', appId: 'skyway', name: 'Skyway'};
-    expect(compositionView(state).gaps).toEqual([]);
+    expect(compositionView(state).nothingInstalledFor).toEqual([]);
   });
 
-  test('says whether the merged view is live, collapsed or declined, and why', () => {
+  test('says whether the merged view shows, and why not in the person’s words', () => {
     const state = compositionFrom(layout, new Sources(registry), 'x');
     state.mergedView = {outcome: 'declined', reason: 'nothing joinable'};
     expect(compositionView(state).mergedView).toEqual({
-      state: 'declined',
-      reason: 'nothing joinable',
+      state: 'not shown',
+      why: 'nothing joinable',
     });
     state.mergedView = {outcome: 'skipped', reason: '1 source(s) arrived'};
+    state.arrived.add('github');
     expect(compositionView(state).mergedView).toEqual({
-      state: 'collapsed',
-      reason: '1 source(s) arrived',
+      state: 'not shown',
+      why: 'only GitHub answered',
+    });
+    state.mergedView = {outcome: 'failed'};
+    expect(compositionView(state).mergedView).toEqual({
+      state: 'not shown',
+      why: 'it couldn’t be made',
     });
     state.mergedView = {outcome: 'synthesized'};
-    expect(compositionView(state).mergedView).toEqual({state: 'live'});
+    expect(compositionView(state).mergedView).toEqual({state: 'showing'});
     const plain = compositionFrom(
       {...layout, dispatch: [layout.dispatch[0]!]},
       new Sources(registry),
@@ -286,15 +300,15 @@ describe('recent turns — the ancestry (task-9.3 decision 2)', () => {
     state.arrived.add('github');
     state.slots.get('gmail')!.state = 'failed';
     expect(compositionLine({kind: 'open', state})).toBe(
-      '2026-09-13T06:00:00.000Z · "what needs my review?" → GitHub (answered), Gmail (failed) · still loading',
+      '2026-09-13T06:00:00.000Z · "what needs my review?" → GitHub (answered), Gmail (couldn’t answer) · still loading',
     );
     state.answeredAt = opened + 5_000;
     state.mergedView = {outcome: 'declined', reason: 'nothing joinable'};
     expect(compositionLine({kind: 'open', state})).toBe(
-      '2026-09-13T06:00:00.000Z · "what needs my review?" → GitHub (answered), Gmail (failed) · merged view declined: nothing joinable · answered',
+      '2026-09-13T06:00:00.000Z · "what needs my review?" → GitHub (answered), Gmail (couldn’t answer) · merged view not shown: nothing joinable · answered',
     );
     state.mergedView = {outcome: 'synthesized'};
-    expect(compositionLine({kind: 'open', state})).toContain('· merged view live · answered');
+    expect(compositionLine({kind: 'open', state})).toContain('· merged view showing · answered');
   });
 
   test('a closed composition keeps its line; the chain runs oldest first through it, at most five deep', () => {
@@ -347,7 +361,8 @@ describe('recent turns — the ancestry (task-9.3 decision 2)', () => {
 describe('readerTools — the AI SDK adapter', () => {
   const readers: PlatformReaders = {
     installedApps: () => [{id: 'gmail', displayName: 'Gmail', skills: [], reachable: true}],
-    thisComposition: id => (id === 'c1' ? {utterance: 'x', slots: [], gaps: []} : undefined),
+    thisComposition: id =>
+      id === 'c1' ? {question: 'x', apps: [], nothingInstalledFor: []} : undefined,
     recentTurns: id => (id === 'c1' ? ['line one'] : []),
   };
 
@@ -362,7 +377,7 @@ describe('readerTools — the AI SDK adapter', () => {
     expect(await run('installed_apps')).toEqual([
       {id: 'gmail', displayName: 'Gmail', skills: [], reachable: true},
     ]);
-    expect(await run('this_canvas')).toEqual({utterance: 'x', slots: [], gaps: []});
+    expect(await run('this_canvas')).toEqual({question: 'x', apps: [], nothingInstalledFor: []});
     expect(await run('recent_turns')).toEqual(['line one']);
   });
 
@@ -467,12 +482,12 @@ describe('accounts (task-12.6 decision 9)', () => {
     dataModel: {},
   };
 
-  test('this canvas gives each account’s slot its label, and an account choice still waiting its own state', () => {
+  test('this canvas gives an account’s app its name, and an account choice still waiting its own state', () => {
     const state = compositionFrom(asking, sources, 'x');
-    expect(compositionView(state, sources).slots).toEqual([
-      {source: 'gmail.2', displayName: 'Gmail', label: 'bob@example.com', state: 'pending'},
-      {source: 'calendar', displayName: 'Calendar', state: 'pending'},
-      {source: 'gmail', displayName: 'Gmail', state: 'choosing-account'},
+    expect(compositionView(state, sources).apps).toEqual([
+      {app: 'Gmail', account: 'bob@example.com', state: 'still loading'},
+      {app: 'Calendar', state: 'still loading'},
+      {app: 'Gmail', state: 'waiting for you to choose an account'},
     ]);
   });
 
@@ -480,7 +495,7 @@ describe('accounts (task-12.6 decision 9)', () => {
     const state = compositionFrom(asking, sources, 'x', {turnId: 't', openedAt: 0});
     state.arrived.add('gmail.2');
     expect(compositionLine({kind: 'open', state})).toContain(
-      '→ Gmail · bob@example.com (answered), Calendar (loading)',
+      '→ Gmail · bob@example.com (answered), Calendar (still loading)',
     );
   });
 });

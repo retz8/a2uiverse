@@ -30,28 +30,39 @@ export interface InstalledApp {
   checked?: string;
 }
 
-export interface CompositionSlot {
-  /** The slot's source; the app id for an account choice still waiting. */
-  source: string;
-  displayName: string;
-  /** The account's label, for a slot of an account (task-12.6 decision 9). */
-  label?: string;
-  /**
-   * The orchestrator's view: pending, arrived (painted), failed, collapsed, needing sign-in
-   * (`authority`) or an update (`update`, task 15.5), or an account choice waiting on the user's
-   * press (`choosing-account`).
-   */
-  state:
-    'pending' | 'arrived' | 'failed' | 'collapsed' | 'authority' | 'update' | 'choosing-account';
+/**
+ * How an app's answer on a canvas stands, in the person's words (task-15.11 decision 29): a slot
+ * loading, painted, resting on words alone, failed, needing sign-in, needing an update (task 15.5),
+ * or an account choice waiting on the person's press.
+ */
+export type AppStanding =
+  | 'still loading'
+  | 'answered'
+  | 'answered with nothing to show'
+  | 'couldn’t answer'
+  | 'waiting for you to sign in'
+  | 'needs an update'
+  | 'waiting for you to choose an account';
+
+export interface CompositionApp {
+  /** The app's name on the canvas. */
+  app: string;
+  /** The account's name, when it is not the app's own (task-12.6 decision 9). */
+  account?: string;
+  state: AppStanding;
 }
 
 export interface CompositionView {
-  utterance: string;
-  slots: CompositionSlot[];
-  /** Present when the plan reserved a merged view; its state and, when it did not stand, why. */
-  mergedView?: {state: 'pending' | 'live' | 'collapsed' | 'declined'; reason?: string};
-  /** The capability gaps no app fills yet; one an install filled reads as its slot (task-15.4 decision 11). */
-  gaps: string[];
+  /** What was asked on the canvas. */
+  question: string;
+  apps: CompositionApp[];
+  /** Present when the plan made room for a merged view: whether it shows and, when not, why. */
+  mergedView?: {state: 'being made' | 'showing' | 'not shown'; why?: string};
+  /**
+   * What was asked for that no installed app does yet; one an install filled reads as its app
+   * (task-15.4 decision 11).
+   */
+  nothingInstalledFor: string[];
 }
 
 export interface PlatformReaders {
@@ -118,7 +129,7 @@ export function readerTools(
     }),
     this_canvas: tool({
       description:
-        'The canvas the user is looking at — the one this question was asked from — as structure: the utterance it came from, which sources hold a slot — an account’s with its label — and each slot’s state, whether a merged view is live, collapsed or declined and why, and any capability gaps. Never an app’s data. Call it to answer what the user is looking at, or which account holds what is on it.',
+        'The canvas this question was asked from — the answer opens a canvas of its own — in the person’s words: what was asked on it, each app on it — an account’s by its name — and how its answer stands, whether the merged view shows and why not, and what was asked for that no installed app does yet. Never an app’s data. Call it to answer what is on the canvas the user asked from, or which account holds what is on it.',
       inputSchema: NO_INPUT,
       execute: async () =>
         readers.thisComposition(askedFrom) ?? {empty: true, note: 'Nothing is on the canvas yet.'},

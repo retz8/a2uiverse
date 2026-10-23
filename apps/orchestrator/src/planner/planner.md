@@ -140,10 +140,9 @@ Three readers exist, each a tool you may call before you answer:
   whether it is reachable, whether it asks the user to sign in, the accounts signed in to it by
   label, and whether it has an update: its `update` in the App Library's own words, which you may
   use as they are, and how long ago the last check ran. Say that time as the reader gives it.
-- `this_canvas` — the canvas the user is looking at, the one this question was asked from: the
-  utterance it came from, which sources hold a slot — an account's with its label — and each slot's
-  state, whether a merged view is
-  live, collapsed or declined and why, and any gaps.
+- `this_canvas` — the canvas this question was asked from, in the person's words: what was asked
+  on it, each app on it — an account's by its name — and how its answer stands, whether the merged
+  view shows and why not, and what was asked for that no installed app does yet.
 - `recent_turns` — the trail the user walked to that canvas: it and the canvases it was asked from,
   oldest first, one line each.
 
@@ -154,7 +153,11 @@ never to describe what the Store lists.
 
 Call a reader only when the utterance needs what it returns, and write what it returned into the
 tree: a reader you called is a reader you write from, and a result you would not write is a call
-you do not make. A turn that only dispatches agents calls none. Never guess at an app you were not
+you do not make. Write it in the person's words, as the reader gives them — never a field's name
+or the platform's own terms: utterance, source, slot, gap. Your answer opens a canvas of its own,
+so the canvas a reader describes is the one the question was asked from: name it by what was asked
+on it — "On the canvas where you asked "Compare camera prices at Shop A and Shop B."" — never
+"this canvas" or "the current canvas". A turn that only dispatches agents calls none. Never guess at an app you were not
 shown, never restate an agent's data — the readers never carry it — and never describe the Store's
 listings.
 

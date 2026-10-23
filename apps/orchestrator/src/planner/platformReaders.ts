@@ -7,11 +7,17 @@
 import {updateWords} from '@a2uiverse/sdk';
 import {asksSignIn, Sources} from '../accounts/accounts.js';
 import type {HeldComposition} from '../composition/compositions.js';
-import type {CompositionState} from '../composition/state.js';
+import type {CompositionState, SlotState} from '../composition/state.js';
 import type {Registry} from '../registry/registry.js';
 import type {HeldUpdates} from '../registry/updates.js';
 import {SHELL_SOURCE_ID} from '../registry/types.js';
-import type {CompositionSlot, CompositionView, InstalledApp, PlatformReaders} from './readers.js';
+import type {
+  AppStanding,
+  CompositionApp,
+  CompositionView,
+  InstalledApp,
+  PlatformReaders,
+} from './readers.js';
 
 export interface PlatformReaderDeps {
   registry: Registry;
@@ -94,76 +100,122 @@ export function checkedAgo(at: number, now: number): string {
 }
 
 /**
- * The composition as structure only: never a partition's contents, never the synthesis document.
- * An account's slot carries its label; an account choice still waiting is listed by its app
- * (task-12.6 decision 9); a gap, until an install fills it.
+ * The canvas a question was asked from, in the person's words (task-15.11 decision 29): what was
+ * asked, each app and how its answer stands — an account's by its name when it is not the app's —
+ * the merged view and why it does not show, and what no installed app does yet. Never a
+ * partition's contents.
  */
 export function compositionView(state: CompositionState, sources?: Sources): CompositionView {
-  const slots = [...state.slots.values()]
+  const apps = [...state.slots.values()]
     .filter(({plan}) => plan.source !== SHELL_SOURCE_ID)
-    .map(({plan, state: slotState}): CompositionSlot => {
+    .map(({plan, state: slotState}): CompositionApp => {
       const label = sources?.label(plan.source);
       return {
-        source: plan.source,
-        displayName: plan.displayName,
-        ...(label !== undefined ? {label} : {}),
-        state: slotState === 'pending' && state.arrived.has(plan.source) ? 'arrived' : slotState,
+        app: plan.displayName,
+        ...(label !== undefined && label !== plan.displayName ? {account: label} : {}),
+        state: standing(slotState, state.arrived.has(plan.source)),
       };
     });
-  for (const [appId, choice] of state.choices) {
+  for (const [, choice] of state.choices) {
     if (choice.chosen !== undefined) continue;
-    slots.push({source: appId, displayName: choice.displayName, state: 'choosing-account'});
+    apps.push({app: choice.displayName, state: 'waiting for you to choose an account'});
   }
-  // A gap an install filled reads as its slot (task-15.4 decision 11); the installed line, as done.
-  const gaps = [...state.gaps.values()].filter(gap => !gap.filled).map(gap => gap.words);
-  const view: CompositionView = {utterance: state.utterance, slots, gaps};
+  // A gap an install filled reads as its app (task-15.4 decision 11); the installed line, as done.
+  const nothingInstalledFor = [...state.gaps.values()]
+    .filter(gap => !gap.filled)
+    .map(gap => gap.words);
+  const view: CompositionView = {question: state.utterance, apps, nothingInstalledFor};
   if (state.slots.has(SHELL_SOURCE_ID)) view.mergedView = mergedViewOf(state);
   return view;
 }
 
+/** A slot's state as the person would say it. */
+function standing(slotState: SlotState, arrived: boolean): AppStanding {
+  switch (slotState) {
+    case 'pending':
+      return arrived ? 'answered' : 'still loading';
+    case 'collapsed':
+      return 'answered with nothing to show';
+    case 'failed':
+      return 'couldn’t answer';
+    case 'authority':
+      return 'waiting for you to sign in';
+    case 'update':
+      return 'needs an update';
+  }
+}
+
 function mergedViewOf(state: CompositionState): NonNullable<CompositionView['mergedView']> {
   const {mergedView} = state;
-  if (!mergedView) return {state: 'pending'};
-  if (mergedView.outcome === 'synthesized') return {state: 'live'};
-  const collapsed = mergedView.outcome === 'declined' ? 'declined' : 'collapsed';
-  return mergedView.reason ? {state: collapsed, reason: mergedView.reason} : {state: collapsed};
+  if (!mergedView) return {state: 'being made'};
+  switch (mergedView.outcome) {
+    case 'synthesized':
+      return {state: 'showing'};
+    case 'skipped': {
+      // Fewer than two answered: who did, never a count of sources.
+      const answered = [...state.slots.values()]
+        .filter(({plan}) => plan.source !== SHELL_SOURCE_ID && state.arrived.has(plan.source))
+        .map(({plan}) => plan.displayName);
+      return {
+        state: 'not shown',
+        why: answered.length === 0 ? 'no app answered' : `only ${listed(answered)} answered`,
+      };
+    }
+    case 'declined':
+      return {state: 'not shown', why: mergedView.reason ?? 'there was nothing to put together'};
+    default:
+      return {state: 'not shown', why: 'it couldn’t be made'};
+  }
+}
+
+function listed(names: readonly string[]): string {
+  return names.length < 2 ? names.join('') : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`;
 }
 
 /**
  * One line per context of an ancestry (task-9.3 decision 2): when it was opened, what was asked,
- * which sources answered and how — each by its one name (task-12.6 decision 9) — what became of the merged view, and whether it is still
- * loading or was closed. Written from the composition state, never the journal, so a composition
+ * which apps answered and how — each by its one name (task-12.6 decision 9), in the person's words
+ * (task-15.11 decision 29) — what became of the merged view, and whether it is still loading or
+ * was closed. Written from the composition state, never the journal, so a composition
  * whose turn has not closed still has its line.
  */
 export function compositionLine(held: HeldComposition): string {
   if (held.kind === 'closed') {
     const {record} = held;
-    const sources = record.answered.length === 0 ? 'no source' : record.answered.join(', ');
-    return `${new Date(record.openedAt).toISOString()} · ${JSON.stringify(record.utterance)} → ${sources}${mergedClause(record.mergedView)} · closed`;
+    const apps = record.answered.length === 0 ? 'no app' : record.answered.join(', ');
+    return `${new Date(record.openedAt).toISOString()} · ${JSON.stringify(record.utterance)} → ${apps}${mergedClause(record.mergedView, record.answered)} · closed`;
   }
   const {state} = held;
   const vendors = [...state.slots.values()].filter(({plan}) => plan.source !== SHELL_SOURCE_ID);
-  const sources =
+  const apps =
     vendors.length === 0
-      ? 'no source'
+      ? 'no app'
       : vendors
-          .map(({plan, state: slotState}) => {
-            const at =
-              slotState === 'pending'
-                ? state.arrived.has(plan.source)
-                  ? 'answered'
-                  : 'loading'
-                : slotState;
-            return `${plan.name} (${at})`;
-          })
+          .map(
+            ({plan, state: slotState}) =>
+              `${plan.name} (${standing(slotState, state.arrived.has(plan.source))})`,
+          )
           .join(', ');
-  const standing = state.answeredAt === undefined ? 'still loading' : 'answered';
-  return `${new Date(state.openedAt).toISOString()} · ${JSON.stringify(state.utterance)} → ${sources}${mergedClause(state.mergedView)} · ${standing}`;
+  const answered = vendors
+    .filter(({plan}) => state.arrived.has(plan.source))
+    .map(({plan}) => plan.displayName);
+  const standingLine = state.answeredAt === undefined ? 'still loading' : 'answered';
+  return `${new Date(state.openedAt).toISOString()} · ${JSON.stringify(state.utterance)} → ${apps}${mergedClause(state.mergedView, answered)} · ${standingLine}`;
 }
 
-function mergedClause(mergedView: CompositionState['mergedView']): string {
+function mergedClause(
+  mergedView: CompositionState['mergedView'],
+  answered: readonly string[],
+): string {
   if (!mergedView) return '';
-  if (mergedView.outcome === 'synthesized') return ' · merged view live';
-  const what = mergedView.outcome === 'declined' ? 'merged view declined' : 'merged view collapsed';
-  return mergedView.reason ? ` · ${what}: ${mergedView.reason}` : ` · ${what}`;
+  if (mergedView.outcome === 'synthesized') return ' · merged view showing';
+  const why =
+    mergedView.outcome === 'skipped'
+      ? answered.length === 0
+        ? 'no app answered'
+        : `only ${listed(answered)} answered`
+      : mergedView.outcome === 'declined'
+        ? (mergedView.reason ?? 'there was nothing to put together')
+        : 'it couldn’t be made';
+  return ` · merged view not shown: ${why}`;
 }
