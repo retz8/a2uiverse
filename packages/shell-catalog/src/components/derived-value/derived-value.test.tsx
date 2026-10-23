@@ -15,16 +15,27 @@ const usd = {kind: 'currency', currency: 'USD'} as const;
 
 test('a complete value renders bare and formatted, with its source count as the accessible name', () => {
   render(<DerivedValueView cell={{value: 899, contributed: 2, of: 2, absent: []}} format={usd} />);
-  const cell = screen.getByLabelText('$899.00 · 2 of 2 sources');
+  const cell = screen.getByLabelText('$899 · 2 of 2 sources');
   expect(cell).toHaveAttribute('data-state', 'complete');
-  expect(cell).toHaveTextContent('$899.00');
+  expect(cell).toHaveTextContent('$899');
   expect(cell).not.toHaveAttribute('data-marked');
+});
+
+test('a whole amount is written without cents, one with cents keeps them (task-15.11 decision 33)', () => {
+  render(
+    <>
+      <DerivedValueView cell={{value: 1449, contributed: 2, of: 2, absent: []}} format={usd} />
+      <DerivedValueView cell={{value: 1449.5, contributed: 2, of: 2, absent: []}} format={usd} />
+    </>,
+  );
+  expect(screen.getByLabelText('$1,449 · 2 of 2 sources')).toBeInTheDocument();
+  expect(screen.getByLabelText('$1,449.50 · 2 of 2 sources')).toBeInTheDocument();
 });
 
 test('a complete value held by facts says nothing on focus: the shell shows rather than speaks (task-7.9 decision 22)', async () => {
   const user = userEvent.setup();
   render(<DerivedValueView cell={{value: 899, contributed: 2, of: 2, absent: []}} format={usd} />);
-  const cell = screen.getByLabelText('$899.00 · 2 of 2 sources');
+  const cell = screen.getByLabelText('$899 · 2 of 2 sources');
   expect(cell).not.toHaveAttribute('tabindex');
   expect(cell).not.toHaveStyle({cursor: 'help'});
   await user.hover(cell);
@@ -39,7 +50,7 @@ test('a partial value steps back in contrast and names the missing source on foc
       format={usd}
     />,
   );
-  const cell = screen.getByLabelText('$899.00 · 1 of 2 sources · shop-b not showing this');
+  const cell = screen.getByLabelText('$899 · 1 of 2 sources · shop-b not showing this');
   expect(cell).toHaveAttribute('data-state', 'partial');
   expect(cell).toHaveAttribute('data-marked', 'partial');
   expect(cell).not.toHaveTextContent('1 of 2');

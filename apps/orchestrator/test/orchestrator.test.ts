@@ -3166,6 +3166,10 @@ describe('the registry on the running orchestrator (task 11.4)', () => {
       failure: {cause: 'uninstalled'},
     });
     expect(vendors.github!.requests).toHaveLength(1);
+    // The slot says it; the press's end carries no words of the shell's (task-15.11 decision 31).
+    const final = events.at(-1) as TaskStatusUpdateEvent;
+    expect(final.status.state).toBe('failed');
+    expect(final.status.message).toBeUndefined();
   });
 });
 

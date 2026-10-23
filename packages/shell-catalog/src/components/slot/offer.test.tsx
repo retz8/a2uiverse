@@ -186,7 +186,7 @@ test('installed, its press sent: the row reads Installed with Loading…, the re
   expect(b.getByText('Loading…')).toBeInTheDocument();
   expect(b.queryByRole('button')).toHaveTextContent('Shop B');
   expect(within(rowOf(container, 'shop-a')).getByRole('button', {name: 'Install'})).toBeDisabled();
-  expect(screen.getByText('None of your apps can do this. From the Store:')).toBeInTheDocument();
+  expect(screen.getByText('From the Store:')).toBeInTheDocument();
 });
 
 test('the slot an offer became keeps the offer, Installed with Loading… on its app, until the answer lands (task-15.8 decision 2)', () => {
@@ -251,7 +251,7 @@ test('a press asking — its entry read again, its consent card open — holds e
   expect(within(rowOf(container, 'shop-a')).getByRole('button', {name: 'Install'})).toBeDisabled();
 });
 
-test('an app installed elsewhere turns its row to Show it here, a quiet Installed beside it; the other rows keep Install', () => {
+test('an app installed elsewhere turns its row to Show it here, a quiet Installed beside it, the line its second half alone (task-15.11 decision 32); the other rows keep Install', () => {
   const pressed: AppActRequest[] = [];
   const {container} = renderTree([{id: 'root', component: 'Slot', gap: GAP, offer: OFFER}], {
     onAppAct: request => pressed.push(request),
@@ -263,6 +263,8 @@ test('an app installed elsewhere turns its row to Show it here, a quiet Installe
   });
   const b = within(rowOf(container, 'shop-b'));
   expect(b.getByText('Installed')).toBeInTheDocument();
+  expect(screen.getByText('From the Store:')).toBeInTheDocument();
+  expect(screen.queryByText(/None of your apps/)).not.toBeInTheDocument();
   const show = b.getByRole('button', {name: 'Show it here'});
   expect(within(rowOf(container, 'shop-a')).getByRole('button', {name: 'Install'})).toBeEnabled();
   show.click();

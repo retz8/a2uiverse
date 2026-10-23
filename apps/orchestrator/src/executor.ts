@@ -778,7 +778,9 @@ export class OrchestratorExecutor implements AgentExecutor {
         : outcome === 'completed' || escalated
           ? 'completed'
           : 'failed';
-    bus.publish(finalStatus(ctx, state, escalated ? undefined : handleError(outcome)));
+    // A press that failed says so on its slot; the shell adds no words of its own (task-15.11
+    // decision 31).
+    bus.publish(finalStatus(ctx, state));
     void run.drained.then(() => turn.close(outcome));
   }
 
@@ -2080,10 +2082,6 @@ function clientSurfaces(metadata: Message['metadata']): Record<string, unknown> 
   return typeof surfaces === 'object' && surfaces !== null
     ? (surfaces as Record<string, unknown>)
     : {};
-}
-
-function handleError(outcome: DispatchOutcome): string | undefined {
-  return outcome === 'failed' || outcome === 'timeout' ? `dispatch ${outcome}` : undefined;
 }
 
 function syntheticTask(ctx: RequestContext): Task {

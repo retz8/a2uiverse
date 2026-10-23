@@ -31,10 +31,13 @@ function formatValue(value: unknown, format: Format | undefined): string {
 }
 
 function formatKind(value: unknown, format: Format | undefined): string {
+  // A whole amount is written without cents (task-15.11 decision 33).
   if (format?.kind === 'currency' && typeof value === 'number') {
-    return new Intl.NumberFormat(undefined, {style: 'currency', currency: format.currency}).format(
-      value,
-    );
+    return new Intl.NumberFormat(undefined, {
+      style: 'currency',
+      currency: format.currency,
+      trailingZeroDisplay: 'stripIfInteger',
+    }).format(value);
   }
   if (format?.kind === 'number' && typeof value === 'number') return value.toLocaleString();
   if (format?.kind === 'datetime') return formatInstant(value);
