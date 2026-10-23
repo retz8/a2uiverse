@@ -121,6 +121,16 @@ export class AgentsPool {
     this.#catalogs.delete(clientContextId);
   }
 
+  /**
+   * Whether the vendor surface `surfaceId` was created in a catalog the source's app, as the
+   * registry holds it now, no longer paints in — one an update dropped (task-15.11 decision 41).
+   */
+  drawnInDropped(clientContextId: string, source: string, surfaceId: string): boolean {
+    const catalogId = this.#catalogs.get(clientContextId)?.get(source)?.get(surfaceId);
+    const app = this.#registry.find(parseSourceId(source)?.appId ?? source);
+    return catalogId !== undefined && app !== undefined && !app.entitlement.includes(catalogId);
+  }
+
   /** The catalog each surface a source painted in this composition was created in, by vendor id. */
   #surfaceCatalogs(clientContextId: string, source: string): Map<string, string> {
     let bySource = this.#catalogs.get(clientContextId);

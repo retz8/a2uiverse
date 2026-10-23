@@ -12,6 +12,7 @@
  */
 import {Fragment, useEffect, useState} from 'react';
 import type {CanvasState} from '../canvasStore';
+import {useInstalledApps} from '../installedApps';
 import {turnProgress, type StepStatus} from '../turnProgress';
 
 export interface ProgressLineProps {
@@ -160,7 +161,8 @@ function useElapsed(since: number | null, running: boolean): number {
 }
 
 export function ProgressLine({state, since, compact, sourcesOnly}: ProgressLineProps) {
-  const progress = turnProgress(state);
+  const {state: holds} = useInstalledApps();
+  const progress = turnProgress(state, appId => holds.versions.get(appId));
   const planning = progress.working?.kind === 'planning';
   const elapsed = useElapsed(since, planning);
   const {error} = state;

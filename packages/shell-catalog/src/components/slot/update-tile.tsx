@@ -1,12 +1,12 @@
 import type {CSSProperties, ReactNode} from 'react';
-import {ClockIcon} from '@radix-ui/react-icons';
+import {CheckIcon, ClockIcon} from '@radix-ui/react-icons';
 import {Flex, Spinner, Text} from '@radix-ui/themes';
 import {refusalOf} from '@a2uiverse/sdk';
 import type {AppActKind, AppActState} from '../../app-act.js';
 import type {PressStatus} from '../../press-state.js';
 import type {UpdateSlotState} from '../../slot-state.js';
 import {AlertGlyph, dotStyle, LinkButton, UpdateGlyph} from '../shared/quiet-line.js';
-import {Installed, Loading} from './offer.js';
+import {Loading} from './offer.js';
 import {LOST_WORDS, UNREACHED_WORDS} from './press-lines.js';
 import {updateLineOf, type SlotUpdate, type UpdateLine} from './slot.schema.js';
 
@@ -33,6 +33,12 @@ export const UPDATE_SHORT_WORDS: Record<UpdateLine, string> = {
   unreached: 'couldn’t check for updates',
   none: 'no update available',
 };
+
+/**
+ * The short form once the host holds the app past the version the line was drawn from: the
+ * progress line's words, and the line's accessible name after the app's (task-15.11 decision 40).
+ */
+export const UPDATED_SHORT_WORDS = 'updated';
 
 /** The update tile's sentence (task-15.5 decision 6), in the shell's words, by its line. */
 export function updateSentence(app: string, update: SlotUpdate): string {
@@ -93,10 +99,12 @@ export function updateEnd(
 /**
  * The update tile (phase-15 decision 11, the design canvas's U1–U6): always one line at the quiet
  * line's size under the app's marker — the glyph, the sentence in the shell's words, a dot, then
- * its press: Update when the Store has an update, Retry when the Store could not be reached, none
- * while the Store waits on the publisher or has no update. A refused update takes the line in the
- * Store's words, with the Store's press. Without a host that takes app presses, no Update or Show it
- * here; without one that takes presses, no Retry.
+ * its press: Update when the Store has an update, Retry when the Store could not be reached, Check
+ * again while the Store waits on the publisher (task-15.11 decision 39), none when it has no
+ * update. Once updated, here or elsewhere, the line says so in its own sentence, with Show it here
+ * (task-15.11 decision 40). A refused update takes the line in the Store's words, with the Store's
+ * press. Without a host that takes app presses, no Update or Show it here; without one that takes
+ * presses, no Retry or Check again.
  */
 export function UpdateTile({
   app,
@@ -114,7 +122,8 @@ export function UpdateTile({
   onRetry?: (button: HTMLElement) => void;
 }) {
   const line = updateLineOf(update.state);
-  const label = `${app}, ${UPDATE_SHORT_WORDS[line]}`;
+  const updated = end.kind === 'updated';
+  const label = `${app}, ${updated ? UPDATED_SHORT_WORDS : UPDATE_SHORT_WORDS[line]}`;
   // One block of text beside the glyph, the press inline at its end, so a sentence that wraps in a
   // narrow slot keeps its press with it (the design canvas's U4).
   const row = (glyph: ReactNode, text: ReactNode, refused?: boolean) => (
@@ -163,8 +172,28 @@ export function UpdateTile({
         ? {words: 'Update', act: (button: HTMLElement) => onAppAct('update', button)}
         : line === 'unreached' && onRetry
           ? {words: 'Retry', act: onRetry}
-          : undefined
+          : line === 'waiting' && onRetry
+            ? {words: 'Check again', act: onRetry}
+            : undefined
       : undefined;
+  if (end.kind === 'updated') {
+    const show = !end.loading && onAppAct !== undefined;
+    return row(
+      <CheckIcon aria-hidden style={{color: 'var(--green-11)'}} />,
+      <>
+        <Text size="2" color="gray">
+          {`${app} is updated.`}
+        </Text>
+        {(end.loading || show) && <InlineDot />}
+        {end.loading && <Loading />}
+        {show && (
+          <LinkButton disabled={!enabled} onClick={button => onAppAct('show', button)}>
+            Show it here
+          </LinkButton>
+        )}
+      </>,
+    );
+  }
   const after = end.kind !== 'press' || press !== undefined;
   return row(
     <UpdateGlyph />,
@@ -178,22 +207,6 @@ export function UpdateTile({
           <Spinner size="1" />
           Updating
         </Text>
-      )}
-      {end.kind === 'updated' && (
-        <>
-          <span style={{marginRight: 8}}>
-            <Installed words="Updated" />
-          </span>
-          {end.loading ? (
-            <Loading />
-          ) : (
-            onAppAct && (
-              <LinkButton disabled={!enabled} onClick={button => onAppAct('show', button)}>
-                Show it here
-              </LinkButton>
-            )
-          )}
-        </>
       )}
       {end.kind === 'loading' && <Loading />}
       {press && (

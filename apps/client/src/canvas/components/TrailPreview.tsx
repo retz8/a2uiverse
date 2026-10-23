@@ -20,6 +20,7 @@ import {columnState} from '../composition/columnState';
 import {slotCountOf} from '../composition/slotCount';
 import {useSlotContent} from '../composition/slotContent';
 import {createBindingIndex} from '../navigation/bindingIndex';
+import {useInstalledApps} from '../installedApps';
 import {BindingIndexContext} from '../navigation/decorateCatalog';
 import {turnProgress} from '../turnProgress';
 import {ProgressLine} from './ProgressLine';
@@ -66,7 +67,8 @@ export function TrailPreview({runtime, label, top, railColumn}: TrailPreviewProp
     : undefined;
 
   // Where the canvas got to, in the progress line's words: the preview's caption and its name.
-  const progress = turnProgress(state);
+  const {state: holds} = useInstalledApps();
+  const progress = turnProgress(state, appId => holds.versions.get(appId));
   const said = [progress.working?.label, ...progress.sources.map(source => source.text)].filter(
     (text): text is string => !!text,
   );

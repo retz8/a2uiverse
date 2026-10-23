@@ -178,6 +178,20 @@ describe('createCanvasStore', () => {
     expect(store.getState().prose.size).toBe(0);
   });
 
+  it('a slot that takes the update tile takes its source’s notice with it (task-15.11 decision 42)', () => {
+    const store = createCanvasStore();
+    store.appendProse('shop-a', 'Shop A has changed and can’t show this here.');
+    store.appendProse('shop-b', 'Two cameras.');
+    store.mergeSlotStates(new Map([['shop-a', 'update' as const]]));
+    expect(store.getState().notices.map(n => n.source)).toEqual(['shop-b']);
+    // Said while the tile stands, it is kept for the slot and not shown.
+    store.appendProse('shop-a', 'Still changed.');
+    expect(store.getState().notices.map(n => n.source)).toEqual(['shop-b']);
+    expect(store.getState().prose.get('shop-a')).toBe(
+      'Shop A has changed and can’t show this here.Still changed.',
+    );
+  });
+
   it("the shell's own cue is not a source's prose", () => {
     const store = createCanvasStore();
     store.showNotice('hold on');

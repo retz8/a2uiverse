@@ -87,6 +87,7 @@ export {
   updateLineOf,
   type UpdateLine,
   UPDATE_SHORT_WORDS,
+  UPDATED_SHORT_WORDS,
   updateSlotState,
 } from './components/slot/index.js';
 export {

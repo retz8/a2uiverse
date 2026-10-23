@@ -1104,6 +1104,16 @@ export class OrchestratorExecutor implements AgentExecutor {
     const slot = state.slots.get(source)!;
     if (slot.held) return this.#draw(sink, state, source, slot.held);
     const original = slot.running;
+    // A press made on a surface drawn in a catalog its app no longer paints in — an update
+    // dropped it — is not sent again: the plan's request goes, painted afresh (task-15.11 decision
+    // 41).
+    const pressedOn = slot.failedPress && pressedSurface(slot.failedPress);
+    if (
+      pressedOn !== undefined &&
+      this.#deps.pool.drawnInDropped(sink.ctx.contextId, source, pressedOn)
+    ) {
+      delete slot.failedPress;
+    }
     const message: Message = slot.failedPress
       ? {...slot.failedPress, messageId: randomUUID()}
       : {
@@ -2096,6 +2106,16 @@ function clientSurfaces(metadata: Message['metadata']): Record<string, unknown> 
   return typeof surfaces === 'object' && surfaces !== null
     ? (surfaces as Record<string, unknown>)
     : {};
+}
+
+/** The vendor's surface a kept press was made on, from its action; none for any other message. */
+function pressedSurface(message: Message): string | undefined {
+  for (const part of message.parts) {
+    if (part.kind !== 'data') continue;
+    const action = (part.data as {action?: {surfaceId?: unknown}}).action;
+    if (typeof action?.surfaceId === 'string') return action.surfaceId;
+  }
+  return undefined;
 }
 
 function syntheticTask(ctx: RequestContext): Task {

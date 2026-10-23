@@ -5,7 +5,8 @@
  * the presses the reader made, the sign-in windows open. The one model word in it is the entity's
  * noun in each source, from the Planner's join hypothesis (task-7.15).
  */
-import {UPDATE_SHORT_WORDS, updateLineOf} from '@a2uiverse/shell-catalog';
+import {parseSourceId} from '@a2uiverse/sdk';
+import {UPDATE_SHORT_WORDS, UPDATED_SHORT_WORDS, updateLineOf} from '@a2uiverse/shell-catalog';
 import {appActOf, type CanvasState, type JoinNouns, type RosterEntry} from './canvasStore';
 import {retrying} from './composition/columnState';
 import {SHELL_SOURCE} from './composition/roster';
@@ -33,6 +34,9 @@ export interface TurnProgress {
   /** The merge, when the plan reserved one: where it stands, in the client's words (task-8.5 decision 11). */
   merge: {text: string; status: StepStatus} | null;
 }
+
+/** The version the page holds an app installed at; none when it is not installed. */
+export type InstalledVersion = (appId: string) => string | undefined;
 
 /** Something runs on the composition: the turn, or a press beside it (task-8.5 decision 10). */
 export function running(state: CanvasState): boolean {
@@ -79,14 +83,22 @@ export function signInWords(state: CanvasState, source: string): string | undefi
 /**
  * A source on the update tile in the progress line's words (task-15.8 decision 4): the line's
  * short form — needs an update, waiting on its publisher, couldn't check for updates, no update
- * available — or "updating" while its Update runs (task-15.3 decision 17). None once its resend is
- * pressed.
+ * available — "updating" while its Update runs (task-15.3 decision 17), or "updated" once the page
+ * holds the app past the version the line was drawn from (task-15.11 decision 40). None once its
+ * resend is pressed.
  */
-export function updateWords(state: CanvasState, source: string): string | undefined {
+export function updateWords(
+  state: CanvasState,
+  source: string,
+  installed?: InstalledVersion,
+): string | undefined {
   if (state.slotStates.get(source) !== 'update' || retrying(state, source)) return undefined;
   if (appActOf(state, {source})?.status === 'running') return 'updating';
   const update = state.updates.get(source);
-  return update && UPDATE_SHORT_WORDS[updateLineOf(update.state)];
+  if (!update) return undefined;
+  const held = installed?.(parseSourceId(source)?.appId ?? source);
+  if (held !== undefined && held !== update.installedVersion) return UPDATED_SHORT_WORDS;
+  return UPDATE_SHORT_WORDS[updateLineOf(update.state)];
 }
 
 /**
@@ -123,20 +135,29 @@ const pressRunning = (state: CanvasState, source: string) =>
  * otherwise nothing while a press made in its fragment runs, that press being the latest fact
  * (task-12.13 decision 38); then its sign-in, its update, or the question its fragment asks.
  */
-function waitingWords(state: CanvasState, source: string): string | undefined {
+function waitingWords(
+  state: CanvasState,
+  source: string,
+  installed?: InstalledVersion,
+): string | undefined {
   if (state.signingIn.has(source)) return signInWords(state, source);
   if (pressRunning(state, source)) return undefined;
   return (
     signInWords(state, source) ??
-    updateWords(state, source) ??
+    updateWords(state, source, installed) ??
     (state.asking.has(source) ? 'needs your answer' : undefined)
   );
 }
 
-const sourceStatus = (state: CanvasState, source: string, busy: boolean): StepStatus => {
-  if (waitingWords(state, source)) {
+const sourceStatus = (
+  state: CanvasState,
+  source: string,
+  busy: boolean,
+  installed?: InstalledVersion,
+): StepStatus => {
+  if (waitingWords(state, source, installed)) {
     if (signInWords(state, source)) return 'locked';
-    const update = updateWords(state, source);
+    const update = updateWords(state, source, installed);
     if (update !== undefined) return update === 'updating' ? 'working' : 'update';
     return 'asking';
   }
@@ -153,7 +174,7 @@ const sourceStatus = (state: CanvasState, source: string, busy: boolean): StepSt
   return busy || retried ? 'working' : 'idle';
 };
 
-export function turnProgress(state: CanvasState): TurnProgress {
+export function turnProgress(state: CanvasState, installed?: InstalledVersion): TurnProgress {
   const busy = running(state);
   const roster = state.roster;
   const vendors = roster.filter(entry => entry.source !== SHELL_SOURCE);
@@ -170,11 +191,11 @@ export function turnProgress(state: CanvasState): TurnProgress {
   return {
     working,
     sources: vendors.map(entry => {
-      const words = waitingWords(state, entry.source);
+      const words = waitingWords(state, entry.source, installed);
       return {
         source: entry.source,
         name: entry.name,
-        status: sourceStatus(state, entry.source, busy),
+        status: sourceStatus(state, entry.source, busy, installed),
         text: words ? `${entry.name} ${words}` : entry.name,
       };
     }),

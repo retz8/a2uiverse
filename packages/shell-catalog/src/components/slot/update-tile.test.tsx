@@ -76,7 +76,7 @@ test.each([
     WAITING,
     'waiting',
     'Shop B has changed, and the Store is waiting on its publisher, northlight.',
-    undefined,
+    'Check again',
   ],
   [UNREACHED, 'unreached', 'Shop B has changed, and the Store couldn’t be reached.', 'Retry'],
   [NONE, 'none', 'Shop B has changed, and the Store has no update for it.', undefined],
@@ -155,6 +155,22 @@ test('the Store unreached: Retry is the slot’s retry', () => {
   expect(operations).toEqual([{kind: 'retry', sources: ['shop-b']}]);
 });
 
+test('the Store waiting on the publisher: Check again is the slot’s retry, judged afresh (task-15.11 decision 39)', () => {
+  const operations: unknown[] = [];
+  render(withHost(tile(WAITING, {onPress: (operation: unknown) => operations.push(operation)})));
+  screen.getByRole('button', {name: 'Check again'}).click();
+  expect(operations).toEqual([{kind: 'retry', sources: ['shop-b']}]);
+});
+
+test('Check again pressed: Loading… in its place, the line as it was', () => {
+  render(withHost(tile(WAITING), {presses: [retry('sent')]}));
+  expect(
+    screen.getByText('Shop B has changed, and the Store is waiting on its publisher, northlight.'),
+  ).toBeInTheDocument();
+  expect(screen.getByText('Loading…')).toBeInTheDocument();
+  expect(screen.queryByRole('button')).not.toBeInTheDocument();
+});
+
 test('updating: the press reads Updating, the line as it was', () => {
   render(
     withHost(tile(NEEDS), {
@@ -197,14 +213,15 @@ test('Show it here draws disabled while the app is held elsewhere', () => {
   expect(screen.getByRole('button', {name: 'Show it here'})).toBeDisabled();
 });
 
-test('updated, its request sent again: Updated with Loading…, the line as it was', () => {
+test('updated, its request sent again: the line says it is updated, with Loading… (task-15.11 decision 40)', () => {
   render(
     withHost(tile(NEEDS), {act: acts(undefined, {'shop-b': '2.0.0'}), presses: [retry('sent')]}),
   );
-  expect(screen.getByText('Shop B needs an update to show this.')).toBeInTheDocument();
-  expect(screen.getByText('Updated')).toBeInTheDocument();
+  expect(screen.getByText('Shop B is updated.')).toBeInTheDocument();
+  expect(screen.queryByText('Shop B needs an update to show this.')).not.toBeInTheDocument();
   expect(screen.getByText('Loading…')).toBeInTheDocument();
   expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  expect(screen.getByRole('group')).toHaveAttribute('aria-label', 'Shop B, updated');
 });
 
 test('the slot keeps the update line through its pending repaint, until the answer lands (task-15.8 decision 2)', () => {
@@ -224,12 +241,11 @@ test('the slot keeps the update line through its pending repaint, until the answ
     'data-slot-state',
     'pending',
   );
-  expect(screen.getByText('Shop B needs an update to show this.')).toBeInTheDocument();
-  expect(screen.getByText('Updated')).toBeInTheDocument();
+  expect(screen.getByText('Shop B is updated.')).toBeInTheDocument();
   expect(screen.getByText('Loading…')).toBeInTheDocument();
   rerender(pending(<em>Shop B’s answer</em>));
   expect(screen.getByText('Shop B’s answer')).toBeInTheDocument();
-  expect(screen.queryByText('Shop B needs an update to show this.')).not.toBeInTheDocument();
+  expect(screen.queryByText('Shop B is updated.')).not.toBeInTheDocument();
 });
 
 test('the Store unreached, Retry pressed: Loading… in Retry’s place', () => {
@@ -238,7 +254,7 @@ test('the Store unreached, Retry pressed: Loading… in Retry’s place', () => 
     screen.getByText('Shop B has changed, and the Store couldn’t be reached.'),
   ).toBeInTheDocument();
   expect(screen.getByText('Loading…')).toBeInTheDocument();
-  expect(screen.queryByText('Updated')).not.toBeInTheDocument();
+  expect(screen.queryByText('Shop B is updated.')).not.toBeInTheDocument();
 });
 
 test('a resend that never reached, or whose stream broke, says so on the line', () => {
@@ -250,7 +266,7 @@ test('a resend that never reached, or whose stream broke, says so on the line', 
   expect(within(screen.getByRole('group')).getByText(LOST_WORDS)).toBeInTheDocument();
 });
 
-test('an update landed from another slot turns the line’s press to Show it here, Updated beside it', () => {
+test('an update landed from another slot turns the line to say so, with Show it here (task-15.11 decision 40)', () => {
   const pressed: AppActRequest[] = [];
   renderTree(
     [{id: 'root', component: 'Slot', source: 'shop-b', state: 'update', update: WAITING}],
@@ -263,7 +279,8 @@ test('an update landed from another slot turns the line’s press to Show it her
       ),
     },
   );
-  expect(screen.getByText('Updated')).toBeInTheDocument();
+  expect(screen.getByText(/is updated\.$/)).toBeInTheDocument();
+  expect(screen.queryByText(/waiting on its publisher/)).not.toBeInTheDocument();
   const show = screen.getByRole('button', {name: 'Show it here'});
   show.click();
   expect(pressed).toEqual([
@@ -319,6 +336,9 @@ test('the line’s presses draw disabled where no press can be made', () => {
   const {unmount} = render(withHost(tile(NEEDS), {enabled: false}));
   expect(screen.getByRole('button', {name: 'Update'})).toBeDisabled();
   unmount();
-  render(withHost(tile(UNREACHED), {enabled: false}));
+  const second = render(withHost(tile(UNREACHED), {enabled: false}));
   expect(screen.getByRole('button', {name: 'Retry'})).toBeDisabled();
+  second.unmount();
+  render(withHost(tile(WAITING), {enabled: false}));
+  expect(screen.getByRole('button', {name: 'Check again'})).toBeDisabled();
 });

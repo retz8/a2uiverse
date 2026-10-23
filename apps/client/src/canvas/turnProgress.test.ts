@@ -585,6 +585,21 @@ describe('the update tile (task-15.3 decision 17, task-15.8 decision 4)', () => 
     expect(shopB(store)).toMatchObject({status: 'working', text: 'Shop B'});
   });
 
+  it('updated elsewhere, the page holding the app past the line’s version: Shop B updated (task-15.11 decision 40)', () => {
+    const store = onUpdate({
+      state: 'ahead-of-store',
+      installedVersion: '1.0.0',
+      publishedVersion: '1.0.0',
+      publisher: 'northlight',
+    });
+    const step = (versions: Record<string, string>) =>
+      turnProgress(store.getState(), appId => versions[appId]).sources.find(
+        entry => entry.source === 'shop-b',
+      )!;
+    expect(step({'shop-b': '1.0.0'}).text).toBe('Shop B waiting on its publisher');
+    expect(step({'shop-b': '2.0.0'})).toMatchObject({status: 'update', text: 'Shop B updated'});
+  });
+
   it('a press asking — the entry read again, the consent card open — leaves the step as it was', () => {
     const store = onUpdate();
     store.setAppAct({source: 'shop-b'}, {appId: 'shop-b', status: 'asking'});

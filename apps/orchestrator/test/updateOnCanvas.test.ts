@@ -375,6 +375,9 @@ describe('the update check before the call (task-15.5 decisions 1, 2, 5, 6, 8, 1
     expect(lastSlot(pressed, 'shop')).toMatchObject({state: 'update'});
     expect(vendors.shop!.requests).toHaveLength(1);
 
+    // The update keeps the catalog the pressed surface was drawn in.
+    move(vendors.shop!, [FAKE_CATALOG_ID, CAT_2]);
+    await publish('shop', [FAKE_CATALOG_ID, CAT_2], ['0.0.0', '1.0.0']);
     await orchestrator.registry.installFromMarketplace('shop');
     await collect(client, retry('shop', canvas));
     expect(vendors.shop!.requests).toHaveLength(2);
@@ -384,6 +387,29 @@ describe('the update check before the call (task-15.5 decisions 1, 2, 5, 6, 8, 1
         data: expect.objectContaining({action: expect.anything()}),
       }),
     ]);
+  });
+
+  test('an update that dropped the catalog a kept press’s surface was drawn in: the Retry sends the plan’s request, painted afresh (task-15.11 decision 41)', async () => {
+    const {client, orchestrator, painting, publish} = await boot({
+      apps: {shop: {}},
+      plan: shopOnly,
+    });
+    const canvas = contextOf(await collect(client, utterance('camera prices')));
+
+    move(vendors.shop!, [CAT_2]);
+    painting.shop!.catalog = CAT_2;
+    await publish('shop', [CAT_2], ['0.0.0', '1.0.0']);
+    await orchestrator.registry.refreshCards();
+    await collect(client, action('shop', canvas));
+
+    await orchestrator.registry.installFromMarketplace('shop');
+    const events = await collect(client, retry('shop', canvas));
+    expect(vendors.shop!.requests).toHaveLength(2);
+    // The plan's request, as the turn first sent it.
+    expect(vendors.shop!.requests[1]!.message.parts).toEqual(
+      vendors.shop!.requests[0]!.message.parts,
+    );
+    expect(JSON.stringify(events)).toContain(CAT_2);
   });
 });
 

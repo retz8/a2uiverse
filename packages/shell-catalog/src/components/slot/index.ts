@@ -25,7 +25,7 @@ export {
   updateLineOf,
   type UpdateLine,
 } from './slot.schema.js';
-export {UPDATE_SHORT_WORDS, updateSlotState} from './update-tile.js';
+export {UPDATE_SHORT_WORDS, UPDATED_SHORT_WORDS, updateSlotState} from './update-tile.js';
 export {
   collapsedLines,
   landedLines,

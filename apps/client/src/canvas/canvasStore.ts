@@ -363,7 +363,14 @@ export function createCanvasStore(): CanvasStore {
         if (slotState === null) next.delete(source);
         else next.set(source, slotState);
       }
-      set({slotStates: next});
+      // A slot on the update tile says in the shell's words why the app showed nothing: what the
+      // app said of it leaves the notice stack (task-15.11 decision 42).
+      const updating = (notice: Notice) =>
+        notice.source !== null && next.get(notice.source) === 'update';
+      const notices = state.notices.some(updating)
+        ? state.notices.filter(notice => !updating(notice))
+        : state.notices;
+      set({slotStates: next, notices});
     },
     mergeAuthority: causes => {
       if (causes.size === 0) return;
@@ -468,6 +475,8 @@ export function createCanvasStore(): CanvasStore {
         const prose = new Map(state.prose);
         prose.set(source, (prose.get(source) ?? '') + text);
         state = {...state, prose};
+        // A source on the update tile adds nothing to the notice stack (task-15.11 decision 42).
+        if (state.slotStates.get(source) === 'update') return set({});
       }
       set({
         notices: existing
