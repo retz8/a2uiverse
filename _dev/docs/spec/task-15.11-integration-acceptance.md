@@ -191,6 +191,30 @@ This spec is the record. Each on-the-spot fix is added as a numbered decision as
 
 The write-up has four parts: before the sitting, the sitting case by case, after it, and the findings. Findings for later phases go into their phase's notes in `_dev/TODO.md` at the write-up. Every amendment to the phase spec, SPEC.md and earlier sub-task specs that 15.11 calls for is made by 15.12. Decision 5's are among them: phase decision 11, task 15.5's decision 4, SPEC §10's update tile, and §14's update tile row.
 
+### 23. The consent card keeps its press in place
+
+While the consent card over a slot is open, the press it floats from stays where it is on screen: a paint that moves it, the merged view landing above, is scrolled back by the same distance, so the card's presses stay under the reader's pointer. Replaced: the card following its slot down the canvas as the merged view landed, a press on Install landing on empty space.
+
+### 24. Calendar's agenda answer lists each event once, with its whole time
+
+Calendar's agenda answer lists each event once, under its most pressing section, its other reasons in its note ("Unanswered invitation • Overlaps Budget sync"). Each event's data carries its start and end as full date-times beside the time the row shows, and no event's id is shown. The deterministic answer sits on 2026-09-19, the day of the roster's other deterministic apps; the live example and Calendar's brand guidance say the same. Replaced: the design review listed under both "Unanswered invitations" and "Double-booked today", bare times of day the merge kept in a section of their own, and "ID: …" leading each note.
+
+### 25. The collapsed merge's line in plain words
+
+"Only Shop A answered, so there's nothing to combine.", and "No app answered, so there's nothing to combine."; a home source unnamed is "an app", never "the home source". Replaced: "The merged view needs at least two sources, and only Shop A answered." (task-8.7 decision 24).
+
+### 26. The apps' Store texts speak to the person
+
+Calendar's, GitHub's, Gmail's, Linear's and CircleCI's descriptions and skill texts say "your" and "you": "Reads and acts on your Google Calendar…", "…once you confirm". Replaced: "the user's", "for them", "on their behalf", read on the offer, the consent card and the Store page.
+
+### 27. A sign-in at first paint is journaled
+
+A slot that takes its sign-in at first paint is journaled as a dispatch failed needing sign-in, its agent not called and the authority it asks beside it, as the pool journals a dispatch it stops. Replaced: no record of the slot at all.
+
+### 28. A request that got no answer says so
+
+An install or update whose request got no answer, and that reading back finds not done, says "That didn't go through, so nothing was installed." with Try again. Replaced: "The Store can't be reached right now, so nothing was installed." for a request the tunnel dropped (task-14.11 decision 40's read-back).
+
 ## Write-up
 
 ### Before the sitting
@@ -205,3 +229,15 @@ The write-up has four parts: before the sitting, the sitting case by case, after
 - The Python suites: the kit 350, GitHub 144, Gmail 131, Calendar 123, CircleCI 82, Linear 77, Shop A 98, Shop B 99.
 
 **The marketplace stopped alone** (decision 11). Under the platform's `pnpm dev`, the marketplace's process stopped took the client and the orchestrator down with it, turbo ending the run on the marketplace's exit. The marketplace runs in its own terminal for the sitting.
+
+### The sitting, case by case
+
+**The starting state.** The marketplace's state wiped, its embedding model kept; the orchestrator on a fresh state folder, `.state/sitting-15.11/orchestrator`, holding the embedding model's cache; the marketplace in its own terminal; the launch publishing all seven apps as `a2uiverse-apps` and installing them by id but Shop B and Calendar. An orchestrator started by hand on port 10001 was stopped first. The client's dev server stalled in the tunnel, its module requests five to ten seconds each, so the client ran as a built preview on 5173, the agents and the orchestrator restarted with `--no-install`.
+
+**Case 1, the loop on Shop B, stopped at the key.** "Compare camera prices at Shop A and Shop B." planned in 28 s, its Store search for "Shop B" and the gap offering Shop B with a request; the merge collapsed over Shop A alone; Shop B offered with Install and "More in the Store"; the consent card over the slot. The first install's request was dropped in the tunnel, the row reading "The Store can't be reached right now, so nothing was installed." after 60 s (decision 28); Try again installed Shop B in 2 s with no second card, and the slot took the key connect. The key is the reader's to paste.
+
+**Case 2, the sign-in app on Calendar.** "What's on my calendar today, and what needs my attention in Gmail and GitHub?" planned in 33 s, its Store search for "calendar" and the gap offering Calendar; Gmail and GitHub signed in from their tiles through their windows; the merged view a Timeline over them. Install through the consent card, the merged view landing above it as it opened (decision 23); Calendar's sign-in tile and its window; the slot filling; "Joined Google Calendar, Gmail and GitHub", Calendar in a section of its own (decision 24). The journal: the search, the gap and its request, the install by the page, the dispatch stopped for sign-in naming "See your calendar", the sign-in, the resend and the merge taking Calendar in; the first paint's sign-ins unrecorded (decision 27). Fixed on the spot: decisions 23 to 28.
+
+### Findings
+
+- A plan that searches the Store takes about 30 s: 28 s for the camera comparison, 33 s for the day's agenda.
