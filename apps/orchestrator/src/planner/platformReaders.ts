@@ -7,13 +7,14 @@
 import {updateWords} from '@a2uiverse/sdk';
 import {asksSignIn, Sources} from '../accounts/accounts.js';
 import type {HeldComposition} from '../composition/compositions.js';
-import type {CompositionState, SlotState} from '../composition/state.js';
+import type {CompositionState, SlotEntry, SlotState} from '../composition/state.js';
 import type {Registry} from '../registry/registry.js';
 import type {HeldUpdates} from '../registry/updates.js';
 import {SHELL_SOURCE_ID} from '../registry/types.js';
 import type {
   AppStanding,
   CompositionApp,
+  CompositionMergedView,
   CompositionView,
   InstalledApp,
   PlatformReaders,
@@ -100,25 +101,35 @@ export function checkedAgo(at: number, now: number): string {
 }
 
 /**
- * The canvas a question was asked from, in the person's words (task-15.11 decision 29): what was
- * asked, each app and how its answer stands — an account's by its name when it is not the app's —
- * the merged view and why it does not show, and what no installed app does yet. Never a
- * partition's contents.
+ * The canvas a question was asked from, in the person's words (task-15.11 decisions 29, 30): what
+ * was asked; each app — an account's by its name when it is not the app's — what it was asked for,
+ * how its answer stands and what to do about one that isn't there; the merged view, why it does not
+ * show, what it puts together, its columns and its order; and what no installed app does yet. Never
+ * a partition's contents.
  */
 export function compositionView(state: CompositionState, sources?: Sources): CompositionView {
   const apps = [...state.slots.values()]
     .filter(({plan}) => plan.source !== SHELL_SOURCE_ID)
-    .map(({plan, state: slotState}): CompositionApp => {
+    .map((entry): CompositionApp => {
+      const {plan} = entry;
       const label = sources?.label(plan.source);
+      const account = label !== undefined && label !== plan.displayName ? label : undefined;
+      const toDo = toDoOf(entry, plan.displayName, account);
       return {
         app: plan.displayName,
-        ...(label !== undefined && label !== plan.displayName ? {account: label} : {}),
-        state: standing(slotState, state.arrived.has(plan.source)),
+        ...(account !== undefined ? {account} : {}),
+        ...(plan.request ? {askedFor: plan.request} : {}),
+        state: standing(entry.state, state.arrived.has(plan.source)),
+        ...(toDo !== undefined ? {toDo} : {}),
       };
     });
   for (const [, choice] of state.choices) {
     if (choice.chosen !== undefined) continue;
-    apps.push({app: choice.displayName, state: 'waiting for you to choose an account'});
+    apps.push({
+      app: choice.displayName,
+      state: 'waiting for you to choose an account',
+      toDo: `Choose which ${choice.displayName} account to use, in its slot`,
+    });
   }
   // A gap an install filled reads as its app (task-15.4 decision 11); the installed line, as done.
   const nothingInstalledFor = [...state.gaps.values()]
@@ -145,12 +156,78 @@ function standing(slotState: SlotState, arrived: boolean): AppStanding {
   }
 }
 
-function mergedViewOf(state: CompositionState): NonNullable<CompositionView['mergedView']> {
+/** What the person can do about an answer that isn't there, in their words. */
+function toDoOf(entry: SlotEntry, app: string, account: string | undefined): string | undefined {
+  const named = account === undefined ? app : `${app} (${account})`;
+  switch (entry.state) {
+    case 'authority':
+      if (entry.authority?.connect) return `Connect ${named} from its slot`;
+      if (entry.authority?.more) return `Allow ${named} more access from its slot`;
+      return `Sign in to ${named} from its slot`;
+    case 'update':
+      switch (entry.update?.line) {
+        case 'update':
+          return `Update ${app} from its slot`;
+        case 'waiting':
+          return `Nothing yet: ${app}’s publisher hasn’t put the update in the Store`;
+        case 'unreached':
+          return `Press Retry on its slot once the Store can be reached`;
+        default:
+          return `Nothing: the Store has no update for ${app}`;
+      }
+    case 'failed':
+      return 'Press Retry on its slot';
+    default:
+      return undefined;
+  }
+}
+
+/** What the merged view puts together, as the progress line says it (task-8.7 decision 30). */
+function joinsOf(state: CompositionState): string | undefined {
+  const join = state.slots.get(SHELL_SOURCE_ID)?.plan.join;
+  const vendors = [...state.slots.values()]
+    .filter(({plan}) => plan.source !== SHELL_SOURCE_ID)
+    .map(({plan}) => plan);
+  if (vendors.length === 0) return undefined;
+  const name = (plan: (typeof vendors)[number]) =>
+    plan.account ? `${plan.displayName} (${plan.account})` : plan.displayName;
+  if (!join) return listed(vendors.map(name));
+  if (join.home === null && join.entity)
+    return `${join.entity} across ${listed(vendors.map(name))}`;
+  const phrase = (plan: (typeof vendors)[number]) => {
+    const noun = join.nouns[plan.source];
+    if (!noun) return name(plan);
+    return plan.account
+      ? `${plan.displayName} ${noun} (${plan.account})`
+      : `${plan.displayName} ${noun}`;
+  };
+  const home = vendors.find(plan => plan.source === join.home);
+  if (!home) return listed(vendors.map(phrase));
+  const others = vendors.filter(plan => plan !== home).map(phrase);
+  return others.length > 0 ? `${phrase(home)} to ${listed(others)}` : phrase(home);
+}
+
+function mergedViewOf(state: CompositionState): CompositionMergedView {
+  const plan = state.slots.get(SHELL_SOURCE_ID)?.plan;
+  const joins = joinsOf(state);
+  const made = {
+    ...(joins !== undefined ? {joins} : {}),
+    ...(plan?.columns?.length ? {columns: [...plan.columns]} : {}),
+  };
   const {mergedView} = state;
-  if (!mergedView) return {state: 'being made'};
+  if (!mergedView) return {state: 'being made', ...made};
   switch (mergedView.outcome) {
-    case 'synthesized':
-      return {state: 'showing'};
+    case 'synthesized': {
+      const sort = state.synthesis?.payload.sorts[0];
+      const by = sort?.options.find(option => option.key === sort.key)?.label;
+      return {
+        state: 'showing',
+        ...made,
+        ...(sort && by
+          ? {sortedBy: {by, order: sort.direction === 'asc' ? 'ascending' : 'descending'}}
+          : {}),
+      };
+    }
     case 'skipped': {
       // Fewer than two answered: who did, never a count of sources.
       const answered = [...state.slots.values()]
@@ -159,12 +236,17 @@ function mergedViewOf(state: CompositionState): NonNullable<CompositionView['mer
       return {
         state: 'not shown',
         why: answered.length === 0 ? 'no app answered' : `only ${listed(answered)} answered`,
+        ...made,
       };
     }
     case 'declined':
-      return {state: 'not shown', why: mergedView.reason ?? 'there was nothing to put together'};
+      return {
+        state: 'not shown',
+        why: mergedView.reason ?? 'there was nothing to put together',
+        ...made,
+      };
     default:
-      return {state: 'not shown', why: 'it couldn’t be made'};
+      return {state: 'not shown', why: 'it couldn’t be made', ...made};
   }
 }
 

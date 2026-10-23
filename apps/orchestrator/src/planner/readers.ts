@@ -49,15 +49,32 @@ export interface CompositionApp {
   app: string;
   /** The account's name, when it is not the app's own (task-12.6 decision 9). */
   account?: string;
+  /** What the plan asked the app for, in the Planner's own words (task-15.11 decision 30). */
+  askedFor?: string;
   state: AppStanding;
+  /** What the person can do about an answer that isn't there yet (task-15.11 decision 30). */
+  toDo?: string;
+}
+
+/**
+ * The merged view as the screen doesn't say it (task-15.11 decision 30): whether it shows and why
+ * not, what it puts together — the progress line's words — the columns it was planned with, and
+ * the order it was made in.
+ */
+export interface CompositionMergedView {
+  state: 'being made' | 'showing' | 'not shown';
+  why?: string;
+  joins?: string;
+  columns?: string[];
+  sortedBy?: {by: string; order: 'ascending' | 'descending'};
 }
 
 export interface CompositionView {
   /** What was asked on the canvas. */
   question: string;
   apps: CompositionApp[];
-  /** Present when the plan made room for a merged view: whether it shows and, when not, why. */
-  mergedView?: {state: 'being made' | 'showing' | 'not shown'; why?: string};
+  /** Present when the plan made room for a merged view. */
+  mergedView?: CompositionMergedView;
   /**
    * What was asked for that no installed app does yet; one an install filled reads as its app
    * (task-15.4 decision 11).
@@ -129,7 +146,7 @@ export function readerTools(
     }),
     this_canvas: tool({
       description:
-        'The canvas this question was asked from — the answer opens a canvas of its own — in the person’s words: what was asked on it, each app on it — an account’s by its name — and how its answer stands, whether the merged view shows and why not, and what was asked for that no installed app does yet. Never an app’s data. Call it to answer what is on the canvas the user asked from, or which account holds what is on it.',
+        'The canvas this question was asked from — the answer opens a canvas of its own — in the person’s words: what was asked on it; each app on it — an account’s by its name — what it was asked for, how its answer stands and what to do about one that isn’t there; the merged view — whether it shows and why not, what it puts together, its columns and the order it was made in; and what was asked for that no installed app does yet. Never an app’s data. Call it to answer what is on the canvas the user asked from, where its parts come from, or which account holds what is on it.',
       inputSchema: NO_INPUT,
       execute: async () =>
         readers.thisComposition(askedFrom) ?? {empty: true, note: 'Nothing is on the canvas yet.'},

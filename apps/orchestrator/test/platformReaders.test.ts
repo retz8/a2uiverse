@@ -208,20 +208,81 @@ describe('this composition', () => {
     expect(compositionView(state)).toEqual({
       question: 'what needs my attention today?',
       apps: [
-        {app: 'GitHub', state: 'answered'},
-        {app: 'Gmail', state: 'couldn’t answer'},
+        {app: 'GitHub', askedFor: 'PRs', state: 'answered'},
+        {app: 'Gmail', askedFor: 'mail', state: 'couldn’t answer', toDo: 'Press Retry on its slot'},
       ],
-      mergedView: {state: 'being made'},
+      mergedView: {state: 'being made', joins: 'GitHub and Gmail'},
       nothingInstalledFor: ['flight booking'],
     });
-    for (const [slotState, said] of [
-      ['collapsed', 'answered with nothing to show'],
-      ['authority', 'waiting for you to sign in'],
-      ['update', 'needs an update'],
-    ] as const) {
-      state.slots.get('gmail')!.state = slotState;
-      expect(compositionView(state).apps[1]!.state).toBe(said);
-    }
+    const gmail = state.slots.get('gmail')!;
+    gmail.state = 'collapsed';
+    expect(compositionView(state).apps[1]).toEqual({
+      app: 'Gmail',
+      askedFor: 'mail',
+      state: 'answered with nothing to show',
+    });
+    gmail.state = 'authority';
+    gmail.authority = {cause: 'signIn'};
+    expect(compositionView(state).apps[1]).toMatchObject({
+      state: 'waiting for you to sign in',
+      toDo: 'Sign in to Gmail from its slot',
+    });
+    gmail.authority = {cause: 'signIn', connect: true};
+    expect(compositionView(state).apps[1]!.toDo).toBe('Connect Gmail from its slot');
+    gmail.state = 'update';
+    gmail.update = {
+      case: 'catalogs',
+      state: {appId: 'gmail', installedVersion: '1.0.0', state: 'unknown'},
+      line: 'update',
+    };
+    expect(compositionView(state).apps[1]).toMatchObject({
+      state: 'needs an update',
+      toDo: 'Update Gmail from its slot',
+    });
+  });
+
+  test('says what the merged view puts together, its columns and the order it was made in (task-15.11 decision 30)', () => {
+    const state = compositionFrom(
+      {
+        ...layout,
+        dispatch: layout.dispatch.map(entry =>
+          'source' in entry && entry.source === 'shell'
+            ? {
+                ...entry,
+                columns: ['Source', 'When', 'What'],
+                join: {home: null, entity: 'items', nouns: {github: 'PRs', gmail: 'threads'}},
+              }
+            : entry,
+        ),
+      },
+      new Sources(registry),
+      'x',
+    );
+    state.mergedView = {outcome: 'synthesized'};
+    state.synthesis = {
+      payload: {
+        dataModel: {},
+        sorts: [
+          {
+            path: '/rows',
+            options: [{key: '/when', label: 'Time'}],
+            key: '/when',
+            direction: 'desc',
+          },
+        ],
+      },
+    } as unknown as NonNullable<typeof state.synthesis>;
+    expect(compositionView(state).mergedView).toEqual({
+      state: 'showing',
+      joins: 'items across GitHub and Gmail',
+      columns: ['Source', 'When', 'What'],
+      sortedBy: {by: 'Time', order: 'descending'},
+    });
+    state.slots.get('shell')!.plan.join = {
+      home: 'github',
+      nouns: {github: 'PRs', gmail: 'threads'},
+    };
+    expect(compositionView(state).mergedView?.joins).toBe('GitHub PRs to Gmail threads');
   });
 
   test('a gap an install filled is no longer a gap: it reads as its slot (task-15.4 decision 11)', () => {
@@ -236,20 +297,26 @@ describe('this composition', () => {
     expect(compositionView(state).mergedView).toEqual({
       state: 'not shown',
       why: 'nothing joinable',
+      joins: 'GitHub and Gmail',
     });
     state.mergedView = {outcome: 'skipped', reason: '1 source(s) arrived'};
     state.arrived.add('github');
     expect(compositionView(state).mergedView).toEqual({
       state: 'not shown',
       why: 'only GitHub answered',
+      joins: 'GitHub and Gmail',
     });
     state.mergedView = {outcome: 'failed'};
     expect(compositionView(state).mergedView).toEqual({
       state: 'not shown',
       why: 'it couldn’t be made',
+      joins: 'GitHub and Gmail',
     });
     state.mergedView = {outcome: 'synthesized'};
-    expect(compositionView(state).mergedView).toEqual({state: 'showing'});
+    expect(compositionView(state).mergedView).toEqual({
+      state: 'showing',
+      joins: 'GitHub and Gmail',
+    });
     const plain = compositionFrom(
       {...layout, dispatch: [layout.dispatch[0]!]},
       new Sources(registry),
@@ -485,9 +552,13 @@ describe('accounts (task-12.6 decision 9)', () => {
   test('this canvas gives an account’s app its name, and an account choice still waiting its own state', () => {
     const state = compositionFrom(asking, sources, 'x');
     expect(compositionView(state, sources).apps).toEqual([
-      {app: 'Gmail', account: 'bob@example.com', state: 'still loading'},
-      {app: 'Calendar', state: 'still loading'},
-      {app: 'Gmail', state: 'waiting for you to choose an account'},
+      {app: 'Gmail', account: 'bob@example.com', askedFor: 'mail', state: 'still loading'},
+      {app: 'Calendar', askedFor: 'meetings', state: 'still loading'},
+      {
+        app: 'Gmail',
+        state: 'waiting for you to choose an account',
+        toDo: 'Choose which Gmail account to use, in its slot',
+      },
     ]);
   });
 

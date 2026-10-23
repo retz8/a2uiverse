@@ -379,9 +379,10 @@ export const INSTALLED_APPS_ANSWER: LayoutExample = {
 };
 
 /**
- * What is on the canvas a question was asked from (task-15.11 decision 29): the reader's facts in
- * the person's words, and the canvas named by what was asked on it — the title and heading too —
- * since the answer opens a canvas of its own; never "this canvas".
+ * What is on the canvas a question was asked from (task-15.11 decisions 29, 30): what its screen
+ * doesn't say — what each app was asked for, what the merged view will put together, what isn't
+ * right and what to do — in the person's words, never restating what shows; the canvas named by
+ * what was asked on it, the title and heading too, since the answer opens a canvas of its own.
  */
 export const THIS_CANVAS_ANSWER: LayoutExample = {
   name: 'this-canvas-answer',
@@ -393,10 +394,27 @@ export const THIS_CANVAS_ANSWER: LayoutExample = {
       result: {
         question: 'What needs my attention today?',
         apps: [
-          {app: 'GitHub', state: 'answered'},
-          {app: 'Gmail', account: 'Work', state: 'waiting for you to sign in'},
+          {
+            app: 'GitHub',
+            askedFor:
+              'Show the pull requests waiting on my review, with when each was last updated.',
+            state: 'answered',
+          },
+          {
+            app: 'Gmail',
+            account: 'Work',
+            askedFor:
+              'Show unread mail that needs a reply, with the full date and time it arrived.',
+            state: 'waiting for you to sign in',
+            toDo: 'Sign in to Gmail (Work) from its slot',
+          },
         ],
-        mergedView: {state: 'not shown', why: 'only GitHub answered'},
+        mergedView: {
+          state: 'not shown',
+          why: 'only GitHub answered',
+          joins: 'GitHub and Gmail (Work)',
+          columns: ['Source', 'When', 'What'],
+        },
         nothingInstalledFor: [],
       },
     },
@@ -417,22 +435,32 @@ export const THIS_CANVAS_ANSWER: LayoutExample = {
           id: 'summary',
           component: 'Text',
           variant: 'body',
-          text: 'GitHub answered. Gmail is waiting for you to sign in to your Work account, so the merged view isn’t showing yet.',
+          text: 'Gmail is waiting for you to sign in to your Work account — sign in from its slot, and the merged view will put GitHub and Gmail together in one list by time.',
         },
         {
           id: 'facts',
           component: 'DataList',
           orientation: 'horizontal',
-          children: ['asked', 'github', 'gmail', 'merged'],
+          children: ['github', 'gmail', 'merged'],
         },
-        {id: 'asked', component: 'DataListItem', label: 'You asked', child: 'asked-text'},
-        {id: 'asked-text', component: 'Text', text: 'What needs my attention today?'},
         {id: 'github', component: 'DataListItem', label: 'GitHub', child: 'github-text'},
-        {id: 'github-text', component: 'Text', text: 'Answered'},
+        {
+          id: 'github-text',
+          component: 'Text',
+          text: 'Asked for the pull requests waiting on your review',
+        },
         {id: 'gmail', component: 'DataListItem', label: 'Gmail (Work)', child: 'gmail-text'},
-        {id: 'gmail-text', component: 'Text', text: 'Waiting for you to sign in'},
+        {
+          id: 'gmail-text',
+          component: 'Text',
+          text: 'Asked for unread mail that needs a reply — sign in from its slot',
+        },
         {id: 'merged', component: 'DataListItem', label: 'Merged view', child: 'merged-text'},
-        {id: 'merged-text', component: 'Text', text: 'Not showing: only GitHub answered'},
+        {
+          id: 'merged-text',
+          component: 'Text',
+          text: 'GitHub and Gmail together: source, when and what, once Gmail answers',
+        },
       ],
     },
     dataModel: {},
