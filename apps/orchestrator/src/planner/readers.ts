@@ -15,7 +15,8 @@ export interface InstalledApp {
   /** The card's own name and description: this run's card, the installed one when the agent is down. */
   name?: string;
   description?: string;
-  skills: {name: string; description: string}[];
+  /** Each skill with its card's example questions, when it has some (task-15.11 decision 37). */
+  skills: {name: string; description: string; examples?: string[]}[];
   /** The catalogs it paints in: the ids handed at its install, or the basic catalog. */
   catalogs: string[];
   /** Whether its card was fetched at startup: an unreachable app is unroutable this run. */
@@ -140,7 +141,7 @@ export function readerTools(
       : {}),
     installed_apps: tool({
       description:
-        'The apps installed on this platform: each one’s id, display name, its card’s name, description and skills, the catalogs it paints in, whether it was reachable at boot, whether it asks the user to sign in, the accounts signed in to it — each its source id and its label; none listed means not signed in — and whether it has an update: its state in the words the App Library shows, with how long ago the last check ran. Call it to answer which apps there are, what an installed app can do, which accounts an app has, or whether anything is out of date. The platform itself is not an app.',
+        'The apps installed on this platform: each one’s id, display name, its card’s name, description and skills with their example questions, the catalogs it paints in, whether it was reachable at boot, whether it asks the user to sign in, the accounts signed in to it — each its source id and its label; none listed means not signed in — and whether it has an update: its state in the words the App Library shows, with how long ago the last check ran. Call it to answer which apps there are, what an installed app can do, which accounts an app has, or whether anything is out of date. The platform itself is not an app.',
       inputSchema: NO_INPUT,
       execute: async () => readers.installedApps(),
     }),

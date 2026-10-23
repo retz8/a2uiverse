@@ -74,7 +74,11 @@ export function installedApps(
       id: record.id,
       displayName: record.displayName,
       ...(card ? {name: card.name, description: card.description} : {}),
-      skills: (card?.skills ?? []).map(({name, description}) => ({name, description})),
+      skills: (card?.skills ?? []).map(({name, description, examples}) => ({
+        name,
+        description,
+        ...(examples?.length ? {examples} : {}),
+      })),
       catalogs: record.catalogs.length > 0 ? [...record.catalogs] : [BASIC_CATALOG_WORDS],
       reachable: Boolean(fetched),
       signIn: asksSignIn(card),

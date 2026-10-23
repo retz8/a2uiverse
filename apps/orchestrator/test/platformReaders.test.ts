@@ -133,6 +133,30 @@ describe('installed apps', () => {
     ]);
   });
 
+  test('installed_apps carries each skill’s example questions when its card has some (task-15.11 decision 37)', async () => {
+    const shop = cardFor('shop-a', 'Shop A', 'a camera dealer', []);
+    shop.skills = [
+      {
+        id: 'stock',
+        name: 'Camera stock',
+        description: 'lists the cameras in stock',
+        tags: [],
+        examples: ['What cameras do you have?'],
+      },
+      {id: 'returns', name: 'Returns', description: 'explains returns', tags: []},
+    ];
+    const registry = await registryWith({'shop-a': shop});
+    const readers = platformReaders({registry, composition: () => undefined, ancestry: () => []});
+    expect(readers.installedApps()[0]!.skills).toEqual([
+      {
+        name: 'Camera stock',
+        description: 'lists the cameras in stock',
+        examples: ['What cameras do you have?'],
+      },
+      {name: 'Returns', description: 'explains returns'},
+    ]);
+  });
+
   test('each app’s update state as last computed, in the App Library’s words, with how long ago the check ran (task-14.5 decisions 5 to 7)', async () => {
     const registry = await registryWith({
       github: named('github', 'GitHub'),

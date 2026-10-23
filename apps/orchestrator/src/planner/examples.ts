@@ -7,8 +7,8 @@
  * of it (task-7.8 decision 16); a platform answer that calls one reader and templates its
  * result; what is on the canvas a question was asked from, named by what was asked there (task
  * 15.11); whether anything is out of date (task 14.5); a capability gap offered from the Store, a
- * merged view beside an offer and an install asked for (task 15.4); and an account choice
- * (task 12.6). The examples teach form; the rules doc
+ * merged view beside an offer and an install asked for (task 15.4); an install asked for of an app
+ * already installed (task 15.11); and an account choice (task 12.6). The examples teach form; the rules doc
  * (`planner.md`) teaches the vocabulary and the rules. Their trees are authored against the
  * Planner's pruned shell catalog; its tests put each through the whole validator.
  */
@@ -340,7 +340,7 @@ export const INSTALLED_APPS_ANSWER: LayoutExample = {
           id: 'intro',
           component: 'Text',
           variant: 'body',
-          text: 'Two apps are installed. Ask about either at the palette, or ask both at once.',
+          text: 'Two apps are installed. Ask about either, or ask both at once.',
         },
         {
           id: 'apps',
@@ -711,6 +711,62 @@ export const INSTALL_ASK: LayoutExample = {
 };
 
 /**
+ * An install asked for of an app already installed (task-15.11 decision 37): nothing offered — one
+ * line in the shell's words, as the line an install leaves, with one of its skills' example
+ * questions, and a button into the App Library on it.
+ */
+export const ALREADY_INSTALLED: LayoutExample = {
+  name: 'already-installed',
+  intent: 'Install Gmail.',
+  agents: [PLATFORM, GMAIL],
+  readers: [
+    {
+      reader: 'installed_apps',
+      result: [
+        {
+          id: 'gmail',
+          displayName: 'Gmail',
+          name: 'Gmail',
+          description: 'The signed-in mailbox: inbox, threads, labels, drafts.',
+          skills: [
+            {
+              name: 'Inbox',
+              description: 'Shows unread and recent mail.',
+              examples: ['What needs a reply today?'],
+            },
+            {name: 'Compose', description: 'Drafts and sends mail.'},
+          ],
+          reachable: true,
+        },
+      ],
+    },
+  ],
+  output: {
+    title: 'Install Gmail',
+    dispatch: [],
+    tree: {
+      components: [
+        {id: 'root', component: 'Column', children: ['line', 'library']},
+        {
+          id: 'line',
+          component: 'Text',
+          variant: 'body',
+          text: 'Gmail is already installed. Try asking “What needs a reply today?”',
+        },
+        {
+          id: 'library',
+          component: 'Button',
+          child: 'library-label',
+          action: {functionCall: {call: 'openAppLibrary', args: {app: 'gmail'}}},
+        },
+        {id: 'library-label', component: 'Text', text: 'Manage Gmail'},
+      ],
+    },
+    dataModel: {},
+  },
+};
+
+/**
  * The account choice (task-12.6 decisions 3, 5): a command for an app with two accounts that
  * names neither, asked from no canvas — the shell asks which, the request written as for the
  * agent.
@@ -757,5 +813,6 @@ export const LAYOUT_EXAMPLES: readonly LayoutExample[] = [
   CAPABILITY_GAP,
   MERGE_BESIDE_OFFER,
   INSTALL_ASK,
+  ALREADY_INSTALLED,
   ACCOUNT_CHOICE,
 ];

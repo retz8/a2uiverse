@@ -8,14 +8,14 @@ export const A2UI_EXTENSION_URI_V09 = 'https://a2ui.org/a2a-extension/a2ui/v0.9'
  * indexes under `shell` beside the installed apps' cards (phase-6 decision 1). Its skills are
  * hand-authored: what A2UIVerse is, what the canvas can do, describing the installed apps, and
  * how apps are found and installed — the texts that let the Router rank a platform question and
- * the Planner tell one from a capability gap. No union of installed apps' skills: the palette
- * sends every utterance here regardless, and the Registry reader describes the apps on demand.
+ * the Planner tell one from a capability gap. No union of installed apps' skills: every question
+ * is sent here regardless, and the Registry reader describes the apps on demand.
  */
 export function buildAgentCard(baseUrl: string): AgentCard {
   return {
     name: 'A2UIVerse Orchestrator',
     description:
-      'The A2UIVerse hub: the platform that composes installed A2UI apps onto one canvas. Routes palette utterances to the apps, relays their surfaces, merges their answers, and answers questions about itself.',
+      'The A2UIVerse hub: the platform that composes installed A2UI apps onto one canvas. Routes each question to the apps, relays their surfaces, merges their answers, and answers questions about itself.',
     version: '0.0.0',
     protocolVersion: '0.3.0',
     url: baseUrl,
@@ -35,15 +35,15 @@ export function buildAgentCard(baseUrl: string): AgentCard {
     skills: [
       {
         id: 'palette',
-        name: 'Palette',
-        description: 'Routes a palette utterance to the installed apps and paints the result.',
+        name: 'Questions',
+        description: 'Routes a question to the installed apps and paints the result.',
         tags: ['a2ui', 'orchestrator'],
       },
       {
         id: 'platform',
         name: 'What A2UIVerse is',
         description:
-          'Explains the platform itself: A2UIVerse is an application ecosystem for A2UI agents — apps that paint their own interface — composed by this hub onto one canvas. It says what the platform does, what an app is here, what the canvas is, and how a question travels from the palette to the apps and back.',
+          'Explains the platform itself: A2UIVerse is an application ecosystem for A2UI agents — apps that paint their own interface — composed by this hub onto one canvas. It says what the platform does, what an app is here, what the canvas is, and how a question you ask travels to the apps and back.',
         tags: ['platform', 'about', 'help'],
         examples: [
           'what is A2UIVerse?',
