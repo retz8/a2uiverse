@@ -626,6 +626,14 @@ describe('the offer (task 15.4)', () => {
     expect(painted(state).has('attribution-more')).toBe(false);
   });
 
+  test('an offer asking nothing of its app — an install asked for — is marked so (task-15.11 decision 36)', async () => {
+    const {state} = await fresh();
+    expect(painted(state).get('install')).toMatchObject({
+      gap: 'install shop-b',
+      offer: {apps: [{appId: 'shop-b'}], asksNothing: true},
+    });
+  });
+
   test('a gap offering nothing whose search was not reached says so (decision 3)', async () => {
     const {state} = await fresh();
     expect(painted(state).get('rental')).toMatchObject({offer: {apps: [], none: 'unreached'}});

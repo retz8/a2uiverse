@@ -116,6 +116,17 @@ test('the offer: the fixed line, then each app the plan offered, in its order �
   expect((slot as HTMLElement).style.border).toBe('');
 });
 
+test('an offer asking nothing of its apps — an install asked for — opens with "From the Store:" alone (task-15.11 decision 36)', () => {
+  render(
+    withHost(
+      <SlotView gap="Shop B" offer={{apps: [SHOP_B], asksNothing: true}} onAppAct={() => {}} />,
+    ),
+  );
+  expect(screen.getByText('From the Store:')).toBeInTheDocument();
+  expect(screen.queryByText(/None of your apps/)).not.toBeInTheDocument();
+  expect(screen.getByRole('button', {name: 'Install'})).toBeEnabled();
+});
+
 test('the description is held to two lines', () => {
   const {container} = render(withHost(<SlotView gap={GAP} offer={OFFER} />));
   const description = within(rowOf(container, 'shop-b')).getByText(SHOP_B.description);

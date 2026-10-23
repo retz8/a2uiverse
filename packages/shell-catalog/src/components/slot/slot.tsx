@@ -230,7 +230,11 @@ export function SlotView({
     onAppAct &&
     ((kind: AppActKind, appId: string, anchor: HTMLElement) => onAppAct({kind, appId, anchor}));
   // Each returns the view and what the slot says politely of it: a refusal, or a press not through.
-  const offerView = (words: string, apps: NonNullable<typeof offer>['apps'], filling?: string) => {
+  const offerView = (
+    words: string,
+    apps: NonNullable<typeof offer>['apps'],
+    {filling, asksNothing}: {filling?: string; asksNothing?: boolean} = {},
+  ) => {
     const {rows, held} = offerRows(words, apps, {filling, acts, presses});
     const refused = rows.find(row => row.kind === 'refused');
     const noted = rows.find(row => row.kind === 'show' && row.note);
@@ -247,6 +251,7 @@ export function SlotView({
         rows={rows}
         held={held}
         enabled={enabled}
+        asksNothing={asksNothing}
         onAppAct={appAct}
         onOpenStore={onOpenStore}
       />
@@ -299,7 +304,7 @@ export function SlotView({
         );
       }
       if (offer === undefined) return null;
-      const {node, said} = offerView(gap, offer.apps);
+      const {node, said} = offerView(gap, offer.apps, {asksNothing: offer.asksNothing});
       announcement = said;
       return (
         <div data-slot-gap={gap} data-slot-state="offer" style={weighted}>
@@ -579,7 +584,7 @@ export function SlotView({
     // first answer: the slot changes once (task-15.8 decision 2).
     if (!shell && source !== undefined && state === 'pending' && resolved == null) {
       if (offered !== undefined) {
-        const {node, said} = offerView(offered.gap, offered.apps, offered.appId);
+        const {node, said} = offerView(offered.gap, offered.apps, {filling: offered.appId});
         announcement = said;
         return (
           <div

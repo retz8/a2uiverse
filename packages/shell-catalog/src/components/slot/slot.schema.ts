@@ -15,7 +15,9 @@ import {UPDATE_STATES, type UpdateStateKind} from '@a2uiverse/sdk';
  *   plan searched the Store for (task-15.4 decision 3): the region is the offer. `offer` —
  *   painted by the runtime from the marketplace's entries (task-15.4 decision 8) — lists every app
  *   the plan offered, in its order, by app id, name, publisher and short description, or, with
- *   none, why: `nothing` in the Store fits, or the Store `unreached`. Once an app offered with
+ *   none, why: `nothing` in the Store fits, or the Store `unreached`; `asksNothing` when the plan
+ *   asks nothing of the apps it offers — an install asked for and nothing else (task-15.11
+ *   decision 36). Once an app offered with
  *   nothing asked of it is installed there, `installed` carries its id, its name and one of its
  *   card's example questions when it has one (task-15.4 decision 12). A gap carries one or the
  *   other (task-15.8 decision 7). An app offered with a request, once installed there, makes the
@@ -238,6 +240,7 @@ const OfferSchema = z
   .object({
     apps: z.array(OfferedAppSchema),
     none: z.enum(OFFER_NONE_CAUSES).optional(),
+    asksNothing: z.boolean().optional(),
   })
   .strict()
   .refine(offer => (offer.none !== undefined) === (offer.apps.length === 0), {

@@ -281,8 +281,12 @@ function keptOffer(state: CompositionState, words: string): Record<string, unkno
   return {gap: words, apps: paintedOffer(gap).apps, appId: gap.filled.appId};
 }
 
-/** The offer as painted: every app offered, in the Planner's order, or why there is none. */
+/**
+ * The offer as painted: every app offered, in the Planner's order, or why there is none; marked
+ * when it asks nothing of its apps — an install asked for and nothing else (task-15.11 decision 36).
+ */
 function paintedOffer(gap: GapEntry): Record<string, unknown> {
+  const asksNothing = gap.offers.length > 0 && gap.offers.every(({request}) => !request);
   return {
     apps: gap.offers.map(({appId, name, publisher, description}) => ({
       appId,
@@ -291,6 +295,7 @@ function paintedOffer(gap: GapEntry): Record<string, unknown> {
       description,
     })),
     ...(gap.offers.length === 0 ? {none: gap.none ?? 'nothing'} : {}),
+    ...(asksNothing ? {asksNothing: true} : {}),
   };
 }
 

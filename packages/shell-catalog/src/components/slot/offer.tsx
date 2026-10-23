@@ -9,11 +9,11 @@ import {LOST_WORDS, UNREACHED_WORDS} from './press-lines.js';
 import type {OfferNoneCause, SlotInstalled, SlotOfferedApp} from './slot.schema.js';
 
 /**
- * The offer's fixed line (task-15.3 decision 2); once an app it offered is installed, its second
- * half alone (task-15.11 decision 32).
+ * The offer's fixed line (task-15.3 decision 2); its second half alone once an app it offered is
+ * installed (task-15.11 decision 32), and on an offer asking nothing of its apps (decision 36).
  */
 export const OFFER_LEAD = 'None of your apps can do this. From the Store:';
-export const OFFER_LEAD_INSTALLED = 'From the Store:';
+export const OFFER_LEAD_SHORT = 'From the Store:';
 
 /** The two lines with nothing to offer (phase-15 decision 6), by the cause the orchestrator recorded. */
 export const NOTHING_WORDS: Record<OfferNoneCause, string> = {
@@ -89,6 +89,7 @@ export function OfferView({
   rows,
   held,
   enabled,
+  asksNothing,
   onAppAct,
   onOpenStore,
 }: {
@@ -97,6 +98,7 @@ export function OfferView({
   rows: readonly OfferRow[];
   held: boolean;
   enabled: boolean;
+  asksNothing?: boolean;
   onAppAct?: (kind: AppActKind, appId: string, anchor: HTMLElement) => void;
   onOpenStore?: (open: {query?: string; app?: string}) => void;
 }) {
@@ -105,7 +107,7 @@ export function OfferView({
   return (
     <Flex direction="column" gap="3" style={{minWidth: 0}}>
       <Text as="p" size="2">
-        {installed ? OFFER_LEAD_INSTALLED : OFFER_LEAD}
+        {installed || asksNothing ? OFFER_LEAD_SHORT : OFFER_LEAD}
       </Text>
       <ul style={listStyle}>
         {apps.map((app, index) => {

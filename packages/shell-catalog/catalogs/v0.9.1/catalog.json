@@ -1086,6 +1086,10 @@
               "type": "string",
               "enum": ["nothing", "unreached"],
               "description": "With no app offered, required there: why. `nothing`: nothing in the Store can do this; `unreached`: the Store could not be reached."
+            },
+            "asksNothing": {
+              "type": "boolean",
+              "description": "The plan asks nothing of the apps it offers: an install asked for and nothing else. Painted by the runtime and never written by an author."
             }
           },
           "required": ["apps"],

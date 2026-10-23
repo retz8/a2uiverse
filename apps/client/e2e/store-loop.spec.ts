@@ -256,6 +256,9 @@ test('E4 · an install ask: the offer, then the installed line in the shell’s 
   await replayByHand(page, '33');
   const offer = offerSlot(page, 'Shop B');
   await expect(offer.getByRole('listitem')).toHaveCount(1);
+  // Nothing asked of the app: the line is the Store's alone (task-15.11 decision 36).
+  await expect(offer).toContainText('From the Store:');
+  await expect(offer).not.toContainText('None of your apps');
   await install(page, offer, 'Shop B');
   const line = page.locator('[data-slot-state="installed"]');
   await expect(line).toContainText('Shop B is installed.');

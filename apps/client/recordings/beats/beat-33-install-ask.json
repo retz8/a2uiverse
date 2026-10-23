@@ -58,7 +58,8 @@
                           "publisher": "a2uiverse-apps",
                           "description": "Northlight Cameras, a high-volume online retailer listing current stock with live pricing and next-day dispatch."
                         }
-                      ]
+                      ],
+                      "asksNothing": true
                     }
                   }
                 ]
