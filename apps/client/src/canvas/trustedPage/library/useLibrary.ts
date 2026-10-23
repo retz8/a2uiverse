@@ -2,8 +2,9 @@
  * The App Library's reads (task 14.8): the installed apps, every app's accounts, the Store's
  * listings — each app's publisher and the entry the consent card shows — and the update check,
  * run when the App Library is entered (decision 1) and again on Check again or after an update
- * (decision 3). Each answer that arrives after the page has gone, or after a newer check began,
- * is dropped.
+ * (decision 3). Each answer that arrives after the page has gone, or after a newer check or a
+ * newer read of the same began, is dropped: a read asked before an uninstall and answered after it
+ * never brings the app back (task-15.11 decision 35).
  */
 import {useCallback, useEffect, useRef, useState} from 'react';
 import type {IndexEntry, UpdateState} from '@a2uiverse/sdk';
@@ -49,16 +50,21 @@ export function useLibrary(orchestrator: string): Library {
   const live = useRef(true);
   /** The check in flight: an older one's answer is dropped. */
   const checks = useRef(0);
+  /** The reads in flight, likewise. */
+  const installedReads = useRef(0);
+  const accountsReads = useRef(0);
 
   const readInstalledNow = useCallback(async () => {
+    const mine = ++installedReads.current;
     const apps = await readInstalled(orchestrator);
-    if (!live.current) return;
+    if (!live.current || mine !== installedReads.current) return;
     setInstalled(apps ? {status: 'ready', apps} : {status: 'unreached'});
   }, [orchestrator]);
 
   const readAccountsNow = useCallback(async () => {
+    const mine = ++accountsReads.current;
     const apps = await readAccounts(orchestrator);
-    if (!live.current || !apps) return;
+    if (!live.current || !apps || mine !== accountsReads.current) return;
     setAccounts(new Map(apps.map(app => [app.appId, app])));
   }, [orchestrator]);
 

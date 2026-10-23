@@ -79,6 +79,10 @@ interface Fake {
   checks: number;
   /** Holds the check's answer until released. */
   gate?: Promise<void>;
+  /** Holds the next read of the installed apps, answered with them as they were when asked. */
+  appsGate?: Promise<void>;
+  /** Whether a read of the installed apps is held. */
+  appsHeld?: boolean;
   installs: string[];
   install: Record<string, unknown>;
   /** Holds the install's answer until released. */
@@ -177,7 +181,14 @@ beforeEach(() => {
       const url = new URL(String(input));
       const path = url.pathname;
       const body = init?.body ? (JSON.parse(String(init.body)) as Record<string, string>) : {};
-      if (path === '/registry/apps.json') return json(fake.installed);
+      if (path === '/registry/apps.json') {
+        const asked = fake.installed;
+        const gate = fake.appsGate;
+        fake.appsGate = undefined;
+        fake.appsHeld = gate !== undefined;
+        await gate;
+        return json(asked);
+      }
       if (path === '/registry/updates.json') {
         fake.checks += 1;
         await fake.gate;
@@ -654,6 +665,26 @@ describe('uninstall', () => {
     expect(where()).toEqual({page: 'appLibrary'});
     expect(fake.uninstalled).toEqual(['gmail']);
     await waitFor(() => expect(screen.getAllByTestId('library-row')).toHaveLength(3));
+  });
+
+  it('a read of the list asked before the uninstall and answered after it is dropped (task-15.11 decision 35)', async () => {
+    let releaseCheck!: () => void;
+    fake.gate = new Promise(resolve => (releaseCheck = resolve));
+    renderWithShell(<Library initial={{page: 'appLibrary', app: 'gmail'}} />);
+    const uninstall = await screen.findByRole('button', {name: 'Uninstall Gmail'});
+    // The check lands and reads the list again, its answer held back as the tunnel may.
+    let releaseRead!: () => void;
+    fake.appsGate = new Promise(resolve => (releaseRead = resolve));
+    releaseCheck();
+    await waitFor(() => expect(fake.appsHeld).toBe(true));
+    await userEvent.click(uninstall);
+    const question = await screen.findByTestId('library-uninstall');
+    await userEvent.click(within(question).getByRole('button', {name: 'Uninstall'}));
+    await waitFor(() => expect(screen.getAllByTestId('library-row')).toHaveLength(3));
+    releaseRead();
+    await new Promise(resolve => setTimeout(resolve, 20));
+    expect(screen.getAllByTestId('library-row')).toHaveLength(3);
+    expect(screen.queryByText('Gmail', {selector: '[data-testid="library-row"] *'})).toBeNull();
   });
 
   it('says a refused uninstall on the app’s view, where it was asked, as on the list', async () => {
