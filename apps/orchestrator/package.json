@@ -21,7 +21,7 @@
   },
   "dependencies": {
     "@a2a-js/sdk": "0.3.14",
-    "@a2ui/web_core": "^0.10.6",
+    "@a2ui/web_core": "0.14.0",
     "@a2uiverse/embedder": "workspace:*",
     "@a2uiverse/sdk": "workspace:*",
     "@a2uiverse/shell-catalog": "workspace:*",
