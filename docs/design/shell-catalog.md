@@ -59,7 +59,7 @@ The basic catalog's eighteen components are all here, **with upstream's props ex
 
 | Basic component | Drawn with Radix | Worth knowing |
 | --- | --- | --- |
-| `Text` | `Heading` for `h1` to `h4`, `Text` for `body` and `caption` | `h5` is the merged view's small label, one line ending in an ellipsis |
+| `Text` | `Heading` for `h1` to `h4`, `Text` for `body` and `caption` | `h5` is the merged view's small label, one line ending in an ellipsis; `body` renders as Markdown when the host installs a renderer, as the client does |
 | `Row`, `Column`, `List` | `Flex` | Radix names four of the seven `justify` values as props; the other three are set as CSS on the same element |
 | `Card`, `Divider`, `Tabs`, `Slider` | `Card`, `Separator`, `Tabs`, `Slider` | only the selected tab's panel mounts |
 | `Modal` | `Dialog` | its content mounts inside the catalog's own portal root |
@@ -229,6 +229,7 @@ Radix Themes' stylesheet is written for a page that uses only Radix: it declares
 1. **Rewrite `:root`.** Every `:root` selector becomes `.a2uiverse-shell-catalog`, the Provider's wrapper. The script then **checks its own work** and fails the build if any `:root`, or any `html` or `body` selector, survived.
 2. **Reset what Radix sets at runtime.** Some custom properties are read by the sheet but never declared in it, because Radix sets them on elements while it runs (`--width` from a layout prop, `--radix-select-trigger-width` from a popover's measurement). Left alone, reading one inside the wrapper would pick up whatever a neighbouring app happened to set. The script computes a **set difference** (the properties the sheet reads, minus the ones it declares) and declares each of those as `initial` on the wrapper. `initial` behaves exactly like "not set", so the fallback applies, while an element's own inline value still wins.
 3. **Add one token.** Radix leaves a button's cursor at `default`; the shell's buttons should show the pointer like everything else pressable on the canvas. The script appends `--cursor-button: pointer` under the wrapper's two classes, so it outranks Radix's own rule on the same element.
+4. **Space Markdown body text.** Body text the host renders as Markdown arrives as paragraphs and lists carrying the browser's default margins. The script appends rules under the wrapper for `Text`'s Markdown block, `.a2uiverse-shell-markdown`: no margin around its blocks, a small gap (`--space-2`) between them, a list indented by a little. A one-paragraph text sits as plain text does.
 
 The client's collision detector finds a package's stylesheets by scanning its JavaScript for `.css` strings. So the script builds the stock sheet's name out of pieces, `['@radix-ui/themes/styles', 'css'].join('.')`, and only the scoped copy is ever found.
 

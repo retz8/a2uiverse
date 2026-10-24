@@ -89,7 +89,15 @@ function BodyText({text, style}: {text: string; style?: CSSProperties}) {
       </Text>
     );
   }
-  return <Text as="div" size="2" style={style} dangerouslySetInnerHTML={{__html: html}} />;
+  return (
+    <Text
+      as="div"
+      size="2"
+      className="a2uiverse-shell-markdown"
+      style={style}
+      dangerouslySetInnerHTML={{__html: html}}
+    />
+  );
 }
 
 /** Catalog entry: `text` arrives resolved; upstream stringifies a non-string bound value the same way. */

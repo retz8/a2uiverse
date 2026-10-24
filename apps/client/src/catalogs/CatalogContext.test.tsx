@@ -3,7 +3,7 @@
  * build the surface was drawn in, whichever build of its catalog is held beside it (task 15.6).
  */
 import {describe, expect, it} from 'vitest';
-import {render} from '@testing-library/react';
+import {render, waitFor} from '@testing-library/react';
 import {Catalog, MessageProcessor} from '@a2ui/web_core/v0_9';
 import type {A2uiMessage} from '@a2ui/web_core/v0_9';
 import {basicCatalog} from '@a2ui/web_core/v0_9/basic_catalog';
@@ -27,14 +27,14 @@ const buildOf = (artifact: string) =>
     artifact,
   );
 
-function surface(catalog: Catalog<ReactCatalogComponent> = basicCatalog) {
+function surface(catalog: Catalog<ReactCatalogComponent> = basicCatalog, text = 'Hello') {
   const processor = new MessageProcessor<ReactCatalogComponent>([catalog]);
   processor.processMessages([
     msg({createSurface: {surfaceId: 's', catalogId: catalog.id}}),
     msg({
       updateComponents: {
         surfaceId: 's',
-        components: [{id: 'root', component: 'Text', text: 'Hello'}],
+        components: [{id: 'root', component: 'Text', text}],
       },
     }),
   ]);
@@ -44,36 +44,49 @@ function surface(catalog: Catalog<ReactCatalogComponent> = basicCatalog) {
 describe('SurfaceFrame', () => {
   it('marks a loaded build’s surface with its build, the root its sheets are scoped to', async () => {
     const built = buildOf('sha256-built');
-    const {container, findByText} = render(
+    const {container} = render(
       <CatalogProvider catalogs={[built]}>
         <SurfaceFrame surface={surface(built.catalog)} />
       </CatalogProvider>,
     );
     const mark = container.querySelector('[data-catalog-build="sha256-built"]') as HTMLElement;
-    expect(mark).toContainElement(await findByText('Hello'));
+    await waitFor(() => expect(mark).toHaveTextContent('Hello'));
     expect(mark.style.display).toBe('contents');
   });
 
   it('leaves a catalog the client provides unmarked', async () => {
-    const {container, findByText} = render(
+    const {container} = render(
       <CatalogProvider catalogs={[resolveCatalog(basicCatalog)]}>
         <SurfaceFrame surface={surface()} />
       </CatalogProvider>,
     );
-    expect(await findByText('Hello')).toBeInTheDocument();
+    await waitFor(() => expect(container).toHaveTextContent('Hello'));
     expect(container.querySelector('[data-catalog-build]')).toBeNull();
   });
 
   it('frames a surface in the build it was drawn in, whichever build of its catalog is held', async () => {
     const first = buildOf('sha256-first');
     const second = buildOf('sha256-second');
-    const {container, findByText} = render(
+    const {container} = render(
       <CatalogProvider catalogs={[second]}>
         <SurfaceFrame surface={surface(first.catalog)} />
       </CatalogProvider>,
     );
     const mark = container.querySelector('[data-catalog-build]') as HTMLElement;
     expect(mark.getAttribute('data-catalog-build')).toBe('sha256-first');
-    expect(mark).toContainElement(await findByText('Hello'));
+    await waitFor(() => expect(mark).toHaveTextContent('Hello'));
+  });
+
+  it('draws a body text’s Markdown, a link as its text', async () => {
+    const {findByText, container} = render(
+      <CatalogProvider catalogs={[resolveCatalog(basicCatalog)]}>
+        <SurfaceFrame
+          surface={surface(basicCatalog, '**Free** shipping, [see the shop](https://shop.example)')}
+        />
+      </CatalogProvider>,
+    );
+    expect((await findByText('Free')).tagName).toBe('STRONG');
+    expect(await findByText(/see the shop/)).toBeInTheDocument();
+    expect(container.querySelector('a')).toBeNull();
   });
 });

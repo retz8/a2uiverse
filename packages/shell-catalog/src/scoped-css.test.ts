@@ -21,6 +21,13 @@ test('a button of the shell shows the pointer: the wrapper outranks Radix’s de
   expect(css).toContain('.a2uiverse-shell-catalog.radix-themes{--cursor-button:pointer;}');
 });
 
+test('body text the host renders as Markdown sits as plain text does: no margin around its blocks', () => {
+  expect(css).toContain('.a2uiverse-shell-catalog .a2uiverse-shell-markdown>*{margin:0;}');
+  expect(css).toContain(
+    '.a2uiverse-shell-catalog .a2uiverse-shell-markdown>*+*{margin-top:var(--space-2);}',
+  );
+});
+
 test('every custom property the sheet reads is declared by the sheet — none is borrowed', () => {
   const declared = new Set([...css.matchAll(/(--[\w-]+)\s*:/g)].map(m => m[1]));
   const borrowed = [...new Set([...css.matchAll(/var\(\s*(--[\w-]+)/g)].map(m => m[1]))].filter(

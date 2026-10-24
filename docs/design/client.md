@@ -414,6 +414,8 @@ Only the latest step owns the merge line: a later step ends the "working" an ear
 
 **Each catalog brings one Provider and one CSS setup**, both scoped to the boundary. The loader takes each artifact's catalog and its Provider, and the client wraps that catalog's surfaces only (`catalogs/CatalogContext.tsx`). It registers nothing at the app root and does no per-vendor CSS setup of its own, so installing an app is a table entry, not a shell change.
 
+**Body text renders its Markdown, and only the safe part.** `SurfaceFrame` hands every surface the page's one Markdown renderer (`catalogs/markdown.ts`) through `@a2ui/react`'s `MarkdownContext`. `A2uiSurface` also passes it to web_core, which keeps it for the whole page, so the basic catalog's custom-element `Text` renders through it too. It draws what the basic catalog's `Text` promises: emphasis, lists and paragraphs, with raw HTML escaped, a link drawn as its text and an image as its alt text. So `**Free** shipping` reads bold, and nothing a vendor's string carries reaches the page as markup.
+
 **The collision detector** (`canvas/composition/collisionDetector.ts`) catches the ways CSS can collide silently. It checks five rules across every installed catalog:
 
 | Rule                | The problem                                                                              |
@@ -522,7 +524,7 @@ Recorded beats live in `apps/client/recordings/beats/`, taken through the orches
 
 | Concern | Where (`apps/client/src`) |
 | --- | --- |
-| The entry, catalogs | `canvas.tsx`, `catalogs/clientCatalogs.ts`, `catalogs/host.ts`, `catalogs/loader.ts`, `catalogs/catalogGate.ts`, `catalogs/CatalogContext.tsx`, `orchestratorApi.ts` |
+| The entry, catalogs | `canvas.tsx`, `catalogs/clientCatalogs.ts`, `catalogs/host.ts`, `catalogs/loader.ts`, `catalogs/catalogGate.ts`, `catalogs/CatalogContext.tsx`, `catalogs/markdown.ts`, `orchestratorApi.ts` |
 | The page's wiring | `canvas/createCanvasWiring.ts`, `canvas/hostRelay.ts`, `canvas/CanvasApp.tsx` |
 | One answer | `canvas/canvasRuntime.ts`, `canvas/canvasStore.ts` |
 | Turns, staging, routing | `canvas/turn/canvasTurn.ts`, `canvas/turn/turnMessages.ts`, `a2ui/applyMessages.ts` |

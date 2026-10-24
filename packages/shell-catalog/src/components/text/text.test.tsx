@@ -62,6 +62,7 @@ test('body text renders through the host markdown renderer when one is installed
     </MarkdownContext.Provider>,
   );
   await waitFor(() => expect(screen.getByText('text').tagName).toBe('EM'));
+  expect(screen.getByText('text').closest('.rt-Text')).toHaveClass('a2uiverse-shell-markdown');
 });
 
 test('headings and captions never go through the markdown renderer', async () => {
