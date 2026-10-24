@@ -52,7 +52,7 @@
   ],
   "scripts": {
     "scope-radix": "node scripts/scope-radix.mjs",
-    "build": "pnpm scope-radix && tsc -p tsconfig.json",
+    "build": "pnpm scope-radix && tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "test": "pnpm scope-radix && vitest run",
     "lint": "eslint .",
@@ -64,8 +64,8 @@
     "@radix-ui/themes": "3.3.0"
   },
   "devDependencies": {
-    "@a2ui/react": "^0.10.2",
-    "@a2ui/web_core": "^0.10.6",
+    "@a2ui/react": "0.14.0",
+    "@a2ui/web_core": "0.14.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.2",
@@ -81,8 +81,8 @@
     "zod": "^3.25.76"
   },
   "peerDependencies": {
-    "@a2ui/react": "^0.10.2",
-    "@a2ui/web_core": "^0.10.6",
+    "@a2ui/react": "0.14.0",
+    "@a2ui/web_core": "0.14.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "zod": "^3.25.76"

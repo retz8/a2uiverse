@@ -1182,8 +1182,8 @@
           "additionalProperties": false
         },
         "child": {
-          "type": "string",
-          "description": "The id of the region the marker names, rendered under it. Absent, the marker stands alone."
+          "description": "The id of the region the marker names, rendered under it. Absent, the marker stands alone.",
+          "$ref": "https://a2ui.org/specification/v0_9/common_types.json#/$defs/ComponentId"
         },
         "weight": {
           "type": "number",

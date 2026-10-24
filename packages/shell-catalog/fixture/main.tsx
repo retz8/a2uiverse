@@ -15,7 +15,7 @@ import {createRoot} from 'react-dom/client';
 import {Theme} from '@radix-ui/themes';
 import {A2uiSurface, type ReactComponentImplementation} from '@a2ui/react/v0_9';
 import {MessageProcessor, type SurfaceModel} from '@a2ui/web_core/v0_9';
-import {resolvePointer, type SortDeclaration} from '@a2uiverse/sdk';
+import {parseSourceId, resolvePointer, type SortDeclaration} from '@a2uiverse/sdk';
 import {
   AppActContext,
   type AppActState,
@@ -49,7 +49,7 @@ const CATALOG = createCatalog({
   onShellAction: action => console.log('[fixture shell action]', action),
   onPress: press => console.log('[fixture press]', press),
   onNavigate: target => console.log('[fixture navigate]', target),
-  appDisplayName: appId => APP_NAMES[appId],
+  sourceName: source => APP_NAMES[parseSourceId(source)?.appId ?? source],
 });
 
 /** A surface holding one tree, painted by the real renderer. */
@@ -244,13 +244,13 @@ function SlotMatrix() {
         disabled where no press can be made:
         <AttributionView
           displayName="GitHub"
-          appId="github"
+          source="github"
           history={{back: {step: 0, title: 'Open pull requests'}}}
           onPress={logPress}
         />
         <AttributionView
           displayName="GitHub"
-          appId="github"
+          source="github"
           history={{
             back: {step: 0, title: 'Open pull requests'},
             forward: {step: 2, title: 'PR #42'},
@@ -259,14 +259,14 @@ function SlotMatrix() {
         />
         <AttributionView
           displayName="Linear"
-          appId="linear"
+          source="linear"
           history={{back: {step: 0}, forward: {step: 2}}}
           onPress={logPress}
         />
         <PressStateContext.Provider value={{enabled: false, presses: []}}>
           <AttributionView
             displayName="GitHub"
-            appId="github"
+            source="github"
             history={{back: {step: 0, title: 'Open pull requests'}}}
             onPress={logPress}
           />

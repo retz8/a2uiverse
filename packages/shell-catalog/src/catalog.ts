@@ -1,6 +1,6 @@
 import {BASIC_FUNCTIONS, Catalog, type FunctionImplementation} from '@a2ui/web_core/v0_9';
 import type {ReactComponentImplementation} from '@a2ui/react/v0_9';
-import {CATALOG_ID} from './catalog-id.js';
+import {CATALOG_ID, CATALOG_PROTOCOL_VERSION} from './catalog-id.js';
 import {TextComponent} from './components/text/index.js';
 import {ImageComponent} from './components/image/index.js';
 import {IconComponent} from './components/icon/index.js';
@@ -153,6 +153,7 @@ export function createCatalog(
   const {onShellAction} = options;
   return new Catalog<ReactComponentImplementation>(
     CATALOG_ID,
+    CATALOG_PROTOCOL_VERSION,
     [...BASIC_IMPLEMENTATIONS, ...shellImplementations(options)],
     [
       ...(BASIC_FUNCTIONS as FunctionImplementation[]),

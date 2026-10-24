@@ -15,7 +15,7 @@ import {
   type ComponentApi,
   type FunctionImplementation,
 } from '@a2ui/web_core/v0_9';
-import {CATALOG_ID} from './catalog-id.js';
+import {CATALOG_ID, CATALOG_PROTOCOL_VERSION} from './catalog-id.js';
 import {AttributionApi} from './components/attribution/attribution.schema.js';
 import {DerivedValueApi} from './components/derived-value/derived-value.schema.js';
 import {TextFieldApi} from './components/text-field/text-field.schema.js';
@@ -125,6 +125,7 @@ export const SHELL_COMPONENT_APIS: readonly ComponentApi[] = [
  */
 export const SCHEMA_CATALOG: Catalog<ComponentApi> = new Catalog<ComponentApi>(
   CATALOG_ID,
+  CATALOG_PROTOCOL_VERSION,
   // Upstream's basic components, its `TextField` swapped for the shell's, which has no credential
   // input (task 12.3).
   [

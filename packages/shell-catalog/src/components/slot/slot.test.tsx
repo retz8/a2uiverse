@@ -6,7 +6,7 @@ import type {ShellAction} from '../../functions/shell-actions';
 import {PressStateContext, type PressRecord} from '../../press-state';
 import {SignInContext, type SignInRequest} from '../../sign-in';
 import {SlotContentContext} from '../../slot-content';
-import {SlotStateContext} from '../../slot-state';
+import {SlotStateContext, type SourceSlotState} from '../../slot-state';
 import {renderTree, SURFACE_ID} from '../../testing/render';
 import {collapsedLines, landedLines, LOST_WORDS, UNREACHED_WORDS} from './press-lines';
 import {collapseLine, continueHref, SlotView} from './slot';
@@ -442,10 +442,13 @@ test('a declined merge collapses to one line in the Synthesizer’s words at the
 });
 
 test('the reserved view marks a column whose source is still pending or has failed', () => {
+  const states: Record<string, SourceSlotState> = {
+    linear: 'filled',
+    github: 'pending',
+    circleci: 'failed',
+  };
   const {container} = render(
-    <SlotStateContext.Provider
-      value={source => ({linear: 'filled', github: 'pending', circleci: 'failed'})[source]}
-    >
+    <SlotStateContext.Provider value={source => states[source]}>
       <SlotView
         source="shell"
         content="shell"
@@ -865,7 +868,7 @@ test('a collapsed merge’s lines keep the collapse’s markers on the first row
   expect(screen.getByRole('button', {name: 'Include Gmail'})).toBeInTheDocument();
 });
 
-test('a fact the runtime stops painting leaves the slot with its repaint (upstream binder keeps removed props)', () => {
+test('a fact the runtime stops painting leaves the slot with its repaint (_dev/a2ui-findings.md §9)', async () => {
   const merged = {
     id: 'root',
     component: 'Slot',
@@ -873,13 +876,23 @@ test('a fact the runtime stops painting leaves the slot with its repaint (upstre
     content: 'shell',
     state: 'collapsed',
   };
-  const {surface, container} = renderTree([
+  const {processor, container} = renderTree([
     {...merged, collapse: {cause: 'unmade'}, working: {sources: []}},
   ]);
   expect(container.textContent).toContain('Making the merged view…');
-  act(() => {
-    surface.componentsModel.get('root')!.properties = {...merged, collapse: {cause: 'unmade'}};
-  });
+  // The repaint only drops `working`: nothing else the slot was painted with changes. The model
+  // tells its listeners in turn, so the slot hears of it after a microtask.
+  await act(async () =>
+    processor.processMessages([
+      {
+        version: 'v0.9',
+        updateComponents: {
+          surfaceId: SURFACE_ID,
+          components: [{...merged, collapse: {cause: 'unmade'}}],
+        },
+      },
+    ] as never),
+  );
   expect(container.textContent).not.toContain('Making the merged view…');
   expect(container.textContent).toContain('The merged view couldn’t be made.');
 });

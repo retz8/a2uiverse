@@ -72,18 +72,15 @@ export function DateTimeInputView({
   );
 }
 
-/**
- * Catalog entry: `value` and `label` arrive resolved; `min`/`max` are strings once resolved (a
- * bound one is dead upstream — `_dev/a2ui-findings.md` §6 — and is passed through as it comes).
- */
+/** Catalog entry: `value`, `label`, `min` and `max` arrive resolved. */
 export const DateTimeInputComponent = createComponentImplementation(DateTimeInputApi, ({props}) => (
   <DateTimeInputView
     label={props.label}
     value={props.value}
     enableDate={props.enableDate}
     enableTime={props.enableTime}
-    min={typeof props.min === 'string' ? props.min : undefined}
-    max={typeof props.max === 'string' ? props.max : undefined}
+    min={props.min}
+    max={props.max}
     errors={props.validationErrors}
     onChange={props.setValue}
     style={weightStyle(props.weight)}

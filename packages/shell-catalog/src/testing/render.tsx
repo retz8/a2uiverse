@@ -1,12 +1,13 @@
 /**
  * Renders an A2UI tree through the real renderer — `MessageProcessor` → `A2uiSurface` — under the
  * Provider, so a test exercises the binder path and the schemas, not a view in isolation. The
- * surface is returned so a test can read what a two-way binding wrote to its data model.
+ * surface is returned so a test can read what a two-way binding wrote to its data model, with every
+ * error the surface reported.
  */
 import {render, type RenderResult} from '@testing-library/react';
 import type {ReactNode} from 'react';
 import {A2uiSurface, type ReactComponentImplementation} from '@a2ui/react/v0_9';
-import {MessageProcessor, type SurfaceModel} from '@a2ui/web_core/v0_9';
+import {MessageProcessor, type A2uiErrorPayload, type SurfaceModel} from '@a2ui/web_core/v0_9';
 import type {A2uiClientAction} from '@a2ui/web_core/v0_9';
 import {
   type SourceName,
@@ -45,13 +46,17 @@ export interface TreeOptions {
 
 export const SURFACE_ID = 'test';
 
-/** A surface holding the tree, validated by the processor against the catalog's schemas. */
+/**
+ * A surface holding the tree, validated by the processor against the catalog's schemas, and the
+ * errors the surface reports from its creation on.
+ */
 export function surfaceFor(
   components: TreeComponent[],
   options: TreeOptions = {},
 ): {
   surface: SurfaceModel<ReactComponentImplementation>;
   processor: MessageProcessor<ReactComponentImplementation>;
+  errors: A2uiErrorPayload[];
 } {
   const processor = new MessageProcessor<ReactComponentImplementation>(
     [
@@ -68,6 +73,14 @@ export function surfaceFor(
   );
   processor.processMessages([
     {version: 'v0.9', createSurface: {surfaceId: SURFACE_ID, catalogId: CATALOG_ID}},
+  ] as never);
+  const surface = processor.model.surfacesMap.get(SURFACE_ID);
+  if (!surface) throw new Error('surface was not created');
+  const errors: A2uiErrorPayload[] = [];
+  surface.onError.subscribe(error => {
+    errors.push(error);
+  });
+  processor.processMessages([
     ...(options.data
       ? [
           {
@@ -78,28 +91,43 @@ export function surfaceFor(
       : []),
     {version: 'v0.9', updateComponents: {surfaceId: SURFACE_ID, components}},
   ] as never);
-  const surface = processor.model.surfacesMap.get(SURFACE_ID);
-  if (!surface) throw new Error('surface was not created');
-  return {surface, processor};
+  return {surface, processor, errors};
 }
 
 export function renderTree(
   components: TreeComponent[],
   options: TreeOptions = {},
-): RenderResult & {surface: SurfaceModel<ReactComponentImplementation>} {
-  const {surface} = surfaceFor(components, options);
+): RenderResult & {
+  surface: SurfaceModel<ReactComponentImplementation>;
+  processor: MessageProcessor<ReactComponentImplementation>;
+  errors: A2uiErrorPayload[];
+} {
+  const {surface, processor, errors} = surfaceFor(components, options);
   const node = (
     <Provider>
       <A2uiSurface surface={surface} />
     </Provider>
   );
   const result = render(options.wrap ? options.wrap(node) : node);
-  return {...result, surface};
+  return {...result, surface, processor, errors};
 }
 
-/** The elements the tree rendered inside the Provider's wrapper — everything but the portal anchor. */
+/** The renderer hosts each component in an element of its own, `a2ui-react-<name>`. */
+const COMPONENT_ELEMENT = /^A2UI-REACT-/;
+
+/** The elements the renderer hosts the tree's components in. */
+export function componentElements(container: HTMLElement): Element[] {
+  return [...container.querySelectorAll('*')].filter(el => COMPONENT_ELEMENT.test(el.tagName));
+}
+
+/**
+ * The elements the tree's components drew inside the Provider's wrapper — everything but the
+ * elements hosting them and the portal anchor.
+ */
 export function renderedElements(container: HTMLElement): Element[] {
   const wrapper = container.querySelector('.a2uiverse-shell-catalog');
   if (!wrapper) return [];
-  return [...wrapper.children].filter(el => !el.hasAttribute('data-a2uiverse-portal-root'));
+  return [...wrapper.querySelectorAll('*')].filter(
+    el => !COMPONENT_ELEMENT.test(el.tagName) && !el.closest('[data-a2uiverse-portal-root]'),
+  );
 }

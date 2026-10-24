@@ -11,6 +11,7 @@ import {SignInContext, type SignInHandler, type SignInKind} from '../../sign-in.
 import {SlotContentContext} from '../../slot-content.js';
 import {SlotStateContext, UPDATE_SLOT_STATES, type SourceSlotState} from '../../slot-state.js';
 import {weightStyle} from '../shared/layout.js';
+import {useModelProperties} from '../shared/model-properties.js';
 import {dotStyle, linkButtonStyle} from '../shared/quiet-line.js';
 import {
   CONNECT_AGAIN_WORDS,
@@ -1285,11 +1286,14 @@ export function createSlotComponent(
   } = {},
 ) {
   return createComponentImplementation(SlotApi, ({context}) => {
-    // Read from the component's own model, not the binder's resolved props: upstream's binder
-    // merges each repaint over the last, so a prop the runtime stops painting — `working`, `late`,
-    // `retrying` — would keep its old value (`_dev/a2ui-findings.md` §9). Every Slot prop is a
+    // Read from the component's own model, not the binder's resolved props, so a prop the runtime
+    // stops painting — `working`, `late`, `retrying` — leaves the slot. Every Slot prop is a
     // literal the runtime paints and repaints, so the model is the whole truth.
-    const props = context.componentModel.properties as SlotProps;
+    const props = useModelProperties<SlotProps>(context.componentModel);
+    // Every press names the surface it was raised on; a slot whose data context holds no surface —
+    // one over a bare data model — raises nothing (task-16.6 decision 8).
+    const surfaceId = context.dataContext.surface?.id;
+    const componentId = context.componentModel.id;
     return (
       <SlotView
         source={props.source}
@@ -1319,8 +1323,7 @@ export function createSlotComponent(
         offered={props.offered}
         update={props.update}
         onOpenStore={({query, app}) => {
-          const surfaceId = context.dataContext.surface.id;
-          const componentId = context.componentModel.id;
+          if (surfaceId === undefined) return;
           onShellAction({
             name: 'openStore',
             surfaceId,
@@ -1332,45 +1335,47 @@ export function createSlotComponent(
         onAppAct={
           onAppAct &&
           (({kind, appId, anchor}) => {
+            if (surfaceId === undefined) return;
             const gap = props.gap ?? props.offered?.gap;
             onAppAct({
               kind,
               appId,
               ...(gap !== undefined ? {gap} : {source: props.source!}),
-              surfaceId: context.dataContext.surface.id,
-              componentId: context.componentModel.id,
+              surfaceId,
+              componentId,
               anchor,
             });
           })
         }
         onPress={
           onPress &&
-          (operation =>
-            onPress({
-              operation,
-              surfaceId: context.dataContext.surface.id,
-              componentId: context.componentModel.id,
-            }))
+          (operation => {
+            if (surfaceId === undefined) return;
+            onPress({operation, surfaceId, componentId});
+          })
         }
         onSignIn={
           onSignIn && (props.source ?? props.addAccount) !== undefined
-            ? kind =>
+            ? kind => {
+                if (surfaceId === undefined) return;
                 onSignIn({
                   kind,
                   // The add-account tile's sign-in is the bare app's (task-12.13 decision 27).
                   source: (props.source ?? props.addAccount)!,
-                  surfaceId: context.dataContext.surface.id,
-                  componentId: context.componentModel.id,
-                })
+                  surfaceId,
+                  componentId,
+                });
+              }
             : undefined
         }
         onOpenAppLibrary={() => {
+          if (surfaceId === undefined) return;
           // Manage apps lands on the app's own view (task-14.5 decision 9).
           const app = props.source === undefined ? undefined : parseSourceId(props.source)?.appId;
           onShellAction({
             name: 'openAppLibrary',
-            surfaceId: context.dataContext.surface.id,
-            componentId: context.componentModel.id,
+            surfaceId,
+            componentId,
             ...(app ? {app} : {}),
           });
         }}

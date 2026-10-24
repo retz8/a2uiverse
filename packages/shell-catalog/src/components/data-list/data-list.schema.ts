@@ -1,4 +1,4 @@
-import {ChildListSchema, DynamicStringSchema} from '@a2ui/web_core/v0_9';
+import {ChildListSchema, componentId, DynamicStringSchema} from '@a2ui/web_core/v0_9';
 import {z} from 'zod';
 
 /**
@@ -23,7 +23,7 @@ export const DataListItemApi = {
   schema: z
     .object({
       label: DynamicStringSchema,
-      child: z.string(),
+      child: componentId(),
     })
     .strict(),
 } as const;

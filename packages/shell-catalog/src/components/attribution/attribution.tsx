@@ -29,6 +29,7 @@ import {PressStateContext} from '../../press-state.js';
 import {SignInContext, type SignInHandler} from '../../sign-in.js';
 import {SlotContentContext} from '../../slot-content.js';
 import {weightStyle} from '../shared/layout.js';
+import {useModelProperties} from '../shared/model-properties.js';
 import {OPEN_AGAIN_WORDS, WAITING_WORDS} from '../shared/SignInWaiting.js';
 import type {PressHandler} from '../slot/slot.js';
 import {AttributionApi, type AttributionProps} from './attribution.schema.js';
@@ -502,11 +503,13 @@ export function createAttributionComponent({
   onSignIn,
 }: {onPress?: PressHandler; onSignIn?: SignInHandler} = {}) {
   return createComponentImplementation(AttributionApi, ({buildChild, context}) => {
-    // Read from the component's own model, not the binder's resolved props: upstream's binder
-    // merges each repaint over the last, so a request the runtime stops painting — `escalation`
-    // after Not now or Allow — would keep its chip (`_dev/a2ui-findings.md` §9). Every
+    // Read from the component's own model, not the binder's resolved props, so a request the
+    // runtime stops painting — `escalation` after Not now or Allow — takes its chip away. Every
     // Attribution prop is a literal the runtime paints and repaints.
-    const props = context.componentModel.properties as AttributionProps;
+    const props = useModelProperties<AttributionProps>(context.componentModel);
+    // A marker whose data context holds no surface — one over a bare data model — raises nothing.
+    const surfaceId = context.dataContext.surface?.id;
+    const componentId = context.componentModel.id;
     return (
       <AttributionView
         displayName={props.displayName}
@@ -517,23 +520,18 @@ export function createAttributionComponent({
         fromOffer={props.fromOffer}
         onSignIn={
           onSignIn && props.source !== undefined
-            ? kind =>
-                onSignIn({
-                  kind,
-                  source: props.source!,
-                  surfaceId: context.dataContext.surface.id,
-                  componentId: context.componentModel.id,
-                })
+            ? kind => {
+                if (surfaceId === undefined) return;
+                onSignIn({kind, source: props.source!, surfaceId, componentId});
+              }
             : undefined
         }
         onPress={
           onPress &&
-          (operation =>
-            onPress({
-              operation,
-              surfaceId: context.dataContext.surface.id,
-              componentId: context.componentModel.id,
-            }))
+          (operation => {
+            if (surfaceId === undefined) return;
+            onPress({operation, surfaceId, componentId});
+          })
         }
       >
         {props.child === undefined ? undefined : buildChild(props.child)}

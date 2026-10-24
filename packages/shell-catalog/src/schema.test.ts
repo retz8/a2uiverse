@@ -19,13 +19,11 @@ test('runs where there is no DOM', () => {
   expect(SCHEMA_CATALOG.id).toBe(CATALOG_ID);
 });
 
-test('declares exactly the schema’s components and every schema function', () => {
+test('declares exactly the schema’s components and functions', () => {
   expect([...SCHEMA_CATALOG.components.keys()].sort()).toEqual(
     Object.keys(schema.components).sort(),
   );
-  for (const name of Object.keys(schema.functions)) {
-    expect(SCHEMA_CATALOG.functions.has(name), `function ${name}`).toBe(true);
-  }
+  expect([...SCHEMA_CATALOG.functions.keys()].sort()).toEqual(Object.keys(schema.functions).sort());
 });
 
 function processorWith(components: Array<Record<string, unknown>>): () => void {

@@ -1,6 +1,14 @@
-import {createComponentImplementation} from '@a2ui/react/v0_9';
+import {
+  createComponentImplementation,
+  type NodeBuildChild,
+  type NodeViewProps,
+  type ReactCatalogComponent,
+  type ReactComponentImplementation,
+  useSignalValue,
+} from '@a2ui/react/v0_9';
+import {isComponentNode, ResolvedBinding, type ComponentNode} from '@a2ui/web_core/v0_9';
 import {Flex, Table} from '@radix-ui/themes';
-import {createContext, useContext, type CSSProperties, type ReactNode} from 'react';
+import {createContext, Fragment, useContext, type CSSProperties, type ReactNode} from 'react';
 import {
   SlotStateContext,
   UPDATE_SLOT_STATES,
@@ -168,24 +176,13 @@ function ReservedCell({state}: {state: Exclude<ReservedState, 'late'>}) {
   return <span style={{color: 'var(--a2v-muted, var(--gray-11))'}}>—</span>;
 }
 
-/**
- * `TableRow`: each resolved child in its own cell. Outside a Table — an authoring slip, or the
- * design-check sweep rendering the row alone — it draws as a plain flex row instead of a `<tr>`
- * the document has no table for.
- */
-export function TableRowView({children, buildChild}: {children: unknown; buildChild: BuildChild}) {
+/** A body row inside a Table: each built cell in its own `<td>`, a reserved column's drawn for it. */
+function TableBodyRow({cells}: {cells: {key: string; node: ReactNode}[]}) {
   const table = useContext(InTableContext);
-  if (!table) {
-    return (
-      <Flex direction="row" gap="3" align="center">
-        {renderChildList(children, buildChild)}
-      </Flex>
-    );
-  }
   return (
     <Table.Row>
-      {mapChildList(children, buildChild, (node, key, index) => {
-        const reserved = table.reserved[index];
+      {cells.map(({key, node}, index) => {
+        const reserved = table?.reserved[index];
         return (
           <Table.Cell
             key={key}
@@ -200,12 +197,86 @@ export function TableRowView({children, buildChild}: {children: unknown; buildCh
   );
 }
 
-/** Catalog entry: `columns` and `columnSources` are literal; the binder resolves `children`. */
-export const TableComponent = createComponentImplementation(TableApi, ({props, buildChild}) => (
-  <TableView columns={props.columns} columnSources={props.columnSources}>
-    {renderChildList(props.children, buildChild)}
-  </TableView>
-));
+/**
+ * `TableRow`: each resolved child in its own cell. Outside a Table — an authoring slip, or the
+ * design-check sweep rendering the row alone — it draws as a plain flex row instead of a `<tr>`
+ * the document has no table for.
+ */
+export function TableRowView({children, buildChild}: {children: unknown; buildChild: BuildChild}) {
+  const table = useContext(InTableContext);
+  if (!table) {
+    return (
+      <Flex direction="row" gap="3" align="center">
+        {renderChildList(children, buildChild)}
+      </Flex>
+    );
+  }
+  const cells: {key: string; node: ReactNode}[] = [];
+  mapChildList(children, buildChild, (node, key) => cells.push({key, node}));
+  return <TableBodyRow cells={cells} />;
+}
+
+/** The component nodes a resolved child list holds, through a template's binding. */
+function childNodes(value: unknown): ComponentNode<ReactCatalogComponent>[] {
+  if (value instanceof ResolvedBinding) return childNodes(value.value);
+  if (Array.isArray(value)) return value.flatMap(childNodes);
+  return isComponentNode(value) ? [value as ComponentNode<ReactCatalogComponent>] : [];
+}
+
+/** A `TableRow` node drawn by its Table: its cells, each rendered in its own `<td>`. */
+function TableRowNode({
+  row,
+  buildChild,
+}: {
+  row: ComponentNode<ReactCatalogComponent>;
+  buildChild: NodeBuildChild;
+}) {
+  const {children} = useSignalValue(row.props) as {children?: unknown};
+  return (
+    <TableBodyRow
+      cells={childNodes(children).map(cell => ({key: cell.id, node: buildChild(cell)}))}
+    />
+  );
+}
+
+/**
+ * The Table as the renderer draws it: the renderer hosts each component in an element of its own,
+ * which a `<tbody>` cannot hold (`_dev/a2ui-findings.md` §18), so the Table draws each `TableRow`
+ * child's `<tr>` itself and renders only the cells' content through the renderer (task-16.6
+ * decision 4). A child that is not a `TableRow` renders as itself.
+ */
+function TableNodeView({node, buildChild}: NodeViewProps) {
+  const {columns, columnSources, children} = useSignalValue(node.props) as {
+    columns: string[];
+    columnSources?: (string | null)[];
+    children?: unknown;
+  };
+  return (
+    <TableView columns={columns} columnSources={columnSources}>
+      {childNodes(children).map(row =>
+        row.type === TableRowApi.name ? (
+          <TableRowNode key={row.id} row={row} buildChild={buildChild} />
+        ) : (
+          <Fragment key={row.id}>{buildChild(row)}</Fragment>
+        ),
+      )}
+    </TableView>
+  );
+}
+
+/**
+ * Catalog entry: `columns` and `columnSources` are literal; the binder resolves `children`.
+ * `columns` is a plain list of headings, which upstream types as a child list
+ * (`_dev/a2ui-findings.md` §17).
+ */
+export const TableComponent: ReactComponentImplementation = {
+  ...createComponentImplementation(TableApi, ({props, buildChild}) => (
+    <TableView columns={props.columns as string[]} columnSources={props.columnSources}>
+      {renderChildList(props.children, buildChild)}
+    </TableView>
+  )),
+  view: TableNodeView,
+};
 
 /** Catalog entry: the binder resolves `children`; each becomes a cell. */
 export const TableRowComponent = createComponentImplementation(

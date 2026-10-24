@@ -43,13 +43,8 @@ test('every schema component has an implementation and vice versa', () => {
   expect([...CATALOG.components.keys()].sort()).toEqual(Object.keys(schema.components).sort());
 });
 
-test('every schema function has an implementation', () => {
-  // Subset, not equality: the upstream implementation ships binary arithmetic and comparison
-  // beyond its own v0_9_1 schema (SPEC §14). Those stay undeclared — no consumer.
-  const implemented = new Set(CATALOG.functions.keys());
-  for (const name of Object.keys(schema.functions)) {
-    expect(implemented.has(name), `function ${name} declared but not implemented`).toBe(true);
-  }
+test('every schema function has an implementation and vice versa', () => {
+  expect([...CATALOG.functions.keys()].sort()).toEqual(Object.keys(schema.functions).sort());
 });
 
 test('the declared functions are exactly the upstream set plus the operators, the relations and the shell actions', () => {
