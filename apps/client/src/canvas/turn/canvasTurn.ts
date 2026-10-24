@@ -45,7 +45,9 @@
  *   turn's batches are — a shell repaint, a fragment into its slot, a synthesis payload — straight
  *   into the live composition; it is not a turn and never touches the stage or the turn in flight.
  *   Whatever stream carries it, a shell repaint that paints a vendor slot failed takes that
- *   source's fragment off the canvas.
+ *   source's fragment off the canvas, a copy kept: a Retry the app answers on that surface rather
+ *   than a fresh one brings it back from the copy, the answer landing on it (task-15.12
+ *   decision 11).
  * - **Streamed partials**: the agent streams a component as it is generated, and the
  *   processor validates every batch, so a batch carrying a half-built component is thrown
  *   away. Those validation failures are deferred and judged at turn end against the settled
@@ -73,7 +75,7 @@ import type {CanvasStore} from '../canvasStore';
 import type {PaintCause} from './cause';
 import type {SynthesisIntake} from '../synthesis/synthesisSession';
 import type {FragmentHistory, PaintCopy, RestorableStep} from '../history/fragmentHistory';
-import {rebuildMessages} from '../history/paintCopy';
+import {capturePaint, rebuildMessages} from '../history/paintCopy';
 import type {TurnProcessor} from './turnMessages';
 import {ROOT_COMPONENT_ID, invalidComponentsOf, targetOf} from './turnMessages';
 
@@ -202,11 +204,14 @@ export function createTurnRunner({
    * than failing against a surface that is gone; a fresh create for it — a Retry's answer — lands.
    */
   const dropped = new Set<string>();
+  /** A failed slot's fragment as it was taken off, by surface id: what a Retry's answer revives. */
+  const takenDown = new Map<string, {source: string; copy: PaintCopy}>();
   const admits = (message: A2uiMessage) => {
     const {kind, surfaceId} = targetOf(message);
     if (surfaceId === undefined || !dropped.has(surfaceId)) return true;
     if (kind !== 'create') return false;
     dropped.delete(surfaceId);
+    takenDown.delete(surfaceId);
     return true;
   };
 
@@ -214,12 +219,34 @@ export function createTurnRunner({
   const dropFragment = (source: string) => {
     const placed = store.getState().placement.get(source);
     if (!placed) return;
+    const copy = capturePaint(processor, placed.surfaceId);
+    if (copy) takenDown.set(placed.surfaceId, {source, copy});
     if (processor.model.getSurface(placed.surfaceId))
       processor.model.deleteSurface(placed.surfaceId);
     dropped.add(placed.surfaceId);
     store.unplace(source);
     store.answerSlot(source);
     history?.dropped(source);
+  };
+
+  /**
+   * A Retry sends again the press that failed (task-11.8 decision 23), and the app may answer it
+   * on the surface the failure took off rather than a fresh one: once the slot is pending again,
+   * that surface comes back from its copy into its slot, and the answer lands on it (task-15.12
+   * decision 11). While the slot stands failed, a message for it is still dropped.
+   */
+  const revive = (messages: A2uiMessage[]) => {
+    for (const message of messages) {
+      const {kind, surfaceId} = targetOf(message);
+      if (kind === 'create' || surfaceId === undefined) continue;
+      const held = takenDown.get(surfaceId);
+      if (!held || store.getState().slotStates.get(held.source) !== 'pending') continue;
+      takenDown.delete(surfaceId);
+      dropped.delete(surfaceId);
+      applyA2uiMessages(processor, rebuild(held.copy), {onMessageError: reportMessageError});
+      store.placeFragment(held.source, {surfaceId, source: held.source});
+      history?.revived(held.source);
+    }
   };
 
   /**
@@ -420,6 +447,7 @@ export function createTurnRunner({
   function retireComposition() {
     cancelSideStreams();
     dropped.clear();
+    takenDown.clear();
     store.resetComposition();
     history?.retire();
   }
@@ -824,6 +852,7 @@ export function createTurnRunner({
           refuseBatch(rest, source);
           return;
         }
+        revive(rest);
         const admitted = rest.filter(admits);
         if (admitted.length === 0) return;
         if (stagedMode) applyStaged(admitted, stamp, payload);
@@ -951,6 +980,7 @@ export function createTurnRunner({
           ledger.settleSource(source);
           return;
         }
+        revive(rest);
         const admitted = rest.filter(admits);
         if (admitted.length === 0) return;
         if (source) {

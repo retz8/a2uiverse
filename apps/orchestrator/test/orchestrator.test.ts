@@ -2959,6 +2959,43 @@ describe("the fragment's history (tasks 9.4, 10.9)", () => {
     });
   });
 
+  test('a step back to a paint a failed press stood on restores the merge made over it, not the failure (task-15.12 decision 10)', async () => {
+    const synthesizer = new FakeSynthesizer();
+    const drill = drillScript(camerasA);
+    const {client} = await boot({
+      planner: planner(),
+      synthesizer,
+      scripts: {
+        github: sequence(drill, failing('GitHub is not responding right now.'), drill),
+        gmail: shopScript(camerasB),
+      },
+    });
+    const first = await collect(client, utterance('compare camera prices'));
+    const contextId = first[0]!.contextId!;
+    expect(synthesizer.calls).toHaveLength(1);
+
+    // A press inside GitHub's list fails: no paint, the merge too few over Gmail alone.
+    const failed = await collect(client, actionOn('github:s1', contextId));
+    expect(shellSlotOf(failed)).toMatchObject({state: 'collapsed'});
+    // Its Retry paints anew: the merge comes back over the new paint.
+    await collect(client, press('retry', ['github'], contextId));
+    expect(synthesizer.calls).toHaveLength(2);
+
+    // Back to the list the press failed on: the merge made over it, with no call.
+    const back = await collect(
+      client,
+      step('github', 0, contextId, {'github:s1': {items: camerasA}}),
+    );
+    expect(finalOf(back).status.state).toBe('completed');
+    expect(synthesizer.calls).toHaveLength(2);
+    expect(synthesisEvents(back)).toHaveLength(0);
+
+    const lines = await journalLines(4);
+    expect(lines.find(l => l.descriptor === 'step github to 0')).toMatchObject({
+      step: {combination: {github: 0, gmail: 0}, seen: true, walk: 'silent'},
+    });
+  });
+
   test("a later step abandons the walk an earlier step's unseen combination started, its call aborted; the combination is journaled as the step made it (task-9.9 decision 17)", async () => {
     let release: () => void = () => {};
     const gate = new Promise<void>(resolve => (release = resolve));

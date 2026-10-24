@@ -86,6 +86,11 @@ export interface FragmentHistory {
   /** The paint on screen left with its failed slot: nothing to return to there. */
   dropped(source: string): void;
   /**
+   * The paint that left with its failed slot is back on screen, a Retry answered on it: a paint
+   * to return to again, as it was before it left (task-15.12 decision 11).
+   */
+  revived(source: string): void;
+  /**
    * The reader steps the source to the visit at `position`: the paint to restore with its title
    * and paint id, the reader moved there; undefined when that visit is past the list, holds the
    * paint on screen, or holds a placeholder — nothing to restore.
@@ -124,6 +129,8 @@ interface Paint {
   copy?: PaintCopy;
   /** The copy is taken: the paint is no longer what is on screen. */
   left: boolean;
+  /** Left with its failed slot: whether it was a paint to return to then. */
+  down?: boolean;
 }
 
 interface Source {
@@ -209,8 +216,19 @@ export function createFragmentHistory({capture}: FragmentHistoryOptions): Fragme
     const source = sources.get(id);
     if (!source) return;
     const shown = paintAt(source, source.shown);
+    shown.down = shown.returnable;
     shown.returnable = false;
     delete shown.copy;
+    changed();
+  };
+
+  const revived = (id: string) => {
+    const source = sources.get(id);
+    if (!source) return;
+    const shown = paintAt(source, source.shown);
+    if (shown.down === undefined) return;
+    shown.returnable = shown.down;
+    delete shown.down;
     changed();
   };
 
@@ -271,6 +289,7 @@ export function createFragmentHistory({capture}: FragmentHistoryOptions): Fragme
     landed,
     leaving,
     dropped,
+    revived,
     stepTo,
     neighbours,
     visitsOf: id => {

@@ -1064,6 +1064,25 @@ describe('streams beside the turn (task 8.5)', () => {
     expect(state.inFlight).toBeNull();
   });
 
+  it('a Retry’s answer on the surface its failure took down brings that surface back in its slot, the answer on it (task-15.12 decision 11)', () => {
+    const {processor, store, runner} = composed();
+    const failed = runner.beginSideStream();
+    failed.apply([slotRepaint([{source: 'gmail', state: 'failed'}])], SHELL);
+    // While the slot stands failed, a message for the surface is still dropped.
+    failed.apply([textRoot('gmail:inbox', 'late')], fragment('gmail'));
+    expect(processor.model.getSurface('gmail:inbox')).toBeUndefined();
+    const retry = runner.beginSideStream();
+    retry.apply([slotRepaint([{source: 'gmail', state: 'pending'}])], SHELL);
+    // The press sent again is answered in place: no create, on the surface the failure took down.
+    retry.apply([textRoot('gmail:inbox', 'opened')], fragment('gmail'));
+    retry.end();
+    const state = store.getState();
+    expect(state.placement.get('gmail')).toEqual({surfaceId: 'gmail:inbox', source: 'gmail'});
+    const root = processor.model.getSurface('gmail:inbox')?.componentsModel.get('root');
+    expect(root?.properties).toMatchObject({text: 'opened'});
+    expect(state.error).toBeNull();
+  });
+
   it('the merged view’s painted facts are read, and a synthesis payload handed over', () => {
     const {store, runner, synthesis} = composed();
     const stream = runner.beginSideStream();

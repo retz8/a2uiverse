@@ -225,6 +225,19 @@ describe('placeholders the arrows skip (task-9.7 decision 2)', () => {
     expect(history.neighbours('github')).toEqual({back: {step: 0, title: 'List'}});
   });
 
+  it('a paint whose slot failed, back on screen with its Retry answered on it, is returned to again (task-15.12 decision 11)', () => {
+    const {history, live} = setup();
+    live.set('github', copy('github:list', 'list'));
+    history.paint('github');
+    history.landed('github', {title: 'List'});
+    history.dropped('github');
+    history.revived('github');
+    history.leaving('github');
+    history.paint('github');
+    history.landed('github', {title: 'Detail'});
+    expect(history.neighbours('github')).toEqual({back: {step: 0, title: 'List'}});
+  });
+
   it('"Back" alone when the paint named nothing; no neighbours for a source with one paint; nothing for a source that never painted', () => {
     const {history, live} = setup();
     live.set('github', copy('github:list', 'list'));

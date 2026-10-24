@@ -75,9 +75,13 @@ export class History {
     return Object.fromEntries([...this.#paints].map(([source, {at}]) => [source, at]));
   }
 
-  /** Files the wiring under the current combination, over an earlier entry there. */
+  /**
+   * Files the wiring under the current combination, over an earlier entry there. The merge's set
+   * is copied: the composition's own set changes as sources fail and fold in, and the entry keeps
+   * the set as it was filed (task-15.12 decision 10).
+   */
   remember(entry: Remembered): void {
-    this.#remembered.set(this.#key(), entry);
+    this.#remembered.set(this.#key(), {...entry, merged: new Set(entry.merged)});
   }
 
   /** The wiring accepted over the current combination, when it was seen. */

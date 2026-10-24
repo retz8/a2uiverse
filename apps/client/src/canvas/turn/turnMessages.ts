@@ -15,6 +15,7 @@ export interface CanvasSurface {
     >;
   };
   dataModel: {get(path: string): unknown};
+  readonly sendDataModel: boolean;
   catalog: {
     readonly id: string;
     readonly components: ReadonlyMap<string, {schema: {safeParse(v: unknown): {success: boolean}}}>;
