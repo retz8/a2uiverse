@@ -1,6 +1,6 @@
 # Phase 16 — Upstream upgrade
 
-The packages the A2UI project publishes, brought to their current releases in both repos: `@a2ui/react` and `@a2ui/web_core`, `a2ui-agent-sdk`, and the two agent toolkits split out of it, `a2ui-a2a` and `a2ui-adk`. The phase changes no behaviour of A2UIVerse. Amends SPEC §9.1, §9.2, §14 and every other section the upgrade's decisions change, and the gated v1.0 item in `_dev/TODO.md`.
+The packages the A2UI project publishes, brought to their current releases in both repos: `@a2ui/react` and `@a2ui/web_core`, `a2ui-agent-sdk`, and the two agent toolkits split out of it, `a2ui-a2a` and `a2ui-adk`. The phase changes no behaviour of A2UIVerse. Amends SPEC §9.1, §14 and every other section the upgrade's decisions change, and the gated v1.0 item in `_dev/TODO.md`.
 
 ## Scope
 

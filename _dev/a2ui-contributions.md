@@ -1,7 +1,7 @@
 # A2UI contributions
 
-Upstream contributions to [a2ui-project/a2ui](https://github.com/a2ui-project/a2ui). Findings
-are numbered per `a2ui-findings.md`.
+Upstream contributions to [a2ui-project/a2ui](https://github.com/a2ui-project/a2ui). A finding
+still open is described in `a2ui-findings.md` under the same number.
 
 ## Merged
 
