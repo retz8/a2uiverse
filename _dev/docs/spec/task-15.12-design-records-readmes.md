@@ -86,3 +86,7 @@ A failed slot's fragment leaves the canvas as a copy. Once a Retry makes the slo
 ### 12. The journal's tool-call record names the Store's search
 
 The comment on the plan's tool-call record in the orchestrator's journal types says it holds every tool call the Planner made, a reader or the Store's search. Replaced: "One reader call the Planner made", standing since task 15.4 added `search_store` to the same record.
+
+### 13. The canvas's collapse line follows task 15.11 decision 25
+
+Boards O1 and U2 of *Store loop — UI reference* draw the collapse line as "Only Shop A answered, so there's nothing to combine.", each noting the decision. Replaced: "The merged view needs at least two sources, and only Shop A answered.", left by decision 7's five decisions.
