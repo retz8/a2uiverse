@@ -210,7 +210,7 @@ describe('install and uninstall over HTTP', () => {
     expect(await response.json()).toEqual({
       ok: false,
       findings: [expect.stringMatching(/is not published on the marketplace/)],
-      cause: 'store-unreached',
+      cause: 'not-in-store',
     });
   });
 

@@ -472,8 +472,9 @@ export class Registry {
     };
     const idFindings = checkAppId(appId);
     if (idFindings.length > 0) return refuse('checks', idFindings);
-    // An app the Store cannot hand — unreached, not published, its entry unreadable — is the
-    // Store's to answer: nothing of the app was reached.
+    // An app the Store cannot hand — unreached, its entry unreadable — is the Store's to answer:
+    // nothing of the app was reached. One the Store no longer lists is said so (task-15.11
+    // decision 44).
     if (!marketplace) return refuse('store-unreached', ['no marketplace is configured']);
     const looked = await marketplace.entry(appId);
     if (looked.kind === 'unreached') {
@@ -482,7 +483,7 @@ export class Registry {
       ]);
     }
     if (looked.kind === 'not-published') {
-      return refuse('store-unreached', [
+      return refuse('not-in-store', [
         `app ${JSON.stringify(appId)} is not published on the marketplace at ${marketplace.url}`,
       ]);
     }

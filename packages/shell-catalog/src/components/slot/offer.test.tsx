@@ -127,6 +127,13 @@ test('an offer asking nothing of its apps — an install asked for — opens wit
   expect(screen.getByRole('button', {name: 'Install'})).toBeEnabled();
 });
 
+test('the offer is at most as wide as the Store page’s column, at the slot’s leading edge (task-15.11 decision 46)', () => {
+  const {container} = render(withHost(<SlotView gap={GAP} offer={OFFER} onAppAct={() => {}} />));
+  const offer = rowOf(container, 'shop-b').closest('ul')!.parentElement!;
+  expect(offer.style.maxWidth).toBe('880px');
+  expect(offer.style.marginLeft).toBe('');
+});
+
 test('the description is held to two lines', () => {
   const {container} = render(withHost(<SlotView gap={GAP} offer={OFFER} />));
   const description = within(rowOf(container, 'shop-b')).getByText(SHOP_B.description);
@@ -327,6 +334,12 @@ test.each([
     'so nothing was installed.',
     {name: 'Try again', enabled: true},
   ],
+  [
+    'not-in-store',
+    'Shop B isn’t in the Store anymore,',
+    'so nothing was installed.',
+    {name: 'Install', enabled: false},
+  ],
 ] as const)(
   'a refused install (%s) says why on its row in the Store’s words, with the Store’s press; every other row’s Install back',
   (cause, lead, rest, press) => {
@@ -358,6 +371,7 @@ test('every refusal the Store words has its row’s line', () => {
     'checks',
     'store-unreached',
     'unheard',
+    'not-in-store',
   ]);
 });
 

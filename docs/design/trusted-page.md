@@ -220,6 +220,9 @@ A sample needs a `MessageProcessor` over the catalogs it paints in. `SampleFrame
 | The app unreached | "Shop B couldn't be reached," "so nothing was installed." |
 | The checks failed | "Shop B can't be installed." "Its files didn't pass the checks on this computer, so nothing changed." |
 | The Store unreached | "The Store can't be reached right now," |
+| The app no longer in the Store | "Shop B isn't in the Store anymore," "so nothing was installed.", with nothing to press |
+
+A slot's Install on the canvas reads the app's Store entry again before its consent card, so it can be refused before the card opens. Try again then asks on the card; it goes with no second card only after a press that passed the card, or needed none.
 
 The **consent card** (`ConsentCard`) has two shapes. Installing, it says what the app is, who publishes it, and what it will ask to sign in to, in its own words. Updating, it says only what's new: the new permissions in the app's words, and a new look when a catalog it paints in moves. An update passes it only when it asks for more (`asksForMore` in the sdk): a card update naming a new permission.
 

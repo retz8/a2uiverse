@@ -149,6 +149,7 @@ describe('Install on an offer', () => {
       appId: 'shop-b',
       status: 'refused',
       cause: 'store-behind',
+      confirmed: true,
     });
     expect(canvas.pressed).toEqual([]);
     expect(apps.getState().held.has('shop-b')).toBe(false);
@@ -177,6 +178,18 @@ describe('Install on an offer', () => {
     expect(apps.getState().held.has('shop-b')).toBe(false);
   });
 
+  it('an app its publisher took out of the Store is refused on the row as no longer in it, no card (task-15.11 decision 44)', async () => {
+    const {acts, canvas} = setup({read: {ok: false, reason: 'not-published'}});
+    acts.onAppAct(installPress());
+    await flush();
+    expect(acts.getState()).toBeNull();
+    expect(appActOf(canvas.store.getState(), {gap: GAP})).toEqual({
+      appId: 'shop-b',
+      status: 'refused',
+      cause: 'not-in-store',
+    });
+  });
+
   it('an app installed outside the page fills the slot with no card (task-15.4 decision 14)', async () => {
     const {acts, apps, canvas, install} = setup({read: listing('shop-b', 'Shop B', true)});
     acts.onAppAct(installPress());
@@ -200,13 +213,31 @@ describe('Install on an offer', () => {
     const {acts, canvas, install, readEntry} = setup();
     canvas.store.setAppAct(
       {gap: GAP},
-      {appId: 'shop-b', status: 'refused', cause: 'app-unreached'},
+      {appId: 'shop-b', status: 'refused', cause: 'app-unreached', confirmed: true},
     );
     acts.onAppAct(installPress());
     await flush();
     expect(readEntry).not.toHaveBeenCalled();
     expect(install).toHaveBeenCalledWith('shop-b');
     expect(canvas.pressed).toEqual([{kind: 'useApp', sources: ['shop-b'], gap: GAP}]);
+  });
+
+  it('Try again after a refusal before the card opened asks on the card (task-15.11 decision 45)', async () => {
+    const {acts, canvas, install, readEntry} = setup({read: {ok: false, reason: 'unreached'}});
+    acts.onAppAct(installPress());
+    await flush();
+    expect(appActOf(canvas.store.getState(), {gap: GAP})).toMatchObject({
+      status: 'refused',
+      cause: 'store-unreached',
+    });
+    readEntry.mockResolvedValue(listing('shop-b', 'Shop B'));
+    acts.onAppAct(installPress());
+    await flush();
+    expect(install).not.toHaveBeenCalled();
+    expect(acts.getState()).toMatchObject({ask: {kind: 'install', entry: {appId: 'shop-b'}}});
+    acts.confirm();
+    await flush();
+    expect(install).toHaveBeenCalledWith('shop-b');
   });
 
   it('the apps that followed it onto a new build are named in that canvas’s notice line, in the Store’s words (task-15.9 decision 4)', async () => {
@@ -287,6 +318,7 @@ describe('Update on an update tile', () => {
       status: 'refused',
       cause: 'app-unreached',
       version: '2.0.0',
+      confirmed: true,
     });
   });
 

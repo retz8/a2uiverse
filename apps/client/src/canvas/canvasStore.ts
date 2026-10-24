@@ -83,9 +83,10 @@ export type PaintedSlotState = 'pending' | 'failed' | 'collapsed' | 'authority' 
 /**
  * An Install or Update pressed in a slot on this canvas (task-15.9): asking, running, or refused
  * — a refusal remembering the version the app was installed at then, so it gives way once the app
- * is installed or updated elsewhere (decision 5).
+ * is installed or updated elsewhere (decision 5), and whether the press had passed its card or
+ * needed none, so its Try again asks on the card only when it never did (task-15.11 decision 45).
  */
-export type SlotAppAct = AppActStatus & {version?: string};
+export type SlotAppAct = AppActStatus & {version?: string; confirmed?: true};
 
 /** A slot's key among the presses: an offer's by its gap's words, an update tile's by its source. */
 export const appActKey = (slot: AppActSlot): string =>

@@ -105,7 +105,7 @@ export function OfferView({
   const pressable = enabled && !held;
   const installed = rows.some(row => row.kind === 'show' || row.kind === 'filling');
   return (
-    <Flex direction="column" gap="3" style={{minWidth: 0}}>
+    <Flex direction="column" gap="3" style={offerStyle}>
       <Text as="p" size="2">
         {installed || asksNothing ? OFFER_LEAD_SHORT : OFFER_LEAD}
       </Text>
@@ -307,6 +307,15 @@ export function InstalledLine({installed}: {installed: SlotInstalled}) {
 function tileLetter(name: string): string {
   return (name.trim()[0] ?? '?').toUpperCase();
 }
+
+/**
+ * At most as wide as the Store page's column, whose rows the offer's draw after, at the slot's
+ * leading edge: in a slot as wide as the canvas, Install stays beside its app (task-15.11
+ * decision 46).
+ */
+const OFFER_MAX_WIDTH = 880;
+
+const offerStyle: CSSProperties = {minWidth: 0, maxWidth: OFFER_MAX_WIDTH};
 
 const listStyle: CSSProperties = {
   listStyle: 'none',

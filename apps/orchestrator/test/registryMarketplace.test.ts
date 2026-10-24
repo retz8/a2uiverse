@@ -115,13 +115,13 @@ describe('install by id', () => {
     expect(registry.installed()[0].source).toBe('marketplace');
   });
 
-  test('an app the marketplace does not list is refused naming the marketplace', async () => {
+  test('an app the marketplace does not list is refused naming the marketplace, as not in the Store (task-15.11 decision 44)', async () => {
     const {registry, marketplace, journal} = await setUp();
     const result = await registry.installFromMarketplace('gmail');
     expect(result).toEqual({
       ok: false,
       findings: [`app "gmail" is not published on the marketplace at ${marketplace.url}`],
-      cause: 'store-unreached',
+      cause: 'not-in-store',
     });
     expect(journal.entries.at(-1)).toMatchObject({
       operation: 'install',

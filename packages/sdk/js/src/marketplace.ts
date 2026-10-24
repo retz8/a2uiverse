@@ -609,9 +609,9 @@ export function updateWords(
 
 /**
  * Why an install was refused (task-14.7 decision 6), beside its findings: the Store behind the
- * app's live card, the app's card unreached, the checks failed, or the Store unreached. The
- * trusted page words each and chooses its press from it; the findings stay for the journal and the
- * terminal.
+ * app's live card, the app's card unreached, the checks failed, the Store unreached, or the app no
+ * longer in the Store (task-15.11 decision 44). The trusted page words each and chooses its press
+ * from it; the findings stay for the journal and the terminal.
  */
 export const INSTALL_REFUSALS = [
   'store-behind',
@@ -619,6 +619,7 @@ export const INSTALL_REFUSALS = [
   'checks',
   'store-unreached',
   'unheard',
+  'not-in-store',
 ] as const;
 export type InstallRefusal = (typeof INSTALL_REFUSALS)[number];
 
@@ -667,6 +668,14 @@ export function refusalOf(cause: InstallRefusal, name: string, act: 'install' | 
         lead: 'That didn’t go through,',
         rest: act === 'install' ? 'so nothing was installed.' : 'so nothing changed.',
         press: 'retry' as const,
+      };
+    // Its publisher took it out of the Store: nothing to try again (task-15.11 decision 44).
+    case 'not-in-store':
+      return {
+        tone: 'bad' as const,
+        lead: `${name} isn’t in the Store anymore,`,
+        rest: act === 'install' ? 'so nothing was installed.' : 'so nothing changed.',
+        press: 'none' as const,
       };
   }
 }

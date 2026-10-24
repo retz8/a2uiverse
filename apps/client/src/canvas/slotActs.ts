@@ -111,13 +111,15 @@ export function createSlotActs({
     return id === null ? undefined : runtimeOf(id);
   };
 
-  const refuse = ({runtime, slot, appId}: Job, cause: InstallRefusal) => {
+  /** Refused; `confirmed` when the press had passed its card, or needed none. */
+  const refuse = ({runtime, slot, appId}: Job, cause: InstallRefusal, confirmed: boolean) => {
     const version = apps.getState().versions.get(appId);
     runtime.store.setAppAct(slot, {
       appId,
       status: 'refused',
       cause,
       ...(version !== undefined ? {version} : {}),
+      ...(confirmed ? {confirmed: true as const} : {}),
     });
     apps.release(appId);
   };
@@ -133,7 +135,7 @@ export function createSlotActs({
     const {runtime, slot, appId, act} = job;
     runtime.store.setAppAct(slot, {appId, status: 'running'});
     const answer = await install(appId);
-    if (!answer.ok) return refuse(job, answer.cause);
+    if (!answer.ok) return refuse(job, answer.cause, true);
     await apps.read();
     refreshCatalogs();
     if (answer.followed.length > 0) {
@@ -157,9 +159,14 @@ export function createSlotActs({
     const read = await readEntry(job.appId);
     // Cancelled while the entry was read: the person left the canvas.
     if (asking !== job) return;
+    // Refused before its card: an app no longer in the Store says so (task-15.11 decision 44).
     if (!read.ok) {
       asking = null;
-      return refuse(job, 'store-unreached');
+      return refuse(
+        job,
+        read.reason === 'not-published' ? 'not-in-store' : 'store-unreached',
+        false,
+      );
     }
     if (job.act === 'install' && read.value.installed) {
       // Installed outside the page: the row is Show it here, and its press goes with no card.
@@ -204,9 +211,14 @@ export function createSlotActs({
     if (!apps.hold(appId)) return;
     const act = request.kind;
     const job: Job = {runtime, slot, appId, act, fill};
-    // Try again, the Store's press for its cause, goes with no second card.
+    // Try again, the Store's press for its cause, goes with no second card — once the press it
+    // follows passed its card; one refused before the card asks on it (task-15.11 decision 45).
     const prior = appActOf(runtime.store.getState(), slot);
-    if (prior?.status === 'refused' && refusalOf(prior.cause, '', act).press === 'retry') {
+    if (
+      prior?.status === 'refused' &&
+      prior.confirmed &&
+      refusalOf(prior.cause, '', act).press === 'retry'
+    ) {
       return void run(job);
     }
     if (act === 'update') {
