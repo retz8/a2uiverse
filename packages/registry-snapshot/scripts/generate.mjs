@@ -54,11 +54,15 @@ for (const name of Object.keys(dependencies).sort()) {
   console.log(`✓ ${name} → ${id}`);
 }
 
-// Shop A's second build: its light accent changed in a copy of the built package, its
-// dependencies linked from where the package sits, never copied.
+// Shop A's second build: its accent changed in a copy of the built package, in both appearances,
+// so the move shows in dark as in light (task-15.11 decision 49) — the dark accent the light one
+// shifted as Shop A's own pair is — its dependencies linked from where the package sits, never
+// copied.
 const SECOND = 'shop-a-catalog';
-const ACCENT = `'--a2ui-color-primary': '#8a5a2b'`;
-const SECOND_ACCENT = `'--a2ui-color-primary': '#2b6a8a'`;
+const ACCENTS = [
+  [`'--a2ui-color-primary': '#8a5a2b'`, `'--a2ui-color-primary': '#2b6a8a'`],
+  [`'--a2ui-color-primary': '#d69a5f'`, `'--a2ui-color-primary': '#77aabe'`],
+];
 {
   const packageDir = realpathSync(join(root, 'node_modules', SECOND));
   const copy = join(staging, `${SECOND}-second`, 'package');
@@ -68,9 +72,12 @@ const SECOND_ACCENT = `'--a2ui-color-primary': '#2b6a8a'`;
   }
   symlinkSync(dirname(packageDir), join(copy, 'node_modules'));
   const provider = join(copy, 'dist', 'provider.js');
-  const source = readFileSync(provider, 'utf8');
-  if (!source.includes(ACCENT)) throw new Error(`${SECOND} no longer sets ${ACCENT}`);
-  writeFileSync(provider, source.replace(ACCENT, SECOND_ACCENT));
+  let source = readFileSync(provider, 'utf8');
+  for (const [accent, second] of ACCENTS) {
+    if (!source.includes(accent)) throw new Error(`${SECOND} no longer sets ${accent}`);
+    source = source.replace(accent, second);
+  }
+  writeFileSync(provider, source);
   const result = await stellify(copy, {outDir: join(staging, `${SECOND}-second-out`)});
   if (result.findings.length > 0) throw new Error(`${SECOND}'s second build does not pack`);
   const second = await fileArtifact(result);

@@ -167,10 +167,25 @@ function withLayout(batch: BeatBatch, change: (components: Component[]) => Compo
   };
 }
 
+/** The last shell layout a turn paints: its components on `shell:main`. */
+function lastLayout(turn: BeatTurn): Component[] | undefined {
+  for (const batch of [...turn.batches].reverse()) {
+    if (batch.stamp?.role !== 'shell') continue;
+    for (const message of [...batch.messages].reverse()) {
+      const update = (message as {updateComponents?: {surfaceId: string; components: Component[]}})
+        .updateComponents;
+      if (update?.surfaceId === 'shell:main') return update.components;
+    }
+  }
+  return undefined;
+}
+
 /**
  * Beat 31's canvas with Shop B on the update tile, its line drawn from `update`; when Shop B can be
  * updated, the slot's Retry answered by beat 31's recorded fill, the slot keeping its update in the
- * repaint before Shop B's answer.
+ * repaint before Shop B's answer; while the Store waits on its publisher, Check again answered as
+ * the orchestrator answers it — the slot pending with its line kept, then the same line, the Store
+ * still waiting (task-15.11 decision 50).
  */
 function shopBUpdateBeat(name: string, beat: number, update: UpdateFacts): BeatFixture | undefined {
   const recorded = getBeatFixture(31);
@@ -204,6 +219,16 @@ function shopBUpdateBeat(name: string, beat: number, update: UpdateFacts): BeatF
         }),
       ),
     );
+  } else {
+    const layout = lastLayout(first);
+    if (layout) {
+      turns.push(
+        retry(`${name}-retry`, SHOP_B_SOURCE, [
+          shellBatch(0, asShopBSlot(layout, {state: 'pending', update})),
+          shellBatch(300, asShopBSlot(layout, {state: 'update', update})),
+        ]),
+      );
+    }
   }
   return {...recorded, ...base, name, beat, title: name, turns};
 }

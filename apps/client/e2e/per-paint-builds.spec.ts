@@ -14,6 +14,9 @@ const {first, second} = JSON.parse(readFileSync(SECOND_BUILD_FILE, 'utf8')) as S
 /** Shop A's light accent in each build: the table's, and the second's. */
 const FIRST_ACCENT = 'rgb(138, 90, 43)';
 const SECOND_ACCENT = 'rgb(43, 106, 138)';
+/** And its dark accent, the second build's changed too (task-15.11 decision 49). */
+const FIRST_DARK_ACCENT = 'rgb(214, 154, 95)';
+const SECOND_DARK_ACCENT = 'rgb(119, 170, 190)';
 
 /** The color Shop A's Price is drawn in: the store's accent. */
 const accentOf = (fragment: Locator) =>
@@ -37,4 +40,18 @@ test('a canvas open across a move keeps its build’s mark and look; the new pai
   await expect(stage.locator(`[data-catalog-build="${first}"]`)).toHaveCount(1);
   await expect(stage.locator(`[data-catalog-build="${second}"]`)).toHaveCount(0);
   expect(await accentOf(stage.locator(`[data-catalog-build="${first}"]`))).toBe(FIRST_ACCENT);
+});
+
+test('in dark, too, the two builds draw apart (task-15.11 decision 49)', async ({page}) => {
+  await page.emulateMedia({colorScheme: 'dark'});
+  await page.goto(`/?beat=per-paint-builds:${first}:${second}&instant`);
+  await expect(page.locator('main[data-replay="done"]')).toBeAttached({timeout: 30_000});
+  const stage = page.getByTestId('canvas-stage-content');
+  await expect(stage.locator(`[data-catalog-build="${second}"]`)).toHaveCount(1);
+  expect(await accentOf(stage.locator(`[data-catalog-build="${second}"]`))).toBe(
+    SECOND_DARK_ACCENT,
+  );
+  await page.getByRole('button', {name: 'Back', exact: true}).click();
+  await expect(stage.locator(`[data-catalog-build="${first}"]`)).toHaveCount(1);
+  expect(await accentOf(stage.locator(`[data-catalog-build="${first}"]`))).toBe(FIRST_DARK_ACCENT);
 });

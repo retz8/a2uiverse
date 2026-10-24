@@ -119,6 +119,19 @@ describe('a write that gets no answer is read back, never sent again (task-14.11
     expect(sent.posts()).toBe(2);
   });
 
+  it('an answer naming no cause the page knows says only that it didn’t go through (task-15.11 decision 48)', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response('<html>Bad gateway</html>', {status: 502})),
+    );
+    expect(await installApp(BASE, 'linear')).toEqual({ok: false, cause: 'unheard'});
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => json({ok: false, cause: 'not-in-store'}, 422)),
+    );
+    expect(await installApp(BASE, 'linear')).toEqual({ok: false, cause: 'not-in-store'});
+  });
+
   it('a rename, a sign-out and an uninstall are read back from the accounts and the apps', async () => {
     let accounts = [{appId: 'gmail', accounts: [{source: 'gmail.1', label: 'Work'}]}];
     tunnel({

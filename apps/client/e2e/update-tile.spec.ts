@@ -25,17 +25,24 @@ test('U1 · needs an update: one line under Shop B’s marker, with Update', asy
   await boardShot(page, 'update-tile-u1-needs-update.png');
 });
 
-test('U2 · the Store waiting on its publisher: the line names them, no press', async ({page}) => {
+test('U2 · the Store waiting on its publisher: the line names them, with Check again, judged afresh (task-15.11 decision 39)', async ({
+  page,
+}) => {
   await replayByHand(page, 'update-waiting');
   const tile = shopB(page);
-  await expect(tile).toContainText(
-    'Shop B has changed, and the Store is waiting on its publisher, a2uiverse-apps.',
-  );
-  await expect(tile.getByRole('button')).toHaveCount(0);
+  const waiting = 'Shop B has changed, and the Store is waiting on its publisher, a2uiverse-apps.';
+  await expect(tile).toContainText(waiting);
+  await expect(tile.getByRole('button')).toHaveText(['Check again']);
   await expect(page.getByTestId('canvas-progress')).toContainText(
     'Shop B waiting on its publisher',
   );
   await boardShot(page, 'update-tile-u2-waiting.png');
+
+  // The Store still waiting: the same line again.
+  await tile.getByRole('button', {name: 'Check again'}).click();
+  await expect(tile).toHaveAttribute('data-slot-state', 'update');
+  await expect(tile).toContainText(waiting);
+  await expect(tile.getByRole('button', {name: 'Check again'})).toBeEnabled();
 });
 
 test('U3 · an update that asks for more: the Store’s update card over the slot, only what is new', async ({
@@ -124,7 +131,8 @@ test('U6 · the update landed from another slot: Update becomes Show it here; an
   // The first canvas's slot turns, once, with no second consent.
   await page.getByRole('button', {name: 'Back', exact: true}).click();
   const tile = shopB(page);
-  await expect(tile).toContainText('Updated');
+  await expect(tile).toContainText('Shop B is updated.');
+  await expect(tile).not.toContainText('needs an update');
   await expect(tile.getByRole('button', {name: 'Show it here'})).toBeEnabled();
   await boardShot(page, 'update-tile-u6-show-it-here.png');
   await tile.getByRole('button', {name: 'Show it here'}).click();

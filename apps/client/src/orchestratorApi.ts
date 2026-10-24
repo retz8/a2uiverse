@@ -322,8 +322,9 @@ export async function installApp(base: string, appId: string): Promise<InstallAn
     };
   }
   const cause = INSTALL_REFUSALS.find(known => known === body?.cause);
-  // A refusal with no cause the page knows still failed the install: the checks are its words.
-  return {ok: false, cause: cause ?? 'checks'};
+  // An answer naming no cause the page knows — an error page on the way, a route not there — says
+  // only that it didn't go through (task-15.11 decision 48).
+  return {ok: false, cause: cause ?? 'unheard'};
 }
 
 /** Whether `appId` is installed at the card version and builds the Store lists for it now. */

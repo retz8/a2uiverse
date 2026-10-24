@@ -665,6 +665,12 @@
   color: var(--gray-12);
 }
 
+/* In dark the panels it sits in are gray-2 themselves: one step up, as gray-2 is on white
+   (task-15.11 decision 47). */
+.dark .store-scopes {
+  background: var(--gray-3);
+}
+
 .store-scopes__note {
   color: var(--gray-11);
 }

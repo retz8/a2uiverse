@@ -221,6 +221,7 @@ A sample needs a `MessageProcessor` over the catalogs it paints in. `SampleFrame
 | The checks failed | "Shop B can't be installed." "Its files didn't pass the checks on this computer, so nothing changed." |
 | The Store unreached | "The Store can't be reached right now," |
 | The app no longer in the Store | "Shop B isn't in the Store anymore," "so nothing was installed.", with nothing to press |
+| No answer, or one naming no cause the page knows | "That didn't go through," "so nothing was installed.", with Try again |
 
 A slot's Install on the canvas reads the app's Store entry again before its consent card, so it can be refused before the card opens. Try again then asks on the card; it goes with no second card only after a press that passed the card, or needed none.
 
