@@ -49,7 +49,7 @@ export const ARTIFACT_DESCRIPTOR_SCHEMA = {
       type: 'string',
       pattern: '^[0-9]+\\.[0-9]+\\.[0-9]+$',
       description:
-        'The version of the host-module interface the entry was built against — the A2UI version the host lends.',
+        'The version of the host-module interface the entry was built against — the A2UI runtime release the host lends.',
     },
     files: {
       type: 'object',

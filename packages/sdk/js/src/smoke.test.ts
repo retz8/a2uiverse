@@ -88,7 +88,7 @@ describe('checkPaint', () => {
   test('a tree that does not validate against its catalog, named by surface', () => {
     const findings = checkPaint(paint(VENDOR, [{id: 'root', component: 'Nope'}]), check);
     expect(findings).toHaveLength(1);
-    expect(findings[0]).toMatch(/^surface "main": .*Unknown component type: "Nope"/);
+    expect(findings[0]).toMatch(/^surface "main": .*Unknown component type 'Nope'/);
   });
 
   test('a credential input, named by surface', () => {
@@ -154,7 +154,7 @@ describe('checkPaint', () => {
     const findings = checkPaint(streamed({child: 'sort-label'}), check);
     expect(findings).toHaveLength(1);
     expect(findings[0]).toMatch(
-      /^surface "main": .*\(sort\): must have required property 'action'/,
+      /^surface "main": .*\/action \(sort\): Expected object, received undefined/,
     );
   });
 

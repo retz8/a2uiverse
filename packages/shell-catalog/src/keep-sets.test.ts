@@ -58,7 +58,7 @@ describe('the synthesis surface keep-set', () => {
     expect(messages(validator, view)).toEqual([]);
     for (const name of ['Slot', 'Attribution', 'TextField', 'Button']) {
       expect(messages(validator, [{id: 'root', component: name}])).toEqual([
-        `Unknown component type: "${name}"`,
+        expect.stringMatching(new RegExp(`^Unknown component type '${name}'`)),
       ]);
     }
   });
@@ -106,12 +106,9 @@ describe('the layout surface keep-set', () => {
     expect(messages(validator, layout)).toEqual([]);
     for (const name of ['Attribution', 'DerivedValue', 'SortControl']) {
       expect(messages(validator, [{id: 'root', component: name}])).toEqual([
-        `Unknown component type: "${name}"`,
+        expect.stringMatching(new RegExp(`^Unknown component type '${name}'`)),
       ]);
     }
-    expect(
-      messages(validator, [{id: 'root', component: 'Slot', source: 'gmail', gap: 'flights'}]),
-    ).not.toEqual([]);
     const openUrl = [
       {
         id: 'root',
@@ -121,6 +118,6 @@ describe('the layout surface keep-set', () => {
       },
       {id: 'l', component: 'Text', text: 'Go'},
     ];
-    expect(messages(validator, openUrl)).toEqual(['Unknown function: "openUrl"']);
+    expect(messages(validator, openUrl)).toEqual(["Unrecognized function 'openUrl'"]);
   });
 });

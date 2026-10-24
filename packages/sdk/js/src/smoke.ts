@@ -5,7 +5,13 @@
  * a sign-in agent's answer. Sending the A2A request and seeing the task end stay with each
  * transport; nothing here depends on an A2A package.
  */
-import {componentReferences, extractRefFields, ROOT_ID, type RefFields} from './a2ui/graph.js';
+import {Catalog} from '@a2ui/web_core/catalog';
+import {
+  buildComponentRefMap,
+  getComponentReferences,
+  V09_CHILD_REF_OPTIONS,
+  type ComponentRefMap,
+} from '@a2ui/web_core/validation';
 import type {A2uiCatalogSchema} from './a2ui/types.js';
 import {createA2uiValidator, formatA2uiFinding, type A2uiValidator} from './a2ui/validator.js';
 import {readAuthRequired, AUTH_REQUIRED_STATE} from './a2uiverse.js';
@@ -85,7 +91,9 @@ const OPERATIONS = ['createSurface', 'updateComponents', 'updateDataModel', 'del
  * where a child has not arrived — is judged as it stands at the end. With no root, every component
  * is kept, so its absence is a finding.
  */
-function settled(messages: readonly A2uiMessage[], refFields: ReadonlyMap<string, RefFields>) {
+const ROOT_ID = 'root';
+
+function settled(messages: readonly A2uiMessage[], refs: ComponentRefMap) {
   const byId = new Map<string, Record<string, unknown>>();
   const loose: unknown[] = [];
   const rest: A2uiMessage[] = [];
@@ -109,7 +117,7 @@ function settled(messages: readonly A2uiMessage[], refFields: ReadonlyMap<string
     const component = byId.get(id);
     if (!component || drawn.has(id)) return;
     drawn.add(id);
-    for (const ref of componentReferences(component, refFields)) visit(ref.id);
+    for (const [ref] of getComponentReferences(component, refs)) visit(ref);
   };
   visit(ROOT_ID);
   const tree = byId.has(ROOT_ID)
@@ -142,7 +150,7 @@ export function checkPaint(messages: readonly A2uiMessage[], check: PaintCheck):
   if (surfaces.size === 0) return ['the answer paints nothing: no createSurface'];
 
   const validators = new Map<string, A2uiValidator>();
-  const refs = new Map<string, Map<string, RefFields>>();
+  const refMaps = new Map<string, ComponentRefMap>();
   const options = new Map<string, CatalogOptions>();
   for (const [surfaceId, {catalogId, messages: own}] of surfaces) {
     const at = `surface ${JSON.stringify(surfaceId)}`;
@@ -166,13 +174,21 @@ export function checkPaint(messages: readonly A2uiMessage[], check: PaintCheck):
       validator = createA2uiValidator({catalog: schema});
       validators.set(catalogId, validator);
     }
-    let refFields = refs.get(catalogId);
-    if (!refFields) {
-      refFields = extractRefFields(schema);
-      refs.set(catalogId, refFields);
+    let refs = refMaps.get(catalogId);
+    if (!refs) {
+      try {
+        refs = buildComponentRefMap(
+          Catalog.fromJson(schema, '0.9', catalogId),
+          V09_CHILD_REF_OPTIONS,
+        );
+      } catch (error) {
+        findings.push(`${at}: the catalog does not load: ${(error as Error).message}`);
+        continue;
+      }
+      refMaps.set(catalogId, refs);
     }
     findings.push(
-      ...validator.validate(settled(own, refFields)).map(f => `${at}: ${formatA2uiFinding(f)}`),
+      ...validator.validate(settled(own, refs)).map(f => `${at}: ${formatA2uiFinding(f)}`),
     );
     let declared = options.get(catalogId);
     if (!declared) {

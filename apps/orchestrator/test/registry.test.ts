@@ -236,7 +236,7 @@ describe('install', () => {
     test('a host interface the platform does not supply', async () => {
       const artifact = await fixtureArtifact(GMAIL, {hostInterface: '1.0.0'});
       expect(await refused({card: {catalogs: [GMAIL]}, catalogs: [artifact]})).toEqual([
-        `catalog artifact 1 (${GMAIL}): host interface "1.0.0" is not one the platform supplies (it supplies "0.9.1")`,
+        `catalog artifact 1 (${GMAIL}): host interface "1.0.0" is not one the platform supplies (it supplies "0.14.0")`,
       ]);
     });
 

@@ -79,6 +79,8 @@ describe('pruneCatalog', () => {
     );
     expect(
       validator.validate(paint([{id: 'root', component: 'Image', url: 'https://x/y.png'}])),
-    ).toEqual([expect.objectContaining({message: 'Unknown component type: "Image"'})]);
+    ).toEqual([
+      expect.objectContaining({message: expect.stringMatching(/^Unknown component type 'Image'/)}),
+    ]);
   });
 });

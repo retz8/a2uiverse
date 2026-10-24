@@ -55,6 +55,7 @@ describe('classifySpecifier', () => {
       'react-dom/client',
       '@a2ui/react/v0_9',
       '@a2ui/web_core/v0_9',
+      '@a2ui/web_core/v0_9/basic_catalog',
       'zod',
     ]) {
       expect(classifySpecifier(s)).toBe('host');
@@ -63,7 +64,7 @@ describe('classifySpecifier', () => {
   test('another specifier under a host package is refused', () => {
     expect(classifySpecifier('@a2ui/react/v0_8')).toBe('refuse');
     expect(classifySpecifier('react-dom/server')).toBe('refuse');
-    expect(classifySpecifier('@a2ui/web_core/v0_9/basic_catalog')).toBe('refuse');
+    expect(classifySpecifier('@a2ui/web_core/v1_0')).toBe('refuse');
     expect(classifySpecifier('zod/v4')).toBe('refuse');
   });
   test('everything else is bundled', () => {
@@ -172,13 +173,13 @@ describe('the app id', () => {
 
 describe('the host interface an artifact was built against (task-11.4 decision 4)', () => {
   test('one the platform supplies passes', () => {
-    expect(SUPPORTED_HOST_INTERFACES).toEqual(['0.9.1']);
-    expect(checkHostInterface('0.9.1')).toEqual([]);
+    expect(SUPPORTED_HOST_INTERFACES).toEqual(['0.14.0']);
+    expect(checkHostInterface('0.14.0')).toEqual([]);
   });
 
   test('any other is refused, naming what the platform supplies', () => {
     expect(checkHostInterface('1.0')).toEqual([
-      'host interface "1.0" is not one the platform supplies (it supplies "0.9.1")',
+      'host interface "1.0" is not one the platform supplies (it supplies "0.14.0")',
     ]);
   });
 });

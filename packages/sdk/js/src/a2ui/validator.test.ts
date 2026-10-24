@@ -1,7 +1,7 @@
 /**
- * The A2UI validator over the pinned v0.9.1 spec and upstream's basic catalog: what the
- * conformance suite's simplified schemas cannot show — the real message shapes, props, and
- * functions through the catalog — and how a finding reads.
+ * The A2UI validator over upstream's basic catalog: what the conformance suite does not show —
+ * the real message shapes, props and functions through the catalog, each bad component a finding
+ * beside the graph's first failure — and how a finding reads.
  */
 import {readFileSync} from 'node:fs';
 import {describe, expect, test} from 'vitest';
@@ -57,11 +57,21 @@ describe('a valid payload', () => {
 });
 
 describe('the schema', () => {
-  test('an envelope missing its version, or of no known type, is one finding at the message', () => {
+  test('an envelope missing its version, or of no known type, is one finding', () => {
     expect(validator.validate([{createSurface: {surfaceId: 's', catalogId: 'c'}}])).toEqual([
-      {category: 'ValidationError', path: '/0', message: "must have required property 'version'"},
+      {category: 'ValidationError', message: expect.stringContaining("a valid 'version'")},
     ]);
-    expect(validator.validate([{version: 'v0.9', paint: {}}]).length).toBeGreaterThan(0);
+    expect(validator.validate([{version: 'v0.9', paint: {}}])).toEqual([
+      {category: 'ValidationError', message: expect.stringContaining('exactly one update action')},
+    ]);
+  });
+
+  test('a components update missing its version is found at the update', () => {
+    const [, update] = surface(valid);
+    const {version: _version, ...unversioned} = update!;
+    expect(validator.validate([surface(valid)[0], unversioned])).toEqual([
+      expect.objectContaining({category: 'ValidationError', path: '/1/version'}),
+    ]);
   });
 
   test('an unknown component is named, and nothing else is said about it', () => {
@@ -72,7 +82,7 @@ describe('the schema', () => {
         category: 'ValidationError',
         path: '/1/updateComponents/components/1/component',
         componentId: 'title',
-        message: 'Unknown component type: "Heading"',
+        message: expect.stringMatching(/^Unknown component type 'Heading'/),
       },
     ]);
   });
@@ -83,7 +93,7 @@ describe('the schema', () => {
     const findings = validator.validate(surface(components));
     expect(findings).toHaveLength(1);
     expect(formatA2uiFinding(findings[0]!)).toMatch(
-      /^\/1\/updateComponents\/components\/1\/variant \(title\): must be equal to one of the allowed values/,
+      /^\/1\/updateComponents\/components\/1\/variant \(title\): Invalid enum value/,
     );
   });
 
@@ -91,7 +101,7 @@ describe('the schema', () => {
     const components = clone(valid);
     components[1] = {id: 'title', component: 'Text', text: 'Inbox', colour: 'red'};
     expect(validator.validate(surface(components)).map(f => f.message)).toEqual([
-      'must NOT have unevaluated properties ("colour")',
+      "Unrecognized key(s) in object: 'colour'",
     ]);
   });
 
@@ -106,7 +116,7 @@ describe('the schema', () => {
         category: 'ValidationError',
         path: '/1/updateComponents/components/5/action/functionCall/call',
         componentId: 'go',
-        message: 'Unknown function: "openStore"',
+        message: "Unrecognized function 'openStore'",
       },
     ]);
   });
@@ -116,16 +126,20 @@ describe('the component graph', () => {
   test('a dangling child is found with the field that names it', () => {
     const components = clone(valid);
     components[0] = {id: 'root', component: 'Column', children: ['title', 'ghost']};
-    expect(validator.validate(surface(components)).map(f => f.message)).toContain(
-      "Component 'root' references non-existent component 'ghost' in field 'children'",
+    expect(validator.validate(surface(components)).map(f => f.message)).toContainEqual(
+      expect.stringContaining(
+        "Component 'root' references non-existent component 'ghost' in field 'children[1]'",
+      ),
     );
   });
 
   test('a template naming a missing component is dangling', () => {
     const components = clone(valid);
     components[2] = {id: 'list', component: 'List', children: {path: '/items', componentId: 'row'}};
-    expect(validator.validate(surface(components)).map(f => f.message)).toContain(
-      "Component 'list' references non-existent component 'row' in field 'children.componentId'",
+    expect(validator.validate(surface(components)).map(f => f.message)).toContainEqual(
+      expect.stringContaining(
+        "Component 'list' references non-existent component 'row' in field 'children.componentId'",
+      ),
     );
   });
 
@@ -136,7 +150,7 @@ describe('the component graph', () => {
     );
     const duplicate = [...clone(valid), {id: 'title', component: 'Text', text: 'again'}];
     expect(validator.validate(surface(duplicate)).map(f => f.message)).toContain(
-      'Duplicate component ID: title',
+      "Duplicate component ID: 'title'",
     );
   });
 
@@ -158,8 +172,7 @@ describe('the component graph', () => {
     expect(validator.validate(surface(orphan))).toEqual([
       {
         category: 'IntegrityError',
-        componentId: 'stray',
-        message: "Component 'stray' is not reachable from 'root'",
+        message: expect.stringMatching(/^Component 'stray' is not reachable from 'root'/),
       },
     ]);
   });
@@ -170,5 +183,35 @@ describe('the component graph', () => {
     expect(validator.validate(surface(components)).map(f => f.message)).toContain(
       "Invalid path syntax: '/bad/~2'",
     );
+  });
+});
+
+describe('every bad component, the first failure of the graph', () => {
+  test('each bad component is a finding of its own', () => {
+    const components = clone(valid);
+    components[1] = {id: 'title', component: 'Text', text: 'Inbox', variant: 'h9'};
+    components[4] = {id: 'go-label', component: 'Text', text: 'Open', colour: 'red'};
+    expect(validator.validate(surface(components)).map(f => f.componentId)).toEqual([
+      'title',
+      'go-label',
+    ]);
+  });
+
+  test('a bad component does not hide the graph: both are found', () => {
+    const components = clone(valid);
+    components[0] = {id: 'root', component: 'Column', children: ['title', 'ghost']};
+    components[1] = {id: 'title', component: 'Text', text: 'Inbox', variant: 'h9'};
+    expect(validator.validate(surface(components)).map(f => f.category)).toEqual([
+      'ValidationError',
+      'IntegrityError',
+    ]);
+  });
+
+  test('the graph says its first failure only', () => {
+    const components = clone(valid);
+    components[0] = {id: 'root', component: 'Column', children: ['ghost-1', 'ghost-2']};
+    expect(validator.validate(surface(components))).toEqual([
+      expect.objectContaining({message: expect.stringContaining("'ghost-1'")}),
+    ]);
   });
 });

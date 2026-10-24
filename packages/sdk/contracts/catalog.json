@@ -8,7 +8,7 @@
     "rule": "A catalog package's entry exports CATALOG, a Catalog from @a2ui/web_core built for @a2ui/react's React catalog model; its id is the catalog id. Provider, when exported, is a React component taking children — the one Provider of SPEC §9.2, wrapping every fragment of the catalog; absent, a passthrough wraps them. Every other export is ignored."
   },
   "hostInterfaces": {
-    "0.9.1": {
+    "0.14.0": {
       "global": "__a2uiverse_host__",
       "specifiers": [
         "react",
@@ -17,10 +17,11 @@
         "react-dom/client",
         "@a2ui/react/v0_9",
         "@a2ui/web_core/v0_9",
+        "@a2ui/web_core/v0_9/basic_catalog",
         "zod"
       ],
       "stylesheetLoader": "loadStylesheet",
-      "rule": "The client registers one object under the global before any artifact loads: its version, the module namespace of each specifier — the client's own instances — and loadStylesheet, which loads a stylesheet by URL once. An artifact reaches the host singletons only through it: Stellify, the pack tool, rewrites each import of a specifier to a read from the interface and each stylesheet import to a load through it, and refuses any other specifier under a host package. Keyed by the A2UI version the host lends; the client refuses at load an artifact built against one it does not lend."
+      "rule": "The client registers one object under the global before any artifact loads: its version, the module namespace of each specifier — the client's own instances — and loadStylesheet, which loads a stylesheet by URL once. An artifact reaches the host singletons only through it: Stellify, the pack tool, rewrites each import of a specifier to a read from the interface and each stylesheet import to a load through it, and refuses any other specifier under a host package. Keyed by the A2UI runtime release the host lends, the release of @a2ui/react and @a2ui/web_core; the client refuses at load an artifact built against one it does not lend."
     }
   },
   "artifact": {

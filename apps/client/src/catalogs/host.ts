@@ -11,6 +11,7 @@ import * as ReactDom from 'react-dom';
 import * as ReactDomClient from 'react-dom/client';
 import * as A2uiReact from '@a2ui/react/v0_9';
 import * as A2uiWebCore from '@a2ui/web_core/v0_9';
+import * as A2uiBasicCatalog from '@a2ui/web_core/v0_9/basic_catalog';
 import * as Zod from 'zod';
 import {
   HOST_INTERFACE_GLOBAL,
@@ -27,6 +28,7 @@ export const HOST_MODULES: Record<HostSpecifier, unknown> = {
   'react-dom/client': ReactDomClient,
   '@a2ui/react/v0_9': A2uiReact,
   '@a2ui/web_core/v0_9': A2uiWebCore,
+  '@a2ui/web_core/v0_9/basic_catalog': A2uiBasicCatalog,
   zod: Zod,
 };
 

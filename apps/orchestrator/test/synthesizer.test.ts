@@ -131,7 +131,9 @@ describe('validateSynthesis (task-6.3 decision 9)', () => {
     const unknown = good();
     unknown.tree.components[1] = {id: 'sort', component: 'Sorter', sort: {path: '/sorts/0'}};
     expect(checkSynthesis(unknown)).toEqual([
-      '/tree/components/1/component (sort): Unknown component type: "Sorter"',
+      expect.stringMatching(
+        /^\/tree\/components\/1\/component \(sort\): Unknown component type 'Sorter'/,
+      ),
     ]);
     const badProp = good();
     badProp.tree.components[4] = {id: 'c-id', component: 'DerivedValue', cell: 'literal'};
@@ -166,7 +168,9 @@ describe('validateSynthesis (task-6.3 decision 9)', () => {
       children: ['c-id', 'ghost', 'c-best'],
     };
     expect(checkSynthesis(dangling)).toEqual([
-      "/tree (row): Component 'row' references non-existent component 'ghost' in field 'children'",
+      expect.stringMatching(
+        /^\/tree: Component 'row' references non-existent component 'ghost' in field 'children\[1\]'/,
+      ),
     ]);
     const noRoot = good();
     noRoot.tree.components[0] = {...noRoot.tree.components[0]!, id: 'top'};
@@ -179,8 +183,10 @@ describe('validateSynthesis (task-6.3 decision 9)', () => {
         component: 'Column',
         children: ['sort', 'rows', 'x'],
       };
-      expect(checkSynthesis(primitive)).toContain(
-        `/tree/components/6/component (x): Unknown component type: "${name}"`,
+      expect(checkSynthesis(primitive)).toContainEqual(
+        expect.stringMatching(
+          new RegExp(`^/tree/components/6/component \\(x\\): Unknown component type '${name}'`),
+        ),
       );
     }
   });

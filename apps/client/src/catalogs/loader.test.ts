@@ -32,7 +32,7 @@ const demoModule = (catalogId = DEMO): Record<string, unknown> => ({
 /** A registry in memory: the tables it answers in turn, one descriptor, one module. */
 function fakeRegistry({
   tables = [[...CLIENT_ROWS, DEMO_ROW]],
-  descriptor = {catalogId: DEMO, entry: 'index.js', hostInterface: '0.9.1'},
+  descriptor = {catalogId: DEMO, entry: 'index.js', hostInterface: '0.14.0'},
   module = () => Promise.resolve(demoModule()),
 }: {
   tables?: CatalogRow[][];
@@ -121,7 +121,7 @@ describe('loading a catalog', () => {
 
   it('refuses a descriptor for another catalog', async () => {
     const {loader} = fakeRegistry({
-      descriptor: {catalogId: 'urn:catalog:other', entry: 'index.js', hostInterface: '0.9.1'},
+      descriptor: {catalogId: 'urn:catalog:other', entry: 'index.js', hostInterface: '0.14.0'},
     });
     await expect(loader.load(DEMO)).rejects.toThrow('the artifact is for urn:catalog:other');
   });
@@ -222,7 +222,7 @@ describe('a request that gets no answer (task-11.8 decision 20)', () => {
       const fetchJson = vi.fn(async (url: string) => {
         if (url === `${REGISTRY}catalogs.json`)
           return reads++ === 0 ? never() : [...CLIENT_ROWS, DEMO_ROW];
-        return {catalogId: DEMO, entry: 'index.js', hostInterface: '0.9.1'};
+        return {catalogId: DEMO, entry: 'index.js', hostInterface: '0.14.0'};
       });
       const loader = createCatalogLoader({
         registry: REGISTRY,

@@ -30,8 +30,8 @@ import type {SearchRecord} from './storeSearch.js';
  * its request not blank (task-15.4 decisions 3, 4); the merged view's `columns`, `columnSources` and `join` on `shell` alone, the join's
  * home and nouns naming exactly the dispatched vendor sources, a column mark beside every column
  * naming a dispatched vendor source or null (task-8.3 decision 12); what the Planner may write on
- * a `Slot` (`source`, `gap`, `chooseAccount` or `addAccount`, and a positive `weight`; the rest
- * are the painter's); the add-account tile on a shortlisted app that asks sign-in, once per app;
+ * a `Slot` (exactly one of `source`, `gap`, `chooseAccount` or `addAccount` — task-16.4
+ * decision 8 — and a positive `weight`; the rest are the painter's); the add-account tile on a shortlisted app that asks sign-in, once per app;
  * open the App Library's app an installed one (task-14.5 decision 11); and a data model of
  * literals. One line per finding, with its path, so the retry can
  * hand them back.
@@ -366,6 +366,9 @@ function joinErrors(document: LayoutSurface, vendorSources: readonly string[]): 
   return errors;
 }
 
+/** What a Slot holds, exactly one of them (task-16.4 decision 8). */
+const SLOT_HOLDINGS = ['source', 'gap', 'chooseAccount', 'addAccount'] as const;
+
 const PAINTER_PROPS = [
   'state',
   'label',
@@ -444,6 +447,12 @@ function slotErrors(document: LayoutSurface): string[] {
         errors.push(`/tree (${slot.id}): a second Slot holds ${name}; one Slot per dispatch entry`);
       }
       held.add(key);
+    }
+    const holds = SLOT_HOLDINGS.filter(prop => prop in slot);
+    if (holds.length !== 1) {
+      errors.push(
+        `/tree (${slot.id}): a Slot holds exactly one of source, gap, chooseAccount or addAccount; ${holds.length === 0 ? 'this one holds none' : `this one holds ${holds.join(' and ')}`}`,
+      );
     }
     if (PAINTER_PROPS.some(prop => prop in slot)) {
       errors.push(

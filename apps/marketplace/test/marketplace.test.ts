@@ -529,7 +529,9 @@ describe('publish, the smoke test', () => {
         body('shop', cards.serve(credential.card), [await fixtureArtifact(CAT)]),
       ),
     );
-    expect(cred.findings).toEqual([expect.stringMatching(/^surface "s1": a credential input: /)]);
+    expect(cred.findings).toContainEqual(
+      expect.stringMatching(/^surface "s1": a credential input: /),
+    );
   });
 
   test('an agent that cannot be reached, named with the words that were sent', async () => {

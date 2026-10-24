@@ -151,7 +151,9 @@ describe('the tree through the A2UI validator', () => {
         children: ['heading', 'apps', 'library', 'x'],
       };
       expect(check(doc)).toEqual([
-        `/tree/components/8/component (x): Unknown component type: "${name}"`,
+        expect.stringMatching(
+          new RegExp(`^/tree/components/8/component \\(x\\): Unknown component type '${name}'`),
+        ),
       ]);
     }
     const doc = platformAnswer();
@@ -161,7 +163,7 @@ describe('the tree through the A2UI validator', () => {
       child: 'library-label',
       action: {functionCall: {call: 'openUrl', args: {url: 'https://x'}}},
     };
-    expect(check(doc).join('\n')).toContain('Unknown function: "openUrl"');
+    expect(check(doc).join('\n')).toContain("Unrecognized function 'openUrl'");
   });
 
   test('a missing root and a dangling child are found, by path', () => {
@@ -409,6 +411,19 @@ describe('what the Planner may write on a Slot', () => {
       columns: ['Pull request'],
     };
     expect(check(onSlot)).toHaveLength(1);
+  });
+
+  test('exactly one of source, gap, chooseAccount or addAccount', () => {
+    const both = fanOut();
+    both.tree.components[4] = {id: 'gh', component: 'Slot', source: 'github', gap: 'flights'};
+    expect(check(both)).toEqual([
+      '/tree (gh): a Slot holds exactly one of source, gap, chooseAccount or addAccount; this one holds source and gap',
+    ]);
+    const none = fanOut();
+    none.tree.components[4] = {id: 'gh', component: 'Slot', weight: 1};
+    expect(check(none)).toContain(
+      '/tree (gh): a Slot holds exactly one of source, gap, chooseAccount or addAccount; this one holds none',
+    );
   });
 
   test('weight is a positive number', () => {

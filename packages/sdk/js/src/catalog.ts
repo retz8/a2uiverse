@@ -86,11 +86,14 @@ export function checkCatalogExports(
 
 // --- The host-module interface ----------------------------------------------------------------
 
-/** The A2UI version the one interface lent today is keyed by (task-11.2 decision 2). */
-export const HOST_INTERFACE_VERSION = '0.9.1';
+/**
+ * The A2UI runtime release — `@a2ui/react` and `@a2ui/web_core` — the one interface lent today is
+ * named by (task-11.2 decision 2, amended by task 16.4).
+ */
+export const HOST_INTERFACE_VERSION = '0.14.0';
 
 /**
- * The host interfaces the platform supplies, by the A2UI version each lends: an artifact built
+ * The host interfaces the platform supplies, by the A2UI runtime release each lends: an artifact built
  * against another is refused at install (task-11.4 decision 4) and at load.
  */
 export const SUPPORTED_HOST_INTERFACES: readonly string[] = [HOST_INTERFACE_VERSION];
@@ -113,7 +116,8 @@ export const HOST_INTERFACE_GLOBAL = '__a2uiverse_host__';
 /**
  * Exactly what the host lends: Stellify externalizes these and refuses any other specifier under a
  * host package. `react-dom/client` is lent beside `react-dom` because React 19 keeps `createRoot`
- * there alone and design systems reach it (task 11.3).
+ * there alone and design systems reach it (task 11.3); `@a2ui/web_core/v0_9/basic_catalog` is the
+ * basic catalog, which a catalog building on it shares with the page (task 16.4).
  */
 export const HOST_SPECIFIERS = [
   'react',
@@ -122,6 +126,7 @@ export const HOST_SPECIFIERS = [
   'react-dom/client',
   '@a2ui/react/v0_9',
   '@a2ui/web_core/v0_9',
+  '@a2ui/web_core/v0_9/basic_catalog',
   'zod',
 ] as const;
 

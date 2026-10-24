@@ -1,5 +1,6 @@
 /**
- * Copies the pinned A2UI v0.9.1 spec schemas, its basic catalog, and upstream's validator conformance cases into
+ * Copies the pinned A2UI v0.9.1 spec schemas the platform reads, its basic catalog, and upstream's v0.9 validator
+ * conformance cases with the files they read into
  * `packages/sdk/a2ui-spec/`, from the `upstream/main` ref of the sibling A2UI fork, and records the
  * upstream commit in `a2ui-spec/UPSTREAM.json`. The copies are never hand-edited: sync the spec
  * (`git -C ../A2UI fetch upstream`), then run `pnpm --filter @a2uiverse/sdk sync-a2ui-spec`.
@@ -18,7 +19,7 @@ const target = resolve(here, '../../a2ui-spec');
 const REF = 'upstream/main';
 
 const SPEC_FILES = [
-  'specification/v0_9_1/json/server_to_client.json',
+  // The definitions a catalog's component schemas reference: the catalog gate compiles against them.
   'specification/v0_9_1/json/common_types.json',
   // The two sides of catalog negotiation (task-11.2 decision 10): what an agent's card declares
   // and what the hub tells each agent it may paint in.
@@ -26,22 +27,22 @@ const SPEC_FILES = [
   'specification/v0_9_1/json/client_capabilities.json',
   'specification/v0_9_1/catalogs/basic/catalog.json',
 ];
-const CONFORMANCE = 'conformance/core/validator.yaml';
+const CONFORMANCE = 'conformance/core/validator_v0_9.yaml';
 
 const git = (...args) => execFileSync('git', ['-C', repo, ...args], {encoding: 'utf8'});
 const show = path => git('show', `${REF}:${path}`);
 
 const commit = git('rev-parse', REF).trim();
 
-// The conformance cases name their schemas by path relative to `conformance/`; copy each one.
+// The conformance cases name the catalogs they read by path from the repository's root; copy each one.
 const cases = parse(show(CONFORMANCE));
-const testData = new Set();
-for (const testCase of cases) {
-  for (const value of Object.values(testCase.catalog ?? {})) {
-    if (typeof value === 'string' && value.startsWith('test_data/')) testData.add(value);
-  }
-}
-const files = [...SPEC_FILES, CONFORMANCE, ...[...testData].sort().map(p => `conformance/${p}`)];
+const read = new Set();
+for (const testCase of cases) for (const path of testCase.catalogPaths ?? []) read.add(path);
+const files = [
+  ...SPEC_FILES,
+  CONFORMANCE,
+  ...[...read].filter(p => !SPEC_FILES.includes(p)).sort(),
+];
 
 rmSync(target, {recursive: true, force: true});
 for (const file of files) {

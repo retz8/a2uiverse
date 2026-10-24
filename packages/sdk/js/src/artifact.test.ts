@@ -19,7 +19,7 @@ async function descriptorFor(files: Record<string, string>): Promise<ArtifactDes
     catalogId: 'https://example.com/gmail/catalog.json',
     entry: 'index.js',
     schema: 'catalog.json',
-    hostInterface: '0.9.1',
+    hostInterface: '0.14.0',
     files: hashed,
     package: {name: 'gmail-catalog', version: '0.3.0'},
     packedBy: {tool: 'a2uiverse-pack', version: '0.1.0'},
