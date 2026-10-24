@@ -1,12 +1,12 @@
 # Phase 16 — Upstream upgrade
 
-The packages the A2UI project publishes, brought to their current releases in both repos: `@a2ui/react` and `@a2ui/web_core`, `a2ui-agent-sdk`, and the two agent toolkits split out of it, `a2ui-a2a` and `a2ui-adk`. The phase changes no behaviour of A2UIVerse. Amends SPEC §9.1, §14 and every other section the upgrade's decisions change, and the gated v1.0 item in `_dev/TODO.md`.
+The packages the A2UI project publishes, brought to their current releases in both repos: `@a2ui/react` and `@a2ui/web_core`, `a2ui-agent-sdk` with `a2ui-core` beneath it, and `a2ui-a2a`, the A2A toolkit split out of it. The phase changes no behaviour of A2UIVerse. Amends SPEC §9.1, §14 and every other section the upgrade's decisions change, and the gated v1.0 item in `_dev/TODO.md`.
 
 ## Scope
 
 - The platform runtime on `@a2ui/react` 0.14.0 and `@a2ui/web_core` 0.14.0: the sdk's contracts, the client, the shell catalog, the orchestrator, Stellify and the marketplace.
 - The host-module interface, which lends web_core and react to catalog artifacts at runtime, at a new version; every first-party catalog re-packed and republished against it (`[apps]`).
-- The agent kit on `a2ui-agent-sdk` 0.9.0 with `a2ui-a2a` 0.1.0 and `a2ui-adk` 0.1.0, the seven agents following (`[apps]`).
+- The agent kit on `a2ui-agent-sdk` 0.9.0, `a2ui-core` 0.4.0 and `a2ui-a2a` 0.1.0, the seven agents following (`[apps]`).
 - The local patch on `@a2ui/react`, the workarounds tied to `_dev/a2ui-findings.md`, the kit's shims over the SDK, the sdk's validator ported from upstream's checks, and the tests that pin upstream behaviour — each against the pinned releases.
 - The spec copy under the sdk synced to `upstream/main`.
 - The verdict on the gated v1.0 migration.
@@ -17,7 +17,7 @@ The packages the A2UI project publishes, brought to their current releases in bo
 
 ### 1. The target is today's releases, at exact versions
 
-`@a2ui/react` 0.14.0, `@a2ui/web_core` 0.14.0, `a2ui-agent-sdk` 0.9.0, `a2ui-a2a` 0.1.0 and `a2ui-adk` 0.1.0, pinned exactly rather than by caret, in both repos. Unreleased `upstream/main` is not a target. The next bump is a decision of its own, not an install.
+`@a2ui/react` 0.14.0, `@a2ui/web_core` 0.14.0, `a2ui-agent-sdk` 0.9.0, `a2ui-core` 0.4.0 and `a2ui-a2a` 0.1.0, pinned exactly rather than by caret, in both repos. `a2ui-adk` is not a dependency. Unreleased `upstream/main` is not a target. The next bump is a decision of its own, not an install.
 
 ### 2. The web_core break is carried as a local patch
 
