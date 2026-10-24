@@ -49,7 +49,7 @@ Gates green in both repos, every e2e suite green, and a live run through the tun
 
 ### 9. Three tracks
 
-The platform runtime: the sdk's contracts first, the spec copy early, then the client, the shell catalog, the orchestrator, Stellify and the marketplace. The apps' catalogs (`[apps]`): after the sdk and Stellify, parallel with the rest of the platform track. The agent kit (`[apps]`): beside everything from the first day, the seven agents following and the recorded beats re-recorded where the wire changed. Then the dev harness once the first two tracks land, the live acceptance, and the records, READMEs and the `a2ui-sdk-design` skill last. Doc edits open the phase: SPEC, the TODO's gate restatement and its stale line on the toolkits' PyPI release, the findings file and the delta register.
+The platform runtime: the sdk's contracts first, the spec copy early, then the client, the shell catalog, the orchestrator, Stellify and the marketplace. The apps' catalogs (`[apps]`): after the sdk and Stellify, parallel with the rest of the platform track. The agent kit (`[apps]`): beside everything from the first day, the seven agents following, the apps' recorded beats kept as recorded. Then the dev harness once the first two tracks land, the live acceptance, and the records, READMEs and the `a2ui-sdk-design` skill last. Doc edits open the phase: SPEC, the TODO's gate restatement and its stale line on the toolkits' PyPI release, the findings file and the delta register.
 
 ## Invariants
 
